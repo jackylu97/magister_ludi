@@ -27,11 +27,13 @@ import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   buildingProductionCost,
-  cityYields,
   foundCityAt,
-  productionModifiers,
   realiseItem,
 } from '../../src/sim/cities';
+import {
+  foldCity,
+  productionModifiers,
+} from '../../src/sim/yields/town';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import {
@@ -48,7 +50,7 @@ import { RULES } from '../../src/sim/rulesData';
 import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import {
   anyCardDef,
-  cardCityYields,
+  explainCardCityYields,
   describeCard,
   liveCityEffects,
 } from '../../src/sim/statecraft';
@@ -64,7 +66,7 @@ const FAITH_RATE = RULES.production.faithPerHammer;
  * — this project has no node typings and a source assertion is not worth a
  * dependency (`cities.test.ts`' note).
  */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -275,23 +277,23 @@ describe('a patron is a card', () => {
       )!,
     );
     convert(g.state, here, 4);
-    const was = cityYields(g.state, elsewhere);
-    const before = cityYields(g.state, here).faith;
+    const was = foldCity(g.state, elsewhere);
+    const before = foldCity(g.state, here).faith;
     here.consecration = 'eternalFlame';
-    expect(cityYields(g.state, here).faith).toBe(before + 4);
-    expect(cityYields(g.state, elsewhere)).toEqual(was);
+    expect(foldCity(g.state, here).faith).toBe(before + 4);
+    expect(foldCity(g.state, elsewhere)).toEqual(was);
   });
 
   it("the Scholars' Crypt pays a beaker for every two followers, in the breakdown", () => {
     const g = game();
     const city = found(g.state, 0);
     convert(g.state, city, 6);
-    const before = cityYields(g.state, city).science;
+    const before = foldCity(g.state, city).science;
     city.consecration = 'scholarsCrypt';
-    expect(cityYields(g.state, city).science).toBe(before + 3);
+    expect(foldCity(g.state, city).science).toBe(before + 3);
     // And it is one labelled line of the card breakdown the panel prints —
     // the total is the fold of the list, never computed beside it.
-    const line = cardCityYields(g.state, city).find((entry) =>
+    const line = explainCardCityYields(g.state, city).find((entry) =>
       entry.source.includes("The Scholars' Crypt"),
     );
     expect(line).toBeDefined();
@@ -303,10 +305,10 @@ describe('a patron is a card', () => {
     const g = game();
     const city = found(g.state, 0);
     convert(g.state, city, 5);
-    const before = cityYields(g.state, city).culture;
+    const before = foldCity(g.state, city).culture;
     city.consecration = 'choirLoft';
     // Five followers, two to a helping: two helpings, the odd one unpaid.
-    expect(cityYields(g.state, city).culture).toBe(before + 2);
+    expect(foldCity(g.state, city).culture).toBe(before + 2);
   });
 
   it('the Treasury of Relics pays for the faith buildings standing here', () => {
@@ -314,15 +316,15 @@ describe('a patron is a card', () => {
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
     bumpRevision(g.state);
-    const before = cityYields(g.state, city).gold;
+    const before = foldCity(g.state, city).gold;
     city.consecration = 'treasuryOfRelics';
-    expect(cityYields(g.state, city).gold).toBe(before + 6);
+    expect(foldCity(g.state, city).gold).toBe(before + 6);
     // A building of another category is not a relic hall — the count is the
     // rows' own `category`, so a second faith building joins it for free.
-    const withLibrary = cityYields(g.state, city).gold;
+    const withLibrary = foldCity(g.state, city).gold;
     city.buildings.push('library');
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).gold).toBe(withLibrary + buildingDef('library').gold);
+    expect(foldCity(g.state, city).gold).toBe(withLibrary + buildingDef('library').gold);
   });
 
   it("the Masons' Chapel puts hammers behind wonders here, and nothing else", () => {
@@ -345,9 +347,9 @@ describe('a patron is a card', () => {
     const g = game();
     const city = found(g.state, 0);
     convert(g.state, city, 4);
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     city.consecration = 'eternalFlame';
-    expect(cityYields(g.state, city).faith).toBe(before + 4);
+    expect(foldCity(g.state, city).faith).toBe(before + 4);
   });
 
   it('counts nobody in a town that follows nothing', () => {
@@ -357,24 +359,24 @@ describe('a patron is a card', () => {
     // patron counts nothing — the derived reading, never a stored one.
     convert(g.state, city, 1);
     city.population = 9;
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     city.consecration = 'eternalFlame';
-    expect(cityYields(g.state, city).faith).toBe(before);
+    expect(foldCity(g.state, city).faith).toBe(before);
   });
 
   it('follows the stones: a captured town pays its captor', () => {
     const g = game();
     const city = found(g.state, 0);
     convert(g.state, city, 4);
-    const bare = cityYields(g.state, city).faith;
+    const bare = foldCity(g.state, city).faith;
     city.consecration = 'eternalFlame';
-    const paid = cityYields(g.state, city).faith;
+    const paid = foldCity(g.state, city).faith;
     expect(paid).toBe(bare + 4);
     city.ownerId = 1;
     // Nothing was transferred and nothing was cleared: the patron is read off
     // the town, so it pays whoever holds it.
     expect(city.consecration).toBe('eternalFlame');
-    expect(cityYields(g.state, city).faith).toBe(paid);
+    expect(foldCity(g.state, city).faith).toBe(paid);
   });
 });
 

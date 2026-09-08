@@ -27,12 +27,14 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import {
   buildingProductionCost,
-  cityYields,
   foundCityAt,
   queueItemName,
   tilePurchaseError,
   unitProductionCost,
 } from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
 import {
@@ -700,13 +702,13 @@ describe('a town holding a Cathedral sells its units for faith', () => {
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
     bumpRevision(g.state);
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     expect(before).toBeGreaterThan(0);
     city.buildings.push('highTemple');
     bumpRevision(g.state);
     // Exact since batch X: a quarter more on three faith is three and three
     // quarters, and the pool keeps the three quarters.
-    expect(cityYields(g.state, city).faith).toBe((before * 125) / 100);
+    expect(foldCity(g.state, city).faith).toBe((before * 125) / 100);
   });
 });
 

@@ -24,19 +24,23 @@ import {
   hasPerTurnImpact,
 } from '../../src/sim/cardImpact';
 import {
-  type CityYields,
-  cityQuote,
-  cityYields,
   emptyCityYields,
   foundCityAt,
   refreshCityDerived,
+  type CityYields,
 } from '../../src/sim/cities';
 import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
   empirePercents,
+} from '../../src/sim/yields/town';
+import {
   explainEmpireCardYields,
   explainEmpireLines,
   foldEmpireLines,
-} from '../../src/sim/cities';
+} from '../../src/sim/yields/empire';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { empireResourceYields } from '../../src/sim/resourceEffects';
 import { explainEmpireGold } from '../../src/sim/empireGold';
@@ -68,7 +72,7 @@ function ledger(state: GameState, playerId: number): CityYields {
   const total = emptyCityYields();
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = cityYields(state, city, [], city.queue[0], cityQuote(state, city));
+    const yields = foldCity(state, city, [], city.queue[0], explainCity(state, city));
     for (const key of CITY_YIELD_KEYS) total[key] += yields[key];
   }
   const empire = emptyCityYields();
@@ -187,7 +191,7 @@ describe('a percentage card', () => {
 describe('a yield conversion', () => {
   /**
    * Thalassocracy mints a tenth of a coastal town's food as coin — a share of a
-   * *fold*, taken inside `cityQuote` and therefore invisible to any list of
+   * *fold*, taken inside `explainCity` and therefore invisible to any list of
    * flats. It has to reach the stamp, and it does, through the same
    * reconciliation the percentages take.
    */
@@ -252,7 +256,7 @@ describe('a meter knock-on', () => {
    */
   it('does not walk the ladder at all when neither meter moved', () => {
     const source = Object.entries(
-      import.meta.glob('../../src/sim/*.ts', {
+      import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
         query: '?raw',
         import: 'default',
         eager: true,

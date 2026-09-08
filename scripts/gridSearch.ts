@@ -32,8 +32,8 @@
  *
  *     beads × weights.bead + techs × weights.tech + Σ voice rates × weights[voice][age]
  *
- * which is the same reading the arena's meters take (`empireRateReading` for the
- * four banked voices, the towns' own `cityYields` summed for food and hammers,
+ * which is the same reading the arena's meters take (`foldEmpireRates` for the
+ * four banked voices, the towns' own `foldCity` summed for food and hammers,
  * because the simulation has no empire-scale fold of a basket or a hammer). It
  * is deliberately *not* a win rate: a hundred and fifty turns is not a game, and
  * a duel that ends in nobody's victory would score every configuration nil.

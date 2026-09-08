@@ -419,7 +419,7 @@ export function nextPantheonTech(state: GameState, playerId: number): TechId | n
  *   · **`full`** — the pantheon holds every place it will ever hold.
  *
  * **The rate is the caller's**, and deliberately: what an empire gathers a turn
- * is `civYields`' fold of every town — the same figure the top bar prints — and
+ * is `readEmpire`' fold of every town — the same figure the top bar prints — and
  * folding it a second time here would be a second answer to a question the
  * interface has already asked. So the surface hands in the number it is already
  * showing, and this composes.

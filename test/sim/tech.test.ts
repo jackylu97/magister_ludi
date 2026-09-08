@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef, isBuildingId } from '../../src/sim/buildingData';
-import { cityYields, foundCityAt, tileYieldOf, yieldContextFor } from '../../src/sim/cities';
+import {
+  foundCityAt,
+} from '../../src/sim/cities';
+import {
+  foldTile,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   dispatch,
@@ -1176,7 +1185,7 @@ describe('glanceable numbers', () => {
     const city = plant(state, 0, 8, 5);
     city.population = 4;
     const rate = playerScience(state, 0);
-    expect(rate).toBe(cityYields(state, city).science);
+    expect(rate).toBe(foldCity(state, city).science);
     expect(rate).toBeGreaterThan(0);
 
     const cost = techDef('letters').cost;
@@ -1195,7 +1204,7 @@ describe('glanceable numbers', () => {
 
   it('gives the same answer whether the rate is handed in or fetched', () => {
     // The star chart asks this twenty-seven times about one empire and
-    // `playerScience` sums `cityYields` over every city, so the rate is summed
+    // `playerScience` sums `foldCity` over every city, so the rate is summed
     // once per render and handed down (2026-08-29). The parameter is an
     // optimisation and must never become a second opinion: hard rule 5 says the
     // figure on a star is this function's answer, and here it is, both ways.
@@ -2025,7 +2034,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     const read = (): { work: number[]; plain: number[] } => {
       const ctx = yieldContextFor(state, 0);
       const bag = (tile: Tile): number[] => {
-        const y = tileYieldOf(tile, ctx);
+        const y = foldTile(tile, ctx);
         return [y.food, y.production];
       };
       return { work: bag(work), plain: bag(plain) };

@@ -311,7 +311,7 @@ describe('the worker protocol', () => {
     // Every number on the table comes off the simulation inside the worker. The
     // page's one arithmetic is the mean it exists to print.
     const text = code(main);
-    for (const banned of ['cityYields', 'empireRateReading', 'driveBots', 'createGame']) {
+    for (const banned of ['foldCity', 'foldEmpireRates', 'driveBots', 'createGame']) {
       expect(text).not.toContain(banned);
     }
   });

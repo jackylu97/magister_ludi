@@ -18,7 +18,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundingErrorAt, unitProductionCost } from '../../src/sim/cities';
+import {
+  foundingErrorAt,
+  unitProductionCost,
+} from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import type { Command } from '../../src/sim/commands';
 import {
   type Game,
@@ -598,7 +604,7 @@ describe('pacing', () => {
         playerId: 0,
         settlerUnitId: founder.id,
       }).ok).toBe(true);
-      openings.push(cityYields(game.state, game.state.cities[0]!).production);
+      openings.push(foldCity(game.state, game.state.cities[0]!).production);
     }
     openings.sort((a, b) => a - b);
     const median = openings[Math.floor(openings.length / 2)]!;
@@ -645,7 +651,7 @@ describe('pacing', () => {
     const capital = game.state.cities[0]!;
     expect(game.state.turn).toBe(1);
 
-    const opening = cityYields(game.state, capital).production;
+    const opening = foldCity(game.state, capital).production;
     expect(dispatch(game, {
       type: 'setCityProduction',
       playerId: 0,
@@ -754,7 +760,7 @@ describe('pacing', () => {
      *
      * The income is read off the *basket*, as the difference it moved by across
      * the resolution plus whatever the finished settler took out of it — never
-     * off `cityYields` before the turn. That is the trap this test walked into
+     * off `foldCity` before the turn. That is the trap this test walked into
      * once already, twice over: a queued settler halts growth, and the citizen
      * assigner runs at the *top* of the resolution, so a figure taken a moment
      * earlier is a figure for the city as it was assigned last turn. The bank is

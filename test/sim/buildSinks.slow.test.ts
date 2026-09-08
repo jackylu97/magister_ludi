@@ -20,7 +20,13 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { cityYields, foundingErrorAt, unitProductionCost } from '../../src/sim/cities';
+import {
+  foundingErrorAt,
+  unitProductionCost,
+} from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import type { Command } from '../../src/sim/commands';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import { mapRange, tileHex } from '../../src/sim/map';
@@ -136,7 +142,7 @@ describe('what the pass did to the opening', () => {
       expect(dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: founder.id }).ok).toBe(
         true,
       );
-      openings.push(cityYields(game.state, game.state.cities[0]!).production);
+      openings.push(foldCity(game.state, game.state.cities[0]!).production);
     }
     openings.sort((a, b) => a - b);
     const median = openings[Math.floor(openings.length / 2)]!;

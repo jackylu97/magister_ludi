@@ -93,12 +93,14 @@ import {
   poolDoctrines,
 } from '../../src/sim/statecraftData';
 import {
-  empireRateReading,
   foundCityAt,
   hasResource,
   purchasableTiles,
   refreshCityDerived,
 } from '../../src/sim/cities';
+import {
+  foldEmpireRates,
+} from '../../src/sim/yields/empire';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { renownPerTurn } from '../../src/sim/renown';
 import { createMap, getTileAt } from '../../src/sim/map';
@@ -1772,7 +1774,7 @@ describe('the marginal draft reading', () => {
 
   /** The nine channels the reading weighs, off the board as it stands. */
   function reading(state: GameState, playerId: number): Record<string, number> {
-    const rates = empireRateReading(state, playerId);
+    const rates = foldEmpireRates(state, playerId);
     return {
       food: rates.foodPerTurn ?? 0,
       production: rates.productionPerTurn ?? 0,
@@ -2089,7 +2091,7 @@ describe('the faith book', () => {
     expect(rung).toBeDefined();
     const holding = ctx.wants.faith.find((want) => want.holding === 'saving' && want.label.includes('Prophet'));
     expect(holding).toBeDefined();
-    const rate = empireRateReading(state, player.id).faithPerTurn ?? 0;
+    const rate = foldEmpireRates(state, player.id).faithPerTurn ?? 0;
     const spare = Math.max(0, player.faithPool - rung!.price);
     expect(holding!.delay).toBeCloseTo((holding!.price - spare) / Math.max(1, rate), 9);
   });

@@ -131,7 +131,7 @@ describe('the buried row', () => {
  * source assertion is not worth a dependency.
  */
 const SOURCES = {
-  ...(import.meta.glob('../../src/sim/*.ts', {
+  ...(import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,

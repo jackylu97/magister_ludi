@@ -5,7 +5,7 @@
  * (2026-08-28). These readers used to live in `trade.ts`, which was the right
  * home for the *rule* and the wrong one for the *layering*: `trade.ts` asks
  * `cities.ts` what a town is and where the nearest one stands, and `cities.ts`
- * asked `trade.ts` back for the caravan lines `cityYields` folds — so the two
+ * asked `trade.ts` back for the caravan lines `foldCity` folds — so the two
  * hubs imported each other and either could be the first module evaluated. That
  * is the cycle `roads.ts` narrowed and this file closes: nothing here imports
  * `cities.ts` or `trade.ts`, so the fold `collectYields` needs is on the far
@@ -592,7 +592,7 @@ export function foldRouteYield(lines: readonly RouteYieldLine[]): {
  * the board has stopped agreeing with, so a hostile caravan's route pays nobody
  * the turn war is declared.
  *
- * Folded into `cityYields` exactly as `cardCityYields` and `cityResourceYields`
+ * Folded into `foldCity` exactly as `explainCardCityYields` and `cityResourceYields`
  * are, and **staged like any other flat** (Entry XVII): a route's food is a
  * per-turn yield, not a windfall, so it rides the city's percentages and the
  * empire's meters like the granary beside it. The gold rides with it and lands

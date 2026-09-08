@@ -17,7 +17,7 @@
  *   · **a work's second-order gifts** — the seam it opens under itself and the
  *     defender line a citadel plants, the latter off a knob in `data/ai.json`
  *     rather than a number in the code;
- *   · **the ghost's tile lines** — `cityYields(state, city, [lighthouse])` now
+ *   · **the ghost's tile lines** — `foldCity(state, city, [lighthouse])` now
  *     sees the coastal food, which is the whole worth of that row, and a real
  *     reading is untouched.
  *
@@ -81,12 +81,16 @@ import aiJson from '../../data/ai.json';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import {
   buildingProductionCost,
-  cityYields,
-  empireRateReading,
-  explainEmpireCardYields,
   foundCityAt,
   refreshCityDerived,
 } from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  explainEmpireCardYields,
+  foldEmpireRates,
+} from '../../src/sim/yields/empire';
 import { happinessDemand } from '../../src/sim/meters';
 import { unitUpkeepTotal } from '../../src/sim/upkeep';
 import { applyCommand } from '../../src/sim/commands';
@@ -149,7 +153,7 @@ const SPADE_DISCOUNT = discountFor(aiJson.workers.planRadius + 1);
 function medianProduction(state: GameState, playerId: number): number {
   const made: number[] = [];
   for (const city of state.cities) {
-    if (city.ownerId === playerId) made.push(cityYields(state, city).production);
+    if (city.ownerId === playerId) made.push(foldCity(state, city).production);
   }
   made.sort((a, b) => a - b);
   if (made.length === 0) return 1;
@@ -503,8 +507,8 @@ describe('the hypothetical building’s own tile lines', () => {
 
   it('sees a lighthouse’s coastal food, which is the whole worth of the row', () => {
     const { state, city } = coastal();
-    const now = cityYields(state, city);
-    const withIt = cityYields(state, city, ['lighthouse']);
+    const now = foldCity(state, city);
+    const withIt = foldCity(state, city, ['lighthouse']);
     // +2💰 off the row itself, and the +1🌾 on the water hex that used to be
     // invisible to the what-if (2026-09-04).
     expect(withIt.food - now.food).toBe(1);
@@ -513,28 +517,28 @@ describe('the hypothetical building’s own tile lines', () => {
 
   it('promises exactly what building it actually pays', () => {
     const { state, city } = coastal();
-    const promised = cityYields(state, city, ['lighthouse']);
+    const promised = foldCity(state, city, ['lighthouse']);
     // The ghost-city reading (`explainBuildingPreview`'s idiom) and the
     // hypothetical parameter are now the same answer, which is what "one
     // evaluator" means for a preview.
     const ghost: City = { ...city, buildings: [...city.buildings, 'lighthouse' as BuildingId] };
-    expect(cityYields(state, ghost)).toEqual(promised);
+    expect(foldCity(state, ghost)).toEqual(promised);
     // And so is the town once the thing is actually standing in it.
     city.buildings.push('lighthouse');
     bumpRevision(state);
-    expect(cityYields(state, city)).toEqual(promised);
+    expect(foldCity(state, city)).toEqual(promised);
   });
 
   it('changes nothing about a reading that asked no what-if', () => {
     const { state, city } = coastal();
-    const before = cityYields(state, city);
+    const before = foldCity(state, city);
     // A hypothetical is a question, never a mutation: asking it leaves the town,
     // its shelves and its plain reading exactly where they were.
-    cityYields(state, city, ['lighthouse']);
-    cityYields(state, city, ['harbour']);
+    foldCity(state, city, ['lighthouse']);
+    foldCity(state, city, ['harbour']);
     expect(city.buildings).toEqual([]);
-    expect(cityYields(state, city)).toEqual(before);
-    expect(cityYields(state, city, [])).toEqual(before);
+    expect(foldCity(state, city)).toEqual(before);
+    expect(foldCity(state, city, [])).toEqual(before);
   });
 });
 
@@ -2233,7 +2237,7 @@ describe('the whole deck, priced (batch H2)', () => {
     bumpRevision(state);
     refreshCityDerived(state, city);
     const ctx = valueContext(state, player);
-    const faith = empireRateReading(state, player.id).faithPerTurn ?? 0;
+    const faith = foldEmpireRates(state, player.id).faithPerTurn ?? 0;
     expect(faith).toBeGreaterThan(0);
     const effect: CardEffect = {
       kind: 'rateConversion',
@@ -2247,7 +2251,7 @@ describe('the whole deck, priced (batch H2)', () => {
   it('prices a yield conversion as the share of the books it reads', () => {
     const { state, player } = board();
     const ctx = valueContext(state, player);
-    const food = empireRateReading(state, player.id).foodPerTurn ?? 0;
+    const food = foldEmpireRates(state, player.id).foodPerTurn ?? 0;
     expect(food).toBeGreaterThan(0);
     const effect: CardEffect = {
       kind: 'yieldConversion',
@@ -2351,7 +2355,7 @@ describe('the whole deck, priced (batch H2)', () => {
     city.buildings.push('shrine', 'temple');
     bumpRevision(state);
     refreshCityDerived(state, city);
-    const before = empireRateReading(state, player.id).goldPerTurn ?? 0;
+    const before = foldEmpireRates(state, player.id).goldPerTurn ?? 0;
     const lines = explainEmpireCardYields(state, player.id);
     // The claim is about the *reading*, and it holds whether or not this bench
     // happens to carry an empire line: the base books stop one line short by

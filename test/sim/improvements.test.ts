@@ -2,14 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assignCitizens,
-  cityYields,
-  explainTileYield,
-  foldTileYield,
-  hasResource,
-  tileYieldOf,
   foundCityAt,
-  yieldContextFor,
+  hasResource,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   type Game,
@@ -88,7 +92,7 @@ import { unitAwaitsOrders } from '../../src/sim/units';
  * Three separable claims are being defended here and they are kept apart on
  * purpose, because they fail for different reasons:
  *
- *   1. **The explainable-yields refactor** (CLAUDE.md hard rule 5). `tileYieldOf`
+ *   1. **The explainable-yields refactor** (CLAUDE.md hard rule 5). `foldTile`
  *      is now the fold of an ordered contribution list and nothing else. The
  *      load-bearing test is the *golden* one: on every terrain/feature/hills
  *      combination the fold must equal the pre-M7 arithmetic, computed here from
@@ -311,9 +315,9 @@ describe('buildImprovement', () => {
   it('changes the tile yield in the same breath, with no phase to wait for', () => {
     const { state, worker } = workerState();
     const tile = at(state, 5, 4);
-    expect(tileYieldOf(tile)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tile)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
     applyCommand(state, build(0, worker.id, 'farm'));
-    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('removes the worker when its last charge goes', () => {
@@ -496,12 +500,12 @@ describe('buildImprovement', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
-      const before = tileYieldOf(tile);
+      const before = foldTile(tile);
       expect(improvementDef('lumbermill').clearsClutter).toBe(false);
       expect(applyCommand(state, build(0, worker.id, 'lumbermill')).ok).toBe(true);
       expect(tile.feature).toBe('forest');
       expect(tile.improvement).toBe('lumbermill');
-      expect(tileYieldOf(tile).production).toBe(before.production + 1);
+      expect(foldTile(tile).production).toBe(before.production + 1);
     });
 
     it('waits for Siegecraft, and says so last', () => {
@@ -1520,12 +1524,12 @@ describe('chopFeature', () => {
       // flag: every evaluator that reads the feature is already correct, and
       // none of them knows the chop exists.
       const { state, worker, tile } = woodedWorker();
-      expect(tileYieldOf(tile)).toEqual(tileYield('grassland', 'forest', false));
+      expect(foldTile(tile)).toEqual(tileYield('grassland', 'forest', false));
       expect(moveCost('grassland', tile.feature, false)).toBe(2);
       expect(defenseBonus('grassland', tile.feature, false)).toBeGreaterThan(0);
 
       expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
-      expect(tileYieldOf(tile)).toEqual(tileYield('grassland', 'none', false));
+      expect(foldTile(tile)).toEqual(tileYield('grassland', 'none', false));
       expect(moveCost('grassland', tile.feature, false)).toBe(1);
       expect(defenseBonus('grassland', tile.feature, false)).toBe(0);
       // And the breakdown says so too: no line about a wood that is not there.
@@ -1709,14 +1713,14 @@ describe('removeImprovement', () => {
     const { state, worker, tile } = farmState();
     const charges = chargesLeft(worker);
     const gold = state.players[0]!.gold;
-    const before = tileYieldOf(tile);
+    const before = foldTile(tile);
     worker.movesLeft = 2;
 
     expect(applyCommand(state, remove(worker.id)).ok).toBe(true);
     expect(tile.improvement).toBeUndefined();
     // The yield went with it, which is the only payment either way: no salvage,
     // no timber, no refund.
-    expect(tileYieldOf(tile).food).toBeLessThan(before.food);
+    expect(foldTile(tile).food).toBeLessThan(before.food);
     expect(state.players[0]!.gold).toBe(gold);
     // The turn is spent like a build's, and nothing else is: the charges are
     // untouched and the worker is still standing there.
@@ -1850,7 +1854,7 @@ describe('explainTileYield', () => {
         for (const hills of [false, true]) {
           const tile = bareTile({ terrain, feature, hills });
           expect(
-            foldTileYield(explainTileYield(tile)),
+            foldTileLines(explainTileYield(tile)),
             `${terrain}/${feature}/${hills ? 'hills' : 'flat'}`,
           ).toEqual(legacyYield(tile));
         }
@@ -1859,14 +1863,14 @@ describe('explainTileYield', () => {
     for (const resource of RESOURCE_IDS) {
       for (const hills of [false, true]) {
         const tile = bareTile({ resource, hills });
-        expect(foldTileYield(explainTileYield(tile)), resource).toEqual(legacyYield(tile));
+        expect(foldTileLines(explainTileYield(tile)), resource).toEqual(legacyYield(tile));
       }
     }
   });
 
-  it('is the only implementation: tileYieldOf is the fold', () => {
+  it('is the only implementation: foldTile is the fold', () => {
     const tile = bareTile({ feature: 'forest', resource: 'deer', improvement: 'camp' });
-    expect(tileYieldOf(tile)).toEqual(foldTileYield(explainTileYield(tile)));
+    expect(foldTile(tile)).toEqual(foldTileLines(explainTileYield(tile)));
   });
 
   it('names the terrain as the base and every step in resolution order', () => {
@@ -1883,7 +1887,7 @@ describe('explainTileYield', () => {
     // precedence"). The hill is still written down — that is the *explanation* of
     // what the forest replaced — and the fold reaches the forest's 1🌾/1⚙ plus
     // the deer, where it used to reach the hill's 0/2.
-    expect(foldTileYield(list)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTileLines(list)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds the improvement last, after the resource', () => {
@@ -1891,7 +1895,7 @@ describe('explainTileYield', () => {
     const list = explainTileYield(tile);
     expect(list.map((entry) => entry.source)).toEqual(['Grassland', 'Wheat', 'Farm']);
     expect(list[2]).toEqual({ source: 'Farm', kind: 'add', food: 1, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
-    expect(foldTileYield(list)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTileLines(list)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('carries every kind of entry', () => {
@@ -1941,20 +1945,20 @@ describe('growth renewals', () => {
     const tile = map.tiles[4]!;
     tile.improvement = 'farm';
     tile.freshwater = true;
-    expect(tileYieldOf(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
-    expect(tileYieldOf(tile, { techs: [] })).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tile)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tile, { techs: [] })).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('pays with the technology, but only on fresh water', () => {
     const map = createMap({ width: 3, height: 3, terrain: 'grassland' });
     const dry = map.tiles[4]!;
     dry.improvement = 'farm';
-    expect(tileYieldOf(dry, withTech)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(dry, withTech)).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
 
     const wet = map.tiles[5]!;
     wet.improvement = 'farm';
     wet.freshwater = true;
-    expect(tileYieldOf(wet, withTech)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(wet, withTech)).toEqual({ food: 4, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('appears as its own contribution entry, named for the technology', () => {
@@ -1975,7 +1979,7 @@ describe('growth renewals', () => {
     const map = createMap({ width: 3, height: 3, terrain: 'grassland' });
     const tile = map.tiles[4]!;
     tile.freshwater = true;
-    expect(tileYieldOf(tile, withTech)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tile, withTech)).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('reaches the city that owns the tile, through the owner\'s context', () => {
@@ -1990,13 +1994,13 @@ describe('growth renewals', () => {
     city.lockedTiles = [{ col: 5, row: 4 }];
     assignCitizens(state, city);
 
-    const before = cityYields(state, city).food;
+    const before = foldCity(state, city).food;
     state.players[0]!.techsResearched.push('irrigation');
     bumpRevision(state);
     // No phase, no rebuild: the same call, one technology later.
-    expect(cityYields(state, city).food).toBe(before + 1);
+    expect(foldCity(state, city).food).toBe(before + 1);
     // And the rival, who has not researched it, sees the old number.
-    expect(tileYieldOf(tile, yieldContextFor(state, 1))).toEqual(
+    expect(foldTile(tile, yieldContextFor(state, 1))).toEqual(
       readTileYield({ food: 3, production: 0, gold: 0 }),
     );
   });
@@ -2435,7 +2439,7 @@ describe('the works pay instantly', () => {
     const city = state.cities[0]!;
     city.population = 1;
     assignCitizens(state, city);
-    const before = cityYields(state, city).food;
+    const before = foldCity(state, city).food;
 
     expect(applyCommand(state, build(0, worker.id, 'farm'))).toEqual({ ok: true });
     // Not merely refreshed — refreshed to the *right* answer: a farmed
@@ -2443,7 +2447,7 @@ describe('the works pay instantly', () => {
     // standing on the new works before the player has ended anything, and the
     // food the panel prints has already moved.
     expect(city.workedTiles).toEqual([{ col: 5, row: 4 }]);
-    expect(cityYields(state, city).food).toBeGreaterThan(before);
+    expect(foldCity(state, city).food).toBeGreaterThan(before);
   });
 
   it('is idempotent, so the end-of-turn phase agrees with it', () => {
@@ -2522,20 +2526,20 @@ describe('a farm beside a mountain', () => {
     expect(named).toHaveLength(1);
     expect(named[0]!.food).toBe(1);
     // The total is the fold of the list and never a second sum beside it.
-    expect(tileYieldOf(tile, ctx)).toEqual(foldTileYield(list));
+    expect(foldTile(tile, ctx)).toEqual(foldTileLines(list));
   });
 
   it('pays a farm, and only where a mountain actually stands next door', () => {
     const { state, tile } = withPeak();
     const ctx = yieldContextFor(state, 0);
-    const beside = tileYieldOf(tile, ctx).food;
+    const beside = foldTile(tile, ctx).food;
 
     // Away from the peak, the same farm on the same ground pays the ordinary
     // amount: the clause is `all` of two conditions and both have to hold.
     const away = at(state, 2, 8);
     away.improvement = 'farm';
     expect(away.mountainAdjacent).toBeUndefined();
-    expect(tileYieldOf(away, ctx).food).toBe(beside - 1);
+    expect(foldTile(away, ctx).food).toBe(beside - 1);
 
     // And it is the *farm*: bare ground beside the peak gets nothing, which is
     // the improvement half of the condition doing its work.

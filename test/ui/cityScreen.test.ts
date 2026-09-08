@@ -378,7 +378,7 @@ describe('the city mode', () => {
     expect(text).toContain('strip.bind(chip, () => yieldLedger(city, quote));');
     for (const fold of [
       // **The town's own list, printed** (batch E2). The card used to walk four
-      // of `cityQuote`'s sources a second time to get their labels back — one
+      // of `explainCity`'s sources a second time to get their labels back — one
       // of the four private rebuilds `docs/audit/evaluations.md` §3a names — and
       // now filters the labelled list the quote returns. The steps it prints are
       // the four it always printed, in the order it printed them (the luxuries,
@@ -513,12 +513,12 @@ describe('the city mode', () => {
 
   it('shelves the add-list by the simulation’s own category, never by a name', () => {
     // `queueCategory` is the one place a queue row is sorted into a production
-    // category (`cities.ts`); the tabs read it. Nothing here compares a row
+    // category (`yields/town.ts` since batch E3b); the tabs read it. Nothing here compares a row
     // against a string name, which is the rule `src/sim` keeps and the panel
     // has to keep to stay correct when the table grows.
     const text = panel();
     expect(text).toContain("queueCategory({ kind: 'building', id })");
-    expect(text).toMatch(/import \{[^}]*queueCategory[^}]*\} from '\.\.\/sim\/cities'/s);
+    expect(text).toMatch(/import \{[^}]*queueCategory[^}]*\} from '\.\.\/sim\/yields\/town'/s);
     // Four shelves, and the list of them is data rather than a switch.
     const shelves = /export const ADD_SHELVES[\s\S]*?\n\];/.exec(text);
     expect(shelves).not.toBeNull();

@@ -45,11 +45,20 @@ be renamed — it would change every seeded outcome. No further rename passes.
 - Subagents never commit/push, and never `git stash`/`checkout`/`reset` — other
   agents' uncommitted edits live in the working tree. Kill only processes you
   started, by PID. Never `pkill -f vite`.
-- BSD grep treats `src/sim/statecraft.ts` as binary — use `grep -a` on it.
+- BSD grep treats `src/sim/statecraft/evaluator.ts` as binary — use `grep -a` on it.
 
 ## Layout
 - `src/sim/` — the game rules. PURE: no DOM, no canvas, no `Math.random()`, no
   clock. All randomness via the seeded `Rng` in `GameState` (`state.rng`).
+- `src/sim/yields/` — the sequence of `docs/yields.md`, one file a layer:
+  `hex.ts` · `town.ts` · `empire.ts` (the banks with it) · `stages.ts` (Entry
+  XVII's two multiplications, the old `modifiers.ts`). A one-way chain, and
+  nothing in it imports `readings.ts`.
+- `src/sim/statecraft/` — the card system in three: `evaluator.ts` (the one
+  switch on `CardEffect.kind`) · `describers.ts` (the words and their tables) ·
+  `draft.ts` (ladder, pools, offers, slots, governments); `statecraft.ts` is the
+  index that re-exports all three **by name** (never `export *` — a star
+  re-export comes out empty in a cycle).
 - `src/render3d/` — default renderer (Three.js ortho toon diorama, procedural
   primitives only). Tunables in `data/view3d.json`.
 - `src/render/` — FROZEN 2D renderers. Keep compiling; no new features ever.
@@ -86,15 +95,20 @@ be renamed — it would change every seeded outcome. No further rename passes.
    (`hash3`/`hashUnit`).
 5. **Explainable yields** (rule 5): any yield source joins its breakdown list;
    totals are the fold of the list — never compute a total beside it.
-   `explainTileYield(tile, ctx?)` / `tileYieldOf` in `src/sim/cities.ts`
-   (`explainCentreYield`/`centreYield` for the centre). `ctx` gates the renewals
+   `explainTileYield(tile, ctx?)` / `foldTile` in `src/sim/yields/hex.ts`
+   (`explainCentreYield`/`foldCentre` for the centre, in `yields/town.ts`).
+   `ctx` gates the renewals
    AND the resource reveal; who passes one is the `yieldContextFor` docblock's
    register; an owned tile is always evaluated with its owner's ctx. The ORDER
    the folds compose in is `docs/yields.md` — the sequence of record, sync-tested
-   against `cityQuote`'s and `explainEmpireLines`'s own source.
+   against `explainCity`'s and `explainEmpireLines`'s own source. **Three verbs,
+   and only three** (E3b): `explainX` returns a labelled list, `foldX` is its one
+   sum, `readX` is the memo and lives in `src/sim/readings.ts` alone; the table
+   of what each was called is `docs/yields.md`, the register is
+   `test/sim/verbs.test.ts`.
 6. Docblock comments explain *why*, in the existing files' voice.
 7. **Player-facing words are plain**: rules stated in a first-time player's terms
-   through the word tables in `statecraft.ts`; a data row's `note`/`deferred` is
+   through the word tables in `statecraft/describers.ts`; a data row's `note`/`deferred` is
    player prose with no identifiers; flavour only in `flavor`/`epigram`, always
    labelled Flavour. Voice: `src/ui/compendiumText.ts`'s docblock. Numbers never
    appear in written prose. (Apostrophes inside compendiumText's single-quoted
@@ -166,7 +180,7 @@ be renamed — it would change every seeded outcome. No further rename passes.
 - **Timed effects are comparisons, never countdowns**: `TimedEffect` on
   `City.timed`/`Unit.timed`/`Player.timed` carries absolute `expiresTurn`;
   `pruneTimedEffects` is a broom, not a clock. City-scoped readers in
-  `statecraft.ts` go through `liveCityEffects` (= `liveEffects` + live rites) or
+  `statecraft/evaluator.ts` go through `liveCityEffects` (= `liveEffects` + live rites) or
   they silently ignore rites. Same discipline: `SlottedOrder.sealedUntil`,
   `City.purchasedUnitTurns`, seals, stamps — absolute turns, nothing ticks.
 - **Purchases**: `purchase.ts` — `purchaseItem {cityId, item, currency}`;
@@ -201,8 +215,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   (family-less by construction). Adding a shape is a design decision; a luxury
   is a JSON row. `docs/luxuries.md` is the reference.
 - **Percentages compound across two stages, never inside one** (Entry XVII):
-  every yield percentage lands in `cityYieldPercents` with a `stage` (city |
-  empire); `applyStages` does `(base+flats)×(1+Σcity%)×(1+Σglobal%)`, floored
+  every yield percentage lands in `cityYieldPercents` (`yields/town.ts`) with a
+  `stage` (city | empire); `applyStages` (`yields/stages.ts`) does
+  `(base+flats)×(1+Σcity%)×(1+Σglobal%)`, floored
   once. Growth surplus and border accrual are separate channels. One-time grants
   are modifier-immune (Entry XVIII.5): `windfallPayout` composes base + every
   rider into ONE printed figure before banking; riders on one occasion sum
@@ -228,7 +243,8 @@ be renamed — it would change every seeded outcome. No further rename passes.
   the offer opens (never on sight); offers are drawn once and spent by a command;
   a pick names an index. Adoption rebuilds the slots array (total amnesty);
   seals are absolute turns.
-- **Cards**: `statecraft.ts` is the ONLY module switching on `CardEffect.kind`;
+- **Cards**: `statecraft/evaluator.ts` is the ONLY module switching on
+  `CardEffect.kind` (`statecraft.ts` is the index over it, the words and the draft);
   a new card is a JSON row, a new *shape* is a design decision, and a shape
   declared but never read fails the register test. The four flag-rule kinds
   are one `rule` kind (`CardFlagRuleId` = action | behavior | city | zoc,
@@ -238,7 +254,7 @@ be renamed — it would change every seeded outcome. No further rename passes.
   what) is pinned in `test/sim/statecraft.test.ts`. A card whose text needs a
   one-off is **deferred and annotated**, never bent into a near-fit (this rule
   repeats across beliefs, legacies, wonders — always defer, never bend).
-  `anyCardDef` in `statecraft.ts` spans all card classes (type-only imports both
+  `anyCardDef` in `statecraft/evaluator.ts` spans all card classes (type-only imports both
   ways with `religionData.ts` — keep it that way). Empire conditions evaluate
   ignoring condition-gated effects (`conditionDepth`, the one stated cut).
 - **No levels**: an Order is what its row prints, held once (schema 63). A draft
@@ -313,12 +329,15 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `takeReckonings` (history only) → `winnerId` = **the builder**; beads gate the
   door (the threshold in `buildError`), never the close.
 - **A runtime import cycle** is caught by `test/mapgen/moduleCycles.test.ts`
-  (globs every `src/sim/*.ts` as an entry). Typecheck does not see one; the
+  (globs every `src/sim/*.ts` **and `src/sim/*/*.ts`** as an entry).
+  `export * from` a module that imports you back comes out **empty** under the
+  dev server's module runner — re-export by name, which compiles to a getter. Typecheck does not see one; the
   symptom is "X is not a function" everywhere. A helper two modules need lives
   in a leaf (`roads.ts`, `unitData.ts`, `routeYields.ts`, `empireGold.ts`);
   `capitalCityOf`/`tileOwnerField` live in `state.ts`/`cities.ts` for this
   reason. Function-level cycles (types/constants only at top level) are the
-  documented exception — `statecraft.ts`, `renown.ts` note theirs.
+  documented exception — `statecraft/evaluator.ts`, `renown.ts` note theirs, and
+  `yields/*.ts` note the edge back to `cities.ts`.
 - **Heraldry is config, not state**: `charge` is an uninterpreted string beside
   `color`; fallback `heraldryFor(seatIndex, charge?)`. The charge prints on a
   parchment canton, never straight in seat ink.

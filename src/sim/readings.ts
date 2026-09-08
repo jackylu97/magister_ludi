@@ -2,6 +2,38 @@
  * **The readings — the town's list and the empire's, remembered on the
  * revision.**
  *
+ * ---
+ *
+ * **The three verbs, and only three** (batch E3b, `docs/audit/evaluations.md`
+ * §4b step 7; the table of what was renamed is `docs/yields.md`, "The three
+ * verbs"). Every exported reading of a yield in this system is one of:
+ *
+ *   · **`explainX(…)`** returns a **labelled list** and never a bare number.
+ *     `explainTileYield`, `explainCity`, `explainEmpireLines`, `explainLedger`,
+ *     `explainCardImpact`. Rule 5 lives here: a source that pays joins the
+ *     list, and nothing computes a total beside it. (`explainCity` is the one
+ *     that returns a *record around* its list — the lines, their fold, and the
+ *     percent list that is not applied to them — because steps 1–11 produce two
+ *     artefacts and a caller wants both; every other `explain…` is an array.)
+ *   · **`foldX(…)`** is **the one sum** of such a list — `foldTileLines`,
+ *     `foldCityFlats`, `foldEmpireLines`, `foldCardYields`. Where a layer's fold
+ *     is more than an addition it says so and stays a fold: `foldCity` is the
+ *     town's total, which *is* the flats plus step 12's two stages, because a
+ *     town's total is staged by definition and a second verb for the
+ *     multiplication would invite a second answer. `foldEmpireRates` is the
+ *     empire's books summed for a card that asks what a turn is worth.
+ *   · **`readX(state, …)`** is the **memo** — `explain` + `fold`, keyed on the
+ *     revision, and it lives in **this file and nowhere else**. That is the
+ *     whole difference between the second verb and the third: a fold is taken,
+ *     a reading is remembered.
+ *
+ * `test/sim/verbs.test.ts` is the register: an exported reading named for the
+ * old vocabulary (`…Yield(s)`, `…Total`, `…Rate(s)`, `…Reading`, `…Quote`,
+ * `…Aggregate`, `…Sums`) fails there unless it carries one of the three verbs,
+ * every `read…` export is in this file, and every `explain…` returns a list.
+ *
+ * ---
+ *
  * The user's ideal (`docs/audit/evaluations.md` §2b, 2026-09-07): *information
  * flows one way; downstream subscribers never publish upwards and subscribe to a
  * single source of truth rather than recalculating; variables are cached and
@@ -32,12 +64,11 @@
  * a bench, a fixture — is a writer, and calls `bumpRevision` the way a command
  * does. That is the whole contract, and it is stated on `GameState.revision`.
  *
- * The one memo that is **not** keyed here is `liveReading` (`statecraft.ts`),
- * which still checks its own print of everything a seat holds. §3c wanted the
- * print gone; it turns out to be doing invalidation work no counter can do
- * today, because the suite's benches build a board and mutate it by hand rather
- * than through commands. That is a batch of its own — see "E2 as shipped" in
- * `docs/audit/evaluations.md`.
+ * The one memo that is not held in this file is `liveReading` (the card
+ * evaluator's), and since batch E3a it is keyed the same way — the revision,
+ * the seat and the cut, on a `WeakMap` on the state. Its print is gone and so
+ * are the re-asked conditions; the benches announce their hand mutations
+ * instead (§4c.1 of `docs/audit/evaluations.md`, `test/sim/benches.test.ts`).
  *
  * Three facts about the memos, and each of them is load-bearing:
  *
@@ -64,24 +95,28 @@
 
 import type { City, GameState } from './state';
 import {
-  type CityQuote,
-  type CityYields,
-  type EmpirePercents,
-  type EmpireYieldLine,
-  cityQuote,
-  cityYields,
-  empirePercents,
   emptyCityYields,
+  type CityYields,
+} from './cities';
+import {
+  empirePercents,
+  explainCity,
+  foldCity,
+  type CityReading,
+  type EmpirePercents,
+} from './yields/town';
+import {
   explainEmpireLines,
   foldEmpireLines,
-} from './cities';
+  type EmpireYieldLine,
+} from './yields/empire';
 import { CITY_YIELD_KEYS } from './resourceData';
 
 /** One town's whole reading: its labelled list, and what it banks. */
 export interface TownReading {
   city: City;
   /** Steps 1–11 of `docs/yields.md` — the list, the flats, the percentages. */
-  quote: CityQuote;
+  reading: CityReading;
   /**
    * Step 12: the two stages over the flats, toward whatever is at the **front**
    * of the queue — the very call `collectYields` banks with, so a reader and the
@@ -101,7 +136,27 @@ export interface EmpireReading {
   stage: readonly EmpireYieldLine[];
   /** The meter tiers and the arrears, taken once for the seat. */
   empire: EmpirePercents;
-  /** Step 18: every town's total plus the fold of the empire's lines. */
+  /**
+   * Step 18: every town's total plus the fold of the empire's lines — **the
+   * headline**, and since batch E3b the only spelling of it.
+   *
+   * Each town is priced *toward whatever it is building*, which is the call
+   * `collectYields` banks with: a barracks puts a share of its town's hammers
+   * behind a unit, and a strip quoting the unmodified rate would be a headline
+   * the turn resolution disagrees with. On top of the towns is everything the
+   * empire banks beyond them (`explainEmpireLines`, batch H19: the luxuries'
+   * signatures, the caravans abroad, the treasury's ledger, the cards'
+   * empire-scale payouts, and the empire stage over the additive fold of them).
+   * None of that belongs to a town — a city connection is a fact about the
+   * *road* between one and the capital, road maintenance is charged on hexes, a
+   * garrison's wages are charged on the army rather than on whichever town it
+   * happens to be standing in (Entry XLI), and a route ending in a foreign town
+   * pays the empire that *sent* it.
+   *
+   * `topBar.ts`'s `civYields` was this fold with a second name on it and is
+   * gone (batch E3b): the strip, the Ledger, the faith rung and the bot all read
+   * this field.
+   */
   totals: CityYields;
 }
 
@@ -109,7 +164,7 @@ export interface EmpireReading {
 interface Slate {
   revision: number;
   percents: Map<number, EmpirePercents>;
-  towns: Map<number, CityQuote>;
+  towns: Map<number, CityReading>;
   empires: Map<number, EmpireReading>;
 }
 
@@ -131,11 +186,11 @@ function slateOf(state: GameState): Slate {
 
 /**
  * **The empire's half of every town's percentages, taken once per seat per
- * revision** — the hoist `civYields`, `empireRates` and the bot each used to do
- * by hand, done once for all of them.
+ * revision** — the hoist the top bar's strip, `foldEmpireRates` and the bot each
+ * used to do by hand, done once for all of them.
  *
  * `empirePercents` is a pure function of `(state, playerId)` that sweeps every
- * city and every unit the empire holds for the two meters, and `cityQuote`'s
+ * city and every unit the empire holds for the two meters, and `explainCity`'s
  * fourth parameter exists precisely so a loop can pay for it once instead of
  * once per town. Handing this in is that bargain kept for every reader at once;
  * the figure is unchanged by construction, because this is the very call the
@@ -157,7 +212,7 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
  *
  * It is deliberately the *plain* reading: no `hypothetical`, the seat's own
  * meters. A what-if is a different question about a different town and asks
- * `cityQuote` directly, which is what keeps this memo the answer to exactly one
+ * `explainCity` directly, which is what keeps this memo the answer to exactly one
  * question — "what does this town make, as the board stands".
  *
  * Keyed on the city's **id**, so a reading survives a caller holding a stale
@@ -165,11 +220,11 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
  * about the pointer; every mutation to that town moves the revision and throws
  * the slate away.
  */
-export function readCity(state: GameState, city: City): CityQuote {
+export function readCity(state: GameState, city: City): CityReading {
   const slate = slateOf(state);
   const held = slate.towns.get(city.id);
   if (held !== undefined) return held;
-  const fresh = cityQuote(state, city, [], readEmpirePercents(state, city.ownerId));
+  const fresh = explainCity(state, city, [], readEmpirePercents(state, city.ownerId));
   slate.towns.set(city.id, fresh);
   return fresh;
 }
@@ -195,8 +250,8 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
   const towns: TownReading[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const quote = readCity(state, city);
-    towns.push({ city, quote, total: cityYields(state, city, [], city.queue[0], quote) });
+    const reading = readCity(state, city);
+    towns.push({ city, reading, total: foldCity(state, city, [], city.queue[0], reading) });
   }
   const lines = explainEmpireLines(state, playerId, empire);
   const totals = emptyCityYields();

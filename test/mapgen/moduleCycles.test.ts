@@ -31,7 +31,13 @@ import { describe, expect, it, vi } from 'vitest';
  * module added tomorrow is exercised the moment it exists, in a file nobody has
  * to edit. Keys are sorted so the report reads the same way twice.
  */
-const SIM_MODULES = import.meta.glob('../../src/sim/*.ts');
+// The layer folders are in the glob since batch E3b split `cities.ts` and
+// `statecraft.ts` along them (`docs/audit/evaluations.md` §4b step 9). They are
+// exactly the case this was made a glob for: `yields/town.ts` imports
+// `cities.ts` back for the territory, `statecraft/evaluator.ts` sits on the same
+// function-level cycles its parent did, and the index that re-exports the three
+// is itself a module that can be pulled in first.
+const SIM_MODULES = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts']);
 
 describe('module load order', () => {
   const paths = Object.keys(SIM_MODULES).sort();
@@ -44,6 +50,8 @@ describe('module load order', () => {
     expect(paths).toContain('../../src/sim/trade.ts');
     expect(paths).toContain('../../src/sim/routeYields.ts');
     expect(paths).toContain('../../src/sim/empireGold.ts');
+    expect(paths).toContain('../../src/sim/yields/town.ts');
+    expect(paths).toContain('../../src/sim/statecraft/evaluator.ts');
   });
 
   /**

@@ -79,7 +79,7 @@
  * thing a reader will be certain is a bug unless it is written down.
  *
  * Every function below returns the *list*, and every consumer folds it into a
- * breakdown it already had: `cityYields` and the city panel for the flat yields
+ * breakdown it already had: `foldCity` and the city panel for the flat yields
  * and the percentages, `productionModifiers` for the hammers, `explainHappiness`
  * and `explainAuthority` for the meters, `explainRouteYieldBetween` for a
  * caravan's coin, `explainUnitUpkeepRebate` for what a payroll gives back, and
@@ -108,14 +108,14 @@
  * guarantee. This module asks `cities.ts` which resources a city and an empire
  * actually control — one rule, `openedResource`, and duplicating it here is
  * exactly what rule 5 forbids — and `cities.ts` asks this module for the lines
- * to fold into `cityYields`. It is a *function-level* cycle only: everything at
+ * to fold into `foldCity`. It is a *function-level* cycle only: everything at
  * the top level here is a type or a constant from the data tables, and nothing
  * in this file may grow a top-level call into `cities.ts`.
  */
 
 import { type ProductionCategory, buildingDef } from './buildingData';
 import { signedPlain as signed } from './yieldFormat';
-import type { ModifierStage } from './modifiers';
+import type { ModifierStage } from './yields/stages';
 import {
   cityResources,
   controlledResources,
@@ -410,7 +410,7 @@ function liveLuxuryEffects(
  * kind the empire holds.
  *
  * One list rather than three, because it is one question — "what do this
- * empire's luxuries pay this town?" — and because `cityYields` folding one list
+ * empire's luxuries pay this town?" — and because `foldCity` folding one list
  * is what makes the panel's lines and the banked total the same arithmetic. The
  * `source` on each line says which shape it came from, so a player reading four
  * gems lines can see that one of them is the seam in their own hills.

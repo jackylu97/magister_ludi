@@ -236,14 +236,16 @@
 
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
 import {
-  type CityYields,
-  cityYields,
   emptyCityYields,
   hasResource,
   isCoastalCity,
   refreshCityDerived,
   turnsToFill,
+  type CityYields,
 } from './cities';
+import {
+  foldCity,
+} from './yields/town';
 import type { Tile } from './map';
 import {
   CITY_YIELD_KEYS,
@@ -1531,14 +1533,14 @@ function applyUpgrade(unit: Unit, target: UnitTypeId): void {
 /**
  * Beakers this player's cities make in a turn.
  *
- * The same `cityYields` the pipeline banks, summed — so the "~N turns" on the
+ * The same `foldCity` the pipeline banks, summed — so the "~N turns" on the
  * tech screen is the rate the next resolution will actually add.
  */
 export function playerScience(state: GameState, playerId: number): number {
   let total = 0;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    total += cityYields(state, city).science;
+    total += foldCity(state, city).science;
   }
   return total;
 }
@@ -1554,7 +1556,7 @@ export function playerScience(state: GameState, playerId: number): number {
  *
  * `rate` is the empire's beakers a turn, and it is a parameter only because the
  * star chart asks this question twenty-seven times in a row about one empire —
- * `playerScience` sums `cityYields` over every city, so a chart that let each
+ * `playerScience` sums `foldCity` over every city, so a chart that let each
  * node fetch it again priced a forty-city empire forty times a node. Handed in
  * or fetched, the arithmetic is this one line: there is no second reading of the
  * schedule anywhere, only one caller that already knows the rate.
@@ -1625,7 +1627,7 @@ export function queueTurns(
  * Each of this player's cities as things stand, by city id.
  *
  * The half of `buildingYieldDelta` that is not about the building. A delta is
- * `cityYields` asked twice — once as things stand, once with the candidate
+ * `foldCity` asked twice — once as things stand, once with the candidate
  * counted — and the first of those two readings does not depend on the
  * candidate at all. One caller asks about one building and never notices; the
  * star chart asks about **every** building the tree unlocks and was taking that
@@ -1646,7 +1648,7 @@ export function cityBaselines(state: GameState, playerId: number): CityBaselines
   const baselines = new Map<number, CityYields>();
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    baselines.set(city.id, cityYields(state, city, [], city.queue[0]));
+    baselines.set(city.id, foldCity(state, city, [], city.queue[0]));
   }
   return baselines;
 }
@@ -1655,7 +1657,7 @@ export function cityBaselines(state: GameState, playerId: number): CityBaselines
  * What building this thing everywhere it is legal would add to the empire's
  * per-turn yields, right now.
  *
- * Entry VIII's glanceable delta, computed the only honest way: `cityYields` is
+ * Entry VIII's glanceable delta, computed the only honest way: `foldCity` is
  * asked twice per city — once as things stand, once with the candidate counted —
  * and the difference is reported. It is the same function the simulation banks
  * with, so the preview cannot promise a number the turn will not pay.
@@ -1669,7 +1671,7 @@ export function cityBaselines(state: GameState, playerId: number): CityBaselines
  * because a *screen* asks this question about forty buildings in a row and the
  * "as things stand" half of the pair is the same answer every time — see
  * `cityBaselines`. Handed in or taken here, it is the same call with the same
- * arguments: the delta is still the subtraction of two folds of `cityYields`.
+ * arguments: the delta is still the subtraction of two folds of `foldCity`.
  */
 export function buildingYieldDelta(
   state: GameState,
@@ -1686,8 +1688,8 @@ export function buildingYieldDelta(
     // reported as worth nothing. The pair is what makes it a delta: the same
     // question asked twice, with the candidate counted the second time.
     const toward = city.queue[0];
-    const now = baselines?.get(city.id) ?? cityYields(state, city, [], toward);
-    const after = cityYields(state, city, [id], toward);
+    const now = baselines?.get(city.id) ?? foldCity(state, city, [], toward);
+    const after = foldCity(state, city, [id], toward);
     // Every voice, off the key list rather than by hand: the fifth reading was
     // missing the day faith became a thing a building could pay (the shrine and
     // the temple, 2026-08-26), which is exactly the drift a hand-written fold

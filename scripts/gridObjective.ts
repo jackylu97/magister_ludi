@@ -12,7 +12,7 @@
  *     beads × weights.bead + techs × weights.tech + Σ voice rates × weights[voice][age]
  *
  * read at the final turn, off the same books the arena's meters read
- * (`empireRateReading` for the four banked voices; the towns' own `cityYields`
+ * (`foldEmpireRates` for the four banked voices; the towns' own `foldCity`
  * summed for food and hammers, because the simulation has no empire-scale fold of
  * a basket or a hammer).
  *
@@ -26,7 +26,12 @@
 
 import { AI } from '../src/ai/aiConfig';
 import { VOICES, type Voice, yieldWeight } from '../src/ai/value';
-import { cityYields, empireRateReading } from '../src/sim/cities';
+import {
+  foldCity,
+} from '../src/sim/yields/town';
+import {
+  foldEmpireRates,
+} from '../src/sim/yields/empire';
 import type { GameState } from '../src/sim/state';
 import { highestAge } from '../src/sim/techData';
 
@@ -44,14 +49,14 @@ export interface Standing {
  */
 export function standingOf(state: GameState, playerId: number): Standing {
   const player = state.players[playerId]!;
-  const banked = empireRateReading(state, playerId);
+  const banked = foldEmpireRates(state, playerId);
   let food = 0;
   let production = 0;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     // The town priced toward what it is actually building, which is the reading
     // `empireRates` takes for the other four voices — one set of books.
-    const yields = cityYields(state, city, [], city.queue[0]);
+    const yields = foldCity(state, city, [], city.queue[0]);
     food += yields.food;
     production += yields.production;
   }

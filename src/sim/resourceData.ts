@@ -58,7 +58,7 @@
  *
  * Mountains and snow appear in no `validTerrain` list, which is how "a mountain
  * is never a resource tile" is expressed: as data, not as a special case in the
- * placement loop. (`tileYieldOf` would happily add a resource's yield to a
+ * placement loop. (`foldTile` would happily add a resource's yield to a
  * mountain, and a citizen still could not be sent there — `workable` is a
  * separate question, see `terrainData.ts`.)
  *
@@ -449,7 +449,7 @@ const ROUTE_YIELD_KEYS: readonly (keyof ResourceYieldBag)[] = ['food', 'producti
 
 /**
  * Every yield a city banks, in the order surfaces print them — and the order
- * `cityYields` applies Entry XVII's two stages in, so a reader comparing the
+ * `foldCity` applies Entry XVII's two stages in, so a reader comparing the
  * panel's chips to the code walks them the same way round.
  */
 export const CITY_YIELD_KEYS: readonly CityYieldKey[] = [
@@ -470,7 +470,7 @@ export const RESOURCE_EFFECT_YIELDS: readonly (keyof ResourceYieldBag)[] = CITY_
 export interface ResourceDef {
   name: string;
   kind: ResourceKind;
-  /** Added to the tile's terrain/feature/hills yield. See `tileYieldOf`. */
+  /** Added to the tile's terrain/feature/hills yield. See `foldTile`. */
   yields: TileYieldSpec;
   /** Terrains this may sit on. See the constraint shape in the docblock. */
   validTerrain: TerrainId[];

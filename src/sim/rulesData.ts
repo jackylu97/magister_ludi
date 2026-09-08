@@ -1418,7 +1418,7 @@ export interface GreatPeopleRules {
    * 2026-09-03, the great-people nerf pass): the scholar's beakers and the
    * artist's culture are both "this many turns of what you are already making",
    * read through the one seam that answers that question
-   * (`empireRateReading`, `cities.ts`).
+   * (`foldEmpireRates`, `cities.ts`).
    *
    * One knob for the two families rather than one each, because it is one
    * sentence: *an act is worth a few turns of your empire*. A designer who wants

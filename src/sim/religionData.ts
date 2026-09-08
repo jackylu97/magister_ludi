@@ -744,7 +744,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   // exactly why it fails here:
   //
   //   · `empireYields`, and any `countScaled` paying `where: 'empire'` — read
-  //     only by `cardEmpireYields`, which walks the *empire's* list and would
+  //     only by `explainCardEmpireYields`, which walks the *empire's* list and would
   //     never see a card that reached one town;
   //   · a **world-scale count** (the `following…` family) — answered off
   //     "the religions whose holy city this empire holds", which is a question

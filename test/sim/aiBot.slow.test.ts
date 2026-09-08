@@ -24,7 +24,9 @@ import { describe, expect, it } from 'vitest';
 
 import { driveBots } from '../../src/ai/driver';
 import { type Game, createGame, replay, snapshotState } from '../../src/sim/game';
-import { empireRateReading } from '../../src/sim/cities';
+import {
+  foldEmpireRates,
+} from '../../src/sim/yields/empire';
 import { type GameConfig, realPlayers } from '../../src/sim/state';
 import { atWar } from '../../src/sim/wars';
 
@@ -94,7 +96,7 @@ function playOut(turns: number, config: GameConfig = CONFIG): Played {
         turn: game.state.turn,
         playerId: player.id,
         gold: player.gold,
-        netGold: empireRateReading(game.state, player.id).goldPerTurn ?? 0,
+        netGold: foldEmpireRates(game.state, player.id).goldPerTurn ?? 0,
         cities: game.state.cities.filter((city) => city.ownerId === player.id).length,
         beads: player.beads.length,
         techs: player.techsResearched.length,
@@ -548,7 +550,7 @@ function theWarArena(): WarStory {
         turn: game.state.turn,
         playerId: player.id,
         gold: player.gold,
-        netGold: empireRateReading(game.state, player.id).goldPerTurn ?? 0,
+        netGold: foldEmpireRates(game.state, player.id).goldPerTurn ?? 0,
         cities: game.state.cities.filter((city) => city.ownerId === player.id).length,
         beads: player.beads.length,
         techs: player.techsResearched.length,

@@ -1115,7 +1115,7 @@ describe('the bead Orders', () => {
    * razes, passes, proclaims or finishes the chart earn what a player would.
    */
   it('hooks each deed at the one place it happens', () => {
-    const sims = import.meta.glob('../../src/sim/*.ts', {
+    const sims = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,
@@ -1125,7 +1125,9 @@ describe('the bead Orders', () => {
     expect(read('tech.ts')).toContain(
       "awardOrderBeads(state, player.id, 'lastAgeTechnology', lastAgeTechCount(player))",
     );
-    expect(read('statecraft.ts')).toContain("awardOrderBeads(state, player.id, 'draftPassed')");
+    expect(read('statecraft/draft.ts')).toContain(
+      "awardOrderBeads(state, player.id, 'draftPassed')",
+    );
     expect(read('diplomacy.ts')).toContain("awardOrderBeads(state, report.ownerId, 'cityRazed')");
     expect(read('religion.ts')).toContain("awardOrderBeads(state, player.id, 'proclamationMade')");
     // And `awardBead` is still the only writer of the rod.

@@ -17,11 +17,11 @@
  *     the connection fill and the four-line ledger → `empireGold.ts`.
  *
  * Both are **leaves that import neither `cities.ts` nor this file**, and that is
- * the whole point. `cities.ts` folds a caravan's lines into `cityYields` and
+ * the whole point. `cities.ts` folds a caravan's lines into `foldCity` and
  * banks `empireGold` in `collectYields`, while this module asks `cities.ts` for
  * the nearest town and the windfall settlements — so the two largest modules in
  * the simulation imported each other at load time, which surfaced once as a
- * `tileYieldOf is not a function` at test load. The rule that replaces it is
+ * `foldTile is not a function` at test load. The rule that replaces it is
  * asserted rather than reasoned about: `test/mapgen/moduleCycles.test.ts` loads
  * every `src/sim` module first in turn, and `test/sim/cities.test.ts` reads
  * `cities.ts` and fails if `./trade` reappears in it.
@@ -164,7 +164,7 @@ import {
 import { type UnitTypeId, caravanTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
 // The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
-// lines into `cityYields` and banks `empireGold` in `collectYields`, and while
+// lines into `foldCity` and banks `empireGold` in `collectYields`, and while
 // both lived here that made the two largest modules in the simulation import
 // each other at load time. They now sit where neither hub can reach back —
 // `routeYields.ts` and `empireGold.ts` import no city and no trade — and this

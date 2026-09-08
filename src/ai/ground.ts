@@ -28,11 +28,13 @@
  */
 
 import {
-  type TileYieldContext,
-  cityContext,
   tileOwnerCityId,
-  yieldContextFor,
 } from '../sim/cities';
+import {
+  cityContext,
+  type TileYieldContext,
+  yieldContextFor,
+} from '../sim/yields/hex';
 import type { Tile } from '../sim/map';
 import { type GameState, type Religion, cityById } from '../sim/state';
 

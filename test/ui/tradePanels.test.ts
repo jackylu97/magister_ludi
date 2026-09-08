@@ -45,7 +45,7 @@ import {
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { cityDisplayName } from '../../src/ui/cityDisplay';
-import { civYields } from '../../src/ui/topBar';
+import { readEmpire } from '../../src/sim/readings';
 import {
   NO_ROUTE_CAPACITY,
   cityRouteRows,
@@ -311,13 +311,13 @@ describe('the city panel’s routes row', () => {
 
   /**
    * The route's yields were already inside the ⚙ and 🌾 chips (`cityRouteYields`
-   * is one of `cityYields`' flats) and were not in the list under them, which is
+   * is one of `foldCity`' flats) and were not in the list under them, which is
    * a total shown without its reason — rule 5's one forbidden shape.
    */
   it('prints the caravan’s lines under the chips it is already inside', () => {
     const panel = source('cityPanel.ts');
     // **Step 6 of the town's own published list** since batch E2: the panel
-    // filters `CityQuoteLine`s rather than walking `cityRouteYields` a second
+    // filters `CityYieldLine`s rather than walking `cityRouteYields` a second
     // time, so a caravan's line is printed by the same list the chips are the
     // fold of. Step 6 is the routes arriving (`docs/yields.md`) and it is named
     // in the panel's own `PANEL_LEDGER_STEPS`.
@@ -371,7 +371,7 @@ describe('the treasury’s empire lines', () => {
    * The headline and the card are one number and its summands. `collectYields`
    * banks the empire gold once per player, so a strip that left it out would be
    * a rate the turn resolution disagrees with — the argument the luxuries were
-   * added to `civYields` for, and the reason these lines join in one place.
+   * added to `readEmpire` for, and the reason these lines join in one place.
    *
    * Stated as a **difference** rather than as "the headline minus the fold",
    * which is what it used to be: the market in the fixture now pays maintenance,
@@ -384,7 +384,7 @@ describe('the treasury’s empire lines', () => {
     const state = connectedWorld();
     const fold = (): number =>
       explainEmpireGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
-    const headlineBefore = civYields(state, 0).gold;
+    const headlineBefore = readEmpire(state, 0).totals.gold;
     const empireBefore = fold();
     for (const tile of state.map.tiles) delete tile.road;
     // The roads came up by hand, which is what `pillage` does through the
@@ -396,7 +396,7 @@ describe('the treasury’s empire lines', () => {
     const empireAfter = fold();
     // The roads mattered: without this the identity below would hold trivially.
     expect(empireBefore).not.toBe(empireAfter);
-    expect(headlineBefore - civYields(state, 0).gold).toBe(empireBefore - empireAfter);
+    expect(headlineBefore - readEmpire(state, 0).totals.gold).toBe(empireBefore - empireAfter);
   });
 
   it('reads by voice rather than by a hand-rolled gold comparison', () => {

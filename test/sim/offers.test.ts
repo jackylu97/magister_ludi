@@ -382,7 +382,7 @@ describe('determinism', () => {
  * glob, for its reason: this project has no node typings and a source assertion
  * is not worth a dependency.
  */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -412,9 +412,14 @@ describe('the register', () => {
     // shape, so it names it; anything else naming it is a second evaluator.
     const offenders = Object.keys(SIM_SOURCE)
       .filter((path) => code(SIM_SOURCE[path]!).includes('offerRider'))
-      .map((path) => path.slice(path.lastIndexOf('/') + 1))
+      .map((path) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
-    expect(offenders).toEqual(['statecraft.ts', 'statecraftData.ts']);
+    expect(offenders).toEqual([
+      'statecraft/describers.ts',
+      'statecraft/draft.ts',
+      'statecraft/evaluator.ts',
+      'statecraftData.ts',
+    ]);
   });
 
   it('leaves every generator asking offerSize rather than a table of its own', () => {
@@ -423,8 +428,8 @@ describe('the register', () => {
     // each of those readings is now a line of one fold.
     expect(sourceOf('religion.ts')).not.toContain('RELIGION.pantheon.offerOptions');
     expect(sourceOf('discoveries.ts')).not.toContain('DISCOVERY_DATA.offerSize');
-    expect(sourceOf('statecraft.ts')).not.toContain('STATECRAFT.offer.');
-    for (const file of ['religion.ts', 'discoveries.ts', 'statecraft.ts']) {
+    expect(sourceOf('statecraft/draft.ts')).not.toContain('STATECRAFT.offer.');
+    for (const file of ['religion.ts', 'discoveries.ts', 'statecraft/draft.ts']) {
       expect(sourceOf(file), file).toContain('offerSize(');
     }
   });

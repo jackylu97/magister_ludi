@@ -4,7 +4,6 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   borderCostFor,
   borderGrowth,
-  collectYields,
   expandBorders,
   explainTilePurchase,
   foldTilePrice,
@@ -16,6 +15,9 @@ import {
   tilePurchaseError,
   tilePurchasePrice,
 } from '../../src/sim/cities';
+import {
+  collectYields,
+} from '../../src/sim/yields/empire';
 import { snapshotState } from '../../src/sim/game';
 import {
   type GameMap,

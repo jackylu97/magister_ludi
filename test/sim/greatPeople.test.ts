@@ -19,17 +19,23 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  cityQuote,
-  cityYields,
   claimTile,
-  empireRateReading,
   controlledHoldings,
-  explainTileYield,
   foundCityAt,
   hasResource,
   tileOwnerPlayerId,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  foldEmpireRates,
+} from '../../src/sim/yields/empire';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
@@ -74,9 +80,9 @@ import {
   cardAmplifier,
   cardAmplifierFlat,
   cardAuthority,
-  cardCityYields,
+  explainCardCityYields,
   cardCombatLines,
-  cardEmpireYields,
+  explainCardEmpireYields,
   cardProduction,
   describeCard,
   foldCardYields,
@@ -304,7 +310,7 @@ describe('the act', () => {
     // aimed technology's full cost, which made a great person worth more the
     // deeper the tree went and worth it to an empire that had built nothing.
     // Now it is `actGainTurns` turns of what this empire actually banks —
-    // **read through the one seam** (`actGainOf` → `empireRateReading`), so the
+    // **read through the one seam** (`actGainOf` → `foldEmpireRates`), so the
     // payout, the preview and the top bar cannot disagree about a turn.
     // Seed 4: a capital that banks a whole beaker from turn one (1.65 a turn on
     // the H9 board — most seeds found at 0.55, which the floor below reads as
@@ -322,7 +328,7 @@ describe('the act', () => {
     // is a real number, not a nought that would pin nothing.
     const owed = actGainOf(g.state, 0, 'science');
     expect(owed).toBe(
-      Math.max(0, Math.floor(empireRateReading(g.state, 0).sciencePerTurn ?? 0)) *
+      Math.max(0, Math.floor(foldEmpireRates(g.state, 0).sciencePerTurn ?? 0)) *
         PEOPLE.actGainTurns,
     );
     expect(owed).toBeGreaterThan(0);
@@ -406,7 +412,7 @@ describe('the act', () => {
     const unit = call(g.state, 0, SAMPLE.artist);
     const owed = actGainOf(g.state, 0, 'culture');
     expect(owed).toBe(
-      Math.max(0, Math.floor(empireRateReading(g.state, 0).culturePerTurn ?? 0)) *
+      Math.max(0, Math.floor(foldEmpireRates(g.state, 0).culturePerTurn ?? 0)) *
         PEOPLE.actGainTurns,
     );
     expect(owed).toBeGreaterThan(0);
@@ -685,11 +691,11 @@ describe('a legacy is a card', () => {
     const city = found(g.state, 0);
     city.buildings.push('granary');
     bumpRevision(g.state);
-    const before = cityYields(g.state, city).gold;
+    const before = foldCity(g.state, city).gold;
     // Kushim: +1🪙 per granary, an ordinary `cityYields` line with a scope.
     g.state.players[0]!.legacies.push({ id: 'kushim', age: 1 });
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).gold).toBe(before + 1);
+    expect(foldCity(g.state, city).gold).toBe(before + 1);
   });
 
   it('pays a scoped line only where the scope admits it', () => {
@@ -702,10 +708,10 @@ describe('a legacy is a card', () => {
     // The **flats**: the empire stage multiplies both readings and, since batch
     // X, is no longer floored away, so "one more culture" is a claim about the
     // fold rather than about the staged figure.
-    const bare = cityQuote(g.state, city).flats.culture;
+    const bare = explainCity(g.state, city).flats.culture;
     city.buildings.push('shrine');
     bumpRevision(g.state);
-    expect(cityQuote(g.state, city).flats.culture).toBe(bare + 1);
+    expect(explainCity(g.state, city).flats.culture).toBe(bare + 1);
   });
 });
 
@@ -732,7 +738,7 @@ describe('the legacies this pass built', () => {
 
   /** The empire's once-a-turn card yields, folded. */
   function empire(state: GameState, playerId: number) {
-    return foldCardYields(cardEmpireYields(state, playerId));
+    return foldCardYields(explainCardEmpireYields(state, playerId));
   }
 
   /** One side of one fight, as `cardCombatLines` is asked about it. */
@@ -826,12 +832,12 @@ describe('the legacies this pass built', () => {
     const player = g.state.players[0]!;
     // An empire in the first age has closed nothing.
     expect(highestAge(player.techsResearched)).toBe(1);
-    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(0);
+    expect(foldCardYields(explainCardCityYields(g.state, city)).culture).toBe(0);
     // One age closed, so one point — Æra II, since the tree pass of 2026-08-30
     // put Iron Working two ages up.
     player.techsResearched.push('siegecraft');
     bumpRevision(g.state);
-    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
+    expect(foldCardYields(explainCardCityYields(g.state, city)).culture).toBe(1);
   });
 
   it('Murasaki Shikibu counts the melee in the field, and the filter bites', () => {
@@ -977,16 +983,16 @@ describe('the legacies this pass built', () => {
     const g = game(163);
     const capital = found(g.state, 0);
     bear(g.state, 0, 'assurIdi');
-    expect(foldCardYields(cardCityYields(g.state, capital)).gold).toBe(0);
+    expect(foldCardYields(explainCardCityYields(g.state, capital)).gold).toBe(0);
     const colony = foundCityAt(
       g.state,
       0,
       getTileAt(g.state.map, capital.col + 4, capital.row)!,
     )!;
     // One a colony since the nerf pass of 2026-09-03 (it was two).
-    expect(foldCardYields(cardCityYields(g.state, colony)).gold).toBe(1);
+    expect(foldCardYields(explainCardCityYields(g.state, colony)).gold).toBe(1);
     // Still nothing in the capital: the negation is a scope, not a subtraction.
-    expect(foldCardYields(cardCityYields(g.state, capital)).gold).toBe(0);
+    expect(foldCardYields(explainCardCityYields(g.state, capital)).gold).toBe(0);
   });
 
   it('Amenhotep hurries wonders in the capital and nowhere else', () => {
@@ -1126,7 +1132,7 @@ describe('the legacies this pass built', () => {
 
 // --- the register -----------------------------------------------------------
 
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -1143,7 +1149,8 @@ describe('the register', () => {
     // legacy naming a shape the evaluator does not read would be a card that
     // silently does nothing — which is exactly the failure the *card* register
     // test in `statecraft.test.ts` catches one table over.
-    const evaluator = sourceOf('statecraft.ts');
+    // The one switch, which is `statecraft/evaluator.ts` since batch E3b.
+    const evaluator = sourceOf('statecraft/evaluator.ts');
     const kinds = new Set<CardEffectKind>();
     const walk = (effects: readonly { kind: CardEffectKind; then?: unknown }[]): void => {
       for (const effect of effects) {
@@ -1378,7 +1385,7 @@ describe('the one-row shapes, built generically', () => {
     // The scope is still read, so the claim is made of the vocabulary itself.
     const g = game(223);
     const city = found(g.state, 0);
-    const bare = cityYields(g.state, city).production;
+    const bare = foldCity(g.state, city).production;
     g.state.players[0]!.timed = [{
       card: 'heroOfAlexandria',
       effect: {
@@ -1392,10 +1399,10 @@ describe('the one-row shapes, built generically', () => {
     // The Oracle pays faith, not science: the scope reads what a row *does*.
     city.buildings.push('theOracle');
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).production).toBe(bare);
+    expect(foldCity(g.state, city).production).toBe(bare);
     city.buildings.push('greatLibrary');
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).production).toBe(bare + 5);
+    expect(foldCity(g.state, city).production).toBe(bare + 5);
   });
 
   it('Hero of Alexandria says out loud that his new cell is not built', () => {
@@ -1463,9 +1470,9 @@ describe('the one-row shapes, built generically', () => {
     bear(g.state, 0, 'marcoPolo');
     const trader = createUnit(g.state, 0, 'trader', mine.col, mine.row);
     trader.trade = { from: mine.id, to: mine.id, expiresTurn: 99, outbound: true, autoResend: false };
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(0);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(0);
     trader.trade = { from: mine.id, to: theirs.id, expiresTurn: 99, outbound: true, autoResend: false };
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(3);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(3);
   });
 
   it('Crassus hangs his bill on the empire, and the broom takes it away', () => {

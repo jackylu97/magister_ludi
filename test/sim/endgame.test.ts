@@ -73,7 +73,7 @@ import { game } from './purchaseHelpers';
  * this project has no node typings and a source assertion is not worth a
  * dependency).
  */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,

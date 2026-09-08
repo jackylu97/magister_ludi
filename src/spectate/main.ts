@@ -36,7 +36,9 @@ import { type Game, createGame } from '../sim/game';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
 import { type PlayerSpec, realPlayers } from '../sim/state';
-import { empireRateReading } from '../sim/cities';
+import {
+  foldEmpireRates,
+} from '../sim/yields/empire';
 import { Renderer3D } from '../render3d/renderer3d';
 import { playerPieceColor } from '../render3d/lookData';
 
@@ -227,14 +229,14 @@ function refreshChrome(): void {
 /**
  * One seat's line: what the feed's numbers are numbers *about*.
  *
- * Read off the simulation's own books — `empireRateReading` is the very fold
+ * Read off the simulation's own books — `foldEmpireRates` is the very fold
  * `collectYields` banks, and it is the reading `goldPressure` swings on, so the
  * treasury printed here is the treasury the bot appraised against.
  */
 function seatRow(playerId: number): HTMLElement {
   const session = game!;
   const player = session.state.players[playerId]!;
-  const rate = empireRateReading(session.state, playerId);
+  const rate = foldEmpireRates(session.state, playerId);
   const cities = session.state.cities.filter((city) => city.ownerId === playerId).length;
   const units = session.state.units.filter((unit) => unit.ownerId === playerId).length;
 

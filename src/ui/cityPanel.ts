@@ -3,7 +3,7 @@
  * building next.
  *
  * A DOM panel, built and torn down from the simulation on every render. It reads
- * the city through the same functions the turn pipeline uses — `cityYields`,
+ * the city through the same functions the turn pipeline uses — `foldCity`,
  * `growthThreshold`, `turnsToFill` — so a number shown here is the number the
  * end of turn will act on, not a second implementation of the same arithmetic
  * that drifts a patch later.
@@ -25,31 +25,33 @@
  */
 
 import {
-  type BuildingPreviewLine,
-  type CityQuoteLine,
-  type CityYields,
   borderGrowth,
   buildingProductionCost,
-  cityStageSums,
-  type CityQuote,
-  cityYields,
   citizenFocus,
   citizenFocusError,
   cityFocus,
-  explainBuildingPreview,
   explainGrowthPercent,
-  foldBuildingPreview,
   growthSurplus,
   growthThreshold,
   hasResource,
-  productionModifiers,
-  queueCategory,
   queueItemCost,
   queueItemName,
   turnsToBuild,
   turnsToFill,
+  type CityYields,
   unitProductionCost,
 } from '../sim/cities';
+import {
+  explainBuildingPreview,
+  foldBuildingPreview,
+  foldCity,
+  foldCityStages,
+  productionModifiers,
+  queueCategory,
+  type BuildingPreviewLine,
+  type CityReading,
+  type CityYieldLine,
+} from '../sim/yields/town';
 import {
   type BuildingId,
   type ProductionCategory,
@@ -98,7 +100,7 @@ import {
   type StageSums,
   MODIFIER_STAGES,
   STAGE_LABEL,
-} from '../sim/modifiers';
+} from '../sim/yields/stages';
 import { CITY_YIELD_KEYS, type CityYieldKey, resourceDef } from '../sim/resourceData';
 import {
   type SpecialistYieldLine,
@@ -590,7 +592,7 @@ export interface ModifierRow {
  * nothing above them**.
  *
  * The heading is gone, and this is the second and last pass at the same
- * complaint. Every percentage `cityStageSums` folds has a line here — the
+ * complaint. Every percentage `foldCityStages` folds has a line here — the
  * meters, the luxuries, the hammers behind the current build, and nothing else
  * joins that fold — so the heading was, by construction, its own lines said
  * again in different glyphs. The first pass collapsed the *one-source* case,
@@ -609,7 +611,7 @@ export interface ModifierRow {
  * The label survives in exactly one place, and it is a **canary rather than a
  * heading**: a stage that folds to a figure with no source to explain it. That
  * cannot happen today and the register test in `test/ui/cityModifiers.test.ts`
- * is what keeps it so — but if a future modifier ever joins `cityStageSums`
+ * is what keeps it so — but if a future modifier ever joins `foldCityStages`
  * without joining this list, the panel says "Empire 🔬 +10%" with nothing under
  * it rather than swallowing a percentage the player cannot account for. A
  * silent stage would be the one failure this list exists to prevent.
@@ -697,7 +699,7 @@ export interface SpecialistRowParts {
  * Parts rather than one string because the row lays each family out with a
  * control beside it, and parts rather than elements because this suite has no
  * jsdom (`previewLineText`'s reason exactly). Every figure is the simulation's:
- * `citySpecialistYields` is the same list `cityYields` folds and the panel's
+ * `citySpecialistYields` is the same list `foldCity` folds and the panel's
  * ledger prints, so the row cannot name a number the chips above it do not.
  */
 export function specialistRow(city: City): SpecialistRowParts | null {
@@ -1258,7 +1260,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     for (const [glyph, value] of flat) {
       if (value !== 0) notes.append(note(`${value > 0 ? '+' : ''}${value}${glyph} every turn`));
     }
-    // Fractional and floored per building when it is applied (`cityYields`), so
+    // Fractional and floored per building when it is applied (`foldCity`), so
     // it is quoted per citizen rather than as a total this card cannot know.
     if (def.sciencePerPop !== 0) {
       notes.append(note(`+${def.sciencePerPop}${YIELD_GLYPH.science} per citizen`));
@@ -1438,7 +1440,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * One printer for every step, because a line is a line: batch E2 collapsed
    * three near-identical local functions (a building's, a caravan's, a seam's)
    * that differed only in which voices they bothered to look at and in one
-   * per-citizen suffix. `CityQuoteLine` speaks all six voices, so the printer
+   * per-citizen suffix. `CityYieldLine` speaks all six voices, so the printer
    * asks all six and prints the ones that are not nought — a route simply
    * carries no faith, and says so by carrying nought.
    *
@@ -1447,7 +1449,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * +1.5🔬" in a town of three is what that library is actually paying, and the
    * figure a player can check against the chip above.
    */
-  function quoteFigures(entry: CityQuoteLine): string {
+  function quoteFigures(entry: CityYieldLine): string {
     const parts: string[] = [];
     for (const key of CITY_YIELD_KEYS) {
       const value = roundYield(entry[key]);
@@ -1460,7 +1462,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
   /**
    * The five figures, and — under them — the list they are the fold of.
    *
-   * The chips are `cityYields`, which has the happiness and authority
+   * The chips are `foldCity`, which has the happiness and authority
    * multipliers already folded in and, since the Age I rework, the share of the
    * hammers a barracks puts behind whatever is at the front of the queue. A
    * multiplied number shown without the reason beside it is a total computed
@@ -1479,12 +1481,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * modifier that does nothing is not a modifier, and a granary in a city whose
    * queue is empty is not a hammer bonus.
    */
-  function renderYieldChips(city: City, quote: CityQuote): HTMLElement {
+  function renderYieldChips(city: City, quote: CityReading): HTMLElement {
     const { state } = getGame();
     // The rate for what is actually being built — the same call `collectYields`
     // banks with, so the ⚙ chip is the number the basket will receive.
     const front = city.queue[0];
-    const yields = cityYields(state, city, [], front, quote);
+    const yields = foldCity(state, city, [], front, quote);
     const row = element('div', 'city-yields');
     const entries: [YieldKey, string, number][] = [
       ['food', 'Food', yields.food],
@@ -1525,7 +1527,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * "one hover deeper" is a move and not a rewrite. See `renderYieldChips` for
    * why it moved and `stageRows` for why a stage prints its parts.
    */
-  function yieldLedger(city: City, quote: CityQuote): HTMLElement {
+  function yieldLedger(city: City, quote: CityReading): HTMLElement {
     const { state } = getGame();
     const front = city.queue[0];
     const box = element('div', 'city-yields-box');
@@ -1547,10 +1549,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     };
 
     // **The town's own list, printed** (batch E2). Until now this walked four of
-    // `cityQuote`'s eleven sources a second time to get the labels back, which
+    // `explainCity`'s eleven sources a second time to get the labels back, which
     // was rule 5 kept in the simulation and rebuilt on the interface's side —
     // one of the four private copies `docs/audit/evaluations.md` §3a names. The
-    // quote *is* the labelled list now (`CityQuoteLine`), so the panel filters
+    // quote *is* the labelled list now (`CityYieldLine`), so the panel filters
     // it and prints.
     //
     // The four steps it prints are the four it has always printed and in the
@@ -1578,7 +1580,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // twice. A player reading downward sees the flats, then every percentage
     // with its source beside it, and the chip at the top of the screen is where
     // the multiplied figure lives.
-    const sums = cityStageSums(state, city, front, [], quote.percents);
+    const sums = foldCityStages(state, city, front, [], quote.percents);
     const percents = quote.percents;
     const hammers = productionModifiers(state, city, front);
     for (const stage of MODIFIER_STAGES) {
@@ -1642,7 +1644,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * source: the fold of one line is that line, and printing both was the
    * doubled science/culture reading players saw after the two-stage rework.
    *
-   * The fold of `cityStageSums`, which is the same fold `cityYields` multiplies
+   * The fold of `foldCityStages`, which is the same fold `foldCity` multiplies
    * by, so the heading and the chip cannot disagree. Production carries the
    * hammers behind the current build, which is why the ⚙ figure here can be
    * larger than the percentages listed under it: those are yields, the hammers
@@ -1668,7 +1670,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * the gross food it harvests, because the gross number is the one that makes
    * a starving city look healthy.
    */
-  function renderGrowth(city: City, quote: CityQuote): HTMLElement {
+  function renderGrowth(city: City, quote: CityReading): HTMLElement {
     // `growthSurplus`, not the subtraction: since M10 what a city banks is the
     // harvest less upkeep, less a settler at the front of the queue, less
     // whatever a happiness deficit takes — and the panel must quote the number
@@ -1676,7 +1678,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const surplus = growthSurplus(
       getGame().state,
       city,
-      cityYields(getGame().state, city, [], undefined, quote),
+      foldCity(getGame().state, city, [], undefined, quote),
     );
     const threshold = growthThreshold(city.population);
     const turns = turnsToFill(threshold - city.foodBasket, surplus);
@@ -1765,11 +1767,11 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * gold is the way to hurry it. It is disabled with the reason on it while the
    * writ bars purchases, which is the same freeze the line above just reported.
    */
-  function renderBorders(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+  function renderBorders(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const growth = borderGrowth(
       getGame().state,
       city,
-      cityYields(getGame().state, city, [], undefined, quote),
+      foldCity(getGame().state, city, [], undefined, quote),
     );
 
     const box = element('div', 'city-meter');
@@ -1939,7 +1941,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * on a system that has not started yet.
    *
    * Every figure is the simulation's own. The names and the yields are
-   * `citySpecialistYields`, the same list `cityYields` folds into the chips
+   * `citySpecialistYields`, the same list `foldCity` folds into the chips
    * above and prints again in the ledger; the hover card is `guildThreshold` and
    * `cityGuildInflow`, the two numbers the `guilds` phase itself compares. There
    * is no arithmetic in this function, which is the only way the bar a player
@@ -2051,10 +2053,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return track;
   }
 
-  function renderProduction(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+  function renderProduction(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const box = element('div', 'city-prod');
     const item = city.queue[0];
-    const perTurn = cityYields(getGame().state, city, [], undefined, quote).production;
+    const perTurn = foldCity(getGame().state, city, [], undefined, quote).production;
 
     box.append(element('h3', undefined, 'Building now'));
     if (!item) {
@@ -2170,7 +2172,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * needs: remove, and move up. "Move up" repeated is "move to the front", and
    * a drag-and-drop list for three items would be more code than the panel.
    */
-  function renderQueue(city: City, locked: boolean, quote: CityQuote): HTMLElement | null {
+  function renderQueue(city: City, locked: boolean, quote: CityReading): HTMLElement | null {
     // The front row is the card above this one ("Building now"), so the list is
     // what comes *after* it — "then — Worker". A queue of one is a town with
     // nothing after the thing it is building, and prints no list at all.
@@ -2265,7 +2267,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * own. The tag is greyed with `purchaseError`'s sentence, exactly as the build
    * button is greyed with `buildError`'s.
    */
-  function renderBuildables(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+  function renderBuildables(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const { state } = getGame();
     const box = element('div', 'city-buildables');
     box.append(element('h3', undefined, 'Add to queue'));
@@ -3056,7 +3058,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * No close cross: the way out is one button at the bottom of the screen, and
    * two exits in two corners is the thing the exit was meant to fix.
    */
-  function renderBand(city: City, quote: CityQuote): HTMLElement {
+  function renderBand(city: City, quote: CityReading): HTMLElement {
     const { state } = getGame();
     const band = element('div', 'city-band');
     const title = element('div', 'city-title');
@@ -3098,7 +3100,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    * about where the citizens went when there is one, and the four standing
    * sections collapsed behind their folds.
    */
-  function renderTownRail(city: City, locked: boolean, quote: CityQuote): HTMLElement {
+  function renderTownRail(city: City, locked: boolean, quote: CityReading): HTMLElement {
     const { state } = getGame();
     const rail = element('div', 'city-rail is-left');
 
@@ -3200,7 +3202,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     city: City,
     locked: boolean,
     puppet: boolean,
-    quote: CityQuote,
+    quote: CityReading,
   ): HTMLElement {
     const { state } = getGame();
     const rail = element('div', 'city-rail is-right');
@@ -3310,7 +3312,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const locked = hasEndedTurn(state, localPlayerId()) || puppet;
 
     // One photograph of the town, spent inside this render and never kept —
-    // see `CityQuote`. Everything below reads the sim fresh through it; nothing
+    // see `CityReading`. Everything below reads the sim fresh through it; nothing
     // survives to the next render, which is what keeps a slotted Order, a rite
     // or a religion arriving in the town from leaving a stale panel behind.
     // **The town's own published list**, remembered on `state.revision` and

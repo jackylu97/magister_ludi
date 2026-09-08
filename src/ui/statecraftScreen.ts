@@ -67,7 +67,7 @@
  * aggregate counts up in its own band above the Doctrines while every card the
  * signature just made law lands its own stamp in the same beat.
  *
- * The aggregate's figure is `deckAggregate` (`ledgerScreen.ts`) — the Ledger's
+ * The aggregate's figure is `foldDeck` (`ledgerScreen.ts`) — the Ledger's
  * band-1 deck slice, which is the *banked* figure rather than a sum of eleven
  * marginal ghost-diffs. That function's docblock is where the reasoning lives;
  * what matters here is that the ceremony and the sheet read one function.
@@ -167,7 +167,7 @@ import {
   stampIsEmpty,
   stampReading,
 } from './cardStamp';
-import { DECK_AGGREGATE_LABEL, deckAggregate, deckAggregateLine } from './ledgerScreen';
+import { DECK_LABEL, foldDeck, deckCaption } from './ledgerScreen';
 import {
   type CardImpactSheet,
   type CardImpactSubject,
@@ -810,7 +810,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    * The scoring ceremony's band (`docs/history/fewer-things.md` §4, RULED): it stands
    * quietly at rest and **counts up on Confirm**, which is the one moment the
    * number changed by something the player just did. The figure is
-   * `deckAggregate`, the Ledger's own deck slice, so the band and the sheet
+   * `foldDeck`, the Ledger's own deck slice, so the band and the sheet
    * cannot disagree — see the module docblock.
    *
    * It sits at the **head of the Confirm block**, which is the column's pinned
@@ -825,8 +825,8 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
    */
   function drawAggregate(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'sc-aggregate');
-    block.append(element('p', 'eyebrow sc-eyebrow', DECK_AGGREGATE_LABEL));
-    const reading = deckAggregate(state, seat);
+    block.append(element('p', 'eyebrow sc-eyebrow', DECK_LABEL));
+    const reading = foldDeck(state, seat);
     if (stampIsEmpty(reading)) {
       // No seat at all rather than a seat wearing the flourish: a flourish means
       // "not weighed yet", and this one has been weighed and came to nothing.
@@ -840,7 +840,7 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     if (justConfirmed.length > 0) counting.push(playCardStamp(stamp, reading));
     else landCardStamp(stamp, reading);
     // The whole band in words, for the reading that has no glyphs in it.
-    block.title = deckAggregateLine(reading);
+    block.title = deckCaption(reading);
     return block;
   }
 

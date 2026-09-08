@@ -29,13 +29,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  cityYieldPercents,
-  cityYields,
-  collectYields,
-  explainPalaceYield,
   foundCityAt,
   realiseItem,
 } from '../../src/sim/cities';
+import {
+  cityYieldPercents,
+  explainPalaceYield,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+} from '../../src/sim/yields/empire';
 import { applyCommand } from '../../src/sim/commands';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { RULES } from '../../src/sim/rulesData';
@@ -188,14 +192,14 @@ describe('the free-upkeep marker', () => {
     // charging rent on it. `state.ts` is `captureUnit`, `cities.ts` is
     // `realiseItem` and the wonder grants, `discoveries.ts` is the ruin's
     // escort, `greatPeople.ts` is the called person.
-    const modules = import.meta.glob('../../src/sim/*.ts', {
+    const modules = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,
     }) as Record<string, string>;
     const writers = Object.entries(modules)
       .filter(([, text]) => /freeUpkeep\s*=\s*true/.test(text))
-      .map(([path]) => path.slice(path.lastIndexOf('/') + 1))
+      .map(([path]) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     expect(writers).toEqual(['cities.ts', 'discoveries.ts', 'greatPeople.ts', 'state.ts']);
   });
@@ -284,7 +288,7 @@ describe('the empire ledger', () => {
     const empire = explainEmpireGold(state, 0).reduce((sum, line) => sum + line.gold, 0);
     const towns = state.cities
       .filter((c) => c.ownerId === 0)
-      .reduce((sum, c) => sum + cityYields(state, c, [], c.queue[0]).gold, 0);
+      .reduce((sum, c) => sum + foldCity(state, c, [], c.queue[0]).gold, 0);
     collectYields(state);
     expect(player.gold).toBe(100 + towns + empire);
   });
@@ -440,7 +444,7 @@ describe('the palace', () => {
     ]);
     expect(explainPalaceYield(state, second)).toEqual([]);
     // Folded, never added beside — the capital's gold carries it.
-    expect(cityYields(state, city).gold - cityYields(state, second).gold).toBe(
+    expect(foldCity(state, city).gold - foldCity(state, second).gold).toBe(
       RULES.cities.palaceGold,
     );
   });
@@ -490,9 +494,9 @@ describe('a treasury under water', () => {
     city.buildings.push('library');
     bumpRevision(state);
     city.population = 6;
-    const before = cityYields(state, city).science;
+    const before = foldCity(state, city).science;
     state.players[0]!.gold = -50;
-    const after = cityYields(state, city).science;
+    const after = foldCity(state, city).science;
 
     const empire = cityYieldPercents(state, city)
       .filter((line) => line.yield === 'science' && line.stage === 'empire')
@@ -656,7 +660,7 @@ describe('determinism', () => {
     state.players[0]!.gold = -2;
 
     const expected =
-      cityYields(state, city).science + cityYields(state, second).science;
+      foldCity(state, city).science + foldCity(state, second).science;
     const before = state.players[0]!.sciencePool;
     collectYields(state);
     expect(state.players[0]!.sciencePool - before).toBe(expected);

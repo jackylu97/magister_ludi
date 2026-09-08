@@ -2,6 +2,13 @@
  * How a stack of percentages composes — Entry XVII's arithmetic, and the one
  * implementation of it.
  *
+ * **This is `modifiers.ts`, moved** (batch E3b — `docs/audit/evaluations.md`
+ * §4b step 9, *files by layer, not by topic*): it is the two multiplications
+ * the yields sequence ends with, so it lives with the sequence, beneath
+ * `hex.ts`, `town.ts` and `empire.ts` and importing none of them for a value.
+ * `foldStageSums` came with it from the town's file, being the fold of a
+ * percent list and nothing more.
+ *
  * The doctrine in one line: `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`,
  * floored **once** at the very end. Two stages, additive inside each and
  * multiplicative across the pair, and nothing anywhere else in the simulation is
@@ -47,6 +54,13 @@
  * `sciencePerPop` and a size-1 town banked *nothing*, because the floor was
  * inside the fold rather than at the reader's eye.
  */
+
+// Type-only, both of them, so this file stays what its docblock says it is: the
+// arithmetic and nothing else. A type import is erased, so neither the yield
+// vocabulary nor the town's percent list puts an edge on the module graph
+// (batch E3b — `foldStageSums` moved here from the town with the split).
+import type { CityYieldKey } from '../resourceData';
+import type { CityYieldPercent } from './town';
 
 /**
  * Which of the two multiplications a percentage joins.
@@ -152,4 +166,18 @@ export function stageFactor(sums: StageSums): number {
 export function applyStages(base: number, sums: StageSums): number {
   if (stagesAreIdle(sums)) return base;
   return (base * (100 + sums.city) * (100 + sums.empire)) / 10_000;
+}
+
+/**
+ * The percentages on one yield, as Entry XVII's two sums. The only sum of them,
+ * and the only shape anything downstream is given: there is deliberately no
+ * function returning "the total percentage on gold", because since the doctrine
+ * that number does not exist — +10% city and +10% empire is ×1.21, and a caller
+ * handed 20 would be a caller quietly reinstating the old single pool.
+ */
+export function foldStageSums(
+  list: readonly CityYieldPercent[],
+  yieldId: CityYieldKey,
+): StageSums {
+  return foldStages(list, (entry) => entry.yield === yieldId);
 }

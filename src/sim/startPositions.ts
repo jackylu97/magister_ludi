@@ -43,7 +43,7 @@
  * Every weight, both bonuses and all five rejections come from `mapgen.starts`,
  * so "no tundra starts" and "how much is a hill worth" are data edits.
  *
- * The yield is `tileYieldOf` — the *real* evaluator every citizen, every border
+ * The yield is `foldTile` — the *real* evaluator every citizen, every border
  * expansion and every hover card reads — and not a second table of terrain
  * desirabilities beside it. That is rule 5's argument applied one step further
  * out: a start chooser with its own opinion of what grassland is worth is a
@@ -91,7 +91,7 @@
  * ---------------------------------------------
  * `resources.ts` imports this module and `mapgen.ts` imports that, so a *value*
  * read from `cities.ts` at this module's top level could close a load-time
- * cycle. Nothing here reads one: `tileYieldOf` is a hoisted function
+ * cycle. Nothing here reads one: `foldTile` is a hoisted function
  * declaration, called only from inside the functions below, by which time every
  * module is evaluated. Nothing in this file may grow a top-level call into
  * `cities.ts`.
@@ -104,7 +104,9 @@
  * relaxed spacing can put two starts within a hex of each other.
  */
 
-import { tileYieldOf } from './cities';
+import {
+  foldTile,
+} from './yields/hex';
 import type { GameMap, Tile } from './map';
 import {
   getTile,
@@ -300,7 +302,7 @@ function groundOf(tile: Tile): Tile {
 
 /** The ground yield of every tile on the map, indexed by tile index. */
 function groundYields(map: GameMap): TileYield[] {
-  return map.tiles.map((tile) => tileYieldOf(groundOf(tile)));
+  return map.tiles.map((tile) => foldTile(groundOf(tile)));
 }
 
 /** What one tile's ground is worth to a site, under the start weights. */
@@ -350,7 +352,7 @@ function scoreSite(
   arms?: StrategicGround,
 ): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
-    ground ? ground[tileIndex(map, target.col, target.row)]! : tileYieldOf(groundOf(target));
+    ground ? ground[tileIndex(map, target.col, target.row)]! : foldTile(groundOf(target));
 
   const entries: StartScoreContribution[] = [];
   entries.push({

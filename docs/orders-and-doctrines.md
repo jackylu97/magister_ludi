@@ -15,7 +15,7 @@ generic:
   `explainEmpireGold` beside the gross payroll (`explainUnitUpkeepRebate`). The gross list
   stays gross, so the creditors' disband choice is the same under every government.
 - **The Curia** *(faith buildings supply science equal to their faith)* — `mirrorYield`,
-  read in `cityYields` off the buildings' own category and their own faith, never the town's
+  read in `foldCity` off the buildings' own category and their own faith, never the town's
   total. A **flat** line, so it lands before Entry XVII's percentages.
 - **The Commonwealth** and **The Magisterium** *(great people bought with gold / faith)* —
   a great person is still **called**: what is for sale is the *recruitment*. The new

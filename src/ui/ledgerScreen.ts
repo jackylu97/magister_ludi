@@ -13,7 +13,7 @@
  *      where the yield came from — under the **aggregate**, "your cards: +31⚒
  *      +18🔬 +40🎵", which is the deck's whole slice in one figure per voice and
  *      is the very reading Confirm counts up on the Statecraft screen
- *      (`deckAggregate`, one function so the two cannot disagree).
+ *      (`foldDeck`, one function so the two cannot disagree).
  *   2. **The curve.** Six sparklines of the per-turn total across the session,
  *      the deck's share shaded underneath.
  *   3. **What the deck has produced** — the lifetime tally, per card. It wants a
@@ -27,7 +27,7 @@
  * No new fold (rule 5)
  * --------------------
  * Nothing here computes a yield. Every figure on band 1 is the simulation's own
- * — `cityYields` for a town's six voices, `explainEmpireLines` for everything
+ * — `foldCity` for a town's six voices, `explainEmpireLines` for everything
  * the empire banks beyond them (the luxuries' signatures, the caravans abroad,
  * the treasury's ledger, the cards' empire payouts and the empire stage over the
  * fold of them) — and the whole of what this file adds is a **classification**
@@ -35,7 +35,7 @@
  * town's **flats** to the classes that paid them and its **multiplied gain** to
  * the classes that supplied the percentages (`shareOut`, and the ruling below).
  *
- * The empire total per voice is therefore `topBar.ts`'s `civYields` exactly,
+ * The empire total per voice is therefore `topBar.ts`'s `readEmpire` exactly,
  * summand for summand, and `test/ui/ledgerScreen.test.ts` pins that: a band that
  * disagreed with the chip a player clicked to open it would be worse than no
  * band at all.
@@ -106,16 +106,20 @@
  * calls that fail loudly or not at all.
  */
 
-import type { CityQuote } from '../sim/cities';
+import type { CityReading } from '../sim/yields/town';
 import {
-  type CityQuoteLine,
-  type CityYieldPercent,
-  type CityYields,
-  type ProductionModifier,
-  type EmpireYieldLine,
   emptyCityYields,
-  productionModifiers,
+  type CityYields,
 } from '../sim/cities';
+import {
+  productionModifiers,
+  type CityYieldLine,
+  type CityYieldPercent,
+  type ProductionModifier,
+} from '../sim/yields/town';
+import {
+  type EmpireYieldLine,
+} from '../sim/yields/empire';
 import { readEmpire } from '../sim/readings';
 import {
   type LedgerClass,
@@ -288,7 +292,7 @@ export interface PercentWeight {
  * weights the multiplied gain is shared over.
  *
  * Two lists, because Entry XVII's staging is fed from two places and this has to
- * be the same set of lines `cityYields` actually multiplied by:
+ * be the same set of lines `foldCity` actually multiplied by:
  *
  *   · `quote.percents` — `cityYieldPercents`' whole list, both stages at once.
  *     The stage decides *when* a line applies and this asks only *who supplied
@@ -299,13 +303,13 @@ export interface PercentWeight {
  *     shading two stages' credit differently on a bar four pixels tall.
  *   · `productionModifiers` for **production alone** — the barracks, the marble
  *     and the cards' hammers behind whatever the town has at the front of its
- *     queue. `cityStageSums` folds these into the production city stage, so a
+ *     queue. `foldCityStages` folds these into the production city stage, so a
  *     reading that left them out would hand a barracks town's whole gain to
- *     `other`. `city.queue[0]` is asked because that is what `ledgerReading`
+ *     `other`. `city.queue[0]` is asked because that is what `explainLedger`
  *     banks at, and the two must be the same build or the weights price a
  *     different bonus than the figure did.
  *
- * The one line this does **not** mirror is `cityStageSums`' authority exemption
+ * The one line this does **not** mirror is `foldCityStages`' authority exemption
  * (The Great Warring Tribes takes a meter's production malus off the table while
  * a town builds a unit). It is a negative line that classifies to `other`, and
  * the arrears beside it classify to `other` too, so mirroring the rule here
@@ -315,7 +319,7 @@ export interface PercentWeight {
 export function percentWeights(
   state: GameState,
   city: City,
-  quote: CityQuote,
+  quote: CityReading,
   key: YieldKey,
 ): PercentWeight[] {
   const weights: PercentWeight[] = [];
@@ -427,16 +431,16 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
 /**
  * **One town's flats, classified** — and, since batch E2, no walk at all.
  *
- * `cityQuote` returns the labelled list its flats are the fold of
- * (`CityQuoteLine`), and every line carries the class its source belongs to —
+ * `explainCity` returns the labelled list its flats are the fold of
+ * (`CityYieldLine`), and every line carries the class its source belongs to —
  * decided in the simulation, once, by the id and never by the label
  * (`classifyCard`, `ledgerClass.ts`). So the sheet's oldest and largest piece of
  * machinery is now a `switch`-less loop over somebody else's list.
  *
  * What it replaces was a **mirror**: eleven lists walked a second time on this
- * side in the order `cityQuote` folded them, guarded by a test pinning the two
+ * side in the order `explainCity` folded them, guarded by a test pinning the two
  * folds equal, and wrong in a different way every few days —
- * `cardBuildingYields` missing for as long as the bench had no such card, two
+ * `explainCardBuildingYields` missing for as long as the bench had no such card, two
  * per-citizen terms floored for as long as no town had an odd population, every
  * worked hex filed whole under the land until the late Order pools made that
  * matter (`docs/flags.md`, ruling jj). Four surfaces each kept one of these;
@@ -452,7 +456,7 @@ function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void
  * and the culture a settlement makes by being one — are `other`, because they
  * belong to no tile, no building and no card.
  */
-export function flatsByClass(lines: readonly CityQuoteLine[]): LedgerBag {
+export function flatsByClass(lines: readonly CityYieldLine[]): LedgerBag {
   const bag = emptyLedgerBag();
   for (const line of lines) add(bag, line.class, line);
   return bag;
@@ -470,7 +474,7 @@ export function foldLedgerBag(bag: LedgerBag): CityYields {
 /** One voice's row on band 1: what it made, and who made it. */
 export interface LedgerVoice {
   key: YieldKey;
-  /** `civYields`' own figure for this voice — the number on the chip. */
+  /** `readEmpire`' own figure for this voice — the number on the chip. */
   total: number;
   byClass: Record<LedgerClass, number>;
 }
@@ -478,8 +482,8 @@ export interface LedgerVoice {
 /**
  * The whole of band 1: the six voices, each split eight ways.
  *
- * Assembled in `civYields`' order and out of `civYields`' own summands — every
- * town's `cityYields`, then the empire's own list (`explainEmpireLines`: the
+ * Assembled in `readEmpire`' order and out of `readEmpire`' own summands — every
+ * town's `foldCity`, then the empire's own list (`explainEmpireLines`: the
  * luxury signatures, the outbound foreign routes, the treasury's ledger, the
  * empire-scale card lines, and the empire stage over the fold of them) — so the
  * six totals here are that function's six totals and the test pins it. The pin is against the **bank** as well now: the
@@ -505,7 +509,7 @@ export interface LedgerVoice {
  * as its own line and lands in **other**, which is where `classifyPercent` puts
  * a meter tier and the arrears one scale down — see `classifyEmpireLine`.
  */
-export function ledgerReading(state: GameState, playerId: number): LedgerVoice[] {
+export function explainLedger(state: GameState, playerId: number): LedgerVoice[] {
   const bag = emptyLedgerBag();
   // **The empire's own reading, subscribed to rather than rebuilt** (batch E2):
   // every town's published list and total, the empire's lines and the meters,
@@ -514,15 +518,15 @@ export function ledgerReading(state: GameState, playerId: number): LedgerVoice[]
   // of a list somebody else folded, plus the two shares below.
   const reading = readEmpire(state, playerId);
 
-  for (const { city, quote, total: banked } of reading.towns) {
-    const flats = flatsByClass(quote.lines);
+  for (const { city, reading: town, total: banked } of reading.towns) {
+    const flats = flatsByClass(town.lines);
     for (const key of VOICES) {
       let paid = 0;
       for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
       // What the two stages added over the flats — negative under arrears, or
       // under a meter tier the empire has fallen through. Exact, because the
-      // classes are the town's own lines and `cityYields` floors once.
-      const gain = shareGain(banked[key] - paid, percentWeights(state, city, quote, key));
+      // classes are the town's own lines and `foldCity` floors once.
+      const gain = shareGain(banked[key] - paid, percentWeights(state, city, town, key));
       // `other` last, so that a basket with nothing in it hands its figure to
       // the class that means "nobody here earned this".
       const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
@@ -585,7 +589,7 @@ export function netFigure(value: number): string {
  * What both surfaces call the deck's own figure. The user's words for the
  * ceremony ("your cards: +31⚒ +18🔬 +40🎵"), and plain (hard rule 7).
  */
-export const DECK_AGGREGATE_LABEL = 'your cards';
+export const DECK_LABEL = 'your cards';
 
 /**
  * **The aggregate**: what this empire's cards pay it this turn, in one figure
@@ -607,11 +611,11 @@ export const DECK_AGGREGATE_LABEL = 'your cards';
  *     precisely the deck this pass is building: eleven cards each worth "what
  *     the empire would lose without me" adds up to more than the empire makes.
  *     It is also eleven full empire folds, twice each, on every draw.
- *   · `ledgerReading`'s `deck` class is the **banked** figure: the very lines
+ *   · `explainLedger`'s `deck` class is the **banked** figure: the very lines
  *     `collectYields` pays, classified by the card that pays them
  *     (`classifyCard`), with each town's flats going to the cards that paid them
  *     and each town's multiplied gain to the cards that supplied the percentages
- *     (`shareGain`). It is a sum by construction, and it is `civYields`' own
+ *     (`shareGain`). It is a sum by construction, and it is `readEmpire`' own
  *     summands — which is the property the test at the head of this suite pins
  *     voice by voice.
  *
@@ -627,9 +631,9 @@ export const DECK_AGGREGATE_LABEL = 'your cards';
  * The stamp's shape rather than a bag, so the figure lands through the one
  * printer (`landCardStamp` / `playCardStamp`) wherever it is drawn.
  */
-export function deckAggregate(state: GameState, playerId: number): StampReading {
+export function foldDeck(state: GameState, playerId: number): StampReading {
   const figures: StampFigure[] = [];
-  for (const voice of ledgerReading(state, playerId)) {
+  for (const voice of explainLedger(state, playerId)) {
     if (voice.byClass.deck === 0) continue;
     figures.push({ glyph: YIELD_GLYPH[voice.key], amount: voice.byClass.deck });
   }
@@ -643,10 +647,10 @@ export function deckAggregate(state: GameState, playerId: number): StampReading 
  * A deck that pays nothing says so in words rather than printing an empty
  * label, which is `ledgerCaption`'s own rule about `0 of 0` one band down.
  */
-export function deckAggregateLine(reading: StampReading): string {
+export function deckCaption(reading: StampReading): string {
   const figures = stampFigures(reading);
-  if (figures.length === 0) return `${DECK_AGGREGATE_LABEL}: nothing yet`;
-  return `${DECK_AGGREGATE_LABEL}: ${stampText(figures)}`;
+  if (figures.length === 0) return `${DECK_LABEL}: nothing yet`;
+  return `${DECK_LABEL}: ${stampText(figures)}`;
 }
 
 export function ledgerCaption(voice: LedgerVoice): string {
@@ -710,7 +714,7 @@ export function createLedgerHistory(cap: number = LEDGER_HISTORY_CAP): LedgerHis
 
 /** This turn's reading, folded into the one row the curve keeps. */
 export function ledgerSample(state: GameState, playerId: number): LedgerSample {
-  const reading = ledgerReading(state, playerId);
+  const reading = explainLedger(state, playerId);
   const totals = {} as Record<YieldKey, number>;
   const deck = {} as Record<YieldKey, number>;
   for (const voice of reading) {
@@ -914,15 +918,15 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
 
   /**
    * The aggregate at the head of band 1 — the same figure, from the same
-   * function, that Confirm counts up one screen over (`deckAggregate`).
+   * function, that Confirm counts up one screen over (`foldDeck`).
    *
    * Landed rather than played: this sheet is a place a player comes to *read*,
    * and the ceremony belongs to the moment the law was signed.
    */
   function drawDeckLine(state: GameState, playerId: number): HTMLElement {
     const line = element('p', 'ldg-deck');
-    line.append(element('span', 'ldg-deck-label', DECK_AGGREGATE_LABEL));
-    const reading = deckAggregate(state, playerId);
+    line.append(element('span', 'ldg-deck-label', DECK_LABEL));
+    const reading = foldDeck(state, playerId);
     const stamp = cardStampNode();
     if (stampFigures(reading).length === 0) {
       line.append(element('span', 'ldg-deck-none', 'nothing yet'));
@@ -931,7 +935,7 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
       line.append(stamp);
     }
     // The whole line in words, for the reading that has no glyphs in it.
-    line.title = deckAggregateLine(reading);
+    line.title = deckCaption(reading);
     return line;
   }
 
@@ -940,7 +944,7 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     band.append(element('p', 'eyebrow', 'this turn, and who made it'));
     band.append(drawDeckLine(options.getState(), options.getPlayerId()));
     const rows = element('ul', 'ldg-rows');
-    const reading = ledgerReading(options.getState(), options.getPlayerId());
+    const reading = explainLedger(options.getState(), options.getPlayerId());
     for (const voice of reading) {
       const row = element('li', voice.key === focus ? 'ldg-row is-focused' : 'ldg-row');
       const head = element('div', 'ldg-row-head');

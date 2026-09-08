@@ -1,24 +1,30 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  cardBuildingYields,
-  cityContext,
-  cityQuote,
-  cityYields,
-  empirePercents,
-  explainEmpireLines,
-  explainTileYield,
-  foldEmpireLines,
-  foldTileYield,
   ownedTiles,
-  stageEmpireFold,
 } from '../../src/sim/cities';
+import {
+  cityContext,
+  explainTileYield,
+  foldTileLines,
+} from '../../src/sim/yields/hex';
+import {
+  empirePercents,
+  explainCardBuildingYields,
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  explainEmpireLines,
+  foldEmpireLines,
+  stageEmpireFold,
+} from '../../src/sim/yields/empire';
 import { explainEmpireGold } from '../../src/sim/empireGold';
-import { cardCityYields, cardYieldConversions } from '../../src/sim/statecraft';
+import { explainCardCityYields, cardYieldConversions } from '../../src/sim/statecraft';
 import type { City, GameState } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
 import { createUnit, playerById, bumpRevision } from '../../src/sim/state';
-import type { CityYieldPercent } from '../../src/sim/cities';
+import type { CityYieldPercent } from '../../src/sim/yields/town';
 import type { DoctrineId, OrderId } from '../../src/sim/statecraftData';
 import { found, game } from './statecraftHelpers';
 
@@ -60,7 +66,7 @@ import { found, game } from './statecraftHelpers';
  *      fraction of a point"); what is new here is that the share moves when a
  *      *step 9* line moves, which is what makes it downstream of the buildings.
  *   f. the two stages, in order, additive within each — HERE, on a town. The
- *      arithmetic of `applyStages` alone is pinned by `modifiers.test.ts`
+ *      arithmetic of `applyStages` alone is pinned by `stages.test.ts`
  *      ("Entry XVII: the two stages, as arithmetic").
  *   g. the empire's additive lines fold before the empire stage, and a bill is
  *      never multiplied — HERE.
@@ -138,12 +144,12 @@ describe('the hex is folded before the town reads it', () => {
     expect(lineOf(lines, 'The Harvest Home').food).toBe(1);
 
     // §2c's figure: grassland 2 → the hill overrides it to 0 → +2 → +1 = 3.
-    expect(foldTileYield(lines).food).toBe(3);
+    expect(foldTileLines(lines).food).toBe(3);
 
     // And neither is a town line. If either had landed at step 3 the town would
     // still have banked the food — with the hex reading 0, which is the failure
     // mode the user named.
-    const town = cardCityYields(state, city).map((line) => line.source);
+    const town = explainCardCityYields(state, city).map((line) => line.source);
     expect(town.some((s) => s.includes('Terraced Hillsides'))).toBe(false);
     expect(town.some((s) => s.includes('The Harvest Home'))).toBe(false);
   });
@@ -167,7 +173,7 @@ describe('the hex is folded before the town reads it', () => {
     // not the 2⚙ the hill pays, and not the 2🌾 the card put beside it.
     expect([worksShare.production, worksShare.food]).toEqual([1, 0]);
     // The hex: 0🌾/2⚙ from the hill, +1⚙ the mine, +2🌾 the card, +1⚙ the share.
-    expect(foldTileYield(worked)).toMatchObject({ food: 2, production: 4 });
+    expect(foldTileLines(worked)).toMatchObject({ food: 2, production: 4 });
 
     const ground = explainTileYield(bare, cityContext(state, city));
     const groundShare = lineOf(ground, 'The Old Ways');
@@ -178,7 +184,7 @@ describe('the hex is folded before the town reads it', () => {
     // The hex: 0🌾/2⚙ from the hill, +2🌾 the card, +2⚙ the share. Same fold as
     // the mined hex above, by two different routes and neither of them the
     // card's food — which is the claim.
-    expect(foldTileYield(ground)).toMatchObject({ food: 2, production: 4 });
+    expect(foldTileLines(ground)).toMatchObject({ food: 2, production: 4 });
   });
 
   it('h. never lets a town percentage reach a hex’s fold', () => {
@@ -190,13 +196,13 @@ describe('the hex is folded before the town reads it', () => {
     // Two live percentage cards, one of them on **every** voice of the capital.
     // If a `percentYields` ever leaked into the ground the breakdown would grow
     // a line or move a figure; it does neither, and that is the structural fact
-    // `cityQuote` rests on — `explainTileYield` takes no percent list at all.
+    // `explainCity` rests on — `explainTileYield` takes no percent list at all.
     slot(state, 0, 'printingHouses');
     hold(state, 0, 'theWanderingCourt');
     expect(explainTileYield(hill, cityContext(state, city))).toEqual(before);
 
     // The percentages are real: they are in the town's list, waiting for step 12.
-    const percents = cityQuote(state, city).percents.map((line) => line.source);
+    const percents = explainCity(state, city).percents.map((line) => line.source);
     expect(percents.some((s) => s.includes('Printing Houses'))).toBe(true);
     expect(percents.some((s) => s.includes('The Wandering Court'))).toBe(true);
   });
@@ -214,12 +220,12 @@ describe('the town folds its flats before it meets a percentage', () => {
     slot(state, 0, 'theChoir');
     slot(state, 0, 'theSynod');
 
-    const share = lineOf(cardBuildingYields(state, city), 'The Synod');
+    const share = lineOf(explainCardBuildingYields(state, city), 'The Synod');
     // Half of the Temple's 2 faith, and half of The Choir's 3 culture — §2c's
     // figures. Over the row alone the culture would be 0.
     expect([share.faith, share.culture]).toEqual([1, 1.5]);
 
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     // A **flat**: it is in the flats and it is not in the percent list. A share
     // of a building's own figure is not a percentage on the town, and a card
     // that joined step 11 instead would have raised the hexes and the caravans
@@ -230,7 +236,7 @@ describe('the town folds its flats before it meets a percentage', () => {
       g.city.buildings.push('temple');
       bumpRevision(g.state);
       slot(g.state, 0, 'theChoir');
-      return cityQuote(g.state, g.city).flats;
+      return explainCity(g.state, g.city).flats;
     })();
     expect(quote.flats.faith - withoutSynod.faith).toBe(1);
     expect(quote.flats.culture - withoutSynod.culture).toBe(1.5);
@@ -242,7 +248,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     slot(state, 0, 'theCountingHouses'); // ordinary, +50% of a gold building
     slot(state, 0, 'theExchangeCharter'); // appliedLast, +50%
 
-    const lines = cardBuildingYields(state, city);
+    const lines = explainCardBuildingYields(state, city);
     bumpRevision(state);
     // Order is the arithmetic's: the ordinary shares, then the ones taken last.
     expect(lines.map((line) => line.source.includes('The Counting Houses'))).toEqual([true, false]);
@@ -258,7 +264,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     bumpRevision(bare.state);
     slot(bare.state, 0, 'theExchangeCharter');
     slot(bare.state, 0, 'theGoldenScales'); // 20% of gold, paid as science
-    const withoutOrdinary = cityQuote(bare.state, bare.city);
+    const withoutOrdinary = explainCity(bare.state, bare.city);
 
     const raised = bench();
     raised.city.buildings.push('market');
@@ -266,7 +272,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     slot(raised.state, 0, 'theCountingHouses');
     slot(raised.state, 0, 'theExchangeCharter');
     slot(raised.state, 0, 'theGoldenScales');
-    const quote = cityQuote(raised.state, raised.city);
+    const quote = explainCity(raised.state, raised.city);
 
     // The conversion is a fifth of the town's **running** gold, exactly.
     const paid = lineOf(cardYieldConversions(raised.state, raised.city, quote.flats), 'Golden Scales');
@@ -296,7 +302,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     slot(state, 0, 'theLampKeptLit'); // +25% science in the capital, city stage
     hold(state, 0, 'theAcademyOfDeeds'); // +20% science, empire stage
 
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     const sum = (stage: CityYieldPercent['stage']): number =>
       quote.percents
         .filter((line) => line.yield === 'science' && line.stage === stage)
@@ -309,7 +315,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     expect(city$).toBe(35);
     expect(empire$).toBe(30);
 
-    const total = cityYields(state, city, [], null, quote).science;
+    const total = foldCity(state, city, [], null, quote).science;
     const base = quote.flats.science;
     // The doctrine: additive within a stage, multiplicative across the pair,
     // exact (batch X floors nothing).

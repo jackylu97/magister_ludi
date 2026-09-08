@@ -8,7 +8,7 @@
  * here.
  *
  * `resourceEffects.ts`'s bargain one scale down, and for the same reason. A
- * building's flat yields are folded where yields are folded (`cityYields`), and
+ * building's flat yields are folded where yields are folded (`foldCity`), and
  * that has never needed a module of its own — but the day a building started
  * paying happiness and raising a wall, the alternative to this file was a
  * `buildingDef(...).happiness` reach inside `meters.ts` and another inside
@@ -289,7 +289,7 @@ export function foldBuildingCityStat(list: readonly BuildingCityStatLine[]): num
  * research is. Buildings are walked in `BUILDING_IDS` order so two cities
  * holding the same granary itemise it identically.
  *
- * `hypothetical` is `cityYields`' preview hook reaching the *ground* — buildings
+ * `hypothetical` is `foldCity`' preview hook reaching the *ground* — buildings
  * the town does not have, counted as if it did. It exists because a lighthouse
  * says nothing at all in a building's own flat yields: its whole worth is a line
  * on every coastal hex the town works, and a what-if that could not see one

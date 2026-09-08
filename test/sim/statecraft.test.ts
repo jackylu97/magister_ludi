@@ -14,26 +14,32 @@ import { describe, expect, it } from 'vitest';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import type { Command } from '../../src/sim/commands';
 import {
-  cityStageSums,
-  cityYieldPercents,
   buildingProductionCost,
-  cityQuote,
-  cityYields,
-  explainTileYield,
-  foldTileYield,
-  empireRateReading,
-  explainEmpireCardYields,
   growthThreshold,
   ownedTiles,
+  refreshCityDerived,
   settleGrowthWindfall,
   settleProduction,
-  productionModifiers,
-  refreshCityDerived,
   tilePurchasePrice,
-  tileYieldOf,
   unitProductionCost,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  cityYieldPercents,
+  explainCity,
+  foldCity,
+  foldCityStages,
+  productionModifiers,
+} from '../../src/sim/yields/town';
+import {
+  explainEmpireCardYields,
+  foldEmpireRates,
+} from '../../src/sim/yields/empire';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { beadGrantDef } from '../../src/sim/beadData';
 import { previewCombat } from '../../src/sim/combat';
@@ -54,8 +60,8 @@ import {
 import {
   type PlayerStatecraft,
   cardActionRule,
-  cardEmpireYields,
-  cardPercentYields,
+  explainCardEmpireYields,
+  explainCardPercentYields,
   cardRulePercent,
   cardTileLines,
   scopedCardTileLines,
@@ -64,7 +70,7 @@ import {
   cardBehaviorRule,
   cardCityStat,
   cityScopeAdmits,
-  cardCityYields,
+  explainCardCityYields,
   cardLinesOnBuilding,
   cardProduction,
   cardYieldConversions,
@@ -140,7 +146,12 @@ import { arriveOnTile } from '../../src/sim/arrival';
 import { closeWar, openWar } from '../../src/sim/wars';
 import { foundReligion } from '../../src/sim/religion';
 import type { CityYieldKey } from '../../src/sim/resourceData';
-import { cardBuildingYields, foundCityAt } from '../../src/sim/cities';
+import {
+  foundCityAt,
+} from '../../src/sim/cities';
+import {
+  explainCardBuildingYields,
+} from '../../src/sim/yields/town';
 import { improvementDef } from '../../src/sim/improvementData';
 import { awardOccasion } from '../../src/sim/triumphs';
 import { applyCommand } from '../../src/sim/commands';
@@ -821,34 +832,34 @@ describe('every hook family, end to end', () => {
     expect(explainTileYield(bare, yieldContextFor(g.state, 0))).toHaveLength(before.length - 1);
   });
 
-  it('cityYields — Wayside Shrines pays faith, and the fold is the sum of the list', () => {
+  it('foldCity — Wayside Shrines pays faith, and the fold is the sum of the list', () => {
     const g = game();
     const city = found(g.state, 0);
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     slot(g.state, 0, 'waysideShrines');
-    expect(cityYields(g.state, city).faith).toBe(before + 1);
+    expect(foldCity(g.state, city).faith).toBe(before + 1);
     // The collection is a list of ids since the levelling ruling of 2026-09-04:
     // holding a card twice is not a thing the state can say, so a second entry
     // is the same law read twice and pays once.
     g.state.players[0]!.statecraft.orders = ['waysideShrines'];
-    expect(cityYields(g.state, city).faith).toBe(before + 1);
+    expect(foldCity(g.state, city).faith).toBe(before + 1);
   });
 
-  it('cityYields — a slotted Order pays its printed line, once', () => {
+  it('foldCity — a slotted Order pays its printed line, once', () => {
     const g = game();
     const city = found(g.state, 0);
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     // First Rites prints +1 faith in the capital and +1 more for each wildcard
     // Order in a slot. Only the capital line is a *city* line — the reader's
     // candle is an empire line, banked by `collectYields` — so this is the one
     // point. It printed a flat +2 until the synergy pass of 2026-09-05.
     slot(g.state, 0, 'firstRites');
-    expect(cityYields(g.state, city).faith).toBe(before + 1);
+    expect(foldCity(g.state, city).faith).toBe(before + 1);
     // Out of its office it pays nothing: an Order pays from a slot and nowhere
     // else, which is the clause the ladder never touched.
     g.state.players[0]!.statecraft.slots = [];
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).faith).toBe(before);
+    expect(foldCity(g.state, city).faith).toBe(before);
   });
 
   it('percentYields — a card joins the city stage rather than multiplying afterwards', () => {
@@ -1006,7 +1017,7 @@ describe('every hook family, end to end', () => {
     found(g.state, 0);
     slot(g.state, 0, 'saltTithes');
     // No luxuries: no line at all, rather than a line worth nothing.
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'saltTithes')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((l) => l.card === 'saltTithes')).toBe(false);
   });
 
   it('rateConversion — The Tithe reads the turn’s rate, not the bank', () => {
@@ -1014,13 +1025,13 @@ describe('every hook family, end to end', () => {
     found(g.state, 0);
     g.state.players[0]!.statecraft.doctrines.push('theTithe');
     bumpRevision(g.state);
-    expect(cardEmpireYields(g.state, 0, { faithPerTurn: 7 }).find((l) => l.card === 'theTithe')?.gold).toBe(7);
+    expect(explainCardEmpireYields(g.state, 0, { faithPerTurn: 7 }).find((l) => l.card === 'theTithe')?.gold).toBe(7);
     // Zero rate, no line — a card that pays nothing is not in the list.
-    expect(cardEmpireYields(g.state, 0, { faithPerTurn: 0 }).some((l) => l.card === 'theTithe')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0, { faithPerTurn: 0 }).some((l) => l.card === 'theTithe')).toBe(false);
   });
 
   it('rateConversion — the reading is taken only when a card asks for one', () => {
-    // Batch H18. `empireRates` prices every town in the realm, only this arm
+    // Batch H18. `foldEmpireRates` prices every town in the realm, only this arm
     // reads it, and `explainEmpireCardYields` is asked twice per card stamp,
     // once per Ledger open and once per top-bar refresh — so it hands the
     // *taking* of the reading in rather than the reading, and an empire holding
@@ -1035,14 +1046,14 @@ describe('every hook family, end to end', () => {
     bumpRevision(g.state);
     // The lazy form and the eager one, on the very same board: one list.
     expect(explainEmpireCardYields(g.state, 0)).toEqual(
-      cardEmpireYields(g.state, 0, empireRateReading(g.state, 0)),
+      explainCardEmpireYields(g.state, 0, foldEmpireRates(g.state, 0)),
     );
     // And the thunk is resolved **once**, so two conversions read one set of
     // books exactly as they did when the reading was taken up front.
     let takings = 0;
-    const lines = cardEmpireYields(g.state, 0, () => {
+    const lines = explainCardEmpireYields(g.state, 0, () => {
       takings += 1;
-      return empireRateReading(g.state, 0);
+      return foldEmpireRates(g.state, 0);
     });
     expect(lines).toEqual(explainEmpireCardYields(g.state, 0));
     expect(takings).toBe(1);
@@ -1050,7 +1061,7 @@ describe('every hook family, end to end', () => {
     g.state.players[0]!.statecraft.doctrines = [];
     bumpRevision(g.state);
     let asked = 0;
-    cardEmpireYields(g.state, 0, () => {
+    explainCardEmpireYields(g.state, 0, () => {
       asked += 1;
       return {};
     });
@@ -1103,7 +1114,7 @@ describe('every hook family, end to end', () => {
     expect(cardFoundingRider(g.state, 0).buildings).toEqual([]);
     const city = found(g.state, 0);
     expect(city.buildings).not.toContain('monument');
-    const line = cardCityYields(g.state, city).find((l) => l.card === 'foundersRoad')!;
+    const line = explainCardCityYields(g.state, city).find((l) => l.card === 'foundersRoad')!;
     expect(line.culture).toBe(1);
     // Every town, however many there are — the clause carries no scope at all.
     const second = foundCityAt(
@@ -1111,7 +1122,7 @@ describe('every hook family, end to end', () => {
       0,
       getTileAt(g.state.map, (city.col + 5) % g.state.map.width, city.row)!,
     )!;
-    expect(cardCityYields(g.state, second).find((l) => l.card === 'foundersRoad')!.culture).toBe(1);
+    expect(explainCardCityYields(g.state, second).find((l) => l.card === 'foundersRoad')!.culture).toBe(1);
   });
 
   it('conditionRule — The Hermit Crown opens and closes with the city count', () => {
@@ -1356,13 +1367,13 @@ describe('rule 5 holds with cards active', () => {
   it('the city’s flat lines fold to the difference the cards make', () => {
     const g = game(29);
     const city = found(g.state, 0);
-    const before = cityYields(g.state, city);
+    const before = foldCity(g.state, city);
     // Wayside Shrines rather than First Rites since the balance pass of
     // 2026-08-31: the capital's candles moved to First Rites and the flat "+1
     // faith in every city" it used to carry became a row of its own.
     slot(g.state, 0, 'waysideShrines');
     slot(g.state, 0, 'weightsAndMeasures');
-    const lines = cardCityYields(g.state, city);
+    const lines = explainCardCityYields(g.state, city);
     // Batch F put the shrines' candles in the capital and counted them per
     // town held, so the line is a `countScaled` capital payout and lands after
     // the flat one — the fold below is the claim, not the order.
@@ -1370,7 +1381,7 @@ describe('rule 5 holds with cards active', () => {
       'Order · Weights & Measures',
       'Order · Wayside Shrines · ×1',
     ]);
-    const after = cityYields(g.state, city);
+    const after = foldCity(g.state, city);
     // The fold of the list is exactly the change in the total — no card pays
     // into a headline without a line saying so.
     const fold = foldCardYields(lines);
@@ -1380,9 +1391,9 @@ describe('rule 5 holds with cards active', () => {
 
   it('the two stages are applied once, in order, floored once', () => {
     const { g, city } = withCards();
-    const sums = cityStageSums(g.state, city, city.queue[0]);
+    const sums = foldCityStages(g.state, city, city.queue[0]);
     // Recomputed from the printed lines: the panel's arithmetic and the
-    // simulation's are one function (`stageSumsFor`), and this asserts it by
+    // simulation's are one function (`foldStageSums`), and this asserts it by
     // folding the list the panel would print.
     const printed = cityYieldPercents(g.state, city);
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
@@ -1417,7 +1428,7 @@ describe('rule 5 holds with cards active', () => {
     );
     expect(food.length).toBeGreaterThanOrEqual(2);
     const summed = food.reduce((total, line) => total + line.percent, 0);
-    expect(cityStageSums(g.state, city, city.queue[0]).food.city).toBe(summed);
+    expect(foldCityStages(g.state, city, city.queue[0]).food.city).toBe(summed);
   });
 
   it('both meters stay the fold of their own ledgers', () => {
@@ -1435,7 +1446,7 @@ describe('rule 5 holds with cards active', () => {
     tile.resource = 'wheat';
     slot(g.state, 0, 'commonGranary');
     const ctx = yieldContextFor(g.state, 0);
-    expect(tileYieldOf(tile, ctx)).toEqual(foldTileYield(explainTileYield(tile, ctx)));
+    expect(foldTile(tile, ctx)).toEqual(foldTileLines(explainTileYield(tile, ctx)));
   });
 
   it('a windfall’s printed number is the fold of its own riders', () => {
@@ -2054,7 +2065,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // the claim this test has always been making.
     slot(g.state, 0, 'theGuildCompact');
     const percent = (): number =>
-      cardPercentYields(g.state, city)
+      explainCardPercentYields(g.state, city)
         .filter((line) => line.card === 'theGuildCompact')
         .reduce((sum, line) => sum + line.percent, 0);
     // No production buildings: no line at all, rather than a line worth nothing.
@@ -2075,7 +2086,7 @@ describe('the master-list cut of 2026-08-28', () => {
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = 'theocracy';
     bumpRevision(g.state);
-    const lines = cardEmpireYields(g.state, 0, { faithPerTurn: 100, capitalFaithPerTurn: 30 });
+    const lines = explainCardEmpireYields(g.state, 0, { faithPerTurn: 100, capitalFaithPerTurn: 30 });
     const paid = foldCardYields(lines);
     // Ten percent of the *capital's* thirty, twice over — and deliberately not
     // ten percent of the empire's hundred.
@@ -2182,11 +2193,11 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const city = found(g.state, 0);
     slot(g.state, 0, 'borderBallads');
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'borderBallads')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((l) => l.card === 'borderBallads')).toBe(false);
     // A camp on ground this seat has walked past. `visibleCamps`' sibling: the
     // grid is monotone, so the count does not fall when the scout goes home.
     g.state.camps.push({ col: city.col, row: city.row, foundedTurn: 0 });
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(2);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).culture).toBe(2);
     // The kill rider fires only against the wild.
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
     expect(windfallPayout(g.state, 0, 'kill', 0, 0, { vsBarbarians: true }).grants).toEqual([
@@ -2203,13 +2214,13 @@ describe('the master-list cut of 2026-08-28', () => {
     // Wayhouses carries the empire count this test was written against and the
     // caravan itself carries the coin.
     slot(g.state, 0, 'theWayhouses');
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'theWayhouses')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((l) => l.card === 'theWayhouses')).toBe(false);
     const trader = createUnit(g.state, 0, 'warrior', from.col, from.row);
     trader.trade = { from: from.id, to: to.id, expiresTurn: g.state.turn + 10, outbound: true, autoResend: false };
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).gold).toBe(1);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(1);
     // A lapsed route is not a route: expiry is one comparison, here as everywhere.
     trader.trade.expiresTurn = g.state.turn;
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'theWayhouses')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((l) => l.card === 'theWayhouses')).toBe(false);
   });
 
   it('buying or completing — Rites of Passage pays once for a warrior, however it was paid for', () => {
@@ -2266,11 +2277,11 @@ describe('the master-list cut of 2026-08-28', () => {
     playerById(g.state, 0)!.statecraft.government = 'republic';
     bumpRevision(g.state);
     city.population = 12;
-    const line = cardCityYields(g.state, city).find((l) => l.card === 'republic')!;
+    const line = explainCardCityYields(g.state, city).find((l) => l.card === 'republic')!;
     expect(line.culture).toBe(2);
     // Empire-wide it would have been the realm's whole population; `within` is
     // what makes it this town's.
-    expect(cardEmpireYields(g.state, 0).some((l) => l.card === 'republic')).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((l) => l.card === 'republic')).toBe(false);
   });
 
   it("foundingRider roads — The Founders' Road joins a new town to the realm", () => {
@@ -2698,7 +2709,7 @@ describe('the governments’ deferred halves, built', () => {
     // this comparison ever read as a bare addition).
     const under = (law: string): number => {
       govern(g.state, 0, law);
-      return cityQuote(g.state, city).flats.science;
+      return explainCity(g.state, city).flats.science;
     };
     // A granary is not a faith building: the clause reads the rows' own
     // category and their own faith, never the town's total.
@@ -2907,12 +2918,12 @@ describe('the doctrines’ deferred halves, built', () => {
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theGrandTourII' as never);
     bumpRevision(g.state);
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(0);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).culture).toBe(0);
     // The claim register, which is where a wonder is written down once and
     // never moves — a rival's marvel counts exactly as your own does.
     g.state.wonders.push({ building: 'theOracle', playerId: 1, cityId: 0, turn: 1 });
     bumpRevision(g.state);
-    expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(1);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).culture).toBe(1);
   });
 
   it('The Academy trades culture for science, both at the empire stage', () => {
@@ -2922,10 +2933,10 @@ describe('the doctrines’ deferred halves, built', () => {
     // one sum, applied once, exactly as Entry XVII asks.
     const g = game(337);
     const city = found(g.state, 0);
-    expect(cardPercentYields(g.state, city).some((l) => l.card === 'theAcademyOfDeeds')).toBe(false);
+    expect(explainCardPercentYields(g.state, city).some((l) => l.card === 'theAcademyOfDeeds')).toBe(false);
     playerById(g.state, 0)!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
     bumpRevision(g.state);
-    const lines = cardPercentYields(g.state, city).filter((l) => l.card === 'theAcademyOfDeeds');
+    const lines = explainCardPercentYields(g.state, city).filter((l) => l.card === 'theAcademyOfDeeds');
     expect(lines.map((l) => [l.yield, l.percent, l.stage])).toEqual([
       ['culture', -10, 'empire'],
       ['science', 20, 'empire'],
@@ -2989,7 +3000,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(explainHappiness(g.state, 0).some((l) => l.source.includes('Bread'))).toBe(false);
 
     // The gold half is unconditional and lands in every town's own breakdown.
-    const gold = cardCityYields(g.state, city).find((l) => l.card === 'breadAndCircuses')!;
+    const gold = explainCardCityYields(g.state, city).find((l) => l.card === 'breadAndCircuses')!;
     expect(gold.gold).toBe(-2);
   });
 
@@ -3003,7 +3014,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     playerById(g.state, 0)!.statecraft.doctrines.push('cuiusRegio' as never);
     bumpRevision(g.state);
     const rate = (following: number): number =>
-      foldCardYields(cardEmpireYields(g.state, 0, { followingFaithPerTurn: following })).science;
+      foldCardYields(explainCardEmpireYields(g.state, 0, { followingFaithPerTurn: following })).science;
     // Below one helping it pays nothing, which is `helpings`' own reading and
     // not a clause of this card's.
     expect(rate(0)).toBe(0);
@@ -3012,7 +3023,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(rate(60)).toBe(9);
     // Nothing else in the ledger moves: "converted" is read as *gained as*, so
     // the faith the towns banked is still theirs.
-    expect(foldCardYields(cardEmpireYields(g.state, 0, { followingFaithPerTurn: 60 })).faith).toBe(0);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0, { followingFaithPerTurn: 60 })).faith).toBe(0);
   });
 
   it('capturedCityCost is a delta now, and two of them floor at one', () => {
@@ -3206,12 +3217,12 @@ describe('the Orders pass of 2026-08-29', () => {
     const city = found(g.state, 0);
     slot(g.state, 0, 'hearthSongs');
     const paid = (): number =>
-      cardCityYields(g.state, city).filter((l) => l.card === 'hearthSongs').length;
+      explainCardCityYields(g.state, city).filter((l) => l.card === 'hearthSongs').length;
     // Inclusive at the threshold, exactly as `populationAtLeast` is. The figure
     // doubled in the user's card pass of 2026-09-03; the scope did not move.
     city.population = 4;
     expect(paid()).toBe(1);
-    expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(2);
+    expect(foldCardYields(explainCardCityYields(g.state, city)).culture).toBe(2);
     city.population = 5;
     expect(paid()).toBe(0);
   });
@@ -3220,7 +3231,7 @@ describe('the Orders pass of 2026-08-29', () => {
     const g = game(802);
     const city = found(g.state, 0);
     slot(g.state, 0, 'thePilgrimsPurse');
-    const faith = (): number => foldCardYields(cardCityYields(g.state, city)).faith;
+    const faith = (): number => foldCardYields(explainCardCityYields(g.state, city)).faith;
     expect(faith()).toBe(0);
     // The ring of six, not the work radius: a shrine three hexes out is a
     // different sentence and this scope does not say it.
@@ -3570,7 +3581,7 @@ describe('the balance pass of 2026-08-31', () => {
     // so the line joins Entry XVII's city stage instead of the flats — which is
     // where the claim about the scope now has to be read.
     const share = (): number =>
-      cardPercentYields(g.state, city)
+      explainCardPercentYields(g.state, city)
         .filter((line) => line.card === 'starGazers')
         .reduce((sum, line) => sum + line.percent, 0);
     slot(g.state, 0, 'starGazers');
@@ -3639,7 +3650,7 @@ describe('the balance pass of 2026-08-31', () => {
     city.buildings.push('monument');
     bumpRevision(g.state);
     slot(g.state, 0, 'theLyceum');
-    const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
+    const rate = foldEmpireRates(g.state, 0).culturePerTurn ?? 0;
     expect(rate).toBeGreaterThan(0);
     expect(windfallPayout(g.state, 0, 'tech').grants).toEqual([
       { card: 'theLyceum', source: 'Order · The Lyceum', yield: 'culture', amount: rate },
@@ -3898,7 +3909,7 @@ describe('the ratified cards of the Themes Build', () => {
     const city = found(g.state, 0);
     slot(g.state, 0, 'theWonderFeasts');
     const fed = (): number =>
-      foldCardYields(cardCityYields(g.state, city).filter((l) => l.source.includes('Wonder-Feasts')))
+      foldCardYields(explainCardCityYields(g.state, city).filter((l) => l.source.includes('Wonder-Feasts')))
         .food;
     expect(fed()).toBe(0);
     city.queue = [{ kind: 'building', id: 'stonehenge' }];
@@ -3944,11 +3955,11 @@ describe('the ratified cards of the Themes Build', () => {
     expect(player.campsCleared).toBe(1);
 
     slot(g.state, 0, 'theLastHunt');
-    const paid = cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'));
+    const paid = explainCardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'));
     expect(paid?.culture).toBe(4);
     player.campsCleared = 4;
     expect(
-      cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'))?.culture,
+      explainCardEmpireYields(g.state, 0).find((line) => line.source.includes('The Last Hunt'))?.culture,
     ).toBe(16);
   });
 
@@ -3983,7 +3994,7 @@ describe('the ratified cards of the Themes Build', () => {
     grant(sc, 'theAnnalsOfLaw');
     grant(sc, 'firstRites');
     const culture = (name: string): number =>
-      cardEmpireYields(g.state, 0)
+      explainCardEmpireYields(g.state, 0)
         .filter((line) => line.source.includes(name))
         .reduce((sum, line) => sum + line.culture, 0);
     // Nothing is slotted, so neither card is live at all.
@@ -4171,13 +4182,13 @@ describe('the balance pass of 2026-09-02', () => {
     const city = found(g.state, 0);
     slot(g.state, 0, 'quarrymensGuild');
     // Nothing has been dug: the scope is silent rather than generous.
-    expect(cardCityYields(g.state, city).some((l) => l.card === 'quarrymensGuild')).toBe(false);
+    expect(explainCardCityYields(g.state, city).some((l) => l.card === 'quarrymensGuild')).toBe(false);
     // A quarry **inside the borders** — the sweep `terrainInBorders` takes,
     // asked of what has been built rather than of the ground. The centre's own
     // hex is the town's, so it is the one hex a test can be sure of.
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     tile.improvement = 'quarry';
-    const line = cardCityYields(g.state, city).find((l) => l.card === 'quarrymensGuild')!;
+    const line = explainCardCityYields(g.state, city).find((l) => l.card === 'quarrymensGuild')!;
     expect(line.production).toBe(4);
   });
 
@@ -4254,10 +4265,10 @@ describe('the balance pass of 2026-09-02', () => {
     delete tile.resource;
     delete tile.improvement;
 
-    const bare = foldTileYield(explainTileYield(tile, yieldContextFor(g.state, 0)));
+    const bare = foldTileLines(explainTileYield(tile, yieldContextFor(g.state, 0)));
     slot(g.state, 0, 'theOldWays');
     const lines = explainTileYield(tile, yieldContextFor(g.state, 0));
-    const doubled = foldTileYield(lines);
+    const doubled = foldTileLines(lines);
     // The share is **one labelled line**, and the list still folds to the total
     // (rule 5): what the hex pays is the sum of what the breakdown says.
     const share = lines.find((l) => l.source.includes('The Old Ways'))!;
@@ -4561,7 +4572,7 @@ describe("the user's card pass of 2026-09-03", () => {
     // Silent until the card is held, and then one **labelled** line: rule 5 at
     // the town, with both voices in the label so the coin says where it came
     // from.
-    const flats = cityQuote(g.state, city).flats;
+    const flats = explainCity(g.state, city).flats;
     expect(flats.food).toBeGreaterThanOrEqual(10);
     expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
     player.statecraft.doctrines.push('thalassocracy');
@@ -4580,7 +4591,7 @@ describe("the user's card pass of 2026-09-03", () => {
 
     // And it is really in the fold the panel prints: the flats the town is
     // staged from carry the coin, and the harvest it was read off is untouched.
-    const after = cityQuote(g.state, city).flats;
+    const after = explainCity(g.state, city).flats;
     expect(after.food).toBe(flats.food);
     expect(after.gold).toBe(flats.gold + flats.food / 10);
   });
@@ -4597,10 +4608,10 @@ describe("the user's card pass of 2026-09-03", () => {
     // Inland on this bench — asserted rather than assumed, so a map change
     // cannot make this test pass by standing the town in a desert.
     expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(false);
-    const flats = cityQuote(g.state, city).flats;
+    const flats = explainCity(g.state, city).flats;
     expect(flats.food).toBeGreaterThanOrEqual(10);
     expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
-    expect(cityQuote(g.state, city).flats.gold).toBe(flats.gold);
+    expect(explainCity(g.state, city).flats.gold).toBe(flats.gold);
   });
 
   it('atPopulation — First Fruits pays for the first citizen and for no other', () => {
@@ -4640,17 +4651,17 @@ describe("the user's card pass of 2026-09-03", () => {
     const ctx = () => yieldContextFor(g.state, 0);
 
     tile.feature = 'forest';
-    const bareForest = foldTileYield(explainTileYield(tile, ctx()));
+    const bareForest = foldTileLines(explainTileYield(tile, ctx()));
     tile.feature = 'jungle';
-    const bareJungle = foldTileYield(explainTileYield(tile, ctx()));
+    const bareJungle = foldTileLines(explainTileYield(tile, ctx()));
 
     player.statecraft.doctrines.push('theSacredPath');
     bumpRevision(g.state);
-    const jungle = foldTileYield(explainTileYield(tile, ctx()));
+    const jungle = foldTileLines(explainTileYield(tile, ctx()));
     expect(jungle.culture).toBe(bareJungle.culture + 1);
     expect(jungle.faith).toBe(bareJungle.faith);
     tile.feature = 'forest';
-    const forest = foldTileYield(explainTileYield(tile, ctx()));
+    const forest = foldTileLines(explainTileYield(tile, ctx()));
     expect(forest.faith).toBe(bareForest.faith + 1);
     expect(forest.culture).toBe(bareForest.culture);
     // Bare ground is neither, and the card is silent on it.
@@ -4743,7 +4754,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
    * line rather than being read off the first one that names the card.
    */
   function empireLine(state: GameState, playerId: number, name: string, voice: CityYieldKey) {
-    const lines = cardEmpireYields(state, playerId).filter((entry) => entry.source.includes(name));
+    const lines = explainCardEmpireYields(state, playerId).filter((entry) => entry.source.includes(name));
     if (lines.length === 0) return null;
     return lines.reduce((sum, line) => sum + line[voice], 0);
   }
@@ -4807,7 +4818,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     slot(g.state, 0, 'theGuildCharter');
 
     const hammers = (city: City): number => {
-      const line = cardCityYields(g.state, city).find((entry) =>
+      const line = explainCardCityYields(g.state, city).find((entry) =>
         entry.source.includes('The Guild Charter'),
       );
       return line?.production ?? 0;
@@ -4817,7 +4828,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     // **Once**, which is the other half of the reading: the empire fold leaves
     // a capital line alone, or the same hammer would be paid twice — and the
     // empire has no basket for hammers anyway.
-    expect(cardEmpireYields(g.state, 0).some((line) => line.production !== 0)).toBe(false);
+    expect(explainCardEmpireYields(g.state, 0).some((line) => line.production !== 0)).toBe(false);
   });
 
   it('slottedOrdersOfSlot — The War Council is spears, and batch F took the cap off', () => {
@@ -4900,7 +4911,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     const capital = found(g.state, 0);
     slot(g.state, 0, 'theCharterOfTheMarches');
     const charter = (city: City): number => {
-      const line = cardCityYields(g.state, city).find((entry) =>
+      const line = explainCardCityYields(g.state, city).find((entry) =>
         entry.source.includes('The Charter of the Marches'),
       );
       return line?.science ?? 0;
@@ -5097,7 +5108,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
 
   /** What one named card pays a town, in one voice. */
   function paidTo(state: GameState, city: City, name: string, yieldKey: CityYieldKey): number {
-    return cardCityYields(state, city)
+    return explainCardCityYields(state, city)
       .filter((line) => line.source.includes(name))
       .reduce((sum, line) => sum + line[yieldKey], 0);
   }
@@ -5127,7 +5138,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     // The capital's own line is a city line and stays put.
     expect(paidTo(g.state, capital, 'First Rites', 'faith')).toBe(1);
     const read = (): number =>
-      cardEmpireYields(g.state, 0)
+      explainCardEmpireYields(g.state, 0)
         .filter((line) => line.source.includes('First Rites'))
         .reduce((sum, line) => sum + line.faith, 0);
     // It counts itself — the reader family's floor is one helping, never none.
@@ -5301,7 +5312,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     found(g.state, 0);
     slot(g.state, 0, 'theFarCharts');
     const seen = g.state.visibility[0]!.reduce((sum: number, bit: number) => sum + (bit > 0 ? 1 : 0), 0);
-    const beakers = cardEmpireYields(g.state, 0)
+    const beakers = explainCardEmpireYields(g.state, 0)
       .filter((line) => line.source.includes('The Far Charts'))
       .reduce((sum, line) => sum + line.science, 0);
     expect(beakers).toBe(Math.floor(seen / 20));
@@ -5422,7 +5433,7 @@ describe('the cards pass of 2026-09-05', () => {
     found(g.state, 0);
     slot(g.state, 0, 'theLongRoads');
     const coin = (): number =>
-      cardEmpireYields(g.state, 0)
+      explainCardEmpireYields(g.state, 0)
         .filter((line) => line.source.includes('The Long Roads'))
         .reduce((sum, line) => sum + line.gold, 0);
     expect(coin()).toBe(0);
@@ -5442,7 +5453,7 @@ describe('the cards pass of 2026-09-05', () => {
     const capital = found(g.state, 0);
     slot(g.state, 0, 'theFoundingOath');
     const paid = (city: typeof capital): number =>
-      cardCityYields(g.state, city)
+      explainCardCityYields(g.state, city)
         .filter((line) => line.card === 'theFoundingOath')
         .reduce((sum, line) => sum + line.food + line.production + line.gold
           + line.science + line.culture + line.faith, 0);
@@ -5484,7 +5495,7 @@ describe('the cards pass of 2026-09-05', () => {
     const city = found(g.state, 0);
     slot(g.state, 0, 'theGuildCompact');
     const percent = (): number =>
-      cardPercentYields(g.state, city)
+      explainCardPercentYields(g.state, city)
         .filter((line) => line.card === 'theGuildCompact')
         .reduce((sum, line) => sum + line.percent, 0);
     expect(percent()).toBe(0);
@@ -5496,7 +5507,7 @@ describe('the cards pass of 2026-09-05', () => {
     city.buildings = ['workshop', 'watermill', 'smithy', 'forge'];
     bumpRevision(g.state);
     expect(percent()).toBe(12);
-    for (const line of cardPercentYields(g.state, city)) {
+    for (const line of explainCardPercentYields(g.state, city)) {
       if (line.card !== 'theGuildCompact') continue;
       expect(line.stage).toBe('city');
       expect(line.yield).toBe('production');
@@ -5605,7 +5616,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     const capital = found(g.state, 0);
     rule(g.state, 0, 'divineMandate');
     const paid = (city: City, key: CityYieldKey): number =>
-      cardCityYields(g.state, city)
+      explainCardCityYields(g.state, city)
         .filter((line) => line.card === 'divineMandate')
         .reduce((sum, line) => sum + line[key], 0);
     // An empty council pays nothing at all, and says so by having no line.
@@ -5629,14 +5640,14 @@ describe('the Æra III fork of 2026-09-05', () => {
     // And the second clause, which is the doc's own fallback: nothing in the
     // vocabulary can ask whether a town is content, so the tithe reads its size.
     const share = (city: City): number =>
-      cardPercentYields(g.state, city)
+      explainCardPercentYields(g.state, city)
         .filter((line) => line.card === 'divineMandate')
         .reduce((sum, line) => sum + line.percent, 0);
     capital.population = 5;
     expect(share(capital)).toBe(0);
     capital.population = 6;
     expect(share(capital)).toBe(10);
-    for (const line of cardPercentYields(g.state, capital)) {
+    for (const line of explainCardPercentYields(g.state, capital)) {
       if (line.card !== 'divineMandate') continue;
       expect(line.yield).toBe('faith');
       expect(line.stage).toBe('city');
@@ -5652,7 +5663,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     )!;
     rule(g.state, 0, 'imperium');
     const hammers = (city: City): number =>
-      cardCityYields(g.state, city)
+      explainCardCityYields(g.state, city)
         .filter((line) => line.card === 'imperium')
         .reduce((sum, line) => sum + line.production, 0);
     expect(hammers(capital)).toBe(0);
@@ -5699,7 +5710,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     found(g.state, 0);
     rule(g.state, 0, 'merchantLeague');
     const coin = (): number => foldCardYields(
-      cardEmpireYields(g.state, 0).filter((line) => line.card === 'merchantLeague'),
+      explainCardEmpireYields(g.state, 0).filter((line) => line.card === 'merchantLeague'),
     ).gold;
     expect(coin()).toBe(0);
     slot(g.state, 0, 'weightsAndMeasures');
@@ -5815,7 +5826,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     payWindfallGrants(g.state, player, payout, { col: city.col, row: city.row });
     bumpRevision(g.state);
     const share = (): number =>
-      cardPercentYields(g.state, city)
+      explainCardPercentYields(g.state, city)
         .filter((line) => line.card === 'hegemony')
         .reduce((sum, line) => sum + line.percent, 0);
     expect(share()).toBe(5);
@@ -5831,7 +5842,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     playerById(g.state, 0)!.statecraft.doctrines.push('thePilgrimWays' as never);
     bumpRevision(g.state);
     const paid = (key: CityYieldKey, rates = {}): number => foldCardYields(
-      cardEmpireYields(g.state, 0, rates).filter((line) => line.card === 'thePilgrimWays'),
+      explainCardEmpireYields(g.state, 0, rates).filter((line) => line.card === 'thePilgrimWays'),
     )[key];
     // An empire that has founded nothing counts nothing — the honest answer
     // rather than a guard.
@@ -5855,7 +5866,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     playerById(g.state, 0)!.statecraft.doctrines.push('theNaturalPhilosophers' as never);
     bumpRevision(g.state);
     const beakers = (city: City): number =>
-      cardCityYields(g.state, city)
+      explainCardCityYields(g.state, city)
         .filter((line) => line.card === 'theNaturalPhilosophers')
         .reduce((sum, line) => sum + line.science, 0);
     capital.buildings = [];
@@ -5875,7 +5886,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     // rate at the moment the node lands and composed once, before anything is
     // banked (Entry XVIII.5) — so the preview, the bank and the announcement are
     // one figure. Exact since batch X: a fifth of a turn is a fifth, not zero.
-    const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
+    const rate = foldEmpireRates(g.state, 0).culturePerTurn ?? 0;
     expect(rate).toBeGreaterThan(0);
     expect(windfallPayout(g.state, 0, 'tech').grants).toEqual([
       {
@@ -6258,14 +6269,19 @@ describe('the memo’s key', () => {
    * mid-turn refresh register one file over takes the same reading, and for the
    * same reason: this project has no node typings.
    */
-  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+  const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
     query: '?raw',
     import: 'default',
     eager: true,
   }) as Record<string, string>;
 
   const statecraftSource = (): string => {
-    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith('/statecraft.ts'))!;
+    // The evaluator's own file since batch E3b split the module along its
+    // layers; `statecraft.ts` is now the index that re-exports the three, and
+    // `liveReading` lives with the walk it remembers.
+    const key = Object.keys(SIM_SOURCE).find((path) =>
+      path.endsWith('/statecraft/evaluator.ts'),
+    )!;
     return SIM_SOURCE[key]!;
   };
 
@@ -6375,7 +6391,7 @@ describe('the engine shapes', () => {
         const city = found(g.state, 0);
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
-        const lines = cardCityYields(g.state, city);
+        const lines = explainCardCityYields(g.state, city);
         // Two food-paying lines on the other card, so the engine pays twice —
         // per line instance, which is the whole of what "additive" bought.
         const engine = lines.find((line) => line.card === 'theChoir')!;
@@ -6406,7 +6422,7 @@ describe('the engine shapes', () => {
           },
         ];
         bumpRevision(g.state);
-        const lines = cardCityYields(g.state, city);
+        const lines = explainCardCityYields(g.state, city);
         expect(lines.some((line) => line.source.includes('line'))).toBe(false);
         expect(foldCardYields(lines).food).toBe(4 + 6);
       },
@@ -6424,7 +6440,7 @@ describe('the engine shapes', () => {
         const city = found(g.state, 0);
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
-        const lines = cardCityYields(g.state, city);
+        const lines = explainCardCityYields(g.state, city);
         // Exact since batch X: half of nine is four and a half.
         expect(lines.find((line) => line.card === 'theChoir')!.faith).toBe(4.5);
       },
@@ -6453,7 +6469,7 @@ describe('the engine shapes', () => {
         expect(helping.on).toEqual({ test: 'hasResource' });
         expect(helping.food).toBe(1);
         // And once, in the empire's books.
-        const empire = cardEmpireYields(g.state, 0);
+        const empire = explainCardEmpireYields(g.state, 0);
         expect(empire.find((line) => line.card === 'theChoir')!.gold).toBe(1);
       },
     );
@@ -6477,7 +6493,7 @@ describe('the engine shapes', () => {
         seat(g.state, 0, 1, 'theChoir');
         // An empire line lands in no town, and the ground pass holds no town —
         // both stated cuts on the shape.
-        expect(cardEmpireYields(g.state, 0).some((line) => line.card === 'theChoir')).toBe(false);
+        expect(explainCardEmpireYields(g.state, 0).some((line) => line.card === 'theChoir')).toBe(false);
         expect(cardTileLines(g.state, 0).some((line) => line.source.includes('Choir'))).toBe(false);
         void city;
       },
@@ -6497,7 +6513,7 @@ describe('the engine shapes', () => {
         const city = found(g.state, 0);
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
-        const paid = cardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
+        const paid = explainCardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
         expect(paid.gold).toBe(1);
         expect(paid.source).toContain('capital');
       },
@@ -6521,7 +6537,7 @@ describe('the engine shapes', () => {
         bumpRevision(g.state);
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
-        const lines = cardBuildingYields(g.state, city);
+        const lines = explainCardBuildingYields(g.state, city);
         // The Temple pays 2 faith. The ordinary share is half of that; the
         // doubler is taken over 2 + 1, which is the ruling ("applies to total
         // yields, including from other effects").
@@ -6545,7 +6561,7 @@ describe('the engine shapes', () => {
         bumpRevision(g.state);
         city.population = 4;
         seat(g.state, 0, 0, 'waysideShrines');
-        const lines = cardBuildingYields(g.state, city);
+        const lines = explainCardBuildingYields(g.state, city);
         // Only the Library, and its per-citizen beaker is in the base — the
         // ruled "per-citizen lines included".
         expect(lines).toHaveLength(1);
@@ -6631,7 +6647,7 @@ describe('the engine shapes', () => {
         const city = found(g.state, 0);
         seat(g.state, 0, 1, 'waysideShrines');
         seat(g.state, 0, 0, 'theChoir');
-        const lines = cardCityYields(g.state, city);
+        const lines = explainCardCityYields(g.state, city);
         const again = lines.find((line) => line.card === 'theChoir')!;
         expect([again.food, again.gold]).toEqual([3, 2]);
         expect(again.source).toContain(orderDef('waysideShrines').name);
@@ -6743,7 +6759,7 @@ describe('the engine shapes', () => {
         const before = player.faithPool;
         runPeriodicBoons(g.state);
         expect(player.faithPool - before).toBe(
-          3 + Math.max(0, Math.floor(empireRateReading(g.state, 0).productionPerTurn ?? 0)),
+          3 + Math.max(0, Math.floor(foldEmpireRates(g.state, 0).productionPerTurn ?? 0)),
         );
       },
     );
@@ -7181,9 +7197,9 @@ describe('the order pass of 2026-09-06', () => {
       expect(liveEffects(g.state, 0).some((e) => e.card === id), id).toBe(
         orderDef(id).effects.length > 0,
       );
-      const quote = cityQuote(g.state, city);
+      const quote = explainCity(g.state, city);
       for (const key of CITY_YIELD_KEYS) expect(Number.isFinite(quote.flats[key]), id).toBe(true);
-      const paid = cityYields(g.state, city);
+      const paid = foldCity(g.state, city);
       for (const key of CITY_YIELD_KEYS) expect(Number.isFinite(paid[key]), id).toBe(true);
       expect(foldMeter(explainHappiness(g.state, 0)), id).not.toBeNaN();
       expect(foldMeter(explainAuthority(g.state, 0)), id).not.toBeNaN();
@@ -7474,13 +7490,13 @@ describe('a building’s share counts what the law put on it', () => {
     slot(g.state, 0, 'theChoir');
     slot(g.state, 0, 'theSynod');
     const def = buildingDef('temple');
-    const synod = cardBuildingYields(g.state, city).find((line) => line.card === 'theSynod')!;
+    const synod = explainCardBuildingYields(g.state, city).find((line) => line.card === 'theSynod')!;
     expect(synod).toBeDefined();
     // Half of the row's own culture plus The Choir's three — not half the row alone.
     expect(synod.culture).toBeCloseTo(((def.culture ?? 0) + 3) * 0.5, 10);
     expect(synod.faith).toBeCloseTo((def.faith ?? 0) * 0.5, 10);
     // The Choir's own line is banked once, unchanged.
-    const choir = cardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
+    const choir = explainCardCityYields(g.state, city).find((line) => line.card === 'theChoir')!;
     expect(choir.culture).toBe(3);
   });
 

@@ -194,7 +194,8 @@ import type {
 import { disbandError } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import type { GreatPersonSpend } from './greatPersonCeremony';
-import { agedActFactor,
+import {
+  agedActFactor,
   actCityFor,
   actGainOf,
   familyOf,
@@ -210,7 +211,12 @@ import {
   type SpecialistFamily,
   greatPersonDef,
 } from '../sim/greatPeopleData';
-import { type StarvationReport, yieldContextFor } from '../sim/cities';
+import {
+  type StarvationReport,
+} from '../sim/cities';
+import {
+  yieldContextFor,
+} from '../sim/yields/hex';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,

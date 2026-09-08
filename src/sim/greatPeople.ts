@@ -52,13 +52,15 @@
 import {
   capitalCityOf,
   cityAt,
-  empireRateReading,
   nearestOwnedCity,
   refreshCityDerived,
   refreshTileDerived,
   settleProductionWindfall,
   spawnTileFor,
 } from './cities';
+import {
+  foldEmpireRates,
+} from './yields/empire';
 import { awardBeadOccasion } from './beads';
 import {
   FAMILIES,
@@ -816,7 +818,7 @@ export function agedActFactor(player: Player): number {
  * technology, and it is the honest one: a great person is worth what your empire
  * is worth.
  *
- * "What am I making per turn" is asked of `empireRateReading` (`cities.ts`) and
+ * "What am I making per turn" is asked of `foldEmpireRates` (`cities.ts`) and
  * nowhere else — the very fold `collectYields` banks and the top bar prints — so
  * the preview, the payout and the headline cannot drift. It is the **base**
  * rate, before any `rateConversion` pays anything, which is that reading's own
@@ -837,7 +839,7 @@ export function actGainOf(
   playerId: number,
   voice: 'science' | 'culture',
 ): number {
-  const rates = empireRateReading(state, playerId);
+  const rates = foldEmpireRates(state, playerId);
   const perTurn = voice === 'science' ? rates.sciencePerTurn : rates.culturePerTurn;
   return Math.max(0, Math.floor(perTurn ?? 0)) * Math.max(0, Math.floor(PEOPLE.actGainTurns));
 }

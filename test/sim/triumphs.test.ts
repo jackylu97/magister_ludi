@@ -434,7 +434,7 @@ describe('the news is a diff', () => {
 
 // --- the register -----------------------------------------------------------
 
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -446,7 +446,7 @@ describe('the register', () => {
     // second switch is a triumph that fires in one reading and not the other.
     const offenders = Object.keys(SIM_SOURCE)
       .filter((path) => /switch \(kind\)/.test(SIM_SOURCE[path]!))
-      .map((path) => path.slice(path.lastIndexOf('/') + 1))
+      .map((path) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     expect(offenders).toContain('triumphs.ts');
   });
@@ -456,7 +456,7 @@ describe('the register', () => {
       .filter((path) =>
         /player\.triumphs\.push\(|state\.contested\.push\(/.test(SIM_SOURCE[path]!),
       )
-      .map((path) => path.slice(path.lastIndexOf('/') + 1))
+      .map((path) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     expect(writers).toEqual(['triumphs.ts']);
   });

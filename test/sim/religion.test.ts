@@ -12,7 +12,7 @@
  * The rites are tested end to end rather than by asserting what was stamped,
  * which is the same argument `statecraft.test.ts` makes for the hook families:
  * an effect that is declared and never read fails as silence, and only a test
- * that follows the number into `cityYields` / `planCombat` / `borderGrowth` can
+ * that follows the number into `foldCity` / `planCombat` / `borderGrowth` can
  * see the difference.
  */
 
@@ -20,16 +20,20 @@ import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
-  cityContext,
-  cityQuote,
-  cityYields,
-  growthCarryover,
-  explainTileYield,
-  foldTileYield,
   foundCityAt,
+  growthCarryover,
   realiseItem,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  cityContext,
+  explainTileYield,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
 import { inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
@@ -114,9 +118,9 @@ import {
 import {
   type CardYieldLine,
   anyCardDef,
-  cardCityYields,
+  explainCardCityYields,
   cardCombatLines,
-  cardEmpireYields,
+  explainCardEmpireYields,
   cardHappiness,
   cardCityStat,
   cardPressureRule,
@@ -343,22 +347,22 @@ describe('a belief is an effect source, not a second evaluator', () => {
     expect(line!.source).toBe('Belief · Sacred Fire');
   });
 
-  it('pays a flat city yield through cityYields (Sacred Fire)', () => {
+  it('pays a flat city yield through foldCity (Sacred Fire)', () => {
     const g = game();
     const city = found(g.state, 0);
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     keep(g.state, 0, 'sacredFire');
-    expect(cityYields(g.state, city).faith).toBe(before + 1);
+    expect(foldCity(g.state, city).faith).toBe(before + 1);
   });
 
   it('scopes a city yield to a building (The Standing Stones)', () => {
     const g = game();
     const city = found(g.state, 0);
     keep(g.state, 0, 'theStandingStones');
-    const bare = cityYields(g.state, city).culture;
+    const bare = foldCity(g.state, city).culture;
     city.buildings.push('monument');
     bumpRevision(g.state);
-    expect(cityYields(g.state, city).culture).toBeGreaterThan(bare);
+    expect(foldCity(g.state, city).culture).toBeGreaterThan(bare);
   });
 
   it('scopes a tile line by terrain (Desert Fathers)', () => {
@@ -367,8 +371,8 @@ describe('a belief is an effect source, not a second evaluator', () => {
     const ctx = yieldContextFor(g.state, 0)!;
     const desert = { ...getTileAt(g.state.map, 4, 4)!, terrain: 'desert' as const };
     const grass = { ...desert, terrain: 'grassland' as const };
-    expect(foldTileYield(explainTileYield(desert, ctx)).faith).toBe(1);
-    expect(foldTileYield(explainTileYield(grass, ctx)).faith).toBe(0);
+    expect(foldTileLines(explainTileYield(desert, ctx)).faith).toBe(1);
+    expect(foldTileLines(explainTileYield(grass, ctx)).faith).toBe(0);
     // And it says so in the breakdown, with a rule-5 label.
     expect(explainTileYield(desert, ctx).some((line) => line.source.startsWith('Belief ·'))).toBe(
       true,
@@ -387,9 +391,9 @@ describe('a belief is an effect source, not a second evaluator', () => {
     const tundra = { ...base, terrain: 'tundra' as const, feature: 'none' as const };
     const wooded = { ...tundra, feature: 'forest' as const };
     const grass = { ...tundra, terrain: 'grassland' as const };
-    expect(foldTileYield(explainTileYield(tundra, ctx)).faith).toBe(1);
-    expect(foldTileYield(explainTileYield(wooded, ctx)).faith).toBe(1);
-    expect(foldTileYield(explainTileYield(grass, ctx)).faith).toBe(0);
+    expect(foldTileLines(explainTileYield(tundra, ctx)).faith).toBe(1);
+    expect(foldTileLines(explainTileYield(wooded, ctx)).faith).toBe(1);
+    expect(foldTileLines(explainTileYield(grass, ctx)).faith).toBe(0);
   });
 
   it('merges two lines from the same source into one entry (Winter Mother, tundra forest)', () => {
@@ -404,7 +408,7 @@ describe('a belief is an effect source, not a second evaluator', () => {
     const ctx = yieldContextFor(g.state, 0)!;
     const base = getTileAt(g.state.map, 4, 4)!;
     const wooded = { ...base, terrain: 'tundra' as const, feature: 'forest' as const };
-    const before = foldTileYield(explainTileYield(wooded, ctx));
+    const before = foldTileLines(explainTileYield(wooded, ctx));
     const list = explainTileYield(wooded, ctx);
     const winterMotherLines = list.filter((entry) => entry.source === 'Belief · Winter Mother');
     expect(winterMotherLines).toHaveLength(1);
@@ -415,7 +419,7 @@ describe('a belief is an effect source, not a second evaluator', () => {
       faith: 1,
     });
     // The fold is untouched by the merge — it was always a sum.
-    expect(foldTileYield(list)).toEqual(before);
+    expect(foldTileLines(list)).toEqual(before);
   });
 
   it('keeps two different sources on one tile as two entries (Winter Mother + Spirits of the Wood)', () => {
@@ -448,19 +452,19 @@ describe('a belief is an effect source, not a second evaluator', () => {
     const wheat = { ...base, resource: 'wheat' as const };
     const stone = { ...base, resource: 'stone' as const };
     const bare = { ...base, resource: undefined };
-    const foodOf = (tile: typeof base): number => foldTileYield(explainTileYield(tile, ctx)).food;
+    const foodOf = (tile: typeof base): number => foldTileLines(explainTileYield(tile, ctx)).food;
     // Wheat is a bonus resource that feeds; stone is a bonus resource that does
     // not, and the belief reads the resource's own row rather than a list.
     expect(foodOf(wheat) - foodOf({ ...wheat })).toBe(0);
     expect(
-      foldTileYield(explainTileYield(wheat, ctx)).food -
-        foldTileYield(explainTileYield(wheat, undefined)).food,
+      foldTileLines(explainTileYield(wheat, ctx)).food -
+        foldTileLines(explainTileYield(wheat, undefined)).food,
     ).toBe(1);
     expect(
-      foldTileYield(explainTileYield(stone, ctx)).food -
-        foldTileYield(explainTileYield(stone, undefined)).food,
+      foldTileLines(explainTileYield(stone, ctx)).food -
+        foldTileLines(explainTileYield(stone, undefined)).food,
     ).toBe(0);
-    expect(foodOf(bare)).toBe(foldTileYield(explainTileYield(bare, undefined)).food);
+    expect(foodOf(bare)).toBe(foldTileLines(explainTileYield(bare, undefined)).food);
   });
 
   it('adds a strength line to every fight (God of the Forge)', () => {
@@ -479,13 +483,13 @@ describe('a belief is an effect source, not a second evaluator', () => {
     learn(g.state, 0, 'divination');
     const city = found(g.state, 0);
     keep(g.state, 0, 'courtAugurs');
-    const bare = cityYields(g.state, city).science;
+    const bare = foldCity(g.state, city).science;
     // An augur *in the town* with a rite left in it, which is the whole of the
     // card's text — the reason to keep one home.
     const augur = augurAt(g.state, 0, city.col, city.row);
-    expect(cityYields(g.state, city).science).toBeGreaterThanOrEqual(bare);
+    expect(foldCity(g.state, city).science).toBeGreaterThanOrEqual(bare);
     augur.chargesLeft = 0;
-    expect(cityYields(g.state, city).science).toBe(bare);
+    expect(foldCity(g.state, city).science).toBe(bare);
   });
 
   it('rides a windfall in the money of the era (Rites of Blood)', () => {
@@ -689,16 +693,16 @@ describe('rites', () => {
 
   it('food — every hex the town works that feeds it feeds it one more', () => {
     const { g, city, player } = town();
-    const before = cityYields(g.state, city).food;
+    const before = foldCity(g.state, city).food;
     performRiteAt(g.state, player, city, 'riteOfTheHarvest');
-    const after = cityYields(g.state, city).food;
+    const after = foldCity(g.state, city).food;
     expect(after).toBeGreaterThan(before);
     // And it is a line on the ground, not a flat on the town: a hex that feeds
     // reads one higher through the tile chain itself.
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     const ctx = cityContext(g.state, city);
-    const paid = foldTileYield(explainTileYield(tile, ctx));
-    expect(paid.food).toBeGreaterThan(foldTileYield(explainTileYield(tile)).food);
+    const paid = foldTileLines(explainTileYield(tile, ctx));
+    expect(paid.food).toBeGreaterThan(foldTileLines(explainTileYield(tile)).food);
   });
 
   it('gold — a worked hex with a seam in it pays a coin more', () => {
@@ -710,9 +714,9 @@ describe('rites', () => {
     expect(cityRite(g.state, city)).toBe('riteOfPlenty');
     if (tile) {
       const ctx = cityContext(g.state, city);
-      const withRite = foldTileYield(explainTileYield(tile, ctx)).gold;
+      const withRite = foldTileLines(explainTileYield(tile, ctx)).gold;
       delete city.timed;
-      const without = foldTileYield(explainTileYield(tile, cityContext(g.state, city))).gold;
+      const without = foldTileLines(explainTileYield(tile, cityContext(g.state, city))).gold;
       expect(withRite).toBe(without + 1);
     }
   });
@@ -724,10 +728,10 @@ describe('rites', () => {
     // The **flats**, since batch X: the empire stage multiplies both readings
     // and is no longer floored away, so "two more beakers" is a claim about the
     // fold rather than about the staged figure.
-    const before = cityQuote(g.state, city).flats.science;
+    const before = explainCity(g.state, city).flats.science;
     performRiteAt(g.state, player, city, 'omenReading');
     // The Chapel and the Library are two shelves, so two beakers.
-    expect(cityQuote(g.state, city).flats.science).toBe(before + city.buildings.length);
+    expect(explainCity(g.state, city).flats.science).toBe(before + city.buildings.length);
   });
 
   it('culture — luxuries sing, and the bounds walk outward faster', () => {
@@ -906,11 +910,11 @@ describe('the apostle', () => {
     bumpRevision(g.state);
     expect(placeRelicError(g.state, 0, apostle.id)).toBeNull();
 
-    const before = cityYields(g.state, city).faith;
+    const before = foldCity(g.state, city).faith;
     const done = placeRelicAt(g.state, player, apostle);
     expect(done.building).toBe('relic');
     expect(city.buildings).toContain('relic');
-    expect(cityYields(g.state, city).faith).toBe(before + RELIGION.relicFaith);
+    expect(foldCity(g.state, city).faith).toBe(before + RELIGION.relicFaith);
     // The row's own figure and the religion table's are one number.
     expect(buildingDef('relic').faith).toBe(RELIGION.relicFaith);
     // And a second one is refused.
@@ -973,7 +977,7 @@ describe('timed effects', () => {
     const { g, city } = blessed();
     city.buildings.push('library');
     bumpRevision(g.state);
-    const bare = cityQuote(g.state, city).flats.science;
+    const bare = explainCity(g.state, city).flats.science;
 
     performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
     const expires = city.timed![0]!.expiresTurn;
@@ -982,10 +986,10 @@ describe('timed effects', () => {
     // Live on the last turn before the expiry… (the flats, for batch X's reason
     // above: the stage multiplies both sides.)
     g.state.turn = expires - 1;
-    expect(cityQuote(g.state, city).flats.science).toBe(bare + city.buildings.length);
+    expect(explainCity(g.state, city).flats.science).toBe(bare + city.buildings.length);
     // …and inert on the expiry itself. A comparison, never a countdown.
     g.state.turn = expires;
-    expect(cityQuote(g.state, city).flats.science).toBe(bare);
+    expect(explainCity(g.state, city).flats.science).toBe(bare);
   });
 
   it('are swept without changing any answer — a broom, not a clock', () => {
@@ -994,9 +998,9 @@ describe('timed effects', () => {
     const expires = city.timed![0]!.expiresTurn;
 
     g.state.turn = expires;
-    const beforeSweep = cityYields(g.state, city).science;
+    const beforeSweep = foldCity(g.state, city).science;
     pruneTimedEffects(g.state);
-    expect(cityYields(g.state, city).science).toBe(beforeSweep);
+    expect(foldCity(g.state, city).science).toBe(beforeSweep);
     // The key is *deleted*, so a town whose blessings have run out serialises
     // exactly like one that was never blessed.
     expect('timed' in city).toBe(false);
@@ -1127,11 +1131,20 @@ function faith(state: GameState, playerId: number, god: BeliefId = 'keeperOfTheH
  * pattern, and here for its reason: `cityContext` is deliberately private, so
  * "the sixth tile-line producer is wired in" is a claim about the source.
  */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-}) as Record<string, string>;
+const SIM_SOURCE = {
+  ...import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+  // The yields layer, since batch E3b split it out of `cities.ts` — the hex's
+  // own file is where `cityContext` lives now.
+  ...import.meta.glob('../../src/sim/yields/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }),
+} as Record<string, string>;
 
 function simSource(file: string): string {
   const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
@@ -1842,7 +1855,7 @@ describe('what a religion pays whom', () => {
 
     // The founder's own following town is paid in **its own** ledger.
     const paid = (city: City): CardYieldLine | undefined =>
-      cardCityYields(g.state, city).find((line) => line.source.includes('The Quiet Hours'));
+      explainCardCityYields(g.state, city).find((line) => line.source.includes('The Quiet Hours'));
     expect(paid(mine)?.faith).toBe(1);
     expect(paid(mine)?.culture).toBe(1);
     // And so is the rival's, out of a faith he did not choose.
@@ -1862,7 +1875,7 @@ describe('what a religion pays whom', () => {
         `seat ${seat}`,
       ).toBe(false);
       expect(
-        cardEmpireYields(g.state, seat).some((line) => line.source.includes('The Quiet Hours')),
+        explainCardEmpireYields(g.state, seat).some((line) => line.source.includes('The Quiet Hours')),
         `seat ${seat}`,
       ).toBe(false);
     }
@@ -1891,7 +1904,7 @@ describe('what a religion pays whom', () => {
     expect(farmLine?.food).toBe(1);
     expect(farmLine?.source).toContain('Harvest Blessing');
     expect(followerCardTileLines(g.state, quiet)).toEqual([]);
-    expect(simSource('cities.ts')).toContain('...followerCardTileLines(state, city),');
+    expect(simSource('yields/hex.ts')).toContain('...followerCardTileLines(state, city),');
 
     // **Guild of the Faithful** — a production bonus, scoped, read by the
     // ordinary `cardProduction`.
@@ -1963,7 +1976,7 @@ describe('what a religion pays whom', () => {
     bumpRevision(g.state);
 
     const trickleFor = (playerId: number): number =>
-      cardEmpireYields(g.state, playerId)
+      explainCardEmpireYields(g.state, playerId)
         .filter((line) => line.source.startsWith(`Religion · ${religion.name}`))
         .reduce((sum, line) => sum + line.faith, 0);
 
@@ -2029,7 +2042,7 @@ describe('what a religion pays whom', () => {
     // One faith per **foreign** following city: the founder's own town is not
     // a foreigner, so one of the two counts.
     const faithOf = (): number =>
-      cardEmpireYields(g.state, 0)
+      explainCardEmpireYields(g.state, 0)
         .filter((line) => line.source.startsWith(`Religion · ${religion.name}`))
         .reduce((sum, line) => sum + line.faith, 0);
     expect(faithOf()).toBe(1);
@@ -2079,14 +2092,14 @@ describe('what a religion pays whom', () => {
     religion.enhancer = ['pilgrimsCoin'];
     bumpRevision(g.state);
     expect(
-      cardEmpireYields(g.state, 0).find((line) => line.source.includes("Pilgrims' Coin"))?.faith,
+      explainCardEmpireYields(g.state, 0).find((line) => line.source.includes("Pilgrims' Coin"))?.faith,
     ).toBe(1);
 
     religion.enhancer = ['theLongPrayer'];
     bumpRevision(g.state);
     // Eight citizens, one culture per four.
     expect(
-      cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Long Prayer'))?.culture,
+      explainCardEmpireYields(g.state, 0).find((line) => line.source.includes('The Long Prayer'))?.culture,
     ).toBe(2);
 
     // And the whole family answers **nothing** for a seat that holds no holy
@@ -2599,7 +2612,7 @@ describe('the ratified religion rows', () => {
     // town of the same empire is untouched.
     expect(consecrationCardTileLines(g.state, town(g.state, 0, 9, 6))).toEqual([]);
     // Wired into the one place a town's own ground lines are gathered.
-    expect(simSource('cities.ts')).toContain('...consecrationCardTileLines(state, city),');
+    expect(simSource('yields/hex.ts')).toContain('...consecrationCardTileLines(state, city),');
   });
 
   it('The Living Rock pays a mine that stands on a seam, and bare rock nothing', () => {

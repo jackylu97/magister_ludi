@@ -166,7 +166,7 @@ export function specialistNoun(family: SpecialistFamily, count: number): string 
 /**
  * What this town's specialists pay it, one line per family that has any.
  *
- * The list `cityQuote` folds into its flats, beside the buildings and the
+ * The list `explainCity` folds into its flats, beside the buildings and the
  * luxuries and the caravans — so a specialist's science is staged by Entry XVII
  * exactly as a library's is, reaches the pool through the same `collectYields`,
  * and appears in the panel's ledger with its reason beside it. A family with

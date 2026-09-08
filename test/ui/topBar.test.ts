@@ -5,7 +5,7 @@
  * Bug report, 2026-08-29: The Great Litany's culture (`rateConversion`, +1
  * culture per 3 faith gained per turn) banked into `player.culturePool` every
  * turn — `collectYields` folds `explainEmpireCardYields` — but the strip's
- * `civYields` summed only city yields, the luxury signatures and the four
+ * `readEmpire` summed only city yields, the luxury signatures and the four
  * trade-gold lines, so the printed per-turn culture was short by exactly the
  * card lines while the pool filled by the true amount. What matters is not
  * this one card: it is that the headline and the resolution can no longer
@@ -16,16 +16,25 @@ import { describe, expect, it } from 'vitest';
 
 import { foldCardYields } from '../../src/sim/statecraft';
 import {
-  empirePercents,
   emptyCityYields,
+} from '../../src/sim/cities';
+import {
+  empirePercents,
+} from '../../src/sim/yields/town';
+import {
   explainEmpireCardYields,
   stageEmpireFold,
-} from '../../src/sim/cities';
-import { civYields } from '../../src/ui/topBar';
+} from '../../src/sim/yields/empire';
+import { readEmpire } from '../../src/sim/readings';
 import { game, found } from '../sim/statecraftHelpers';
 
 const SOURCES = import.meta.glob(
-  ['../../src/sim/cities.ts', '../../src/sim/readings.ts', '../../src/ui/topBar.ts'],
+  [
+    '../../src/sim/cities.ts',
+    '../../src/sim/yields/empire.ts',
+    '../../src/sim/readings.ts',
+    '../../src/ui/topBar.ts',
+  ],
   {
     eager: true,
     query: '?raw',
@@ -42,7 +51,7 @@ function source(name: string): string {
   return text;
 }
 
-describe('civYields carries the empire-scale card lines', () => {
+describe('readEmpire carries the empire-scale card lines', () => {
   it('The Great Litany’s culture is in the headline, not only in the pool', () => {
     const g = game();
     const city = found(g.state, 0);
@@ -72,9 +81,9 @@ describe('civYields carries the empire-scale card lines', () => {
       const bare = game();
       const c = found(bare.state, 0);
       c.buildings.push('shrine', 'temple');
-      return civYields(bare.state, 0).culture;
+      return readEmpire(bare.state, 0).totals.culture;
     })();
-    expect(civYields(g.state, 0).culture - withoutDoctrine).toBe(banked);
+    expect(readEmpire(g.state, 0).totals.culture - withoutDoctrine).toBe(banked);
   });
 
   it('reads the same helper `collectYields` banks with, by source', () => {
@@ -83,9 +92,11 @@ describe('civYields carries the empire-scale card lines', () => {
     // `explainEmpireLines`, the card lines among them, and the headline reads
     // that list rather than a fold of its own.
     // The phase's own call, inside `collectYields`.
-    expect(source('cities.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
-    expect(source('cities.ts')).toMatch(/foldEmpireLines\(lines\)/);
-    // The headline's call, inside `civYields` — through `readEmpire` since batch
+    // `yields/empire.ts` since batch E3b: the phase and the list it banks moved
+    // together, which is the whole point of the layer.
+    expect(source('yields/empire.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
+    expect(source('yields/empire.ts')).toMatch(/foldEmpireLines\(lines\)/);
+    // The headline's call, inside `readEmpire` — through `readEmpire` since batch
     // E2, which is the same list taken once for the whole revision and shared
     // with the Ledger, the panel and the bot. The claim is unchanged and is
     // stronger: the strip does not merely call the same helper, it reads the

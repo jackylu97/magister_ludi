@@ -981,7 +981,7 @@ of a yield fold:
 | file | what came out |
 |---|---|
 | `modifiers.ts` | `applyStages` — both floors, the idle path and the two-stage product |
-| `cities.ts` | the two tile percentage shares (works · ground) · `cardBuildingYields`' per-pop base and its share · `explainBuildingPreview`'s per-pop line · `cityQuote`'s centre per-pop and buildings per-pop · `growthSurplus` · `borderGrowth.perTurn` · `growthCarryover` · a beaten wonder's gold refund |
+| `cities.ts` | the two tile percentage shares (works · ground) · `explainCardBuildingYields`' per-pop base and its share · `explainBuildingPreview`'s per-pop line · `explainCity`'s centre per-pop and buildings per-pop · `growthSurplus` · `borderGrowth.perTurn` · `growthCarryover` · a beaten wonder's gold refund |
 | `statecraft.ts` | `amplifyTrickle` · the amplifier's percent · the slot-position factor · `cardYieldConversions` · the tile-line amplifier · `fromRate`'s share of a turn · `windfallPayout`'s rider percentage · `rateOf`'s five voices (a rate is divided *and* floored by `helpings` when it is a count, so unfloring it changes no count and pays a `fromRate` grant its fraction) |
 | `routeYields.ts` | the route amplifier's five voices |
 | `empireGold.ts` | the connection share, the luxury share of it, and its apportionment |
@@ -1716,7 +1716,7 @@ and either the Monument's writ or `meters.authority`'s own capacity.
 - **The pop-1 town banks no science.** Worth a ruling of its own: if the intent
   is "half a beaker a citizen" rather than "nothing until size two", the floor
   could move to the empire's fold instead of the town's — one line in
-  `cityQuote`, and a change to the "every source floored on its own" discipline
+  `explainCity`, and a change to the "every source floored on its own" discipline
   that would need saying out loud.
 - **`CityLook` untouched**, deliberately: a building is not a visual-affecting
   city property, and none of the five uniques carries a sculpt.
@@ -1732,7 +1732,7 @@ under `src/sim/` moved, no schema, no data row.
 | A newly slotted card shows no yield until Confirm | The arrangement's own `staged` flag splits "in a slot" in two (`drawCollection`). A **staged** card's face gets `pendCardStamp` — a new writer in `cardStamp.ts` that takes **no reading at all**, so there is no figure in scope to leak — and wears `— on Confirm` (`STAMP_PENDING_MARK`) where its digits will be. A card the law already holds keeps its landed stamp. `explainCardImpact` is not even asked for an unconfirmed card, which is the strict reading and the cheap one |
 | Where the aggregate stands | At the **head of the Confirm block** — the office column's pinned foot. The offices scroll; a ceremony fired above the fold is one half the viewports never see, and the figure directly over the button that fires it is also the plainest way to say what the button is for |
 | Confirm fires the aggregate | Confirm commits the batch, `commitStaging` now **answers the cards the signature made law** (read back from the live slots, so a batch the reducer stopped part-way celebrates only what went through), and the redraw plays: the **aggregate band** under the chairs counts up (`playCardStamp`), and every newly-confirmed card's own stamp counts up in the same beat. `justSlotted` (a card, armed by the drop) is gone; `justConfirmed` (a list, armed by the signature) replaces it |
-| The aggregate's source | **`deckAggregate` in `ledgerScreen.ts`** — the Ledger's band-1 `deck` slice, one function read by both surfaces. *Why that and not a sum of per-card `explainCardImpact` stamps*: those are **marginal** readings (the empire with one card removed), and marginal readings do not sum to a total once anything multiplies, converts or reads another card — which is precisely the deck this pass is building; eleven cards each worth "what the empire loses without me" adds to more than the empire makes. The deck slice is the **banked** figure, `civYields`' own summands classified by the card that pays them, a sum by construction. Batch A's amplifier and building-percent lines join it the day they land with no edit here: they are `CardYieldLine`s folded in the evaluator's own order (base lines, then the modifiers that read them) and classified by their card |
+| The aggregate's source | **`foldDeck` in `ledgerScreen.ts`** — the Ledger's band-1 `deck` slice, one function read by both surfaces. *Why that and not a sum of per-card `explainCardImpact` stamps*: those are **marginal** readings (the empire with one card removed), and marginal readings do not sum to a total once anything multiplies, converts or reads another card — which is precisely the deck this pass is building; eleven cards each worth "what the empire loses without me" adds to more than the empire makes. The deck slice is the **banked** figure, `civYields`' own summands classified by the card that pays them, a sum by construction. Batch A's amplifier and building-percent lines join it the day they land with no edit here: they are `CardYieldLine`s folded in the evaluator's own order (base lines, then the modifiers that read them) and classified by their card |
 | Slot order | `slotLayout` already groups a government's spread by flavour in `SLOT_TYPES` order, so **the array index is the position** and the screen already drew the column in array-index order — pinned rather than changed (`statecraftReveal.test.ts` walks every government). The topmost economic office is the first economic office on the screen and in the sim |
 | The position word | `slotPositionWord(layout, index)` → "1st economic", counted within the flavour, printed as a quiet eyebrow on the office line in tabular mono. **Gated on the reading**: `deckReadsSlotPosition(sc)` walks this empire's *slotted* Orders' own effects through `POSITION_READING_COUNTS`, a `readonly CountKind[]` that is **empty today**. Batch A's slot-position member joins that one list and the word starts appearing; nothing else changes. The test slots every Order in the game one at a time and pins that the gate is closed on all of them |
 | Rearranging | A card in an office is now **picked up from the collection** (`lift`) — `removeError` then `remove`, the same two staging verbs a fresh placement uses — so a move is an unconfirmed placement and Confirm signs it as one batch. The seal rules are untouched, because the refusal is the reducer's own sentence. The slotted face is no longer `disabled` |
@@ -1753,11 +1753,11 @@ Debts and notes:
   just confirmed add". That is deliberate — it is the number the Ledger prints
   and the number a player can check — but it means a Confirm that changes the
   deck by a little still counts the whole fold up from zero. If the user wants
-  the delta instead, it is a subtraction over two `deckAggregate` readings taken
+  the delta instead, it is a subtraction over two `foldDeck` readings taken
   either side of the commit, and the seam is already there.
 - The band prints the six voices only. A card's own happiness/authority points
   are on its face (the meter figures) and are not folded into "your cards",
-  because `ledgerReading` is a reading of yields and a meter is not one.
+  because `explainLedger` is a reading of yields and a meter is not one.
 
 ### Batch C1 as shipped (2026-09-06) — schema 71
 
@@ -1998,7 +1998,7 @@ F2's, not this batch's.
 Verified in an isolated copy of the working tree, the same snapshot of it twice:
 the tree as shipped, and the tree with every one of this batch's call sites
 neutralised (the two `deckModifierLines` folds, `tileAmplifierLines`, the
-`cardBuildingYields` fold in `cityQuote`, the two `empireRates` accumulators, the
+`explainCardBuildingYields` fold in `explainCity`, the two `foldEmpireRates` accumulators, the
 renown shares, the two `cardLines` calls in `routeYields.ts`, and the
 `periodicBoons` phase). Sixty bot-driven turns, `sha256(snapshotState)`:
 

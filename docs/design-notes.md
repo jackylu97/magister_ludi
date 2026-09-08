@@ -332,8 +332,8 @@ sheet never reaches a save: a tuned bot emits different commands and *those*
 are in the log, which is how a persona has always worked. Five games run
 headless, one Web Worker each (~6s for 75 turns on standard, so a 5×75 run is
 about the same wall time), reporting each seat at the final turn off the
-simulation's own books — the four banked voices through `empireRateReading`,
-food and hammers through `cityYields` — and the table prints one row per game
+simulation's own books — the four banked voices through `foldEmpireRates`,
+food and hammers through `foldCity` — and the table prints one row per game
 per seat with the seed, then the **mean per seat position**, which is the whole
 point: one seed proves nothing about a weight. Runs stack, newest first, each
 captioned with the sheet it was run with, because a tuning session is a

@@ -3,37 +3,22 @@ import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   advanceProduction,
-  assignCitizens,
   assignableTiles,
+  assignCitizens,
   bestExpansionTile,
-  CENTRE_SOURCE,
-  centreYield,
-  cityTile,
-  cityQuote,
-  cityYieldPercents,
-  cityYields,
-  collectYields,
-  empirePercents,
-  expandBorders,
-  explainCentreYield,
-  explainBuildingPreview,
-  explainCityBuildings,
-  explainGrowthPercent,
-  explainTileYield,
-  emptyCityYields,
-  explainEmpireLines,
-  foldEmpireLines,
-  foldBuildingPreview,
-  foldGrowthPercent,
-  foldTileYield,
-  foundCityAt,
   buildingProductionCost,
-  foundingError,
-  foundingErrorAt,
   citizenFocus,
   citizenFocusError,
   cityFocus,
+  cityTile,
+  emptyCityYields,
+  expandBorders,
   expansionScore,
+  explainGrowthPercent,
+  foldGrowthPercent,
+  foundCityAt,
+  foundingError,
+  foundingErrorAt,
   growCities,
   growthIsHalted,
   growthSurplus,
@@ -41,7 +26,6 @@ import {
   nextBorderCost,
   nextCityName,
   planProduction,
-  productionModifiers,
   productionSettledBy,
   queueItemCost,
   realiseItem,
@@ -52,14 +36,36 @@ import {
   tileOwnerCityId,
   tileOwnerField,
   tileOwnerPlayerId,
-  tileYieldOf,
   turnsToBuild,
   turnsToFill,
   unitProductionCost,
   withinWorkRadius,
-  yieldContextFor,
   yieldScore,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  CENTRE_SOURCE,
+  cityYieldPercents,
+  empirePercents,
+  explainBuildingPreview,
+  explainCentreYield,
+  explainCity,
+  explainCityBuildings,
+  foldBuildingPreview,
+  foldCentre,
+  foldCity,
+  productionModifiers,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+  explainEmpireLines,
+  foldEmpireLines,
+} from '../../src/sim/yields/empire';
 import {
   type Game,
   createGame,
@@ -215,7 +221,7 @@ describe('tile yield algebra', () => {
           tile.feature = feature;
           tile.hills = hills;
           expect(
-            foldTileYield(explainTileYield(tile)),
+            foldTileLines(explainTileYield(tile)),
             `${terrain}/${feature}/${hills ? 'hills' : 'flat'}`,
           ).toEqual(tileYield(terrain, feature, hills));
         }
@@ -753,11 +759,11 @@ describe('citizen focus while growth is halted', () => {
     const state = flatState();
     const city = farmVsMine(state);
     // 3🌾 against 3⚙ — the ordinary sheet weights food above hammers.
-    expect(tileYieldOf(at(state.map, 8, 4), yieldContextFor(state, 0))).toMatchObject({
+    expect(foldTile(at(state.map, 8, 4), yieldContextFor(state, 0))).toMatchObject({
       food: 3,
       production: 0,
     });
-    expect(tileYieldOf(at(state.map, 9, 4), yieldContextFor(state, 0))).toMatchObject({
+    expect(foldTile(at(state.map, 9, 4), yieldContextFor(state, 0))).toMatchObject({
       food: 0,
       production: 3,
     });
@@ -817,7 +823,7 @@ describe('citizen focus while growth is halted', () => {
     // eating six for a harvest of two. The focus is a preference, never a way
     // to starve a city, so the ordinary sheet is put back whole.
     expect(worked(city).sort()).toEqual(['8,4', '8,6', '9,4']);
-    expect(cityYields(state, city).food).toBeGreaterThanOrEqual(
+    expect(foldCity(state, city).food).toBeGreaterThanOrEqual(
       city.population * RULES.cities.foodPerCitizen,
     );
   });
@@ -867,7 +873,7 @@ describe('the citizen focus pane', () => {
     const ctx = yieldContextFor(state, city.ownerId);
     const total = { food: 0, production: 0, gold: 0 };
     for (const cell of city.workedTiles) {
-      const paid = tileYieldOf(at(state.map, cell.col, cell.row), ctx);
+      const paid = foldTile(at(state.map, cell.col, cell.row), ctx);
       total.food += paid.food;
       total.production += paid.production;
       total.gold += paid.gold;
@@ -884,11 +890,11 @@ describe('the citizen focus pane', () => {
     // index, which is the promise the pane must not quietly cost a player who
     // never opens it.
     const ctx = yieldContextFor(state, 0);
-    const scored = ring(state, city).map((tile) => yieldScore(tileYieldOf(tile, ctx)));
+    const scored = ring(state, city).map((tile) => yieldScore(foldTile(tile, ctx)));
     const best = Math.max(...scored);
     expect(city.workedTiles).toHaveLength(1);
     const standing = at(state.map, city.workedTiles[0]!.col, city.workedTiles[0]!.row);
-    expect(yieldScore(tileYieldOf(standing, ctx))).toBe(best);
+    expect(yieldScore(foldTile(standing, ctx))).toBe(best);
     expect(citizenFocus(city)).toBe('balanced');
     expect(cityFocus(city)).toBe('default');
   });
@@ -990,7 +996,7 @@ describe('the citizen focus pane', () => {
 
     assignCitizens(state, city);
     expect(worked(city).sort()).toEqual(['8,4', '8,6', '9,4']);
-    expect(cityYields(state, city).food).toBeGreaterThanOrEqual(
+    expect(foldCity(state, city).food).toBeGreaterThanOrEqual(
       city.population * RULES.cities.foodPerCitizen,
     );
   });
@@ -1019,7 +1025,7 @@ describe('avoid growth', () => {
   }
 
   function surplus(state: GameState, city: City): number {
-    return cityYields(state, city).food - city.population * RULES.cities.foodPerCitizen;
+    return foldCity(state, city).food - city.population * RULES.cities.foodPerCitizen;
   }
 
   it('trims the surplus to nothing when the board allows it', () => {
@@ -1405,7 +1411,7 @@ describe('the city centre', () => {
     // Desert pays nothing, so the base is the whole of it — and the breakdown
     // is the base line alone: there is nothing to inherit and no line claiming
     // there is.
-    expect(centreYield(state, city)).toEqual(base);
+    expect(foldCentre(state, city)).toEqual(base);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
   });
 
@@ -1416,7 +1422,7 @@ describe('the city centre', () => {
     at(state.map, 8, 5).resource = 'cotton';
     const city = plant(state, 0, 8, 5);
 
-    expect(centreYield(state, city)).toEqual(
+    expect(foldCentre(state, city)).toEqual(
       readTileYield({ food: 3, production: 2, gold: 2 }),
     );
     const lines = explainCentreYield(state, city);
@@ -1434,7 +1440,7 @@ describe('the city centre', () => {
     const state = flatState();
     at(state.map, 8, 5).feature = 'oasis';
     const city = plant(state, 0, 8, 5);
-    expect(centreYield(state, city)).toEqual(readTileYield({ food: 3, production: 2, gold: 0 }));
+    expect(foldCentre(state, city)).toEqual(readTileYield({ food: 3, production: 2, gold: 0 }));
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Oasis']);
   });
 
@@ -1445,11 +1451,11 @@ describe('the city centre', () => {
     // printing a zero and calling it an explanation.
     const state = flatState(16, 12, 'grassland');
     const city = plant(state, 0, 8, 5);
-    expect(centreYield(state, city)).toEqual(base);
+    expect(foldCentre(state, city)).toEqual(base);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
 
     at(state.map, 8, 5).hills = true;
-    expect(centreYield(state, city)).toEqual(base);
+    expect(foldCentre(state, city)).toEqual(base);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE]);
   });
 
@@ -1474,17 +1480,17 @@ describe('the city centre', () => {
       for (const hills of [false, true]) {
         centre.resource = resource;
         centre.hills = hills;
-        const ground = tileYieldOf(centre, ctx);
+        const ground = foldTile(centre, ctx);
         const expected = readTileYield(CITIES.baseCityYields);
         for (const key of TILE_YIELD_KEYS) {
           expected[key] = Math.max(base[key], ground[key]);
           if (ground[key] > 0) reached.add(key);
         }
         const label = `${resource}${hills ? ' hills' : ''}`;
-        expect(centreYield(state, city), label).toEqual(expected);
+        expect(foldCentre(state, city), label).toEqual(expected);
         // Rule 5, at the one scale it had not been held at: the number is the
         // fold of the list and there is no second implementation to drift.
-        expect(foldTileYield(explainCentreYield(state, city)), label).toEqual(expected);
+        expect(foldTileLines(explainCentreYield(state, city)), label).toEqual(expected);
       }
     }
 
@@ -1500,12 +1506,12 @@ describe('the city centre', () => {
     centre.hills = true;
     centre.resource = 'iron';
     const city = plant(state, 0, 8, 5);
-    const before = centreYield(state, city);
+    const before = foldCentre(state, city);
 
     // Iron's reveal moved to Bronze Panoply on 2026-09-04.
     state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'bronzePanoply'];
     bumpRevision(state);
-    const after = centreYield(state, city);
+    const after = foldCentre(state, city);
     expect(after.production).toBeGreaterThan(before.production);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Iron']);
   });
@@ -1521,14 +1527,14 @@ describe('city yields', () => {
 
     // The one town this empire has is its capital, so the palace's coin is in
     // the gold (the maintenance ruling, 2026-08-28) — `explainPalaceYield`,
-    // folded inside `cityYields` like every other list beside it.
+    // folded inside `foldCity` like every other list beside it.
     //
     // Read off the **flats** since batch X, because that is where these sources
-    // live: `cityYields` is this fold times Entry XVII's two stages, and a
+    // live: `foldCity` is this fold times Entry XVII's two stages, and a
     // contented one-town empire is on the happiness ladder's first rung, so
     // every one of these figures used to come back whole only because the stage
     // was floored afterwards.
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     expect(quote.flats).toEqual({
       food: CITIES.baseCityYields.food + 2,
       production: CITIES.baseCityYields.production,
@@ -1542,7 +1548,7 @@ describe('city yields', () => {
     });
     // And the printed answer is those flats through the one multiplication, with
     // nothing rounded on the way.
-    const banked = cityYields(state, city, [], undefined, quote);
+    const banked = foldCity(state, city, [], undefined, quote);
     for (const key of CITY_YIELD_KEYS) {
       const percent = quote.percents
         .filter((entry) => entry.yield === key)
@@ -1563,7 +1569,7 @@ describe('city yields', () => {
     assignCitizens(state, city);
     // The **flats**, because a contented empire's first happiness rung is an
     // empire-stage percentage and since batch X it is no longer floored away.
-    const smallFlats = cityQuote(state, city).flats;
+    const smallFlats = explainCity(state, city).flats;
     expect(smallFlats.culture).toBe(CITIES.baseCulturePerCity + 2);
     expect(smallFlats.food).toBe(CITIES.baseCityYields.food + granary.food);
     // The population's own beaker, plus both of the library's terms — the flat
@@ -1579,7 +1585,7 @@ describe('city yields', () => {
     // batch X, then the empire's percentage applied once to the sum, and the
     // fraction that falls out is what the pool banks.
     const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
-    expect(cityYields(state, city).science).toBe(
+    expect(foldCity(state, city).science).toBe(
       (4 * CITIES.sciencePerPop + library.science + 4 * library.sciencePerPop) * factor,
     );
   });
@@ -1607,7 +1613,7 @@ describe('city yields', () => {
     bumpRevision(state);
     const granary = buildingDef('granary');
 
-    const before = cityYields(state, city).food;
+    const before = foldCity(state, city).food;
     expect(explainCityBuildings(city)).toHaveLength(1);
 
     // The two nodes that used to renew the jar, learnt one after the other.
@@ -1617,7 +1623,7 @@ describe('city yields', () => {
       const entries = explainCityBuildings(city);
       expect(entries.map((entry) => entry.source)).toEqual([granary.name]);
       expect(entries[0]!.food).toBe(granary.food);
-      expect(cityYields(state, city).food).toBe(before);
+      expect(foldCity(state, city).food).toBe(before);
     }
 
     // And a building's worth is the same in every empire that raises it, which
@@ -1662,8 +1668,8 @@ describe('city yields', () => {
 
     // And the belief pays nothing until the barracks stands: the preview is a
     // *difference*, so the town's current yields are untouched by asking.
-    expect(cityYields(state, city).production).toBe(
-      cityYields(state, { ...city, buildings: [] }).production,
+    expect(foldCity(state, city).production).toBe(
+      foldCity(state, { ...city, buildings: [] }).production,
     );
   });
 
@@ -1687,8 +1693,8 @@ describe('city yields', () => {
     for (const id of ['granary', 'monument', 'barracks', 'library'] as const) {
       const lines = explainBuildingPreview(state, city, id);
       const ghost = { ...city, buildings: [...city.buildings, id] };
-      const gain = cityYields(state, ghost);
-      const now = cityYields(state, city);
+      const gain = foldCity(state, ghost);
+      const now = foldCity(state, city);
       const folded = foldBuildingPreview(lines);
       for (const key of CITY_YIELD_KEYS) {
         expect(folded[key], `${id} ${key}`).toBe(gain[key] - now[key]);
@@ -1728,7 +1734,7 @@ describe('city yields', () => {
    *
    * The claim under test is not the ten percent, it is that there is exactly one
    * evaluator for it — the panel's rate, the estimate and the hammers the basket
-   * actually receives are three readings of `cityYields`, so they cannot drift.
+   * actually receives are three readings of `foldCity`, so they cannot drift.
    */
   it('puts a building\'s production bonus behind a unit and nothing else', () => {
     const state = flatState();
@@ -1739,16 +1745,16 @@ describe('city yields', () => {
 
     const unit = { kind: 'unit', id: 'warrior' } as QueueItem;
     const building = { kind: 'building', id: 'granary' } as QueueItem;
-    const plain = cityYields(state, city).production;
+    const plain = foldCity(state, city).production;
     expect(productionModifiers(state, city, unit)).toEqual([]);
 
     city.buildings = ['barracks'];
     bumpRevision(state);
     // A unit gets the bonus, exactly and unrounded (batch X); a building never
     // does, and neither does a city asked about itself rather than about a build.
-    expect(cityYields(state, city, [], unit).production).toBe((plain * (100 + bonus * 100)) / 100);
-    expect(cityYields(state, city, [], building).production).toBe(plain);
-    expect(cityYields(state, city).production).toBe(plain);
+    expect(foldCity(state, city, [], unit).production).toBe((plain * (100 + bonus * 100)) / 100);
+    expect(foldCity(state, city, [], building).production).toBe(plain);
+    expect(foldCity(state, city).production).toBe(plain);
     expect(productionModifiers(state, city, unit)).toEqual([
       { source: 'Barracks', building: 'barracks', percent: bonus * 100, stage: 'city' },
     ]);
@@ -2480,7 +2486,7 @@ describe('turnsToBuild', () => {
     city.queue = [{ kind: 'unit', id: 'warrior' }];
     city.hammerBasket = 3;
 
-    const rate = cityYields(state, city).production;
+    const rate = foldCity(state, city).production;
     const cost = queueItemCost(state, 0, city.queue[0]!)!;
     expect(turnsToBuild(state, city, city.queue[0]!, 0)).toBe(turnsToFill(cost - 3, rate));
   });
@@ -2496,7 +2502,7 @@ describe('turnsToBuild', () => {
     // numbers a single estimate would get wrong.
     city.hammerBasket = buildingProductionCost('library') - 1;
 
-    const rate = cityYields(state, city).production;
+    const rate = foldCity(state, city).production;
     expect(turnsToBuild(state, city, item, 0)).toBe(turnsToFill(1, rate));
     expect(turnsToBuild(state, city, item, 1)).toBe(
       turnsToFill(buildingProductionCost('library'), rate),
@@ -3214,10 +3220,10 @@ describe('the turn pipeline over a live empire', () => {
     // Exact per source since batch X: a town of one citizen banks half a beaker
     // from the base line, where the old floor banked nothing at all — and the
     // pools bank the staged figure, tier and all, rather than a floored one.
-    const banked = cityYields(state, city);
+    const banked = foldCity(state, city);
     expect(banked.science).toBeGreaterThan(0);
     expect(player.sciencePool).toBe(banked.science);
-    expect(cityQuote(state, city).flats.science).toBe(
+    expect(explainCity(state, city).flats.science).toBe(
       city.population * CITIES.sciencePerPop,
     );
     expect(player.culturePool).toBe(banked.culture);
@@ -3419,9 +3425,9 @@ describe('the reveal gate, in a city', () => {
     // The same city working the same tile, with the seam taken off the ground:
     // the two readings are identical, which is what "contributes no yield"
     // means — not a smaller number, the same number.
-    const withSeam = cityYields(state, city);
+    const withSeam = foldCity(state, city);
     delete seam.resource;
-    expect(cityYields(state, city)).toEqual(withSeam);
+    expect(foldCity(state, city)).toEqual(withSeam);
   });
 
   it('pays it the instant the technology lands, to the line', () => {
@@ -3429,9 +3435,9 @@ describe('the reveal gate, in a city', () => {
     // discovery is exactly the resource's own row, and it arrives without any
     // command being issued or any turn being ended.
     const { state, city } = seamCity();
-    const before = cityYields(state, city);
+    const before = foldCity(state, city);
     state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
-    const after = cityYields(state, city);
+    const after = foldCity(state, city);
     bumpRevision(state);
 
     const line = resourceYield('iron');
@@ -3463,8 +3469,8 @@ describe('the reveal gate, in a city', () => {
     // looking at one seam get two different answers, and neither is stored.
     const { state, seam } = seamCity();
     state.players[1]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
-    expect(tileYieldOf(seam, yieldContextFor(state, 0))).not.toEqual(
-      tileYieldOf(seam, yieldContextFor(state, 1)),
+    expect(foldTile(seam, yieldContextFor(state, 0))).not.toEqual(
+      foldTile(seam, yieldContextFor(state, 1)),
     );
     bumpRevision(state);
   });
@@ -3488,14 +3494,14 @@ describe('the reveal gate, in a city', () => {
  */
 describe('the hoisted city quote', () => {
   /**
-   * A town with something in every one of `cityQuote`'s buckets — buildings that
+   * A town with something in every one of `explainCity`'s buckets — buildings that
    * pay, a seat holding two cards that *narrow* their hammers, and a queue — so
    * that an equivalence below is a claim about the whole fold rather than about
    * a desert with nothing in it.
    *
    * `theLegion` and `theEncyclopaedia` are the two rows that make this test
    * worth writing: they put hammers behind a `modelClass` and behind a
-   * `buildingCategory` respectively, so what `cityYields` answers is a fact
+   * `buildingCategory` respectively, so what `foldCity` answers is a fact
    * about the *item* and not merely about its category. A hoist keyed on the
    * category would pass every other row in the game and fail these two.
    */
@@ -3531,8 +3537,8 @@ describe('the hoisted city quote', () => {
     expect(ranged.map((line) => line.source)).not.toContain('Order · The Legion');
     // And The Encyclopaedia narrows by what a building is *for*, all the way
     // through to the printed figure.
-    expect(cityYields(state, city, [], { kind: 'building', id: 'library' }).production)
-      .toBeGreaterThan(cityYields(state, city, [], { kind: 'building', id: 'granary' }).production);
+    expect(foldCity(state, city, [], { kind: 'building', id: 'library' }).production)
+      .toBeGreaterThan(foldCity(state, city, [], { kind: 'building', id: 'granary' }).production);
   });
 
   /** Every row this game can price, in the order the build list walks them. */
@@ -3545,29 +3551,29 @@ describe('the hoisted city quote', () => {
   }
 
   // The claim the whole hoist rests on, and it is deliberately made of *every*
-  // row rather than of one per category: a quote is the half of `cityYields`'
+  // row rather than of one per category: a quote is the half of `foldCity`'
   // ingredients the item cannot change, so handing one in must not move a single
   // figure — including on the two cards above, which narrow to one silhouette
   // and to one building category.
   it('answers exactly as the unhoisted fold does, for every row in the game', () => {
     const { state, city } = quotedTown();
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     for (const item of everyItem()) {
       expect(`${item.kind}:${item.id} yields`).toBe(
-        JSON.stringify(cityYields(state, city, [], item, quote)) ===
-          JSON.stringify(cityYields(state, city, [], item))
+        JSON.stringify(foldCity(state, city, [], item, quote)) ===
+          JSON.stringify(foldCity(state, city, [], item))
           ? `${item.kind}:${item.id} yields`
           : `${item.kind}:${item.id} drifted`,
       );
     }
     // And the reading with nothing at the front, which is what the growth line,
     // the borders line and the progress rate all ask for.
-    expect(cityYields(state, city, [], undefined, quote)).toEqual(cityYields(state, city));
+    expect(foldCity(state, city, [], undefined, quote)).toEqual(foldCity(state, city));
   });
 
   it('leaves every build estimate where it was, at the front and behind it', () => {
     const { state, city } = quotedTown();
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     for (const item of everyItem()) {
       for (const index of [0, 1, city.queue.length]) {
         expect(`${item.kind}:${item.id}@${index}`).toBe(
@@ -3586,7 +3592,7 @@ describe('the hoisted city quote', () => {
   // reconciliation line that moved would be exactly the failure a hoist causes.
   it('leaves every building preview line where it was', () => {
     const { state, city } = quotedTown();
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     for (const id of BUILDING_IDS) {
       expect(`${id} preview`).toBe(
         JSON.stringify(explainBuildingPreview(state, city, id, quote)) ===
@@ -3630,11 +3636,21 @@ describe('the mid-turn refresh register', () => {
    * `node:fs`, because this project has no node typings and a source assertion
    * is not worth a dependency.
    */
-  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
+  const SIM_SOURCE = {
+    ...import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+    // The yields layer, since batch E3b split it out of this file
+    // (`src/sim/yields/{hex,town,empire,stages}.ts`). A file is named below by
+    // its path from `src/sim`, so `yields/empire.ts` reads as itself.
+    ...import.meta.glob('../../src/sim/yields/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+  } as Record<string, string>;
 
   function source(file: string): string {
     const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
@@ -3693,7 +3709,15 @@ describe('the mid-turn refresh register', () => {
     // things: the turn phase that owns it, and the helper. Anything else is the
     // register being routed around, which is the failure this file exists for.
     const callers: string[] = [];
-    for (const file of ['cities.ts', 'commands.ts', 'improvements.ts', 'turn.ts']) {
+    for (const file of [
+      'cities.ts',
+      // `collectYields` moved with the empire's own list in batch E3b; the
+      // register is about the *call*, not about which file it sits in.
+      'yields/empire.ts',
+      'commands.ts',
+      'improvements.ts',
+      'turn.ts',
+    ]) {
       for (const line of source(file).split('\n')) {
         if (!/(?<![\w.])assignCitizens\(/.test(line)) continue;
         if (/function assignCitizens/.test(line)) continue;
@@ -3702,10 +3726,10 @@ describe('the mid-turn refresh register', () => {
     }
     expect(callers).toEqual([
       'cities.ts: assignCitizens(state, city);',
-      'cities.ts: assignCitizens(state, city);',
+      'yields/empire.ts: assignCitizens(state, city);',
     ]);
     // And by name, so that two calls in the wrong two places cannot pass:
-    expect(bodyOf('cities.ts', 'collectYields')).toMatch(/assignCitizens\(/);
+    expect(bodyOf('yields/empire.ts', 'collectYields')).toMatch(/assignCitizens\(/);
     expect(bodyOf('cities.ts', 'refreshCityDerived')).toMatch(/assignCitizens\(/);
   });
 
@@ -3743,10 +3767,10 @@ describe('the mid-turn refresh register', () => {
  *
  * The two largest modules in the simulation used to import each other: `trade.ts`
  * asks this one for the nearest town, the capital and the windfall settlements,
- * and this one asked `trade.ts` back for the caravan lines `cityYields` folds and
+ * and this one asked `trade.ts` back for the caravan lines `foldCity` folds and
  * the treasury figure `collectYields` banks. Both halves were true and neither
  * was wrong, which is what made the cycle survive three passes — it only ever
- * showed itself as evaluation-order luck, once, as a `tileYieldOf is not a
+ * showed itself as evaluation-order luck, once, as a `foldTile is not a
  * function` at test load.
  *
  * The fix is a *layer*, not a comment: `routeYields.ts` and `empireGold.ts` hold
@@ -3758,11 +3782,21 @@ describe('the mid-turn refresh register', () => {
  * the general guard passes for a cycle that happens to be lucky.
  */
 describe('the trade layering', () => {
-  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
+  const SIM_SOURCE = {
+    ...import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+    // The yields layer, since batch E3b split it out of this file
+    // (`src/sim/yields/{hex,town,empire,stages}.ts`). A file is named below by
+    // its path from `src/sim`, so `yields/empire.ts` reads as itself.
+    ...import.meta.glob('../../src/sim/yields/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+  } as Record<string, string>;
 
   function text(file: string): string {
     const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith(`/${file}`));
@@ -3774,32 +3808,40 @@ describe('the trade layering', () => {
   function valueImports(file: string): string[] {
     const found: string[] = [];
     const source = text(file);
-    const pattern = /^import\s+(?!type\s)([\s\S]*?)from\s+'\.\/([a-zA-Z0-9]+)';/gm;
+    // `../` as well as `./`, and the layer folder named as itself
+    // (`yields/town`), since batch E3b put four of these files one level down.
+    const pattern = /^import\s+(?!type\s)([\s\S]*?)from\s+'\.\.?\/((?:yields\/)?[a-zA-Z0-9]+)';/gm;
     for (const match of source.matchAll(pattern)) found.push(match[2]!);
     return found;
   }
 
   it('keeps `cities.ts` off `trade.ts`', () => {
-    expect(valueImports('cities.ts')).not.toContain('trade');
+    // Batch E3b split the yields out of this file, so the rule is now about the
+    // whole of what used to be one module: neither the hub nor any layer of the
+    // sequence may reach `trade.ts`.
+    for (const file of ['cities.ts', 'yields/hex.ts', 'yields/town.ts', 'yields/empire.ts']) {
+      expect(valueImports(file)).not.toContain('trade');
+    }
     // And the three readers it wanted are still imported, from the two leaves —
     // a test that only checked the absence would pass a file that had quietly
-    // stopped folding a caravan's food into `cityYields` at all.
-    expect(valueImports('cities.ts')).toContain('routeYields');
-    expect(valueImports('cities.ts')).toContain('empireGold');
-    expect(text('cities.ts')).toMatch(/cityRouteYields\(state, city\)/);
+    // stopped folding a caravan's food into `foldCity` at all.
+    expect(valueImports('yields/town.ts')).toContain('routeYields');
+    expect(valueImports('yields/empire.ts')).toContain('empireGold');
+    expect(text('yields/town.ts')).toMatch(/cityRouteYields\(state, city\)/);
     // The treasury's ledger reaches the bank through the empire's own list now
     // (batch H19): `collectYields` banks `foldEmpireLines`, and the four lines
     // are one of the origins that list is built out of. So the pin is on the
     // call that reads them rather than on the fold that used to be banked
     // beside three others.
-    expect(text('cities.ts')).toMatch(/explainEmpireGold\(state, playerId\)/);
-    expect(text('cities.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
+    expect(text('yields/empire.ts')).toMatch(/explainEmpireGold\(state, playerId\)/);
+    expect(text('yields/empire.ts')).toMatch(/explainEmpireLines\(state, player\.id\)/);
   });
 
   it('keeps the two leaves leaves', () => {
     for (const leaf of ['routeYields.ts', 'empireGold.ts']) {
       const imports = valueImports(leaf);
       expect(imports).not.toContain('cities');
+      expect(imports).not.toContain('yields/town');
       expect(imports).not.toContain('trade');
       // Not empty, or a leaf that had been gutted would read as a clean one.
       expect(imports.length).toBeGreaterThan(2);
@@ -3854,8 +3896,8 @@ describe('a taking-back tile line', () => {
 
     // The mine pays 1 hammer; a −5 line takes exactly that 1 and no more —
     // the hill's own hammer survives untouched.
-    const bare = tileYieldOf(tile);
-    const cut = foldTileYield(explainTileYield(tile, { techs: [], lines: [line(-5)] }));
+    const bare = foldTile(tile);
+    const cut = foldTileLines(explainTileYield(tile, { techs: [], lines: [line(-5)] }));
     expect(cut.production).toBe(bare.production - improvementYield('mine').production);
     expect(cut.gold).toBe(bare.gold + 3);
 
@@ -3869,10 +3911,10 @@ describe('a taking-back tile line', () => {
     const second = both.find((entry) => entry.source === 'A second creditor')!;
     expect(second.production).toBe(0);
     expect(second.gold).toBe(3);
-    expect(foldTileYield(both).production).toBe(cut.production);
+    expect(foldTileLines(both).production).toBe(cut.production);
 
     // And a positive line is untouched by the clamp.
-    const plus = foldTileYield(explainTileYield(tile, { techs: [], lines: [line(2)] }));
+    const plus = foldTileLines(explainTileYield(tile, { techs: [], lines: [line(2)] }));
     expect(plus.production).toBe(bare.production + 2);
   });
 });
@@ -3947,8 +3989,8 @@ describe('the empire stage', () => {
       const player = playerById(state, 0)!;
       // The town's own basket takes the same tier at its second stage, which is
       // the reading that has not moved: the empire's lines now join it.
-      const quote = cityQuote(state, city);
-      const town = cityYields(state, city, [], city.queue[0], quote);
+      const quote = explainCity(state, city);
+      const town = foldCity(state, city, [], city.queue[0], quote);
       expect(town.science).toBeCloseTo((quote.flats.science * 110) / 100, 10);
 
       const before = player.sciencePool;

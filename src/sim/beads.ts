@@ -86,15 +86,17 @@ import { type BuildingId, buildingDef } from './buildingData';
 import type { CardEffect, OrderBeadOccasion } from './statecraftData';
 import {
   capitalCityOf,
-  cityYields,
   nearestOwnedCity,
   realiseItem,
   refreshCityDerived,
+  settleGrowthWindfall,
   settlePopulationWindfall,
   settleProductionWindfall,
   spawnTileFor,
-  settleGrowthWindfall,
 } from './cities';
+import {
+  foldCity,
+} from './yields/town';
 import { connectedCities } from './empireGold';
 import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
@@ -598,7 +600,7 @@ function largestAdjacentWorkCluster(state: GameState, playerId: number): number 
 function bestCityYield(state: GameState, playerId: number, key: 'food' | 'production'): number {
   let best = 0;
   for (const city of citiesOf(state, playerId)) {
-    const yields = cityYields(state, city);
+    const yields = foldCity(state, city);
     const value = Math.floor(yields[key]);
     if (value > best) best = value;
   }

@@ -46,7 +46,7 @@
  * This module asks `cities.ts` for facts about cities and territory — which city
  * is the capital, which stands on the coast, which luxuries the empire has dug
  * up — and `cities.ts` asks this module for the multipliers it must apply inside
- * `cityYields`. That is a genuine cycle and it is deliberate: the alternatives
+ * `foldCity`. That is a genuine cycle and it is deliberate: the alternatives
  * were to duplicate the territory rules here (two implementations of "does this
  * empire control this resource", which is exactly what rule 5 forbids) or to
  * apply the multipliers somewhere other than the one evaluator every surface
@@ -983,7 +983,7 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
  * XVII's *global* stage: a tier is the empire leaning on all its cities at once,
  * which is what the global stage exists for. The city stage — buildings, category
  * bonuses, a luxury scoped to the towns that hold it — is summed separately and
- * applied first (`cityStageSums` in `cities.ts`).
+ * applied first (`foldCityStages` in `cities.ts`).
  */
 export function yieldPercent(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {
   let percent = 0;
@@ -998,7 +998,7 @@ export function yieldPercent(effects: readonly MeterEffect[], yieldId: ModifiedY
  * is the whole of what a city's yield is multiplied by only when nothing local
  * is also modifying it. Since the luxuries pass the meters are no longer the
  * only source of a percentage on a yield, and since Entry XVII they are not even
- * the only *stage*, so `cityYields` folds `cityStageSums` instead of calling
+ * the only *stage*, so `foldCity` folds `foldCityStages` instead of calling
  * this — it survives for callers asking only what the meters are doing.
  */
 export function yieldFactor(effects: readonly MeterEffect[], yieldId: ModifiedYield): number {

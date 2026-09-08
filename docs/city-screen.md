@@ -264,7 +264,7 @@ Rules that bind the pass:
 - **No information deleted** — every list, ledger and hover the screen
   prints today remains reachable (hover or disclosure). Rule 5 is not
   negotiable; this pass moves ink, it does not dry it up.
-- No sim changes, no new sim reads — the same `CityQuote` photograph.
+- No sim changes, no new sim reads — the same `CityReading` photograph.
 - Specimen language throughout; tabular figures; the split's existing CSS
   classes and the capped-overlay rule (the sheet joins the one rule the
   register test pins, as Diplomacy just did).

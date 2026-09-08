@@ -12,14 +12,14 @@
  * than a named behaviour the simulation
  * switches on. That is a deliberate ceiling: everything Milestone 3 needs is a
  * sum, and a sum can be read out of a data file, totalled in one place
- * (`cityYields` in `cities.ts`) and displayed in the city panel without any
+ * (`foldCity` in `cities.ts`) and displayed in the city panel without any
  * module knowing that a granary is a granary. When a building eventually needs
  * a behaviour rather than a number, it gets a field naming that behaviour — not
  * a callback in the JSON, which would stop being data.
  *
  * `sciencePerPop` is fractional (a monastery is "+1 per 4 pop", stored as 0.25)
  * and is floored at the point it is applied, per building, so two half-science
- * buildings do not round into a free point. See `cityYields`.
+ * buildings do not round into a free point. See `foldCity`.
  *
  * The five fields that name a behaviour
  * -------------------------------------
@@ -33,7 +33,7 @@
  *     case anywhere; a second building that raises the writ is a data row.
  *   · `productionBonus` — extra hammers a city puts behind one *category* of
  *     thing it is building, as `{ category, percent }`. Applied inside
- *     `cityYields`, the one production evaluator, so the estimate, the panel and
+ *     `foldCity`, the one production evaluator, so the estimate, the panel and
  *     the bank cannot disagree. It was `unitProductionBonus` — a fraction that
  *     could only ever mean "units" — until luxuries needed the same mechanism
  *     for buildings; generalising the field was strictly cheaper than growing a
@@ -750,7 +750,7 @@ export interface BuildingDef {
    * A flag rather than a second table, and that is the whole framework: a
    * wonder is unlocked by a technology like any building, queued like any
    * building, paid for out of the same basket by the same completion routine,
-   * and pays its `yields` through `cityYields` like any building. Four things
+   * and pays its `yields` through `foldCity` like any building. Four things
    * key off this flag and nothing else does — the production category
    * (`queueCategory`), the one-per-world claim (`GameState.wonders`, written by
    * `realiseItem`), the refusal to sell one (`purchaseError`) and the sculpt

@@ -29,19 +29,23 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  cityQuote,
-  cityYields,
-  collectYields,
-  foundCityAt,
+  borderCostFor,
+  borderGrowth,
   emptyCityYields,
+  foundCityAt,
   growthSurplus,
   growthThreshold,
-  stageEmpireFold,
-  borderGrowth,
-  borderCostFor,
 } from '../../src/sim/cities';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+  stageEmpireFold,
+} from '../../src/sim/yields/empire';
 import { cardYieldConversions } from '../../src/sim/statecraft';
-import { applyStages, foldStages, type StagedLine } from '../../src/sim/modifiers';
+import { applyStages, foldStages, type StagedLine } from '../../src/sim/yields/stages';
 import { RULES } from '../../src/sim/rulesData';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
@@ -87,7 +91,7 @@ describe('nothing rounds inside a fold', () => {
 
     // The flats, which is where the per-citizen line lands. Entry XVII's stages
     // multiply this afterwards and are asserted in their own section.
-    expect(cityQuote(state, city).flats.science).toBe(0.5);
+    expect(explainCity(state, city).flats.science).toBe(0.5);
     expect(Math.floor(1 * CITIES.sciencePerPop)).toBe(0);
 
     collectYields(state);
@@ -178,7 +182,7 @@ describe('nothing rounds inside a fold', () => {
     sc.orders.push('theHarvestSongs');
     sc.slots.push({ card: 'theHarvestSongs', sealedUntil: state.turn });
     bumpRevision(state);
-    const flats = { ...cityQuote(state, city).flats, food: 7 };
+    const flats = { ...explainCity(state, city).flats, food: 7 };
     const lines = cardYieldConversions(state, city, flats);
     const paid = lines.find((line) => line.source.includes('food'))?.culture ?? 0;
     // Batch F raised the songs' share to fifteen percent, so seven food is a
@@ -195,7 +199,7 @@ describe('nothing rounds inside a fold', () => {
     const city = foundCityAt(state, 0, getTileAt(state.map, 8, 5)!);
     city.population = 1;
     // A dry site is −30% on the channel; the surplus is what is left of it.
-    const yields = { ...cityYields(state, city), food: 10 };
+    const yields = { ...foldCity(state, city), food: 10 };
     const surplus = growthSurplus(state, city, yields);
     expect(surplus).toBeGreaterThan(0);
     expect(surplus).toBe((10 - city.population * CITIES.foodPerCitizen) * growthFactorOf(state, city));
@@ -206,7 +210,7 @@ describe('nothing rounds inside a fold', () => {
 
   /** The factor `growthSurplus` folds, recomputed the way the evaluator does. */
   function growthFactorOf(state: GameState, city: ReturnType<typeof foundCityAt>): number {
-    const surplus = growthSurplus(state, city, { ...cityYields(state, city), food: 10 });
+    const surplus = growthSurplus(state, city, { ...foldCity(state, city), food: 10 });
     const raw = 10 - city.population * CITIES.foodPerCitizen;
     return surplus / raw;
   }
@@ -304,14 +308,25 @@ describe('the audit holds in the source', () => {
    * this project has no node typings and a source assertion is not worth a
    * dependency (`test/sim/cities.test.ts`'s own note, one register over).
    */
-  const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>;
+  const SIM_SOURCE = {
+    ...import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+    // The yields layer, since batch E3b split it out of `cities.ts`
+    // (`src/sim/yields/{hex,town,empire,stages}.ts`).
+    ...import.meta.glob('../../src/sim/yields/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }),
+  } as Record<string, string>;
 
   const read = (path: string): string => {
-    const file = path.slice(path.lastIndexOf('/') + 1);
+    // Matched from `sim/` rather than on the basename, because the layer folder
+    // has a `hex.ts` of its own and `src/sim/hex.ts` is the coordinate module.
+    const file = path.slice(path.indexOf('src/sim/') + 'src/'.length);
     const key = Object.keys(SIM_SOURCE).find((entry) => entry.endsWith(`/${file}`));
     expect(key, `${path} readable`).toBeDefined();
     return SIM_SOURCE[key!]!;
@@ -319,21 +334,21 @@ describe('the audit holds in the source', () => {
 
   /** Every fold the audit classified as (a) — a floor here is the bug back. */
   const FOLDS: readonly { path: string; snippet: string }[] = [
-    { path: 'src/sim/modifiers.ts', snippet: 'return (base * (100 + sums.city) * (100 + sums.empire)) / 10_000;' },
+    { path: 'src/sim/yields/stages.ts', snippet: 'return (base * (100 + sums.city) * (100 + sums.empire)) / 10_000;' },
     // Batch E2 split the town's own terms out of the centre's line and folded a
     // building's per-citizen beaker into the building's own line; both are still
     // the exact product, which is the claim.
-    { path: 'src/sim/cities.ts', snippet: 'science: city.population * CITIES.sciencePerPop,' },
-    { path: 'src/sim/cities.ts', snippet: 'science: entry.science + city.population * entry.sciencePerPop,' },
-    { path: 'src/sim/cities.ts', snippet: 'share[voice] = (share[voice] * worksPercent) / 100;' },
-    { path: 'src/sim/cities.ts', snippet: 'share[voice] = (ground[voice] * groundPercent) / 100;' },
+    { path: 'src/sim/yields/town.ts', snippet: 'science: city.population * CITIES.sciencePerPop,' },
+    { path: 'src/sim/yields/town.ts', snippet: 'science: entry.science + city.population * entry.sciencePerPop,' },
+    { path: 'src/sim/yields/hex.ts', snippet: 'share[voice] = (share[voice] * worksPercent) / 100;' },
+    { path: 'src/sim/yields/hex.ts', snippet: 'share[voice] = (ground[voice] * groundPercent) / 100;' },
     { path: 'src/sim/cities.ts', snippet: 'return surplus * factor;' },
     { path: 'src/sim/cities.ts', snippet: 'const perTurn = base * factor;' },
     { path: 'src/sim/cities.ts', snippet: 'return (threshold * percent) / 100;' },
-    { path: 'src/sim/statecraft.ts', snippet: 'const paid = (Math.max(0, flats[effect.from]) * effect.percent) / 100;' },
-    { path: 'src/sim/statecraft.ts', snippet: 'line[voice] += paid[voice] * extra;' },
-    { path: 'src/sim/statecraft.ts', snippet: 'const amount = turns * rate;' },
-    { path: 'src/sim/statecraft.ts', snippet: 'payout.amount = (base * (100 + percent)) / 100;' },
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const paid = (Math.max(0, flats[effect.from]) * effect.percent) / 100;' },
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'line[voice] += paid[voice] * extra;' },
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'const amount = turns * rate;' },
+    { path: 'src/sim/statecraft/evaluator.ts', snippet: 'payout.amount = (base * (100 + percent)) / 100;' },
     { path: 'src/sim/routeYields.ts', snippet: 'gold: (total.gold * percent) / 100,' },
     { path: 'src/sim/empireGold.ts', snippet: 'connectionGold = (connectionGold * (100 + share)) / 100;' },
     { path: 'src/sim/renown.ts', snippet: 'const amount = (base * share.percent) / 100;' },
@@ -373,7 +388,7 @@ describe('the audit holds in the source', () => {
       why: 'the guild bar is a threshold',
     },
     {
-      path: 'src/sim/statecraft.ts',
+      path: 'src/sim/statecraft/evaluator.ts',
       snippet: 'let count = Math.floor(total / step);',
       why: 'helpings is a count of things, not a share of one',
     },

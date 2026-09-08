@@ -17,17 +17,19 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  type WonderCompletion,
   advanceProduction,
   buildingProductionCost,
   emptyCityYields,
   foundCityAt,
-  realiseItem,
   growthSurplus,
+  realiseItem,
+  settleProduction,
+  type WonderCompletion,
+} from '../../src/sim/cities';
+import {
   productionModifiers,
   queueCategory,
-  settleProduction,
-} from '../../src/sim/cities';
+} from '../../src/sim/yields/town';
 import {
   BUILDING_IDS,
   type BuildingId,
@@ -50,7 +52,7 @@ import {
 } from '../../src/sim/state';
 import {
   anyCardDef,
-  cardCityYields,
+  explainCardCityYields,
   cardPurchaseRiders,
   cardRulePercent,
   cardTileLines,
@@ -383,9 +385,9 @@ describe('a wonder’s effect is a card', () => {
 
     // The placeholder's clause is scoped `hasBuilding: theOracle`, so it pays
     // its own town and not the one next door.
-    const here = cardCityYields(g.state, home).find((line) => line.card === WONDER);
+    const here = explainCardCityYields(g.state, home).find((line) => line.card === WONDER);
     expect(here?.faith).toBe(1);
-    expect(cardCityYields(g.state, other).some((line) => line.card === WONDER)).toBe(false);
+    expect(explainCardCityYields(g.state, other).some((line) => line.card === WONDER)).toBe(false);
   });
 
   it('pays every city when the clause names no scope', () => {
@@ -401,8 +403,8 @@ describe('a wonder’s effect is a card', () => {
     try {
       racing(g.state, home);
       settleProduction(g.state, home);
-      expect(cardCityYields(g.state, home).find((l) => l.card === WONDER)?.culture).toBe(2);
-      expect(cardCityYields(g.state, other).find((l) => l.card === WONDER)?.culture).toBe(2);
+      expect(explainCardCityYields(g.state, home).find((l) => l.card === WONDER)?.culture).toBe(2);
+      expect(explainCardCityYields(g.state, other).find((l) => l.card === WONDER)?.culture).toBe(2);
     } finally {
       (def as { effects?: unknown }).effects = restore;
     }
@@ -884,7 +886,7 @@ describe('the new counts', () => {
     const other = found(g.state, 0);
     raise(g.state, city, 'mausoleum');
 
-    const line = () => cardCityYields(g.state, city).find((l) => l.card === 'mausoleum')?.gold ?? 0;
+    const line = () => explainCardCityYields(g.state, city).find((l) => l.card === 'mausoleum')?.gold ?? 0;
     // The Mausoleum counts itself, because a wonder is a building.
     const withTomb = line();
     expect(withTomb).toBeGreaterThan(0);
@@ -892,7 +894,7 @@ describe('the new counts', () => {
     bumpRevision(g.state);
     expect(line()).toBe(withTomb + 1);
     // The town next door has the tomb's empire but not its stones.
-    expect(cardCityYields(g.state, other).find((l) => l.card === 'mausoleum')).toBeUndefined();
+    expect(explainCardCityYields(g.state, other).find((l) => l.card === 'mausoleum')).toBeUndefined();
   });
 
   it('counts a town’s own improved bonus seams when the line says “in this city”', () => {
@@ -938,7 +940,7 @@ describe('the new counts', () => {
     const g = game();
     const city = found(g.state, 0);
     raise(g.state, city, 'angkorWat');
-    const faith = () => cardCityYields(g.state, city).find((l) => l.card === 'angkorWat')?.faith ?? 0;
+    const faith = () => explainCardCityYields(g.state, city).find((l) => l.card === 'angkorWat')?.faith ?? 0;
 
     city.workedTiles = [];
     expect(faith()).toBe(0);

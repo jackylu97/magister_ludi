@@ -82,7 +82,7 @@
  * player can press is a command the simulation takes.
  */
 
-import { civYields } from './topBar';
+import { readEmpire } from '../sim/readings';
 import { signedPlain as signed, signedYield, yieldShows } from '../sim/yieldFormat';
 import { createModalShell } from './modalShell';
 import {
@@ -131,7 +131,7 @@ import {
   riteDef,
 } from '../sim/religionData';
 import { drawPantheonWheel, pantheonWheelLayout } from './pantheonWheel';
-import { type CardYieldLine, cardEmpireYields, describeCard, stripRefs } from '../sim/statecraft';
+import { type CardYieldLine, explainCardEmpireYields, describeCard, stripRefs } from '../sim/statecraft';
 import {
   type GameState,
   type Religion,
@@ -310,7 +310,7 @@ export interface ReligionReading {
    * Deliberately **founding** and not `religionFounder`: this pane is "your
    * religion", which is a fact about history and stays yours after a conquest
    * takes the holy city. What that conquest moves is the trickle below, which
-   * comes off `cardEmpireYields` and so goes to zero on its own.
+   * comes off `explainCardEmpireYields` and so goes to zero on its own.
    */
   religion: Religion | null;
   /** How many religions the world holds, against the cap it will ever hold. */
@@ -328,7 +328,7 @@ export interface ReligionReading {
  * What the pane says, derived and never stored.
  *
  * Every figure on it is somebody else's: the cap is `maxReligions`, the houses
- * are `poolSlots`/`poolHeld`, the trickle is `cardEmpireYields` filtered to the
+ * are `poolSlots`/`poolHeld`, the trickle is `explainCardEmpireYields` filtered to the
  * lines `liveEffects`' seventh source pushed, and each town's ledger is
  * `explainPressure` — the same list the tide folds. Nothing here adds up a
  * number the simulation has not already added up, which is hard rule 5 read for
@@ -362,7 +362,7 @@ export function religionReading(state: GameState, seat: number): ReligionReading
     // belief with the belief after it, so a prefix match is exactly "what my
     // faith pays me" and nothing else on the empire's ledger.
     const word = `Religion · ${mine.name}`;
-    trickle = cardEmpireYields(state, seat).filter((line) => line.source.startsWith(word));
+    trickle = explainCardEmpireYields(state, seat).filter((line) => line.source.startsWith(word));
 
     const sites = holySites(state);
     for (const city of state.cities) {
@@ -640,13 +640,13 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
    * to promise a god at a price the phase disagrees with. Nothing on this screen
    * adds a figure of its own.
    *
-   * The rate is `civYields`' — the top bar's fold, handed in rather than folded
+   * The rate is `readEmpire`' — the top bar's fold, handed in rather than folded
    * again, which is the bargain `explainNextRung` documents.
    */
   function drawPool(state: GameState, seat: number): HTMLElement {
     const block = element('section', 'rel-pool');
     const player = playerById(state, seat);
-    const rate = civYields(state, seat).faith;
+    const rate = readEmpire(state, seat).totals.faith;
     block.append(element('p', 'eyebrow sc-eyebrow', 'faith gathered'));
     const figure = element('p', 'rel-pool-figure');
     figure.textContent = player ? poolFigure(player.faithPool, rate) : '—';
@@ -758,7 +758,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     const player = playerById(state, seat);
     const slots = pantheonSlots(state, seat);
     const held = player?.pantheon.beliefs ?? [];
-    const rung = explainNextRung(state, seat, civYields(state, seat).faith);
+    const rung = explainNextRung(state, seat, readEmpire(state, seat).totals.faith);
     block.append(
       element('p', 'eyebrow sc-eyebrow', `pantheon · ${held.length} of ${slots}`),
     );
@@ -1029,7 +1029,7 @@ export function createReligionScreen(options: ReligionScreenOptions): ReligionSc
     if (mine === null) return null;
     const block = element('section', 'rel-faith rel-tide');
 
-    // What the faith pays whoever holds its holy city. `cardEmpireYields`' own
+    // What the faith pays whoever holds its holy city. `explainCardEmpireYields`' own
     // labelled lines, so the figure here is the figure `collectYields` banks —
     // and it stops arriving the turn somebody takes the holy city off you.
     const trickle = element('div', 'rel-trickle');

@@ -3,13 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { buildingDef } from '../../src/sim/buildingData';
 import {
   advanceProduction,
-  explainTileYield,
-  foldTileYield,
   foundCityAt,
   hasResource,
-  tileYieldOf,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, dispatch, loadGame, replay, saveGame, snapshotState } from '../../src/sim/game';
 import { improvementForResource } from '../../src/sim/improvementData';
@@ -251,8 +253,8 @@ describe('resource yields', () => {
   }
 
   it('adds to the terrain yield rather than replacing it', () => {
-    expect(tileYieldOf(tileWith(undefined))).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
-    expect(tileYieldOf(tileWith('wheat'))).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tileWith(undefined))).toEqual({ food: 2, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(tileWith('wheat'))).toEqual({ food: 3, production: 0, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds *after* the feature override, not before it', () => {
@@ -260,17 +262,17 @@ describe('resource yields', () => {
     // to what the forest left, which is 2/1/0 and not 3/1/0.
     const forest = tileWith('deer', { feature: 'forest' });
     expect(tileYield('grassland', 'forest', false)).toEqual({ food: 1, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
-    expect(tileYieldOf(forest)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(forest)).toEqual({ food: 2, production: 1, gold: 0, science: 0, culture: 0, faith: 0 });
   });
 
   it('adds *after* the hills override, which wins over everything else', () => {
     const hill = tileWith('gems', { hills: true });
-    expect(tileYieldOf(hill)).toEqual({ food: 0, production: 2, gold: 2, science: 0, culture: 0, faith: 0 });
+    expect(foldTile(hill)).toEqual({ food: 0, production: 2, gold: 2, science: 0, culture: 0, faith: 0 });
   });
 
   it('pays more than one voice when the table says so', () => {
     const salt = tileWith('salt', { terrain: 'desert' });
-    expect(tileYieldOf(salt)).toEqual(readTileYield({ food: 1, production: 1, gold: 0 }));
+    expect(foldTile(salt)).toEqual(readTileYield({ food: 1, production: 1, gold: 0 }));
   });
 
   it('pays the three voices the ground itself never could', () => {
@@ -279,16 +281,16 @@ describe('resource yields', () => {
     // before, and the whole chain — resource row, contribution entry, fold —
     // carries them exactly as it carries a coin.
     const silk = tileWith('silk', { feature: 'forest' });
-    expect(tileYieldOf(silk).culture).toBe(resourceYield('silk').culture);
-    expect(tileYieldOf(silk).culture).toBeGreaterThan(0);
+    expect(foldTile(silk).culture).toBe(resourceYield('silk').culture);
+    expect(foldTile(silk).culture).toBeGreaterThan(0);
 
     const reeds = tileWith('reeds');
-    expect(tileYieldOf(reeds).science).toBe(resourceYield('reeds').science);
-    expect(tileYieldOf(reeds).science).toBeGreaterThan(0);
+    expect(foldTile(reeds).science).toBe(resourceYield('reeds').science);
+    expect(foldTile(reeds).science).toBeGreaterThan(0);
 
     const incense = tileWith('incense', { terrain: 'desert' });
-    expect(tileYieldOf(incense).faith).toBe(resourceYield('incense').faith);
-    expect(tileYieldOf(incense).faith).toBeGreaterThan(0);
+    expect(foldTile(incense).faith).toBe(resourceYield('incense').faith);
+    expect(foldTile(incense).faith).toBeGreaterThan(0);
   });
 
   it('leaves a mountain unworkable however rich it is', () => {
@@ -296,7 +298,7 @@ describe('resource yields', () => {
     // workability is asked of the terrain, never of the yield, and that is worth
     // holding still.
     const peak = tileWith('iron', { terrain: 'mountain' });
-    expect(tileYieldOf(peak)).toEqual(readTileYield({ food: 0, production: 1, gold: 0 }));
+    expect(foldTile(peak)).toEqual(readTileYield({ food: 0, production: 1, gold: 0 }));
     expect(TERRAIN_IDS.includes('mountain')).toBe(true);
   });
 });
@@ -586,7 +588,7 @@ describe('what a player may be told', () => {
     expect(visibleResourceAt(state, 0, tile)).toBeNull();
     expect(hasResource(state, 0, 'iron')).toBe(false);
     // Bare grassland, exactly as if the seam were not there.
-    expect(tileYieldOf(tile, ctx)).toEqual(tileYieldOf({ ...tile, resource: undefined }, ctx));
+    expect(foldTile(tile, ctx)).toEqual(foldTile({ ...tile, resource: undefined }, ctx));
     // Not a subtraction afterwards: the line is simply absent from the
     // breakdown, which is rule 5's whole point (`explainTileYield`).
     expect(explainTileYield(tile, ctx).map((line) => line.source)).not.toContain(
@@ -603,9 +605,9 @@ describe('what a player may be told', () => {
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
 
-    const before = tileYieldOf(tile, yieldContextFor(state, 0));
+    const before = foldTile(tile, yieldContextFor(state, 0));
     player.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
-    const after = tileYieldOf(tile, yieldContextFor(state, 0));
+    const after = foldTile(tile, yieldContextFor(state, 0));
 
     const line = resourceYield('iron');
     for (const key of TILE_YIELD_KEYS) expect(after[key] - before[key]).toBe(line[key]);
@@ -623,7 +625,7 @@ describe('what a player may be told', () => {
     tile.resource = 'wheat';
     const ctx = yieldContextFor(state, 0)!;
     const bare = tileYield('grassland', 'none', false);
-    expect(tileYieldOf(tile, ctx).food).toBe(bare.food + resourceYield('wheat').food);
+    expect(foldTile(tile, ctx).food).toBe(bare.food + resourceYield('wheat').food);
   });
 
   it('stays omniscient when nobody is asking — the mapgen reading', () => {
@@ -635,7 +637,7 @@ describe('what a player may be told', () => {
     state.players[0]!.techsResearched = [];
     const tile = at(state, 3, 3);
     tile.resource = 'iron';
-    expect(tileYieldOf(tile).production).toBe(
+    expect(foldTile(tile).production).toBe(
       tileYield('grassland', 'none', false).production + resourceYield('iron').production,
     );
     expect(explainTileYield(tile).map((line) => line.source)).toContain(resourceDef('iron').name);
@@ -848,13 +850,13 @@ describe('a resource nobody wrote code for', () => {
       // Pays: the yield algebra adds it like any other resource…
       const tile = tiles[0]!;
       const bare = tileYield(tile.terrain, tile.feature, tile.hills);
-      expect(tileYieldOf(tile).gold).toBe(bare.gold + UNOBTANIUM.yields.gold);
+      expect(foldTile(tile).gold).toBe(bare.gold + UNOBTANIUM.yields.gold);
 
       // …and explains: a labelled line in the breakdown the panel prints, with
       // the fold of the list equal to the total.
       const lines = explainTileYield(tile);
       expect(lines.map((line) => line.source)).toContain(UNOBTANIUM.name);
-      expect(foldTileYield(lines)).toEqual(tileYieldOf(tile));
+      expect(foldTileLines(lines)).toEqual(foldTile(tile));
 
       // And its signature is read by the one evaluator, in words too.
       expect(describeResourceEffect(id)).toContain('gold');

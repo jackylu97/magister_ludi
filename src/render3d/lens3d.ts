@@ -74,7 +74,7 @@
  * ----------------------------------
  * Validity comes from `foundingErrorAt` — the *reducer's* own rule, extracted so
  * that the lens and the `foundCity` command cannot disagree — the yields come
- * from `tileYieldOf`, the function the citizens are assigned with, and fresh
+ * from `foldTile`, the function the citizens are assigned with, and fresh
  * water is asked of `hasFreshWater`, the one accessor for it. A lens that
  * painted its own idea of the rules would be worse than no lens: it would be a
  * promise the game breaks.
@@ -115,13 +115,15 @@
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import {
-  type TileYieldContext,
   cityAt,
   foundingErrorAt,
-  tileYieldOf,
   tileContextAt,
   tileOwnerCityId,
 } from '../sim/cities';
+import {
+  foldTile,
+  type TileYieldContext,
+} from '../sim/yields/hex';
 import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import { holySites, pressureTotals } from '../sim/religion';
 import { resourceDef } from '../sim/resourceData';
@@ -347,7 +349,7 @@ export class LensLayer {
     };
 
     for (const tile of tiles) {
-      const value = tileYieldOf(tile, contextFor(tile));
+      const value = foldTile(tile, contextFor(tile));
       const rows = YIELD_KEYS.filter((key) => value[key] > 0);
       if (rows.length === 0) continue;
 

@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
+import { foldStageSums } from '../../src/sim/yields/stages';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { improvementDef, improvementForResource } from '../../src/sim/improvementData';
 import {
   borderCostFor,
   cityResources,
   cityTile,
-  cityYieldPercents,
-  cityYields,
-  collectYields,
   controlledHoldings,
   controlledResources,
   foundCityAt,
@@ -17,10 +15,16 @@ import {
   growthThreshold,
   hasResource,
   nextBorderCost,
-  stageSumsFor,
-  productionModifiers,
   resourceCopies,
 } from '../../src/sim/cities';
+import {
+  cityYieldPercents,
+  foldCity,
+  productionModifiers,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+} from '../../src/sim/yields/empire';
 import { type GameMap, type Tile, createMap, getTileAt, mapRange, tileHex, tileIndex } from '../../src/sim/map';
 import {
   authorityOf,
@@ -71,7 +75,7 @@ import { type City, type GameState, bumpRevision, createUnit, newGame } from '..
 import { type TechAge, type TechId, highestAge } from '../../src/sim/techData';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
-import { civYields } from '../../src/ui/topBar';
+import { readEmpire } from '../../src/sim/readings';
 
 /**
  * The luxury signature vocabulary (design ledger, Entry IX; `resourceEffects.ts`).
@@ -175,7 +179,7 @@ function plant(state: GameState, city: City, col: number, row: number, id: Resou
   // **The world moved** (batch E2). A seam written straight onto a tile is what
   // the `buildImprovement` verb does through the reducer, and a reader's memo is
   // keyed on `state.revision` — so a bench that mutates by hand says so the way a
-  // command does, or `civYields` below answers with the board before the seam.
+  // command does, or `readEmpire` below answers with the board before the seam.
   // The contract is on `GameState.revision`: a writer moves the state and the
   // revision moves with it.
   bumpRevision(state);
@@ -407,10 +411,10 @@ describe('empireYields: once for the empire, wherever it stands', () => {
       collectYields(state);
       const cities = state.cities
         .filter((city) => city.ownerId === 0)
-        .reduce((sum, city) => sum + cityYields(state, city).gold, 0);
+        .reduce((sum, city) => sum + foldCity(state, city).gold, 0);
       expect(player.gold - before.gold).toBe(cities + 4);
       expect(player.culturePool - before.culture).toBeGreaterThanOrEqual(1);
-      expect(civYields(state, 0).gold).toBe(cities + 4);
+      expect(readEmpire(state, 0).totals.gold).toBe(cities + 4);
     });
   });
 });
@@ -430,7 +434,7 @@ describe('perCityYields: the wide shape', () => {
     const second = foundCityAt(state, 0, at(state.map, 20, 5));
     growTerritory(state, second);
 
-    const before = [cityYields(state, first), cityYields(state, second)];
+    const before = [foldCity(state, first), foldCity(state, second)];
     plant(state, first, 7, 5, id);
 
     // The far city has no seam of its own and is paid anyway — which is the
@@ -441,7 +445,7 @@ describe('perCityYields: the wide shape', () => {
       expect(line!.gold).toBe(effect.gold ?? 0);
       expect(line!.culture).toBe(effect.culture ?? 0);
     }
-    const after = [cityYields(state, first), cityYields(state, second)];
+    const after = [foldCity(state, first), foldCity(state, second)];
     expect(after[1]!.gold + after[1]!.culture + after[1]!.science).toBeGreaterThan(
       before[1]!.gold + before[1]!.culture + before[1]!.science,
     );
@@ -831,7 +835,7 @@ describe('percentYields: two sums, each applied once', () => {
     // strictly). Additive within the stage is the rest of the doctrine — two
     // sources at +10% read as +20%, never as 1.1 × 1.1.
     expect(mine[0]!.stage).toBe('city');
-    const sums = stageSumsFor(lines, effect.yield);
+    const sums = foldStageSums(lines, effect.yield);
     for (const stage of ['city', 'empire'] as const) {
       expect(sums[stage]).toBe(
         lines
@@ -1402,12 +1406,12 @@ describe('faith: banked, and spent by nothing', () => {
 
     const player = state.players[0]!;
     expect(player.faithPool).toBe(0);
-    const yields = cityYields(state, city);
+    const yields = foldCity(state, city);
     // The citizen has not been assigned yet by this call, so bank a turn and
     // compare against the pool rather than assuming the assignment.
     expect(yields.faith).toBeGreaterThanOrEqual(0);
     collectYields(state);
-    expect(player.faithPool).toBe(cityYields(state, city).faith);
+    expect(player.faithPool).toBe(foldCity(state, city).faith);
     expect(player.faithPool).toBeGreaterThan(0);
 
     const before = player.faithPool;
@@ -1605,11 +1609,11 @@ describe('signatures and the replay', () => {
     standIn(state, 0, 3);
     const city = foundCityAt(state, 0, at(state.map, 6, 5));
     growTerritory(state, city);
-    const before = civYields(state, 0);
+    const before = readEmpire(state, 0).totals;
 
     const wide = plantableWith('perCityYields', (effect) => effect.scope === undefined)!;
     plant(state, city, 7, 5, wide.id);
-    const after = civYields(state, 0);
+    const after = readEmpire(state, 0).totals;
     expect(after.gold + after.culture + after.science + after.faith).toBeGreaterThan(
       before.gold + before.culture + before.science + before.faith,
     );
@@ -1626,6 +1630,6 @@ describe('signatures and the replay', () => {
     // drives the pipeline a piece at a time, so it owes the announcement the
     // pipeline makes.
     bumpRevision(state);
-    expect(player.gold - banked).toBe(civYields(state, 0).gold);
+    expect(player.gold - banked).toBe(readEmpire(state, 0).totals.gold);
   });
 });

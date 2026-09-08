@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  cityQuote,
-  cityYields,
-  collectYields,
   foundCityAt,
   growthThreshold,
 } from '../../src/sim/cities';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+} from '../../src/sim/yields/empire';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { applyCombat } from '../../src/sim/combat';
 import {
@@ -246,7 +250,7 @@ describe('the trader', () => {
   });
 
   it('is named by no rule in the simulation — except as a stacking category', () => {
-    const modules = import.meta.glob('../../src/sim/*.ts', {
+    const modules = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,
@@ -1096,7 +1100,7 @@ describe('a road', () => {
   it('is written by nothing but an arrival, and by no generated map', () => {
     const state = bareState(16, 9);
     expect(state.map.tiles.some((tile) => tile.road !== undefined)).toBe(false);
-    const modules = import.meta.glob('../../src/sim/*.ts', {
+    const modules = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,
@@ -1106,7 +1110,7 @@ describe('a road', () => {
       for (const line of text.split('\n')) {
         // An assignment, never a comparison: `=== ` and `!== ` are readers.
         if (!/\.road\s*=(?!=)/.test(line)) continue;
-        writers.push(path.slice(path.lastIndexOf('/') + 1));
+        writers.push(path.slice(path.indexOf('/sim/') + '/sim/'.length));
       }
     }
     // `layRoad` and nothing else — it lives in `roads.ts` now (a leaf, so that
@@ -1190,9 +1194,9 @@ describe('a route’s yields', () => {
     const { state, home, partner, trader } = tradeWorld();
     home.buildings.push('granary', 'amphitheater', 'library', 'workshop', 'barracks');
     bumpRevision(state);
-    const before = cityYields(state, partner);
+    const before = foldCity(state, partner);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
-    const after = cityYields(state, partner);
+    const after = foldCity(state, partner);
     expect(after.food).toBeGreaterThan(before.food);
     expect(after.production).toBeGreaterThan(before.production);
   });
@@ -1328,7 +1332,7 @@ describe('the city connection', () => {
     // line moved the treasury by exactly its fold on top of them.
     const cities = state.cities
       .filter((city) => city.ownerId === 0)
-      .reduce((sum, city) => sum + cityYields(state, city, [], city.queue[0]).gold, 0);
+      .reduce((sum, city) => sum + foldCity(state, city, [], city.queue[0]).gold, 0);
     expect(player.gold - before).toBe(cities + expected);
   });
 });
@@ -2080,7 +2084,7 @@ describe('international routes', () => {
  * **Every voice a `RouteYieldLine` carries reaches the books it is banked in.**
  *
  * The line grew `science` and `culture` with the international ruling of
- * 2026-09-03 and `cityQuote` went on folding the three voices it was born with
+ * 2026-09-03 and `explainCity` went on folding the three voices it was born with
  * until 2026-09-06 — so Ledger-Keepers, a live common Order whose whole text is
  * *"+1 science and +1 culture on every trade route sent from a city with a
  * Market"*, computed its two figures, printed them in the trade panel, and paid
@@ -2127,8 +2131,8 @@ describe('a route’s science and culture', () => {
     // 2. The **quote**: the flats the town is priced on. Exact, because a flat
     //    is a flat — the percentages are a stage later and are the same on both
     //    boards.
-    const before = cityQuote(plain.state, plain.partner).flats;
-    const after = cityQuote(carded.state, carded.partner).flats;
+    const before = explainCity(plain.state, plain.partner).flats;
+    const after = explainCity(carded.state, carded.partner).flats;
     expect(after.science - before.science).toBe(1);
     expect(after.culture - before.culture).toBe(1);
     // And the three older voices are untouched by the change: this is two lines
@@ -2167,8 +2171,8 @@ describe('a route’s science and culture', () => {
     // And what the pool moved by is what the town was priced at, so the bank and
     // the panel cannot disagree.
     expect(banked.carded.science).toBe(
-      cityYields(carded.state, carded.home).science +
-        cityYields(carded.state, carded.partner).science,
+      foldCity(carded.state, carded.home).science +
+        foldCity(carded.state, carded.partner).science,
     );
   });
 });

@@ -3,19 +3,20 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
-  cityResources,
-  cityStageSums,
-  cityTile,
-  cityYieldPercents,
-  cityYields,
   borderGrowth,
+  cityResources,
+  cityTile,
   foundCityAt,
   growthSurplus,
-  modifierPercent,
-  productionModifiers,
-  stageSumsFor,
   unitProductionCost,
 } from '../../src/sim/cities';
+import {
+  cityYieldPercents,
+  foldCity,
+  foldCityStages,
+  modifierPercent,
+  productionModifiers,
+} from '../../src/sim/yields/town';
 import { computeFreshwater } from '../../src/sim/water';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { chopBaseFor } from '../../src/sim/improvements';
@@ -48,8 +49,9 @@ import {
   foldStages,
   stageFactor,
   stagesAreIdle,
+  foldStageSums,
   withStage,
-} from '../../src/sim/modifiers';
+} from '../../src/sim/yields/stages';
 import {
   CITY_YIELD_KEYS,
   type ResourceId,
@@ -78,7 +80,7 @@ import { resetVisibility } from '../../src/sim/visibility';
  *
  * The arithmetic claims are made twice on purpose: once against the pure helper
  * (`modifiers.ts`), where a base of 100 makes 21 points visibly different from
- * 20, and once end to end through `cityYields`, where the same numbers have to
+ * 20, and once end to end through `foldCity`, where the same numbers have to
  * come out of a real board with real buildings and a real meter tier. The first
  * proves the rule; the second proves the pipeline is wired to it.
  */
@@ -261,7 +263,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     const writ = tierPercent(authorityOf(state, 0));
     expect(writ).toBeGreaterThan(0);
 
-    const sums = cityStageSums(state, city, UNIT);
+    const sums = foldCityStages(state, city, UNIT);
     expect(sums.production.city).toBe(buildingDef('barracks').productionBonus!.percent);
     expect(sums.production.empire).toBe(writ);
 
@@ -272,15 +274,15 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     expect(staged).toBeGreaterThan(applyStages(100, { city: 0, empire: sums.production.city + writ }));
   });
 
-  it('is what cityYields actually multiplies by — no second implementation', () => {
+  it('is what foldCity actually multiplies by — no second implementation', () => {
     const { state, city } = bothStages();
-    const sums = cityStageSums(state, city, UNIT);
+    const sums = foldCityStages(state, city, UNIT);
 
     // The base is the same city asked with both stages emptied: no meter tier
     // reaches a city whose empire has no cities, so it is rebuilt rather than
     // faked. What matters is the relation, which is exact.
-    const rate = cityYields(state, city, [], UNIT).production;
-    const flat = cityYields(state, city, [], BUILDING).production;
+    const rate = foldCity(state, city, [], UNIT).production;
+    const flat = foldCity(state, city, [], BUILDING).production;
     expect(flat).toBeGreaterThan(0);
 
     // A granary at the front collects no barracks bonus, so the difference
@@ -297,7 +299,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     const hammers = modifierPercent(productionModifiers(state, city, UNIT));
     expect(hammers).toBe(buildingDef('barracks').productionBonus!.percent);
     expect(sums.production).toEqual(
-      withStage(stageSumsFor(cityYieldPercents(state, city), 'production'), 'city', hammers),
+      withStage(foldStageSums(cityYieldPercents(state, city), 'production'), 'city', hammers),
     );
   });
 
@@ -312,7 +314,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     // global stage *is* the meters today, and the two readings cannot drift. The
     // meters touch three yields, so the other three must come back untouched.
     const effects = meterEffects(state, 0);
-    const sums = cityStageSums(state, city, UNIT);
+    const sums = foldCityStages(state, city, UNIT);
     for (const key of MODIFIED_YIELDS) {
       expect(1 + sums[key].empire / 100).toBeCloseTo(yieldFactor(effects, key), 10);
     }
@@ -328,8 +330,8 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     // is the assertion that says the split was a clarification for most of a run
     // rather than a silent buff, and it is why the measured pacing drift was nil.
     const { state, city } = bothStages();
-    const sums = cityStageSums(state, city, UNIT);
-    const yields = cityYields(state, city, [], UNIT);
+    const sums = foldCityStages(state, city, UNIT);
+    const yields = foldCity(state, city, [], UNIT);
     for (const key of ['science', 'culture', 'gold', 'food'] as const) {
       expect(sums[key].city).toBe(0);
       expect(yields[key]).toBe(applyStages(yields[key], NO_STAGES));
@@ -368,7 +370,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
 
       const tier = tierPercent(happinessOf(state, 0));
       expect(tier).toBeGreaterThan(0);
-      const sums = cityStageSums(state, city);
+      const sums = foldCityStages(state, city);
       expect(sums.culture.city).toBe(percent);
       expect(sums.culture.empire).toBe(tier);
 
@@ -423,13 +425,13 @@ describe('the channels Entry XVII does not own', () => {
     // The stifle multiplies the *surplus*, not the harvest (Entry XIV.D.4), so
     // it is in neither stage — a food yield with a stifle on it is a food yield
     // with nothing on it.
-    const sums = cityStageSums(state, city);
+    const sums = foldCityStages(state, city);
     expect(sums.food).toEqual({ city: 0, empire: 0 });
     expect(cityYieldPercents(state, city).every((entry) => entry.yield !== 'food')).toBe(true);
 
     // And the surplus really is throttled, by its own factor, downstream of the
     // untouched harvest.
-    const yields = cityYields(state, city);
+    const yields = foldCity(state, city);
     const raw = yields.food - city.population * RULES.cities.foodPerCitizen;
     if (raw > 0) expect(growthSurplus(state, city)).toBe(Math.floor(raw * growthFactor(effects)));
   });
@@ -444,11 +446,11 @@ describe('the channels Entry XVII does not own', () => {
     // The writ's border percentage is a fact about *culture accrual toward the
     // next tile*, which is its own channel with its own evaluator. The culture
     // yield's stages carry the meters' yield percentages and nothing else.
-    const sums = cityStageSums(state, city);
+    const sums = foldCityStages(state, city);
     expect(sums.culture.city).toBe(0);
     const growth = borderGrowth(state, city);
     expect(growth.percent).toBe(borderPercent(effects));
-    expect(growth.base).toBe(cityYields(state, city).culture);
+    expect(growth.base).toBe(foldCity(state, city).culture);
     // The border channel multiplies the *already staged* culture — one factor,
     // applied to the yield the stages produced, never a third stage.
     expect(growth.perTurn).toBe(growth.base * (1 + growth.percent / 100));
@@ -533,7 +535,7 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
     const { state, city, workerId } = chopper(true);
 
     // First: prove the modifiers are actually biting, or the test proves nothing.
-    const sums = cityStageSums(state, city, UNIT);
+    const sums = foldCityStages(state, city, UNIT);
     expect(sums.production.city).toBeGreaterThan(0);
     expect(sums.production.empire).toBeGreaterThan(0);
     expect(applyStages(100, sums.production)).toBeGreaterThan(100);
@@ -555,9 +557,9 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
   it('pays a bare city exactly the same lump', () => {
     const modified = chopper(true);
     const plain = chopper(false);
-    expect(cityStageSums(plain.state, plain.city, UNIT).production).toEqual(
+    expect(foldCityStages(plain.state, plain.city, UNIT).production).toEqual(
       // A city with no barracks has no city stage; its empire has the same writ.
-      { city: 0, empire: cityStageSums(modified.state, modified.city, UNIT).production.empire },
+      { city: 0, empire: foldCityStages(modified.state, modified.city, UNIT).production.empire },
     );
 
     expect(applyCommand(modified.state, chop(modified.workerId))).toEqual({ ok: true });

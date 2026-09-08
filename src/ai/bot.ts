@@ -41,7 +41,7 @@
  *     `ai.build.buildings`, `ai.statecraft.preferredEffectKinds`, "the cheapest
  *     open node" — are gone rather than dormant. The successor is search where
  *     it pays (combat micro, operations), then self-play tuning of the vector.
- *   · **Solvent.** It reads the simulation's own books (`empireRateReading`,
+ *   · **Solvent.** It reads the simulation's own books (`foldEmpireRates`,
  *     `explainEmpireGold`) and prices what it is about to owe before it owes it.
  *     Entry LIX's first finding — both seats at −125💰 a turn and −1,642 in the
  *     treasury by t160 — is the whole reason this clause exists; `goldPressure`
@@ -188,28 +188,34 @@ import {
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
-  type CityQuote,
   assignableTiles,
   citizenFocusError,
   cityFocus,
-  cityQuote,
-  cityYields,
-  empirePercents,
-  empireRateReading,
-  explainTileYield,
-  foldTileYield,
   cityTile,
+  foodUpkeep,
   foundingError,
   foundingErrorAt,
-  tileContextAt,
-  tilePurchaseError,
-  tileOwnerPlayerId,
-  foodUpkeep,
   growthThreshold,
-  tileYieldOf,
+  tileContextAt,
+  tileOwnerPlayerId,
+  tilePurchaseError,
   turnsToBuild,
   yieldScore,
 } from '../sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  foldTileLines,
+} from '../sim/yields/hex';
+import {
+  empirePercents,
+  explainCity,
+  foldCity,
+  type CityReading,
+} from '../sim/yields/town';
+import {
+  foldEmpireRates,
+} from '../sim/yields/empire';
 // The town's and the empire's published readings, remembered on
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
@@ -375,7 +381,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // One reading of the empire's books for the whole context — the pressure, the
   // wage cover and both saving rates come out of it, and asking three times
   // would be three sweeps of every town to answer one question.
-  const rates = empireRateReading(state, player.id);
+  const rates = foldEmpireRates(state, player.id);
   // Both hammer readings in one sweep of the towns — the middling town every
   // build delay is priced off, and the busiest one the great work would be
   // raised in (`townProduction`, batch 5).
@@ -725,7 +731,7 @@ function garrisonWorth(
 
 /**
  * What this empire's treasury gains and loses per turn, **as the simulation
- * reads it** — `empireRateReading` (`cities.ts`), which is the very fold
+ * reads it** — `foldEmpireRates` (`cities.ts`), which is the very fold
  * `collectYields` banks and a `rateConversion` prices against.
  *
  * Asked rather than reimplemented, and that is the whole point: the collapse
@@ -736,7 +742,7 @@ function garrisonWorth(
  * them.
  */
 function netGoldPerTurn(state: GameState, playerId: number): number {
-  return empireRateReading(state, playerId).goldPerTurn ?? 0;
+  return foldEmpireRates(state, playerId).goldPerTurn ?? 0;
 }
 
 /**
@@ -795,7 +801,7 @@ function goldPressure(
    * The books, read once by the caller. It is a parameter rather than a reading
    * of its own because `valueContext` now needs the very same number three times
    * over (the pressure, the wage cover, the saving rate) and
-   * `empireRateReading` prices every town in the empire to answer.
+   * `foldEmpireRates` prices every town in the empire to answer.
    */
   net: number,
 ): { value: number; note: string } {
@@ -1257,7 +1263,7 @@ function reaimBeeline(
  *
  *   · **the sheets are the simulation's own** (`RULES.cities.citizenWeights` and
  *     `citizenFocusWeights.production`), read through the simulation's own
- *     scorer (`yieldScore` over `tileYieldOf` in the owning town's context), so
+ *     scorer (`yieldScore` over `foldTile` in the owning town's context), so
  *     what the bot predicts a focus would do is what `assignCitizens` will
  *     actually do;
  *   · **the starvation guard is anticipated, not discovered.** A focused sheet
@@ -1277,7 +1283,7 @@ function reaimBeeline(
  * That is the research plan's lesson (`researchCommand`) said one verb over.
  *
  * The two readings that *must* be live — the starvation guard and the growth
- * clock, both of which price the town through `cityYields` — hold that property
+ * clock, both of which price the town through `foldCity` — hold that property
  * by asking `foodUnder`, which shifts the town's quote to the sheet in question
  * and lets the simulation stage it. They used to patch the staged total by a raw
  * tile difference instead, which is a different number under any food percentage
@@ -1352,7 +1358,7 @@ function focusTable(
   const ground = tileContextField(state, city.ownerId);
   // **The town's books, taken once** for the two live readings below (the
   // starvation guard and the growth clock): the quote is the ingredients and
-  // `cityYields` is still the fold, so the figure is the same one and the empire
+  // `foldCity` is still the fold, so the figure is the same one and the empire
   // meter sweep behind it is paid for once rather than three times (batch 9).
   // **`readCity` since batch E2** — the town's own published list, remembered on
   // `state.revision`, so the bot reads the very object the panel and the top bar
@@ -1378,8 +1384,8 @@ function focusTable(
   const seats = Math.min(Math.max(0, city.population - totalSpecialists(city)), tiles.length);
   // **What the hexes the town stands on today pay**, read through the same
   // evaluator and the same context as the two sheets below — which is what makes
-  // it exactly the tile half of `books.flats` (`cityQuote` folds a worked hex's
-  // `tileYieldOf` into the flats one for one, under this town's own context, and
+  // it exactly the tile half of `books.flats` (`explainCity` folds a worked hex's
+  // `foldTile` into the flats one for one, under this town's own context, and
   // `assignableTiles` is the ground this town owns, so `tileContextField` answers
   // that same context for every hex of it).
   //
@@ -1414,7 +1420,7 @@ function focusTable(
    * The reading has to be the town's live one — the raw hexes say nothing about
    * the centre, the buildings, the routes or the percentages — and the two
    * placements differ by bushels that are **flats**, so the honest way to move
-   * between them is to move the flats and let `cityYields` stage them:
+   * between them is to move the flats and let `foldCity` stage them:
    * `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once.
    *
    * Patching the *staged* total by a raw tile difference is what this replaces,
@@ -1436,7 +1442,7 @@ function focusTable(
     const shift = (bag.food ?? 0) - (standingBag.food ?? 0);
     const quote =
       shift === 0 ? books : { ...books, flats: { ...books.flats, food: books.flats.food + shift } };
-    return cityYields(state, city, [], null, quote).food;
+    return foldCity(state, city, [], null, quote).food;
   };
 
   const terms: ValueTerm[] = [
@@ -1446,7 +1452,7 @@ function focusTable(
   if (hammers !== null) terms.push(hammers);
   // **The two expensive readings are asked last, and only if they can matter.**
   // The growth charge and the starvation guard both price the town through
-  // `cityYields`, which walks the empire for the two meters; the cheap half above
+  // `foldCity`, which walks the empire for the two meters; the cheap half above
   // decides whether they are worth asking at all, and a lean the ground has
   // already lost cannot be saved by a charge against it. `foldOf` of a prefix is
   // the same fold — the terms below only ever subtract.
@@ -1557,7 +1563,7 @@ function growthTerm(
   // six hundred focus commands in a seventy-five-turn duel.
   if (nextHex === undefined) return null;
   const citizen = valueOfYields(
-    bagOfTileYield(tileYieldOf(nextHex, tileContextAt(state, city.ownerId, nextHex))),
+    bagOfTileYield(foldTile(nextHex, tileContextAt(state, city.ownerId, nextHex))),
     ctx,
   );
   if (citizen <= 0) return null;
@@ -1595,7 +1601,7 @@ function rankTiles(
   const scored = tiles.map((tile) => ({
     tile,
     at: tileIndex(state.map, tile.col, tile.row),
-    score: yieldScore(tileYieldOf(tile, ground(tile)), weights),
+    score: yieldScore(foldTile(tile, ground(tile)), weights),
   }));
   scored.sort((a, b) => b.score - a.score || a.at - b.at);
   return scored.map((row) => row.tile);
@@ -1621,7 +1627,7 @@ function workedTilesOf(state: GameState, city: City): Tile[] {
 function bagOfTiles(tiles: readonly Tile[], ground: TileContextField): YieldBag {
   const bag: YieldBag = {};
   for (const tile of tiles) {
-    const yields = bagOfTileYield(tileYieldOf(tile, ground(tile)));
+    const yields = bagOfTileYield(foldTile(tile, ground(tile)));
     for (const voice of VOICES) bag[voice] = (bag[voice] ?? 0) + (yields[voice] ?? 0);
   }
   return bag;
@@ -2172,7 +2178,7 @@ function skipCandidate(state: GameState, player: Player, ctx: ValueContext): Bot
   );
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
-  const rate = empireRateReading(state, player.id).culturePerTurn ?? 0;
+  const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;
   const delay = draftCost(sc.drafts + 1) / Math.max(1, rate);
   const terms: ValueTerm[] = [
     {
@@ -3259,7 +3265,7 @@ function wantCandidate(want: Want, currency: BankCurrency, chosen: boolean): Bot
  *
  * **What a press is worth** (the batch-1 deferral, closed): the row it hurries,
  * times the delay the hurry buys. The row is priced by the queue's own reading —
- * the hypothetical `cityYields` delta and `explainBuildingRow`, or the piece's
+ * the hypothetical `foldCity` delta and `explainBuildingRow`, or the piece's
  * strength, or the conversion's turn — and the hurry is the difference between
  * `delayDiscount` at the turns the basket still owes and at the turns it would
  * owe after the press. Crude, and written down as crude: it is `buildTurns` off a
@@ -3352,7 +3358,7 @@ function bestHold(wants: readonly Want[]): Want | null {
  * times the delay the hammers buy.
  *
  * The row is priced by the arm that would have built it: a building through the
- * hypothetical `cityYields` delta and `explainBuildingRow` (the queue's own
+ * hypothetical `foldCity` delta and `explainBuildingRow` (the queue's own
  * reading, so a contribution and a build cannot disagree about what a cathedral
  * is worth to this town), a piece through `explainSoldier`, a conversion through
  * `explainProjectRow`.
@@ -3394,8 +3400,8 @@ function frontRowWorth(
 ): Appraisal {
   if (item.kind === 'building') {
     const empire = readEmpirePercents(state, player.id);
-    const base = cityYields(state, city, [], null, readCity(state, city));
-    const after = cityYields(state, city, [item.id], null, cityQuote(state, city, [item.id], empire));
+    const base = foldCity(state, city, [], null, readCity(state, city));
+    const after = foldCity(state, city, [item.id], null, explainCity(state, city, [item.id], empire));
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
       nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx)),
@@ -3486,7 +3492,7 @@ function cityCommand(
  *     score = (value − upkeep×goldWeight×pressure) / turnsToBuild
  *
  *   · **value** for a building is the *hypothetical delta*
- *     `cityYields(state, city, [id])` − `cityYields(state, city)`, weighted —
+ *     `foldCity(state, city, [id])` − `foldCity(state, city)`, weighted —
  *     which is the simulation's own fold, already staged by Entry XVII, already
  *     percentaged, already aware that a second library pays nothing — plus what
  *     the row gives that a yield cannot say (`explainBuildingRow`: happiness,
@@ -3828,7 +3834,7 @@ function buildCandidates(
 ): BuildCandidate[] {
   const candidates: BuildCandidate[] = [];
   // The empire's half of every town's percentages, taken **once** for the whole
-  // sweep rather than once per candidate — `cityQuote`'s own documented bargain,
+  // sweep rather than once per candidate — `explainCity`'s own documented bargain,
   // and the difference between one meter sweep and forty.
   const empire = empirePercents(state, player.id);
   // **The town as it stands**, taken once and then lent twice: to the baseline
@@ -3839,13 +3845,13 @@ function buildCandidates(
   // whose only moving part is the item at the front of the queue. Same figure,
   // one reading (batch 9).
   const standing = readCity(state, city);
-  const base = cityYields(state, city, [], null, standing);
+  const base = foldCity(state, city, [], null, standing);
 
   for (const id of BUILDING_IDS) {
     if (!canQueueBuilding(state, player, city, id)) continue;
     if (puppet && buildingDef(id).wonder === true) continue;
     if (buildingDef(id).endsTheGame === true && !isOpusTown(state, player, city)) continue;
-    const after = cityYields(state, city, [id], null, cityQuote(state, city, [id], empire));
+    const after = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
     const delta = yieldDelta(after, base);
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(delta, ctx)),
@@ -3901,14 +3907,14 @@ function push(
   state: GameState,
   city: City,
   /**
-   * The town as it stands, hoisted by the caller — `CityQuote`'s documented
+   * The town as it stands, hoisted by the caller — `CityReading`'s documented
    * bargain (`cities.ts`), and the reason the estimate below is one division
    * rather than one empire sweep. A quote is a photograph of one town at one
    * instant and its lifetime is this sweep; the *rate* it feeds still comes out
-   * of `cityYields` with the item at the front, which is where a per-category
+   * of `foldCity` with the item at the front, which is where a per-category
    * modifier lands.
    */
-  standing: CityQuote,
+  standing: CityReading,
   item: QueueItem,
   value: number,
   upkeep: number,
@@ -4312,7 +4318,7 @@ function explainMixCraving(
  *     weighted like any other yield.
  *   · **the science it makes by existing.** `RULES.cities.sciencePerPop` plus
  *     every `sciencePerPop` line the town's buildings carry, which is the real
- *     per-pop rate `cityYields` bank — never a rate invented here.
+ *     per-pop rate `foldCity` bank — never a rate invented here.
  *   · **the premium**, for a town under `growth.smallCityPop`: citizens
  *     compound, so the second citizen of a hamlet is worth more than the ninth
  *     of a metropolis.
@@ -4359,7 +4365,7 @@ function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: T
   let best: { tile: Tile; yields: TileYield; score: number } | null = null;
   for (const tile of assignableTiles(state, city)) {
     if (worked.has(`${tile.col},${tile.row}`)) continue;
-    const yields = tileYieldOf(tile, ground(tile));
+    const yields = foldTile(tile, ground(tile));
     const score = yieldScore(yields);
     if (best === null || score > best.score) best = { tile, yields, score };
   }
@@ -4371,7 +4377,7 @@ function nextWorkableTile(state: GameState, city: City): { tile: Tile; yields: T
  *
  * `RULES.cities.sciencePerPop` is the standing rate every citizen pays, and a
  * building's `sciencePerPop` rides on top of it — the same two sources
- * `cityYields` folds. Nothing here invents a rate; a library that changed what a
+ * `foldCity` folds. Nothing here invents a rate; a library that changed what a
  * citizen was worth would change it here the same turn it changed it there.
  */
 function sciencePerPopOf(city: City): number {
@@ -4408,7 +4414,7 @@ export function isPatientRow(item: QueueItem): boolean {
  *
  * The only opinion in the endgame arm, and it is about *where* rather than
  * whether: the empire's busiest town, measured by the production its citizens
- * actually make (`cityYields`), because a twelve-hundred-hammer row started in a
+ * actually make (`foldCity`), because a twelve-hundred-hammer row started in a
  * hamlet is a row that never finishes. Whether it may be raised at all is
  * `buildError`'s — including once per world. Ties go to founding order, which is
  * `state.cities` order and therefore a fact the replay reproduces.
@@ -4425,7 +4431,7 @@ function isOpusTown(state: GameState, player: Player, city: City): boolean {
   // `readEmpirePercents`' now, inside `readCity`, and the same figure either way.
   for (const town of state.cities) {
     if (town.ownerId !== player.id) continue;
-    const made = cityYields(state, town, [], null, readCity(state, town)).production;
+    const made = foldCity(state, town, [], null, readCity(state, town)).production;
     if (made > most) {
       most = made;
       best = town;
@@ -5026,7 +5032,7 @@ function explainSite(
   for (const near of mapRange(state.map, here, Math.max(0, ai.site.ringRadius))) {
     const steps = wrappedDistance(state.map, here, tileHex(near));
     const falloff = Math.pow(ai.site.ringFalloff, steps);
-    const yields = foldTileYield(explainTileYield(near));
+    const yields = foldTileLines(explainTileYield(near));
     for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
       const value = (yields as unknown as Record<string, number>)[voice];
       if (typeof value === 'number') {

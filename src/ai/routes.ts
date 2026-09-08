@@ -32,7 +32,7 @@
  * gate **on a board with one more market on it** (`withSpareSlot`): a shallow
  * clone of the state whose first town carries one extra route-slot row. That is
  * the hypothetical the term is about, said as a board, and it is the same shape
- * the purchasing plan already uses when it prices a building by the `cityYields`
+ * the purchasing plan already uses when it prices a building by the `foldCity`
  * an unbuilt row would produce.
  *
  * **The pay is cheap and the gate is dear.** `explainRoutePay` reads two folds

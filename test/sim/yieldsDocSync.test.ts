@@ -30,13 +30,27 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   const DOC = raw<string>(
     import.meta.glob('../../docs/yields.md', { eager: true, query: '?raw', import: 'default' }),
   );
-  const CITIES = raw<string>(
-    import.meta.glob('../../src/sim/cities.ts', {
+  /**
+   * The town's file and the empire's, concatenated — the pipeline's own source.
+   *
+   * One string since batch E3b split `cities.ts` along the layers
+   * (`src/sim/yields/{hex,town,empire,stages}.ts`, `docs/audit/evaluations.md`
+   * §4b step 9). The claim below is unchanged and so is the reading: the five
+   * function bodies are searched in pipeline order, and it does not matter to
+   * that order which file each of them now lives in — only that they appear in
+   * it once. Joined town-then-empire because that is the order the sequence
+   * runs, which is also the order `collectYields` runs it.
+   */
+  const YIELDS = Object.entries(
+    import.meta.glob(['../../src/sim/yields/town.ts', '../../src/sim/yields/empire.ts'], {
       eager: true,
       query: '?raw',
       import: 'default',
-    }),
-  );
+    }) as Record<string, string>,
+  )
+    .sort(([a], [b]) => (a.includes('town') ? -1 : b.includes('town') ? 1 : a < b ? -1 : 1))
+    .map(([, text]) => text)
+    .join('\n/* --- file --- */\n');
   const STATECRAFT_DATA = raw<string>(
     import.meta.glob('../../src/sim/statecraftData.ts', {
       eager: true,
@@ -46,9 +60,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   );
 
   /** Every `| … |` row of the doc, as trimmed cells. Headings and rules dropped. */
-  function docRows(): string[][] {
+  function docRows(from: string = DOC): string[][] {
     const rows: string[][] = [];
-    for (const raw of DOC.split('\n')) {
+    for (const raw of from.split('\n')) {
       const cells = raw.split('|').map((cell) => cell.trim());
       if (cells.length < 4 || cells[0] !== '') continue;
       if (/^-+$/.test(cells[1] ?? '')) continue;
@@ -89,7 +103,7 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
    */
   function body(source: string, name: string): string {
     const start = source.search(new RegExp(`\\n(?:export )?function ${name}\\(`));
-    expect(start, `${name} is not a function in cities.ts`).toBeGreaterThanOrEqual(0);
+    expect(start, `${name} is not a function in the yields layer`).toBeGreaterThanOrEqual(0);
     const end = source.indexOf('\n}\n', start);
     expect(end, `${name} has no closing brace at column zero`).toBeGreaterThan(start);
     return source.slice(start, end);
@@ -106,11 +120,11 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
    */
   function pipeline(): string {
     return [
-      body(CITIES, 'cityQuote'),
-      body(CITIES, 'cityYields'),
-      body(CITIES, 'empireStandingLines'),
-      body(CITIES, 'explainEmpireLines'),
-      body(CITIES, 'collectYields'),
+      body(YIELDS, 'explainCity'),
+      body(YIELDS, 'foldCity'),
+      body(YIELDS, 'empireStandingLines'),
+      body(YIELDS, 'explainEmpireLines'),
+      body(YIELDS, 'collectYields'),
     ].join('\n/* --- */\n');
   }
 
@@ -153,9 +167,26 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     }
   });
 
+  /**
+   * The doc from one heading to the next `---` rule — how a table is held to
+   * the section that owns it.
+   *
+   * Read by `registerRows` since batch E3b, when the doc gained a second table
+   * whose first cell is a lone backticked name (the E3b rename table, "The
+   * three verbs"). Filtering the whole file for that shape had quietly counted
+   * `cityQuote` as an effect kind.
+   */
+  function section(heading: string): string {
+    const start = DOC.indexOf(heading);
+    expect(start, `the doc has no “${heading}”`).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n---', start);
+    return DOC.slice(start, end === -1 ? undefined : end);
+  }
+
   /** The register table's rows: the ones whose first cell is a backticked kind. */
   function registerRows(): string[][] {
-    return docRows().filter((cells) => /^`[a-zA-Z]+`$/.test(cells[1] ?? ''));
+    const register = section('## The register — every kind that pays a yield');
+    return docRows(register).filter((cells) => /^`[a-zA-Z]+`$/.test(cells[1] ?? ''));
   }
 
   /** The kinds the register table names, in the doc's order. */
@@ -185,7 +216,7 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
    * **Every kind in the union, and which of the three buckets it is in.**
    *
    * `LANDS` is the sequence — every kind that pays one of the six voices through
-   * `cityQuote` or `explainEmpireLines`, and therefore every kind the doc's
+   * `explainCity` or `explainEmpireLines`, and therefore every kind the doc's
    * register table must have a row for. `OUTSIDE` moves a voice by some other
    * road (an occasion, a bill, renown) and is named in the doc's second list.
    * `SILENT` moves no voice at all — a rule, a stat, a meter, a stamp, an

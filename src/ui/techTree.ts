@@ -38,7 +38,7 @@
  * Each node carries its cost and "~N turns" at the player's *current* science
  * rate, and each building it unlocks carries what that building would add to
  * this empire's yields today — computed by `buildingYieldDelta`, which asks
- * `cityYields` twice rather than reimplementing it. Both are present-state
+ * `foldCity` twice rather than reimplementing it. Both are present-state
  * figures and the screen says so ("now"), because a delta that quietly assumed
  * future growth would be a promise the game never made.
  *
@@ -584,7 +584,7 @@ interface NodeFace {
  * What one render already knows, so that twenty-seven stars do not each go and
  * ask the empire for it again.
  *
- * `rate` is the whole reason this exists. `playerScience` sums `cityYields` over
+ * `rate` is the whole reason this exists. `playerScience` sums `foldCity` over
  * every city an empire holds, and the chart wanted it once per node (through
  * `turnsToTech`), once more for the current node's bar, once for the strip's
  * schedule and once for the HUD's card — thirty readings of one number, each of
@@ -606,7 +606,7 @@ interface Pass {
   /**
    * Every city of this seat as things stand, filled in on the first ask.
    *
-   * The unlock line under a star is `buildingYieldDelta`, which is `cityYields`
+   * The unlock line under a star is `buildingYieldDelta`, which is `foldCity`
    * asked twice per city — and the first of the two, "as things stand", is the
    * same answer for every building in the sky. Hoisted, it is read once a render
    * instead of forty-two times a city.
@@ -711,7 +711,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * They are the expensive half of this screen by an order of magnitude: a
    * building's line is `buildingYieldDelta`, which prices *every city of the
    * empire twice*, and there are forty-odd building lines in the sky. At a dozen
-   * cities that is a thousand `cityYields` calls, which is the whole of why the
+   * cities that is a thousand `foldCity` calls, which is the whole of why the
    * chart got heavier the longer a game ran.
    *
    * They are also the half that nothing on this screen can change. So they are

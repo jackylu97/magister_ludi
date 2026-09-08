@@ -14,7 +14,7 @@
  *
  * Nothing in `state` is touched, nothing is cloned deeply, and **no rule is
  * reimplemented**. A card shape that does not exist yet is stamped correctly the
- * day it is added, because the thing being diffed is `cityYields` and
+ * day it is added, because the thing being diffed is `foldCity` and
  * `explainEmpireLines` themselves. That is the same bargain the build screen's
  * preview struck, and it is the only one worth striking: a stamp computed beside
  * the rules is a stamp that disagrees with the turn a player ends.
@@ -90,19 +90,26 @@
  */
 
 import {
+  emptyCityYields,
   type CityYields,
-  type EmpirePercents,
+} from './cities';
+import {
+  cityContext,
+  explainTileYield,
   type TileYieldContext,
   type TileYieldContribution,
-  cityContext,
-  cityQuote,
-  cityYields,
-  emptyCityYields,
+} from './yields/hex';
+import {
   empirePercents,
+  explainCity,
+  foldCity,
+  type CityYieldLine,
+  type EmpirePercents,
+} from './yields/town';
+import {
   explainEmpireLines,
-  explainTileYield,
   foldEmpireLines,
-} from './cities';
+} from './yields/empire';
 import { type GameState, type Player, foundedReligion, playerById } from './state';
 import {
   type CardEffect,
@@ -118,7 +125,6 @@ import {
 } from './statecraftData';
 import { type BeliefId, beliefDef, beliefPoolOf } from './religionData';
 import {
-  cardCityYields,
   describeEffects,
   occasionWords,
   holdsOrder,
@@ -135,11 +141,28 @@ import { type MeterId, authorityOf, happinessOf } from './meters';
 import { readCity } from './readings';
 
 /**
- * Which of `docs/yields.md`'s town steps the cards' city lines are — step 3, the
- * one `cityCardSums` used to walk for itself. Named rather than spelled `3` at
- * the filter, because a number in a filter is a number nobody can search for.
+ * **The steps of `docs/yields.md` at which a card pays a town a flat**, and the
+ * selector over them.
+ *
+ * Batch E3b, off the E2 review: this used to be `CARD_CITY_STEP = 3` and a
+ * filter on the step alone, which is a claim about a *number* rather than about
+ * a line. A card's own flats reach a town at three steps — its city lines (3),
+ * its share of a building (9) and its conversion of one voice into another
+ * (10) — so the selector is now "the line names a card, at one of the steps a
+ * card's flats land in", and the step numbers stay the doc's rather than
+ * becoming this file's.
+ *
+ * **Step 2 is deliberately not among them.** A card's line on a *hex* is lifted
+ * into the town's list by `explainCity`, and this sheet diffs those separately
+ * and by their own ground (`tileAdds`, the `ground` bucket below); counting them
+ * here as well would print every tile card twice.
  */
-const CARD_CITY_STEP = 3;
+const CARD_FLAT_STEPS: readonly number[] = [3, 9, 10];
+
+/** The lines of a town's published list that one of this empire's cards paid. */
+function cardFlats(lines: readonly CityYieldLine[]): CityYieldLine[] {
+  return lines.filter((line) => line.card !== undefined && CARD_FLAT_STEPS.includes(line.step));
+}
 import { getTileAt } from './map';
 import type { Tile } from './map';
 import { highestAge } from './techData';
@@ -529,9 +552,16 @@ function cardSumsOf(
   return map;
 }
 
-/** The ghost's side: a town of a board nothing else is reading. */
+/**
+ * The ghost's side: a town of a board nothing else is reading.
+ *
+ * It builds the whole list rather than asking the card evaluator for step 3
+ * alone, because the two sides of a diff must be selected the same way or the
+ * difference is the *selector's* and not the card's — and since batch E3b the
+ * selection is `cardFlats`, which spans three steps.
+ */
 function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
-  return cardSumsOf(cardCityYields(state, city));
+  return cardSumsOf(cardFlats(explainCity(state, city).lines));
 }
 
 /**
@@ -541,19 +571,19 @@ function cityCardSums(state: GameState, city: City): Map<string, CityYields> {
  * is the whole of how the direct lines and the knock-on lines are held apart:
  * ask twice with the same `empire` and the difference is the card's own
  * arithmetic; ask again with the card's own meter reading and the further
- * difference is what the card *unlocked*. `cityQuote`'s parameter, used for the
+ * difference is what the card *unlocked*. `explainCity`'s parameter, used for the
  * purpose its docblock names.
  */
 function townsTotal(state: GameState, playerId: number, empire: EmpirePercents): CityYields {
   const total = emptyCityYields();
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    const yields = cityYields(
+    const yields = foldCity(
       state,
       city,
       [],
       city.queue[0],
-      cityQuote(state, city, [], empire),
+      explainCity(state, city, [], empire),
     );
     for (const key of CITY_YIELD_KEYS) total[key] += yields[key];
   }
@@ -757,7 +787,7 @@ function knockOnLadder(
  * once instead of nine times. `test/sim/cardImpact.test.ts` pins that a card
  * stamped with a sheet reads identically to a card stamped without one.
  *
- * **Its lifetime is one draw** — `cityQuote`'s rule and `zocField`'s, and for
+ * **Its lifetime is one draw** — `explainCity`'s rule and `zocField`'s, and for
  * their reason: `GameState` is mutated in place by the reducer, so a sheet kept
  * past the command that follows it would answer with a board the game has moved
  * on from. Take one, spend it, let it go. Nothing stores one.
@@ -813,19 +843,18 @@ export function cardImpactSheet(state: GameState, playerId: number): CardImpactS
       }
       return held;
     },
-    // **Step 3 of the town's own published list** (batch E2), rather than a
-    // private walk of the same evaluator: the real board's card lines are what
-    // `readCity` has already folded for the panel, the Ledger and the top bar
-    // this revision, so a screenful of stamps pays nothing for them at all. The
-    // local map stays because a sheet may be handed a town whose reading nobody
-    // else asked for, and the accumulator is `cardSumsOf`'s — one shape for both
-    // sides of every diff.
+    // **The card's own flats out of the town's published list** (batch E2 for
+    // the list, E3b for the selector), rather than a private walk of the same
+    // evaluator: the real board's card lines are what `readCity` has already
+    // folded for the panel, the Ledger and the top bar this revision, so a
+    // screenful of stamps pays nothing for them at all. The local map stays
+    // because a sheet may be handed a town whose reading nobody else asked for,
+    // and the accumulator is `cardSumsOf`'s — one shape for both sides of every
+    // diff, selected by `cardFlats` on both.
     cardSums: (city) => {
       let held = sums.get(city.id);
       if (!held) {
-        held = cardSumsOf(
-          readCity(state, city).lines.filter((line) => line.step === CARD_CITY_STEP),
-        );
+        held = cardSumsOf(cardFlats(readCity(state, city).lines));
         sums.set(city.id, held);
       }
       return held;
@@ -1013,7 +1042,7 @@ export function explainCardImpact(
   //    town. Sequential deltas as each meter's new reading is let in, so two
   //    tiers flipping at once are two lines rather than one lump — and the last
   //    step's reading is the true one, which is what makes the whole list fold
-  //    to `cityYields(ghost) − cityYields(state)` exactly.
+  //    to `foldCity(ghost) − foldCity(state)` exactly.
   //
   //    A card that moved neither meter has no ladder to walk and the three rungs
   //    are three empire-wide sweeps reporting nought — see `metersUnmoved`,

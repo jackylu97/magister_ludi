@@ -20,14 +20,18 @@
  */
 
 import {
-  type TileYieldContribution,
   cityAt,
-  explainCentreYield,
-  explainTileYield,
-  foldTileYield,
   foundingErrorAt,
   tileContextAt,
 } from '../sim/cities';
+import {
+  explainTileYield,
+  foldTileLines,
+  type TileYieldContribution,
+} from '../sim/yields/hex';
+import {
+  explainCentreYield,
+} from '../sim/yields/town';
 import { campAt } from '../sim/camps';
 import {
   type DiscoveryKind,
@@ -128,7 +132,7 @@ export function tileYieldNodes(
   // call it always made.
   contributions: readonly TileYieldContribution[] = tileYieldContributions(state, playerId, tile),
 ): HTMLElement[] {
-  const value = foldTileYield(contributions);
+  const value = foldTileLines(contributions);
   // The drawn mark, from the one registry a yield's picture is written down in
   // (`src/art/yieldMarks.ts`, printed here by `src/ui/yieldMark.ts`). The row
   // gets an `aria-label` of its own because this is one of the few surfaces
@@ -257,7 +261,7 @@ export function tileYieldLines(
  * hill, which is the entry whose figures the fold keeps.
  *
  * Pure, and pure *presentation*: `explainTileYield` still writes every step and
- * `foldTileYield` still folds all of them. Dropping a replaced line cannot
+ * `foldTileLines` still folds all of them. Dropping a replaced line cannot
  * change the arithmetic, because a replaced line is by definition one a later
  * `base`/`override` overwrote — which is exactly what `replaced` records.
  */

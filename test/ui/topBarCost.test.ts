@@ -6,7 +6,7 @@
  * The issue is Entry XLVII's, and the shape it had on the star chart and the
  * city panel it had here too: **an empire-wide fold asked once per row**. The
  * top bar redraws on every accepted command, and every redraw summed
- * `civYields`, which asked `cityYields` per town, which took `empirePercents` —
+ * `readEmpire`, which asked `foldCity` per town, which took `empirePercents` —
  * the two meter ledgers folded over every city and every unit the seat holds —
  * afresh for each of them. A dozen towns was two dozen sweeps of the empire to
  * print six numbers, and it got worse with every city founded, which is exactly
@@ -14,10 +14,10 @@
  *
  * Three hoists, and this file is the register of them:
  *
- *   1. **`civYields` takes the empire's percentages once** and hands them to
- *      every town through `cityQuote`, the parameter the simulation already
+ *   1. **`readEmpire` takes the empire's percentages once** and hands them to
+ *      every town through `explainCity`, the parameter the simulation already
  *      offers.
- *   2. **`empireRates`** (`cities.ts`, behind `explainEmpireCardYields`) does the
+ *   2. **`foldEmpireRates`** (`cities.ts`, behind `explainEmpireCardYields`) does the
  *      same for its own sweep — which is the phase that *banks* the turn as well
  *      as the headline that quotes it. Since batch H18 that sweep is also
  *      *skipped* for an empire holding no `rateConversion` card: the reading is
@@ -34,12 +34,13 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import * as cities from '../../src/sim/cities';
+import * as town from '../../src/sim/yields/town';
 import * as meters from '../../src/sim/meters';
 import * as empireGold from '../../src/sim/empireGold';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
-import { civYields } from '../../src/ui/topBar';
+import { readEmpire } from '../../src/sim/readings';
 import { tradeLedger } from '../../src/ui/tradeScreen';
 
 const UI_SOURCE = import.meta.glob(
@@ -132,31 +133,31 @@ function counting<T>(
 
 describe('the empire’s percentages are taken once a render', () => {
   it('sweeps the meters once for a twelve-town empire, not two dozen times', () => {
-    // **One**, and it is `civYields`' own hoist. Before that hoist it was one
+    // **One**, and it is `readEmpire`' own hoist. Before that hoist it was one
     // sweep per town — twenty-four — and the strip is redrawn on every accepted
     // command.
     //
-    // It was two until batch H18, the second being `empireRates`' behind
+    // It was two until batch H18, the second being `foldEmpireRates`' behind
     // `explainEmpireCardYields`. That reading prices every town in the realm and
     // only a `rateConversion` card reads it, so it is now handed in as the
     // *taking* of it and an empire holding no such card never takes it at all —
     // see the test below, which is the same claim from the other side.
     const state = empire(12);
-    const swept = counting(meters, 'meterEffects', () => civYields(state, 0));
+    const swept = counting(meters, 'meterEffects', () => readEmpire(state, 0).totals);
     expect(swept.count).toBe(1);
     expect(swept.count).toBeLessThan(state.cities.length);
   });
 
   it('takes the rate reading’s own sweep only for an empire that reads a rate', () => {
     // The Tithe converts a turn of faith into gold, so the books have to be
-    // opened — and then exactly once, hoisted inside `empireRates` as before.
-    // The figure is unchanged either way: `cardEmpireYields` resolves the thunk
+    // opened — and then exactly once, hoisted inside `foldEmpireRates` as before.
+    // The figure is unchanged either way: `explainCardEmpireYields` resolves the thunk
     // on the first conversion it meets and once only
     // (`test/sim/statecraft.test.ts` pins that half).
     const state = empire(12);
     state.players[0]!.statecraft.doctrines.push('theTithe');
     bumpRevision(state);
-    const swept = counting(meters, 'meterEffects', () => civYields(state, 0));
+    const swept = counting(meters, 'meterEffects', () => readEmpire(state, 0).totals);
     expect(swept.count).toBe(2);
     expect(swept.count).toBeLessThan(state.cities.length);
   });
@@ -166,32 +167,34 @@ describe('the empire’s percentages are taken once a render', () => {
     // `(state, playerId)`, so the hoisted quote is the very quote each town's
     // default would have built — asserted city by city rather than trusted.
     const state = empire(6);
-    const percents = cities.empirePercents(state, 0);
+    const percents = town.empirePercents(state, 0);
     for (const city of state.cities) {
       if (city.ownerId !== 0) continue;
-      const hoisted = cities.cityYields(
+      const hoisted = town.foldCity(
         state,
         city,
         [],
         city.queue[0],
-        cities.cityQuote(state, city, [], percents),
+        town.explainCity(state, city, [], percents),
       );
-      expect(hoisted).toEqual(cities.cityYields(state, city, [], city.queue[0]));
+      expect(hoisted).toEqual(town.foldCity(state, city, [], city.queue[0]));
     }
   });
 
   it('hands the empire’s half down rather than working it out beside it', () => {
     // The hoist moved into the simulation (batch E2) and grew a memo:
     // `readEmpirePercents` is the seat's two meter sweeps taken once per
-    // revision, and `readCity` hands it down to `cityQuote`'s own parameter
+    // revision, and `readCity` hands it down to `explainCity`'s own parameter
     // exactly as this strip used to by hand. Still the sim's own parameter, and
     // still never a second derivation — one address further in, and now shared
     // with every other surface instead of re-hoisted per reader.
-    expect(declaration('export function civYields(', 'topBar.ts')).toContain(
-      'readEmpire(state, playerId).totals',
-    );
+    // `readEmpire` itself is gone (batch E3b, the three verbs): the strip reads
+    // `readEmpire(state, playerId).totals` at the two places it used to fold,
+    // which is the same hoist one address further in.
+    expect(source('topBar.ts')).toContain('readEmpire(state, playerId).totals');
+    expect(source('topBar.ts')).not.toContain('function civYields(');
     const reading = declaration('export function readCity(', 'readings.ts');
-    expect(reading).toContain('cityQuote(state, city, [], readEmpirePercents(state, city.ownerId))');
+    expect(reading).toContain('explainCity(state, city, [], readEmpirePercents(state, city.ownerId))');
     expect(declaration('export function readEmpirePercents(', 'readings.ts')).toContain(
       'empirePercents(state, playerId)',
     );

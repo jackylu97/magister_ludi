@@ -381,7 +381,7 @@ describe('the renown phase', () => {
 });
 
 /** The renown module's own source, for the register assertions below. */
-const SIM_SOURCE = import.meta.glob('../../src/sim/*.ts', {
+const SIM_SOURCE = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
   query: '?raw',
   import: 'default',
   eager: true,
@@ -405,7 +405,7 @@ describe('the register', () => {
     // with two answers to "how close am I".
     const offenders = Object.keys(SIM_SOURCE)
       .filter((path) => /\brenownPool\s*(\+=|=)/.test(SIM_SOURCE[path]!))
-      .map((path) => path.slice(path.lastIndexOf('/') + 1))
+      .map((path) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     expect(offenders).toEqual(['renown.ts']);
   });
@@ -413,7 +413,7 @@ describe('the register', () => {
   it('reads the renown column in exactly one place', () => {
     const offenders = Object.keys(SIM_SOURCE)
       .filter((path) => /\.renown\b/.test(strip(SIM_SOURCE[path]!)))
-      .map((path) => path.slice(path.lastIndexOf('/') + 1))
+      .map((path) => path.slice(path.indexOf('/sim/') + '/sim/'.length))
       .sort();
     // `renown.ts` folds the trickle; `cities.ts` reads the wonder's lump at the
     // one moment a wonder is realised; and since the maintenance ruling
@@ -423,12 +423,17 @@ describe('the register', () => {
     // coupling and is written down here rather than being given a flag of its
     // own on the row, which would have been a second answer to "is this a
     // building or a monument". The fourth (2026-09-05) has no opinion at all:
-    // `describeBuildingRow` in `statecraft.ts` *prints* the column, in the
+    // `describeBuildingRow` in `statecraft/describers.ts` *prints* the column, in the
     // card arm's words, so a charter's "unlocks the Gilded Hall — +1 renown per
     // turn" and the compendium's entry are one sentence from one describer.
     // It was the compendium's own reading, moved sim-side; it reads, never
     // folds. Nobody else has an opinion about the column.
-    expect(offenders).toEqual(['cities.ts', 'renown.ts', 'statecraft.ts', 'upkeep.ts']);
+    expect(offenders).toEqual([
+      'cities.ts',
+      'renown.ts',
+      'statecraft/describers.ts',
+      'upkeep.ts',
+    ]);
   });
 });
 

@@ -18,7 +18,14 @@ import { describe, expect, it } from 'vitest';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { BEAD_DATA, beadIsDormant, prerequisiteBuilding } from '../../src/sim/beadData';
-import { cityYields, foundCityAt, realiseItem, refreshCityDerived } from '../../src/sim/cities';
+import {
+  foundCityAt,
+  realiseItem,
+  refreshCityDerived,
+} from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { applyCommand } from '../../src/sim/commands';
 import { createGame, snapshotState } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
@@ -211,11 +218,11 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
     // *decide* to build, and nothing about a withdrawn row's yields moved.
     const g = game();
     const city = found(g.state, 0);
-    const before = cityYields(g.state, city).gold;
+    const before = foldCity(g.state, city).gold;
     city.buildings.push('mint');
     bumpRevision(g.state);
     refreshCityDerived(g.state, city);
-    expect(cityYields(g.state, city).gold).toBe(before + buildingDef('mint').gold);
+    expect(foldCity(g.state, city).gold).toBe(before + buildingDef('mint').gold);
   });
 
   it('is never a row the tree is asked to make available', () => {
@@ -360,10 +367,10 @@ describe('the five unique buildings', () => {
     bumpRevision(g.state);
     city.population = 8;
     refreshCityDerived(g.state, city);
-    const before = cityYields(g.state, city);
+    const before = foldCity(g.state, city);
     city.buildings.push('forum');
     bumpRevision(g.state);
-    const after = cityYields(g.state, city);
+    const after = foldCity(g.state, city);
     // Exact since batch X: a tenth on top is a tenth, not a tenth rounded off.
     expect(after.science).toBe((before.science * 110) / 100);
     expect(after.culture).toBe((before.culture * 110) / 100);

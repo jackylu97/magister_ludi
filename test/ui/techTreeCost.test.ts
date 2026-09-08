@@ -4,10 +4,10 @@
  *
  * The complaint had a shape and the shape was arithmetic. Every star quoted
  * "~N turns", every quote went through `turnsToTech`, and `turnsToTech` summed
- * `cityYields` over every city the empire held — twenty-seven sweeps of the
+ * `foldCity` over every city the empire held — twenty-seven sweeps of the
  * empire per render. Every star also listed what its technology unlocks, and a
  * building's line is `buildingYieldDelta`, which prices *every city twice*: at a
- * dozen cities that is a thousand `cityYields` calls to draw one screen. And the
+ * dozen cities that is a thousand `foldCity` calls to draw one screen. And the
  * whole chart was rebuilt — cards, connectors and two layout passes — on every
  * click, twice over, because the click's own render is followed by the host's.
  * All three get worse with each city founded, which is exactly the report.
@@ -33,6 +33,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { braceBody, uiSource } from './sourceHelpers';
 
 import * as cities from '../../src/sim/cities';
+import * as town from '../../src/sim/yields/town';
 import type { BuildingId } from '../../src/sim/buildingData';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, newGame } from '../../src/sim/state';
@@ -238,14 +239,14 @@ describe('the unlock lines are priced against the revision', () => {
 
 describe('a city is priced “as things stand” once a render', () => {
   /**
-   * Counts `cityYields`, which is what a delta is made of.
+   * Counts `foldCity`, which is what a delta is made of.
    *
    * The one spy in this suite, and it is restored in a `finally` because the
    * project runs its workers un-isolated (`vite.config.ts`): a spy left standing
    * would follow the module graph into the next file.
    */
   function countingCityYields<T>(run: () => T): { result: T; count: number } {
-    const spy = vi.spyOn(cities, 'cityYields');
+    const spy = vi.spyOn(town, 'foldCity');
     try {
       const result = run();
       return { result, count: spy.mock.calls.length };
@@ -283,7 +284,7 @@ describe('a city is priced “as things stand” once a render', () => {
 
   it('is the same delta either way, for every building the tree unlocks', () => {
     // Hard rule 5 across the parameter: the number under a star is still the
-    // subtraction of the same two folds of `cityYields`, and the baseline is the
+    // subtraction of the same two folds of `foldCity`, and the baseline is the
     // very reading `buildingYieldDelta` would have taken itself.
     const state = empire(6);
     const baselines = cityBaselines(state, 0);

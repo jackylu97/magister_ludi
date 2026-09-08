@@ -67,14 +67,16 @@
  */
 
 import {
-  type TileYieldContext,
   nearestOwnedCity,
   refreshTileDerived,
   settleProductionWindfall,
   tileOwnerCityId,
   tileOwnerPlayerId,
-  tileYieldOf,
 } from './cities';
+import {
+  foldTile,
+  type TileYieldContext,
+} from './yields/hex';
 import {
   type ImprovementId,
   type WorkFamily,
@@ -640,8 +642,8 @@ export function improvementYieldDelta(
   improvementId: ImprovementId,
   ctx?: TileYieldContext,
 ): TileYield {
-  const now = tileYieldOf(tile, ctx);
-  const after = tileYieldOf({ ...tile, improvement: improvementId }, ctx);
+  const now = foldTile(tile, ctx);
+  const after = foldTile({ ...tile, improvement: improvementId }, ctx);
   const delta = emptyTileYield();
   for (const key of TILE_YIELD_KEYS) delta[key] = after[key] - now[key];
   return delta;

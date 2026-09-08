@@ -11,7 +11,7 @@ marginalia are rulings; nothing in §4 moves until marked.
 | Decision | Where it lives | Holds? |
 |---|---|---|
 | **Rule 5** — a total is the fold of a labelled list, never computed beside it | every `explain…` | **In the sim, yes.** In the *readers*, no — four surfaces rebuild the town's list their own way (§3a). |
-| **Entry XVII** — percentages compound across two stages, never inside one: `(base + flats) × (1 + Σcity%) × (1 + Σglobal%)`, floored once | `applyStages`, `cityYieldPercents`, `cityStageSums` | **Yes**, and it is the only place a yield meets a stage. But five *other* percentage-like operations now run before the stages (§3g). |
+| **Entry XVII** — percentages compound across two stages, never inside one: `(base + flats) × (1 + Σcity%) × (1 + Σglobal%)`, floored once | `applyStages`, `cityYieldPercents`, `foldCityStages` | **Yes**, and it is the only place a yield meets a stage. But five *other* percentage-like operations now run before the stages (§3g). |
 | **One evaluator** — `statecraft.ts` is the only module switching on `CardEffect.kind` | `liveEffects`, `cityEffectsOfKind` | **Yes** (H6 brought the luxuries' vocabulary in). The file is 9,025 lines, 124 exports, 239 case arms, 45 kinds. |
 | **Data rows, code holds algorithms** | `data/*.json` | Yes. 65 rows carry `deferred`, 15 carry empty effects (§3e). |
 | **Determinism by array order** | everywhere | Yes. Every fold walks `state.cities`, `ctx.lines`, `city.buildings` in their own order; the one `Map` in the hot path (`liveReading`'s memo) is read by lookup only. |
@@ -23,17 +23,17 @@ order is written across three files and nine functions, and the readers
 
 ## 2. The sequence, as it runs today
 
-Per town (`cityQuote` → `cityYields`), in this order:
+Per town (`explainCity` → `foldCity`), in this order:
 
-1. **The centre** (`centreYield`: the base city yield, plus the hex's own science and culture as an *excess*).
+1. **The centre** (`foldCentre`: the base city yield, plus the hex's own science and culture as an *excess*).
 2. **Each worked hex** (`explainTileYield`): terrain → hill/canopy → the seam → the works and their renewals → the law's `tileYield` lines in **two passes** (the lines that ask nothing of the fold, then the lines that pay on what the hex already pays — kk) with Ea-nāṣir's clamp on taking-back lines and same-source merging → the works percent (a share of the works' entries) → the ground percent (a share of the entries before the works).
-3. **The cards' city lines** (`cardCityYields`: `cityYields`, `countScaled` paying a yield, `mirrorYield`, then the deck modifier lines — the amplifiers over the lines above).
+3. **The cards' city lines** (`explainCardCityYields`: `cityYields`, `countScaled` paying a yield, `mirrorYield`, then the deck modifier lines — the amplifiers over the lines above).
 4. **The luxuries' city lines** (`cityResourceYields`).
 5. **The specialists** (a substitution for a hex left).
 6. **The routes arriving** (five voices).
 7. **The palace.**
 8. **The buildings** (row flats + per-citizen science).
-9. **The cards' building shares** (`cardBuildingYields`): ordinary shares over row + what the law put on the building (ll), then the `appliedLast` shares over that.
+9. **The cards' building shares** (`explainCardBuildingYields`): ordinary shares over row + what the law put on the building (ll), then the `appliedLast` shares over that.
 10. **The conversions** (`cardYieldConversions`: a share of the running flats of one voice, paid as another).
 11. **The percent list** (`cityYieldPercents`: luxuries', cards', the two meter tiers, arrears) plus, for production only, `productionModifiers` folded into the city stage.
 12. **`applyStages`** — the two multiplications, floored once.
@@ -61,9 +61,9 @@ user's actions, so yields that have not changed are not recalculated.*
 | 0. **Rows** | `data/*.json` | load | constants |
 | 1. **The law** — every effect reaching a seat | `liveEffects(state, seat)` | on ask | yes, per seat — but keyed on a **print** of the seat rebuilt per ask (§3c) |
 | 2. **The hex** | `explainTileYield(tile, ctx)` | on ask, per hex | no; `yieldContextFor` is hoisted once per sweep |
-| 3. **The town's list** | `cityQuote` (flats + percents) | on ask | no; `refreshCityDerived` only re-seats citizens (`assignCitizens`) — the yields are "computed on read" by its own docblock |
-| 4. **The town's total** | `cityYields` = `applyStages(quote)` | on ask | no |
-| 5. **The empire's lines** | `explainEmpireLines` (luxuries, routes abroad, `explainEmpireGold`, `explainEmpireCardYields`, then the empire stage) | on ask | no (`empireRates` sweeps every town for a `rateConversion`) |
+| 3. **The town's list** | `explainCity` (flats + percents) | on ask | no; `refreshCityDerived` only re-seats citizens (`assignCitizens`) — the yields are "computed on read" by its own docblock |
+| 4. **The town's total** | `foldCity` = `applyStages(quote)` | on ask | no |
+| 5. **The empire's lines** | `explainEmpireLines` (luxuries, routes abroad, `explainEmpireGold`, `explainEmpireCardYields`, then the empire stage) | on ask | no (`foldEmpireRates` sweeps every town for a `rateConversion`) |
 | 6. **The banks** | `collectYields` (once a turn) | end of turn | the state itself |
 | 7. **Readers** | top bar `civYields`, panel, Ledger, card impact, lens, bot | on every accepted command (`updatePanel`) | H18: one shared sheet per screen draw; the Reliquary's figure by `(state, log.length, seat)` |
 
@@ -115,8 +115,8 @@ hill hex (seed 905), 2026-09-07:
 | **Empire** | `empireYields`, `countScaled` (empire), `rateConversion`, luxury signatures, caravans abroad, the treasury's **income** lines (connections and a luxury's share of them); the **bills** — maintenance, the levy's surcharge, the charter's rebate, the treaties — are costs and stand outside the multiplication | the **meter tiers and the arrears**, once, over the additive fold: `(Σ empire lines) × (1 + Σ empire%)`, exact (batch H19, ruling oo) | an Order paying the realm +3🔬 into a seat a contentment tier up banks 3.3; the tier's own line reads `Empire stage · ×1.10` |
 
 The order is structural, not incidental: `explainTileYield` is
-self-contained and `cityQuote` consumes its fold, so a town bonus cannot
-reach a hex; `cityQuote` returns flats and a percent list and `cityYields`
+self-contained and `explainCity` consumes its fold, so a town bonus cannot
+reach a hex; `explainCity` returns flats and a percent list and `foldCity`
 is the only place they meet. Two conventions worth stating in
 `docs/yields.md` because a reader would not guess them: the hex's two
 percentages are over *subsets* of the hex (the works; the ground), never
@@ -139,7 +139,7 @@ reader to infer one from a sign.
 
 ### 3a. The list is built four times (redundant, and the root of the Ledger bugs)
 
-`cityQuote` folds the twelve steps into a *total* and keeps only the flats
+`explainCity` folds the twelve steps into a *total* and keeps only the flats
 and the percent list. The labelled list a player reads is rebuilt by each
 reader:
 
@@ -147,7 +147,7 @@ reader:
 - `cityFlatsByClass` (the Ledger) walks all twelve again to class them, then
   shares the bank back — the mirror that hid tile cards under the land and
   percent cards under nobody until yesterday (jj), and is pinned to
-  `cityQuote` only by a test that compares totals;
+  `explainCity` only by a test that compares totals;
 - `explainCardImpact` ghost-diffs the empire twice per card because it
   cannot read a card's own lines out of a total;
 - the bot's `explainBuildingRow`/margin re-price rows from the row.
@@ -213,14 +213,14 @@ keep with the label.
   two passes, the works percent, the ground percent. Each rider is
   justified in its docblock; together they are the hardest function in the
   sim to predict. A hex's answer wants a *stated* order (§4.1).
-- `cardBuildingYields` — two passes (ordinary, `appliedLast`) over a base
+- `explainCardBuildingYields` — two passes (ordinary, `appliedLast`) over a base
   that now includes the law's lines (ll).
 - The Ledger's share-back — two shares (flats by earner, gain by
   percent-supplier, same-sign rule) reconstructing what §3a would simply
   read.
-- `cityStageSums` folding `productionModifiers` into the city stage for
+- `foldCityStages` folding `productionModifiers` into the city stage for
   production alone — a special case the Ledger had to mirror.
-- `centreYield`'s inheritance "as an excess over the base city yield" —
+- `foldCentre`'s inheritance "as an excess over the base city yield" —
   the one line no list can share out.
 - `liveReading`'s `asked` conditions — a memo that re-asks every empire
   condition it consulted before trusting itself (§3c makes it unnecessary).
@@ -249,9 +249,9 @@ hashes over four boards at t30/t60/t150 before and after).
 1. **`docs/yields.md` — the sequence of record.** §2 written as a numbered
    reference with one row per step (what it reads, what it may contain,
    its stage), the five pre-stage percentages named, and a **sync test**
-   that walks `cityQuote`'s source and asserts the steps appear in that
+   that walks `explainCity`'s source and asserts the steps appear in that
    order. Cheap, and it is the document the user asked for.
-2. **`cityQuote` returns the list.** One `CityQuoteLine[]` — `source`,
+2. **`explainCity` returns the list.** One `CityYieldLine[]` — `source`,
    `card?`, `building?`, `resource?`, `class`, the six voices, `step` —
    and `flats` is its fold. The panel prints it, the Ledger classes it by
    the `class` it already carries (`cityFlatsByClass` and the mirror pins
@@ -310,23 +310,23 @@ result leaves) and once by `runEndOfTurn` after **each** phase in the fixed
 order. Deterministic and replayed; no rule reads it. A v86 log replays
 identically — only the snapshot gains a field.
 
-**What became a line.** `cityQuote` returns `CityQuoteLine[]` — `step` (1–10 of
+**What became a line.** `explainCity` returns `CityYieldLine[]` — `step` (1–10 of
 `docs/yields.md`), `source`, `card?`, `building?`, `resource?`, `class`, the six
-voices — and `flats` is `foldQuoteLines(lines)`. Every summand it folded is now
+voices — and `flats` is `foldCityFlats(lines)`. Every summand it folded is now
 a line:
 
 | step | lines |
 |---|---|
 | 1 | the centre (`tiles`) **and** the town's own two terms — a citizen's beaker, a settlement's culture (`other`) |
 | 2 | per worked hex: each `add` contribution naming a card, under that card's class, then the hex's fold **minus exactly those**, labelled by its own ground |
-| 3 | `cardCityYields`, one per card line |
+| 3 | `explainCardCityYields`, one per card line |
 | 4 | `cityResourceYields`, `tiles`, carrying the seam |
 | 5 | `citySpecialistYields`, `buildings` |
 | 6 | `cityRouteYields`, `trade` |
 | 7 | `explainPalaceYield`, `buildings` |
 | 8 | `explainCityBuildings`, `wonders`/`buildings`, the per-citizen beaker folded into the line's own science |
-| 9 | `cardBuildingYields`, the card's class (`buildings` for a line with no card) |
-| 10 | `cardYieldConversions`, over `foldQuoteLines` of steps 1–9 |
+| 9 | `explainCardBuildingYields`, the card's class (`buildings` for a line with no card) |
+| 10 | `cardYieldConversions`, over `foldCityFlats` of steps 1–9 |
 
 `class` is decided in the simulation by `classifyCard`, which moved with the
 class vocabulary into the leaf `src/sim/ledgerClass.ts` so that `cities.ts` can
@@ -340,13 +340,13 @@ everybody), `readCity(state, city)` → the plain quote, `readEmpire(state, seat
 → `{ towns, lines, stage, empire, totals }`.
 
 **What was deleted.** `cityFlatsByClass` and its `addWorkedTile` (the Ledger's
-eleven-list mirror of `cityQuote` — the largest of §3a's four private copies);
+eleven-list mirror of `explainCity` — the largest of §3a's four private copies);
 the city panel's four private walks of `cityResourceYields` /
 `explainCityBuildings` / `citySpecialistYields` / `cityRouteYields` and its three
 near-identical figure printers, now one `quoteFigures` over the published list;
 `civYields`' own town sweep and empire fold; the top bar's per-town
 `empirePercents` hoist and its second `explainEmpireLines` call; the bot's four
-hand-rolled `cityQuote(state, city, [], empire)` hoists in `value.ts`, `bot.ts`
+hand-rolled `explainCity(state, city, [], empire)` hoists in `value.ts`, `bot.ts`
 and `wants.ts`; `cardImpactSheet`'s private `cityCardSums` for the **real**
 board (it reads step 3 of `readCity` now, and gained `revision` in its identity
 guard). `main.ts`'s `getRevision` is `game.state.revision`.
@@ -460,6 +460,112 @@ log" pin gained a sibling: no memo in `src` keys on a print, and every
 `GameState.revision`**: *a reading is taken at rest; whoever moves the state
 moves the revision.*
 
+## 4c.2. E3b as shipped (2026-09-07)
+
+§4b steps 7 and 9, closed, and **E3 with them**. **No number, no replay and no
+schema moved** (still 87): the parity fixtures were byte-untouched and all four
+boards compared equal after each of the three moves — the renames, the split,
+and the ghost-diff's selector.
+
+**The harness is retired**, as ruled (`docs/flags.md` item pp: one-time, deleted
+when E3 lands). `test/sim/parity.slow.test.ts`, `test/sim/parityHelpers.ts` and
+the four `test/fixtures/parity/*.json` are gone. What stands in its place is what
+always did the standing work: `yieldOrder.test.ts` (the boundaries by the
+numbers), `yieldsDocSync.test.ts` (the sequence against the source),
+`readings.test.ts` (the memos), `benches.test.ts` (the honest benches) and, new
+here, `verbs.test.ts` (the vocabulary).
+
+### The three verbs
+
+`explainX` returns a labelled list; `foldX` is the one sum of it; `readX` is the
+memo, keyed on the revision, and lives in `src/sim/readings.ts` alone. The
+vocabulary is stated at the head of that file, tabled in `docs/yields.md` ("The
+three verbs") and pinned by `test/sim/verbs.test.ts`, which refuses an export
+carrying a retired suffix (`…Yield(s)`, `…Total`, `…Rate(s)`, `…Reading`,
+`…Quote`, `…Aggregate`, `…Sums`) without one of the three, a `read…` outside the
+leaf, and an `explain…` that does not return a list.
+
+| was | is |
+|---|---|
+| `cityQuote` · `CityQuote` · `CityQuoteLine` | `explainCity` · `CityReading` · `CityYieldLine` |
+| `foldQuoteLines` | `foldCityFlats` (`foldCityLines` was taken by `combat.ts`) |
+| `cityYields` | `foldCity` |
+| `cityStageSums` · `stageSumsFor` | `foldCityStages` · `foldStageSums` |
+| `centreYield` · `tileYieldOf` · `foldTileYield` | `foldCentre` · `foldTile` · `foldTileLines` |
+| `cardCityYields` · `cardBuildingYields` · `cardEmpireYields` · `cardPercentYields` | `explainCard…` |
+| `empireRateReading` + private `empireRates` | `foldEmpireRates` — one function; the wrapper is gone |
+| `RateReading` | `EmpireRates` |
+| `civYields` (`topBar.ts`) | **deleted**; every caller reads `readEmpire(state, seat).totals` |
+| `ledgerReading` · `deckAggregate` · `deckAggregateLine` · `DECK_AGGREGATE_LABEL` | `explainLedger` · `foldDeck` · `deckCaption` · `DECK_LABEL` |
+
+Two exports keep a retired suffix with a reason stated in the register:
+`emptyCityYields` (a constructor of the six-voice bag) and `collectYields` (the
+phase that banks — a mutation, not a reading). Types are nouns and out of the
+rule; what the three verbs govern is the functions.
+
+The effect **kind** `cityYields` is untouched — it is a data vocabulary, and
+§3d's yield-family merge is still E5's question.
+
+### Files by layer
+
+| file | lines | holds |
+|---|---|---|
+| `src/sim/yields/hex.ts` | 631 | `explainTileYield`, its conditions, `foldTileLines`/`foldTile`, the two hex percentages |
+| `src/sim/yields/town.ts` | 1384 | the twelve steps: the palace, the centre, the buildings and their card shares, the conversions, `cityYieldPercents`, `empirePercents`, `explainCity`, `foldCity` |
+| `src/sim/yields/empire.ts` | 583 | `explainEmpireLines`, `stageEmpireFold`, `foldEmpireLines`, `foldEmpireRates`, and `collectYields` |
+| `src/sim/yields/stages.ts` | 176 | `applyStages` and the stage sums — the old `modifiers.ts`, `git mv`'d, plus `foldStageSums` |
+| `src/sim/cities.ts` | 4274 | what a city *is*: territory, ownership, the resource clauses, founding, citizens, growth, the costs, production, borders, the purchase of a tile, `refreshCityDerived` |
+| `src/sim/statecraft/evaluator.ts` | 5199 | `liveEffects` and the one switch on `CardEffect.kind`, with every reader of its walk |
+| `src/sim/statecraft/describers.ts` | 2322 | every `describe…`, the word tables, the keyword refs |
+| `src/sim/statecraft/draft.ts` | 1512 | the ladder, the pools, the offers, the rerolls, the slots, the governments |
+| `src/sim/statecraft.ts` | 259 | the index — every name re-exported **by name** |
+
+**`collectYields` moved with the empire's list** rather than into `turn.ts`:
+step 18 of the sequence *is* the banks, and the phase is the one reader that
+must see both halves in order. `turn.ts` stays the fixed order of phases.
+
+**`empirePercents` lives in `town.ts`**, though it sweeps the whole realm,
+because it is the empire's half of *a town's* percentages —
+`cityYieldPercents`' own input — and putting it there leaves `yields/` a one-way
+chain, hex → town → empire, with no back edge inside the folder.
+
+**Two different re-export decisions, and the reason is a measurement.**
+`statecraft.ts` is an index and every `from './statecraft'` in the tree still
+resolves; `cities.ts` is not, and the fifty-nine files that imported a yield from
+it now name the layer. The first attempt made `cities.ts` a `export * from
+'./yields/…'` barrel and `moduleCycles.test.ts` failed with `foldTile is not a
+function`: the dev server's module runner copies a star re-export's keys
+**eagerly**, so a module that imports you back gets an empty namespace and the
+name is missing for the life of the process. A re-export **by name** compiles to
+a getter, read when the name is used — the same deferral every function-level
+cycle in this simulation already relies on. So the index is named, and CLAUDE.md
+now says so.
+
+`moduleCycles.test.ts` globs `src/sim/*.ts` **and** `src/sim/*/*.ts`, and every
+one of the eight new modules survives being evaluated first. Every register test
+that globbed `src/sim/*.ts` was widened the same way — a register that globbed
+only the top level would have passed by vacuum on the very code that moved — and
+those that name an offender name it from `sim/` (`yields/town.ts`,
+`statecraft/evaluator.ts`).
+
+### The ghost-diff selects by card
+
+`cardImpact.ts`'s `CARD_CITY_STEP = 3` is gone. A card's own flats reach a town
+at three steps — its city lines (3), its share of a building (9), its conversion
+of one voice into another (10) — so the selector is `cardFlats`: *the line names
+a card, at one of the steps a card's flats land in*. The step numbers stay the
+doc's. Step 2 is deliberately excluded: a card's line on a hex is diffed
+separately and against its own ground (the `ground` bucket, off `tileAdds`), and
+counting it here as well would print every tile card twice.
+
+Both sides of the diff are selected the same way, which is the point: the ghost
+builds `explainCity(ghost, town).lines` and filters it with the same predicate
+rather than asking the evaluator for step 3 alone. **For a tile card the impact
+list reads exactly as before** — its lines are the ground bucket's, which this
+did not touch — and for every other card parity says the figures are unchanged:
+the four boards compare equal on `explainCardImpact` for every card each seat
+holds.
+
 ## 5. What I think
 
 The day-one decisions are intact where they were made: the folds are
@@ -468,7 +574,7 @@ is in the *readers*, which grew four private copies of the town's list and
 pinned each other with total-equality tests — so every reader bug of the
 last two days was real arithmetic disagreeing with itself about
 attribution, not about sums. Making the labelled list the thing
-`cityQuote` returns (step 2) removes the copies, most of the Ledger, and
+`explainCity` returns (step 2) removes the copies, most of the Ledger, and
 half the ghost-diff, and it is the single change that makes "what will this
 effect yield" a question answered by reading one list. Steps 1 and 4 are
 cheap and I'd take them first; step 5 is the real simplification and the

@@ -2,15 +2,19 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assignCitizens,
-  cityYields,
-  explainTileYield,
   foundCityAt,
   foundingErrorAt,
   hasResource,
   isWorkableTile,
-  tileYieldOf,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  explainTileYield,
+  foldTile,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { cityMaxHp } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { raid } from '../../src/sim/barbarians';
@@ -417,13 +421,13 @@ describe('fishing boats', () => {
   it('pays the tile a point of food, as a line in its own breakdown', () => {
     const { state, seam } = fishery();
     const ctx = yieldContextFor(state, 0);
-    const before = tileYieldOf(seam, ctx);
+    const before = foldTile(seam, ctx);
     seam.improvement = 'fishingBoats';
     const after = explainTileYield(seam, ctx);
     const line = after.find((entry) => entry.source === improvementDef('fishingBoats').name);
     expect(line, 'the boats have a line of their own').toBeDefined();
     expect(line!.food).toBe(1);
-    expect(tileYieldOf(seam, ctx).food).toBe(before.food + 1);
+    expect(foldTile(seam, ctx).food).toBe(before.food + 1);
   });
 
   it('refreshes the owning city the instant it is laid', () => {
@@ -585,7 +589,7 @@ describe('the lighthouse on the water', () => {
     const state = seaState();
     const city = shoreTown(state);
     const land = at(state, 4, 5);
-    const dry = tileYieldOf(land, yieldContextFor(state, 0));
+    const dry = foldTile(land, yieldContextFor(state, 0));
 
     // The citizens are *pinned* to the water, because the assigner is too good
     // at its job to see the difference otherwise: it moves a citizen to whatever
@@ -593,19 +597,19 @@ describe('the lighthouse on the water', () => {
     // arithmetic. Held still, the whole of the difference is the line.
     city.lockedTiles = [{ col: 2, row: 5 }];
     assignCitizens(state, city);
-    const before = cityYields(state, city).food;
+    const before = foldCity(state, city).food;
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
     city.buildings.push('lighthouse');
     bumpRevision(state);
     assignCitizens(state, city);
-    const after = cityYields(state, city).food;
+    const after = foldCity(state, city).food;
     // The lighthouse's own flat food — none — plus a point for the pinned water
     // hex, and nothing for the dry ones the other citizens are standing on.
     expect(after).toBe(before + buildingFood('lighthouse') + 1);
 
     // Dry ground is untouched by it, and so is the empire's own context — the
     // line is the *city's*, which is why `yieldContextFor` cannot see it.
-    expect(tileYieldOf(land, yieldContextFor(state, 0))).toEqual(dry);
+    expect(foldTile(land, yieldContextFor(state, 0))).toEqual(dry);
     expect(
       explainTileYield(at(state, 2, 5), yieldContextFor(state, 0)).some(
         (entry) => entry.source === 'Lighthouse',
@@ -632,11 +636,11 @@ describe('the lighthouse on the water', () => {
     bumpRevision(state);
     assignCitizens(state, city);
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
-    const withLight = cityYields(state, city).food;
+    const withLight = foldCity(state, city).food;
     city.buildings = city.buildings.filter((id) => id !== 'lighthouse');
     bumpRevision(state);
     assignCitizens(state, city);
-    expect(cityYields(state, city).food).toBe(withLight - 1);
+    expect(foldCity(state, city).food).toBe(withLight - 1);
   });
 
   it('pays only the town that built it', () => {
@@ -647,11 +651,11 @@ describe('the lighthouse on the water', () => {
     south.population = 4;
     assignCitizens(state, north);
     assignCitizens(state, south);
-    const before = cityYields(state, south).food;
+    const before = foldCity(state, south).food;
     north.buildings.push('lighthouse');
     bumpRevision(state);
     assignCitizens(state, south);
-    expect(cityYields(state, south).food).toBe(before);
+    expect(foldCity(state, south).food).toBe(before);
   });
 });
 

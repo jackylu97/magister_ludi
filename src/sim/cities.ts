@@ -1,11 +1,21 @@
 /**
- * Everything a city *is*: territory, citizens, yields, growth, production and
- * borders.
+ * Everything a city *is*: territory, citizens, growth, production and borders.
+ *
+ * **What a city yields is one folder over** (batch E3b —
+ * `docs/audit/evaluations.md` §4b step 9, *files by layer, not by topic*): the
+ * sequence of `docs/yields.md` lives in `yields/hex.ts` (what one tile pays),
+ * `yields/town.ts` (the twelve steps), `yields/empire.ts` (the seat's own list
+ * and `collectYields`, the phase that banks it) and `yields/stages.ts` (Entry
+ * XVII's two multiplications). Those four import this file back for the
+ * territory and the citizens they price — a function-level cycle, the
+ * documented kind, and `test/mapgen/moduleCycles.test.ts` is the gate. This
+ * file does **not** re-export them: a caller names the layer it wants.
  *
  * Pure logic over `GameState`. The end-of-turn phases in `turn.ts` are four
- * one-line calls into this module, and the `foundCity` / `setCityProduction`
- * commands validate in `commands.ts` and then call in here to do the work — so
- * the rules of a city live in one file, and the reducer stays a reducer.
+ * one-line calls into this module and the one beside it, and the `foundCity` /
+ * `setCityProduction` commands validate in `commands.ts` and then call in here
+ * to do the work — so the rules of a city live beside each other, and the
+ * reducer stays a reducer.
  *
  * Nothing here rolls a die. A city's whole behaviour is a deterministic function
  * of the board, the rules and the player's queue, which is what lets a
@@ -51,10 +61,8 @@
  */
 
 import {
-  BUILDING_IDS,
   type BuildingId,
   type CompletionGrant,
-  type ProductionCategory,
   buildingDef,
   isBuildingId,
   isWonder,
@@ -66,7 +74,6 @@ import { lentAwayBy, lentToPlayer } from './deals';
 // The class a breakdown line carries, decided once where the line is made — a
 // leaf above nothing but the data tables, so the simulation can name a slice
 // without importing a screen (batch E2). See `ledgerClass.ts`.
-import { type LedgerClass, classifyCard } from './ledgerClass';
 import { discoveryKindTech } from './discoveryData';
 import type { Hex } from './hex';
 import {
@@ -83,30 +90,18 @@ import {
   type ImprovementId,
   improvementDef,
   improvementForResource,
-  improvementYield,
   isGreatPersonWork,
 } from './improvementData';
-import {
-  type ModifierStage,
-  type StageSums,
-  applyStages,
-  foldStages,
-  stageFactor,
-  withStage,
-} from './modifiers';
 import { type Cell, type MoveProfile, findPath, isPassable, moveProfile, tileMoveCost } from './pathfind';
 import {
-  CITY_YIELD_KEYS,
   RESOURCE_IDS,
-  type CityYieldKey,
   type ResourceId,
   type ResourceKind,
   resourceDef,
   resourceIsVisibleTo,
-  resourceYield,
 } from './resourceData';
 import { type ProjectId, isProjectId, projectDef, projectFinishes } from './projectData';
-import { type CardId, governmentDef } from './statecraftData';
+import { governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
@@ -118,44 +113,20 @@ import { anyBeadDef } from './beadData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { awardBeadGrant, claimEndeavour, closeTheGreatWork } from './beads';
 import { settleRenownWindfall } from './renown';
+import { type CitizenFocus, type CitizenLean, type CitizenWeights, RULES } from './rulesData';
 import {
-  type CitizenFocus,
-  type CitizenLean,
-  type CitizenWeights,
-  RULES,
-} from './rulesData';
-import {
-  type CardYieldLine,
-  type CardBuildingPercentLine,
-  type RateReading,
-  type TileLine,
   cardActionRule,
-  cardBuildingPercents,
-  cardLinesOnBuilding,
   cardMeterFlag,
-  cardCityYields,
-  cardEmpireYields,
   cardFoundingRider,
-  cardPercentYields,
-  cardProduction,
   cardRulePercent,
-  cardTileLines,
-  cardYieldConversions,
   cityHasFreshwater,
-  consecrationCardTileLines,
-  followerCardTileLines,
   cardProjectPays,
   drawDoctrineOffer,
   forgetTheLaw,
-  scopedCardTileLines,
-  timedCityTileLines,
   foldCardRulePercent,
-  heldReligions,
   payWindfallGrants,
   recordWorldScalingOccasion,
   settleCultureWindfall,
-  tileConditionHolds,
-  tileConditionReadsFold,
   windfallPayout,
 } from './statecraft';
 import {
@@ -164,15 +135,12 @@ import {
   type Player,
   type QueueItem,
   type Unit,
-  capitalCityOf,
   cityById,
-  cityReligion,
   claimWonder,
   createCity,
   createUnit,
   hasEndedTurn,
   playerById,
-  removeUnit,
   shrinkFollowers,
   tileOwnerField,
   wonderClaim,
@@ -188,17 +156,7 @@ export type { TileOwnerField } from './state';
 // for its phases, so a *value* import back would close a load-time cycle. The
 // pipeline's report is a type this module writes into and never constructs.
 import type { TurnReport } from './turn';
-import {
-  TERRAIN_DATA,
-  TILE_YIELD_KEYS,
-  type TileYield,
-  emptyTileYield,
-  featureDef,
-  isWaterTerrain,
-  isWorkableTerrain,
-  readTileYield,
-  terrainDef,
-} from './terrainData';
+import { type TileYield, isWaterTerrain, isWorkableTerrain } from './terrainData';
 import {
   BUILDING_UNLOCK_TECH,
   TECH_IDS,
@@ -220,46 +178,28 @@ import { UNIT_TYPE_IDS, type UnitTypeId, isNaval, isUnitTypeId, unitDef } from '
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
-import {
-  type MeterId,
-  borderFactor,
-  borderPercent,
-  bordersFrozen,
-  growthPercent,
-  meterEffects,
-} from './meters';
-import {
-  cityResourceYields,
-  empireResourceYields,
-  foldRulePercent,
-  resourcePercentYields,
-  resourceProduction,
-  resourceRulePercent,
-  resourceTileLines,
-} from './resourceEffects';
-import { buildingTileLines, cityIsWatered } from './buildingEffects';
+import { borderFactor, borderPercent, bordersFrozen, growthPercent, meterEffects } from './meters';
+import { foldRulePercent, resourceRulePercent } from './resourceEffects';
+import { cityIsWatered } from './buildingEffects';
 // A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
 // reason: `guilds.ts` needs these answers too and must be free to import this
 // file. See `specialists.ts`.
-import { citySpecialistYields, totalSpecialists } from './specialists';
+import { totalSpecialists } from './specialists';
 // **This file no longer imports `trade.ts`, and that is a rule** (2026-08-28).
 // It used to, for the three readers below, while `trade.ts` imported this file
 // back for the capital, the tile owner and the windfall settlements — a
 // load-time cycle between the two largest modules in the simulation, which
-// surfaced once as a `tileYieldOf is not a function` at test load and would have
+// surfaced once as a `foldTile is not a function` at test load and would have
 // surfaced in a browser next. The three readers now live on the far side of
 // nothing: `routeYields.ts` and `empireGold.ts` import neither this module nor
 // `trade.ts`, `trade.ts` re-exports them so no screen changed its import, and
 // `test/sim/cities.test.ts` reads this source and fails if `./trade` comes back.
-import { cityRouteYields, senderRouteYields } from './routeYields';
-import { explainEmpireGold } from './empireGold';
 // **A leaf, deliberately** (2026-08-28): the road writer and the roster's
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
 // Founders' Road — reaches them without crossing the cycle it once documented.
 import { layRoad } from './roads';
 import { caravanTypeId } from './unitData';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
-import { disbandCandidate, treasuryInDebt } from './upkeep';
 // **A function-level cycle, and the documented kind** (CLAUDE.md): `religion.ts`
 // imports this file for the capital, the tile-owner field and the windfall
 // settlements, and this one arm of `payCompletionGrants` imports it back for the
@@ -270,6 +210,8 @@ import { disbandCandidate, treasuryInDebt } from './upkeep';
 // an entry. A grant that reimplemented the deal to dodge the import would be a
 // second way to open a consecration, which is the thing worth avoiding.
 import { openFreeRung } from './religion';
+import { type TileYieldContext, cityContext, foldTile, yieldContextFor } from './yields/hex';
+import { type CityReading, foldCity } from './yields/town';
 
 const CITIES = RULES.cities;
 
@@ -292,584 +234,6 @@ export interface CityYields {
 /** A city yield of nothing at all. The identity every sum here starts from. */
 export function emptyCityYields(): CityYields {
   return { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
-}
-
-// --- tiles ------------------------------------------------------------------
-
-/**
- * What a tile pays, and *why* — CLAUDE.md's hard rule 5 made a function.
- *
- * `explainTileYield` returns an ordered list of contributions and `tileYieldOf`
- * is the fold of that list. There is deliberately no second implementation: a
- * total computed beside the breakdown is a total that can disagree with the
- * explanation the interface prints, and the whole of Entry VIII is that a
- * preview cannot be allowed to lie.
- *
- * The order is the order the rules resolve in, and it is the one order this
- * chain is ever read in:
- *
- *     terrain base  →  feature override  →  hills override
- *                   →  resource add  →  improvement add  →  renewal adds
- *
- * Two kinds of entry and the fold treats them differently, which is what lets
- * one list carry two different algebras (see `terrainData.ts`, which has three):
- *
- *   `base` / `override`  **replace** the running total. That is Civ's rule for
- *                        the ground itself — a hill is a hill whatever grows on
- *                        it — and writing the feature down *even when a hill
- *                        overrides it* is the point: "Forest 1🌾1⚙, replaced by
- *                        Hills 0🌾2⚙" is the sentence a player needs, and the
- *                        fold reaches the same number either way.
- *   `add`                **sums**. A resource, an improvement and a renewal are
- *                        all things sitting *on* the ground rather than a
- *                        different kind of ground, which is what makes wheat
- *                        worth the same point of food wherever it lands.
- *
- * Workability is a separate question and is not touched here: a mountain with a
- * resource on it would still be unworkable, which is why `isWorkableTile` asks
- * the terrain and not the yield.
- *
- * The context, and who passes one
- * -------------------------------
- * Everything above the resource is a fact about the *tile*. The resource line
- * and the renewals are facts about the tile **and its owner** — Feudalism gives
- * freshwater farms a second food, and only to the empire that researched it —
- * so they need a player, and a function that took a whole `GameState` would drag
- * this module into an import cycle with `tech.ts` (which already depends on it).
- * `TileYieldContext` is therefore the minimum the evaluation actually needs: the
- * technologies held.
- *
- * `explainTileYield(tile)` with no context is the **omniscient** answer: every
- * line the ground could ever pay, to nobody in particular. That is the right
- * call for anything asking about *ground* rather than about an empire — the
- * mapgen page's start scorer, a report over a board with no players on it — and
- * it is emphatically the wrong call for a tile somebody owns. Who passes what is
- * written down in the `yieldContextFor` docblock, because a call site that
- * quietly stopped passing one would over-report a hidden seam and under-report a
- * renewal, and nothing would fail.
- *
- * The reveal gate
- * ---------------
- * A resource pays **only an empire that can be told it is there**
- * (`resourceIsVisibleTo`, the same rule `isResourceVisible` and `openedResource`
- * ask). Iron in the ground is worth nothing to a people with no word for iron;
- * the turn Bronze Working lands, the hammer appears — in the breakdown, in the
- * citizen's score, in the city panel and on the tile's own props, all together,
- * because all four derive from this one line rather than from a flag anybody has
- * to remember to set.
- *
- * This reverses the v1 reading, which paid the yield and hid only the *label* on
- * the grounds that a hidden number would be a lie the panel has to keep telling.
- * The ratified reading is that the number was the lie: a player who cannot see
- * why a hill is worth three hammers cannot plan around it, and "the tile got
- * better the moment you learnt what was on it" is the sentence a discovery is
- * supposed to earn. Nothing is stored and no flag is set — the reveal is derived
- * every time the yield is asked, exactly as `openedResource`'s first clause is.
- */
-export type TileYieldKind = 'base' | 'override' | 'add';
-
-export interface TileYieldContribution extends TileYield {
-  /** Display label: the terrain, the feature, the resource, the tech. */
-  source: string;
-  kind: TileYieldKind;
-  /**
-   * The card that put this line on the hex, when one did (`TileLine.card`) —
-   * absent for the ground, the seam, the works, a renewal and a resource's own
-   * line, which is to say for most of the list most of the time.
-   *
-   * Nothing in the simulation reads it: the fold does not care who wrote a line
-   * and no rule branches on it. It is here for the **Ledger**, which has to say
-   * whose slice a figure belongs in, and which was crediting every card that
-   * pays on ground — the later Order pools' whole idiom — to *the land*
-   * (`docs/flags.md`, ruling jj). A breakdown line that knows its card is the
-   * only way a hex's yield can be split by who earned it, and it is the same
-   * answer `CityYieldPercent.card` gives one fold up.
-   */
-  card?: CardId;
-}
-
-/**
- * What an evaluation needs to know about the player whose tile this is.
- *
- * Deliberately not a `Player` and not a `GameState`: the only player-dependent
- * term in the whole chain is "does this empire hold the technology", so that is
- * the only thing the context carries. Anything richer would be a second reason
- * for this module to know about research.
- */
-export interface TileYieldContext {
-  /** Technologies the owning player holds. `Player.techsResearched`. */
-  techs: readonly TechId[];
-  /**
-   * What this empire's **law, holdings and works** pay on a hex, already
-   * resolved into `{ source, condition, bag }` lines (`TileLine` in
-   * `statecraft.ts`).
-   *
-   * The *answer* rather than the question, and that is what keeps this chain
-   * what it is: `explainTileYield` knows about a tile and a context and nothing
-   * else — no `GameState`, no player id, no card table — so a line has to arrive
-   * pre-resolved or the whole module would have to grow a second reason to know
-   * about empires. Absent for a context-less (omniscient) evaluation and for an
-   * empire whose law, holdings and works say nothing about ground, which is most
-   * of them.
-   *
-   * **One list, five producers**, and the chain cannot tell them apart:
-   *
-   *   · a Statecraft card's **unscoped** `tileYield` (`cardTileLines`) — the
-   *     empire's law, worth the same on every hex it owns;
-   *   · a luxury's `improvementYields` (`resourceTileLines`) — what a held seam
-   *     is worth to every hex of a kind, tyrian's boats and whales';
-   *   · a building's `tileYields` (`buildingTileLines`) — the granary's food on
-   *     water, and the first of them that is a fact about *one city*, which is
-   *     why `cityContext` adds it and `yieldContextFor` cannot;
-   *   · a card's **scoped** `tileYield` (`scopedCardTileLines`) — Petra's desert
-   *     and the Hanging Gardens' irrigated farms, which are the same fact about
-   *     one city said by a card instead of by a building;
-   *   · a **follower belief's** `tileYield` (`followerCardTileLines`) — Harvest
-   *     Blessing's food on the farms of a city that follows, and the only
-   *     producer whose card may belong to another empire entirely;
-   *   · a **consecration's** `tileYield` (`consecrationCardTileLines`) — the
-   *     Green Cathedral's faith on the wild ground of the town whose cathedral
-   *     was dedicated to the old gods.
-   *
-   * A seventh producer joins by appending to this list. It was `cards` alone
-   * until Entry XXVII; folding the other two into the same channel rather than
-   * giving each its own field is what keeps `explainTileYield`'s last clause one
-   * loop instead of three.
-   */
-  lines?: readonly TileLine[];
-}
-
-/**
- * The context for a player, or `undefined` when there is no such player.
- *
- * **The call-site register**, kept here because a list of who passes a context
- * is only useful where somebody will read it. Two technologies now ride on it —
- * the renewals and the reveal gate (see `explainTileYield`) — so the rule for
- * new call sites is one line: **an owned tile is always evaluated with its
- * owner's context.** A tile nobody owns, and no seat is asking on behalf of, is
- * the only thing that may go without.
- *
- *   · `assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile` — all
- *     pass the *city owner's* context, through `cityContext`. Those four are the
- *     simulation banking and spending real yields: a citizen that ignored a
- *     renewal would be sent to the wrong tile the turn Feudalism landed, and one
- *     that counted an unrevealed seam would be sent to a hill that pays nothing.
- *   · the hover readout (`tileReadout.ts`) prices through `tileContextAt`:
- *     inside a city's territory, that CITY's own context (so a lighthouse's
- *     food on water prints where the citizen is paid — 2026-09-03); on wild
- *     ground, the **local seat's** context, because the question is "what
- *     would a city of mine collect here" — and a hover card that priced ore
- *     the seat cannot name would give away what the reveal gate hides.
- *   · the yield glyphs (`lens3d.ts`) pass `LensView.playerId`, the seat the lens
- *     is drawn for, so the board and the hover card agree.
- *   · the improvement preview (`improvementYieldDelta`) takes an optional one
- *     and the unit sheet (`controls.ts`) passes the **builder's owner**, so the
- *     "+1⚙" on a Mine row is what that empire would actually get. It is the
- *     same evaluator twice with and without the candidate, so the gate cancels
- *     out of the *delta* — which is the honest answer either way, and the reason
- *     the argument is still optional.
- *   · the citizen *score* used by the border chooser and the assigner is the
- *     fold of the same contextual list, so "grow toward land you would work"
- *     survives a renewal and does not chase a seam nobody has heard of.
- *   · **Deliberately context-less**, and the whole of that list: the start-site
- *     scorer (`startPositions.ts`), which runs during generation before any
- *     player has a technology or a tile, and tests asking about bare ground.
- *     Both are the omniscient reading, which is what "no context" means.
- */
-export function yieldContextFor(
-  state: GameState,
-  playerId: number,
-): TileYieldContext | undefined {
-  const player = playerById(state, playerId);
-  if (!player) return undefined;
-  const ctx: TileYieldContext = { techs: player.techsResearched };
-  // Written only when there is something in it, so an empire whose law and
-  // holdings say nothing about ground builds a context byte-identical to the one
-  // this returned before Statecraft existed — and a sweep of twenty hexes asks
-  // both tables once, here, rather than once per tile.
-  const lines = [...cardTileLines(state, playerId), ...resourceTileLines(state, playerId)];
-  if (lines.length > 0) ctx.lines = lines;
-  return ctx;
-}
-
-/**
- * The context of the player who owns a city, **plus what that city's own
- * buildings pay on its ground**. Never undefined in practice.
- *
- * The one place the two scales meet. Everything `yieldContextFor` resolves is a
- * fact about the *empire* and is the same in every town; a granary is a fact
- * about *this* town, so it can only be added by whoever has a city in hand — and
- * that is exactly the four callers in the register that pass a city's context
- * (`assignCitizens`, `centreYield`, `cityYields`, `bestExpansionTile`). A hex
- * outside anybody's borders has no granary to ask about, which is why the empire
- * context is the honest answer for the hover card and the lens.
- *
- * Exported for the **ghost** that reads it twice (`cardImpact.ts`): a card's
- * stamp diffs what the worked hexes pay under this empire's law and under a
- * shallow copy of it, and there is no honest way to ask that question without
- * the very context the town's own yields are read through.
- *
- * `hypothetical` is `cityYields`' preview hook, carried this far in for one
- * reason: a building's worth may be entirely a line on the ground. The what-if
- * used to hand its candidate to `explainCityBuildings` and stop there, so a
- * lighthouse — which pays *nothing* flat and +1🌾 on every coastal hex the town
- * works — appraised at zero and the bot never built one (2026-09-04). It reaches
- * only `buildingTileLines`, the one producer that is a fact about *this* town's
- * shelves; the empire's law, its holdings and its faith are unmoved by a
- * building that does not exist yet, and an empty list is byte-for-byte the
- * reading every real caller had before.
- */
-export function cityContext(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-): TileYieldContext | undefined {
-  const ctx = yieldContextFor(state, city.ownerId);
-  if (!ctx) return undefined;
-  // Five producers are facts about *this town* rather than about the empire,
-  // and none can be added by anybody without a city in hand: its buildings' tile
-  // lines (the granary's food on water, Entry XXVII), its **live rites** (Rite
-  // of Plenty's gold on its own worked seams, Entry XXVIII), the **scoped**
-  // card lines (Petra's desert, the Hanging Gardens' irrigated farms — a
-  // `tileYield` whose `scope` names which towns it lands in), and the **faith
-  // this town follows** (Harvest Blessing's food on the farms of a following
-  // city — the 2026-08-28 ruling, and the one producer whose card belongs to
-  // somebody else's empire), and its **consecration** (the Green Cathedral's
-  // faith and culture on wild ground — a fact about one cathedral in one town).
-  // Appended in that order, and the tile chain still cannot tell any producer
-  // from another.
-  const own = [
-    ...buildingTileLines(city, ctx.techs, hypothetical),
-    ...timedCityTileLines(state, city),
-    ...scopedCardTileLines(state, city),
-    ...followerCardTileLines(state, city),
-    ...consecrationCardTileLines(state, city),
-  ];
-  if (own.length === 0) return ctx;
-  return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
-}
-
-/**
- * The ordered breakdown of one tile's yield. See the docblock above for the
- * order and for what each `kind` means to the fold.
- */
-export function explainTileYield(
-  tile: Tile,
-  ctx?: TileYieldContext,
-): TileYieldContribution[] {
-  const list: TileYieldContribution[] = [];
-
-  const terrain = terrainDef(tile.terrain);
-  list.push({ source: terrain.name, kind: 'base', ...readTileYield(terrain.yield) });
-
-  // **The hill first, the canopy over it** (user, 2026-08-27: "if jungle or
-  // forest is on a hills tile, the jungle/forest yield should take precedence").
-  //
-  // Two overrides can land on one hex and only the *last* one written survives
-  // the fold, so their order is the rule and not a detail of this loop. The
-  // canopy wins because it is the more specific fact about what a citizen
-  // actually does there: a forested hill is worked by foresters, and the hill's
-  // own 0🌾/2⚙ was quietly turning every jungle hill into a mine. The hills line
-  // is still written down — it is about to be overridden, the fold reaches the
-  // same number either way, and the *list* is the explanation of why.
-  if (tile.hills) {
-    const hills = TERRAIN_DATA.hills;
-    list.push({ source: hills.name, kind: 'override', ...readTileYield(hills.yieldOverride) });
-  }
-
-  const feature = featureDef(tile.feature);
-  const override = feature.yieldOverride;
-  if (override !== null) {
-    list.push({ source: feature.name, kind: 'override', ...readTileYield(override) });
-  }
-
-  // The resource, and only for an empire that has a word for it. A seam this
-  // player cannot be *told* about pays nothing — see "The reveal gate" above —
-  // and a context-less evaluation is the omniscient one, which is why the test
-  // is on `ctx` rather than on a player id that might be missing.
-  if (tile.resource !== undefined && (!ctx || resourceIsVisibleTo(tile.resource, ctx.techs))) {
-    list.push({
-      source: resourceDef(tile.resource).name,
-      kind: 'add',
-      ...resourceYield(tile.resource),
-    });
-  }
-
-  const improvement = tile.improvement;
-  // Where the works' own entries begin, so a card that raises *them* by a
-  // percentage can be paid off exactly what they pay and nothing else. See the
-  // percentage pass at the foot of this function.
-  const worksFrom = list.length;
-  if (improvement !== undefined) {
-    const def = improvementDef(improvement);
-    list.push({ source: def.name, kind: 'add', ...improvementYield(improvement) });
-    // The renewals, each its own entry, and only for an empire that has earned
-    // them. Walked in the table's own order so two renewals on one improvement
-    // always read in the same order (design ledger, Entry I).
-    for (const upgrade of def.upgrades ?? []) {
-      if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
-      if (upgrade.requiresFreshwater && !tile.freshwater) continue;
-      list.push({
-        source: techDef(upgrade.tech).name,
-        kind: 'add',
-        ...readTileYield(upgrade.add),
-      });
-    }
-  }
-  const worksTo = list.length;
-
-  // **What the hex has been reckoned to pay so far**, for the one condition that
-  // asks about worth rather than about substance (`TileCondition`'s `yields`,
-  // The Gilded Court's hexes that yield gold). It is the fold of the entries
-  // above — the ground, the seam, the works — through the *one* fold there is,
-  // so "yields gold" means here exactly what the hover card says the hex pays
-  // and no second reading of the ground comes into existence (rule 5).
-  //
-  // Computed **lazily and once**: this function is asked millions of times a
-  // turn and the overwhelming majority of games hold no card that asks, so the
-  // reading is taken on the first condition that wants it and never otherwise.
-  let paid: TileYield | undefined;
-  const paidSoFar = (): TileYield => (paid ??= foldTileYield(list));
-
-  // The empire's law, holdings and works, last, and as ordinary `add` entries:
-  // Common Granary's food on a resource hex, a granary's food on water, tyrian's
-  // culture on a fishing boat — each a line in this breakdown exactly as the
-  // improvement's is, so the hover card, the citizen's score, the city panel and
-  // the banked total all learn about them from one place (rule 5). Nothing here
-  // asks *which* of the three a line came from — the context already resolved
-  // that, and that is the whole reason there is one list rather than three.
-  //
-  // One card can speak twice about one hex — Winter Mother pays +1 food on any
-  // tundra tile *and* +1 faith on a wooded one, so a tundra forest satisfies
-  // both of her `tileYield` lines. The player reads one name and expects one
-  // line under it, so lines that share a `source` are merged into a single
-  // entry, summed, at the position of that source's **first** appearance —
-  // order of first appearance in `ctx.lines`, the same determinism rule as
-  // everywhere else in this fold. `sourceIndex` is only an index back into
-  // `list`; nothing ever iterates it for output, so a `Map`'s own iteration
-  // order never governs an outcome. `TileYieldContribution` carries no `on` /
-  // condition field for display — only `source` names the line — so a merge of
-  // lines with different conditions loses nothing: there was never a condition
-  // to pick between in the first place.
-  // **Ea-nāṣir's rule** (the user, 2026-09-03: "it should never go below zero
-  // or subtract yields from the tile"): a card line's NEGATIVE voice reaches
-  // only what the hex's works pay — the mine's own hammer may be taken back,
-  // the hill's and the seam's never, and no voice of the hex drops below its
-  // wild reading. Clamped per incoming line against what the works still have
-  // (several taking-back lines share one bag), so the breakdown stays the fold
-  // of what it prints.
-  let worksLeft: TileYield | undefined;
-  const worksRemaining = (): TileYield =>
-    (worksLeft ??= foldTileYield(list.slice(worksFrom, worksTo)));
-  const clampTakeBack = (voice: (typeof TILE_YIELD_KEYS)[number], amount: number): number => {
-    if (amount >= 0) return amount;
-    const bag = worksRemaining();
-    const allowed = Math.max(0, bag[voice]);
-    const taken = Math.min(-amount, allowed);
-    bag[voice] -= taken;
-    // `0`, never `-0` — a ledger entry is compared byte-for-byte in replays.
-    return taken === 0 ? 0 : -taken;
-  };
-
-  const sourceIndex = new Map<string, number>();
-  const pushLine = (line: TileLine): void => {
-    if (!tileConditionHolds(tile, line.on, paidSoFar)) return;
-    // A line that is **only** a percentage carries no bag at all (The
-    // Commonwealth's works). It is paid by the pass at the foot of this
-    // function, and a zero-in-every-voice entry pushed here would be a row in
-    // the hover that explains nothing — the same reading `paysSomething` takes
-    // of a card's city yields one ledger over.
-    if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) return;
-    const clamped = {
-      food: clampTakeBack('food', line.food),
-      production: clampTakeBack('production', line.production),
-      gold: clampTakeBack('gold', line.gold),
-      science: clampTakeBack('science', line.science),
-      culture: clampTakeBack('culture', line.culture),
-      faith: clampTakeBack('faith', line.faith),
-    };
-    // A taking-back line whose whole bag was already empty says nothing.
-    if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) return;
-    const existingAt = sourceIndex.get(line.source);
-    if (existingAt !== undefined) {
-      const merged = list[existingAt];
-      merged.food += clamped.food;
-      merged.production += clamped.production;
-      merged.gold += clamped.gold;
-      merged.science += clamped.science;
-      merged.culture += clamped.culture;
-      merged.faith += clamped.faith;
-      return;
-    }
-    sourceIndex.set(line.source, list.length);
-    list.push({
-      source: line.source,
-      // Whoever wrote the line, carried through for the Ledger's crediting. The
-      // merge above keeps the first appearance's card, which is the same card:
-      // lines merge on `source`, and a source is a card's own name.
-      card: line.card,
-      kind: 'add',
-      food: clamped.food,
-      production: clamped.production,
-      gold: clamped.gold,
-      science: clamped.science,
-      culture: clamped.culture,
-      faith: clamped.faith,
-    });
-  };
-  // **Two passes, and the reading between them** (the user, 2026-09-07: "the
-  // Sacred Ground isn't working properly — +1 faith on every hex that gives
-  // faith isn't applying to my desert tiles that have +1 faith from my
-  // religion"). A line that pays on what the hex *already* pays (`yields`,
-  // `CardRulePercentEffect.scope`'s bargain) used to read the ground alone —
-  // `paidSoFar` was taken once, before any law had spoken — so the Desert
-  // Fathers' faith on a desert hex was invisible to The Sacred Ground standing
-  // beside it. Now every line that asks nothing of the fold lands first, the
-  // memo is taken again over the ground *and* those lines, and the asking lines
-  // land second. Order inside each pass is `ctx.lines`' own, so the outcome
-  // depends on an order the data carries; and an asking line never sees
-  // another asking line's bag, so two of them cannot pay each other interest.
-  for (const line of ctx?.lines ?? []) {
-    if (!tileConditionReadsFold(line.on)) pushLine(line);
-  }
-  paid = undefined;
-  for (const line of ctx?.lines ?? []) {
-    if (tileConditionReadsFold(line.on)) pushLine(line);
-  }
-
-  // **A percentage on the works, and on nothing else** — The Commonwealth's half
-  // again on a great person's academy. Last, so the figure it is a share of is
-  // whole, and taken off the *improvement's own* entries (`worksFrom` …
-  // `worksTo`: the improvement and its renewals) rather than off the hex's
-  // total: a card that said "this hex pays half again" would be silently
-  // multiplying the terrain, the river, the resource and whatever a second card
-  // had already added. It joins as one more labelled `add`, so the breakdown
-  // still sums to the total and a player can see which half was raised.
-  //
-  // Riders **sum before one multiplication**, which is Entry XVII's discipline
-  // read at the scale of a hex: two cards that each say +50% are worth +100%
-  // rather than ×2.25. Since batch X the share is not rounded per voice either —
-  // half a point of food on a hex is half a point of food in the town's fold.
-  //
-  // **And a percentage on the ground, which is its opposite number** — The Old
-  // Ways' doubling of what an unimproved hex pays (`TileLine.basePercent`). It
-  // is taken off the entries *before* the works (`0` … `worksFrom`: the terrain,
-  // the hill or canopy over it, and the seam in it) through `foldTileYield`,
-  // which is the one place a `base`/`override` list becomes a number — so the
-  // hill under a jungle is counted the way the hover card counts it and not by
-  // a second sum that could disagree. The two shares never overlap and neither
-  // reaches a card's own line, so two cards cannot pay each other interest.
-  let worksPercent = 0;
-  const worksSources: string[] = [];
-  const worksCards: CardId[] = [];
-  let groundPercent = 0;
-  const groundSources: string[] = [];
-  const groundCards: CardId[] = [];
-  for (const line of ctx?.lines ?? []) {
-    const works = line.percent ?? 0;
-    const ground = line.basePercent ?? 0;
-    if (works === 0 && ground === 0) continue;
-    if (!tileConditionHolds(tile, line.on, paidSoFar)) continue;
-    if (works !== 0) {
-      worksPercent += works;
-      if (!worksSources.includes(line.source)) worksSources.push(line.source);
-      if (line.card !== undefined && !worksCards.includes(line.card)) worksCards.push(line.card);
-    }
-    if (ground !== 0) {
-      groundPercent += ground;
-      if (!groundSources.includes(line.source)) groundSources.push(line.source);
-      if (line.card !== undefined && !groundCards.includes(line.card)) groundCards.push(line.card);
-    }
-  }
-  // **Whose share it is**, when it is anybody's. Two cards that each say +50%
-  // sum into ONE line (the discipline above), and a line naming two cards can be
-  // credited to neither — so the card is carried only when the share has exactly
-  // one author, which is every case the data holds today. A share with two
-  // authors is the land's, which is where an unattributable figure has always
-  // gone.
-  const soleCard = (cards: readonly CardId[]): CardId | undefined =>
-    cards.length === 1 ? cards[0] : undefined;
-  if (worksPercent !== 0 && worksTo > worksFrom) {
-    const share: TileYieldContribution = {
-      source: worksSources.join(' + '),
-      card: soleCard(worksCards),
-      kind: 'add',
-      food: 0,
-      production: 0,
-      gold: 0,
-      science: 0,
-      culture: 0,
-      faith: 0,
-    };
-    for (let i = worksFrom; i < worksTo; i++) {
-      const entry = list[i]!;
-      for (const voice of TILE_YIELD_KEYS) share[voice] += entry[voice];
-    }
-    let pays = false;
-    for (const voice of TILE_YIELD_KEYS) {
-      share[voice] = (share[voice] * worksPercent) / 100;
-      if (share[voice] !== 0) pays = true;
-    }
-    if (pays) list.push(share);
-  }
-  if (groundPercent !== 0 && worksFrom > 0) {
-    const ground = foldTileYield(list.slice(0, worksFrom));
-    const share: TileYieldContribution = {
-      source: groundSources.join(' + '),
-      card: soleCard(groundCards),
-      kind: 'add',
-      food: 0,
-      production: 0,
-      gold: 0,
-      science: 0,
-      culture: 0,
-      faith: 0,
-    };
-    let pays = false;
-    for (const voice of TILE_YIELD_KEYS) {
-      share[voice] = (ground[voice] * groundPercent) / 100;
-      if (share[voice] !== 0) pays = true;
-    }
-    if (pays) list.push(share);
-  }
-
-  return list;
-}
-
-/**
- * The fold: `base` and `override` replace, `add` sums. The only place a tile's
- * total is ever computed.
- */
-export function foldTileYield(list: readonly TileYieldContribution[]): TileYield {
-  const total = emptyTileYield();
-  for (const entry of list) {
-    for (const key of TILE_YIELD_KEYS) {
-      if (entry.kind === 'add') total[key] += entry[key];
-      else total[key] = entry[key];
-    }
-  }
-  return total;
-}
-
-/**
- * Food/production/gold of a tile — resource, improvement and renewals included.
- *
- * One line, and that is the point: it is the fold of `explainTileYield` and
- * nothing else, so the number and the explanation cannot drift apart. See the
- * docblock above `TileYieldKind` for the chain and for who passes a context.
- */
-export function tileYieldOf(
-  tile: Tile,
-  ctx?: TileYieldContext,
-  // **The list, when the caller already has it** (batch E2). `cityQuote` now
-  // splits a worked hex by the card each of its lines names, so it holds the
-  // breakdown before it wants the fold; asking for the breakdown twice would
-  // double the hottest function in the simulation. The default keeps every other
-  // caller's sentence exactly as it was — the fold *is* of `explainTileYield`'s
-  // list, and handing that very list in changes nothing but who allocated it.
-  lines: readonly TileYieldContribution[] = explainTileYield(tile, ctx),
-): TileYield {
-  return foldTileYield(lines);
 }
 
 /**
@@ -1314,40 +678,6 @@ export function distanceToNearestCity(state: GameState, hex: Hex): number {
     if (distance < best) best = distance;
   }
   return best;
-}
-
-/** One labelled line the seat of government pays its town. See below. */
-export interface PalaceYieldLine {
-  /** Display label. `"Palace"`, and only ever that today. */
-  source: string;
-  gold: number;
-}
-
-/**
- * What the **palace** pays the town it stands in, as the ordered list the
- * figure is the fold of (rule 5) — one line in the capital, none anywhere else.
- *
- * The user's ruling of 2026-08-28: `rules.cities.palaceGold` is 2💰, and it is
- * a *line* rather than a term because that is what rule 5 asks of any new source
- * of a yield. A player looking at a capital that makes more gold than its tiles
- * explain must be able to read why.
- *
- * It is the palace's third gift and it is shaped like the other two — the
- * happiness in `explainHappiness` and the capacity in `explainAuthority` both
- * print a "Palace" line off `capitalCityOf`, and this is the same fact said to
- * a third meter. There is deliberately no palace *building*: nothing is built,
- * nothing is captured with the stones, and an empire whose first city falls has
- * its palace wherever `capitalCityOf` now points.
- *
- * A list of at most one, rather than a `number | null`, so that a second thing
- * the seat of government supplies joins by appending — and so the caller folds
- * it exactly as it folds the luxuries, the cards and the routes beside it.
- */
-export function explainPalaceYield(state: GameState, city: City): PalaceYieldLine[] {
-  if (CITIES.palaceGold === 0) return [];
-  const capital = capitalCityOf(state, city.ownerId);
-  if (!capital || capital.id !== city.id) return [];
-  return [{ source: 'Palace', gold: CITIES.palaceGold }];
 }
 
 /**
@@ -1807,7 +1137,7 @@ export function workableSeats(state: GameState, city: City): number {
  *
  * The focus is a preference and never a way to starve a town: if the focused
  * sheet leaves the city short of what its citizens eat, the ordinary sheet is
- * used instead. That check is made against `cityYields`, the same evaluator the
+ * used instead. That check is made against `foldCity`, the same evaluator the
  * pipeline banks with, so what it refuses is exactly the deficit `growCities`
  * would have taken a population point for.
  *
@@ -1826,13 +1156,13 @@ export function assignCitizens(state: GameState, city: City): void {
   let weights = balanced;
   if (lean) {
     // The focused sheet, tried and kept only if it feeds the town. The balanced
-    // assignment is already written, so `cityYields` below reads the *focused*
+    // assignment is already written, so `foldCity` below reads the *focused*
     // one — one call each way rather than a hypothetical, which is what keeps
     // this the same arithmetic the turn pipeline performs.
     const fallback = city.workedTiles;
     weights = CITIES.citizenFocusWeights[lean];
     writeAssignment(state, city, chooseCitizens(state, city, weights));
-    if (cityYields(state, city).food < foodUpkeep(city)) {
+    if (foldCity(state, city).food < foodUpkeep(city)) {
       city.workedTiles = fallback;
       weights = balanced;
     }
@@ -1921,7 +1251,7 @@ export function citizenFocusError(
  * Two things it will not do. It never moves a **pinned** hex: a lock outranks
  * the focus exactly as it outranks the score, and a player who pinned a wheat
  * field has already answered this question. And it never leaves the town in
- * deficit: the swap is written, `cityYields` is asked — the same evaluator the
+ * deficit: the swap is written, `foldCity` is asked — the same evaluator the
  * pipeline banks with — and a harvest below `foodUpkeep` is put straight back.
  * "Where possible" is the ruling's own phrase; a town whose every hex is a farm
  * simply grows.
@@ -1933,13 +1263,13 @@ export function citizenFocusError(
  * famine to find a better answer would be a search that could be interrupted by
  * a border move and leave the town in it.
  *
- * The cost is one `cityYields` per bushel of surplus, on the towns that opted in
+ * The cost is one `foldCity` per bushel of surplus, on the towns that opted in
  * and no others, which is the same order the halted lean has always paid.
  */
 function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights): void {
   const { map } = state;
   const upkeep = foodUpkeep(city);
-  let food = cityYields(state, city).food;
+  let food = foldCity(state, city).food;
   if (food <= upkeep) return;
 
   const index = (cell: { col: number; row: number }): number => tileIndex(map, cell.col, cell.row);
@@ -1951,7 +1281,7 @@ function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights): 
   const foodAt = new Map<number, number>();
   const scoreAt = new Map<number, number>();
   for (const tile of candidates) {
-    const paid = tileYieldOf(tile, ctx);
+    const paid = foldTile(tile, ctx);
     foodAt.set(index(tile), paid.food);
     scoreAt.set(index(tile), yieldScore(paid, weights));
   }
@@ -1993,7 +1323,7 @@ function capFoodSurplus(state: GameState, city: City, weights: CitizenWeights): 
         index(tile) === index(swap.into),
     );
     writeAssignment(state, city, swapped);
-    const next = cityYields(state, city).food;
+    const next = foldCity(state, city).food;
     // Below what they eat, or no bushel actually left the harvest (a percentage
     // and a floor can swallow one): put the hex back and stop. The surplus that
     // remains is the surplus this trim can reach.
@@ -2059,7 +1389,7 @@ function chooseCitizens(
   const ctx = cityContext(state, city);
   const scores = new Map<number, number>();
   for (const tile of candidates) {
-    scores.set(index(tile), yieldScore(tileYieldOf(tile, ctx), weights));
+    scores.set(index(tile), yieldScore(foldTile(tile, ctx), weights));
   }
   candidates.sort((a, b) => {
     const ia = index(a);
@@ -2135,7 +1465,7 @@ function chooseCitizens(
  *      standing.
  *  15. **The trade verbs** (`trade.ts`) — `startRouteAt` and `endRoute`, and they
  *      are one reason read from both ends: a route's food and hammers are lines
- *      of the **destination's** `cityYields` (2026-08-27: the origin's buildings
+ *      of the **destination's** `foldCity` (2026-08-27: the origin's buildings
  *      set the figure, the destination banks it), so the turn a route opens that
  *      town is already richer and the turn its route ends it is already poorer.
  *      The caravan's own *march* owes this register nothing — a route pays
@@ -2174,7 +1504,7 @@ function chooseCitizens(
  *      2026-09-03) — a puppet taken into the empire proper. It is here for
  *      entry 18's reason turned round: what it changes is not a *yield* but the
  *      two empire meters (a puppet asks less writ and less contentment), and
- *      happiness reaches `cityYields` through `meterEffects`, so the town's own
+ *      happiness reaches `foldCity` through `meterEffects`, so the town's own
  *      assignment is judged against a factor that has just moved. It costs one
  *      re-seat on a verb a player issues by hand.
  *
@@ -2182,7 +1512,7 @@ function chooseCitizens(
  *      `settleResearchWindfall`'s shape a third time, and for its argument
  *      exactly: a lent luxury is an empire-wide fact about what ground is worth
  *      (a signature that pays a hex, a happiness factor `meterEffects` folds
- *      into `cityYields`), and it moves *both* empires at once, so both are
+ *      into `foldCity`), and it moves *both* empires at once, so both are
  *      re-seated. Four moments reach it — a bargain signed, a peace whose terms
  *      executed, a declaration that cancelled one, and the broom that swept a
  *      lapsed one out (`settleDiplomacy`, `turn.ts`) — which is every moment a
@@ -2247,1304 +1577,6 @@ export function refreshTileDerived(state: GameState, tile: Tile): void {
   if (cityId === null) return;
   const city = cityById(state, cityId);
   if (city) refreshCityDerived(state, city);
-}
-
-// --- yields -----------------------------------------------------------------
-
-/**
- * The label the centre's own line carries in a breakdown. One string, because
- * the hover card, the city panel and a test all have to name the same line.
- */
-export const CENTRE_SOURCE = 'City centre';
-
-/**
- * What a settlement makes **by being one** — a citizen's beaker and the culture
- * every town produces — as its own line of `cityQuote`'s list.
- *
- * Its own line rather than folded into the centre's, because they are two
- * sentences: the centre is a *hex*, and this belongs to no tile, no building and
- * no card. It is why the class `other` exists.
- */
-export const TOWN_ITSELF_SOURCE = 'The town itself';
-
-/**
- * The label a worked hex's own line falls back to when nothing on it named the
- * ground — a hex whose whole reading is card lines, which today cannot happen
- * and tomorrow might.
- */
-export const HEX_SOURCE = 'Worked hex';
-
-/** The prefix on the line that says the ground under the town was better. */
-const INHERITED_PREFIX = 'Inherited';
-
-/**
- * What the city centre pays, and *why* — rule 5 applied to the one tile no
- * citizen works.
- *
- * The rule, as ratified: **a centre pays `baseCityYields`, and inherits the
- * ground's own yield in any voice where the ground pays more.** A city is a
- * city wherever it stands — one planted on snow still feeds itself — but a town
- * on a wheat field keeps the wheat and a town on a hill keeps the hammers. Per
- * *voice* and not per tile, so a 3🌾/2🪙 seam under a town reads 3🌾/2⚙/2🪙:
- * the food and the gold are the ground's, the production is the town's own.
- *
- * The list, and why it is shaped this way
- * ---------------------------------------
- * Two lines, and the fold of them is the maximum, exactly:
- *
- *   `City centre`        the flat base, as a `base` entry — what standing here
- *                        is worth before the ground is consulted at all.
- *   `Inherited · …`      an `add` entry carrying, per voice, however much the
- *                        ground beats the base by. Zero in every voice the base
- *                        already covers, and omitted entirely when the ground
- *                        beats it nowhere.
- *
- * `base + max(ground − base, 0)` is `max(base, ground)` per voice, so the fold
- * is the rule and there is no total computed beside the list (rule 5). The
- * alternative — printing the ground's own breakdown and then a top-up line —
- * folds to the same number but reads backwards: the centre's floor is the
- * headline of what a town is worth, not a footnote under the grass.
- *
- * The inherited line **names the ground that earned it**, because "inherited"
- * with no subject is the one thing a player cannot act on: `Inherited · Wheat`
- * says move the town one hex and you lose the wheat. The names are read off the
- * ground's own `explainTileYield` list and the test is *what the base does not
- * already cover*: every `add` line paying into an inherited voice, plus the
- * effective terrain line (the last `base`/`override`, which is what the tile
- * actually is) only when the terrain **by itself** beats the base somewhere —
- * an oasis does, plain grassland under a wheat field does not, and listing the
- * grass there would name the half of the sum the town was getting anyway. No
- * arithmetic is attributed to any one name: the line carries the whole excess
- * and the label says what is responsible for it.
- *
- * Evaluated through the **city owner's** context, like everything else a city
- * banks (see `yieldContextFor`): the centre of a town on iron is worth the iron
- * only to an empire that has heard of it.
- */
-export function explainCentreYield(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-): TileYieldContribution[] {
-  const ground = explainTileYield(cityTile(state.map, city), cityContext(state, city, hypothetical));
-  const under = foldTileYield(ground);
-  const base = readTileYield(CITIES.baseCityYields);
-
-  const list: TileYieldContribution[] = [
-    { source: CENTRE_SOURCE, kind: 'base', ...base },
-  ];
-
-  const inherited = emptyTileYield();
-  let inheritsAnything = false;
-  for (const key of TILE_YIELD_KEYS) {
-    const excess = under[key] - base[key];
-    if (excess <= 0) continue;
-    inherited[key] = excess;
-    inheritsAnything = true;
-  }
-  if (!inheritsAnything) return list;
-
-  list.push({
-    source: `${INHERITED_PREFIX} · ${inheritedSources(ground, inherited, base).join(' · ')}`,
-    kind: 'add',
-    ...inherited,
-  });
-  return list;
-}
-
-/**
- * Which of the ground's lines are the reason the centre inherits anything.
- *
- * The terrain line is the *effective* one — the last `base`/`override`, since a
- * hill replaces the forest that replaced the grass — and it is named only when
- * the ground it describes beats the base on its own. Every `add` line paying
- * into an inherited voice is named. Deduped and kept in the ground list's own
- * order, so the label reads in the order the rules resolved.
- */
-function inheritedSources(
-  ground: readonly TileYieldContribution[],
-  inherited: TileYield,
-  base: TileYield,
-): string[] {
-  const voices = TILE_YIELD_KEYS.filter((key) => inherited[key] > 0);
-
-  let terrain: TileYieldContribution | undefined;
-  for (const entry of ground) if (entry.kind !== 'add') terrain = entry;
-  const terrainEarnsIt =
-    terrain !== undefined && TILE_YIELD_KEYS.some((key) => terrain![key] > base[key]);
-
-  const names: string[] = [];
-  for (const entry of ground) {
-    const earns =
-      entry.kind === 'add'
-        ? voices.some((key) => entry[key] > 0)
-        : entry === terrain && terrainEarnsIt;
-    if (!earns || names.includes(entry.source)) continue;
-    names.push(entry.source);
-  }
-  // Unreachable while some line pays every voice the fold counted, and a label
-  // reading "Inherited · " would be the visible half of that being wrong.
-  return names.length > 0 ? names : ['the ground'];
-}
-
-/**
- * What the city centre pays. The fold of `explainCentreYield`, and nothing
- * else — the number and the explanation cannot drift apart.
- */
-export function centreYield(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-): TileYield {
-  return foldTileYield(explainCentreYield(state, city, hypothetical));
-}
-
-// --- what a building pays ---------------------------------------------------
-
-/**
- * One line of what a city's buildings pay it, and *why* — `explainTileYield`'s
- * shape one grade up the ladder, and rule 5 applied to a city's own totals.
- *
- * There is only one algebra here, unlike the tile chain: every entry **sums**. A
- * building is a thing standing in a town alongside the other things standing in
- * it.
- *
- * **One line per building, since the renewals axe** (2026-09-04). A building
- * used to grow a second line the turn a technology renewed it, which is why the
- * shape is a list rather than a figure; the list stays, because a town's
- * buildings are read as a group and a caller that had to fold a mixture of
- * lists and figures would be the place the two came apart.
- */
-export interface BuildingYieldContribution {
-  /** Display label: the building's name. */
-  source: string;
-  /** The building the line belongs to, so a caller may group by it. */
-  building: BuildingId;
-  food: number;
-  production: number;
-  gold: number;
-  science: number;
-  culture: number;
-  /** Flat faith. Absent on the row means zero — see `BuildingDef.faith`. */
-  faith: number;
-  sciencePerPop: number;
-}
-
-/**
- * The breakdown of one building's yield: what the table says it pays, and
- * nothing else.
- *
- * **No owner, no context** (the renewals axe, 2026-09-04). This used to take a
- * `TileYieldContext` and add a line per renewal the owner had earned, so that a
- * granary was worth a different number in two empires standing on the same
- * ground. The user ruled the free growth dead: a building is worth what its row
- * says in every empire that raises it, which is why this asks for an id and
- * nothing more. What a *technology* is worth to a town is now only ever
- * something the town went and built.
- */
-export function explainBuildingYield(id: BuildingId): BuildingYieldContribution[] {
-  const def = buildingDef(id);
-  return [
-    {
-      source: def.name,
-      building: id,
-      food: def.food,
-      production: def.production,
-      gold: def.gold,
-      science: def.science,
-      culture: def.culture,
-      faith: def.faith ?? 0,
-      sciencePerPop: def.sciencePerPop,
-    },
-  ];
-}
-
-/**
- * Every line every building in this city pays, in `city.buildings` order —
- * which is the order they were *built*, so the list a player reads this turn is
- * the list they read last turn with one more group on it.
- *
- * `hypothetical` is `cityYields`'s preview hook, carried through so that "what
- * would a library be worth here" is explained by the same list it is totalled
- * from. A candidate the city already has is skipped, exactly as it is there.
- *
- * **No `state`, since the renewals axe** (2026-09-04): the only thing the empire
- * was ever asked for here was the technologies that renewed a building, and
- * nothing renews one any more. See `explainBuildingYield`.
- */
-export function explainCityBuildings(
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-): BuildingYieldContribution[] {
-  const list: BuildingYieldContribution[] = [];
-  for (const id of city.buildings) list.push(...explainBuildingYield(id));
-  for (const id of hypothetical) {
-    if (city.buildings.includes(id)) continue;
-    list.push(...explainBuildingYield(id));
-  }
-  return list;
-}
-
-/**
- * **What the deck adds to this town's shelves** — the "your faith buildings give
- * half again" engine and the doublers, as the ordered list its total is the fold
- * of (`CardBuildingYieldPercentEffect`, `docs/history/fewer-things.md` §4).
- *
- * A **flat** line, and that is the whole of its stage: a percentage on a
- * *building's own figure* is not a percentage on the town, so it lands beside
- * `explainCityBuildings`' fold and is then staged by Entry XVII exactly as the
- * library's own beaker is. A card that joined `cityYieldPercents` instead would
- * have raised the tiles, the caravans and the other cards with it, which is a
- * different sentence and already has a shape (`percentYields`).
- *
- * The arithmetic is two stages and never one, which is the user's ruling that a
- * doubler *"applies to total yields, including from other effects"*:
- *
- *   · the **ordinary** shares are each taken of the building's own base;
- *   · the **`appliedLast`** shares are each taken of that base *plus* what the
- *     ordinary shares just added — so a doubler doubles what the Vestry raised
- *     rather than racing it.
- *
- * Exact per share, per building and per voice (batch X): two half-point shares
- * buy two halves and the halves are *kept*, and each share's own line is exactly
- * what it contributed (rule 5 — nothing is apportioned after the fact).
- *
- * `cardBuildingPercents` (`statecraft.ts`) hands over the shares and the
- * selector; this file supplies what a building pays, so neither module learns the
- * other's business and there is still one reading of `BuildingDef.yields`.
- */
-export function cardBuildingYields(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-): BuildingPreviewLine[] {
-  const shares = cardBuildingPercents(state, city);
-  if (shares.length === 0) return [];
-  const byCard = new Map<CardBuildingPercentLine, BuildingPreviewLine>();
-  for (const entry of explainCityBuildings(city, hypothetical)) {
-    // The building's own figure, per voice — the row's flats plus the per-citizen
-    // beaker, exact exactly as `cityQuote` is exact, so the share is taken of the
-    // number the town actually banks — **plus what the law put on this building
-    // by name** (`cardLinesOnBuilding`: a follower belief's science on a temple,
-    // The Choir's culture, a legacy's faith). The user, 2026-09-07: the Synod
-    // "should count my religion bonuses on my temples, and great people
-    // improvements to temples". Those lines are banked once as the cards' own;
-    // here they only widen what the share is over.
-    const onIt = cardLinesOnBuilding(state, city, entry.building);
-    const base: Record<CityYieldKey, number> = {
-      food: entry.food + onIt.food,
-      production: entry.production + onIt.production,
-      gold: entry.gold + onIt.gold,
-      science: entry.science + city.population * entry.sciencePerPop + onIt.science,
-      culture: entry.culture + onIt.culture,
-      faith: entry.faith + onIt.faith,
-    };
-    const raised: Record<CityYieldKey, number> = { ...base };
-    for (const pass of [false, true]) {
-      for (const share of shares) {
-        if (share.appliedLast !== pass) continue;
-        if (!share.matches(entry.building)) continue;
-        for (const key of CITY_YIELD_KEYS) {
-          if (share.yield !== undefined && share.yield !== 'all' && share.yield !== key) continue;
-          const over = pass ? raised[key] : base[key];
-          if (over === 0) continue;
-          const paid = (over * share.percent) / 100;
-          if (paid === 0) continue;
-          let line = byCard.get(share);
-          if (line === undefined) {
-            line = { ...emptyPreviewLine(share.source), card: share.card };
-            byCard.set(share, line);
-          }
-          line[key] += paid;
-          if (!pass) raised[key] += paid;
-        }
-      }
-    }
-  }
-  // In `cardBuildingPercents`' order — ordinary shares first, then the ones taken
-  // last — so the sheet reads in the order the arithmetic ran.
-  const list: BuildingPreviewLine[] = [];
-  for (const share of shares) {
-    const line = byCard.get(share);
-    if (line !== undefined && previewPays(line)) list.push(line);
-  }
-  return list;
-}
-
-/**
- * One thing a town would gain by finishing a building, as a player reads it.
- *
- * `BuildingYieldContribution`'s shape one question wider: that one is what a
- * building's *row* pays, this one is what the **city's yields** change by, which
- * is not the same list at all the moment a card is in play. `card` names the
- * Order, Doctrine, belief, legacy or wonder that spoke; `building` names the row
- * that did. Exactly one of the two is set on a line the game produces today, and
- * neither is set on the reconciliation line below.
- */
-export interface BuildingPreviewLine {
-  /** Display label: "Barracks", "God of the Forge", "Ore Tithes". */
-  source: string;
-  /** The building whose own row paid this, or absent. */
-  building?: BuildingId;
-  /** The card that paid this, or absent. */
-  card?: CardId;
-  food: number;
-  production: number;
-  gold: number;
-  science: number;
-  culture: number;
-  faith: number;
-}
-
-function emptyPreviewLine(source: string): BuildingPreviewLine {
-  return { source, food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
-}
-
-/** True when a preview line changes nothing. Such lines are never in a list. */
-function previewPays(line: BuildingPreviewLine): boolean {
-  return CITY_YIELD_KEYS.some((key) => line[key] !== 0);
-}
-
-/** The fold: every line **sums**. The only place a preview's total is computed. */
-export function foldBuildingPreview(lines: readonly BuildingPreviewLine[]): CityYields {
-  const total = emptyCityYields();
-  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
-  return total;
-}
-
-/**
- * What this town's yields would gain if this building stood in it — the ordered,
- * **labelled** list the build screen prints beside a row a player is choosing
- * (user, 2026-08-28: "orders + religion benefits should show in city build
- * screen … preview for barracks in the city build list should show +1 prod").
- *
- * The question is not "what does a barracks pay" — `explainBuildingYield`
- * answers that off the table and would answer *nothing* for a barracks, which is
- * exactly the number the playtest complained about. It is "what would change
- * here", and since Statecraft and the pantheon that is a question about the
- * empire's whole law: a belief that pays a forge town a hammer, an Order that
- * counts barracks, a wonder whose tile line wants a granary. Every one of those
- * is a `hasBuilding` scope or a `countScaled` count, and every one of them is
- * invisible to a preview that reads the building's own row.
- *
- * **A ghost town, never a mutation.** The honest way to ask a conditional
- * question of an evaluator this large is to ask it twice: once of the city, once
- * of a *shallow copy* whose `buildings` array is the city's with the candidate
- * appended, and to take the difference. Nothing in `state` is touched, nothing
- * is cloned deeply, and — this is the point — no rule is reimplemented. A card
- * shape that does not exist yet is previewed correctly the day it is added,
- * because the thing being diffed is `cityYields` itself.
- *
- * The list, in the order a player reads it:
- *
- *   1. **the row's own lines** — the building and each renewal its owner has
- *      earned, `explainBuildingYield`'s list with the science-per-pop term
- *      resolved against this town's population, exactly as `cityYields` resolves
- *      it;
- *   2. **the flat card lines that woke up**, one per `(card, source)` whose
- *      figure differs between the two readings — which is a belief scoped to
- *      `hasBuilding`, a `countScaled` that counts the thing, and nothing else;
- *   3. **the tile lines that woke up**, summed over the tiles this town actually
- *      works: a granary's food on water, a wonder's desert line gated on a
- *      building. Grouped by source, because that is the name a player reads;
- *   4. **one reconciliation line, when the arithmetic needs it**, carrying the
- *      difference between the labelled lines above and the true change — which
- *      is Entry XVII's two multiplications doing their work on the new flats and
- *      any percentage the building itself unlocked. `applyRiders`' idiom in
- *      `purchase.ts`: a line of the list that holds *the difference it makes to
- *      the running figure*, never a multiplication performed afterwards.
- *
- * So `foldBuildingPreview(explainBuildingPreview(state, city, id))` is exactly
- * `cityYields(ghost) − cityYields(city)`, floors and stages included, which is
- * rule 5 read at the scale of a preview: the number on the row is the fold of
- * the reasons printed under it.
- *
- * A building the town already has previews as the empty list — there is nothing
- * to gain — and no caller has to special-case it.
- *
- * **No `toward`.** The reading is "what does this town make", not "how fast does
- * it build the next thing", so the production-category bonuses are deliberately
- * out: a barracks previewed with `toward` pointed at itself would report the
- * share of hammers it puts behind *units* as zero, which is true and useless.
- * `turnsToBuild` is where that question already lives.
- *
- * `quote` is `turnsToBuild`'s, for the same caller and the same reason: the
- * build list previews every unbuilt building in one town, and the *left* half of
- * every one of those diffs — what the town makes today — is one answer asked
- * thirty times. The ghost's half cannot be hoisted (a candidate is exactly what
- * changes it) and is not. See `CityQuote`.
- */
-export function explainBuildingPreview(
-  state: GameState,
-  city: City,
-  id: BuildingId,
-  quote?: CityQuote,
-): BuildingPreviewLine[] {
-  if (city.buildings.includes(id)) return [];
-  // The ghost. Shallow on purpose: every other field is shared with the real
-  // town, and `buildings` is the one array that is replaced rather than pushed
-  // to, so nothing downstream can write through it into `state`.
-  const ghost: City = { ...city, buildings: [...city.buildings, id] };
-  // The one thing the two readings below **cannot** disagree about, hoisted so
-  // they are not asked for it twice: the meters sweep `state.cities`, the ghost
-  // is not in that list, and a building the town has not built yet has changed
-  // nothing about the empire's mood. Exact, not an approximation — see
-  // `empirePercents`.
-  const empire = quote?.empire ?? empirePercents(state, city.ownerId);
-
-  const lines: BuildingPreviewLine[] = [];
-
-  // 1. The row itself, which is the whole of what a building's own table pays
-  //    since the renewals axe (2026-09-04) — no empire is asked.
-  for (const entry of explainBuildingYield(id)) {
-    const line = emptyPreviewLine(entry.source);
-    line.building = id;
-    line.food = entry.food;
-    line.production = entry.production;
-    line.gold = entry.gold;
-    line.science = entry.science + city.population * entry.sciencePerPop;
-    line.culture = entry.culture;
-    line.faith = entry.faith;
-    if (previewPays(line)) lines.push(line);
-  }
-
-  // 2. The cards that woke up. Keyed by card **and** source, because one card
-  //    may pay a town twice under two labels, and walked in the ghost's order
-  //    so the list reads in the evaluator's order.
-  //
-  //    The `×N` suffix is stripped from the key, never from the label: a
-  //    `countScaled` line's printed source carries its count ("The Mausoleum
-  //    · ×19"), and a candidate building that feeds the count re-labels the
-  //    very line it changes ("· ×20"). Keyed raw, the two halves of that diff never
-  //    meet — `was` comes back empty and the preview prints the wonder's whole
-  //    standing line on every row of the build list (the 2026-09-03 playtest
-  //    report). Keyed stripped, the line previews as the +1 it is, and it is
-  //    printed under the *bare* source when the counts disagree — "+1 gold ·
-  //    The Mausoleum" is the change; the ×20 belongs to the city screen's own
-  //    breakdown, not to a diff.
-  const sourceKey = (source: string): string => source.replace(/ · ×\d+$/, '');
-  const before = new Map<string, CardYieldLine>();
-  for (const line of cardCityYields(state, city)) {
-    before.set(`${line.card}\x00${sourceKey(line.source)}`, line);
-  }
-  for (const after of cardCityYields(state, ghost)) {
-    const was = before.get(`${after.card}\x00${sourceKey(after.source)}`);
-    const line = emptyPreviewLine(
-      was !== undefined && was.source !== after.source ? sourceKey(after.source) : after.source,
-    );
-    line.card = after.card;
-    for (const key of CITY_YIELD_KEYS) line[key] = after[key] - (was?.[key] ?? 0);
-    if (previewPays(line)) lines.push(line);
-  }
-
-  // 3. The ground. A building may change what a *tile* pays — the granary's
-  //    food on water, a scoped card line — and that arrives through the
-  //    context rather than through any list above, so it is diffed where it
-  //    lands: per worked tile, per source, summed. Only `add` entries can
-  //    differ (terrain and features do not care what has been built), which is
-  //    what makes a diff by source exact rather than approximate.
-  const groundBefore = cityContext(state, city);
-  const groundAfter = cityContext(state, ghost);
-  const ground = new Map<string, BuildingPreviewLine>();
-  const order: string[] = [];
-  for (const cell of city.workedTiles) {
-    const tile = getTileAt(state.map, cell.col, cell.row);
-    if (!tile) continue;
-    const was = addsBySource(explainTileYield(tile, groundBefore));
-    for (const entry of explainTileYield(tile, groundAfter)) {
-      if (entry.kind !== 'add') continue;
-      let line = ground.get(entry.source);
-      if (!line) {
-        line = emptyPreviewLine(entry.source);
-        ground.set(entry.source, line);
-        order.push(entry.source);
-      }
-      const old = was.get(entry.source);
-      for (const key of CITY_YIELD_KEYS) line[key] += entry[key] - (old?.[key] ?? 0);
-    }
-  }
-  for (const source of order) {
-    const line = ground.get(source)!;
-    if (previewPays(line)) lines.push(line);
-  }
-
-  // 4. The reconciliation. Everything the labelled lines above cannot name: the
-  //    two stages multiplying the new flats, a percentage the building itself
-  //    unlocked, the city centre's inherit rule, and every floor on the way.
-  //    Appended only when it is not zero, so a town with no percentages at all
-  //    reads a list of nothing but named reasons.
-  const gain = emptyCityYields();
-  const after = cityYields(state, ghost, [], undefined, cityQuote(state, ghost, [], empire));
-  const now = cityYields(state, city, [], undefined, quote);
-  for (const key of CITY_YIELD_KEYS) gain[key] = after[key] - now[key];
-  const named = foldBuildingPreview(lines);
-  const rest = emptyPreviewLine('Multipliers and rounding');
-  for (const key of CITY_YIELD_KEYS) rest[key] = gain[key] - named[key];
-  if (previewPays(rest)) lines.push(rest);
-
-  return lines;
-}
-
-/**
- * One tile's `add` contributions, summed by source — the shape the preview's
- * ground diff subtracts. Merged by source for `explainTileYield`'s own reason:
- * one card can speak twice about one hex and a player reads one name.
- */
-function addsBySource(list: readonly TileYieldContribution[]): Map<string, TileYield> {
-  const map = new Map<string, TileYield>();
-  for (const entry of list) {
-    if (entry.kind !== 'add') continue;
-    let sum = map.get(entry.source);
-    if (!sum) {
-      sum = emptyTileYield();
-      map.set(entry.source, sum);
-    }
-    for (const key of TILE_YIELD_KEYS) sum[key] += entry[key];
-  }
-  return map;
-}
-
-// --- what the empire multiplies ---------------------------------------------
-
-/**
- * One percentage a building puts behind a *particular* thing a city is building.
- *
- * The building-scale sibling of `MeterEffect` (`meters.ts`) and the same shape
- * for the same reason: rule 5 applies to modifiers too, so the city panel prints
- * one line per entry and the multiplier below is the fold of the same list. An
- * effect worth zero percent is never in it.
- */
-export interface ProductionModifier {
-  /** Display label: the building's or the resource's name. */
-  source: string;
-  /** The building this line belongs to, or absent for a resource's line. */
-  building?: BuildingId;
-  /** The resource this line belongs to, or absent for a building's line. */
-  resource?: ResourceId;
-  /**
-   * The card that put these hammers behind the build, for the card half of the
-   * list — `CityYieldPercent.card`'s sibling, and carried for its reason: a
-   * percentage that cannot name its source can only be credited to whoever
-   * happened to have flats in the town (the Ledger's ruling of 2026-09-07).
-   */
-  card?: CardId;
-  /** Signed percent, as a figure a surface prints rather than a fraction. */
-  percent: number;
-  /**
-   * Always `'city'` — Entry XVII's city stage. Carried rather than assumed so
-   * that the panel folds one shape for every percentage it prints, and so the
-   * classification is written down where a reader will look for it: a category
-   * bonus is a share of the hammers **this town** puts behind **this build**, so
-   * it multiplies with the town's other bonuses even when the row that grants it
-   * is empire-scoped. Marble is the case that makes the point — "+15% toward
-   * buildings in every city" is still a fact about each city's build, exactly as
-   * a barracks is, and Entry XVII.4 stages an effect by where it applies.
-   */
-  stage: ModifierStage;
-}
-
-/**
- * Everything currently putting extra hammers behind `toward` — the buildings in
- * `BUILDING_IDS` order, then the city's own improved luxuries in resource-table
- * order.
- *
- * Empty for an empty queue, and otherwise a *list over two tables* rather than a
- * lookup of the barracks: both declare the same `{ category, percent }` shape,
- * so the second such building and the first such luxury are data rows and not
- * second branches. There is no barracks case and no marble case anywhere in the
- * simulation. That generalisation is the whole reason the old unit-only
- * `unitProductionBonus` was widened rather than given a sibling — see
- * `buildingData.ts`.
- *
- * `hypothetical` mirrors `cityYields`'s: a barracks the city does not have yet
- * has to be priced by the same function, or the tech screen's "what would this
- * be worth" would quietly answer zero. There is no hypothetical resource,
- * because nothing previews owning one.
- */
-/**
- * Which bonus category a queue row belongs to, or `null` for a row no
- * percentage may name.
- *
- * **The one place a queue item's kind is read as a bonus category**, and the one
- * place the two vocabularies are allowed to differ (`QueueKind` in `state.ts` is
- * what a city may build; `ProductionCategory` in `buildingData.ts` is what a
- * bonus may name). Two rows map to something other than their kind:
- *
- *   · a **project** maps to `null`. Its rate is a printed conversion (Entry
- *     XXVI) — a barracks putting ten percent behind Tithes would be a barracks
- *     minting money — so a city building one carries no category bonus at all,
- *     which is exactly what an empty list means to `cityYields`.
- *   · a **wonder** is a `'building'` row that maps to `'wonder'`. A wonder is
- *     built out of the same basket by the same routine, but it is its own
- *     category so that a percentage can name it (the ratified great-person
- *     legacies say "+30%⚙ toward wonders") — and, symmetrically, so that a
- *     barracks-shaped "+15% toward buildings" does *not* quietly ride on one.
- */
-export function queueCategory(item: QueueItem): ProductionCategory | null {
-  if (item.kind === 'project') return null;
-  if (item.kind === 'building') return isWonder(item.id) ? 'wonder' : 'building';
-  return 'unit';
-}
-
-export function productionModifiers(
-  state: GameState,
-  city: City,
-  toward?: QueueItem | null,
-  hypothetical: readonly BuildingId[] = [],
-): ProductionModifier[] {
-  if (!toward) return [];
-  const category = queueCategory(toward);
-  if (category === null) return [];
-  const list: ProductionModifier[] = [];
-  for (const id of BUILDING_IDS) {
-    if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
-    const bonus = buildingDef(id).productionBonus;
-    if (bonus === undefined || bonus.percent === 0 || bonus.category !== category) continue;
-    list.push({
-      source: buildingDef(id).name,
-      building: id,
-      percent: bonus.percent,
-      stage: 'city',
-    });
-  }
-  for (const line of resourceProduction(state, city, category)) {
-    if (line.percent === 0) continue;
-    list.push({
-      source: line.source,
-      resource: line.resource,
-      percent: line.percent,
-      stage: 'city',
-    });
-  }
-  // A card's hammers behind this category — and behind *this unit*, when the row
-  // narrows to one silhouette (The Great Warring Tribes' mounted line). The item
-  // is passed through so the narrowing is asked of what the city is actually
-  // building; there is no Conscription case anywhere in this file.
-  const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
-  // And behind *this building*, when the row names one (Mimar Sinan's mosques).
-  // `unitType`'s sibling and passed for its reason exactly: the narrowing is
-  // asked of what the city is actually building.
-  const buildingId =
-    toward.kind === 'building' && isBuildingId(toward.id) ? toward.id : undefined;
-  for (const line of cardProduction(state, city, category, unitType, buildingId)) {
-    if (line.percent === 0) continue;
-    list.push({ source: line.source, card: line.card, percent: line.percent, stage: 'city' });
-  }
-  return list;
-}
-
-/**
- * The percentage points these modifiers add to the city stage: summed, never
- * multiplied. The fold of the list above, handed to `withStage` so that the
- * hammers behind a build and the percentages on the yield meet in one place.
- */
-export function modifierPercent(list: readonly ProductionModifier[]): number {
-  let percent = 0;
-  for (const entry of list) percent += entry.percent;
-  return percent;
-}
-
-/**
- * One percentage standing on one of a city's yields, whatever put it there.
- *
- * `ProductionModifier` is the same idea for the *thing being built*; this is the
- * idea for the yield itself, and it exists because since the luxuries pass there
- * are two families of source — the two empire meters and a luxury's
- * `percentYields` — which must land in **two sums, each applied once** (Entry
- * XVII, the modifier doctrine). A gems empire at +10% gold and a contented one
- * at +10% science are lines of one list rather than two multiplications; the
- * stage they carry decides which of the two sums each joins.
- */
-export interface CityYieldPercent {
-  /** Display label: "Happiness +7", "Gems", "Coral · coastal city". */
-  source: string;
-  yield: CityYieldKey;
-  /** Signed whole percent. */
-  percent: number;
-  /**
-   * Which multiplication this line joins. A meter tier is always `'empire'` —
-   * it is the empire's mood, not the town's — and a luxury's is whatever its
-   * scope says (`scopeStage` in `resourceEffects.ts`).
-   */
-  stage: ModifierStage;
-  /** The meter this line came from, or absent for a resource's line. */
-  meter?: MeterId;
-  /** The resource this line came from, or absent for a meter's line. */
-  resource?: ResourceId;
-  /**
-   * The card this line came from — an Order, a Doctrine, a government, a
-   * belief, a legacy, a technology, or **a building** whose own row carries a
-   * `percentYields` clause (a Forum's tenth, Machu Picchu's quarter): every
-   * such percentage reaches this list through `cardPercentYields`, so the id is
-   * the only handle that can say which of them it was.
-   *
-   * Written down for the Ledger, and it is not decoration. Entry XVII multiplies
-   * a town's whole basket at once, so the *gain* over the flats has to be
-   * credited to somebody, and until 2026-09-07 the Ledger credited it to whoever
-   * had put the base flats there — which meant a card paying nothing but a
-   * percentage printed a figure on its own face and added nothing at all to
-   * "your cards" (`docs/flags.md`, ruling jj). The gain is shared by who
-   * supplied the percentages; a percentage that cannot name its source cannot be
-   * shared to it.
-   */
-  card?: CardId;
-}
-
-/**
- * The percentage lines a city inherits from its **empire** rather than earns for
- * itself: the two meter tiers, and the arrears penalty on a treasury under
- * water.
- *
- * A pure function of `(state, playerId)` — nothing about the town is consulted,
- * which is exactly what makes it hoistable and, more usefully, what makes it
- * *shareable between a town and a ghost of it* (`explainBuildingPreview`): the
- * meters sweep `state.cities`, and a shallow copy with one more building in its
- * `buildings` array is not in that list, so the empire's half of a ghost's
- * percentages is the empire's half of the real town's by construction.
- *
- * Two lists rather than one because they are not adjacent: the meters lead
- * `cityYieldPercents` and arrears closes it, with the town's own luxuries and
- * cards between. Order there is presentation and the panel prints it, so the
- * split keeps the seam invisible.
- */
-export interface EmpirePercents {
-  /** The two meter tiers, in `meterEffects` order — the head of the list. */
-  meters: CityYieldPercent[];
-  /** Arrears, or empty on a solvent treasury — the foot of the list. */
-  arrears: CityYieldPercent[];
-}
-
-export function empirePercents(state: GameState, playerId: number): EmpirePercents {
-  const meters: CityYieldPercent[] = [];
-  for (const effect of meterEffects(state, playerId)) {
-    if (effect.growth) continue;
-    for (const id of effect.yields) {
-      meters.push({
-        source: effect.meter === 'happiness' ? 'Happiness' : 'Authority',
-        yield: id,
-        percent: effect.percent,
-        // A tier is the empire leaning on every city at once: the global stage,
-        // whichever meter it came from (Entry XVII.4, and XVII.5's whole point —
-        // the meters are what the global stage is *for*).
-        stage: 'empire',
-        meter: effect.meter,
-      });
-    }
-  }
-  // **Arrears** (the maintenance ruling, 2026-08-28). A treasury under water
-  // costs the empire a quarter of its science and its culture, and it joins
-  // `cityYieldPercents` at the **empire** stage rather than being a
-  // multiplication somewhere downstream — which is the whole of Entry XVII and
-  // the whole reason the ruling asked for it there: −25% arrears on top of a
-  // −15% authority tier is −40% of base, once, and never ×0.75 × 0.85.
-  //
-  // Science and culture and nothing else. Gold is untouched on purpose — an
-  // empire in debt must be able to earn its way out — and so are food and
-  // hammers, because starving a bankrupt empire's cities is a spiral rather than
-  // a penalty. What it taxes is the two things an empire in trouble was
-  // *saving* for.
-  const arrears: CityYieldPercent[] = [];
-  const owner = playerById(state, playerId);
-  if (owner && treasuryInDebt(owner) && RULES.upkeep.debtPercent !== 0) {
-    for (const key of ['science', 'culture'] as const) {
-      arrears.push({
-        source: 'Treasury in debt',
-        yield: key,
-        percent: RULES.upkeep.debtPercent,
-        stage: 'empire',
-      });
-    }
-  }
-  return { meters, arrears };
-}
-
-/**
- * Everything currently multiplying this city's yields: the two meters first, in
- * `meterEffects` order, then the empire's luxuries in resource-table order.
- *
- * Order is presentation, not arithmetic — a line's `stage` decides when it
- * applies, and `stageSumsFor` is what folds the list into the two figures
- * `cityYields` uses. The meters are first because they are the loudest, not
- * because they are first to bite; they are in fact last.
- *
- * The growth stifle is deliberately **not** here. It multiplies food *surplus*
- * toward growth rather than a yield (design ledger, Entry XIV.D.4), which is a
- * different rule with a different consumer — `growthSurplus`, which reads it
- * from `meterEffects` directly.
- */
-export function cityYieldPercents(
-  state: GameState,
-  city: City,
-  empire: EmpirePercents = empirePercents(state, city.ownerId),
-): CityYieldPercent[] {
-  const list: CityYieldPercent[] = [...empire.meters];
-  for (const line of resourcePercentYields(state, city)) {
-    if (line.percent === 0) continue;
-    list.push({
-      source: line.source,
-      yield: line.yield,
-      percent: line.percent,
-      stage: line.stage,
-      resource: line.resource,
-    });
-  }
-  // And the empire's law. A card joins this list with a stage exactly as a
-  // luxury does — never a multiplication of its own afterwards (Entry XVII) —
-  // so a Doctrine that is the third source of a percentage on food is a third
-  // line in one of two sums.
-  for (const line of cardPercentYields(state, city)) {
-    if (line.percent === 0) continue;
-    list.push({
-      source: line.source,
-      yield: line.yield,
-      percent: line.percent,
-      stage: line.stage,
-      card: line.card,
-    });
-  }
-  // And the arrears, at the foot — see `empirePercents`, which is where the two
-  // empire-scale lines live now that a screen may want them hoisted.
-  list.push(...empire.arrears);
-  return list;
-}
-
-/**
- * The percentages on one yield, as Entry XVII's two sums. The only sum of them,
- * and the only shape anything downstream is given: there is deliberately no
- * function returning "the total percentage on gold", because since the doctrine
- * that number does not exist — +10% city and +10% empire is ×1.21, and a caller
- * handed 20 would be a caller quietly reinstating the old single pool.
- */
-export function stageSumsFor(
-  list: readonly CityYieldPercent[],
-  yieldId: CityYieldKey,
-): StageSums {
-  return foldStages(list, (entry) => entry.yield === yieldId);
-}
-
-/**
- * Every multiplication standing on this city right now, folded per yield into
- * Entry XVII's two stages — the figures `cityYields` multiplies by and the
- * figures the panel prints as its two stage lines.
- *
- * One evaluator for both, which is the doctrine's rule 6 taken seriously: a
- * panel that summed the stages itself would be a second implementation of the
- * staging, and the first thing a second implementation does is disagree about
- * the hammers. `toward` is why it could: the city stage on **production**
- * carries whatever the buildings and seams put behind *this particular build*
- * (`productionModifiers`), so the stage sums are a fact about the pair (city,
- * item) exactly as `cityYields` is.
- *
- * `percents` may be handed in by a caller that already has the list — a screen
- * pricing forty rows against one town (`CityQuote`). It is the same call this
- * would make and it is *not* a fact about the item, which is the whole reason it
- * can be hoisted out of a loop over items; see `cityQuote` for its lifetime.
- */
-export function cityStageSums(
-  state: GameState,
-  city: City,
-  toward?: QueueItem | null,
-  hypothetical: readonly BuildingId[] = [],
-  percents: readonly CityYieldPercent[] = cityYieldPercents(state, city),
-): Record<CityYieldKey, StageSums> {
-  const hammers = modifierPercent(productionModifiers(state, city, toward, hypothetical));
-  // The Great Warring Tribes' first clause, and the only place a card takes a
-  // *meter line* off the table rather than adding one. It is asked here because
-  // here is the one evaluator that knows both the empire's percentages and what
-  // the town is building — "a torn writ no longer slows production toward units"
-  // is a fact about the pair (city, item), which is exactly what `cityStageSums`
-  // is a fact about. The line is dropped, not zeroed, so the panel stops
-  // printing a malus that is not being charged.
-  const exemptUnits =
-    toward?.kind === 'unit' && cardMeterFlag(state, city.ownerId, 'authorityUnitProductionExempt');
-  const live = exemptUnits
-    ? percents.filter(
-        (line) => !(line.meter === 'authority' && line.yield === 'production' && line.percent < 0),
-      )
-    : percents;
-  const sums = {} as Record<CityYieldKey, StageSums>;
-  for (const key of CITY_YIELD_KEYS) {
-    const staged = stageSumsFor(live, key);
-    // The hammers join the city stage rather than standing beside it: a barracks
-    // is a fact about the town in exactly the way marble and a market are.
-    sums[key] = key === 'production' ? withStage(staged, 'city', hammers) : staged;
-  }
-  return sums;
-}
-
-/**
- * Everything a city produces this turn: the centre, plus every worked tile, plus
- * the flat effects of its buildings.
- *
- * Science and culture are not tile yields at all — they come from population and
- * from buildings — which is why they appear here and nowhere in the terrain
- * tables. Each building's `sciencePerPop` is floored *on its own* so that two
- * half-science buildings pay for two halves rather than rounding into a free
- * point, and the population term is floored the same way for the same reason.
- *
- * Reads `city.workedTiles` rather than re-assigning, so a caller can ask what a
- * city *currently* makes without changing it. The turn pipeline assigns first.
- *
- * `hypothetical` is the one-evaluator hook (Entry VIII): buildings the city does
- * *not* have, counted as if it did. It exists so that "what would a library be
- * worth here?" is answered by the function the turn pipeline banks — a preview
- * computed by a second implementation is a preview that can lie. Callers hand it
- * a candidate list and diff the two results; nothing is cloned and nothing is
- * mutated. See `buildingYieldDelta` in `tech.ts`.
- *
- * `toward` is what the city is putting its hammers behind, and the *only* thing
- * it changes is production. A barracks pays a share of the city's hammers toward
- * a unit and nothing toward a monument (`productionBonus`), so the honest
- * production rate is a fact about the pair rather than about the city — and it
- * is answered here, inside the one evaluator, rather than by a second
- * multiplication somewhere downstream. `collectYields` banks at the rate for
- * whatever is at the *front* of the queue, `turnsToBuild` divides by the rate for
- * the item it is asked about, and the panel prints that same number with the
- * modifier named beside it (`productionModifiers`). Omitting it is the reading
- * for anything asking about the city rather than about a build — science, gold,
- * the top bar's totals — and costs nothing, because a city with no such building
- * has one rate either way.
- *
- * Which is why the *body* of this function is one multiplication and the flats
- * live next door in `cityQuote`: everything above the staging is a fact about
- * the town and nothing above it is a fact about the item. A caller with one
- * town and many rows takes the quote once and hands it back; the fold — this
- * function — is unmoved, and the printed number is still its answer.
- *
- * The empire's thumb on the scale
- * ------------------------------
- * Happiness and authority land *here*, at the very end, and that is the whole of
- * how they touch the economy (design ledger, Entry XIV). Since Entry XVII they
- * land in the *second* of two multiplications: everything the town did for
- * itself — its buildings' category bonuses, a seam it holds, a coastal
- * signature — is summed and applied first, and then the empire's mood multiplies
- * the result, `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, with **no
- * rounding anywhere** (`applyStages` in `modifiers.ts`).
- *
- * Additive within a stage and multiplicative across the pair, which is the whole
- * doctrine: two city bonuses of +10% and +15% are +25% and never ×1.10 × 1.15,
- * while a +10% writ on top of that +25% is worth 37.5 points of base rather than
- * 35 — a global modifier scales with how well-built the cities under it are.
- * Exactness is the same rule the science-per-pop terms above keep since batch X,
- * so a +10% on 7 hammers is 7.7 and the seven tenths reach the basket.
- *
- * Applying it inside this function rather than in the turn phase is the point:
- * `turnsToBuild`, the city panel, the top bar's totals, the tech screen's rate
- * and the pipeline that banks the numbers all read one evaluator, so an empire
- * whose writ is overstretched sees the slower build estimate *before* it ends
- * the turn. The city panel prints the active modifiers as their own lines, which
- * is rule 5 read at empire scale: the multiplied number is never shown without
- * the reason beside it.
- */
-export function cityYields(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-  toward?: QueueItem | null,
-  quote: CityQuote = cityQuote(state, city, hypothetical),
-): CityYields {
-  // Entry XVII, and the only place in the simulation a yield meets a percentage.
-  // The hammers behind *this build* join the city stage rather than standing
-  // beside it, because a barracks is a fact about the town in exactly the way
-  // marble and a market are; the meters wait for the second multiplication.
-  const sums = cityStageSums(state, city, toward, hypothetical, quote.percents);
-  const total: CityYields = { ...quote.flats };
-  for (const key of CITY_YIELD_KEYS) total[key] = applyStages(total[key], sums[key]);
-  return total;
-}
-
-/**
- * Everything about a city's yields that is **not** about what it is building:
- * the flats before any percentage has touched them, and the percentages
- * themselves.
- *
- * `cityYields` is this plus one multiplication. The split exists because the
- * two halves are asked at wildly different rates: a screen pricing a build list
- * asks "how long would *this* take" of forty rows against one town, and the
- * only thing that differs between the forty is `productionModifiers` — the
- * centre, the worked tiles, the luxuries, the routes, the palace, the buildings
- * and, above all, `cityYieldPercents` (which walks the whole empire twice for
- * the two meters) are the same answer forty times over. Hoisting them is
- * `tileOwnerField`'s bargain read one system across: the loop pays for the
- * empire once instead of once per row.
- *
- * **It is an input, never an answer.** Nothing prints a quote; the printed
- * number is still `cityYields`', computed by the one arithmetic, off a quote
- * handed in rather than one taken. That is rule 5's "a hoisted figure must be
- * the same function's answer handed in" kept honestly: what is hoisted here is
- * the *ingredients*, and the fold stays where it was.
- *
- * **Its lifetime is one sweep** — `zocField`'s and `tileOwnerField`'s rule, and
- * for their reason. A quote is a photograph of one city under one `hypothetical`
- * at one instant; hand it back after anything has been banked, claimed, chopped
- * or slotted and it will answer with the town the state has moved past. Take
- * one at the top of a loop, spend it inside, and let it go.
- */
-/**
- * **One labelled line of a town's flats** — the artefact of batch E2, and the
- * thing four surfaces used to rebuild for themselves
- * (`docs/audit/evaluations.md` §3a).
- *
- * Rule 5 says a total is the fold of a labelled list and never computed beside
- * it. That held inside every `explain…` and stopped at `cityQuote`, which folded
- * eleven lists into one bag of six numbers and threw the labels away — so the
- * city panel, the Ledger, the ghost-diff and the bot each walked the same eleven
- * sources again to get them back, and every attribution bug of the last two days
- * was one of those four copies disagreeing with the fold. The list is now what
- * `cityQuote` *returns*, `flats` is `foldQuoteLines` of it, and a reader reads.
- *
- * Six voices on every line, because a reader asks one question of all of them;
- * the sources that cannot pay in a voice carry nought there.
- */
-export interface CityQuoteLine extends CityYields {
-  /**
-   * Which of `docs/yields.md`'s numbered town steps this line came out of, 1–10
-   * — the sequence of record, carried on the line rather than inferred from a
-   * label. A reader wanting "what do the buildings pay" filters on 8 and does
-   * not have to know which function that was.
-   */
-  step: number;
-  /** The evaluator's own label — "Granary", "Silk · improved", "3 scholars". */
-  source: string;
-  /** The card that pays it, when one does (`CardYieldLine.card`). */
-  card?: CardId;
-  /** The building whose own row pays it, when one does. */
-  building?: BuildingId;
-  /** The seam that pays it, when one does. */
-  resource?: ResourceId;
-  /**
-   * Which slice of a breakdown this line belongs in, decided **here** and once,
-   * by the id and never by the label (`classifyCard`, `ledgerClass.ts`). It is a
-   * pure function of the line's own source, which is what lets the Ledger class
-   * a town's basket without walking the town again.
-   */
-  class: LedgerClass;
-}
-
-/**
- * The six voices a list of lines adds up to — **the** sum of one, and what
- * `CityQuote.flats` is.
- *
- * Walked in the list's own order (CLAUDE.md rule 2), which is `cityQuote`'s
- * order, which is `docs/yields.md`'s.
- */
-export function foldQuoteLines(lines: readonly CityQuoteLine[]): CityYields {
-  const total = emptyCityYields();
-  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
-  return total;
-}
-
-export interface CityQuote {
-  /**
-   * **The labelled list the flats are the fold of** — steps 1–10 of
-   * `docs/yields.md`, in that order. See `CityQuoteLine`.
-   */
-  lines: readonly CityQuoteLine[];
-  /**
-   * The six yields as they stand before Entry XVII's two multiplications — the
-   * fold of every flat source, in `cityQuote`'s order.
-   *
-   * `foldQuoteLines(lines)` and nothing else: rule 5's "never computed beside
-   * the list" said of the town, which is what batch E2 was for.
-   */
-  flats: CityYields;
-  /** `cityYieldPercents`' list for this town, which is a fact about the town. */
-  percents: readonly CityYieldPercent[];
-  /**
-   * The empire's half of that list, kept apart so it can be lent to a *ghost*
-   * of this town — see `empirePercents` for why that is exact rather than
-   * approximate.
-   */
-  empire: EmpirePercents;
-}
-
-export function cityQuote(
-  state: GameState,
-  city: City,
-  hypothetical: readonly BuildingId[] = [],
-  empire: EmpirePercents = empirePercents(state, city.ownerId),
-): CityQuote {
-  const lines: CityQuoteLine[] = [];
-  /** One line, pushed. The six voices default to nought; a source fills its own. */
-  const say = (
-    step: number,
-    source: string,
-    cls: LedgerClass,
-    bag: Partial<CityYields>,
-    handles: { card?: CardId; building?: BuildingId; resource?: ResourceId } = {},
-  ): void => {
-    lines.push({
-      step,
-      source,
-      class: cls,
-      ...handles,
-      food: bag.food ?? 0,
-      production: bag.production ?? 0,
-      gold: bag.gold ?? 0,
-      science: bag.science ?? 0,
-      culture: bag.culture ?? 0,
-      faith: bag.faith ?? 0,
-    });
-  };
-
-  // **1 — the centre**, as two lines rather than one, because they are two
-  // different sentences and a breakdown that merged them would credit the land
-  // with a citizen's beaker. The town's hex pays what it beats the base city
-  // yield by (an excess — `explainCentreYield`), and that is the ground's; what
-  // a settlement makes *by being one* belongs to no tile, no building and no
-  // card, which is exactly what `other` means.
-  const centre = centreYield(state, city, hypothetical);
-  say(1, CENTRE_SOURCE, 'tiles', centre);
-  // Exact since batch X: at `sciencePerPop` 0.5 a size-1 town banks half a
-  // beaker, where the old floor banked nothing at all.
-  say(1, TOWN_ITSELF_SOURCE, 'other', {
-    science: city.population * CITIES.sciencePerPop,
-    culture: CITIES.baseCulturePerCity,
-  });
-
-  // The candidate reaches the *ground* as well as the shelves: a building whose
-  // whole worth is a tile line (a lighthouse's coastal food) is invisible to a
-  // what-if that only ghosts `explainCityBuildings`. Empty for every real
-  // reading, which is every caller but the two hypothetical ones.
-  const ctx = cityContext(state, city, hypothetical);
-  for (const cell of city.workedTiles) {
-    const tile = getTileAt(state.map, cell.col, cell.row);
-    if (!tile) continue;
-    // **2 — the hex, split by who dressed it.** The later Order pools pay
-    // through `tileYield`, so an Order paying a hammer on every hill is the
-    // whole of what a late deck does, and a hex filed whole under the land would
-    // show that deck paying nothing (`docs/flags.md`, ruling jj). Each `add`
-    // line that names a card is lifted out under that card's class and the
-    // ground keeps **the fold minus exactly those lines** — never a second sum
-    // of the remainder, because `tileYieldOf` is the one place a `base`/
-    // `override` list becomes a number and a hill replaces the grass under it.
-    const hexLines = explainTileYield(tile, ctx);
-    const ground = tileYieldOf(tile, ctx, hexLines);
-    let label = HEX_SOURCE;
-    for (const entry of hexLines) {
-      if (entry.kind !== 'add') label = entry.source;
-      if (entry.card === undefined || entry.kind !== 'add') continue;
-      const into = classifyCard(entry.card);
-      if (into === 'tiles') continue;
-      say(2, entry.source, into, entry, { card: entry.card });
-      for (const key of TILE_YIELD_KEYS) ground[key] -= entry[key];
-    }
-    say(2, label, 'tiles', ground);
-  }
-
-  // **3 — the cards' city lines.** What this empire's Statecraft cards pay this
-  // town (`cardCityYields`), each under the card that spoke, which is what lets a
-  // reader put an Order's coin in the deck's slice without walking the deck.
-  for (const line of cardCityYields(state, city)) {
-    say(3, line.source, classifyCard(line.card), line, { card: line.card });
-  }
-
-  // **4 — the luxuries' city lines.** What the city's own improved seams pay it
-  // (`resourceEffects.ts`). After the cards and before the buildings only because
-  // a seam in the ground is older than a market built over it; the sum is the
-  // same in any order. A seam's coin is the land's.
-  for (const line of cityResourceYields(state, city)) {
-    say(4, line.source, 'tiles', line, { resource: line.resource });
-  }
-
-  // **5 — the specialists.** What the town's guilds pay it (Entry XLVIII), one
-  // line per family that has anybody — folded here rather than added downstream
-  // so a scholar's beakers are staged by Entry XVII exactly as a library's are,
-  // reach the pool through the same `collectYields`, and appear in the panel's
-  // ledger with their reason beside them. A specialist is a citizen who stopped
-  // working a hex: the tile he left is already missing from `workedTiles` above,
-  // so this is a substitution and never a bonus — and he is filed beside the
-  // stones that seated him, which is the city panel's own reading.
-  for (const line of citySpecialistYields(city)) say(5, line.source, 'buildings', line);
-
-  // **6 — the routes arriving.** What the caravans sent *to* this town are
-  // bringing (`explainRouteYield` in `routeYields.ts`) — off each caravan's
-  // *origin* buildings, since 2026-08-27's reversal pays the destination and
-  // reads the origin. *Inside* this function rather than beside it, so a route's
-  // food is staged like every other flat (Entry XVII) and its gold reaches the
-  // treasury through the same `collectYields` as the market's.
-  //
-  // **All five voices a `RouteYieldLine` carries**, and that is the whole of the
-  // fix of 2026-09-06: the line grew science and culture with the international
-  // ruling and this loop still folded the three it was born with, so
-  // Ledger-Keepers' beaker and note were computed, printed by the trade panel,
-  // and then dropped on the way into the town's basket. A fold that reads some of
-  // a list is rule 5 broken quietly. Faith is the one voice absent, because no
-  // route pays it and the line has no field for it.
-  for (const line of cityRouteYields(state, city)) say(6, line.source, 'trade', line);
-
-  // **7 — the palace.** The seat of government, a line like every other rather
-  // than a term added on the side, so the palace's coin is staged like a
-  // market's (Entry XVII) and reaches the treasury through the same
-  // `collectYields`. Empty in every city but one.
-  for (const line of explainPalaceYield(state, city)) say(7, line.source, 'buildings', line);
-
-  // **8 — the buildings.** `explainCityBuildings` is the only place a building's
-  // worth is read — a candidate the city already has is skipped in there, because
-  // a preview that promised a second library would be a preview that lies. A
-  // wonder is told from an ordinary building by `isWonder` and not by a name.
-  for (const entry of explainCityBuildings(city, hypothetical)) {
-    say(
-      8,
-      entry.source,
-      isWonder(entry.building) ? 'wonders' : 'buildings',
-      {
-        food: entry.food,
-        production: entry.production,
-        gold: entry.gold,
-        // Per *entry* rather than per building, and exact since batch X: two
-        // half-science sources pay for two halves and both halves are kept. It
-        // rides on the line's own science because the town banks one figure —
-        // the split between the row's beaker and the citizens' is a fact about
-        // the row, which `BuildingYieldContribution` still carries.
-        science: entry.science + city.population * entry.sciencePerPop,
-        culture: entry.culture,
-        // The shrine and the temple are why this voice is here: a building may
-        // pay faith since 2026-08-26, and faith is banked into
-        // `Player.faithPool` by `collectYields` like every other source of it.
-        faith: entry.faith,
-      },
-      { building: entry.building },
-    );
-  }
-
-  // **9 — the cards' building shares.** What the deck adds to those same shelves
-  // — "your faith buildings give half again", and the doublers. Directly after
-  // the buildings because it is a share of exactly the block above it, and
-  // *before* the conversions because a conversion takes a share of the town's
-  // whole fold and this is part of it. A line with no card is the fallback shape
-  // and files under the stones.
-  for (const line of cardBuildingYields(state, city, hypothetical)) {
-    say(
-      9,
-      line.source,
-      line.card === undefined ? 'buildings' : classifyCard(line.card),
-      line,
-      { ...(line.card === undefined ? {} : { card: line.card }) },
-    );
-  }
-
-  // **10 — the conversions.** A share of what the town makes, paid again as
-  // another voice — Thalassocracy's tenth of the harvest, minted. **Last**, and
-  // that is the whole of its stage (`CardYieldConversionEffect`): it is the one
-  // card line whose subject is this very fold, so every flat above it is already
-  // in hand and the share it pays is itself an ordinary flat, staged by Entry
-  // XVII like a market's coin. The fold it reads is the list so far, which is
-  // what `foldQuoteLines` is for.
-  for (const line of cardYieldConversions(state, city, foldQuoteLines(lines))) {
-    say(10, line.source, classifyCard(line.card), line, { card: line.card });
-  }
-
-  // The percentages are gathered, never applied: the multiplication is `cityYields`'
-  // one line, and it is the only place in the simulation a yield meets a percentage.
-  return {
-    lines,
-    // Rule 5, at the town's scale: the fold of the list and never a total kept
-    // beside it (batch E2). Same additions, same order, one sum.
-    flats: foldQuoteLines(lines),
-    percents: cityYieldPercents(state, city, empire),
-    empire,
-  };
 }
 
 /** What the citizens eat: `foodPerCitizen` each. */
@@ -3674,7 +1706,7 @@ export function foldGrowthPercent(lines: readonly GrowthPercentLine[]): number {
 export function growthSurplus(
   state: GameState,
   city: City,
-  yields: CityYields = cityYields(state, city),
+  yields: CityYields = foldCity(state, city),
 ): number {
   let surplus = yields.food - foodUpkeep(city);
   if (growthIsHalted(city)) surplus = Math.min(0, surplus);
@@ -3765,7 +1797,7 @@ export function turnsToFill(remaining: number, perTurn: number): number | null {
  *
  * Three things happen to the harvest on the way, in this order:
  *
- *   1. the city makes its culture (`cityYields`, which has already had the
+ *   1. the city makes its culture (`foldCity`, which has already had the
  *      happiness bonus and any authority malus applied to the *yield*);
  *   2. the writ's border factor multiplies it (`borderFactor`) — the same
  *      ±10/20% tier the meters already compute, summed-then-applied like every
@@ -3808,7 +1840,7 @@ export interface BorderGrowth {
 export function borderGrowth(
   state: GameState,
   city: City,
-  yields: CityYields = cityYields(state, city),
+  yields: CityYields = foldCity(state, city),
 ): BorderGrowth {
   const effects = meterEffects(state, city.ownerId);
   // The one card family that can thaw a frozen border: Emergency Powers, gated
@@ -4192,12 +2224,12 @@ export function queueItemName(item: QueueItem): string {
  * have to assume nothing ahead of it changes price, and a settler ahead of it in
  * an empire mid-expansion does exactly that (see `advanceProduction`).
  *
- * `quote` is the city's `cityQuote`, for a caller asking this of many rows at
+ * `quote` is the city's `explainCity`, for a caller asking this of many rows at
  * once — the build list asks it of every unit, every building and every queue
  * row on a single town, and the empire underneath the answer is the same every
- * time. It changes no arithmetic: the rate is still `cityYields`' production
+ * time. It changes no arithmetic: the rate is still `foldCity`' production
  * for *this* item, still folded by that one function, and the quote is only the
- * half of its ingredients the item cannot change. See `CityQuote` for the
+ * half of its ingredients the item cannot change. See `CityReading` for the
  * lifetime that makes handing one in safe.
  */
 export function turnsToBuild(
@@ -4205,7 +2237,7 @@ export function turnsToBuild(
   city: City,
   item: QueueItem,
   index: number,
-  quote?: CityQuote,
+  quote?: CityReading,
 ): number | null {
   const cost = queueItemCost(state, city.ownerId, item);
   if (cost === null) return null;
@@ -4213,551 +2245,8 @@ export function turnsToBuild(
   // The rate *for this item*: a barracks city fills its basket faster while a
   // unit is at the front and at the plain rate otherwise, so an estimate that
   // divided by the city's unmodified production would promise a schedule the
-  // basket beats. See `cityYields`'s `toward`.
-  return turnsToFill(cost - banked, cityYields(state, city, [], item, quote).production);
-}
-
-// --- turn phases ------------------------------------------------------------
-
-/**
- * `collectYields`: re-assign every city's citizens, then bank what they made.
- *
- * Cities are walked in `state.cities` order — the order they were founded — and
- * so is every other phase. That is the documented design: each phase sweeps all
- * cities before the next phase begins, so no city can grow off yields a later
- * city has not collected yet, and the whole turn is one pass per rule rather
- * than one pass per city.
- *
- * The hammers are banked at the rate for whatever is at the **front** of the
- * queue, which is where a per-category modifier lands: a barracks pays its ten
- * percent into the basket on the turns the city is actually building a unit, and
- * nothing on the turns it is building a granary. That is the Civ reading, it is
- * the only one a single basket can express, and it is the rate `turnsToBuild`
- * quoted — one call to one evaluator, so the estimate and the bank agree by
- * construction rather than by inspection.
- *
- * **Why the phase takes its own readings** (batch E2). Every *reader* now
- * subscribes to `readCity`/`readEmpire`, remembered on `state.revision`
- * (`readings.ts`), and this phase deliberately does not. Two reasons, and both
- * are rules rather than reluctance:
- *
- *   · `readings.ts` imports this file, so this file importing it would be a
- *     runtime cycle — `test/mapgen/moduleCycles.test.ts` is the gate and the
- *     symptom is "X is not a function" everywhere (CLAUDE.md's leaf rule);
- *   · the two loops below price **every** town against a treasury nothing has
- *     banked into yet, and `explainEmpireLines` is asked afterwards, against the
- *     treasury the towns just filled. A reading taken once for both would price
- *     the arrears twice from one side of that line, which is the very thing the
- *     two-loop split exists to prevent. A revision is one number for the whole
- *     board; the *inside* of a phase is where the board is halfway moved, and
- *     nothing there may read a memo of it.
- */
-export function collectYields(state: GameState, report?: TurnReport): void {
-  // **Every city is priced before any city banks**, and that is a rule rather
-  // than a tidy-up (the maintenance ruling, 2026-08-28). `cityYieldPercents` now
-  // reads the treasury — a seat in arrears loses a quarter of its science and
-  // culture — so a single interleaved loop would price the first town against a
-  // treasury of −20 and the fourth against the +9 the first three had just paid
-  // in. The debt penalty would then depend on founding order, and the panel,
-  // which cannot know how far through the sweep it is, would be wrong about
-  // every town but one. Two loops make the whole turn agree on one answer to
-  // "was this empire in debt", which is the only honest reading of an empire
-  // -wide fact.
-  //
-  // The order of both loops is `state.cities`, which is founding order, which is
-  // what every other phase sweeps in; nothing in the first loop reads anything
-  // the first loop writes.
-  const priced: { city: City; yields: CityYields }[] = [];
-  for (const city of state.cities) {
-    assignCitizens(state, city);
-    priced.push({ city, yields: cityYields(state, city, [], city.queue[0]) });
-  }
-
-  for (const { city, yields } of priced) {
-    // Upkeep, the settler halt and the happiness stifle, all in one function so
-    // that what the panel promised is what the basket receives.
-    const surplus = growthSurplus(state, city, yields);
-    city.foodBasket += surplus;
-    // **Reported here, whether or not the basket runs dry** — a deficit is a
-    // deficit, and a settler-halted queue shields nothing (`growthIsHalted`
-    // only ever clamps a *positive* surplus, so a city already underwater
-    // reports exactly the same loss with or without one at the front of its
-    // queue). `growCities`, later in this resolution, corrects `shrank` and
-    // `population` on this same entry if the deficit actually starves the
-    // town — see `StarvationReport`.
-    if (surplus < 0) {
-      report?.starved.push({
-        cityId: city.id,
-        ownerId: city.ownerId,
-        lost: -surplus,
-        shrank: false,
-        population: city.population,
-        ejected: [],
-      });
-    }
-    city.hammerBasket += yields.production;
-    // Only the border basket answers to the writ — see `borderGrowth`. The
-    // empire's culture pool below is banked at the full rate, because authority
-    // owns land and has no opinion about civics.
-    city.culture += borderGrowth(state, city, yields).perTurn;
-
-    const player = playerById(state, city.ownerId);
-    if (!player) continue;
-    player.gold += yields.gold;
-    player.sciencePool += yields.science;
-    player.culturePool += yields.culture;
-    // The faithful gather, and augurs are what they gather for — see
-    // `Player.faithPool` and `explainPurchaseCost`.
-    player.faithPool += yields.faith;
-    // **What the caravans carried**, counted once a turn for the Richest Roads
-    // reckoning (design ledger Entry VI). Counted *here* and nowhere else,
-    // because this is the one place a route's yields are banked rather than
-    // previewed: `cityRouteYields` is folded into `cityQuote` on every estimate
-    // the panel draws, and a counter raised there would count a hover. Reset at
-    // the age's turn-over — see `Player.routeYieldsThisAge`.
-    for (const line of cityRouteYields(state, city)) {
-      player.routeYieldsThisAge += line.food + line.production + line.gold;
-    }
-  }
-
-  // **The empire's own lines, banked once per player** after every city has
-  // collected — the whole difference between an `empireYields` signature and a
-  // `cityYields` one, and since the empire stage ruling (batch H19) one list
-  // rather than four loops.
-  //
-  // `explainEmpireLines` is that list, in the order this phase has always banked
-  // in: the luxuries' empire signatures, the caravans abroad, the treasury's
-  // ledger, then the cards' empire-scale payouts — last, for the reason that is
-  // the whole of `rateConversion`: a card that pays "per faith gained per turn"
-  // has to be asked *after* everything that pays faith this turn has paid it, or
-  // The Tithe would be converting last turn's rate. And at the foot, the empire
-  // stage: the additive lines fold first and the meters multiply that fold once,
-  // exactly as Entry XVII multiplies a town's basket. What banks is the fold of
-  // the list, so the top bar, the Ledger, the ghost-diff and the bot's margin
-  // read the very figure this line moves.
-  //
-  // Walked in `state.players` order. A domestic route pays its *destination*, so
-  // every voice it carries landed in a town's fold above; a route ending abroad
-  // pays the empire that **sent** it and has no town to be banked in, which is
-  // why one side of it is here and the other is not.
-  for (const player of state.players) {
-    const lines = explainEmpireLines(state, player.id);
-    const empire = foldEmpireLines(lines);
-    player.gold += empire.gold;
-    player.sciencePool += empire.science;
-    player.culturePool += empire.culture;
-    player.faithPool += empire.faith;
-    // **What the caravans carried**, counted here for the reason the city loop
-    // counts its own: this is the one place these figures are *banked* rather
-    // than previewed. The route lines' own figures, before the stage — a
-    // reckoning of what the caravans brought in is a fact about the caravans,
-    // and the city loop above counts its half the same way (`cityRouteYields`,
-    // before that town's two multiplications).
-    for (const line of lines) {
-      if (line.origin !== 'route') continue;
-      player.routeYieldsThisAge += line.gold + line.science + line.culture;
-    }
-  }
-
-  // And **last of all**, the creditors. Placed at the very end of the phase for
-  // one reason: "is this empire deep enough in arrears to lose a piece" has to
-  // be asked of the treasury this turn actually left it with, after every coin
-  // it earned and every coin it owed. A sweep placed earlier would take a
-  // warrior off an empire whose caravans were about to come home.
-  collectArrears(state, report);
-}
-
-/**
- * One unit per empire per turn, taken by the creditors — the other half of "the
- * treasury may go negative" (the user's ruling, 2026-08-28).
- *
- * Below `rules.upkeep.disbandBelow` a seat loses the piece it is paying most for
- * (`disbandCandidate`, which owns the ordering and the exemptions). **One per
- * turn and never a loop**: disbanding banks no gold, it only lowers next turn's
- * bill, so "until the treasury recovers" would mean "until the army is gone".
- * An empire that keeps overspending keeps losing one a turn, which is a spiral a
- * player can see coming and can stop.
- *
- * It reports rather than announces, which is `arriveOnTile`'s discipline: by the
- * time anybody reads the list the pieces are off the board, and `removeUnit` has
- * already closed their owners' eyes. The sink is optional so that a caller with
- * nothing to tell — a test, a preview — passes nothing.
- *
- * The wild is skipped, in `disbandCandidate`, which is where every other
- * "the wild does not do that" refusal for this system lives.
- */
-function collectArrears(state: GameState, report?: TurnReport): void {
-  for (const player of state.players) {
-    const taken = disbandCandidate(state, player.id);
-    if (!taken) continue;
-    removeUnit(state, taken.unitId);
-    report?.disbanded.push({
-      unitId: taken.unitId,
-      ownerId: player.id,
-      type: taken.type,
-      upkeep: taken.gold,
-    });
-  }
-}
-
-/**
- * What one empire banked this turn, per voice — the input every `rateConversion`
- * reads (`statecraft.ts`).
- *
- * The fold of the same `cityYields` the phase above banked, asked once more
- * rather than threaded through: threading would mean `collectYields` carrying an
- * accumulator through two loops for the benefit of one card family, and this is
- * six additions per city. It is the *base* rate deliberately — before any
- * conversion pays anything — which is what stops two cards feeding each other.
- *
- * **Two readers now** (the master-list cut of 2026-08-31), and the second is
- * `empireRateReading` below: a windfall whose figure is quoted in *turns* (The
- * Lyceum's extra turn of culture) has to ask the same books a `rateConversion`
- * asks, or "a turn of culture" would mean two different numbers depending on
- * which surface said it.
- */
-function empireRates(state: GameState, playerId: number): {
-  faithPerTurn: number;
-  culturePerTurn: number;
-  goldPerTurn: number;
-  sciencePerTurn: number;
-  capitalFaithPerTurn: number;
-  followingFaithPerTurn: number;
-  productionPerTurn: number;
-  foodPerTurn: number;
-} {
-  const rates = {
-    faithPerTurn: 0,
-    culturePerTurn: 0,
-    goldPerTurn: 0,
-    // The fourth voice, and the one no `rateConversion` asks for: a great
-    // scholar's act is quoted in *turns of your own science* (the nerf pass of
-    // 2026-09-03), and it reads this fold rather than summing the cities a
-    // second time. See `RateReading.sciencePerTurn`.
-    sciencePerTurn: 0,
-    capitalFaithPerTurn: 0,
-    followingFaithPerTurn: 0,
-    // The two voices with no empire bank at all — `collectYields` has nowhere to
-    // put a realm's food or hammers, so they are summed here for the readers that
-    // ask what the books *say* rather than what they hold (`CountKind`'s
-    // `empireYield`, Horology's "science equal to your empire-wide production").
-    // Nothing is banked off them; see `RateReading`.
-    productionPerTurn: 0,
-    foodPerTurn: 0,
-  };
-  // Theocracy's tithe reads **one town's** faith, and it is read off the same
-  // sweep rather than by a second pass: the capital's yields are already in
-  // hand on the turn the loop reaches it, so "what did the capital bank" costs
-  // one comparison. It is deliberately the *city's* faith and not the empire's
-  // share of it — a signature about the temple city is about the temple city.
-  const capital = capitalCityOf(state, playerId);
-  // The empire's half of every town's percentages, taken once (2026-08-29).
-  // `cityQuote`'s default is `empirePercents(state, ownerId)` and every city in
-  // this loop has the same owner, so the default was the same two meter sweeps
-  // repeated once per town — for the phase that banks the turn *and* for the
-  // top bar's headline, which reads this list on every accepted command. The
-  // figure is unchanged by construction: `empirePercents` is a pure function of
-  // `(state, playerId)` and this is the very call the default would have made.
-  const percents = empirePercents(state, playerId);
-  // Which faiths this empire is *paid by* — the holy cities it holds — hoisted
-  // once for the loop below, `zocField`'s bargain at the scale of a sweep.
-  const held = heldReligions(state, playerId).map((religion) => religion.id);
-  for (const city of state.cities) {
-    if (city.ownerId !== playerId) continue;
-    const yields = cityYields(state, city, [], city.queue[0], cityQuote(state, city, [], percents));
-    rates.faithPerTurn += yields.faith;
-    rates.culturePerTurn += yields.culture;
-    rates.goldPerTurn += yields.gold;
-    rates.sciencePerTurn += yields.science;
-    rates.productionPerTurn += yields.production;
-    rates.foodPerTurn += yields.food;
-    if (capital && city.id === capital.id) rates.capitalFaithPerTurn += yields.faith;
-    // Cuius Regio's congregation, off the same sweep for the capital's reason:
-    // the town's yields are already in hand, so "what did my faithful towns
-    // bank" costs one comparison. The banner is the town's own derived reading
-    // (`cityReligion`) against the faiths this empire is *paid by*
-    // (`heldReligions` — the holy city's), so a conquered shrine moves the
-    // sentence with it and nothing here can disagree with what the town flies.
-    const kept = cityReligion(city);
-    if (kept !== null && held.includes(kept)) rates.followingFaithPerTurn += yields.faith;
-  }
-  // **The empire's standing lines, staged** (batch H19). The luxuries' empire
-  // signatures, the caravans abroad and the treasury's whole ledger join the
-  // *base* rate for the reason every other line here does: a card that pays "per
-  // gold gained per turn" has to read the gold this turn actually produced, and
-  // a connected empire's roads — and since the maintenance ruling its army and
-  // its institutions — are part of it. All of them, maintenance included: a
-  // conversion reads what the treasury *made*, and an empire whose upkeep eats
-  // its connections made less.
-  //
-  // They are staged here for the same reason they are staged in the bank: since
-  // the empire stage ruling the figure this empire actually banks off these
-  // lines is `(Σ income) × (1 + Σ empire%)`, and a rate reading that quoted the
-  // unmultiplied fold would be a conversion pricing against money nobody
-  // received. `stageEmpireFold` is the one multiplication and the bills are
-  // outside it, so this is `explainEmpireLines` without its cards — which is
-  // exactly what a base rate is.
-  const standing = empireStandingLines(state, playerId);
-  const additive = emptyCityYields();
-  let bills = 0;
-  for (const line of standing) {
-    if (line.bill === true) {
-      bills += line.gold;
-      continue;
-    }
-    for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
-  }
-  const empire = stageEmpireFold(additive, percents);
-  rates.faithPerTurn += empire.faith;
-  rates.culturePerTurn += empire.culture;
-  rates.goldPerTurn += empire.gold + bills;
-  rates.sciencePerTurn += empire.science;
-  return rates;
-}
-
-/**
- * What one empire is banking per turn **right now**, for a reader that has no
- * turn phase behind it — `statecraft.ts`'s `windfallPayout`, composing a grant
- * quoted in turns (The Lyceum).
- *
- * `empireRates` stays private, and this is deliberately the *whole* of what
- * leaves the module: one function, returning the same `RateReading` a
- * `rateConversion` is handed, so a card that says "a turn of culture" and a card
- * that says "per culture gained per turn" read one set of books. It is asked
- * lazily — only when a rider actually names a rate — because it prices every
- * town, and an occasion nobody wrote such a rider for must not pay for it.
- *
- * **A second caller since the great-people nerf pass** (2026-09-03): a great
- * scholar's and a great artist's act are quoted in *turns of the empire's own
- * rate* (`actGainOf`, `greatPeople.ts`), which is the same sentence The Lyceum
- * says about a technology — so they ask the same books rather than summing the
- * cities a third time, and "a turn of science" means one thing in the game.
- */
-export function empireRateReading(state: GameState, playerId: number): RateReading {
-  return empireRates(state, playerId);
-}
-
-/**
- * The empire-scale card lines `collectYields` banks this turn — `empireYields`,
- * the empire-scoped `countScaled` payouts, and every `rateConversion`, read off
- * this turn's own rates.
- *
- * Exported so the top bar's headline and the phase that actually banks the
- * gold/science/culture/faith read the **same list**: a hand-rolled empire sum
- * on the UI side that left this out would print a rate the resolution
- * disagrees with, which is exactly the Great Litany bug this function exists
- * to close. `empireRates` stays private — it is an input this function alone
- * needs, not a fact anything else asks for.
- *
- * **The reading is handed in as the taking of it** (batch H18), which is what
- * `empireRateReading`'s docblock has always said it was: `empireRates` prices
- * every town in the empire, only a `rateConversion` card reads it, and this
- * list is asked twice per card stamp, once per Ledger open and once per top-bar
- * refresh. An empire holding no such card was paying a whole extra sweep of its
- * own cities for a figure nothing looked at. Nothing about the answer moves:
- * `cardEmpireYields` resolves the thunk on the first conversion it meets and
- * once only, so a realm that holds one reads exactly the books it read before.
- */
-export function explainEmpireCardYields(state: GameState, playerId: number): CardYieldLine[] {
-  return cardEmpireYields(state, playerId, () => empireRates(state, playerId));
-}
-
-// --- the empire's own list (batch H19) --------------------------------------
-
-/**
- * Which fold an empire-scale line came out of — the only handle a reader needs
- * to file it under the class it belongs to, and the reason no surface has to
- * parse a label to find out.
- *
- * `'stage'` is the reconciliation line itself: what the empire stage added over
- * the additive lines above it, one per voice.
- */
-export type EmpireLineOrigin = 'resource' | 'route' | 'gold' | 'card' | 'stage';
-
-/**
- * One labelled line of what an empire banks **beyond its towns** — the shape
- * `explainEmpireLines` is a list of.
- *
- * Six voices on every line, so a reader asks the same question of a luxury's
- * signature, a caravan abroad, a road's coin and a card's payout; the sources
- * that cannot pay in a voice simply carry nought there.
- */
-export interface EmpireYieldLine extends CityYields {
-  /** The evaluator's own label — "Silk · empire", "City connections · 4 cities". */
-  source: string;
-  origin: EmpireLineOrigin;
-  /**
-   * A **bill**: a cost the empire stage does not reach (`TradeGoldKind`). Absent
-   * on every income line, which is what the stage multiplies.
-   */
-  bill?: boolean;
-  /** The seam this line came from, for a surface filing it under the land. */
-  resource?: ResourceId;
-  /** The card that pays it, for a surface filing it under the deck. */
-  card?: CardId;
-  /**
-   * The stage line's own multiplier on this voice — 1.1 for a realm ten points
-   * up — so a surface prints the reason rather than inventing one. Absent on
-   * every additive line.
-   */
-  factor?: number;
-}
-
-/**
- * The empire's **standing** additive lines: the luxuries' empire signatures, the
- * caravans abroad, and the treasury's own ledger — everything but the cards.
- *
- * Private, and the cards are out of it for `empireRates`' reason: an empire card
- * line is computed *from* the rate this list feeds, so a list that carried them
- * would be a conversion reading its own output. `explainEmpireLines` puts them
- * back on the end, which is the order `collectYields` has always banked in.
- */
-function empireStandingLines(state: GameState, playerId: number): EmpireYieldLine[] {
-  const lines: EmpireYieldLine[] = [];
-  for (const line of empireResourceYields(state, playerId)) {
-    lines.push({
-      ...emptyCityYields(),
-      ...voicesOf(line),
-      source: line.source,
-      origin: 'resource',
-      resource: line.resource,
-    });
-  }
-  for (const line of senderRouteYields(state, playerId)) {
-    lines.push({ ...emptyCityYields(), ...voicesOf(line), source: line.source, origin: 'route' });
-  }
-  for (const line of explainEmpireGold(state, playerId)) {
-    lines.push({
-      ...emptyCityYields(),
-      gold: line.gold,
-      source: line.source,
-      origin: 'gold',
-      // The one classification that is not "everything here is a yield": a
-      // maintenance line, a levy's surcharge, a charter's rebate and a treaty
-      // are costs, and the stage does not reach them (ruling oo).
-      ...(line.kind === 'bill' ? { bill: true as const } : {}),
-    });
-  }
-  return lines;
-}
-
-/**
- * The voices a line actually carries, as a bag to spread over the six.
- *
- * The three additive sources speak in different numbers of voices — a luxury's
- * signature in six, a caravan in five (a route never pays faith), a treasury
- * line in one — and `EmpireYieldLine` speaks in six so that every reader asks
- * one question of all of them. Copying only the keys a line declares is what
- * keeps a missing voice a nought rather than an `undefined` in a fold.
- */
-function voicesOf(line: Partial<CityYields>): Partial<CityYields> {
-  const bag: Partial<CityYields> = {};
-  for (const key of CITY_YIELD_KEYS) if (line[key] !== undefined) bag[key] = line[key];
-  return bag;
-}
-
-/**
- * **The empire stage applied to an empire-scale fold** — Entry XVII's second
- * multiplication at the empire's own scale, and the one implementation of it.
- *
- * The city stage is nought by construction: `empirePercents` returns meter tiers
- * and arrears, every one of them `stage: 'empire'`, and there is no town here to
- * carry a city percentage. So this is `applyStages` with an idle first stage —
- * the very function every town's basket goes through, never a second reading of
- * the same doctrine.
- *
- * Exported because a reader may hold a **subset** of the additive lines and want
- * the same multiplication over it (the bot's margin, which adds the cards' half
- * to a base reading that already carries the standing half). Staging is linear,
- * so the parts staged separately sum to the whole staged once — which is the
- * property that lets `explainEmpireLines` print one reconciliation line rather
- * than one per source.
- */
-export function stageEmpireFold(fold: CityYields, empire: EmpirePercents): CityYields {
-  const list = [...empire.meters, ...empire.arrears];
-  const staged = emptyCityYields();
-  for (const key of CITY_YIELD_KEYS) staged[key] = applyStages(fold[key], stageSumsFor(list, key));
-  return staged;
-}
-
-/**
- * **What one empire banks beyond its towns, as the ordered list the bank is the
- * fold of** — rule 5 at the empire's scale, and the whole of the empire stage
- * ruling (`docs/flags.md` oo, the user, 2026-09-07: *"empire additive bonuses
- * should apply before empire multiplicative bonuses"*).
- *
- * The additive lines first, in the order `collectYields` has always banked them:
- * the luxuries' empire signatures, the caravans abroad, the treasury's ledger,
- * then the cards' empire-scale payouts (last, because a `rateConversion` reads
- * the rates the three above it produced). Then **one reconciliation line per
- * voice** for the empire stage — the meter tiers and the arrears, the same two
- * lists every town carries as its second stage — whose figure is what the
- * multiplication added over the additive fold. The fold of the whole list is
- * what banks, exactly as `applyRiders` and the building preview do it.
- *
- * Until this batch the empire's lines were banked flat while every town's basket
- * was multiplied twice, which made a happiness tier's "+10% science" a rule about
- * where a beaker happened to be earned. Now `(Σ empire lines) × (1 + Σ empire%)`
- * is one multiplication over one fold, floored nowhere (batch X).
- *
- * **Which lines the stage reaches**: the yields — a luxury's signature, a
- * caravan's foreign coin, a card's empire payout, and the *income* half of the
- * treasury (city connections and a luxury's share of them). Not the **bills**:
- * maintenance, a levy's surcharge, a charter's rebate and the treaties are costs
- * rather than yields (`TradeGoldKind`, whose docblock has each one's reason), and
- * a contented empire earns more from its roads without paying its soldiers less.
- *
- * `empire` may be handed in by a caller that already took the reading —
- * `cityQuote`'s parameter one scale out, and the seam a ghost-diff lends its own
- * meters across (`cardImpact.ts`).
- */
-export function explainEmpireLines(
-  state: GameState,
-  playerId: number,
-  empire: EmpirePercents = empirePercents(state, playerId),
-): EmpireYieldLine[] {
-  const lines = empireStandingLines(state, playerId);
-  for (const line of explainEmpireCardYields(state, playerId)) {
-    lines.push({
-      ...emptyCityYields(),
-      ...voicesOf(line),
-      source: line.source,
-      origin: 'card',
-      card: line.card,
-    });
-  }
-  // The additive fold the stage multiplies — every line but the bills.
-  const additive = emptyCityYields();
-  for (const line of lines) {
-    if (line.bill === true) continue;
-    for (const key of CITY_YIELD_KEYS) additive[key] += line[key];
-  }
-  const staged = stageEmpireFold(additive, empire);
-  const list = [...empire.meters, ...empire.arrears];
-  for (const key of CITY_YIELD_KEYS) {
-    const gain = staged[key] - additive[key];
-    if (gain === 0) continue;
-    const factor = stageFactor(stageSumsFor(list, key));
-    const line: EmpireYieldLine = {
-      ...emptyCityYields(),
-      // The multiplier on its face, because a line whose figure is a difference
-      // is a line a player cannot check without it. `×1.10`, the panel's own
-      // reading of a stage said in one number.
-      source: `Empire stage · ×${factor.toFixed(2)}`,
-      origin: 'stage',
-      factor,
-    };
-    line[key] = gain;
-    lines.push(line);
-  }
-  return lines;
-}
-
-/** The fold of `explainEmpireLines`, and the only sum of one. */
-export function foldEmpireLines(lines: readonly EmpireYieldLine[]): CityYields {
-  const total = emptyCityYields();
-  for (const line of lines) for (const key of CITY_YIELD_KEYS) total[key] += line[key];
-  return total;
+  // basket beats. See `foldCity`'s `toward`.
+  return turnsToFill(cost - banked, foldCity(state, city, [], item, quote).production);
 }
 
 /**
@@ -6252,7 +3741,7 @@ export function expansionScore(
   ctx: TileYieldContext | undefined,
 ): number {
   const rules = CITIES.expansion;
-  let score = yieldScore(tileYieldOf(tile, ctx), rules.yieldWeights);
+  let score = yieldScore(foldTile(tile, ctx), rules.yieldWeights);
 
   const visible = tile.resource !== undefined && (!ctx || resourceIsVisibleTo(tile.resource, ctx.techs));
   if (visible) {

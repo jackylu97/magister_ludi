@@ -370,7 +370,7 @@ describe('the places at the fire', () => {
     const bar = source('topBar.ts');
     expect(bar).toContain("import { explainNextRung, nextRungWords } from '../sim/religion'");
     expect(bar).toContain(
-      'nextRungWords(explainNextRung(state, playerId, civYields(state, playerId).faith))',
+      'nextRungWords(explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith))',
     );
   });
 });

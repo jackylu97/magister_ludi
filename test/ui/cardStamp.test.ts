@@ -550,7 +550,7 @@ describe('the bench and the offices', () => {
       SCREEN.indexOf('function drawAggregate('),
       SCREEN.indexOf('function drawCommit('),
     );
-    expect(band).toContain('deckAggregate(state, seat)');
+    expect(band).toContain('foldDeck(state, seat)');
     expect(band).toContain('if (justConfirmed.length > 0) counting.push(playCardStamp(stamp, reading));');
     expect(band).toContain('else landCardStamp(stamp, reading);');
     // One source for the figure, and it is the Ledger's.

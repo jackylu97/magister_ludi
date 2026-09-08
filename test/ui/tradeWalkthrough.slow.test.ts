@@ -6,7 +6,7 @@
  * row, start the route from the screen, walk the shuttle for a few turns and
  * read the panels. Every figure here comes from the surfaces themselves —
  * `tradeOrigins`, `startCommandFor`, `routeReading`, `cityRouteRows`,
- * `explainEmpireGold`, `civYields` — so what is defended is the *sequence*: that
+ * `explainEmpireGold`, `readEmpire` — so what is defended is the *sequence*: that
  * each of those keeps saying something true as the caravan moves, the road goes
  * down and the towns join up.
  *
@@ -27,7 +27,7 @@ import { purchaseError } from '../../src/sim/purchase';
 import { type GameState, unitById, bumpRevision } from '../../src/sim/state';
 import { explainEmpireGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { civYields } from '../../src/ui/topBar';
+import { readEmpire } from '../../src/sim/readings';
 import { cityRouteRows, routeReading, routeSlotsLine } from '../../src/ui/tradeLines';
 import { startCommandFor, startingTrader, tradeOrigins } from '../../src/ui/tradeScreen';
 import { at, bareState } from '../sim/improvementHelpers';
@@ -140,12 +140,12 @@ describe('a caravan, from the treasury to the ledger', () => {
       );
     }
     const empireBefore = fold();
-    const shown = civYields(state, 0).gold;
+    const shown = readEmpire(state, 0).totals.gold;
     for (const tile of state.map.tiles) delete tile.road;
     // A hand mutation with no command behind it: the readings are memoised on
     // the state's revision (batch E2), so the bench announces the change the
     // way a command would.
     bumpRevision(state);
-    expect(shown - civYields(state, 0).gold).toBe(empireBefore - fold());
+    expect(shown - readEmpire(state, 0).totals.gold).toBe(empireBefore - fold());
   });
 });

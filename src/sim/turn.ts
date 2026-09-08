@@ -98,17 +98,19 @@ import { barbarianTurn } from './barbarians';
 import { buildingAdjacentHeal } from './buildingEffects';
 import type { CampBounty } from './camps';
 import {
-  type CompletionGrantReport,
-  type ConsecrationReport,
-  type StarvationReport,
-  type WonderCompletion,
   advanceProduction,
-  collectYields,
   expandBorders,
   growCities,
   refreshCityDerived,
   tileOwnerPlayerId,
+  type CompletionGrantReport,
+  type ConsecrationReport,
+  type StarvationReport,
+  type WonderCompletion,
 } from './cities';
+import {
+  collectYields,
+} from './yields/empire';
 import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
 import type { PillageReport } from './improvements';
 import type { DisbandReport } from './upkeep';

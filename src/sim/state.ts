@@ -318,7 +318,7 @@ export const SCHEMA_VERSION = 87;
  * change no outcome, which is exactly the property that makes it safe.
  *
  * `effect` is an ordinary `CardEffect` and is read by the **same evaluators**
- * that read a slotted Order's: a timed city percentage joins `cityStageSums`, a
+ * that read a slotted Order's: a timed city percentage joins `foldCityStages`, a
  * timed strength line joins `planCombat`'s list, a timed border percentage joins
  * the borders channel, a timed tile line joins `explainTileYield`'s. There is no
  * second interpretation of a card effect anywhere in the game, and a rite is not

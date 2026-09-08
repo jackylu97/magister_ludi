@@ -13,7 +13,7 @@
  * wrong:
  *
  *   1. **The bands disagreeing with the chip that opened them.** The sheet is
- *      reached from the yield strip, so a total that is not `civYields`' total
+ *      reached from the yield strip, so a total that is not `readEmpire`' total
  *      is a sheet contradicting the number the player clicked. Pinned voice by
  *      voice on a real bench.
  *   2. **A source quietly falling to "other".** A card class nobody classified,
@@ -21,10 +21,10 @@
  *      the grey slice and tells nobody. So every id in every table is walked,
  *      and every label `explainEmpireGold` can emit is read out of its own
  *      source.
- *   3. **A summand added to `cityQuote` and not classed.** The mirror is gone
+ *   3. **A summand added to `explainCity` and not classed.** The mirror is gone
  *      (batch E2): the town publishes its own labelled list and every line
  *      carries the class its source belongs to, so this is now pinned by folding
- *      the classified bag and comparing against `CityQuote.flats` itself — a
+ *      the classified bag and comparing against `CityReading.flats` itself — a
  *      line that reached the list without a class would fail here.
  *   4. **A leaked window listener, or a curve carried into the next game.**
  *      Entry LVII's bug in a new costume, and the ring buffer's own version of
@@ -60,7 +60,7 @@ import {
   flatsByClass,
   foldLedgerBag,
   ledgerCaption,
-  ledgerReading,
+  explainLedger,
   ledgerSample,
   netFigure,
   percentWeights,
@@ -68,16 +68,20 @@ import {
   shareOut,
   sparkPoints,
 } from '../../src/ui/ledgerScreen';
-import { civYields } from '../../src/ui/topBar';
+import { readEmpire } from '../../src/sim/readings';
 import { readCity } from '../../src/sim/readings';
 import {
-  cardBuildingYields,
-  cityQuote,
-  cityYields,
-  collectYields,
-  explainEmpireLines,
   foundCityAt,
 } from '../../src/sim/cities';
+import {
+  explainCardBuildingYields,
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+  explainEmpireLines,
+} from '../../src/sim/yields/empire';
 import { applyCommand } from '../../src/sim/commands';
 import { foldRouteYield, senderRouteYields } from '../../src/sim/trade';
 import { createUnit } from '../../src/sim/state';
@@ -111,11 +115,17 @@ const SOURCES = {
     import: 'default',
     eager: true,
   }) as Record<string, string>),
-  ...(import.meta.glob('../../src/sim/{empireGold.ts,statecraft.ts,cities.ts}', {
-    query: '?raw',
-    import: 'default',
-    eager: true,
-  }) as Record<string, string>),
+  // The layers by name since batch E3b: the evaluator's own file, the town's
+  // percent list and the hex's breakdown are three files now, and each register
+  // below reads the one that owns its claim.
+  ...(import.meta.glob(
+    '../../src/sim/{empireGold.ts,statecraft/evaluator.ts,cities.ts,yields/town.ts,yields/hex.ts}',
+    {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    },
+  ) as Record<string, string>),
   ...(import.meta.glob('../../index.html', {
     query: '?raw',
     import: 'default',
@@ -177,8 +187,8 @@ function bench(): { state: GameState; playerId: number } {
   sc.slots.push({ card: order, sealedUntil: state.turn });
   bumpRevision(state);
   // **And one of the seven `buildingYieldPercent` Orders**, over the library the
-  // bench just built. `cardBuildingYields` is the eleventh summand of
-  // `cityQuote` and the mirror below simply did not walk it; a bench with no
+  // bench just built. `explainCardBuildingYields` is the eleventh summand of
+  // `explainCity` and the mirror below simply did not walk it; a bench with no
   // such card in it is a bench that cannot tell.
   const scrivened = 'theScriveners' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(scrivened)) sc.orders.push(scrivened);
@@ -274,12 +284,12 @@ function foreignRouteBench(): { state: GameState; playerId: number } {
 
 describe('the reading', () => {
   it('adds up, voice by voice, to the very figure the chip beside it prints', () => {
-    // The whole bargain of the sheet: it is `civYields`' summands, never a
-    // second derivation of `civYields`. A band that disagreed with the top bar
+    // The whole bargain of the sheet: it is `readEmpire`' summands, never a
+    // second derivation of `readEmpire`. A band that disagreed with the top bar
     // would be a band contradicting the number the player clicked to open it.
     const { state, playerId } = bench();
-    const headline = civYields(state, playerId);
-    for (const voice of ledgerReading(state, playerId)) {
+    const headline = readEmpire(state, playerId).totals;
+    for (const voice of explainLedger(state, playerId)) {
       expect(voice.total, voice.key).toBe(headline[voice.key]);
       let parts = 0;
       for (const cls of LEDGER_CLASSES) parts += voice.byClass[cls];
@@ -312,8 +322,8 @@ describe('the reading', () => {
       const stage = explainEmpireLines(g.state, 0).filter((line) => line.origin === 'stage');
       expect(stage.length, 'the tier is standing').toBeGreaterThan(0);
 
-      const headline = civYields(g.state, 0);
-      const reading = ledgerReading(g.state, 0);
+      const headline = readEmpire(g.state, 0).totals;
+      const reading = explainLedger(g.state, 0);
       for (const voice of reading) {
         expect(voice.total, voice.key).toBe(headline[voice.key]);
         let parts = 0;
@@ -358,8 +368,8 @@ describe('the reading', () => {
       };
     };
     const opened = purse();
-    const headline = civYields(state, playerId);
-    const reading = ledgerReading(state, playerId);
+    const headline = readEmpire(state, playerId).totals;
+    const reading = explainLedger(state, playerId);
     collectYields(state);
     const closed = purse();
 
@@ -371,9 +381,9 @@ describe('the reading', () => {
     }
   });
 
-  it('mirrors `cityQuote`’s own flats, summand for summand', () => {
+  it('mirrors `explainCity`’s own flats, summand for summand', () => {
     // The eight classes are a partition of the town's own list now (batch E2),
-    // so this is the partition's own guard: a line reaching `cityQuote` without
+    // so this is the partition's own guard: a line reaching `explainCity` without
     // a class, or a class the bag has no bucket for, would not throw — it would
     // quietly drop a summand out of the sheet while the totals still added up.
     const { state } = bench();
@@ -381,13 +391,13 @@ describe('the reading', () => {
     // a guard that passes on the tree it was meant to catch: a card taking a
     // share of a building's yield, and a town whose population is odd.
     const town = state.cities.find((city) => city.ownerId === 0)!;
-    expect(cardBuildingYields(state, town).length).toBeGreaterThan(0);
+    expect(explainCardBuildingYields(state, town).length).toBeGreaterThan(0);
     expect(town.population % 2).toBe(1);
 
     for (const city of state.cities) {
       if (city.ownerId !== 0) continue;
       const flats = foldLedgerBag(flatsByClass(readCity(state, city).lines));
-      const quote = cityQuote(state, city);
+      const quote = explainCity(state, city);
       for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
         expect(flats[key], `${city.name} ${key}`).toBe(quote.flats[key]);
       }
@@ -401,7 +411,7 @@ describe('the reading', () => {
     // while still adding up.
     const { state } = bench();
     const town = state.cities.find((city) => city.ownerId === 0)!;
-    const shares = cardBuildingYields(state, town);
+    const shares = explainCardBuildingYields(state, town);
     const paid = shares.reduce((sum, line) => sum + line.science, 0);
     expect(paid).toBeGreaterThan(0);
     // Every such line names the card that spoke, which is what the classifier
@@ -418,13 +428,13 @@ describe('the reading', () => {
     // remembered under `state.revision`. A bench that mutates by hand says so the
     // way a command does — `GameState.revision`'s stated contract.
     bumpRevision(state);
-    expect(cardBuildingYields(state, town)).toEqual([]);
+    expect(explainCardBuildingYields(state, town)).toEqual([]);
     expect(held - flatsByClass(readCity(state, town).lines).deck.science).toBe(paid);
   });
 
   it('finds the deck’s own slice, and says so in the caption’s words', () => {
     const { state, playerId } = bench();
-    const reading = ledgerReading(state, playerId);
+    const reading = explainLedger(state, playerId);
     // Something, somewhere, is the deck's: the bench slots an Order and swears a
     // government, and a government always pays *something*.
     const deck = reading.reduce((sum, voice) => sum + voice.byClass.deck, 0);
@@ -453,8 +463,8 @@ describe('the reading', () => {
 
 /** The gain a town banked over its own flats, on one voice. */
 function gainOf(state: GameState, city: City, key: 'science' | 'production' | 'faith'): number {
-  const quote = cityQuote(state, city);
-  const banked = cityYields(state, city, [], city.queue[0], quote);
+  const quote = explainCity(state, city);
+  const banked = foldCity(state, city, [], city.queue[0], quote);
   return banked[key] - foldLedgerBag(flatsByClass(readCity(state, city).lines))[key];
 }
 
@@ -532,9 +542,9 @@ describe('the gain, and who supplied it', () => {
     const town = state.cities.find((city) => city.ownerId === playerId)!;
     const sc = playerById(state, playerId)!.statecraft;
     const deckOf = (): number =>
-      ledgerReading(state, playerId).find((voice) => voice.key === 'science')!.byClass.deck;
+      explainLedger(state, playerId).find((voice) => voice.key === 'science')!.byClass.deck;
     const totalOf = (): number =>
-      ledgerReading(state, playerId).find((voice) => voice.key === 'science')!.total;
+      explainLedger(state, playerId).find((voice) => voice.key === 'science')!.total;
 
     const held = deckOf();
     const raised = totalOf();
@@ -542,7 +552,7 @@ describe('the gain, and who supplied it', () => {
     expect(gain).toBeGreaterThan(0);
     // The card is the only thing multiplying this town's science, so the whole
     // of the gain is its own.
-    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    const weights = percentWeights(state, town, explainCity(state, town), 'science');
     expect(weights).toContainEqual({ into: 'deck', percent: 25 });
     expect(weights.filter((weight) => weight.percent > 0)).toHaveLength(1);
 
@@ -572,7 +582,7 @@ describe('the gain, and who supplied it', () => {
     // why no arm of `classifyPercent` has to know a Forum from an Order.
     town.buildings.push('forum');
     bumpRevision(state);
-    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    const weights = percentWeights(state, town, explainCity(state, town), 'science');
     expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
     const gain = gainOf(state, town, 'science');
     expect(gain).toBeGreaterThan(wasGain);
@@ -591,11 +601,11 @@ describe('the gain, and who supplied it', () => {
     const { state, playerId } = bench();
     const town = state.cities.find((city) => city.ownerId === playerId)!;
     const player = playerById(state, playerId)!;
-    const solvent = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
+    const solvent = explainLedger(state, playerId).find((voice) => voice.key === 'science')!;
     player.gold = -40;
     bumpRevision(state);
-    const owing = ledgerReading(state, playerId).find((voice) => voice.key === 'science')!;
-    const weights = percentWeights(state, town, cityQuote(state, town), 'science');
+    const owing = explainLedger(state, playerId).find((voice) => voice.key === 'science')!;
+    const weights = percentWeights(state, town, explainCity(state, town), 'science');
     expect(weights).toContainEqual({ into: 'other', percent: -25 });
     // The empire makes less science than it did, and the town now banks less
     // than its own flats — a **negative** gain, which the same-sign rule hands
@@ -613,7 +623,7 @@ describe('the gain, and who supplied it', () => {
 
   it('shares the hammers behind a build to the stones that put them there', () => {
     // Production's city stage carries `productionModifiers` as well as the
-    // percent list (`cityStageSums`), so a barracks town building a unit has a
+    // percent list (`foldCityStages`), so a barracks town building a unit has a
     // gain no percentage on the yield can explain. Left out of the weights, the
     // whole of it would fall to "other".
     const { state, playerId } = bench();
@@ -621,18 +631,18 @@ describe('the gain, and who supplied it', () => {
     town.buildings.push('barracks');
     bumpRevision(state);
     town.queue = [{ kind: 'unit', id: 'warrior' }];
-    const weights = percentWeights(state, town, cityQuote(state, town), 'production');
+    const weights = percentWeights(state, town, explainCity(state, town), 'production');
     expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
     const gain = gainOf(state, town, 'production');
     expect(gain).toBeGreaterThan(0);
     expect(shareGain(gain, weights).buildings).toBeGreaterThan(0);
     // And nothing but production carries them: the hammers behind a build are a
     // fact about the pair (town, item), never about the town's science.
-    expect(percentWeights(state, town, cityQuote(state, town), 'science')).not.toContainEqual({
+    expect(percentWeights(state, town, explainCity(state, town), 'science')).not.toContainEqual({
       into: 'buildings',
       percent: 10,
     });
-    const hammers = ledgerReading(state, playerId).find((voice) => voice.key === 'production')!;
+    const hammers = explainLedger(state, playerId).find((voice) => voice.key === 'production')!;
     let parts = 0;
     for (const cls of LEDGER_CLASSES) parts += hammers.byClass[cls];
     expect(parts).toBe(hammers.total);
@@ -669,13 +679,13 @@ describe('a card that pays on the ground', () => {
     expect(after.tiles.food).toBe(wasLand);
   });
 
-  it('still mirrors `cityQuote`’s flats exactly, hex by hex', () => {
+  it('still mirrors `explainCity`’s flats exactly, hex by hex', () => {
     // The split must not lose or invent a point: the fold of the eight classes
     // is still the town's own flats, which is the guard the whole mirror rests
     // on and the one a subtraction could quietly break.
     const { state, city } = tileCardBench();
     const flats = foldLedgerBag(flatsByClass(readCity(state, city).lines));
-    const quote = cityQuote(state, city);
+    const quote = explainCity(state, city);
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
       expect(flats[key], key).toBe(quote.flats[key]);
     }
@@ -683,7 +693,7 @@ describe('a card that pays on the ground', () => {
 
   it('reaches the aggregate the ceremony counts up', () => {
     const { state, playerId } = tileCardBench();
-    const food = ledgerReading(state, playerId).find((voice) => voice.key === 'food')!;
+    const food = explainLedger(state, playerId).find((voice) => voice.key === 'food')!;
     expect(food.byClass.deck).toBeGreaterThan(0);
     let parts = 0;
     for (const cls of LEDGER_CLASSES) parts += food.byClass[cls];
@@ -868,9 +878,9 @@ describe('the source register', () => {
     // whoever had put the base flats under it. So there is one emitter, and a
     // second one — a new function handing back the same shape — fails here
     // rather than fails quietly on the sheet.
-    const sc = source('statecraft.ts');
+    const sc = source('statecraft/evaluator.ts');
     expect(sc.split('): CardPercentLine[] {')).toHaveLength(2);
-    const body = region(sc, 'export function cardPercentYields', 'export interface CardProductionLine');
+    const body = region(sc, 'export function explainCardPercentYields', 'export interface CardProductionLine');
     const pushes = [...body.matchAll(/list\.push\(\{[\s\S]*?\}\);/g)];
     expect(pushes).toHaveLength(2);
     for (const [push] of pushes) expect(push).toContain('card');
@@ -884,7 +894,7 @@ describe('the source register', () => {
     // A card's line on the ground is the other half of the ruling: seven
     // producers, but only two literals — `tileLinesFrom`, which every producer
     // but one funnels through, and the amplifier's own helping.
-    const sc = source('statecraft.ts');
+    const sc = source('statecraft/evaluator.ts');
     const built = [...sc.matchAll(/const line: CardTileLine = \{[\s\S]*?\n {6}\};/g)];
     expect(built).toHaveLength(1);
     for (const [literal] of built) expect(literal).toContain('card');
@@ -894,11 +904,12 @@ describe('the source register', () => {
   });
 
   it('hands the card on at every seam between the evaluator and this sheet', () => {
-    // Three propagations in `cities.ts`, and each is a place the id was being
-    // dropped on the floor before 2026-09-07. A dropped id is not an error —
-    // it is a slice landing in "the land" and nobody hearing about it.
-    const ct = source('cities.ts');
-    expect(region(ct, 'export function cityYieldPercents', 'export function stageSumsFor')).toContain(
+    // Three propagations in the yields layer, and each is a place the id was
+    // being dropped on the floor before 2026-09-07. A dropped id is not an
+    // error — it is a slice landing in "the land" and nobody hearing about it.
+    // Two of them are the town's file since batch E3b, the third the hex's.
+    const ct = source('yields/town.ts');
+    expect(region(ct, 'export function cityYieldPercents', 'export function foldCityStages')).toContain(
       'card: line.card',
     );
     expect(region(ct, 'export function productionModifiers', 'export function modifierPercent')).toContain(
@@ -906,7 +917,7 @@ describe('the source register', () => {
     );
     // And the hex's own breakdown: the card lines, and the two percentage
     // shares at the foot, which carry a card only when they have exactly one.
-    const tile = region(ct, 'const sourceIndex = new Map<string, number>()', 'export function foldTileYield');
+    const tile = region(source('yields/hex.ts'), 'const sourceIndex = new Map<string, number>()', 'export function foldTileLines');
     expect(tile).toContain('card: line.card');
     expect(tile.split('card: soleCard(')).toHaveLength(3);
   });
@@ -989,7 +1000,7 @@ describe('the curve’s ring buffer', () => {
     const taken = ledgerSample(state, playerId);
     expect(taken.turn).toBe(state.turn);
     expect(taken.age).toBeGreaterThanOrEqual(1);
-    const headline = civYields(state, playerId);
+    const headline = readEmpire(state, playerId).totals;
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
       expect(taken.totals[key], key).toBe(headline[key]);
       expect(taken.deck[key], `deck ${key}`).toBeTypeOf('number');

@@ -66,7 +66,7 @@ legacy.
 - **Two acts are quoted in turns of your own empire** (nerf pass, 2026-09-03):
   the scholar's beakers and the artist's culture are `actGainTurns` × what the
   empire is banking in that voice **right now**, read through `actGainOf`
-  (`greatPeople.ts`) off the one seam that answers it — `empireRateReading`
+  (`greatPeople.ts`) off the one seam that answers it — `foldEmpireRates`
   (`cities.ts`), the same fold `collectYields` banks and the top bar prints. It
   is the *base* rate, before any `rateConversion` pays anything.
 - **Every flat act figure ages with the tree**: ×(1 + `actPerTech` **0.05** ×

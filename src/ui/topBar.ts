@@ -9,7 +9,7 @@
  * anything, which is why it sits before the turn counter in reading order rather
  * than after it.
  *
- * A pure read, and deliberately a UI-layer one. `cityYields` is the same
+ * A pure read, and deliberately a UI-layer one. `foldCity` is the same
  * function the city panel, the banners and the turn pipeline use, and
  * `explainHappiness` / `explainAuthority` are the same two the pipeline's
  * multipliers come out of, so the bar can never promise a number the rest of the
@@ -57,7 +57,6 @@
  * a card always quotes the state as it is now.
  */
 
-import type { CityYields } from '../sim/cities';
 // The empire's one reading, remembered on `state.revision` — the single source
 // of truth this strip and every other yield surface subscribe to (batch E2).
 import { readEmpire } from '../sim/readings';
@@ -107,50 +106,6 @@ import { type Popover, createPopover } from './popover';
 import { tradeLedger } from './tradeScreen';
 import { YIELD_GLYPH, setYieldText, yieldMarkNode } from './yieldMark';
 import { element } from './dom';
-
-/**
- * Everything the player's cities make this turn, added up.
- *
- * A player with no cities makes nothing, which is the honest answer for the
- * first few turns of a game rather than a row of em dashes.
- *
- * Each city is asked *toward whatever it is building*, which is the same call
- * `collectYields` banks with: since the Age I rework a barracks puts a share of
- * its city's hammers behind a unit, and a strip that quoted the unmodified rate
- * would be a headline the turn resolution disagrees with.
- *
- * **The empire's half of every town's percentages is taken once** (2026-08-29).
- * `cityQuote`'s default is `empirePercents(state, ownerId)`, which sweeps the two
- * meters over every city and every unit the empire holds — a *pure function of
- * the seat*, so asking it once per town was the same answer summed a dozen
- * times, and this strip is redrawn on every accepted command. Hoisted through
- * the parameter the sim already offers rather than worked out beside it (hard
- * rule 5): the figure is still `cityYields`' own fold, and the cost test pins
- * the hoisted reading equal to the unhoisted one, city by city.
- */
-export function civYields(state: GameState, playerId: number): CityYields {
-  // **One reading, subscribed to** (batch E2): `readEmpire` is every town's
-  // published list and total plus the empire's own lines, remembered on
-  // `state.revision` and shared with the Ledger, the city panel, the ghost-diff
-  // and the bot. This strip is redrawn on every accepted command, which is
-  // exactly one revision, so the sweep it used to run per draw is now run once
-  // for every surface that asks.
-  //
-  // Its `totals` is the same summand-for-summand fold this function has always
-  // returned: every town's `cityYields` toward whatever it is building — the
-  // same call `collectYields` banks with, since a barracks puts a share of its
-  // city's hammers behind a unit and a strip quoting the unmodified rate would
-  // be a headline the turn resolution disagrees with — plus everything the
-  // empire banks beyond its towns (`explainEmpireLines`, batch H19: the
-  // luxuries' empire signatures, the caravans abroad, the treasury's ledger, the
-  // cards' empire-scale payouts, and the empire stage over the additive fold of
-  // them). None of that belongs to a town: a city connection is a fact about the
-  // *road* between one and the capital, road maintenance is charged on hexes, a
-  // garrison's wages are charged on the army rather than on whichever town it
-  // happens to be standing in (Entry XLI), and a route ending in a foreign town
-  // pays the empire that *sent* it.
-  return { ...readEmpire(state, playerId).totals };
-}
 
 /**
  * The per-item list behind a maintenance line, as one plain string.
@@ -253,7 +208,7 @@ const BANKED: Partial<
  * 2026-09-06: the faith hover shows what the next pantheon rung costs) is the
  * **sim's** sentence — `nextRungWords` off `explainNextRung`, which the Religion
  * sheet prints too — so the chip and the sheet cannot quote two thresholds; the
- * rate handed in is the same `civYields` fold the head of the card prints.
+ * rate handed in is the same `readEmpire`’s own fold the head of the card prints.
  */
 const LADDERS: Partial<
   Record<
@@ -270,7 +225,7 @@ const LADDERS: Partial<
     };
   },
   faith: (state, playerId) => ({
-    source: nextRungWords(explainNextRung(state, playerId, civYields(state, playerId).faith)),
+    source: nextRungWords(explainNextRung(state, playerId, readEmpire(state, playerId).totals.faith)),
   }),
 };
 
@@ -542,7 +497,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   /**
    * Which city paid for a total — one line each, folding to the headline figure.
    *
-   * `cityYields` per city, which is exactly what `civYields` sums: the card is
+   * `foldCity` per city, which is exactly what `readEmpire`’s totals sum: the card is
    * the summands of the number beside it, never a second derivation of it.
    */
   function yieldCard(key: YieldKey, label: string): Node {
@@ -558,7 +513,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         // `netFigure`, because a rate goes negative — a starving empire's food, a
         // treasury paying more maintenance than it takes — and a magnitude here
         // would print the loss as a gain.
-        `${netFigure(civYields(state, playerId)[key])} per turn`,
+        `${netFigure(readEmpire(state, playerId).totals[key])} per turn`,
       ),
     );
     box.append(head);
@@ -584,7 +539,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
     const lines = element('ul', 'meter-lines ledger');
     // The empire's whole reading once for the breakdown, and it is the very
-    // object `civYields` folded for the chip above — the card is the summands of
+    // object `readEmpire`’s own folded for the chip above — the card is the summands of
     // that headline, so the two are now the same arithmetic by construction and
     // not merely by inspection (batch E2).
     const reading = readEmpire(state, playerId);
@@ -1378,14 +1333,14 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     render(): void {
       const { state } = getGame();
       const playerId = localPlayerId();
-      const totals = civYields(state, playerId);
+      const totals = readEmpire(state, playerId).totals;
       const player = playerById(state, playerId);
       for (const key of YIELDS) {
         const el = values.get(key)!;
         // A banked yield is pool-first: the figure a player acts on is what is
         // on hand, so it leads and the per-turn total — what every other yield
         // chip shows on its own — moves into parens beside it. `totals[key]` is
-        // the rate, taken from the same `civYields` fold the card breaks down,
+        // the rate, taken from the same `readEmpire`’s own fold the card breaks down,
         // so the chip and the card cannot come to disagree about it.
         const banked = BANKED[key];
         // **Whole, always** (the user, 2026-09-06, `docs/flags.md` item z: every

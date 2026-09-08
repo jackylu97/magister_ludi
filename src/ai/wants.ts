@@ -26,7 +26,7 @@
  *   · **It never restates a rule.** What is for sale, at what price, in which
  *     bank, in which town is `purchaseError` and `explainPurchaseCost` — the
  *     simulation's own single gate, exactly as `goldPurchase` always asked it.
- *     What a building would pay is `cityYields` asked hypothetically. This file
+ *     What a building would pay is `foldCity` asked hypothetically. This file
  *     only ever *weights* an answer somebody else computed.
  *   · **It stores nothing.** The book is built from `GameState` every time it is
  *     asked; there is no plan, no incumbent and no memory, which is principle 3
@@ -112,14 +112,18 @@ import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData'
 import {
   bestExpansionTile,
   borderGrowth,
-  cityContext,
-  cityQuote,
-  cityYields,
-  explainTileYield,
-  foldTileYield,
   purchasableTiles,
   yieldScore,
 } from '../sim/cities';
+import {
+  cityContext,
+  explainTileYield,
+  foldTileLines,
+} from '../sim/yields/hex';
+import {
+  explainCity,
+  foldCity,
+} from '../sim/yields/town';
 // The town's and the empire's published readings, remembered on
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
@@ -329,7 +333,7 @@ export function wantBook(
  * of six than in a town of two and the ranking is over the numbers.
  *
  * A row's worth is exactly the queue's (`buildCandidates`): what the town would
- * *actually* make with it (`cityYields` asked hypothetically, staged and
+ * *actually* make with it (`foldCity` asked hypothetically, staged and
  * percentaged by the real arithmetic), plus what the row gives beyond a yield,
  * less its standing maintenance. What a purchase does not carry is the queue's
  * `÷ turns of build effort`: delivery is instant, which is the whole of what a
@@ -348,7 +352,7 @@ export function purchasingPlan(
   // every reader at once rather than re-hoisted here; the standing readings come
   // through `readCity` and only the what-ifs still quote by hand.
   const empire = readEmpirePercents(state, player.id);
-  const bases = towns.map((city) => cityYields(state, city, [], null, readCity(state, city)));
+  const bases = towns.map((city) => foldCity(state, city, [], null, readCity(state, city)));
 
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
@@ -362,7 +366,7 @@ export function purchasingPlan(
       const item: PurchasableItem = { kind: 'building', id };
       const reach = reachOf(state, player, city, item, 'gold');
       if (reach === null) continue;
-      const after = cityYields(state, city, [id], null, cityQuote(state, city, [id], empire));
+      const after = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
       const delta = yieldDelta(after, bases[index]!);
       const terms: ValueTerm[] = [
         nest('what this town would actually make with it', explainYields(delta, ctx)),
@@ -458,7 +462,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   for (const at of city.workedTiles) {
     const tile = getTileAt(state.map, at.col, at.row);
     if (!tile) continue;
-    const yields = foldTileYield(explainTileYield(tile, here));
+    const yields = foldTileLines(explainTileYield(tile, here));
     const score = yieldScore(yields);
     if (poorest === null || score < poorest.score) poorest = { score, yields };
   }
@@ -481,7 +485,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
     if (offer.error !== null) continue;
     const tile = getTileAt(state.map, offer.col, offer.row);
     if (!tile) continue;
-    const yields = foldTileYield(explainTileYield(tile, here));
+    const yields = foldTileLines(explainTileYield(tile, here));
     const terms: ValueTerm[] = [];
     const beats = poorest === null || yieldScore(yields) > poorest.score;
     if (beats) {
@@ -1133,8 +1137,8 @@ function explainRelic(
   for (const city of ownedCities(state, player.id)) {
     if (city.buildings.includes(RELIC)) continue;
     if (!cityKeepsRelics(city)) continue;
-    const before = cityYields(state, city, [], null, readCity(state, city));
-    const after = cityYields(state, city, [RELIC], null, cityQuote(state, city, [RELIC], empire));
+    const before = foldCity(state, city, [], null, readCity(state, city));
+    const after = foldCity(state, city, [RELIC], null, explainCity(state, city, [RELIC], empire));
     const worth = explainYields(yieldDelta(after, before), ctx);
     if (worth.terms.length === 0) continue;
     return { town: city.name, worth };

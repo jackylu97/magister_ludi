@@ -15,7 +15,7 @@
  * still prints.
  *
  * The second block is the reason dropping the heading is *safe*: every
- * percentage `cityStageSums` folds has a line of its own in this list, so the
+ * percentage `foldCityStages` folds has a line of its own in this list, so the
  * fold is visibly the sum of what is printed under where it used to be. If a
  * future modifier joined the fold without joining the list, that would stop being
  * true — the canary would fire in the panel, and this block fails here first.
@@ -23,7 +23,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { cityStageSums, cityYieldPercents, foundCityAt, productionModifiers } from '../../src/sim/cities';
+import {
+  foundCityAt,
+} from '../../src/sim/cities';
+import {
+  cityYieldPercents,
+  foldCityStages,
+  productionModifiers,
+} from '../../src/sim/yields/town';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { meterEffects } from '../../src/sim/meters';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
@@ -109,12 +116,12 @@ describe('every percentage the stages fold has a line of its own', () => {
     const state = empire();
     const city = state.cities[0]!;
     const front = city.queue[0];
-    const sums = cityStageSums(state, city, front);
+    const sums = foldCityStages(state, city, front);
     const percents = cityYieldPercents(state, city);
     const hammers = productionModifiers(state, city, front);
 
     // Rebuilt from the two lists the panel prints from. If a third source ever
-    // joins `cityStageSums` without joining one of these, this diverges — and
+    // joins `foldCityStages` without joining one of these, this diverges — and
     // the collapse above would start hiding a modifier rather than a repetition.
     for (const key of CITY_YIELD_KEYS) {
       const city_ = percents

@@ -3,7 +3,13 @@ import { draftCost } from '../../src/sim/statecraft';
 
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
-import { cityYields, foundCityAt, growthThreshold } from '../../src/sim/cities';
+import {
+  foundCityAt,
+  growthThreshold,
+} from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { applyCommand } from '../../src/sim/commands';
 import {
   claimDiscoveryAt,
@@ -748,8 +754,8 @@ describe('settlement: every boon pays its printed number', () => {
     }
     // And the modifier is real, so the test is not vacuous: the boosted city
     // does make more hammers per turn than the plain one.
-    expect(cityYields(boosted, rich, [], rich.queue[0]).production).toBeGreaterThanOrEqual(
-      cityYields(plain, plain.cities[0]!, [], plain.cities[0]!.queue[0]).production,
+    expect(foldCity(boosted, rich, [], rich.queue[0]).production).toBeGreaterThanOrEqual(
+      foldCity(plain, plain.cities[0]!, [], plain.cities[0]!.queue[0]).production,
     );
   });
 });

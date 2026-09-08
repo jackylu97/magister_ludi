@@ -48,20 +48,22 @@ import {
 } from '../../src/sim/buildingEffects';
 import { cityMaxHp } from '../../src/sim/combat';
 import {
-  cityContext,
   explainGrowthPercent,
-  explainTileYield,
-  foldTileYield,
   foundCityAt,
   refreshCityDerived,
 } from '../../src/sim/cities';
+import {
+  cityContext,
+  explainTileYield,
+  foldTileLines,
+} from '../../src/sim/yields/hex';
 import { explainHappiness } from '../../src/sim/meters';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
 import { performRiteAt, riteError } from '../../src/sim/religion';
 import {
-  cardCityYields,
-  cardPercentYields,
+  explainCardCityYields,
+  explainCardPercentYields,
   cardYieldConversions,
   cityScopeAdmits,
   foldCardYields,
@@ -305,13 +307,13 @@ describe('what each charter building does', () => {
     raise(state, city, 'scriptorium');
     expect(buildingDef('scriptorium').science).toBe(2);
     // No academy anywhere: the clause is written and lands nowhere.
-    const dry = cardPercentYields(state, city).filter((line) => line.source.includes('Scriptorium'));
+    const dry = explainCardPercentYields(state, city).filter((line) => line.source.includes('Scriptorium'));
     expect(dry).toEqual([]);
     // One inside the borders, and it lands. `hasImprovement` sweeps `ownedTiles`,
     // so this is the town's own ground and not its neighbour's.
     at(state, 4, 5).improvement = 'academy';
     refreshCityDerived(state, city);
-    const line = cardPercentYields(state, city).find((entry) => entry.source.includes('Scriptorium'));
+    const line = explainCardPercentYields(state, city).find((entry) => entry.source.includes('Scriptorium'));
     expect(line?.yield).toBe('science');
     expect(line?.percent).toBe(10);
   });
@@ -355,10 +357,10 @@ describe('what each charter building does', () => {
     // the tile chain a building's `tileYields` land in.
     const desert = at(state, 5, 5);
     desert.terrain = 'desert';
-    const withOne = foldTileYield(explainTileYield(desert, cityContext(state, city))).food;
+    const withOne = foldTileLines(explainTileYield(desert, cityContext(state, city))).food;
     city.buildings.length = 0;
     refreshCityDerived(state, city);
-    const without = foldTileYield(explainTileYield(desert, cityContext(state, city))).food;
+    const without = foldTileLines(explainTileYield(desert, cityContext(state, city))).food;
     expect(withOne).toBe(without + 1);
   });
 
@@ -378,17 +380,17 @@ describe('what each charter building does', () => {
     raise(state, city, 'assemblyHall');
     // The Senatus is itself a wildcard Order, so the floor is one helping —
     // exactly as every other deck-reader's is.
-    const one = foldCardYields(cardCityYields(state, city));
+    const one = foldCardYields(explainCardCityYields(state, city));
     expect(one.science).toBe(1);
     expect(one.culture).toBe(1);
     slot(state, 0, 'almshouseCharter');
-    const two = foldCardYields(cardCityYields(state, city));
+    const two = foldCardYields(explainCardCityYields(state, city));
     expect(two.science).toBe(2);
     expect(two.culture).toBe(2);
     // A military Order is not a wildcard one — the card's own slot flavour,
     // never the chair it sits in.
     slot(state, 0, 'vigilCharter');
-    expect(foldCardYields(cardCityYields(state, city)).science).toBe(2);
+    expect(foldCardYields(explainCardCityYields(state, city)).science).toBe(2);
   });
 
   it('Assembly Hall — refuses a town that is not the seat of government', () => {
@@ -408,11 +410,11 @@ describe('what each charter building does', () => {
     const city = capitalOf(state);
     raise(state, city, 'smithy');
     slot(state, 0, 'vigilCharter');
-    expect(foldCardYields(cardCityYields(state, city)).production).toBe(1);
+    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(1);
     slot(state, 0, 'justicesCharter');
-    expect(foldCardYields(cardCityYields(state, city)).production).toBe(2);
+    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(2);
     slot(state, 0, 'ritesCharter');
-    expect(foldCardYields(cardCityYields(state, city)).production).toBe(2);
+    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(2);
   });
 
   it('Coinworks — the town pays a tenth of its gold again as culture', () => {
@@ -452,7 +454,7 @@ describe('what each charter building does', () => {
     raise(state, city, 'orrery');
     // The flat is the row's own field, not a card line: the Order pays nothing.
     expect(buildingDef('orrery').science).toBe(1);
-    expect(cardPercentYields(state, city)).toHaveLength(0);
+    expect(explainCardPercentYields(state, city)).toHaveLength(0);
     // The radius is the row's own number, and the default is still the ring of
     // six every clause written before it reads — so both are checked on one
     // board. A peak two hexes out admits the Orrery's clause and not `beside`.
@@ -460,14 +462,14 @@ describe('what each charter building does', () => {
     at(state, 6, 5).terrain = 'mountain';
     expect(cityScopeAdmits(state, city, { test: 'mountainAdjacent', radius: 2 })).toBe(true);
     expect(cityScopeAdmits(state, city, { test: 'mountainAdjacent' })).toBe(false);
-    const line = cardPercentYields(state, city).find((entry) => entry.source.includes('Orrery'));
+    const line = explainCardPercentYields(state, city).find((entry) => entry.source.includes('Orrery'));
     expect(line?.yield).toBe('science');
     expect(line?.percent).toBe(10);
     // And it is the town's own stones talking, so a second town of the same
     // seat with the same peak in reach is paid nothing.
     const other = foundCityAt(state, 0, at(state, 7, 5));
     expect(cityScopeAdmits(state, other, { test: 'mountainAdjacent', radius: 2 })).toBe(true);
-    expect(cardPercentYields(state, other)).toHaveLength(0);
+    expect(explainCardPercentYields(state, other)).toHaveLength(0);
   });
 
   it('Assize Court — forgives a share of its own town’s crowding, as a gain line', () => {

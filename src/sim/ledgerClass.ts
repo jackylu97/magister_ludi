@@ -7,7 +7,7 @@
  * lived there, so a line could only be classed by walking the town's sources a
  * second time on the interface's side — four private rebuilds of one list, and
  * the root of every attribution bug of the last two days. Now the town's own
- * list carries a class on every line (`CityQuoteLine.class`, `cities.ts`), which
+ * list carries a class on every line (`CityYieldLine.class`, `cities.ts`), which
  * means the simulation has to be able to *name* a class; and the simulation may
  * not import a screen. So the vocabulary comes down here, above nothing but the
  * data tables, and the Ledger keeps the words, the drawing order and the sharing

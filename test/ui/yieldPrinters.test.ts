@@ -44,7 +44,7 @@ import { roundYield, signedYield } from '../../src/sim/yieldFormat';
  */
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
-  ...(import.meta.glob('../../src/sim/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
+  ...(import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
   ...(import.meta.glob('../../src/spectate/*.ts', { query: '?raw', import: 'default', eager: true }) as Record<string, string>),
 };
 
@@ -124,7 +124,8 @@ describe('every surface that composes a figure itself names the rule', () => {
    */
   it('rounds the sim’s describers through the same function', () => {
     for (const path of [
-      'src/sim/statecraft.ts',
+      // The words' own file since batch E3b split `statecraft.ts` by layer.
+      'src/sim/statecraft/describers.ts',
       'src/sim/resourceEffects.ts',
       'src/ui/religionScreen.ts',
     ]) {

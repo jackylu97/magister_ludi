@@ -10,9 +10,9 @@
  * Three claims, and each is a way the batch could be wrong while every number
  * still added up:
  *
- *   1. **The list is the artefact.** `cityQuote` returns the labelled list its
+ *   1. **The list is the artefact.** `explainCity` returns the labelled list its
  *      flats are the fold of, every line carries a step of `docs/yields.md` and
- *      a class, and `flats` is `foldQuoteLines(lines)` and nothing else. A
+ *      a class, and `flats` is `foldCityFlats(lines)` and nothing else. A
  *      summand folded without a line would balance and would be invisible.
  *   2. **The revision is the subscription.** A reading is handed back unchanged
  *      while the world has not moved and rebuilt the moment it has — and the
@@ -31,18 +31,19 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
 import {
-  cityQuote,
-  cityYields,
   emptyCityYields,
-  foldQuoteLines,
 } from '../../src/sim/cities';
+import {
+  explainCity,
+  foldCity,
+  foldCityFlats,
+} from '../../src/sim/yields/town';
 import { LEDGER_CLASSES } from '../../src/sim/ledgerClass';
 import { readCity, readEmpire, readEmpirePercents } from '../../src/sim/readings';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { bumpRevision, newGame } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
-import { civYields } from '../../src/ui/topBar';
 import { found, game } from './statecraftHelpers';
 
 /** The steps a town's list may carry — `docs/yields.md`'s 1 through 10. */
@@ -54,8 +55,8 @@ describe('the town publishes its list', () => {
     const city = found(state, 0)!;
     city.population = 5;
     city.buildings.push('monument', 'library');
-    const quote = cityQuote(state, city);
-    const fold = foldQuoteLines(quote.lines);
+    const quote = explainCity(state, city);
+    const fold = foldCityFlats(quote.lines);
     for (const key of CITY_YIELD_KEYS) {
       expect(fold[key], key).toBe(quote.flats[key]);
     }
@@ -67,7 +68,7 @@ describe('the town publishes its list', () => {
     const { state } = game();
     const city = found(state, 0)!;
     city.buildings.push('monument');
-    for (const line of cityQuote(state, city).lines) {
+    for (const line of explainCity(state, city).lines) {
       expect(TOWN_STEPS, `${line.source} step ${line.step}`).toContain(line.step);
       expect(LEDGER_CLASSES, `${line.source} class`).toContain(line.class);
     }
@@ -80,7 +81,7 @@ describe('the town publishes its list', () => {
     const city = found(state, 0)!;
     city.buildings.push('monument', 'library');
     let last = 0;
-    for (const line of cityQuote(state, city).lines) {
+    for (const line of explainCity(state, city).lines) {
       expect(line.step, `${line.source} after step ${last}`).toBeGreaterThanOrEqual(last);
       last = line.step;
     }
@@ -92,7 +93,7 @@ describe('the town publishes its list', () => {
     // no card, which is what `other` means.
     const { state } = game();
     const city = found(state, 0)!;
-    const centre = cityQuote(state, city).lines.filter((line) => line.step === 1);
+    const centre = explainCity(state, city).lines.filter((line) => line.step === 1);
     expect(centre).toHaveLength(2);
     expect(centre[0]!.class).toBe('tiles');
     expect(centre[1]!.class).toBe('other');
@@ -188,7 +189,7 @@ describe('the empire’s reading is what the surfaces read', () => {
     city.buildings.push('monument', 'library');
     bumpRevision(state);
     const totals = readEmpire(state, 0).totals;
-    const headline = civYields(state, 0);
+    const headline = readEmpire(state, 0).totals;
     for (const key of CITY_YIELD_KEYS) expect(totals[key], key).toBe(headline[key]);
   });
 
@@ -198,7 +199,7 @@ describe('the empire’s reading is what the surfaces read', () => {
     const reading = readEmpire(state, 0);
     const sum = emptyCityYields();
     for (const town of reading.towns) {
-      const banked = cityYields(state, town.city, [], town.city.queue[0], town.quote);
+      const banked = foldCity(state, town.city, [], town.city.queue[0], town.reading);
       for (const key of CITY_YIELD_KEYS) sum[key] += banked[key];
     }
     for (const line of reading.lines) {
@@ -212,7 +213,7 @@ describe('the empire’s reading is what the surfaces read', () => {
 
 describe('nobody rebuilds the town’s list', () => {
   const SOURCE = {
-    ...(import.meta.glob('../../src/sim/*.ts', {
+    ...(import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,
@@ -241,7 +242,7 @@ describe('nobody rebuilds the town’s list', () => {
   };
 
   it('has no `cityFlatsByClass` left anywhere', () => {
-    // The Ledger's mirror of `cityQuote` — eleven lists walked a second time —
+    // The Ledger's mirror of `explainCity` — eleven lists walked a second time —
     // is the largest of the four private copies §3a names, and it is gone rather
     // than merely unused: the class is on the line now.
     for (const [path, text] of Object.entries(SOURCE)) {

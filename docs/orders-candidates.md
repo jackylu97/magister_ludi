@@ -93,10 +93,10 @@ Solid M line, thin W (three). Candidates: four W, two E outside 🐫, one M with
 
 | Order | T | theme | rarity | effect | shape |
 |---|---|---|---|---|---|
-| The Choir | W | 🕯 | ● | +1🎵 per Temple · Temples +1 happiness | `cityYields hasBuilding` + `happiness hasBuilding` |
+| The Choir | W | 🕯 | ● | +1🎵 per Temple · Temples +1 happiness | `foldCity hasBuilding` + `happiness hasBuilding` |
 | Star-Gazers | W | ✶ | ● | +2🔬 in cities beside a mountain | `cityYields` scoped `mountainAdjacent` (exists) |
 | Cistern Works | E | 🌾 | ● | all cities gain freshwater access |
-| Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · while slotted, gain +1 route capacity | `cityYields hasBuilding` + `routeSlots` rider (NEW on a card; exists on buildings) |
+| Ledger-Keepers | E | 🐫 | ● | +1💰 per Market · while slotted, gain +1 route capacity | `foldCity hasBuilding` + `routeSlots` rider (NEW on a card; exists on buildings) |
 | Drums of War | M | 🎖 | ◆ | newly trained units gain +1 combat strength | `combatLine` with a capital-radius condition (NEW) |
 | The Cartographers | W | 🧭 | ◆ | +1🔬 per 40 hexes revealed (no cap) | `countScaled revealedTiles per 30 max 6` |
 | Guild of Masons | E | ⚒ | ◆ | buildings cost −10%⚙ in cities of size 6+ | `productionBonus category:'building'` scoped by size (exists for The Estates) |
@@ -113,7 +113,7 @@ The thinnest pool at the tier where drafts are most frequent. Eight candidates, 
 | The Engineers | M | ⚒ | ● | siege units +1 movement · siege units cost −15%⚙ | `unitStat movement` filtered siege + `productionBonus modelClass:'siege'` |
 | The Road Tax | E | 🐫 | ● | +1💰 per 3 paved hexes you own | `countScaled` NEW count `roads` |
 | Granaries of the State | E | 🌾 | ● | cities of size 8+ keep 50% of their food basket on growth | `growthRule` (Public Granaries' shape) scoped by size |
-| The Astronomers | W | ✶ | ◆ | Observatories… (deferred: no Observatory) · meanwhile: Libraries +2🔬 in cities of size 8+ | `cityYields hasBuilding` scoped by size |
+| The Astronomers | W | ✶ | ◆ | Observatories… (deferred: no Observatory) · meanwhile: Libraries +2🔬 in cities of size 8+ | `foldCity hasBuilding` scoped by size |
 | Panem | W | 🌱 | ◆ | +1 happiness per 2 citizens in your capital | `countScaled` capital population (exists via `capitalPop`?) — check |
 | The Provincial Senate | E | 📜 | ○ | every fourth city you found grants +1 authority capacity permanently | `countScaled cities per 4` → authority |
 | Amnesty | W | 📜 | ○ | adopting a government seals nothing this time (the next adoption's Orders are open at once) | `metaRule sealTurns` one-shot (NEW one-shot) |
@@ -130,7 +130,7 @@ what that list is short of — 🌾/⛰/☽/📜 themes, which the four new them
 | Mountain Passes | M | ⛰ | ● | units ignore hill movement cost | `unitStat` NEW `ignoresHills` or `moveRule` |
 | The Enclosures | E | 🌾 | ◆ | pastures +1💰 +1⚙ · −1 happiness per 3 pastures | `tileYields improvement` + `countScaled improvements` → happiness |
 | The Scriptorium | W | ☽ | ● | +1🔬 per 4🕯 gained per turn | `rateConversion faithPerTurn per 4` → science |
-| Monastic Orders | W | ☽ | ◆ | Temples +2🔬 · cities that follow your religion +1🔬 per 4 citizens | `cityYields hasBuilding` + `countScaled where:'city'` scoped `follows` |
+| Monastic Orders | W | ☽ | ◆ | Temples +2🔬 · cities that follow your religion +1🔬 per 4 citizens | `foldCity hasBuilding` + `countScaled where:'city'` scoped `follows` |
 | The Assize | E | 📜 | ◆ | +1 authority capacity per 2 cities connected to the capital | `countScaled` NEW count `connectedCities` (exists in `explainEmpireGold`) |
 | The Iron Crown | M | 🎖 | ○ | your capital may hold two military units | `stackingRule` NEW, capital only |
 | The Concordat | W | ☽ | ○ | founder beliefs of a religion whose holy city you hold pay double | `effectAmplifier` NEW target |

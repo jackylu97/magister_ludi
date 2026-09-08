@@ -5,15 +5,19 @@ import { applyCommand } from '../../src/sim/commands';
 import {
   assignCitizens,
   capitalCityOf,
-  cityQuote,
   cityTile,
-  cityYields,
-  collectYields,
   controlledResources,
   foundCityAt,
   growthSurplus,
   isCoastalCity,
 } from '../../src/sim/cities';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
+import {
+  collectYields,
+} from '../../src/sim/yields/empire';
 import { type Game, createGame, dispatch, replay, saveGame, loadGame, snapshotState } from '../../src/sim/game';
 import {
   type GameMap,
@@ -641,7 +645,7 @@ describe('what the meters do to the economy', () => {
     collectYields(state);
     city.foodBasket = 0;
 
-    const yields = cityYields(state, city);
+    const yields = foldCity(state, city);
     const raw = yields.food - city.population * RULES.cities.foodPerCitizen;
     expect(raw).toBeGreaterThan(0);
 
@@ -654,7 +658,7 @@ describe('what the meters do to the economy', () => {
     const before = city.foodBasket;
     const promised = growthSurplus(state, city);
     collectYields(state);
-    expect(cityYields(state, city).food).toBe(yields.food);
+    expect(foldCity(state, city).food).toBe(yields.food);
     expect(city.foodBasket - before).toBe(promised);
   });
 
@@ -664,7 +668,7 @@ describe('what the meters do to the economy', () => {
     city.population = HAPPY.palace + 6;
     // Starve it by hand: nothing to work but the centre.
     city.workedTiles = [];
-    const raw = cityYields(state, city).food - city.population * RULES.cities.foodPerCitizen;
+    const raw = foldCity(state, city).food - city.population * RULES.cities.foodPerCitizen;
     expect(raw).toBeLessThan(0);
     expect(growthSurplus(state, city)).toBe(raw);
   });
@@ -720,19 +724,19 @@ describe('what the meters do to the economy', () => {
     const factor = yieldFactor(effects, 'production');
     expect(factor).toBeLessThan(1);
 
-    // `cityYields` is the number the panel prints, the pipeline banks and
+    // `foldCity` is the number the panel prints, the pipeline banks and
     // `turnsToBuild` divides by — one multiplication, and since batch X no
     // rounding at all: the meter's own factor applied to the flats, exactly.
-    const rate = cityYields(state, city).production;
+    const rate = foldCity(state, city).production;
     const unmodified = state.cities.length;
     expect(unmodified).toBeGreaterThan(0);
-    expect(rate).toBe(cityQuote(state, city).flats.production * factor);
+    expect(rate).toBe(explainCity(state, city).flats.production * factor);
     expect(rate).toBeGreaterThan(0);
 
     // Softening the meter softens the rate, through the same function.
     state.players[0]!.techsResearched.push('mathematics', 'currency', 'engineering');
     bumpRevision(state);
-    expect(cityYields(state, city).production).toBeGreaterThanOrEqual(rate);
+    expect(foldCity(state, city).production).toBeGreaterThanOrEqual(rate);
   });
 });
 

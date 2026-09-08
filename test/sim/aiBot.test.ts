@@ -728,7 +728,7 @@ describe('the bot module', () => {
     // `src/sim/` is the rules and must never know an AI exists; the arrow runs
     // one way only. Asserted from this side because this is the side that would
     // be tempted.
-    const simSource = import.meta.glob('../../src/sim/*.ts', {
+    const simSource = import.meta.glob(['../../src/sim/*.ts', '../../src/sim/*/*.ts'], {
       query: '?raw',
       import: 'default',
       eager: true,

@@ -22,7 +22,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { createMap, getTileAt } from '../../src/sim/map';
-import { explainBuildingPreview, foldBuildingPreview, foundCityAt } from '../../src/sim/cities';
+import {
+  foundCityAt,
+} from '../../src/sim/cities';
+import {
+  explainBuildingPreview,
+  foldBuildingPreview,
+} from '../../src/sim/yields/town';
 import { beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -169,8 +175,8 @@ describe('the fold equals the printed total', () => {
  *
  * The build list prices every row of a town — thirty-odd buildings, a dozen
  * units, the queue and the head — and every one of those prices used to be a
- * whole `cityYields`, which walks the empire twice for the two meter tiers. One
- * render was well over a hundred folds of the same town. `CityQuote` is the
+ * whole `foldCity`, which walks the empire twice for the two meter tiers. One
+ * render was well over a hundred folds of the same town. `CityReading` is the
  * half of that fold no *row* can change, taken once in `render` and handed to
  * every estimate below it, and the arithmetic is unchanged: `test/sim/cities.
  * test.ts` pins that a quoted answer is the unquoted one for every row in the
@@ -243,7 +249,7 @@ describe('the build list prices rows off one quote', () => {
   });
 
   it('reads the percentages off the quote rather than folding them again', () => {
-    // `cityYieldPercents` is `cityQuote`'s own work; a panel that called it
+    // `cityYieldPercents` is `explainCity`'s own work; a panel that called it
     // beside the quote would be walking the empire's two meters a second time
     // to print the very list the quote already holds.
     expect(panelSource()).not.toMatch(/\bcityYieldPercents\(/);

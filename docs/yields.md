@@ -7,7 +7,7 @@ and XVIII) and `docs/audit/evaluations.md` §2. The ruling behind this document
 is `docs/flags.md` (pp).
 
 The sequence is **one sequence**, run per town and then once per empire, and it
-is pinned two ways: `test/sim/yieldsDocSync.test.ts` walks `cityQuote`'s and
+is pinned two ways: `test/sim/yieldsDocSync.test.ts` walks `explainCity`'s and
 `explainEmpireLines`'s own source and asserts the steps below appear in this
 order, and `test/sim/yieldOrder.test.ts` asserts the boundaries by the numbers
 on a real board.
@@ -15,8 +15,8 @@ on a real board.
 Two doctrines govern the whole of it:
 
 - **Rule 5** — a total is the fold of a labelled list, never computed beside
-  it. Every step below is an `explain…` returning a list; its `…Yield(s)` twin
-  is that list's fold and nothing else.
+  it. Every step below is an `explain…` returning a list; its `fold…` twin is
+  that list's sum and nothing else.
 - **Entry XVII** — percentages compound across two stages, never inside one:
   `(base + flats) × (1 + Σ city%) × (1 + Σ empire%)`, additive within a stage,
   multiplied across the pair, floored nowhere (batch X: yields are exact
@@ -24,26 +24,79 @@ Two doctrines govern the whole of it:
 
 ---
 
-## The town — `cityQuote` → `cityYields`
+## The three verbs
 
-Twelve steps. Steps 1–11 are `cityQuote`, which returns **flats** and a
-**percent list** and applies neither to the other; step 12 is `cityYields`,
+Every exported reading of a yield is **one of three**, and nothing else
+(`docs/audit/evaluations.md` §4b step 7; batch E3b). The vocabulary is stated on
+`src/sim/readings.ts` and pinned by `test/sim/verbs.test.ts`.
+
+| verb | shape | means |
+|---|---|---|
+| `explainX(…)` | a labelled **list** | rule 5's list; never a bare number |
+| `foldX(…)` | the **one sum** of such a list | taken fresh, every time it is asked |
+| `readX(state, …)` | the **memo** | `explain` + `fold`, keyed on `state.revision`, and it lives in `src/sim/readings.ts` alone |
+
+Two stated shapes inside those rules, each because the layer is what it is:
+
+- **`explainCity` returns a record around its list** — the lines, their fold
+  (`flats`) and the percent list that is *not* applied to them — because steps
+  1–11 produce two artefacts and every caller wants both. Every other `explain…`
+  is an array.
+- **`foldCity` is the town's total, stages included.** A town's total is staged
+  by definition (step 12), so the fold of a town is the flats plus the two
+  multiplications; a fourth verb for the multiplication would be a second place
+  a total could be computed. The bare sum of the list, with no stage on it, is
+  `foldCityFlats`, which is what `explainCity` fills `flats` with.
+
+### What was renamed (E3b)
+
+| was | is | why |
+|---|---|---|
+| `cityQuote` | `explainCity` | it returns the town's labelled list |
+| `CityQuote` / `CityQuoteLine` | `CityReading` / `CityYieldLine` | the nouns follow the verb |
+| `foldQuoteLines` | `foldCityFlats` | the sum of that list (`foldCityLines` was taken by `combat.ts`) |
+| `cityYields` | `foldCity` | the town's total — the fold plus step 12 |
+| `cityStageSums` | `foldCityStages` | the percent list folded into Entry XVII's two stages, per voice |
+| `stageSumsFor` | `foldStageSums` | the same for one voice |
+| `centreYield` | `foldCentre` | the fold of `explainCentreYield` |
+| `tileYieldOf` | `foldTile` | the fold of `explainTileYield` |
+| `foldTileYield` | `foldTileLines` | it takes the list, so it says so |
+| `cardCityYields` · `cardBuildingYields` · `cardEmpireYields` · `cardPercentYields` | `explainCard…` | each returns a list |
+| `empireRateReading` + private `empireRates` | `foldEmpireRates` | two spellings of one fold; the wrapper is gone |
+| `RateReading` | `EmpireRates` | `…Reading` is the memo's word |
+| `civYields` (`topBar.ts`) | **deleted** → `readEmpire(state, seat).totals` | it was `readEmpire`'s own fold with a second name |
+| `ledgerReading` | `explainLedger` | it returns the six voices as a list |
+| `deckAggregate` · `deckAggregateLine` · `DECK_AGGREGATE_LABEL` | `foldDeck` · `deckCaption` · `DECK_LABEL` | the deck's slice of that list, folded |
+
+Two exports keep a retired suffix, each for a stated reason, and
+`test/sim/verbs.test.ts` carries both as exceptions: **`emptyCityYields`** is a
+constructor of the six-voice bag rather than a reading of anything, and
+**`collectYields`** is the turn phase that *banks* — a mutation, not a reading.
+Types are nouns and are out of the rule (`CityYields`, `EmpireYieldLine`,
+`TileYieldContribution`, …) — what the three verbs govern is the functions.
+
+---
+
+## The town — `explainCity` → `foldCity`
+
+Twelve steps. Steps 1–11 are `explainCity`, which returns **flats** and a
+**percent list** and applies neither to the other; step 12 is `foldCity`,
 which is the only place in the simulation a yield meets a percentage.
 
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
-| 1 | **The centre** — `centreYield` (`explainCentreYield`) | the base city yield, plus the town hex's own reading as an *excess* over it | additive | — |
-| 2 | **Each worked hex** — `tileYieldOf` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with two shares inside it — see below) | — |
-| 3 | **The cards' city lines** — `cardCityYields` | the law reaching this town | additive | — |
+| 1 | **The centre** — `foldCentre` (`explainCentreYield`) | the base city yield, plus the town hex's own reading as an *excess* over it | additive | — |
+| 2 | **Each worked hex** — `foldTile` (`explainTileYield`) | `city.workedTiles`, each priced through the owner's `cityContext` | additive (with two shares inside it — see below) | — |
+| 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
 | 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith | additive | — |
 | 7 | **The palace** — `explainPalaceYield` | the seat of government; empty in every town but one | additive | — |
 | 8 | **The buildings** — `explainCityBuildings` | `city.buildings` in build order, plus each row's per-citizen science | additive | — |
-| 9 | **The cards' building shares** — `cardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
+| 9 | **The cards' building shares** — `explainCardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
 | 10 | **The conversions** — `cardYieldConversions` | the **running flats** of one voice, paid again as another | multiplicative *within the step*, lands as a flat | — |
-| 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `cityStageSums`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
-| 12 | **The two stages** — `applyStages` (`cityYields`) | step 11's list, folded per voice by `stageSumsFor` | multiplicative | city, then empire |
+| 11 | **The percent list** — `cityYieldPercents` (+ `productionModifiers` via `foldCityStages`) | the meter tiers, the luxuries', the cards', the arrears | gathered, never applied | city and empire |
+| 12 | **The two stages** — `applyStages` (`foldCity`) | step 11's list, folded per voice by `foldStageSums` | multiplicative | city, then empire |
 
 ### Inside step 2 — the hex
 
@@ -187,12 +240,28 @@ meter, a stamp, an unlock or an offer.
 
 ## Where each layer's source lives
 
+**One file a layer since batch E3b** (`docs/audit/evaluations.md` §4b step 9).
+`cities.ts` keeps what a city *is* apart from its arithmetic — territory,
+ownership, the resource clauses, founding, citizens, growth, the costs,
+production, borders, the purchase of a tile — and the sequence lives under
+`src/sim/yields/`.
+
 | layer | module |
 |---|---|
-| the hex | `explainTileYield` · `src/sim/cities.ts` |
-| the town's list | `cityQuote` · `src/sim/cities.ts` |
-| the town's total | `cityYields` → `applyStages` · `src/sim/cities.ts`, `src/sim/modifiers.ts` |
-| the empire's list | `explainEmpireLines` · `src/sim/cities.ts` |
-| the banks | `collectYields` · `src/sim/cities.ts` |
-| the card vocabulary | `statecraft.ts` — the one module switching on `CardEffect.kind` |
+| the hex | `explainTileYield` · `src/sim/yields/hex.ts` |
+| the town's list | `explainCity` · `src/sim/yields/town.ts` |
+| the town's total | `foldCity` → `applyStages` · `src/sim/yields/town.ts`, `src/sim/yields/stages.ts` |
+| the empire's list | `explainEmpireLines` · `src/sim/yields/empire.ts` |
+| the banks | `collectYields` · `src/sim/yields/empire.ts` |
+| the two stages | `applyStages`, `foldStageSums` · `src/sim/yields/stages.ts` (the old `modifiers.ts`) |
+| the card vocabulary | `statecraft/evaluator.ts` — the one module switching on `CardEffect.kind` |
 | the luxuries' vocabulary | `resourceEffects.ts` — the one evaluator of a signature |
+
+`yields/` is a **one-way chain**: hex → town → empire, with `stages.ts` beneath
+all three and nothing in the folder importing `readings.ts` (the memos sit above
+the layer, never inside it). The edge back to `cities.ts` — for a town's
+territory and citizens — is function-level, the documented kind, and
+`test/mapgen/moduleCycles.test.ts` loads every file under `src/sim/**` first in
+turn to prove it. `collectYields` lives with the empire's list rather than in
+`turn.ts` because step 18 *is* the banks; `turn.ts` stays the fixed order of
+phases.

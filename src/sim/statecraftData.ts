@@ -52,7 +52,7 @@ import type { BuildingCategory, BuildingId, ProductionCategory } from './buildin
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
-import type { ModifierStage } from './modifiers';
+import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
 import type { CityYieldKey, ResourceId, ResourceKind } from './resourceData';
@@ -948,7 +948,7 @@ export type TileCondition =
  * gold, science, culture and faith and has nowhere to put food or production —
  * so a card that pays a hammer for a thing counted across the whole realm (The
  * Guild Charter's guilds) has to name a town for it to be built in. Read in
- * `cardCityYields` beside the ordinary city lines, and skipped by the empire
+ * `explainCardCityYields` beside the ordinary city lines, and skipped by the empire
  * fold, so it is paid exactly once.
  */
 export type CardPayout =
@@ -1347,7 +1347,7 @@ export type CountKind =
    * "science equal to your empire-wide production", and the Long Count's kin.
    *
    * The one count in the union whose subject is the ledger rather than the board,
-   * and it is answered by the ledger's own reading (`empireRateReading`,
+   * and it is answered by the ledger's own reading (`foldEmpireRates`,
    * `cities.ts`) rather than by a second sweep of the towns — the same bargain
    * `rateConversion` strikes one shape over, widened to all six voices because a
    * periodic boon may be quoted in hammers and a rate never was.
@@ -1962,7 +1962,7 @@ export interface WindfallGrantSpec {
    * `windfallPayout`, before anything is banked — so the preview, the basket and
    * the announcement are one figure, and a card that pays "a turn of culture"
    * cannot pay a different turn's worth to each of them. The rate itself is the
-   * *base* one (`empireRateReading`, the same reading a `rateConversion` takes),
+   * *base* one (`foldEmpireRates`, the same reading a `rateConversion` takes),
    * which is what stops a card feeding itself.
    */
   fromRate?: RateSource;
@@ -2997,7 +2997,7 @@ export interface CardPressureEffect {
  * The vocabulary's first clause whose subject is another line of the same
  * ledger, and it is deliberately the narrowest reading of that idea: it sums
  * what the *buildings of one category* pay in `from` and pays that much `to`, as
- * one labelled line in `cityYields`. Not the whole town's faith — a card that
+ * one labelled line in `foldCity`. Not the whole town's faith — a card that
  * mirrored a total would be mirroring the tiles, the resources, the rites and
  * itself, and "faith buildings supply science" says buildings.
  *
@@ -3053,7 +3053,7 @@ export interface CardMirrorYieldEffect {
  *     the gold percentages exactly as a market's is (`mirrorYield`'s rule, and
  *     for its reason).
  *   · **it is rule 5's list.** The line is labelled with both voices ("food →
- *     gold") and joins `cityQuote`'s fold, so the town's coin is still the sum
+ *     gold") and joins `explainCity`'s fold, so the town's coin is still the sum
  *     of the reasons printed beside it.
  *
  * Floored **per city**, once, on the town's own share — never on an empire
@@ -3155,7 +3155,7 @@ export interface CardUpkeepRebateEffect {
  * The first clause in the vocabulary whose subject is the **deck**. Every other
  * reader of the cards counts them (`slottedOrdersOfSlot`) or counts what they
  * are worth once (`effectAmplifier`'s targets are other systems' figures); this
- * one reads the card fold itself — `cardCityYields`, `cardEmpireYields` and the
+ * one reads the card fold itself — `explainCardCityYields`, `explainCardEmpireYields` and the
  * lines the cards put on the ground — and adds to every line of one voice.
  *
  * Additive is the default, and that is the user's ruling rather than a taste

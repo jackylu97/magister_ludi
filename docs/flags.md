@@ -318,6 +318,11 @@ directly to confirm rulings — user marginalia are rulings.
   classifying all 45 effect kinds, `test/sim/yieldOrder.test.ts` pins the eight
   boundaries on real rows, and `test/sim/parity.slow.test.ts` +
   `parityHelpers.ts` wrote 208 KB of fixtures over four boards in 92 s.
+  **The harness is gone** (E3b, 2026-09-07), as this ruling said it would be:
+  it held on all four boards through E2, E3a and each of E3b's three moves
+  with the fixtures byte-untouched, and was deleted with them at the end.
+  The standing gates are `yieldOrder.test.ts`, `yieldsDocSync.test.ts`,
+  `readings.test.ts`, `benches.test.ts` and now `verbs.test.ts`.
   **E2 — the list is the artefact**:
   `state.revision` (bumped in `applyCommand` and once per phase; serialised;
   schema 87), `readCity`/`readEmpire` as the two memoised sources of truth
@@ -358,7 +363,19 @@ directly to confirm rulings — user marginalia are rulings.
   the `asked` notebook deleted, 57 bench files and 4 helpers announcing,
   `test/sim/benches.test.ts` the lint; §4c.1 of `docs/audit/evaluations.md`) —
   then **E3b — the three verbs and the files by layer** (parity the
-  gate; the harness retired at its end). Open, yours to rule: **the bead
+  gate; the harness retired at its end) — **built** (schema stays 87; no
+  number, no replay, no fixture byte moved): `explain`/`fold`/`read` and
+  nothing else, with `test/sim/verbs.test.ts` the register and the rename
+  table in `docs/yields.md`; `civYields` deleted for
+  `readEmpire(state, seat).totals`, `empireRateReading` folded into
+  `foldEmpireRates`; `src/sim/yields/{hex,town,empire,stages}.ts` and
+  `src/sim/statecraft/{evaluator,describers,draft}.ts`, `statecraft.ts` the
+  index that re-exports **by name** (a star re-export comes out empty in a
+  cycle — `moduleCycles.test.ts` measured it) while the fifty-nine files
+  that imported a yield from `cities.ts` name the layer; the ghost-diff
+  selects a card's flats by the line's own card over steps 3, 9 and 10
+  rather than by a lone step number. §4c.2 of
+  `docs/audit/evaluations.md` has the tables. Open, yours to rule: **the bead
   tables open on the world's clock** (the first empire into an age turns
   its hand face up for all; the Long Count shows the next hand early) — the
   user saw Æra IV draws in Æra III and asked for them only on reaching the

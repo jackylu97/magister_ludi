@@ -130,7 +130,7 @@ later batches per the audit's inventory table.
   carries label, currency, price, worth, delay and the terms the worth is the
   fold of. Purchase rows go through `explainPurchaseCost` + `purchaseError`
   (the sim's one gate); a building's worth is the queue's own reading
-  (hypothetical `cityYields` delta + `explainBuildingRow` − upkeep) with no
+  (hypothetical `foldCity` delta + `explainBuildingRow` − upkeep) with no
   `÷ turns of build effort`, because delivery is instant.
 - **Hold rows are how a threshold became a comparison.** The standing wage
   reserve (`solvency.reserveTurnsOfUpkeep × the bill`) is a want whose worth is
@@ -179,10 +179,10 @@ Two estimates are shared rather than repeated, both hoisted onto
 candidate reading would be an empire sweep each):
 
 - `medianProduction` — the **median** of the seat's towns'
-  `cityYields().production`, 1 for an empire with no town. Median, not mean,
+  `foldCity().production`, 1 for an empire with no town. Median, not mean,
   so one hammer-rich capital cannot tell the beeline that every town raises a
   library in four turns. `buildTurns(cost, ctx)` is that division, rounded up.
-- `scienceRate` — `empireRateReading().sciencePerTurn`, the denominator of
+- `scienceRate` — `foldEmpireRates().sciencePerTurn`, the denominator of
   every research delay.
 
 Per site, the delay chosen and what it prints:
@@ -288,7 +288,7 @@ through `explainEffects` (the reader the drafts use) scaled by
 unread. `hasAbility` + `riteAbility` is the gate, which is `riteError`'s own.
 
 **Contributions rank through the book.** `contributionCommand` scores a press as
-the front row's worth (the queue's own reading — the hypothetical `cityYields`
+the front row's worth (the queue's own reading — the hypothetical `foldCity`
 delta and `explainBuildingRow`) times the delay the hammers buy, per coin, and
 compares it against the best **hold** row in that bank — `bankSpend`'s bar, off
 the same book. The wage cover survives as a refusal, with the `endsTheGame`
@@ -884,7 +884,7 @@ price    = clamp(marginal, weights.production × priceBandLow,
 Closed form on numbers the chain already carries. `city` says which steps are
 owed (a row the town holds is a step it owes nothing on); **the turns are always
 the middling town's**, both because every build delay in this bot has been the
-median's since batch 2 and because `cityYields` walks the empire for the two
+median's since batch 2 and because `foldCity` walks the empire for the two
 meters and this is asked of every building row of every town.
 
 **`hammerTerm` folds the difference from the table, not the price.** Every
@@ -1299,7 +1299,7 @@ about *what a slot would open*. Rather than ask four of the five clauses by hand
 `withSpareSlot` asks the whole gate **on a shallow clone of the state whose first
 town carries one extra route-slot row**. That is the hypothetical the term is
 about, said as a board, and it is the shape the purchasing plan already uses when
-it prices a building by the `cityYields` an unbuilt row would produce.
+it prices a building by the `foldCity` an unbuilt row would produce.
 
 **The pay is cheap and the gate is dear**, so the sweep prices *every* ordered
 pair (two folds of `routeYields.ts`, no path) and asks the gate **in pay order**,
@@ -1581,9 +1581,9 @@ work:
 | 14.23 | `driveSeat` → `dispatch` (the simulation executing the commands) |
 | 9.67 | `tileWants` → `purchasableTiles` |
 | 9.31 | `improvementEntry` → `tileContextAt` |
-| 5.84 | `buildCandidates` → `cityQuote` |
+| 5.84 | `buildCandidates` → `explainCity` |
 | 3.92 | `rankTiles` → `tileContextAt` |
-| 3.68 | `purchasingPlan` → `cityQuote` |
+| 3.68 | `purchasingPlan` → `explainCity` |
 | 2.46 | `reachOf` → `explainPurchaseCost` |
 | 2.40 | `bagOfTiles` → `tileContextAt` |
 | 1.78 | `tileWants` → `borderGrowth` |
@@ -1621,7 +1621,7 @@ state hash both ways).
 ### The four hoists, each of them exact
 
 1. **`push` was pricing a schedule with no quote.** `buildCandidates` already
-   hoists `empirePercents` and takes one `cityQuote` for its baseline, then
+   hoists `empirePercents` and takes one `explainCity` for its baseline, then
    handed every candidate to `push`, which asked `turnsToBuild` with **no quote
    at all** — so each of the forty rows paid for a fresh reading of the town's
    centre, hexes, luxuries, cards and both meter sweeps to answer a question
@@ -1639,7 +1639,7 @@ state hash both ways).
 3. **`tileWants` rebuilt the town's context per hex**, twice over — once for
    every worked hex and again for every hex on offer. One reading, spent by both
    loops.
-4. **Three quote-less `cityYields` sweeps**: `townProduction` and `isOpusTown`
+4. **Three quote-less `foldCity` sweeps**: `townProduction` and `isOpusTown`
    walked every town of the empire taking a fresh `empirePercents` each time,
    and `focusTable`'s two live readings (the starvation guard and the growth
    clock) each took their own. One quote per town, lent.
@@ -1700,13 +1700,13 @@ build's profile is the same list in the same order — 10.03% `effectsOfKind`,
 8.70% `anyCardDef`, 7.67% `pushEffects` — the bot simply asks for less of it).
 The bot cannot fix it from outside: it is not asking redundantly any more; the
 answer it asks for is expensive. The fix is the one this codebase already has a
-name for — a per-sweep hoisted reading, `zocField`/`tileOwnerField`/`CityQuote`
+name for — a per-sweep hoisted reading, `zocField`/`tileOwnerField`/`CityReading`
 said once more about the effect list — and it belongs to a statecraft batch, not
 to this one. **Estimated headroom: the great majority of what is left.**
 
 Two smaller sim-side readings sit under the same heading and are the next two
 after it: `purchasableTiles` (17% of a late turn, and asked exactly once per
-town per turn — it is dear, not redundant) and the hypothetical `cityQuote`s
+town per turn — it is dear, not redundant) and the hypothetical `explainCity`s
 `buildCandidates` and `purchasingPlan` take per row, which are dear for the same
 reason the list above is dear.
 
@@ -1923,7 +1923,7 @@ on seed 20260904 at t51 one seat spent its **whole command budget**
   bushels of banked food for eight bushels of ground, so the growth charge read
   −3.1 with the town standing balanced and −11.3 with it standing on the
   hammers, and the lean scored +7.6 and then −0.6. **`foodUnder(bag)`** is the
-  fix — the simulation's own `cityYields` over a *shifted quote*, `books.flats`
+  fix — the simulation's own `foldCity` over a *shifted quote*, `books.flats`
   moved by the difference from the hexes the town actually stands on. The anchor
   is the **actual** placement (`workedTilesOf`), not the sheet the town is
   pointed at, so `flats.food − standing.food` is the town's non-tile food and is
@@ -1992,12 +1992,12 @@ inside `src/sim/`, which is the one place a hypothetical must not go: the
 evaluator is the game's law, and a law that can be asked *what if* is a law with
 a second reading of itself. A scratch board asks the existing law an ordinary
 question about a board that is not the real one, which is what
-`cityYields(state, city, [candidate])` has always been.
+`foldCity(state, city, [candidate])` has always been.
 
 `deckPair(state, playerId, id)` builds the two boards a margin is the difference
 of. Both are **shallow** clones and every layer is shared but the one that
 changes — the players array, the one player, its `PlayerStatecraft`, the slots —
-which is safe because every reading taken off them is a pure fold (`cityYields`,
+which is safe because every reading taken off them is a pure fold (`foldCity`,
 `explainEmpireGold`, `explainRenown`, the two meters mutate nothing). The
 evaluator's own memo (`liveReading`, batch 10) is a `WeakMap` keyed on the state
 object over a **print of the walk's inputs**, so a scratch board builds its list
@@ -2019,7 +2019,7 @@ ranking the bench by `explainCard` would be a recursion with no floor.
 
 ### `V`, the nine channels
 
-`deckReading` = the simulation's own per-turn books (`empireRateReading`: the six
+`deckReading` = the simulation's own per-turn books (`foldEmpireRates`: the six
 voices) plus `renownPerTurn`, `happinessOf` and `authorityOf`. The difference is
 weighed **exactly as the flat card arms weigh the same channels** — `voiceWeight`
 for the voices (so gold, faith and culture go through the shadow prices),
@@ -2263,16 +2263,16 @@ source:
 `pays.where` now: a city line is multiplied by `ValueContext.cities`, a capital
 line and an empire line pay once. Five live rows were under-priced by the whole
 of the empire's city count (Imperium, the Assembly Hall's two, the Smithy's,
-Sima Qian's). The scope is still not evaluated, exactly as `cityYields`' own arm
+Sima Qian's). The scope is still not evaluated, exactly as `foldCity`' own arm
 does not evaluate one — the standing bargain of the file rather than a new
 omission.
 
 **Finding 5 — the margin's `V`.** `deckReading` reads `marginRates`, which is
-`empireRateReading` **plus** `explainEmpireCardYields`. The sender's foreign
+`foldEmpireRates` **plus** `explainEmpireCardYields`. The sender's foreign
 routes and the treasury's four lines turned out to be **already inside** the base
-reading (`empireRates`, `cities.ts`), so the card empire lines were the whole of
+reading (`foldEmpireRates`, `yields/empire.ts`), so the card empire lines were the whole of
 the hole; the audit's sentence about the routes was stale. It is built in
-`value.ts` and not added to `empireRateReading`, deliberately: that function's
+`value.ts` and not added to `foldEmpireRates`, deliberately: that function's
 meaning in the simulation is *the base rate a conversion reads*, and folding the
 card lines back into it would be a card feeding itself. If the base reading ever
 grows these terms of its own, `marginRates` collapses to it.
@@ -2359,7 +2359,7 @@ that is the price of the two readings agreeing.
   as a discount on everything. Evaluating one wants the roster asked per row.
 - **A `CityScope` is never evaluated**, anywhere in this file — `cityStat`,
   `meterRule`, `yieldConversion` and `mirrorYield` all count the realm. Same
-  bargain `cityYields`' arm has always struck.
+  bargain `foldCity`' arm has always struck.
 - **`conditionRule` is a board reading, not a hypothetical.** A war card at peace
   prices at nought and no option value is folded, which is exactly the gap batch
   6 wrote down for the draft plan, said one shape over.
@@ -2468,7 +2468,7 @@ the appetite, the appetite stands where it does not, and the difference is
 
 **An apostle is the relic it would leave.** A relic is a `placed` building, so it
 is priced exactly as a bought shelf is — the town's own yields asked
-hypothetically through `cityYields`, staged and percentaged — in the first town of
+hypothetically through `foldCity`, staged and percentaged — in the first town of
 the realm that has topped out a cathedral and holds no relic yet. Its other two
 charges (`proclaim`, `healAdjacent`) stay stand-ins **and say so on the row**: a
 proclamation is a lump on a tide this bot has no reading of, and a healing is hit

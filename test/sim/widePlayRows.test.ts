@@ -19,7 +19,13 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildingDef } from '../../src/sim/buildingData';
-import { cityTile, cityYields, foundCityAt } from '../../src/sim/cities';
+import {
+  cityTile,
+  foundCityAt,
+} from '../../src/sim/cities';
+import {
+  foldCity,
+} from '../../src/sim/yields/town';
 import { hexDistance } from '../../src/sim/hex';
 import { tileHex } from '../../src/sim/map';
 import {
@@ -28,8 +34,8 @@ import {
   foldMeter,
 } from '../../src/sim/meters';
 import {
-  cardCityYields,
-  cardPercentYields,
+  explainCardCityYields,
+  explainCardPercentYields,
   cardFoundingRider,
   describeCard,
 } from '../../src/sim/statecraft';
@@ -87,9 +93,9 @@ function colonise(state: GameState, playerId: number, count: number): City[] {
   return made;
 }
 
-/** The science `cardCityYields` pays this town. */
+/** The science `explainCardCityYields` pays this town. */
 function cardScience(state: GameState, city: City): number {
-  return cardCityYields(state, city).reduce((sum, line) => sum + line.science, 0);
+  return explainCardCityYields(state, city).reduce((sum, line) => sum + line.science, 0);
 }
 
 // --- the Monument and the Throne (rulings n, dd) -----------------------------
@@ -252,13 +258,13 @@ describe('the science Orders', () => {
     const [second] = colonise(g.state, 0, 1);
     slot(g.state, 0, 'theLampKeptLit');
 
-    const inCapital = cardPercentYields(g.state, capital).filter(
+    const inCapital = explainCardPercentYields(g.state, capital).filter(
       (line) => line.yield === 'science',
     );
     expect(inCapital).toHaveLength(1);
     expect(inCapital[0]!.percent).toBe(25);
     expect(inCapital[0]!.stage, 'the city stage, Entry XVII’s default').toBe('city');
-    expect(cardPercentYields(g.state, second!).filter((l) => l.yield === 'science')).toHaveLength(0);
+    expect(explainCardPercentYields(g.state, second!).filter((l) => l.yield === 'science')).toHaveLength(0);
   });
 
   it('reaches the town’s own science through the ordinary fold', () => {
@@ -266,9 +272,9 @@ describe('the science Orders', () => {
     const capital = found(g.state, 0);
     capital.buildings.push('monument');
     bumpRevision(g.state);
-    const bare = cityYields(g.state, capital).science;
+    const bare = foldCity(g.state, capital).science;
     slot(g.state, 0, 'theTallySticks');
-    expect(cityYields(g.state, capital).science).toBeGreaterThan(bare);
+    expect(foldCity(g.state, capital).science).toBeGreaterThan(bare);
   });
 });
 

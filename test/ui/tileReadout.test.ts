@@ -18,11 +18,13 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  foldTileYield,
   refreshCityDerived,
-  tileYieldOf,
-  yieldContextFor,
 } from '../../src/sim/cities';
+import {
+  foldTile,
+  foldTileLines,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
 import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import {
@@ -147,9 +149,9 @@ describe('describeTile', () => {
     // The other half of the row. Desert pays nothing, so a card that fell back
     // to the terrain would print an em dash on the two hexes in the game that
     // most need a number on them.
-    expect(tileYieldOf(tile())).toMatchObject({ food: 0, production: 0 });
-    expect(tileYieldOf(tile({ feature: 'oasis' }))).toMatchObject({ food: 3, production: 1 });
-    expect(tileYieldOf(tile({ feature: 'floodplain' }))).toMatchObject({ food: 2, production: 0 });
+    expect(foldTile(tile())).toMatchObject({ food: 0, production: 0 });
+    expect(foldTile(tile({ feature: 'oasis' }))).toMatchObject({ food: 3, production: 1 });
+    expect(foldTile(tile({ feature: 'floodplain' }))).toMatchObject({ food: 2, production: 0 });
   });
 });
 
@@ -216,10 +218,10 @@ describe('tileYieldLines', () => {
       delete hex.improvement;
       Object.assign(hex, shape);
       const label = JSON.stringify(shape);
-      const total = tileYieldOf(hex, yieldContextFor(state, 0));
+      const total = foldTile(hex, yieldContextFor(state, 0));
       expect(foldPrinted(tileYieldLines(state, 0, hex)), label).toEqual(total);
       // And the list the total is folded from is the list that was printed.
-      expect(foldTileYield(tileYieldContributions(state, 0, hex)), label).toEqual(total);
+      expect(foldTileLines(tileYieldContributions(state, 0, hex)), label).toEqual(total);
     }
   });
 
@@ -259,7 +261,7 @@ describe('tileYieldLines', () => {
  * because a ledger of one entry restates the total above it.
  *
  * The claim worth pinning is that neither can change a number: the total is
- * still `foldTileYield` of the simulation's own list, and what these two do is
+ * still `foldTileLines` of the simulation's own list, and what these two do is
  * decide which of its lines are *typeset*.
  */
 describe('displayYieldLines', () => {
@@ -279,7 +281,7 @@ describe('displayYieldLines', () => {
     expect(shown[0]!.figures).toBe(`1${YIELD_GLYPH.food} 1${YIELD_GLYPH.production}`);
     // The fold of what is shown is still the tile's total: a dropped line is by
     // definition one a later override had already overwritten.
-    expect(foldPrinted(shown)).toEqual(tileYieldOf(hex, yieldContextFor(state, 0)));
+    expect(foldPrinted(shown)).toEqual(foldTile(hex, yieldContextFor(state, 0)));
   });
 
   it('keeps one ground line however long the override chain is', () => {
@@ -298,7 +300,7 @@ describe('displayYieldLines', () => {
     // resolved.
     expect(shown.map((line) => line.source)).toEqual(['Forest', 'Gems', 'Mine']);
     expect(shown.every((line) => !line.replaced)).toBe(true);
-    expect(foldPrinted(shown)).toEqual(tileYieldOf(hex, yieldContextFor(state, 0)));
+    expect(foldPrinted(shown)).toEqual(foldTile(hex, yieldContextFor(state, 0)));
   });
 
   it('never drops a line on ground that was never overridden', () => {

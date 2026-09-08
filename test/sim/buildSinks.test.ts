@@ -28,20 +28,22 @@ import { previewCombat } from '../../src/sim/combat';
 import {
   advanceProduction,
   buildingProductionCost,
-  centreYield,
-  cityYields,
   explainBuildingCost,
   explainUnitCost,
   foldUnitCost,
   foundCityAt,
   planProduction,
-  productionModifiers,
   queueItemCost,
   queueItemName,
   settleProductionWindfall,
   turnsToBuild,
   unitProductionCost,
 } from '../../src/sim/cities';
+import {
+  foldCentre,
+  foldCity,
+  productionModifiers,
+} from '../../src/sim/yields/town';
 import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
 import { explainHappiness, happinessOf, tierPercent } from '../../src/sim/meters';
 import { PROJECT_IDS, projectDef, projectRate } from '../../src/sim/projectData';
@@ -228,8 +230,8 @@ describe('a project is a queue row that never leaves', () => {
     // category a bonus may name, so the list is empty rather than matched.
     expect(productionModifiers(state, city, { kind: 'unit', id: 'warrior' })).toHaveLength(1);
     expect(productionModifiers(state, city, { kind: 'project', id: 'tithes' })).toEqual([]);
-    const plain = cityYields(state, city).production;
-    expect(cityYields(state, city, [], { kind: 'project', id: 'tithes' }).production).toBe(plain);
+    const plain = foldCity(state, city).production;
+    expect(foldCity(state, city, [], { kind: 'project', id: 'tithes' }).production).toBe(plain);
   });
 
   it('prices and estimates through the same two evaluators every row uses', () => {
@@ -245,7 +247,7 @@ describe('a project is a queue row that never leaves', () => {
     // `turnsToBuild` needs no project clause: the interval between payouts and
     // "how long until this completes" are the same question for a repeatable
     // item, and the front row is the one that counts the basket.
-    const rate = cityYields(state, city, [], city.queue[0]).production;
+    const rate = foldCity(state, city, [], city.queue[0]).production;
     expect(rate).toBeGreaterThan(0);
     city.hammerBasket = 0;
     expect(turnsToBuild(state, city, city.queue[0]!, 0)).toBe(Math.ceil(cost / rate));
@@ -782,6 +784,6 @@ describe('what the pass did to the opening', () => {
     // ground is worth, so a city centre pays exactly what it paid.
     const state = flatState();
     const city = plant(state, 0, 5, 5);
-    expect(centreYield(state, city).production).toBe(RULES.cities.baseCityYields.production);
+    expect(foldCentre(state, city).production).toBe(RULES.cities.baseCityYields.production);
   });
 });

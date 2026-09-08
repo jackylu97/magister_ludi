@@ -28,10 +28,10 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  DECK_AGGREGATE_LABEL,
-  deckAggregate,
-  deckAggregateLine,
-  ledgerReading,
+  DECK_LABEL,
+  foldDeck,
+  deckCaption,
+  explainLedger,
 } from '../../src/ui/ledgerScreen';
 import { deckReadsSlotPosition, slotPositionWord } from '../../src/ui/statecraftScreen';
 import { GOVERNMENT_IDS, ORDER_IDS, SLOT_TYPES, slotLayout } from '../../src/sim/statecraftData';
@@ -89,8 +89,8 @@ describe('the aggregate', () => {
    */
   it('is exactly the Ledger’s band-1 deck slice, voice for voice', () => {
     const { state, playerId } = bench();
-    const reading = ledgerReading(state, playerId);
-    const aggregate = deckAggregate(state, playerId);
+    const reading = explainLedger(state, playerId);
+    const aggregate = foldDeck(state, playerId);
     // Something is the deck's — the bench slots an Order and swears a charter.
     expect(aggregate.figures.length).toBeGreaterThan(0);
     for (const voice of reading) {
@@ -105,7 +105,7 @@ describe('the aggregate', () => {
   /** It is a standing rate, never an occasion: the band counts, it never thunks. */
   it('carries no occasion, so the band counts rather than thunking', () => {
     const { state, playerId } = bench();
-    const aggregate = deckAggregate(state, playerId);
+    const aggregate = foldDeck(state, playerId);
     expect(aggregate.occasionFigures).toEqual([]);
     expect(aggregate.knockOn).toEqual([]);
     expect(aggregate.occasion).toBeUndefined();
@@ -113,12 +113,12 @@ describe('the aggregate', () => {
 
   /** The user's own words for the line, and a deck with nothing says so. */
   it('writes the line in the ruling’s words, and says “nothing yet” when it is', () => {
-    expect(DECK_AGGREGATE_LABEL).toBe('your cards');
+    expect(DECK_LABEL).toBe('your cards');
     const { state, playerId } = bench();
-    const line = deckAggregateLine(deckAggregate(state, playerId));
+    const line = deckCaption(foldDeck(state, playerId));
     expect(line.startsWith('your cards: ')).toBe(true);
     expect(line).not.toContain('[[');
-    expect(deckAggregateLine({ figures: [], occasionFigures: [], knockOn: [] })).toBe(
+    expect(deckCaption({ figures: [], occasionFigures: [], knockOn: [] })).toBe(
       'your cards: nothing yet',
     );
   });
@@ -132,7 +132,7 @@ describe('the aggregate', () => {
     const band = ledger.slice(ledger.indexOf('function drawThisTurn()'), ledger.indexOf('function drawCurve()'));
     expect(band).toContain('drawDeckLine(');
     const line = ledger.slice(ledger.indexOf('function drawDeckLine('), ledger.indexOf('function drawThisTurn()'));
-    expect(line).toContain('deckAggregate(state, playerId)');
+    expect(line).toContain('foldDeck(state, playerId)');
     // Landed, never played: the ceremony belongs to the moment the law was
     // signed, and this sheet is a place a player comes to read.
     expect(line).toContain('landCardStamp(stamp, reading)');

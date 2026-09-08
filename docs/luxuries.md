@@ -88,7 +88,7 @@ still *applies* in a city). They sum with each other and with the buildings' int
 one per-yield figure, and the happiness and authority tiers — the whole of the
 *global* stage today — multiply what that comes to:
 `(base + flats) × (1 + Σ city%) × (1 + Σ global%)`, floored once at the very end
-(`cityStageSums` in `cities.ts`, `applyStages` in `modifiers.ts`). Three luxuries
+(`foldCityStages` in `yields/town.ts`, `applyStages` in `yields/stages.ts`). Three luxuries
 at +10% read as +30%, not as 1.1³; a +10% tier over them is worth 13 points of
 base, not 10.
 

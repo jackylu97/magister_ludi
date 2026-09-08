@@ -27,8 +27,8 @@ import {
   type PlayerStatecraft,
   adoptGovernmentAt,
   cardCombatLines,
-  cardEmpireYields,
-  cardPercentYields,
+  explainCardEmpireYields,
+  explainCardPercentYields,
   describeCard,
   foldCardYields,
   recordScalingOccasion,
@@ -65,7 +65,7 @@ function bench(state: GameState, playerId: number, id: OrderId): void {
 
 /** What this empire's cards pay the realm, in one voice. */
 function empirePays(state: GameState, playerId: number, voice: 'gold' | 'science' | 'culture' | 'faith'): number {
-  return foldCardYields(cardEmpireYields(state, playerId))[voice];
+  return foldCardYields(explainCardEmpireYields(state, playerId))[voice];
 }
 
 /** A world with the wild in it, and one seat. */
@@ -423,7 +423,7 @@ describe('The Casus Belli', () => {
 
     // The production half is a **staged** percentage (Entry XVII), on the city
     // stage — a per-town percentage that sums with the other per-town ones.
-    const percent = cardPercentYields(g.state, city).find((line) => line.card === 'theCasusBelli');
+    const percent = explainCardPercentYields(g.state, city).find((line) => line.card === 'theCasusBelli');
     expect(percent).toBeDefined();
     expect(percent!.yield).toBe('production');
     expect(percent!.percent).toBe(10);
@@ -460,7 +460,7 @@ describe('The Casus Belli', () => {
     // an ordinary timed effect on the realm from then on.
     bench(g.state, 0, 'theCasusBelli');
     expect(
-      cardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
+      explainCardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
     ).toBe(true);
 
     // One turn short of the expiry it still runs; on it, it does not — and
@@ -468,12 +468,12 @@ describe('The Casus Belli', () => {
     g.state.turn = opened + 9;
     bumpRevision(g.state);
     expect(
-      cardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
+      explainCardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
     ).toBe(true);
     g.state.turn = opened + 10;
     bumpRevision(g.state);
     expect(
-      cardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
+      explainCardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
     ).toBe(false);
   });
 });

@@ -10,7 +10,7 @@
  * idle; and never the last worker.
  *
  * The yields half is rule 5 read for a fourth kind of source — a specialist's
- * science is a labelled line of `cityQuote`'s flats, so the chips, the ledger
+ * science is a labelled line of `explainCity`'s flats, so the chips, the ledger
  * and the resolution agree by construction — and the renown half is the loop
  * closing: a guildsman pays a point a turn into its own family's feed, which is
  * the weighting a great person is drawn against.
@@ -24,15 +24,19 @@ import { describe, expect, it } from 'vitest';
 import { type BuildingId } from '../../src/sim/buildingData';
 import {
   assignableTiles,
-  cityQuote,
-  cityYields,
   claimTile,
   refreshCityDerived,
-  tileYieldOf,
   workableSeats,
-  yieldContextFor,
   yieldScore,
 } from '../../src/sim/cities';
+import {
+  foldTile,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
+import {
+  explainCity,
+  foldCity,
+} from '../../src/sim/yields/town';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   type Game,
@@ -393,7 +397,7 @@ describe('the citizen who left', () => {
     const ctx = yieldContextFor(g.state, 0);
     const score = (key: string): number => {
       const [col, row] = key.split(',').map(Number);
-      return yieldScore(tileYieldOf(getTileAt(g.state.map, col!, row!)!, ctx));
+      return yieldScore(foldTile(getTileAt(g.state.map, col!, row!)!, ctx));
     };
     const worst = Math.min(...after.map(score));
     expect(score(dropped[0]!)).toBeLessThanOrEqual(worst);
@@ -408,7 +412,7 @@ describe('what a guild pays', () => {
     const g = game();
     const city = town(g.state, 0, 12, 'library');
     openGround(g.state, city, 12);
-    const bare = cityYields(g.state, city);
+    const bare = foldCity(g.state, city);
 
     city.specialists.scholar = 3;
     city.specialists.merchant = 2;
@@ -418,7 +422,7 @@ describe('what a guild pays', () => {
       '3 scholars',
       '2 merchants',
     ]);
-    const quote = cityQuote(g.state, city);
+    const quote = explainCity(g.state, city);
     let science = 0;
     let gold = 0;
     for (const line of citySpecialistYields(city)) {
@@ -444,7 +448,7 @@ describe('what a guild pays', () => {
     const g = game();
     const city = town(g.state, 0, 8, 'library');
     openGround(g.state, city, 8);
-    const before = cityYields(g.state, city).food;
+    const before = foldCity(g.state, city).food;
     const worked = city.workedTiles.length;
     city.specialists.scholar = 2;
     refreshCityDerived(g.state, city);
@@ -453,7 +457,7 @@ describe('what a guild pays', () => {
     // claim; the food only follows when the two hexes let go grew any (on the
     // H9 board this bench's seventh and eighth seats are barren, 2026-09-06).
     expect(city.workedTiles.length).toBe(worked - 2);
-    expect(cityYields(g.state, city).food).toBeLessThanOrEqual(before);
+    expect(foldCity(g.state, city).food).toBeLessThanOrEqual(before);
     expect(city.population).toBe(8);
   });
 });

@@ -23,7 +23,7 @@
  *     scoring function that reads it fresh. A weight in a `const` is a weight a
  *     tuner cannot reach.
  *   · **It never reads a rule.** Deltas come from the simulation's own folds —
- *     `cityYields(state, city, [candidate])` against `cityYields(state, city)`
+ *     `foldCity(state, city, [candidate])` against `foldCity(state, city)`
  *     is the whole of "what would this building pay", staged by Entry XVII and
  *     hypothetical-aware because the simulation already does that arithmetic.
  *     This module only ever *weights* an answer somebody else computed.
@@ -88,14 +88,18 @@ import { readCity, readEmpirePercents } from '../sim/readings';
 import {
   buildingProductionCost,
   capitalCityOf,
-  cityYields,
   emptyCityYields,
-  empireRateReading,
-  explainEmpireCardYields,
-  queueCategory,
-  stageEmpireFold,
   tileOwnerField,
 } from '../sim/cities';
+import {
+  foldCity,
+  queueCategory,
+} from '../sim/yields/town';
+import {
+  explainEmpireCardYields,
+  foldEmpireRates,
+  stageEmpireFold,
+} from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
@@ -105,7 +109,7 @@ import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
 import {
   type PlayerStatecraft,
-  type RateReading,
+  type EmpireRates,
   buildingMatchesYieldPercent,
   countOf,
   orderAtSlotPosition,
@@ -339,7 +343,7 @@ export interface ValueContext {
   chains: TechChain[];
   /**
    * **What a middling town of this empire makes in a turn** — the median of its
-   * towns' `cityYields().production`, and 1 for an empire with no town at all.
+   * towns' `foldCity().production`, and 1 for an empire with no town at all.
    *
    * The one estimate behind every *build* delay in the bot (batch 2 of
    * `docs/bot-priorities.md`): a row costs hammers, and "how long until this is
@@ -366,7 +370,7 @@ export interface ValueContext {
   bestProduction: number;
   /**
    * **Beakers a turn, as the simulation's own books read them**
-   * (`empireRateReading().sciencePerTurn`) — the denominator of every *research*
+   * (`foldEmpireRates().sciencePerTurn`) — the denominator of every *research*
    * delay, and hoisted for the same reason as the median above: the worker plan
    * asks "how far off is the node on my plan" once per hex.
    */
@@ -481,7 +485,7 @@ export function buildTurns(cost: number, ctx: ValueContext): number {
  * town's (`ValueContext.medianProduction` / `bestProduction`).
  *
  * One walk rather than two, which is the context's standing bargain said once
- * more: `cityYields` prices every worked hex of a town, and asking it twice per
+ * more: `foldCity` prices every worked hex of a town, and asking it twice per
  * decision to answer two divisions would be a second sweep of the whole empire.
  *
  * An empire with no town at all answers 1 for both rather than 0: a division has
@@ -504,7 +508,7 @@ export function townProduction(
   // the median the whole appraisal divides by.
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
-    made.push(cityYields(state, city, [], null, readCity(state, city)).production);
+    made.push(foldCity(state, city, [], null, readCity(state, city)).production);
   }
   if (made.length === 0) return { median: 1, best: 1 };
   made.sort((a, b) => a - b);
@@ -635,7 +639,7 @@ export function meterWeight(ctx: ValueContext, meter: PricedMeter): number {
  * 2, the chains' own `delay` included, so pricing this one off a different rate
  * would have the premium disagreeing with the chain it is a derivative of. And
  * it is *affordable*: this is asked of every building row of every town, and
- * `cityYields` walks the whole empire twice for the two meters — the very sweep
+ * `foldCity` walks the whole empire twice for the two meters — the very sweep
  * `buildCandidates` hoists a quote to avoid.
  */
 export function hammerPrice(ctx: ValueContext, city?: City): number {
@@ -939,9 +943,9 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
 
 /**
  * A building's worth **beyond its yields** — everything the hypothetical
- * `cityYields` cannot see.
+ * `foldCity` cannot see.
  *
- * The split is exactly the simulation's own: flat yields fold in `cityYields`
+ * The split is exactly the simulation's own: flat yields fold in `foldCity`
  * (so a candidate handed to it as a `hypothetical` is already priced, staged and
  * percentaged by the real arithmetic), while happiness, authority capacity, the
  * defensive stat, the renown trickle, a wonder's `effects` and a capstone's
@@ -1309,7 +1313,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'cityRenownPercent': {
       // A share of what a **middling** town of this empire earns, because the
       // shape is city-scoped and the scope is not evaluated here — the same
-      // bargain `cityYields`' arm strikes with a scope it cannot read.
+      // bargain `foldCity`' arm strikes with a scope it cannot read.
       let total = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
@@ -1361,7 +1365,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // A share of the town's own fold of `from`, paid as `to` — the same
       // arithmetic the evaluator does (`cardYieldConversions`), read off the
       // empire's books rather than off one town's, because the scope is not
-      // evaluated here (`cityYields`' arm strikes the same bargain).
+      // evaluated here (`foldCity`' arm strikes the same bargain).
       const from = ratesOf(ctx)[rateKeyOf(effect.from)] ?? 0;
       if (from <= 0) return 0;
       return voiceWeight(ctx, effect.to as Voice) * (effect.percent / 100) * from;
@@ -1554,26 +1558,26 @@ function unreadEffect(_kind: never, ctx: ValueContext): number {
 /**
  * **The empire's own per-turn books**, remembered for the life of the context.
  *
- * `empireRateReading` prices every town, and half a dozen of the arms above want
+ * `foldEmpireRates` prices every town, and half a dozen of the arms above want
  * one voice of it — so it is asked once per sitting, which is the context's
  * standing bargain said once more (batch 6). Deliberately the **base** reading,
  * before any conversion pays anything, because that is what the evaluator hands
  * a `rateConversion`: pricing a conversion against a rate that already carried
  * conversions would be a card feeding itself.
  */
-const RATES_MEMO = new WeakMap<ValueContext, RateReading>();
-function ratesOf(ctx: ValueContext): RateReading {
+const RATES_MEMO = new WeakMap<ValueContext, EmpireRates>();
+function ratesOf(ctx: ValueContext): EmpireRates {
   let held = RATES_MEMO.get(ctx);
   if (held === undefined) {
-    held = empireRateReading(ctx.state, ctx.playerId);
+    held = foldEmpireRates(ctx.state, ctx.playerId);
     RATES_MEMO.set(ctx, held);
   }
   return held;
 }
 
 /** A voice's key in the books. `food`/`production` are read, never banked. */
-function rateKeyOf(voice: string): keyof RateReading {
-  return `${voice}PerTurn` as keyof RateReading;
+function rateKeyOf(voice: string): keyof EmpireRates {
+  return `${voice}PerTurn` as keyof EmpireRates;
 }
 
 /**
@@ -2059,7 +2063,7 @@ function unreadTarget(_target: never, ctx: ValueContext): number {
  * The reading is the build arm's: what the row pays a town beyond its yields
  * (`explainBuildingRow`), over the towns that would raise it, discounted for the
  * raising (`buildTurns`) and charged the hammers through `explainLump`. It is
- * deliberately **not** `cityYields`' hypothetical delta — that wants a town in
+ * deliberately **not** `foldCity`' hypothetical delta — that wants a town in
  * hand and this is asked of a card in a hand — so the flats on the row are added
  * from the row itself, which is what `explainBuildingRow`'s caller does.
  */
@@ -2089,7 +2093,7 @@ function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
  * `value` replaces the constant and `delta` shifts it, exactly as the shape
  * says; a rule that names a cost this empire is not paying (a coastal town in a
  * landlocked realm) is read as the towns it *could* land in, capped at the
- * realm, which is the same bargain `cityYields`' arm strikes with a scope.
+ * realm, which is the same bargain `foldCity`' arm strikes with a scope.
  */
 function scoreMeterRule(
   effect: Extract<CardEffect, { kind: 'meterRule' }>,
@@ -2324,7 +2328,7 @@ function periodicWorth(effect: CardPeriodicEffect, ctx: ValueContext): number {
  * appraisal in this file knows how to weigh — batch F2's `V`
  * (`docs/fewer-things-plan.md`, row F2).
  *
- * Six of them are the simulation's own per-turn books (`empireRateReading`, the
+ * Six of them are the simulation's own per-turn books (`foldEmpireRates`, the
  * same fold the top bar prints and the resolution banks), and the other three are
  * the standing readings the card arms already weigh: what the empire earns in
  * renown a turn, and where its two meters stand. Nothing is estimated and no
@@ -2362,11 +2366,11 @@ function deckReading(state: GameState, playerId: number): DeckReading {
  * **The whole of what an empire banks in a turn, for the margin** — batch H2's
  * answer to the audit's finding 5.
  *
- * `empireRateReading` is the **base** reading by construction: it is the input a
+ * `foldEmpireRates` is the **base** reading by construction: it is the input a
  * `rateConversion` is handed, so it stops one line short of the truth and must —
  * the empire-scale card lines are computed *from* it, and folding them back in
  * would be a card feeding itself. The sender's foreign routes and the treasury's
- * own four lines are already in it (`empireRates`, `cities.ts`), so the one thing
+ * own four lines are already in it (`foldEmpireRates`, `cities.ts`), so the one thing
  * missing from `V` is `explainEmpireCardYields`.
  *
  * That one omission was the whole of the margin's hole: the founder trickle, The
@@ -2374,14 +2378,14 @@ function deckReading(state: GameState, playerId: number): DeckReading {
  * the built case, an amplifier on a trickle that pays `where: 'empire'`, and its
  * margin read exactly zero.
  *
- * It is a reading built **here** rather than a term added to `empireRateReading`,
+ * It is a reading built **here** rather than a term added to `foldEmpireRates`,
  * deliberately: that function has one meaning in the simulation (*the base rate a
  * conversion reads*) and a bot that wanted a different question asks a different
  * question. Batch H1 is in `cities.ts` at the same time; if the base reading ever
  * grows these terms of its own, this function collapses to it.
  */
 function marginRates(state: GameState, playerId: number): Record<Voice, number> {
-  const rates = empireRateReading(state, playerId);
+  const rates = foldEmpireRates(state, playerId);
   const reading: Record<Voice, number> = {
     food: rates.foodPerTurn ?? 0,
     production: rates.productionPerTurn ?? 0,
@@ -2466,7 +2470,7 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
  * Both scratch boards are **shallow** clones, and every layer of them is shared
  * but the one that changes: the players array, the one player, its
  * `PlayerStatecraft`, and the slots. That is safe because every reading
- * `deckReading` takes is a pure fold — `cityYields`, `explainEmpireGold`,
+ * `deckReading` takes is a pure fold — `foldCity`, `explainEmpireGold`,
  * `explainRenown` and the two meters mutate nothing — and it is what makes the
  * marginal reading affordable at all. The evaluator's own memo (`liveReading`,
  * `statecraft.ts`) is a `WeakMap` on the **state object**, so a scratch board is
@@ -3033,12 +3037,12 @@ function potentialTownsFor(
  * A `countScaled`'s payout, per unit of whatever it counts.
  *
  * **`where` is read** (batch H2, the audit's finding 6): the simulation pays a
- * `where: 'city'` line in **every** town (`cardCityYields`, `statecraft.ts`), so
+ * `where: 'city'` line in **every** town (`explainCardCityYields`, `statecraft.ts`), so
  * a line priced once was an under-price by the whole of the empire's city count
  * on five live rows — Imperium, the Assembly Hall's two, the Smithy's and Sima
  * Qian's. The multiplier is `ValueContext.cities`, which is the count every
  * other city-scoped arm in this file uses and is uncapped since batch 7. The
- * scope is not evaluated, exactly as `cityYields`' own arm does not evaluate
+ * scope is not evaluated, exactly as `foldCity`' own arm does not evaluate
  * one: a line narrowed to the coast is still counted in every town, which is the
  * standing bargain of this file rather than a new omission.
  *

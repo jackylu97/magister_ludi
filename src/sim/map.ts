@@ -120,7 +120,7 @@ export interface Tile {
   /**
    * The resource sitting on this tile, or the key is **absent** when there is
    * none. Placed once, at the end of generation, by `placeResources`
-   * (`resources.ts`); read through `tileYieldOf` for what it pays and through
+   * (`resources.ts`); read through `foldTile` for what it pays and through
    * `visibleResourceAt` (`tech.ts`) for what a given player may be told about it.
    *
    * Absence rather than a `'none'` sentinel, which is `Unit.path`'s convention
