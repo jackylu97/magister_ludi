@@ -2073,6 +2073,49 @@ button.seat:active {
   color: var(--vermilion);
 }
 
+/* **The wanting voice** — one class for every line where the game tells the
+   player they are missing a prerequisite (a technology, a building, a
+   condition): small, vermilion, italic, in the copy face — the tile cell's
+   `is-wanting` said once for every surface (the user, 2026-09-08: "in small
+   red italicized script, similar to how tile yields display … anywhere the
+   game tells the player they're missing a prerequisite, keep the same
+   styling"). The italic is the one the city screen keeps: it is the alarm's
+   own mark, not prose. A surface adds the class beside its own; nothing here
+   sets size or margin that the host line does not already own.
+
+   **What earns the class**, since the sweep of batch U3 had to decide it line
+   by line: a line is wanting when it names something *this seat does not have*
+   and would need — a technology, a building, a resource, a population, a
+   condition the reducer is refusing on. A line that reports a state which is
+   not a lack is not: "Researched", "Being researched", "3 in the plan",
+   "already running", the bead gate's met tick. So a refusal sentence wears it
+   and a fact never does.
+
+   **Three vermilions were folded into this one** and their own colour
+   declarations are gone, each with a note where it stood:
+   `.info-card-state.is-blocked` (the star chart's node card, the queue's
+   preview, the bead card's refusal), `.unit-card-blocked` (the unit sheet's
+   "Why not") and `.sc-commit-problem` (the Statecraft sheet's arrangement).
+   Each keeps its class for the *layout* it owns — margin, face, size — and
+   takes its ink from here.
+
+   **Why the class is written twice.** Nearly every host line below this point
+   sets its own colour on the element itself (`.city-rite-says`,
+   `.info-card-state`, `.bead-card-gate`, `.rel-call-note`,
+   `.city-buildable-cost`, `.trade-candidate-why` …) and sits later in the
+   sheet, so a single class here loses the cascade to all of them — which is
+   exactly what happened to the rite's "Taught by" line the day it landed. The
+   doubled selector buys one point of specificity without moving this rule to
+   the foot of a stylesheet several surfaces are edited in at once. A host that
+   still outranks it (a descendant rule, `.city-buildable:disabled …`) excuses
+   the class with `:not(.wanting)` at its own rule rather than restating the
+   ink here — one vermilion, always this one. */
+.wanting.wanting,
+.tile-requires.is-wanting {
+  color: var(--vermilion);
+  font-style: italic;
+}
+
 /* Tile yields, each in its own voice. All six since the luxuries pass — see
    `TILE_YIELD_KEYS` and `showTileYields` in `main.ts`. */
 .tile-yield {
@@ -4459,7 +4502,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   text-align: left;
 }
 
-.city-buildable:disabled .city-buildable-cost,
+/* A greyed row's figures grey with it — except the cell that has stopped being
+   a figure. `:not(.wanting)` is the one excuse: this rule outranks `.wanting`
+   by a descendant, and a "needs improved ⛏ Iron" in the row's own grey would be
+   the sweep's whole point missed on the row that needed it most. */
+.city-buildable:disabled .city-buildable-cost:not(.wanting),
 .city-buildable:disabled .city-buildable-preview {
   color: inherit;
 }
@@ -4539,7 +4586,7 @@ body:has(.city-mode:not([hidden])) #hud-context {
   grid-column: 1 / -1;
   margin: 0;
   font-family: var(--face-ui);
-  font-size: 12px;
+  font-size: 11px;
   line-height: 1.3;
   color: var(--ink-soft);
 }
@@ -6221,9 +6268,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
-.info-card-state.is-blocked {
-  color: var(--vermilion);
-}
+/* The refused line took `is-blocked` and its own vermilion until batch U3.
+   Both are gone: the surfaces that print a refusal here — the star chart's node
+   card, the queue's building and project previews, the bead card — now write
+   `info-card-state wanting`, and the ink is `.wanting`'s. Nothing else about
+   the line changed, which is the point of the fold. */
 
 /* "3 in the plan · ~11 turns" — the star chart's only user of this modifier,
    and gilt because a plan is a decision already made rather than a state of the
@@ -6276,12 +6325,15 @@ body:has(.city-mode:not([hidden])) #hud-context {
   text-decoration: line-through;
 }
 
+/* The "Why not" line, and the `blocked` foot of a rite's or a prophet's card.
+   Layout only since batch U3 — the ink is `.wanting`'s, which every emitter of
+   this class now writes beside it, because a refusal on the unit sheet is the
+   same sentence as a refusal in the city queue and was a second vermilion. */
 .unit-card-blocked {
   margin: 5px 0 0;
   font-family: var(--face-num);
   font-size: 9.5px;
   letter-spacing: 0.04em;
-  color: var(--vermilion);
 }
 
 /* The gift list: units, buildings, reveals, renewals, each under its own small
@@ -6421,7 +6473,11 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--y-sci-lit);
 }
 
-.info-card.is-night .info-card-state.is-blocked {
+/* The night card's own lightening of the wanting voice, and the one place the
+   vermilion is restated: on the dark ground it does not carry, and a refusal
+   nobody can read is worse than a refusal in the wrong red. Retargeted from
+   `.is-blocked` to `.wanting` with the fold. */
+.info-card.is-night .info-card-state.wanting {
   color: #f0a48f;
 }
 
@@ -8098,12 +8154,15 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 /* The reducer's own sentence, in the one place a greyed Confirm can explain
    itself. Vermilion, because it is a refusal rather than a note. */
+/* Why the arrangement will not seal — a sealed office, a card in a slot that
+   will not take it. Layout only since batch U3: a condition the law has not
+   met is the wanting voice, so the emitter writes `wanting` beside this and the
+   ink comes from there. */
 .sc-commit-problem {
   margin: 0;
   font-family: var(--face-ui);
   font-size: 11px;
   line-height: 1.4;
-  color: var(--vermilion);
 }
 
 /* --- the cards ----------------------------------------------------------- */
@@ -11336,8 +11395,11 @@ body.compendium-page {
   color: var(--ink-faint);
 }
 
-/* The race's gate, in the reducer's own sentence. Never vermilion: a race this
-   empire does not yet qualify for is not an alarm, it is a plan. */
+/* The race's gate, in the reducer's own sentence. The unmet half wears
+   `.wanting` from batch U3 — it names a condition this empire has not met, and
+   the ruling of 2026-09-08 is that every such line reads the same — which
+   supersedes the earlier note here that the gate is never vermilion. The met
+   half keeps the teal below: a condition already answered is not a lack. */
 .bead-card-gate {
   margin: 4px 0 0;
   font-family: var(--face-num);

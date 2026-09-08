@@ -905,7 +905,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
         ),
       );
     }
-    if (problem !== null) block.append(element('p', 'sc-commit-problem', problem));
+    // The refusal wears `wanting` — a seal that has not lifted, an office that
+    // will not take the card, is a condition this law has not met, and the user's
+    // ruling of 2026-09-08 puts every such line in the one vermilion italic.
+    // `sc-commit-problem` kept the layout and gave up its own colour for it.
+    if (problem !== null) block.append(element('p', 'sc-commit-problem wanting', problem));
     return block;
   }
 

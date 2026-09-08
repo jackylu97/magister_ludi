@@ -1035,6 +1035,12 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // The state of the node in one line: done, in hand, or the reducer's own
     // sentence about why not. `researchError` is the same function the node's
     // `disabled` is derived from, so the card and the card's button agree.
+    //
+    // Only the third of the three is a *lack*, so only the third wears
+    // `wanting` — the vermilion italic every surface uses to say "you have not
+    // got X" (the user, 2026-09-08). "Researched" and "Being researched" report
+    // a state and stay in the line's own quiet ink, which is the whole of the
+    // rule the sweep applied everywhere else.
     const problem = researchError(state, playerId, id);
     if (researched) {
       box.append(element('p', 'info-card-state', 'Researched'));
@@ -1044,7 +1050,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
         element('p', 'info-card-state', `Being researched · ${progress.banked}/${progress.cost}`),
       );
     } else if (problem) {
-      box.append(element('p', 'info-card-state is-blocked', problem));
+      box.append(element('p', 'info-card-state wanting', problem));
     }
 
     // "3 in the plan · ~11 turns" — what the corner numeral means, spelled out

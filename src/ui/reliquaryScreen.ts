@@ -567,7 +567,14 @@ export function createReliquaryScreen(options: ReliquaryScreenOptions): Reliquar
       button.disabled = call.disabled;
       button.addEventListener('click', () => options.onCall?.(call.purchase));
       line.append(button);
-      line.append(element('p', 'rel-call-note', call.note));
+      // The note is what the call *does*, or — on a refused call, which is what
+      // `disabled` means here — the reducer's sentence about what the bank has
+      // not got. The second of those is a lack, so it wears `wanting`, the one
+      // vermilion italic every surface says a lack in (the user, 2026-09-08);
+      // the first is an explanation and stays quiet.
+      line.append(
+        element('p', call.disabled ? 'rel-call-note wanting' : 'rel-call-note', call.note),
+      );
       rail.append(line);
     }
     body.append(rail);

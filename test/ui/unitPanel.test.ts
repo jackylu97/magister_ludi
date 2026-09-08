@@ -373,11 +373,15 @@ describe('a greyed row’s refusal', () => {
       panel.indexOf('function renderActions('),
     );
     expect(card).toContain("element('h4', 'unit-card-title', 'Why not')");
-    expect(card).toContain("element('p', 'unit-card-blocked', text)");
+    // `wanting` beside the layout class since batch U3 — the sheet's refusal is
+    // the same sentence as the city queue's and the star chart's, so it is said
+    // in the same vermilion italic (the user, 2026-09-08). The class gave up its
+    // own colour for it; `test/ui/wantingVoice.test.ts` is the register.
+    expect(card).toContain("element('p', 'unit-card-blocked wanting', text)");
   });
 
   it("a row rich enough for its own card — a proclamation — folds the refusal into it", () => {
-    expect(panel).toContain("element('p', 'unit-card-blocked', row.blocked)");
+    expect(panel).toContain("element('p', 'unit-card-blocked wanting', row.blocked)");
     // `renderActions` prefers `action.card` over the fallback exactly when one
     // exists, so such a card is never wrapped in `refusalCard` too.
     expect(body).toContain('action.card ??');

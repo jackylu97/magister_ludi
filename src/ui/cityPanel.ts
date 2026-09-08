@@ -1078,8 +1078,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     return box;
   }
 
-  function note(text: string): HTMLElement {
-    return element('li', undefined, text);
+  /**
+   * One line of a hover card's note list.
+   *
+   * `wanting` is the caller's answer to "is this line a *lack*" — the vermilion
+   * italic of `.wanting`, one class for every surface that tells a player they
+   * are missing a prerequisite (the user, 2026-09-08). A note is a fact about
+   * the row by default and a warning only where this town falls short of it,
+   * which is the tile cell's rule and not a property of the data.
+   */
+  function note(text: string, wanting = false): HTMLElement {
+    return element('li', wanting ? 'wanting' : undefined, text);
   }
 
   /**
@@ -1191,12 +1200,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       notes.append(note(`Ignores terrain · every hex costs 1 of its ${def.movement} moves`));
     }
     if (def.haltsGrowth) notes.append(note('The city banks no food while this is at the front'));
-    if (def.minCityPop > 0) notes.append(note(`Needs a city of ${def.minCityPop}`));
+    // **The two notes that are prerequisites wear the wanting voice — but only
+    // when this town is actually short of them.** The card is a description of
+    // the row, so "Needs a city of 3" is a fact to a capital of six and a lack
+    // to a hamlet of two; the tile cell's rule exactly (`.tile-requires` soft,
+    // `.is-wanting` vermilion), asked of the town the card is open over rather
+    // than declared on the row. `hasResource` is the reducer's own reading, the
+    // same one the greyed buildable row two functions down asks.
+    if (def.minCityPop > 0) {
+      notes.append(
+        note(`Needs a city of ${def.minCityPop}`, city.population < def.minCityPop),
+      );
+    }
     if (def.requiresResource !== undefined) {
       // The one note that is built rather than written: the resource's mark is
       // an element carrying a CSS mask, so it cannot ride inside a template
       // string. See `src/ui/resourceMark.ts`.
       const item = element('li');
+      if (!hasResource(state, city.ownerId, def.requiresResource)) {
+        item.classList.add('wanting');
+      }
       item.append('Needs improved ');
       item.append(resourceLabelNodes(def.requiresResource));
       notes.append(item);
@@ -1340,12 +1363,17 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // Why this town cannot start it, in the reducer's own sentence — "The
     // Colossus wants a harbour; Uruk has none", "The Oracle already stands in Ur
     // (Crimson)". The star chart's node card has said this at the foot since it
-    // was written (`info-card-state is-blocked`); the queue's card had no room
-    // for the *site* clause at all, which is the one refusal a player cannot
-    // work out by looking at the row. Asked with the town in hand, which is what
-    // lets `buildError` answer the ground's question at all.
+    // was written (`info-card-state`); the queue's card had no room for the
+    // *site* clause at all, which is the one refusal a player cannot work out by
+    // looking at the row. Asked with the town in hand, which is what lets
+    // `buildError` answer the ground's question at all.
+    //
+    // `wanting` rather than the old `is-blocked`: a refusal names something this
+    // seat has not got, so it wears the one vermilion italic every such line
+    // wears (the user, 2026-09-08). The class carried its own colour until the
+    // sweep folded it — see the `.wanting` block in `style.css`.
     const problem = buildError(getGame().state, city.ownerId, 'building', id, city);
-    if (problem !== null) box.append(element('p', 'info-card-state is-blocked', problem));
+    if (problem !== null) box.append(element('p', 'info-card-state wanting', problem));
     return box;
   }
 
@@ -1416,9 +1444,10 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     box.append(notes);
     // Why this town cannot start it, in the reducer's own sentence — the race is
     // already won, the card is off the table, or the empire has not got what the
-    // race asks for. `buildingCard`'s clause, one queue kind over.
+    // race asks for. `buildingCard`'s clause, one queue kind over — and its
+    // `wanting`, for its reason.
     const problem = buildError(getGame().state, city.ownerId, 'project', id, city);
-    if (problem !== null) box.append(element('p', 'info-card-state is-blocked', problem));
+    if (problem !== null) box.append(element('p', 'info-card-state wanting', problem));
     return box;
   }
 
@@ -2418,7 +2447,12 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       // beside it keep its own width (see `.city-buildable`).
       const price = element('span', 'city-buildable-cost');
       if (needsResource && missing !== null) {
-        price.classList.add('is-reason');
+        // `is-reason` is the *layout* — the whole row instead of the price
+        // column — and `wanting` is the voice: this cell has stopped quoting a
+        // schedule and started naming something the empire has not got, which is
+        // the one thing every surface says in the same vermilion italic (the
+        // user, 2026-09-08).
+        price.classList.add('is-reason', 'wanting');
         price.append('needs improved ');
         price.append(resourceLabelNodes(missing));
       } else {
@@ -2519,7 +2553,9 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
         // never going to start is the one thing worse than saying nothing.
         const costSpan = element('span', 'city-buildable-cost');
         if (blocked !== null) {
-          costSpan.classList.add('is-reason');
+          // The unit row's pair, and for its reason: `is-reason` gives the
+          // sentence the row, `wanting` gives it the voice every refusal wears.
+          costSpan.classList.add('is-reason', 'wanting');
           setYieldText(costSpan, blocked);
           button.append(costSpan);
         } else {
@@ -2799,7 +2835,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       );
       line.append(says);
       if (row.requiredTechName !== null) {
-        line.append(element('p', 'city-rite-says', `Taught by ${row.requiredTechName}`));
+        // **A prerequisite the seat has not met wears the wanting voice** — the
+        // small vermilion italic the tile cells use for a resource's technology
+        // (`.tile-requires.is-wanting`), one class (`wanting`) wherever the game
+        // says "you are missing X" (the user, 2026-09-08: "keep the same
+        // styling"). A rite is offered only once its tree node is known, so a
+        // row carrying a technology name is always one the seat still wants.
+        line.append(element('p', 'city-rite-says wanting', `Taught by ${row.requiredTechName}`));
       }
       box.append(line);
     }

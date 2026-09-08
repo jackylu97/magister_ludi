@@ -544,16 +544,25 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     // `endeavourPrerequisiteMet` — a fact about *this realm*, which does not
     // change because a rival finished first — and the sentence under it is
     // `endeavourError`, which is why the reducer would refuse the row today.
+    //
+    // The unmet half wears `wanting` and the met half does not: the ruling of
+    // 2026-09-08 is that a line naming something the empire has not got looks
+    // the same everywhere, and "does not meet what the race asks yet" names
+    // exactly that. It supersedes this card's earlier note that the gate is
+    // "never vermilion, a plan rather than an alarm" — the plan is still a plan,
+    // it is simply said in the interface's one voice for a lack. The tick keeps
+    // its teal, because a met condition is not a lack at all.
     if (face.met !== null) {
       const gate = element('p', 'bead-card-gate');
       gate.classList.toggle('is-met', face.met);
+      gate.classList.toggle('wanting', !face.met);
       gate.textContent = face.met
         ? '✓ Your empire meets what the race asks'
         : '✗ Your empire does not meet what the race asks yet';
       card.append(gate);
     }
     if (face.refusal !== null) {
-      card.append(element('p', 'info-card-state is-blocked', face.refusal));
+      card.append(element('p', 'info-card-state wanting', face.refusal));
     }
 
     card.append(element('p', 'bead-card-claim', face.claim));

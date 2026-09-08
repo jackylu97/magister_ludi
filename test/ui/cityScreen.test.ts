@@ -654,8 +654,14 @@ describe('the build list', () => {
     expect(source('cityPanel.ts')).toContain(
       "element('span', 'city-buildable-preview', previewFigures(foldedPreview) || '—')",
     );
-    expect(source('cityPanel.ts')).toContain("costSpan.classList.add('is-reason')");
-    expect(source('cityPanel.ts')).toContain("price.classList.add('is-reason')");
+    // `wanting` rides beside `is-reason` since batch U3: the layout class gives
+    // the sentence the row, and the voice class gives it the vermilion italic
+    // every "you have not got X" on every surface wears (the user, 2026-09-08).
+    // Pinned together, because a cell that kept one without the other would be
+    // either a sentence in a price's width or a refusal in a price's ink —
+    // `test/ui/wantingVoice.test.ts` is the register for the second half.
+    expect(source('cityPanel.ts')).toContain("costSpan.classList.add('is-reason', 'wanting')");
+    expect(source('cityPanel.ts')).toContain("price.classList.add('is-reason', 'wanting')");
     // The card behind the row is where the untruncated list lives, and it is
     // bound on the button itself so a greyed row can still raise it.
     const text = source('cityPanel.ts');

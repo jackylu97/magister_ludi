@@ -1171,7 +1171,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     card.append(element('h4', 'unit-card-title', row.name));
     card.append(element('p', 'unit-card-payoff', row.says));
     card.append(element('p', 'unit-card-clause', row.cost));
-    if (row.blocked !== null) card.append(element('p', 'unit-card-blocked', row.blocked));
+    if (row.blocked !== null) card.append(element('p', 'unit-card-blocked wanting', row.blocked));
     return card;
   }
 
@@ -1236,7 +1236,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
   function refusalCard(text: string): Node {
     const card = element('div', 'unit-card');
     card.append(element('h4', 'unit-card-title', 'Why not'));
-    card.append(element('p', 'unit-card-blocked', text));
+    // `wanting` beside the class, and the class no longer carries its own ink:
+    // a refusal on this sheet says the same thing as a refusal in the city queue
+    // or under a star — "you have not got X" — and the user's ruling of
+    // 2026-09-08 is that all of them read alike. `unit-card-blocked` keeps only
+    // the layout it always owned.
+    card.append(element('p', 'unit-card-blocked wanting', text));
     return card;
   }
 

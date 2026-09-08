@@ -1052,7 +1052,12 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         if (buttons.length > 0) {
           for (const start of buttons) item.append(start);
         } else if (candidate.error !== null) {
-          item.append(element('span', 'trade-candidate-why', candidate.error));
+          // `wanting`: the refusal names what this route has not got — a road, a
+          // partner in range, a slot — and the user's ruling of 2026-09-08 is
+          // that every "you are missing X" on every surface is said in the one
+          // vermilion italic. "already running" one line down is a *state* and
+          // keeps the row's quiet ink, which is the whole of the rule.
+          item.append(element('span', 'trade-candidate-why wanting', candidate.error));
         } else if (candidate.running) {
           item.append(element('span', 'trade-candidate-why', 'already running'));
         } else {
