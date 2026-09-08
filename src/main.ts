@@ -818,18 +818,6 @@ function clearBeadNews(): void {
 const confirmCard: ConfirmCard = createConfirmCard(confirmOverlayEl);
 
 /**
- * The live game's state, once `boot` has one.
- *
- * The Compendium's one optional reader, and the only reason it exists: nothing
- * on that screen is a fact about a seat or a turn (which is what lets the same
- * module mount on a page with no game at all), except a unit's **roster price**,
- * which the Compendium asks of `explainUnitCost`'s first line when there is a
- * game to ask. `game` is local to `boot`; this is the holder that reaches it,
- * for `meterCards`' reason exactly.
- */
-let liveState: (() => GameState) | null = null;
-
-/**
  * The Compendium: every table in the game, read back off the data.
  *
  * Built here at module scope beside the help sheet rather than in `boot`, and
@@ -843,7 +831,6 @@ const compendium: Compendium = createCompendium({
   body: compendiumBodyEl,
   closeButton: requireElement('compendium-close'),
   trigger: compendiumButton,
-  getState: () => liveState?.() ?? null,
   onOpen: () => {
     menu.close();
     help.close();
@@ -1708,10 +1695,6 @@ async function boot(initial: Game | null): Promise<void> {
   // because a load can re-boot without ever showing the landing.
   disposeGameScreens();
   let game: Game = initial ?? createGame(currentConfig());
-  // The Compendium's one optional reader (see `liveState`): from here on there
-  // is a game to price a unit's roster line against. `game` is reassigned by
-  // `takeOverGame`, so this is a closure and never a snapshot.
-  liveState = () => game.state;
   const { view: renderer, report } = await createRenderer(artMode(), game);
 
   /**

@@ -2,8 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { newPlayerStatecraft } from '../../src/sim/statecraft';
 import { newPlayerPantheon } from '../../src/sim/religionData';
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { unitProductionCost } from '../../src/sim/cities';
-import { unitDef } from '../../src/sim/unitData';
+import { unitProductionCost, unitRosterCost } from '../../src/sim/cities';
 import { RULES } from '../../src/sim/rulesData';
 import {
   type GameConfig,
@@ -712,7 +711,11 @@ describe('the research queue field', () => {
     // `costAgeBand` [1.25, 2.5, 4.5, 8.5] by Æra, so Æra I costs exactly what
     // v81 charged and an Æra IV row eight and a half times its printed figure.
     // A v81 log diverges at the first thing built out of Æra I.
-    expect(SCHEMA_VERSION).toBe(88);
+    // 89 since batch P1 (2026-09-07, `docs/production-costs.md`): the two
+    // ladders are one. A row carries a size, the tree's column prices it, and
+    // `costAgeBand` and every printed base are gone — so a v88 log finishes its
+    // first building on a different turn and never rejoins.
+    expect(SCHEMA_VERSION).toBe(89);
   });
 });
 
@@ -735,14 +738,11 @@ describe('the unitsBuilt field (schema 31)', () => {
     const state = newGame(config());
     const player = state.players[0]!;
     delete (player as { unitsBuilt?: unknown }).unitsBuilt;
-    // The row's figure through its Æra I band (2026-09-06 item y, 2026-09-07
-    // item aa) and no ladder — an empty count is what this case is about, not
-    // the band. Both rows are Æra I, so the table's first entry is the whole of
-    // the band here.
-    const banded = (cost: number): number =>
-      Math.floor(cost * RULES.production.costAgeBand[0]!);
-    expect(unitProductionCost(state, 0, 'settler')).toBe(banded(unitDef('settler').cost));
-    expect(unitProductionCost(state, 0, 'worker')).toBe(banded(unitDef('worker').cost));
+    // The roster's own price and no ladder — an empty count is what this case is
+    // about, not the curve. Both rows are opened at the first column, so what
+    // the sized figure says is the whole of the price (batch P1).
+    expect(unitProductionCost(state, 0, 'settler')).toBe(unitRosterCost('settler'));
+    expect(unitProductionCost(state, 0, 'worker')).toBe(unitRosterCost('worker'));
   });
 
   it('keys the settler and the worker independently, and replays byte for byte', () => {

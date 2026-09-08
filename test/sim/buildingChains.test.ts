@@ -19,6 +19,7 @@ import { describe, expect, it } from 'vitest';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
 import { BEAD_DATA, beadIsDormant, prerequisiteBuilding } from '../../src/sim/beadData';
 import {
+  buildingProductionCost,
   foundCityAt,
   realiseItem,
   refreshCityDerived,
@@ -296,19 +297,21 @@ describe('the five unique buildings', () => {
     expect([...set].sort()).toEqual(
       ['caravanserai', 'forum', 'heroicEpic', 'highTemple', 'imperialThrone'].sort(),
     );
+    // **"About half" is now a statement about the two sizes** (batch P1,
+    // `docs/production-costs.md`): a unique is a `large` building and a wonder
+    // is a `wonder`, so the proportion the ruling names lives in one place —
+    // the two bases in `data/rules.json` — and holds at every column of the
+    // tree rather than only where an age's wonders happen to sit. Read as a
+    // band, as it always was, because the ruling is a proportion.
+    const half =
+      RULES.production.sizeHammers.large / RULES.production.sizeHammers.wonder;
+    expect(half).toBeGreaterThan(0.4);
+    expect(half).toBeLessThan(0.6);
     for (const id of set) {
-      const age = techDef(BUILDING_UNLOCK_TECH.get(id)!).age;
-      const wonders = BUILDING_IDS.filter(
-        (other) =>
-          buildingDef(other).wonder === true &&
-          BUILDING_UNLOCK_TECH.has(other) &&
-          techDef(BUILDING_UNLOCK_TECH.get(other)!).age === age,
-      ).map((other) => buildingDef(other).cost);
-      const mean = wonders.reduce((sum, cost) => sum + cost, 0) / wonders.length;
-      // "About half", read as a band rather than as a figure: the ruling is a
-      // proportion and the wonders' own costs are the reference.
-      expect(buildingDef(id).cost / mean, id).toBeGreaterThan(0.4);
-      expect(buildingDef(id).cost / mean, id).toBeLessThan(0.6);
+      expect(buildingDef(id).size, id).toBe('large');
+      // And the price the fold prints is a real one, at the column the row's own
+      // node stands in.
+      expect(buildingProductionCost(id), id).toBeGreaterThan(0);
     }
   });
 

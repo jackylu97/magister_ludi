@@ -62,6 +62,7 @@
 
 import {
   type BuildingId,
+  type BuildingSize,
   type CompletionGrant,
   buildingDef,
   isBuildingId,
@@ -162,8 +163,8 @@ import {
   TECH_IDS,
   type TechId,
   UNIT_UNLOCK_TECH,
-  eraNumeral,
   isTechId,
+  techColumn,
   techDef,
 } from './techData';
 // **A function-level cycle, and the mirror of one that already existed**:
@@ -174,7 +175,14 @@ import {
 // condition the whole simulation's cycles are safe under — see the docblock in
 // `statecraft.ts`.
 import { buildError, settleResearchWindfall } from './tech';
-import { UNIT_TYPE_IDS, type UnitTypeId, isNaval, isUnitTypeId, unitDef } from './unitData';
+import {
+  UNIT_TYPE_IDS,
+  type UnitSize,
+  type UnitTypeId,
+  isNaval,
+  isUnitTypeId,
+  unitDef,
+} from './unitData';
 import { hasStackingRoom } from './units';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
@@ -1888,51 +1896,102 @@ export interface UnitCostLine {
 }
 
 /**
- * The factor **every** hammer price is multiplied by, and the label it prints
- * under: `costAgeBand[age − 1]`, where the age is the band of the technology
- * that unlocks the row, or Æra I for a row nothing gates.
+ * **Where in the tree a row is priced**, which is the whole of the curve's
+ * second half: `techColumn` of the technology that unlocks it (batch P1,
+ * `docs/production-costs.md`).
  *
  * Read off the tree rather than stored on the row, because "when does this
  * belong" is already written down once — in `unlocks` — and a second copy on
  * the unit or the building is a second copy to forget when a designer moves a
- * node between ages.
+ * node. A row the tree does **not** name says where it belongs on its own
+ * (`own`): a charter's building takes the first column of its pool's age, a hull
+ * that shipped ahead of its node takes the column it is waiting for.
  *
- * One function for units, buildings and wonders alike since 2026-09-06 (the
- * user's early-production ruling, `docs/flags.md` item y). It was a unit-only
- * ladder before that, and the asymmetry is exactly what the ruling was about:
- * an empire in Æra III paid twice over for its army and the printed base for
- * everything it could raise, so hammers stopped meaning anything.
+ * **The first column is the floor.** The root's column is nominal and never paid
+ * (`techColumn`, `techData.ts`), so the opening kit — a warrior, a scout, a
+ * worker, the settler — prices at column one along with everything else a first
+ * turn can reach, rather than at a column below the table's own first step.
  *
- * The steep end arrived on 2026-09-07 (item aa — "4–5× what they are now in age
- * 4 only", then the curve drawn out: 1.25 · 2.5 · 4.5 · 8.5). One line prints,
- * whatever the table says: "Æra III ×4.5", never the designer's arithmetic.
- *
- * An age past the end of the table takes the last entry rather than falling to
- * ×1: the tree stops at Æra IV today, and the day an Æra V node lands its row
- * should be dear until the user prices the era, not free.
+ * A row with neither a gate nor a column of its own is a data fault, and the
+ * register test says so by name; one is priced at the first column here rather
+ * than crashing a build list over it.
  */
-function ageCostBand(gate: TechId | undefined): CostBand {
-  const age = gate === undefined ? 1 : techDef(gate).age;
-  const band = RULES.production.costAgeBand;
-  const factor = band[Math.min(age, band.length) - 1] ?? 1;
-  return { age, factor, label: `Age band · Æra ${eraNumeral(age)} ×${factor}` };
+function priceColumn(gate: TechId | undefined, own: number | undefined): number {
+  if (gate !== undefined) return Math.max(1, techColumn(gate));
+  return Math.max(1, own ?? 1);
 }
 
-/** What the age band does to one price: the era it read, the factor, the line. */
-interface CostBand {
-  age: number;
+/**
+ * What the column does to one price: the column it read, the factor, the line.
+ *
+ * The label states the **column** and the multiplier is the line's value, which
+ * is the idiom the whole fold is written in — a reader is told which step of the
+ * tree made a thing dear, never the designer's arithmetic.
+ */
+interface ColumnPrice {
+  column: number;
   factor: number;
   label: string;
 }
 
-/** The band a unit's price is multiplied by — its unlocking tech's. */
-function unitCostFactor(type: UnitTypeId): CostBand {
-  return ageCostBand(UNIT_UNLOCK_TECH.get(type));
+function columnPrice(column: number): ColumnPrice {
+  const factor = RULES.production.columnRate ** (column - 1);
+  return { column, factor, label: `Column ${column} ×${factor.toFixed(2)}` };
 }
 
-/** The band a building's or a wonder's price is multiplied by. */
-function buildingCostFactor(id: BuildingId): CostBand {
-  return ageCostBand(BUILDING_UNLOCK_TECH.get(id));
+/** Where a unit is priced — its unlocking tech's column, or the row's own. */
+function unitCostColumn(type: UnitTypeId): ColumnPrice {
+  return columnPrice(priceColumn(UNIT_UNLOCK_TECH.get(type), unitDef(type).column));
+}
+
+/**
+ * Where a building or a wonder is priced.
+ *
+ * `worldUnlockTech` counts as a gate: the Magnum Opus is opened by Alchemy for
+ * the whole world rather than by an empire's own research, which is a different
+ * *door* and the same statement about where in the tree the row belongs.
+ */
+function buildingCostColumn(id: BuildingId): ColumnPrice {
+  const def = buildingDef(id);
+  return columnPrice(
+    priceColumn(BUILDING_UNLOCK_TECH.get(id) ?? def.worldUnlockTech, def.column),
+  );
+}
+
+/** The words the first line of a price prints, per size. */
+const BUILDING_SIZE_WORDS: Record<BuildingSize, string> = {
+  small: 'Small building',
+  medium: 'Medium building',
+  large: 'Large building',
+  wonder: 'Wonder',
+  free: 'Never built',
+};
+
+/** `BUILDING_SIZE_WORDS` one roster over. */
+const UNIT_SIZE_WORDS: Record<UnitSize, string> = {
+  light: 'Light unit',
+  line: 'Line unit',
+  heavy: 'Heavy unit',
+  engine: 'Engine',
+  settler: 'Settler',
+  free: 'Never built',
+};
+
+/**
+ * **The standard itself**, as the two lines every price starts with: what size
+ * of thing this is, and what the column does to it. Buildings and units share
+ * it because they share the curve — one arithmetic, so a retune of either half
+ * cannot move one roster and not the other.
+ *
+ * A row of size `free` prints one line and stops: multiplying nothing by a
+ * column would put a second line on the card saying nothing happened.
+ */
+function sizedCostLines(word: string, base: number, price: ColumnPrice): UnitCostLine[] {
+  const lines: UnitCostLine[] = [{ source: word, amount: base }];
+  if (price.factor !== 1 && base > 0) {
+    lines.push({ source: price.label, amount: Math.floor(base * price.factor) - base });
+  }
+  return lines;
 }
 
 /**
@@ -1976,13 +2035,15 @@ function uniqueCostFactor(cities: number): number {
  *
  * Three lines, at most:
  *
- *   1. **the row's price** — `cost` off `data/buildings.json`.
- *   2. **the age band** — `ageCostBand`, on the figure above it. It is the
- *      user's four-figure table since 2026-09-07 (item aa), which is why an Æra
- *      IV building folds to eight and a half times its printed row and still
- *      prints one line.
+ *   1. **what size of thing it is** — `sizeHammers[size]` off `data/rules.json`,
+ *      printed in the size's own words ("Large building 60"). The row carries a
+ *      size and never a figure (batch P1, `docs/production-costs.md`).
+ *   2. **where in the tree it stands** — `columnRate ^ (column − 1)`, on the
+ *      figure above it, printed as the column it read ("Column 8 ×6.62"). The
+ *      column is the unlocking technology's, or the row's own where the tree
+ *      does not name it.
  *   3. **the empire's size**, for a `oncePerEmpire` row only — `uniqueCostFactor`
- *      on the banded figure, after the band and never inside it.
+ *      on the columned figure, after the curve and never inside it.
  *
  * **It takes a player now** (2026-09-07, item dd), and that is the reversal of a
  * statement this docblock used to make: "nothing an empire does changes what a
@@ -2007,14 +2068,12 @@ export function explainBuildingCost(
   playerId?: number,
 ): UnitCostLine[] {
   const def = buildingDef(id);
-  const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
-  let running = def.cost;
-  const { factor, label } = buildingCostFactor(id);
-  if (factor !== 1) {
-    const scaled = Math.floor(running * factor);
-    lines.push({ source: label, amount: scaled - running });
-    running = scaled;
-  }
+  const lines = sizedCostLines(
+    BUILDING_SIZE_WORDS[def.size],
+    RULES.production.sizeHammers[def.size] ?? 0,
+    buildingCostColumn(id),
+  );
+  let running = foldUnitCost(lines);
   if (def.oncePerEmpire === true) {
     const cities =
       state !== undefined && playerId !== undefined
@@ -2058,23 +2117,24 @@ export function buildingProductionCost(
  *
  * Four lines, in the order they apply, because the order is the arithmetic:
  *
- *   1. **the roster's price** — `cost` off `data/units.json`.
- *   2. **the ladder** — `escalation` for every one of *this type* this empire
+ *   1. **what size of piece it is** — `unitSizeHammers[size]` off
+ *      `data/rules.json`, in the size's own words ("Heavy unit 20"). The roster
+ *      row carries a size and never a figure (batch P1).
+ *   2. **where in the tree it stands** — `columnRate ^ (column − 1)`, printed as
+ *      the column it read ("Column 11 ×14.88"). The buildings' own curve at the
+ *      buildings' own rate: a late army costs what a late building costs, which
+ *      is the reading the user marked on 2026-09-07.
+ *   3. **the ladder** — `escalation` for every one of *this type* this empire
  *      has already built or bought, read off its own count in
  *      `Player.unitsBuilt` (schema 31: one ladder per escalating type, not one
  *      shared counter — a settler habit and a worker habit price separately).
  *      Presence of the field is the marker, here and in `realiseItem`: a
  *      designer who writes an escalation of zero has declared an escalating
- *      type whose ladder is currently flat, not a flat type.
- *   3. **the age band** — `ageCostBand`, on the sum of the two above. It
- *      multiplies the *escalated* figure rather than the printed one so that a
- *      late-age escalating unit climbs in the money of its own era. Æra I is
- *      ×1.25 rather than ×1 since 2026-09-06 (item y), so the opening moved with
- *      everything else: the ruling is that hammers were cheap against what a
- *      city could make, and an exemption for the age the complaint started in
- *      would have been a rule with a hole in it. Item aa's curve (2026-09-07)
- *      left that opening figure exactly where it was and took the far end to
- *      ×8.5. See `ProductionRules`.
+ *      type whose ladder is currently flat, not a flat type. It climbs on the
+ *      *columned* figure, which is what "the ladder stays on top of its sized
+ *      figure" means: the increment is the row's own hammers either way, and
+ *      putting it under the curve would have made a fourth settler dearer for
+ *      standing later in a tree it does not stand in at all.
  *   4. **the empire's law** — `settlerCost`, asked only of the **settler**: the
  *      rule names the settler by id and predates the ladder's generalisation, so
  *      it is not widened to any other escalating type — a card that cheapens
@@ -2096,8 +2156,8 @@ export function explainUnitCost(
   type: UnitTypeId,
 ): UnitCostLine[] {
   const def = unitDef(type);
-  const lines: UnitCostLine[] = [{ source: def.name, amount: def.cost }];
-  let running = def.cost;
+  const lines = unitRosterLines(type);
+  let running = foldUnitCost(lines);
 
   const increment = def.escalation;
   if (increment !== undefined) {
@@ -2115,13 +2175,6 @@ export function explainUnitCost(
     }
   }
 
-  const { factor, label } = unitCostFactor(type);
-  if (factor !== 1) {
-    const scaled = Math.floor(running * factor);
-    lines.push({ source: label, amount: scaled - running });
-    running = scaled;
-  }
-
   if (increment !== undefined && type === 'settler') {
     const percent = foldCardRulePercent(cardRulePercent(state, playerId, 'settlerCost'));
     if (percent !== 0) {
@@ -2133,6 +2186,31 @@ export function explainUnitCost(
   }
 
   return lines;
+}
+
+/**
+ * **What the roster charges for one of these**, before any empire touches the
+ * price — the first two lines of `explainUnitCost` and nothing under them.
+ *
+ * The two lines above the ladder are facts about the row and the tree rather
+ * than about a seat, so a caller with no game in hand can honestly ask for them:
+ * the Compendium describes rows, and a star chart quotes a unit an empire has
+ * not unlocked. `explainBuildingCost`'s optional empire is the same bargain one
+ * table over, and this is a function rather than a defaulted parameter because
+ * "the roster's price" is a question worth a name.
+ */
+export function unitRosterLines(type: UnitTypeId): UnitCostLine[] {
+  const def = unitDef(type);
+  return sizedCostLines(
+    UNIT_SIZE_WORDS[def.size],
+    RULES.production.unitSizeHammers[def.size] ?? 0,
+    unitCostColumn(type),
+  );
+}
+
+/** The fold of `unitRosterLines`. */
+export function unitRosterCost(type: UnitTypeId): number {
+  return foldUnitCost(unitRosterLines(type));
 }
 
 /** The fold of `explainUnitCost`, and the only sum of one. */

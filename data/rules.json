@@ -341,12 +341,22 @@
     "scholarDraftFaith": 1000
   },
   "production": {
-    "costAgeBand": [
-      1.25,
-      2.5,
-      4.5,
-      8.5
-    ],
+    "sizeHammers": {
+      "small": 30,
+      "medium": 40,
+      "large": 60,
+      "wonder": 130,
+      "free": 0
+    },
+    "unitSizeHammers": {
+      "light": 10,
+      "line": 14,
+      "heavy": 20,
+      "engine": 23,
+      "settler": 28,
+      "free": 0
+    },
+    "columnRate": 1.31,
     "uniqueCostBreakeven": 4,
     "goldPerHammer": 4,
     "faithPerHammer": 1,

@@ -8,7 +8,7 @@
  * *does* comes out of a describer the game already ships — `describeCard`
  * (`statecraft.ts`, the one place a card effect becomes words),
  * `describeResourceSignature` (`resourceEffects.ts`, the same bargain for a
- * luxury), `techGifts` (`techUnlocks.ts`), `explainUnitCost` (`cities.ts`).
+ * luxury), `techGifts` (`techUnlocks.ts`), `unitRosterCost` (`cities.ts`).
  * A reference page that paraphrased would be a second vocabulary for the same
  * rules, and a second vocabulary drifts on the first balance pass — which is
  * exactly the failure the hover card, the offer card and the city panel are all
@@ -41,21 +41,22 @@
  * function on a page with no game behind it. There is no second renderer,
  * because there is no second reference.
  *
- * A game is **optional** everywhere in here, and that is what makes the second
- * mount possible: nothing on these cards is a fact about a seat. The single
- * place a live game would say more is a unit's price — `explainUnitCost` folds
- * the settler ladder and an empire's law into it — and the Compendium prints
- * that fold's **first line only**, the roster's own price, which is the same
- * figure with or without a state. See `rosterCost`.
+ * A game is **taken nowhere** in here, and that is what makes the second mount
+ * possible: nothing on these cards is a fact about a seat. The last place a live
+ * game could have said more was a unit's price — `explainUnitCost` folds the
+ * settler ladder and an empire's law into it — and the Compendium prints
+ * that fold's **first two lines only** — the roster's own price, which is a
+ * fact about the row's size and the tree's column rather than about any seat.
+ * See `unitRosterCost` (`cities.ts`).
  *
  * A **building's** price is printed whole, and the difference is the point: it
- * is `buildingProductionCost`, the fold of the row's figure and its age band,
+ * is `buildingProductionCost`, the fold of the row's size and its column,
  * which is what any town in any empire is charged — with **one** exception,
  * declared here rather than hidden. A `oncePerEmpire` row (the Forum, the three
  * great works, the Opus) costs more the more cities the empire holds since
  * 2026-09-07 (`docs/flags.md` item dd), so the book asks the fold with no seat
  * and gets the **breakeven** reading: the figure an empire of
- * `production.uniqueCostBreakeven` cities pays, which is the row's own banded
+ * `production.uniqueCostBreakeven` cities pays, which is the row's own sized
  * price and the honest neutral quote for a page that describes rows rather than
  * a game. The city panel, which has a seat, prints what that seat is charged.
  *
@@ -75,7 +76,7 @@ import {
   buildingDef,
   isWonder,
 } from '../sim/buildingData';
-import { buildingProductionCost, explainUnitCost } from '../sim/cities';
+import { buildingProductionCost, unitRosterCost } from '../sim/cities';
 import {
   type Family,
   GREAT_PERSON_IDS,
@@ -127,7 +128,6 @@ import {
   doctrineDef,
   orderDef,
 } from '../sim/statecraftData';
-import type { GameState } from '../sim/state';
 import { gatingTech } from '../sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
@@ -391,22 +391,6 @@ function badgeClassOf(def: UnitDef): string {
   return def.modelClass;
 }
 
-/**
- * What the roster charges for one of these, before anything an empire does to
- * the price.
- *
- * `explainUnitCost`'s **first line** when there is a game to ask, and the row's
- * own `cost` when there is not — which is the same number by construction (that
- * line *is* `def.cost`; the ladder, the age band and the empire's law are the
- * three lines under it). Asked of seat zero because the roster line is the one
- * line of that fold which is not a fact about a seat, and the card says so in
- * the sentence beneath it.
- */
-function rosterCost(state: GameState | null, type: UnitTypeId): number {
-  if (state === null) return unitDef(type).cost;
-  return explainUnitCost(state, 0, type)[0]?.amount ?? unitDef(type).cost;
-}
-
 // --- units ------------------------------------------------------------------
 
 /**
@@ -575,7 +559,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   return out;
 }
 
-function unitEntry(state: GameState | null, type: UnitTypeId): CompendiumEntry {
+function unitEntry(type: UnitTypeId): CompendiumEntry {
   const def = unitDef(type);
   const gate = gatingTech('unit', type);
   // Two rows have no production price to print, and for the same reason in both
@@ -584,7 +568,11 @@ function unitEntry(state: GameState | null, type: UnitTypeId): CompendiumEntry {
   // augur's faith) is bought or not at all — a hammer figure beside either would
   // be the card promising a queue row the reducer will not take.
   const unbuildable = def.greatWork === true || def.purchase?.exclusive === true;
-  const priced = unbuildable ? '' : `${figure(rosterCost(state, type))}${YIELD_GLYPH.production}`;
+  // `unitRosterCost` is the simulation's own answer to "what does the roster
+  // charge, before anything an empire does to the price" — the size line and the
+  // column line of `explainUnitCost`, with the ladder and the empire's law left
+  // off. A page with no board may ask it, which is why the entry does.
+  const priced = unbuildable ? '' : `${figure(unitRosterCost(type))}${YIELD_GLYPH.production}`;
   const rows: CompendiumRow[] = [
     ...row('Combat strength', def.combatStrength > 0 ? figure(def.combatStrength) : ''),
     ...row(
@@ -1042,7 +1030,7 @@ function giftWords(gift: TechGift): string {
     const price =
       def.purchase !== undefined && def.purchase.exclusive === true
         ? `${figure(def.purchase.cost)} ${def.purchase.currency}`
-        : `${figure(def.cost)}${YIELD_GLYPH.production}`;
+        : `${figure(unitRosterCost(gift.id))}${YIELD_GLYPH.production}`;
     return `New unit: ${gift.name} — ${price}`;
   }
   if (gift.kind === 'building') {
@@ -1757,10 +1745,13 @@ function tradeEntries(): CompendiumEntry[] {
 /**
  * Every section, every entry — the whole book.
  *
- * `state` is optional and changes exactly one figure (see `rosterCost`); the
- * standalone page passes nothing and gets the same book.
+ * **It takes no game at all** since batch P1. The one figure that ever moved
+ * under a live board was a unit's roster price, and the production standard made
+ * that a fact about the row and the tree (`unitRosterCost`, `cities.ts`) rather
+ * than about a seat — so the claim `compendium.html` rests on is now true by
+ * signature instead of by inspection.
  */
-export function compendiumSections(state: GameState | null = null): CompendiumSection[] {
+export function compendiumSections(): CompendiumSection[] {
   const byId = new Map<CompendiumSectionId, CompendiumEntry[]>();
   // Every *generated* shelf opens on its lead page (`compendiumShelves.ts`), so
   // the first card a reader meets on a shelf says what the shelf is about
@@ -1778,7 +1769,7 @@ export function compendiumSections(state: GameState | null = null): CompendiumSe
 
   for (const entry of INTRO_ENTRIES) push(entry);
   for (const entry of CONCEPT_ENTRIES) push(entry);
-  for (const id of UNIT_TYPE_IDS) push(unitEntry(state, id));
+  for (const id of UNIT_TYPE_IDS) push(unitEntry(id));
   // **A withdrawn row has no page.** The fewer-things pass cut twelve ordinary
   // buildings and kept their rows so that a save which raised one still replays
   // (`BuildingDef.retired`); a reference that still described a Mint would be
@@ -2049,8 +2040,6 @@ export interface CompendiumView {
 }
 
 export interface CompendiumViewOptions {
-  /** The live game, when there is one. `null` on the standalone page. */
-  getState?: () => GameState | null;
   /** Called whenever the marked entry changes — the page writes the hash. */
   onSelect?: (entryId: string) => void;
 }
@@ -2066,7 +2055,6 @@ export function renderCompendium(
   root: HTMLElement,
   options: CompendiumViewOptions = {},
 ): CompendiumView {
-  const getState = options.getState ?? ((): GameState | null => null);
   root.classList.add('cmp');
   root.replaceChildren();
 
@@ -2085,7 +2073,7 @@ export function renderCompendium(
   const body = element('div', 'cmp-body');
   root.append(body);
 
-  let sections: CompendiumSection[] = compendiumSections(getState());
+  let sections: CompendiumSection[] = compendiumSections();
   let openSection: CompendiumSectionId = SECTION_NAMES[0]![0];
   let marked: string | null = null;
 
@@ -2164,7 +2152,7 @@ export function renderCompendium(
     show,
     current: () => marked,
     refresh: () => {
-      sections = compendiumSections(getState());
+      sections = compendiumSections();
       draw();
     },
   };
@@ -2186,7 +2174,6 @@ export interface CompendiumOptions {
   body: HTMLElement;
   closeButton: HTMLElement;
   trigger?: HTMLElement;
-  getState?: () => GameState | null;
   /** Shuts whatever else the HUD has up. The screens' standing contract. */
   onOpen?: () => void;
 }
@@ -2205,7 +2192,7 @@ export interface CompendiumOptions {
  */
 export function createCompendium(options: CompendiumOptions): Compendium {
   const { overlay, body, closeButton, trigger } = options;
-  const view = renderCompendium(body, { getState: options.getState });
+  const view = renderCompendium(body);
 
   /** The entry a `#…` in the address bar names, or `null`. */
   function hashEntry(): string | null {

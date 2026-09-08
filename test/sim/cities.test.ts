@@ -39,6 +39,7 @@ import {
   turnsToBuild,
   turnsToFill,
   unitProductionCost,
+  unitRosterCost,
   withinWorkRadius,
   yieldScore,
 } from '../../src/sim/cities';
@@ -99,7 +100,7 @@ import { openWar } from '../../src/sim/wars';
 import { handOverCity } from '../../src/sim/combat';
 import { chopBaseFor } from '../../src/sim/improvements';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { TECH_IDS, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
+import { TECH_IDS } from '../../src/sim/techData';
 import { CITY_YIELD_KEYS, RESOURCE_IDS, resourceYield } from '../../src/sim/resourceData';
 import {
   FEATURE_IDS,
@@ -2250,21 +2251,23 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('completes an overpaid item and carries the exact overflow', () => {
     const { state, city, worker } = chopper();
-    // Re-pinned 2026-08-28: the granary used to be the cheap building here,
-    // but the ×1.4 cost ladder put it above a single wood's yield even before
-    // the tech-scaling ruling widened the gap further. The shrine is the one
-    // row still under TIMBER.
+    // **Re-pinned batch P1**: no row is under a single wood's yield any more —
+    // the cheapest building in the game is a `small` one at the first column
+    // and a chop pays less than that — so the overpay is built by hand, exactly
+    // as the exactly-paid case above builds its own edge. Five hammers over.
+    const over = 5;
     city.queue = [
       { kind: 'building', id: 'shrine' },
       { kind: 'building', id: 'monument' },
     ];
+    city.hammerBasket = buildingProductionCost('shrine') - TIMBER + over;
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
     expect(city.buildings).toEqual(['shrine']);
     // At most one item, exactly as the phase does it — the monument is still
     // queued and the change is in the basket.
     expect(city.queue).toEqual([{ kind: 'building', id: 'monument' }]);
-    expect(city.hammerBasket).toBe(TIMBER - buildingProductionCost('shrine'));
+    expect(city.hammerBasket).toBe(over);
   });
 
   it('leaves the queue untouched when the timber does not cover the front', () => {
@@ -2346,9 +2349,10 @@ describe('windfall settlement (Entry XVIII)', () => {
 
   it('hands an empty queue to the End Turn blocker rather than forcing a choice', () => {
     const { state, city, worker } = chopper();
-    // A shrine (see the ×1.4 re-pin above): the one non-wonder row a single
-    // wood still completes outright.
+    // A shrine one wood short of finished (batch P1: a chop no longer covers a
+    // whole row on its own), so the axe is what empties the queue.
     city.queue = [{ kind: 'building', id: 'shrine' }];
+    city.hammerBasket = buildingProductionCost('shrine') - TIMBER;
 
     expect(applyCommand(state, chop(worker.id))).toEqual({ ok: true });
     expect(city.queue).toEqual([]);
@@ -2433,12 +2437,12 @@ describe('windfall settlement (Entry XVIII)', () => {
 
     it('is the preview the worker sheet promises with', () => {
       // One evaluator, so "completes Shrine!" on the button and the completion
-      // a moment later cannot disagree — no parallel arithmetic in the UI.
-      // Shrine, the one row reliably under TIMBER regardless of how the ×1.4
-      // cost ladder or the chop's own tech scaling land (see the re-pin above,
-      // 2026-08-28).
+      // a moment later cannot disagree — no parallel arithmetic in the UI. The
+      // basket is topped up to one wood short (batch P1: a chop covers no whole
+      // row by itself), which is the shape the button is actually asked in.
       const { state, city } = chopper();
       city.queue = [{ kind: 'building', id: 'shrine' }];
+      city.hammerBasket = buildingProductionCost('shrine') - TIMBER;
       expect(productionSettledBy(state, city, TIMBER)).toBe(buildingDef('shrine').name);
       expect(productionSettledBy(state, city, 0)).toBeNull();
 
@@ -2539,7 +2543,7 @@ describe('turnsToBuild', () => {
     const first = turnsToBuild(state, city, item, 0);
 
     state.players[0]!.unitsBuilt.settler = 4;
-    expect(unitProductionCost(state, 0, 'settler')).toBeGreaterThan(unitDef('settler').cost);
+    expect(unitProductionCost(state, 0, 'settler')).toBeGreaterThan(unitRosterCost('settler'));
     expect(turnsToBuild(state, city, item, 0)).toBeGreaterThan(first!);
   });
 
@@ -2575,22 +2579,18 @@ describe('turnsToBuild', () => {
 // ---------------------------------------------------------------------------
 
 describe('escalating settler cost', () => {
-  const ROW = unitDef('settler').cost;
+  const ROW = RULES.production.unitSizeHammers.settler;
   const STEP = unitDef('settler').escalation!;
   /**
-   * What the nth settler actually costs, band and all.
+   * What the nth settler actually costs.
    *
-   * **Re-aimed 2026-09-06** (`docs/flags.md` item y): Æra I used to multiply by
-   * one, so the ladder's rungs were the row's own arithmetic and this suite
-   * could say `BASE + n * STEP`. Every age has a band now (`costAgeBand`, one
-   * factor per Æra since H11), so a rung is the *escalated* figure scaled and
-   * floored once — which is the order `explainUnitCost` prints its lines in, and
-   * therefore the order the arithmetic runs in. `ROW + n * STEP` is no longer a
-   * price and is not used as one anywhere below. A settler is Æra I, whose
-   * factor H11 left exactly where H10 set it.
+   * **Re-aimed batch P1** (2026-09-07, `docs/production-costs.md`): the row
+   * carries a size rather than a figure, and the ladder climbs on the sized and
+   * columned figure the fold produces. The settler stands at the first column,
+   * where the curve multiplies by one, so a rung is the arithmetic the suite
+   * could always write — `ROW + n × STEP` — and it is a price again.
    */
-  const priced = (built: number): number =>
-    Math.floor((ROW + built * STEP) * RULES.production.costAgeBand[0]!);
+  const priced = (built: number): number => ROW + built * STEP;
   const BASE = priced(0);
 
   /** A city big enough to finish a settler, with hammers to spare. */
@@ -2627,8 +2627,8 @@ describe('escalating settler cost', () => {
       // them, `buildError` and `purchaseError` refuse them outright, and the
       // tree pass deletes the marker from three rows and adds them to a node.
       if (def.awaitsTech === true) continue;
-      // Not `def.cost`: since the build-sink pass a later-age type is also
-      // multiplied by its Æra band (Entry XXVI), which is a fact about the
+      // Not the row's own size alone: a later-column type is dearer for
+      // standing later in the tree (batch P1), which is a fact about the
       // *roster* and not about this empire. What the ladder must not do is
       // move — so the price is asked with and without five settlements and the
       // two answers have to agree.
@@ -2636,12 +2636,9 @@ describe('escalating settler cost', () => {
       state.players[0]!.unitsBuilt.settler = 0;
       expect(unitProductionCost(state, 0, id), id).toBe(priced);
       state.players[0]!.unitsBuilt.settler = 5;
-      // And the band is the only thing between the printed cost and the price.
-      // One factor per Æra since H11 (2026-09-07, `docs/flags.md` item aa —
-      // 1.25 · 2.5 · 4.5 · 8.5), asked of every hammer price, with Æra I inside
-      // the rule rather than exempt at ×1 (H10, item y).
-      const age = techDef(UNIT_UNLOCK_TECH.get(id)!).age;
-      expect(priced, id).toBe(Math.floor(def.cost * RULES.production.costAgeBand[age - 1]!));
+      // And the roster's own two lines are the whole of the price for a type
+      // with no ladder on it.
+      expect(priced, id).toBe(unitRosterCost(id));
     }
     // Two types escalate today: the settler (founds cities) and the worker (a
     // per-type ladder of its own, schema 31's generalisation).
@@ -2777,9 +2774,7 @@ describe('escalating settler cost', () => {
     ).toBe(true);
     expect(worker.ownerId).toBe(0);
     expect(state.players[0]!.unitsBuilt.worker).toBeUndefined();
-    expect(unitProductionCost(state, 0, 'worker')).toBe(
-      Math.floor(unitDef('worker').cost * RULES.production.costAgeBand[0]!),
-    );
+    expect(unitProductionCost(state, 0, 'worker')).toBe(unitRosterCost('worker'));
   });
 });
 
@@ -2789,29 +2784,30 @@ describe('escalating worker cost', () => {
   // one invented. `escalation` on the worker's row is 2 (3 until the user
   // turned both ladders down a step on 2026-08-29 — the settler's 8 → 7 in
   // the same ruling), so the first three workers price 14 / 16 / 18.
-  const ROW = unitDef('worker').cost;
+  const ROW = RULES.production.unitSizeHammers.light;
   const STEP = unitDef('worker').escalation!;
   /** The settler suite's own reading of a rung — see the docblock there. */
-  const priced = (built: number): number =>
-    Math.floor((ROW + built * STEP) * RULES.production.costAgeBand[0]!);
+  const priced = (built: number): number => ROW + built * STEP;
   const BASE = priced(0);
 
-  it('reads the base off the row and climbs by the row\'s own step', () => {
-    expect(ROW).toBe(14);
+  it('reads the base off the row\'s size and climbs by the row\'s own step', () => {
+    // The worker is a `light` piece at the first column since batch P1, so its
+    // base is the light base and nothing on the row says a number.
+    expect(unitDef('worker').size).toBe('light');
+    expect(ROW).toBe(10);
     expect(STEP).toBe(2);
     expect(unitDef('settler').escalation).toBe(7);
   });
 
-  it('prices a first, second and third worker at 17 / 20 / 22', () => {
-    // The row still prints 14 / 16 / 18; the Æra I band takes each of them a
-    // quarter higher (H10, item y — the opening is no longer exempt), and the
-    // floor is taken once, at the end.
+  it('prices a first, second and third worker at 10 / 12 / 14', () => {
+    // The ladder is the whole of the climb at the first column: the curve
+    // multiplies by one there, so each rung is one increment over the last.
     const state = flatState();
-    expect(unitProductionCost(state, 0, 'worker')).toBe(17);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(10);
     state.players[0]!.unitsBuilt.worker = 1;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(20);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(12);
     state.players[0]!.unitsBuilt.worker = 2;
-    expect(unitProductionCost(state, 0, 'worker')).toBe(22);
+    expect(unitProductionCost(state, 0, 'worker')).toBe(14);
   });
 
   it('climbs its own ladder independently of the settler\'s', () => {
@@ -2822,10 +2818,7 @@ describe('escalating worker cost', () => {
     state.players[0]!.unitsBuilt.worker = 2;
     // And the settler's answers to the settler count alone.
     expect(unitProductionCost(state, 0, 'settler')).toBe(
-      Math.floor(
-        (unitDef('settler').cost + 5 * unitDef('settler').escalation!) *
-          RULES.production.costAgeBand[0]!,
-      ),
+      RULES.production.unitSizeHammers.settler + 5 * unitDef('settler').escalation!,
     );
   });
 
@@ -3325,7 +3318,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(88);
+    expect(SCHEMA_VERSION).toBe(89);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

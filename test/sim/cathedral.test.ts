@@ -54,6 +54,7 @@ import {
   describeCard,
   liveCityEffects,
 } from '../../src/sim/statecraft';
+import { BUILDING_UNLOCK_TECH, techColumn } from '../../src/sim/techData';
 import { game } from './purchaseHelpers';
 
 // --- harness ----------------------------------------------------------------
@@ -122,23 +123,36 @@ describe('the cathedral row', () => {
     const def = buildingDef(CONSECRATOR);
     expect(def.happiness).toBe(3);
     expect(def.acceptsContributions).toBe(true);
-    // Æra IV's earned relief: dearer than any ordinary building of its age, and
-    // level with the age's wonders. Stated against the roster rather than as a
-    // number here, so a retune of the band moves the claim with it.
-    // Every row a town can *labour* toward: wonders are their own band, and the
-    // Gilded Hall is a doctrine's counting-house nobody builds at all.
-    // **And the capstones are their own band too** (Entry LVIII): a
-    // `oncePerEmpire` row is a great work of the endgame, priced against the
-    // Opus rather than against the age's buildings, so a cathedral being cheaper
-    // than one is the design and not a drift.
+    // **The dearest size an ordinary row takes** (batch P1): "very expensive" is
+    // a statement about the row's size now rather than about a printed figure,
+    // because what a building costs is its size and its column and nothing on
+    // the row. A `large` cathedral is dearer than any small or medium row at any
+    // column of the tree, and level with the other large rows of its own step.
+    expect(def.size).toBe('large');
+    // And nothing a town can *labour* toward is dearer at its column or before
+    // it. Wonders are their own size, the capstones are priced against the Opus
+    // (Entry LVIII), and the Gilded Hall is a doctrine's counting-house nobody
+    // builds at all — so all three are outside the reading, as they always were.
+    const price = buildingProductionCost(CONSECRATOR);
+    /** Where a row is priced — the tree's column, or the row's own. */
+    const columnOf = (id: (typeof BUILDING_IDS)[number]): number => {
+      const gate = BUILDING_UNLOCK_TECH.get(id) ?? buildingDef(id).worldUnlockTech;
+      return gate === undefined ? (buildingDef(id).column ?? 1) : Math.max(1, techColumn(gate));
+    };
     const ordinary = BUILDING_IDS.filter(
       (id) =>
         id !== CONSECRATOR &&
         buildingDef(id).wonder !== true &&
         buildingDef(id).oncePerEmpire !== true &&
-        buildingDef(id).purchaseOnly !== true,
+        buildingDef(id).purchaseOnly !== true &&
+        // Its own column or an earlier one: a Forge two columns later is dearer
+        // because it stands two columns later, which is the standard working
+        // rather than the cathedral slipping.
+        columnOf(id) <= columnOf(CONSECRATOR),
     );
-    for (const id of ordinary) expect(def.cost, id).toBeGreaterThan(buildingDef(id).cost);
+    for (const id of ordinary) {
+      expect(buildingProductionCost(id), id).toBeLessThanOrEqual(price);
+    }
   });
 
   it('is opened by a technology, so nothing waits on an age that has arrived', () => {

@@ -19,11 +19,12 @@
  */
 
 import rulesJson from '../../data/rules.json';
+import type { BuildingSize } from './buildingData';
 import type { SpecialistFamily } from './greatPeopleData';
 import type { ResourceYieldBag } from './resourceData';
 import type { TechId } from './techData';
 import type { TileYieldSpec } from './terrainData';
-import type { UnitTypeId } from './unitData';
+import type { UnitSize, UnitTypeId } from './unitData';
 
 export interface GameRules {
   /** Turn number a new game starts on. */
@@ -1185,80 +1186,102 @@ export interface ResearchRules {
 }
 
 /**
- * The system half of what a city builds. The per-thing half — a unit's `cost`,
- * a building's, a project's — lives in the content tables, because those
- * describe *a thing* rather than the system.
+ * **The whole of what a thing costs to build** (batch P1, 2026-09-07 — the
+ * user: *"we need to scale them back … buildings should be sized small, medium,
+ * large, wonder, and we should use one set of scaling notation across the board.
+ * Costs should scale this base production cost by column number in the tech
+ * tree."* The reference is `docs/production-costs.md`).
  *
- * One knob that matters here, and it exists because the two halves of the game
- * move at different rates. Beaker costs climb roughly nine-fold between Age I
- * and Age III (16🔬 → 380🔬) while the roster's printed hammer prices climb
- * about twice, so a late empire's science pace buys it units that are, relative
- * to everything else it can spend hammers on, nearly free. The band reprices
- * what a city builds by the age of the technology that unlocks it rather than by
- * hand, so a designer retuning "how much dearer is a later thing" edits four
- * numbers instead of a hundred rows.
+ * One base per size, one curve by column, and nothing else:
  *
- * **It is one rule for every hammer price since 2026-09-06** (the user, after
- * the second playtest: "my cities had way more production than things cost by
- * age 3 … Age 3 buildings and units should probably be ~2× as expensive" —
- * `docs/flags.md`, rulings "late — early production", item y). It used to be a
- * hand-authored ladder that units alone read; buildings and wonders paid their
- * printed base at every age, which is most of why a late empire ran out of
- * things to build. Since then it is asked of buildings and wonders on the same
- * terms, and Æra I is no longer exempt.
+ *     price = sizeHammers[size] × columnRate ^ (column − 1)
  *
- * **The curve is the user's own, written out, since 2026-09-07** (item aa:
- * "production costs are way too low… 4–5× what they are now in age 4 only",
- * then, on seeing what a ratio produced, "the curve needs to be fairly
- * exponential"). It was a power for a day — `costAgeBase ** age` — on the
- * argument that a rule beats a table. The ruling settled that: the shape the
- * user wants is not any power's, the four figures are the spec of record, and a
- * table nobody can derive is a table the designer can tune era by era.
+ * floored once, with the once-per-empire line after it. The content tables
+ * carry a **size** and never a figure, so the two questions a price used to
+ * answer at once are now asked one at a time: what kind of thing is this (the
+ * row), and how late in the tree does it stand (the column, off the technology
+ * that unlocks it).
+ *
+ * It replaced two ladders that multiplied each other — a hand-authored base on
+ * every row and a four-entry age band over the top of it (`costAgeBand`,
+ * retired here). That pairing is why the Cathedral cost what a late wonder cost,
+ * why a charter's building was priced as Æra I whatever pool opened it, and why
+ * a retune of either ladder moved the other's meaning.
+ *
+ * A project is deliberately outside all of it (`queueItemCost`, `cities.ts`): a
+ * project's cost is the size of one conversion, not the price of a thing.
  */
 export interface ProductionRules {
   /**
-   * **What an era's things are worth** — one factor per Æra, in order, and every
-   * hammer price is `floor(cost × costAgeBand[age − 1])` where the age is the
-   * band of the technology that unlocks the row.
+   * **What a building of each size is worth at the first column**, in hammers.
+   * The user's own four, ruled 2026-09-07:
    *
-   * The ruling's own figures (2026-09-07, item aa — the user drew the curve
-   * after a ratio produced a University at 599 and the answer was "the curve
-   * needs to be fairly exponential"):
-   *
-   * | Æra I | Æra II | Æra III | Æra IV |
+   * | small | medium | large | wonder |
    * |---|---|---|---|
-   * | ×1.25 | ×2.5 | ×4.5 | ×8.5 |
+   * | 30 | 40 | 60 | 130 |
    *
-   * so a Library (28, Æra I) costs 35, a Market (59, Æra II) 147, a Workshop
-   * (69, Æra III) 310 and a University (134, Æra IV) 1139. The table above is
-   * pinned against `data/rules.json` by a sync test — a figure edited in one
-   * place and not the other fails core.
+   * a shrine, a monument, a granary at **small**; a library, a market, a temple
+   * at **medium**; a university, a bank, a cathedral — and every once-per-empire
+   * row — at **large**; every wonder and the Magnum Opus at **wonder**. The
+   * table above is pinned against `data/rules.json` by a sync test, and the
+   * row-by-row assignment is `docs/production-costs.md`'s, sync-tested the same
+   * way.
    *
-   * A **table** rather than a base raised to the age, which is what this was for
-   * a day: a power gives one shape and the shape the design wants is steeper at
-   * the end than at the start. Four authored numbers cannot disagree with the
-   * ruling the way a fitted curve can, and a designer retuning one era touches
-   * one entry.
+   * `free` is 0 and is not a size in the design sense: it prices the rows that
+   * are never built and never bought with hammers, and it is a table entry
+   * rather than a special case in code for the reason every other number in this
+   * file is one.
    *
-   * A row no technology unlocks is Æra I — the opening kit is priced in the
-   * money of the age it is played in, not for free. An age past the end of the
-   * table takes the last entry (`ageCostBand`, `cities.ts`): the tree stops at
-   * Æra IV today, and an Æra V row appearing before its factor does should cost
-   * the most the table knows rather than nothing.
-   *
-   * Applied as its own labelled line inside the cost fold — `explainUnitCost`
-   * and `explainBuildingCost` (`cities.ts`) — and never at the point of sale, so
-   * a purchase converts the *folded* price and the build list, the star chart
-   * and the Compendium all print the same figure the basket is charged. A
-   * project is deliberately outside it (`queueItemCost`): a project's cost is
-   * the size of one conversion, not the price of a thing.
+   * Read in one place — `explainBuildingCost` (`cities.ts`) — as the first line
+   * of the fold.
    */
-  costAgeBand: number[];
+  sizeHammers: Record<BuildingSize, number>;
+  /**
+   * **What a piece of each size is worth at the first column**, in hammers —
+   * `sizeHammers` one table over, for the roster:
+   *
+   * | light | line | heavy | engine | settler |
+   * |---|---|---|---|---|
+   * | 10 | 14 | 20 | 23 | 28 |
+   *
+   * The roster rides the buildings' own curve at the buildings' own rate, ruled
+   * 2026-09-07 ("this is ok, lets playtest first, because things felt way too
+   * cheap during my playtest") over the alternative of a gentler rate for units:
+   * a late army costs what a late building costs. `docs/production-costs.md`
+   * keeps the reading that would be retuned if the playtest asks for one.
+   *
+   * The settler's ladder (`UnitDef.escalation`) climbs on top of the figure this
+   * table and the column produce, as its own line of the fold.
+   */
+  unitSizeHammers: Record<UnitSize, number>;
+  /**
+   * **What one column of the tech tree does to a price** — the whole of the
+   * curve, ruled **1.31** on 2026-09-07 ("lets make it 1.31. I'll let you know
+   * if we need to tweak it").
+   *
+   * A price is `base × columnRate ^ (column − 1)`, so the first column is the
+   * base itself and the twelfth is nineteen and a half times it. It is the
+   * late-game dial: it barely moves the early columns (a Market is 89 at 1.31
+   * against 72 at 1.22) and it sets where the last column lands (a column-12
+   * wonder 2534 against 1160).
+   *
+   * The **column** is `techColumn` of the technology that unlocks the row, never
+   * a figure on the row — except for a row the tree does not name, which carries
+   * its own `column` (`BuildingDef.column`, `UnitDef.column`). The root's column
+   * is nominal and never paid, so a row the root unlocks is priced at column one
+   * along with everything else the opening kit contains.
+   *
+   * Applied as its own labelled line inside the cost fold — "Column 8 ×6.62" —
+   * and never at the point of sale, so a purchase converts the *folded* price
+   * and the build list, the star chart and the Compendium all print the figure
+   * the basket is charged.
+   */
+  columnRate: number;
   /**
    * The empire size a **once-per-empire** building is priced at, in cities. A
    * unique's hammers are multiplied by `√(cities ÷ uniqueCostBreakeven)` after
-   * the age band, so at 4 an empire of one city pays half, three cities 0.87,
-   * four the printed figure, nine one and a half, sixteen double.
+   * the column's line, so at 4 an empire of one city pays half, three cities
+   * 0.87, four the sized figure, nine one and a half, sixteen double.
    *
    * The ruling (2026-09-07, `docs/flags.md` item dd): the capstones pay the
    * whole realm from one set of stones, so a wide empire was buying far more

@@ -494,11 +494,15 @@ describe('the claim register', () => {
  * test in this file and fail these.
  */
 describe('the ratified roster', () => {
-  it('gives every wonder a cost, a lump of renown and a family', () => {
+  it('gives every wonder a size, a lump of renown and a family', () => {
     for (const id of WONDER_IDS) {
       const def = buildingDef(id);
       expect(def.name, id).toBeTruthy();
-      expect(def.cost, id).toBeGreaterThan(0);
+      // A wonder is priced by its **size** since batch P1 — every one of them
+      // wears the size of that name — and the figure the fold produces is the
+      // only price there is.
+      expect(def.size, id).toBe('wonder');
+      expect(buildingProductionCost(id), id).toBeGreaterThan(0);
       expect(def.wonder, id).toBe(true);
       // The doc's ratified figure, and the reason a wonder is a feat: ten
       // renown on the turn it is finished, and a trickle thereafter.

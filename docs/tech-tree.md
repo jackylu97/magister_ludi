@@ -52,12 +52,14 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   ruling (theme abilities otherwise live on cards and building rows). It was
   eight until batch E gave the re-gifted nodes their own rules
   (`docs/history/tech-gifts.md` §7).
-- **Every hammer price** takes the age band from the unlocking tech, never the
-  row — units, buildings and wonders alike since the ruling of 2026-09-06
-  (item y). The band is the user's own table since 2026-09-07 (item aa):
-  `cost × costAgeBand[age − 1]`, **1.25 · 2.5 · 4.5 · 8.5** by Æra, one line in
-  the cost fold. A row no technology unlocks is Æra I. A ‡ row (one to a realm)
-  carries a second line, `√(cities ÷ 4)` (item dd).
+- **Every hammer price** takes its column from the unlocking tech, never the row
+  — units, buildings and wonders alike (`docs/production-costs.md`, batch P1):
+  `sizeHammers[size] × columnRate ^ (column − 1)`, the row carrying a size and
+  the tree carrying the rest, one line in the cost fold for each. The first
+  column is the floor, so a row the root opens is priced with the opening kit. A
+  row no technology unlocks carries its own `column` — a charter's building takes
+  the first column of its pool's age. A ‡ row (one to a realm) carries a third
+  line, `√(cities ÷ 4)` (item dd).
 - `TechDef` may carry `paysBead` (Alchemy) and `ageEntryDice`; abilities ride
   `techsGrant` (`ABILITY_TECH`).
 

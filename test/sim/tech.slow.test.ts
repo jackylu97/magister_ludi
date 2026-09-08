@@ -21,6 +21,7 @@ import { describe, expect, it } from 'vitest';
 import {
   foundingErrorAt,
   unitProductionCost,
+  unitRosterCost,
 } from '../../src/sim/cities';
 import {
   foldCity,
@@ -629,16 +630,14 @@ describe('pacing', () => {
     // allows. `buildSinks.slow.test.ts` reads the same sweep from the roster's
     // side and carries the turn counts.
     expect(median).toBe(3);
-    // **Re-pinned 2026-08-28** (user ruling: units and buildings ×1.4, wonders
-    // ×0.8). The scout's old anchor — nine hammers set exactly against three
-    // turns at the median rate — does not survive a flat multiplier on every
-    // roster row: the scout rose with the rest of Age I and is now read off the
-    // roster rather than derived from the rate. The warrior rose the same
-    // ×1.4 and, at the re-pinned median of 2, now costs five turns.
-    expect(unitDef('scout').cost).toBe(13);
-    expect(unitDef('warrior').cost).toBe(10);
-    // Four turns at the re-measured median of 3, five at the old median of 2.
-    expect(Math.ceil(unitDef('warrior').cost / median)).toBe(4);
+    // **Re-pinned batch P1** (2026-09-07, the production standard): the scout
+    // and the warrior are `light` pieces opened at the first column, so what
+    // they cost is the light base itself — the anchor is now one number in
+    // `data/rules.json` rather than two figures on two rows.
+    expect(unitRosterCost('scout')).toBe(RULES.production.unitSizeHammers.light);
+    expect(unitRosterCost('warrior')).toBe(RULES.production.unitSizeHammers.light);
+    // Four turns at the re-measured median of 3.
+    expect(Math.ceil(unitRosterCost('warrior') / median)).toBe(4);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {
@@ -795,11 +794,9 @@ describe('pacing', () => {
     };
 
     const first = unitProductionCost(game.state, 0, 'settler');
-    // Re-pinned 2026-08-28 with the settler's ×1.4 cost rise (20 → 28⚙), and
-    // again 2026-09-06 (`docs/flags.md` item y): the row still prints 28 and
-    // the Æra I band — which is ×1.25 now, where the opening used to be exempt
-    // at ×1 — takes what the city pays to 35.
-    expect(first).toBe(35);
+    // Re-pinned batch P1: the settler is its own size at 28 hammers and stands
+    // at the first column, so the first one a city raises costs the base.
+    expect(first).toBe(RULES.production.unitSizeHammers.settler);
     const firstBuild = buildSettler(first);
     expect(firstBuild.income.every((rate) => rate > 0)).toBe(true);
     expect(firstBuild.turns, `${first}⚙ off ${firstBuild.income.join('+')}`).toBe(
@@ -809,16 +806,19 @@ describe('pacing', () => {
 
     // And the second is a whole increment dearer — the brake the escalation is
     // there to be, and it pays for that increment in hammers too.
-    // The band multiplies the *escalated* figure (`explainUnitCost` prints its
-    // lines in the order the arithmetic runs), so a rung is not `first + step`
-    // any more — it is the row's ladder scaled and floored once.
+    // The ladder climbs on the settler's own sized figure (batch P1): the
+    // settler is opened at the first column, so the curve multiplies by one and
+    // a rung is the base plus the increments, exactly.
     const rung = (built: number): number =>
-      Math.floor(
-        (unitDef('settler').cost + built * unitDef('settler').escalation!) *
-          RULES.production.costAgeBand[0]!,
-      );
+      RULES.production.unitSizeHammers.settler + built * unitDef('settler').escalation!;
     const second = unitProductionCost(game.state, 0, 'settler');
     expect(second).toBe(rung(1));
+    // The first settler's overflow is cleared for the reason the basket was
+    // cleared before the first: this measures the second settler at *exactly*
+    // its own rate, and a head start banked by the last one is not its rate.
+    // The old prices happened to leave nothing over; the standard's do not
+    // (batch P1, 2026-09-08 — 28 and 35 against the same income).
+    capital.hammerBasket = 0;
     const secondBuild = buildSettler(second);
     expect(secondBuild.turns, `${second}⚙ off ${secondBuild.income.join('+')}`).toBe(
       turnsFor(second, secondBuild.income),

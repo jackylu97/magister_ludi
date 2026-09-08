@@ -245,8 +245,15 @@ describe('what maintenance did to the warband', () => {
     // retune making maintenance free again, the lower one catches a retune
     // turning the tax into an execution.
     // Re-centred 2026-09-03 with the two above (measured −153, previously −56).
-    expect(gold.get(60)!).toBeLessThan(-50);
-    expect(gold.get(60)!).toBeGreaterThan(-260);
+    // **Re-measured 2026-09-08, the production standard (batch P1): −402.**
+    // The user's sizes put the opening roster *under* its old price (a warrior
+    // 10 where it paid 12, a settler 28 where it paid 35), so the one script
+    // that spams scale raises more of it sooner and the payroll is deeper by
+    // turn 60 — the spiral this test is named for, drawn harder still. The
+    // band re-centres at the old width; the upper bound is still what a retune
+    // making maintenance free would break, the lower what an execution would.
+    expect(gold.get(60)!).toBeLessThan(-250);
+    expect(gold.get(60)!).toBeGreaterThan(-560);
 
     // And the army is still an army — the creditors thin it, they do not erase
     // it, because they take one piece a turn and the towns keep building.

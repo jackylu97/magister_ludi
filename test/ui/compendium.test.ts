@@ -37,6 +37,7 @@ import {
   FOLLOWER_BELIEF_IDS,
   RITE_IDS,
 } from '../../src/sim/religionData';
+import { unitRosterCost } from '../../src/sim/cities';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { describeBuildingRow, stripRefs } from '../../src/sim/statecraft';
 import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
@@ -307,12 +308,14 @@ describe('an entry', () => {
   });
 });
 
-describe('a live game changes one figure and no others', () => {
-  it('prices a unit off explainUnitCost’s roster line, which is the row’s own', () => {
-    // The whole claim the standalone page rests on: the book is the same book
-    // with a game behind it and without one. The *only* figure that could move
-    // is a unit's price, and the Compendium prints the fold's first line —
-    // the roster's own — which is state-independent by construction.
+describe('a live game changes no figure at all', () => {
+  it('prices a unit off the roster’s own two lines, which take no game', () => {
+    // The whole claim the standalone page rests on, and it is a claim about the
+    // *signature* since batch P1: `compendiumSections` takes no state, because
+    // the last figure that could have moved under a live board — a unit's roster
+    // price — became a fact about the row's size and the tree's column
+    // (`unitRosterCost`, `cities.ts`). A game on the table changes nothing here,
+    // and the book built beside one is the same object.
     const state = newGame({
       seed: 3,
       sizeName: 'duel',
@@ -321,7 +324,8 @@ describe('a live game changes one figure and no others', () => {
         { name: 'Cobalt', color: '#00a', isHuman: true },
       ],
     });
-    const withGame = compendiumSections(state);
+    expect(state.turn).toBeGreaterThan(0);
+    const withGame = compendiumSections();
     expect(withGame.map((section) => section.entries.length)).toEqual(
       BOOK.map((section) => section.entries.length),
     );
@@ -331,6 +335,12 @@ describe('a live game changes one figure and no others', () => {
         expect(entry, entry.id).toEqual(bare.entries[index]);
       }
     }
+    // The price on a unit's card is the fold's own, so the book cannot drift
+    // from the game it describes.
+    const warrior = everyEntry().find((entry) => entry.id === 'unit:warrior')!;
+    expect(warrior.rows.find((row) => row.label === 'Production cost')?.figures).toContain(
+      String(unitRosterCost('warrior')),
+    );
   });
 });
 
@@ -707,7 +717,7 @@ describe('never hand-written prose about a number', () => {
       'describeBuildingRow', // and what a building row is worth, said once
       'describeResourceSignature', // the same bargain for a luxury
       'techGifts', // what a technology hands over
-      'explainUnitCost', // the roster's own price
+      'unitRosterCost', // the roster's own price, size line and column line
       'riteGrantWords', // a rite's instant half
       'gatingTech', // which technology unlocks a thing
       'improvementForResource', // which improvement opens a seam

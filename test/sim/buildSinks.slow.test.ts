@@ -209,6 +209,16 @@ describe('what the pass did to the opening', () => {
      * dividing the row's printed figure rather than the price, which was the
      * same number until this ruling and is not any more. It asks
      * `unitProductionCost` now, so it cannot come apart from the fold again.
+     *
+     * **Re-aimed 2026-09-08, the production standard (batch P1,
+     * `docs/production-costs.md`).** The rows carry no figure at all now: the
+     * three opening pieces are all *light* — ten hammers at the first column,
+     * where the curve multiplies by one — so a capital pays 10 / 10 / 10 and
+     * the turn counts are **4 / 4 / 4**. The scout and the worker came down
+     * from 16 and 17, the warrior from 12; the sizes are the user's own
+     * ("this is ok, lets playtest first"), and the scout no longer sits a
+     * turn outside the warrior. If the playtest wants the opening dearer, the
+     * lever is `unitSizeHammers.light`, not this pin.
      */
     expect(median).toBe(3);
     expect(openings[0]).toBeGreaterThanOrEqual(2);
@@ -220,9 +230,9 @@ describe('what the pass did to the opening', () => {
     });
     const turns = (id: 'scout' | 'warrior' | 'worker'): number =>
       Math.ceil(unitProductionCost(priced.state, 0, id) / median);
-    expect(turns('scout')).toBe(6);
+    expect(turns('scout')).toBe(4);
     expect(turns('warrior')).toBe(4);
-    expect(turns('worker')).toBe(6);
+    expect(turns('worker')).toBe(4);
   }, 60_000);
 
   it('costs the warband empire a quarter of its army by turn 40', () => {
@@ -324,11 +334,23 @@ describe('what the pass did to the opening', () => {
      * suddenly fields nine pieces again" is the regression worth catching and
      * "it fields four" is a map roll. The technology floor stays a floor: this
      * test is not about the tree.
+     *
+     * **Re-measured 2026-09-08, the production standard (batch P1): 5 cities,
+     * 16 units.** This one *is* a price change, and the first in this note's
+     * history to make the opening army cheaper rather than dearer: the sizes
+     * the user ruled put a warrior at 10 where it paid 12 and a settler at 28
+     * where it paid 35, so the same script raises its five towns sooner and
+     * spends the rest on footmen. The band re-centres on the measurement at the
+     * old width — 12..20 — and the claim it makes is unchanged in kind: a
+     * retune may not quietly make units free again, and twenty-one pieces by
+     * turn 40 is where that starts. If the playtest finds the opening army too
+     * cheap, the lever is `unitSizeHammers.light`/`line`, and this band moves
+     * with the measurement, never ahead of it.
      */
     expect(game.state.turn).toBe(41);
     expect(game.state.cities.length).toBe(5);
-    expect(mine.length).toBeGreaterThanOrEqual(3);
-    expect(mine.length).toBeLessThanOrEqual(9);
+    expect(mine.length).toBeGreaterThanOrEqual(12);
+    expect(mine.length).toBeLessThanOrEqual(20);
     expect(game.state.players[0]!.techsResearched.length).toBeGreaterThanOrEqual(4);
   }, 120_000);
 

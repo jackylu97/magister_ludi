@@ -153,6 +153,16 @@ export type BuildingCategory =
   | 'faith';
 
 /**
+ * **How big a building is**, which is the whole of what its row says about the
+ * price. See `BuildingDef.size` and `ProductionRules.sizeHammers`.
+ *
+ * Four sizes and a fifth that is not one: a `free` row is never built and never
+ * bought with hammers, and it says so here rather than by carrying a zero
+ * somebody would one day multiply.
+ */
+export type BuildingSize = 'small' | 'medium' | 'large' | 'wonder' | 'free';
+
+/**
  * A stat of the city a building stands in. See `BuildingDef.cityStat`.
  *
  * `stat` is deliberately the same two words `CardCityStatEffect` uses, so that
@@ -525,8 +535,38 @@ export interface BuildingDef {
    * roster, so nothing that already reads correctly has to declare anything.
    */
   article?: 'a' | 'an';
-  /** Hammers to complete. */
-  cost: number;
+  /**
+   * **How big a thing this is** — and the whole of what the row says about its
+   * price (batch P1, 2026-09-07, `docs/production-costs.md`).
+   *
+   * The rule is `sizeHammers[size] × columnRate ^ (column − 1)`, so a row
+   * carries a *size* and never a figure: what a Library is worth against a
+   * Cathedral is a design statement about the kind of building it is, and what
+   * either costs in hammers is a statement about how late in the tree it stands.
+   * A row that carried its own number said both at once, which is why a retune
+   * of either ladder used to move the other's meaning.
+   *
+   * `free` is the size of a row that is **never built and never bought with
+   * hammers** — the Relic an apostle leaves behind. It is a size rather than an
+   * absent field so that every row answers the same question, and so the fold
+   * still prints one honest line for it.
+   *
+   * The old `cost` field is gone rather than deprecated: a row still carrying
+   * one fails the register test (`test/sim/productionCosts.test.ts`), because a
+   * stale number in the data is a number some future reader will believe.
+   */
+  size: BuildingSize;
+  /**
+   * The tech-tree column this row is priced at, for a row **no technology
+   * unlocks** — a charter's building, a row kept warm ahead of its node.
+   *
+   * Ignored when the tree names the row (`BUILDING_UNLOCK_TECH`, or
+   * `worldUnlockTech` for the Opus): "when does this belong" is already written
+   * down once, in the tech table's `unlocks`, and a second copy on the row is a
+   * second copy to forget. A charter takes the first column of the age its
+   * pool opens in — see `docs/production-costs.md` for the table of record.
+   */
+  column?: number;
   /** Flat food added to the city's total every turn. */
   food: number;
   /** Flat production added to the city's total every turn. */

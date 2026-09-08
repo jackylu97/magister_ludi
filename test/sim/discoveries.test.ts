@@ -4,6 +4,7 @@ import { draftCost } from '../../src/sim/statecraft';
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
 import { arriveOnTile } from '../../src/sim/arrival';
 import {
+  buildingProductionCost,
   foundCityAt,
   growthThreshold,
 } from '../../src/sim/cities';
@@ -584,11 +585,12 @@ describe('settlement: every boon pays its printed number', () => {
   it("banks a masons' hoard as hammers and completes the front of the queue", () => {
     const state = withCity();
     const city = state.cities[0]!;
-    // Re-pinned 2026-08-28: the ×1.4 building-cost ruling put the monument
-    // (21⚙) above a masons' hoard's flat 20, so a shrine (15⚙, still under it)
-    // stands in for the "the hoard alone completes the front" case.
+    // **Re-pinned batch P1**: no row is under a masons' hoard's flat 20 any
+    // more — the cheapest building in the game is a `small` one at the first
+    // column — so the basket is topped up to one hoard short and what is under
+    // test is still the hoard finishing the front of the queue.
     city.queue = [{ kind: 'building', id: 'shrine' }];
-    city.hammerBasket = 0;
+    city.hammerBasket = buildingProductionCost('shrine') - 20;
 
     offerOf(state, 0, 'masonsHoard', 5, 6);
     const done = settleDiscovery(state, playerById(state, 0)!, 0);
@@ -767,11 +769,10 @@ describe('the preview', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     const city = state.cities[0]!;
-    // Re-pinned 2026-08-28, same reason as the settlement test above: a
-    // shrine (15⚙) stays under the hoard's flat 20 where a monument (21⚙) no
-    // longer does.
+    // Topped up to one hoard short, same reason as the settlement test above
+    // (batch P1: a hoard covers no whole row on its own).
     city.queue = [{ kind: 'building', id: 'shrine' }];
-    city.hammerBasket = 0;
+    city.hammerBasket = buildingProductionCost('shrine') - 20;
 
     const player = playerById(state, 0)!;
     player.pendingDiscovery = { kind: 'ruins', col: 6, row: 5, options: ['masonsHoard'] };

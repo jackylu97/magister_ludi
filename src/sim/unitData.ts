@@ -128,6 +128,18 @@ export type UnitTypeId =
 export type UnitCategory = 'military' | 'civilian' | 'trader' | 'naval';
 
 /**
+ * **How big a piece is**, which is the whole of what its row says about the
+ * price. See `UnitDef.size` and `ProductionRules.unitSizeHammers`.
+ *
+ * A skirmisher, a line of infantry, something heavy that charges, an engine or a
+ * gun deck, the settler on its own ladder — and `free` for the piece that is
+ * called rather than paid for in hammers. They are sizes and not roles: nothing
+ * in the rules asks what size a piece is except the price, and a designer moving
+ * a row between them is repricing it and saying so.
+ */
+export type UnitSize = 'light' | 'line' | 'heavy' | 'engine' | 'settler' | 'free';
+
+/**
  * Which *class* of model the 3D board stands this unit on.
  *
  * A visual field, like `glyph`, and here for the same reason: two lists of the
@@ -298,11 +310,30 @@ export interface UnitDef {
   /** Hexes a shot may cross, defender included. Absent on melee-only types. */
   range?: number;
   /**
-   * Hammers a city pays to build one — the *base* price, before escalation.
-   * See `escalation`, and `unitProductionCost` in `cities.ts`, which is the
-   * only function allowed to answer "what does this cost right now".
+   * **How big a piece this is** — and the whole of what the row says about its
+   * price (batch P1, 2026-09-07, `docs/production-costs.md`).
+   *
+   * The roster rides the buildings' own curve:
+   * `unitSizeHammers[size] × columnRate ^ (column − 1)`, so a row says what kind
+   * of piece it is and the tree says how dear the age is. A `free` row is
+   * neither built nor bought with hammers — the prophet and her sisters are
+   * called out of the faith bank, the great person is called at all — and it
+   * says so here rather than by carrying a zero.
+   *
+   * See `escalation`, and `unitProductionCost` in `cities.ts`, which is the only
+   * function allowed to answer "what does this cost right now".
    */
-  cost: number;
+  size: UnitSize;
+  /**
+   * The tech-tree column this row is priced at, for a row **no technology
+   * unlocks** — the hulls that shipped ahead of their node (`awaitsTech`), the
+   * great person nothing gates.
+   *
+   * `BuildingDef.column`'s twin one table over, and it carries the same
+   * sentence: ignored when `UNIT_UNLOCK_TECH` names the row, because the tree is
+   * where "when does this belong" is written down.
+   */
+  column?: number;
   /**
    * Hammers this type gets dearer by for every one of *this same type* its
    * owner has already built or bought (`Player.unitsBuilt`), or absent when the

@@ -71,7 +71,7 @@ import {
 import { BEAD_FEAT_IDS, beadFeatDef } from '../../src/sim/beadData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
-import { UNIT_UNLOCK_TECH } from '../../src/sim/techData';
+import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { gatingTech, researchExpansion } from '../../src/sim/tech';
 import { BELIEF_IDS, poolBeliefs } from '../../src/sim/religionData';
 import {
@@ -518,25 +518,50 @@ describe('the chain in the book', () => {
     return { state, player };
   }
 
+  /**
+   * A live chain, one of its building steps, and the gold want that buys it.
+   *
+   * **Read off the board rather than named** (batch P1): which engine is worth
+   * running is a balance reading that moves with every price pass — the
+   * production standard moved it again, and the Writing engine these two cases
+   * used to name stopped clearing its own hammers — while what is under test is
+   * the bridge itself.
+   */
+  function bridgeable(
+    ctx: ReturnType<typeof valueContext>,
+  ): { goal: string; id: string; label: string } | null {
+    for (const chain of ctx.chains) {
+      for (const step of chain.steps) {
+        if (step.kind !== 'building') continue;
+        const want = ctx.wants.gold.find((row) => row.label.startsWith(`${step.name} at `));
+        if (want !== undefined) {
+          return { goal: techDef(chain.goal).name, id: step.id, label: want.label };
+        }
+      }
+    }
+    return null;
+  }
+
   it('prints what buying a chain’s row buys the chain, in turns', () => {
-    // **Gold's bridge role.** A Library bought is a Library nobody has to spend
-    // a dozen turns raising, so every step of the Writing chain from that one on
-    // starts paying sooner. The row is the ordinary purchase want; what the
-    // bridge adds is a term saying what the delivery bought.
+    // **Gold's bridge role.** A row bought is a row nobody has to spend a dozen
+    // turns raising, so every step of that chain from this one on starts paying
+    // sooner. The row is the ordinary purchase want; what the bridge adds is a
+    // term saying what the delivery bought.
     const { state, player } = chained(2, 'letters');
     player.gold = 4000;
     const ctx = valueContext(state, player);
-    const chain = ctx.chains.find((live) => live.goal === 'letters');
-    expect(chain).toBeDefined();
-    const row = ctx.wants.gold.find((want) => want.label.startsWith('Library at '));
-    expect(row).toBeDefined();
-    const bridge = row!.terms.find((term) => /buys the Writing engine the turns/.test(term.label));
+    const found = bridgeable(ctx);
+    expect(found, 'no live chain has a building step for sale on this board').not.toBeNull();
+    const row = ctx.wants.gold.find((want) => want.label === found!.label)!;
+    const bridge = row.terms.find((term) =>
+      new RegExp(`buys the ${found!.goal} engine the turns`).test(term.label),
+    );
     expect(bridge).toBeDefined();
     expect(bridge!.value).toBeGreaterThan(0);
     // Its parts name the steps the delivery hurried, and the turns it bought.
     expect(JSON.stringify(bridge!.parts)).toMatch(/pays [\d.]+ turns sooner/);
     // And the want still folds to the arithmetic it printed, bridge included.
-    expect(foldTerms(row!.terms)).toBe(row!.worth);
+    expect(foldTerms(row.terms)).toBe(row.worth);
   });
 
   it('carries no bridge term on a row no chain owes', () => {
@@ -544,11 +569,17 @@ describe('the chain in the book', () => {
     // being for sale. A town that already holds the row owes the chain nothing.
     const { state, player } = chained(2, 'letters');
     player.gold = 4000;
-    for (const city of state.cities) city.buildings.push('library');
+    const found = bridgeable(valueContext(state, player));
+    expect(found).not.toBeNull();
+    for (const city of state.cities) city.buildings.push(found!.id as never);
     bumpRevision(state);
     const ctx = valueContext(state, player);
     for (const want of ctx.wants.gold) {
-      expect(want.terms.some((term) => /buys the Writing engine/.test(term.label))).toBe(false);
+      expect(
+        want.terms.some((term) =>
+          new RegExp(`buys the ${found!.goal} engine`).test(term.label),
+        ),
+      ).toBe(false);
     }
   });
 

@@ -307,9 +307,17 @@ be renamed — it would change every seeded outcome. No further rename passes.
   refuses a duplicate project row. Known edge: a project-headed town never
   re-decides (no blocker) — the bot works around it; human nudge flagged.
 - **Buildings' non-yield facts** read in one place (`buildingEffects.ts`):
-  `happiness`, `cityStat`, `cityHp` fold through it as lists. A unit's price is
-  `explainUnitCost` (ordered lines; `foldUnitCost`); the age band reads the
-  unlocking tech, never the unit row.
+  `happiness`, `cityStat`, `cityHp` fold through it as lists.
+- **Production costs are one standard** (`docs/production-costs.md`, batch P1):
+  `sizeHammers[size] × columnRate ^ (column − 1)`, floored once, then the
+  once-per-empire line and a unit's escalation ladder. A row carries a **size**
+  (`BuildingDef.size`/`UnitDef.size`) and NEVER a figure — a row with `cost` on
+  it fails the register test — and the column reads the unlocking tech
+  (`worldUnlockTech` counts; floored at 1), or the row's own `column` where the
+  tree names nothing. The folds are `explainBuildingCost`/`explainUnitCost`
+  (`cities.ts`, ordered lines; `foldUnitCost` sums either), `unitRosterCost` is
+  the empire-free reading the Compendium prints, and the doc's size table
+  carries a sync test. Projects keep a flat `cost`: a conversion is not a thing.
 - **Triumphs**: `Player.triumphs` append-only, turn-stamped; diffed
   (`triumphMarks`/`triumphsSince`/`triumphsAwarded`), never passed as
   parameters. `triumphs.ts` owns the only trigger switch: announced occasions

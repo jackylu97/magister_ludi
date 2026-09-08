@@ -975,7 +975,7 @@ describe('the delay discount', () => {
     // At least the row's own raising: the chain charges that and the research
     // wait besides.
     expect(printed).toBeGreaterThanOrEqual(
-      raisingTurns(buildingDef(rowNamed(flats.label)).cost, state, 0),
+      raisingTurns(buildingProductionCost(rowNamed(flats.label), state, 0), state, 0),
     );
     // And the term is still its own arithmetic, as is the candidate holding it.
     expect(foldTerms(flats.parts!)).toBeCloseTo(flats.value, 10);
@@ -1369,15 +1369,31 @@ describe('the tech chain', () => {
   });
 
   it('prints the chain’s share on the candidate that is one of its steps', () => {
+    // **The chain is read off the board rather than named** (batch P1). Which
+    // engine is worth running is a balance reading that moves with every price
+    // pass — the production standard moved it again, and the Writing engine
+    // this case used to name stopped clearing its own hammers — while the claim
+    // under test is the mechanism: a candidate that *is* a step of a live chain
+    // carries the chain's share as a printed term of its own fold.
     const { state } = chained(2, 'letters');
     const decision = decisionOfType(state, 0, 'setCityProduction');
     expect(decision).not.toBeNull();
-    const library = decision!.candidates.find((row) => row.label === 'Library');
-    expect(library).toBeDefined();
-    const share = findTerm(library!.terms, /a step of the Writing engine/);
+    const ctx = valueContext(state, seat(state, 0));
+    const owns = (chain: { steps: readonly { name: string }[] }): boolean =>
+      chain.steps.some((step) => decision!.candidates.some((row) => row.label === step.name));
+    const chain = ctx.chains.find(owns);
+    expect(chain, 'no live chain owns a candidate on this board').toBeDefined();
+    const step = chain!.steps.find((one) =>
+      decision!.candidates.some((row) => row.label === one.name),
+    )!;
+    const candidate = decision!.candidates.find((row) => row.label === step.name)!;
+    const share = findTerm(
+      candidate.terms,
+      new RegExp(`a step of the ${techDef(chain!.goal).name} engine`),
+    );
     expect(share).not.toBeNull();
     expect(share!.label).toMatch(/one of \d+ things? still to happen/);
-    expect(foldTerms(library!.terms)).toBe(library!.score);
+    expect(foldTerms(candidate.terms)).toBe(candidate.score);
   });
 
   it('holds the plan against a challenger inside the margin, and yields past it', () => {
@@ -1386,23 +1402,18 @@ describe('the tech chain', () => {
     // printed `× switchMargin` term on it, and whether it survives is exactly
     // whether the leader beat it by that much.
     //
-    // The seat is handed Sailing, Currency **and Divination** before the table
-    // is taken, and that is the fixture rather than an aside: on a blank bench
-    // Sailing outscores the tree two to one, and with only it held Currency runs
-    // away in turn (the 2026-09-05 retune widened every natural race past the
-    // margin). Divination joined the three on 2026-09-06 (batch D): with the
-    // Library's beaker halved and the Shrine's cut, Writing collapsed and
-    // Divination ran away alone, so the near-tie the claim needs moved one row
-    // down the table. With all three held the top is a real race again — Bronze
-    // Panoply and Wayfinding inside two percent of each other, which keeps the
-    // plan, and several nodes well behind, which do not. Bronze Panoply joined
-    // the held set on 2026-09-06 (batch H10): with every building priced in the
-    // money of its age, Wayfinding's harbour chain stretched and Bronze Panoply
-    // ran away nearly three to one; with it held, Fletching and Calendar sit
-    // inside the margin of each other and Writing well outside — the same
-    // shape of race, one row further down.
+    // The seat is handed Sailing **and Currency** before the table is taken, and
+    // that is the fixture rather than an aside: on a blank bench Sailing
+    // outscores the tree two to one, and with only it held Currency runs away in
+    // turn (the 2026-09-05 retune widened every natural race past the margin).
+    // The held set grew to four over two balance passes and came back to two on
+    // **batch P1**: with one standard pricing every row, the Divination and
+    // Bronze Panoply chains cost what they pay and neither runs away, so the
+    // near-tie the claim needs is back at the top of the table — Bronze Panoply
+    // and Divination within a quarter of a point of each other, which keeps the
+    // plan, and Husbandry and Fletching at half their score, which do not.
     const { state, player } = chained(3, 'sailing');
-    for (const tech of ['currency', 'divination', 'bronzePanoply'] as const) {
+    for (const tech of ['currency'] as const) {
       for (const step of researchExpansion(state, 0, tech)) {
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
         bumpRevision(state);

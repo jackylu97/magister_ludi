@@ -359,9 +359,15 @@ directly to confirm rulings — user marginalia are rulings.
   needs a `oncePerEmpire` building row before a `rateConversion` can reach
   `liveEffects`) are in the proposal's *As built* section. **E4b** — the
   reworks that need a new shape or a new row — is still open. **E5 — the
-  yield family collapsed** (optional, last, H6-shaped — one go/no-go from
-  you; the parity harness is restored from git for its duration and
-  retired again after). E1 starts when H19 lands. (qq) **Production
+  yield family collapsed** — **GO** (the user, 2026-09-08: "i'm inclined
+  to go for it after the e4b changes"): flies **after E4b and alone**
+  (nothing else in flight — it migrates rows across every data file and
+  touches the evaluator, the describers and the bot's valuation together);
+  its gates are the parity harness restored from git (byte-identical
+  replays, retired again after) **and a before/after snapshot of every
+  card's printed text**, so the Compendium's wording cannot drift under
+  the migration. **The queue, in order** (2026-09-08): P1 → W1 + D1
+  together (different files; both change how the game feels) → E4b → E5. (qq) **Production
   costs standardised** (the user, 2026-09-07: "we need to scale them back
   … buildings should be sized small, medium, large, wonder … one set of
   scaling notation … scale this base production cost by column number in

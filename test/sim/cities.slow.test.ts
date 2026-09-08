@@ -28,16 +28,15 @@ import { RULES } from '../../src/sim/rulesData';
 import { unitDef } from '../../src/sim/unitData';
 import { twoCityGame } from './citiesHelpers';
 
-const BASE = unitDef('settler').cost;
+const BASE = RULES.production.unitSizeHammers.settler;
 const STEP = unitDef('settler').escalation!;
 /**
- * What the nth settler actually costs, band and all — `cities.test.ts`'s own
- * reading of a rung (2026-09-06, `docs/flags.md` item y). The band multiplies
- * the *escalated* figure and floors once, so `BASE + n * STEP` is the row's
- * ladder rather than a price.
+ * What the nth settler actually costs — `cities.test.ts`'s own reading of a
+ * rung, restated for the production standard (batch P1). The settler's size is
+ * its own and it is opened at the first column, so the curve multiplies by one
+ * and the ladder is the whole of the climb: `BASE + n × STEP`.
  */
-const rung = (built: number): number =>
-  Math.floor((BASE + built * STEP) * RULES.production.costAgeBand[0]!);
+const rung = (built: number): number => BASE + built * STEP;
 
 describe('escalating settler cost', () => {
   it('replays a run of escalating settlers byte for byte', () => {

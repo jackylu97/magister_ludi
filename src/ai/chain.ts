@@ -351,8 +351,8 @@ export function techChain(
     };
     // One town's build, not every town's: towns raise in parallel, and only the
     // hammers owed multiply by how many of them are still owing. The folded
-    // price (H10's age band) asked of **this empire** (H11's per-empire line on a
-    // `oncePerEmpire` row), never the row's printed base.
+    // price (the size and the tree's column) asked of **this empire** (H11's
+    // per-empire line on a `oncePerEmpire` row), never the row's size alone.
     const raise = buildTurns(buildingProductionCost(building, ctx.state, ctx.playerId), ctx);
     cursor += raise;
     const delay = cursor;
@@ -823,7 +823,7 @@ export function expansionChain(
   settler: { id: UnitTypeId; walking: boolean },
 ): ExpansionChain {
   const def = unitDef(settler.id);
-  // The live price — escalation and H10's age band folded — not the row's base.
+  // The live price — the size, the column and the ladder folded — not the base.
   const price = unitProductionCost(state, player.id, settler.id);
   const hammers = settler.walking ? 0 : price;
   const buildDelay = settler.walking ? 0 : buildTurns(price, ctx);
@@ -1203,7 +1203,12 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
     open || unlock === undefined
       ? { road: [] as TechId[], beakers: 0, delay: 0 }
       : researchRoad(state, player, ctx, unlock);
-  const buildDelay = Math.ceil(def.cost / Math.max(1, ctx.bestProduction));
+  // **The folded price** (batch P1), asked of this empire: the Opus is a
+  // once-per-empire row, so what it costs to raise is a fact about how many
+  // towns this realm holds and never the row's own figure — which the row no
+  // longer carries at all.
+  const hammers = buildingProductionCost(opus, state, player.id);
+  const buildDelay = Math.ceil(hammers / Math.max(1, ctx.bestProduction));
   // The rod and the road fill together: an empire earns beads while it researches,
   // so what it waits for is the later of the two, and then the raising.
   const delay = Math.max(beadDelay, owed.delay) + buildDelay;
@@ -1256,7 +1261,7 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
     label:
       `(${held} of ${threshold} beads at ${round(rate)} a turn — ${round(beadDelay)} turns; ` +
       `${Math.round(owed.beakers)} beakers for the road — ${round(owed.delay)} turns; ` +
-      `${Math.round(def.cost)} hammers in the busiest town — ${buildDelay} turns)`,
+      `${Math.round(hammers)} hammers in the busiest town — ${buildDelay} turns)`,
     value: 0,
   });
   if (lost) {
@@ -1284,7 +1289,7 @@ export function beadChain(state: GameState, player: Player, ctx: ValueContext): 
     road: owed.road,
     remainingBeakers: owed.beakers,
     researchDelay: owed.delay,
-    hammers: def.cost,
+    hammers,
     buildDelay,
     delay,
     open,

@@ -3024,9 +3024,9 @@ function potentialTownsFor(
       if (city.buildings.includes(id)) continue;
       if (buildError(ctx.state, ctx.playerId, 'building', id, city) !== null) continue;
       open += 1;
-      // The folded price, age band and all (H10), asked **of this empire** (H11):
-      // the row's printed cost is a base, and a unique's price rises with the
-      // towns already held.
+      // The folded price, size and column and all, asked **of this empire**
+      // (H11): a row says only how big a thing it is, and a unique's price rises
+      // with the towns already held.
       hammers += buildingProductionCost(id, ctx.state, ctx.playerId);
     }
   }

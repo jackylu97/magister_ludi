@@ -372,7 +372,8 @@ function withSpareSlot(state: GameState, playerId: number): GameState | null {
 function caravanBuildTurns(ctx: ValueContext): number {
   const id: UnitTypeId | null = caravanTypeId();
   if (id === null) return 0;
-  // The folded price (escalation and H10's age band), never the row's base.
+  // The folded price — the size line, the column line and the ladder — never
+  // the row's own size alone.
   return buildTurns(unitProductionCost(ctx.state, ctx.playerId, id), ctx);
 }
 

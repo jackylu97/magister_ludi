@@ -322,8 +322,29 @@ import {
  * five Orders and gained two Doctrines deals different hands from the first
  * draft on, and every seeded draw after that belongs to a different game. This
  * is a content bump, and content is what the log is played against.
+ *
+ * v89: **the production standard** (batch P1, `docs/production-costs.md` — the
+ * user, 2026-09-07: *"we need to scale them back … buildings should be sized
+ * small, medium, large, wonder, and we should use one set of scaling notation
+ * across the board. Costs should scale this base production cost by column
+ * number in the tech tree."*). Every hammer price in the game is now
+ * `sizeHammers[size] × columnRate ^ (column − 1)`, floored once, with the
+ * once-per-empire line after it and the settler's ladder on top: a row carries a
+ * **size** (`BuildingDef.size`, `UnitDef.size`) and never a figure, and the
+ * column is `techColumn` of the technology that unlocks it — or the row's own
+ * `column` where the tree names nothing, which is how a charter's building is
+ * finally priced in the age its pool opens in rather than as Æra I. The rate is
+ * the user's **1.31**; `costAgeBand` is retired with the printed bases it
+ * multiplied. Two ladders became one: a Cathedral is 397 where it was 1530, a
+ * University 520 where it was 1139, a Bank 893 where it was 1530, a Market 89
+ * where it was 147, a Granary 30 where it was 26, Notre-Dame 1934 where it was
+ * 2720. The roster rides the same curve at the same rate (ruled: playtest first)
+ * — a warrior 10, a knight 297, a frigate 448, a settler 28 and 42 at its third.
+ *
+ * A v88 log does not replay. Every completion lands on a different turn and the
+ * first one to move takes the rest of the game with it.
  */
-export const SCHEMA_VERSION = 88;
+export const SCHEMA_VERSION = 89;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -1,143 +1,259 @@
-# Production costs — the standard (proposal, 2026-09-07)
+# Production costs — the standard
 
-The user: *"we need to scale them back … buildings should be sized small,
-medium, large, wonder, and we should use one set of scaling notation across
-the board. Costs should scale this base production cost by column number in
-the tech tree."* User marginalia here are rulings.
+What anything costs to build, in one rule. Ruled 2026-09-07; landed as batch P1,
+schema 89. The reference for `data/rules.json`'s `production` block, the `size`
+and `column` fields on every building and unit row, and the fold in
+`src/sim/cities.ts`.
 
-## 1. What the numbers are today
+> The user: *"we need to scale them back … buildings should be sized small,
+> medium, large, wonder, and we should use one set of scaling notation across the
+> board. Costs should scale this base production cost by column number in the
+> tech tree."*
 
-Two ladders multiply each other:
+## 1. The rule
 
-- **The rows' own bases** already climb with the age — Granary 21, Market
-  59, Workshop 69, University 134, Bank 180, Alchemical Society 210;
-  wonders 80–110 in Æra I, 300–340 in Æra IV.
-- **The band** (`production.costAgeBand` = 1.25 · 2.5 · 4.5 · 8.5 by the
-  unlocking tech's age, batches H10/H11) multiplies them again.
+    price = sizeHammers[size] × columnRate ^ (column − 1)
 
-Effective prices today, by tech column (the column is `techColumn`, 0 for a
-row no tech unlocks):
+floored once, then — for a `oncePerEmpire` row only — `× √(cities ÷ uniqueCostBreakeven)`,
+floored again. A settler's ladder (`UnitDef.escalation`) climbs on top of the
+figure that produces.
 
-| Column | Age | Ordinary buildings | Uniques | Wonders | Units (base) |
-|---|---|---|---|---|---|
-| 0 (charters, ungated) | — | 40 – 437 | Magnum Opus 1500 | — | warrior 10 … settler 28 |
-| 1–3 | I | 18 – 52 | — | 100 – 137 | 11 – 24 |
-| 4–5 | II | 132 – 185 | 250 · 750 | 475 – 537 | 12 – 28 |
-| 6–8 | III | 135 – 1530 | 585 | 810 – 1530 | 14 – 26 |
-| 9–12 | IV | 374 – 1785 | 3400 · 4250 | 2677 – 2890 | 17 – 27 |
+- **The row carries a size**, never a figure. `BuildingDef.size` ·
+  `UnitDef.size`. A row still carrying `cost` fails the register test.
+- **The column is the tree's**: `techColumn` of the technology that unlocks the
+  row (`BUILDING_UNLOCK_TECH` / `UNIT_UNLOCK_TECH`, and `worldUnlockTech` for the
+  Magnum Opus), floored at 1 — the root's column is nominal and never paid.
+- **A row the tree does not name carries its own `column`**: a charter's
+  building, a hull that shipped ahead of its node, a row kept warm for saves.
+- **Projects are outside all of it** (`ProjectDef.cost` stays a number): a
+  project's cost is the size of one conversion, not the price of a thing.
 
-Three things wrong with it, all of them the double ladder: the Cathedral
-(340 base, Æra III) costs what a late wonder costs; the charters are priced
-as Æra I whatever pool opens them; and a retune of either ladder moves the
-other's meaning.
-
-Where they live: `cost` on every row of `data/buildings.json` and
-`data/units.json`; `production.costAgeBand`, `uniqueCostBreakeven`,
-`goldPerHammer` in `data/rules.json`; the fold in
-`src/sim/yields/town.ts` (`explainBuildingCost`, `explainUnitCost`).
-
-## 2. The standard
-
-**One base per size, one curve by column, nothing else.**
-
-`price = sizeHammers[size] × columnRate ^ (column − 1)`, floored once, plus
-the existing once-per-empire line (× √(cities ÷ 4)) for uniques. The row
-carries a **size**, never a number; the column comes from the unlocking
-tech, or from the row's own `column` for a row no tech unlocks (a charter
-takes the column of the tech its card's pool opens on — stated per row).
-
-Proposed figures (`data/rules.json`, `production`):
+## 2. The figures (`data/rules.json`, `production`)
 
 | Size | Base hammers | What it is |
 |---|---|---|
-| **small** | 30 | a shrine, a monument, a granary, a lighthouse, a chapel |
-| **medium** | 40 | a library, a market, a temple, a workshop, an aqueduct |
+| **small** | 30 | a shrine, a monument, a granary, a lighthouse |
+| **medium** | 40 | a market, a temple, a workshop, an aqueduct |
 | **large** | 60 | a university, a bank, a castle, a forge, a cathedral; **every once-per-empire row** |
 | **wonder** | 130 | every wonder; the Magnum Opus |
+| **free** | 0 | never built and never bought with hammers |
 
-`columnRate` **1.31** — **ruled 2026-09-07** ("lets make it 1.31. I'll let
-you know if we need to tweak it"). The rate is a late-game dial: it barely
-moves column 4 (a Market is 72 at 1.22, 89 at 1.31) and sets where the last
-column lands (a column-12 wonder 1160 at 1.22, 2534 at 1.31 — about
-today's). The table, from the ruled sizes:
-
-| Column | ×rate | small | medium | large | wonder |
-|---|---|---|---|---|---|
-| 1 | 1.00 | 30 | 40 | 60 | 130 |
-| 2 | 1.31 | 39 | 52 | 78 | 170 |
-| 3 | 1.72 | 51 | 68 | 102 | 223 |
-| 4 | 2.25 | 67 | 89 | 134 | 292 |
-| 5 | 2.94 | 88 | 117 | 176 | 382 |
-| 6 | 3.86 | 115 | 154 | 231 | 501 |
-| 7 | 5.05 | 151 | 202 | 303 | 657 |
-| 8 | 6.62 | 198 | 264 | 397 | 860 |
-| 9 | 8.67 | 260 | 346 | 520 | 1127 |
-| 10 | 11.36 | 340 | 454 | 681 | 1477 |
-| 11 | 14.88 | 446 | 595 | 893 | 1934 |
-| 12 | 19.50 | 584 | 779 | 1169 | 2534 |
-
-Against today: a Granary (small, column 1) 30 where it is 26; a Library
-(medium, 3) 68 where it is 35; a Market (medium, 4) 89 where it is 147; a
-Cathedral (large, 8) 397 where it is 1530; a University (large, 9) 520
-where it is 1139; a Bank (large, 11) 893 where it is 1530; Notre-Dame
-(wonder, 11) 1934 where it is 2720. Æra I goes up a little, Æra II–III
-comes down by a third to three quarters, and the last column lands near
-today.
-
-**Units** on the same curve with four sizes of their own (or keep each
-row's base and multiply by the column curve — mark which):
-
-| Unit size | Base | Rows |
+| Unit size | Base hammers | What it is |
 |---|---|---|
 | **light** | 10 | scout, warrior, archer, worker |
-| **line** | 14 | spearman, swordsman, phalanx, bowman, legionary, pikeman, crossbowman, trireme, bireme, galley |
-| **heavy** | 20 | horseman, chariot, chariot archer, horse archer, knight, cataphract, war elephant, longswordsman, fire lance, war galley, caravel, corvette |
-| **engine** | 23 | catapult, trebuchet, tower ship, carrack, frigate, ship of the line, gun galley |
-| **settler** | 28 · escalating | the settler's own ladder stays |
+| **line** | 14 | the infantry line and the early hulls |
+| **heavy** | 20 | the mounted, the late infantry, the light hulls |
+| **engine** | 23 | siege engines, the gun decks, the trader's cart |
+| **settler** | 28 | the settler, whose ladder rides on top |
+| **free** | 0 | the called pieces — the prophet and her sisters, the great person |
 
-By column at 1.31: light 10 · 13 · 17 · 22 · 29 · 38 · 50 · 66 · 86 · 113 ·
-148 · 194; line 14 … 272; heavy 20 … 389; engine 23 … 448.
+`columnRate` **1.31** — ruled ("lets make it 1.31. I'll let you know if we need
+to tweak it"). It is the late-game dial: it barely moves the early columns and it
+sets where the last column lands.
 
-**Ruled (a) — the user, 2026-09-07: "this is ok, lets playtest first,
-because things felt way too cheap during my playtest."** Units ride the
-same 1.31 curve with the four sizes above; no unit rate of its own. The
-readings are kept below for the retune if the playtest asks for one.
+| Column | ×rate | small | medium | large | wonder | light | line | heavy | engine |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 1.00 | 30 | 40 | 60 | 130 | 10 | 14 | 20 | 23 |
+| 2 | 1.31 | 39 | 52 | 78 | 170 | 13 | 18 | 26 | 30 |
+| 3 | 1.72 | 51 | 68 | 102 | 223 | 17 | 24 | 34 | 39 |
+| 4 | 2.25 | 67 | 89 | 134 | 292 | 22 | 31 | 44 | 51 |
+| 5 | 2.94 | 88 | 117 | 176 | 382 | 29 | 41 | 58 | 67 |
+| 6 | 3.86 | 115 | 154 | 231 | 501 | 38 | 54 | 77 | 88 |
+| 7 | 5.05 | 151 | 202 | 303 | 657 | 50 | 70 | 101 | 116 |
+| 8 | 6.62 | 198 | 264 | 397 | 860 | 66 | 92 | 132 | 152 |
+| 9 | 8.67 | 260 | 346 | 520 | 1127 | 86 | 121 | 173 | 199 |
+| 10 | 11.36 | 340 | 454 | 681 | 1477 | 113 | 159 | 227 | 261 |
+| 11 | 14.88 | 446 | 595 | 893 | 1934 | 148 | 208 | 297 | 342 |
+| 12 | 19.50 | 584 | 779 | 1169 | 2534 | 194 | 272 | 389 | 448 |
 
-*The mark as put:* units at 1.31 climb past today late. Today a unit is its
-base × the age band (1.25 · 2.5 · 4.5 · 8.5), which tops out at ×8.5; the
-column curve tops out at ×19.5. So a warrior (light, column 1) is 10 where
-it is 12 and a spearman (line, 2) 18 where it is 13, but a knight (heavy,
-11) is 297 where it is 187, a trebuchet (engine, 9) 199 where it is 108,
-and a frigate (engine, 12) 448 where it is 238. Three readings, mark one:
-(a) accept — a late army costs what a late building costs; (b) units take
-their own gentler rate (`production.unitColumnRate`, e.g. 1.22 puts the
-knight at 146 and the frigate at 262); (c) units keep the age band as
-today and only buildings move to the column curve. The orchestrator
-recommends **(b)** — one curve shape, two rates, and the late army stays
-near today's price.
+**Ruled — units ride the same curve at the same rate**, 2026-09-07: *"this is ok,
+lets playtest first, because things felt way too cheap during my playtest."* A
+late army costs what a late building costs. The retune kept in reserve, if the
+playtest asks for one, is a gentler `unitColumnRate` of its own (1.22 puts the
+knight at 146 and the frigate at 262).
 
-## 3. Assignments to mark
+## 3. How a row is sized
 
-Every live building and unit row gets a size; the batch writes the table
-into this doc with a sync test (row ↔ size, like the Orders doc). The
-orchestrator's first pass, by today's base: **small** ≤ 35 · **medium**
-36–90 · **large** 91–220 or `oncePerEmpire` · **wonder** every wonder. Mark
-any row you want moved. Charters: each carries `column` = the first column
-of its pool's age (chiefdom 1, Government I 2, II 4, III 6, IV 9, V 11) —
-mark a different reading if you have one.
+Buildings, by the base each row printed before the standard: **small** ≤ 35 ·
+**medium** 36–90 · **large** 91 and up, or any `oncePerEmpire` row ·
+**wonder** every wonder and the Magnum Opus · **free** a row that is never built
+and never bought.
 
-## 4. What changes in the code
+Units, by the table in §2: the four light rows by name, then the infantry line,
+the mounted and late infantry, the engines and gun decks. A row the sizing pass
+did not name took the nearest of the four bases to the figure it printed —
+the trader (28 → engine), the composite bowman (14 → line), the fire ship
+(20 → heavy), the spear wall (17 → line, the tie broken toward the infantry it
+fights as).
 
-- `BuildingDef.cost` → `BuildingDef.size` (and `UnitDef.cost` → `UnitDef.size`
-  if units take sizes); `column?` on rows no tech unlocks. The old `cost`
-  field is refused by the loader.
-- `production.sizeHammers`, `production.unitSizeHammers`,
-  `production.columnRate`; `costAgeBand` retired.
-- `explainBuildingCost` / `explainUnitCost` print two lines — "Large
-  building" 80 · "Column 8 ×4.02" — and the unique's third; every surface
-  prints the fold as today. The purchase price follows.
-- Escalation (settlers) multiplies the row's escalated figure as it does
-  now; the Magnum Opus stays a wonder-sized unique.
-- Schema (every replay moves). The parity harness is not the gate here —
-  this changes numbers on purpose; the order suite and the doc sync are.
-- `docs/yields.md`'s cost paragraph and `docs/tech-tree.md`'s table follow.
+Two rows sit on a boundary and were sized by the rule rather than by the
+examples above it: the **Library** printed 28 and is `small`, where §2's list of
+what a medium building is names a library; the **Chapel** printed 53 and is
+`medium`, where the same list names a chapel among the small ones. Both are one
+JSON field if the user wants them moved.
+
+Charters — a building no technology opens, handed over by a card — take the
+**first column of their pool's age**: chiefdom 1, Government I 2, II 4, III 6,
+IV 9, V 11. The Gilded Hall is a Doctrine of the Government III tier and takes
+column 6 with them.
+
+## 4. The fold
+
+`explainBuildingCost(id, state?, playerId?)` and
+`explainUnitCost(state, playerId, type)` in `src/sim/cities.ts`, hard rule 5 said
+about a price. The lines, in the order the arithmetic runs:
+
+1. **the size** — "Large building 60" · "Heavy unit 20".
+2. **the column** — "Column 8 ×6.62", the label stating the column and the
+   multiplier carried as the line's own value. Absent at the first column, where
+   the curve multiplies by one, and absent on a `free` row.
+3. **the empire**, for a `oncePerEmpire` row — "Empire of 9 cities ×1.50".
+4. **the ladder**, for a unit with `escalation` — "3 already built" — then the
+   settler-named card rule, "Cards −20%".
+
+`foldBuildingCost` is `buildingProductionCost`; `foldUnitCost` sums either list.
+`unitRosterCost` is lines 1–2 alone — what the roster charges before any empire
+touches the price, which is what the Compendium prints. Every surface prints the
+fold: the purchase (`goldPerHammer` × the folded price), the wonder refund, the
+build list, the star chart, the bot's chains.
+
+## 5. The assignment of record
+
+Sync-tested against the data rows (`test/sim/productionCosts.test.ts`); retired
+rows are excluded from the table and keep their size in the data so a save
+replays. The hammer column is what the fold prints today, at the breakeven
+reading for a once-per-empire row.
+
+### Buildings
+
+| Row | Name | Size | Column | Hammers |
+|---|---|---|---|---|
+| `monument` | Monument | small | 2 | 39 |
+| `granary` | Granary | small | 1 | 30 |
+| `shrine` | Shrine | small | 2 | 39 |
+| `barracks` | Barracks | small | 2 | 39 |
+| `palisade` | Palisade | medium | 2 | 52 |
+| `stoneWalls` | Stone Walls | medium | 5 | 117 |
+| `library` | Library | small | 3 | 51 |
+| `temple` | Temple | medium | 5 | 117 |
+| `market` | Market | medium | 4 | 89 |
+| `aqueduct` | Aqueduct | medium | 8 | 264 |
+| `workshop` | Workshop | medium | 8 | 264 |
+| `watermill` | Watermill | medium | 8 | 264 |
+| `amphitheater` | Amphitheater | medium | 4 | 89 |
+| `university` | University | large | 9 | 520 |
+| `cathedral` | Cathedral | large | 8 | 397 |
+| `gildedHall` | Gilded Hall | large | 6 | 231 |
+| `hallOfDeeds` | Hall of Deeds | small | 1 | 30 |
+| `bazaar` | Bazaar | medium | 9 | 346 |
+| `harbour` | Harbour | medium | 5 | 117 |
+| `forum` | Forum | large | 6 | 231 |
+| `courthouse` | Courthouse | large | 9 | 520 |
+| `shipyard` | Shipyard | medium | 7 | 202 |
+| `castle` | Castle | large | 10 | 681 |
+| `forge` | Forge | large | 10 | 681 |
+| `caravanserai` | Caravanserai | large | 7 | 303 |
+| `observatory` | Observatory | large | 11 | 893 |
+| `lighthouse` | Lighthouse | small | 2 | 39 |
+| `townCharter` | Town Charter | small | 8 | 198 |
+| `bank` | Bank | large | 11 | 893 |
+| `bastion` | Bastion | large | 10 | 681 |
+| `alchemicalSociety` | The Alchemical Society | large | 12 | 1169 |
+| `chartTheStars` | Chart the Stars | large | 4 | 134 |
+| `theTurningHeavens` | The Turning Heavens | large | 9 | 520 |
+| `theAlchemicalCodex` | The Alchemical Codex | large | 12 | 1169 |
+| `theMagnumOpus` | The Magnum Opus | wonder | 12 | 2534 |
+| `chapel` | Chapel | medium | 2 | 52 |
+| `keep` | Keep | medium | 2 | 52 |
+| `scriptorium` | Scriptorium | large | 4 | 134 |
+| `assayHouse` | Assay House | large | 4 | 134 |
+| `cistern` | Cistern | medium | 4 | 89 |
+| `assemblyHall` | Assembly Hall | large | 4 | 134 |
+| `smithy` | Smithy | medium | 4 | 89 |
+| `coinworks` | Coinworks | large | 6 | 231 |
+| `almshouse` | Almshouse | large | 6 | 231 |
+| `orrery` | Orrery | large | 6 | 231 |
+| `assizeCourt` | Assize Court | large | 6 | 231 |
+| `relic` | Relic | free | 1 | 0 |
+| `heroicEpic` | Heroic Epic | large | 4 | 134 |
+| `imperialThrone` | Imperial Throne | large | 5 | 176 |
+| `highTemple` | High Temple | large | 5 | 176 |
+
+### Wonders
+
+| Row | Name | Size | Column | Hammers |
+|---|---|---|---|---|
+| `theOracle` | The Oracle | wonder | 2 | 170 |
+| `stonehenge` | Stonehenge | wonder | 2 | 170 |
+| `pyramids` | The Pyramids | wonder | 2 | 170 |
+| `hangingGardens` | The Hanging Gardens | wonder | 2 | 170 |
+| `wallsOfUruk` | The Walls of Uruk | wonder | 2 | 170 |
+| `greatZiggurat` | The Great Ziggurat | wonder | 3 | 223 |
+| `greatLighthouse` | The Great Lighthouse | wonder | 2 | 170 |
+| `templeOfArtemis` | The Temple of Artemis | wonder | 1 | 130 |
+| `greatLibrary` | The Great Library | wonder | 6 | 501 |
+| `colossus` | The Colossus | wonder | 5 | 382 |
+| `petra` | Petra | wonder | 7 | 657 |
+| `circusMaximus` | The Circus Maximus | wonder | 8 | 860 |
+| `terracottaArmy` | The Terracotta Army | wonder | 6 | 501 |
+| `greatWall` | The Great Wall | wonder | 7 | 657 |
+| `theatreOfDionysus` | The Theatre of Dionysus | wonder | 4 | 292 |
+| `mausoleum` | The Mausoleum | wonder | 4 | 292 |
+| `statueOfZeus` | The Statue of Zeus | wonder | 6 | 501 |
+| `chichenItza` | Chichen Itza | wonder | 8 | 860 |
+| `hagiaSophia` | Hagia Sophia | wonder | 8 | 860 |
+| `angkorWat` | Angkor Wat | wonder | 8 | 860 |
+| `greatMosqueOfDjenne` | The Great Mosque of Djenné | wonder | 8 | 860 |
+| `notreDame` | Notre-Dame | wonder | 11 | 1934 |
+| `houseOfWisdom` | The House of Wisdom | wonder | 9 | 1127 |
+| `forbiddenCity` | The Forbidden City | wonder | 7 | 657 |
+| `alhambra` | The Alhambra | wonder | 11 | 1934 |
+| `machuPicchu` | Machu Picchu | wonder | 10 | 1477 |
+| `waterClockOfSuSong` | The Water Clock of Su Song | wonder | 8 | 860 |
+
+### Units
+
+| Row | Name | Size | Column | Hammers |
+|---|---|---|---|---|
+| `warrior` | Warrior | light | 1 | 10 |
+| `scout` | Scout | light | 1 | 10 |
+| `settler` | Settler | settler | 1 | 28 |
+| `worker` | Worker | light | 1 | 10 |
+| `trader` | Trader | engine | 4 | 51 |
+| `archer` | Archer | light | 1 | 10 |
+| `bowman` | Bowman | line | 5 | 41 |
+| `spearman` | Spearman | line | 2 | 18 |
+| `horseman` | Horseman | heavy | 7 | 101 |
+| `chariot` | War Chariot | heavy | 3 | 34 |
+| `chariotArcher` | Chariot Archer | heavy | 3 | 34 |
+| `swordsman` | Swordsman | line | 4 | 31 |
+| `catapult` | Catapult | engine | 7 | 116 |
+| `compositeBowman` | Composite Bowman | line | 7 | 70 |
+| `pikeman` | Pikeman | line | 10 | 159 |
+| `crossbowman` | Crossbowman | line | 9 | 121 |
+| `knight` | Knight | heavy | 11 | 297 |
+| `longswordsman` | Longswordsman | heavy | 10 | 227 |
+| `trebuchet` | Trebuchet | engine | 10 | 261 |
+| `trireme` | Trireme | line | 2 | 18 |
+| `bireme` | Bireme | line | 5 | 41 |
+| `galley` | Galley | line | 7 | 70 |
+| `caravel` | Caravel | heavy | 11 | 297 |
+| `corvette` | Corvette | heavy | 11 | 297 |
+| `warGalley` | War Galley | heavy | 5 | 58 |
+| `towerShip` | Tower Ship | engine | 7 | 116 |
+| `carrack` | Carrack | engine | 11 | 342 |
+| `shipOfTheLine` | Ship of the Line | engine | 12 | 448 |
+| `fireShip` | Fire Ship | heavy | 7 | 101 |
+| `gunGalley` | Gun Galley | engine | 11 | 342 |
+| `frigate` | Frigate | engine | 12 | 448 |
+| `prophet` | Prophet | free | 5 | 0 |
+| `apostle` | Apostle | free | 8 | 0 |
+| `inquisitor` | Inquisitor | free | 11 | 0 |
+| `greatPerson` | Great Person | free | 1 | 0 |
+| `phalanx` | Phalanx | line | 4 | 31 |
+| `legionary` | Legionary | line | 6 | 54 |
+| `horseArcher` | Horse Archer | heavy | 7 | 101 |
+| `cataphract` | Cataphract | heavy | 7 | 101 |
+| `spearWall` | Spear Wall | line | 6 | 54 |
+| `warElephant` | War Elephant | heavy | 7 | 101 |
+| `fireLance` | The Fire Lance | heavy | 12 | 389 |
