@@ -68,6 +68,7 @@ import {
   SCHEMA_VERSION,
   createUnit,
   newGame,
+  bumpRevision,
 } from '../../src/sim/state';
 import { buildError, isUnlocked } from '../../src/sim/tech';
 import { razeCityAt } from '../../src/sim/diplomacy';
@@ -123,6 +124,7 @@ function reachAge(state: GameState, playerId: number, age: 3 | 4): void {
   const player = state.players[playerId]!;
   const tech = age === 3 ? 'mathematics' : 'theology';
   if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
+  bumpRevision(state);
 }
 
 /** Runs the bead phase alone, which is what every clock and sweep test wants. */
@@ -577,6 +579,7 @@ describe('a race project', () => {
     city.hammerBasket = projectDef('theGrandSatrapy').cost;
 
     const done = settleProduction(state, city);
+    bumpRevision(state);
     expect(done?.name).toBe('The Grand Satrapy');
     // A race project **finishes**: it leaves the queue, unlike a conversion.
     expect(city.queue).toEqual([]);
@@ -664,6 +667,7 @@ describe('a boon settles through the seam that already exists', () => {
     plant(state, 0, 4, 4);
     const before = explainAuthority(state, 0);
     awardBead(state, 0, 'theConqueror', 0);
+    bumpRevision(state);
     const after = explainAuthority(state, 0);
     const sum = (lines: readonly { value: number }[]): number =>
       lines.reduce((total, line) => total + line.value, 0);
@@ -699,6 +703,7 @@ describe('a building shipped ahead of its age', () => {
     // The unlock tech is checked first, so the seat has to be able to build the
     // row before the dormancy refusal is the one that answers.
     state.players[0]!.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     const def = buildingDef('observatory') as { awaitsTech?: boolean };
     def.awaitsTech = true;
     try {
@@ -727,6 +732,7 @@ describe('the threshold', () => {
     const player = state.players[playerId]!;
     for (let i = 0; i < count; i++) {
       player.beads.push({ id: 'theFounder', kind: 'quest', family: 'economic', turn: 1 });
+      bumpRevision(state);
     }
   };
 
@@ -744,6 +750,7 @@ describe('the threshold', () => {
     const city = plant(state, 0, 4, 4);
     // Everything else the row asks for: the world's technology, and the town.
     for (const player of state.players) player.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
 
     clack(state, 0, BEAD_RULES.threshold - 1);
     expect(buildError(state, 0, 'building', opus, city)).toBe(
@@ -961,6 +968,7 @@ describe('The Long Count', () => {
     if (gate === undefined) throw new Error('no technology hands over the long count');
     const player = state.players[playerId]!;
     if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+    bumpRevision(state);
   }
 
   it('shows the next age’s hand a turn early, and never turns a card over', () => {
@@ -1008,6 +1016,7 @@ describe('the bead Orders', () => {
     const sc = state.players[playerId]!.statecraft;
     if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
   }
 
   it('mints nothing for an empire holding none of them', () => {
@@ -1085,6 +1094,7 @@ describe('the bead Orders', () => {
     expect(cardBeadOccasions(state, 0, 'cityRazed')).toEqual(['theSownSalt']);
     // Held but unslotted is the collection, not the law.
     state.players[0]!.statecraft.slots = [];
+    bumpRevision(state);
     expect(cardBeadOccasions(state, 0, 'cityRazed')).toEqual([]);
   });
 
@@ -1093,6 +1103,7 @@ describe('the bead Orders', () => {
     const wild = state.players.find((player) => player.barbarian);
     if (wild) {
       wild.statecraft.slots.push({ card: 'theSaltedEarth' as never, sealedUntil: 0 });
+      bumpRevision(state);
       expect(awardOrderBeads(state, wild.id, 'cityRazed')).toEqual([]);
       expect(wild.beads).toEqual([]);
     }

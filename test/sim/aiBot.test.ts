@@ -26,7 +26,13 @@ import {
 } from '../../src/ai/bot';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
-import { createUnit, hasEndedTurn, playerById, realPlayers } from '../../src/sim/state';
+import {
+  createUnit,
+  hasEndedTurn,
+  playerById,
+  realPlayers,
+  bumpRevision,
+} from '../../src/sim/state';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { isCombatant, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
@@ -169,6 +175,7 @@ describe('the bot', () => {
     // log reproduces, and that is exactly the point of the poke.
     const game = createGame(CONFIG);
     for (const player of realPlayers(game.state)) player.gold = 5000;
+    bumpRevision(game.state);
     for (let turn = 0; turn < 4; turn++) driveBots(game, { warn: () => {} });
     const bought = game.log.filter((command) => command.type === 'purchaseItem');
     expect(bought.length).toBeGreaterThan(0);
@@ -186,6 +193,7 @@ describe('the bot', () => {
     // one it always was — nothing is ever bought *out of* it.
     const game = createGame(CONFIG);
     for (const player of realPlayers(game.state)) player.gold = 400;
+    bumpRevision(game.state);
     for (let turn = 0; turn < 3; turn++) driveBots(game, { warn: () => {} });
     for (const player of realPlayers(game.state)) {
       const cover = AI.solvency.reserveTurnsOfUpkeep * upkeepBillOf(game.state, player.id);
@@ -264,8 +272,10 @@ describe('the scored build list', () => {
     const player = seat(game.state, 0);
 
     player.gold = 500;
+    bumpRevision(game.state);
     const rich = valueContext(game.state, player);
     player.gold = AI.solvency.arrearsTreasury - 1;
+    bumpRevision(game.state);
     const broke = valueContext(game.state, player);
 
     expect(rich.goldPressure).toBeLessThan(broke.goldPressure);
@@ -278,6 +288,7 @@ describe('the scored build list', () => {
     // its turn. Poked directly into ruin, because the board cannot produce this.
     const game = grownGame();
     for (const player of realPlayers(game.state)) player.gold = -900;
+    bumpRevision(game.state);
     for (const city of game.state.cities) {
       const player = seat(game.state, city.ownerId);
       if (player.barbarian) continue;
@@ -309,6 +320,7 @@ describe('the scored build list', () => {
       spare.push(createUnit(game.state, 0, 'warrior', city.col + 3 + i, city.row + 3));
     }
     player.gold = -100;
+    bumpRevision(game.state);
     const cut = nextBotCommand(game.state, 0);
     expect(cut).not.toBeNull();
     expect(cut!.type).toBe('disbandUnit');
@@ -321,6 +333,7 @@ describe('the scored build list', () => {
     const game = grownGame();
     const player = seat(game.state, 0);
     player.gold = -900;
+    bumpRevision(game.state);
     // Everything this seat owns, offered to the creditors one command at a time.
     // The two floors must hold: `solvency.minArmy` pieces, and a garrison in
     // every town.
@@ -525,8 +538,10 @@ describe('the appetite for gods', () => {
     // the appetite rather than the tree.
     for (const step of researchExpansion(game.state, 0, 'divination')) {
       player.techsResearched.push(step);
+      bumpRevision(game.state);
     }
     player.faithPool = 500;
+    bumpRevision(game.state);
     const book = valueContext(game.state, player).wants.faith;
     const rungs = book.filter((want) => want.label.startsWith('the next consecration'));
     expect(rungs).toHaveLength(1);
@@ -554,7 +569,9 @@ describe('the appetite for gods', () => {
     // prophet: the old bot bought the augur, this one waits.
     player.pantheon.beliefs = [firstBelief()];
     player.faithPool = 90;
+    bumpRevision(game.state);
     player.gold = 0;
+    bumpRevision(game.state);
     const commands = [nextBotCommand(game.state, 0), ...playOutSeat(game, 0)];
     const augur = commands.some(
       (command) =>
@@ -570,12 +587,14 @@ describe('the appetite for gods', () => {
     const player = seat(game.state, 0);
     player.pantheon.beliefs = [firstBelief()];
     player.faithPool = 400;
+    bumpRevision(game.state);
     // The prophet is gated on a technology this young empire has not reached.
     // Granted directly, because what is under test is the *appetite*, not the
     // tree — and the roster names its own gate, so nothing here spells a tech id.
     const gate = UNIT_UNLOCK_TECH.get('prophet');
     if (gate !== undefined) {
       for (const step of researchExpansion(game.state, 0, gate)) player.techsResearched.push(step);
+      bumpRevision(game.state);
     }
     const commands = [nextBotCommand(game.state, 0), ...playOutSeat(game, 0)];
     const prophet = commands.some(

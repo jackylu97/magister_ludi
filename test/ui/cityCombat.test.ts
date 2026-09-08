@@ -19,7 +19,7 @@ import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { defenseRows, defenseTotal, maxHpLedger } from '../../src/ui/cityPanel';
 
@@ -78,6 +78,7 @@ describe('maxHpLedger', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings.push('palisade');
+    bumpRevision(state);
     expect(maxHpLedger(city)).toBe(`Walls ${base} · Palisade +${walls}`);
   });
 });
@@ -100,6 +101,7 @@ describe('defenseRows', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings.push('palisade');
+    bumpRevision(state);
     const rows = defenseRows(state, city);
     expect(rows).toEqual([
       { label: 'Defends with · Warrior', figures: '8', amount: 8 },

@@ -18,6 +18,7 @@ import {
   type Unit,
   createUnit,
   newGame,
+  bumpRevision,
 } from '../../src/sim/state';
 import { availableTechs } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
@@ -278,6 +279,7 @@ describe('firstBlocker · research', () => {
     const player = state.players[0]!;
     player.researching = null;
     player.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     expect(availableTechs(state, 0)).toEqual([]);
     expect(firstBlocker(state, 0)).toBeNull();
   });

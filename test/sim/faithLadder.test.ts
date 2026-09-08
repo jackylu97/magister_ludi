@@ -28,7 +28,7 @@ import {
   planFaithRung,
 } from '../../src/sim/religion';
 import { RELIGION } from '../../src/sim/religionData';
-import { type GameState, playerById } from '../../src/sim/state';
+import { type GameState, playerById, bumpRevision } from '../../src/sim/state';
 
 // --- harness ----------------------------------------------------------------
 
@@ -53,6 +53,7 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech as never)) {
       player.techsResearched.push(tech as never);
+      bumpRevision(state);
     }
   }
 }
@@ -63,6 +64,7 @@ function believer(seed = 7, faith = 0) {
   found(g.state, 0);
   learn(g.state, 0, 'divination');
   playerById(g.state, 0)!.faithPool = faith;
+  bumpRevision(g.state);
   return g;
 }
 
@@ -132,6 +134,7 @@ describe('the offer the ladder opens', () => {
     found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
+    bumpRevision(g.state);
     // No Divination: no slots, so the ladder has nowhere to put a god.
     expect(pantheonSlots(g.state, 0)).toBe(0);
     expect(hasOpenBeliefSlot(g.state, 0)).toBe(false);
@@ -144,6 +147,7 @@ describe('the offer the ladder opens', () => {
     const wild = g.state.players.find((player) => player.barbarian);
     if (wild) {
       wild.faithPool = 500;
+      bumpRevision(g.state);
       openFaithLadder(g.state);
       expect(wild.pantheon.pending).toBeUndefined();
     }
@@ -207,6 +211,7 @@ describe('the deal spends the bank', () => {
     // A purchase can still empty the bank inside the End Turn window; the god
     // is still taken and nothing more is asked.
     player.faithPool = 5;
+    bumpRevision(g.state);
     expect(dispatch(g, { type: 'chooseBelief', playerId: 0, optionIndex: 0 } as Command).ok)
       .toBe(true);
     expect(player.faithPool).toBe(5);

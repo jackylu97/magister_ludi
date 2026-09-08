@@ -24,7 +24,7 @@
  * `.test.ts` file re-registers its tests.
  */
 
-import { type GameState, realPlayers } from '../../src/sim/state';
+import { type GameState, bumpRevision, realPlayers } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 
 /** Opens a war between every pair of real seats. See the module docblock. */
@@ -35,4 +35,7 @@ export function openEveryWar(state: GameState): void {
       openWar(state, seats[i]!.id, seats[j]!.id);
     }
   }
+  // A war written into the register rather than declared: the bench announces
+  // it the way a command would (batch E3a).
+  bumpRevision(state);
 }

@@ -146,6 +146,7 @@ import {
   followerCardTileLines,
   cardProjectPays,
   drawDoctrineOffer,
+  forgetTheLaw,
   scopedCardTileLines,
   timedCityTileLines,
   foldCardRulePercent,
@@ -5633,6 +5634,14 @@ export function realiseItem(
 ): RealisedItem {
   if (item.kind === 'building') {
     city.buildings.push(item.id);
+    // **The law changed under this very call** (batch E3a). A wonder is the
+    // fifth source of `liveEffects`, the stones go up before the grants below
+    // are asked for, and the remembered law is keyed on `GameState.revision` —
+    // which a command raises when it is *finished*. So the memo is dropped here
+    // rather than trusted: Stonehenge's own `pantheonSlots` line is read three
+    // lines below the push that put it on the board. `forgetTheLaw`'s docblock
+    // is the register of every seam that does this, and it has one entry.
+    forgetTheLaw(state);
     // The claim, and the race it settles. Here rather than in `settleProduction`
     // because this is the routine that means "the city now has the thing", and
     // a wonder existing *is* the claim — a second path that put a building in a

@@ -191,18 +191,22 @@ describe('a click repaints the chart rather than rebuilding it', () => {
   });
 });
 
-describe('the unlock lines are priced against the log', () => {
+describe('the unlock lines are priced against the revision', () => {
   it('asks whether anything has happened, not what a delta depends on', () => {
-    // Hard rule 1 is what makes this exact: every mutation is a command and an
-    // accepted command is a logged command, so a log that has not grown is a
+    // `GameState.revision` is what makes this exact: `applyCommand` raises it on
+    // every accepted command and `runEndOfTurn` once after each phase, which are
+    // the two ways the world moves at all, so a counter that has not moved is a
     // state that has not moved. Deliberately the bluntest test there is — a key
     // that named what `buildingYieldDelta` reads would be a second opinion
     // about a number this screen is forbidden to have one about.
+    //
+    // It was `game.log.length` until batch E3a: the same idea one layer too
+    // high, since a phase moves the world without moving the log.
     const body = chartFunction('function unlocksAreStale(');
-    expect(body).toContain('unlocksFrom.commands !== game.log.length');
+    expect(body).toContain('unlocksFrom.revision !== game.state.revision');
     // The seat, because a hot-seat change is not a command; the state's
-    // identity, because a loaded save is a different game whose log may be the
-    // same length.
+    // identity, because a loaded save is a different game whose revision may
+    // stand at the same number.
     expect(body).toContain('unlocksFrom.playerId !== localPlayerId()');
     expect(body).toContain('unlocksFrom.state !== game.state');
   });
@@ -213,7 +217,7 @@ describe('the unlock lines are priced against the log', () => {
     // forty buildings against every city after one would be work for a number
     // that cannot have changed.
     const body = chartFunction('function send(');
-    expect(body).toContain('if (result.ok && unlocksFrom) unlocksFrom.commands += 1;');
+    expect(body).toContain('if (result.ok && unlocksFrom) unlocksFrom.revision += 1;');
   });
 
   it('dispatches from that one seam and nowhere else', () => {

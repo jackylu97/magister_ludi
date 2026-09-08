@@ -17,7 +17,7 @@ import { explainEmpireGold } from '../../src/sim/empireGold';
 import { cardCityYields, cardYieldConversions } from '../../src/sim/statecraft';
 import type { City, GameState } from '../../src/sim/state';
 import type { Tile } from '../../src/sim/map';
-import { createUnit, playerById } from '../../src/sim/state';
+import { createUnit, playerById, bumpRevision } from '../../src/sim/state';
 import type { CityYieldPercent } from '../../src/sim/cities';
 import type { DoctrineId, OrderId } from '../../src/sim/statecraftData';
 import { found, game } from './statecraftHelpers';
@@ -76,11 +76,13 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  bumpRevision(state);
 }
 
 /** A Doctrine is held rather than chaired — presence is the state. */
 function hold(state: GameState, playerId: number, id: DoctrineId): void {
   playerById(state, playerId)!.statecraft.doctrines.push(id);
+  bumpRevision(state);
 }
 
 /**
@@ -204,6 +206,7 @@ describe('the town folds its flats before it meets a percentage', () => {
   it('c. takes a building share over the row plus the law’s lines on it, as a flat', () => {
     const { state, city } = bench();
     city.buildings.push('temple');
+    bumpRevision(state);
     // The Choir pays +3 culture in a town with a Temple — a `cityYields` line
     // whose scope names the building, which is what `cardLinesOnBuilding`
     // widens the share to cover (the user, 2026-09-07: the Synod "should count
@@ -225,6 +228,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     const withoutSynod = (() => {
       const g = bench();
       g.city.buildings.push('temple');
+      bumpRevision(g.state);
       slot(g.state, 0, 'theChoir');
       return cityQuote(g.state, g.city).flats;
     })();
@@ -239,6 +243,7 @@ describe('the town folds its flats before it meets a percentage', () => {
     slot(state, 0, 'theExchangeCharter'); // appliedLast, +50%
 
     const lines = cardBuildingYields(state, city);
+    bumpRevision(state);
     // Order is the arithmetic's: the ordinary shares, then the ones taken last.
     expect(lines.map((line) => line.source.includes('The Counting Houses'))).toEqual([true, false]);
     expect(lineOf(lines, 'The Counting Houses').gold).toBe(1); // half of 2
@@ -250,12 +255,14 @@ describe('the town folds its flats before it meets a percentage', () => {
   it('e. takes a conversion as a share of the flats as they stand after step 9', () => {
     const bare = bench();
     bare.city.buildings.push('market');
+    bumpRevision(bare.state);
     slot(bare.state, 0, 'theExchangeCharter');
     slot(bare.state, 0, 'theGoldenScales'); // 20% of gold, paid as science
     const withoutOrdinary = cityQuote(bare.state, bare.city);
 
     const raised = bench();
     raised.city.buildings.push('market');
+    bumpRevision(raised.state);
     slot(raised.state, 0, 'theCountingHouses');
     slot(raised.state, 0, 'theExchangeCharter');
     slot(raised.state, 0, 'theGoldenScales');
@@ -322,6 +329,7 @@ describe('the empire folds its own lines before its own stage', () => {
     // A faith rate for the conversion to read, an empire card that reads it,
     // and a payroll the treasury cannot pay: one income line and one bill.
     city.buildings.push('shrine', 'temple');
+    bumpRevision(state);
     hold(state, 0, 'theTithe'); // +1 gold per faith per turn, at empire scale
     for (let i = 0; i < 8; i++) createUnit(state, 0, 'warrior', city.col, city.row);
     expect(explainEmpireGold(state, 0).some((line) => line.kind === 'bill')).toBe(true);
@@ -369,6 +377,7 @@ describe('the empire folds its own lines before its own stage', () => {
   it('g. leaves the city stage out of the empire’s own fold', () => {
     const { state, city } = bench();
     city.buildings.push('shrine', 'temple');
+    bumpRevision(state);
     hold(state, 0, 'theTithe');
     // A card's `stage: 'empire'` percentage is written about a **town** and is
     // never the empire's own stage; a city-stage percentage is not either. The

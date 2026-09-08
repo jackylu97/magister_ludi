@@ -22,7 +22,7 @@ import {
   foldMeter,
   meterStanding,
 } from '../../src/sim/meters';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { foldCityHappiness, meterGroups } from '../../src/ui/meterBreakdown';
@@ -151,6 +151,7 @@ describe('a town’s own buildings net into that town’s demand line', () => {
     city.name = 'Uruk';
     city.population = 10;
     city.buildings.push('funeralGames');
+    bumpRevision(state);
     return state;
   }
 
@@ -195,7 +196,9 @@ describe('a town’s own buildings net into that town’s demand line', () => {
   it('changes the total not at all — which is the whole licence for doing it', () => {
     const state = empire();
     state.cities[0]!.buildings.push('funeralGames');
+    bumpRevision(state);
     state.cities[1]!.buildings.push('funeralGames', 'circusMaximus');
+    bumpRevision(state);
     const raw = explainHappiness(state, 0);
     const folded = foldCityHappiness(raw, towns(state, 0));
     expect(foldMeter(folded)).toBe(foldMeter(raw));
@@ -226,6 +229,7 @@ describe('a town’s own buildings net into that town’s demand line', () => {
     state.cities[0]!.population = 4;
     state.cities[1]!.population = 6;
     state.cities[1]!.buildings.push('funeralGames');
+    bumpRevision(state);
     const folded = foldCityHappiness(explainHappiness(state, 0), towns(state, 0));
     expect(folded.find((entry) => entry.source.startsWith('Ur ('))!.value).toBe(-4);
     expect(folded.find((entry) => entry.source.startsWith('Uruk ('))!.source).toBe(

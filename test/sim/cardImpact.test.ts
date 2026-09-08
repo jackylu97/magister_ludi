@@ -49,6 +49,7 @@ import { terrainDef } from '../../src/sim/terrainData';
 import type { GameState } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
 import { type CardEffect, type OrderId, orderDef } from '../../src/sim/statecraftData';
+import { bumpRevision } from '../../src/sim/state';
 
 /**
  * Everything one empire banks in a turn, read **independently of the module
@@ -157,6 +158,7 @@ describe('a flat card', () => {
       card: 'weightsAndMeasures',
       sealedUntil: state.turn,
     };
+    bumpRevision(state);
     const after = ledger(state, 0);
     for (const key of CITY_YIELD_KEYS) {
       expect(stamp[key], key).toBe(after[key] - before[key]);
@@ -212,6 +214,7 @@ describe('a meter knock-on', () => {
     // to take a share of — the base beaker halved in batch D, and ten percent of
     // a floored six is nothing. The card is the subject, not the buildings.
     city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     const knock = lines.filter((line) => line.kind === 'knockOn');
@@ -333,6 +336,7 @@ describe('a card that pays a meter', () => {
     expect(foldCardImpact(bare).culture).toBe(0);
 
     city.buildings.push('temple');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theChoir' });
     const meters = lines.filter((line) => line.kind === 'meter');
@@ -357,6 +361,7 @@ describe('a card that pays a meter', () => {
   it('keeps the points it paid apart from the yield they unlocked', () => {
     const { state, city } = bench();
     city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
     const meter = lines.filter((line) => line.kind === 'meter');
@@ -435,6 +440,7 @@ describe('a card already in force', () => {
       card: 'weightsAndMeasures',
       sealedUntil: state.turn,
     };
+    bumpRevision(state);
     const slotted = foldCardImpact(
       explainCardImpact(state, 0, { kind: 'order', id: 'weightsAndMeasures' }),
     );
@@ -448,6 +454,7 @@ describe('a card already in force', () => {
       explainCardImpact(state, 0, { kind: 'doctrine', id: 'theAcademyOfDeeds' }),
     );
     state.players[0]!.statecraft.doctrines.push('theAcademyOfDeeds');
+    bumpRevision(state);
     const adopted = foldCardImpact(
       explainCardImpact(state, 0, { kind: 'doctrine', id: 'theAcademyOfDeeds' }),
     );
@@ -485,6 +492,7 @@ describe('the evaluator itself', () => {
   it('leaves the state exactly as it found it', () => {
     const { state, city } = bench();
     city.buildings.push('funeralGames', 'baths', 'circusMaximus');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const before = JSON.stringify(state);
     explainCardImpact(state, 0, { kind: 'order', id: 'festivalDays' });
@@ -519,6 +527,7 @@ describe('the evaluator itself', () => {
       card: 'firstRites',
       sealedUntil: state.turn,
     };
+    bumpRevision(state);
     // Held and slotted, so the reading is what taking it *out* would cost —
     // the same figure with the same sign, which is the clause the ladder's
     // level argument used to sit beside (2026-09-04).
@@ -557,6 +566,7 @@ describe('a belief', () => {
     // would be worth — and it is the same list once it is in the pantheon.
     const before = foldCardImpact(lines);
     state.players[0]!.pantheon.beliefs.push('keeperOfTheHearth');
+    bumpRevision(state);
     expect(foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'keeperOfTheHearth' })))
       .toEqual(before);
   });
@@ -655,6 +665,7 @@ describe('the engine shapes stamp', () => {
     const sc = state.players[0]!.statecraft;
     if (!sc.orders.includes(id)) sc.orders.push(id);
     sc.slots[index] = { card: id, sealedUntil: state.turn };
+    bumpRevision(state);
   }
 
   /**
@@ -708,6 +719,7 @@ describe('the engine shapes stamp', () => {
       () => {
         const { state, city } = bench();
         city.buildings.push('temple');
+        bumpRevision(state);
         refreshCityDerived(state, city);
         const lines = explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
         expect(foldCardImpact(lines).faith).toBe(2);
@@ -784,6 +796,7 @@ describe('the engine shapes stamp', () => {
       () => {
         const { state, city } = bench();
         city.buildings.push('temple', 'library');
+        bumpRevision(state);
         refreshCityDerived(state, city);
         const before = snapshotState(state);
         explainCardImpact(state, 0, { kind: 'order', id: 'waysideShrines' });
@@ -807,6 +820,7 @@ describe('the order pass stamps', () => {
     const sc = state.players[0]!.statecraft;
     if (!sc.orders.includes(id)) sc.orders.push(id);
     sc.slots[index] = { card: id, sealedUntil: state.turn };
+    bumpRevision(state);
   }
 
   it('reads The Synod off the faith shelves the town has raised', () => {
@@ -814,6 +828,7 @@ describe('the order pass stamps', () => {
     const bare = explainCardImpact(state, 0, { kind: 'order', id: 'theSynod' });
     expect(foldCardImpact(bare).faith).toBe(0);
     city.buildings.push('shrine', 'temple');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const lines = explainCardImpact(state, 0, { kind: 'order', id: 'theSynod' });
     // Half again of what the two shelves pay in faith — the fold is the claim,
@@ -865,6 +880,7 @@ describe('the order pass stamps', () => {
   it('leaves the state byte-identical after asking about any of them', () => {
     const { state, city } = bench();
     city.buildings.push('temple', 'library', 'market');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const before = snapshotState(state);
     for (const id of ['theSynod', 'theFirstChair', 'theHarvestHome', 'theTriumph',
@@ -894,6 +910,7 @@ describe('the sheet a screen shares between its cards', () => {
     // Enough scenery that every register of the list has something in it: a
     // meter near a rung, a shelf for a building share, a card in force.
     city.buildings.push('cathedral', 'hallOfDeeds', 'circusMaximus', 'library', 'market');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const sc = state.players[0]!.statecraft;
     sc.orders.push('weightsAndMeasures');
@@ -901,8 +918,11 @@ describe('the sheet a screen shares between its cards', () => {
       card: 'weightsAndMeasures',
       sealedUntil: state.turn,
     };
+    bumpRevision(state);
     sc.doctrines.push('theAcademyOfDeeds');
+    bumpRevision(state);
     state.players[0]!.legacies.push({ id: 'homer', age: 1 });
+    bumpRevision(state);
 
     const subjects: CardImpactSubject[] = [
       // In force, so the ghost is the world *without* them — the shared half is

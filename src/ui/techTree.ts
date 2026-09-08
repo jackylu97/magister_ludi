@@ -716,27 +716,31 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    *
    * They are also the half that nothing on this screen can change. So they are
    * carried across renders, and the question "could they have moved?" is asked
-   * of the **log** rather than of the numbers: hard rule 1 says every mutation in
-   * this game is a command and an accepted command is a logged command, so a log
-   * that has not grown is a state that has not moved. That is deliberately the
-   * bluntest possible test — it re-prices on a founding, a build, a turn, a
-   * chop, anything at all — because a key that tried to name what a delta
-   * *depends on* would be a second opinion about a number this screen is
-   * forbidden to have one about.
+   * of **`GameState.revision`** rather than of the numbers: the counter is
+   * raised by `applyCommand` on every accepted command and once by
+   * `runEndOfTurn` after each phase, which are the two ways the world moves at
+   * all. That is deliberately the bluntest possible test — it re-prices on a
+   * founding, a build, a turn, a chop, anything at all — because a key that
+   * tried to name what a delta *depends on* would be a second opinion about a
+   * number this screen is forbidden to have one about.
+   *
+   * It was `game.log.length` until batch E3a, which is the same idea one layer
+   * too high: the simulation's own phases move the state without moving the log.
+   * Every memo in the game now reads the one counter.
    *
    * The seat is in the key because a hot-seat change is not a command, and the
    * prices are the seat's own. The state's identity is, because loading a save
-   * hands over a different game whose log may be the same length.
+   * hands over a different game whose revision may stand at the same number.
    *
    * `keptOwnCommand` is the one exception, and it is narrow on purpose: see
    * `send`.
    */
-  let unlocksFrom: { state: GameState; commands: number; playerId: number } | null = null;
+  let unlocksFrom: { state: GameState; revision: number; playerId: number } | null = null;
 
   /** Records that the unlock lines are priced for the state as it now stands. */
   function markUnlocksPriced(): void {
     const game = getGame();
-    unlocksFrom = { state: game.state, commands: game.log.length, playerId: localPlayerId() };
+    unlocksFrom = { state: game.state, revision: game.state.revision, playerId: localPlayerId() };
   }
 
   /** Whether anything at all has happened since the unlock lines were priced. */
@@ -745,7 +749,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     return (
       unlocksFrom === null ||
       unlocksFrom.state !== game.state ||
-      unlocksFrom.commands !== game.log.length ||
+      unlocksFrom.revision !== game.state.revision ||
       unlocksFrom.playerId !== localPlayerId()
     );
   }
@@ -761,14 +765,15 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * buildings against every city is the difference between a click that lands in
    * a frame and one that thinks about it first.
    *
-   * A command from anywhere else still invalidates the lines, because the log
-   * will have grown by more than the ones this screen counted. **A third command
+   * A command from anywhere else still invalidates the lines, because the
+   * revision will have moved by more than the commands this screen counted (an
+   * accepted command raises it by exactly one). **A third command
    * added to this screen inherits that claim and must be worth it** — if it can
    * change what a building would pay, it must not go through here.
    */
   function send(command: Command): ReturnType<typeof dispatch> {
     const result = dispatch(getGame(), command);
-    if (result.ok && unlocksFrom) unlocksFrom.commands += 1;
+    if (result.ok && unlocksFrom) unlocksFrom.revision += 1;
     // This screen dispatches for itself (see above), so it reports for itself
     // too — `controls.reportCommand`, the same seam the board's own funnel
     // ends on. Without it a listener that watches what the player *does*

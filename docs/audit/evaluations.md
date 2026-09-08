@@ -370,17 +370,95 @@ push a building, grant a technology — without a command behind it, so the
 revision never moves and the memo is permanently stale. The print is doing
 invalidation work the counter cannot do until every bench announces itself
 (`bumpRevision`, which is exported and which four benches now call). It wants a
-ruling and a batch of its own; the memo is otherwise untouched.
+ruling and a batch of its own; the memo is otherwise untouched. **E3a is that
+batch** — see §4c.1.
 
 **Memo keys, in one place**: `readings.ts` — `(state identity, revision, seat)`
 and `(state identity, revision, city id)`; `cardImpactSheet` — `(state identity,
 revision, seat)`; the Reliquary — `(state identity, revision, seat)`;
-`liveReading` — unchanged (the print).
+`liveReading` — unchanged (the print), until E3a.
 
 **Parity**: the four boards at t30/t60/t150 compare equal on every recorded
 reading. The `snapshot` field of each mark moved, and only that field was
 regenerated — the schema went to 87 and the state gained `revision`, so the
 canonical print of the board is a different string by construction.
+
+## 4c.1. E3a as shipped (2026-09-07)
+
+§3c, closed. **No number, no replay and no schema moved** (still 87): the parity
+fixtures are byte-untouched and all four boards compare equal.
+
+**The memo's key.** `liveReading` (`statecraft.ts`) is now
+`(state identity, state.revision, playerId * 2 + cut)` — the same shape
+`readings.ts` uses, held on a `LiveSlate` (`{ revision, bySeat }`) in the same
+`WeakMap`-on-the-state, thrown away whole the moment the counter moves. The cut
+stays a separate slot: an empire being *asked about* has every gated clause
+closed and so has a shorter law than the same empire being paid.
+
+**What was deleted** (~110 lines of `statecraft.ts`):
+
+| gone | what it was |
+|---|---|
+| `livePrint` (50 lines) | every input the walk reads, read again as values on **every** ask — turn, government, doctrines, slots, beliefs, one-of-a-kind buildings, legacies, timed effects, beads, technologies, held religions, each list preceded by its length. A fifth of what the evaluator cost (`docs/bot-priorities.md` batch 10) |
+| `printsAgree` (8) | two prints, position by position |
+| `gatesAgree` (7) | every `conditionRule` the build consulted, re-asked — the case no print could cover |
+| `AskedCondition` + the `asked` record (~12) | the notebook `buildLiveEffects`, `pushEffects` and `timedLive` threaded through so `gatesAgree` had something to re-ask |
+| `LiveReading.print` / `.asked` | the memo's two extra fields |
+
+`conditionRule` flattening stays where it was: that is evaluation, not
+invalidation. The three walks now take one parameter fewer each.
+
+**The one seam that needed more than a counter.** `realiseItem` (`cities.ts`)
+puts a building in a town and then, three lines later, asks the law what the row
+hands over — and a wonder is the fifth source of that law. A command raises the
+revision when it is *finished*, so the reading inside the handler would be of the
+board as it stood before the stones went up (Stonehenge's own `pantheonSlots`
+line, `religion.test.ts`). It calls `forgetTheLaw(state)` — a **cache-drop**, not
+a bump, because `revision` is a serialised field and raising it here would move
+the canonical print of every board that ever finished a building. Its docblock is
+the register of seams that read a law they have just changed, and it has one
+entry.
+
+**Two other memos re-keyed.** The tech tree's unlock prices moved off
+`game.log.length` onto `game.state.revision` (the same idea one layer too high:
+a phase moves the world without moving the log); the Reliquary's and `value.ts`'
+docblocks stopped describing keys they no longer use.
+
+**The benches.** **57 test files** and **4 shared helpers** now announce their
+hand mutations — 656 `bumpRevision` calls in all, of which 157 are
+`statecraft.test.ts`'s. Where a helper does the mutating it announces once for
+everybody: `found` and `keepTheRites` (`statecraftHelpers`), `bareState` and
+`woodedWorker` (`improvementHelpers`), `openEveryWar` (`warHelpers`), and the
+`slot`/`seat`/`govern`/`rule`/`unslot`/`farmTown`/`putToSea` helpers inside
+`statecraft.test.ts`.
+
+**One bench was passing by accident** and was re-aimed rather than bumped:
+`statecraft.test.ts`'s "folds every row it touched, in a chair, without moving
+the state" snapshots the board, slots each of ~120 Orders, folds every ledger,
+unslots, and asserts byte-identity. Its own hand now moves `revision`, which *is*
+a byte of the snapshot — so it compares the two prints with the revision masked
+out and says why. The claim it was making (a fold is a question, never a turn) is
+unchanged; what moved is the bench's own signature.
+
+The `describe('the remembered walk')` suite was rewritten around the new
+contract: the rite, the legacy, the gate and the wonder cases each move the world
+and then say so, and two new cases pin the key itself (one list per seat until
+the revision moves; the counter moves on an accepted command and stands still on
+a refused one).
+
+**The guard.** `test/sim/benches.test.ts` — a source-reading lint over `test/sim`
+and `test/ui`: a file that writes any of twenty-three patterns (the ten sources
+of `liveEffects` plus the banks) must import `bumpRevision` or take its board
+from a helper that calls it. Its docblock carries the pattern list. It is a lint,
+not a proof: it is file-level and cannot tell a poke that matters from one taken
+before any reading. One stated exception, `state.test.ts`, which writes the
+counter because it is *measuring* it. `readings.test.ts`'s "no memo keys on the
+log" pin gained a sibling: no memo in `src` keys on a print, and every
+`WeakMap<GameState, …>` in the tree names the revision.
+
+**The contract, now stated in one sentence on `liveReading` and on
+`GameState.revision`**: *a reading is taken at rest; whoever moves the state
+moves the revision.*
 
 ## 5. What I think
 

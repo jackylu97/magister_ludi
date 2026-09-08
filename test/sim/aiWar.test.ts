@@ -57,6 +57,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { buildingDef } from '../../src/sim/buildingData';
 import { isVisibleTo, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
@@ -291,6 +292,7 @@ describe('suing for peace, and signing one', () => {
   it('brings coin with it when the war is lost badly enough', () => {
     const state = losing();
     seat(state, 0).gold = 400;
+    bumpRevision(state);
     // Deepen the rout past `war.tributeFloor`.
     seat(state, 0).unitsBuilt.warrior = 20;
     raise(state, 1, 10, 11, 6);
@@ -400,6 +402,7 @@ describe('bargains', () => {
     ] as const) {
       const state = traders();
       seat(state, 1).gold = 5000;
+      bumpRevision(state);
       proposeDealAt(state, 1, 0, { gold }, { luxuries: ['silk'] });
       const decision = abroad(state, 0);
       expect({ gold, verb: decision?.command.type }).toEqual({ gold, verb: expected });
@@ -555,6 +558,7 @@ describe('a puppet builds, and what it will not build', () => {
     // town's whole building roster is closed, and the escape hatch below would
     // (rightly) hand the puppet the unrestricted list.
     seat(state, 0).techsResearched.push('stonecraft', 'earthenware');
+    bumpRevision(state);
     foundCityAt(state, 0, at(state.map, 4, 5));
     const taken = foundCityAt(state, 0, at(state.map, 10, 5));
     taken.puppet = true;
@@ -699,6 +703,7 @@ describe('the three tactics', () => {
     const garrison = createUnit(state, 0, 'warrior', city.col, city.row);
     garrison.fortifiedTurns = 0;
     seat(state, 0).gold = 120;
+    bumpRevision(state);
     openWar(state, 0, 1);
     return { state, city };
   }

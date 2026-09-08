@@ -41,7 +41,7 @@ import { applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { hasMetSeat } from '../../src/sim/diplomacy';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type City, type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type City, type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
 import { closeWar, openWar } from '../../src/sim/wars';
 import {
   EXPLORED,
@@ -246,6 +246,7 @@ describe('the met gate', () => {
     town(state, 1, 10, 4);
     expect(metDiplomacyRows(state, 0)).toEqual([]);
     state.players[1]!.gold = 50;
+    bumpRevision(state);
     applyCommand(state, {
       type: 'proposeDeal',
       playerId: 1,

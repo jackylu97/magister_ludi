@@ -35,7 +35,7 @@ import {
   tierPercent,
 } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { improvementForResource } from '../../src/sim/improvementData';
 import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
 import { TECH_IDS } from '../../src/sim/techData';
@@ -109,6 +109,7 @@ function overextendTo(state: GameState, playerId: number, target: number): void 
   for (const town of planted) {
     if (authorityOf(state, playerId) >= target) break;
     town.buildings.push('assizeCourt');
+    bumpRevision(state);
   }
   expect(authorityOf(state, playerId)).toBe(target);
 }
@@ -232,6 +233,7 @@ describe('a monument buys three or four tiles by the early game', () => {
     const state = flatState(24, 18);
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
     city.buildings.push('monument');
+    bumpRevision(state);
 
     // The `+ 1` is back (ruling n, 2026-09-07 — batch H13): the Monument
     // supplies a writ again, so a monument town stands at the first writ rung
@@ -288,6 +290,7 @@ describe('a monument buys three or four tiles by the early game', () => {
     const claimedOn: number[] = [];
     for (let turn = 1; turn <= 40; turn++) {
       if (turn === 6) city.buildings.push('monument');
+      bumpRevision(state);
       runEndOfTurn(state);
       state.turn += 1;
       if (city.tilesClaimed > claimed) {
@@ -326,7 +329,9 @@ describe('the writ and the borders', () => {
     // which is the honest fixture rather than a smaller assertion: a town that
     // wants its borders to run needs more than a build order now.
     city.buildings.push('monument', 'temple', 'amphitheater', 'monastery', 'shrine');
+    bumpRevision(state);
     state.players[0]!.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     for (const [col, row] of [
       [7, 6],
       [6, 7],
@@ -359,6 +364,7 @@ describe('the writ and the borders', () => {
     const state = flatState(30, 20);
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     city.buildings.push('monument');
+    bumpRevision(state);
 
     // Exactly balanced: still growing. The boundary is `< 0`, not `≤ 0`.
     overextendTo(state, 0, 0);
@@ -399,6 +405,7 @@ describe('the writ and the borders', () => {
     const state = flatState(30, 20);
     const city = foundCityAt(state, 0, at(state.map, 6, 6));
     city.buildings.push('monument');
+    bumpRevision(state);
     overextendTo(state, 0, 0);
     foundCityAt(state, 0, at(state.map, state.map.width - 5, 11));
     expect(bordersFrozen(meterEffects(state, 0))).toBe(true);
@@ -423,6 +430,7 @@ describe('the writ and the borders', () => {
     seam.resource = 'furs';
     seam.improvement = 'camp';
     state.players[0]!.techsResearched.push('fletching');
+    bumpRevision(state);
 
     const discounted = borderCostFor(state, city);
     expect(discounted).toBeLessThan(plain);
@@ -482,6 +490,7 @@ describe('what a tile costs', () => {
     // the tag is a round multiple of `roundTo`.
     const half = TECH_IDS.slice(0, Math.floor(TECH_IDS.length / 2));
     player.techsResearched = [...half];
+    bumpRevision(state);
     const later = tilePurchasePrice(state, 0, city.id, cell);
     expect(later).toBeGreaterThan(opening);
     expect(later % BUY.roundTo).toBe(0);
@@ -492,6 +501,7 @@ describe('what a tile costs', () => {
 
     // The whole tree: the base times `1 + progressFactor`, and no further.
     player.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     expect(gameProgress(state, 0)).toBe(1);
     expect(tilePurchasePrice(state, 0, city.id, cell)).toBe(
       Math.round((BUY.ringBase[1]! * (1 + BUY.progressFactor)) / BUY.roundTo) * BUY.roundTo,
@@ -558,6 +568,7 @@ describe('what a tile costs', () => {
     // baseline is read is what keeps this a test of the discount rather than of
     // the era term underneath it.
     state.players[0]!.techsResearched.push('fletching');
+    bumpRevision(state);
     const plain = tilePurchasePrice(state, 0, city.id, cell);
 
     const seam = at(state.map, 6, 5);
@@ -588,6 +599,7 @@ describe('what a tile costs', () => {
     const sc = state.players[playerId]!.statecraft;
     if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
   }
 
   it('prints the deck’s discount as a line, and charges the list’s own fold', () => {

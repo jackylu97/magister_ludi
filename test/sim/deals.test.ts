@@ -46,6 +46,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { dealsBetween, lentAwayBy, lentToPlayer } from '../../src/sim/deals';
 import { runEndOfTurn } from '../../src/sim/turn';
@@ -116,6 +117,7 @@ function teachWriting(state: GameState, ...seats: number[]): void {
     const player = playerById(state, seat);
     if (player && !player.techsResearched.includes('letters')) {
       player.techsResearched.push('letters');
+      bumpRevision(state);
     }
   }
 }
@@ -150,6 +152,7 @@ describe('the deal registers', () => {
   it('keeps a signed bargain and a standing paper in different arrays', () => {
     const state = bench();
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     teachWriting(state, 0, 1);
     expect(applyCommand(state, propose(0, 1, { gold: 40 }, { openBorders: true })).ok).toBe(true);
     // A proposal is not a deal, and nothing reads it as one: the right of way
@@ -169,6 +172,7 @@ describe('the deal registers', () => {
   it('writes the pair low id first, whichever seat proposed', () => {
     const state = bench();
     playerById(state, 1)!.gold = 30;
+    bumpRevision(state);
     expect(applyCommand(state, propose(1, 0, { goldPerTurn: 3 }, {})).ok).toBe(true);
     const id = onlyProposal(state);
     applyCommand(state, { type: 'acceptDeal', playerId: 0, dealId: id });
@@ -219,6 +223,7 @@ describe('proposing, accepting, declining, withdrawing', () => {
   it('refuses a second paper to the same empire, naming the one that stands', () => {
     const state = bench();
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     expect(applyCommand(state, propose(0, 1, { gold: 10 }, {})).ok).toBe(true);
     const second = applyCommand(state, propose(0, 1, { gold: 20 }, {}));
     expect(second.ok).toBe(false);
@@ -228,6 +233,7 @@ describe('proposing, accepting, declining, withdrawing', () => {
   it('refuses an answer from anybody but the empire that was asked', () => {
     const state = bench(3);
     playerById(state, 0)!.gold = 50;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { gold: 10 }, {}));
     const id = onlyProposal(state);
     expect(applyCommand(state, { type: 'acceptDeal', playerId: 2, dealId: id }).ok).toBe(false);
@@ -242,6 +248,7 @@ describe('proposing, accepting, declining, withdrawing', () => {
   it('takes the paper off the table on a decline, and moves nothing', () => {
     const state = bench();
     playerById(state, 0)!.gold = 50;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { gold: 10 }, {}));
     const id = onlyProposal(state);
     expect(applyCommand(state, { type: 'declineDeal', playerId: 1, dealId: id }).ok).toBe(true);
@@ -253,10 +260,12 @@ describe('proposing, accepting, declining, withdrawing', () => {
   it('re-asks both halves at acceptance, and refuses coin that has been spent', () => {
     const state = bench();
     playerById(state, 0)!.gold = 50;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { gold: 40 }, {}));
     const id = onlyProposal(state);
     // The treasury moves under the paper.
     playerById(state, 0)!.gold = 5;
+    bumpRevision(state);
     const before = snapshotState(state);
     const result = applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: id });
     expect(result.ok).toBe(false);
@@ -268,6 +277,7 @@ describe('proposing, accepting, declining, withdrawing', () => {
   it('refuses a bargain with an empire it is at war with, in plain words', () => {
     const state = bench();
     playerById(state, 0)!.gold = 50;
+    bumpRevision(state);
     openWar(state, 0, 1);
     const refusal = proposeDealError(state, 0, 1, { gold: 10 }, {});
     expect(refusal).toContain('terms belong in a peace');
@@ -290,7 +300,9 @@ describe('a lump of gold', () => {
   it('moves once, through the two treasuries, and leaves no row behind', () => {
     const state = bench();
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     playerById(state, 1)!.gold = 7;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { gold: 40 }, {}));
     const id = onlyProposal(state);
     const result = applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: id });
@@ -305,7 +317,9 @@ describe('a lump of gold', () => {
   it('moves both ways when both sides pay', () => {
     const state = bench();
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     playerById(state, 1)!.gold = 100;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { gold: 10 }, { gold: 30 }));
     const id = onlyProposal(state);
     applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: id });
@@ -476,6 +490,7 @@ describe('a lent luxury', () => {
         expect(hasResource(state, 0, 'cinnabar' as never)).toBe(false);
         expect(hasResource(state, 1, 'cinnabar' as never)).toBe(false);
         playerById(state, 1)!.techsResearched.push('mining');
+        bumpRevision(state);
         expect(hasResource(state, 1, 'cinnabar' as never)).toBe(true);
       },
     );
@@ -635,6 +650,7 @@ describe('peace with terms', () => {
   it('executes the paper, closes the war and starts the bargain’s own clock', () => {
     const state = bench();
     playerById(state, 1)!.gold = 200;
+    bumpRevision(state);
     teachWriting(state, 0, 1);
     openWar(state, 0, 1);
 
@@ -672,6 +688,7 @@ describe('peace with terms', () => {
   it('voids the signature on the old paper when somebody writes a new one', () => {
     const state = bench();
     playerById(state, 1)!.gold = 100;
+    bumpRevision(state);
     openWar(state, 0, 1);
     applyCommand(state, {
       type: 'proposePeace',
@@ -699,6 +716,7 @@ describe('peace with terms', () => {
   it('lets a withdrawal take every signature off the paper it wrote', () => {
     const state = bench();
     playerById(state, 1)!.gold = 100;
+    bumpRevision(state);
     openWar(state, 0, 1);
     applyCommand(state, {
       type: 'proposePeace',
@@ -721,6 +739,7 @@ describe('what ends a bargain', () => {
   it('is cancelled outright by a declaration, with the papers', () => {
     const state = bench();
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     applyCommand(state, propose(0, 1, { goldPerTurn: 5 }, {}));
     applyCommand(state, { type: 'acceptDeal', playerId: 1, dealId: onlyProposal(state) });
     applyCommand(state, propose(0, 1, { gold: 10 }, {}));

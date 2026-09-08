@@ -86,6 +86,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { cityHasFreshwater } from '../../src/sim/statecraft';
 import { openWar } from '../../src/sim/wars';
@@ -1503,6 +1504,7 @@ describe('the city centre', () => {
 
     // Iron's reveal moved to Bronze Panoply on 2026-09-04.
     state.players[0]!.techsResearched = [...state.players[0]!.techsResearched, 'bronzePanoply'];
+    bumpRevision(state);
     const after = centreYield(state, city);
     expect(after.production).toBeGreaterThan(before.production);
     expect(sourcesOf(state, city)).toEqual([CENTRE_SOURCE, 'Inherited · Iron']);
@@ -1553,6 +1555,7 @@ describe('city yields', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['monument', 'granary', 'library'];
+    bumpRevision(state);
     const granary = buildingDef('granary');
     const library = buildingDef('library');
 
@@ -1601,6 +1604,7 @@ describe('city yields', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['granary'];
+    bumpRevision(state);
     const granary = buildingDef('granary');
 
     const before = cityYields(state, city).food;
@@ -1609,6 +1613,7 @@ describe('city yields', () => {
     // The two nodes that used to renew the jar, learnt one after the other.
     for (const tech of ['theWheel', 'irrigation'] as const) {
       state.players[0]!.techsResearched.push(tech);
+      bumpRevision(state);
       const entries = explainCityBuildings(city);
       expect(entries.map((entry) => entry.source)).toEqual([granary.name]);
       expect(entries[0]!.food).toBe(granary.food);
@@ -1619,6 +1624,7 @@ describe('city yields', () => {
     // is the other half of the same ruling: there is no owner in the question.
     const theirs = plant(state, 1, 12, 5);
     theirs.buildings = ['granary'];
+    bumpRevision(state);
     expect(explainCityBuildings(theirs)).toEqual(explainCityBuildings(city));
   });
 
@@ -1646,6 +1652,7 @@ describe('city yields', () => {
     // effect scoped `hasBuilding: barracks`, which is invisible to every
     // evaluator that reads the building's own row.
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
+    bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'barracks');
     expect(lines).toHaveLength(1);
     expect(lines[0]!.card).toBe('godOfTheForge');
@@ -1669,11 +1676,13 @@ describe('city yields', () => {
     // `· ×N` label suffix keyed the two halves apart and the preview printed
     // the wonder's whole standing line on every row of the build list).
     city.buildings.push('mausoleum');
+    bumpRevision(state);
     assignCitizens(state, city);
     // Two gods, one on a granary and one on a monument, so the preview has to
     // pick the right one out for each row — and the granary's own tile line
     // (food on water) rides along with it.
     state.players[0]!.pantheon.beliefs.push('keeperOfTheHearth', 'theStandingStones');
+    bumpRevision(state);
 
     for (const id of ['granary', 'monument', 'barracks', 'library'] as const) {
       const lines = explainBuildingPreview(state, city, id);
@@ -1689,6 +1698,7 @@ describe('city yields', () => {
     // A building the town already has gains it nothing, and the caller needs no
     // special case for it.
     city.buildings.push('granary');
+    bumpRevision(state);
     expect(explainBuildingPreview(state, city, 'granary')).toEqual([]);
   });
 
@@ -1702,6 +1712,7 @@ describe('city yields', () => {
     const state = flatState(16, 12, 'grassland');
     const city = plant(state, 0, 8, 5);
     city.buildings.push('mausoleum', 'granary', 'monument');
+    bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'library');
     const mausoleum = lines.filter((line) => line.card === 'mausoleum');
     expect(mausoleum).toHaveLength(1);
@@ -1732,6 +1743,7 @@ describe('city yields', () => {
     expect(productionModifiers(state, city, unit)).toEqual([]);
 
     city.buildings = ['barracks'];
+    bumpRevision(state);
     // A unit gets the bonus, exactly and unrounded (batch X); a building never
     // does, and neither does a city asked about itself rather than about a build.
     expect(cityYields(state, city, [], unit).production).toBe((plain * (100 + bonus * 100)) / 100);
@@ -2021,6 +2033,7 @@ describe('growth off fresh water', () => {
   it('lifts the line the turn an aqueduct stands, and pays its own percentage', () => {
     const { state, city } = dryTown();
     city.buildings.push('aqueduct');
+    bumpRevision(state);
     // The penalty is gone *and* the building's own +15% is on the same list —
     // one fold, so the town does not pay a compounded price for having fixed
     // its own water.
@@ -2047,6 +2060,7 @@ describe('growth off fresh water', () => {
     const sc = playerById(state, 0)!.statecraft;
     sc.orders.push('cisternWorks');
     sc.slots.push({ card: 'cisternWorks', sealedUntil: state.turn });
+    bumpRevision(state);
 
     expect(cityHasFreshwater(state, city)).toBe(true);
     expect(explainGrowthPercent(state, city)).toEqual([]);
@@ -2058,6 +2072,7 @@ describe('growth off fresh water', () => {
     // The Hanging Gardens' +25% in a town that cannot drink: −30 and +25 are one
     // sum on one channel (Entry XIV.D.4), so the town keeps 95% of its surplus.
     city.buildings.push('hangingGardens');
+    bumpRevision(state);
     expect(explainGrowthPercent(state, city)).toEqual([
       { source: 'No fresh water', percent: -30 },
       { source: 'Wonder · The Hanging Gardens', percent: 25 },
@@ -2193,6 +2208,7 @@ describe('windfall settlement (Entry XVIII)', () => {
   const TIMBER = (() => {
     const state = flatState();
     state.players[0]!.techsResearched = ['agriculture', 'mining'];
+    bumpRevision(state);
     return chopBaseFor(state, 0, 'forest').production;
   })();
 
@@ -2203,6 +2219,7 @@ describe('windfall settlement (Entry XVIII)', () => {
     at(state.map, 8, 4).feature = 'forest';
     const player = state.players[0]!;
     if (!player.techsResearched.includes('mining')) player.techsResearched.push('mining');
+    bumpRevision(state);
     const worker = createUnit(state, 0, 'worker', 8, 4);
     return { state, city, worker };
   }
@@ -2435,6 +2452,7 @@ describe('windfall settlement (Entry XVIII)', () => {
       const state = flatState();
       const city = plant(state, 0, 8, 5);
       city.buildings = ['granary'];
+      bumpRevision(state);
       city.queue = [{ kind: 'building', id: 'granary' }];
       city.hammerBasket = 500;
 
@@ -2814,6 +2832,7 @@ describe('escalating worker cost', () => {
     state.players[0]!.unitsBuilt.worker = 3;
     const before = unitProductionCost(state, 0, 'worker');
     state.players[0]!.statecraft.doctrines.push('manifestOfTheSteppe');
+    bumpRevision(state);
     const after = unitProductionCost(state, 0, 'worker');
     expect(after).toBe(before);
   });
@@ -2860,6 +2879,7 @@ describe('setCityProduction', () => {
     // Monuments moved to Stonecraft in the Age I rework, and this test is about
     // the queue rather than about the tree, so the seat is simply given it.
     state.players[0]!.techsResearched.push('husbandry', 'earthenware', 'stonecraft');
+    bumpRevision(state);
     const queue = [
       { kind: 'building', id: 'monument' },
       { kind: 'unit', id: 'warrior' },
@@ -2896,6 +2916,7 @@ describe('setCityProduction', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     city.buildings = ['granary'];
+    bumpRevision(state);
     const before = clone(state);
 
     for (const bad of [
@@ -3382,6 +3403,7 @@ describe('the reveal gate, in a city', () => {
   function seamCity(): { state: GameState; city: City; seam: Tile } {
     const state = flatState();
     state.players[0]!.techsResearched = [];
+    bumpRevision(state);
     const city = plant(state, 0, 8, 6);
     const seam = at(state.map, 8, 5);
     seam.resource = 'iron';
@@ -3410,6 +3432,7 @@ describe('the reveal gate, in a city', () => {
     const before = cityYields(state, city);
     state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     const after = cityYields(state, city);
+    bumpRevision(state);
 
     const line = resourceYield('iron');
     for (const key of TILE_YIELD_KEYS) {
@@ -3430,6 +3453,7 @@ describe('the reveal gate, in a city', () => {
     const blind = worked(city);
     state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
     assignCitizens(state, city);
+    bumpRevision(state);
     expect(worked(city)).toEqual([`${seam.col},${seam.row}`]);
     expect(blind).not.toEqual(worked(city));
   });
@@ -3442,6 +3466,7 @@ describe('the reveal gate, in a city', () => {
     expect(tileYieldOf(seam, yieldContextFor(state, 0))).not.toEqual(
       tileYieldOf(seam, yieldContextFor(state, 1)),
     );
+    bumpRevision(state);
   });
 });
 
@@ -3480,10 +3505,14 @@ describe('the hoisted city quote', () => {
     city.population = 12;
     const player = state.players[0]!;
     player.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     player.statecraft.orders = ['theLegion'];
     player.statecraft.slots = [{ card: 'theLegion', sealedUntil: 0 }];
+    bumpRevision(state);
     player.statecraft.doctrines = ['theEncyclopaedia'];
+    bumpRevision(state);
     city.buildings = ['granary', 'barracks', 'library', 'monument', 'workshop', 'watermill'];
+    bumpRevision(state);
     city.queue = [{ kind: 'unit', id: 'warrior' }];
     city.hammerBasket = 3;
     assignCitizens(state, city);
@@ -3886,6 +3915,7 @@ describe('the empire stage', () => {
     const sc = g.state.players[0]!.statecraft;
     sc.orders.push('waysideShrines');
     sc.slots[0] = { card: 'waysideShrines', sealedUntil: g.state.turn };
+    bumpRevision(g.state);
     return { state: g.state, city };
   }
 
@@ -3932,6 +3962,7 @@ describe('the empire stage', () => {
       const { state, city } = tiered();
       // An institution to owe for, so the ledger carries both halves.
       city.buildings.push('market');
+      bumpRevision(state);
       refreshCityDerived(state, city);
       // A stated reading of the empire's percentages rather than a meter that
       // happens to reach gold: no tier in today's table touches coin (a

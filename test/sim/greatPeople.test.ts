@@ -64,6 +64,7 @@ import {
   createUnit,
   newGame,
   unitById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { happinessOf } from '../../src/sim/meters';
@@ -157,6 +158,7 @@ describe('the draw', () => {
     // standing in the tree's Æra II — re-read, not re-argued, by the tree pass
     // of 2026-08-30, which moved Iron Working into Æra III under it.
     player.techsResearched.push('siegecraft');
+    bumpRevision(g.state);
     const age = 3;
     expect(highestAge(player.techsResearched)).toBeGreaterThan(1);
     const own = rosterOfAge(age);
@@ -172,6 +174,7 @@ describe('the draw', () => {
     const g = game(13);
     const player = g.state.players[0]!;
     player.techsResearched.push('siegecraft');
+    bumpRevision(g.state);
     g.state.recruited.push(...rosterOfAge(2), ...rosterOfAge(3).slice(1));
     const pool = greatPersonPool(g.state, player, 3);
     expect(pool[0]).toBe(rosterOfAge(3)[0]);
@@ -345,6 +348,7 @@ describe('the act', () => {
     const before = actGainOf(g.state, 0, 'science');
     const aged = agedActFactor(player);
     player.techsResearched.push('mining', 'earthenware');
+    bumpRevision(g.state);
     expect(agedActFactor(player)).toBeGreaterThan(aged);
     expect(actGainOf(g.state, 0, 'science')).toBe(before);
   });
@@ -578,11 +582,13 @@ describe('the work', () => {
 
     const player = g.state.players[0]!;
     player.techsResearched = player.techsResearched.filter((id) => id !== ironGate);
+    bumpRevision(g.state);
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(tile.improvement).toBe('academy');
     expect(hasResource(g.state, 0, 'iron')).toBe(false);
 
     player.techsResearched.push(ironGate);
+    bumpRevision(g.state);
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
     const holding = controlledHoldings(g.state, 0, 'strategic').find((h) => h.id === 'iron')!;
     expect(holding.via).toBe('improvement');
@@ -678,9 +684,11 @@ describe('a legacy is a card', () => {
     const g = game(79);
     const city = found(g.state, 0);
     city.buildings.push('granary');
+    bumpRevision(g.state);
     const before = cityYields(g.state, city).gold;
     // Kushim: +1🪙 per granary, an ordinary `cityYields` line with a scope.
     g.state.players[0]!.legacies.push({ id: 'kushim', age: 1 });
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).gold).toBe(before + 1);
   });
 
@@ -690,11 +698,13 @@ describe('a legacy is a card', () => {
     // Enheduanna: the capital +3🎵, and shrines +1🎵. Without a shrine the
     // second line pays nothing at all.
     g.state.players[0]!.legacies.push({ id: 'enheduanna', age: 1 });
+    bumpRevision(g.state);
     // The **flats**: the empire stage multiplies both readings and, since batch
     // X, is no longer floored away, so "one more culture" is a claim about the
     // fold rather than about the staged figure.
     const bare = cityQuote(g.state, city).flats.culture;
     city.buildings.push('shrine');
+    bumpRevision(g.state);
     expect(cityQuote(g.state, city).flats.culture).toBe(bare + 1);
   });
 });
@@ -717,6 +727,7 @@ describe('the legacies this pass built', () => {
   /** A legacy attached to a seat, without spending a piece to do it. */
   function bear(state: GameState, playerId: number, id: GreatPersonId): void {
     state.players[playerId]!.legacies.push({ id, age: 1 });
+    bumpRevision(state);
   }
 
   /** The empire's once-a-turn card yields, folded. */
@@ -755,10 +766,12 @@ describe('the legacies this pass built', () => {
       cardAuthority(g.state, 0).reduce((sum, line) => sum + line.amount, 0);
     const bare = writ();
     city.buildings.push('library');
+    bumpRevision(g.state);
     // One library buys nothing — a helping is two.
     expect(writ()).toBe(bare);
     const colony = foundCityAt(g.state, 0, getTileAt(g.state.map, city.col + 4, city.row)!)!;
     colony.buildings.push('library');
+    bumpRevision(g.state);
     expect(writ()).toBe(bare + 1);
   });
 
@@ -768,10 +781,13 @@ describe('the legacies this pass built', () => {
     bear(g.state, 0, 'phidias');
     expect(empire(g.state, 0).culture).toBe(0);
     city.buildings.push('theOracle');
+    bumpRevision(g.state);
     city.buildings.push('stonehenge');
+    bumpRevision(g.state);
     // Three a wonder, and an ordinary building is not one.
     expect(empire(g.state, 0).culture).toBe(6);
     city.buildings.push('library');
+    bumpRevision(g.state);
     expect(empire(g.state, 0).culture).toBe(6);
   });
 
@@ -814,6 +830,7 @@ describe('the legacies this pass built', () => {
     // One age closed, so one point — Æra II, since the tree pass of 2026-08-30
     // put Iron Working two ages up.
     player.techsResearched.push('siegecraft');
+    bumpRevision(g.state);
     expect(foldCardYields(cardCityYields(g.state, city)).culture).toBe(1);
   });
 
@@ -853,6 +870,7 @@ describe('the legacies this pass built', () => {
     const ironGate = resourceDef('iron').requiresTech!;
     if (!player.techsResearched.includes(ironGate)) {
       player.techsResearched.push(ironGate);
+      bumpRevision(g.state);
     }
     applyCommand(g.state, { type: 'greatPersonWork', playerId: 0, unitId: unit.id });
     expect(hasResource(g.state, 0, 'iron')).toBe(true);
@@ -1228,6 +1246,7 @@ describe('the one-row shapes, built generically', () => {
   /** A legacy attached to a seat, without spending a piece to do it. */
   function bear(state: GameState, playerId: number, id: GreatPersonId, age = 1): void {
     state.players[playerId]!.legacies.push({ id, age });
+    bumpRevision(state);
   }
 
   /** One side of one fight, as `cardCombatLines` is asked about it. */
@@ -1345,6 +1364,7 @@ describe('the one-row shapes, built generically', () => {
       effect: { kind: 'effectAmplifier', target: 'luxuryHappiness', amount: -1 },
       expiresTurn: g.state.turn + 10,
     }];
+    bumpRevision(g.state);
     expect(cardAmplifierFlat(g.state, 0, 'luxuryHappiness')).toBe(-1);
     // And it is the *flat* dial, not the share: the percentage reading is
     // untouched, which is what keeps a row that turns both one arithmetic.
@@ -1368,10 +1388,13 @@ describe('the one-row shapes, built generically', () => {
       },
       expiresTurn: g.state.turn + 10,
     }];
+    bumpRevision(g.state);
     // The Oracle pays faith, not science: the scope reads what a row *does*.
     city.buildings.push('theOracle');
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).production).toBe(bare);
     city.buildings.push('greatLibrary');
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).production).toBe(bare + 5);
   });
 
@@ -1407,6 +1430,7 @@ describe('the one-row shapes, built generically', () => {
       effect: { kind: 'rule', rule: 'noHealAbroad' },
       expiresTurn: g.state.turn + 10,
     }];
+    bumpRevision(g.state);
     const unit = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'settler')!;
     unit.hp = 1;
     // Standing on ground nobody owns — the honest reading of "outside your
@@ -1464,6 +1488,7 @@ describe('the one-row shapes, built generically', () => {
     // A comparison, never a countdown: past the stamp the effect is inert
     // whether or not anything has swept it.
     g.state.turn = player.timed![0]!.expiresTurn;
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(before);
   });
 });
@@ -1471,6 +1496,7 @@ describe('the one-row shapes, built generically', () => {
 describe('a legacy that is lost', () => {
   function bear(state: GameState, playerId: number, id: GreatPersonId, age = 1): void {
     state.players[playerId]!.legacies.push({ id, age });
+    bumpRevision(state);
   }
 
   it('marks rather than deletes, and only the effects stop being read', () => {
@@ -1480,6 +1506,7 @@ describe('a legacy that is lost', () => {
     expect(liveEffects(g.state, 0).some((e) => e.card === 'hypatia')).toBe(true);
     revokeLegacies(g.state, 0, 'happinessNegative');
     // History is intact; the walk simply stops reading it.
+    bumpRevision(g.state);
     expect(g.state.players[0]!.legacies).toEqual([
       { id: 'hypatia', age: 1, revoked: true },
     ]);
@@ -1502,6 +1529,7 @@ describe('a legacy that is lost', () => {
     expect(revokeLegacies(g.state, 0, 'ageAdvanced')).toEqual([]);
     // The empire reaches the second age: the stamp is compared, never counted.
     g.state.players[0]!.techsResearched.push('ironWorking');
+    bumpRevision(g.state);
     if (highestAge(g.state.players[0]!.techsResearched) > 1) {
       expect(revokeLegacies(g.state, 0, 'ageAdvanced')).toEqual(['boudica']);
     }

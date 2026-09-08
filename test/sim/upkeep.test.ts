@@ -45,6 +45,7 @@ import {
   captureUnit,
   createUnit,
   unitById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { empireGold, explainEmpireGold } from '../../src/sim/trade';
 import { emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
@@ -224,6 +225,7 @@ describe('the empire ledger', () => {
     const free = createUnit(state, 0, 'knight', 6, 6);
     free.freeUpkeep = true;
     city.buildings.push('library', 'market', 'granary');
+    bumpRevision(state);
 
     expect(explainUnitUpkeep(state, 0).map((line) => [line.source, line.gold])).toEqual([
       ['Warrior', 1],
@@ -240,6 +242,7 @@ describe('the empire ledger', () => {
     createUnit(state, 0, 'warrior', 5, 4);
     createUnit(state, 0, 'warrior', 5, 3);
     city.buildings.push('university');
+    bumpRevision(state);
 
     // No roads and no connection in this world, so two of the four are absent —
     // which is the list's own rule: a line worth nothing is never printed.
@@ -263,6 +266,7 @@ describe('the empire ledger', () => {
     createUnit(state, wild.id, 'warrior', 8, 8);
     createUnit(state, wild.id, 'swordsman', 8, 7);
     foundCityAt(state, wild.id, at(state, 8, 2)).buildings.push('barracks');
+    bumpRevision(state);
     expect(explainUnitUpkeep(state, wild.id)).toEqual([]);
     expect(explainBuildingUpkeep(state, wild.id)).toEqual([]);
     expect(explainEmpireGold(state, wild.id)).toEqual([]);
@@ -273,6 +277,7 @@ describe('the empire ledger', () => {
     const { state, city } = world();
     createUnit(state, 0, 'swordsman', 5, 4);
     city.buildings.push('market');
+    bumpRevision(state);
     const player = state.players[0]!;
     player.gold = 100;
 
@@ -309,6 +314,7 @@ describe('a levy on the payroll', () => {
     const sc = state.players[playerId]!.statecraft;
     if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
   }
 
   /**
@@ -393,6 +399,7 @@ describe('a levy on the payroll', () => {
     // And the **percentage** give-back is a third sentence again: Tyranny takes
     // its thirty percent of the gross, which the levy has not moved.
     state.players[0]!.statecraft.government = 'tyranny' as never;
+    bumpRevision(state);
     const rebates = explainUnitUpkeepRebate(state, 0);
     expect(rebates.some((line) => line.source.includes('Tyranny'))).toBe(true);
     expect(explainUnitUpkeepSurcharge(state, 0).reduce((sum, l) => sum + l.gold, 0)).toBe(soldiers);
@@ -481,6 +488,7 @@ describe('a treasury under water', () => {
     // exactly the empire-stage sum, floored once.
     const { state, city } = world();
     city.buildings.push('library');
+    bumpRevision(state);
     city.population = 6;
     const before = cityYields(state, city).science;
     state.players[0]!.gold = -50;
@@ -640,7 +648,9 @@ describe('determinism', () => {
     const { state, city } = world();
     const second = foundCityAt(state, 0, at(state, 9, 5));
     city.buildings.push('library');
+    bumpRevision(state);
     second.buildings.push('library');
+    bumpRevision(state);
     city.population = 5;
     second.population = 5;
     state.players[0]!.gold = -2;
@@ -668,6 +678,7 @@ describe('maintenance and the rest of the game', () => {
     const { state, city } = world();
     createUnit(state, 0, 'knight', 5, 4);
     city.buildings.push('university');
+    bumpRevision(state);
     state.players[0]!.gold = -30;
     expect(() => runEndOfTurn(state)).not.toThrow();
   });

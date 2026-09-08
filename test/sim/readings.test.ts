@@ -282,6 +282,37 @@ describe('nobody rebuilds the town’s list', () => {
     expect(read('main.ts')).toContain('getRevision: () => game.state.revision');
   });
 
+  it('keys no memo anywhere on a print of what it is remembering', () => {
+    // Batch E3a finished the job §3c started. `liveReading` was the last memo in
+    // the game trusted on a *walk* of its own inputs — every slot, belief,
+    // building, legacy, timed effect, bead, technology and held religion, read
+    // again as values on every one of the fifty-four `effectsOfKind` asks — plus
+    // a re-ask of every empire condition the build consulted. It is two integers
+    // and an object identity now, like the three memos above it.
+    //
+    // The names, not the prose: `liveReading`'s docblock explains what went and
+    // why, which it cannot do without saying the words.
+    for (const [path, text] of Object.entries(SOURCE)) {
+      const code = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n')
+        .map((line) => line.replace(/\/\/.*$/, ''))
+        .join('\n');
+      for (const gone of ['livePrint', 'printsAgree', 'gatesAgree']) {
+        expect(`${path} ${gone}: ${code.includes(gone)}`).toBe(`${path} ${gone}: false`);
+      }
+    }
+    // And the one `WeakMap` in the game that is not keyed on the revision is the
+    // topBar's fit observer, which is keyed on a DOM element and remembers no
+    // reading at all. Every other one carries a revision beside it.
+    for (const [path, text] of Object.entries(SOURCE)) {
+      if (!text.includes('new WeakMap<GameState')) continue;
+      expect(`${path} keys on the revision`).toBe(
+        /revision/.test(text) ? `${path} keys on the revision` : `${path} keys on something else`,
+      );
+    }
+  });
+
   it('keeps the reading leaf out of `cities.ts`', () => {
     // `readings.ts` imports `cities.ts`; the reverse would be a runtime cycle
     // (`test/mapgen/moduleCycles.test.ts` is the gate, and the symptom is "X is

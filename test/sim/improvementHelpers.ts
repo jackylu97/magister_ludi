@@ -11,7 +11,14 @@
  */
 import { foundCityAt } from '../../src/sim/cities';
 import { type Tile, createMap, getTileAt } from '../../src/sim/map';
-import { type City, type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  type Unit,
+  bumpRevision,
+  createUnit,
+  newGame,
+} from '../../src/sim/state';
 import { ABILITY_TECH, TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { openWar } from '../../src/sim/wars';
 import { computeFreshwater } from '../../src/sim/water';
@@ -74,6 +81,8 @@ export function bareState(width = 12, height = 10, wild = false): GameState {
   // than issued as a command: this file's subject is what a raid *does*, and
   // `test/sim/war.test.ts` owns the verb.
   openWar(state, 0, 1);
+  // The bench built the board by hand; the revision says so (batch E3a).
+  bumpRevision(state);
   return state;
 }
 
@@ -90,5 +99,6 @@ export function woodedWorker(): { state: GameState; worker: Unit; tile: Tile; ci
   const tile = at(state, 5, 4);
   tile.feature = 'forest';
   const worker = createUnit(state, 0, 'worker', 5, 4);
+  bumpRevision(state);
   return { state, worker, tile, city };
 }

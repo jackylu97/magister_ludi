@@ -31,7 +31,7 @@ import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, newGame, playerById } from '../../src/sim/state';
+import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 import {
@@ -123,9 +123,11 @@ describe('the two columns', () => {
     expect(shut.theirs.openBorders.error).toContain('Writing');
 
     playerById(state, 0)!.techsResearched.push('letters');
+    bumpRevision(state);
     // One side is not enough, and the sentence says whose scribes are missing.
     expect(dealPanel(state, 0, 1).yours.openBorders.error).toContain('Bors');
     playerById(state, 1)!.techsResearched.push('letters');
+    bumpRevision(state);
     const open = dealPanel(state, 0, 1);
     expect(open.yours.openBorders.error).toBeNull();
     expect(open.theirs.openBorders.error).toBeNull();
@@ -197,6 +199,7 @@ describe('the papers on the table', () => {
     town(state, 0, 3, 4);
     town(state, 1, 10, 4);
     playerById(state, 0)!.gold = 100;
+    bumpRevision(state);
     applyCommand(state, {
       type: 'proposeDeal',
       playerId: 0,
@@ -228,6 +231,7 @@ describe('the papers on the table', () => {
   it('greys Accept with the reducer’s own sentence when the board has moved', () => {
     const state = withPaper();
     playerById(state, 0)!.gold = 1;
+    bumpRevision(state);
     expect(dealPanel(state, 1, 0).proposals[0]!.acceptError).toContain('not have that much coin');
   });
 
@@ -258,6 +262,7 @@ describe('the peace paper', () => {
     town(state, 0, 3, 4);
     town(state, 1, 10, 4);
     playerById(state, 1)!.gold = 100;
+    bumpRevision(state);
     openWar(state, 0, 1);
     expect(dealPanel(state, 0, 1).peacePaper).toBeNull();
 

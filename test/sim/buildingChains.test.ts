@@ -26,7 +26,7 @@ import { explainRouteYieldBetween } from '../../src/sim/routeYields';
 import { RULES } from '../../src/sim/rulesData';
 import { explainCityRenown } from '../../src/sim/renown';
 import { cardCityRenownShares } from '../../src/sim/statecraft';
-import { type City, type GameState, playerById } from '../../src/sim/state';
+import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { BUILDING_UNLOCK_TECH, TECH_IDS, techDef } from '../../src/sim/techData';
 import { buildError } from '../../src/sim/tech';
 import { explainUnitUpkeep, explainUnitUpkeepRebate, unitUpkeepOf } from '../../src/sim/upkeep';
@@ -63,6 +63,7 @@ function learnUpTo(state: GameState, playerId: number, id: BuildingId): void {
   for (const tech of TECH_IDS) {
     if (wanted.has(tech) && !player.techsResearched.includes(tech)) {
       player.techsResearched.push(tech);
+      bumpRevision(state);
     }
   }
 }
@@ -125,6 +126,7 @@ describe('a chained building wants its parent standing in the same town', () => 
 
     // And the parent standing is the whole of the gate.
     city.buildings.push('library');
+    bumpRevision(g.state);
     expect(buildError(g.state, 0, 'building', 'university', city)).toBeNull();
   });
 
@@ -137,6 +139,7 @@ describe('a chained building wants its parent standing in the same town', () => 
     learnUpTo(g.state, 0, 'castle');
     expect(buildError(g.state, 0, 'building', 'castle', city)).not.toBeNull();
     city.buildings.push('stoneWalls');
+    bumpRevision(g.state);
     expect(buildError(g.state, 0, 'building', 'castle', city)).toBeNull();
   });
 
@@ -210,6 +213,7 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
     const city = found(g.state, 0);
     const before = cityYields(g.state, city).gold;
     city.buildings.push('mint');
+    bumpRevision(g.state);
     refreshCityDerived(g.state, city);
     expect(cityYields(g.state, city).gold).toBe(before + buildingDef('mint').gold);
   });
@@ -312,6 +316,7 @@ describe('the five unique buildings', () => {
       learnUpTo(g.state, 0, id);
       expect(buildError(g.state, 0, 'building', id, second), id).toBeNull();
       first.buildings.push(id);
+      bumpRevision(g.state);
       expect(buildError(g.state, 0, 'building', id, second), id).toBe(
         `${buildingDef(id).name} already stands in ${first.name}`,
       );
@@ -330,6 +335,7 @@ describe('the five unique buildings', () => {
       )!,
     );
     for (const town of [city, other]) town.buildings.push('library', 'amphitheater');
+    bumpRevision(g.state);
     const townRenown = (town: City): number =>
       explainCityRenown(town, cardCityRenownShares(g.state, town)).reduce(
         (sum, line) => sum + line.amount,
@@ -339,6 +345,7 @@ describe('the five unique buildings', () => {
     expect(plain).toBeGreaterThan(0);
 
     city.buildings.push('heroicEpic');
+    bumpRevision(g.state);
     const raised = townRenown(city);
     // The Epic's own trickle joins the town's buildings, and the share is taken
     // over the lot — rule 5: the total is the fold of the list the panel prints.
@@ -350,10 +357,12 @@ describe('the five unique buildings', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library', 'monument');
+    bumpRevision(g.state);
     city.population = 8;
     refreshCityDerived(g.state, city);
     const before = cityYields(g.state, city);
     city.buildings.push('forum');
+    bumpRevision(g.state);
     const after = cityYields(g.state, city);
     // Exact since batch X: a tenth on top is a tenth, not a tenth rounded off.
     expect(after.science).toBe((before.science * 110) / 100);
@@ -384,6 +393,7 @@ describe('the five unique buildings', () => {
     expect(explainUnitUpkeepRebate(g.state, 0)).toEqual([]);
 
     city.buildings.push('imperialThrone');
+    bumpRevision(g.state);
     const born = realiseItem(g.state, city, { kind: 'unit', id: 'warrior', tile });
     const throned = g.state.units.find((u) => u.id === born.unitId)!;
     expect(throned.upkeepRebate).toBe(rebate);
@@ -427,6 +437,7 @@ describe('the five unique buildings', () => {
     };
     const before = fold(from, to);
     from.buildings.push('caravanserai');
+    bumpRevision(g.state);
     const after = fold(from, to);
     expect(after.food).toBe(before.food + 1);
     expect(after.production).toBe(before.production + 1);
@@ -452,6 +463,7 @@ describe('the five unique buildings', () => {
     const city = found(g.state, 0);
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     city.buildings.push('imperialThrone');
+    bumpRevision(g.state);
     const gift = realiseItem(g.state, city, { kind: 'unit', id: 'warrior', tile }, { free: true });
     const piece = g.state.units.find((u) => u.id === gift.unitId)!;
     expect(piece.freeUpkeep).toBe(true);

@@ -2469,9 +2469,9 @@ function readingTerms(before: DeckReading, after: DeckReading, ctx: ValueContext
  * `deckReading` takes is a pure fold — `cityYields`, `explainEmpireGold`,
  * `explainRenown` and the two meters mutate nothing — and it is what makes the
  * marginal reading affordable at all. The evaluator's own memo (`liveReading`,
- * `statecraft.ts`) is a `WeakMap` on the state object keyed by a print of the
- * walk's *inputs*, so a scratch board builds its list once, answers off it, and is
- * collected with it.
+ * `statecraft.ts`) is a `WeakMap` on the **state object**, so a scratch board is
+ * a key of its own: it builds its list once, answers off it, and is collected
+ * with it, and no reading of it can reach the real board's slate.
  *
  * **Which chair the card would take** is the placement the bot itself would make
  * (`slottingDecision`, `bot.ts`): the first empty chair whose flavour admits it,

@@ -47,7 +47,7 @@ import { drawDoctrineOffer, drawOrderOffer } from '../../src/sim/statecraft';
 import { governmentDef, poolDoctrines, slotLayout } from '../../src/sim/statecraftData';
 import { drawGreatPersonOffer } from '../../src/sim/greatPeople';
 import { type Family, greatPersonDef } from '../../src/sim/greatPeopleData';
-import { type GameState, playerById } from '../../src/sim/state';
+import { type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
 // --- harness ----------------------------------------------------------------
@@ -73,6 +73,7 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech as never)) {
       player.techsResearched.push(tech as never);
+      bumpRevision(state);
     }
   }
 }
@@ -90,6 +91,7 @@ function drafting(seed = 7, faith = 500) {
   openTheDoor(g.state, 0);
   const player = playerById(g.state, 0)!;
   player.faithPool = faith;
+  bumpRevision(g.state);
   player.statecraft.pendingOrder = drawOrderOffer(g.state, player);
   return g;
 }
@@ -104,8 +106,10 @@ function doctrineDrafting(seed = 7, faith = 500) {
   openTheDoor(g.state, 0);
   const player = playerById(g.state, 0)!;
   player.faithPool = faith;
+  bumpRevision(g.state);
   const sc = player.statecraft;
   sc.government = 'councilOfElders';
+  bumpRevision(g.state);
   sc.pendingDoctrine = drawDoctrineOffer(g.state, player, governmentDef(sc.government).tier);
   return g;
 }
@@ -117,6 +121,7 @@ function nameDrafting(seed = 7, faith = 500, family?: Family) {
   openTheDoor(g.state, 0);
   const player = playerById(g.state, 0)!;
   player.faithPool = faith;
+  bumpRevision(g.state);
   player.greatPersonOffer = drawGreatPersonOffer(g.state, player, family);
   return g;
 }
@@ -177,6 +182,7 @@ describe('when a reroll is refused', () => {
     found(g.state, 0);
     openTheDoor(g.state, 0);
     playerById(g.state, 0)!.faithPool = 500;
+    bumpRevision(g.state);
     expect(rerollKindFor(playerById(g.state, 0)!)).toBeNull();
     expect(rerollError(g.state, 0)).toContain('no draft');
   });
@@ -186,6 +192,7 @@ describe('when a reroll is refused', () => {
     found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
+    bumpRevision(g.state);
     player.statecraft.pendingOrder = drawOrderOffer(g.state, player);
     expect(rerollError(g.state, 0)).toBe('Your calendars cannot yet call for a second reading');
   });
@@ -261,6 +268,7 @@ describe('the reroll tally', () => {
     const benched = 'theAnnalsOfLaw' as (typeof sc.orders)[number];
     sc.orders.push(seated, benched);
     sc.slots[index] = { card: seated, sealedUntil: g.state.turn };
+    bumpRevision(g.state);
 
     expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
     expect(sc.slots[index]?.rerollsSeen).toBe(1);
@@ -290,6 +298,7 @@ describe('a belief hand’s own ladder', () => {
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
+    bumpRevision(g.state);
     player.pantheon.pending = drawBeliefOffer(g.state, player);
     expect(rerollKindFor(player)).toBe('belief');
     expect(rerollError(g.state, 0)).toBeNull();
@@ -309,6 +318,7 @@ describe('a belief hand’s own ladder', () => {
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 200;
+    bumpRevision(g.state);
     openFaithLadder(g.state);
     // The rung was paid at the deal; the hand carries the record.
     expect(player.pantheon.pending?.rungCost).toBe(40);
@@ -346,6 +356,7 @@ describe('a belief hand’s own ladder', () => {
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 40;
+    bumpRevision(g.state);
     openFaithLadder(g.state);
     expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
     expect(player.faithPool).toBe(0);
@@ -361,6 +372,7 @@ describe('a belief hand’s own ladder', () => {
     learn(g.state, 0, 'divination');
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
+    bumpRevision(g.state);
     openFaithLadder(g.state);
     dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command);
     dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command);
@@ -497,6 +509,7 @@ describe('a Doctrine hand and a name, at twice the price', () => {
       const player = playerById(g.state, 0)!;
       const gate = ABILITY_TECH.get(RELIGION.reroll.ability)!;
       player.techsResearched = player.techsResearched.filter((id) => id !== gate);
+      bumpRevision(g.state);
       expect(rerollError(g.state, 0)).toBe('Your calendars cannot yet call for a second reading');
       const before = snapshotState(g.state);
       expect(applyCommand(g.state, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(false);
@@ -521,6 +534,7 @@ describe('a Doctrine hand and a name, at twice the price', () => {
     const seated = 'theArchives' as (typeof sc.orders)[number];
     sc.orders.push(seated);
     sc.slots[index] = { card: seated, sealedUntil: g.state.turn };
+    bumpRevision(g.state);
     expect(dispatch(g, { type: 'rerollOffer', playerId: 0 } as Command).ok).toBe(true);
     expect(sc.rerollsTaken).toBe(1);
     expect(sc.slots[index]?.rerollsSeen ?? 0).toBe(0);
@@ -536,6 +550,7 @@ describe('a Doctrine hand and a name, at twice the price', () => {
     const player = playerById(g.state, 0)!;
     learn(g.state, 0, 'divination');
     player.statecraft.government = 'councilOfElders';
+    bumpRevision(g.state);
     player.statecraft.pendingDoctrine = drawDoctrineOffer(g.state, player, 4);
     player.pantheon.pending = drawBeliefOffer(g.state, player);
     player.greatPersonOffer = drawGreatPersonOffer(g.state, player);

@@ -48,7 +48,7 @@ import {
   ORDER_IDS,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { type GameState, claimWonder, newGame } from '../../src/sim/state';
+import { type GameState, claimWonder, newGame, bumpRevision } from '../../src/sim/state';
 import { game, found } from './statecraftHelpers';
 
 const KINDS: OfferKind[] = ['order', 'doctrine', 'belief', 'discovery', 'greatPerson'];
@@ -89,6 +89,7 @@ function withEffects(
 function raiseOracle(state: GameState, playerId: number): void {
   const city = state.cities.find((c) => c.ownerId === playerId) ?? found(state, playerId);
   city.buildings.push('theOracle');
+  bumpRevision(state);
   claimWonder(state, 'theOracle', city);
 }
 
@@ -159,10 +160,12 @@ describe('a rider widens the offer it names', () => {
       const sc = g.state.players[0]!.statecraft;
       sc.orders.push(id);
       sc.slots[0] = { card: id, sealedUntil: 0 };
+      bumpRevision(g.state);
       expect(offerSize(g.state, 0, 'belief')).toBe(4);
       // Out of its office it says nothing at all: an Order pays from a slot and
       // nowhere else, and that clause outlived the ladder untouched.
       sc.slots[0] = null;
+      bumpRevision(g.state);
       expect(offerSize(g.state, 0, 'belief')).toBe(3);
     });
   });
@@ -172,6 +175,7 @@ describe('a rider widens the offer it names', () => {
     const id = BELIEF_IDS[0]!;
     withEffects(beliefDef(id), [rider('discovery')], () => {
       g.state.players[0]!.pantheon.beliefs.push(id);
+      bumpRevision(g.state);
       // No `extra` on the row: a rider with no figure deals the ordinary card.
       const lines = explainOfferSize(g.state, 0, 'discovery');
       expect(lines[lines.length - 1]!.delta).toBe(1);
@@ -196,6 +200,7 @@ describe('a rider widens the offer it names', () => {
         const sc = g.state.players[0]!.statecraft;
         sc.orders.push(id);
         sc.slots[0] = { card: id, sealedUntil: 0 };
+        bumpRevision(g.state);
         expect(offerSize(g.state, 0, 'order')).toBe(5);
         expect(offerSize(g.state, 0, 'belief')).toBe(4);
       });
@@ -292,6 +297,7 @@ describe('a pool shorter than the offer', () => {
     const player = g.state.players[0]!;
     // Every god but two is held, so a four-card consecration deals two.
     player.pantheon.beliefs.push(...BELIEF_IDS.slice(0, BELIEF_IDS.length - 2));
+    bumpRevision(g.state);
     withEffects(buildingDef('theOracle'), [rider('belief')], () => {
       raiseOracle(g.state, 0);
       expect(offerSize(g.state, 0, 'belief')).toBe(4);

@@ -60,7 +60,14 @@ import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
 import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import type { City } from '../../src/sim/state';
-import { type EarnedBead, type GameConfig, type GameState, type Player, realPlayers } from '../../src/sim/state';
+import {
+  type EarnedBead,
+  type GameConfig,
+  type GameState,
+  type Player,
+  realPlayers,
+  bumpRevision,
+} from '../../src/sim/state';
 import { BEAD_FEAT_IDS, beadFeatDef } from '../../src/sim/beadData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
@@ -165,6 +172,7 @@ function grant(state: GameState, player: Player, tech: string | undefined): void
   if (tech === undefined) return;
   for (const step of researchExpansion(state, player.id, tech as never)) {
     if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    bumpRevision(state);
   }
 }
 
@@ -503,6 +511,7 @@ describe('the chain in the book', () => {
     const player = seat(state, 0);
     for (const step of researchExpansion(state, 0, tech as never)) {
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     return { state, player };
   }
@@ -534,6 +543,7 @@ describe('the chain in the book', () => {
     const { state, player } = chained(2, 'letters');
     player.gold = 4000;
     for (const city of state.cities) city.buildings.push('library');
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     for (const want of ctx.wants.gold) {
       expect(want.terms.some((term) => /buys the Writing engine/.test(term.label))).toBe(false);
@@ -550,6 +560,7 @@ describe('the chain in the book', () => {
     player.pantheon.beliefs = [BELIEF_IDS[0] as never];
     player.faithPool = 500;
     for (const city of state.cities) city.buildings.push('chapel');
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     const rite = ctx.wants.faith.find((want) => want.rite !== undefined);
     expect(rite).toBeDefined();
@@ -639,7 +650,9 @@ describe('the bead race', () => {
     state.turn = options.turn;
     const player = seat(state, 0);
     player.beads = rod(options.beads);
+    bumpRevision(state);
     if (options.rivalBeads !== undefined) seat(state, 1).beads = rod(options.rivalBeads);
+    bumpRevision(state);
     if (options.alchemy === true) grant(state, player, 'alchemy');
     return { state, player };
   }
@@ -767,6 +780,7 @@ describe('the bead race', () => {
     for (const city of state.cities) {
       if (city.ownerId !== player.id) continue;
       city.buildings.push('library');
+      bumpRevision(state);
       refreshCityDerived(state, city);
     }
     const ctx = valueContext(state, player);
@@ -1123,6 +1137,7 @@ describe('the hammer price', () => {
         for (const step of chain.steps) {
           if (step.kind !== 'building') continue;
           if (!city.buildings.includes(step.id as never)) city.buildings.push(step.id as never);
+          bumpRevision(state);
         }
       }
       refreshCityDerived(state, city);
@@ -1413,6 +1428,7 @@ describe('batch 8 — the caravan and the route it would run', () => {
     // A slot, so a caravan built today would have something to carry.
     const town = state.cities[0]!;
     town.buildings.push(MARKET);
+    bumpRevision(state);
     refreshCityDerived(state, town);
 
     const ctx = valueContext(state, player);
@@ -1473,6 +1489,7 @@ describe('batch 8 — the caravan and the route it would run', () => {
     // it is waiting on a wagon, and the wagon has its own candidate.
     const town = state.cities[0]!;
     town.buildings.push(MARKET);
+    bumpRevision(state);
     refreshCityDerived(state, town);
     const free = valueContext(state, player);
     expect(free.routes.bound).toBe(false);
@@ -1552,9 +1569,11 @@ describe('batch 8 — the arrangement, improved once a turn', () => {
       )!;
       sc.orders.push(filler);
       sc.slots[index] = { card: filler, sealedUntil: game.state.turn + 99 };
+      bumpRevision(game.state);
     }
     // Unsealed by construction: an absolute turn already past.
     sc.slots[0] = { card: seated, sealedUntil: 0 };
+    bumpRevision(game.state);
     const stepper = createBotStepper(game, { warn: () => {} });
     const found: BotDecision[] = [];
     for (let turn = 0; turn < turns; turn++) {
@@ -1733,15 +1752,19 @@ describe('the marginal draft reading', () => {
     const player = seat(state, 0);
     const sc = player.statecraft;
     sc.government = 'councilOfElders' as never;
+    bumpRevision(state);
     sc.slots = slotTypesOf(sc).map(() => null);
+    bumpRevision(state);
     sc.orders = [...deck];
     const layout = slotTypesOf(sc);
     for (const id of deck) {
       const chair = layout.findIndex(
         (type, index) => sc.slots[index] === null && orderFitsSlot(id, type),
       );
+        bumpRevision(state);
       expect(chair, id).toBeGreaterThanOrEqual(0);
       sc.slots[chair] = { card: id, sealedUntil: 0 };
+      bumpRevision(state);
     }
     for (const city of state.cities) refreshCityDerived(state, city);
     return { state, player };
@@ -1779,7 +1802,9 @@ describe('the marginal draft reading', () => {
     const chair = layout.findIndex(
       (type, index) => sc.slots[index] === null && orderFitsSlot('theHarvestHome' as never, type),
     );
+      bumpRevision(state);
     sc.slots[chair] = { card: 'theHarvestHome' as never, sealedUntil: 0 };
+    bumpRevision(state);
     const after = reading(state, player.id);
 
     // The expectation is folded in the reading's own order — the six voices, the
@@ -1820,6 +1845,7 @@ describe('the marginal draft reading', () => {
     for (const tile of loaded.state.map.tiles) tile.feature = 'forest' as never;
     for (const city of loaded.state.cities) {
       city.buildings.push('granary' as never, 'monument' as never, 'shrine' as never);
+      bumpRevision(loaded.state);
       refreshCityDerived(loaded.state, city);
     }
     const withDeck = valueContext(loaded.state, loaded.player);
@@ -1834,6 +1860,7 @@ describe('the marginal draft reading', () => {
     for (const tile of bare.state.map.tiles) tile.feature = 'forest' as never;
     for (const city of bare.state.cities) {
       city.buildings.push('granary' as never, 'monument' as never, 'shrine' as never);
+      bumpRevision(loaded.state);
       refreshCityDerived(bare.state, city);
     }
     const empty = valueContext(bare.state, bare.player);
@@ -1853,6 +1880,7 @@ describe('the marginal draft reading', () => {
     const stocked = deckBench([]);
     for (const city of stocked.state.cities) {
       for (const id of shelves) city.buildings.push(id as never);
+      bumpRevision(stocked.state);
       refreshCityDerived(stocked.state, city);
     }
     const with_ = valueContext(stocked.state, stocked.player);
@@ -1943,6 +1971,7 @@ describe('the faith book', () => {
     const player = seat(state, 0);
     for (const step of researchExpansion(state, 0, tech as never)) {
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     player.pantheon.beliefs = [BELIEF_IDS[0] as never];
     return { state, player };
@@ -2031,6 +2060,7 @@ describe('the faith book', () => {
     // itself was worthless.
     const { state, player } = faithful(1, 'divination');
     for (const city of state.cities) city.buildings.push('chapel');
+    bumpRevision(state);
     player.faithPool = 0;
     const ctx = valueContext(state, player);
     const rite = ctx.wants.faith.find((want) => /^Omen Reading at |^Blessing/.test(want.label));
@@ -2072,6 +2102,7 @@ describe('the faith book', () => {
     const { state, player } = faithful(2, UNIT_UNLOCK_TECH.get('apostle' as never)!);
     const town = state.cities[0]!;
     town.buildings.push('cathedral');
+    bumpRevision(state);
     refreshCityDerived(state, town);
     player.faithPool = 900;
     const ctx = valueContext(state, player);

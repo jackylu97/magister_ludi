@@ -41,6 +41,7 @@ import {
   createUnit,
   playerById,
   unitById,
+  bumpRevision,
 } from '../../src/sim/state';
 import {
   type RouteMode,
@@ -123,6 +124,7 @@ function tradeWorld(width = 16): {
   const home = foundCityAt(state, 0, at(state, 3, 4));
   const partner = foundCityAt(state, 0, at(state, 10, 4));
   home.buildings.push('market');
+  bumpRevision(state);
   const trader = createUnit(state, 0, 'trader', 3, 4);
   return { state, home, partner, trader };
 }
@@ -172,6 +174,7 @@ function seaWorld(corridor = true): {
   const home = foundCityAt(state, 0, at(state, 3, 4));
   const partner = foundCityAt(state, 0, at(state, 10, 4));
   home.buildings.push('market');
+  bumpRevision(state);
   const trader = createUnit(state, 0, 'trader', 3, 4);
   return { state, home, partner, trader };
 }
@@ -417,6 +420,7 @@ describe('startRoute', () => {
     // anybody else either: any number of caravans cross on one hex.
     const other = createUnit(state, 0, 'trader', 6, 4);
     partner.buildings.push('market');
+    bumpRevision(state);
     const third = foundCityAt(state, 0, at(state, 14, 4));
 
     expect(startRouteError(state, 0, trader.id, home.id, partner.id)).toBeNull();
@@ -430,6 +434,7 @@ describe('startRoute', () => {
     const { state, home, partner, trader } = tradeWorld();
     // Three slots, so it is the direction that decides and never the cap.
     partner.buildings.push('market', 'market');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     // The same way again: refused, byte-identical.
@@ -451,6 +456,7 @@ describe('startRoute', () => {
     const { state, home, partner, trader } = tradeWorld();
     const third = foundCityAt(state, 0, at(state, 3, 0));
     partner.buildings.push('market');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     const before = snapshotState(state);
     const result = applyCommand(state, send(0, trader.id, home.id, third.id));
@@ -489,6 +495,7 @@ describe('startRoute', () => {
     const home = foundCityAt(state, 0, at(state, 2, 4));
     const far = foundCityAt(state, 0, at(state, 30, 4));
     home.buildings.push('market');
+    bumpRevision(state);
     const trader = createUnit(state, 0, 'trader', 2, 4);
 
     expect(startRouteError(state, 0, trader.id, home.id, far.id)).toMatch(
@@ -507,6 +514,7 @@ describe('startRoute', () => {
     const home = foundCityAt(state, 0, at(state, 2, 4));
     const far = foundCityAt(state, 0, at(state, 23, 4));
     home.buildings.push('market');
+    bumpRevision(state);
     home.tradingPost = true;
     const trader = createUnit(state, 0, 'trader', 2, 4);
 
@@ -650,6 +658,7 @@ describe('land or sea', () => {
     const home = foundCityAt(state, 0, at(state, 3, 4));
     const partner = foundCityAt(state, 0, at(state, 10, 4));
     home.buildings.push('market');
+    bumpRevision(state);
     const trader = createUnit(state, 0, 'trader', 3, 4);
     // The empire can embark — that is the whole premise — and there is still no
     // sea route here, because neither town has water at its gates.
@@ -974,6 +983,7 @@ describe('a road', () => {
 
     const bare = gold();
     playerById(state, 0)!.techsResearched.push('theSilkRoad');
+    bumpRevision(state);
     // No goods at either end: the row is carried and pays nothing, rather than
     // paying its bag once for nothing in particular.
     expect(gold()).toBe(bare);
@@ -1006,6 +1016,7 @@ describe('a road', () => {
 
     expect(price()).toBe(1 / 3);
     playerById(state, 0)!.techsResearched.push('machinery');
+    bumpRevision(state);
     expect(price()).toBe(1 / 5);
     expect(snapMovement(1 / 5 + 1 / 5 + 1 / 5 + 1 / 5 + 1 / 5)).toBe(1);
 
@@ -1121,6 +1132,7 @@ describe('a route’s yields', () => {
     // buildings); the coin stays a gold per ten people by the same day's
     // follow-up ruling.
     home.buildings.push('granary', 'library', 'workshop');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     const lines = explainRouteYield(state, trader);
@@ -1151,6 +1163,7 @@ describe('a route’s yields', () => {
     home.population = 6;
     partner.population = 8;
     home.buildings.push('granary', 'library', 'workshop');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     expect(explainRouteYieldBetween(state, home, partner)).toEqual(
@@ -1166,14 +1179,17 @@ describe('a route’s yields', () => {
     // (derived, never snapshotted) is unchanged; the second library is just
     // what it now takes to move the figure.
     home.buildings.push('library');
+    bumpRevision(state);
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(0);
     home.buildings.push('granary');
+    bumpRevision(state);
     expect(foldRouteYield(explainRouteYield(state, trader)).food).toBe(1);
   });
 
   it('joins the destination city’s own totals', () => {
     const { state, home, partner, trader } = tradeWorld();
     home.buildings.push('granary', 'amphitheater', 'library', 'workshop', 'barracks');
+    bumpRevision(state);
     const before = cityYields(state, partner);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     const after = cityYields(state, partner);
@@ -1185,6 +1201,7 @@ describe('a route’s yields', () => {
     const { state, home, trader, partner } = tradeWorld();
     // Two food-side buildings, so the route pays a line under the halved rate.
     home.buildings.push('library', 'granary');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
     expect(explainRouteYield(state, trader)).not.toEqual([]);
     trader.trade!.expiresTurn = state.turn;
@@ -1210,6 +1227,7 @@ describe('route slots', () => {
   it('is the fold of one line per building on the board', () => {
     const { state, home, partner } = tradeWorld();
     partner.buildings.push('market');
+    bumpRevision(state);
     expect(explainRouteSlots(state, 0)).toEqual([
       { source: `Market · ${home.name}`, slots: 1 },
       { source: `Market · ${partner.name}`, slots: 1 },
@@ -1223,6 +1241,7 @@ describe('route slots', () => {
     // shape is live rather than declared and forgotten. A wonder's effects are
     // read off the *board*, so the claim register has to know about it too.
     home.buildings.push('greatLighthouse');
+    bumpRevision(state);
     claimWonder(state, 'greatLighthouse', home);
     const lines = explainRouteSlots(state, 0);
     expect(lines).toHaveLength(2);
@@ -1263,6 +1282,7 @@ describe('the city connection', () => {
     // list would still carry the maintenance line, which is `upkeep.test.ts`'s
     // concern rather than this one's.
     home.buildings = [];
+    bumpRevision(state);
     expect(connectedCities(state, 0)).toEqual([]);
     expect(explainEmpireGold(state, 0)).toEqual([]);
   });
@@ -1490,6 +1510,7 @@ describe("The Founders' Road", () => {
   function realm(state: GameState): City {
     const capital = foundCityAt(state, 0, at(state, 3, 4));
     playerById(state, 0)!.statecraft.doctrines.push('foundersRoad');
+    bumpRevision(state);
     return capital;
   }
 
@@ -1686,7 +1707,9 @@ describe('trade in the log', () => {
     const partner = foundCityAt(state, 0, at(state, 10, 4));
     const north = foundCityAt(state, 0, at(state, 3, 0));
     home.buildings.push('market');
+    bumpRevision(state);
     north.buildings.push('market');
+    bumpRevision(state);
     // Two caravans and two different pairs. Neither is standing where it sets
     // out from — the teleport is part of what has to replay byte-for-byte.
     const first = createUnit(state, 0, 'trader', 6, 6);
@@ -1725,6 +1748,7 @@ describe('trade in the log', () => {
     const state = game.state;
     foundCityAt(state, 0, at(state, 3, 4));
     playerById(state, 0)!.statecraft.doctrines.push('foundersRoad');
+    bumpRevision(state);
     const settler = createUnit(state, 0, 'settler', 10, 4);
     const before = snapshotState(state);
 
@@ -1764,6 +1788,7 @@ describe('The Imperial Post', () => {
         continue;
       }
       if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
+      bumpRevision(state);
     }
   }
 
@@ -1840,6 +1865,7 @@ function foreignWorld(met = true): {
   const home = foundCityAt(state, 0, at(state, 3, 4));
   const partner = foundCityAt(state, 1, at(state, 10, 4));
   home.buildings.push('market');
+  bumpRevision(state);
   const trader = createUnit(state, 0, 'trader', 3, 4);
   // **Met**, by the one clause that needs no paper: a piece of theirs standing
   // where this seat can see it. A worker rather than a warrior, so nothing
@@ -1909,6 +1935,7 @@ describe('international routes', () => {
     // hammers. A foreign library is not yours to harvest: not one of them
     // reaches either fold.
     home.buildings.push('granary', 'library', 'workshop', 'barracks');
+    bumpRevision(state);
     expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
 
     const mine = explainRouteSenderYield(state, trader);
@@ -2025,6 +2052,7 @@ describe('international routes', () => {
     const home = foundCityAt(state, 0, at(state, 3, 4));
     const partner = foundCityAt(state, 1, at(state, 10, 4));
     home.buildings.push('market');
+    bumpRevision(state);
     const trader = createUnit(state, 0, 'trader', 6, 6);
     createUnit(state, 1, 'worker', 3, 3);
     const before = snapshotState(state);
@@ -2069,6 +2097,7 @@ describe('a route’s science and culture', () => {
     const sc = playerById(state, playerId)!.statecraft;
     if (!sc.orders.includes(id as never)) sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: state.turn });
+    bumpRevision(state);
   }
 
   /** A domestic route from the market town, with Ledger-Keepers slotted or not. */

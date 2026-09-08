@@ -164,8 +164,10 @@ function bench(): { state: GameState; playerId: number } {
   // bench stays, because the class of a line is still a claim about a figure.
   city.population = 5;
   city.buildings.push('monument', 'library');
+  bumpRevision(state);
   const wonder = BUILDING_IDS.find((id) => isWonder(id));
   if (wonder) city.buildings.push(wonder);
+  bumpRevision(state);
   const player = playerById(state, 0)!;
   const sc = player.statecraft;
   // An Order that pays a yield in every town — the point of the bench is a bar
@@ -173,6 +175,7 @@ function bench(): { state: GameState; playerId: number } {
   const order = 'weightsAndMeasures' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(order)) sc.orders.push(order);
   sc.slots.push({ card: order, sealedUntil: state.turn });
+  bumpRevision(state);
   // **And one of the seven `buildingYieldPercent` Orders**, over the library the
   // bench just built. `cardBuildingYields` is the eleventh summand of
   // `cityQuote` and the mirror below simply did not walk it; a bench with no
@@ -180,6 +183,7 @@ function bench(): { state: GameState; playerId: number } {
   const scrivened = 'theScriveners' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(scrivened)) sc.orders.push(scrivened);
   sc.slots.push({ card: scrivened, sealedUntil: state.turn });
+  bumpRevision(state);
   // **And a card that pays nothing but a percentage** (The Lamp Kept Lit, a
   // quarter more science in the capital). The ruling of 2026-09-07: until it
   // landed, this card printed a figure on its own face and added nothing at all
@@ -188,7 +192,9 @@ function bench(): { state: GameState; playerId: number } {
   const lamp = 'theLampKeptLit' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(lamp)) sc.orders.push(lamp);
   sc.slots.push({ card: lamp, sealedUntil: state.turn });
+  bumpRevision(state);
   player.pantheon = { beliefs: [ALL_BELIEF_IDS[0]!], rungs: 1 };
+  bumpRevision(state);
   return { state, playerId: 0 };
 }
 
@@ -221,9 +227,11 @@ function tileCardBench(): { state: GameState; city: City; playerId: number } {
   const terraces = 'terracedHillsides' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(terraces)) sc.orders.push(terraces);
   sc.slots.push({ card: terraces, sealedUntil: state.turn });
+  bumpRevision(state);
   // And a belief that pays on ground too, so "a card's line" is not quietly
   // read as "the deck's line": the Desert Fathers' faith is religion's.
   player.pantheon = { beliefs: ['desertFathers' as (typeof ALL_BELIEF_IDS)[number]], rungs: 1 };
+  bumpRevision(state);
   return { state, city, playerId: 0 };
 }
 
@@ -244,6 +252,7 @@ function foreignRouteBench(): { state: GameState; playerId: number } {
   const home = foundCityAt(state, 0, at(state, 3, 4));
   const partner = foundCityAt(state, 1, at(state, 10, 4));
   home.buildings.push('market', 'library');
+  bumpRevision(state);
   home.population = 5;
   partner.population = 4;
   const trader = createUnit(state, 0, 'trader', 3, 4);
@@ -298,6 +307,7 @@ describe('the reading', () => {
       const sc = playerById(g.state, 0)!.statecraft;
       sc.orders.push('waysideShrines');
       sc.slots[0] = { card: 'waysideShrines', sealedUntil: g.state.turn };
+      bumpRevision(g.state);
 
       const stage = explainEmpireLines(g.state, 0).filter((line) => line.origin === 'stage');
       expect(stage.length, 'the tier is standing').toBeGreaterThan(0);
@@ -561,6 +571,7 @@ describe('the gain, and who supplied it', () => {
     // building's own row and reaching the percent list as a **card** — which is
     // why no arm of `classifyPercent` has to know a Forum from an Order.
     town.buildings.push('forum');
+    bumpRevision(state);
     const weights = percentWeights(state, town, cityQuote(state, town), 'science');
     expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
     const gain = gainOf(state, town, 'science');
@@ -608,6 +619,7 @@ describe('the gain, and who supplied it', () => {
     const { state, playerId } = bench();
     const town = state.cities.find((city) => city.ownerId === playerId)!;
     town.buildings.push('barracks');
+    bumpRevision(state);
     town.queue = [{ kind: 'unit', id: 'warrior' }];
     const weights = percentWeights(state, town, cityQuote(state, town), 'production');
     expect(weights).toContainEqual({ into: 'buildings', percent: 10 });

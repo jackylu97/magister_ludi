@@ -39,7 +39,7 @@ import {
   doctrineDef,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { type City, type GameState, playerById } from '../../src/sim/state';
+import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import { found, game } from './statecraftHelpers';
 
 // --- harness ----------------------------------------------------------------
@@ -49,12 +49,14 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  bumpRevision(state);
 }
 
 /** Adopts a Doctrine, as the ladder would have. Test scaffolding only. */
 function adopt(state: GameState, playerId: number, id: DoctrineId): void {
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.doctrines.includes(id)) sc.doctrines.push(id);
+  bumpRevision(state);
 }
 
 /** The empire's writ, as the meter folds it. */
@@ -107,12 +109,15 @@ describe('the writ the stones supply', () => {
 
     const bare = writ(g.state, 0);
     capital.buildings.push('monument');
+    bumpRevision(g.state);
     expect(writ(g.state, 0)).toBe(bare + 1);
 
     const [second, third] = colonise(g.state, 0, 2);
     const three = writ(g.state, 0);
     second!.buildings.push('monument');
+    bumpRevision(g.state);
     third!.buildings.push('monument');
+    bumpRevision(g.state);
     // One line, counting the type — "Monuments ×3" — and worth three.
     expect(writ(g.state, 0)).toBe(three + 2);
     const line = explainAuthority(g.state, 0).find((entry) => entry.source.includes('Monument'));
@@ -133,6 +138,7 @@ describe('the writ the stones supply', () => {
 
     const bare = writ(g.state, 0);
     capital.buildings.push('imperialThrone');
+    bumpRevision(g.state);
     // One town: three flat, and nothing from the count.
     expect(writ(g.state, 0)).toBe(bare + 3);
 
@@ -215,6 +221,7 @@ describe('the science Orders', () => {
 
     expect(cardScience(g.state, capital), 'no Monument, no beaker').toBe(0);
     capital.buildings.push('monument');
+    bumpRevision(g.state);
     expect(cardScience(g.state, capital)).toBe(1);
     expect(cardScience(g.state, second!), 'the town without one still pays nothing').toBe(0);
   });
@@ -258,6 +265,7 @@ describe('the science Orders', () => {
     const g = game();
     const capital = found(g.state, 0);
     capital.buildings.push('monument');
+    bumpRevision(g.state);
     const bare = cityYields(g.state, capital).science;
     slot(g.state, 0, 'theTallySticks');
     expect(cityYields(g.state, capital).science).toBeGreaterThan(bare);

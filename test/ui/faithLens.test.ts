@@ -29,6 +29,7 @@ import { unitDef } from '../../src/sim/unitData';
 import { lensForSelection } from '../../src/ui/controls';
 import { faithHoverReading, faithHoverText } from '../../src/ui/faithHover';
 import { faithWorld, fn, sourceOf } from './faithHelpers';
+import { bumpRevision } from '../../src/sim/state';
 
 // --- which lens a piece raises ----------------------------------------------
 
@@ -172,6 +173,7 @@ describe('faithHoverText, on a foreign town the seat only remembers', () => {
   it('drops the temple’s line, which is a fact about the town', () => {
     const { state } = faithWorld();
     state.cities[2]!.buildings.push('temple');
+    bumpRevision(state);
     const reading = faithHoverReading(state, state.cities[2]!, 0)!;
     for (const faith of reading.faiths) {
       expect(faith.ledger.map((line) => line.source)).not.toContain('Temple');

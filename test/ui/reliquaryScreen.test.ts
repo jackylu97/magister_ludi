@@ -44,7 +44,7 @@ import {
   legacyIsSilent,
 } from '../../src/ui/greatPersonFace';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -104,6 +104,7 @@ function withLegacies(): GameState {
     { id: 'ahmes', age: 2, revoked: true },
     { id: 'kidinnu', age: 3 },
   ];
+  bumpRevision(state);
   return state;
 }
 
@@ -134,6 +135,7 @@ describe('the roll', () => {
     const state = twoSeats();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     state.players[0]!.legacies = [{ id: 'nobody' as any, age: 2 }, { id: 'imhotep', age: 2 }];
+    bumpRevision(state);
     expect(reliquaryRoll(state, 0).map((card) => card.face.id)).toEqual(['imhotep']);
   });
 
@@ -473,6 +475,7 @@ describe('the calls at the foot', () => {
   function commonwealth(): GameState {
     const state = withLegacies();
     state.players[0]!.statecraft.government = 'theCommonwealth';
+    bumpRevision(state);
     state.players[0]!.gold = 10_000;
     return state;
   }
@@ -503,6 +506,7 @@ describe('the calls at the foot', () => {
   it('offers The Academy’s scholars on the same rail, out of the faith bank', () => {
     const state = withLegacies();
     state.players[0]!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    bumpRevision(state);
     state.players[0]!.faithPool = 10_000;
     const calls = reliquaryCalls(state, 0);
     expect(calls.map((call) => call.purchase)).toEqual(['scholarDraft']);

@@ -67,7 +67,7 @@ import {
   foldCardYields,
 } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
-import { type City, type GameState, newGame, playerById } from '../../src/sim/state';
+import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -111,16 +111,19 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  bumpRevision(state);
 }
 
 /** Takes every card back out of the spread. */
 function clearSlots(state: GameState, playerId: number): void {
   playerById(state, playerId)!.statecraft.slots = [];
+  bumpRevision(state);
 }
 
 /** Raises buildings in a town the way a completed queue row would leave it. */
 function raise(state: GameState, city: City, ...ids: BuildingId[]): void {
   city.buildings.push(...ids);
+  bumpRevision(state);
   refreshCityDerived(state, city);
 }
 
@@ -242,6 +245,7 @@ describe('the charters as a family', () => {
     }
     // Their nodes still open them, and nothing in the deck is asked about it.
     player.techsResearched.push('paperMoney', 'theAstrolabe');
+    bumpRevision(state);
     for (const building of THE_TREE_KEEPS) {
       expect(isUnlocked(state, 0, 'building', building), building).toBe(true);
     }
@@ -263,6 +267,7 @@ describe('what each charter building does', () => {
     const plainCity = capitalOf(bare);
     expect(riteError(bare, 0, plainCity.id, 'omenReading')).toContain('is not known to');
     playerById(bare, 0)!.techsResearched.push('divination');
+    bumpRevision(bare);
     playerById(bare, 0)!.faithPool = 1000;
     expect(riteError(bare, 0, plainCity.id, 'omenReading')).toBeNull();
 
@@ -270,6 +275,7 @@ describe('what each charter building does', () => {
     const city = capitalOf(state);
     const seat = playerById(state, 0)!;
     playerById(state, 0)!.techsResearched.push('divination');
+    bumpRevision(state);
     raise(state, city, 'chapel');
     seat.culturePool = 0;
     seat.faithPool = 500;

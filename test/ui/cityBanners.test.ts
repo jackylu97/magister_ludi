@@ -23,7 +23,7 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { cityMaxHp } from '../../src/sim/combat';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 import {
   RING,
@@ -252,6 +252,7 @@ describe('cityHealthBar', () => {
     // rather than adding a segment to it, so the *same* hit points read as less
     // of a wound the day the stakes go up.
     city.buildings = [...city.buildings, 'palisade'];
+    bumpRevision(state);
     const walled = cityHealthBar(city)!;
     expect(cityMaxHp(city)).toBeGreaterThan(bare);
     expect(walled.filled).toBeLessThan(wounded.filled);

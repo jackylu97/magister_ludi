@@ -63,6 +63,7 @@ import {
   type QueueItem,
   createUnit,
   newGame,
+  bumpRevision,
 } from '../../src/sim/state';
 import { plainTechs } from './techHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -105,6 +106,7 @@ function bareState(width = 16, height = 12): GameState {
   state.cities = [];
   state.nextEntityId = 1;
   for (const player of state.players) player.techsResearched = plainTechs();
+  bumpRevision(state);
   computeFreshwater(state.map);
   return state;
 }
@@ -248,6 +250,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 4;
     city.buildings = ['barracks'];
+    bumpRevision(state);
     city.queue = [{ kind: 'unit', id: 'warrior' }];
     return { state, city };
   }
@@ -358,6 +361,7 @@ describe('Entry XVII: the two stages, through the yield pipeline', () => {
       const city = foundCityAt(state, 0, at(state.map, 6, 5));
       city.population = 3;
       city.buildings = ['monument'];
+      bumpRevision(state);
       growTerritory(state, city);
       at(state.map, 7, 5).hills = true;
       plant(state, city, 7, 5, id);
@@ -503,6 +507,7 @@ describe('Entry XVIII.5: a windfall is modifier-immune', () => {
     city.population = 4;
     city.queue = [{ kind: 'unit', id: 'warrior' }];
     if (modified) city.buildings = ['barracks'];
+    bumpRevision(state);
     const tile = at(state.map, 5, 4);
     tile.feature = 'forest';
     const worker = createUnit(state, 0, 'worker', 5, 4);
@@ -583,6 +588,7 @@ describe('the workshop', () => {
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 4;
     city.buildings = ['workshop'];
+    bumpRevision(state);
     return { state, city };
   }
 

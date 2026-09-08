@@ -36,6 +36,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
@@ -216,6 +217,7 @@ describe('the map’s later layers', () => {
   it('leaves a gated site standing for an empire with no word for it', () => {
     const state = bareState();
     playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    bumpRevision(state);
     at(state, 5, 5).discovery = 'antiquity';
 
     const report = walkOnto(state, 0, 5, 5);
@@ -229,6 +231,7 @@ describe('the map’s later layers', () => {
   it('claims the same site the moment the node lands', () => {
     const state = bareState();
     playerById(state, 0)!.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     at(state, 5, 5).discovery = 'antiquity';
 
     const report = walkOnto(state, 0, 5, 5);
@@ -240,6 +243,7 @@ describe('the map’s later layers', () => {
   it('says why, in the seat’s own words, through the one gate every surface asks', () => {
     const state = bareState();
     playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    bumpRevision(state);
     const unit = createUnit(state, 0, 'scout', 5, 5);
     at(state, 5, 5).discovery = 'antiquity';
     expect(discoveryClaimError(state, unit, at(state, 5, 5))).toMatch(/no word yet/);
@@ -274,6 +278,7 @@ describe('the map’s later layers', () => {
     // opinion about terrain.
     const state = bareState();
     playerById(state, 0)!.techsResearched = TECH_IDS.filter((id) => id !== GATE);
+    bumpRevision(state);
     const tile = at(state, 5, 5);
     tile.terrain = 'ocean';
     tile.discovery = 'wreck';
@@ -634,6 +639,7 @@ describe('settlement: every boon pays its printed number', () => {
     // The same boon into a basket one point short of the rung: it completes,
     // and the overflow is kept exactly as a chop's or a good harvest's would be.
     player.culturePool = draftCost(0) - 1;
+    bumpRevision(state);
     offerOf(state, 0, 'forgottenHymns');
     const second = settleDiscovery(state, player, 0);
     expect(player.statecraft.drafts).toBe(1);
@@ -724,8 +730,10 @@ describe('settlement: every boon pays its printed number', () => {
     foundCityAt(boosted, 0, at(boosted, 5, 5));
     const rich = boosted.cities[0]!;
     rich.buildings.push('barracks');
+    bumpRevision(boosted);
     rich.queue = [{ kind: 'unit', id: 'warrior' }];
     playerById(boosted, 0)!.techsResearched = [...TECH_IDS];
+    bumpRevision(boosted);
 
     for (const state of [plain, boosted]) {
       const city = state.cities[0]!;

@@ -60,6 +60,7 @@ import {
   SCHEMA_VERSION,
   createUnit,
   unitById,
+  bumpRevision,
 } from '../../src/sim/state';
 import {
   FEATURE_IDS,
@@ -508,6 +509,7 @@ describe('buildImprovement', () => {
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       state.players[0]!.techsResearched = [];
+      bumpRevision(state);
       // Siegecraft since the playtest notes of 2026-09-03 ("lumbermills need to
       // be way earlier in the tech tree, early age 2 probably") — it had been
       // Engineering since the re-cut of 2026-09-02 pruned Construction.
@@ -700,6 +702,7 @@ describe('buildImprovement', () => {
         expect(improvementError(state, worker.id, 'farm')).toBe('Horses wants a pasture');
 
         state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== 'husbandry');
+        bumpRevision(state);
         expect(improvementError(state, worker.id, 'farm')).toBeNull();
       });
     });
@@ -730,6 +733,7 @@ describe('buildImprovement', () => {
           if (tile.col === 4 || tile.col === 5) tile.terrain = 'coast';
         }
         for (const player of built.state.players) player.techsResearched.push('raisedFields');
+        bumpRevision(built.state);
         return built;
       }
 
@@ -860,6 +864,7 @@ describe('buildImprovement', () => {
       // makes "the ground said yes" a comparison the sheet can trust.
       const { state } = workerState();
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
       const tiles = [at(state, 5, 4), at(state, 5, 5), at(state, 4, 4), at(state, 0, 0)];
       for (const tile of tiles) {
         tile.hills = tile.col === 4;
@@ -915,6 +920,7 @@ describe('buildImprovement', () => {
       const tile = at(state, 5, 4);
       tile.hills = true;
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
       expect(improvementGroundError(state, 0, tile, 'mine')).toBeNull();
       expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs Mining');
     });
@@ -923,6 +929,7 @@ describe('buildImprovement', () => {
       const { state } = workerState();
       const far = at(state, 0, 0);
       state.players[0]!.techsResearched = [];
+      bumpRevision(state);
       expect(improvementGroundError(state, 0, far, 'farm')).toBe('(0, 0) is not in your territory');
     });
   });
@@ -939,6 +946,7 @@ describe('buildImprovement', () => {
       tile.hills = true;
       const gate = improvementDef('mine').requiresTech!;
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
 
       expect(improvementError(state, worker.id, 'mine')).toBe(
         `A mine needs ${techDef(gate).name}`,
@@ -953,6 +961,7 @@ describe('buildImprovement', () => {
       expect(snapshotState(state)).toBe(before);
 
       state.players[0]!.techsResearched.push(gate);
+      bumpRevision(state);
       expect(improvementError(state, worker.id, 'mine')).toBeNull();
       expect(applyCommand(state, build(0, worker.id, 'mine'))).toEqual({ ok: true });
       expect(tile.improvement).toBe('mine');
@@ -965,6 +974,7 @@ describe('buildImprovement', () => {
       const { state, worker } = workerState();
       const tile = at(state, 5, 4);
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
 
       expect(tile.hills).toBe(false);
       expect(improvementError(state, worker.id, 'mine')).toBe('A mine needs hills');
@@ -975,6 +985,7 @@ describe('buildImprovement', () => {
     it('answers the gate on its own, with no hex in the question', () => {
       const state = bareState();
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
       // Ground-independent, which is what lets the sheet grey a row rather than
       // hide it, and it is the *same sentence* the full gate refuses with.
       expect(improvementTechError(state, 0, 'farm')).toBeNull();
@@ -1006,6 +1017,7 @@ describe('buildImprovement', () => {
       // `bareState` hands every player the whole tree so its worker can build
       // anything; empty it back out so every gate in the table is live to ask.
       state.players[0]!.techsResearched = [];
+      bumpRevision(state);
       for (const id of IMPROVEMENT_IDS) {
         if (improvementDef(id).greatPerson !== undefined) continue;
         const gate = improvementDef(id).requiresTech!;
@@ -1141,6 +1153,7 @@ describe('chopBaseFor — the chop scales with what this empire has learned', ()
   /** A player with exactly this many technologies researched, nothing else set up. */
   function playerWith(state: GameState, techCount: number): void {
     state.players[0]!.techsResearched = TECH_IDS.slice(0, techCount);
+    bumpRevision(state);
   }
 
   it('with no technologies beyond the opening kit, pays the raw table figure', () => {
@@ -1211,6 +1224,7 @@ describe('chopBaseFor — the chop scales with what this empire has learned', ()
     playerWith(state, 12);
     const scaled = chopBaseFor(state, 0, 'forest').production;
     state.players[0]!.statecraft.doctrines.push('woodwrights');
+    bumpRevision(state);
     const payout = windfallPayout(state, 0, 'chop', scaled);
     // The Woodwrights doubles the *scaled* figure — 32 → 64 — never the printed
     // twenty the table alone would have paid.
@@ -1339,6 +1353,7 @@ describe('chopFeature', () => {
       // technology rather than with a fact about the wrong hex.
       const { state, worker, tile } = woodedWorker();
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
 
       tile.feature = 'none';
       expect(chopError(state, worker.id)).toBe('There is nothing to clear on (5, 4)');
@@ -1346,6 +1361,7 @@ describe('chopFeature', () => {
       refuses(state, chop(0, worker.id), 'Clearing forest needs Mining');
 
       state.players[0]!.techsResearched.push('mining');
+      bumpRevision(state);
       expect(chopError(state, worker.id)).toBeNull();
     });
 
@@ -1355,6 +1371,7 @@ describe('chopFeature', () => {
       // refusal to decide whether the *only* problem is the tree.
       const state = bareState();
       state.players[0]!.techsResearched = ['agriculture'];
+      bumpRevision(state);
       expect(chopTechError(state, 0, 'forest')).toBe('Clearing forest needs Mining');
       expect(chopTechError(state, 1, 'forest')).toBeNull();
       // The jungle is a rung later, and it is a *technology* refusal now rather
@@ -1375,6 +1392,7 @@ describe('chopFeature', () => {
       // Same reset as the improvement table's version above — `bareState`
       // starts every player with the whole tree.
       state.players[0]!.techsResearched = [];
+      bumpRevision(state);
       for (const feature of CHOPPABLE_FEATURES) {
         const gate = chopDef(feature)!.tech;
         expect(chopTechError(state, 0, feature)).toContain(techDef(gate).name);
@@ -1445,6 +1463,7 @@ describe('chopFeature', () => {
       try {
         (resourceDef('deer') as { requiresTech?: TechId }).requiresTech = 'divination';
         state.players[0]!.techsResearched = ['agriculture', 'mining'];
+        bumpRevision(state);
         expect(chopError(state, worker.id)).toBeNull();
         expect(applyCommand(state, chop(0, worker.id))).toEqual({ ok: true });
         expect(tile.feature).toBe('none');
@@ -1962,6 +1981,7 @@ describe('growth renewals', () => {
   it('reaches the city that owns the tile, through the owner\'s context', () => {
     const state = bareState();
     for (const player of state.players) player.techsResearched = ['agriculture'];
+    bumpRevision(state);
     const city = foundCityAt(state, 0, at(state, 5, 5));
     const tile = at(state, 5, 4);
     tile.improvement = 'farm';
@@ -1972,6 +1992,7 @@ describe('growth renewals', () => {
 
     const before = cityYields(state, city).food;
     state.players[0]!.techsResearched.push('irrigation');
+    bumpRevision(state);
     // No phase, no rebuild: the same call, one technology later.
     expect(cityYields(state, city).food).toBe(before + 1);
     // And the rival, who has not researched it, sees the old number.
@@ -2488,6 +2509,7 @@ describe('a farm beside a mountain', () => {
     const tile = at(state, 5, 4);
     tile.improvement = 'farm';
     for (const player of state.players) player.techsResearched.push('raisedFields');
+    bumpRevision(state);
     return { state, tile };
   }
 
@@ -2527,6 +2549,7 @@ describe('a farm beside a mountain', () => {
     state.players[0]!.techsResearched = state.players[0]!.techsResearched.filter(
       (id) => id !== 'raisedFields',
     );
+    bumpRevision(state);
     const list = explainTileYield(tile, yieldContextFor(state, 0));
     expect(list.some((entry) => entry.source.includes(techDef('raisedFields').name))).toBe(false);
   });

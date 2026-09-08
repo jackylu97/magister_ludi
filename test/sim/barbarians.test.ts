@@ -51,6 +51,7 @@ import {
   playerById,
   realPlayers,
   type Unit,
+  bumpRevision,
 } from '../../src/sim/state';
 import { advanceResearch } from '../../src/sim/tech';
 import { TECH_IDS, type TechId } from '../../src/sim/techData';
@@ -150,6 +151,7 @@ function slotOrder(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  bumpRevision(state);
 }
 
 describe('the faction', () => {
@@ -394,6 +396,7 @@ describe('the median-tier rule', () => {
   function tiers(state: GameState, counts: number[]): void {
     realPlayers(state).forEach((player, index) => {
       player.techsResearched = TECH_IDS.slice(0, counts[index] ?? 0) as TechId[];
+      bumpRevision(state);
     });
   }
 
@@ -409,13 +412,16 @@ describe('the median-tier rule', () => {
     const state = wildState(16, 14, 2);
     const [a, b] = realPlayers(state);
     a!.techsResearched = ['agriculture'];
+    bumpRevision(state);
     b!.techsResearched = ['agriculture', 'mining', 'earthenware', 'bronzeWorking'];
+    bumpRevision(state);
     // The lower median is A, so the wild fields what A can field.
     expect(barbarianTier(state)).toEqual(['agriculture']);
     expect(barbarianMeleeType(state)).toBe('warrior');
 
     // Level the pack up and the wild follows it, one rung at a time.
     a!.techsResearched = ['agriculture', 'mining', 'earthenware', 'bronzeWorking'];
+    bumpRevision(state);
     expect(barbarianMeleeType(state)).toBe('spearman');
   });
 
@@ -424,6 +430,7 @@ describe('the median-tier rule', () => {
     const seat = realPlayers(state)[0]!;
     const rung = (techs: TechId[]): string | null => {
       seat.techsResearched = techs;
+      bumpRevision(state);
       return barbarianMeleeType(state);
     };
     expect(rung(['agriculture'])).toBe('warrior');
@@ -443,7 +450,9 @@ describe('the median-tier rule', () => {
     const state = wildState(16, 14, 2);
     const [a, b] = realPlayers(state);
     a!.techsResearched = [...TECH_IDS];
+    bumpRevision(state);
     b!.techsResearched = ['agriculture'];
+    bumpRevision(state);
     b!.eliminated = true;
     // A dead empire does not get a vote on how hard the world is.
     expect(barbarianTier(state)).toEqual([...TECH_IDS]);
@@ -943,6 +952,7 @@ describe('role derivation', () => {
       effect: { kind: 'rule', rule: 'barbariansPassive' },
       expiresTurn: state.turn + 10,
     }];
+    bumpRevision(state);
     expect(rolesOf(state).get(raider.id)).toEqual({ kind: 'raider' });
     // And the raider it becomes has nothing to march on either — the pact is one
     // rule read at two seams, and neither of them names this seat.

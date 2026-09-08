@@ -35,6 +35,7 @@ import { BEAD_RULES } from '../../src/sim/beadData';
 import { availableTechs, buildError, isUnlocked, opusOpen } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
+import { bumpRevision } from '../../src/sim/state';
 
 /** The row that ends the game, by its marker. Never named here either. */
 const OPUS = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true)!;
@@ -102,6 +103,7 @@ function playToTheFinish(maxTurns: number): Played {
           family: 'economic',
           turn: game.state.turn,
         });
+        bumpRevision(game.state);
       }
     }
 

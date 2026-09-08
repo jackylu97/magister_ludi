@@ -46,6 +46,7 @@ import {
   claimWonder,
   playerById,
   wonderClaim,
+  bumpRevision,
 } from '../../src/sim/state';
 import {
   anyCardDef,
@@ -110,6 +111,7 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech as never)) {
       player.techsResearched.push(tech as never);
+      bumpRevision(state);
     }
   }
 }
@@ -170,6 +172,7 @@ describe('the wonder roster', () => {
     // A barracks-shaped percentage names `building`; the marble-shaped one that
     // names `wonder` does not exist yet, and that is the point of the category.
     city.buildings.push('barracks');
+    bumpRevision(g.state);
     const toward = productionModifiers(g.state, city, { kind: 'building', id: WONDER });
     expect(toward).toEqual([]);
   });
@@ -412,6 +415,7 @@ describe('a wonder’s effect is a card', () => {
     settleProduction(g.state, home);
 
     home.ownerId = 1;
+    bumpRevision(g.state);
     // The claim is history and does not move; the effect does.
     expect(wonderClaim(g.state, WONDER)!.playerId).toBe(0);
     expect(liveEffects(g.state, 0).some((entry) => entry.card === WONDER)).toBe(false);
@@ -592,6 +596,7 @@ describe('the ratified roster', () => {
 /** Raises a wonder in a town the way a completion does: the stones *and* the claim. */
 function raise(state: GameState, city: City, id: BuildingId): void {
   city.buildings.push(id);
+  bumpRevision(state);
   claimWonder(state, id, city);
 }
 
@@ -663,6 +668,7 @@ describe('the Great Wall', () => {
     expect(inside.cost).toBe(1 + RULES.movement.zocExtraCost);
     // And the same board without the Wall tolls nothing at all.
     theirs.buildings = [];
+    bumpRevision(state);
     state.wonders = [];
     const open = stepCost(state.map, from!, along!, mover, zocField(state, 0))!;
     expect(open.zoc).toBe(false);
@@ -861,11 +867,14 @@ describe('the new counts', () => {
     const bare = happinessOf(g.state, 0);
 
     first.buildings.push('barracks');
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(bare + 1);
     second.buildings.push('barracks');
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(bare + 2);
     // A temple is not a barracks: the row names which building it counts.
     second.buildings.push('temple');
+    bumpRevision(g.state);
     expect(happinessOf(g.state, 0)).toBe(bare + 2);
   });
 
@@ -880,6 +889,7 @@ describe('the new counts', () => {
     const withTomb = line();
     expect(withTomb).toBeGreaterThan(0);
     city.buildings.push('granary');
+    bumpRevision(g.state);
     expect(line()).toBe(withTomb + 1);
     // The town next door has the tomb's empire but not its stones.
     expect(cardCityYields(g.state, other).find((l) => l.card === 'mausoleum')).toBeUndefined();
@@ -1032,6 +1042,7 @@ describe('an ordinary building carries card effects, in its own town only', () =
     const bare = growthSurplus(g.state, city, yields);
 
     city.buildings.push('aqueduct');
+    bumpRevision(g.state);
     expect(growthSurplus(g.state, city, yields)).toBe(bare * 1.15);
     // And it is an ordinary line of the ordinary ledger, labelled by its class.
     const line = cardRulePercent(g.state, 0, 'growthSurplus', city).find(
@@ -1049,6 +1060,7 @@ describe('an ordinary building carries card effects, in its own town only', () =
     const bare = growthSurplus(g.state, other, yields);
 
     city.buildings.push('aqueduct');
+    bumpRevision(g.state);
     expect(growthSurplus(g.state, other, yields)).toBe(bare);
     expect(cardRulePercent(g.state, 0, 'growthSurplus', other)).toHaveLength(0);
     // The empire's own walk never sees it: `liveEffects` is the law, and a
@@ -1092,6 +1104,7 @@ describe('a rite lasts longer under the observatory', () => {
     // blessing already stamped.
     const stamped = second.expiresTurn;
     city.buildings = city.buildings.filter((id) => id !== 'chichenItza');
+    bumpRevision(g.state);
     expect(city.timed!.every((entry) => entry.expiresTurn === stamped)).toBe(true);
   });
 });
@@ -1128,6 +1141,7 @@ describe('a completion grant', () => {
     // And a town that already has one is told so rather than given a second.
     const other = foundCityAt(g.state, 0, at(g.state.map, city.col + 4, city.row));
     other.buildings.push('amphitheater');
+    bumpRevision(g.state);
     const again = realiseItem(g.state, other, { kind: 'building', id: 'theatreOfDionysus' });
     expect(again.grants).toContainEqual({
       grant: 'building',
@@ -1208,7 +1222,9 @@ describe('a completion grant', () => {
     // Under a government with a pool it deals one…
     const tiered = GOVERNMENT_IDS.find((id) => poolDoctrines(governmentDef(id).tier).length > 0)!;
     player.statecraft.government = tiered;
+    bumpRevision(g.state);
     city.buildings = city.buildings.filter((id) => id !== 'theatreOfDionysus');
+    bumpRevision(g.state);
     g.state.wonders = [];
     expect(finish(g.state, city, 'theatreOfDionysus')?.grants?.[0]).toMatchObject({
       grant: 'doctrineDraft',
@@ -1220,6 +1236,7 @@ describe('a completion grant', () => {
     // …and a second wonder finishing while it is unanswered leaves it alone.
     const other = found(g.state, 0);
     other.buildings.push('hagiaSophia');
+    bumpRevision(g.state);
     const second = finish(g.state, other, 'houseOfWisdom');
     void second;
     expect(player.statecraft.pendingDoctrine).toBe(dealt);

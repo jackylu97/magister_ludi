@@ -21,7 +21,14 @@ import { advanceAlongPath } from '../../src/sim/movement';
 import { RULES } from '../../src/sim/rulesData';
 import { techsGrant } from '../../src/sim/techData';
 import { fullMovement } from '../../src/sim/units';
-import { type GameState, type Unit, createCity, createUnit, newGame } from '../../src/sim/state';
+import {
+  type GameState,
+  type Unit,
+  createCity,
+  createUnit,
+  newGame,
+  bumpRevision,
+} from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
 import { openWar } from '../../src/sim/wars';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
@@ -527,6 +534,7 @@ describe('the shore crossing', () => {
     }
     for (const player of state.players) {
       if (!player.techsResearched.includes('sailing')) player.techsResearched.push('sailing');
+      bumpRevision(state);
     }
     return state;
   }
@@ -654,6 +662,7 @@ describe('the shore crossing', () => {
     expect(priceOf(state, warrior, at(state.map, 3, 4), at(state.map, 4, 4))).toBeNull();
 
     state.players[0]!.techsResearched.push('wayfinding');
+    bumpRevision(state);
     expect(techsGrant(state.players[0]!.techsResearched, 'militaryEmbark')).toBe(true);
     // With Sea Legs the soldier wades — and pays exactly what the worker beside
     // it pays: its own whole allowance. The gift is a wider roster, not a

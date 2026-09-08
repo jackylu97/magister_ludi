@@ -37,7 +37,7 @@ import {
 } from '../../src/sim/explore';
 import { createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { unitAwaitsOrders } from '../../src/sim/units';
 import { EXPLORED, isExploredBy, resetVisibility } from '../../src/sim/visibility';
@@ -403,6 +403,7 @@ describe('the gated layers and the explorer', () => {
     barrow.discovery = 'antiquity' as never;
     expect(exploreTarget(state, scout)).toEqual(frontier);
     state.players[0]!.techsResearched.push('prospecting' as never);
+    bumpRevision(state);
     expect(exploreTarget(state, scout)).toEqual({ col: barrow.col, row: barrow.row });
   });
 });

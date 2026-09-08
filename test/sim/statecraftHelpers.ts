@@ -12,7 +12,7 @@
 import { foundCityAt } from '../../src/sim/cities';
 import { createGame, dispatch } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
-import type { GameState } from '../../src/sim/state';
+import { type GameState, bumpRevision } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
 export function game(seed = 7) {
@@ -54,6 +54,11 @@ export function game(seed = 7) {
  *
  * Read through `ABILITY_TECH` so that moving the gate to another node moves this
  * with it, and never leaves it naming a technology that opens nothing.
+ *
+ * **It announces itself** (batch E3a). A technology is the tenth source of
+ * `liveEffects` and every reading in the game is remembered on
+ * `GameState.revision`, so a bench that writes one onto a seat is a writer and
+ * says so exactly as `applyCommand` does. See `test/sim/benches.test.ts`.
  */
 export function keepTheRites(state: GameState): void {
   const gate = ABILITY_TECH.get('ancestorRites');
@@ -61,9 +66,18 @@ export function keepTheRites(state: GameState): void {
   for (const player of state.players) {
     if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
   }
+  bumpRevision(state);
 }
 
+/**
+ * A city for a player, on the tile their first unit is standing on.
+ *
+ * `foundCityAt` is the sim's own seam and not a command, so the bench moves the
+ * revision on its behalf — the same announcement `keepTheRites` makes.
+ */
 export function found(state: GameState, playerId: number) {
   const unit = state.units.find((u) => u.ownerId === playerId)!;
-  return foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
+  const city = foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
+  bumpRevision(state);
+  return city;
 }

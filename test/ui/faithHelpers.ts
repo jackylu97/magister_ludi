@@ -21,6 +21,7 @@ import {
   createUnit,
   newGame,
   removeUnit,
+  bumpRevision,
 } from '../../src/sim/state';
 import { foundReligion } from '../../src/sim/religion';
 import { BELIEF_IDS } from '../../src/sim/religionData';
@@ -170,5 +171,6 @@ export function faithWorld(): { state: GameState; ours: Religion; theirs: Religi
 export function found(state: GameState, seat: number): Religion {
   const player = state.players[seat]!;
   player.pantheon.beliefs.push(BELIEF_IDS[0]!);
+  bumpRevision(state);
   return foundReligion(state, player);
 }

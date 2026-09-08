@@ -30,6 +30,7 @@ import type { GameState } from '../../src/sim/state';
 import { availableTechs, isUnlocked } from '../../src/sim/tech';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { bumpRevision } from '../../src/sim/state';
 
 /** The nearest tile a city could legally stand on, or null. `tech.test.ts`'s. */
 function nearestSite(
@@ -263,6 +264,7 @@ describe('what maintenance did to the warband', () => {
     const { game } = playWarband(45, []);
     const player = game.state.players[0]!;
     player.gold = -500;
+    bumpRevision(game.state);
     const beforeIds = new Set(
       game.state.units.filter((unit) => unit.ownerId === 0).map((unit) => unit.id),
     );

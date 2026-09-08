@@ -41,7 +41,13 @@ import { advanceAlongPath } from '../../src/sim/movement';
 import { findPath } from '../../src/sim/pathfind';
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, createUnit, newGame, realPlayers } from '../../src/sim/state';
+import {
+  type GameState,
+  createUnit,
+  newGame,
+  realPlayers,
+  bumpRevision,
+} from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
 import { techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef, unitMaxHp } from '../../src/sim/unitData';
@@ -312,8 +318,10 @@ describe('melee', () => {
     const state = flatState();
     const player = state.players[0]!;
     player.statecraft.government = 'warChief';
+    bumpRevision(state);
     player.statecraft.orders.push('bloodedSpears');
     player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
+    bumpRevision(state);
     player.researching = 'husbandry';
     player.sciencePool = techDef('husbandry').cost - 5;
 
@@ -1173,12 +1181,14 @@ describe('cities in combat', () => {
     // Bronze Working alone is not enough: a spearman is a unit, a swordsman is
     // a unit **plus improved iron**, and "could train" is `buildError`'s word.
     owner.techsResearched.push('bronzeWorking');
+    bumpRevision(state);
     expect(cityBaseStrength(state, city)).toBe(unitDef('spearman').combatStrength);
     expect(cityBaseStrength(state, city)).toBeGreaterThan(warrior);
 
     // The floor is what a seat with no army at all defends with.
     const bare = state.players[0]!;
     bare.techsResearched = [];
+    bumpRevision(state);
     const theirs = foundCityAt(state, 0, at(state.map, 8, 6));
     expect(explainCityStrength(state, theirs)[0]!.amount).toBe(COMBAT.cityMinStrength);
   });
@@ -2143,6 +2153,7 @@ describe('the strength breakdown', () => {
     expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp);
 
     city.buildings.push('palisade');
+    bumpRevision(state);
     const walled = forecast(state, a.id, 8, 4);
     // Two fields, two questions: `cityStat.defense` is what it fights with and
     // `cityHp` is what a besieger has to spend.
@@ -2284,6 +2295,7 @@ describe('siege', () => {
   function learnsSiege(state: GameState, playerId: number): void {
     const player = state.players[playerId]!;
     if (!player.techsResearched.includes('siegecraft')) player.techsResearched.push('siegecraft');
+    bumpRevision(state);
   }
 
   function encircled(): { state: GameState; city: ReturnType<typeof foundCityAt> } {
@@ -2531,6 +2543,7 @@ describe('cards and stamps on the strength ledger', () => {
     const sc = state.players[playerId]!.statecraft;
     sc.orders.push(id as never);
     sc.slots.push({ card: id as never, sealedUntil: 0 });
+    bumpRevision(state);
   }
 
   it('Hill Forts pays the defender on hills, and nobody on the flat', () => {
@@ -2623,6 +2636,7 @@ describe('a town at the floor beside an enemy', () => {
   it('does not heal while an enemy stands adjacent, and mends the turn they withdraw', () => {
     const state = flatState();
     state.players[0]!.techsResearched.push('siegecraft');
+    bumpRevision(state);
     const city = foundCityAt(state, 1, at(state.map, 8, 4));
     const gate = neighborTiles(state.map, tileHex(at(state.map, city.col, city.row)))[0]!;
     const enemy = createUnit(state, 0, 'warrior', gate.col, gate.row);
@@ -2639,6 +2653,7 @@ describe('a town at the floor beside an enemy', () => {
   it('still heals a town above the floor beside an enemy — its walls stand', () => {
     const state = flatState();
     state.players[0]!.techsResearched.push('siegecraft');
+    bumpRevision(state);
     const city = foundCityAt(state, 1, at(state.map, 8, 4));
     const gate = neighborTiles(state.map, tileHex(at(state.map, city.col, city.row)))[0]!;
     createUnit(state, 0, 'warrior', gate.col, gate.row);

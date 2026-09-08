@@ -345,7 +345,20 @@ directly to confirm rulings — user marginalia are rulings.
   `statecraft/{evaluator,describers,draft}.ts`; mechanical, parity the
   gate, the harness retired at its end. **E4 — the deferred rows ruled**
   (§3e's table, yours). **E5 — the yield family collapsed** (optional,
-  last, H6-shaped). E1 starts when H19 lands. Open, yours to rule: **the bead
+  last, H6-shaped). E1 starts when H19 lands. **E1 and E2 LANDED** (8d7075a,
+  59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
+  2026-09-07: "please continue" on the orchestrator's recommended reading):
+  **the benches announce their hand mutations** — a test that mutates a
+  board with no command behind it calls `bumpRevision`, and `liveReading`
+  keys on the revision like every other memo, the print and its re-asked
+  conditions gone. So E3 runs in two halves: **E3a — the law's memo on the
+  revision and the honest benches** (the 27 files E2 measured, parity the
+  gate) — **built** (schema stays 87, no number and no replay moved, the
+  parity fixtures byte-untouched; `livePrint`/`printsAgree`/`gatesAgree` and
+  the `asked` notebook deleted, 57 bench files and 4 helpers announcing,
+  `test/sim/benches.test.ts` the lint; §4c.1 of `docs/audit/evaluations.md`) —
+  then **E3b — the three verbs and the files by layer** (parity the
+  gate; the harness retired at its end). Open, yours to rule: **the bead
   tables open on the world's clock** (the first empire into an age turns
   its hand face up for all; the Long Count shows the next hand early) — the
   user saw Æra IV draws in Æra III and asked for them only on reaching the

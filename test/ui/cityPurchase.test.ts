@@ -29,7 +29,7 @@ import { foundCityAt } from '../../src/sim/cities';
 import { createGame } from '../../src/sim/game';
 import { getTileAt } from '../../src/sim/map';
 import { explainContribution } from '../../src/sim/purchase';
-import { playerById } from '../../src/sim/state';
+import { playerById, bumpRevision } from '../../src/sim/state';
 
 /** The one row in the table that takes contributions. Found by its marker. */
 const CONSECRATOR = BUILDING_IDS.find(
@@ -160,7 +160,9 @@ describe('the contribute buttons', () => {
     const city = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!);
     const player = playerById(g.state, 0)!;
     player.gold = 500;
+    bumpRevision(g.state);
     player.faithPool = 500;
+    bumpRevision(g.state);
 
     // Nothing queued: no offer in either bank.
     city.queue.length = 0;
@@ -180,6 +182,7 @@ describe('the contribute buttons', () => {
 
     // An empty purse withdraws that button and leaves the other one standing.
     player.gold = 0;
+    bumpRevision(g.state);
     expect(explainContribution(g.state, 0, city.id, 'gold')).toBeNull();
     expect(explainContribution(g.state, 0, city.id, 'faith')).not.toBeNull();
   });

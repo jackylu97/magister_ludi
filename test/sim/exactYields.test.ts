@@ -44,7 +44,7 @@ import { cardYieldConversions } from '../../src/sim/statecraft';
 import { applyStages, foldStages, type StagedLine } from '../../src/sim/modifiers';
 import { RULES } from '../../src/sim/rulesData';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { formatYield, roundYield, signedYield, yieldShows } from '../../src/sim/yieldFormat';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -177,6 +177,7 @@ describe('nothing rounds inside a fold', () => {
     const sc = state.players[0]!.statecraft;
     sc.orders.push('theHarvestSongs');
     sc.slots.push({ card: 'theHarvestSongs', sealedUntil: state.turn });
+    bumpRevision(state);
     const flats = { ...cityQuote(state, city).flats, food: 7 };
     const lines = cardYieldConversions(state, city, flats);
     const paid = lines.find((line) => line.source.includes('food'))?.culture ?? 0;

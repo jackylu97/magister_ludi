@@ -24,7 +24,7 @@ import {
   yieldContextFor,
 } from '../../src/sim/cities';
 import { createMap, getTileAt, type Tile } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import {
   FEATURE_IDS,
   type FeatureId,
@@ -542,6 +542,7 @@ describe('what a seam still wants', () => {
     const state = boardState();
     const hex = seam(state, 'gems');
     state.players[0]!.techsResearched.push('mining');
+    bumpRevision(state);
     const want = resourceRequirementOf(state, 0, hex);
     // Same sentence — it is still what has to be built — in the card's own ink.
     expect(want).toEqual({ text: 'requires Mine (Mining)', held: true });
@@ -551,6 +552,7 @@ describe('what a seam still wants', () => {
     const state = boardState();
     const hex = seam(state, 'gems');
     state.players[0]!.techsResearched.push('mining');
+    bumpRevision(state);
     hex.improvement = 'mine';
     expect(resourceRequirementOf(state, 0, hex)).toBeNull();
   });
@@ -574,6 +576,7 @@ describe('what a seam still wants', () => {
     // Re-aimed 2026-09-04 (the Bronze Panoply ruling): the reveal node is read
     // off the **row**, so moving the seam's gate moves this with it.
     state.players[0]!.techsResearched.push(resourceDef('iron').requiresTech!);
+    bumpRevision(state);
     expect(resourceRequirementOf(state, 0, hex)!.text).toBe('requires Mine (Mining)');
   });
 
@@ -693,6 +696,7 @@ describe('the owning city\'s own lines reach the readout', () => {
     }
     const city = foundCityAt(state, 0, cityTile!)!;
     city.buildings.push('lighthouse');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const lines = tileYieldContributions(state, 0, coast!);
     const lighthouse = lines.find((line) => line.source === 'Lighthouse');

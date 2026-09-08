@@ -53,6 +53,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 
@@ -466,6 +467,7 @@ describe('authority: what a city costs', () => {
     // re-read against the four-age tree of 2026-08-30, which put Mathematics
     // into Æra III.
     state.players[0]!.techsResearched.push('siegecraft');
+    bumpRevision(state);
     expect(agesAdvanced(state, 0)).toBe(1);
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, 'Æra II')).toBe(WRIT.perAge);
@@ -498,11 +500,13 @@ describe('authority: what a city costs', () => {
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBeUndefined();
 
     first.buildings.push('assemblyHall');
+    bumpRevision(state);
     expect(lineFor(explainAuthority(state, 0), monument.name)).toBe(capacity);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
     // Two of them are one line that counts them, not two lines.
     second.buildings.push('assemblyHall');
+    bumpRevision(state);
     const entries = explainAuthority(state, 0);
     const named = entries.filter((entry) => entry.source.includes(monument.name));
     expect(named).toHaveLength(1);
@@ -534,6 +538,7 @@ describe('authority: what a city costs', () => {
     const bare = meterStanding(explainAuthority(state, 0)).gain;
 
     city.buildings.push('imperialThrone');
+    bumpRevision(state);
     expect(lineFor(explainAuthority(state, 0), stele.name)).toBe(capacity);
     expect(meterStanding(explainAuthority(state, 0)).gain).toBe(bare + capacity);
 
@@ -541,6 +546,7 @@ describe('authority: what a city costs', () => {
     // what makes "Assembly Halls ×3" a reading of the halls rather than of the
     // whole shelf.
     city.buildings.push('assemblyHall');
+    bumpRevision(state);
     const entries = explainAuthority(state, 0);
     expect(lineFor(entries, stele.name)).toBe(capacity);
     expect(lineFor(entries, buildingDef('assemblyHall').name)).toBe(
@@ -666,6 +672,7 @@ describe('what the meters do to the economy', () => {
   it('multiplies production when the writ runs, and everything when it does not', () => {
     const state = empire(1);
     state.players[0]!.techsResearched.push('mathematics', 'currency');
+    bumpRevision(state);
     expect(tierPercent(authorityOf(state, 0))).toBeGreaterThan(0);
     const good = meterEffects(state, 0).find((effect) => effect.meter === 'authority')!;
     expect(good.yields).toEqual(['production']);
@@ -724,6 +731,7 @@ describe('what the meters do to the economy', () => {
 
     // Softening the meter softens the rate, through the same function.
     state.players[0]!.techsResearched.push('mathematics', 'currency', 'engineering');
+    bumpRevision(state);
     expect(cityYields(state, city).production).toBeGreaterThanOrEqual(rate);
   });
 });
@@ -1038,6 +1046,7 @@ describe('what founding a city here would cost', () => {
     // 2026-09-03 rewrote that row into a yield conversion; the rule and the two
     // readings of it are unchanged, and this is the card that still says it.)
     playerById(state, 0)!.statecraft.doctrines.push('mareNostrum');
+    bumpRevision(state);
     const legislated = foldMeter(
       foundingCostLines(explainFoundingCost(state, 0, site), 'authority'),
     );
@@ -1046,6 +1055,7 @@ describe('what founding a city here would cost', () => {
     // And the happiness half's card, which is a surcharge on governing one more
     // town at all — its own line, outside the demand factor.
     playerById(state, 0)!.statecraft.doctrines.push('manifestOfTheSteppe');
+    bumpRevision(state);
     const happiness = foundingCostLines(explainFoundingCost(state, 0, site), 'happiness');
     expect(happiness).toHaveLength(2);
     expect(lineFor(happiness, 'cost of governing')).toBeLessThan(0);
@@ -1065,6 +1075,7 @@ describe('what founding a city here would cost', () => {
     const sc = playerById(state, 0)!.statecraft;
     sc.orders.push('hillForts');
     sc.slots.push({ card: 'hillForts', sealedUntil: 0 });
+    bumpRevision(state);
     const after = foundingCostLines(explainFoundingCost(state, 0, site), 'authority');
     // A cost is signed negative, so a point cheaper is a point *higher*.
     expect(foldMeter(after)).toBe(before + 1);

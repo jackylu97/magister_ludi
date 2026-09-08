@@ -24,7 +24,7 @@ import { describe, expect, it } from 'vitest';
 import { createMap, getTileAt } from '../../src/sim/map';
 import { explainBuildingPreview, foldBuildingPreview, foundCityAt } from '../../src/sim/cities';
 import { beliefDef } from '../../src/sim/religionData';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { cityGuildInflow, dismissSpecialistError, idleCitizens } from '../../src/sim/guilds';
 import { guildThreshold } from '../../src/sim/specialists';
@@ -82,6 +82,7 @@ describe('the row figure: the fold, or the house dash', () => {
     // effect scoped `hasBuilding: barracks`, invisible to the building's own
     // row and visible only to this preview.
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
+    bumpRevision(state);
     const after = explainBuildingPreview(state, city, 'barracks');
     const rowFigure = previewFigures(foldBuildingPreview(after)) || '—';
     expect(rowFigure).toBe('+1⚙');
@@ -103,6 +104,7 @@ describe('the hover card: every preview line, the sim’s own label', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
+    bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'barracks');
     expect(lines).toHaveLength(1);
 
@@ -139,6 +141,7 @@ describe('the fold equals the printed total', () => {
     const state = flatState();
     const city = plant(state, 0, 8, 5);
     state.players[0]!.pantheon.beliefs.push('godOfTheForge', 'keeperOfTheHearth');
+    bumpRevision(state);
     for (const id of ['barracks', 'granary', 'monument'] as const) {
       const lines = explainBuildingPreview(state, city, id);
       const fold = foldBuildingPreview(lines);

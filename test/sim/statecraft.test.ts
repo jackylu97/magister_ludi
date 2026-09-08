@@ -170,6 +170,7 @@ import {
   SCHEMA_VERSION,
   type City,
   type GameState,
+  bumpRevision,
   createUnit,
   playerById,
 } from '../../src/sim/state';
@@ -194,6 +195,11 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   grant(sc, id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  // **The bench announces itself** (batch E3a): a slotted card is the third
+  // source of `liveEffects`, every reading in the game is remembered on
+  // `GameState.revision`, and a hand that moves the board moves the counter
+  // exactly as `applyCommand` does. See `test/sim/benches.test.ts`.
+  bumpRevision(state);
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
@@ -841,6 +847,7 @@ describe('every hook family, end to end', () => {
     // Out of its office it pays nothing: an Order pays from a slot and nowhere
     // else, which is the clause the ladder never touched.
     g.state.players[0]!.statecraft.slots = [];
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).faith).toBe(before);
   });
 
@@ -849,6 +856,7 @@ describe('every hook family, end to end', () => {
     const city = found(g.state, 0);
     const player = g.state.players[0]!;
     player.statecraft.doctrines.push('riverKings');
+    bumpRevision(g.state);
     const lines = cityYieldPercents(g.state, city);
     const food = lines.filter((line) => line.yield === 'food' && line.source.startsWith('Doctrine'));
     expect(food).toHaveLength(1);
@@ -966,6 +974,7 @@ describe('every hook family, end to end', () => {
     // until the levelling ruling of 2026-09-04; the reader that folded them is
     // unchanged and a row printing two clauses would still land as two lines.
     playerById(g.state, 0)!.statecraft.slots = [];
+    bumpRevision(g.state);
     expect(cardCityStat(g.state, city, 'defense')).toEqual([]);
   });
 
@@ -975,6 +984,7 @@ describe('every hook family, end to end', () => {
     // A government that says nothing about renown says nothing about renown.
     expect(cardRenownLines(g.state, 0)).toEqual([]);
     sc.government = 'councilOfElders';
+    bumpRevision(g.state);
     // No cities, no counsel: a zero pays no line rather than a line worth zero.
     expect(cardRenownLines(g.state, 0)).toEqual([]);
     const city = found(g.state, 0);
@@ -1003,6 +1013,7 @@ describe('every hook family, end to end', () => {
     const g = game();
     found(g.state, 0);
     g.state.players[0]!.statecraft.doctrines.push('theTithe');
+    bumpRevision(g.state);
     expect(cardEmpireYields(g.state, 0, { faithPerTurn: 7 }).find((l) => l.card === 'theTithe')?.gold).toBe(7);
     // Zero rate, no line — a card that pays nothing is not in the list.
     expect(cardEmpireYields(g.state, 0, { faithPerTurn: 0 }).some((l) => l.card === 'theTithe')).toBe(false);
@@ -1018,8 +1029,10 @@ describe('every hook family, end to end', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
+    bumpRevision(g.state);
     refreshCityDerived(g.state, city);
     g.state.players[0]!.statecraft.doctrines.push('theTithe');
+    bumpRevision(g.state);
     // The lazy form and the eager one, on the very same board: one list.
     expect(explainEmpireCardYields(g.state, 0)).toEqual(
       cardEmpireYields(g.state, 0, empireRateReading(g.state, 0)),
@@ -1035,6 +1048,7 @@ describe('every hook family, end to end', () => {
     expect(takings).toBe(1);
     // An empire holding no such card never asks at all.
     g.state.players[0]!.statecraft.doctrines = [];
+    bumpRevision(g.state);
     let asked = 0;
     cardEmpireYields(g.state, 0, () => {
       asked += 1;
@@ -1046,6 +1060,7 @@ describe('every hook family, end to end', () => {
   it('windfallRider — The Woodwrights changes the printed number', () => {
     const g = game();
     g.state.players[0]!.statecraft.doctrines.push('woodwrights');
+    bumpRevision(g.state);
     const payout = windfallPayout(g.state, 0, 'chop', 20);
     // The rider is part of the printed number (Entry XVIII.5), not a
     // multiplication of a settled one.
@@ -1060,6 +1075,7 @@ describe('every hook family, end to end', () => {
     slot(g.state, 0, 'spoilsOfTheWild');
     expect(windfallPayout(g.state, 0, 'camp', 10).amount).toBe(20);
     g.state.players[0]!.statecraft.doctrines.push('burningWay');
+    bumpRevision(g.state);
     // The Burning Way pays no camp percentage either: a rider that does not name
     // this occasion is simply not on this payout.
     expect(windfallPayout(g.state, 0, 'camp', 10).amount).toBe(20);
@@ -1083,6 +1099,7 @@ describe('every hook family, end to end', () => {
     // the realm is a culture better off.
     const g = game();
     g.state.players[0]!.statecraft.doctrines.push('foundersRoad');
+    bumpRevision(g.state);
     expect(cardFoundingRider(g.state, 0).buildings).toEqual([]);
     const city = found(g.state, 0);
     expect(city.buildings).not.toContain('monument');
@@ -1101,6 +1118,7 @@ describe('every hook family, end to end', () => {
     const g = game();
     const city = found(g.state, 0);
     g.state.players[0]!.statecraft.doctrines.push('hermitCrown');
+    bumpRevision(g.state);
     const open = cityYieldPercents(g.state, city).filter((l) => l.source.includes('Hermit'));
     // `yield: 'all'` expands into one labelled line per voice.
     expect(open).toHaveLength(6);
@@ -1112,6 +1130,7 @@ describe('every hook family, end to end', () => {
     for (let i = 0; i < 3; i++) g.state.cities.push({ ...city, id: 800 + i });
     expect(cityYieldPercents(g.state, city).some((l) => l.source.includes('Hermit'))).toBe(true);
     g.state.cities.push({ ...city, id: 899 });
+    bumpRevision(g.state);
     expect(cityYieldPercents(g.state, city).some((l) => l.source.includes('Hermit'))).toBe(false);
   });
 
@@ -1119,6 +1138,7 @@ describe('every hook family, end to end', () => {
     const g = game();
     expect(cardActionRule(g.state, 0, 'freeChop')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('burningWay');
+    bumpRevision(g.state);
     expect(cardActionRule(g.state, 0, 'freeChop')).toBe(true);
 
     // The pact's one surviving clause since the user's card pass of 2026-09-03
@@ -1128,10 +1148,12 @@ describe('every hook family, end to end', () => {
     // further down, driven by a timed effect.
     expect(cardBehaviorRule(g.state, 0, 'barbarianKillsConvert')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
+    bumpRevision(g.state);
     expect(cardBehaviorRule(g.state, 0, 'barbarianKillsConvert')).toBe(true);
 
     expect(cardOfferRule(g.state, 0, 'discoveryClaimAll')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('athenaeumOfTheRoad');
+    bumpRevision(g.state);
     expect(cardOfferRule(g.state, 0, 'discoveryClaimAll')).toBe(true);
   });
 
@@ -1144,6 +1166,7 @@ describe('every hook family, end to end', () => {
     void city;
     const before = explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!;
     g.state.players[0]!.statecraft.doctrines.push('hegemony');
+    bumpRevision(g.state);
     const after = explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!;
     expect(after.value).toBeGreaterThan(before.value);
     // A captured city costs 4 since the authority rework (user, 2026-08-29).
@@ -1159,6 +1182,7 @@ describe('every hook family, end to end', () => {
     player.unitsBuilt.settler = 3;
     const before = unitProductionCost(g.state, 0, 'settler');
     player.statecraft.doctrines.push('manifestOfTheSteppe');
+    bumpRevision(g.state);
     const after = unitProductionCost(g.state, 0, 'settler');
     expect(after).toBeLessThan(before);
     // The ladder is **not** stopped any more (the 2026-09-02 pass dropped that
@@ -1174,6 +1198,7 @@ describe('every hook family, end to end', () => {
     const warrior = createUnit(g.state, 0, 'warrior', seat.col, seat.row);
     const before = fullMovement(settler, g.state);
     g.state.players[0]!.statecraft.doctrines.push('manifestOfTheSteppe');
+    bumpRevision(g.state);
     expect(fullMovement(settler, g.state)).toBe(before + 2);
     // And nothing else: the filter names the settler's own silhouette.
     expect(cardUnitStat(g.state, warrior, 'movement')).toBe(0);
@@ -1285,6 +1310,7 @@ describe('determinism', () => {
     const g = game();
     const player = g.state.players[0]!;
     player.statecraft.doctrines.push('greatLitany');
+    bumpRevision(g.state);
     slot(g.state, 0, 'firstRites');
     slot(g.state, 0, 'festivalDays');
     // Government, then Doctrines in the order taken, then slots in slot order.
@@ -1323,6 +1349,7 @@ describe('rule 5 holds with cards active', () => {
     slot(g.state, seat, 'weightsAndMeasures');
     slot(g.state, seat, 'conscription');
     g.state.players[seat]!.statecraft.doctrines.push('hermitCrown');
+    bumpRevision(g.state);
     return { g, city };
   }
 
@@ -1382,7 +1409,9 @@ describe('rule 5 holds with cards active', () => {
     const player = g.state.players[0]!;
     // Two sources of a city-stage percentage on the same yield.
     player.statecraft.doctrines.push('hermitCrown');
+    bumpRevision(g.state);
     player.statecraft.doctrines.push('riverKings');
+    bumpRevision(g.state);
     const food = cityYieldPercents(g.state, city).filter(
       (line) => line.yield === 'food' && line.stage === 'city',
     );
@@ -1412,6 +1441,7 @@ describe('rule 5 holds with cards active', () => {
   it('a windfall’s printed number is the fold of its own riders', () => {
     const g = game(29);
     g.state.players[0]!.statecraft.doctrines.push('woodwrights');
+    bumpRevision(g.state);
     slot(g.state, 0, 'campFollowers');
     const payout = windfallPayout(g.state, 0, 'chop', 20);
     // Every rider that touched it is named, so the announce line can say why a
@@ -1430,9 +1460,11 @@ describe('rule 5 holds with cards active', () => {
       const g = game(29);
       const sc = playerById(g.state, 0)!.statecraft;
       sc.government = 'warChief';
+      bumpRevision(g.state);
       // Slotted, not merely held: the whole of what this rider prices is the
       // scarce decision, so an Order in the pocket buys nothing.
       sc.slots = orders.map((id) => ({ card: id, sealedUntil: 0 }));
+      bumpRevision(g.state);
       for (const id of orders) sc.orders.push(id);
       expect(filledOrderSlots(g.state, 0)).toBe(orders.length);
       const payout = windfallPayout(g.state, 0, 'kill');
@@ -1455,11 +1487,13 @@ describe('rule 5 holds with cards active', () => {
     const g = game(29);
     const sc = playerById(g.state, 0)!.statecraft;
     sc.government = 'warChief';
+    bumpRevision(g.state);
     sc.orders.push('bloodedSpears', 'campFollowers');
     sc.slots = [
       { card: 'bloodedSpears', sealedUntil: 0 },
       { card: 'campFollowers', sealedUntil: 0 },
     ];
+    bumpRevision(g.state);
     // Æra II. Nothing on the table carries both flags on one rider today, so the
     // composition is pinned by lending War Chief's science rider the era for the
     // length of this test and handing it straight back — the alternative is a
@@ -1468,6 +1502,7 @@ describe('rule 5 holds with cards active', () => {
     // Currency in Æra II and Mathematics and Rhetoric in Æra III — one node of
     // the second age is all the era multiplier is being asked about.
     playerById(g.state, 0)!.techsResearched.push('currency' as never);
+    bumpRevision(g.state);
     const rider = governmentDef('warChief').effects.find(
       (effect) => effect.kind === 'windfallRider' && effect.grant?.yield === 'science',
     ) as CardWindfallRiderEffect;
@@ -1498,9 +1533,11 @@ describe('rule 5 holds with cards active', () => {
     const g = game(29);
     const player = playerById(g.state, 0)!;
     player.statecraft.government = 'warChief';
+    bumpRevision(g.state);
     player.statecraft.drafts = 20; // No draft threshold in the way of the arithmetic.
     player.statecraft.orders.push('bloodedSpears');
     player.statecraft.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
+    bumpRevision(g.state);
     const science = player.sciencePool;
     const culture = player.culturePool;
     // Asking twice is asking once: the multiplier is a *reading* of the slots,
@@ -1532,6 +1569,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
     delete tile.resource;
     const before = worker.chargesLeft!;
     g.state.players[0]!.statecraft.doctrines.push('burningWay');
+    bumpRevision(g.state);
     chopFeatureAt(g.state, worker, tile);
     expect(worker.chargesLeft).toBe(before);
     expect(tile.feature).toBe('none');
@@ -1546,6 +1584,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
       // the settlement that a grant can trigger has its own test above.
       g.state.players[0]!.statecraft.drafts = 20;
       if (doctrine) g.state.players[0]!.statecraft.doctrines.push(doctrine);
+      bumpRevision(g.state);
       const worker = createUnit(g.state, 0, 'worker', city.col, city.row);
       const tile = getTileAt(g.state.map, worker.col, worker.row)!;
       tile.feature = 'forest';
@@ -1704,6 +1743,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
       effect: { kind: 'rule', rule: 'barbariansPassive' },
       expiresTurn: g.state.turn + 10,
     }];
+    bumpRevision(g.state);
     expect(nearestTarget(g.state, wild, raider)).toBeNull();
   });
 
@@ -1712,6 +1752,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
     const player = g.state.players[0]!;
     found(g.state, 0);
     player.statecraft.doctrines.push('athenaeumOfTheRoad');
+    bumpRevision(g.state);
     const gold = player.gold;
     const faith = player.faithPool;
     player.pendingDiscovery = {
@@ -1738,6 +1779,7 @@ describe('the behavioural hooks, in the verbs they change', () => {
     const before = explainHappiness(g.state, 0).find((line) => line.source.startsWith('Silk'));
     expect(before).toBeDefined();
     g.state.players[0]!.statecraft.doctrines.push('grandBazaar');
+    bumpRevision(g.state);
     const after = explainHappiness(g.state, 0).find((line) => line.source.startsWith('Silk'));
     // +50% on the flat per-unique figure, floored per line.
     expect(after!.value).toBe(Math.floor((before!.value * 150) / 100));
@@ -2018,11 +2060,13 @@ describe('the master-list cut of 2026-08-28', () => {
     // No production buildings: no line at all, rather than a line worth nothing.
     expect(percent()).toBe(0);
     city.buildings.push('workshop');
+    bumpRevision(g.state);
     // Batch F raised the compact's step to three points a hall (balance turn §3).
     expect(percent()).toBe(3);
     // A building of another category is not a helping: the count is of the rows
     // that declare this category, read off `BuildingDef.category`.
     city.buildings.push('monument');
+    bumpRevision(g.state);
     expect(percent()).toBe(3);
   });
 
@@ -2030,6 +2074,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = 'theocracy';
+    bumpRevision(g.state);
     const lines = cardEmpireYields(g.state, 0, { faithPerTurn: 100, capitalFaithPerTurn: 30 });
     const paid = foldCardYields(lines);
     // Ten percent of the *capital's* thirty, twice over — and deliberately not
@@ -2049,8 +2094,10 @@ describe('the master-list cut of 2026-08-28', () => {
       'market', 'workshop', 'barracks', 'stoneWalls',
       'granary', 'library', 'monument', 'amphitheater',
     );
+    bumpRevision(g.state);
     const before = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
     playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
+    bumpRevision(g.state);
     const after = explainRouteYieldBetween(g.state, from, to);
     // Rule 5: the extra is a line of the list the totals are the fold of.
     expect(after.some((line) => line.source.includes('cards'))).toBe(true);
@@ -2069,6 +2116,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const wild = g.state.players.find((p) => p.barbarian)!;
     const player = playerById(g.state, 0)!;
     player.statecraft.government = 'theEmpire';
+    bumpRevision(g.state);
     const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
       ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
     const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
@@ -2082,6 +2130,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // Asserted as the card's own labelled line rather than as a change in the
     // total — a legacy is itself a live card and moves the same total.
     player.legacies.push({ id: 'hannibal', age: 1 });
+    bumpRevision(g.state);
     const after = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     expect(after.ok).toBe(true);
     if (!after.ok) return;
@@ -2089,6 +2138,7 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(line.amount).toBe(1);
     // A scholar is not a general — the family is the whole of the rule.
     player.legacies.push({ id: 'imhotep', age: 1 });
+    bumpRevision(g.state);
     const third = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     if (third.ok) {
       expect(third.bonuses.find((b) => b.source.includes('The Empire'))!.amount).toBe(1);
@@ -2099,8 +2149,10 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = 'theMagisterium';
+    bumpRevision(g.state);
     expect(cardRenownLines(g.state, 0)).toEqual([]);
     city.buildings.push('pyramids');
+    bumpRevision(g.state);
     expect(cardRenownLines(g.state, 0)).toEqual([
       {
         card: 'theMagisterium',
@@ -2119,8 +2171,10 @@ describe('the master-list cut of 2026-08-28', () => {
     // A granary is not a fortification and a palisade is — decided by what the
     // row does to the town, never by a list of names.
     city.buildings.push('granary');
+    bumpRevision(g.state);
     expect(foldMeter(explainHappiness(g.state, 0))).toBe(before);
     city.buildings.push('palisade');
+    bumpRevision(g.state);
     expect(foldMeter(explainHappiness(g.state, 0))).toBe(before + 1);
   });
 
@@ -2210,6 +2264,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = 'republic';
+    bumpRevision(g.state);
     city.population = 12;
     const line = cardCityYields(g.state, city).find((l) => l.card === 'republic')!;
     expect(line.culture).toBe(2);
@@ -2222,6 +2277,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     const first = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('foundersRoad');
+    bumpRevision(g.state);
     expect(cardFoundingRider(g.state, 0).roads).toBe(true);
     const far = getTileAt(g.state.map, (first.col + 5) % g.state.map.width, first.row)!;
     foundCityAt(g.state, 0, far);
@@ -2238,6 +2294,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // The first city of a realm has nowhere to be joined to and is left alone.
     const g2 = game();
     g2.state.players[0]!.statecraft.doctrines.push('foundersRoad');
+    bumpRevision(g2.state);
     const only = found(g2.state, 0);
     expect(getTileAt(g2.state.map, only.col, only.row)!.road).toBeUndefined();
   });
@@ -2251,6 +2308,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // available from turn one.
     expect(isUnlocked(g.state, 0, 'building', 'gildedHall')).toBe(false);
     player.statecraft.doctrines.push('gildedCourt');
+    bumpRevision(g.state);
     expect(isUnlocked(g.state, 0, 'building', 'gildedHall')).toBe(true);
     // Open, and still not buildable: it is bought or not at all.
     expect(buildError(g.state, 0, 'building', 'gildedHall', city)).toContain('bought');
@@ -2274,6 +2332,7 @@ describe('the master-list cut of 2026-08-28', () => {
     });
     const wild = g.state.players.find((p) => p.barbarian)!;
     g.state.players[0]!.statecraft.doctrines.push('wolfMothersPact');
+    bumpRevision(g.state);
     const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
       ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
     const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
@@ -2311,10 +2370,12 @@ describe('the master-list cut of 2026-08-28', () => {
       effect: { kind: 'rule', rule: 'noCampClearing' },
       expiresTurn: g.state.turn + 10,
     }];
+    bumpRevision(g.state);
     expect(arriveOnTile(g.state, unit, tile).camp).toBeNull();
     expect(g.state.camps).toHaveLength(1);
     // Without the rule the same arrival burns it out — the rule is the card.
     delete player.timed;
+    bumpRevision(g.state);
     expect(arriveOnTile(g.state, unit, tile).camp).not.toBeNull();
     expect(g.state.camps).toHaveLength(0);
   });
@@ -2390,6 +2451,7 @@ describe('the master-list cut of 2026-08-28', () => {
     const g = game();
     expect(sealTurnsFor(g.state, 0)).toBe(STATECRAFT.meter.sealTurns);
     playerById(g.state, 0)!.statecraft.doctrines.push('absolutism');
+    bumpRevision(g.state);
     expect(sealTurnsFor(g.state, 0)).toBe(10);
   });
 
@@ -2589,6 +2651,7 @@ describe('the governments’ deferred halves, built', () => {
   /** Puts an empire under one government outright. Test scaffolding only. */
   function govern(state: GameState, playerId: number, id: string): void {
     playerById(state, playerId)!.statecraft.government = id as never;
+    bumpRevision(state);
   }
 
   it('Tyranny gives back a share of the payroll, as its own labelled line', () => {
@@ -2618,6 +2681,7 @@ describe('the governments’ deferred halves, built', () => {
     for (let i = 0; i < 4; i++) createUnit(g.state, 0, 'warrior', 3, 3);
     const gross = unitUpkeepTotal(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theStandingArmy' as never);
+    bumpRevision(g.state);
     const rebate = explainUnitUpkeepRebate(g.state, 0);
     expect(rebate.reduce((sum, line) => sum + line.gold, 0)).toBe(gross);
   });
@@ -2639,8 +2703,10 @@ describe('the governments’ deferred halves, built', () => {
     // A granary is not a faith building: the clause reads the rows' own
     // category and their own faith, never the town's total.
     city.buildings.push('granary');
+    bumpRevision(g.state);
     expect(under('theCuria')).toBe(under('chiefdom'));
     city.buildings.push('shrine');
+    bumpRevision(g.state);
     const shrineFaith = buildingDef('shrine').faith ?? 0;
     expect(shrineFaith).toBeGreaterThan(0);
     expect(under('theCuria')).toBe(under('chiefdom') + shrineFaith);
@@ -2733,6 +2799,7 @@ describe('the governments’ deferred halves, built', () => {
     // are somebody else's law again — three purchases, three clauses.
     expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toContain('law does not let');
     player.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    bumpRevision(g.state);
     expect(greatPersonPurchaseError(g.state, 0, 'scholarDraft')).toBeNull();
     expect(greatPersonPurchaseError(g.state, 0, 'faith')).toContain('law does not let');
     // And an id nobody sells is refused by name rather than by a cast.
@@ -2776,6 +2843,7 @@ describe('the governments’ deferred halves, built', () => {
     keepTheRites(g.state);
     const player = playerById(g.state, 0)!;
     player.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    bumpRevision(g.state);
     player.faithPool = greatPersonOfferPrice('scholarDraft') - 1;
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, {
@@ -2806,6 +2874,7 @@ describe('the governments’ deferred halves, built', () => {
     const g = game(319);
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.government = 'theCommonwealth' as never;
+    bumpRevision(g.state);
     playerById(g.state, 0)!.gold = 0;
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, {
@@ -2822,6 +2891,7 @@ describe('the doctrines’ deferred halves, built', () => {
     const g = game(331);
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theEncyclopaedia' as never);
+    bumpRevision(g.state);
     // Read off `BuildingDef.category`, so a second science building is a JSON
     // row rather than an edit to the card.
     expect(buildingDef('library').category).toBe('science');
@@ -2836,10 +2906,12 @@ describe('the doctrines’ deferred halves, built', () => {
     const g = game(333);
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theGrandTourII' as never);
+    bumpRevision(g.state);
     expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(0);
     // The claim register, which is where a wonder is written down once and
     // never moves — a rival's marvel counts exactly as your own does.
     g.state.wonders.push({ building: 'theOracle', playerId: 1, cityId: 0, turn: 1 });
+    bumpRevision(g.state);
     expect(foldCardYields(cardEmpireYields(g.state, 0)).culture).toBe(1);
   });
 
@@ -2852,6 +2924,7 @@ describe('the doctrines’ deferred halves, built', () => {
     const city = found(g.state, 0);
     expect(cardPercentYields(g.state, city).some((l) => l.card === 'theAcademyOfDeeds')).toBe(false);
     playerById(g.state, 0)!.statecraft.doctrines.push('theAcademyOfDeeds' as never);
+    bumpRevision(g.state);
     const lines = cardPercentYields(g.state, city).filter((l) => l.card === 'theAcademyOfDeeds');
     expect(lines.map((l) => [l.yield, l.percent, l.stage])).toEqual([
       ['culture', -10, 'empire'],
@@ -2886,6 +2959,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.statecraft.doctrines.push('breadAndCircuses' as never);
+    bumpRevision(g.state);
 
     // The user's card pass of 2026-09-03 narrowed the happiness half to the
     // towns of six or more, so a village pays nothing however open the gate is —
@@ -2898,6 +2972,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     // and the clause is a labelled line of the happiness fold rather than a
     // number added beside it.
     city.population = 6;
+    bumpRevision(g.state);
     const open = explainHappiness(g.state, 0).filter((l) => l.source.includes('Bread'));
     expect(open.length).toBeGreaterThan(0);
     // Two, not three, since the cards pass of 2026-09-05 trimmed the strongest
@@ -2909,6 +2984,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     for (let i = 0; i < 12; i++) {
       g.state.cities.push({ ...city, id: 700 + i, captured: true });
     }
+    bumpRevision(g.state);
     expect(authorityOf(g.state, 0)).toBeLessThan(0);
     expect(explainHappiness(g.state, 0).some((l) => l.source.includes('Bread'))).toBe(false);
 
@@ -2925,6 +3001,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     // `faithPerTurn` and `capitalFaithPerTurn`, so it earns a source of its own.
     const g = game(403);
     playerById(g.state, 0)!.statecraft.doctrines.push('cuiusRegio' as never);
+    bumpRevision(g.state);
     const rate = (following: number): number =>
       foldCardYields(cardEmpireYields(g.state, 0, { followingFaithPerTurn: following })).science;
     // Below one helping it pays nothing, which is `helpings`' own reading and
@@ -2961,6 +3038,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     // conquest would make the meter free to whoever drafted twice. Hegemony is
     // the setter since the Æra III fork (2026-09-05).
     sc.doctrines.push('hegemony' as never);
+    bumpRevision(g.state);
     expect(cost()).toBe(1);
     expect(cost()).toBeGreaterThanOrEqual(1);
   });
@@ -2987,12 +3065,14 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     // The map-makers' drawback is a labelled *point* line on the one ledger
     // (Entry XXXVII), never a multiplier on somebody else's terrain.
     player.statecraft.doctrines.push('masterOfMaps' as never);
+    bumpRevision(g.state);
     const maps = lines().find((l) => l.source.includes('Master of Maps'));
     expect(maps?.value).toBe(-2);
 
     // And The Legion's point reaches the melee row and nothing else, through the
     // same shape with a class filter.
     player.statecraft.doctrines = [];
+    bumpRevision(g.state);
     slot(g.state, 0, 'theLegion');
     expect(lines().find((l) => l.source.includes('Legion'))?.value).toBe(1);
   });
@@ -3235,6 +3315,7 @@ describe('the Orders pass of 2026-08-29', () => {
 
     // And unslotting the card does not un-blood it.
     playerById(g.state, 0)!.statecraft.slots = [];
+    bumpRevision(g.state);
     expect(unitMaxHp(after)).toBe(unitDef('warrior').maxHp + 10);
     expect(createUnit(g.state, 0, 'warrior', 7, 5).stamp).toBeUndefined();
   });
@@ -3448,6 +3529,7 @@ describe('the balance pass of 2026-08-31', () => {
     };
     expect(cheer()).toBe(0);
     playerById(g.state, 0)!.techsResearched.push('theImperialPost');
+    bumpRevision(g.state);
     expect(cheer()).toBe(1);
     // **Satrapies is the only node that cheers a joined town** since batch E:
     // Movable Type used to say the same sentence a second time and now says a
@@ -3455,6 +3537,7 @@ describe('the balance pass of 2026-08-31', () => {
     // percentages in), so the scope has one reader on the tree and the stacking
     // the worksheet once ruled deliberate has nothing to stack with.
     playerById(g.state, 0)!.techsResearched.push('movableType');
+    bumpRevision(g.state);
     const cheering = explainHappiness(g.state, 0).filter((entry) =>
       /Technology · (Satrapies|Movable Type)/.test(entry.source),
     );
@@ -3536,6 +3619,7 @@ describe('the balance pass of 2026-08-31', () => {
     const before = demandLine();
     expect(before.source).toContain('5 citizens');
     g.state.players[0]!.statecraft.doctrines.push('theScatteredHearths');
+    bumpRevision(g.state);
     const after = demandLine();
     // The label says who is being charged, because a line reading "5 citizens"
     // beside a cost for three is a ledger nobody can check. Two free rather
@@ -3553,6 +3637,7 @@ describe('the balance pass of 2026-08-31', () => {
     // Something that actually sings, so the rate is not zero and the grant is
     // not dropped as an empty line.
     city.buildings.push('monument');
+    bumpRevision(g.state);
     slot(g.state, 0, 'theLyceum');
     const rate = empireRateReading(g.state, 0).culturePerTurn ?? 0;
     expect(rate).toBeGreaterThan(0);
@@ -3838,6 +3923,7 @@ describe('the ratified cards of the Themes Build', () => {
     // No harbour, no docks: the scope is the ordinary one.
     expect(cardProduction(g.state, city, 'unit', 'trireme')).toEqual([]);
     city.buildings.push('harbour');
+    bumpRevision(g.state);
     const hulls = cardProduction(g.state, city, 'unit', 'trireme');
     expect(hulls).toHaveLength(1);
     expect(hulls[0]!.percent).toBe(25);
@@ -3904,11 +3990,13 @@ describe('the ratified cards of the Themes Build', () => {
     expect(culture('The Archives')).toBe(0);
 
     sc.slots.push({ card: 'theArchives', sealedUntil: g.state.turn });
+    bumpRevision(g.state);
     // One chair: the Archives pay for themselves and nothing else.
     expect(culture('The Archives')).toBe(2);
     // Two left on the shelf, at two culture apiece — and the Annals must be
     // slotted to say so, which is what makes the card a decision.
     sc.slots.push({ card: 'theAnnalsOfLaw', sealedUntil: g.state.turn });
+    bumpRevision(g.state);
     // Batch F: three culture a bench card, two a chair.
     expect(culture('The Annals of Law')).toBe(3);
     expect(culture('The Archives')).toBe(4);
@@ -3917,6 +4005,7 @@ describe('the ratified cards of the Themes Build', () => {
     // is what its own sentence says: one culture for each Order in a slot.
     grant(sc, 'firstFruitsOffering');
     sc.slots.push({ card: 'firstFruitsOffering', sealedUntil: g.state.turn });
+    bumpRevision(g.state);
     expect(culture('The Archives')).toBe(6);
     // And a card taken back out of its chair stops being counted.
     sc.slots.pop();
@@ -4126,6 +4215,7 @@ describe('the balance pass of 2026-09-02', () => {
     const g = game(904);
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('gildedCourt' as never);
+    bumpRevision(g.state);
     const ctx = yieldContextFor(g.state, 0);
     const paid = (tile: ReturnType<typeof getTileAt>): number =>
       explainTileYield(tile!, ctx).filter((l) => l.source.includes('Gilded Court')).length;
@@ -4259,6 +4349,7 @@ describe('the playtest nerf batch of 2026-09-03', () => {
     player.statecraft.doctrines = DOCTRINE_IDS.filter(
       (id) => doctrineDef(id).tier === tier && id !== 'athenaeumOfTheRoad',
     );
+    bumpRevision(g.state);
     expect(drawDoctrineOffer(g.state, player, tier).options).toEqual([]);
     // Still a card, and still says what it does — a save that adopted it
     // replays, and `anyCardDef` never meets an id it does not know.
@@ -4328,6 +4419,7 @@ describe('the Order draft', () => {
       const g = game(seed);
       const player = g.state.players[0]!;
       player.statecraft.government = 'republic';
+      bumpRevision(g.state);
       expect(poolOfGovernment(player.statecraft.government)).toBe('governmentII');
       for (const hand of drafts(g)) {
         for (const id of hand) expect(orderDef(id).pool, `${seed} ${id}`).toBe('governmentII');
@@ -4351,6 +4443,7 @@ describe('the Order draft', () => {
         const g = game(seed);
         const player = g.state.players[0]!;
         player.statecraft.government = government;
+        bumpRevision(g.state);
         for (const hand of drafts(g)) {
           expect(hand, `${seed} ${government}`).toHaveLength(3);
           const types = new Set(hand.map((id) => orderDef(id).slot));
@@ -4437,6 +4530,7 @@ describe("the user's card pass of 2026-09-03", () => {
   /** Makes the hex beside a town open water, which is all "coastal" asks. */
   function putToSea(state: GameState, city: { col: number; row: number }): void {
     getTileAt(state.map, city.col + 1, city.row)!.terrain = 'coast';
+    bumpRevision(state);
   }
 
   /**
@@ -4454,6 +4548,7 @@ describe("the user's card pass of 2026-09-03", () => {
       city.foodBasket = growthThreshold(city.population) + 5;
       if (!settleGrowthWindfall(state, city)) break;
     }
+    bumpRevision(state);
   }
 
   it('yieldConversion — Thalassocracy mints a tenth of what a coastal town grows', () => {
@@ -4470,6 +4565,7 @@ describe("the user's card pass of 2026-09-03", () => {
     expect(flats.food).toBeGreaterThanOrEqual(10);
     expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
     player.statecraft.doctrines.push('thalassocracy');
+    bumpRevision(g.state);
     const lines = cardYieldConversions(g.state, city, flats);
     expect(lines).toHaveLength(1);
     expect(lines[0]!.source).toContain('Thalassocracy');
@@ -4497,6 +4593,7 @@ describe("the user's card pass of 2026-09-03", () => {
     const city = found(g.state, 0);
     farmTown(g.state, city);
     playerById(g.state, 0)!.statecraft.doctrines.push('thalassocracy');
+    bumpRevision(g.state);
     // Inland on this bench — asserted rather than assumed, so a map change
     // cannot make this test pass by standing the town in a desert.
     expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(false);
@@ -4548,6 +4645,7 @@ describe("the user's card pass of 2026-09-03", () => {
     const bareJungle = foldTileYield(explainTileYield(tile, ctx()));
 
     player.statecraft.doctrines.push('theSacredPath');
+    bumpRevision(g.state);
     const jungle = foldTileYield(explainTileYield(tile, ctx()));
     expect(jungle.culture).toBe(bareJungle.culture + 1);
     expect(jungle.faith).toBe(bareJungle.faith);
@@ -4635,6 +4733,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     const index = sc.slots.findIndex((entry) => entry?.card === id);
     expect(index, id).toBeGreaterThanOrEqual(0);
     sc.slots[index] = null;
+    bumpRevision(state);
   }
 
   /**
@@ -4690,6 +4789,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     const sc = playerById(g.state, 0)!.statecraft;
     grant(sc, 'farRunners');
     sc.slots.push({ card: 'farRunners', sealedUntil: g.state.turn });
+    bumpRevision(g.state);
     expect(slottedOrdersOfFlavour(g.state, 0, 'wildcard')).toBe(1);
     expect(empireLine(g.state, 0, 'First Rites', 'faith')).toBe(1);
 
@@ -4769,6 +4869,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     });
     const city = found(g.state, 0);
     city.buildings.push('barracks');
+    bumpRevision(g.state);
     slot(g.state, 0, 'theArsenalLaw');
     const paid = (): number => {
       const lines = cardYieldConversions(g.state, city, flats({ production: 100 }));
@@ -4778,16 +4879,19 @@ describe('the card-shapes pass of 2026-09-04', () => {
     // At peace the clause is not in the live list at all.
     expect(paid()).toBe(0);
     openWar(g.state, 0, 1);
+    bumpRevision(g.state);
     expect(paid()).toBe(15);
     // **The wild is never in the register**, so a realm at peace with every
     // empire reads peace however many raiders are on the board.
     closeWar(g.state, 0, 1);
+    bumpRevision(g.state);
     expect(paid()).toBe(0);
 
     // And the building is the other half of it: a town with no barracks pays
     // nothing even in the middle of a war.
     openWar(g.state, 0, 1);
     city.buildings = city.buildings.filter((id) => id !== 'barracks');
+    bumpRevision(g.state);
     expect(paid()).toBe(0);
   });
 
@@ -4871,6 +4975,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
     slot(g.state, 0, 'theDraftingHalls');
     expect(paid('The Drafting Halls', 'science', { production: 40 })).toBe(0);
     city.buildings.push('library');
+    bumpRevision(g.state);
     expect(paid('The Drafting Halls', 'science', { production: 40 })).toBe(8);
 
     // The Salting Houses: Thalassocracy's exact shape, one voice over — and the
@@ -5011,6 +5116,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(rate()).toBe(0);
     expect(cardRulePercent(g.state, 0, 'borderCulture').length).toBe(0);
     city.buildings.push('monument');
+    bumpRevision(g.state);
     expect(rate()).toBe(30);
   });
 
@@ -5097,8 +5203,10 @@ describe('the synergy-density pass of 2026-09-05', () => {
     city.population = 5;
     expect(paid()).toBe(0);
     city.buildings.push('library');
+    bumpRevision(g.state);
     expect(paid()).toBe(3);
     city.buildings.push('university');
+    bumpRevision(g.state);
     expect(paid()).toBe(6);
     // Both lines carry the population gate; a village with a college is still
     // a village.
@@ -5172,6 +5280,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(hammers()).toBe(0);
     expect(song()).toBe(0);
     openWar(g.state, 0, 1);
+    bumpRevision(g.state);
     expect(hammers()).toBe(15);
     expect(song()).toBe(5);
     // The hammers are behind *units* and nothing else — the category is the
@@ -5182,6 +5291,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
       ),
     ).toBe(false);
     closeWar(g.state, 0, 1);
+    bumpRevision(g.state);
     expect(hammers()).toBe(0);
     expect(song()).toBe(0);
   });
@@ -5279,6 +5389,7 @@ describe('the cards pass of 2026-09-05', () => {
     const g = game(781);
     const sc = playerById(g.state, 0)!.statecraft;
     sc.government = 'theCuria';
+    bumpRevision(g.state);
     const fourth = new Set(livePool(sc));
     expect(fourth.size).toBe(poolOrders('governmentIV').length);
     for (const id of fourth) expect(orderDef(id).pool, id).toBe('governmentIV');
@@ -5286,6 +5397,7 @@ describe('the cards pass of 2026-09-05', () => {
     // 2026-09-03, unchanged by this pass).
     expect(fourth.has('theFarCharts' as never)).toBe(false);
     sc.government = 'theEmpire';
+    bumpRevision(g.state);
     for (const id of livePool(sc)) expect(orderDef(id).pool, id).toBe('governmentV');
   });
 
@@ -5335,10 +5447,12 @@ describe('the cards pass of 2026-09-05', () => {
         .reduce((sum, line) => sum + line.food + line.production + line.gold
           + line.science + line.culture + line.faith, 0);
     capital.buildings = ['monument'];
+    bumpRevision(g.state);
     // Six voices, one helping: the payout names one voice, so "of every yield"
     // is six lines of the same count rather than a shape of its own.
     expect(paid(capital)).toBe(6);
     capital.buildings = ['monument', 'granary', 'shrine', 'barracks'];
+    bumpRevision(g.state);
     expect(paid(capital)).toBe(18);
     // Somebody else's town counts nothing at all: `where: 'capital'` is the one
     // payout that lands in a single named town.
@@ -5347,6 +5461,7 @@ describe('the cards pass of 2026-09-05', () => {
       getTileAt(g.state.map, (capital.col + 5) % g.state.map.width, capital.row)!,
     )!;
     second.buildings = ['monument', 'granary'];
+    bumpRevision(g.state);
     expect(paid(second)).toBe(0);
   });
 
@@ -5374,10 +5489,12 @@ describe('the cards pass of 2026-09-05', () => {
         .reduce((sum, line) => sum + line.percent, 0);
     expect(percent()).toBe(0);
     city.buildings = ['workshop'];
+    bumpRevision(g.state);
     expect(percent()).toBe(3);
     // Capped where the design caps it: the cap is on the count, so a sixth
     // production building pays nothing. Batch F raised both figures.
     city.buildings = ['workshop', 'watermill', 'smithy', 'forge'];
+    bumpRevision(g.state);
     expect(percent()).toBe(12);
     for (const line of cardPercentYields(g.state, city)) {
       if (line.card !== 'theGuildCompact') continue;
@@ -5480,6 +5597,7 @@ describe('the Æra III fork of 2026-09-05', () => {
   /** Puts a government on a seat. Adoption has its own tests above. */
   function rule(state: GameState, playerId: number, id: string): void {
     playerById(state, playerId)!.statecraft.government = id as never;
+    bumpRevision(state);
   }
 
   it('Divine Mandate — the capital reads the wildcard bench, and the tithe rises', () => {
@@ -5600,6 +5718,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     const g = game(905);
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('ironPrice' as never);
+    bumpRevision(g.state);
     expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([
       { card: 'ironPrice', source: 'Doctrine · The Iron Price', yield: 'culture', amount: 20 },
     ]);
@@ -5616,6 +5735,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     found(g.state, 0);
     const before = foldMeter(explainAuthority(g.state, 0));
     playerById(g.state, 0)!.statecraft.doctrines.push('gildedCourt' as never);
+    bumpRevision(g.state);
     expect(foldMeter(explainAuthority(g.state, 0))).toBe(before);
     expect(
       doctrineDef('gildedCourt').effects.some((effect) => effect.kind === 'authority'),
@@ -5626,6 +5746,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     const g = game(907);
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('masterOfMaps' as never);
+    bumpRevision(g.state);
     const beakers = (occasion: 'veinFound' | 'discovery' | 'prospect'): number =>
       windfallPayout(g.state, 0, occasion).grants
         .filter((grant) => grant.yield === 'science')
@@ -5642,6 +5763,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.statecraft.doctrines.push('masterOfMaps' as never);
+    bumpRevision(g.state);
     const hill = (col: number, row: number, seam: boolean) => {
       const tile = getTileAt(g.state.map, col, row)!;
       tile.hills = true;
@@ -5676,11 +5798,13 @@ describe('the Æra III fork of 2026-09-05', () => {
     const g = game(909);
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('hegemony' as never);
+    bumpRevision(g.state);
     // The row *sets* the price now rather than shifting it, and one is the
     // least the writ allows (`cityCosts` floors it).
     const seized = found(g.state, 1);
     seized.ownerId = 0;
     seized.captured = true;
+    bumpRevision(g.state);
     expect(-explainAuthority(g.state, 0).find((l) => l.source.includes('captured'))!.value).toBe(1);
 
     // And the forges: a capture hangs an ordinary timed effect on the empire,
@@ -5689,12 +5813,14 @@ describe('the Æra III fork of 2026-09-05', () => {
     const payout = windfallPayout(g.state, 0, 'capture');
     expect(payout.timed).toHaveLength(1);
     payWindfallGrants(g.state, player, payout, { col: city.col, row: city.row });
+    bumpRevision(g.state);
     const share = (): number =>
       cardPercentYields(g.state, city)
         .filter((line) => line.card === 'hegemony')
         .reduce((sum, line) => sum + line.percent, 0);
     expect(share()).toBe(5);
     g.state.turn += 10;
+    bumpRevision(g.state);
     expect(share()).toBe(0);
   });
 
@@ -5703,6 +5829,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     const city = found(g.state, 0);
     const theirs = found(g.state, 1);
     playerById(g.state, 0)!.statecraft.doctrines.push('thePilgrimWays' as never);
+    bumpRevision(g.state);
     const paid = (key: CityYieldKey, rates = {}): number => foldCardYields(
       cardEmpireYields(g.state, 0, rates).filter((line) => line.card === 'thePilgrimWays'),
     )[key];
@@ -5726,19 +5853,24 @@ describe('the Æra III fork of 2026-09-05', () => {
     const g = game(911);
     const capital = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theNaturalPhilosophers' as never);
+    bumpRevision(g.state);
     const beakers = (city: City): number =>
       cardCityYields(g.state, city)
         .filter((line) => line.card === 'theNaturalPhilosophers')
         .reduce((sum, line) => sum + line.science, 0);
     capital.buildings = [];
+    bumpRevision(g.state);
     expect(beakers(capital)).toBe(0);
     capital.buildings = ['monument'];
+    bumpRevision(g.state);
     expect(beakers(capital)).toBe(1);
     capital.buildings = ['monument', 'granary', 'shrine', 'barracks', 'library'];
+    bumpRevision(g.state);
     expect(beakers(capital)).toBe(5);
     // Something that actually sings, so the share of a turn is not zero and the
     // grant is not dropped as an empty line.
     capital.buildings.push('amphitheater', 'forum', 'steleOfLaws');
+    bumpRevision(g.state);
     // The technology's boon is a **share of a turn**, read off the empire's own
     // rate at the moment the node lands and composed once, before anything is
     // banked (Entry XVIII.5) — so the preview, the bank and the announcement are
@@ -5761,6 +5893,7 @@ describe('the Æra III fork of 2026-09-05', () => {
     const g = game(912);
     const city = found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('theDeepDelving' as never);
+    bumpRevision(g.state);
     const tile = ownedTiles(g.state, city).find((t) => t.col !== city.col || t.row !== city.row)!;
     tile.feature = 'none';
     const hammers = (): number =>
@@ -5961,14 +6094,21 @@ describe('a charter carries the description of the building it opens', () => {
 // --- the remembered walk ----------------------------------------------------
 
 /**
- * Batch 10 of `docs/bot-priorities.md` in tests.
+ * Batch 10 of `docs/bot-priorities.md` in tests, re-aimed by batch E3a.
  *
  * `liveEffects` is asked six figures of times a turn late in a game and answers
  * at most two distinct lists per instant, so since batch 10 it remembers one per
  * seat per state (`liveReading`). A memo is a promise about *when it is wrong*,
- * and every test here is one way of being wrong: an input the print does not
- * carry, a gate that flipped with no input changing at all, a cache that got
- * into a save.
+ * and every test here is one way of being wrong.
+ *
+ * **What changed.** Until E3a the promise was kept by a print of everything the
+ * seat holds, re-read on every ask, plus a re-ask of every gate the build
+ * consulted. E2 gave the simulation `GameState.revision` — raised by
+ * `applyCommand` on every accepted command and once per end-of-turn phase — and
+ * the promise is now the counter's: *a reading is taken at rest; whoever moves
+ * the state moves the revision*. So each case below moves the world and then
+ * says so, exactly as a command does, and the gate case is the one that used to
+ * need a notebook and now needs nothing at all.
  */
 describe('the remembered walk', () => {
   /** The lines one seat's law puts on the table, as plain strings. */
@@ -5991,6 +6131,36 @@ describe('the remembered walk', () => {
     expect(after.slice(0, before.length)).toEqual(before);
   });
 
+  it('holds one list per seat until the revision moves, and drops it when it does', () => {
+    // The whole of the key, in one test: the state object, the revision, the
+    // seat. A second seat is a second entry, not a second build of the first.
+    const { state } = game();
+    found(state, 0);
+    const held = liveEffects(state, 0);
+    expect(liveEffects(state, 1)).not.toBe(held);
+    expect(liveEffects(state, 0)).toBe(held);
+    bumpRevision(state);
+    const fresh = liveEffects(state, 0);
+    expect(fresh).not.toBe(held);
+    // A fresh object, and the same answer: the memo is a cache and never a rule.
+    expect(lawOf(state, 0)).toEqual(
+      held.map((entry) => `${entry.source} :: ${JSON.stringify(entry.effect)}`),
+    );
+    expect(fresh).toBe(liveEffects(state, 0));
+  });
+
+  it('moves with an accepted command and stands still on a refused one', () => {
+    // The counter is the simulation's own announcement, so the ordinary way a
+    // list goes stale is a command — no bench, no bump, nothing hand-written.
+    const g = game();
+    found(g.state, 0);
+    const held = liveEffects(g.state, 0);
+    expect(dispatch(g, { type: 'fortify', playerId: 0, unitId: 99_999 }).ok).toBe(false);
+    expect(liveEffects(g.state, 0)).toBe(held);
+    expect(dispatch(g, { type: 'chooseResearch', playerId: 0, techId: 'mining' }).ok).toBe(true);
+    expect(liveEffects(g.state, 0)).not.toBe(held);
+  });
+
   it('drops a rite the turn it runs out', () => {
     const { state } = game();
     found(state, 0);
@@ -5998,10 +6168,13 @@ describe('the remembered walk', () => {
     seat.timed = [
       { card: 'riteOfPlenty', effect: { kind: 'happiness', amount: 2 }, expiresTurn: state.turn + 1 },
     ];
+    bumpRevision(state);
     expect(lawOf(state, 0).some((line) => line.includes('turns left'))).toBe(true);
     // An expiry is a comparison, never a countdown — so the turn moving is the
-    // whole of what changes, and the print carries the turn for exactly this.
+    // whole of what changes. In a real game the turn moves inside a phase and
+    // the phase raises the counter; here the bench raises it.
     state.turn += 1;
+    bumpRevision(state);
     expect(lawOf(state, 0).some((line) => line.includes('turns left'))).toBe(false);
   });
 
@@ -6010,27 +6183,33 @@ describe('the remembered walk', () => {
     found(state, 0);
     const seat = playerById(state, 0)!;
     seat.legacies.push({ id: 'imhotep', age: 1 });
+    bumpRevision(state);
     expect(lawOf(state, 0).some((line) => line.includes('Imhotep'))).toBe(true);
     // Revocation is a marking, never a deletion: the record stays in spend
     // order and the flag is the whole of the reading side.
     seat.legacies[0]!.revoked = true;
+    bumpRevision(state);
     expect(lawOf(state, 0).some((line) => line.includes('Imhotep'))).toBe(false);
   });
 
-  it('re-asks a gate that flipped with none of its own inputs changing', () => {
+  it('follows a gate that flipped with none of its own inputs changing', () => {
     const { state } = game();
     found(state, 0);
     // The Banner-Call pays while you are at war, and `state.wars` is nothing
     // the walk itself reads — it is reached through `empireConditionHolds`, off
-    // a meter's own reading of the board. This is the case a print cannot
-    // cover and the reason a build writes down every gate it opened.
+    // a meter's own reading of the board. This was the case no print could
+    // cover and the reason a build used to write down every gate it opened; the
+    // counter covers it for nothing, because a meter that moved moved because
+    // the board did.
     slot(state, 0, 'theBannerCall');
     const atWar = lawOf(state, 0);
     expect(atWar.some((line) => line.includes('Banner-Call'))).toBe(true);
     closeWar(state, 0, 1);
+    bumpRevision(state);
     const atPeace = lawOf(state, 0);
     expect(atPeace.some((line) => line.includes('Banner-Call'))).toBe(false);
     openWar(state, 0, 1);
+    bumpRevision(state);
     expect(lawOf(state, 0)).toEqual(atWar);
   });
 
@@ -6038,13 +6217,16 @@ describe('the remembered walk', () => {
     const { state } = game();
     const city = found(state, 0)!;
     city.buildings.push('theOracle');
+    bumpRevision(state);
     state.wonders.push({ building: 'theOracle', playerId: 0, cityId: city.id, turn: state.turn });
+    bumpRevision(state);
     const held = lawOf(state, 0);
     expect(held.some((line) => line.startsWith('Wonder'))).toBe(true);
     expect(lawOf(state, 1).some((line) => line.startsWith('Wonder'))).toBe(false);
-    // Pay follows the stones. The claim register never moves, so the print's
+    // Pay follows the stones. The claim register never moves, so the walk's
     // reading of it is the owning town's `buildings`, town by town.
     city.ownerId = 1;
+    bumpRevision(state);
     expect(lawOf(state, 0).some((line) => line.startsWith('Wonder'))).toBe(false);
     expect(lawOf(state, 1).some((line) => line.startsWith('Wonder'))).toBe(true);
   });
@@ -6060,15 +6242,17 @@ describe('the remembered walk', () => {
     // suite compares it byte for byte.
     expect(snapshotState(state)).toBe(clean);
     // And it is keyed on the state object, so a second game of the same seed
-    // reads its own board rather than the first one's answers.
+    // reads its own board rather than the first one's answers — two boards at
+    // the same revision are still two boards.
     const other = game().state;
     found(other, 0);
+    expect(other.revision).toBe(state.revision);
     expect(liveEffects(other, 0)).not.toBe(liveEffects(state, 0));
     expect(lawOf(other, 0)).toEqual(lawOf(state, 0));
   });
 });
 
-describe('the print register', () => {
+describe('the memo’s key', () => {
   /**
    * The simulation's own text, read through Vite's raw glob — `cities.ts`'s
    * mid-turn refresh register one file over takes the same reading, and for the
@@ -6080,10 +6264,14 @@ describe('the print register', () => {
     eager: true,
   }) as Record<string, string>;
 
+  const statecraftSource = (): string => {
+    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith('/statecraft.ts'))!;
+    return SIM_SOURCE[key]!;
+  };
+
   /** One function's body, comments stripped — a docblock is not a reading. */
   function bodyOf(name: string): string {
-    const key = Object.keys(SIM_SOURCE).find((path) => path.endsWith('/statecraft.ts'))!;
-    const text = SIM_SOURCE[key]!;
+    const text = statecraftSource();
     const from = text.indexOf(`function ${name}(`);
     expect(`${name} found`).toBe(from === -1 ? `${name} missing` : `${name} found`);
     const end = text.indexOf('\n}', from);
@@ -6095,54 +6283,30 @@ describe('the print register', () => {
       .join('\n');
   }
 
-  /** Every field this body reads off anything, by name. */
-  function fieldsOf(name: string): string[] {
-    const found = bodyOf(name).match(/\.[A-Za-z_][A-Za-z0-9_]*/g) ?? [];
-    return [...new Set(found.map((token) => token.slice(1)))].sort();
-  }
-
-  /**
-   * What the walk reads that the print does **not**, and why each one is not an
-   * input. Anything else appearing here is a source added to `buildLiveEffects`
-   * whose inputs nothing invalidates on — a stale ledger, which is the one
-   * failure a memo can cause and the whole reason this test exists.
-   */
-  const NOT_AN_INPUT = [
-    // `CLASS_WORD`'s labels — the one table of how a class names itself.
-    'bead',
-    'belief',
-    'building',
-    'doctrine',
-    'legacy',
-    'order',
-    'religion',
-    'tech',
-    'wonder',
-    // A data row's own clauses, frozen at module load with the tables.
-    'effects',
-    'founderTrickle',
-    // Read off the list the walk has already built (the founder's trickle and
-    // its amplifier), so its inputs are the ones already printed.
-    'kind',
-    'target',
-    'percent',
-    // The eighth source's helper, spread in. Its input is `timed`, printed.
-    'timedLive',
-  ].sort();
-
-  it('prints every input the walk reads', () => {
-    const walk = fieldsOf('buildLiveEffects');
-    const print = fieldsOf('livePrint');
-    expect(walk.filter((field) => !print.includes(field))).toEqual(NOT_AN_INPUT);
+  it('keys the law on the board’s own revision', () => {
+    // The whole of §3c, in one reading: the memo compares two integers and an
+    // object identity, and nothing else. A walk of the seat's holdings in here
+    // would be the print come back.
+    const body = bodyOf('liveReading');
+    expect(body).toMatch(/LIVE_MEMO\.get\(state\)/);
+    expect(body).toMatch(/slate\.revision !== state\.revision/);
   });
 
-  it('asks the board the same question the walk asks it', () => {
-    // Which faiths pay this empire is derived from the stones, not stored, so
-    // the print cannot list a field for it — it asks the same function.
-    for (const name of ['buildLiveEffects', 'livePrint']) {
-      expect(`${name} asks`).toBe(
-        /heldReligions\(state, playerId\)/.test(bodyOf(name)) ? `${name} asks` : `${name} silent`,
-      );
+  it('has no print of the walk’s inputs left in the file', () => {
+    // `livePrint`, `printsAgree`, `gatesAgree` and the `asked` notebook they
+    // needed are gone rather than unused — a second answer to "is this list
+    // still true" is a second thing to keep in step with the walk.
+    //
+    // The *code*, not the prose: `liveReading`'s own docblock names all three,
+    // because a docblock that cannot say what a thing used to be cannot explain
+    // why it went.
+    const code = statecraftSource()
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map((line) => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+    for (const name of ['livePrint', 'printsAgree', 'gatesAgree', 'AskedCondition']) {
+      expect(`${name}: ${code.includes(name)}`).toBe(`${name}: false`);
     }
   });
 
@@ -6192,6 +6356,7 @@ describe('the engine shapes', () => {
     const sc = playerById(state, playerId)!.statecraft;
     grant(sc, id);
     sc.slots[index] = { card: id, sealedUntil: state.turn };
+    bumpRevision(state);
   }
 
   // --- 1. the amplifier by voice --------------------------------------------
@@ -6240,6 +6405,7 @@ describe('the engine shapes', () => {
             expiresTurn: g.state.turn + 50,
           },
         ];
+        bumpRevision(g.state);
         const lines = cardCityYields(g.state, city);
         expect(lines.some((line) => line.source.includes('line'))).toBe(false);
         expect(foldCardYields(lines).food).toBe(4 + 6);
@@ -6352,6 +6518,7 @@ describe('the engine shapes', () => {
         const g = game();
         const city = found(g.state, 0);
         city.buildings.push('temple');
+        bumpRevision(g.state);
         seat(g.state, 0, 0, 'waysideShrines');
         seat(g.state, 0, 1, 'theChoir');
         const lines = cardBuildingYields(g.state, city);
@@ -6375,6 +6542,7 @@ describe('the engine shapes', () => {
         const g = game();
         const city = found(g.state, 0);
         city.buildings.push('library', 'temple');
+        bumpRevision(g.state);
         city.population = 4;
         seat(g.state, 0, 0, 'waysideShrines');
         const lines = cardBuildingYields(g.state, city);
@@ -6422,6 +6590,7 @@ describe('the engine shapes', () => {
     expect(explainTileYield(tile, yieldContextFor(g.state, 0)).some((l) => l.faith > 0)).toBe(false);
     // The belief lands first, the Order reads it: two faith, two named lines.
     player.pantheon.beliefs.push('desertFathers');
+    bumpRevision(g.state);
     const lines = explainTileYield(tile, yieldContextFor(g.state, 0));
     const faith = lines.reduce((sum, l) => sum + l.faith, 0);
     expect(faith).toBe(2);
@@ -6523,6 +6692,7 @@ describe('the engine shapes', () => {
         expect(sc.slots[0]!.firePeriod).toBe(2);
         // Taking it out again puts the stamp back — symmetric and reversible.
         sc.slots[1] = null;
+        bumpRevision(g.state);
         runPeriodicBoons(g.state);
         expect(sc.slots[0]!.nextFiresTurn).toBe(6);
         expect(sc.slots[0]!.firePeriod).toBe(5);
@@ -6590,6 +6760,7 @@ describe('the engine shapes', () => {
         expiresTurn: 999,
       },
     ];
+    bumpRevision(g.state);
     g.state.turn = 7;
     const banked = player.sciencePool;
     runPeriodicBoons(g.state);
@@ -6629,6 +6800,7 @@ describe('the engine shapes', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library', 'market');
+    bumpRevision(g.state);
     const plain = foldRenown(explainCityRenown(city));
     const raised = explainCityRenown(city, [{ source: 'Heroic Epic', percent: 50 }]);
     expect(foldRenown(raised)).toBe(plain + Math.floor((plain * 50) / 100));
@@ -6644,6 +6816,7 @@ describe('the engine shapes', () => {
         const g = game();
         const city = found(g.state, 0);
         city.buildings.push('library');
+        bumpRevision(g.state);
         const before = foldRenown(explainRenown(g.state, 0));
         seat(g.state, 0, 0, 'waysideShrines');
         expect(foldRenown(explainRenown(g.state, 0))).toBe(before + 1);
@@ -6672,6 +6845,7 @@ describe('the engine shapes', () => {
         // And the multiplier finds it: the line is on the route *before* the
         // amplifier reads the fold, which is the whole grammar of the pass.
         playerById(g.state, 0)!.statecraft.government = 'merchantLeague';
+        bumpRevision(g.state);
         const doubled = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
         expect(doubled.production).toBe(
           after.production + Math.floor((after.production * 50) / 100),
@@ -6696,6 +6870,7 @@ describe('the engine shapes', () => {
         seat(g.state, 0, 0, 'waysideShrines');
         const shut = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
         from.buildings.push('market');
+        bumpRevision(g.state);
         const open = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
         // The market itself pays a caravan nothing in gold, so the whole
         // difference is the card's line.
@@ -6720,6 +6895,7 @@ describe('the engine shapes', () => {
     expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(3);
     // The counter belongs to the chair: benching the card ends the watch.
     sc.slots[0] = null;
+    bumpRevision(g.state);
     expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(0);
   });
 
@@ -6727,6 +6903,7 @@ describe('the engine shapes', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('library', 'temple', 'market');
+    bumpRevision(g.state);
     const probe = (categories?: string[]): CardEffect => ({
       kind: 'countScaled',
       count: 'buildingsOfCategories',
@@ -6997,6 +7174,7 @@ describe('the order pass of 2026-09-06', () => {
       const g = game(606);
       const city = found(g.state, 0);
       city.buildings.push('shrine', 'temple', 'library', 'market', 'workshop');
+      bumpRevision(g.state);
       refreshCityDerived(g.state, city);
       const before = snapshotState(g.state);
       slot(g.state, 0, id);
@@ -7010,10 +7188,16 @@ describe('the order pass of 2026-09-06', () => {
       expect(foldMeter(explainHappiness(g.state, 0)), id).not.toBeNaN();
       expect(foldMeter(explainAuthority(g.state, 0)), id).not.toBeNaN();
       // The reading moved nothing: a fold is a question, never a turn.
+      //
+      // One field did move, and it is the bench's own signature: `revision`,
+      // raised because *this* bench slotted a card by hand and announced it the
+      // way a command does (batch E3a). So the two prints are compared as
+      // boards, with the announcement taken out of both.
       const sc = playerById(g.state, 0)!.statecraft;
       sc.slots.pop();
       sc.orders.splice(sc.orders.indexOf(id), 1);
-      expect(snapshotState(g.state), id).toBe(before);
+      const board = (print: string): string => print.replace(/"revision":\d+/, '"revision":0');
+      expect(board(snapshotState(g.state)), id).toBe(board(before));
     }
   });
 
@@ -7237,6 +7421,7 @@ describe('an Order dealt only from its age', () => {
     const g = game();
     const sc = playerById(g.state, 0)!.statecraft;
     sc.government = 'theEmpire';
+    bumpRevision(g.state);
     for (const id of gated) {
       expect(livePool(sc), id).toContain(id);
       expect(drawablePool(sc, 3), id).not.toContain(id);
@@ -7251,6 +7436,7 @@ describe('an Order dealt only from its age', () => {
       const g = game(seed);
       const player = playerById(g.state, 0)!;
       player.statecraft.government = 'theEmpire';
+      bumpRevision(g.state);
       const offer = drawOrderOffer(g.state, player);
       for (const id of offer.options) expect(gated, `seed ${seed}`).not.toContain(id);
     }
@@ -7260,6 +7446,7 @@ describe('an Order dealt only from its age', () => {
     const g = game();
     const player = playerById(g.state, 0)!;
     player.statecraft.government = 'theEmpire';
+    bumpRevision(g.state);
     slot(g.state, 0, gated[0]!);
     expect(player.statecraft.slots.map((s) => s?.card ?? null)).toContain(gated[0]);
     // Held rows leave every pool reading; the gate never touches the holding.
@@ -7283,6 +7470,7 @@ describe('a building’s share counts what the law put on it', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('temple');
+    bumpRevision(g.state);
     slot(g.state, 0, 'theChoir');
     slot(g.state, 0, 'theSynod');
     const def = buildingDef('temple');
@@ -7300,6 +7488,7 @@ describe('a building’s share counts what the law put on it', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('temple');
+    bumpRevision(g.state);
     const onIt = cardLinesOnBuilding(g.state, city, 'temple');
     expect(onIt.culture).toBe(0);
     slot(g.state, 0, 'theChoir');

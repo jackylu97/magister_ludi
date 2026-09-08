@@ -45,7 +45,13 @@ import {
   purchaseVerb,
 } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  SCHEMA_VERSION,
+  playerById,
+  bumpRevision,
+} from '../../src/sim/state';
 import { buildError, gatingTech } from '../../src/sim/tech';
 import { unitDef } from '../../src/sim/unitData';
 import { buyCommand, game } from './purchaseHelpers';
@@ -76,6 +82,7 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech as never)) {
       player.techsResearched.push(tech as never);
+      bumpRevision(state);
     }
   }
 }
@@ -542,6 +549,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const bare = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
     g.state.players[0]!.legacies.push({ id: 'crassus', age: 1 });
+    bumpRevision(g.state);
     const cut = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
 
     expect(cut.lines).toHaveLength(bare.lines.length + 1);
@@ -563,6 +571,7 @@ describe('every refusal, and each leaves the state byte-identical', () => {
     const city = found(g.state, 0);
     const bare = explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!;
     city.buildings.push('greatZiggurat');
+    bumpRevision(g.state);
     expect(explainPurchaseCost(g.state, 0, city.id, GRANARY, 'gold')!.total).toBe(bare.total);
   });
 });
@@ -593,6 +602,7 @@ describe('a town holding a Cathedral sells its units for faith', () => {
     learn(g.state, 0, 'divination', 'theHighTemple', 'theology');
     const city = found(g.state, 0);
     city.buildings.push('cathedral');
+    bumpRevision(g.state);
     playerById(g.state, 0)!.faithPool = 2000;
     return { g, city };
   }
@@ -689,9 +699,11 @@ describe('a town holding a Cathedral sells its units for faith', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
+    bumpRevision(g.state);
     const before = cityYields(g.state, city).faith;
     expect(before).toBeGreaterThan(0);
     city.buildings.push('highTemple');
+    bumpRevision(g.state);
     // Exact since batch X: a quarter more on three faith is three and three
     // quarters, and the pool keeps the three quarters.
     expect(cityYields(g.state, city).faith).toBe((before * 125) / 100);

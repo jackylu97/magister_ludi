@@ -30,7 +30,14 @@ import {
   tileMoveCost,
 } from '../../src/sim/pathfind';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  type Unit,
+  createUnit,
+  newGame,
+  bumpRevision,
+} from '../../src/sim/state';
 import { hasAbility } from '../../src/sim/tech';
 import {
   ABILITY_IDS,
@@ -121,6 +128,7 @@ function seaState(width = 14, height = 10): GameState {
   ]);
   for (const player of state.players) {
     player.techsResearched = TECH_IDS.filter((id) => !SEA_WIDENERS.has(id));
+    bumpRevision(state);
   }
   computeFreshwater(state.map);
   return state;
@@ -136,6 +144,7 @@ function at(state: GameState, col: number, row: number): Tile {
 function forget(state: GameState, playerId: number, tech: string): void {
   const player = state.players[playerId]!;
   player.techsResearched = player.techsResearched.filter((id) => id !== tech);
+  bumpRevision(state);
 }
 
 function move(playerId: number, unitId: number, tile: Tile): Command {
@@ -509,7 +518,9 @@ describe('the sea luxuries, live', () => {
     const late = yieldContextFor(state, 0);
     expect(explainTileYield(seam, late).some((entry) => entry.production === 1)).toBe(true);
     state.players[0]!.techsResearched = TECH_IDS.filter((id) => id !== 'sailing').slice(0, 3);
+    bumpRevision(state);
     state.players[0]!.techsResearched.push('sailing');
+    bumpRevision(state);
     const early = yieldContextFor(state, 0);
     expect(
       explainTileYield(seam, early).some((entry) => entry.source.startsWith('Whales · fishing')),
@@ -585,6 +596,7 @@ describe('the lighthouse on the water', () => {
     const before = cityYields(state, city).food;
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
     city.buildings.push('lighthouse');
+    bumpRevision(state);
     assignCitizens(state, city);
     const after = cityYields(state, city).food;
     // The lighthouse's own flat food — none — plus a point for the pinned water
@@ -617,10 +629,12 @@ describe('the lighthouse on the water', () => {
     const city = shoreTown(state);
     city.lockedTiles = [{ col: 2, row: 5 }];
     city.buildings.push('lighthouse');
+    bumpRevision(state);
     assignCitizens(state, city);
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
     const withLight = cityYields(state, city).food;
     city.buildings = city.buildings.filter((id) => id !== 'lighthouse');
+    bumpRevision(state);
     assignCitizens(state, city);
     expect(cityYields(state, city).food).toBe(withLight - 1);
   });
@@ -635,6 +649,7 @@ describe('the lighthouse on the water', () => {
     assignCitizens(state, south);
     const before = cityYields(state, south).food;
     north.buildings.push('lighthouse');
+    bumpRevision(state);
     assignCitizens(state, south);
     expect(cityYields(state, south).food).toBe(before);
   });
@@ -767,6 +782,7 @@ describe('the sea widens twice', () => {
     if (gate === undefined) throw new Error(`no technology hands over ${ability}`);
     const player = state.players[playerId]!;
     if (!player.techsResearched.includes(gate)) player.techsResearched.push(gate);
+    bumpRevision(state);
   }
 
   it('lets soldiers embark at Wayfinding, and never without Sailing', () => {

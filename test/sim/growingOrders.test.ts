@@ -19,7 +19,7 @@ import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game'
 import type { Command } from '../../src/sim/commands';
 import { getTileAt, tileNeighbors } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
-import { type GameState, createUnit, playerById } from '../../src/sim/state';
+import { type GameState, createUnit, playerById, bumpRevision } from '../../src/sim/state';
 import { realiseItem } from '../../src/sim/cities';
 import { greatPersonWorkAt } from '../../src/sim/greatPeople';
 import { purchaseError, purchaseItemAt } from '../../src/sim/purchase';
@@ -52,6 +52,7 @@ function slot(state: GameState, playerId: number, id: OrderId): PlayerStatecraft
   const sc = playerById(state, playerId)!.statecraft;
   if (!sc.orders.includes(id)) sc.orders.push(id);
   sc.slots.push({ card: id, sealedUntil: state.turn });
+  bumpRevision(state);
   return sc;
 }
 
@@ -59,6 +60,7 @@ function slot(state: GameState, playerId: number, id: OrderId): PlayerStatecraft
 function bench(state: GameState, playerId: number, id: OrderId): void {
   const sc = playerById(state, playerId)!.statecraft;
   sc.slots = sc.slots.filter((held) => held?.card !== id);
+  bumpRevision(state);
 }
 
 /** What this empire's cards pay the realm, in one voice. */
@@ -464,10 +466,12 @@ describe('The Casus Belli', () => {
     // One turn short of the expiry it still runs; on it, it does not — and
     // nothing was decremented to make that true.
     g.state.turn = opened + 9;
+    bumpRevision(g.state);
     expect(
       cardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
     ).toBe(true);
     g.state.turn = opened + 10;
+    bumpRevision(g.state);
     expect(
       cardPercentYields(g.state, city).some((line) => line.card === 'theCasusBelli'),
     ).toBe(false);

@@ -99,6 +99,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { anyCardDef } from '../../src/sim/statecraft';
 import {
@@ -283,7 +284,9 @@ describe('the route scorer', () => {
     const second = foundCityAt(state, 0, at(state.map, 8, 5));
     const abroad = foundCityAt(state, 1, at(state.map, 13, 5));
     second.buildings.push('market');
+    bumpRevision(state);
     home.buildings.push(...shelves);
+    bumpRevision(state);
     // Met: the neighbour's town is one this seat remembers seeing.
     meet(state, 0, abroad);
     // Both towns held, and the neighbour out-arming this seat three to one:
@@ -298,6 +301,7 @@ describe('the route scorer', () => {
     // A treasury that is not an emergency, so the appraisal's gold pressure is
     // the ordinary one rather than the arrears pin.
     seat(state, 0).gold = 400;
+    bumpRevision(state);
     return { state, home, second, abroad };
   }
 
@@ -517,6 +521,7 @@ describe('the hypothetical building’s own tile lines', () => {
     expect(cityYields(state, ghost)).toEqual(promised);
     // And so is the town once the thing is actually standing in it.
     city.buildings.push('lighthouse');
+    bumpRevision(state);
     expect(cityYields(state, city)).toEqual(promised);
   });
 
@@ -551,6 +556,7 @@ describe('a further scout', () => {
       createUnit(state, 0, 'scout', city.col, city.row + 1 + index);
     }
     seat(state, 0).gold = 200;
+    bumpRevision(state);
     return state;
   }
 
@@ -628,9 +634,11 @@ describe('the beeline’s tech riders', () => {
       for (const step of researchExpansion(state, 0, goal)) {
         if (step === goal && goal !== 'agriculture') continue;
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+        bumpRevision(state);
       }
     }
     player.gold = 200;
+    bumpRevision(state);
     return state;
   }
 
@@ -822,6 +830,7 @@ describe('the levy craves the trade it lacks', () => {
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     foundCityAt(state, 0, at(state.map, 12, 5));
     seat(state, 0).techsResearched.push('agriculture', 'fletching');
+    bumpRevision(state);
     for (let index = 0; index < 3; index++) {
       const piece = createUnit(state, 0, kind, city.col, city.row + 1 + index);
       piece.fortifiedTurns = 0;
@@ -1003,6 +1012,7 @@ describe('the delay discount', () => {
       for (const step of researchExpansion(state, 0, goal)) {
         if (step === goal && goal !== 'agriculture') continue;
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+        bumpRevision(state);
       }
     }
     const decision = decisionOfType(state, 0, 'chooseResearch');
@@ -1031,10 +1041,12 @@ describe('the delay discount', () => {
     // the pin is that arithmetic, printed turns included.
     const { state, player, cities } = towns(6);
     for (const city of cities.slice(0, 2)) city.buildings.push('monument');
+    bumpRevision(state);
     // The row's own gate is the simulation's: without Stonecraft `buildError`
     // refuses every town and the potential is honestly nought.
     for (const step of researchExpansion(state, 0, 'stonecraft')) {
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     const effect: CardCountScaledEffect = {
       kind: 'countScaled',
@@ -1156,6 +1168,7 @@ describe('the delay discount', () => {
     for (const step of researchExpansion(state, 0, 'irrigation')) {
       if (step === 'irrigation') continue;
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     const entryFor = (): PlanEntry | undefined => {
       const ctx = valueContext(state, player);
@@ -1200,6 +1213,7 @@ describe('the delay discount', () => {
     for (const step of researchExpansion(state, 0, 'irrigation')) {
       if (step === 'irrigation') continue;
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     player.researching = 'irrigation';
     const riderTerm = (): ValueTerm => {
@@ -1219,6 +1233,7 @@ describe('the delay discount', () => {
     // a third of the turns and the rider is worth more for it. Nothing about the
     // hex, the plan or the node changed — only the rate.
     city.buildings.push('library');
+    bumpRevision(state);
     const quick = riderTerm();
     expect(quick.value).toBeGreaterThan(slow.value);
     // And the turns are printed on both, so the feed says why the number moved.
@@ -1272,6 +1287,7 @@ describe('the tech chain', () => {
     const player = seat(state, 0);
     if (tech !== undefined) {
       for (const step of researchExpansion(state, 0, tech)) player.techsResearched.push(step);
+      bumpRevision(state);
     }
     return { state, player, cities };
   }
@@ -1314,6 +1330,7 @@ describe('the tech chain', () => {
     expect(university!.towns).toBe(3);
 
     cities[0]!.buildings.push('university');
+    bumpRevision(state);
     const after = techChain(state, player, valueContext(state, player), 'education');
     expect(after.steps.find((step) => step.id === 'university')!.towns).toBe(2);
     expect(after.stepsRemaining).toBe(before.stepsRemaining - 1);
@@ -1341,6 +1358,7 @@ describe('the tech chain', () => {
     // the step is owed by nobody, so there is no step, and a chain with nothing
     // left to do is not in the book at all.
     for (const city of cities) city.buildings.push('library');
+    bumpRevision(state);
     const after = liveChains(state, player, valueContext(state, player));
     const still = after.find((live) => live.goal === 'letters');
     expect(still?.steps.some((step) => step.id === 'library') ?? false).toBe(false);
@@ -1383,6 +1401,7 @@ describe('the tech chain', () => {
     for (const tech of ['currency', 'divination', 'bronzePanoply'] as const) {
       for (const step of researchExpansion(state, 0, tech)) {
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+        bumpRevision(state);
       }
     }
     const opening = decisionOfType(state, 0, 'chooseResearch');
@@ -1616,6 +1635,7 @@ describe('the wage-aware levy', () => {
       piece.fortifiedTurns = 0;
     }
     seat(state, 0).gold = gold;
+    bumpRevision(state);
     recomputeAllVisibility(state);
     return state;
   }
@@ -1703,6 +1723,7 @@ describe('the engine shapes, priced', () => {
     (orderDef(id) as { effects: CardEffect[] }).effects = effects;
     if (!player.statecraft.orders.includes(id)) player.statecraft.orders.push(id);
     player.statecraft.slots[index] = { card: id, sealedUntil: state.turn };
+    bumpRevision(state);
     return () => {
       (orderDef(id) as { effects: CardEffect[] }).effects = held;
     };
@@ -1727,6 +1748,7 @@ describe('the engine shapes, priced', () => {
     const bare = priced(share);
     const built = priced(share, (_state, _player, city) => {
       city.buildings.push('temple');
+      bumpRevision(_state);
     });
     expect(bare).toBe(0);
     expect(built).toBeGreaterThan(0);
@@ -1769,6 +1791,7 @@ describe('the engine shapes, priced', () => {
     const bare = priced(share);
     const built = priced(share, (_state, _player, city) => {
       city.buildings.push('library');
+      bumpRevision(_state);
     });
     expect(bare).toBe(0);
     expect(built).toBeGreaterThan(0);
@@ -1887,6 +1910,7 @@ describe('the engine shapes, priced', () => {
     const { state, player, city } = board();
     const before = explainCounted(effect, valueContext(state, player));
     city.buildings.push('library', 'temple');
+    bumpRevision(state);
     const after = explainCounted(effect, valueContext(state, player));
     expect(before.terms[0]!.value).toBe(0);
     expect(after.terms[0]!.value).toBe(2);
@@ -2124,6 +2148,7 @@ describe('the whole deck, priced (batch H2)', () => {
     const { state, player } = board();
     state.turn = 40;
     player.techsResearched.push('agriculture' as TechId, 'mining' as TechId);
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     const rider: CardEffect[] = [
       { kind: 'windfallRider', occasion: 'tech', grant: { yield: 'culture', amount: 40 } },
@@ -2147,6 +2172,7 @@ describe('the whole deck, priced (batch H2)', () => {
     const { state, player } = board();
     state.turn = 40;
     player.techsResearched.push('agriculture' as TechId);
+    bumpRevision(state);
     const ctx = valueContext(state, player);
     const plain = scoreEffects(
       [{ kind: 'windfallRider', occasion: 'tech', grant: { yield: 'faith', amount: 10 } }],
@@ -2204,6 +2230,7 @@ describe('the whole deck, priced (batch H2)', () => {
     // reading `collectYields` hands the evaluator, so nothing is estimated.
     const { state, player, city } = board();
     city.buildings.push('shrine');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const ctx = valueContext(state, player);
     const faith = empireRateReading(state, player.id).faithPerTurn ?? 0;
@@ -2238,6 +2265,7 @@ describe('the whole deck, priced (batch H2)', () => {
     const { state, player, city } = board();
     expect(scoreEffects(share, valueContext(state, player))).toBe(0);
     city.buildings.push('temple');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const ctx = valueContext(state, player);
     const faith = buildingDef('temple').faith ?? 0;
@@ -2321,6 +2349,7 @@ describe('the whole deck, priced (batch H2)', () => {
     // is no longer worth exactly zero to the margin.
     const { state, player, city } = board();
     city.buildings.push('shrine', 'temple');
+    bumpRevision(state);
     refreshCityDerived(state, city);
     const before = empireRateReading(state, player.id).goldPerTurn ?? 0;
     const lines = explainEmpireCardYields(state, player.id);

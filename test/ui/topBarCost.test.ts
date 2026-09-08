@@ -37,7 +37,7 @@ import * as cities from '../../src/sim/cities';
 import * as meters from '../../src/sim/meters';
 import * as empireGold from '../../src/sim/empireGold';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { civYields } from '../../src/ui/topBar';
 import { tradeLedger } from '../../src/ui/tradeScreen';
@@ -155,6 +155,7 @@ describe('the empire’s percentages are taken once a render', () => {
     // (`test/sim/statecraft.test.ts` pins that half).
     const state = empire(12);
     state.players[0]!.statecraft.doctrines.push('theTithe');
+    bumpRevision(state);
     const swept = counting(meters, 'meterEffects', () => civYields(state, 0));
     expect(swept.count).toBe(2);
     expect(swept.count).toBeLessThan(state.cities.length);

@@ -17,6 +17,7 @@ import {
   SCHEMA_VERSION,
   createUnit,
   newGame,
+  bumpRevision,
 } from '../../src/sim/state';
 import {
   advanceResearch,
@@ -131,6 +132,7 @@ function grant(state: GameState, playerId: number, ...techs: TechId[]): void {
   const player = state.players[playerId]!;
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech)) player.techsResearched.push(tech);
+    bumpRevision(state);
   }
 }
 
@@ -1225,6 +1227,7 @@ describe('glanceable numbers', () => {
     first.population = 4;
     second.population = 2;
     second.buildings.push('library');
+    bumpRevision(state);
 
     const delta = buildingYieldDelta(state, 0, 'library');
     // Only the city without one contributes, and it contributes both of the
@@ -1238,6 +1241,7 @@ describe('glanceable numbers', () => {
     // And the promise is kept: building it really does add that much.
     const before = playerScience(state, 0);
     first.buildings.push('library');
+    bumpRevision(state);
     expect(playerScience(state, 0) - before).toBe(delta.science);
   });
 
@@ -2083,6 +2087,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     const state = flatState();
     const city = plant(state, 0, 4, 4);
     city.buildings.push('library', 'shrine');
+    bumpRevision(state);
     grant(state, 0, 'theLongCount');
     const paid: number[] = [];
     const bank = (_s: GameState, _p: unknown, amount: number): void => void paid.push(amount);

@@ -45,7 +45,7 @@ import {
   isConsecrationId,
 } from '../../src/sim/religionData';
 import { RULES } from '../../src/sim/rulesData';
-import { type City, type GameState, playerById } from '../../src/sim/state';
+import { type City, type GameState, playerById, bumpRevision } from '../../src/sim/state';
 import {
   anyCardDef,
   cardCityYields,
@@ -313,6 +313,7 @@ describe('a patron is a card', () => {
     const g = game();
     const city = found(g.state, 0);
     city.buildings.push('shrine', 'temple');
+    bumpRevision(g.state);
     const before = cityYields(g.state, city).gold;
     city.consecration = 'treasuryOfRelics';
     expect(cityYields(g.state, city).gold).toBe(before + 6);
@@ -320,6 +321,7 @@ describe('a patron is a card', () => {
     // rows' own `category`, so a second faith building joins it for free.
     const withLibrary = cityYields(g.state, city).gold;
     city.buildings.push('library');
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).gold).toBe(withLibrary + buildingDef('library').gold);
   });
 
@@ -392,6 +394,7 @@ describe('contributing to a basket', () => {
     queueCathedral(city);
     const player = playerById(g.state, 0)!;
     player.gold = 40;
+    bumpRevision(g.state);
     const offer = explainContribution(g.state, 0, city.id, 'gold')!;
     expect(offer.rate).toBe(GOLD_RATE);
     expect(offer.hammers).toBe(Math.floor(40 / GOLD_RATE));
@@ -410,6 +413,7 @@ describe('contributing to a basket', () => {
     queueCathedral(city);
     const player = playerById(g.state, 0)!;
     player.faithPool = 30;
+    bumpRevision(g.state);
     const offer = explainContribution(g.state, 0, city.id, 'faith')!;
     expect(offer.hammers).toBe(Math.floor(30 / FAITH_RATE));
     expect(dispatch(g, giveCommand(city.id, 'faith')).ok).toBe(true);
@@ -425,6 +429,7 @@ describe('contributing to a basket', () => {
     city.hammerBasket = cost - 3;
     const player = playerById(g.state, 0)!;
     player.gold = 9000;
+    bumpRevision(g.state);
     const offer = explainContribution(g.state, 0, city.id, 'gold')!;
     expect(offer.remaining).toBe(3);
     expect(offer.hammers).toBe(3);
@@ -438,6 +443,7 @@ describe('contributing to a basket', () => {
     queueCathedral(city);
     const player = playerById(g.state, 0)!;
     player.gold = GOLD_RATE * 4 + (GOLD_RATE - 1);
+    bumpRevision(g.state);
     expect(dispatch(g, giveCommand(city.id, 'gold')).ok).toBe(true);
     expect(city.hammerBasket).toBe(4);
     expect(player.gold).toBe(GOLD_RATE - 1);
@@ -449,6 +455,7 @@ describe('contributing to a basket', () => {
     queueCathedral(city);
     const player = playerById(g.state, 0)!;
     player.gold = buildingProductionCost(CONSECRATOR) * GOLD_RATE;
+    bumpRevision(g.state);
     const result = dispatch(g, giveCommand(city.id, 'gold'));
     expect(result.ok).toBe(true);
     expect(city.buildings).toContain(CONSECRATOR);
@@ -472,6 +479,7 @@ describe('contributing to a basket', () => {
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     player.gold = 500;
+    bumpRevision(g.state);
 
     // Nothing queued.
     expect(contributeError(g.state, 0, city.id, 'gold')).toMatch(/building nothing/);
@@ -485,9 +493,11 @@ describe('contributing to a basket', () => {
     expect(contributeError(g.state, 0, city.id, 'silver')).toMatch(/no bank called/);
     // An empty purse.
     player.gold = 0;
+    bumpRevision(g.state);
     expect(contributeError(g.state, 0, city.id, 'gold')).toMatch(/too little gold/);
     // Already paid for.
     player.gold = 500;
+    bumpRevision(g.state);
     city.hammerBasket = buildingProductionCost(CONSECRATOR);
     expect(contributeError(g.state, 0, city.id, 'gold')).toMatch(/already paid/);
 
@@ -522,6 +532,7 @@ describe('contributing to a basket', () => {
     const city = found(g.state, 0);
     queueCathedral(city);
     playerById(g.state, 0)!.gold = 500;
+    bumpRevision(g.state);
     g.state.turnEnded[0] = true;
     const before = snapshotState(g.state);
     const result = applyCommand(g.state, giveCommand(city.id, 'gold'));
@@ -547,7 +558,9 @@ describe('a game with contributions and a consecration', () => {
       // an Æra III row is ×4.5 now, so a flat 5000 gold stopped completing it),
       // and computed through the fold so the next retune moves nothing.
       player.faithPool = 60;
+      bumpRevision(g.state);
       player.gold = buildingProductionCost(CONSECRATOR) * GOLD_RATE;
+      bumpRevision(g.state);
       queueCathedral(city);
       for (const command of [
         giveCommand(city.id, 'faith'),
@@ -577,12 +590,14 @@ describe('a game with contributions and a consecration', () => {
       const city = found(g.state, 0);
       const player = playerById(g.state, 0)!;
       player.techsResearched.push('theology' as never);
+      bumpRevision(g.state);
       // Deliberately **short**: the press leaves a couple of hammers owing, so
       // the town's own production is what tops the cathedral out and the roll
       // happens inside a resolution rather than inside the command.
       queueCathedral(city);
       city.hammerBasket = buildingProductionCost(CONSECRATOR) - 40;
       player.gold = 38 * GOLD_RATE;
+      bumpRevision(g.state);
       expect(dispatch(g, giveCommand(city.id, 'gold')).ok).toBe(true);
       expect(city.buildings).not.toContain(CONSECRATOR);
       for (let turn = 0; turn < 4; turn++) {

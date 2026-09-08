@@ -56,6 +56,7 @@ import {
   type GameState,
   createUnit,
   playerById,
+  bumpRevision,
 } from '../../src/sim/state';
 import { cardCombatLines, cardUnitStat } from '../../src/sim/statecraft';
 import { buildError, hasAbility, opusOpen, worldTechReached } from '../../src/sim/tech';
@@ -97,6 +98,7 @@ function learn(state: GameState, playerId: number, tech: string): void {
   const player = playerById(state, playerId)!;
   if (!player.techsResearched.includes(tech as never)) {
     player.techsResearched.push(tech as never);
+    bumpRevision(state);
   }
 }
 
@@ -111,6 +113,7 @@ function fillRod(state: GameState, playerId: number): void {
   const player = playerById(state, playerId)!;
   while (player.beads.length < BEAD_RULES.threshold) {
     player.beads.push({ id: 'theFounder', kind: 'quest', family: 'economic', turn: state.turn });
+    bumpRevision(state);
   }
 }
 
@@ -341,6 +344,7 @@ describe('a capstone is one per realm', () => {
     learn(g.state, 1, CLOSER);
     const town = found(g.state, 0);
     town.buildings.push(OPUS);
+    bumpRevision(g.state);
     const why = buildError(g.state, 0, 'building', OPUS, town);
     expect(why).toContain(town.name);
     expect(why).toContain('already stands');
@@ -370,6 +374,7 @@ describe('a capstone is one per realm', () => {
     const mine = found(g.state, 0);
     const theirs = found(g.state, 1);
     theirs.buildings.push(OPUS);
+    bumpRevision(g.state);
     expect(buildError(g.state, 0, 'building', OPUS, mine)).toBeNull();
   });
 });
@@ -396,6 +401,7 @@ describe('a great work wants its building in the same town', () => {
       const wanted = buildingDef(site.building as never).name;
       expect(buildError(g.state, 0, 'building', id, town)).toContain(wanted);
       town.buildings.push(site.building as never);
+      bumpRevision(g.state);
       expect(buildError(g.state, 0, 'building', id, town)).toBeNull();
     }
   });
@@ -421,6 +427,7 @@ describe('the three great works pay what their rows say', () => {
     const before = fullMovement(hull, g.state);
 
     town.buildings.push(chart as never);
+    bumpRevision(g.state);
     // The land piece is unmoved — the lines are a ship's and an embarked
     // piece's, and this one is neither.
     expect(fullMovement(hull, g.state)).toBe(before);
@@ -455,6 +462,7 @@ describe('the three great works pay what their rows say', () => {
     expect(cardCombatLines(g.state, situation)).toHaveLength(0);
 
     town.buildings.push(codex as never);
+    bumpRevision(g.state);
     const lines = cardCombatLines(g.state, situation);
     expect(lines).toHaveLength(1);
     expect(lines[0]!.amount).toBe(3);
@@ -469,6 +477,7 @@ describe('the three great works pay what their rows say', () => {
       ),
     );
     town.buildings.push(codex as never);
+    bumpRevision(g.state);
     const soldier = g.state.units.find((u) => u.ownerId === 0)!;
 
     // Presence is the state: no key, no extra mending.

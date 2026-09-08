@@ -312,16 +312,16 @@ export interface ReliquaryScreenOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   /**
-   * How many commands this game has accepted — `game.log.length`, the house
-   * revision (batch H18).
+   * The board's own revision — `GameState.revision` (batch H18, re-keyed by E2).
    *
    * The key the face-up card's figure is remembered under, together with the
    * state object itself. It changes on exactly the occasions the answer can:
-   * every mutation in this game goes through `applyCommand` and every accepted
-   * command is appended to the log, so a figure taken at one length is the
-   * figure at that length. The state object is in the key beside it because a
-   * game *loaded* over this one is a different board that may sit at the same
-   * length, and `restoreState` always builds a fresh object.
+   * `applyCommand` raises it on every accepted command and `runEndOfTurn` once
+   * after each phase, which are the two ways the world moves at all, so a figure
+   * taken at one revision is the figure at that revision. The state object is in
+   * the key beside it because a game *loaded* over this one is a different board
+   * that may sit at the same number, and `restoreState` always builds a fresh
+   * object.
    *
    * Optional, and a screen without one simply remembers nothing.
    */

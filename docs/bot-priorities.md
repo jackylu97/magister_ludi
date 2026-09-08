@@ -1767,6 +1767,14 @@ the table carry one (`hermitCrown`, `greatWarringTribes`, `breadAndCircuses`,
 
 ### The memo, and the two things it checks
 
+> **Superseded by batch E3a** (2026-09-07, `docs/audit/evaluations.md` §4c.1).
+> Batch E2 gave the simulation `GameState.revision` — the announcement this
+> section says nothing in the game makes — so `liveReading` keys on
+> `(state identity, revision, seat)` and `livePrint`, `printsAgree`, `gatesAgree`
+> and the `asked` notebook are deleted. What follows is the batch-10 record, kept
+> because the measurements below are of the walk this memo wraps, and those are
+> unchanged.
+
 `liveReading(state, playerId)` — a `WeakMap` on the state, keyed
 `playerId * 2 + cut`, holding the list, the print it was built from, and every
 gate the build opened or closed. A remembered list is handed back when:
@@ -1880,11 +1888,10 @@ joins the print or the suite says so.
 
 ### Known gaps, written down rather than fixed
 
-- **`livePrint` is a fifth of what the evaluator now costs.** It allocates an
-  array of every input on a *hit* as well as a miss, and it could compare in
-  place against the print it holds — one walk, two sinks. Left alone because two
-  sinks is two chances to disagree about what an input is, and the whole value of
-  the print is that it cannot.
+- ~~**`livePrint` is a fifth of what the evaluator now costs.**~~ **Closed by
+  batch E3a**: the print is gone, not made cheaper. The counter it was standing
+  in for now exists, so the memo is an integer compare and the fifth is
+  recovered whole.
 - **`liveCityEffects` still builds four arrays and spreads them per call.** The
   empire half of it is remembered now; the town-local half (buildings, rites,
   follower beliefs, the cathedral's patron) is not, and it has a fifth input

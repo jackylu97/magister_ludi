@@ -109,6 +109,7 @@ import {
   playerById,
   shrinkFollowers,
   unconvertedCitizens,
+  bumpRevision,
 } from '../../src/sim/state';
 import {
   type CardYieldLine,
@@ -172,6 +173,7 @@ function learn(state: GameState, playerId: number, ...techs: string[]): void {
   for (const tech of techs) {
     if (!player.techsResearched.includes(tech as never)) {
       player.techsResearched.push(tech as never);
+      bumpRevision(state);
     }
   }
 }
@@ -191,6 +193,7 @@ function forecast(state: GameState, unitId: number, col: number, row: number) {
 /** Gives a seat a god outright — the offer machinery has its own tests. */
 function keep(state: GameState, playerId: number, id: BeliefId): void {
   playerById(state, playerId)!.pantheon.beliefs.push(id);
+  bumpRevision(state);
 }
 
 // --- the table --------------------------------------------------------------
@@ -354,6 +357,7 @@ describe('a belief is an effect source, not a second evaluator', () => {
     keep(g.state, 0, 'theStandingStones');
     const bare = cityYields(g.state, city).culture;
     city.buildings.push('monument');
+    bumpRevision(g.state);
     expect(cityYields(g.state, city).culture).toBeGreaterThan(bare);
   });
 
@@ -531,6 +535,7 @@ describe('a belief is an effect source, not a second evaluator', () => {
     });
     const wild = g.state.players.find((p) => p.barbarian)!;
     wild.pantheon.beliefs.push('keeperOfTheCalendar');
+    bumpRevision(g.state);
     g.state.turn = 20;
     openPeriodicOffers(g.state);
     expect(wild.pendingDiscovery).toBeUndefined();
@@ -555,6 +560,7 @@ describe('rites', () => {
     learn(g.state, 0, 'divination', ...techs);
     const city = found(g.state, 0);
     city.buildings.push('chapel');
+    bumpRevision(g.state);
     const player = playerById(g.state, 0)!;
     player.faithPool = 1000;
     return { g, city, player };
@@ -714,6 +720,7 @@ describe('rites', () => {
   it('science — every building standing in the town adds a beaker', () => {
     const { g, city, player } = town('earthenware', 'letters');
     city.buildings.push('library');
+    bumpRevision(g.state);
     // The **flats**, since batch X: the empire stage multiplies both readings
     // and is no longer floored away, so "two more beakers" is a claim about the
     // fold rather than about the staged figure.
@@ -790,6 +797,7 @@ describe('a prophet says a rite over every town', () => {
   it('takes over from whatever a town was keeping, so it is still one at a time', () => {
     const { g, first, player, prophet } = ready();
     first.buildings.push('chapel');
+    bumpRevision(g.state);
     performRiteAt(g.state, player, first, 'riteOfTheHarvest');
     expect(cityRite(g.state, first)).toBe('riteOfTheHarvest');
     empireRiteAt(g.state, player, prophet, 'omenReading');
@@ -895,6 +903,7 @@ describe('the apostle', () => {
       `${city.name} has no cathedral to keep a relic in`,
     );
     city.buildings.push('cathedral');
+    bumpRevision(g.state);
     expect(placeRelicError(g.state, 0, apostle.id)).toBeNull();
 
     const before = cityYields(g.state, city).faith;
@@ -925,6 +934,7 @@ describe('the apostle', () => {
     const { g, apostle } = ready();
     const theirs = found(g.state, 1);
     theirs.buildings.push('cathedral');
+    bumpRevision(g.state);
     apostle.col = theirs.col;
     apostle.row = theirs.row;
     const before = snapshotState(g.state);
@@ -954,6 +964,7 @@ describe('timed effects', () => {
     learn(g.state, 0, 'divination', 'earthenware', 'letters');
     const city = found(g.state, 0);
     city.buildings.push('chapel');
+    bumpRevision(g.state);
     playerById(g.state, 0)!.faithPool = 1000;
     return { g, city };
   }
@@ -961,6 +972,7 @@ describe('timed effects', () => {
   it('run out on the exact turn they name, and not the one before', () => {
     const { g, city } = blessed();
     city.buildings.push('library');
+    bumpRevision(g.state);
     const bare = cityQuote(g.state, city).flats.science;
 
     performRiteAt(g.state, playerById(g.state, 0)!, city, 'omenReading');
@@ -1575,6 +1587,7 @@ describe('the pressure ledger', () => {
 
     const bare = pressureTotals(g.state, target);
     target.buildings.push('temple');
+    bumpRevision(g.state);
     const walled = pressureTotals(g.state, target);
     // Its own faith is doubled and the rival's halved — one multiplication,
     // taken once, carried as the difference so the list still sums.
@@ -1649,6 +1662,7 @@ describe('the pressure ledger', () => {
   it('lets a Temple blunt the bomb, exactly as it blunts the tide', () => {
     const { g, religion, target, prophet } = bombWorld(7);
     target.buildings.push('temple');
+    bumpRevision(g.state);
     proclaim(g, prophet.id);
     // 75% of 60 is 45: four citizens of seven — a majority, which is the point
     // of the re-cut's retune. The worksheet rules the Temple at "foreign
@@ -1715,6 +1729,7 @@ describe('the pressure ledger', () => {
     const guarded = town(g.state, 1, 9, 6);
     guarded.population = 7;
     guarded.buildings.push('temple');
+    bumpRevision(g.state);
 
     const preview = proclaimPreview(g.state, prophet.id)!;
     expect(preview.range).toBe(RULES.religion.bombRange);
@@ -1789,6 +1804,7 @@ describe('the pressure ledger', () => {
     const target = town(g.state, 1, 8, 6);
     expect(pressureTotals(g.state, target)[religion.id]).toBe(0);
     seat.buildings.push('hagiaSophia');
+    bumpRevision(g.state);
     const lines = explainPressure(g.state, target);
     expect(lines.find((line) => line.source === 'Wonder')?.amount).toBe(4);
   });
@@ -1801,6 +1817,7 @@ describe('the pressure ledger', () => {
     const target = town(g.state, 1, 8, 6);
     const before = pressureTotals(g.state, target)[religion.id]!;
     religion.enhancer = ['ecclesia'];
+    bumpRevision(g.state);
     // Ecclesia says holy sites press three harder, and it says it as data.
     expect(cardPressureRule(g.state, 0, 'siteStrength')).toBe(3);
     expect(pressureTotals(g.state, target)[religion.id]).toBe(before + 3);
@@ -1816,6 +1833,7 @@ describe('what a religion pays whom', () => {
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     religion.follower = ['theQuietHours'];
+    bumpRevision(g.state);
     const mine = town(g.state, 0, 7, 6);
     const theirs = town(g.state, 1, 9, 6);
     const quiet = town(g.state, 1, 5, 8);
@@ -1858,6 +1876,7 @@ describe('what a religion pays whom', () => {
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     religion.follower = ['harvestBlessing', 'guildOfTheFaithful', 'commonTable', 'warriorMonks'];
+    bumpRevision(g.state);
     const theirs = town(g.state, 1, 9, 6);
     theirs.followers = { [religion.id]: theirs.population };
     const quiet = town(g.state, 1, 5, 8);
@@ -1916,9 +1935,11 @@ describe('what a religion pays whom', () => {
     town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     religion.follower = ['feastDays'];
+    bumpRevision(g.state);
     const theirs = town(g.state, 1, 9, 6);
     theirs.followers = { [religion.id]: theirs.population };
     theirs.buildings.push('temple');
+    bumpRevision(g.state);
     // Two clauses, both landing in the one town that follows.
     expect(
       cardHappiness(g.state, 1)
@@ -1939,6 +1960,7 @@ describe('what a religion pays whom', () => {
     const theirs = town(g.state, 1, 9, 6);
     theirs.followers = { [religion.id]: theirs.population };
     religion.enhancer = ['apostles'];
+    bumpRevision(g.state);
 
     const trickleFor = (playerId: number): number =>
       cardEmpireYields(g.state, playerId)
@@ -1955,6 +1977,7 @@ describe('what a religion pays whom', () => {
     // **The holy city changes hands.** Nothing is transferred: the derivation
     // asks the board, and the board now says the town is Bors'.
     seat.ownerId = 1;
+    bumpRevision(g.state);
     expect(religionFounder(g.state, religion)).toBe(1);
     expect(heldReligions(g.state, 0)).toEqual([]);
     expect(trickleFor(0)).toBe(0);
@@ -1979,6 +2002,7 @@ describe('what a religion pays whom', () => {
     siteAt(g.state, seat, 6, 6);
     religion.holySite = { col: 6, row: 6 };
     seat.ownerId = 1;
+    bumpRevision(g.state);
     expect(religionFounder(g.state, religion)).toBe(1);
     // Pillaged: the improvement goes, and with it the seat of the faith.
     delete getTileAt(g.state.map, 6, 6)!.improvement;
@@ -2013,6 +2037,7 @@ describe('what a religion pays whom', () => {
     // Apostles doubles the trickle **before anything is banked**, and reaches
     // the trickle alone.
     religion.enhancer = ['apostles'];
+    bumpRevision(g.state);
     expect(faithOf()).toBe(2);
   });
 
@@ -2033,27 +2058,32 @@ describe('what a religion pays whom', () => {
     following[0]!.population = 4;
     following[0]!.followers = { [religion.id]: 4 };
     following[3]!.buildings.push('temple');
+    bumpRevision(g.state);
 
     // Every one of the five counts is asked by a row, which is what stops a
     // count from being declared and never read. All four rows live in the
     // **enhancer** pool since the 2026-08-28 ruling: a world-scale count is a
     // question about a founder, and a follower belief is a fact about a town.
     religion.enhancer = ['congregation'];
+    bumpRevision(g.state);
     expect(
       cardHappiness(g.state, 0).find((line) => line.source.includes('Congregation'))?.amount,
     ).toBe(1);
 
     religion.enhancer = ['worldChurch'];
+    bumpRevision(g.state);
     expect(
       cardHappiness(g.state, 0).find((line) => line.source.includes('World Church'))?.amount,
     ).toBe(2);
 
     religion.enhancer = ['pilgrimsCoin'];
+    bumpRevision(g.state);
     expect(
       cardEmpireYields(g.state, 0).find((line) => line.source.includes("Pilgrims' Coin"))?.faith,
     ).toBe(1);
 
     religion.enhancer = ['theLongPrayer'];
+    bumpRevision(g.state);
     // Eight citizens, one culture per four.
     expect(
       cardEmpireYields(g.state, 0).find((line) => line.source.includes('The Long Prayer'))?.culture,
@@ -2062,6 +2092,7 @@ describe('what a religion pays whom', () => {
     // And the whole family answers **nothing** for a seat that holds no holy
     // city — which is what the tide's counts are asked of now.
     religion.enhancer = [];
+    bumpRevision(g.state);
     expect(liveEffects(g.state, 1).some((entry) => entry.source.startsWith('Religion'))).toBe(
       false,
     );
@@ -2216,6 +2247,7 @@ describe('the prophet’s four verbs', () => {
     // Fill the follower house by hand, so the ladder's next rung is the gated
     // one and nothing else is in the way.
     religion.follower = religionBeliefPool(religion, 'follower').slice(0, 3);
+    bumpRevision(g.state);
     expect(religion.follower.length).toBe(3);
     expect(nextBeliefPool(religion)).toBe('enhancer');
 
@@ -2521,6 +2553,7 @@ describe('the ratified religion rows', () => {
     const before = plain.attackerStrength;
 
     religion.enhancer = ['theCrusade'];
+    bumpRevision(g.state);
     const crusading = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     expect(crusading.ok).toBe(true);
     if (!crusading.ok) return;
@@ -2540,6 +2573,7 @@ describe('the ratified religion rows', () => {
     const mineTown = town(g.state, 0, 6, 6);
     const religion = faith(g.state, 0);
     religion.enhancer = ['theCrusade'];
+    bumpRevision(g.state);
     mineTown.followers = { [religion.id]: mineTown.population };
     const target = getTileAt(g.state.map, mineTown.col, mineTown.row + 1)!;
     createUnit(g.state, 1, 'warrior', target.col, target.row);
@@ -2589,6 +2623,7 @@ describe('the ratified religion rows', () => {
     const religion = faith(g.state, 0);
     const plain = cardFoundingRider(g.state, 0);
     religion.enhancer = ['thePromisedLand'];
+    bumpRevision(g.state);
     const blessed = cardFoundingRider(g.state, 0);
     expect(blessed.population - plain.population).toBe(1);
   });
@@ -2674,6 +2709,7 @@ describe('the faith ladder as a reading', () => {
     // the ladder is not the answer here, the tree is.
     const pool = beliefPool(g.state, player);
     player.pantheon.beliefs.push(pool[0]!, pool[1]!);
+    bumpRevision(g.state);
     const shut = explainNextRung(g.state, 0, 5);
     expect(shut).toEqual({ kind: 'closed', tech: 'theHighTemple' });
     expect(nextRungWords(shut)).toBe(`${techDef('theHighTemple').name} opens the next place`);
@@ -2682,6 +2718,7 @@ describe('the faith ladder as a reading', () => {
     // but that.
     learn(g.state, 0, 'theHighTemple');
     player.pantheon.beliefs.push(pool[2]!);
+    bumpRevision(g.state);
     expect(nextRungWords(explainNextRung(g.state, 0, 5))).toBe('The pantheon is full');
   });
 
