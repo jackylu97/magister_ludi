@@ -1313,7 +1313,18 @@ describe('the focus arm', () => {
     // forty-one, every one accepted, and the claim is unchanged. (Measured with
     // the faith book's own batch held out: the same board raises them at HEAD
     // with H12 in and H11 out.)
-    const game = createGame({ ...CONFIG, seed: 20260903 });
+    //
+    // **Back to 20260905 on 2026-09-08**: batch S1 re-anchored the tech ladder
+    // at 10 (`docs/flags.md` item (vv)), so every column above the second is
+    // cheaper, the tree opens sooner and the boards moved a third time —
+    // 20260903 now raises no focus order inside fifty-two turns and 20260905,
+    // which stopped raising them under H11, raises six again from turn thirty,
+    // every one accepted. Measured across eight neighbouring seeds under the new
+    // ladder: 20260901 ten, 20260902 fourteen, 20260905 six, 20260908 eight,
+    // 20260903 and 20260904 none. The seed is only the board this claim is
+    // measurable on; the claim is the one the test above makes and has not
+    // moved.
+    const game = createGame({ ...CONFIG, seed: 20260905 });
     const stepper = createBotStepper(game, { warn: () => {} });
     const steps: { decision: BotDecision; turn: number; ok: boolean }[] = [];
     for (let turn = 0; turn < 52; turn++) {

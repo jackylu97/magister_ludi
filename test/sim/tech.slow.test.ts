@@ -518,6 +518,30 @@ describe('pacing', () => {
     // The horizon grows 900 → 1100 with the bands, for the reason every pin
     // above gives. Bands keep the widths above (±10 / ±15 / ±25 / ±30),
     // re-centred on the four fresh measurements.
+    //
+    // **Re-measured 2026-09-08, the ladder re-anchored at 10** (batch S1,
+    // `docs/flags.md` item (vv)). The whole taper is re-run from the first paid
+    // column's authored 10 — columns 2–5 are 23 · 53 · 105 · 175 where they were
+    // 30 · 69 · 135 · 225, and the seven authored late columns are scaled by the
+    // same 10/13 — so the tree costs 27401 beakers where it cost 35698. This
+    // seed now closes at **67 · 119 · 374 · 752**, and the move splits in two,
+    // which is worth saying plainly because only half of it is this ruling's:
+    //
+    //   · **The tree at HEAD, before a single price moved, closed at
+    //     75 · 142 · 470 · 950** — measured in the same run, with the old
+    //     `data/techs.json` swapped back in. So five to fifty turns of the
+    //     distance from the 80 · 156 · 481 · 999 printed below is batches P1 and
+    //     D1, which re-priced every hammer and never re-measured here.
+    //   · **The ladder is the rest** (75 → 67, 142 → 119, 470 → 374, 950 → 752).
+    //     Every age comes in eight to twenty per cent sooner, which is the 10/13
+    //     read straight off a science economy that pays for the tree at a rate
+    //     the tree does not change: a chart a fifth cheaper is bought about a
+    //     fifth sooner, and the *proportions* between the ages are untouched —
+    //     Æra IV is half the game before and after.
+    //
+    // Nothing is banded here (see the note below), so nothing needed widening;
+    // the horizon stays 1100 turns, which the whole chart now clears with three
+    // hundred and fifty turns to spare.
     const first = ageDone.get(1);
     const second = ageDone.get(2);
     const third = ageDone.get(3);
@@ -533,8 +557,10 @@ describe('pacing', () => {
     // every pass for a number the user's own playtests judge instead. The
     // machinery claims above stay — every age closes inside the horizon, the
     // whole chart runs out — and the figures are printed for whoever is
-    // looking, never asserted. Last measured 2026-09-06 after batches D, E and
-    // X: 80 · 156 · 481 · 999.
+    // looking, never asserted. Last measured 2026-09-08 after batch S1:
+    // 67 · 119 · 374 · 752. (It was 80 · 156 · 481 · 999 on 2026-09-06 after
+    // batches D, E and X, and 75 · 142 · 470 · 950 on this same tree with the
+    // old ladder swapped back in — the pin above splits the two causes.)
     console.info(`[pacing] scripted five-town empire closes the ages on turns ${first} · ${second} · ${third} · ${fourth}`);
     expect(game.state.players[0]!.techsResearched).toHaveLength(TECH_IDS.length);
   }, 120_000);

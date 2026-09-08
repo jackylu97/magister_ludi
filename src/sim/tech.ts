@@ -113,6 +113,40 @@
  * The four ages therefore cost **333 / 1665 / 7700 / 26000** — 35698 for the
  * whole tree.
  *
+ * Re-anchored at 10 (the user, 2026-09-08)
+ * ----------------------------------------
+ * "Adjust the science tree costs according to the decreased cost from the first
+ * tech … let's go with A for now" (`docs/flags.md`, item (vv)). The paragraph
+ * above cut the first paid column and left the ladder standing on it: every
+ * column from the second up was still the figure the *13* had produced, so the
+ * chart had an anchor it no longer used. Reading A moves the whole of it.
+ *
+ * The formula's own columns are the same taper re-run from **cost(1) = 10** —
+ * 30 · 69 · 135 · 225 become **23 · 53 · 105 · 175** — and the seven authored
+ * late columns are scaled by the same 10/13 and rounded the same way: Æra III's
+ * 400 · 540 · 680 become **310 · 415 · 525**, Æra IV's 1450 · 1700 · 1950 · 2200
+ * become **1100 · 1300 · 1500 · 1700**. Scaling them rather than re-deriving
+ * them is the point: a late column is a ruling about how dear the closing age
+ * should feel *relative to the opening*, so when the opening moves the ruling
+ * moves with it and the shape of the chart — the flat 2.3× first steps, the
+ * decaying middle, the hard lift at the end — is untouched to the proportion.
+ *
+ * Reading B was the other half of the offer: re-run the formula's columns alone
+ * and leave the authored ones where they were, which would have widened the
+ * Æra II → III step to something like 5.6×. It is kept in the ruling as the
+ * retune — its figures are the ones above this paragraph for columns 6–12 — so
+ * choosing between them later is editing a column, not re-deriving a table.
+ *
+ * The four ages now cost **266 / 1295 / 5940 / 19900** — 27401 for the whole
+ * tree, of which 27396 is payable (column 0's nominal 5 is nobody's price; the
+ * ruling counts the tree without it). Æra IV is still nearly three quarters of
+ * the chart, which is the earlier ruling surviving this one intact. The scripted
+ * empire closes its ages on **67 / 119 / 374 / 752**, against 75 / 142 / 470 /
+ * 950 for the same tree with the old ladder — every age eight to twenty per cent
+ * sooner and the proportions between them untouched, which is what scaling the
+ * whole chart rather than part of it buys. Measured, like every figure above it;
+ * `tech.slow.test.ts`'s pin works the two causes apart.
+ *
  * Everything below this paragraph is the history of the tables this replaced;
  * it is kept because it is the record of what the science economy was measured
  * to bear, and the taper was tuned against exactly that.

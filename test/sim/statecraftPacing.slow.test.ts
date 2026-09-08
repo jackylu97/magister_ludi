@@ -233,7 +233,16 @@ describe('the culture ladder', () => {
     // scripted bots for measuring changes"): the opening draft and the early
     // cadence are printed, never asserted — a scripted empire's numbers are the
     // script's, and the user's playtests judge the ladder. Last measured
-    // 2026-09-06: first draft 13, early cadence 9.29.
+    // 2026-09-08, after batch S1 re-anchored the tech ladder at 10
+    // (`docs/flags.md` item (vv)): first draft 13, early cadence 9.14, and the
+    // three governments on **40 / 105 / 528**. The same tree with the old
+    // ladder swapped back in measures 13, 9.57 and 40 / 107 / 554, so almost
+    // none of the distance from 2026-09-06's 13 / 9.29 and 40 / 95 / 275 is
+    // this ruling's — it is batches P1 and D1, which re-priced every hammer
+    // (and therefore every culture building) and were never re-measured here.
+    // What the cheaper tree is worth to a culture ladder is the small part:
+    // half a turn off the early cadence and about five per cent off the third
+    // government, from towns that reach their monuments a little sooner.
     const earlyCadence = (eighth - first) / 7;
     console.info(`[pacing] scripted empire: first draft t${first}, early cadence ${earlyCadence.toFixed(2)} turns a draft`);
     // The government tiers **this horizon reaches** all arrive, and they arrive

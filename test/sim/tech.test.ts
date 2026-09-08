@@ -380,7 +380,23 @@ describe('tech data integrity', () => {
     // every column from 2 up are untouched, so the taper now carries an authored
     // figure at each end and the middle is still the measured ladder. The tree
     // is 35698 beakers and the ages are 333 / 1665 / 7700 / 26000.
-    const COLUMN_COSTS = [5, 10, 30, 69, 135, 225, 400, 540, 680, 1450, 1700, 1950, 2200];
+    //
+    // **And now the whole ladder is re-anchored at that 10** (the user,
+    // 2026-09-08, `docs/flags.md` item (vv): "adjust the science tree costs
+    // according to the decreased cost from the first tech ... let's go with A
+    // for now"). Reading A is the whole chart moved, not only the columns the
+    // formula still owns: columns 2-5 are the same taper re-run from cost(1)=10
+    // (30/69/135/225 -> 23/53/105/175), and the seven authored late columns are
+    // scaled by the same 10/13 and `friendly`-rounded (400/540/680 ->
+    // 310/415/525; 1450/1700/1950/2200 -> 1100/1300/1500/1700). Column 1's
+    // authored 10 stopped being a nudge to the opening the moment it became the
+    // anchor, which is exactly what the ruling asks for — the ladder above it
+    // follows the tier a player actually buys first, as it has since the
+    // 2026-09-02 re-anchoring. The tree is 27401 beakers (27396 of them
+    // payable) and the ages are 266 / 1295 / 5940 / 19900. Reading B — the
+    // early columns alone, the late ones left where they were — is kept in the
+    // ruling for the retune.
+    const COLUMN_COSTS = [5, 10, 23, 53, 105, 175, 310, 415, 525, 1100, 1300, 1500, 1700];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -389,10 +405,10 @@ describe('tech data integrity', () => {
     // and is why `techChart.test.ts` no longer pins a list of nodes a
     // dependency drags out of cost order: there cannot be one.
     const bands: Record<number, [number, number]> = {
-      1: [5, 69],
-      2: [135, 225],
-      3: [400, 680],
-      4: [1450, 2200],
+      1: [5, 53],
+      2: [105, 175],
+      3: [310, 525],
+      4: [1100, 1700],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -1336,7 +1352,11 @@ describe('research in the log', () => {
     // third conversion project joined the queue's vocabulary, and Machinery
     // makes a road step cost a fifth instead of a third — so a v75 log researches
     // different things and marches different distances.
-    expect(SCHEMA_VERSION).toBe(91);
+    // 92 since batch S1 (2026-09-08, `docs/flags.md` item (vv)): the whole
+    // ladder is re-run from the first paid column's 10, so every column above
+    // the second charges fewer beakers and a v90 log pays a price this build
+    // does not ask for from its second technology on.
+    expect(SCHEMA_VERSION).toBe(92);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1751,19 +1771,27 @@ describe('the shape of the tree', () => {
     // slightly cheaper"): 13 → **10**, so the first four purchases of a game
     // land three beakers sooner apiece. Nothing else in the age moved, and the
     // column table in `COLUMN_COSTS` above is where that is written down.
+    //
+    // **And on 2026-09-08 the rest of the age followed that 10 up** (the user,
+    // `docs/flags.md` item (vv): "adjust the science tree costs according to
+    // the decreased cost from the first tech"). The ladder is the same taper
+    // re-run from cost(1)=10, so the age's four columns are 5 / 10 / 23 / 53
+    // where they were 5 / 10 / 30 / 69: the second rung stands, and the two
+    // above it come down by the same tenth-of-thirteen the first one did. The
+    // age costs 266 beakers where it cost 333, 261 of them payable.
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
       agriculture: 5,
       husbandry: 10,
       fletching: 10,
       mining: 10,
       earthenware: 10,
-      sailing: 30,
-      bronzeWorking: 30,
-      stonecraft: 30,
-      divination: 30,
-      calendar: 30,
-      letters: 69,
-      theWheel: 69,
+      sailing: 23,
+      bronzeWorking: 23,
+      stonecraft: 23,
+      divination: 23,
+      calendar: 23,
+      letters: 53,
+      theWheel: 53,
     });
     // Four lines off the root, each one node long, and then the two gates. The
     // war line reads Fletching → Calendar, the sky line Husbandry → Divination,

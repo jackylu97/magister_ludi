@@ -215,8 +215,9 @@ describe('the finish line in a played game', () => {
     // unreachable) and is worth keeping whatever the turn count is. The turn
     // count itself is a **pacing finding** for the user: the four-age tree is
     // meant to close the game around the end of Æra IV, the five-town empire in
-    // `tech.slow.test.ts` closes Æra IV at t999, and this lone capital needs
-    // four times that. The gap between the two *is* what a capital alone is
+    // `tech.slow.test.ts` closed Æra IV at t999 when this was written (t752
+    // since the ladder was re-anchored on 2026-09-08), and this lone capital
+    // needs three to four times that. The gap between the two *is* what a capital alone is
     // worth, and it is far wider than the ruling that opened the question
     // intended.
     //
@@ -227,7 +228,14 @@ describe('the finish line in a played game', () => {
     // Reported, not banded (the user, 2026-09-06: "can we stop using scripted
     // bots for measuring changes") — the turn a one-city script opens the Opus
     // is the script's number; the machinery below is the claim. Last measured
-    // 2026-09-06: t3959.
+    // 2026-09-08, after batch S1 re-anchored the tech ladder at 10
+    // (`docs/flags.md` item (vv)): **t2169**, against t3959 on 2026-09-06. A
+    // chart a fifth cheaper is worth far more than a fifth to this harness,
+    // because a lone capital pays for the closing age out of the thinnest
+    // science economy the suite plays and every turn it saves compounds against
+    // a treasury that is under water the whole way. The finding the pin above
+    // records is unchanged in kind — a capital alone still needs three times
+    // what the five-town empire does — and the horizon stays 4200.
     console.info(`[pacing] the one-city seat opens the Magnum Opus on t${opened}`);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 

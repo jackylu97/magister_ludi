@@ -384,8 +384,26 @@ import {
  * moves, and every growth, purchase and build priced against that happiness
  * moves with it; where a town beside the sand can now raise a wonder it could
  * not, its whole queue is a different game.
+ *
+ * v92: **the tech ladder re-anchored at 10** (batch S1, `docs/flags.md` item
+ * (vv); v91 is batch T1's, in flight beside this one — the user, 2026-09-08:
+ * *"adjust the science tree costs according to the
+ * decreased cost from the first tech … let's go with A for now"*). The first
+ * paid column was hand-cut from 13 to 10 on 2026-09-06 without the ladder above
+ * it being re-run, so every column from the second up was still priced off an
+ * anchor that no longer existed. It is re-run now: the same taper from
+ * cost(1) = 10 for the columns the formula owns (30 · 69 · 135 · 225 →
+ * 23 · 53 · 105 · 175) and the seven authored late columns scaled by the same
+ * 10/13 (400 · 540 · 680 → 310 · 415 · 525; 1450 · 1700 · 1950 · 2200 →
+ * 1100 · 1300 · 1500 · 1700). No node's column moved and no prerequisite was
+ * touched — a column is still a price, and this is the price the column now
+ * carries. The tree is 27401 beakers where it was 35698.
+ *
+ * A v90 log does not replay. Every technology after the first lands on a
+ * different turn, and a tree that arrives early takes every unlock, every
+ * escalation and every bead threshold in the game with it.
  */
-export const SCHEMA_VERSION = 91;
+export const SCHEMA_VERSION = 92;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

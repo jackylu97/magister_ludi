@@ -102,7 +102,11 @@ describe('the table in a played game', () => {
     // bots for measuring changes"): the turn the Æra III table opens for a
     // scripted seat is printed, never asserted; the horizon (400) stays wide
     // enough that the machinery below — the age opens, four cards are dealt, a
-    // deck stands — is what the test claims. Last measured 2026-09-06: t308.
+    // deck stands — is what the test claims. Last measured 2026-09-08, after
+    // batch S1 re-anchored the tech ladder at 10 (`docs/flags.md` item (vv)):
+    // t244, against t308 on 2026-09-06. The age opens sooner because the two
+    // ages in front of it are cheaper, which is the whole of the change; the
+    // horizon (400) still has room in it.
     console.info(`[pacing] the scripted seat opens the Æra III table on t${opened}`);
     // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
     // band around t100 on this seed; the band stays deliberately loose.
