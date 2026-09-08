@@ -218,9 +218,52 @@ reaches it, `worldTechReached`).
   how you got there. The two unmeasured rows and the two where the bots are
   a poor yardstick want a human game's numbers before their bars are trusted.
 
+  **The theme checks — a skill check per playstyle** (the user, 2026-09-08:
+  *"more specific skill checks that were playstyle specific, maybe in line
+  with our themes"*). The worksheet's fifteen lines (`docs/orders-and-
+  doctrines.md` §Themes) are the playstyles the Orders are written for; each
+  check below is one number that only a player *good at that line* reaches,
+  because moving it takes the line's several skills at once — and the deal's
+  guarantee (below) becomes **three different lines**, so a player is always
+  offered a wager in a style they could play and picks the one they *are*
+  playing. Every reading is a fold the Ledger already carries (a tile line
+  names its improvement and its ground; a building line names its row; the
+  meters name their sources), so each is a JSON row over an existing sum.
+
+  | Line | Wager | The one number | The skills it takes | bar II · III · IV |
+  |---|---|---|---|---|
+  | 🌱 The Green Belt | **The Great City** | citizens in your largest city, **every one working** (no idle citizen) | fresh water, a granary and an aqueduct, farms improved, the happiness to keep growing, the luxuries behind it | 12 · 18 · 26 |
+  | 🌾 The Ploughshare | **The Harvest** | food paid by **farms** a turn, across the realm | farms built and worked, the river and the Cistern, Harvest Blessing and the farm Orders, citizens placed on them | 20 · 60 · 140 |
+  | ⛰ The Highlands | **The Quarrymen** | production paid by **hills and mines** a turn | hill towns founded, mines dug, veins surfaced, Mountain Hold and The Deep Delving, citizens on the slopes | 15 · 50 · 120 |
+  | 🐫 The Long Caravan | **The Bazaar** | happiness paid by luxuries **plus** gold paid by luxuries, a turn | improved luxury tiles, the reveal technologies, workers, lends from rivals, the Grand Bazaar, Salt Tithes | 10 · 35 · 90 |
+  | ⚓ The Tide | **The Admiralty** | what your trade routes pay a turn, **from coastal cities** | harbours and lighthouses, fishing boats worked, routes sent by sea, the Tide Orders | 4 · 15 · 30 |
+  | ✶ The Star Chart | **The Observatory** | science a turn **per citizen** — the efficiency, not the mass | libraries and universities in every town, scholars seated, the science Orders, the Star Chart's shares; a wide realm of unschooled towns fails it | 1.5 · 2.5 · 4 |
+  | ☽ The Cloister | **The Scriptorium** | science paid by **faith buildings** a turn (Cathedrals of the Sky, The Curia, The Scriptoria, the consecrated Cathedral) | a religion founded and kept, temples and cathedrals raised, the beliefs and Orders that make faith pay learning | 4 · 15 · 40 |
+  | 🕯 The Procession | **The Tide of Faith** | cities in the world that **converted to your faith this age** (a flow of the tide, not a standing count) | a holy site placed well, pressure buildings, the road and the caravan clauses, lumps and proclamations timed | 3 · 5 · 8 |
+  | 🏛 The Marble Court | **The Patronage** | renown a turn **plus** the works standing (each work counted as five) | specialist buildings across families, wonders, great people called and placed, the court Orders | 15 · 50 · 100 |
+  | 📜 The Charter | **The Founders** | cities founded this age **with authority never negative** at the age's close — a count that resets to nought the turn the writ overruns | settlers timed to the writ, monuments and charters raised ahead of the towns, the Charter Orders, the palace's six spent well | 2 · 3 · 4 |
+  | ⚒ The Forge Levy | **The Arsenal** | hammers put into **units** this age, across the realm | wide production, barracks and forges, the levy Orders, an army actually raised rather than a treasury hoarded | 150 · 600 · 1 800 |
+  | 🎖 The Banner | **The Field of Glory** | rival units killed this age **minus** units lost — the exchange, not the body count | choosing the ground, ranged before melee, generals, the war Orders, the campaign pressed and then stopped | +3 · +6 · +10 |
+  | 🏹 The Wild Hunt | **The Warden** | barbarian camps cleared this age **plus** raiders killed, weighted (a camp three, a raider one) | scouting the fog, a standing levy, the hunt Orders, the Horde's surge answered within its grace | 6 · 12 · 20 |
+  | 🧭 The Wayfarers | **The Cartographers** | veins **surfaced** this age plus rivals' capitals **sighted** (each five) | explorers kept ranging, Prospecting, the map read and the world met | 3 · 6 · 9 |
+  | 🜍 The Athanor | **The Great Work** | *(the last age's own — the Opus is its check; no wager)* | — | — |
+
+  What makes these skill checks rather than meters: **The Observatory** is a
+  ratio, so a wide realm cannot buy it with towns; **The Founders** resets on
+  an overrun, so expansion past the writ scores nothing; **The Field of
+  Glory** is an exchange, so a war of attrition fails it; **The Great City**
+  asks that every citizen works, so a town grown on happiness alone with idle
+  hands fails it. Every bar is a first cut; the tile-class and building-class
+  folds (farms, hills, faith buildings, coastal routes) are readings the
+  Ledger's lines carry today and want a probe each before the figures are
+  trusted — the bot duels above measured the totals, not these slices.
+
 - **Families.** Every card names one of the four bead families (D · C · S · E,
-  `docs/beads.md`); ▢ (rec) the deal is guaranteed one card from three
-  different families, so every build has a wager it can want.
+  `docs/beads.md`) **and one theme line**; ▢ (rec) the deal is guaranteed
+  three cards from **three different lines** (and so from at least two
+  families), so every build is offered a wager in a style it could play —
+  and a competency check or a compound wager may be dealt beside two theme
+  checks, never three of the generic kind at once.
 - **What a wager may ask**: (rec) only readings the Ledger already prints —
   a meter, a count the `CountKind` vocabulary has, a fold of a voice over the
   age — so a card is a JSON row and the register test pins that every card's
