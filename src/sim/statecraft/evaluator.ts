@@ -2089,10 +2089,12 @@ export function countOf(
     case 'followingPop':
     case 'followingEmpires':
     case 'followingWithBuilding':
-      // **The tide, counted, in one sweep** (`docs/religion-v2.md`). Five
+    case 'followingCitiesWithWonder':
+    case 'followingBuildingsOfCategory':
+      // **The tide, counted, in one sweep** (`docs/religion-v2.md`). Seven
       // readings of one question — which cities in the *world* follow the
       // religion this empire founded — so they share a body rather than
-      // repeating the walk five times with one line different. An empire that
+      // repeating the walk seven times with one line different. An empire that
       // has founded nothing counts nothing, which is the honest answer and not
       // a guard.
       return followingCount(state, playerId, count, effect);
@@ -2105,7 +2107,7 @@ export function countOf(
 }
 
 /**
- * The five `following…` counts, over one sweep of `state.cities`.
+ * The seven `following…` counts, over one sweep of `state.cities`.
  *
  * `cityReligion` is derived from the citizens, so this cannot disagree with the
  * banner a town flies; `state.cities` is founding order, which is what makes the
@@ -2136,6 +2138,8 @@ function followingCount(
   let foreign = 0;
   let population = 0;
   let withBuilding = 0;
+  let withWonder = 0;
+  let shelved = 0;
   const empires: number[] = [];
   for (const city of state.cities) {
     if (!follows(city)) continue;
@@ -2145,12 +2149,27 @@ function followingCount(
     if (effect.building !== undefined && city.buildings.includes(effect.building)) {
       withBuilding += 1;
     }
+    // **The town, once, however many marvels stand in it** — the count is of
+    // cities that hold one, so the walk stops at the first. Off the town's own
+    // shelf rather than off `state.wonders`, which is what makes a captured
+    // marvel change this count with the flag over it.
+    if (city.buildings.some((id) => isWonder(id))) withWonder += 1;
+    // **The buildings, not the towns**: every roof of the named shelf in every
+    // following city. A line naming no category counts nothing, which is the
+    // count's own stated answer for a question that never said which.
+    if (effect.category !== undefined) {
+      for (const id of city.buildings) {
+        if (buildingDef(id).category === effect.category) shelved += 1;
+      }
+    }
     if (!empires.includes(city.ownerId)) empires.push(city.ownerId);
   }
   if (count === 'followingForeign') return foreign;
   if (count === 'followingPop') return population;
   if (count === 'followingEmpires') return empires.length;
   if (count === 'followingWithBuilding') return effect.building === undefined ? 0 : withBuilding;
+  if (count === 'followingCitiesWithWonder') return withWonder;
+  if (count === 'followingBuildingsOfCategory') return shelved;
   return cities;
 }
 
@@ -5246,6 +5265,24 @@ export function cardPurchaseRiders(
  * really does hand over the Gilded Hall now. Asked by `isUnlocked` (`tech.ts`)
  * for a row that declares `unlockedByCard`, so availability stays one question
  * with one answer rather than a card gate beside a tech gate.
+ *
+ * **Two walks, because a follower belief is not the empire's law** (batch B3,
+ * the four faith houses). `liveEffects` is the realm's own list and a follower
+ * belief is never in it — it is pushed city-locally, into the live list of every
+ * town that follows, whoever owns that town (`followerBeliefEffects`, and the
+ * 2026-08-28 ruling it states). So a belief that hands over a Mosque would have
+ * been invisible here, and the row would have been open to nobody at all.
+ *
+ * The answer the pool's own rule gives is the one written here: **the owner of a
+ * following city may have the row**. The empire's law is asked first, and only a
+ * realm whose law says nothing pays for the sweep of its own towns' beliefs — a
+ * walk that is reached only for a row declaring `unlockedByCard`, and only when
+ * nothing simpler has opened it.
+ *
+ * *Which* town may raise one is a second question and it is not this one:
+ * `purchaseError` asks it of the town in hand (`cityBeliefUnlocksBuilding`,
+ * `BuildingDef.followingOnly`), exactly as a wonder's site is asked there rather
+ * than folded into availability.
  */
 export function cardUnlocksBuilding(
   state: GameState,
@@ -5253,6 +5290,38 @@ export function cardUnlocksBuilding(
   building: BuildingId,
 ): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'unlocksBuilding')) {
+    if (effect.building === building) return true;
+  }
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    if (cityBeliefUnlocksBuilding(state, city, building)) return true;
+  }
+  return false;
+}
+
+/**
+ * Does the faith **this town keeps** open this building row?
+ *
+ * `cardUnlocksBuilding`'s town-scale half, and the one reading of "only in a
+ * city that follows": a follower belief reaches a town through
+ * `followerBeliefEffects`, which is asked of `cityReligion(city)` — the strict
+ * majority of the citizens, derived — so a row this answers `true` for is a row
+ * whose belief is in the house of the faith this town actually keeps. A town
+ * that turns loses it the same turn, and a captured one carries it to its new
+ * owner, both of which fall out of the walk rather than being written anywhere.
+ *
+ * Read in exactly one place — `purchaseError`, for a row that declares
+ * `BuildingDef.followingOnly` — because it is a rule about *where a thing may be
+ * raised*, which is the purchase's question and nobody else's. Nothing here
+ * compares a building id or a religion against a name.
+ */
+export function cityBeliefUnlocksBuilding(
+  state: GameState,
+  city: City,
+  building: BuildingId,
+): boolean {
+  for (const { effect } of followerBeliefEffects(state, city)) {
+    if (effect.kind !== 'unlocksBuilding') continue;
     if (effect.building === building) return true;
   }
   return false;

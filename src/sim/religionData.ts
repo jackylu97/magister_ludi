@@ -694,9 +694,13 @@ export function slotsFromTechs(techs: readonly TechId[]): number {
  *
  * Spelled here rather than imported, because the import between this file and
  * `statecraftData.ts` is type-only in both directions and must stay that way
- * (see the module docblock). Five strings, checked by
+ * (see the module docblock). Seven strings, checked by
  * `test/sim/religion.test.ts` against `CountKind`'s own `following…` family so
- * that a sixth cannot be added there and forgotten here.
+ * that an eighth cannot be added there and forgotten here.
+ *
+ * `followersHere` is deliberately **not** among them: it is the family's
+ * opposite number, a question about one town's own congregation, and a follower
+ * belief may ask it in every city that follows.
  */
 export const WORLD_SCALE_COUNTS: readonly string[] = [
   'followingCities',
@@ -704,6 +708,8 @@ export const WORLD_SCALE_COUNTS: readonly string[] = [
   'followingPop',
   'followingEmpires',
   'followingWithBuilding',
+  'followingCitiesWithWonder',
+  'followingBuildingsOfCategory',
 ];
 
 export function religionDataProblems(knownTechs: readonly string[]): string[] {

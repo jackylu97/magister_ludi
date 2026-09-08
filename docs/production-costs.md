@@ -97,6 +97,13 @@ Charters — a building no technology opens, handed over by a card — take the
 IV 9, V 11. The Gilded Hall is a Doctrine of the Government III tier and takes
 column 6 with them.
 
+The **four faith houses** a follower belief opens (batch B3 — the Mosque, the
+Wat, the Gurdwara, the Dar-e Mehr) take the column of the **Temple's** node,
+`theHighTemple`'s 5: a belief has no tier to read a column off, and the faith
+house of that age is exactly what the Temple costs. They are `medium` like the
+Temple, so all four price at 117⚙ — which is 117🕯 through the faith bank, the
+only one that sells them (`BuildingDef.purchase`, `faithPerHammer` 1).
+
 ## 4. The fold
 
 `explainBuildingCost(id, state?, playerId?)` and
@@ -181,6 +188,10 @@ reading for a once-per-empire row.
 | `heroicEpic` | Heroic Epic | large | 4 | 134 |
 | `imperialThrone` | Imperial Throne | large | 5 | 176 |
 | `highTemple` | High Temple | large | 5 | 176 |
+| `mosque` | Mosque | medium | 5 | 117 |
+| `wat` | Wat | medium | 5 | 117 |
+| `gurdwara` | Gurdwara | medium | 5 | 117 |
+| `darEMehr` | Dar-e Mehr | medium | 5 | 117 |
 
 ### Wonders
 

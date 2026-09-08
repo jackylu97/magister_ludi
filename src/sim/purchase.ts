@@ -88,6 +88,7 @@ import { buildingPurchaseDiscount } from './buildingEffects';
 import { RULES } from './rulesData';
 import {
   cardPurchaseRiders,
+  cityBeliefUnlocksBuilding,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -221,9 +222,17 @@ function purchasesMade(player: Player, type: UnitTypeId): number {
  * *a row that names its own bank is sold out of that bank and no other*. That
  * one sentence is what keeps gold away from the augur without gold having to
  * know what an augur is.
+ *
+ * **Both tables are asked** since batch B3: `BuildingDef.purchase` is the same
+ * marker carrying the same sentence, so the four faith houses a follower belief
+ * opens are sold out of faith and out of nothing else. What the two rows do
+ * *not* share is a price — a unit's spec carries its own figure and a building's
+ * carries none, which is the branch below.
  */
 function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
-  return item.kind === 'unit' ? unitDef(item.id).purchase?.currency : undefined;
+  return item.kind === 'unit'
+    ? unitDef(item.id).purchase?.currency
+    : buildingDef(item.id).purchase?.currency;
 }
 
 /**
@@ -277,8 +286,12 @@ export function explainPurchaseCost(
 ): PurchasePrice | null {
   if (!cityById(state, cityId)) return null;
   const bank = rosterBank(item);
-  if (bank !== undefined) {
-    if (bank !== currency || item.kind !== 'unit') return null;
+  // **A row that names its own bank is sold out of that bank and no other** —
+  // asked once here, for both tables, before either shape is priced. A building
+  // that names one falls through to the conversion below, which is the whole of
+  // the difference: the roster's spec carries a figure and a building's does not.
+  if (bank !== undefined && bank !== currency) return null;
+  if (bank !== undefined && item.kind === 'unit') {
     const spec = unitDef(item.id).purchase!;
     // **A row that mirrors another is priced off it, here and nowhere else**
     // (batch B2, `UnitDef.mirrors`): the Templars cost a share of whatever horse
@@ -317,10 +330,16 @@ export function explainPurchaseCost(
     return { currency: bank, lines, total: foldUnitCost(lines) };
   }
 
-  // The treasury's bank, **or the faith bank a Reliquary opens in this town**
-  // (Entry LVIII). Both convert the same production cost at their own rate, so
-  // the two are one branch with one number swapped rather than two prices.
-  if (currency !== 'gold' && !faithBankOpen(state, cityId, item, currency)) return null;
+  // The treasury's bank, **the faith bank a Reliquary opens in this town**
+  // (Entry LVIII), **or the faith bank a building's own row names** (batch B3).
+  // All three convert the same production cost at their own rate, so they are
+  // one branch with one number swapped rather than three prices — which is why
+  // a Mosque inherits its column and its age band without a figure being typed
+  // anywhere. A row that named its own bank has already been matched against the
+  // currency above, so it needs no clause of its own here.
+  if (bank === undefined && currency !== 'gold' && !faithBankOpen(state, cityId, item, currency)) {
+    return null;
+  }
   const hammers: UnitCostLine[] =
     item.kind === 'unit'
       ? explainUnitCost(state, playerId, item.id)
@@ -592,10 +611,18 @@ export function purchaseError(
     return `A ${name} is bought with gold, not ${currency}`;
   }
 
-  if (bank === undefined) {
+  if (bank === undefined || bought.kind === 'building') {
     // The ordinary bank, whichever coin it is paid in: a Reliquary opens faith
     // for the rows the treasury already sells, and it changes *which bank*
     // rather than *what may be bought*, so every gate below is asked unchanged.
+    //
+    // **A building that names its own bank is gated here too** (batch B3). The
+    // coin a row is paid in is not a reason to ask a different question about
+    // whether it may stand: a Mosque asks the tree, the cards and the town's own
+    // shelf exactly as the Gilded Hall does, and the only thing its `purchase`
+    // marker decided was which pool is charged. The roster's branch below stays
+    // the unit's alone, because everything in it — the ladder, the minimum
+    // population, `purchase.exclusive` — is a fact about a piece.
     //
     // Gold buys what the city could build, by production's own rules — **except
     // the one thing production refuses for being for sale**. `buildError` is
@@ -618,6 +645,24 @@ export function purchaseError(
     }
     if (bought.kind === 'building' && city.buildings.includes(bought.id)) {
       return `${city.name} has already built ${name}`;
+    }
+    // **Only in a city that keeps the faith which opened it** (batch B3, the
+    // four faith houses). The one place this rule is read, and it is deliberately
+    // *not* folded into availability: `isUnlocked` answers "may this empire have
+    // the row" — yes, the moment any of its towns follows — and this answers "may
+    // it stand here", which is a wonder's `requiresSite` question asked of a
+    // congregation instead of of the ground. A player holding Minarets whose
+    // second town has turned should be told the town has turned, not that the
+    // Mosque was never theirs.
+    //
+    // Asked of `BuildingDef.followingOnly` and answered by
+    // `cityBeliefUnlocksBuilding`, so nothing here names a building or a faith.
+    if (
+      bought.kind === 'building' &&
+      buildingDef(bought.id).followingOnly === true &&
+      !cityBeliefUnlocksBuilding(state, city, bought.id)
+    ) {
+      return `${name} may be raised only in a city that keeps your faith`;
     }
     if (bought.kind === 'unit') {
       const def = unitDef(bought.id);

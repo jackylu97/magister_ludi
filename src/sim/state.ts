@@ -504,7 +504,33 @@ import {
  * roster grew a row — which moves nothing that was raised and everything that
  * is drawn against a list of them.
  */
-export const SCHEMA_VERSION = 96;
+/**
+ * v97: **the second beliefs pass** (batch B3, `docs/beliefs.md` — the user's
+ * marks of 2026-09-08, the second set). Seven rows, and one of them is a shape.
+ *
+ * **Herd Gods** pays a hammer and a candle on every pasture, which is the wild
+ * axis' answer to the plantations. **The Crusade** fights for three instead of
+ * two. Two enhancers count the tide by what stands in it: **Marvels of the
+ * Faith** pays five beakers and five songs for every following city in the world
+ * that holds a wonder, and **The Scriptoria** a beaker for every faith house in
+ * one — two new `following…` counts, over the sweep the other five already
+ * share.
+ *
+ * And **four follower beliefs open four buildings** — the Mosque, the Wat, the
+ * Gurdwara and the Dar-e Mehr. Each is bought with faith and never built
+ * (`BuildingDef.purchase`, the roster's marker one table over, at
+ * `faithPerHammer` per hammer of the ordinary cost), and each may stand only in
+ * a town that keeps the faith which opened it (`BuildingDef.followingOnly`,
+ * read in `purchaseError` and nowhere else). A follower belief is city-local, so
+ * a row it hands over is opened for **whoever owns a following city**:
+ * `cardUnlocksBuilding` walks the empire's own towns' beliefs after its law.
+ *
+ * A v96 log does not replay. The pantheon and both belief pools grew rows, so a
+ * draw from the same seed deals a different hand; a Crusade's blow lands harder;
+ * and a town that bought a faith house is a town holding stones the old build
+ * has no id for.
+ */
+export const SCHEMA_VERSION = 97;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

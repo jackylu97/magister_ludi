@@ -449,14 +449,12 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
   if (def.cityHp !== undefined && def.cityHp !== 0) {
     out.push({ text: `${signed(def.cityHp)} to how much punishment the city can take` });
   }
-  // The writ a building supplies (`authorityCapacity`), in the card arm's own
-  // words — a building's capacity and a card's are one number read by one
-  // evaluator (`explainAuthority`), so they read alike wherever they are
-  // printed. It says *your empire* because that is what the field means: the
-  // capacity is counted per building type across the realm.
-  if (def.authorityCapacity !== undefined && def.authorityCapacity !== 0) {
-    out.push({ text: `${signed(def.authorityCapacity)} authority capacity for your empire` });
-  }
+  // The writ a building supplies (`authorityCapacity`) is **not** printed here:
+  // `describeCard` above already says it, in the meters' own words, beside the
+  // happiness — the one description of a building's two meter fields. A second
+  // push here printed "+1 authority capacity; +1 authority capacity for your
+  // empire" on every card that unlocks a writ-paying house (the Assize Court's
+  // charter, and the Mosque the day it was written, batch B3, 2026-09-08).
   // The Throne's placement half (`unitUpkeepRebate`), said as the promise rather
   // than as the field: what a player needs to know is that it follows the piece,
   // which is the whole of why the number is stamped and not read off the board.
@@ -503,7 +501,20 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     });
   }
   if (def.purchaseOnly === true) {
-    out.push({ text: 'it is bought with gold and never built' });
+    // **The bank the row names, or the treasury** (batch B3). The Gilded Hall is
+    // sold by the treasury like everything else and says gold; a row carrying
+    // `BuildingDef.purchase` is sold out of that bank and out of no other, and
+    // the sentence has to say which or a player reads "bought" and reaches for
+    // the wrong pool. `purchaseError` refuses the other bank in the same words.
+    out.push({
+      text: `it is bought with ${def.purchase?.currency ?? 'gold'} and never built`,
+    });
+  }
+  if (def.followingOnly === true) {
+    // The town clause, said as the belief that opened it would say it. Not "the
+    // religion whose follower belief unlocks this row" — a player is told where
+    // it may stand, which is the whole of the rule they can act on.
+    out.push({ text: 'it may be raised only in a city that keeps the faith that opened it' });
   }
   // The renown a building pays is a fact about what it *is* (`BuildingRenown`),
   // and it is said in the card arm's words — "per turn" load-bearing, the family
@@ -1616,6 +1627,15 @@ function countNoun(effect: CardPaysEffect): PluralWords {
       many: `${effect.category} buildings`,
     };
   }
+  // The same bargain asked of the tide — "per faith building in a city that
+  // follows you". `buildingsOfCategory`'s clause with the world's following
+  // towns in place of this empire's own.
+  if (effect.count === 'followingBuildingsOfCategory' && effect.category !== undefined) {
+    return {
+      one: `${effect.category} building in a city that follows you`,
+      many: `${effect.category} buildings in cities that follow you`,
+    };
+  }
   // The same bargain over a list — "per science or faith building". The list's
   // own order, because a row's order is what a designer wrote.
   if (effect.count === 'buildingsOfCategories' && effect.categories !== undefined) {
@@ -2459,6 +2479,18 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   followingWithBuilding: {
     one: 'following city with the building',
     many: 'following cities with the building',
+  },
+  followingCitiesWithWonder: {
+    one: 'city that follows you and holds a wonder',
+    many: 'cities that follow you and hold a wonder',
+  },
+  // The category is not in these words: `countNoun` prints it, so that "per
+  // faith building in a city that follows you" and "per science building" are
+  // one entry — `buildingsOfCategory`'s bargain one tide over. This is the
+  // reading of a row that names no shelf at all, which counts nothing.
+  followingBuildingsOfCategory: {
+    one: 'building in a city that follows you',
+    many: 'buildings in cities that follow you',
   },
   followersHere: { one: 'follower in this city', many: 'followers in this city' },
   // The occasion is not in these words: `countNoun` prints it off the row's own

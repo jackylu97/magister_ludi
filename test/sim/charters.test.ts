@@ -68,7 +68,14 @@ import {
   cityScopeAdmits,
   foldCardYields,
 } from '../../src/sim/statecraft';
-import { type OrderId, ORDER_IDS, orderDef } from '../../src/sim/statecraftData';
+import {
+  DOCTRINE_IDS,
+  type OrderId,
+  ORDER_IDS,
+  doctrineDef,
+  orderDef,
+} from '../../src/sim/statecraftData';
+import { FOLLOWER_BELIEF_IDS, beliefDef } from '../../src/sim/religionData';
 import { type City, type GameState, newGame, playerById, bumpRevision } from '../../src/sim/state';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -157,13 +164,29 @@ describe('the charters as a family', () => {
   it('opens each charter building from exactly one charter', () => {
     const opened = CHARTERS.map((entry) => entry.building);
     expect(new Set(opened).size).toBe(opened.length);
-    // And every row carrying the marker is opened by one of them: a building
-    // marked `unlockedByCard` that no card names is a row nobody can ever build.
-    // The Gilded Hall's Court is a *doctrine*, so it is the one row named from
-    // outside this list.
+    // And every row carrying the marker is opened by exactly one card of
+    // *some* class: a building marked `unlockedByCard` that no card names is a
+    // row nobody can ever build. The charters are the Orders' half; the Gilded
+    // Hall's Court is a Doctrine; and since batch B3 (2026-09-08) the four
+    // faith houses — the Mosque, the Wat, the Gurdwara, the Dar-e Mehr — are
+    // opened by a **follower belief** each, for whoever owns a following town.
+    // Walked here rather than excused by name, so a fifth house written with
+    // the marker and no belief fails the build exactly as a charter would.
+    const byDoctrine = DOCTRINE_IDS.flatMap((id) =>
+      doctrineDef(id)
+        .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => effect.building),
+    );
+    const byBelief = FOLLOWER_BELIEF_IDS.flatMap((id) =>
+      beliefDef(id)
+        .effects.filter((effect) => effect.kind === 'unlocksBuilding')
+        .map((effect) => effect.building),
+    );
+    const everyOpener = [...opened, ...byDoctrine, ...byBelief];
+    expect(new Set(everyOpener).size).toBe(everyOpener.length);
     for (const id of BUILDING_IDS) {
-      if (buildingDef(id).unlockedByCard !== true || id === 'gildedHall') continue;
-      expect(opened, id).toContain(id);
+      if (buildingDef(id).unlockedByCard !== true) continue;
+      expect(everyOpener, id).toContain(id);
     }
   });
 

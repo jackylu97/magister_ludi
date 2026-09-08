@@ -196,6 +196,18 @@ export interface BuildingRenown {
   onComplete?: number;
 }
 
+/**
+ * **Which bank sells this row.** See `BuildingDef.purchase`.
+ *
+ * One field, and the currency is spelled out here rather than imported from
+ * `purchase.ts` for the reason `UnitPurchaseSpec` spells it out: this table is a
+ * leaf that `purchase.ts` reads, and an import the other way would be a cycle to
+ * carry two words.
+ */
+export interface BuildingPurchaseSpec {
+  currency: 'faith' | 'gold';
+}
+
 /** A percentage of a city's hammers, behind one category. See `BuildingDef`. */
 export interface ProductionBonus {
   category: ProductionCategory;
@@ -406,6 +418,16 @@ export type BuildingId =
   | 'heroicEpic'
   | 'imperialThrone'
   | 'highTemple'
+  // **The four faith houses** (batch B3, `docs/beliefs.md` — the user's marks of
+  // 2026-09-08): a follower belief apiece opens each of them, they are bought
+  // with faith and never built (`purchase`, `purchaseOnly`), and each may stand
+  // only in a town that keeps the faith which opened it (`followingOnly`). No
+  // node names any of them; they take the Temple's column, because the Temple is
+  // what a faith house of that age costs.
+  | 'mosque'
+  | 'wat'
+  | 'gurdwara'
+  | 'darEMehr'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -877,6 +899,51 @@ export interface BuildingDef {
    * not have.
    */
   purchaseOnly?: boolean;
+  /**
+   * **The bank this row is sold out of**, when it is not the treasury — the four
+   * faith houses a follower belief opens (batch B3). Absent means gold, which is
+   * every other building in the game.
+   *
+   * `UnitDef.purchase`'s field one table over and it carries that field's one
+   * rule: *a row that names its own bank is sold out of that bank and no other*.
+   * That sentence is what keeps gold away from a Mosque without gold having to
+   * know what a Mosque is — `rosterBank` (`purchase.ts`) asks both tables and
+   * `purchaseError` refuses the wrong coin in the row's own words.
+   *
+   * It deliberately carries **no cost**, which is the whole difference from the
+   * unit spec beside it. The augur's faith price is a figure on its row and has
+   * nothing to do with hammers; a faith house is priced exactly as a bought
+   * building has always been priced — every line of `explainBuildingCost`, then
+   * the conversion as one more line, at `production.faithPerHammer` instead of
+   * `goldPerHammer`. So the four rows inherit the age band and the column with no
+   * second price to tune, and the two ways faith reaches a town's stones (this
+   * and a contribution) agree by construction.
+   *
+   * It is not `faithPurchases`, which is a fact about a *town* — a Reliquary
+   * opens the faith bank for the ordinary roster wherever it stands. This is a
+   * fact about the *row*, and it narrows rather than widens.
+   */
+  purchase?: BuildingPurchaseSpec;
+  /**
+   * **This row may be raised only in a city that keeps the faith which opened
+   * it** — the four faith houses of batch B3. Absent means a building anybody
+   * may raise where they may raise anything, which is every other row.
+   *
+   * A **marker**, exactly as `purchaseOnly` and `consecrated` are: nothing in
+   * `src/sim/` compares a building id against `"mosque"`, and nothing here names
+   * a religion. The reading is `cityBeliefUnlocksBuilding` (`statecraft.ts`) —
+   * *do the follower beliefs of the faith this town keeps open this row* — which
+   * is derived from the citizens (`cityReligion`) and therefore cannot disagree
+   * with the banner the town flies.
+   *
+   * Read in exactly one place, `purchaseError`, and that is the split it is for:
+   * `isUnlocked` answers "may this empire have the row at all" — yes, the moment
+   * any of its towns follows — and this answers "may it stand *here*", which is
+   * a wonder's `requiresSite` question asked of a congregation instead of of the
+   * ground. Folding the two would have left a player who holds the belief being
+   * told the row was "not open yet" in the one town of theirs that had turned.
+   */
+  followingOnly?: boolean;
   /**
    * Nothing in the tech tree opens this row — **a card does**
    * (`CardUnlocksBuildingEffect`, and The Gilded Court is the only one today).

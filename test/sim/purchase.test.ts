@@ -830,6 +830,72 @@ describe('a puppet spends nothing', () => {
   });
 });
 
+/**
+ * **A building may name its own bank** (batch B3, the four faith houses).
+ *
+ * `UnitDef.purchase`'s one sentence — *a row that names its own bank is sold out
+ * of that bank and no other* — read of a building for the first time. What is
+ * asserted here is the transaction: which bank, at what price, refused how. Who
+ * may have the row at all and in which town it may stand are the belief's
+ * questions and are tested where the belief is (`religion.test.ts`).
+ */
+describe('a building that names its own bank', () => {
+  /** The four rows, off the marker rather than off their names. */
+  const HOUSES = BUILDING_IDS.filter((id) => buildingDef(id).purchase !== undefined);
+
+  it('is sold out of that bank, at the ordinary price converted', () => {
+    const g = game();
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const city = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!);
+    playerById(g.state, 0)!.faithPool = 900;
+    expect(HOUSES.length).toBeGreaterThan(0);
+
+    for (const id of HOUSES) {
+      const item: PurchasableItem = { kind: 'building', id };
+      const bank = buildingDef(id).purchase!.currency;
+      const other = bank === 'faith' ? 'gold' : 'faith';
+      // The other bank does not sell it at all — `null`, not a dearer price.
+      expect(explainPurchaseCost(g.state, 0, city.id, item, other), id).toBe(null);
+      const price = explainPurchaseCost(g.state, 0, city.id, item, bank)!;
+      expect(price.currency, id).toBe(bank);
+      // **No figure on the row**: the price is `explainBuildingCost`'s own list
+      // with the conversion as one more line, so the column and the age band
+      // ride in exactly as they do for a building bought with gold.
+      const hammers = buildingProductionCost(id, g.state, 0);
+      const rate =
+        bank === 'faith' ? RULES.production.faithPerHammer : RULES.production.goldPerHammer;
+      expect(price.total, id).toBe(Math.floor(hammers * rate));
+      // Rule 5, for a price.
+      expect(price.lines.reduce((sum, line) => sum + line.amount, 0), id).toBe(price.total);
+    }
+  });
+
+  it('says which bank it is priced in when the wrong coin is offered', () => {
+    const g = game();
+    const unit = g.state.units.find((u) => u.ownerId === 0)!;
+    const city = foundCityAt(g.state, 0, getTileAt(g.state.map, unit.col, unit.row)!);
+    playerById(g.state, 0)!.gold = 9000;
+    for (const id of HOUSES) {
+      const bank = buildingDef(id).purchase!.currency;
+      const other = bank === 'faith' ? 'gold' : 'faith';
+      expect(purchaseError(g.state, 0, city.id, { kind: 'building', id }, other), id).toBe(
+        `A ${buildingDef(id).name} is bought with ${bank}, not ${other}`,
+      );
+    }
+  });
+
+  it('is never also hammerable — a named bank and a queue would be two prices', () => {
+    // The augur's argument one table over: a row sold out of a special bank that
+    // a town could also labour its way to would make the bank a suggestion. So
+    // every row naming one carries `purchaseOnly` too, and `buildError` is the
+    // sentence the queue is refused with.
+    for (const id of HOUSES) {
+      expect(buildingDef(id).purchaseOnly, id).toBe(true);
+      expect(buildingDef(id).wonder, id).toBeUndefined();
+    }
+  });
+});
+
 describe('the schema witness', () => {
   it('carries the version that says a puppet buys nothing', () => {
     // v58: two clauses, one in `purchaseError` and one in `tilePurchaseError`.
@@ -845,6 +911,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(96);
+    expect(SCHEMA_VERSION).toBe(97);
   });
 });

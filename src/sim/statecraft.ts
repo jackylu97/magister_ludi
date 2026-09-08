@@ -124,6 +124,7 @@ export {
   cardUpkeepRebateLines,
   cardUpkeepSurchargeLines,
   cardYieldConversions,
+  cityBeliefUnlocksBuilding,
   cityHasFreshwater,
   cityScopeAdmits,
   consecrationCardTileLines,

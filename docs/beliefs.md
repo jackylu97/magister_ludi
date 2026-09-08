@@ -52,12 +52,19 @@ redrafted. The pantheon IS the religion’s identity.
 | The Vigil | none | A city keeping a rite gains +10% science and +10% culture while it lasts. |
 | Vineyard Rites | hearth | +1 food and +1 culture on every hex with a Plantation. |
 | Cult of Heroes | none | +15% renown. |
+| Herd Gods | wild | +1 production and +1 faith on every hex with a Pasture. |
 
 ## Follower beliefs
 
 Drafted at founding, three at most. A follower belief is a fact about a **town**: it
 applies city-locally in every city that follows, whoever owns it. A clause that pays an
 empire, or that counts the world, belongs in the enhancer pool instead.
+
+Four of them open a **faith house** — a building bought with faith and never built,
+which may stand only in a city that keeps the faith that opened it. The belief opens the
+row for whoever owns a following city; the town is where the rule is asked.
+`docs/religion-v2.md` §Buildings & wonders has the mechanism, and
+`docs/production-costs.md` the price.
 
 | Belief | Axis | Effect |
 |---|---|---|
@@ -73,6 +80,10 @@ empire, or that counts the world, belongs in the enhancer pool instead.
 | Harvest Blessing | hearth | +1 food on every farm worked by a city that follows. |
 | Guild of the Faithful | stone | +10% production toward buildings in every city that follows. |
 | Common Table | hearth | A city that follows keeps a quarter of its stored food when it grows. |
+| Minarets | sky | Unlocks the Mosque, a building bought with faith and never built, only in a city that follows: +3 faith, +2 production, +1 authority capacity. |
+| Temple Spires | hearth | Unlocks the Wat, a building bought with faith and never built, only in a city that follows: +3 happiness, and +1 faith for every 2 citizens in the city. |
+| The Open Kitchen | hearth | Unlocks the Gurdwara, a building bought with faith and never built, only in a city that follows: +3 food, +3 faith, +2 science. |
+| The Eternal Flame | sun | Unlocks the Dar-e Mehr, a building bought with faith and never built, only in a city that follows: +2 faith, and +10% faith in the city. |
 
 ## Enhancer beliefs
 
@@ -96,7 +107,9 @@ world-scale counts live here.
 | Pilgrims' Coin | road | +4 gold for every city in the world that follows. |
 | World Church | none | +15% culture for every empire in the world that follows you. |
 | The Long Prayer | sun | +1 culture for every 4 citizens in the world who follow you. |
-| The Crusade | war | +2 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field. |
+| The Crusade | war | +3 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field. |
+| Marvels of the Faith | none | +5 science and +5 culture for every city in the world that follows you and holds a wonder. |
+| The Scriptoria | sky | +1 science for every faith building in a city that follows you. |
 
 ## Rites
 

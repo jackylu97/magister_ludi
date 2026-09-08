@@ -503,7 +503,36 @@ directly to confirm rulings — user marginalia are rulings.
   meter rule and its readers go (the user: "Don't keep the useless
   rule"); the Muses' Call's great person is once, pinned (B1). Batch
   **B2 BUILT** (schema 96, after E4b's 95; the Templar's mirror skips a
-  row that awaits a technology — the cataphract). (zz) **The Governments marks**
+  row that awaits a technology — the cataphract). **B3 — the second
+  beliefs pass** (the user, 2026-09-08, "i've updated some more religious
+  beliefs", marked in `docs/beliefs.md`; the marginalia are the rulings;
+  names and axes the orchestrator's where the user left them blank):
+  a pantheon belief paying +1 production +1 faith on pastures (Herd
+  Gods); **four follower beliefs each unlocking a building bought with
+  faith and never built, only in a city that follows** — the Mosque (+3
+  faith, +2 production, +1 authority capacity), the Wat (+3 happiness,
+  +1 faith per 2 citizens), the Gurdwara (+3 food, +3 faith, +2
+  science), the Dar-e Mehr (+2 faith, +10% faith in the city) — the
+  Gilded Hall's shape (`unlockedByCard` + `purchaseOnly`) with the faith
+  bank and a **follows** gate on the purchase; The Crusade +3; two
+  enhancer beliefs — +5 science +5 culture for every following city
+  holding a wonder (Marvels of the Faith), +1 science per faith building
+  in following cities (The Scriptoria). Batch **B3 BUILT** (schema 97).
+  As built: the four houses take the **Temple's** column (5, medium — 117⚙,
+  and 117🕯 through the bank, `faithPerHammer` 1); a building may now name
+  its own bank (`BuildingDef.purchase`, the roster's marker one table over,
+  read by `rosterBank` — the price stays the ordinary cost converted, so no
+  figure is typed on a row) and its own congregation
+  (`BuildingDef.followingOnly`, tested in `purchaseError` and printed by
+  `describeBuildingRow`, nowhere else). The one design question — a follower
+  belief is never in `liveEffects`, so who does its `unlocksBuilding` open the
+  row for — is answered the pool's own way: **whoever owns a following city**,
+  `cardUnlocksBuilding` walking the empire's towns' beliefs after its law, with
+  *which* town may raise one left to the purchase. Two new counts on the
+  `following…` sweep — `followingCitiesWithWonder` (towns, once each) and
+  `followingBuildingsOfCategory` (roofs, `category` the argument, so nothing
+  spells "faith" in a member name). `docs/religion-v2.md` §Buildings & wonders
+  has the mechanism. (zz) **The Governments marks**
   (the user, 2026-09-08, in `docs/orders-and-doctrines.md`'s Governments
   table — missed by B1 because the marks rode into W1's commit before the
   pass was diffed; found on landing B1): **War Chief** "+3 authority, +2

@@ -2500,6 +2500,114 @@
         "perTurn": 1
       },
       "note": "Your faith carries from here as far and as strongly as it does from a holy site."
+    },
+    "mosque": {
+      "name": "Mosque",
+      "category": "faith",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "authorityCapacity": 1,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "purchase": {
+        "currency": "faith"
+      },
+      "followingOnly": true,
+      "note": "Bought with faith, and only in a city that keeps the faith that opened it. Its courts widen what a ruler may hold together."
+    },
+    "wat": {
+      "name": "Wat",
+      "category": "faith",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 3,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "purchase": {
+        "currency": "faith"
+      },
+      "followingOnly": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "population",
+          "per": 2,
+          "within": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "wat"
+          }
+        }
+      ],
+      "note": "Bought with faith, and only in a city that keeps the faith that opened it. The town gathers here, and the larger the town the more it gives back."
+    },
+    "gurdwara": {
+      "name": "Gurdwara",
+      "category": "faith",
+      "size": "medium",
+      "column": 5,
+      "food": 3,
+      "production": 0,
+      "gold": 0,
+      "science": 2,
+      "culture": 0,
+      "faith": 3,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "purchase": {
+        "currency": "faith"
+      },
+      "followingOnly": true,
+      "note": "Bought with faith, and only in a city that keeps the faith that opened it. Its kitchen feeds whoever comes, and its rooms are where the reading is done."
+    },
+    "darEMehr": {
+      "name": "Dar-e Mehr",
+      "category": "faith",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "purchaseOnly": true,
+      "purchase": {
+        "currency": "faith"
+      },
+      "followingOnly": true,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 10,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "darEMehr"
+          }
+        }
+      ],
+      "note": "Bought with faith, and only in a city that keeps the faith that opened it. The flame is never let out, and everything offered here goes further."
     }
   },
   "projects": {

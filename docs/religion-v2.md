@@ -181,6 +181,26 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
   (`faithPurchases`).
 - Hagia Sophia grants a real prophet; pressure rows on wonders are one JSON
   line each (Djenné/Angkor still carry none — open).
+- **The four faith houses** (batch B3, schema 97): the Mosque (Minarets), the
+  Wat (Temple Spires), the Gurdwara (The Open Kitchen) and the Dar-e Mehr (The
+  Eternal Flame). One follower belief apiece opens each row
+  (`unlocksBuilding` + `BuildingDef.unlockedByCard`); no node names any of them,
+  so each carries the Temple's column (5, medium — 117⚙) and prices off it.
+  - **Bought with faith and never built.** `BuildingDef.purchaseOnly` keeps them
+    out of every queue and `BuildingDef.purchase.currency` names the bank —
+    `rosterBank`'s rule for a unit read of a building: *a row that names its own
+    bank is sold out of that bank and no other*, so gold is refused in
+    `purchaseError`'s own sentence. The price is the ordinary one converted at
+    `production.faithPerHammer` (117🕯 today), a line of `explainPurchaseCost`'s
+    list, so the age band and the column ride in for free.
+  - **Only in a city that follows.** `BuildingDef.followingOnly`, read in
+    `purchaseError` and nowhere else, answered by `cityBeliefUnlocksBuilding` —
+    do the follower beliefs of the faith *this town keeps* open the row. A town
+    that turns loses the offer; a captured one carries it.
+  - **Whoever owns a following city may have the row.** A follower belief is
+    never in `liveEffects`, so `cardUnlocksBuilding` walks the empire's own
+    towns' beliefs after its law. Availability is the empire's question; where it
+    may stand is the town's.
 - Stonehenge: a pantheon slot, and a **free rung** on completion
   (`CompletionGrant` `{ grant: 'faithRung' }` → `openFreeRung`) — the ordinary
   consecration hand, with no `BeliefOffer.rungCost`, so the pick spends nothing

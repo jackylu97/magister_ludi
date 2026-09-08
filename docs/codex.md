@@ -7,10 +7,10 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 | taxonomy | themes | cards |
 |---|---|---|
 | The Orders’ lines (`line`) | 12 | 230 |
-| Religion’s axes (`axis`) | 9 | 41 |
+| Religion’s axes (`axis`) | 9 | 47 |
 | Great-person families (`family`) | 5 | 80 |
 | Bead families (`family` + `system`) | 4 | 51 |
-| Unclaimed by any taxonomy | — | 113 |
+| Unclaimed by any taxonomy | — | 114 |
 
 ## The Orders’ lines (`line`)
 
@@ -62,15 +62,20 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ## Religion’s axes (`axis`)
 
-### hearth — 7 cards
+### hearth — 9 cards
 - **faith · enhancer** (1): Congregation
-- **faith · follower** (3): Common Table · Feast Days · Harvest Blessing
+- **faith · follower** (5): Common Table · Feast Days · Harvest Blessing · Temple Spires · The Open Kitchen
 - **faith · pantheon** (3): Goddess of the Harvest · Keeper of the Hearth · Vineyard Rites
 
 ### stone — 7 cards
 - **faith · enhancer** (2): Ecclesia · Reliquaries
 - **faith · follower** (1): Guild of the Faithful
 - **faith · pantheon** (4): Ancestor Worship · The Living Rock (retired) · The Standing Stones · The Stone Hoard
+
+### sky — 6 cards
+- **faith · enhancer** (2): The Pulse of Bells · The Scriptoria
+- **faith · follower** (2): Cathedrals of the Sky · Minarets
+- **faith · pantheon** (2): Keeper of the Calendar · Star Readers
 
 ### war — 6 cards
 - **faith · enhancer** (3): Holy Order · Inquisition · The Crusade
@@ -82,23 +87,18 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 - **faith · follower** (1): Pilgrimage
 - **faith · pantheon** (1): Oracle of the Crossroads
 
-### sky — 4 cards
-- **faith · enhancer** (1): The Pulse of Bells
-- **faith · follower** (1): Cathedrals of the Sky
-- **faith · pantheon** (2): Keeper of the Calendar · Star Readers
-
 ### water — 4 cards
 - **faith · enhancer** (1): Sacred Cartography
 - **faith · follower** (1): Holy Water
 - **faith · pantheon** (2): Lord of the Sea · River Mother
 
-### sun — 3 cards
+### sun — 4 cards
 - **faith · enhancer** (1): The Long Prayer
-- **faith · follower** (1): Lamps of the Shrine
+- **faith · follower** (2): Lamps of the Shrine · The Eternal Flame
 - **faith · pantheon** (1): Desert Fathers
 
-### wild — 2 cards
-- **faith · pantheon** (2): Lady of the Hunt · Spirits of the Wood
+### wild — 3 cards
+- **faith · pantheon** (3): Herd Gods · Lady of the Hunt · Spirits of the Wood
 
 ### frost — 2 cards
 - **faith · follower** (1): The Quiet Hours
@@ -163,11 +163,11 @@ theme vocabulary (Entry LII) is the reorganisation. † marks a deferred row._
 
 ## Unclaimed by any taxonomy
 
-### unclaimed — 113 cards
+### unclaimed — 114 cards
 - **culture · Doctrine** (8): Absolutism · Manifest of the Steppe · The Academy · The Closed Realm † · The Founders' Road · The Grand Tour · The Philosopher's Stone · The Renaissance Court
 - **culture · government** (16): Chiefdom · Council of Elders · Divine Mandate · Imperium · Merchant League · Priest-King · Republic · The Commonwealth · The Curia · The Empire · The Estates · The Magisterium · The Sultanate · Theocracy · Tyranny · War Chief
 - **culture · Order** (30): Assize Courts · Border Wardens · Boundary Stones · Client Kings · Emergency Powers · Frontier Forts (retired) · Homestead Charters · Land Grants (retired) · Militia Levies (retired) · Provincial Governors · Public Granaries (retired) · Royal Surveyors · Scorched Earth · The Annals of Law · The Archives · The Auspicious Seal (retired) · The Chroniclers of the Fallen · The Common Purse (retired) · The Finisher's Art (retired) · The Guild Charter · The Justices' Charter · The Long Watch · The Loose Rein (retired) · The Standing Levy · The Synod · The War Council · The Widow's Levy · The Wintering Grounds (retired) · Tinkers' Guild · Toleration Edicts
-- **faith · enhancer** (3): Apostles · Theocratic Mandate † · World Church
+- **faith · enhancer** (4): Apostles · Marvels of the Faith · Theocratic Mandate † · World Church
 - **faith · follower** (2): Choirs · Tithe Houses
 - **faith · pantheon** (3): Cult of Heroes · Sacred Fire · The Vigil
 - **faith · rite** (7): Blessing of Arms · Consecration of the Bounds · Omen Reading · Recasting the Omens (retired) · Rite of Plenty · Rite of the Harvest · The Preaching (retired)

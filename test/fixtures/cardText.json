@@ -1658,8 +1658,8 @@
   ],
   "theSenatus": [
    {
-    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +2 authority capacity for your empire; +1 renown per turn, favouring scholars",
-    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +2 authority capacity for your empire; +1 renown per turn, favouring scholars"
+    "raw": "unlocks the [[building:assemblyHall|Assembly Hall]] — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars",
+    "text": "unlocks the Assembly Hall — +1 science per wildcard Order you have in a slot; +1 culture per wildcard Order you have in a slot; +2 authority capacity; +1 renown per turn, favouring scholars"
    }
   ],
   "toolmakersCharter": [
@@ -1688,8 +1688,8 @@
   ],
   "justicesCharter": [
    {
-    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — +1 authority capacity; +1 authority capacity for your empire; a crowded city asks 15% less of you",
-    "text": "unlocks the Assize Court — +1 authority capacity; +1 authority capacity for your empire; a crowded city asks 15% less of you"
+    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — +1 authority capacity; a crowded city asks 15% less of you",
+    "text": "unlocks the Assize Court — +1 authority capacity; a crowded city asks 15% less of you"
    }
   ],
   "theBannerCall": [
@@ -2438,6 +2438,12 @@
     "text": "+15% renown"
    }
   ],
+  "herdGods": [
+   {
+    "raw": "+1 production, +1 faith on every hex with a [[improvement:pasture|Pasture]]",
+    "text": "+1 production, +1 faith on every hex with a Pasture"
+   }
+  ],
   "cathedralsOfTheSky": [
    {
     "raw": "+2 science, +2 culture in every city that follows the religion with a [[building:temple|Temple]]",
@@ -2512,6 +2518,30 @@
    {
     "raw": "+25% of the stored food kept when a city grows, in every city that follows the religion",
     "text": "+25% of the stored food kept when a city grows, in every city that follows the religion"
+   }
+  ],
+  "minarets": [
+   {
+    "raw": "unlocks the [[building:mosque|Mosque]] — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Mosque — +2 production, +3 faith; +1 authority capacity; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   }
+  ],
+  "templeSpires": [
+   {
+    "raw": "unlocks the [[building:wat|Wat]] — +1 faith per 2 population in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Wat — +1 faith per 2 population in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   }
+  ],
+  "theOpenKitchen": [
+   {
+    "raw": "unlocks the [[building:gurdwara|Gurdwara]] — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Gurdwara — +3 food, +2 science, +3 faith; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+   }
+  ],
+  "theEternalFlame": [
+   {
+    "raw": "unlocks the [[building:darEMehr|Dar-e Mehr]] — +2 faith; +10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Dar-e Mehr — +2 faith; +10% faith in every city with a Dar-e Mehr; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
    }
   ],
   "reliquaries": [
@@ -2617,8 +2647,8 @@
   ],
   "theCrusade": [
    {
-    "raw": "+2 combat strength inside foreign cities that follow your religion",
-    "text": "+2 combat strength inside foreign cities that follow your religion"
+    "raw": "+3 combat strength inside foreign cities that follow your religion",
+    "text": "+3 combat strength inside foreign cities that follow your religion"
    },
    {
     "raw": "killing a unit spreads your religion to every city within 3 hexes",
@@ -2629,6 +2659,22 @@
    {
     "raw": "new cities start 1 population larger",
     "text": "new cities start 1 population larger"
+   }
+  ],
+  "marvelsOfTheFaith": [
+   {
+    "raw": "+5 science per city that follows you and holds a wonder",
+    "text": "+5 science per city that follows you and holds a wonder"
+   },
+   {
+    "raw": "+5 culture per city that follows you and holds a wonder",
+    "text": "+5 culture per city that follows you and holds a wonder"
+   }
+  ],
+  "theScriptoria": [
+   {
+    "raw": "+1 science per faith building in a city that follows you",
+    "text": "+1 science per faith building in a city that follows you"
    }
   ]
  },
@@ -3307,6 +3353,29 @@
    {
     "raw": "+25% faith in every city with a [[building:highTemple|High Temple]]",
     "text": "+25% faith in every city with a High Temple"
+   }
+  ],
+  "mosque": [
+   {
+    "raw": "+1 authority capacity",
+    "text": "+1 authority capacity"
+   }
+  ],
+  "wat": [
+   {
+    "raw": "+1 faith per 2 population in this city",
+    "text": "+1 faith per 2 population in this city"
+   },
+   {
+    "raw": "+3 happiness",
+    "text": "+3 happiness"
+   }
+  ],
+  "gurdwara": [],
+  "darEMehr": [
+   {
+    "raw": "+10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]",
+    "text": "+10% faith in every city with a Dar-e Mehr"
    }
   ]
  },

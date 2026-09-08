@@ -1372,6 +1372,44 @@ export type CountKind =
    */
   | 'followingWithBuilding'
   /**
+   * Following cities that hold **at least one wonder** — Marvels of the Faith's,
+   * and the tide counted by where the age's marvels stand.
+   *
+   * `followingWithBuilding`'s sibling with the class in place of the name, and a
+   * member of its own for `wonders`' reason exactly one scale out: "a wonder" is
+   * a class the data already declares (`BuildingDef.wonder`, read by `isWonder`)
+   * while that count names one row, and "per following city with a Temple" and
+   * "per following city that holds a marvel" read differently on a card. It is
+   * a count of **towns**, not of wonders: a city holding three marvels is one
+   * helping, which is what "every city in the world that follows you and holds a
+   * wonder" says.
+   *
+   * Read off the town's own `buildings` list rather than off `state.wonders`,
+   * which is the wonders framework's own rule — the claim register is history
+   * and what a wonder *pays* follows the stones — so a marvel that changes hands
+   * moves this count with it.
+   */
+  | 'followingCitiesWithWonder'
+  /**
+   * Buildings of **one category** standing in following cities, world-wide —
+   * The Scriptoria's faith houses.
+   *
+   * `buildingsOfCategory` asked of the tide instead of of the realm, and a
+   * member of its own rather than a `following` flag on that count for
+   * `improvedStrategicResources`' reason exactly: the two read differently on a
+   * card ("per faith building", "per faith building in a city that follows
+   * you") and a member each is what lets `countNoun` write the words. Which
+   * shelf is `CardPaysEffect.category`, exactly as `followingWithBuilding` names
+   * a row in `building`; a line naming no category counts nothing at all, which
+   * is the honest answer for a question that never said which buildings rather
+   * than a guard that would quietly count every roof in the world.
+   *
+   * A count of **buildings**, not of towns: a following city with a shrine and a
+   * temple in it is two helpings, which is the whole difference between this and
+   * the count above it.
+   */
+  | 'followingBuildingsOfCategory'
+  /**
    * Citizens of **this city** who follow the religion this city follows
    * (city-scoped) — the Cathedral's Scholars' Crypt and Eternal Flame.
    *

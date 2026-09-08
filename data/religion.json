@@ -576,6 +576,24 @@
           "where": "empire"
         }
       ]
+    },
+    "herdGods": {
+      "name": "Herd Gods",
+      "axis": "wild",
+      "flavor": "They are counted every evening, and the counting is the prayer.",
+      "text": "+1 production and +1 faith on every hex with a Pasture.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "faith": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          }
+        }
+      ]
     }
   },
   "followerBeliefs": {
@@ -826,6 +844,54 @@
           }
         }
       ]
+    },
+    "minarets": {
+      "name": "Minarets",
+      "axis": "sky",
+      "flavor": "You can hear it from the edge of the fields, which is the point.",
+      "text": "Unlocks the Mosque, a building bought with faith and never built, only in a city that follows: +3 faith, +2 production, +1 authority capacity.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "mosque"
+        }
+      ]
+    },
+    "templeSpires": {
+      "name": "Temple Spires",
+      "axis": "hearth",
+      "flavor": "Gold leaf, and underneath it a great deal of ordinary teak.",
+      "text": "Unlocks the Wat, a building bought with faith and never built, only in a city that follows: +3 happiness, and +1 faith for every 2 citizens in the city.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "wat"
+        }
+      ]
+    },
+    "theOpenKitchen": {
+      "name": "The Open Kitchen",
+      "axis": "hearth",
+      "flavor": "Nobody is asked who they are before they are handed a plate.",
+      "text": "Unlocks the Gurdwara, a building bought with faith and never built, only in a city that follows: +3 food, +3 faith, +2 science.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "gurdwara"
+        }
+      ]
+    },
+    "theEternalFlame": {
+      "name": "The Eternal Flame",
+      "axis": "sun",
+      "flavor": "Somebody has been awake with it every night for four hundred years.",
+      "text": "Unlocks the Dar-e Mehr, a building bought with faith and never built, only in a city that follows: +2 faith, and +10% faith in the city.",
+      "effects": [
+        {
+          "kind": "unlocksBuilding",
+          "building": "darEMehr"
+        }
+      ]
     }
   },
   "enhancerBeliefs": {
@@ -1062,11 +1128,11 @@
       "name": "The Crusade",
       "axis": "war",
       "flavor": "They took the long road, and every town along it fed them.",
-      "text": "+2 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field.",
+      "text": "+3 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 3,
           "side": "both",
           "when": {
             "test": "followingTerritory",
@@ -1099,6 +1165,47 @@
       ],
       "retired": true,
       "note": "Withdrawn: this belief is no longer offered. A religion that already keeps it keeps it."
+    },
+    "marvelsOfTheFaith": {
+      "name": "Marvels of the Faith",
+      "axis": "none",
+      "flavor": "Every one of them was raised by somebody who had heard of the last one.",
+      "text": "+5 science and +5 culture for every city in the world that follows you and holds a wonder.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 5,
+          "count": "followingCitiesWithWonder"
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 5,
+          "count": "followingCitiesWithWonder"
+        }
+      ]
+    },
+    "theScriptoria": {
+      "name": "The Scriptoria",
+      "axis": "sky",
+      "flavor": "A thousand hands copying, and only two of them ever asked what it said.",
+      "text": "+1 science for every faith building in a city that follows you.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "followingBuildingsOfCategory",
+          "category": "faith"
+        }
+      ]
     }
   },
   "rites": {

@@ -21,12 +21,14 @@ import { describe, expect, it } from 'vitest';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   mirrorRowFor,
+  explainBuildingCost,
   explainUnitCost,
   foldUnitCost,
   foundCityAt,
   growthCarryover,
   realiseItem,
 } from '../../src/sim/cities';
+import { authorityOf } from '../../src/sim/meters';
 import {
   cityContext,
   explainTileYield,
@@ -111,6 +113,7 @@ import {
   LIVE_RITE_IDS,
   RELIGION,
   RITE_IDS,
+  WORLD_SCALE_COUNTS,
   beliefDef,
   isPantheonBeliefId,
   religionDataProblems,
@@ -2730,8 +2733,9 @@ describe('the ratified religion rows', () => {
     expect(crusading.ok).toBe(true);
     if (!crusading.ok) return;
     // Two since the rework of batch E4b (the user's own words): the belief
-    // bought the spread with the difference.
-    expect(crusading.attackerStrength - before).toBe(2);
+    // bought the spread with the difference. **Three since batch B3** — the
+    // user's second marking of `docs/beliefs.md`, the number and nothing else.
+    expect(crusading.attackerStrength - before).toBe(3);
 
     // **The banner, not the border.** The same fight over a town that has since
     // stopped following pays nothing at all.
@@ -2901,9 +2905,10 @@ describe('the ratified religion rows', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     // Re-cut in batch E4b (the user's own words: *killing units spreads your
     // faith · +2 combat in foreign cities following your religion*): the
-    // strength half bought the spread with the difference.
+    // strength half bought the spread with the difference. Raised to three in
+    // batch B3, the user's second marking of the worksheet.
     expect(said('theCrusade')).toEqual([
-      '+2 combat strength inside foreign cities that follow your religion',
+      '+3 combat strength inside foreign cities that follow your religion',
       'killing a unit spreads your religion to every city within 3 hexes',
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
@@ -3430,5 +3435,353 @@ describe('the standing stones hand over a god, not an agent', () => {
   it('never names the retired agent on the row', () => {
     const grants = buildingDef('stonehenge').onComplete ?? [];
     expect(grants.some((grant) => grant.grant === 'unit')).toBe(false);
+  });
+});
+
+// --- batch B3: the second beliefs pass ---------------------------------------
+
+/**
+ * The rows of the user's second marking of `docs/beliefs.md` (2026-09-08), and
+ * the one shape they needed.
+ *
+ * `statecraft.test.ts`' discipline on this side of the table: one behavioural
+ * test per row, and for the four faith houses a test per *rule* — who may have
+ * the row, which bank buys it, what it costs, where it may stand, and what it
+ * pays once it is standing. A follower belief that opened a building nobody
+ * could reach would fail as silence, which is what every one of these is
+ * written against.
+ */
+describe('the second beliefs pass', () => {
+  /** A town that keeps one religion, to the last citizen. */
+  function follows(city: City, religion: { id: number }): City {
+    city.followers = { [religion.id]: city.population };
+    return city;
+  }
+
+  /** Seat 0's religion, with follower beliefs in its house. */
+  function houseOf(state: GameState, ...follower: BeliefId[]) {
+    const religion = faith(state, 0);
+    religion.follower = follower;
+    bumpRevision(state);
+    return religion;
+  }
+
+  const MOSQUE: PurchasableItem = { kind: 'building', id: 'mosque' };
+
+  it('Herd Gods pays a pasture and nothing else the town works', () => {
+    // Vineyard Rites' shape one improvement over: the god's own line, found by
+    // name, so what is asserted is what *this* row put on the hex.
+    const g = game();
+    const city = town(g.state, 0, 6, 6);
+    keep(g.state, 0, 'herdGods');
+    const tile = getTileAt(g.state.map, city.col, city.row + 1)!;
+    const paid = (): { production: number; faith: number } | undefined => {
+      const line = explainTileYield(tile, yieldContextFor(g.state, 0)).find((entry) =>
+        entry.source.includes('Herd Gods'),
+      );
+      return line === undefined ? undefined : { production: line.production, faith: line.faith };
+    };
+    delete tile.improvement;
+    expect(paid()).toBeUndefined();
+    tile.improvement = 'farm';
+    expect(paid()).toBeUndefined();
+    tile.improvement = 'pasture';
+    expect(paid()).toEqual({ production: 1, faith: 1 });
+  });
+
+  it('opens a faith house for the owner of a following town, and for nobody else', () => {
+    const g = game();
+    const religion = houseOf(g.state, 'minarets');
+    const mine = follows(town(g.state, 0, 6, 6), religion);
+    // Seat 1's town keeps the same faith, and a follower belief is city-local:
+    // the row is **its owner's** to buy, which is the follower pool's whole rule.
+    const theirs = follows(town(g.state, 1, 10, 6), religion);
+    bumpRevision(g.state);
+
+    expect(isUnlocked(g.state, 0, 'building', 'mosque')).toBe(true);
+    expect(isUnlocked(g.state, 1, 'building', 'mosque')).toBe(true);
+    expect(purchaseError(g.state, 0, mine.id, MOSQUE, 'faith')).not.toContain('not open');
+    expect(purchaseError(g.state, 1, theirs.id, MOSQUE, 'faith')).not.toContain('not open');
+
+    // And nobody else at all: a seat whose towns keep nothing has no row.
+    theirs.followers = {};
+    bumpRevision(g.state);
+    expect(isUnlocked(g.state, 1, 'building', 'mosque')).toBe(false);
+    expect(purchaseError(g.state, 1, theirs.id, MOSQUE, 'faith')).toBe(
+      'Mosque is not open to Bors yet',
+    );
+    // Nor before the belief is in the house at all.
+    religion.follower = [];
+    bumpRevision(g.state);
+    expect(isUnlocked(g.state, 0, 'building', 'mosque')).toBe(false);
+  });
+
+  it('sells a faith house out of the faith bank alone, at the ordinary price', () => {
+    const g = game();
+    const religion = houseOf(g.state, 'minarets');
+    const city = follows(town(g.state, 0, 6, 6), religion);
+    bumpRevision(g.state);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 500;
+    player.gold = 5000;
+
+    // **The bank the row names, and no other** — `rosterBank`'s one sentence,
+    // read of a building for the first time.
+    expect(explainPurchaseCost(g.state, 0, city.id, MOSQUE, 'gold')).toBe(null);
+    expect(purchaseError(g.state, 0, city.id, MOSQUE, 'gold')).toBe(
+      'A Mosque is bought with faith, not gold',
+    );
+
+    // **The price is the ordinary one converted**, so the column and the age
+    // band ride in for free and no figure is typed on the row.
+    const hammers = foldUnitCost(explainBuildingCost('mosque', g.state, 0));
+    const price = explainPurchaseCost(g.state, 0, city.id, MOSQUE, 'faith')!;
+    expect(price.currency).toBe('faith');
+    expect(price.total).toBe(Math.floor(hammers * RULES.production.faithPerHammer));
+    // Rule 5, for a price: the fold of the printed lines *is* the total.
+    expect(price.lines.reduce((sum, line) => sum + line.amount, 0)).toBe(price.total);
+
+    // And it is never queued: `purchaseOnly` is the marker, `buildError` the
+    // sentence.
+    expect(buildError(g.state, 0, 'building', 'mosque')).toBe('Mosque is not built — it is bought');
+
+    expect(purchaseError(g.state, 0, city.id, MOSQUE, 'faith')).toBe(null);
+    purchaseItemAt(g.state, player, city, MOSQUE, 'faith');
+    expect(city.buildings).toContain('mosque');
+    expect(player.faithPool).toBe(500 - price.total);
+  });
+
+  it('refuses a faith house in a town that keeps another faith, in plain words', () => {
+    const g = game();
+    const religion = houseOf(g.state, 'minarets');
+    follows(town(g.state, 0, 6, 6), religion);
+    // A second town of the same empire that has not turned. The empire holds the
+    // row — availability is the realm's question — and this town may not raise
+    // one, which is the town's.
+    const lapsed = town(g.state, 0, 10, 6);
+    bumpRevision(g.state);
+    playerById(g.state, 0)!.faithPool = 500;
+
+    expect(isUnlocked(g.state, 0, 'building', 'mosque')).toBe(true);
+    expect(purchaseError(g.state, 0, lapsed.id, MOSQUE, 'faith')).toBe(
+      'Mosque may be raised only in a city that keeps your faith',
+    );
+
+    follows(lapsed, religion);
+    bumpRevision(g.state);
+    expect(purchaseError(g.state, 0, lapsed.id, MOSQUE, 'faith')).toBe(null);
+  });
+
+  it('pays what the four rows print, once the stones are up', () => {
+    const g = game();
+    const religion = houseOf(g.state, 'minarets', 'templeSpires', 'theEternalFlame');
+    const city = follows(town(g.state, 0, 6, 6), religion);
+    city.population = 6;
+    bumpRevision(g.state);
+
+    // **The Mosque's writ**, read by the meter's own list rather than off the
+    // row: a building's capacity and a card's are one number.
+    const beforeWrit = authorityOf(g.state, 0);
+    city.buildings.push('mosque');
+    bumpRevision(g.state);
+    expect(authorityOf(g.state, 0) - beforeWrit).toBe(1);
+
+    // **The Wat's congregation**, through the town's own fold: six citizens buy
+    // three helpings of one candle.
+    const beforeWat = foldCity(g.state, city);
+    const cheer = (): number =>
+      buildingHappiness(g.state, 0).reduce((sum, line) => sum + line.amount, 0);
+    const beforeCheer = cheer();
+    city.buildings.push('wat');
+    bumpRevision(g.state);
+    const afterWat = foldCity(g.state, city);
+    expect(afterWat.faith - beforeWat.faith).toBe(3);
+    expect(cheer() - beforeCheer).toBe(3);
+
+    // **The Dar-e Mehr's tenth**, a percentage of the town at the city stage —
+    // the Observatory's shape, on faith.
+    city.buildings.push('darEMehr');
+    bumpRevision(g.state);
+    expect(
+      cityYieldPercents(g.state, city).some(
+        (line) => line.yield === 'faith' && line.stage === 'city' && line.percent === 10,
+      ),
+    ).toBe(true);
+    const afterFlame = foldCity(g.state, city);
+    // Two flat candles, and *then* a tenth of the whole town — the tenth is a
+    // stage and not a line, which is what makes this an assertion about Entry
+    // XVII's multiplication rather than about the row's own bag. The fold is
+    // unrounded by design (the banker floors), so it is compared as one.
+    expect(afterFlame.faith).toBeCloseTo((afterWat.faith + 2) * 1.1, 6);
+  });
+
+  it('the Gurdwara is three voices and nothing else', () => {
+    // The one row of the four with no card clause at all: its whole face is the
+    // bag, which is the honest shape for it rather than an omission.
+    const def = buildingDef('gurdwara');
+    expect([def.food, def.faith, def.science]).toEqual([3, 3, 2]);
+    expect(def.effects).toBeUndefined();
+    for (const id of ['mosque', 'wat', 'gurdwara', 'darEMehr'] as const) {
+      const row = buildingDef(id);
+      expect(row.purchase?.currency, id).toBe('faith');
+      expect(row.purchaseOnly, id).toBe(true);
+      expect(row.unlockedByCard, id).toBe(true);
+      expect(row.followingOnly, id).toBe(true);
+      // The Temple's column, because a belief has no tier to read one off and a
+      // faith house of that age costs what the Temple costs.
+      expect(row.column, id).toBe(5);
+    }
+  });
+
+  it('Marvels of the Faith counts the marvels of the whole tide', () => {
+    const g = game();
+    const religion = faith(g.state, 0);
+    religion.enhancer = ['marvelsOfTheFaith'];
+    const mine = follows(town(g.state, 0, 6, 6), religion);
+    const theirs = follows(town(g.state, 1, 10, 6), religion);
+    const pagan = town(g.state, 1, 13, 6);
+    bumpRevision(g.state);
+
+    const fold = (voice: 'science' | 'culture'): number =>
+      explainCardEmpireYields(g.state, 0).reduce(
+        (sum: number, line: CardYieldLine) => sum + line[voice],
+        0,
+      );
+    expect(fold('science')).toBe(0);
+
+    // **The town, once, however many marvels stand in it.**
+    mine.buildings.push('pyramids', 'stonehenge');
+    bumpRevision(g.state);
+    expect(fold('science')).toBe(5);
+    expect(fold('culture')).toBe(5);
+
+    // A foreign town that follows counts — the enhancer pays the founder for the
+    // whole tide, which is why the count lives in this pool.
+    theirs.buildings.push('theOracle');
+    bumpRevision(g.state);
+    expect(fold('science')).toBe(10);
+
+    // A marvel in a town that keeps nothing counts nothing at all.
+    pagan.buildings.push('greatLibrary');
+    bumpRevision(g.state);
+    expect(fold('science')).toBe(10);
+  });
+
+  it('The Scriptoria counts the faith houses of the whole tide, roof by roof', () => {
+    const g = game();
+    const religion = faith(g.state, 0);
+    religion.enhancer = ['theScriptoria'];
+    const mine = follows(town(g.state, 0, 6, 6), religion);
+    const theirs = follows(town(g.state, 1, 10, 6), religion);
+    const pagan = town(g.state, 1, 13, 6);
+    bumpRevision(g.state);
+
+    const science = (): number =>
+      explainCardEmpireYields(g.state, 0).reduce(
+        (sum: number, line: CardYieldLine) => sum + line.science,
+        0,
+      );
+    expect(science()).toBe(0);
+
+    // **The buildings, not the towns**: two roofs in one following city are two.
+    mine.buildings.push('shrine', 'temple');
+    bumpRevision(g.state);
+    expect(science()).toBe(2);
+
+    // A shelf of another category is not a helping.
+    mine.buildings.push('library');
+    bumpRevision(g.state);
+    expect(science()).toBe(2);
+
+    theirs.buildings.push('shrine');
+    bumpRevision(g.state);
+    expect(science()).toBe(3);
+
+    pagan.buildings.push('shrine', 'temple');
+    bumpRevision(g.state);
+    expect(science()).toBe(3);
+  });
+
+  it('reads the follows gate in one place, and the town-scale unlock in one', () => {
+    // Two "read in exactly one place" claims from the docblocks, pinned the way
+    // this file pins the others — off the source, because both are rules rather
+    // than numbers and a second reader of either would drift silently.
+    //
+    // `followingOnly` is a *purchase* clause: availability is the empire's
+    // question (`isUnlocked`) and where a thing may stand is the town's, so a
+    // copy of this in `tech.ts` would tell a player who holds Minarets that the
+    // Mosque was never theirs.
+    //
+    // The marker is *tested* in one place and *printed* in one other, which is
+    // the ordinary split (a describer says what a field means; a gate enforces
+    // it), so the pin names both and refuses a third.
+    const readers = [
+      'statecraft/evaluator.ts',
+      'statecraft/describers.ts',
+      'purchase.ts',
+      'tech.ts',
+      'cities.ts',
+      'commands.ts',
+    ].filter((file) => /followingOnly === true/.test(simSource(file)));
+    expect(readers).toEqual(['statecraft/describers.ts', 'purchase.ts']);
+
+    // And `cityBeliefUnlocksBuilding` — the town-scale half of the unlock — is
+    // declared in the one evaluator and asked by the one gate.
+    expect(simSource('statecraft/evaluator.ts')).toContain(
+      'export function cityBeliefUnlocksBuilding',
+    );
+    const asked = ['purchase.ts', 'tech.ts', 'cities.ts', 'commands.ts'].filter((file) =>
+      /\bcityBeliefUnlocksBuilding\(/.test(simSource(file)),
+    );
+    expect(asked).toEqual(['purchase.ts']);
+  });
+
+  it('keeps the world-scale register whole on both sides', () => {
+    // The claim `WORLD_SCALE_COUNTS`' own docblock makes: every `following…`
+    // member of `CountKind` a live row names is in it, so an eighth cannot be
+    // added to the union and forgotten here — which would let a follower belief
+    // count the world and pay nothing, silently.
+    const family = new Set<string>();
+    for (const id of [...BELIEF_IDS, ...FOLLOWER_BELIEF_IDS, ...ENHANCER_BELIEF_IDS]) {
+      for (const effect of beliefDef(id).effects) {
+        if (effect.kind === 'pays' && effect.count?.startsWith('following')) {
+          family.add(effect.count);
+        }
+      }
+    }
+    expect(family.size).toBeGreaterThan(0);
+    for (const count of family) expect(WORLD_SCALE_COUNTS, count).toContain(count);
+    expect(WORLD_SCALE_COUNTS).toContain('followingCitiesWithWonder');
+    expect(WORLD_SCALE_COUNTS).toContain('followingBuildingsOfCategory');
+    // And `followersHere` is deliberately outside it — the family's opposite
+    // number, a question about one town, which a follower belief may ask.
+    expect(WORLD_SCALE_COUNTS).not.toContain('followersHere');
+  });
+
+  it('prints the new rows in the words the worksheet ratified', () => {
+    const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    expect(said('herdGods')).toEqual(['+1 production, +1 faith on every hex with a Pasture']);
+    expect(said('marvelsOfTheFaith')).toEqual([
+      '+5 science per city that follows you and holds a wonder',
+      '+5 culture per city that follows you and holds a wonder',
+    ]);
+    expect(said('theScriptoria')).toEqual([
+      '+1 science per faith building in a city that follows you',
+    ]);
+    // The four faith houses print themselves inside the belief that opens them
+    // (`describeBuildingRow`), so a re-cut row re-prints its own belief.
+    for (const [belief, house] of [
+      ['minarets', 'Mosque'],
+      ['templeSpires', 'Wat'],
+      ['theOpenKitchen', 'Gurdwara'],
+      ['theEternalFlame', 'Dar-e Mehr'],
+    ] as const) {
+      const clause = said(belief)[0] ?? '';
+      expect(clause, belief).toContain(`unlocks the ${house}`);
+      expect(clause, belief).toContain('it is bought with faith and never built');
+      expect(clause, belief).toContain(
+        'it may be raised only in a city that keeps the faith that opened it',
+      );
+    }
   });
 });
