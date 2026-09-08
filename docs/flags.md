@@ -583,7 +583,17 @@ directly to confirm rulings — user marginalia are rulings.
   target "a monument buys three or four tiles by turn 25–30" has been
   overtaken twice by rulings (the 2026-09-05 border boost, then the
   palace's note); both fixtures now measure **six** inside that window and
-  the pins say so. Whether the target moves is a ruling, not a pin. (eee)
+  the pins say so. Whether the target moves is a ruling, not a pin.
+  (fff) **The Wager** (the user, 2026-09-08: a global age off the mean of
+  all players with a 10-turn countdown; five turns into each age three
+  targets dealt from an age-scaled deck; each seat chooses one — met pays
+  2 beads, missed takes a malice; the other two met pay 1 each; four an
+  age plus the deeds, an Æra IV win very possible): the worksheet is
+  **`docs/wager.md`** with the ▢ decisions and the (rec) defaults —
+  progress as the mean age, the choice window, the deck scaling off the
+  world, what a malice is, reckonings retiring. Awaiting marginalia; the
+  batches are G1 clock → G2 deal → G3 malice → W2 bots. The Abacus
+  world-clock ruling folds into its §1. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
