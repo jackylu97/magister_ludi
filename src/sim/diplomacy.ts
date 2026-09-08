@@ -17,15 +17,24 @@
  * from the same function, so an offered button is a command the reducer takes.
  * The mechanisms validate nothing and are only ever called behind their gate.
  *
- * Peace is a **standing offer on both sides**, resolved in the pipeline
- * ---------------------------------------------------------------------
- * Turns are simultaneous, so "we agree" cannot be a handshake inside one
- * command: the two seats are acting in the same window and neither is waiting.
- * So `proposePeace` writes a flag that stands until it is withdrawn or the war
- * ends, and `settlePeace` — an end-of-turn phase — closes every war both sides
- * have signed. That is the same shape `turnEnded` already uses for the one
- * other thing every seat must agree to, and it means a peace resolves at a
- * moment the whole world shares rather than at a moment one client chose.
+ * Peace is a **standing offer on both sides**, closed by the second signature
+ * -------------------------------------------------------------------------
+ * Turns are simultaneous, so a peace cannot be a handshake between two seats
+ * that are both still acting: `proposePeace` writes a flag that stands until it
+ * is withdrawn, refused (`refusePeaceOffer`) or the war ends.
+ *
+ * What closes the war is the **second signature**, inside its own command
+ * (§12's ruling, 2026-09-07): the moment both flags stand the pair settles
+ * through `settlePeacePair` — terms, close, truce, expulsions, in that order —
+ * so a player who signed is at peace *now* rather than at the turn's end, which
+ * is Civ's rule and the one an audience needs (a bot answering a paper at the
+ * table has to be able to say "the war is over" in the same breath).
+ *
+ * `settlePeace` stays as the end-of-turn sweep over every pair whose flags met
+ * without a command between them — a save written before this rule, a fixture
+ * that used the writers directly. It is a broom of the same kind as
+ * `pruneTruces`: with nothing left standing it closes nothing and changes no
+ * outcome, which is exactly what makes it safe to keep.
  *
  * Expulsion happens at **peace**, never at declaration (the user's ruling,
  * 2026-09-03: *"once war starts, units are not expelled, but they are expelled
@@ -83,10 +92,12 @@ import {
   recomputeVisibilityFor,
 } from './visibility';
 import {
+  type WarState,
   atWar,
   closeWar,
   hasPeaceOffer,
   openWar,
+  refusePeaceOffer,
   setPeaceOffer,
   truceTurnsLeft,
   warBetween,
@@ -817,6 +828,45 @@ export function withdrawPeaceError(
   return null;
 }
 
+/**
+ * Why this seat cannot send the other's envoy home, or `null`.
+ *
+ * `withdrawPeaceError`'s mirror across the table (§12's ruling, 2026-09-07:
+ * *"a refused peace comes off the table"*). Before it there was no way at all
+ * to answer a peace offer with a no — a paper put up stood for ever, and a seat
+ * that had decided to fight on simply left it lying there — which is a strange
+ * thing to ask of a player and an impossible thing to ask of a bot answering at
+ * a table.
+ *
+ * Two clauses and no more: there has to be a war, and there has to be an offer
+ * of *theirs* to refuse. Refusing is otherwise always legal for the seat that
+ * was asked, exactly as declining a bargain is (`answerDealError`): a paper you
+ * did not write may be sent back whatever has happened to the board.
+ */
+export function declinePeaceError(
+  state: GameState,
+  playerId: number,
+  targetId: number,
+): string | null {
+  const actor = playerById(state, playerId);
+  if (!actor) return `No player with id ${String(playerId)}`;
+  const target = playerById(state, targetId);
+  if (!target) return `No player with id ${String(targetId)}`;
+  if (target.id === actor.id) return 'You cannot refuse yourself';
+  if (warBetween(state, actor.id, target.id) === undefined) {
+    return `You are not at war with the ${target.name}`;
+  }
+  if (!hasPeaceOffer(state, target.id, actor.id)) {
+    return `The ${target.name} have offered you nothing to refuse`;
+  }
+  return null;
+}
+
+/** Sends the other seat's envoy home. Validates nothing; the gate is above. */
+export function declinePeaceAt(state: GameState, playerId: number, targetId: number): void {
+  refusePeaceOffer(state, playerId, targetId);
+}
+
 /** Writes or clears one seat's offer. Validates nothing; the gates are above. */
 export function setPeaceOfferAt(
   state: GameState,
@@ -829,61 +879,78 @@ export function setPeaceOfferAt(
 }
 
 /**
- * Closes every war both sides have signed, and sends the armies home.
+ * **One war both sides have signed**: the terms, the close, the truce, and the
+ * armies walked home. Validates nothing — the caller has established that both
+ * flags stand.
  *
- * The end-of-turn phase (`settleDiplomacy` in `turn.ts`), and the only place a
- * war ends. Wars are walked in `state.wars` order — declaration order, which is
- * an order the state itself carries (`GameState.wars`) — so two peaces
- * resolving in the same resolution always resolve the same way, and the
- * expulsions they produce come out in the same order every replay.
- *
- * The **rows are collected before anything is closed**, because `closeWar`
- * rewrites `state.wars`; iterating an array while a callee filters it is the
- * one bug this shape cannot afford.
- *
- * Expulsion runs *after* the war row is gone and the truce is written, and that
- * ordering is the rule rather than a convenience: `moveProfile` reads `atWar`
- * to decide which borders bar a piece, so a column walked out while the war was
- * still open would be walked out into ground it is about to be barred from.
- *
- * **The terms execute before any of that**, and the whole sequence is a ruling:
+ * The whole sequence is a ruling and every step of the order is load-bearing:
  * the paper is honoured while the war is still on, the war is then closed and
  * the truce written, the row (if the bargain left anything standing) is opened,
- * and only then are the armies walked home. Two of those orderings are
- * load-bearing —
+ * and only then are the armies walked home. Three of those orderings say why —
  *
  *   · a **town ceded** must change hands before the expulsion, or the column
  *     standing in it would be walked out of ground its own empire is about to
  *     hold;
  *   · a **right of way** must be open before the expulsion, or a peace that
  *     bought passage would begin by sending home the very armies it just
- *     granted a road to.
+ *     granted a road to;
+ *   · **expulsion runs after the war row is gone and the truce is written**,
+ *     because `moveProfile` reads `atWar` to decide which borders bar a piece,
+ *     so a column walked out while the war was still open would be walked out
+ *     into ground it is about to be barred from.
  *
- * — and the third is the plain reading of what a peace deal is: you pay, and
+ * — and the rest is the plain reading of what a peace deal is: you pay, and
  * then it is peace.
+ *
+ * Two callers and they are the same moment asked at two seams: the reducer, on
+ * the command that puts the second signature on the table (`applyPeaceOffer`),
+ * and the end-of-turn sweep below for a pair whose flags met without one.
+ */
+export function settlePeacePair(state: GameState, war: WarState): PeaceOutcome {
+  const { a, b } = war;
+  const paper = war.terms;
+  // The terms are executed from `a`'s side, which is the register's own key
+  // and not a proposer's — the paper is keyed to the pair (`PeaceTerms`), so
+  // the settlement never has to know who wrote it.
+  const execution = paper === undefined ? undefined : settleDealAt(state, a, b, paper.a, paper.b);
+  const truceUntilTurn = closeWar(state, a, b);
+  const expulsions = [...expelFrom(state, a, b), ...expelFrom(state, b, a)];
+  return {
+    peace: { a, b, truceUntilTurn },
+    expulsions,
+    ...(execution === undefined ? {} : { execution }),
+  };
+}
+
+/** Both flags on this war, and nothing else — the one reading of "signed". */
+export function peaceIsSigned(war: WarState): boolean {
+  return war.offers?.includes(war.a) === true && war.offers.includes(war.b);
+}
+
+/**
+ * Closes every war both sides have signed, and sends the armies home.
+ *
+ * The end-of-turn phase (`settleDiplomacy` in `turn.ts`), and since §12's
+ * ruling it is the **sweep** rather than the only door: a peace closes inside
+ * the command that puts the second signature on it (`settlePeacePair`), so what
+ * is left for this phase is a pair whose flags met without a command between
+ * them — a save written before that rule, or a fixture that used the register's
+ * own writers. With nothing standing it closes nothing, which is what makes it
+ * safe to keep in the pipeline exactly where it was.
+ *
+ * Wars are walked in `state.wars` order — declaration order, which is an order
+ * the state itself carries (`GameState.wars`) — so two peaces resolving in the
+ * same resolution always resolve the same way, and the expulsions they produce
+ * come out in the same order every replay.
+ *
+ * The **rows are collected before anything is closed**, because `closeWar`
+ * rewrites `state.wars`; iterating an array while a callee filters it is the
+ * one bug this shape cannot afford.
  */
 export function settlePeace(state: GameState): PeaceOutcome[] {
-  const signed = state.wars.filter(
-    (war) => war.offers?.includes(war.a) === true && war.offers.includes(war.b),
-  );
+  const signed = state.wars.filter((war) => peaceIsSigned(war));
   const outcomes: PeaceOutcome[] = [];
-  for (const war of signed) {
-    const { a, b } = war;
-    const paper = war.terms;
-    // The terms are executed from `a`'s side, which is the register's own key
-    // and not a proposer's — the paper is keyed to the pair (`PeaceTerms`), so
-    // the settlement never has to know who wrote it.
-    const execution = paper === undefined
-      ? undefined
-      : settleDealAt(state, a, b, paper.a, paper.b);
-    const truceUntilTurn = closeWar(state, a, b);
-    const expulsions = [...expelFrom(state, a, b), ...expelFrom(state, b, a)];
-    outcomes.push({
-      peace: { a, b, truceUntilTurn },
-      expulsions,
-      ...(execution === undefined ? {} : { execution }),
-    });
-  }
+  for (const war of signed) outcomes.push(settlePeacePair(state, war));
   return outcomes;
 }
 

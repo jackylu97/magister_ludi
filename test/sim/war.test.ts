@@ -24,8 +24,10 @@ import { applyCombat, previewCombat } from '../../src/sim/combat';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { foundCityAt, tileOwnerPlayerId } from '../../src/sim/cities';
 import {
+  type PeaceOutcome,
   annexCityError,
   declareWarError,
+  declinePeaceError,
   proposePeaceError,
   razeCityError,
   withdrawPeaceError,
@@ -43,7 +45,17 @@ import {
   newGame,
 } from '../../src/sim/state';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { atWar, closeWar, hasPeaceOffer, openWar, truceBetween, truceTurnsLeft, warBetween } from '../../src/sim/wars';
+import {
+  atWar,
+  closeWar,
+  hasPeaceOffer,
+  openWar,
+  peaceTermsOn,
+  setPeaceOffer,
+  truceBetween,
+  truceTurnsLeft,
+  warBetween,
+} from '../../src/sim/wars';
 import { resetVisibility } from '../../src/sim/visibility';
 
 const WAR = RULES.war;
@@ -429,30 +441,86 @@ describe('the white peace', () => {
     expect(atWar(state, 0, 1)).toBe(true);
   });
 
-  it('resolves in the pipeline when both offers stand, and buys the truce', () => {
+  it('closes on the second signature, inside that command, and buys the truce', () => {
+    // §12's ruling (2026-09-07): a seat that signed is at peace *now*. Before
+    // it the war ran on until the turn resolved, which is the beat this test
+    // used to assert — it is the same peace, one command earlier.
     const state = warBench();
     applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    expect(atWar(state, 0, 1)).toBe(true);
     const turn = state.turn;
-    const report = runEndOfTurn(state);
-    expect(report.peaces).toHaveLength(1);
-    expect(report.peaces[0]!.peace).toEqual({
+    const signed = applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    expect(signed.ok).toBe(true);
+    expect(signed.ok && signed.peaces).toHaveLength(1);
+    expect(signed.ok && signed.peaces?.[0]!.peace).toEqual({
       a: 0,
       b: 1,
       truceUntilTurn: turn + WAR.truceTurns,
     });
     expect(atWar(state, 0, 1)).toBe(false);
     expect(truceTurnsLeft(state, 0, 1)).toBe(WAR.truceTurns);
+    // And the turn's own phase has nothing left to close.
+    expect(runEndOfTurn(state).peaces).toEqual([]);
   });
 
-  it('can be withdrawn, and then nothing resolves', () => {
+  it('still meets two flags at the phase when they met without a command', () => {
+    // The sweep is kept for exactly this: a pair whose flags were written by the
+    // register's own writer rather than by two commands — a save from before the
+    // rule above, or a fixture like this one. Both seats are people here, which
+    // is the case the phase was built for.
+    const state = warBench();
+    setPeaceOffer(state, 0, 1, true);
+    setPeaceOffer(state, 1, 0, true);
+    expect(atWar(state, 0, 1)).toBe(true);
+    const report = runEndOfTurn(state);
+    expect(report.peaces).toHaveLength(1);
+    expect(atWar(state, 0, 1)).toBe(false);
+    expect(truceTurnsLeft(state, 0, 1)).toBe(WAR.truceTurns);
+  });
+
+  it('can be withdrawn before it is answered, and then nothing resolves', () => {
     const state = warBench();
     applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
     expect(applyCommand(state, { type: 'withdrawPeace', playerId: 0, targetId: 1 }).ok).toBe(true);
     expect(hasPeaceOffer(state, 0, 1)).toBe(false);
+    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
     runEndOfTurn(state);
     expect(atWar(state, 0, 1)).toBe(true);
+  });
+
+  it('sends the envoy home on a refusal, and leaves the war and our own flag', () => {
+    const state = warBench();
+    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
+    expect(applyCommand(state, { type: 'declinePeace', playerId: 1, targetId: 0 }).ok).toBe(true);
+    expect(hasPeaceOffer(state, 0, 1)).toBe(false);
+    expect(atWar(state, 0, 1)).toBe(true);
+    // Nothing else went with it: either seat may sue again on the next breath.
+    expect(proposePeaceError(state, 0, 1)).toBeNull();
+  });
+
+  it('takes the paper off the table with the flag it stood on', () => {
+    const state = warBench();
+    applyCommand(state, {
+      type: 'proposePeace',
+      playerId: 0,
+      targetId: 1,
+      give: {},
+      take: { gold: 0, goldPerTurn: 4 },
+    } as unknown as Command);
+    expect(peaceTermsOn(state, 0, 1)).not.toBeNull();
+    applyCommand(state, { type: 'declinePeace', playerId: 1, targetId: 0 });
+    expect(peaceTermsOn(state, 0, 1)).toBeNull();
+    expect(warBetween(state, 0, 1)!.offers).toBeUndefined();
+  });
+
+  it('refuses a refusal with no war and one with nothing to refuse, byte-identical', () => {
+    const state = flatState();
+    expect(declinePeaceError(state, 0, 1)).toContain('not at war');
+    openWar(state, 0, 1);
+    expect(declinePeaceError(state, 0, 1)).toContain('nothing to refuse');
+    const before = snapshotState(state);
+    expect(applyCommand(state, { type: 'declinePeace', playerId: 0, targetId: 1 }).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
   });
 
   it('refuses an offer with no war behind it, a second offer, and a withdrawal of nothing', () => {
@@ -493,6 +561,20 @@ describe('the white peace', () => {
 // --- 6. expulsion -----------------------------------------------------------
 
 describe('expulsion, at peace and never at declaration', () => {
+  /**
+   * Both seats sign, and the outcome comes back off the **second signature**
+   * (§12): the peace closes inside that command, so the expulsions it reports
+   * are read there rather than out of the turn's resolution.
+   */
+  function signPeace(state: GameState): PeaceOutcome {
+    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
+    const result = applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    if (!result.ok || !result.peaces || result.peaces.length !== 1) {
+      throw new Error('the second signature did not close the war');
+    }
+    return result.peaces[0]!;
+  }
+
   function standingIn(): { state: GameState; city: City } {
     const state = flatState(16, 10);
     const city = foundCityAt(state, 1, at(state.map, 10, 4));
@@ -515,12 +597,7 @@ describe('expulsion, at peace and never at declaration', () => {
     const { state } = standingIn();
     const soldier = createUnit(state, 0, 'warrior', 9, 4);
     soldier.path = [{ col: 10, row: 4 }];
-    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    const report = runEndOfTurn(state);
-
-    expect(report.peaces).toHaveLength(1);
-    const walked = report.peaces[0]!.expulsions;
+    const walked = signPeace(state).expulsions;
     expect(walked).toHaveLength(1);
     expect(walked[0]!.unitId).toBe(soldier.id);
     expect(walked[0]!.ownerId).toBe(0);
@@ -536,10 +613,7 @@ describe('expulsion, at peace and never at declaration', () => {
   it('leaves a civilian standing: it was never barred', () => {
     const { state } = standingIn();
     const worker = createUnit(state, 0, 'worker', 9, 4);
-    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    const report = runEndOfTurn(state);
-    expect(report.peaces[0]!.expulsions).toEqual([]);
+    expect(signPeace(state).expulsions).toEqual([]);
     expect(worker.col).toBe(9);
     expect(worker.row).toBe(4);
   });
@@ -550,9 +624,7 @@ describe('expulsion, at peace and never at declaration', () => {
     claimBlock(state, theirs, [2, 3, 4], [3, 4, 5]);
     const mine = createUnit(state, 0, 'warrior', 9, 4);
     const yours = createUnit(state, 1, 'warrior', 3, 5);
-    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    const walked = runEndOfTurn(state).peaces[0]!.expulsions;
+    const walked = signPeace(state).expulsions;
     expect(walked.map((entry) => entry.unitId)).toEqual([mine.id, yours.id]);
   });
 
@@ -560,9 +632,7 @@ describe('expulsion, at peace and never at declaration', () => {
     const run = (): { col: number; row: number } => {
       const { state } = standingIn();
       createUnit(state, 0, 'warrior', 9, 4);
-      applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-      applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-      const walked = runEndOfTurn(state).peaces[0]!.expulsions;
+      const walked = signPeace(state).expulsions;
       return { col: walked[0]!.to.col, row: walked[0]!.to.row };
     };
     expect(run()).toEqual(run());
@@ -818,6 +888,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(89);
+    expect(SCHEMA_VERSION).toBe(90);
   });
 });

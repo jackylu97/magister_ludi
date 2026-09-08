@@ -50,7 +50,7 @@ import {
 } from '../../src/sim/state';
 import { dealsBetween, lentAwayBy, lentToPlayer } from '../../src/sim/deals';
 import { runEndOfTurn } from '../../src/sim/turn';
-import { openWar, truceTurnsLeft, warBetween } from '../../src/sim/wars';
+import { openWar, setPeaceOffer, truceTurnsLeft, warBetween } from '../../src/sim/wars';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 
 const WAR = RULES.war;
@@ -589,8 +589,7 @@ describe('a town ceded in a peace', () => {
       give: { cities: [town.id] },
       take: {},
     } as unknown as Command);
-    applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    const report = runEndOfTurn(state);
+    const signed = applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
 
     expect(town.ownerId).toBe(0);
     // The default a conquest sets, set for the same reason: annexing is the
@@ -600,7 +599,7 @@ describe('a town ceded in a peace', () => {
     // The territory follows the flag with no write at all — `tileOwner` holds
     // *city* ids.
     expect(state.tileOwner[ground]).toBe(town.id);
-    expect(report.peaces[0]!.execution?.cededCities).toEqual([
+    expect(signed.ok && signed.peaces?.[0]!.execution?.cededCities).toEqual([
       { cityId: town.id, name: town.name, fromId: 1, toId: 0 },
     ]);
     // And the peace still bought its truce.
@@ -661,9 +660,9 @@ describe('peace with terms', () => {
       give: { openBorders: true },
       take: { gold: 80, goldPerTurn: 3 },
     } as unknown as Command);
-    // The other seat signs the paper that is on the table — a bare offer.
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    const report = runEndOfTurn(state);
+    // The other seat signs the paper that is on the table — a bare offer, and
+    // the signature that closes the war inside its own command (§12).
+    const signed = applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
 
     expect(playerById(state, 0)!.gold).toBeGreaterThanOrEqual(80);
     expect(playerById(state, 1)!.gold).toBeLessThanOrEqual(120);
@@ -671,18 +670,18 @@ describe('peace with terms', () => {
     expect(truceTurnsLeft(state, 0, 1)).toBe(WAR.truceTurns);
     // The ongoing halves opened one row, twenty turns from the peace.
     expect(dealsBetween(state, 0, 1)).toHaveLength(1);
-    expect(report.peaces[0]!.execution?.dealId).toBe(state.deals[0]!.id);
+    expect(signed.ok && signed.peaces?.[0]!.execution?.dealId).toBe(state.deals[0]!.id);
   });
 
   it('leaves a white peace exactly as it was', () => {
     const state = bench();
     openWar(state, 0, 1);
     applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 });
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    const report = runEndOfTurn(state);
-    expect(report.peaces).toHaveLength(1);
-    expect(report.peaces[0]!.execution).toBeUndefined();
+    const signed = applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    expect(signed.ok && signed.peaces).toHaveLength(1);
+    expect(signed.ok && signed.peaces?.[0]!.execution).toBeUndefined();
     expect(state.deals).toEqual([]);
+    expect(runEndOfTurn(state).peaces).toEqual([]);
   });
 
   it('voids the signature on the old paper when somebody writes a new one', () => {
@@ -697,10 +696,11 @@ describe('peace with terms', () => {
       give: {},
       take: { gold: 50 },
     } as unknown as Command);
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
-    // Both have signed the same paper, so this resolution ends it — unless the
-    // paper changes first, which is what a counter-offer is.
-    expect(warBetween(state, 0, 1)!.offers).toEqual([0, 1]);
+    // The other seat answers with a paper of its own rather than signing —
+    // which is what a counter-offer is, and it voids the signature that was on
+    // the table. (Signing instead would end the war in that command, §12, so a
+    // counter is the only way anything is left to void.)
+    expect(warBetween(state, 0, 1)!.offers).toEqual([0]);
     applyCommand(state, {
       type: 'proposePeace',
       playerId: 1,
@@ -709,6 +709,7 @@ describe('peace with terms', () => {
       take: {},
     } as unknown as Command);
     expect(warBetween(state, 0, 1)!.offers).toEqual([1]);
+    expect(warBetween(state, 0, 1)!.terms?.by).toBe(1);
     runEndOfTurn(state);
     expect(warBetween(state, 0, 1)).toBeDefined();
   });
@@ -718,14 +719,12 @@ describe('peace with terms', () => {
     playerById(state, 1)!.gold = 100;
     bumpRevision(state);
     openWar(state, 0, 1);
-    applyCommand(state, {
-      type: 'proposePeace',
-      playerId: 0,
-      targetId: 1,
-      give: {},
-      take: { gold: 50 },
-    } as unknown as Command);
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 });
+    // Two flags on one paper, written through the register's own writer: since
+    // §12 a second *command* would close the war on the spot, so the state this
+    // clause is about is reached the way an older save reaches it.
+    setPeaceOffer(state, 0, 1, true, { give: {}, take: { gold: 50 } });
+    setPeaceOffer(state, 1, 0, true);
+    expect(warBetween(state, 0, 1)!.offers).toEqual([0, 1]);
     applyCommand(state, { type: 'withdrawPeace', playerId: 0, targetId: 1 });
     // Seat 1 signed a bargain, not a white peace, so nothing stands.
     expect(warBetween(state, 0, 1)!.offers).toBeUndefined();

@@ -8,6 +8,13 @@
  * the **guards** (a bot must never spin forever, and must never quietly swallow
  * a refusal).
  *
+ * Since §12 of `docs/war-diplomacy.md` there are two doors rather than one:
+ * `driveBots` plays a seat's whole turn, and `answerAudience` asks one seat one
+ * question — the paper a player has just put on the table — and dispatches the
+ * answer through the same funnel. Nothing about the funnel or the guards
+ * changes; what changes is that a bot no longer makes a player wait a turn for
+ * a yes.
+ *
  * Why the commands go through the interface's funnel
  * ---------------------------------------------------
  * The star chart and the city panel already dispatch for themselves and then
@@ -43,10 +50,14 @@
  */
 
 import { aiConfigFor } from './aiConfig';
-import { botSitting, nextBotCommand } from './bot';
+import { botSitting, nextBotCommand, valueContext } from './bot';
+import type { BotDecision } from './decision';
+import { answerPeaceOffer, answerProposal } from './diplomacy';
 import type { Command, CommandResult } from '../sim/commands';
+import { proposalById } from '../sim/deals';
 import { type Game, dispatch } from '../sim/game';
 import { hasEndedTurn, playerById, realPlayers } from '../sim/state';
+import { hasPeaceOffer } from '../sim/wars';
 
 /**
  * What a bot's accepted command is reported to, and it is one function on
@@ -63,6 +74,27 @@ export interface DriveOptions {
   report?: BotReporter;
   /** Where a refusal is said out loud. Defaults to `console.warn`. */
   warn?: (message: string, detail?: unknown) => void;
+}
+
+/**
+ * The paper an audience is about: who was asked, who asked, and which paper.
+ *
+ * `DriveOptions` with the question added rather than a shape of its own, so an
+ * audience reports its command exactly the way a sitting does — the tutorial,
+ * the notice log and everything else on `onCommand` hears a bot's answer at the
+ * table in the same words it hears one at the sitting.
+ */
+export interface AudienceOptions extends DriveOptions {
+  /** The seat the paper was put to. Answered only when it is not a person. */
+  seatId: number;
+  /** The seat that put it. */
+  askerId: number;
+  /**
+   * The standing bargain to answer, by id. **Absent means the peace paper** on
+   * the war between the two, which is the one paper that has no id of its own:
+   * it rides on the war row rather than in the proposals register (`wars.ts`).
+   */
+  dealId?: number;
 }
 
 /** What one seat's turn cost, for tests and for a future profiler. */
@@ -97,6 +129,71 @@ export function driveBots(game: Game, options: DriveOptions = {}): SeatDriveRepo
     reports.push(driveSeat(game, player.id, options));
   }
   return reports;
+}
+
+/**
+ * **The audience**: a paper has just been put to a bot seat, and the bot
+ * answers it now (`docs/war-diplomacy.md` §12).
+ *
+ * `driveBots`' opposite number and the second thing in this file that dispatches
+ * a bot's command: that one plays a seat's whole turn, this one asks a seat
+ * exactly one question — *what do you say to this?* — and sends the answer. It
+ * **never ends the seat's turn** and runs no other arm; the seat's own sitting,
+ * whenever it comes, is unchanged and will simply find one fewer paper on the
+ * table.
+ *
+ * Determinism holds for the same reason a sitting's does, and it is worth
+ * saying plainly because "the bot answered while I was still playing" sounds
+ * like a client acting outside the log: the answer is a pure function of the
+ * state, and it lands in the log as the bot's own command. A replay replays it.
+ *
+ * `null` — and the paper stands exactly as it did before — for every case this
+ * is not for: **a human seat** (hot-seat, remote: nobody may answer for a
+ * person), a seat that has ended its turn or is gone, a paper that is not on
+ * the table, and a paper that was not put to this seat. Bot-to-bot papers are
+ * not answered here either; they are answered at the sitting, as they always
+ * were.
+ *
+ * The decision comes back so the sheet can print the envoy's own sentence and
+ * the reasons under it — even when the reducer refused the command, which is a
+ * bug the warning names and not something to hide from the player.
+ */
+export function answerAudience(game: Game, options: AudienceOptions): BotDecision | null {
+  const { state } = game;
+  const seat = playerById(state, options.seatId);
+  const asker = playerById(state, options.askerId);
+  if (!seat || !asker) return null;
+  if (seat.isHuman) return null;
+  if (seat.eliminated) return null;
+  if (hasEndedTurn(state, seat.id)) return null;
+
+  // **A fresh context, for one question.** A sitting is a seat's whole turn
+  // (`botSitting`), and this is not a turn: the seat is being asked something in
+  // the middle of somebody else's, so it opens its books, answers, and closes
+  // them again rather than keeping a reading that would outlive the question.
+  const ctx = valueContext(state, seat);
+  let decision: BotDecision | null = null;
+  if (options.dealId === undefined) {
+    if (!hasPeaceOffer(state, asker.id, seat.id)) return null;
+    decision = answerPeaceOffer(state, seat, asker, ctx);
+  } else {
+    const row = proposalById(state, options.dealId);
+    if (!row || row.to !== seat.id || row.by !== asker.id) return null;
+    decision = answerProposal(state, seat, row, ctx);
+  }
+  if (decision === null) return null;
+
+  const result = dispatch(game, decision.command);
+  if (result.ok) {
+    options.report?.(decision.command, result);
+    return decision;
+  }
+  const warn = options.warn ?? ((message: string, detail?: unknown) => console.warn(message, detail));
+  warn(
+    `[ai] seat ${seat.id}: the reducer refused ${decision.command.type} at the table — ${result.error}`,
+    decision.command,
+  );
+  return decision;
 }
 
 /**

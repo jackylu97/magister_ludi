@@ -2593,3 +2593,67 @@ two runs on one reading each side.
   turns. Verified by running the same test at HEAD with H12's files copied in and
   H11's held out — it passes there, so the batch that moved it is named in the
   comment.
+
+## Batch D1 as shipped — the counter (2026-09-08)
+
+The audience (`docs/war-diplomacy.md` §12) gave the bot two arms asked about
+**one** paper — `answerProposal` and `answerPeaceOffer`, the split halves of
+`answerProposals` and `peaceDecision` — and one new reading, `counterTerms`.
+
+### The counter's reading
+
+One relation, solved either way round: the bot signs when **what arrives ≥ what
+leaves × (1 + `war.counterMarkup`) + the bar**.
+
+- *what arrives* / *what leaves* are `explainPaper` from the bot's side, which
+  is the same reading that answers an ordinary bargain — coin at face, tribute
+  at the seat's own rate (`luxuryGoldBaseline` ÷ `luxuryGptBaseline`), a seam at
+  the baseline if the receiver lacks the kind, a town at `weights.city`, and,
+  new this batch, a right of way at `war.openBordersPrice`.
+- *the bar* is `owedForPeace` — `max(0, −warscore) × war.goldPerScorePoint` —
+  which is `peaceDecision`'s own arithmetic, factored out rather than restated,
+  so a paper the counter writes is a paper the answering arm signs. Outside a
+  war the bar is nought.
+- *the markup* is the margin that makes a counter a paper the seat will actually
+  sign rather than one it merely tolerates: without it a coin of drift between
+  the counter and the signing turns it down.
+
+**Which question is asked is the paper, not a flag.** Terms that ask for
+something are *"what would make this work?"* and the counter fills the **asker's**
+side; terms that ask for nothing are *"what would you give for this?"* and it
+fills the **bot's** side. The two buttons put two genuinely different papers on
+the table, so a function told which button was pressed could be told the wrong
+one.
+
+The filling order is the ruling's, and every step is capped by what
+`dealSideError` allows rather than by a rule invented in `src/ai`: coin (capped
+by the treasury) → coin a turn (capped by what that empire's books *earn*,
+`foldEmpireRates().goldPerTurn`) → a town, on a peace paper only, the asker's
+nearest the bot's own ground; and on the bot's own side a duplicate seam the
+asker lacks, never a last copy (`asksOurLastCopy`'s hard clause, read from the
+other side of the table).
+
+The tribute's cap is the one figure that is a judgement rather than a rule: an
+uncapped tribute closes every gap, which would make the town clause unreachable,
+and `explainEmpireGold` is the wrong books to cap it with — that ledger is
+connections against maintenance, and a rich empire reads nought on it.
+
+### The knobs added
+
+- `war.openBordersPrice` **60** — a right of way was priced at nought, which was
+  honest while nothing could ask for one. A term worth nothing is a term a
+  counter can neither ask for nor sell.
+- `war.counterMarkup` **0.1** — a tenth over even, both ways.
+
+Neither has been tuned against a game: both are authored figures, like
+`luxuryGoldBaseline` beside them.
+
+### Known gaps, written down rather than fixed
+
+- A counter never offers **a town of the bot's own** and never asks for one
+  outside a peace: the rules allow the first and the ruling's order does not
+  name it.
+- `counterTerms` opens a fresh `ValueContext` per question (so does
+  `answerAudience`). A sitting is a *turn*, and an audience is not one — but a
+  player pressing the two counter buttons repeatedly prices the empire's books
+  once per press.

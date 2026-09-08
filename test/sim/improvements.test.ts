@@ -2385,7 +2385,7 @@ describe('improvements in the log', () => {
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
     // 73 since batch D (2026-09-06): the buildings cut with chains; 74 since
     // batch C2's rites landed the same day.
-    expect(SCHEMA_VERSION).toBe(89);
+    expect(SCHEMA_VERSION).toBe(90);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

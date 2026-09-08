@@ -204,7 +204,7 @@ import { type BeadAward, beadMarks, beadsSince } from './beads';
 import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
-import { atWar } from './wars';
+import { atWar, warBetween } from './wars';
 import {
   type DealExecution,
   type PeaceOutcome,
@@ -216,13 +216,17 @@ import {
   answerDealError,
   declareWarAt,
   declareWarError,
+  declinePeaceAt,
+  declinePeaceError,
   dropProposal,
+  peaceIsSigned,
   proposeDealAt,
   proposeDealError,
   proposePeaceError,
   razeCityAt,
   razeCityError,
   setPeaceOfferAt,
+  settlePeacePair,
   withdrawDealError,
   withdrawPeaceError,
 } from './diplomacy';
@@ -1437,10 +1441,13 @@ export interface DeclareWarCommand extends PlayerCommand {
  * Puts a standing white-peace offer on a war (`docs/war-diplomacy.md`,
  * section 4; 9b's "empty proposal = white peace").
  *
- * It resolves nothing by itself. Turns are simultaneous, so agreement cannot be
- * a handshake inside one command — the flag stands until it is withdrawn or the
- * war ends, and `settleDiplomacy` (`turn.ts`) closes every war *both* sides have
- * signed at the end of the turn. See `diplomacy.ts` for why that is the shape.
+ * A first offer resolves nothing: the flag stands until it is withdrawn,
+ * refused (`declinePeace`) or answered. **The second signature ends the war
+ * inside this command** (§12's ruling, 2026-09-07) — the pair settles through
+ * `settlePeacePair` and the outcome comes back on `CommandResult.peaces`, so a
+ * seat that signed is at peace now rather than at the turn's end. The
+ * end-of-turn sweep stays for a pair whose flags met without a command between
+ * them; see `diplomacy.ts` for the whole of that shape.
  *
  * **The terms are optional** (schema 57). With neither `give` nor `take` this
  * is the P1 command byte for byte, and it means *sign whatever paper is on the
@@ -1462,6 +1469,21 @@ export interface ProposePeaceCommand extends PlayerCommand {
 /** Takes a standing peace offer back off the table. `proposePeace`'s mirror. */
 export interface WithdrawPeaceCommand extends PlayerCommand {
   type: 'withdrawPeace';
+  targetId: number;
+}
+
+/**
+ * **Sends the other empire's envoy home**: the seat that was asked clears their
+ * standing offer and the paper it rode in on (§12's ruling, 2026-09-07).
+ *
+ * `withdrawPeace`'s mirror across the table, and the answer a peace offer never
+ * had: before this a paper put up stood for ever, so "no" was something a
+ * player could only express by never pressing anything. Nothing else changes —
+ * the war goes on, this seat's own flag (if it has one up) stays where it is,
+ * and either empire may sue again next turn.
+ */
+export interface DeclinePeaceCommand extends PlayerCommand {
+  type: 'declinePeace';
   targetId: number;
 }
 
@@ -1596,6 +1618,7 @@ export type Command =
   | DeclareWarCommand
   | ProposePeaceCommand
   | WithdrawPeaceCommand
+  | DeclinePeaceCommand
   | AnnexCityCommand
   | RazeCityCommand
   | ProposeDealCommand
@@ -1681,9 +1704,10 @@ export type CommandResult =
       warDeclared?: WarDeclaredReport;
       /**
        * Every war that ended, and the armies each peace sent home
-       * (`PeaceOutcome`). From `endTurn` alone: peace is resolved by the
-       * `settleDiplomacy` phase, because both sides have to have signed and
-       * turns are simultaneous.
+       * (`PeaceOutcome`). Two commands produce it: **`proposePeace`**, when the
+       * signature it puts up is the second one and the pair settles inside the
+       * command (§12's ruling), and `endTurn`, whose sweep still closes a pair
+       * whose flags met without a command between them.
        *
        * `warDeclared`'s sibling and public for its reason exactly.
        */
@@ -3845,12 +3869,18 @@ function readTerms(value: unknown): DealTerms | null {
 }
 
 /**
- * Puts a standing white-peace offer on the table, or takes one back.
+ * Puts a standing peace offer on the table, or takes one back — and closes the
+ * war when the offer it just wrote is the **second signature** on it.
  *
  * One handler for two verbs, because they are one write with a sign
  * (`setPeaceOffer` in `wars.ts`) and the only difference between them is which
- * gate is asked. Neither ends a war: `settleDiplomacy` does that at the end of
- * the turn, when both sides' flags stand.
+ * gate is asked.
+ *
+ * The close is asked **after** the write and off the register rather than off
+ * the command (§12's ruling): what ends a war is that both flags stand on one
+ * paper, which is a question about the row (`peaceIsSigned`) and not about who
+ * spoke. A withdrawal can never make it true, so the reading costs nothing on
+ * that arm and is not special-cased away.
  */
 function applyPeaceOffer(
   state: GameState,
@@ -3884,6 +3914,34 @@ function applyPeaceOffer(
   if (refusal !== null) return fail(refusal);
 
   setPeaceOfferAt(state, actor.id, targetId, standing, offered);
+  const war = warBetween(state, actor.id, targetId);
+  if (war === undefined || !peaceIsSigned(war)) return ok();
+  const outcome = settlePeacePair(state, war);
+  const result = ok();
+  if (result.ok) result.peaces = [outcome];
+  return result;
+}
+
+/**
+ * Sends the other empire's envoy home. `declinePeaceError` is the whole rule.
+ *
+ * It reports nothing: what changed is that a paper is off the table, and the
+ * screen that asked for this reads the war row it is drawing anyway. A
+ * `CommandResult` field would be a second copy of a fact the state carries.
+ */
+function applyDeclinePeace(state: GameState, command: DeclinePeaceCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot talk terms`);
+  }
+  const targetId = command.targetId;
+  if (typeof targetId !== 'number' || !Number.isInteger(targetId)) {
+    return fail(`declinePeace needs an integer targetId, got ${String(targetId)}`);
+  }
+  const refusal = declinePeaceError(state, actor.id, targetId);
+  if (refusal !== null) return fail(refusal);
+  declinePeaceAt(state, actor.id, targetId);
   return ok();
 }
 
@@ -4123,12 +4181,13 @@ function orderedUnitId(command: Command): number | undefined {
     // Buying the recruitment names a bank. There is no piece to wake — the
     // offer it opens does not name anybody yet.
     case 'purchaseGreatPersonOffer':
-    // The five diplomacy verbs name an *empire* or a *town*, never a piece: a
+    // The six diplomacy verbs name an *empire* or a *town*, never a piece: a
     // declaration is not an order to a warrior, and neither is a peace offer,
-    // an annexation or a razing. Nothing on the board wakes.
+    // the refusal of one, an annexation or a razing. Nothing on the board wakes.
     case 'declareWar':
     case 'proposePeace':
     case 'withdrawPeace':
+    case 'declinePeace':
     case 'annexCity':
     case 'razeCity':
     // And neither is a bargain: the four deal verbs name an *empire* or a
@@ -4324,6 +4383,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyPeaceOffer(state, command, true);
     case 'withdrawPeace':
       return applyPeaceOffer(state, command, false);
+    case 'declinePeace':
+      return applyDeclinePeace(state, command);
     case 'annexCity':
       return applyAnnexCity(state, command);
     case 'razeCity':

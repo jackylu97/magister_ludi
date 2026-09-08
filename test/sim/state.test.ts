@@ -715,7 +715,10 @@ describe('the research queue field', () => {
     // ladders are one. A row carries a size, the tree's column prices it, and
     // `costAgeBand` and every printed base are gone — so a v88 log finishes its
     // first building on a different turn and never rejoins.
-    expect(SCHEMA_VERSION).toBe(89);
+    // 90 since batch D1 (`docs/war-diplomacy.md` §12): a peace closes on the
+    // second signature and `declinePeace` exists, so a v89 log with a peace in
+    // it ends its war a beat earlier and never rejoins.
+    expect(SCHEMA_VERSION).toBe(90);
   });
 });
 

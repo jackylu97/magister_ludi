@@ -315,10 +315,12 @@ describe('suing for peace, and signing one', () => {
     for (const row of decision!.candidates) {
       expect({ row: row.label, fold: foldTerms(row.terms) }).toEqual({ row: row.label, fold: row.score });
     }
-    // And the two flags together are what `settlePeace` closes the war on.
-    expect(applyCommand(state, decision!.command).ok).toBe(true);
-    const war = state.wars.find((row) => row.a === 0 && row.b === 1)!;
-    expect([...war.offers!].sort()).toEqual([0, 1]);
+    // And its signature is the second one, so the war closes inside that
+    // command (§12) rather than at the turn's end: there is no row left.
+    const signed = applyCommand(state, decision!.command);
+    expect(signed.ok).toBe(true);
+    expect(signed.ok && signed.peaces).toHaveLength(1);
+    expect(state.wars.find((row) => row.a === 0 && row.b === 1)).toBeUndefined();
   });
 
   it('presses on rather than signing while it is winning', () => {

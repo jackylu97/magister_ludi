@@ -20,6 +20,13 @@
  *   · **A bargain I could offer.** One 1:1 luxury swap: a kind I hold twice for
  *     a kind I hold none of.
  *
+ * **The audience** (§12, 2026-09-07) added three readings beside them, and not
+ * a fifth question: `answerProposal` and `answerPeaceOffer` are the first two
+ * arms asked about **one** paper rather than about everything this seat could
+ * say, so the client driving a bot seat can answer a player at the table
+ * (`answerAudience`, `driver.ts`); and `counterTerms` is the pure read behind
+ * *"what would make this work?"* — the same bar, filled instead of refused.
+ *
  * Three disciplines hold, and they are the same three the rest of `src/ai/`
  * keeps:
  *
@@ -63,12 +70,15 @@ import {
 import type { ValueContext } from './value';
 
 import { controlledResources, hasResource, resourceCopies } from '../sim/cities';
+import { foldEmpireRates } from '../sim/yields/empire';
 import type { Command } from '../sim/commands';
-import { type DealTerms, proposalsFor } from '../sim/deals';
+import { type DealProposal, type DealTerms, proposalsFor, termsAreEmpty } from '../sim/deals';
 import {
   answerDealError,
   bargainSeatError,
+  dealSideError,
   declareWarError,
+  declinePeaceError,
   proposeDealError,
   proposePeaceError,
 } from '../sim/diplomacy';
@@ -283,7 +293,14 @@ function explainSide(
     });
   }
   if (terms.openBorders === true) {
-    lines.push({ label: `a right of way ${what}, which this bot does not price`, value: 0 });
+    // **Priced since the audience** (§12): it read as nought while nothing could
+    // ask for one, and a term worth nothing is a term a counter can neither put
+    // on the table nor take off it. One figure both ways — what an army may walk
+    // through is the same fact read from two sides.
+    lines.push({
+      label: `a right of way ${what} — at this seat's price for passage`,
+      value: ai.war.openBordersPrice,
+    });
   }
   for (const cityId of terms.cities ?? []) {
     lines.push({ label: `a town ${what} (${cityId}) × the city weight`, value: ctx.ai.weights.city });
@@ -366,66 +383,86 @@ function answerProposals(
 ): BotDecision | null {
   for (const row of proposalsFor(state, player.id)) {
     if (row.to !== player.id) continue;
-    // From this seat's side the proposer's `give` is what arrives.
-    const read = explainPaper(state, player, row.give, row.take, ctx);
-    const paper = read.appraisal;
-    const arriving = read.taken;
-    const lastCopy = asksOurLastCopy(state, player, row.take);
-    const accepting = paper.total >= 0 && arriving > 0 && lastCopy === null;
-    const refusal = answerDealError(state, player.id, row.id, accepting);
-    // A decline is always legal for the seat that was asked, so a refusal here
-    // is only ever the acceptance's — the coin was spent, the mine was
-    // pillaged. Answered by declining, with the rules' own sentence on the row.
-    const verb: Command =
-      refusal === null && accepting
-        ? { type: 'acceptDeal', playerId: player.id, dealId: row.id }
-        : { type: 'declineDeal', playerId: player.id, dealId: row.id };
-    const them = playerById(state, row.by)?.name ?? 'them';
-    const candidates: BotCandidate[] = [
-      {
-        label: `sign the ${them}' paper`,
-        score: paper.total,
-        chosen: verb.type === 'acceptDeal',
-        terms: paper.terms,
-      },
-    ];
-    if (verb.type === 'declineDeal') {
-      candidates.push({
-        label: 'send it back',
-        score: 0,
-        chosen: true,
-        terms: [
-          {
-            label:
-              refusal !== null
-                ? `the rules refuse the signing: ${refusal}`
-                : lastCopy !== null
-                  ? `it asks for the only ${resourceDef(lastCopy).name.toLowerCase()} this empire holds`
-                  : arriving <= 0
-                    ? 'nothing on the table arrives worth anything here'
-                    : 'it costs more than it brings',
-            value: 0,
-          },
-        ],
-      });
-    }
-    return {
-      kind: 'deal',
-      command: verb,
-      subject: them,
-      summary:
-        verb.type === 'acceptDeal'
-          ? `Signs the ${them}' bargain — it brings ${round1(arriving)} coin of value against ${round1(read.given)} given.`
-          : `Sends the ${them}' bargain back — ` +
-            (refusal !== null
-              ? refusal
-              : lastCopy !== null
-                ? `it asks for the only ${resourceDef(lastCopy).name.toLowerCase()} this empire holds.`
-                : `it is worth ${round1(paper.total)} to this empire.`),
-      candidates,
-    };
+    return answerProposal(state, player, row, ctx);
   }
   return null;
+}
+
+/**
+ * **One paper, answered.** `answerProposals`' body, split out so the audience
+ * can ask about the paper a player has just put on the table without walking
+ * the seat's whole diplomacy (§12: the answer is dispatched at once, and the
+ * question is *this* bargain rather than "what would you like to say next").
+ *
+ * The two callers ask the same question at two moments — the seat's own sitting
+ * (which answers the first paper it finds) and `answerAudience` (which names
+ * one) — and both get the same decision, which is what makes an answer at the
+ * table and an answer at the sitting the same policy rather than two.
+ */
+export function answerProposal(
+  state: GameState,
+  player: Player,
+  row: DealProposal,
+  ctx: ValueContext,
+): BotDecision {
+  // From this seat's side the proposer's `give` is what arrives.
+  const read = explainPaper(state, player, row.give, row.take, ctx);
+  const paper = read.appraisal;
+  const arriving = read.taken;
+  const lastCopy = asksOurLastCopy(state, player, row.take);
+  const accepting = paper.total >= 0 && arriving > 0 && lastCopy === null;
+  const refusal = answerDealError(state, player.id, row.id, accepting);
+  // A decline is always legal for the seat that was asked, so a refusal here is
+  // only ever the acceptance's — the coin was spent, the mine was pillaged.
+  // Answered by declining, with the rules' own sentence on the row.
+  const verb: Command =
+    refusal === null && accepting
+      ? { type: 'acceptDeal', playerId: player.id, dealId: row.id }
+      : { type: 'declineDeal', playerId: player.id, dealId: row.id };
+  const them = playerById(state, row.by)?.name ?? 'them';
+  const candidates: BotCandidate[] = [
+    {
+      label: `sign the ${them}' paper`,
+      score: paper.total,
+      chosen: verb.type === 'acceptDeal',
+      terms: paper.terms,
+    },
+  ];
+  if (verb.type === 'declineDeal') {
+    candidates.push({
+      label: 'send it back',
+      score: 0,
+      chosen: true,
+      terms: [
+        {
+          label:
+            refusal !== null
+              ? `the rules refuse the signing: ${refusal}`
+              : lastCopy !== null
+                ? `it asks for the only ${resourceDef(lastCopy).name.toLowerCase()} this empire holds`
+                : arriving <= 0
+                  ? 'nothing on the table arrives worth anything here'
+                  : 'it costs more than it brings',
+          value: 0,
+        },
+      ],
+    });
+  }
+  return {
+    kind: 'deal',
+    command: verb,
+    subject: them,
+    summary:
+      verb.type === 'acceptDeal'
+        ? `Signs the ${them}' bargain — it brings ${round1(arriving)} coin of value against ${round1(read.given)} given.`
+        : `Sends the ${them}' bargain back — ` +
+          (refusal !== null
+            ? refusal
+            : lastCopy !== null
+              ? `it asks for the only ${resourceDef(lastCopy).name.toLowerCase()} this empire holds.`
+              : `it is worth ${round1(paper.total)} to this empire.`),
+    candidates,
+  };
 }
 
 // --- a war already on -------------------------------------------------------
@@ -458,8 +495,7 @@ function peaceDecision(
     const score = explainWarScore(state, player, enemy, ai);
     const theirs = hasPeaceOffer(state, enemy.id, player.id);
     const mine = hasPeaceOffer(state, player.id, enemy.id);
-    const paper = peaceTermsOn(state, player.id, enemy.id);
-    const owed = Math.max(0, -score.total) * ai.war.goldPerScorePoint;
+    const owed = owedForPeace(score, ai);
     const label = `the ${enemy.name}`;
 
     if (taken !== null) {
@@ -480,19 +516,13 @@ function peaceDecision(
     if (theirs) {
       // Their flag is up. What is on the table is *their* paper (or nothing at
       // all, which is a white peace), read from this seat's side.
-      const value =
-        paper === null
-          ? appraise([{ label: 'a white peace: nothing changes hands', value: 0 }])
-          : explainPaper(
-              state,
-              player,
-              sideOf(paper, enemy.id, player.id),
-              sideOf(paper, player.id, enemy.id),
-              ctx,
-            ).appraisal;
-      const fair = value.total >= -owed;
-      const winning = score.total > ai.war.acceptCeiling;
-      const refusal = proposePeaceError(state, player.id, enemy.id);
+      const { value, fair, winning, refusal, because } = readPeaceOffer(
+        state,
+        player,
+        enemy,
+        score,
+        ctx,
+      );
       if (fair && !winning && refusal === null) {
         // **The one row whose score is not the warscore alone**, and it is built
         // by `appraise` rather than described beside a number so the fold is the
@@ -522,17 +552,7 @@ function peaceDecision(
         label: `${label} — their offer stands, and this seat will not sign`,
         score: score.total,
         chosen: false,
-        terms: [
-          ...score.terms,
-          {
-            label: winning
-              ? `the war reads over the ${ai.war.acceptCeiling} this seat presses on at`
-              : refusal !== null
-                ? `the rules refuse it: ${refusal}`
-                : `the paper is worth ${round1(value.total)}, under the ${round1(-owed)} the score says it owes`,
-            value: 0,
-          },
-        ],
+        terms: [...score.terms, { label: because, value: 0 }],
       });
       continue;
     }
@@ -601,6 +621,148 @@ function peaceDecision(
 }
 
 /**
+ * **What the warscore says this empire owes for a peace**, in coin.
+ *
+ * One line, in one place, because three arms now read it — the sue arm, the
+ * signing arm and the counter — and a bar restated is a bar that drifts. A seat
+ * that is ahead owes nothing; a seat that is behind owes its losses priced at
+ * `goldPerScorePoint`, which is the figure it will pay to stop.
+ */
+function owedForPeace(score: Appraisal, ai: AiConfig): number {
+  return Math.max(0, -score.total) * ai.war.goldPerScorePoint;
+}
+
+/**
+ * How this seat reads the peace offer standing against it — the arithmetic
+ * behind "will it sign", in one place.
+ *
+ * Split out of `peaceDecision` for the audience (§12): the seat's own sitting
+ * asks this about every war it is in, and `answerPeaceOffer` asks it about the
+ * one paper a player has just put up, and both must be the same reading. The
+ * `score` is handed in rather than taken because the caller that walks every war
+ * has already read it and a second reading is a second chance to disagree.
+ */
+interface PeaceOfferReading {
+  /** The paper on the table, from this seat's side. A white peace is nought. */
+  value: Appraisal;
+  /** The paper is no worse than the score says this empire owes. */
+  fair: boolean;
+  /** The war reads over the ceiling this seat presses on at. */
+  winning: boolean;
+  /** The rules' own refusal of a bare signature, or `null`. */
+  refusal: string | null;
+  /** Why this seat will not sign, in its own words — the term and the sentence. */
+  because: string;
+}
+
+function readPeaceOffer(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  score: Appraisal,
+  ctx: ValueContext,
+): PeaceOfferReading {
+  const ai = ctx.ai;
+  const owed = owedForPeace(score, ai);
+  const paper = peaceTermsOn(state, player.id, enemy.id);
+  const value =
+    paper === null
+      ? appraise([{ label: 'a white peace: nothing changes hands', value: 0 }])
+      : explainPaper(
+          state,
+          player,
+          sideOf(paper, enemy.id, player.id),
+          sideOf(paper, player.id, enemy.id),
+          ctx,
+        ).appraisal;
+  const fair = value.total >= -owed;
+  const winning = score.total > ai.war.acceptCeiling;
+  const refusal = proposePeaceError(state, player.id, enemy.id);
+  return {
+    value,
+    fair,
+    winning,
+    refusal,
+    because: winning
+      ? `the war reads over the ${ai.war.acceptCeiling} this seat presses on at`
+      : refusal !== null
+        ? `the rules refuse it: ${refusal}`
+        : `the paper is worth ${round1(value.total)}, under the ${round1(-owed)} the score says it owes`,
+  };
+}
+
+/**
+ * **The answer to one peace paper**, put to this seat by that one — signed, or
+ * sent home.
+ *
+ * `answerProposal`'s twin one register over, and the arm the audience asks
+ * (§12): a peace offer is answered at the table by the client driving this seat,
+ * so the question is *this* war rather than "what would you like to say next".
+ * `null` when there is nothing to answer — no war, or no offer of theirs
+ * standing — which leaves the paper exactly where it was.
+ *
+ * The refusal is a **command** now (`declinePeace`), which is the whole of what
+ * §12 changed here: `peaceDecision` could only print "this seat will not sign"
+ * as a candidate, because declining was not a thing a seat could say. It is, and
+ * an envoy sent home is a decision the feed and the sheet can both show.
+ */
+export function answerPeaceOffer(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  ctx: ValueContext,
+): BotDecision | null {
+  if (warBetween(state, player.id, enemy.id) === undefined) return null;
+  if (!hasPeaceOffer(state, enemy.id, player.id)) return null;
+  const score = explainWarScore(state, player, enemy, ctx.ai);
+  const reading = readPeaceOffer(state, player, enemy, score, ctx);
+  const label = `the ${enemy.name}`;
+
+  if (reading.fair && !reading.winning && reading.refusal === null) {
+    // The one row whose score is not the warscore alone — `peaceDecision`'s
+    // own shape, and the fold is the computation (`decision.ts`).
+    const signing = appraise([
+      nest('the war as it stands', score),
+      { label: 'the paper, from our side', value: reading.value.total, parts: reading.value.terms },
+    ]);
+    return {
+      kind: 'war',
+      command: { type: 'proposePeace', playerId: player.id, targetId: enemy.id },
+      subject: enemy.name,
+      summary:
+        `Signs the peace the ${enemy.name} put up: the war reads ${round1(score.total)} for this empire, ` +
+        `under the ${ctx.ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
+        `${round1(reading.value.total)}.`,
+      candidates: [
+        { label: `${label} — sign what is on the table`, score: signing.total, chosen: true, terms: signing.terms },
+      ],
+    };
+  }
+
+  const refusal = declinePeaceError(state, player.id, enemy.id);
+  if (refusal !== null) {
+    // The rules will not let this seat send the envoy home either, which can
+    // only mean the board moved under the question. The paper stands, as it did
+    // before there was a verb for refusing one.
+    return null;
+  }
+  return {
+    kind: 'war',
+    command: { type: 'declinePeace', playerId: player.id, targetId: enemy.id },
+    subject: enemy.name,
+    summary: `Sends the ${enemy.name}' envoy home — ${reading.because}.`,
+    candidates: [
+      {
+        label: `${label} — send the envoy home`,
+        score: score.total,
+        chosen: true,
+        terms: [...score.terms, { label: reading.because, value: 0 }],
+      },
+    ],
+  };
+}
+
+/**
  * One side of a peace paper.
  *
  * `PeaceTerms.a`/`b` are keyed to the **war row's** two ids (`wars.ts`), whose
@@ -611,6 +773,250 @@ function peaceDecision(
  */
 function sideOf(paper: { a: DealTerms; b: DealTerms }, whose: number, other: number): DealTerms {
   return whose < other ? paper.a : paper.b;
+}
+
+// --- the counter: what would make this work ---------------------------------
+
+/**
+ * A counter-offer, written from the **asker's** side exactly as a
+ * `DealProposal` is: `give` is what the empire that asked hands over, `take`
+ * what it asks for. So the sheet writes it straight into the draft the player
+ * was already holding, and nothing has to be turned around on the way.
+ */
+export interface CounterOffer {
+  give: DealTerms;
+  take: DealTerms;
+  /** The countered paper, read from the **bot's** side. Its own reasons. */
+  appraisal: Appraisal;
+}
+
+/**
+ * The one sentence a seat says instead of countering, or `null` when it will
+ * treat.
+ *
+ * The ruling's own clause (§12): *a war the bot is winning has no counter*.
+ * It is its own reading rather than a field on `CounterOffer` because a refusal
+ * has no terms to carry — there is no paper — and the sheet needs the sentence
+ * whichever of the two questions was asked.
+ */
+export function counterRefusal(
+  state: GameState,
+  botSeat: number,
+  askerSeat: number,
+  ctx: ValueContext,
+): string | null {
+  const bot = playerById(state, botSeat);
+  const asker = playerById(state, askerSeat);
+  if (!bot || !asker) return null;
+  if (warBetween(state, botSeat, askerSeat) === undefined) return null;
+  const score = explainWarScore(state, bot, asker, ctx.ai);
+  if (score.total <= ctx.ai.war.acceptCeiling) return null;
+  return `The ${bot.name} will not treat while the war goes their way.`;
+}
+
+/**
+ * **What this seat would sign** — the paper on the table, filled until it
+ * clears the bot's own bar, or `null` when nothing on the board would fill it.
+ *
+ * The ruling's two questions (§12), and they are told apart by the paper rather
+ * than by a flag: a paper that asks for *something* is the player saying "what
+ * would make this work", so the counter fills the **asker's** side until the
+ * reading clears; a paper that asks for **nothing** is "what would you give for
+ * this", so the counter fills the **bot's** side down to even. That is not a
+ * trick — the two buttons put two genuinely different papers on the table, and
+ * a function that had to be told which button was pressed would be a function
+ * that could be told the wrong one.
+ *
+ * The bar is the bot's own and is never restated here: `explainPaper` from the
+ * bot's side, against `owedForPeace` in a war (`peaceDecision`'s arithmetic,
+ * shared), plus `war.counterMarkup` over even so a counter is a paper the seat
+ * will actually sign rather than one it merely tolerates. One relation, solved
+ * either way round: **what arrives ≥ what leaves × (1 + markup) + the bar**.
+ *
+ * The filling order is the ruling's, and every step is capped by what
+ * `dealSideError` would allow rather than by a rule invented here:
+ *
+ *   · **coin from the treasury**, which is what a lump is checked against;
+ *   · **coin a turn**, capped at what that empire's books actually earn
+ *     (`empireGold`) — a tribute nobody can pay is not a term, and an uncapped
+ *     one would close every gap and the clause below would never be reached;
+ *   · **a town** — a peace paper only, since that is the one bargain a town
+ *     changes hands in (9b) — the asker's nearest the bot's own ground, refused
+ *     by `dealSideError` if it is a seat of government;
+ *   · and on the bot's own side, **a duplicate seam the asker lacks** — never a
+ *     last copy, which is `asksOurLastCopy`'s hard clause read from the other
+ *     direction.
+ *
+ * Pure: it reads the board and returns terms. Nothing is proposed here — the
+ * sheet writes the counter into the player's draft, and the player sends it.
+ */
+export function counterTerms(
+  state: GameState,
+  botSeat: number,
+  askerSeat: number,
+  give: DealTerms,
+  take: DealTerms,
+  ctx: ValueContext,
+): CounterOffer | null {
+  const bot = playerById(state, botSeat);
+  const asker = playerById(state, askerSeat);
+  if (!bot || !asker) return null;
+  const ai = ctx.ai;
+  const peace = warBetween(state, botSeat, askerSeat) !== undefined;
+  const score = peace ? explainWarScore(state, bot, asker, ai) : null;
+  // The one seat that has no counter to give: a war it is winning.
+  if (score !== null && score.total > ai.war.acceptCeiling) return null;
+  const bar = score === null ? 0 : -owedForPeace(score, ai);
+  const markup = 1 + Math.max(0, ai.war.counterMarkup);
+  const rate = ai.war.luxuryGoldBaseline / Math.max(1, ai.war.luxuryGptBaseline);
+
+  const counter: CounterOffer = {
+    give: copyTerms(give),
+    take: copyTerms(take),
+    appraisal: appraise([]),
+  };
+  const askingForNothing = termsAreEmpty(counter.take) && !termsAreEmpty(counter.give);
+  const read = explainPaper(state, bot, counter.give, counter.take, ctx);
+
+  if (askingForNothing) {
+    // **What would you give for this?** — the bot's own side, down to even.
+    let budget = (read.taken - bar) / markup - read.given;
+    const coin = Math.min(bot.gold, Math.floor(budget));
+    if (coin > 0) {
+      counter.take.gold = coin;
+      budget -= coin;
+    }
+    const income = Math.max(0, Math.floor(goldRate(state, botSeat)));
+    const tribute = Math.min(income, Math.floor(budget / rate));
+    if (tribute > 0) {
+      counter.take.goldPerTurn = tribute;
+      budget -= tribute * rate;
+    }
+    for (const id of controlledResources(state, botSeat, 'luxury')) {
+      if (ai.war.luxuryGoldBaseline > budget) break;
+      // Never a last copy — `asksOurLastCopy` from the other side of the table.
+      if (resourceCopies(state, botSeat, id) < 2) continue;
+      if (hasResource(state, askerSeat, id)) continue;
+      counter.take.luxuries = [...(counter.take.luxuries ?? []), id];
+      budget -= ai.war.luxuryGoldBaseline;
+    }
+    if (termsAreEmpty(counter.take)) return null;
+    if (dealSideError(state, botSeat, askerSeat, counter.take, peace) !== null) return null;
+  } else {
+    // **What would make this work?** — the asker's side, up to the bar.
+    let need = read.given * markup + bar - read.taken;
+    const room = Math.max(0, asker.gold - (counter.give.gold ?? 0));
+    const coin = Math.min(room, Math.max(0, Math.ceil(need)));
+    if (coin > 0) {
+      counter.give.gold = (counter.give.gold ?? 0) + coin;
+      need -= coin;
+    }
+    if (need > 0) {
+      const income = Math.max(0, Math.floor(goldRate(state, askerSeat)));
+      const room2 = Math.max(0, income - (counter.give.goldPerTurn ?? 0));
+      const tribute = Math.min(room2, Math.ceil(need / rate));
+      if (tribute > 0) {
+        counter.give.goldPerTurn = (counter.give.goldPerTurn ?? 0) + tribute;
+        need -= tribute * rate;
+      }
+    }
+    if (need > 0 && peace) {
+      const town = nearestTownTo(state, askerSeat, botSeat, counter.give.cities ?? []);
+      if (town !== null) {
+        const towns = [...(counter.give.cities ?? []), town.id];
+        const probe: DealTerms = { ...counter.give, cities: towns };
+        if (dealSideError(state, askerSeat, botSeat, probe, true) === null) {
+          counter.give.cities = towns;
+          need -= ai.weights.city;
+        }
+      }
+    }
+    if (need > 0) return null;
+    if (dealSideError(state, askerSeat, botSeat, counter.give, peace) !== null) return null;
+  }
+
+  const settled = explainPaper(state, bot, counter.give, counter.take, ctx);
+  counter.appraisal = appraise([
+    nest('the counter, from our side', settled.appraisal),
+    { label: `the bar this seat signs at is ${round1(bar)}`, value: 0 },
+    { label: `and a counter asks ${ai.war.counterMarkup} over even`, value: 0 },
+  ]);
+  return counter;
+}
+
+/**
+ * What an empire actually earns in a turn — the cap on a tribute.
+ *
+ * The simulation's own books (`foldEmpireRates`), which is the same fold the
+ * bot's solvency reads and the top bar prints, rather than `explainEmpireGold`:
+ * that one is the *ledger of standing costs* (connections against maintenance)
+ * and a rich empire can read nought on it. A tribute nobody can pay is not a
+ * term, and an uncapped one would close every gap the counter is asked to fill
+ * — which would make the town clause below unreachable.
+ */
+function goldRate(state: GameState, playerId: number): number {
+  return foldEmpireRates(state, playerId).goldPerTurn ?? 0;
+}
+
+/**
+ * A half of a paper, copied — and **presence is the state** on the way, exactly
+ * as it is in the register: a zero is left out rather than written, so a counter
+ * that adds nothing to a line serialises as the paper it was handed.
+ */
+function copyTerms(terms: DealTerms): DealTerms {
+  const copy: DealTerms = {};
+  if ((terms.gold ?? 0) > 0) copy.gold = terms.gold;
+  if ((terms.goldPerTurn ?? 0) > 0) copy.goldPerTurn = terms.goldPerTurn;
+  if ((terms.luxuries ?? []).length > 0) copy.luxuries = [...terms.luxuries!];
+  if (terms.openBorders === true) copy.openBorders = true;
+  if ((terms.cities ?? []).length > 0) copy.cities = [...terms.cities!];
+  return copy;
+}
+
+/**
+ * The town of `ownerId`'s nearest `nearId`'s own ground, or `null`.
+ *
+ * "Nearest the bot's ground" is the ruling's phrase and this is it read plainly:
+ * the distance is to that empire's **towns**, falling back to its pieces when it
+ * has none left standing — which is the case a peace paper naming a town is most
+ * likely to arise in. Towns are walked in `state.cities` order and only a
+ * *strictly* nearer one wins, so a tie is settled by the register's own order
+ * and the same board always names the same town.
+ */
+function nearestTownTo(
+  state: GameState,
+  ownerId: number,
+  nearId: number,
+  exclude: readonly number[],
+): City | null {
+  const anchors: { col: number; row: number }[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId === nearId) anchors.push({ col: city.col, row: city.row });
+  }
+  if (anchors.length === 0) {
+    for (const unit of state.units) {
+      if (unit.ownerId === nearId) anchors.push({ col: unit.col, row: unit.row });
+    }
+  }
+  if (anchors.length === 0) return null;
+  let best: { city: City; distance: number } | null = null;
+  for (const city of state.cities) {
+    if (city.ownerId !== ownerId) continue;
+    if (exclude.includes(city.id)) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    const here = tileHex(tile);
+    let distance: number | null = null;
+    for (const anchor of anchors) {
+      const from = getTileAt(state.map, anchor.col, anchor.row);
+      if (!from) continue;
+      const step = wrappedDistance(state.map, here, tileHex(from));
+      if (distance === null || step < distance) distance = step;
+    }
+    if (distance === null) continue;
+    if (best === null || distance < best.distance) best = { city, distance };
+  }
+  return best === null ? null : best.city;
 }
 
 // --- a war this seat could start --------------------------------------------

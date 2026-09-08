@@ -10764,6 +10764,14 @@ body:has(.city-mode:not([hidden])) #hud-context {
   background: var(--parchment);
 }
 
+/* What the empire across the table just said (`docs/war-diplomacy.md` §12).
+   The draft's own ground, so an answer reads as a thing in hand rather than as
+   a standing paper; the solid edge arrives with `is-live` when they agreed. */
+.diplo-paper.is-envoy {
+  background: var(--parchment);
+  border-left-style: solid;
+}
+
 .diplo-paper-head {
   margin: 0;
   font-family: var(--face-name);

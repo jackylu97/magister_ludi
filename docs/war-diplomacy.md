@@ -247,6 +247,48 @@ weight, a right of way at zero; the warscore prices a peace.
 - Multiplayer: the client driving the bot seat answers (the host under
   remote play; netcode later). Nothing about a human seat changes.
 
+### As built (batch D1, 2026-09-08, schema 90)
+
+- **`declinePeace {playerId, targetId}`** — the asked seat clears the *other*
+  seat's standing offer and the paper it rode in on. Gate `declinePeaceError`
+  (a war, and an offer of theirs to refuse); writer `refusePeaceOffer`
+  (`wars.ts`, beside `setPeaceOffer`); no `CommandResult` field — what changed
+  is a row the screen is already drawing.
+- **A peace closes on the second signature**, inside that command:
+  `settlePeacePair(state, war)` is `settlePeace`'s body for one row (terms →
+  close → truce → row → expulsions, unchanged), called from `applyPeaceOffer`
+  when `peaceIsSigned` reads true after the write, and reported on
+  `CommandResult.peaces` so the toast and the envoy card can both say the war is
+  over. The end-of-turn phase keeps the sweep for a pair whose flags met
+  **without a command between them** — an older save, or a fixture using the
+  register's own writers. Two human seats signing through commands now close the
+  war on the second command like anybody else, which is the ruling read plainly.
+- **`counterTerms`** (`src/ai/diplomacy.ts`, pure) — the reading and its filling
+  order are `docs/bot-priorities.md`'s D1 section. `counterRefusal` is the
+  separate one-sentence answer for the war a seat is winning, because a refusal
+  has no terms to carry.
+- **`answerAudience(game, {seatId, askerId, dealId?})`** (`src/ai/driver.ts`) —
+  asks `answerProposal` or `answerPeaceOffer` about that one paper and
+  dispatches the answer through the driver's funnel. Never ends the seat's turn,
+  never runs another arm; `null` for a human seat, a seat that has ended its
+  turn, or a paper that is not on the table.
+- **The sheet**: *Propose* / *Propose peace* dispatch and then ask
+  `askAudience`, and the envoy's sentence draws in the middle column with the
+  bot's own reasons under it; *What would make this work?* and *What would you
+  give for this?* write the counter into the draft, where it stays editable.
+  Both are options handed in by `main.ts` — the sheet never imports the AI.
+  `envoyLines` / `counterNote` / `counterLines` are the pure half, tested
+  without jsdom. A peace paper somebody put to *you* also carries **Send them
+  home** (`controls.declinePeaceFrom` → `declinePeace`), greyed with
+  `declinePeaceError`'s own sentence: the command is the bot's answer and the
+  player's alike, and a verb with no human surface is a verb half built.
+- **The envoy card waits.** `onTurnHandedOver`'s moment is a *splash*
+  (`announceTech`/`announceTurn`), not a `modalShell` sheet, and a card there
+  would have to queue against the turn card and the bead news; that is a batch
+  of its own rather than a contained addition. A bot's paper keeps its place in
+  the standing papers, and the roster's own note ("A paper waits on the table.")
+  still points at it.
+
 ## 13. The campaign — a war declared with a force, and fought (2026-09-07)
 
 The user: *"right now the two of the ai have declared war on me, and they're

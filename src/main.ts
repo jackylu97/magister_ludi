@@ -42,7 +42,10 @@ import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
 import { type Game, createGame, dispatch } from './sim/game';
-import { driveBots } from './ai/driver';
+import { answerAudience, driveBots } from './ai/driver';
+import { valueContext } from './ai/bot';
+import { counterRefusal, counterTerms } from './ai/diplomacy';
+import type { BotDecision } from './ai/decision';
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './ai/stepper';
 import {
   type GameConfig,
@@ -723,6 +726,22 @@ let religion: ReligionScreen | null = null;
 let trade: TradeScreen | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
+
+/**
+ * **The reasons an envoy gives**, off the decision it made: the labels of the
+ * candidate the bot actually chose.
+ *
+ * A `BotDecision` carries every candidate it weighed, and the spectate feed
+ * wants all of them; a player standing at the table wants the one that
+ * happened, in the bot's own words. Nothing is rewritten here — the labels are
+ * the arithmetic (`decision.ts`), which is why the sheet can print them and be
+ * sure they are true.
+ */
+function chosenReasons(decision: BotDecision): string[] {
+  const chosen = decision.candidates.find((candidate) => candidate.chosen);
+  if (!chosen) return [];
+  return chosen.terms.map((term) => term.label);
+}
 /* The Reliquary and the spend ceremony, held here for `religion`'s reason: both
    are built in `boot` off a seat, and `closePopovers` and `showLanding` are
    written before there is one. The ceremony is not a screen the player opens —
@@ -3932,9 +3951,61 @@ async function boot(initial: Game | null): Promise<void> {
       controls.answerDealOf(dealId, accept);
       controls.refresh();
     },
+    declinePeace: (targetId) => {
+      controls.declinePeaceFrom(targetId);
+      controls.refresh();
+    },
     withdrawDeal: (dealId) => {
       controls.withdrawDealOf(dealId);
       controls.refresh();
+    },
+    /**
+     * **The audience** (`docs/war-diplomacy.md` §12): the paper just sent is put
+     * to the empire it was sent to, and the answer is that empire's own command,
+     * dispatched through the driver's funnel exactly as a bot's order at its own
+     * sitting is (`answerAudience`).
+     *
+     * This is the seam the ruling asks for, and it is here rather than in the
+     * sheet for the reason every other line in this block is: the screen never
+     * imports the AI, so what crosses is a sentence and its reasons. A human
+     * seat across the table answers `null` and the paper stands, which is what
+     * it has always done.
+     */
+    askAudience: (targetId, dealId) => {
+      const decision = answerAudience(game, {
+        seatId: targetId,
+        askerId: controls.localPlayerId(),
+        ...(dealId === undefined ? {} : { dealId }),
+        report: (command, result) => controls.reportCommand(command, result),
+      });
+      if (decision === null) return null;
+      controls.refresh();
+      return {
+        accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
+        sentence: decision.summary,
+        reasons: chosenReasons(decision),
+      };
+    },
+    /**
+     * *"What would make this work?"* and its mirror — a pure read of the empire
+     * across the table (`counterTerms`), against that seat's own tuning sheet.
+     *
+     * Nothing is dispatched and nothing is logged: the terms go back to the
+     * sheet, which writes them into the player's draft. `counterRefusal` is the
+     * one sentence a seat says instead of countering, and it is asked separately
+     * because a refusal has no terms to carry.
+     */
+    askCounter: (targetId, give, take) => {
+      const seat = playerById(game.state, targetId);
+      if (!seat || seat.isHuman) return null;
+      const ctx = valueContext(game.state, seat);
+      const asker = controls.localPlayerId();
+      const counter = counterTerms(game.state, targetId, asker, give, take, ctx);
+      return {
+        terms: counter === null ? null : { give: counter.give, take: counter.take },
+        reasons: counter === null ? [] : counter.appraisal.terms.map((term) => term.label),
+        refusal: counterRefusal(game.state, targetId, asker, ctx),
+      };
     },
     askConfirm: (request, run) => confirmCard.ask(request, run),
     onOpen: () => {

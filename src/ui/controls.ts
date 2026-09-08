@@ -2223,6 +2223,12 @@ export interface GameControls {
   proposeDealWith(targetId: number, give: DealTerms, take: DealTerms): void;
   answerDealOf(dealId: number, accept: boolean): void;
   withdrawDealOf(dealId: number): void;
+  /**
+   * Sends `declinePeace`: the other empire's standing offer comes off the table
+   * (`docs/war-diplomacy.md` §12). `offerPeaceTo`'s mirror across the table —
+   * that one writes and withdraws *this* seat's flag.
+   */
+  declinePeaceFrom(targetId: number): void;
   /** "2 of 3 routes" for the local seat, for the sheet and the city panel. */
   routeSlotsLine(): string;
 
@@ -3776,6 +3782,31 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // ceded town moves a flag — and the layers that draw them key off the
     // registers.
     renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
+   * Sends the other empire's envoy home: their peace offer, and the paper it
+   * rode in on, come off the table.
+   *
+   * `declinePeaceError` is the whole rule and the sheet has already greyed the
+   * button with the same sentence, so a refusal here means the board changed
+   * under it. Nothing about the war itself moves, which is why there is no
+   * `renderer.invalidate()`: the rims are the war's, and the war is still on.
+   */
+  function declinePeaceFrom(targetId: number): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({ type: 'declinePeace', playerId: localPlayerId, targetId });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    const them = playerById(getGame().state, targetId)?.name ?? 'them';
+    announce(`You have sent the ${them}' envoy home.`);
     onUpdate(selectedUnit(), renderer.getHover());
   }
 
@@ -7222,6 +7253,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     proposeDealWith,
     answerDealOf,
     withdrawDealOf,
+    declinePeaceFrom,
     setAutoResendOf,
     cancelRouteOf,
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),

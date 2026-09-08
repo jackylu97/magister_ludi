@@ -328,6 +328,37 @@ export function setPeaceOffer(
 }
 
 /**
+ * **Sends the envoy home**: the seat that was asked clears the *other* seat's
+ * standing offer, and the paper it rode in on.
+ *
+ * `setPeaceOffer`'s mirror across the table rather than a second implementation
+ * of it: a withdrawal is a seat taking back its own flag, and this is a seat
+ * refusing somebody else's — the same two fields, written from the other side.
+ * It is a verb of its own because the reducer needs a gate with its own
+ * sentence (`declinePeaceError`) and because "I refuse" and "I take mine back"
+ * are two different things a player may want to do about one war.
+ *
+ * The **paper goes with the flag** when the paper was the asker's, for
+ * `setPeaceOffer`'s stated reason: a refused bargain is not a white peace still
+ * on the table, it is nothing on the table. A paper this seat wrote itself
+ * stays, because refusing their signature is not withdrawing one's own offer.
+ *
+ * Returns true when something actually changed, so the gate and the writer
+ * cannot disagree about what "there is an offer standing" means.
+ */
+export function refusePeaceOffer(state: GameState, askedId: number, askerId: number): boolean {
+  const war = warBetween(state, askedId, askerId);
+  if (!war) return false;
+  const held = war.offers ?? [];
+  if (!held.includes(askerId)) return false;
+  if (war.terms?.by === askerId) delete war.terms;
+  const next = held.filter((id) => id !== askerId);
+  if (next.length === 0) delete war.offers;
+  else war.offers = next;
+  return true;
+}
+
+/**
  * Sweeps out truces that have run out. A **broom, not a clock**
  * (`pruneTimedEffects`' twin — see the module docblock): every reader already
  * compares an absolute turn, so a spent row is inert and deleting it changes no

@@ -343,8 +343,26 @@ import {
  *
  * A v88 log does not replay. Every completion lands on a different turn and the
  * first one to move takes the rest of the game with it.
+ *
+ * v90: **the audience** (batch D1, `docs/war-diplomacy.md` §12). A paper put to
+ * an empire is answered while the player is still standing at the table: the
+ * client driving a bot seat asks that seat's answer arm at once and dispatches
+ * the bot's own command (`answerAudience`, `src/ai/driver.ts`), so an offer is
+ * signed or sent back in the same breath it was made. Two things move in the
+ * rules to allow it — a new command **`declinePeace`**, which sends the other
+ * seat's envoy home (before this a peace offer stood for ever, and "no" was not
+ * a thing a seat could say), and a peace that **closes on the second
+ * signature**, inside that command, rather than at the turn's end. Civ's rule,
+ * and the one an audience needs: a seat that signed is at peace now. The
+ * end-of-turn phase stays as a sweep for a pair whose flags met without a
+ * command between them.
+ *
+ * A v89 log replays identically only in a game with no peace in it. Where there
+ * is one the war ends a beat earlier — inside the signing command rather than in
+ * that turn's resolution — and the expulsions, the ceded towns and everything
+ * the rest of that turn was priced against move with it.
  */
-export const SCHEMA_VERSION = 89;
+export const SCHEMA_VERSION = 90;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

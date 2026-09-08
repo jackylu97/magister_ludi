@@ -190,15 +190,19 @@ describe('a war from the declaration to the truce', () => {
     ).toBe(true);
     expect(theirs.puppet).toBeUndefined();
 
-    // --- both sides sue, and the resolution ends it ---
+    // --- both sides sue, and the second signature ends it (§12) ---
     applyCommand(state, { type: 'proposePeace', playerId: 0, targetId: 1 } as Command);
-    applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 } as Command);
     const turnOfPeace = state.turn;
-    const report = runEndOfTurn(state);
-    expect(report.peaces).toHaveLength(1);
-    expect(report.peaces[0]!.peace.truceUntilTurn).toBe(turnOfPeace + WAR.truceTurns);
+    const signed = applyCommand(state, { type: 'proposePeace', playerId: 1, targetId: 0 } as Command);
+    expect(signed.ok && signed.peaces).toHaveLength(1);
+    expect(signed.ok && signed.peaces?.[0]!.peace.truceUntilTurn).toBe(
+      turnOfPeace + WAR.truceTurns,
+    );
     expect(atWar(state, 0, 1)).toBe(false);
     expect(truceTurnsLeft(state, 0, 1)).toBe(WAR.truceTurns);
+    // The resolution has nothing left to close, and runs anyway: the columns
+    // below were walked home by the signature, not by the phase.
+    expect(runEndOfTurn(state).peaces).toEqual([]);
 
     // --- and nobody's army is left standing in anybody's fields ---
     for (const unit of state.units) {

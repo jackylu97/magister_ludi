@@ -74,6 +74,7 @@ import {
   answerDealError,
   bargainSeatError,
   declareWarError,
+  declinePeaceError,
   diplomaticSeats,
   hasMetSeat,
   openBordersError,
@@ -260,15 +261,19 @@ export function peaceButtonLabel(row: DiplomacyRow): string {
  * The line under a war row that says what the offers on it add up to.
  *
  * The whole of the peace mechanism said in a player's own terms: an offer is a
- * standing flag, nothing happens until both stand, and the moment they do the
- * turn's resolution ends the war. It is the one place the screen has to explain
- * a rule rather than report a fact, so it is written once, here, and tested.
+ * standing flag, and the **second signature ends the war** there and then
+ * (§12). It is the one place the screen has to explain a rule rather than
+ * report a fact, so it is written once, here, and tested.
+ *
+ * The first line is deliberately kept even though two flags standing on a live
+ * war is now something only an older save can show: a sentence that would be
+ * wrong about such a save is worse than one that is rarely drawn.
  */
 export function offerSentence(row: DiplomacyRow): string | null {
   if (row.relation !== 'war') return null;
-  if (row.weOffered && row.theyOffered) return 'Both sides have offered — the war ends this turn.';
+  if (row.weOffered && row.theyOffered) return 'Both sides have signed — the war ends this turn.';
   if (row.theyOffered) return 'They have offered peace.';
-  if (row.weOffered) return 'Your offer stands. The war ends when they answer it.';
+  if (row.weOffered) return 'Your offer stands. The war ends the moment they sign it.';
   return null;
 }
 
@@ -366,6 +371,12 @@ export interface DealPanelModel {
     give: string[];
     /** What this seat receives. */
     take: string[];
+    /**
+     * Why their envoy cannot be sent home, or `null` when he can
+     * (`declinePeaceError`). Always a sentence about *their* offer: your own
+     * paper is taken back with the peace button's Withdraw face instead.
+     */
+    declineError: string | null;
   } | null;
   /** Why nothing may be proposed at all right now, or `null`. */
   blocked: string | null;
@@ -434,6 +445,7 @@ export function dealPanel(state: GameState, seat: number, targetId: number): Dea
             heading: standing.by === seat ? `You offer the ${them}` : `The ${them} offer you`,
             give: termLines(state, sideOfPeace(standing, seat, targetId)),
             take: termLines(state, sideOfPeace(standing, targetId, seat)),
+            declineError: declinePeaceError(state, seat, targetId),
           },
     // The one sentence the panel says about itself: whether these two may
     // bargain at all. `bargainSeatError` is the seat half of the reducer's own
@@ -567,6 +579,89 @@ export function dealFootSentence(): string {
   );
 }
 
+// --- the audience -----------------------------------------------------------
+
+/**
+ * **What the envoy said**, as this sheet prints it.
+ *
+ * The interface's own shape rather than the bot's `BotDecision`, and that is
+ * this file's standing bargain read one system further: the sheet never imports
+ * the AI, so `main.ts` asks `answerAudience` and hands the answer down as
+ * plain words. What arrives here is a sentence and its reasons — both of them
+ * the bot's own, never rewritten — and one flag, because "they signed" and
+ * "they sent it back" are drawn differently and a screen that had to parse a
+ * sentence to tell them apart would eventually parse it wrong.
+ */
+export interface EnvoyAnswer {
+  /** True when the answer was yes: the bargain is signed, or the peace is. */
+  accepted: boolean;
+  /** The envoy's sentence — the bot's own summary of what it decided. */
+  sentence: string;
+  /** The reasons under it, one plain line each. The bot's own terms. */
+  reasons: string[];
+}
+
+/**
+ * **What this empire would sign**, as the two counter questions bring it back.
+ *
+ * `terms` is written from *your* side, exactly as the draft is (`DealDraft`),
+ * so the sheet writes it straight in and the player may edit it before sending
+ * it. `refusal` is the seat's own sentence when it will not treat at all, which
+ * is a different answer from "there is no paper that would do it" and is said
+ * differently (`counterNote`).
+ */
+export interface CounterAnswer {
+  terms: { give: DealTerms; take: DealTerms } | null;
+  /** The bot's reasons for the counter, one plain line each. */
+  reasons: string[];
+  /** The seat's own sentence when it refuses to treat, or `null`. */
+  refusal: string | null;
+}
+
+/** Which of the two questions was put to them. See `counterNote`. */
+export type CounterQuestion = 'work' | 'give';
+
+/**
+ * The sentence under a counter that brought nothing back.
+ *
+ * Two answers a player must not confuse: an empire that **will not treat**
+ * (§12's winning-war clause) has said something about the war, and an empire
+ * that brought no terms has said something about the table. The seat's own
+ * words win when it has any, because a sentence out of the simulation is always
+ * better than one written here.
+ */
+export function counterNote(answer: CounterAnswer, question: CounterQuestion): string | null {
+  if (answer.refusal !== null) return answer.refusal;
+  if (answer.terms !== null) return null;
+  return question === 'work'
+    ? 'Nothing you hold would make this work.'
+    : 'There is nothing they would give for this.';
+}
+
+/**
+ * The lines the middle column draws under a counter: what changed on the paper,
+ * in the seat's own terms.
+ *
+ * The terms come back as the bot's arithmetic and are printed as they are —
+ * this is the one place a player can see *why* the number moved, and a screen
+ * that summarised it would be a screen making the bot's argument for it.
+ */
+export function counterLines(answer: CounterAnswer, question: CounterQuestion): string[] {
+  const note = counterNote(answer, question);
+  if (note !== null) return [note];
+  return answer.reasons;
+}
+
+/**
+ * The envoy's sentence and the reasons under it, in the order they are drawn.
+ *
+ * One function so the middle column and any later chronicle line cannot drift
+ * about what the answer was. Nothing is added: the sheet says what the bot said.
+ */
+export function envoyLines(answer: EnvoyAnswer): string[] {
+  return [answer.sentence, ...answer.reasons];
+}
+
 /** The confirm card a declaration raises. See the module docblock. */
 export function declareConfirm(name: string): ConfirmRequest {
   return {
@@ -605,6 +700,37 @@ export interface DiplomacyScreenOptions {
   proposeDeal: (targetId: number, give: DealTerms, take: DealTerms) => void;
   /** Sends `acceptDeal` or `declineDeal` — `accept` says which. */
   answerDeal: (dealId: number, accept: boolean) => void;
+  /**
+   * Sends `declinePeace`: their envoy goes home, and the paper with him.
+   *
+   * `offerPeace`'s third face rather than a fourth argument to it, because it
+   * is a different sentence about a different flag — that one writes and takes
+   * back *your* offer, this one refuses *theirs*.
+   */
+  declinePeace: (targetId: number) => void;
+  /**
+   * **The audience** (`docs/war-diplomacy.md` §12): the paper just sent is put
+   * to the empire it was sent to, and their answer comes back at once.
+   *
+   * `null` when nobody answered — a human seat across the table, a paper that
+   * is no longer there — and then the paper simply stands, which is what it has
+   * always done. Handed in rather than reached for, exactly as `askConfirm` is:
+   * the answer is the bot's and this file has never heard of the bot.
+   *
+   * `dealId` names a standing bargain; absent means the peace paper, which has
+   * no id of its own (it rides on the war row).
+   */
+  askAudience?: (targetId: number, dealId?: number) => EnvoyAnswer | null;
+  /**
+   * *"What would make this work?"* and its mirror — a **pure read**, and
+   * nothing is sent: the terms come back and are written into the draft, where
+   * the player may edit them before proposing.
+   *
+   * The question is the paper (see `counterTerms`): terms that ask for
+   * something are "what would make this work", and terms that ask for nothing
+   * are "what would you give for this".
+   */
+  askCounter?: (targetId: number, give: DealTerms, take: DealTerms) => CounterAnswer | null;
   /** Sends `withdrawDeal`. */
   withdrawDeal: (dealId: number) => void;
   /** Raises the interface's own confirm card. See `confirmCard.ts`. */
@@ -664,6 +790,20 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    */
   let selectedId: number | null = null;
 
+  /**
+   * **The last thing the empire across the table said**, and which empire said
+   * it — the audience's whole state.
+   *
+   * Per opening, and one at a time: an envoy's answer is about the paper that
+   * was just sent, so a second paper replaces it and a different empire's table
+   * does not show it at all. It is not a draft — nothing here outlives the
+   * sheet, because a sentence about a board that has since moved is a sentence
+   * that has quietly become false.
+   */
+  let envoy: { seatId: number; answer: EnvoyAnswer } | null = null;
+  /** The counter last brought back, and which question brought it. */
+  let counter: { seatId: number; question: CounterQuestion; answer: CounterAnswer } | null = null;
+
   function draftFor(playerId: number): DealDraft {
     let draft = drafts.get(playerId);
     if (!draft) {
@@ -722,6 +862,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     card.addEventListener('click', () => {
       selectedId = row.playerId;
+      // What one empire said is about one table: choosing another empire's puts
+      // the last answer away rather than leaving it to be found again later.
+      envoy = null;
+      counter = null;
       draw();
     });
     return card;
@@ -824,6 +968,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         : 'Take your offer back off the table';
       peace.addEventListener('click', () => {
         options.offerPeace(row.playerId, standing);
+        // A peace put up is a paper like any other, and it is answered at once
+        // (§12). Taking one back is not a question, so nobody is asked.
+        if (standing) askAudienceFor(row.playerId, true);
         draw();
       });
     }
@@ -1005,10 +1152,17 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         else options.proposeDeal(row.playerId, draft.give, draft.take);
         draft.give = {};
         draft.take = {};
+        // **The answer, at once** (§12). The paper has just been logged, so the
+        // empire it was put to is asked before anything else happens — which is
+        // the whole of the audience: a player who proposes gets an answer while
+        // they are still standing at the table.
+        askAudienceFor(row.playerId, model.peace);
         draw();
       });
     }
     middle.append(send);
+
+    middle.append(drawCounterVerbs(model, draft, row));
 
     // Clearing is the interface's own verb and the only one on this sheet that
     // is: the draft is not a command and nothing in the simulation has heard of
@@ -1023,17 +1177,160 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       middle.append(clear);
     }
 
+    if (envoy !== null && envoy.seatId === row.playerId) {
+      const card = element(
+        'article',
+        `diplo-paper is-envoy${envoy.answer.accepted ? ' is-live' : ''}`,
+      );
+      card.append(
+        element(
+          'p',
+          'diplo-paper-head',
+          envoy.answer.accepted ? `The ${row.name} agree` : `The ${row.name} send it back`,
+        ),
+      );
+      for (const line of envoyLines(envoy.answer)) card.append(element('p', 'hint', line));
+      middle.append(card);
+    }
+
+    if (counter !== null && counter.seatId === row.playerId) {
+      const card = element('article', 'diplo-paper is-envoy');
+      card.append(
+        element(
+          'p',
+          'diplo-paper-head',
+          counter.answer.terms === null
+            ? `The ${row.name} answer`
+            : `The ${row.name} would sign this`,
+        ),
+      );
+      for (const line of counterLines(counter.answer, counter.question)) {
+        card.append(element('p', 'hint', line));
+      }
+      middle.append(card);
+    }
+
     if (model.peace) {
       middle.append(
         element(
           'p',
           'hint diplo-note',
           'These terms become the peace. Writing new terms takes back whatever either of you ' +
-            'had already signed.',
+            'had already signed. A peace ends the war the moment you have both signed it.',
         ),
       );
     }
     return middle;
+  }
+
+  /**
+   * The two questions a player may put to the empire across the table before
+   * they send anything (§12).
+   *
+   * Both are **pure reads**: nothing is proposed, the answer is written into the
+   * draft, and the player sends it — or edits it first, which is the whole point
+   * of writing it into the draft rather than onto a card of its own.
+   *
+   * Each is greyed with its own reason when it has nothing to ask about, this
+   * interface's rule everywhere a gate exists: a button that vanishes is a rule
+   * a player cannot learn.
+   */
+  function drawCounterVerbs(
+    model: DealPanelModel,
+    draft: DealDraft,
+    row: DiplomacyRow,
+  ): HTMLElement {
+    const verbs = element('div', 'diplo-row-verbs');
+    const offering = !termsAreEmpty(draft.give);
+    const anything = offering || !termsAreEmpty(draft.take);
+
+    const work = button('btn btn-quiet btn-tiny', 'What would make this work?');
+    if (model.blocked !== null) {
+      work.disabled = true;
+      work.title = model.blocked;
+    } else if (!anything && !model.peace) {
+      work.disabled = true;
+      work.title = 'Put something on the table first';
+    } else {
+      work.title = `Ask the ${row.name} what would make this paper work`;
+      work.addEventListener('click', () => {
+        askCounterFor(row.playerId, draft, 'work');
+        draw();
+      });
+    }
+    verbs.append(work);
+
+    const gift = button('btn btn-quiet btn-tiny', 'What would you give for this?');
+    if (model.blocked !== null) {
+      gift.disabled = true;
+      gift.title = model.blocked;
+    } else if (!offering) {
+      // The question is "for this", and there has to be a *this*: the paper it
+      // asks about offers something and asks for nothing (`counterTerms`).
+      gift.disabled = true;
+      gift.title = 'Offer something first';
+    } else {
+      gift.title = `Ask the ${row.name} what they would give for what you offer`;
+      gift.addEventListener('click', () => {
+        askCounterFor(row.playerId, draft, 'give');
+        draw();
+      });
+    }
+    verbs.append(gift);
+    return verbs;
+  }
+
+  /**
+   * Puts the paper that was just sent to the empire it was sent to.
+   *
+   * The bargain has an id and the peace paper has none — it rides on the war row
+   * (`wars.ts`) — so the id is looked up here, off the register, rather than
+   * being remembered from the command: the reducer allocates it, and reading it
+   * back is the one way this file can be sure it is naming the paper that
+   * actually landed.
+   */
+  function askAudienceFor(targetId: number, peace: boolean): void {
+    envoy = null;
+    counter = null;
+    const ask = options.askAudience;
+    if (ask === undefined) return;
+    if (peace) {
+      const answer = ask(targetId);
+      if (answer !== null) envoy = { seatId: targetId, answer };
+      return;
+    }
+    const seat = options.getPlayerId();
+    const papers = options
+      .getState()
+      .dealProposals.filter((paper) => paper.by === seat && paper.to === targetId);
+    const paper = papers[papers.length - 1];
+    if (!paper) return;
+    const answer = ask(targetId, paper.id);
+    if (answer !== null) envoy = { seatId: targetId, answer };
+  }
+
+  /**
+   * Asks one of the two counter questions and writes what comes back into the
+   * draft.
+   *
+   * *"What would you give for this?"* is the same read with **nothing asked
+   * for**: the paper put to them offers what you have written and asks for
+   * nothing, and they answer with their own side. That is how `counterTerms`
+   * tells the two questions apart, and it is why this sends `{}` rather than a
+   * flag.
+   */
+  function askCounterFor(targetId: number, draft: DealDraft, question: CounterQuestion): void {
+    envoy = null;
+    counter = null;
+    const ask = options.askCounter;
+    if (ask === undefined) return;
+    const answer = ask(targetId, draft.give, question === 'give' ? {} : draft.take);
+    if (answer === null) return;
+    counter = { seatId: targetId, question, answer };
+    if (answer.terms !== null) {
+      draft.give = answer.terms.give;
+      draft.take = answer.terms.take;
+    }
   }
 
   /** One half of the paper in the middle: a heading and its promises. */
@@ -1068,10 +1365,32 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
           'p',
           'hint',
           model.peacePaper.mine
-            ? 'Your terms stand. The war ends on the turn they sign them.'
-            : 'Answer these terms with the peace button above, or write your own on the table.',
+            ? 'Your terms stand. The war ends the moment they sign them.'
+            : 'Answer these terms with the peace button above, write your own on the table, ' +
+              'or send their envoy home.',
         ),
       );
+      // The third answer, and the one a peace offer never had: a paper put to
+      // you may be **refused**, which takes it off the table (§12). Only theirs
+      // — your own is taken back with the peace button's Withdraw face.
+      if (!model.peacePaper.mine) {
+        const verbs = element('div', 'diplo-row-verbs');
+        const send = button('btn btn-quiet btn-tiny', 'Send them home');
+        if (model.peacePaper.declineError !== null) {
+          send.disabled = true;
+          send.title = model.peacePaper.declineError;
+        } else {
+          send.title = `Refuse the ${row.name}' terms and take them off the table`;
+          send.addEventListener('click', () => {
+            options.declinePeace(row.playerId);
+            envoy = null;
+            counter = null;
+            draw();
+          });
+        }
+        verbs.append(send);
+        paper.append(verbs);
+      }
       block.append(paper);
     }
     for (const proposal of model.proposals) block.append(drawProposal(proposal));
@@ -1239,6 +1558,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     draw,
     onClose: () => {
       selectedId = null;
+      envoy = null;
+      counter = null;
     },
   });
 

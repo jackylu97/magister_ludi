@@ -96,7 +96,9 @@
     "cityWeight": 25,
     "strengthWeight": 0.4,
     "luxuryGoldBaseline": 120,
-    "luxuryGptBaseline": 5
+    "luxuryGptBaseline": 5,
+    "openBordersPrice": 60,
+    "counterMarkup": 0.1
   },
   "weights": {
     "food": [

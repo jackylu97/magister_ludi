@@ -456,6 +456,29 @@ export interface AiConfig {
     luxuryGoldBaseline: number;
     /** The same for a tribute: coin **a turn** a luxury is worth lending for. */
     luxuryGptBaseline: number;
+    /**
+     * What a **right of way** is worth, in coin, whichever way it runs
+     * (§12's ruling, 2026-09-07).
+     *
+     * It was priced at nought until the audience landed, which was honest while
+     * nothing could ask for one — but a counter has to be able to *sell* passage
+     * and to *buy* it, and a term worth nothing is a term a counter can neither
+     * put on the table nor take off it. One figure for both directions, because
+     * what an army may walk through is the same fact read from two sides.
+     */
+    openBordersPrice: number;
+    /**
+     * How much **over even** a counter-offer asks — a tenth (§12's ruling).
+     *
+     * The bot answers a paper at the bar its own reading sets (`explainPaper`,
+     * and the warscore's owed figure in a peace), so a counter written exactly
+     * to that bar is a paper it merely tolerates: one coin of drift in either
+     * empire's books between the counter and the signing turns it down. The
+     * markup is the margin that makes a counter a paper the bot will actually
+     * sign, and it is one number in both directions — the bot asks a tenth more
+     * for what it gives, and offers a tenth less for what it takes.
+     */
+    counterMarkup: number;
   };
   /**
    * **The value vector**: what one per-turn point of each voice is worth, per

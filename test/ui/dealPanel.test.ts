@@ -286,6 +286,12 @@ describe('the peace paper', () => {
     expect(theirs.heading).toBe('The Ada offer you');
     expect(theirs.give).toEqual(['50 gold']);
     expect(theirs.take).toEqual(['Nothing']);
+
+    // **Only theirs may be sent home** (§12): the seat that wrote a paper takes
+    // it back with the peace button's Withdraw face, and the gate says so in
+    // the reducer's own words.
+    expect(theirs.declineError).toBeNull();
+    expect(mine.declineError).toContain('nothing to refuse');
   });
 
   it('goes away with the war it rode on', () => {
