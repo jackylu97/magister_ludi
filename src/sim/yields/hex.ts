@@ -172,20 +172,20 @@ export interface TileYieldContext {
    *
    * **One list, five producers**, and the chain cannot tell them apart:
    *
-   *   · a Statecraft card's **unscoped** `tileYield` (`cardTileLines`) — the
+   *   · a Statecraft card's **unscoped** hex `pays` (`cardTileLines`) — the
    *     empire's law, worth the same on every hex it owns;
    *   · a luxury's `improvementYields` (`resourceTileLines`) — what a held seam
    *     is worth to every hex of a kind, tyrian's boats and whales';
    *   · a building's `tileYields` (`buildingTileLines`) — the granary's food on
    *     water, and the first of them that is a fact about *one city*, which is
    *     why `cityContext` adds it and `yieldContextFor` cannot;
-   *   · a card's **scoped** `tileYield` (`scopedCardTileLines`) — Petra's desert
+   *   · a card's **scoped** hex `pays` (`scopedCardTileLines`) — Petra's desert
    *     and the Hanging Gardens' irrigated farms, which are the same fact about
    *     one city said by a card instead of by a building;
-   *   · a **follower belief's** `tileYield` (`followerCardTileLines`) — Harvest
+   *   · a **follower belief's** hex `pays` (`followerCardTileLines`) — Harvest
    *     Blessing's food on the farms of a city that follows, and the only
    *     producer whose card may belong to another empire entirely;
-   *   · a **consecration's** `tileYield` (`consecrationCardTileLines`) — the
+   *   · a **consecration's** hex `pays` (`consecrationCardTileLines`) — the
    *     Green Cathedral's faith on the wild ground of the town whose cathedral
    *     was dedicated to the old gods.
    *
@@ -302,7 +302,7 @@ export function cityContext(
   // lines (the granary's food on water, Entry XXVII), its **live rites** (Rite
   // of Plenty's gold on its own worked seams, Entry XXVIII), the **scoped**
   // card lines (Petra's desert, the Hanging Gardens' irrigated farms — a
-  // `tileYield` whose `scope` names which towns it lands in), and the **faith
+  // hex `pays` whose `scope` names which towns it lands in), and the **faith
   // this town follows** (Harvest Blessing's food on the farms of a following
   // city — the 2026-08-28 ruling, and the one producer whose card belongs to
   // somebody else's empire), and its **consecration** (the Green Cathedral's
@@ -426,7 +426,7 @@ export function explainTileYield(
   //
   // One card can speak twice about one hex — Winter Mother pays +1 food on any
   // tundra tile *and* +1 faith on a wooded one, so a tundra forest satisfies
-  // both of her `tileYield` lines. The player reads one name and expects one
+  // both of her hex `pays` lines. The player reads one name and expects one
   // line under it, so lines that share a `source` are merged into a single
   // entry, summed, at the position of that source's **first** appearance —
   // order of first appearance in `ctx.lines`, the same determinism rule as

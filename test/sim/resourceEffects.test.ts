@@ -279,7 +279,7 @@ describe('the effect vocabulary', () => {
   it('never asks the empire for a yield it has no basket for', () => {
     for (const id of RESOURCE_IDS) {
       for (const effect of resourceEffects(id)) {
-        if (effect.kind !== 'empireYields') continue;
+        if (effect.kind !== 'pays') continue;
         expect(effect.food).toBeUndefined();
         expect(effect.production).toBeUndefined();
       }
@@ -383,7 +383,7 @@ describe("perCityYields at 'owner' scope: the powerful-local reading", () => {
 
 describe('empireYields: once for the empire, wherever it stands', () => {
   it('pays a flat sum once a turn, however many seams or towns', () => {
-    withSignature([{ kind: 'empireYields', gold: 4, culture: 1 }], () => {
+    withSignature([{ kind: 'pays', where: 'empire', gold: 4, culture: 1 }], () => {
       const { state, first, second } = twoCities();
       at(state.map, 7, 5).hills = true;
       plant(state, first, 7, 5, 'gems');

@@ -24,7 +24,8 @@
       "kernel": "The scribe of the Rhind papyrus, and its opening line.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 2,
           "scope": {
             "test": "freshwater"
@@ -59,14 +60,14 @@
       "kernel": "The Maxims, the oldest book of advice.",
       "legacy": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "buildingsOfKind",
-          "building": "library",
           "per": 2,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "building": "library"
         }
       ]
     },
@@ -79,7 +80,8 @@
       "kernel": "The first author to sign her name.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
           "scope": {
             "test": "hasBuilding",
@@ -131,7 +133,8 @@
       "kernel": "The Ugaritic scribe of the Baal cycle.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
           "scope": {
             "test": "coastal"
@@ -205,7 +208,8 @@
       "kernel": "The tabernacle's artisan.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 1,
           "scope": {
             "test": "hasBuilding",
@@ -223,13 +227,14 @@
       "kernel": "The complaint tablets; the wunderkammer's patron.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": -1,
+          "gold": 3,
           "on": {
             "test": "improvement",
             "improvement": "mine"
-          },
-          "gold": 3,
-          "production": -1
+          }
         }
       ]
     },
@@ -242,7 +247,8 @@
       "kernel": "The first named person in writing — an accountant.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 1,
           "scope": {
             "test": "hasBuilding",
@@ -260,7 +266,8 @@
       "kernel": "Old Assyrian trader of the Kanesh letters.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 1,
           "scope": {
             "test": "notCapital"
@@ -277,12 +284,13 @@
       "kernel": "The merchant's wife whose letters survive.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
           "on": {
             "test": "improvement",
             "improvement": "pasture"
-          },
-          "gold": 1
+          }
         }
       ]
     },
@@ -415,7 +423,8 @@
       "kernel": "The seismoscope.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 1,
           "scope": {
             "test": "hasBuilding",
@@ -433,15 +442,13 @@
       "kernel": "The circumference.",
       "legacy": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "revealedTiles",
-          "per": 60,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 60
         }
       ]
     },
@@ -454,7 +461,8 @@
       "kernel": "The fragment.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 3,
           "scope": {
             "test": "capital"
@@ -499,14 +507,12 @@
       "kernel": "The Grand Historian.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "agesClosed",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "agesClosed"
         }
       ]
     },
@@ -519,14 +525,12 @@
       "kernel": "The Parthenon's sculptor.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "wonders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "wonders"
         }
       ]
     },
@@ -539,7 +543,9 @@
       "kernel": "Dujiangyan.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
           "on": {
             "test": "all",
             "of": [
@@ -552,7 +558,6 @@
               }
             ]
           },
-          "production": 1,
           "scope": {
             "test": "hasBuilding",
             "building": "aqueduct"
@@ -577,7 +582,8 @@
               "turns": 10,
               "effects": [
                 {
-                  "kind": "cityYields",
+                  "kind": "pays",
+                  "where": "city",
                   "production": 3
                 }
               ]
@@ -595,7 +601,8 @@
       "kernel": "The ten books.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 1,
           "scope": {
             "test": "hasBuilding",
@@ -613,7 +620,9 @@
       "kernel": "Samos.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
           "on": {
             "test": "all",
             "of": [
@@ -624,8 +633,7 @@
                 "test": "adjacentMountain"
               }
             ]
-          },
-          "food": 1
+          }
         }
       ]
     },
@@ -638,15 +646,13 @@
       "kernel": "The Silk Road's envoy.",
       "legacy": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 2,
           "count": "revealedTiles",
-          "per": 60,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
-          }
+          "per": 60
         }
       ]
     },
@@ -674,12 +680,13 @@
       "kernel": "The monsoon.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
-          },
-          "gold": 1
+          }
         }
       ]
     },
@@ -838,7 +845,8 @@
       "kernel": "al-jabr.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 2,
           "scope": {
             "test": "hasBuilding",
@@ -856,14 +864,12 @@
       "kernel": "The Dream Pool Essays.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "improvedStrategicResources",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 2,
+          "count": "improvedStrategicResources"
         }
       ]
     },
@@ -891,14 +897,12 @@
       "kernel": "The Āryabhaṭīya.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "scienceBuildings",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "scienceBuildings"
         }
       ]
     },
@@ -911,16 +915,14 @@
       "kernel": "The Tale of Genji.",
       "legacy": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
           "count": "unitsInField",
           "class": {
             "modelClass": "melee"
-          },
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 2,
-            "where": "empire"
           }
         }
       ]
@@ -964,7 +966,8 @@
       "kernel": "The Masnavi.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2,
           "scope": {
             "test": "hasBuilding",
@@ -982,14 +985,12 @@
       "kernel": "The Pillow Book.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "uniqueLuxuries",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "uniqueLuxuries"
         }
       ]
     },
@@ -1002,7 +1003,8 @@
       "kernel": "The automata.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 2,
           "scope": {
             "test": "hasBuilding",
@@ -1020,7 +1022,8 @@
       "kernel": "The water clock.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 1,
           "scope": {
             "test": "hasBuilding",
@@ -1053,14 +1056,12 @@
       "kernel": "The Itinerary.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "cities",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "cities"
         }
       ]
     },
@@ -1073,14 +1074,12 @@
       "kernel": "The Rihla.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "sightedCities",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "sightedCities"
         }
       ]
     },
@@ -1093,14 +1092,12 @@
       "kernel": "The Travels.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "foreignTradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
+          "count": "foreignTradeRoutes"
         }
       ]
     },
@@ -1113,7 +1110,8 @@
       "kernel": "The merchant of Prato's ledgers.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 2,
           "scope": {
             "test": "hasBuilding",
@@ -1240,7 +1238,9 @@
       "kernel": "Uraniborg.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "science": 1,
           "on": {
             "test": "all",
             "of": [
@@ -1251,8 +1251,7 @@
                 "test": "adjacentMountain"
               }
             ]
-          },
-          "science": 1
+          }
         }
       ]
     },
@@ -1280,7 +1279,8 @@
       "kernel": "De revolutionibus.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 2
         }
       ]
@@ -1294,7 +1294,8 @@
       "kernel": "The first professional woman of letters.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 3,
           "scope": {
             "test": "capital"
@@ -1315,14 +1316,12 @@
       "kernel": "The woodcuts.",
       "legacy": [
         {
-          "kind": "countScaled",
-          "count": "wonders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "wonders"
         }
       ]
     },
@@ -1335,12 +1334,13 @@
       "kernel": "The narrow road.",
       "legacy": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
           "on": {
             "test": "feature",
             "feature": "forest"
-          },
-          "culture": 1
+          }
         }
       ]
     },
@@ -1353,7 +1353,8 @@
       "kernel": "The tenth muse of Mexico.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2,
           "scope": {
             "test": "hasBuilding",
@@ -1425,7 +1426,8 @@
       "kernel": "The Süleymaniye.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
           "scope": {
             "test": "hasBuilding",
@@ -1479,13 +1481,13 @@
           "stage": "empire"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": -1,
           "count": "cities",
-          "per": 3,
-          "pays": {
-            "to": "authority",
-            "amount": -1
-          }
+          "per": 3
         },
         {
           "kind": "purchaseRider",
@@ -1504,7 +1506,8 @@
       "kernel": "The treasure fleet.",
       "legacy": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 3,
           "scope": {
             "test": "coastal"
@@ -1541,16 +1544,14 @@
       "kernel": "The bank that bought a Renaissance.",
       "legacy": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "bankedGold",
           "per": 50,
-          "max": 6,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "max": 6
         }
       ]
     },

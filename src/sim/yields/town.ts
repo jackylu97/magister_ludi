@@ -473,7 +473,7 @@ export function foldBuildingPreview(lines: readonly BuildingPreviewLine[]): City
  * here", and since Statecraft and the pantheon that is a question about the
  * empire's whole law: a belief that pays a forge town a hammer, an Order that
  * counts barracks, a wonder whose tile line wants a granary. Every one of those
- * is a `hasBuilding` scope or a `countScaled` count, and every one of them is
+ * is a `hasBuilding` scope or a `pays` count count, and every one of them is
  * invisible to a preview that reads the building's own row.
  *
  * **A ghost town, never a mutation.** The honest way to ask a conditional
@@ -492,7 +492,7 @@ export function foldBuildingPreview(lines: readonly BuildingPreviewLine[]): City
  *      it;
  *   2. **the flat card lines that woke up**, one per `(card, source)` whose
  *      figure differs between the two readings — which is a belief scoped to
- *      `hasBuilding`, a `countScaled` that counts the thing, and nothing else;
+ *      `hasBuilding`, a `pays` count that counts the thing, and nothing else;
  *   3. **the tile lines that woke up**, summed over the tiles this town actually
  *      works: a granary's food on water, a wonder's desert line gated on a
  *      building. Grouped by source, because that is the name a player reads;
@@ -562,7 +562,7 @@ export function explainBuildingPreview(
   //    so the list reads in the evaluator's order.
   //
   //    The `×N` suffix is stripped from the key, never from the label: a
-  //    `countScaled` line's printed source carries its count ("The Mausoleum
+  //    `pays` count line's printed source carries its count ("The Mausoleum
   //    · ×19"), and a candidate building that feeds the count re-labels the
   //    very line it changes ("· ×20"). Keyed raw, the two halves of that diff never
   //    meet — `was` comes back empty and the preview prints the wonder's whole
@@ -1259,7 +1259,7 @@ export function explainCity(
     const tile = getTileAt(state.map, cell.col, cell.row);
     if (!tile) continue;
     // **2 — the hex, split by who dressed it.** The later Order pools pay
-    // through `tileYield`, so an Order paying a hammer on every hill is the
+    // through hex `pays`, so an Order paying a hammer on every hill is the
     // whole of what a late deck does, and a hex filed whole under the land would
     // show that deck paying nothing (`docs/flags.md`, ruling jj). Each `add`
     // line that names a card is lifted out under that card's class and the

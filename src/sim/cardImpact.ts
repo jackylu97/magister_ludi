@@ -29,7 +29,7 @@
  *      one line per source whose *ground* lines changed what the worked hexes
  *      pay, summed over every town this empire holds;
  *   2. **one reconciliation line**, when the arithmetic needs it — Entry XVII's
- *      two multiplications working on the new flats, a `yieldConversion`'s
+ *      two multiplications working on the new flats, a the town's `pays` share of
  *      share, and every floor on the way. `applyRiders`' idiom, exactly as the
  *      building preview's: a line of the list carrying *the difference it makes
  *      to the running figure*, never a multiplication performed afterwards;
@@ -525,7 +525,7 @@ class Bucket {
  * Every yield-bearing line one empire's cards pay one town, keyed by source.
  *
  * The `×N` tail is stripped from the **key** and kept on the label, for
- * `explainBuildingPreview`'s reason exactly: a `countScaled` line re-labels the
+ * `explainBuildingPreview`'s reason exactly: a `pays` count line re-labels the
  * very line the card changes, and keyed raw the two halves of the diff never
  * meet.
  *
@@ -916,7 +916,7 @@ export function explainCardImpact(
   const lines: CardImpactLine[] = [];
 
   // 1. The towns, named. The flat card lines that woke up, then the ground —
-  //    a `tileYield` whose scope the card opened, summed over the hexes this
+  //    a hex `pays` whose scope the card opened, summed over the hexes this
   //    empire actually works, because that is the only place a tile line
   //    becomes a yield.
   const towns = new Bucket();
@@ -968,7 +968,7 @@ export function explainCardImpact(
   lines.push(...towns.lines(), ...ground.lines());
 
   // 2. The reconciliation. Everything the labelled lines above cannot name:
-  //    Entry XVII's two multiplications on the new flats, a `yieldConversion`'s
+  //    Entry XVII's two multiplications on the new flats, a the town's `pays` share of
   //    share of a fold, a percentage the card itself put on a voice, and every
   //    floor on the way. Named for the card, because by construction the card
   //    is the only thing that changed.

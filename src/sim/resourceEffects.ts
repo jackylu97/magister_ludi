@@ -23,8 +23,8 @@
  *   · the **scope** union is `CityScope` plus one word, and `scopeAdmits` and
  *     `scopeWords` delegate to `cityScopeAdmits` and `cityScopeWords` — three of
  *     the four scopes were the cards' predicates written a second time;
- *   · `empireYields`, `happinessTierBoost` and the shape that was called
- *     `authoritySupply` **are** `CardEmpireYieldsEffect`,
+ *   · empire `pays`, `happinessTierBoost` and the shape that was called
+ *     `authoritySupply` **are** `CardPaysEffect`,
  *     `CardHappinessTierBoostEffect` and `CardAuthorityEffect`;
  *   · the colliding private names are one each: the walk is
  *     `liveLuxuryEffects`, the label is `lineLabel`, the town count is
@@ -69,7 +69,7 @@
  *     shape the ratified table is mostly built out of, and it is deliberately
  *     empire-scaling: a wide empire earns more from one seam of gems than a tall
  *     one does, and happiness and authority are the taxes that price that.
- *   · **empire** (`empireYields`, a bare `extraHappiness`) counts once per kind
+ *   · **empire** (empire `pays`, a bare `extraHappiness`) counts once per kind
  *     for the whole empire and lands nowhere in particular. A second silk seam
  *     anywhere is worth nothing.
  *
@@ -492,7 +492,7 @@ function foldOne(line: ResourceYieldLine): number {
 export function empireResourceYields(state: GameState, playerId: number): ResourceYieldLine[] {
   const list: ResourceYieldLine[] = [];
   for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
-    if (effect.kind !== 'empireYields') continue;
+    if (effect.kind !== 'pays') continue;
     list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect)));
   }
   return list;
@@ -1113,7 +1113,7 @@ function describeOne(effect: ResourceEffect): string | null {
       ? `for each ${effect.wonders === true ? 'wonder' : `${effect.category} building`} you hold`
       : effect.kind === 'routeYields'
         ? 'on every trade route'
-        : effect.kind === 'empireYields'
+        : effect.kind === 'pays'
       ? 'to the empire'
       : effect.kind === 'improvementYields'
         ? // The one bag that lands on ground rather than in a town, so it names

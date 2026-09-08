@@ -668,9 +668,9 @@ export interface AiConfig {
      * written, not that the multiplier should stay.
      */
     caravanScale: number;
-    /** How many things a `countScaled` — or an unread rate — is assumed to count. */
+    /** How many things a `pays` count — or an unread rate — is assumed to count. */
     nominalCount: number;
-    /** How many hexes a `tileYield` is assumed to land on. */
+    /** How many hexes a hex `pays` is assumed to land on. */
     nominalTiles: number;
     /** Per already-held card sharing an option's `line`. See `scoreCard`. */
     synergyBonus: number;

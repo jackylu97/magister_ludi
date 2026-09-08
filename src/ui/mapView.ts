@@ -502,7 +502,7 @@ export interface MapView {
    * `signImprovedCells`, a chop's `signFeatureCells`, a border's
    * `signTerritory` — is a fact about the *board*: some tile's improvement,
    * feature or owner actually changed, and the per-frame loop already
-   * fingerprints those. A Statecraft card or a belief with a `tileYield`
+   * fingerprints those. A Statecraft card or a belief with a hex `pays`
    * effect changes what a hex *makes* without moving a single tile, improvement
    * or border, so no fingerprint stirs and the lens would keep showing last
    * turn's coins forever. `commit`, in `src/ui/controls.ts` — the one place a

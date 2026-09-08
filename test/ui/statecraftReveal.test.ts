@@ -259,7 +259,10 @@ describe('the offices are ordered, and the word says which', () => {
     expect(gate).toContain('orderDef(slot.card).effects');
     expect(gate).toContain('readsSlotPosition(effect)');
     expect(SCREEN).toContain('const POSITION_READING_COUNTS: readonly CountKind[] = []');
-    expect(SCREEN).toContain("effect.kind === 'countScaled' && POSITION_READING_COUNTS.includes(effect.count)");
+    // Batch E5: the count is a `basis` of the one `pays` shape, so the gate asks
+    // the pair rather than a kind — and a row that names no count is not one.
+    expect(SCREEN).toContain("effect.kind !== 'pays' || effect.basis !== 'count'");
+    expect(SCREEN).toContain('return POSITION_READING_COUNTS.includes(effect.count);');
     // Batch A's reader is a modifier, not a count: the gate opens on it by kind.
     expect(SCREEN).toContain("if (effect.kind === 'slotPosition') return true;");
     // And the office line prints it only behind the gate.

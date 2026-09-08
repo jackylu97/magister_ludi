@@ -763,7 +763,7 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   // Two ways a row says that, and each is silent rather than wrong, which is
   // exactly why it fails here:
   //
-  //   · `empireYields`, and any `countScaled` paying `where: 'empire'` — read
+  //   · empire `pays`, and any `pays` count paying `where: 'empire'` — read
   //     only by `explainCardEmpireYields`, which walks the *empire's* list and would
   //     never see a card that reached one town;
   //   · a **world-scale count** (the `following…` family) — answered off
@@ -777,14 +777,13 @@ export function religionDataProblems(knownTechs: readonly string[]): string[] {
   // fits (Entry XV.b's rule).
   for (const id of FOLLOWER_BELIEF_IDS) {
     for (const effect of beliefDef(id).effects) {
-      if (effect.kind === 'empireYields') {
-        problems.push(`follower belief "${id}" pays the empire, which no one city can`);
-        continue;
-      }
-      if (effect.kind !== 'countScaled') continue;
-      if (effect.pays.to === 'yield' && effect.pays.where === 'empire') {
+      if (effect.kind !== 'pays') continue;
+      // Batch E5: the empire's flat bag and an empire-scaled count are two
+      // bases of one shape now, and either is the same fault on a follower row.
+      if (effect.where === 'empire') {
         problems.push(`follower belief "${id}" pays the empire, which no one city can`);
       }
+      if (effect.basis !== 'count' || effect.count === undefined) continue;
       if (WORLD_SCALE_COUNTS.includes(effect.count)) {
         problems.push(
           `follower belief "${id}" counts "${effect.count}", which is a question about a founder`,

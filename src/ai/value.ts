@@ -118,7 +118,7 @@ import {
   statecraftOf,
 } from '../sim/statecraft';
 import {
-  type CardCountScaledEffect,
+  type CardPaysEffect,
   type CardEffect,
   type CardId,
   type CardPeriodicEffect,
@@ -1079,7 +1079,7 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  * copy", "on each such tile"). The nominal figures are `score.nominal*` and are
  * tuning surface like everything else.
  *
- * **One shape is no longer a guess** (2026-09-04): a `countScaled` is priced by
+ * **One shape is no longer a guess** (2026-09-04): a `pays` count is priced by
  * the count the simulation itself would pay it by, plus the promise of what the
  * empire could come to count, discounted by its own delay. See `explainCounted`
  * — and note
@@ -1107,11 +1107,18 @@ export function explainEffects(
     // counted effect, whose worth is a real reading of the board multiplied by a
     // discounted promise, and whose arithmetic a reader of the feed has to be
     // able to see. `nest` keeps the outer sum's grouping exactly as it was.
-    if (effect.kind === 'countScaled') {
-      terms.push(nest(effect.kind, explainCounted(effect, ctx, card)));
+    if (effect.kind === 'pays' && effect.basis === 'count') {
+      // **The label says what it used to say.** Eight kinds became one field
+      // pair (batch E5), so a term labelled by the bare `kind` would print
+      // "pays" eight times over in the spectator's feed. `paysWord` writes the
+      // dimensions back into the word — no figure moves.
+      terms.push(nest(paysWord(effect), explainCounted(effect, ctx, card)));
       continue;
     }
-    terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+    terms.push({
+      label: effect.kind === 'pays' ? paysWord(effect) : effect.kind,
+      value: scoreEffect(effect, ctx),
+    });
     // **The hammer premium** (batch 6): a card that pays production shortens
     // every engine this empire is still raising, exactly as a mine does, and it
     // walks through the same door. The empire reading — a card names no town.
@@ -1159,12 +1166,18 @@ function nominalRate(ctx: ValueContext): number {
 function productionOf(effect: CardEffect, ctx: ValueContext): number {
   const nominal = nominalRate(ctx);
   switch (effect.kind) {
-    case 'cityYields':
-      return (bagOf(effect).production ?? 0) * ctx.cities;
-    case 'empireYields':
-      return bagOf(effect).production ?? 0;
-    case 'tileYield':
-      return (bagOf(effect).production ?? 0) * ctx.ai.score.nominalTiles;
+    // The one shape that pays a voice (batch E5). Only its **flat** bases carry
+    // hammers a queue could read off the row alone; a count, a mirror, a share
+    // and a rate are priced in `scoreEffect` and claim no compression here,
+    // exactly as they did before the merge.
+    case 'pays': {
+      if ((effect.basis ?? 'flat') !== 'flat') return 0;
+      const hammers = bagOf(effect).production ?? 0;
+      if (effect.where === 'city' || effect.where === 'capital') return hammers * ctx.cities;
+      if (effect.where === 'hex') return hammers * ctx.ai.score.nominalTiles;
+      if (effect.where === 'empire') return hammers;
+      return 0;
+    }
     case 'productionBonus':
       return (effect.percent / 100) * nominal * ctx.cities;
     case 'percentYields':
@@ -1195,6 +1208,122 @@ export function scoreEffects(
  */
 const ROUTE_VOICES = 5;
 
+/**
+ * **What the one yield-paying shape is worth** — batch E5's merged arm.
+ *
+ * `CardPaysEffect` collapsed eight kinds into one (`docs/audit/e5-yield-shape.md`),
+ * and this is those eight readings with **every figure unchanged**, chosen by
+ * (`where`, `basis`) instead of by eight names. Its own function rather than a
+ * case body because five bases is more than a `switch` arm should hold, and the
+ * dispatch reads as a walk of the two dimensions.
+ *
+ * The house bargain the old arms struck is kept whole: **a scope is not
+ * evaluated** — a line narrowed to the coast is still counted in every town,
+ * which is `foldCity`'s own reading of a scope it cannot resolve — and the
+ * capped city count stands in for "how many towns is this really".
+ */
+function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
+  const basis = effect.basis ?? 'flat';
+  const nominal = nominalRate(ctx);
+
+  if (basis === 'count') {
+    // Priced by `explainCounted`, which `explainEffects` calls directly — this
+    // is the fallback for a caller that only wants the number.
+    return explainCounted(effect, ctx).total;
+  }
+
+  if (basis === 'share') {
+    // A share of the town's own fold of `from`, paid as `to` — the same
+    // arithmetic the evaluator does (`cardYieldConversions`), read off the
+    // empire's books rather than off one town's.
+    if (effect.from === undefined) return 0;
+    const from = ratesOf(ctx)[rateKeyOf(effect.from)] ?? 0;
+    if (from <= 0) return 0;
+    return voiceWeight(ctx, effect.to as Voice) * ((effect.percent ?? 0) / 100) * from;
+  }
+
+  if (basis === 'mirror') {
+    // What the buildings of one category pay in `from`, paid again as `to`.
+    // The simulation's own reading, off the rows this empire has raised — the
+    // `buildingYieldPercent` arm's sweep with the share fixed at one.
+    if (effect.from === undefined) return 0;
+    let sum = 0;
+    for (const city of ctx.state.cities) {
+      if (city.ownerId !== ctx.playerId) continue;
+      for (const id of city.buildings) {
+        const def = buildingDef(id);
+        if (def.category !== effect.category) continue;
+        const base = def[effect.from as Voice] ?? 0;
+        if (base === 0) continue;
+        sum += voiceWeight(ctx, effect.to as Voice) * base;
+      }
+    }
+    return sum;
+  }
+
+  if (basis === 'rate') {
+    // The books are exactly this basis' input: so many of one rate buy one
+    // helping of the payout. `RateSource` names a field of the very reading
+    // `collectYields` hands the evaluator, so nothing is estimated.
+    if (effect.fromRate === undefined) return 0;
+    const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
+    const helpings = Math.floor(rateSourceValue(effect.fromRate, ctx) / per);
+    if (helpings === 0) return 0;
+    return helpings * scorePayout(effect, ctx);
+  }
+
+  // --- the flat bag, at each of the four grounds ----------------------------
+
+  if (effect.where === 'hex') {
+    // A `CardYieldBag` on the row, plus an optional percentage on whatever the
+    // hex's improvement already pays; the bag is the legible half and the
+    // percentage is priced against the nominal yield like every other rate.
+    return (
+      (valueOfYields(bagOf(effect), ctx) +
+        ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
+      ctx.ai.score.nominalTiles
+    );
+  }
+
+  if (effect.where === 'route') {
+    // Paid on every caravan this empire is running, counted by the simulation.
+    // A row paid **per luxury at either end** (The Golden Roads) is that figure
+    // again for every good on the road, and the stand-in for "how many goods"
+    // is the empire's own luxury count: a caravan runs between two of this
+    // realm's towns, so the realm's shelf is the honest upper reading of what
+    // the pair between them holds.
+    const each = valueOfYields(bagOf(effect), ctx);
+    const goods = effect.perEndpointLuxury === true ? countProbe(ctx, 'uniqueLuxuries') : 1;
+    const routes = countProbe(ctx, 'tradeRoutes');
+    // **The share on top of the flats** — The Silk Exchange's doubled beakers.
+    // Priced exactly as the amplifier that raises a whole caravan is
+    // (`scoreAmplifier`'s `routeYields` arm): the best road this empire has
+    // open, times the roads it is running, times the share — because a
+    // percentage of a route is a percentage of what that route already pays
+    // and there is no second reading of what a route pays.
+    //
+    // A row naming **one voice** is worth a share of one voice, and the stand-
+    // in for "how much of a caravan is beakers" is a flat fraction rather than
+    // a walk of the road's own fold: the fold needs a pair of towns and this
+    // appraisal has a card. Named, and deliberately an under-reading — the
+    // alternative was pricing a doubled voice as a doubled caravan.
+    const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
+    let share = 0;
+    for (const row of effect.share ?? []) {
+      const part = row.yield === 'all' ? 1 : 1 / ROUTE_VOICES;
+      share += best * routes * (row.percent / 100) * part;
+    }
+    return each * goods * routes + share;
+  }
+
+  // The empire once, the capital once (it *is* one town — `scorePayout`'s
+  // reading of the same field), and the town in every town the scope admits.
+  if (effect.where === 'empire' || effect.where === 'capital') {
+    return valueOfYields(bagOf(effect), ctx);
+  }
+  return valueOfYields(bagOf(effect), ctx) * ctx.cities;
+}
+
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
   const nominal = nominalRate(ctx);
   // Switching on an **aliased discriminant** still narrows `effect` inside each
@@ -1204,12 +1333,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
   // is a card this bot cannot see, and half the vocabulary had none.
   const kind = effect.kind;
   switch (kind) {
-    case 'cityYields':
-      // Paid in every town the scope admits; the scope is not evaluated, so the
-      // capped city count stands in for "how many towns is this really".
-      return valueOfYields(bagOf(effect), ctx) * ctx.cities;
-    case 'empireYields':
-      return valueOfYields(bagOf(effect), ctx);
+    // **The one shape that pays a voice** (batch E5). Eight arms until the
+    // merge, and the same eight readings below, chosen by the row's own two
+    // dimensions rather than by eight names for them — every figure unchanged.
+    case 'pays':
+      return scorePays(effect, ctx);
     case 'percentYields': {
       const percent = effect.percent / 100;
       if (effect.yield === 'all') {
@@ -1221,19 +1349,6 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     }
     case 'productionBonus':
       return voiceWeight(ctx, 'production') * (effect.percent / 100) * nominal * ctx.cities;
-    case 'tileYield':
-      // A `CardYieldBag` on the row, plus an optional percentage on whatever the
-      // hex's improvement already pays; the bag is the legible half and the
-      // percentage is priced against the nominal yield like every other rate.
-      return (
-        (valueOfYields(bagOf(effect), ctx) +
-          ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
-        ctx.ai.score.nominalTiles
-      );
-    case 'countScaled':
-      // Priced by `explainCounted`, which `explainEffects` calls directly — this
-      // arm is the fallback for a caller that only wants the number.
-      return explainCounted(effect, ctx).total;
     // The three constraint arms read the **live** meter price (batch 4), so a
     // card that supplies writ is worth more to an empire whose next town is
     // blocked on writ than to one with capacity to spare.
@@ -1334,36 +1449,6 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const mean = ctx.cities === 0 ? 0 : total / ctx.cities;
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
     }
-    case 'routeYield': {
-      // Paid on every caravan this empire is running, counted by the simulation.
-      // A row paid **per luxury at either end** (The Golden Roads) is that figure
-      // again for every good on the road, and the stand-in for "how many goods"
-      // is the empire's own luxury count: a caravan runs between two of this
-      // realm's towns, so the realm's shelf is the honest upper reading of what
-      // the pair between them holds.
-      const each = valueOfYields(bagOf(effect), ctx);
-      const goods = effect.perEndpointLuxury === true ? countProbe(ctx, 'uniqueLuxuries') : 1;
-      const routes = countProbe(ctx, 'tradeRoutes');
-      // **The share on top of the flats** — The Silk Exchange's doubled beakers.
-      // Priced exactly as the amplifier that raises a whole caravan is
-      // (`scoreAmplifier`'s `routeYields` arm): the best road this empire has
-      // open, times the roads it is running, times the share — because a
-      // percentage of a route is a percentage of what that route already pays
-      // and there is no second reading of what a route pays.
-      //
-      // A row naming **one voice** is worth a share of one voice, and the stand-
-      // in for "how much of a caravan is beakers" is a flat fraction rather than
-      // a walk of the road's own fold: the fold needs a pair of towns and this
-      // appraisal has a card. Named, and deliberately an under-reading — the
-      // alternative was pricing a doubled voice as a doubled caravan.
-      const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
-      let share = 0;
-      for (const row of effect.share ?? []) {
-        const part = row.yield === 'all' ? 1 : 1 / ROUTE_VOICES;
-        share += best * routes * (row.percent / 100) * part;
-      }
-      return each * goods * routes + share;
-    }
     case 'offerRider':
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
     case 'rulePercent':
@@ -1392,41 +1477,6 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     }
     case 'effectAmplifier':
       return scoreAmplifier(effect, ctx);
-    case 'yieldConversion': {
-      // A share of the town's own fold of `from`, paid as `to` — the same
-      // arithmetic the evaluator does (`cardYieldConversions`), read off the
-      // empire's books rather than off one town's, because the scope is not
-      // evaluated here (`foldCity`' arm strikes the same bargain).
-      const from = ratesOf(ctx)[rateKeyOf(effect.from)] ?? 0;
-      if (from <= 0) return 0;
-      return voiceWeight(ctx, effect.to as Voice) * (effect.percent / 100) * from;
-    }
-    case 'mirrorYield': {
-      // What the buildings of one category pay in `from`, paid again as `to`.
-      // The simulation's own reading, off the rows this empire has raised — the
-      // `buildingYieldPercent` arm's sweep with the share fixed at one.
-      let sum = 0;
-      for (const city of ctx.state.cities) {
-        if (city.ownerId !== ctx.playerId) continue;
-        for (const id of city.buildings) {
-          const def = buildingDef(id);
-          if (def.category !== effect.category) continue;
-          const base = def[effect.from as Voice] ?? 0;
-          if (base === 0) continue;
-          sum += voiceWeight(ctx, effect.to as Voice) * base;
-        }
-      }
-      return sum;
-    }
-    case 'rateConversion': {
-      // The books are exactly this shape's input: so many of one rate buy one
-      // helping of the payout. `RateSource` names a field of the very reading
-      // `collectYields` hands the evaluator, so nothing is estimated.
-      const per = effect.per <= 0 ? 1 : effect.per;
-      const helpings = Math.floor(rateSourceValue(effect.from, ctx) / per);
-      if (helpings === 0) return 0;
-      return helpings * scorePayout(effect.pays, ctx);
-    }
     case 'unlocksBuilding': {
       // A charter is worth the shelf it opens, in the towns that would raise it,
       // discounted for the raising — `explainCounted`'s buildable-towns reading
@@ -1637,7 +1687,7 @@ function unreadEffect(_kind: never, ctx: ValueContext): number {
  * one voice of it — so it is asked once per sitting, which is the context's
  * standing bargain said once more (batch 6). Deliberately the **base** reading,
  * before any conversion pays anything, because that is what the evaluator hands
- * a `rateConversion`: pricing a conversion against a rate that already carried
+ * a `pays` rate: pricing a conversion against a rate that already carried
  * conversions would be a card feeding itself.
  */
 const RATES_MEMO = new WeakMap<ValueContext, EmpireRates>();
@@ -1657,7 +1707,7 @@ function rateKeyOf(voice: string): keyof EmpireRates {
 
 /**
  * **What a `RateSource` reads on this board** — the same five books and two
- * meters the evaluator hands a `rateConversion` (`statecraft.ts`), and the two
+ * meters the evaluator hands a `pays` rate (`statecraft.ts`), and the two
  * meters read **positive part only**, which is that function's own rule: "per
  * point of positive happiness" is what the cards say, and a conversion that paid
  * a malus would be a card that rewards misery.
@@ -2324,11 +2374,14 @@ function unreadCondition(_when: never): boolean {
 // --- the deck, as the engines read it ---------------------------------------
 
 /** A count asked with no payout to read. `RENOWN_PROBE`'s twin, one file over. */
-function countProbe(ctx: ValueContext, count: CardCountScaledEffect['count']): number {
+function countProbe(ctx: ValueContext, count: CardPaysEffect['count']): number {
   return countOf(ctx.state, ctx.playerId, '' as CardId, {
-    kind: 'countScaled',
+    kind: 'pays',
+    where: 'empire',
+    basis: 'count',
     count,
-    pays: { to: 'authority', amount: 0 },
+    to: 'authority',
+    amount: 0,
   });
 }
 
@@ -2351,21 +2404,21 @@ function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
  * Read off the deck the seat is holding, in the shapes the evaluator actually
  * pays per line: a per-town line is one per town, an empire line is one, a hex
  * line is `score.nominalTiles` of them — the same stand-in `scoreEffect`'s
- * `tileYield` arm uses, so a card's own hexes and an amplifier's agree.
+ * hex `pays` arm uses, so a card's own hexes and an amplifier's agree.
  */
 function amplifiedLines(ctx: ValueContext, voice: Voice): number {
   let lines = 0;
   for (const effect of slottedOrderEffects(ctx)) {
-    if (effect.kind === 'cityYields') {
-      if ((bagOf(effect)[voice] ?? 0) > 0) lines += ctx.cities;
-    } else if (effect.kind === 'empireYields') {
-      if ((bagOf(effect)[voice] ?? 0) > 0) lines += 1;
-    } else if (effect.kind === 'tileYield') {
-      if ((bagOf(effect)[voice] ?? 0) > 0) lines += ctx.ai.score.nominalTiles;
-    } else if (effect.kind === 'countScaled') {
-      const pays = effect.pays;
-      if (pays.to !== 'yield' || pays.yield !== voice || pays.amount <= 0) continue;
-      lines += pays.where === 'city' ? ctx.cities : 1;
+    if (effect.kind !== 'pays') continue;
+    if ((effect.basis ?? 'flat') === 'flat') {
+      if ((bagOf(effect)[voice] ?? 0) <= 0) continue;
+      if (effect.where === 'city') lines += ctx.cities;
+      else if (effect.where === 'empire' || effect.where === 'capital') lines += 1;
+      else if (effect.where === 'hex') lines += ctx.ai.score.nominalTiles;
+    } else if (effect.basis === 'count') {
+      if (effect.stage !== undefined || effect.to !== voice) continue;
+      if ((effect.amount ?? 0) <= 0) continue;
+      lines += effect.where === 'city' ? ctx.cities : 1;
     }
   }
   return lines;
@@ -2445,14 +2498,14 @@ function deckReading(state: GameState, playerId: number): DeckReading {
  * answer to the audit's finding 5.
  *
  * `foldEmpireRates` is the **base** reading by construction: it is the input a
- * `rateConversion` is handed, so it stops one line short of the truth and must —
+ * `pays` rate is handed, so it stops one line short of the truth and must —
  * the empire-scale card lines are computed *from* it, and folding them back in
  * would be a card feeding itself. The sender's foreign routes and the treasury's
  * own four lines are already in it (`foldEmpireRates`, `cities.ts`), so the one thing
  * missing from `V` is `explainEmpireCardYields`.
  *
  * That one omission was the whole of the margin's hole: the founder trickle, The
- * Great Litany's culture, every empire-scoped `countScaled` payout — Apostles is
+ * Great Litany's culture, every empire-scoped `pays` count payout — Apostles is
  * the built case, an amplifier on a trickle that pays `where: 'empire'`, and its
  * margin read exactly zero.
  *
@@ -2828,7 +2881,7 @@ function marginMemo(ctx: ValueContext): Map<CardId, Appraisal | null> {
  * **What a counted card is worth: what this empire counts today, plus a
  * discounted share of what it could come to count.**
  *
- * The ruling of 2026-09-04. Until it, every `countScaled` on every card was
+ * The ruling of 2026-09-04. Until it, every `pays` count on every card was
  * priced at `score.nominalCount` — one flat guess, three — which meant a growing
  * card that had watched twelve barbarians fall was worth exactly what the same
  * card was worth the turn it was drafted, and a card paying per barracks was
@@ -2874,7 +2927,7 @@ function marginMemo(ctx: ValueContext): Map<CardId, Appraisal | null> {
  * which is a row-borne counter with no holder (no such row exists today).
  */
 export function explainCounted(
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
   ctx: ValueContext,
   card?: CardId,
 ): Appraisal {
@@ -2904,8 +2957,8 @@ export function explainCounted(
   }
   if (per !== 1) terms.push({ label: `÷ ${per} counted per helping`, value: per, op: 'div' });
   terms.push({
-    label: `× ${round(scorePayout(effect.pays, ctx))} — what one helping pays`,
-    value: scorePayout(effect.pays, ctx),
+    label: `× ${round(scorePayout(effect, ctx))} — what one helping pays`,
+    value: scorePayout(effect, ctx),
     op: 'mul',
   });
   return appraise(terms);
@@ -2926,7 +2979,7 @@ export function explainCounted(
  * Everything after the count is `explainCounted`'s own arithmetic said again in
  * the same order — the row's cap, `per` helpings, then `scorePayout` — so the
  * trickle a prophet is priced by and the trickle a card would double are read
- * through one reading of one payout. A row that is not a `countScaled` at all
+ * through one reading of one payout. A row that is not a `pays` count at all
  * falls to `scoreEffect`, which is what it would have got anywhere else.
  */
 export function explainForecastCount(
@@ -2937,14 +2990,18 @@ export function explainForecastCount(
 ): Appraisal {
   const terms: ValueTerm[] = [];
   for (const effect of effects) {
-    if (effect.kind !== 'countScaled') {
-      terms.push({ label: effect.kind, value: scoreEffect(effect, ctx) });
+    if (effect.kind !== 'pays' || effect.basis !== 'count') {
+      terms.push({
+        label: effect.kind === 'pays' ? paysWord(effect) : effect.kind,
+        value: scoreEffect(effect, ctx),
+      });
       continue;
     }
     const per = effect.per === undefined || effect.per <= 0 ? 1 : effect.per;
     const capped = effect.max === undefined ? count : Math.min(count, effect.max * per);
-    const payout = scorePayout(effect.pays, ctx);
-    const inner: ValueTerm[] = [{ label: `${round(capped)} ${effect.count} — ${why}`, value: capped }];
+    const payout = scorePayout(effect, ctx);
+    const what = effect.count ?? 'nothing';
+    const inner: ValueTerm[] = [{ label: `${round(capped)} ${what} — ${why}`, value: capped }];
     if (capped < count) {
       inner.push({
         label: `(the row caps at ${effect.max} helping${effect.max === 1 ? '' : 's'})`,
@@ -2957,7 +3014,7 @@ export function explainForecastCount(
       value: payout,
       op: 'mul',
     });
-    terms.push(nest(effect.count, appraise(inner)));
+    terms.push(nest(what, appraise(inner)));
   }
   return appraise(terms);
 }
@@ -2971,7 +3028,7 @@ export function explainForecastCount(
  * they cannot drift. See `explainCounted` for the empire-then-towns order.
  */
 function realizedCount(
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
   ctx: ValueContext,
   card?: CardId,
 ): number | null {
@@ -3010,7 +3067,7 @@ function realizedCount(
  * in it: somebody has to raise the row. The delay is `buildTurns` of what those
  * towns would be raising, and the multiplication prints as a part of the term.
  */
-function potentialTerms(effect: CardCountScaledEffect, ctx: ValueContext): ValueTerm[] {
+function potentialTerms(effect: CardPaysEffect, ctx: ValueContext): ValueTerm[] {
   if (effect.count === 'tally') {
     const occasion = effect.tally;
     const forecast = occasion === undefined ? undefined : ctx.ai.score.tallyForecast[occasion];
@@ -3072,7 +3129,7 @@ function potentialTerms(effect: CardCountScaledEffect, ctx: ValueContext): Value
  * count of buildable ground would be an answer to a different question.
  */
 function potentialTownsFor(
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
   ctx: ValueContext,
 ): { open: number; cost: number } | null {
   if (effect.within === 'city') return null;
@@ -3112,7 +3169,7 @@ function potentialTownsFor(
 }
 
 /**
- * A `countScaled`'s payout, per unit of whatever it counts.
+ * A `pays` count's payout, per unit of whatever it counts.
  *
  * **`where` is read** (batch H2, the audit's finding 6): the simulation pays a
  * `where: 'city'` line in **every** town (`explainCardCityYields`, `statecraft.ts`), so
@@ -3127,30 +3184,35 @@ function potentialTownsFor(
  * `'capital'` pays once, which is what it says; `'empire'` pays once, which is
  * what it has always been read as.
  */
-function scorePayout(pays: PayoutShape, ctx: ValueContext): number {
-  switch (pays.to) {
-    case 'yield': {
-      const bag: YieldBag = {};
-      bag[pays.yield as Voice] = pays.amount;
-      return valueOfYields(bag, ctx) * (pays.where === 'city' ? ctx.cities : 1);
-    }
-    case 'happiness':
-      return pays.amount * meterWeight(ctx, 'happiness');
-    case 'authority':
-      return pays.amount * meterWeight(ctx, 'authority');
-    case 'percent':
-      return voiceWeight(ctx, pays.yield as Voice) * (pays.percent / 100) * nominalRate(ctx);
-    default:
-      return ctx.ai.score.unknownEffect;
+function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
+  const to = pays.to;
+  if (to === undefined) return ctx.ai.score.unknownEffect;
+  // `stage` is the discriminant of the percentage payout — see `CardPaysEffect`.
+  if (pays.stage !== undefined) {
+    return voiceWeight(ctx, to as Voice) * ((pays.percent ?? 0) / 100) * nominalRate(ctx);
   }
+  const amount = pays.amount ?? 0;
+  if (to === 'happiness') return amount * meterWeight(ctx, 'happiness');
+  if (to === 'authority') return amount * meterWeight(ctx, 'authority');
+  const bag: YieldBag = {};
+  bag[to as Voice] = amount;
+  return valueOfYields(bag, ctx) * (pays.where === 'city' ? ctx.cities : 1);
 }
 
-/** `CardPayout`, structurally — imported by shape so this file needs no second import site. */
-type PayoutShape =
-  | { to: 'yield'; yield: string; amount: number; where: string }
-  | { to: 'happiness'; amount: number }
-  | { to: 'authority'; amount: number }
-  | { to: 'percent'; yield: string; percent: number; stage: string };
+/**
+ * **What a `pays` term is called in the feed** — the dimensions written back
+ * into a word.
+ *
+ * Batch E5 merged eight kinds into one, and the appraisal labelled each term by
+ * its bare `kind`; a spectator reading eight identical "pays" lines would have
+ * lost exactly what the merge was meant to make legible. So a term says its two
+ * dimensions instead. Nothing but the label moves — every figure in this file is
+ * the figure the eight arms computed.
+ */
+function paysWord(effect: CardPaysEffect): string {
+  const basis = effect.basis ?? 'flat';
+  return `pays ${effect.where} ${basis}`;
+}
 
 /** The six voices off any effect that carries a `CardYieldBag`. */
 function bagOf(effect: object): YieldBag {

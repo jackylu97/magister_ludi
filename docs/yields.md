@@ -203,20 +203,29 @@ One row per `CardEffect` kind that can move one of the six voices, and the
 step(s) it lands in. A **new kind that pays a yield joins this table or the sync
 test fails** — which is the whole point of writing it down.
 
-| kind | steps | additive or multiplicative |
-|---|---|---|
-| `tileYield` | 2 | additive; `percent`/`basePercent` are the hex's two shares |
-| `cityYields` | 3 | additive |
-| `countScaled` | 3, 16 | additive (city/capital scope at 3, `where: 'empire'` at 16) |
-| `mirrorYield` | 3 | additive — a voice paid again off one category's buildings |
-| `cardYieldAmplifier` | 2, 3, 16 | additive flat and a percentage, over the *card lines* of the fold it reads |
-| `routeYield` | 6, 14 | additive (arrivals at 6, the caravans abroad at 14) |
-| `buildingYieldPercent` | 9 | multiplicative within the step; lands as a flat |
-| `yieldConversion` | 10 | multiplicative within the step; lands as a flat |
-| `percentYields` | 11 | multiplicative, at whichever stage the row names |
-| `productionBonus` | 11 | multiplicative, city stage, production only |
-| `empireYields` | 16 | additive |
-| `rateConversion` | 16 | additive, off this turn's own rates |
+Since batch **E5** (`docs/audit/e5-yield-shape.md`) eight of those kinds are one:
+`pays`, with a `where` (the town · the capital · the hex · the empire · the
+route) and a `basis` (a flat bag · per count · a mirror of one shelf · a share of
+a voice · a conversion of a rate). So `pays` has **one row per (`where`,
+`basis`) pair it is written in**, and the pair is what says where the figure
+lands. The `where · basis` cell is blank for the kinds that are still one thing.
+
+| kind | where · basis | steps | additive or multiplicative |
+|---|---|---|---|
+| `pays` | hex · flat | 2 | additive; `percent`/`basePercent` are the hex's two shares |
+| `pays` | city · flat | 3 | additive |
+| `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
+| `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |
+| `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
+| `cardYieldAmplifier` | | 2, 3, 16 | additive flat and a percentage, over the *card lines* of the fold it reads |
+| `pays` | route · flat | 6, 14 | additive (arrivals at 6, the caravans abroad at 14) |
+| `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
+| `pays` | city · share | 10 | multiplicative within the step; lands as a flat |
+| `percentYields` | | 11 | multiplicative, at whichever stage the row names |
+| `productionBonus` | | 11 | multiplicative, city stage, production only |
+| `pays` | empire · flat | 16 | additive — the luxuries' signature, and no card row today |
+| `pays` | empire · count | 16 | additive |
+| `pays` | empire · rate | 16 | additive, off this turn's own rates |
 
 ### Kinds that move a voice but not through this sequence
 

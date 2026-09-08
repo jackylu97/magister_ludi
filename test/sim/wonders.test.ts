@@ -400,7 +400,7 @@ describe('a wonder’s effect is a card', () => {
     // wonder's is read by the same evaluator.
     const def = buildingDef(WONDER);
     const restore = def.effects;
-    (def as { effects?: unknown }).effects = [{ kind: 'cityYields', culture: 2 }];
+    (def as { effects?: unknown }).effects = [{ kind: 'pays', where: 'city', culture: 2 }];
     try {
       racing(g.state, home);
       settleProduction(g.state, home);
@@ -582,13 +582,14 @@ describe('the ratified roster', () => {
       'rule',
       'projectRider',
       'combatLine',
-      'countScaled',
-      'tileYield',
+      // Batch E5: `countScaled`, `tileYield` and `cityYields` are three
+      // (`where`, `basis`) readings of one shape now. The pairs' own register
+      // is `test/sim/statecraft.test.ts`.
+      'pays',
       'effectAmplifier',
       'rulePercent',
       'unitStat',
       'cityStat',
-      'cityYields',
       'percentYields',
       'offerRider',
     ]) {
@@ -601,7 +602,7 @@ describe('the ratified roster', () => {
     expect(
       WONDER_IDS.some((id) =>
         (buildingDef(id).effects ?? []).some(
-          (effect) => effect.kind === 'tileYield' && effect.scope !== undefined,
+          (effect) => effect.kind === 'pays' && effect.where === 'hex' && effect.scope !== undefined,
         ),
       ),
     ).toBe(true);

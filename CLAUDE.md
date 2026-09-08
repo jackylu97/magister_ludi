@@ -207,8 +207,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   (`resourceEffects.ts`) — nothing else switches on its `effect.kind`. Its
   vocabulary is the cards' where the two mean the same thing (batch H6: the
   yield bag is `CardYieldBag`, the scope is `CityScope` plus `'owner'`, the
-  rule union an `Extract<CardRule>`, `empireYields`/`happinessTierBoost`/
-  `authority` the card interfaces); a luxury is still not a card *class* —
+  rule union an `Extract<CardRule>`, `happinessTierBoost`/`authority` the card
+  interfaces; batch E5: the empire's flat sum is the cards' one `pays` shape at
+  `where: 'empire'`, `ResourceEmpirePays`); a luxury is still not a card *class* —
   the file's docblock says why. `citiesOf`/`wondersHeldBy` (`state.ts`) are
   the one town walk every evaluator uses. Effects
   may carry `fromAge`, `perCopy` (silver/gold Æra III only), `scope`
@@ -249,7 +250,12 @@ be renamed — it would change every seeded outcome. No further rename passes.
   a new card is a JSON row, a new *shape* is a design decision, and a shape
   declared but never read fails the register test. The four flag-rule kinds
   are one `rule` kind (`CardFlagRuleId` = action | behavior | city | zoc,
-  batch H6); the moments the world announces are one union in
+  batch H6); **the eight ways to pay a voice are one `pays` kind** with two
+  dimensions — `where` (city | capital | hex | empire | route) × `basis` (flat |
+  count | mirror | share | rate), batch E5, `docs/audit/e5-yield-shape.md`; a
+  ninth way to pay is a new `where` or a new `basis`, and which step a pair
+  lands at is `docs/yields.md`'s register (one row per pair, sync-tested, and
+  the live pairs pinned in `test/sim/statecraft.test.ts`). The moments the world announces are one union in
   `occasions.ts` (beads take it whole, Triumphs an `Extract`) — the windfall,
   tally and order-bead occasions are different questions and stay their own. The fold registry (who folds
   what) is pinned in `test/sim/statecraft.test.ts`. A card whose text needs a

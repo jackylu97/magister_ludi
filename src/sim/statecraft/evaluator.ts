@@ -110,7 +110,6 @@ import {
   type PressureRuleId,
   type BehaviorRuleId,
   type CardBuildingYieldPercentEffect,
-  type CardCountScaledEffect,
   type CardPeriodicEffect,
   type CardDefBase,
   type CardEffect,
@@ -118,10 +117,9 @@ import {
   type CardHappinessEffect,
   type CardId,
   type CardLandfallEffect,
-  type CardRouteYieldEffect,
-  type CardPayout,
+  type CardPaysEffect,
+  type PayBasis,
   type CardRule,
-  type CardTileYieldEffect,
   type CityRuleId,
   type CityScope,
   type CombatCondition,
@@ -764,19 +762,19 @@ export function heldReligions(state: GameState, playerId: number): Religion[] {
  * The founder's trickle with Apostles folded in — **before anything is banked**,
  * which is `windfallPayout`'s discipline applied to a standing payment.
  *
- * It reaches the one figure a trickle row has (`countScaled`'s payout) and
+ * It reaches the one figure a trickle row has (`pays` count's payout) and
  * nothing else, so a card that doubles what your followers pay you cannot
  * silently double a rule or a range. Zero amplification returns the row
  * untouched, so a game where nobody holds Apostles folds byte-identically to one
  * from before the card existed.
  */
 function amplifyTrickle(effect: CardEffect, percent: number): CardEffect {
-  if (percent === 0 || effect.kind !== 'countScaled') return effect;
-  const pays = effect.pays;
-  if (pays.to !== 'yield' && pays.to !== 'happiness' && pays.to !== 'authority') return effect;
+  if (percent === 0 || effect.kind !== 'pays' || effect.basis !== 'count') return effect;
+  // A percentage payout carries `stage` and no `amount` — a figure this cannot
+  // reach, and the one payout form the trickle was never written about.
+  if (effect.stage !== undefined || effect.amount === undefined) return effect;
   // Exact since batch X: half again on a one-point trickle is a point and a half.
-  const amount = (pays.amount * (100 + percent)) / 100;
-  return { ...effect, pays: { ...pays, amount } };
+  return { ...effect, amount: (effect.amount * (100 + percent)) / 100 };
 }
 
 /**
@@ -1649,7 +1647,7 @@ function label(source: string, note: string | null): string {
 // --- counts and rates -------------------------------------------------------
 
 /**
- * What a `countScaled` counts, in one place.
+ * What a `pays` count counts, in one place.
  *
  * `city` is present for the city-scoped counts and ignored by the rest; a
  * city-scoped count asked with no city answers 0, which is the honest answer for
@@ -1673,10 +1671,15 @@ export function countOf(
   state: GameState,
   playerId: number,
   card: CardId,
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
   city?: City,
 ): number {
   const count = effect.count;
+  // **A row that names no count counts nothing.** `count` is one field of the
+  // one `pays` shape (batch E5) and only `basis: 'count'` fills it, so a caller
+  // handing over a flat row gets the honest answer rather than a throw — the
+  // same silence a `tally` naming no occasion keeps.
+  if (count === undefined) return 0;
   switch (count) {
     case 'uniqueLuxuries':
       // **"In this city" is the same question of narrower ground**, the modifier
@@ -2121,7 +2124,7 @@ function followingCount(
   state: GameState,
   playerId: number,
   count: CountKind,
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
 ): number {
   const held = heldReligions(state, playerId);
   if (held.length === 0) return 0;
@@ -2166,7 +2169,7 @@ function improvedResources(
   state: GameState,
   playerId: number,
   kind: ResourceKind,
-  effect: CardCountScaledEffect,
+  effect: CardPaysEffect,
   city?: City,
 ): number {
   if (effect.within === 'city') {
@@ -2192,7 +2195,7 @@ function garrisonOf(state: GameState, city: City): Unit[] {
 }
 
 /**
- * What a `rateConversion` reads.
+ * What a `pays` rate reads.
  *
  * The three `…PerTurn` sources are handed in by `collectYields`, which has just
  * computed them — asking the yields again here would be a second sweep of every
@@ -2232,7 +2235,7 @@ export interface EmpireRates {
    * put them) and are therefore read rather than banked.
    *
    * `sciencePerTurn`'s siblings and here for its stated reason: no `RateSource`
-   * names either, because a `rateConversion` is quoted out of what an empire
+   * names either, because a `pays` rate is quoted out of what an empire
    * *banked* and these are not banked anywhere. What wanted them is
    * `CountKind`'s `empireYield` — Horology's "science equal to your empire-wide
    * production" — which asks the books rather than sweeping the towns a second
@@ -2314,8 +2317,37 @@ export const CITY_SCOPED_COUNTS: readonly CountKind[] = [
  * sums across the empire's towns and one that is handed a single town agree
  * about which is which.
  */
-function isCityScopedCount(effect: CardCountScaledEffect): boolean {
-  return effect.within === 'city' || CITY_SCOPED_COUNTS.includes(effect.count);
+function isCityScopedCount(effect: CardPaysEffect): boolean {
+  if (effect.within === 'city') return true;
+  return effect.count !== undefined && CITY_SCOPED_COUNTS.includes(effect.count);
+}
+
+/**
+ * A `pays` row's basis, with the default spelt — batch E5's one reading of an
+ * absent field.
+ *
+ * `'flat'` is the default because the four flat kinds are most of the table and
+ * a row saying nothing is saying "the bag above" (`CardPaysEffect`). Read
+ * wherever an arm asks "is this mine", so the default lives in one place rather
+ * than in eleven `?? 'flat'`s that could drift apart.
+ */
+function basisOf(effect: CardPaysEffect): PayBasis {
+  return effect.basis ?? 'flat';
+}
+
+/**
+ * Does this row's helping pay one of the **six voices**, as a flat figure?
+ *
+ * The one question the count, mirror, share and rate bases all have to ask
+ * before they touch `to`: a helping may pay a meter (`happiness`, `authority`)
+ * or a percentage (`stage`), and neither of those belongs in a yield fold. Said
+ * once, so the town's arm and the empire's cannot draw the line differently —
+ * which is exactly what `pays.to !== 'yield'` did for them before E5.
+ */
+function paysAVoice(effect: CardPaysEffect): boolean {
+  if (effect.stage !== undefined) return false;
+  const to = effect.to;
+  return to !== undefined && to !== 'happiness' && to !== 'authority';
 }
 
 /** How many helpings a count (or a rate) buys, capped where the design caps it. */
@@ -2359,8 +2391,8 @@ function paysSomething(line: CardYieldLine): boolean {
 }
 
 /**
- * Every flat yield this empire's cards pay **this city**: the `cityYields`
- * shapes a scope admits, then every city-scoped `countScaled` payout.
+ * Every flat yield this empire's cards pay **this city**: the town `pays`
+ * shapes a scope admits, then every city-scoped `pays` count payout.
  *
  * Folded into `foldCity` exactly as `cityResourceYields` is, and printed line
  * by line by the city panel — one list, one fold, rule 5.
@@ -2369,17 +2401,17 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   const owner = city.ownerId;
   const list: CardYieldLine[] = [];
 
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityYields')) {
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (effect.where !== 'city' || basisOf(effect) !== 'flat') continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const line = emptyLine(card, label(source, scopeNote(effect.scope)));
     for (const key of VOICES) line[key] = (effect[key] ?? 0);
     if (paysSomething(line)) list.push(line);
   }
 
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
-    const pays = effect.pays;
-    if (pays.to !== 'yield') continue;
-    if (pays.where === 'empire') continue;
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (effect.basis !== 'count' || !paysAVoice(effect)) continue;
+    if (effect.where === 'empire') continue;
     // **`capital` is a city line that lands in one town**, and it is read here
     // rather than in the empire fold because that is the only place a voice the
     // empire has no bank for can be paid at all: `collectYields` banks an empire
@@ -2387,11 +2419,11 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     // the floor, having no basket to put them in. The Guild Charter's hammers
     // are the first row to want one, so the seat of government is where they
     // land — one town, counted once, exactly as the card's own words say.
-    if (pays.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
+    if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
     const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
-    line[pays.yield] = pays.amount * times;
+    line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
     if (paysSomething(line)) list.push(line);
   }
 
@@ -2400,8 +2432,9 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
   // it lands before Entry XVII's percentages: a mirrored beaker is worth what a
   // library's beaker is worth, and staging it twice would be paying a science
   // bonus on faith. The sum is the buildings' own figures and never the town's
-  // total — see `CardMirrorYieldEffect`.
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'mirrorYield')) {
+  // total — see `CardPaysEffect`.
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (effect.basis !== 'mirror' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     let mirrored = 0;
     for (const id of city.buildings) {
@@ -2411,7 +2444,7 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     }
     if (mirrored === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
-    line[effect.to] = mirrored;
+    line[effect.to as CityYieldKey] = mirrored;
     if (paysSomething(line)) list.push(line);
   }
 
@@ -2517,8 +2550,8 @@ function deckModifierLines(
 }
 
 /**
- * Every flat yield this empire's cards pay **the empire**, once: `empireYields`,
- * the empire-scoped `countScaled` payouts, and every `rateConversion`.
+ * Every flat yield this empire's cards pay **the empire**, once: empire `pays`,
+ * the empire-scoped `pays` count payouts, and every `pays` rate.
  *
  * Banked once per player by `collectYields` after every city has collected,
  * which is the whole difference between an empire line and a per-city one.
@@ -2527,7 +2560,7 @@ function deckModifierLines(
  *
  * **It may be handed a thunk instead** (batch H18), and that is the whole of
  * what `foldEmpireRates`'s docblock always promised: a rate reading prices
- * every town in the empire, and only the `rateConversion` arm below reads one.
+ * every town in the empire, and only the `pays` rate arm below reads one.
  * A caller with the turn's totals already in hand passes them; a caller that
  * would have to *take* the reading passes the taking, and an empire holding no
  * such card never pays for it. Resolved at most once, so two conversions read
@@ -2543,31 +2576,35 @@ export function explainCardEmpireYields(
   const reading = (): EmpireRates =>
     (taken ??= typeof rates === 'function' ? rates() : rates);
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'empireYields')) {
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.where !== 'empire' || basisOf(effect) !== 'flat') continue;
     const line = emptyLine(card, source);
     for (const key of VOICES) line[key] = (effect[key] ?? 0);
     if (paysSomething(line)) list.push(line);
   }
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'countScaled')) {
-    const pays = effect.pays;
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.basis !== 'count' || !paysAVoice(effect)) continue;
     // `capital` is a **city** line (see `explainCardCityYields`), so it leaves here with
     // `city`: an empire fold that also paid it would pay it twice.
-    if (pays.to !== 'yield' || pays.where === 'city' || pays.where === 'capital') continue;
+    if (effect.where === 'city' || effect.where === 'capital') continue;
     const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
-    line[pays.yield] = pays.amount * times;
+    line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
     if (paysSomething(line)) list.push(line);
   }
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'rateConversion')) {
-    const pays = effect.pays;
-    if (pays.to !== 'yield') continue;
-    const times = helpings(rateOf(state, playerId, effect.from, reading()), effect.per, undefined);
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.basis !== 'rate' || effect.fromRate === undefined || !paysAVoice(effect)) continue;
+    const times = helpings(
+      rateOf(state, playerId, effect.fromRate, reading()),
+      effect.per,
+      undefined,
+    );
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
-    line[pays.yield] = pays.amount * times;
+    line[effect.to as CityYieldKey] = (effect.amount ?? 0) * times;
     if (paysSomething(line)) list.push(line);
   }
 
@@ -2590,7 +2627,7 @@ export function explainCardEmpireYields(
  * asking `foldCity` from here would call `explainCity`, which calls this, which
  * would ask again.
  *
- * See `CardYieldConversionEffect` for why the flats are the honest reading of
+ * See `CardPaysEffect` for why the flats are the honest reading of
  * "their food yield". The share is floored **per city** and per line: two
  * conversions on one town pay for two shares rather than rounding into a free
  * point, which is `explainCityBuildings`' per-entry floor read one table over.
@@ -2605,12 +2642,13 @@ export function cardYieldConversions(
   flats: Readonly<Record<CityYieldKey, number>>,
 ): CardYieldLine[] {
   const list: CardYieldLine[] = [];
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'yieldConversion')) {
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (effect.basis !== 'share' || effect.from === undefined || !paysAVoice(effect)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
-    const paid = (Math.max(0, flats[effect.from]) * effect.percent) / 100;
+    const paid = (Math.max(0, flats[effect.from]) * (effect.percent ?? 0)) / 100;
     if (paid === 0) continue;
     const line = emptyLine(card, label(source, `${effect.from} → ${effect.to}`));
-    line[effect.to] = paid;
+    line[effect.to as CityYieldKey] = paid;
     if (paysSomething(line)) list.push(line);
   }
   return list;
@@ -2709,7 +2747,7 @@ function scopeNamesBuilding(scope: CityScope | undefined, id: BuildingId): boole
 }
 
 /**
- * **What the law adds to one building's own yield** — every `cityYields` line
+ * **What the law adds to one building's own yield** — every town `pays` line
  * in this town whose scope names the building (a follower belief's science on
  * a temple, The Choir's culture, a legacy's faith), summed per voice.
  *
@@ -2722,7 +2760,7 @@ function scopeNamesBuilding(scope: CityScope | undefined, id: BuildingId): boole
  * These lines are banked once as the cards' own (`explainCardCityYields`); this
  * reading is only what the share is *over*, never a second banking. A line
  * that reaches the town by some other door (`hasBuildingYielding`, a
- * category `mirrorYield`) is a fact about the town, not about the temple, and
+ * category `pays` mirror) is a fact about the town, not about the temple, and
  * is deliberately not here.
  */
 export function cardLinesOnBuilding(
@@ -2738,7 +2776,8 @@ export function cardLinesOnBuilding(
     culture: 0,
     faith: 0,
   };
-  for (const { effect } of cityEffectsOfKind(state, city, 'cityYields')) {
+  for (const { effect } of cityEffectsOfKind(state, city, 'pays')) {
+    if (effect.where !== 'city' || basisOf(effect) !== 'flat') continue;
     if (!scopeNamesBuilding(effect.scope, id)) continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     for (const key of VOICES) total[key] += effect[key] ?? 0;
@@ -2775,7 +2814,7 @@ export function foldCardYields(list: readonly CardYieldLine[]): Record<CityYield
  * only has to ask whether the hex qualifies.
  *
  * Three producers now write one of these and they are deliberately the same
- * shape (Entry XXVII): a card's `tileYield` (`cardTileLines`, below), a
+ * shape (Entry XXVII): a card's hex `pays` (`cardTileLines`, below), a
  * building's `tileYields` (`buildingTileLines`, `buildingEffects.ts`) and a
  * luxury's `improvementYields` (`resourceTileLines`, `resourceEffects.ts`). The
  * tile chain folds one list and has no idea which of the three a line came from,
@@ -2786,22 +2825,22 @@ export interface TileLine {
   on: TileCondition;
   /**
    * The card that wrote this line, for the producers that have one — every
-   * `tileYield` clause reaching the ground through `tileLinesFrom`, and the
+   * hex `pays` clause reaching the ground through `tileLinesFrom`, and the
    * amplifier's helping beside it. A resource's line and a granary's water line
    * carry none: they are the seam's and the stones', not a card's.
    *
    * Carried for the Ledger, and the reason is the same one `CityYieldPercent`
    * grew a `card` for on the same day (`docs/flags.md`, ruling jj, and the
    * user's follow-up: *"the age 3 and onwards orders are not being counted in
-   * the display total"*). The later Order pools lean on `tileYield` where the
-   * early ones lean on `cityYields`, and a card's food on a hex lands in the
+   * the display total"*). The later Order pools lean on hex `pays` where the
+   * early ones lean on town `pays`, and a card's food on a hex lands in the
    * hex's own breakdown — so the whole of a late deck was being credited to
    * **the land**. A line that cannot name its card cannot be credited to it.
    */
   card?: CardId;
   /**
    * A percentage on **what the hex's improvement already pays**, where the six
-   * voices below are a flat addition. See `CardTileYieldEffect.percent`, which
+   * voices below are a flat addition. See `CardPaysEffect.percent`, which
    * carries the whole argument; absent on every producer but a card, because a
    * granary's water line and a luxury's signature both pay flats.
    *
@@ -2813,7 +2852,7 @@ export interface TileLine {
   /**
    * A percentage on **what the hex's own ground already pays** — its terrain,
    * the hill or canopy over it, and the seam in it — where `percent` above
-   * reaches the works. See `CardTileYieldEffect.basePercent`, which carries the
+   * reaches the works. See `CardPaysEffect.basePercent`, which carries the
    * whole argument; absent on every producer but a card, for `percent`'s reason.
    *
    * Read in `explainTileYield` (`cities.ts`) as one more labelled line of the
@@ -2943,7 +2982,7 @@ export function tileConditionReadsFold(on: TileCondition | undefined): boolean {
 }
 
 /**
- * Every `tileYield` line this empire's cards put on the ground, for the context
+ * Every hex `pays` line this empire's cards put on the ground, for the context
  * a tile evaluation carries.
  *
  * Computed once per context rather than once per tile: `yieldContextFor` builds
@@ -2954,7 +2993,7 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
   // and this pass has no city in hand — the same reason a granary's water line
   // cannot be resolved here (`TileYieldContext.lines`). The scoped ones are
   // added by `scopedCardTileLines` from `cityContext`, which does.
-  const found = pickKind(liveEffects(state, playerId), 'tileYield').filter(
+  const found = hexRows(pickKind(liveEffects(state, playerId), 'pays')).filter(
     ({ effect }) => effect.scope === undefined,
   );
   const lines = tileLinesFrom(found);
@@ -2990,7 +3029,11 @@ export function cardTileLines(state: GameState, playerId: number): CardTileLine[
 function tileAmplifierLines(
   state: GameState,
   playerId: number,
-  found: readonly { source: string; card: CardId; effect: CardTileYieldEffect }[],
+  found: readonly {
+    source: string;
+    card: CardId;
+    effect: CardPaysEffect & { on: TileCondition };
+  }[],
 ): CardTileLine[] {
   const out: CardTileLine[] = [];
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'cardYieldAmplifier')) {
@@ -3027,7 +3070,7 @@ function tileAmplifierLines(
 }
 
 /**
- * The `tileYield` lines this empire's cards put on **one town's** ground — the
+ * The hex `pays` lines this empire's cards put on **one town's** ground — the
  * lines whose `scope` names which cities they land in.
  *
  * `timedCityTileLines`' sibling, and it joins `cityContext` for the same reason:
@@ -3038,18 +3081,18 @@ function tileAmplifierLines(
  */
 export function scopedCardTileLines(state: GameState, city: City): CardTileLine[] {
   return tileLinesFrom(
-    pickKind(liveEffects(state, city.ownerId), 'tileYield')
+    hexRows(pickKind(liveEffects(state, city.ownerId), 'pays'))
       .filter(
         ({ effect }) =>
           effect.scope !== undefined && cityScopeAdmits(state, city, effect.scope),
       )
-      // Labelled with where it landed, exactly as a scoped `cityYields` line is.
+      // Labelled with where it landed, exactly as a scoped town `pays` line is.
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
   );
 }
 
 /**
- * The `tileYield` lines **this city's own rites** put on its ground — the fifth
+ * The hex `pays` lines **this city's own rites** put on its ground — the fifth
  * producer of a `TileLine` (Entry XXVIII).
  *
  * A city's, not an empire's, and that is what makes Rite of Plenty say what it
@@ -3059,11 +3102,11 @@ export function scopedCardTileLines(state: GameState, city: City): CardTileLine[
  * chain still cannot tell any of the five apart.
  */
 export function timedCityTileLines(state: GameState, city: City): CardTileLine[] {
-  return tileLinesFrom(pickKind(timedLive(state, city.ownerId, city), 'tileYield'));
+  return tileLinesFrom(hexRows(pickKind(timedLive(state, city.ownerId, city), 'pays')));
 }
 
 /**
- * The `tileYield` lines the **faith this town follows** puts on its ground — the
+ * The hex `pays` lines the **faith this town follows** puts on its ground — the
  * sixth producer of a `TileLine` (the 2026-08-28 ruling).
  *
  * Harvest Blessing's whole home: *+1 food on every farm worked by a city that
@@ -3078,14 +3121,14 @@ export function timedCityTileLines(state: GameState, city: City): CardTileLine[]
  */
 export function followerCardTileLines(state: GameState, city: City): CardTileLine[] {
   return tileLinesFrom(
-    pickKind(followerBeliefEffects(state, city), 'tileYield')
+    hexRows(pickKind(followerBeliefEffects(state, city), 'pays'))
       .filter(({ effect }) => cityScopeAdmits(state, city, effect.scope))
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
   );
 }
 
 /**
- * The `tileYield` lines a town's **consecration** puts on its own ground — the
+ * The hex `pays` lines a town's **consecration** puts on its own ground — the
  * seventh producer of a `TileLine` (Entry LV's table, the Old Ways' chapel).
  *
  * `timedCityTileLines`' and `followerCardTileLines`' third sibling, and it joins
@@ -3096,21 +3139,43 @@ export function followerCardTileLines(state: GameState, city: City): CardTileLin
  *
  * It exists because the Green Cathedral is the first consecration whose gift is
  * on the *ground* rather than in the ledger: every row before it pays through
- * `cityYields` and `productionBonus`, which `liveCityEffects` already reaches, so
- * a `tileYield` written on a consecration would have been read by nobody at all.
+ * town `pays` and `productionBonus`, which `liveCityEffects` already reaches, so
+ * a hex `pays` written on a consecration would have been read by nobody at all.
  * A dead clause is exactly what this file's register test exists to refuse.
  */
 export function consecrationCardTileLines(state: GameState, city: City): CardTileLine[] {
   return tileLinesFrom(
-    pickKind(consecrationEffects(state, city), 'tileYield')
+    hexRows(pickKind(consecrationEffects(state, city), 'pays'))
       .filter(({ effect }) => cityScopeAdmits(state, city, effect.scope))
       .map((entry) => ({ ...entry, source: label(entry.source, scopeNote(entry.effect.scope)) })),
   );
 }
 
-/** One list of `tileYield` effects turned into lines. The only such conversion. */
+/**
+ * The rows of a `pays` list that speak about **the ground** — `where: 'hex'`.
+ *
+ * One filter, said once, because the seven producers of a `TileLine` all ask it
+ * (batch E5: before the merge the question was a `kind` and `pickKind` answered
+ * it). A row that names no condition reaches no hex at all and is dropped here
+ * rather than defaulting to "every one" — the honest reading of a card that
+ * never said which ground, and the same silence a `tally` with no occasion keeps.
+ */
+function hexRows<T extends { effect: CardPaysEffect }>(
+  found: readonly T[],
+): (T & { effect: CardPaysEffect & { on: TileCondition } })[] {
+  return found.filter(
+    (entry): entry is T & { effect: CardPaysEffect & { on: TileCondition } } =>
+      entry.effect.where === 'hex' && entry.effect.on !== undefined,
+  );
+}
+
+/** One list of hex `pays` effects turned into lines. The only such conversion. */
 function tileLinesFrom(
-  found: readonly { source: string; card?: CardId; effect: CardTileYieldEffect }[],
+  found: readonly {
+    source: string;
+    card?: CardId;
+    effect: CardPaysEffect & { on: TileCondition };
+  }[],
 ): CardTileLine[] {
   const list: CardTileLine[] = [];
   for (const { source, card, effect } of found) {
@@ -3155,7 +3220,7 @@ export interface CardPercentLine {
 
 /**
  * Every percentage this empire's cards put on **this city's** yields — the
- * `percentYields` shapes a scope admits, plus every `countScaled` that pays in
+ * `percentYields` shapes a scope admits, plus every `pays` count that pays in
  * percentage points.
  *
  * These join the meters' and the luxuries' in `cityYieldPercents` (`cities.ts`),
@@ -3183,14 +3248,21 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     }
   }
 
-  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'countScaled')) {
-    const pays = effect.pays;
-    if (pays.to !== 'percent') continue;
+  for (const { source, card, effect } of cityEffectsOfKind(state, city, 'pays')) {
+    // `stage` is the discriminant between a count's two payout forms — present
+    // iff the helping pays a percentage (`CardPaysEffect`).
+    if (effect.basis !== 'count' || effect.stage === undefined || effect.to === undefined) continue;
     const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
-    const percent = pays.percent * times;
+    const percent = (effect.percent ?? 0) * times;
     if (percent === 0) continue;
-    list.push({ card, source: label(source, `×${times}`), yield: pays.yield, percent, stage: pays.stage });
+    list.push({
+      card,
+      source: label(source, `×${times}`),
+      yield: effect.to as CityYieldKey,
+      percent,
+      stage: effect.stage,
+    });
   }
 
   return list;
@@ -3425,7 +3497,7 @@ export interface CardMeterLine {
  *
  * A `per: 'city'` line is multiplied by the cities its scope admits — "cities of
  * 6+ gain +2 each" is one line saying how many qualified, because three lines
- * saying "Ur +2" would bury the ledger. A city-scoped `countScaled` is summed
+ * saying "Ur +2" would bury the ledger. A city-scoped `pays` count is summed
  * across the empire's towns for the same reason.
  *
  * **This function must never read a meter.** It is called *by* `explainHappiness`,
@@ -3466,9 +3538,9 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
     list.push({ card, source: label(source, `${towns} cities`), amount: each * towns });
   }
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'countScaled')) {
-    if (effect.pays.to !== 'happiness') continue;
-    const each = effect.pays.amount;
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.basis !== 'count' || effect.to !== 'happiness') continue;
+    const each = effect.amount ?? 0;
     if (each === 0) continue;
     let times = 0;
     // A count that is city-scoped is summed over the empire's towns; an
@@ -3536,9 +3608,9 @@ function cityLocalHappiness(state: GameState, playerId: number): CardMeterLine[]
       if (!cityScopeAdmits(state, city, effect.scope)) continue;
       add(card, source, each);
     }
-    for (const { source, card, effect } of pickKind(local, 'countScaled')) {
-      if (effect.pays.to !== 'happiness') continue;
-      const each = effect.pays.amount;
+    for (const { source, card, effect } of pickKind(local, 'pays')) {
+      if (effect.basis !== 'count' || effect.to !== 'happiness') continue;
+      const each = effect.amount ?? 0;
       if (each === 0) continue;
       const times = helpings(countOf(state, playerId, card, effect, city), effect.per, effect.max);
       if (times === 0) continue;
@@ -3633,9 +3705,9 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
     });
   }
 
-  for (const { source, card, effect } of effectsOfKind(state, playerId, 'countScaled')) {
-    if (effect.pays.to !== 'authority') continue;
-    const each = effect.pays.amount;
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'pays')) {
+    if (effect.basis !== 'count' || effect.to !== 'authority') continue;
+    const each = effect.amount ?? 0;
     if (each === 0) continue;
     const times = helpings(countOf(state, playerId, card, effect), effect.per, effect.max);
     if (times === 0) continue;
@@ -4769,7 +4841,7 @@ export function musterPeriodicUnits(state: GameState): void {
 export const PERIODIC_FLOOR = 2;
 
 /** The payout a periodic boon's *count* is asked with, and it is never read. */
-export const PERIODIC_PROBE: CardPayout = { to: 'authority', amount: 0 };
+export const PERIODIC_PROBE = { where: 'empire', to: 'authority', amount: 0 } as const;
 
 /**
  * What one periodic Order's clock is **for this empire**, this instant —
@@ -4872,7 +4944,7 @@ export function runPeriodicBoons(
  *
  * The figure is a flat or a count, and the count is the simulation's own
  * (`countOf`) asked through a probe carrying the row's arguments — so a periodic
- * boon and a `countScaled` line cannot disagree about how many faith houses an
+ * boon and a `pays` count line cannot disagree about how many faith houses an
  * empire has. Composed through `windfallPayout` before a coin moves, and banked
  * through `payWindfallGrants`, which is the one seam that pays a windfall.
  */
@@ -4887,10 +4959,11 @@ function payPeriodicBoon(
   const each = effect.amount ?? 1;
   let figure = Math.floor(effect.amount ?? 0);
   if (effect.count !== undefined) {
-    const probe: CardCountScaledEffect = {
-      kind: 'countScaled',
+    const probe: CardPaysEffect = {
+      kind: 'pays',
+      basis: 'count',
+      ...PERIODIC_PROBE,
       count: effect.count,
-      pays: PERIODIC_PROBE,
       per: effect.per,
       max: effect.max,
       building: effect.building,
@@ -5373,13 +5446,13 @@ export interface CardRenownLine {
 /**
  * The payout a `renown` line's *count* is asked with, and it is never read.
  *
- * `countOf` takes a whole `CardCountScaledEffect` because that is the shape its
+ * `countOf` takes a whole `CardPaysEffect` because that is the shape its
  * arguments live on (`building`, `category`, `class`, `within`), and a renown
  * line has none of them — it needs only the sweep. So the probe carries a
  * payout that satisfies the type and is discarded, rather than `countOf` growing
  * a second signature for callers that only want the number.
  */
-const RENOWN_PROBE: CardPayout = { to: 'authority', amount: 0 };
+const RENOWN_PROBE = { where: 'empire', to: 'authority', amount: 0 } as const;
 
 export function cardRenownLines(state: GameState, playerId: number): CardRenownLine[] {
   const list: CardRenownLine[] = [];
@@ -5391,7 +5464,12 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
       per === 'city'
         ? cityCount(state, playerId)
         : per === 'wonder'
-          ? countOf(state, playerId, card, { kind: 'countScaled', count: 'wonders', pays: RENOWN_PROBE })
+          ? countOf(state, playerId, card, {
+              kind: 'pays',
+              basis: 'count',
+              ...RENOWN_PROBE,
+              count: 'wonders',
+            })
           : per === 'buildingOfCategory'
             ? // Patrons' culture houses, through `countOf` — the one sweep that
               // answers "how many buildings of this shelf does the realm hold",
@@ -5400,10 +5478,11 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
               effect.category === undefined
               ? 0
               : countOf(state, playerId, card, {
-                  kind: 'countScaled',
+                  kind: 'pays',
+                  basis: 'count',
+                  ...RENOWN_PROBE,
                   count: 'buildingsOfCategory',
                   category: effect.category,
-                  pays: RENOWN_PROBE,
                 })
             : 1;
     const amount = each * helpings;
@@ -5480,7 +5559,7 @@ export function cardEmpireRenownShares(
 }
 
 /**
- * Every `routeYield` line this empire's cards put **on a caravan** that left this
+ * Every route `pays` line this empire's cards put **on a caravan** that left this
  * town — Silk Roads' coin and the Caravanserai's grain.
  *
  * Asked of the **origin**, which is the rule `routeYields.ts` keeps throughout: a
@@ -5505,13 +5584,13 @@ export interface CardRouteLine {
   gold: number;
   science: number;
   culture: number;
-  /** The bag is paid once per luxury at either end. `CardRouteYieldEffect`'s. */
+  /** The bag is paid once per luxury at either end. `CardPaysEffect`'s. */
   perEndpointLuxury: boolean;
 }
 
 /**
  * One share a card takes of what a road already carries — The Silk Exchange's
- * doubled beakers. `CardRouteYieldEffect.share`, resolved against this pair.
+ * doubled beakers. `CardPaysEffect.share`, resolved against this pair.
  */
 export interface CardRouteShareLine {
   card: CardId;
@@ -5538,7 +5617,7 @@ export function cardRouteYieldLines(
       culture: effect.culture ?? 0,
       // Carried rather than resolved: this module holds the origin and the fold
       // in `routeYields.ts` holds both ends, and only the pair can answer "how
-      // many luxuries are on this road". See `CardRouteYieldEffect`.
+      // many luxuries are on this road". See `CardPaysEffect`.
       perEndpointLuxury: effect.perEndpointLuxury === true,
     };
     if (line.food === 0 && line.production === 0 && line.gold === 0) {
@@ -5582,7 +5661,7 @@ export function cardRouteShareLines(
 }
 
 /**
- * Every `routeYield` row that could speak about this road — the **empire's law**,
+ * Every route `pays` row that could speak about this road — the **empire's law**,
  * plus the **two towns' own shelves**.
  *
  * The empire's walk is the rule the whole module keeps: a route belongs to the
@@ -5605,14 +5684,14 @@ function routeRows(
   state: GameState,
   from: City,
   to?: City,
-): { source: string; card: CardId; effect: CardRouteYieldEffect }[] {
-  const rows = [...effectsOfKind(state, from.ownerId, 'routeYield')];
+): { source: string; card: CardId; effect: CardPaysEffect }[] {
+  const rows = [...effectsOfKind(state, from.ownerId, 'pays')];
   const shelves = [
     ...cityBuildingEffects(state, from),
     ...(to && to.ownerId === from.ownerId ? cityBuildingEffects(state, to) : []),
   ];
-  for (const entry of pickKind(shelves, 'routeYield')) rows.push(entry);
-  return rows;
+  for (const entry of pickKind(shelves, 'pays')) rows.push(entry);
+  return rows.filter(({ effect }) => effect.where === 'route');
 }
 
 /**

@@ -147,14 +147,14 @@ export function collectYields(state: GameState, report?: TurnReport): void {
   }
 
   // **The empire's own lines, banked once per player** after every city has
-  // collected — the whole difference between an `empireYields` signature and a
+  // collected — the whole difference between an empire `pays` signature and a
   // `foldCity` one, and since the empire stage ruling (batch H19) one list
   // rather than four loops.
   //
   // `explainEmpireLines` is that list, in the order this phase has always banked
   // in: the luxuries' empire signatures, the caravans abroad, the treasury's
   // ledger, then the cards' empire-scale payouts — last, for the reason that is
-  // the whole of `rateConversion`: a card that pays "per faith gained per turn"
+  // the whole of `pays` rate: a card that pays "per faith gained per turn"
   // has to be asked *after* everything that pays faith this turn has paid it, or
   // The Tithe would be converting last turn's rate. And at the foot, the empire
   // stage: the additive lines fold first and the meters multiply that fold once,
@@ -227,7 +227,7 @@ function collectArrears(state: GameState, report?: TurnReport): void {
 }
 
 /**
- * What one empire banked this turn, per voice — the input every `rateConversion`
+ * What one empire banked this turn, per voice — the input every `pays` rate
  * reads (`statecraft.ts`).
  *
  * The fold of the same `foldCity` the phase above banked, asked once more
@@ -238,7 +238,7 @@ function collectArrears(state: GameState, report?: TurnReport): void {
  *
  * **Two readers now** (the master-list cut of 2026-08-31), and the second is a
  * windfall whose figure is quoted in *turns* (The Lyceum's extra turn of
- * culture): it has to ask the same books a `rateConversion` asks, or "a turn of
+ * culture): it has to ask the same books a `pays` rate asks, or "a turn of
  * culture" would mean two different numbers depending on which surface said it.
  *
  * **The one fold, exported** (batch E3b). It was two functions until the three
@@ -274,7 +274,7 @@ export function foldEmpireRates(state: GameState, playerId: number): {
     faithPerTurn: 0,
     culturePerTurn: 0,
     goldPerTurn: 0,
-    // The fourth voice, and the one no `rateConversion` asks for: a great
+    // The fourth voice, and the one no `pays` rate asks for: a great
     // scholar's act is quoted in *turns of your own science* (the nerf pass of
     // 2026-09-03), and it reads this fold rather than summing the cities a
     // second time. See `EmpireRates.sciencePerTurn`.
@@ -360,8 +360,8 @@ export function foldEmpireRates(state: GameState, playerId: number): {
 }
 
 /**
- * The empire-scale card lines `collectYields` banks this turn — `empireYields`,
- * the empire-scoped `countScaled` payouts, and every `rateConversion`, read off
+ * The empire-scale card lines `collectYields` banks this turn — empire `pays`,
+ * the empire-scoped `pays` count payouts, and every `pays` rate, read off
  * this turn's own rates.
  *
  * Exported so the top bar's headline and the phase that actually banks the
@@ -373,7 +373,7 @@ export function foldEmpireRates(state: GameState, playerId: number): {
  *
  * **The reading is handed in as the taking of it** (batch H18), which is what
  * `foldEmpireRates`'s docblock has always said it was: `foldEmpireRates` prices
- * every town in the empire, only a `rateConversion` card reads it, and this
+ * every town in the empire, only a `pays` rate card reads it, and this
  * list is asked twice per card stamp, once per Ledger open and once per top-bar
  * refresh. An empire holding no such card was paying a whole extra sweep of its
  * own cities for a figure nothing looked at. Nothing about the answer moves:
@@ -510,7 +510,7 @@ export function stageEmpireFold(fold: CityYields, empire: EmpirePercents): CityY
  *
  * The additive lines first, in the order `collectYields` has always banked them:
  * the luxuries' empire signatures, the caravans abroad, the treasury's ledger,
- * then the cards' empire-scale payouts (last, because a `rateConversion` reads
+ * then the cards' empire-scale payouts (last, because a `pays` rate reads
  * the rates the three above it produced). Then **one reconciliation line per
  * voice** for the empire stage — the meter tiers and the arrears, the same two
  * lists every town carries as its second stage — whose figure is what the

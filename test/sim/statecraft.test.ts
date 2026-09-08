@@ -41,7 +41,7 @@ import {
   explainEmpireCardYields,
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
-import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
+import { CITY_YIELD_KEYS, RESOURCE_IDS, resourceDef } from '../../src/sim/resourceData';
 import { beadGrantDef } from '../../src/sim/beadData';
 import { applyCombat, fortifyError, isCombatant, previewCombat } from '../../src/sim/combat';
 import { type BuildingId, BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -163,6 +163,7 @@ import {
   greatPersonPurchaseError,
 } from '../../src/sim/greatPeople';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
+import { ALL_BELIEF_IDS, RITE_IDS, beliefDef, riteDef } from '../../src/sim/religionData';
 import {
   explainUnitUpkeep,
   explainUnitUpkeepRebate,
@@ -373,7 +374,10 @@ describe('the card table', () => {
       // shape in the union and no silent default, so a new shape that nobody
       // wrote words for fails here rather than printing an empty card.
       const speaking = def.effects.filter(
-        (effect) => effect.kind !== 'cityYields' || Object.keys(effect).length > 1,
+        (effect) =>
+          effect.kind !== 'pays' ||
+          (effect.basis ?? 'flat') !== 'flat' ||
+          Object.keys(effect).length > 2,
       );
       if (speaking.length > 0) expect(clauses.length, id).toBeGreaterThan(0);
       for (const clause of clauses) expect(clause.text, id).toBeTruthy();
@@ -395,22 +399,24 @@ describe('the card table', () => {
       walk(cardDef(id).effects as never);
     }
     const expected: CardEffectKind[] = [
-      'cityYields', 'percentYields', 'productionBonus', 'rulePercent', 'happiness',
+      // Batch E5: `cityYields`, `tileYield`, `empireYields`, `routeYield`,
+      // `mirrorYield`, `countScaled`, `yieldConversion` and `rateConversion` were
+      // eight names for one idea and are one `pays` shape now. The register asks
+      // for the survivor; which (`where`, `basis`) pairs the live table names is
+      // its own register, in the test below this one.
+      'pays', 'percentYields', 'productionBonus', 'rulePercent', 'happiness',
       'authority', 'happinessTierBoost', 'combatLine', 'unitStat', 'windfallRider',
-      'foundingRider', 'countScaled', 'rateConversion', 'offerRider', 'effectAmplifier',
+      'foundingRider', 'offerRider', 'effectAmplifier',
       // Batch H6: `actionRule`, `behaviorRule`, `cityRule` and `zocRule` were
       // four names for one evaluation and are one `rule` shape now. The register
       // asks for the survivor; the four rules the live table names are still the
       // four rules it named.
       'meterRule', 'conditionRule', 'rule', 'cityStat', 'metaRule',
-      'tileYield', 'renown', 'upkeepRebate',
+      'renown', 'upkeepRebate',
       // The rebate's twin, built for The Reckless Levy on 2026-09-06: a coin
       // *added* to each soldier's keep, which the give-back vocabulary could not
       // say and the payroll percentage said as a number nobody could read.
       'upkeepSurcharge',
-      // The user's card pass of 2026-09-03: Thalassocracy stopped being two
-      // percentages and became a share of one voice paid again as another.
-      'yieldConversion',
       // No longer the marked exception: buildings can be bought (Entry XXIX), so
       // `cardUnlocksBuilding` is read by `isUnlocked` and The Gilded Court
       // really does hand the Gilded Hall over.
@@ -429,6 +435,63 @@ describe('the card table', () => {
       'landfall',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
+  });
+
+  /**
+   * **The register the eight kinds used to be** (batch E5).
+   *
+   * `pays` is one kind with two dimensions, so "a shape declared and never used
+   * is a shape nobody has tested" now has to be asked of the *pairs*: every
+   * (`where`, `basis`) the evaluator has an arm for is named here, and every one
+   * of them is read off a live row of one of the six tables that carry effects.
+   * A pair that stops being written is a pair whose arm is dead code, and this
+   * says so — which is exactly what the eight-kind register did before the merge.
+   */
+  it('reads every (where, basis) pair of the pays shape from a live row', () => {
+    const pairs = new Set<string>();
+    const walk = (effects: readonly CardEffect[]): void => {
+      for (const effect of effects) {
+        if (effect.kind === 'pays') pairs.add(`${effect.where}/${effect.basis ?? 'flat'}`);
+        const nested = (effect as { then?: CardEffect[] }).then;
+        if (nested) walk(nested);
+      }
+    };
+    for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) walk(cardDef(id).effects);
+    for (const id of ALL_BELIEF_IDS) walk(beliefDef(id).effects);
+    for (const id of RITE_IDS) walk(riteDef(id).effects);
+    for (const id of BUILDING_IDS) walk(buildingDef(id).effects ?? []);
+    for (const id of GREAT_PERSON_IDS) walk(greatPersonDef(id).legacy);
+    for (const id of TECH_IDS) walk(techDef(id).effects ?? []);
+    // The luxuries write in the cards' vocabulary and their rows migrated with
+    // them (`ResourceEmpirePays`), so the pair they use is read where they are.
+    for (const id of RESOURCE_IDS) {
+      for (const effect of resourceDef(id).effects ?? []) {
+        if (effect.kind === 'pays') pairs.add(`${effect.where}/${effect.basis ?? 'flat'}`);
+      }
+    }
+
+    const expected = [
+      // The hex — step 2 of `docs/yields.md`.
+      'hex/flat',
+      // The town — step 3, and the count's percentage at step 11.
+      'city/flat',
+      'city/count',
+      'city/mirror',
+      // The town's share of its own fold — step 10.
+      'city/share',
+      // One town, once, because an empire line has no basket for a hammer.
+      'capital/count',
+      // The empire — step 16. The flat bag is the **luxuries'** whole use of the
+      // shape (`empireYields` until E5) and no card row carries one today.
+      'empire/flat',
+      'empire/count',
+      'empire/rate',
+      // The caravan — steps 6 and 14.
+      'route/flat',
+    ];
+    for (const pair of expected) expect(pairs.has(pair), pair).toBe(true);
+    // And nothing else: a pair no arm reads would pay nothing at all.
+    for (const pair of pairs) expect(expected.includes(pair), pair).toBe(true);
   });
 });
 
@@ -4133,7 +4196,7 @@ describe('the ratified cards of the Themes Build', () => {
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
         noteScope((effect as { scope?: unknown }).scope);
-        if (effect.kind === 'countScaled') counts.add(effect.count);
+        if (effect.kind === 'pays' && effect.count !== undefined) counts.add(effect.count);
         if (effect.kind === 'unitStat' && effect.where) wheres.add(effect.where);
         if (effect.kind === 'upkeepRebate' && effect.where) wheres.add(effect.where);
         if (effect.kind === 'productionBonus' && effect.class !== undefined) filtered = true;
@@ -4772,7 +4835,13 @@ describe("the user's card pass of 2026-09-03", () => {
     for (const id of [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS]) {
       for (const effect of cardDef(id).effects) used.add(effect.kind);
     }
-    expect(used.has('yieldConversion')).toBe(true);
+    // Batch E5: the shape is `pays` and the reading is `basis: 'share'`.
+    expect(used.has('pays')).toBe(true);
+    expect(
+      [...GOVERNMENT_IDS, ...DOCTRINE_IDS, ...ORDER_IDS].some((id) =>
+        cardDef(id).effects.some((effect) => effect.kind === 'pays' && effect.basis === 'share'),
+      ),
+    ).toBe(true);
     // The member register: a field on an existing shape is invisible to the
     // kind-level one, so `atPopulation` is named here or nothing checks it.
     const riders = ORDER_IDS.flatMap((id) => orderDef(id).effects).filter(
@@ -5106,9 +5175,9 @@ describe('the card-shapes pass of 2026-09-04', () => {
       for (const effect of effects) {
         const scope = (effect as { scope?: { test?: string } }).scope;
         if (scope?.test !== undefined) scopes.add(scope.test);
-        if (effect.kind === 'countScaled') {
-          counts.add(effect.count);
-          if (effect.pays.to === 'yield') wheres.add(effect.pays.where);
+        if (effect.kind === 'pays') {
+          if (effect.count !== undefined) counts.add(effect.count);
+          if (effect.basis === 'count') wheres.add(effect.where);
         }
         if (effect.kind === 'combatLine' && effect.scaled) scales.add(effect.scaled.count);
         if (effect.kind === 'windfallRider') occasions.add(effect.occasion);
@@ -5323,7 +5392,8 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(hammers()).toBe(8);
     // The ground half is untouched, and it is still an unscoped *tile* line —
     // the seam pays wherever it is, and only the reader landed in the capital.
-    expect(orderDef('oreTithes').effects[0]!.kind).toBe('tileYield');
+    expect(orderDef('oreTithes').effects[0]!.kind).toBe('pays');
+    expect((orderDef('oreTithes').effects[0] as { where?: string }).where).toBe('hex');
     expect(scopedCardTileLines(g.state, capital).length).toBe(0);
   });
 
@@ -6481,8 +6551,8 @@ describe('the engine shapes', () => {
     withCards(
       [
         ['waysideShrines', [
-          { kind: 'cityYields', food: 2 },
-          { kind: 'cityYields', food: 5 },
+          { kind: 'pays', where: 'city', food: 2 },
+          { kind: 'pays', where: 'city', food: 5 },
         ]],
         ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 1 }]],
       ],
@@ -6505,7 +6575,7 @@ describe('the engine shapes', () => {
   it('never amplifies its own card, nor anything that is not an Order', () => {
     withCards(
       [['waysideShrines', [
-        { kind: 'cityYields', food: 4 },
+        { kind: 'pays', where: 'city', food: 4 },
         { kind: 'cardYieldAmplifier', yield: 'food', amount: 3 },
       ]]],
       () => {
@@ -6517,7 +6587,7 @@ describe('the engine shapes', () => {
         playerById(g.state, 0)!.timed = [
           {
             card: STARTING_GOVERNMENT,
-            effect: { kind: 'cityYields', food: 6 },
+            effect: { kind: 'pays', where: 'city', food: 6 },
             expiresTurn: g.state.turn + 50,
           },
         ];
@@ -6532,7 +6602,7 @@ describe('the engine shapes', () => {
   it('takes the multiplicative variant off what the other card printed', () => {
     withCards(
       [
-        ['waysideShrines', [{ kind: 'cityYields', faith: 9 }]],
+        ['waysideShrines', [{ kind: 'pays', where: 'city', faith: 9 }]],
         ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'faith', percent: 50 }]],
       ],
       () => {
@@ -6551,8 +6621,8 @@ describe('the engine shapes', () => {
     withCards(
       [
         ['waysideShrines', [
-          { kind: 'tileYield', on: { test: 'hasResource' }, food: 1 },
-          { kind: 'empireYields', gold: 3 },
+          { kind: 'pays', where: 'hex', on: { test: 'hasResource' }, food: 1 },
+          { kind: 'pays', where: 'empire', gold: 3 },
         ]],
         ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'all', amount: 1 }]],
       ],
@@ -6579,8 +6649,8 @@ describe('the engine shapes', () => {
     withCards(
       [
         ['waysideShrines', [
-          { kind: 'empireYields', gold: 3 },
-          { kind: 'tileYield', on: { test: 'hills' }, production: 1 },
+          { kind: 'pays', where: 'empire', gold: 3 },
+          { kind: 'pays', where: 'hex', on: { test: 'hills' }, production: 1 },
         ]],
         ['theChoir', [
           { kind: 'cardYieldAmplifier', yield: 'all', amount: 1, scope: { test: 'capital' } },
@@ -6603,7 +6673,7 @@ describe('the engine shapes', () => {
   it('does reach the capital’s own ledger, and says which town it landed in', () => {
     withCards(
       [
-        ['waysideShrines', [{ kind: 'cityYields', gold: 2 }]],
+        ['waysideShrines', [{ kind: 'pays', where: 'city', gold: 2 }]],
         ['theChoir', [
           { kind: 'cardYieldAmplifier', yield: 'gold', amount: 1, scope: { test: 'capital' } },
         ]],
@@ -6739,7 +6809,7 @@ describe('the engine shapes', () => {
   it('pays the Order in the first economic chair twice over', () => {
     withCards(
       [
-        ['waysideShrines', [{ kind: 'cityYields', food: 3, gold: 2 }]],
+        ['waysideShrines', [{ kind: 'pays', where: 'city', food: 3, gold: 2 }]],
         ['theChoir', [{ kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 }]],
       ],
       () => {
@@ -6944,7 +7014,7 @@ describe('the engine shapes', () => {
 
   it('puts a card’s yields on the caravan, where a doubler can find them', () => {
     withCards(
-      [['waysideShrines', [{ kind: 'routeYield', food: 1, production: 2 }]]],
+      [['waysideShrines', [{ kind: 'pays', where: 'route', food: 1, production: 2 }]]],
       () => {
         const g = game();
         const from = found(g.state, 0);
@@ -6973,7 +7043,7 @@ describe('the engine shapes', () => {
   it('narrows a route line to the town the caravan left', () => {
     withCards(
       [['waysideShrines', [
-        { kind: 'routeYield', gold: 4, origin: { test: 'hasBuilding', building: 'market' } },
+        { kind: 'pays', where: 'route', gold: 4, origin: { test: 'hasBuilding', building: 'market' } },
       ]]],
       () => {
         const g = game();
@@ -7002,9 +7072,12 @@ describe('the engine shapes', () => {
     seat(g.state, 0, 0, 'waysideShrines');
     const sc = playerById(g.state, 0)!.statecraft;
     const probe: CardEffect = {
-      kind: 'countScaled',
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      to: 'faith',
+      amount: 1,
       count: 'rerollsWhileSlotted',
-      pays: { to: 'yield', yield: 'faith', amount: 1, where: 'empire' },
     };
     expect(countOf(g.state, 0, 'waysideShrines', probe as never)).toBe(0);
     sc.slots[0]!.rerollsSeen = 3;
@@ -7021,10 +7094,13 @@ describe('the engine shapes', () => {
     city.buildings.push('library', 'temple', 'market');
     bumpRevision(g.state);
     const probe = (categories?: string[]): CardEffect => ({
-      kind: 'countScaled',
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      to: 'faith',
+      amount: 1,
       count: 'buildingsOfCategories',
       categories: categories as never,
-      pays: { to: 'yield', yield: 'faith', amount: 1, where: 'empire' },
     });
     expect(countOf(g.state, 0, 'waysideShrines', probe(['science', 'faith']) as never)).toBe(2);
     // A row that never said which buildings counts none of them.
@@ -7051,11 +7127,14 @@ describe('the engine shapes', () => {
       { kind: 'periodic', everyTurns: 7, pays: 'science', count: 'empireYield', voice: 'production' },
       { kind: 'periodShorten', turns: 3 },
       { kind: 'cityRenownPercent', percent: 50 },
-      { kind: 'routeYield', food: 1, production: 1, origin: { test: 'hasBuilding', building: 'market' } },
+      { kind: 'pays', where: 'route', food: 1, production: 1, origin: { test: 'hasBuilding', building: 'market' } },
       {
-        kind: 'countScaled',
+        kind: 'pays',
+        where: 'city',
+        basis: 'count',
+        to: 'faith',
+        amount: 1,
         count: 'rerollsWhileSlotted',
-        pays: { to: 'yield', yield: 'faith', amount: 1, where: 'city' },
       },
     ];
     for (const effect of fixtures) {
@@ -7139,8 +7218,10 @@ describe('the engine shapes', () => {
       'periodic',
       'periodShorten',
       'cityRenownPercent',
-      'routeYield',
     ]);
+    // Batch E5: a caravan's flat is `pays` at `where: 'route'`, which is a
+    // (`where`, `basis`) reading rather than a kind — registered as its pair.
+    const NEW_PAIRS = new Set<string>(['route/flat']);
     const NEW_COUNTS = new Set<string>([
       'buildingsOfCategories',
       'empireYield',
@@ -7150,8 +7231,12 @@ describe('the engine shapes', () => {
     const walk = (effects: readonly CardEffect[] | undefined, where: string): void => {
       for (const effect of effects ?? []) {
         if (NEW_KINDS.has(effect.kind)) seen.push(`${where} · ${effect.kind}`);
-        if (effect.kind === 'countScaled' && NEW_COUNTS.has(effect.count)) {
-          seen.push(`${where} · ${effect.count}`);
+        if (effect.kind === 'pays') {
+          const pair = `${effect.where}/${effect.basis ?? 'flat'}`;
+          if (NEW_PAIRS.has(pair)) seen.push(`${where} · routeYield`);
+          if (effect.count !== undefined && NEW_COUNTS.has(effect.count)) {
+            seen.push(`${where} · ${effect.count}`);
+          }
         }
         if (effect.kind === 'periodic' && effect.count !== undefined && NEW_COUNTS.has(effect.count)) {
           seen.push(`${where} · ${effect.count}`);
@@ -7406,7 +7491,7 @@ describe('the order pass of 2026-09-06', () => {
     // which is the half a diff cannot show.
     const capped = (id: OrderId): (number | undefined)[] =>
       orderDef(id).effects.flatMap((effect) =>
-        effect.kind === 'countScaled' && effect.count === 'slottedOrdersOfSlot'
+        effect.kind === 'pays' && effect.count === 'slottedOrdersOfSlot'
           ? [effect.max]
           : effect.kind === 'combatLine' && effect.scaled?.count === 'slottedOrdersOfSlot'
             ? [effect.scaled.max]
@@ -8158,9 +8243,11 @@ describe('the Governments marks of 2026-09-08', () => {
     // The rate half of the mark, read off the row beside the fold's own bench
     // higher up this file: two conversions, both at five where both were ten.
     const conversions = governmentDef('theocracy').effects.filter(
-      (effect) => effect.kind === 'rateConversion',
+      (effect) => effect.kind === 'pays' && effect.basis === 'rate',
     );
-    expect(conversions.map((effect) => effect.per)).toEqual([5, 5]);
+    expect(
+      conversions.map((effect) => (effect.kind === 'pays' ? effect.per : undefined)),
+    ).toEqual([5, 5]);
   });
 
   it('every government prints its own ratified words', () => {

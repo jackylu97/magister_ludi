@@ -566,6 +566,76 @@ did not touch — and for every other card parity says the figures are unchanged
 the four boards compare equal on `explainCardImpact` for every card each seat
 holds.
 
+## 4c.3. E5 as shipped (2026-09-08)
+
+§4 step 5, closed, and §3d's finding with it. The proposal, the table of record
+and the migration's own counts are **`docs/audit/e5-yield-shape.md`**; this is
+what it came to. **No number, no replay and no schema moved** (still 96).
+
+### One kind, two dimensions
+
+`cityYields` · `tileYield` · `empireYields` · `routeYield` · `mirrorYield` ·
+`countScaled` · `yieldConversion` · `rateConversion` are **`pays`**, with a
+`where` (city · capital · hex · empire · route) and a `basis` (flat · count ·
+mirror · share · rate). Every field they carried is a field of the one shape;
+`CardPayout` is retired into five of them, and the `where` it hid is the shape's
+first dimension — which was §3d's whole point, since that field *was* the answer
+to "which of these eight is this". `basis` defaults to `flat`, so a flat row's
+declaration is `{ kind: 'pays', where: 'city' }` and its bag.
+
+**291 rows migrated** by `scripts/migrate-pays.mjs` (committed, idempotent,
+run once) across six data files. Nothing outside an effect row moved, and the
+reverse mapping of every migrated row reproduces its predecessor field for
+field — which is the check that made the data half of this batch provable rather
+than argued.
+
+### The four registers that stopped having eight entries
+
+The evaluator's eleven loops now filter on (`where`, `basis`) instead of on
+eight names; `describeEffect`'s eight arms are one `describePays` with five
+clauses; `scoreEffect`'s eight arms are one `scorePays`; and `docs/yields.md`'s
+register carries one row per **pair** rather than one per kind — with the pairs
+sync-tested against the doc and pinned against live rows in
+`statecraft.test.ts`. `classifyCard` (`ledgerClass.ts`) and `CARD_FLAT_STEPS`
+(`cardImpact.ts`) are untouched: the first classes by card **id** and never read
+an effect kind, and the second is a claim about steps 3, 9 and 10, which did not
+move.
+
+### The gates, and the one honest wrinkle
+
+The parity harness was restored from `8d7075a`, re-baselined on this batch's own
+base commit, and given a **fifth reading** the E1 version did not take:
+`explainCity`'s labelled list itself, line by line — step, source, ledger class,
+handles and the six voices — because a migration that moved a label while every
+total stayed put would pass a fixture of totals. All four boards compare equal at
+t30/t60/t150 on every one of the five. It is **retired again** at the end of this
+batch, as ruled.
+
+The wrinkle, found by that harness and worth writing down: `TimedEffect`
+(`state.ts`) carries a **copy of the card's own row**, so `snapshotState` prints
+the row's field names into the board's canonical print — and a rite live at t150
+on two of the four boards made the state hash move while nothing about the game
+did. A full state diff at t150 proved it exactly: the *only* bytes that differ on
+either board are the Omen Reading's row, spelt the new way. So the harness hashes
+the print with a stamped row's own spelling taken out (`snapshotShape` — `card`
+and `expiresTurn` still pinned, which is the behaviour), and the row's content is
+gated twice over instead: by the migration's reverse-mapping check for what it
+*means*, and by the new standing snapshot for what it *says*.
+
+That standing snapshot is **`test/sim/cardTextSnapshot.test.ts`**, which is what
+this batch leaves behind: every card of every class — governments, doctrines,
+Orders, beliefs, rites, consecrations, buildings and wonders, great people,
+technologies, the Bead Race's boons — plus the luxuries, both readings of every
+clause (raw and `stripRefs`'d), against a committed fixture. It was written and
+baselined *before* the migration and passed byte-identically after it, and it
+stays: a describer change now has to regenerate it deliberately.
+
+The one thing that is deliberately not byte-identical is not a card's words and
+not a figure — it is the **bot's own appraisal feed**, which labelled each term
+by the effect's bare `kind`. Eight labels would have become one word, so a term
+now says `pays <where> <basis>`; the spectator reads what it read before and no
+number moves.
+
 ## 5. What I think
 
 The day-one decisions are intact where they were made: the folds are

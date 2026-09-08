@@ -35,13 +35,12 @@ import {
   type AmplifierTarget,
   type PressureRuleId,
   type CardBuildingYieldPercentEffect,
-  type CardCountScaledEffect,
+  type CardPaysEffect,
   type CardPeriodicEffect,
   type CardDefBase,
   type CardEffect,
   type CardFlagRuleId,
   type CardId,
-  type CardPayout,
   type CardRule,
   type CityScope,
   type CombatCondition,
@@ -545,53 +544,184 @@ const REVOCATION_WORDS: Record<LegacyRevocation, string> = {
   ageAdvanced: 'lost when the age it was earned in closes',
 };
 
+/**
+ * **The one shape that pays a voice, in words** — batch E5's merged describer.
+ *
+ * `CardPaysEffect` collapsed eight kinds into one, and this is the eight arms
+ * they had, chosen by (`where`, `basis`) instead of by eight names. The
+ * sentences themselves are **unchanged**, down to the byte: a card's printed
+ * text is what a player reads and what the Compendium prints, so the merge is
+ * pinned by `test/sim/cardTextSnapshot.test.ts` rather than trusted.
+ *
+ * Its own function rather than a case body, because five clauses is more than a
+ * `switch` arm should hold and the dispatch reads better as a walk of the two
+ * dimensions than as a nest of `if`s inside `describeEffect`.
+ */
+function describePays(effect: CardPaysEffect, out: CardClause[]): void {
+  const basis = effect.basis ?? 'flat';
+
+  if (basis === 'count') {
+    // The cap is on the **count** (`helpings` in the evaluator), so it is
+    // printed as the payout it works out to — "(at most +3 happiness)" — which
+    // is how every ratified row states it and the only form a player can check
+    // against the ledger. A bare "(at most 4)" beside "+2 production per …"
+    // read as a cap of four production, which was wrong by half.
+    const cap = effect.max === undefined ? '' : ` (at most ${payoutWords(effect, effect.max)})`;
+    // A count that names a building says the building's own name — "per
+    // Barracks", "per Temple" — rather than a stem in the table, because one
+    // shape serves every such row and a table entry could only name one of
+    // them. `within` is printed where it changes the sentence's meaning.
+    const words = countNoun(effect);
+    const here =
+      effect.within === 'city' &&
+      effect.count !== undefined &&
+      !CITY_SCOPED_COUNTS.includes(effect.count)
+        ? ' in this city'
+        : '';
+    // **Where the figure lands**, printed where it is one town rather than the
+    // realm: a capital line said as a bare "+1 production" is a card that lies
+    // by omission, exactly as an unprinted `class` was. `empire` and `city`
+    // need no words — the first is what a payout says by default and the
+    // second is already carried by the town the line is printed beside.
+    const paidIn = effect.where === 'capital' ? ' in your capital' : '';
+    // **The counter's one condition, printed once.** A growing card pays for
+    // what it has watched happen, and it only watches from a slot — so the
+    // clause belongs beside the count rather than folded into five nouns, and
+    // a card that left it unsaid would be a card that lies about its bench.
+    const counted =
+      effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
+    out.push({
+      text:
+        `${payoutWords(effect)}${paidIn} per ${countWords(effect.per, words)}` +
+        `${here}${cap}${counted}`,
+    });
+    return;
+  }
+
+  if (basis === 'rate') {
+    if (effect.fromRate === undefined) return;
+    out.push({
+      text: `${payoutWords(effect)} per ${countWords(effect.per, RATE_WORDS[effect.fromRate])}`,
+    });
+    return;
+  }
+
+  if (basis === 'mirror') {
+    out.push({
+      text:
+        `${effect.category} buildings supply ${effect.to} equal to their ` +
+        `${effect.from}, in ${cityScopeWords(effect.scope)}`,
+    });
+    return;
+  }
+
+  if (basis === 'share') {
+    // "Gained again as", which is the wording the rate conversions were
+    // ratified in (Cuius Regio, 2026-09-02) and the only one that does not
+    // read as though the town *loses* the harvest it sells: nothing is taken
+    // away, a share of it is paid a second time in another voice.
+    out.push({
+      text:
+        `${effect.percent}% of the ${effect.from} in ${cityScopeWords(effect.scope)} ` +
+        `is gained again as ${effect.to}`,
+    });
+    return;
+  }
+
+  // --- the flat bag, at each of the four grounds ----------------------------
+
+  if (effect.where === 'hex') {
+    if (effect.on === undefined) return;
+    const on = effect.on;
+    const words = bagWords(effect);
+    // The scope trails the hex as a clause of its own, because a scoped tile
+    // line is about *whose* ground: Petra's desert is the desert of one town,
+    // and the sentence has to say so without turning the hex into a
+    // possessive nobody can parse.
+    const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
+    if (words) out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}` });
+    // The percentage is its own clause, because it is a share of a *different*
+    // number: the flat is what the card pays and this is what the works pay
+    // half again of. Said as "the works on" so a player knows which half moved.
+    if (effect.percent !== undefined && effect.percent !== 0) {
+      out.push({
+        text:
+          `the works on every ${tileConditionWords(on)} pay ` +
+          `${signed(effect.percent)}% more${whose}`,
+      });
+    }
+    // The ground's share, its own clause for the works' reason exactly, and
+    // "the ground of" so the player knows which half moved. A doubling reads
+    // as a doubling rather than as "+100% more", because that is the sentence
+    // The Old Ways was ratified in.
+    if (effect.basePercent !== undefined && effect.basePercent !== 0) {
+      out.push({
+        text:
+          effect.basePercent === 100
+            ? `the ground of every ${tileConditionWords(on)} pays double${whose}`
+            : `the ground of every ${tileConditionWords(on)} pays ` +
+              `${signed(effect.basePercent)}% more${whose}`,
+      });
+    }
+    return;
+  }
+
+  if (effect.where === 'route') {
+    // Faith is not among a caravan's voices, for `RouteYieldLine`'s reason
+    // (nothing pays a road in it), so the bag is read as five.
+    const words = bagWords({
+      food: effect.food,
+      production: effect.production,
+      gold: effect.gold,
+      science: effect.science,
+      culture: effect.culture,
+    });
+    // **The share, said in its own clause** — The Silk Exchange's doubled
+    // beakers and songs. It is a sentence about what the road *already*
+    // carries, so it cannot be folded into the flat's phrase; a row that says
+    // both prints both, in the order the fold applies them.
+    for (const share of effect.share ?? []) {
+      if (share.percent === 0) continue;
+      const voice = share.yield === 'all' ? 'everything' : share.yield;
+      out.push({
+        text: `${routeWhose(effect)} pays ${signed(share.percent)}% more ${voice}`,
+      });
+    }
+    if (!words) return;
+    const whose = routeWhose(effect);
+    // **What the row is paid *for***, when it is paid more than once. The
+    // Golden Roads pays its bag per good on the road, so the sentence has to
+    // say so or a player reads a flat coin where a caravan of six is earning
+    // six. See `CardPaysEffect.perEndpointLuxury`.
+    const each =
+      effect.perEndpointLuxury === true
+        ? ', for each luxury in the city it left or the city it reaches'
+        : '';
+    out.push({ text: `${words} on ${whose}${each}` });
+    return;
+  }
+
+  const words = bagWords(effect);
+  if (!words) return;
+  if (effect.where === 'empire') {
+    out.push({ text: `${words} to the empire` });
+    return;
+  }
+  out.push({ text: `${words} in ${cityScopeWords(effect.scope)}` });
+}
+
 /** The one place an effect becomes a sentence. Every arm, no default silence. */
 function describeEffect(effect: CardEffect, out: CardClause[]): void {
   const kind = effect.kind;
   switch (kind) {
-    case 'cityYields': {
-      const words = bagWords(effect);
-      if (words) out.push({ text: `${words} in ${cityScopeWords(effect.scope)}` });
+    // **The one shape that pays a voice** (batch E5). Eight arms until the
+    // merge — `cityYields`, `tileYield`, `empireYields`, `routeYield`,
+    // `mirrorYield`, `countScaled`, `yieldConversion`, `rateConversion` — and
+    // the five clauses below are those eight sentences unchanged, chosen by the
+    // row's own two dimensions rather than by eight names for them.
+    case 'pays':
+      describePays(effect, out);
       return;
-    }
-    case 'empireYields': {
-      const words = bagWords(effect);
-      if (words) out.push({ text: `${words} to the empire` });
-      return;
-    }
-    case 'tileYield': {
-      const words = bagWords(effect);
-      // The scope trails the hex as a clause of its own, because a scoped tile
-      // line is about *whose* ground: Petra's desert is the desert of one town,
-      // and the sentence has to say so without turning the hex into a
-      // possessive nobody can parse.
-      const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
-      if (words) out.push({ text: `${words} on every ${tileConditionWords(effect.on)}${whose}` });
-      // The percentage is its own clause, because it is a share of a *different*
-      // number: the flat is what the card pays and this is what the works pay
-      // half again of. Said as "the works on" so a player knows which half moved.
-      if (effect.percent !== undefined && effect.percent !== 0) {
-        out.push({
-          text:
-            `the works on every ${tileConditionWords(effect.on)} pay ` +
-            `${signed(effect.percent)}% more${whose}`,
-        });
-      }
-      // The ground's share, its own clause for the works' reason exactly, and
-      // "the ground of" so the player knows which half moved. A doubling reads
-      // as a doubling rather than as "+100% more", because that is the sentence
-      // The Old Ways was ratified in.
-      if (effect.basePercent !== undefined && effect.basePercent !== 0) {
-        out.push({
-          text:
-            effect.basePercent === 100
-              ? `the ground of every ${tileConditionWords(effect.on)} pays double${whose}`
-              : `the ground of every ${tileConditionWords(effect.on)} pays ` +
-                `${signed(effect.basePercent)}% more${whose}`,
-        });
-      }
-      return;
-    }
     case 'percentYields': {
       const voice = effect.yield === 'all' ? 'all yields' : effect.yield;
       out.push({
@@ -900,53 +1030,6 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       }
       return;
     }
-    case 'countScaled': {
-      // The cap is on the **count** (`helpings` in this file), so it is printed
-      // as the payout it works out to — "(at most +3 happiness)" — which is how
-      // every ratified row states it and the only form a player can check
-      // against the ledger. A bare "(at most 4)" beside "+2 production per …"
-      // read as a cap of four production, which was wrong by half.
-      const cap =
-        effect.max === undefined
-          ? ''
-          : ` (at most ${payoutWords(effect.pays, effect.max)})`;
-      // A count that names a building says the building's own name — "per
-      // Barracks", "per Temple" — rather than a stem in the table, because one
-      // shape serves every such row and a table entry could only name one of
-      // them. `within` is printed where it changes the sentence's meaning.
-      const words = countNoun(effect);
-      const here = effect.within === 'city' && !CITY_SCOPED_COUNTS.includes(effect.count)
-        ? ' in this city'
-        : '';
-      // **Where the figure lands**, printed where it is one town rather than the
-      // realm: a capital line said as a bare "+1 production" is a card that lies
-      // by omission, exactly as an unprinted `class` was. `empire` and `city`
-      // need no words — the first is what a payout says by default and the
-      // second is already carried by the town the line is printed beside.
-      const paidIn =
-        effect.pays.to === 'yield' && effect.pays.where === 'capital' ? ' in your capital' : '';
-      // **The counter's one condition, printed once.** A growing card pays for
-      // what it has watched happen, and it only watches from a slot — so the
-      // clause belongs beside the count rather than folded into five nouns, and
-      // a card that left it unsaid would be a card that lies about its bench.
-      const counted =
-        effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
-      out.push({
-        text:
-          `${payoutWords(effect.pays)}${paidIn} per ${countWords(effect.per, words)}` +
-          `${here}${cap}${counted}`,
-      });
-      return;
-    }
-    case 'rateConversion': {
-      out.push({
-        text: `${payoutWords(effect.pays)} per ${countWords(
-          effect.per,
-          RATE_WORDS[effect.from],
-        )}`,
-      });
-      return;
-    }
     case 'offerRider': {
       // The two halves of the hook, each said the way it reads. A named rule is
       // already a whole sentence; a widening is a figure, and a figure is a
@@ -980,24 +1063,6 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       }
       return;
     }
-    case 'mirrorYield':
-      out.push({
-        text:
-          `${effect.category} buildings supply ${effect.to} equal to their ` +
-          `${effect.from}, in ${cityScopeWords(effect.scope)}`,
-      });
-      return;
-    case 'yieldConversion':
-      // "Gained again as", which is the wording the rate conversions were
-      // ratified in (Cuius Regio, 2026-09-02) and the only one that does not
-      // read as though the town *loses* the harvest it sells: nothing is taken
-      // away, a share of it is paid a second time in another voice.
-      out.push({
-        text:
-          `${effect.percent}% of the ${effect.from} in ${cityScopeWords(effect.scope)} ` +
-          `is gained again as ${effect.to}`,
-      });
-      return;
     case 'meterRule': {
       // Two shapes wear this hook and they read differently. A **switch** — a
       // rule of the meters suspended, carried as `value: 1` because the shape
@@ -1300,38 +1365,6 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
             : `${cityScopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
       });
       return;
-    case 'routeYield': {
-      const words = bagWords({
-        food: effect.food,
-        production: effect.production,
-        gold: effect.gold,
-        science: effect.science,
-        culture: effect.culture,
-      });
-      // **The share, said in its own clause** — The Silk Exchange's doubled
-      // beakers and songs. It is a sentence about what the road *already*
-      // carries, so it cannot be folded into the flat's phrase; a row that says
-      // both prints both, in the order the fold applies them.
-      for (const share of effect.share ?? []) {
-        if (share.percent === 0) continue;
-        const voice = share.yield === 'all' ? 'everything' : share.yield;
-        out.push({
-          text: `${routeWhose(effect)} pays ${signed(share.percent)}% more ${voice}`,
-        });
-      }
-      if (!words) return;
-      const whose = routeWhose(effect);
-      // **What the row is paid *for***, when it is paid more than once. The
-      // Golden Roads pays its bag per good on the road, so the sentence has to
-      // say so or a player reads a flat coin where a caravan of six is earning
-      // six. See `CardRouteYieldEffect.perEndpointLuxury`.
-      const each =
-        effect.perEndpointLuxury === true
-          ? ', for each luxury in the city it left or the city it reaches'
-          : '';
-      out.push({ text: `${words} on ${whose}${each}` });
-      return;
-    }
     case 'beadPerOccasion': {
       // The deed first and the bead second, because the deed is the part a
       // player decides. The bead is named — it is a card on the rod like any
@@ -1412,11 +1445,12 @@ function timesWords(factor: number): string {
  * one arithmetic for it and one price, whichever shape asked. Exported for the
  * bot on `countOf`'s own licence — a *reading*, never a second evaluator.
  */
-export function periodicProbe(effect: CardPeriodicEffect): CardCountScaledEffect {
+export function periodicProbe(effect: CardPeriodicEffect): CardPaysEffect {
   return {
-    kind: 'countScaled',
+    kind: 'pays',
+    basis: 'count',
+    ...PERIODIC_PROBE,
     count: effect.count ?? 'cities',
-    pays: PERIODIC_PROBE,
     per: effect.per,
     max: effect.max,
     building: effect.building,
@@ -1521,6 +1555,16 @@ interface PluralWords {
 }
 
 /**
+ * The noun of a row that names **no count at all** — batch E5's one silence.
+ *
+ * `count` is one field of the one `pays` shape now, so the type admits a row
+ * that asks nothing. A card-shaped nothing is what such a row is worth, which is
+ * the same answer `countOf` gives it (nought) and the same silence a `tally`
+ * naming no occasion keeps. No live row is one.
+ */
+const EMPTY_WORDS: PluralWords = { one: '', many: '' };
+
+/**
  * "military Order you have in a slot" — one flavour of council, in both numbers.
  *
  * Written once because **two** tables print it: `countNoun` for the ledger's
@@ -1544,7 +1588,7 @@ function slotFlavourWords(flavour: SlotType): PluralWords {
  * name* for the one count that takes an argument — so "+1 happiness per
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
-function countNoun(effect: CardCountScaledEffect): PluralWords {
+function countNoun(effect: CardPaysEffect): PluralWords {
   if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
     // Marked in **both** numbers: the plural is composed off the plain name and
     // then wrapped, so "per Library" and "per Libraries" are one link with two
@@ -1600,7 +1644,7 @@ function countNoun(effect: CardCountScaledEffect): PluralWords {
   if (effect.count === 'tally' && effect.tally !== undefined) {
     return TALLY_WORDS[effect.tally];
   }
-  return COUNT_WORDS[effect.count];
+  return effect.count === undefined ? EMPTY_WORDS : COUNT_WORDS[effect.count];
 }
 
 /**
@@ -1939,17 +1983,16 @@ function filterWords(filter: UnitFilter): string {
  * and it is the difference between a card that raises the ceiling and one that
  * would appear to hand out writ.
  */
-function payoutWords(pays: CardPayout, times = 1): string {
-  if (pays.to === 'yield') {
-    return `${signed(pays.amount * times)} ${pays.yield}`;
+function payoutWords(effect: CardPaysEffect, times = 1): string {
+  // `stage` is the discriminant of a count's percentage payout — see
+  // `CardPaysEffect`. Everything else is a flat figure, and the only one of
+  // those that is not said in its own name is the writ.
+  if (effect.stage !== undefined) {
+    return `${signed((effect.percent ?? 0) * times)}% ${effect.to ?? ''}`;
   }
-  if (pays.to === 'happiness') {
-    return `${signed(pays.amount * times)} happiness`;
-  }
-  if (pays.to === 'authority') {
-    return `${signed(pays.amount * times)} authority capacity`;
-  }
-  return `${signed(pays.percent * times)}% ${pays.yield}`;
+  const figure = signed((effect.amount ?? 0) * times);
+  if (effect.to === 'authority') return `${figure} authority capacity`;
+  return `${figure} ${effect.to ?? ''}`;
 }
 
 /**

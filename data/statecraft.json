@@ -104,7 +104,8 @@
       },
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 2
         }
       ],
@@ -121,16 +122,14 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "population",
           "per": 5,
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         },
         {
           "kind": "rulePercent",
@@ -190,30 +189,27 @@
       },
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 2
         },
         {
-          "kind": "rateConversion",
-          "from": "capitalFaithPerTurn",
-          "per": 5,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "science",
+          "amount": 1,
+          "fromRate": "capitalFaithPerTurn",
+          "per": 5
         },
         {
-          "kind": "rateConversion",
-          "from": "capitalFaithPerTurn",
-          "per": 5,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "capitalFaithPerTurn",
+          "per": 5
         }
       ],
       "text": "+2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate."
@@ -229,15 +225,13 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 2,
           "count": "slottedOrdersOfSlot",
-          "slot": "economic",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
-          }
+          "slot": "economic"
         },
         {
           "kind": "effectAmplifier",
@@ -262,15 +256,13 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "military",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 1,
-            "where": "city"
-          }
+          "slot": "military"
         },
         {
           "kind": "unitStat",
@@ -300,26 +292,22 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "capital"
-          }
+          "slot": "wildcard"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "capital"
-          }
+          "slot": "wildcard"
         },
         {
           "kind": "percentYields",
@@ -351,7 +339,8 @@
           "per": "city"
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2,
           "scope": {
             "test": "populationAtLeast",
@@ -411,20 +400,20 @@
       "text": "+6 faith for each Cathedral. Faith buildings supply science equal to their faith.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 6,
           "count": "buildingsOfKind",
-          "building": "cathedral",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 6,
-            "where": "empire"
-          }
+          "building": "cathedral"
         },
         {
-          "kind": "mirrorYield",
-          "from": "faith",
+          "kind": "pays",
+          "where": "city",
+          "basis": "mirror",
           "to": "science",
+          "from": "faith",
           "category": "faith"
         }
       ]
@@ -445,11 +434,12 @@
           "rule": "buyGreatPersonWithGold"
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "percent": 50,
           "on": {
             "test": "greatWork"
-          },
-          "percent": 50
+          }
         }
       ]
     },
@@ -609,15 +599,13 @@
       "text": "+1 culture for each 3 faith you gain per turn.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "faithPerTurn",
+          "per": 3
         }
       ]
     },
@@ -635,7 +623,8 @@
           "percent": 10
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 5,
           "culture": 5,
           "scope": {
@@ -684,7 +673,8 @@
           "roads": true
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1
         }
       ]
@@ -719,11 +709,12 @@
           "ability": "ancestorRites"
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
           "on": {
             "test": "greatWork"
-          },
-          "production": 1
+          }
         }
       ],
       "onAdopt": [
@@ -740,10 +731,12 @@
       "text": "Coastal cities gain 10% of their food yield as production.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "food",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "production",
           "percent": 10,
+          "from": "food",
           "scope": {
             "test": "coastal"
           }
@@ -786,7 +779,8 @@
       "text": "+1 faith on every forest hex · +1 culture on every jungle hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "faith": 1,
           "on": {
             "test": "feature",
@@ -794,7 +788,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "culture": 1,
           "on": {
             "test": "feature",
@@ -842,7 +837,8 @@
           ]
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": -2
         }
       ]
@@ -855,15 +851,13 @@
       "text": "+1 gold for each faith you gain per turn.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 1,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "gold",
+          "amount": 1,
+          "fromRate": "faithPerTurn",
+          "per": 1
         }
       ]
     },
@@ -875,26 +869,24 @@
       "text": "+1% science and +1% culture for each 200 banked faith.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "percent": 1,
+          "stage": "empire",
           "count": "bankedFaith",
-          "per": 200,
-          "pays": {
-            "to": "percent",
-            "yield": "science",
-            "percent": 1,
-            "stage": "empire"
-          }
+          "per": 200
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "percent": 1,
+          "stage": "empire",
           "count": "bankedFaith",
-          "per": 200,
-          "pays": {
-            "to": "percent",
-            "yield": "culture",
-            "percent": 1,
-            "stage": "empire"
-          }
+          "per": 200
         }
       ],
       "retired": true,
@@ -956,13 +948,14 @@
           "building": "gildedHall"
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "science": 1,
+          "culture": 1,
           "on": {
             "test": "yields",
             "yield": "gold"
-          },
-          "science": 1,
-          "culture": 1
+          }
         },
         {
           "kind": "authority",
@@ -988,14 +981,12 @@
           "percent": 30
         },
         {
-          "kind": "countScaled",
-          "count": "uniqueLuxuries",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 2,
+          "count": "uniqueLuxuries"
         }
       ]
     },
@@ -1131,13 +1122,13 @@
       "text": "+1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "unitsInField",
-          "per": 5,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "per": 5
         },
         {
           "kind": "happiness",
@@ -1188,15 +1179,13 @@
       "text": "In cities that follow your religion, 15% of the faith they gain is gained again as science.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "followingFaithPerTurn",
-          "per": 20,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "science",
+          "amount": 3,
+          "fromRate": "followingFaithPerTurn",
+          "per": 20
         }
       ]
     },
@@ -1208,7 +1197,8 @@
       "text": "+1 production on every hex with a Farm. Cities of 10 or more population −1 happiness.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 1,
           "on": {
             "test": "improvement",
@@ -1287,14 +1277,12 @@
           "per": "wonder"
         },
         {
-          "kind": "countScaled",
-          "count": "worldWonders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "worldWonders"
         }
       ]
     },
@@ -1306,9 +1294,10 @@
       "text": "+1 food and +1 gold on every water hex you own. Coastal cities cost no authority.",
       "effects": [
         {
-          "kind": "tileYield",
-          "gold": 1,
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
+          "gold": 1,
           "on": {
             "test": "water"
           }
@@ -1352,7 +1341,8 @@
           "per": "city"
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 5,
           "culture": 5,
           "scope": {
@@ -1370,14 +1360,12 @@
       "text": "+1 science for each building in a city. Science buildings cost −50% production.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsInCity",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "buildingsInCity"
         },
         {
           "kind": "productionBonus",
@@ -1400,12 +1388,12 @@
           "percent": -15
         },
         {
-          "kind": "countScaled",
-          "count": "cities",
-          "pays": {
-            "to": "authority",
-            "amount": -2
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": -2,
+          "count": "cities"
         }
       ],
       "note": "The extra writ is asked of every city you hold, however long you have held it."
@@ -1448,7 +1436,8 @@
           }
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 3,
           "production": 3,
           "science": 3,
@@ -1477,35 +1466,29 @@
       "note": "Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "followingCities",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 3,
+          "count": "followingCities"
         },
         {
-          "kind": "countScaled",
-          "count": "followingForeign",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "followingForeign"
         },
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 5,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "faithPerTurn",
+          "per": 5
         }
       ]
     },
@@ -1517,14 +1500,12 @@
       "text": "+1 science in your capital for each building standing in it · completing a technology grants 50% of a turn’s culture.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsInCity",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "capital"
-          }
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "buildingsInCity"
         },
         {
           "kind": "windfallRider",
@@ -1545,20 +1526,22 @@
       "text": "+1 production on every mine and every quarry · surfacing a vein pays +40 gold, and a mine standing on rich ore pays +2 production more.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
           "on": {
             "test": "improvement",
             "improvement": "mine"
-          },
-          "production": 1
+          }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
           "on": {
             "test": "improvement",
             "improvement": "quarry"
-          },
-          "production": 1
+          }
         },
         {
           "kind": "windfallRider",
@@ -1569,7 +1552,9 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 2,
           "on": {
             "test": "all",
             "of": [
@@ -1584,8 +1569,7 @@
                 ]
               }
             ]
-          },
-          "production": 2
+          }
         }
       ]
     },
@@ -1744,20 +1728,20 @@
       "text": "+1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "garrison",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "garrison"
         },
         {
-          "kind": "countScaled",
-          "count": "defensiveBuildings",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "defensiveBuildings"
         }
       ]
     },
@@ -1822,7 +1806,8 @@
       "text": "+2 food in every city holding an improved luxury resource.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 2,
           "scope": {
             "test": "holdingCategory",
@@ -1841,14 +1826,12 @@
       "text": "+3 gold for each unique luxury.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "uniqueLuxuries",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
+          "count": "uniqueLuxuries"
         }
       ]
     },
@@ -1883,22 +1866,21 @@
       "text": "+1 faith in your capital, and +1 faith for each wildcard Order you have in a slot.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 1,
           "scope": {
             "test": "capital"
           }
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
+          "slot": "wildcard"
         }
       ]
     },
@@ -1912,14 +1894,12 @@
       "text": "+2 culture for each barbarian camp you have found, and +10 culture for each barbarian unit you kill.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "discoveredCamps",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "discoveredCamps"
         },
         {
           "kind": "windfallRider",
@@ -2057,7 +2037,8 @@
       "text": "+1 gold in every city.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 1
         }
       ]
@@ -2073,7 +2054,8 @@
       "note": "The coin rides on the road itself, so anything that raises what a route pays raises this with it.",
       "effects": [
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "gold": 5
         }
       ]
@@ -2088,12 +2070,13 @@
       "text": "+1 gold on every hex carrying a strategic resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
           "on": {
             "test": "resourceKind",
             "kind": "strategic"
-          },
-          "gold": 1
+          }
         }
       ],
       "retired": true,
@@ -2109,15 +2092,13 @@
       "text": "+1 gold for each 3 population in your empire.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
           "count": "population",
-          "per": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 3
         }
       ]
     },
@@ -2131,10 +2112,12 @@
       "text": "Coastal cities gain 5% of their gold again as culture.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "gold",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "culture",
           "percent": 5,
+          "from": "gold",
           "scope": {
             "test": "coastal"
           }
@@ -2208,13 +2191,13 @@
       "text": "+1 happiness for every 2 citizens in your capital.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "capitalPopulation",
-          "per": 2,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "per": 2
         }
       ]
     },
@@ -2275,7 +2258,8 @@
           }
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2
         }
       ]
@@ -2451,12 +2435,12 @@
       "text": "+1 happiness for each unique luxury.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "uniqueLuxuries",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "uniqueLuxuries"
         }
       ]
     },
@@ -2471,15 +2455,13 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "authority",
-          "per": 1,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "gold",
+          "amount": 2,
+          "fromRate": "authority",
+          "per": 1
         }
       ],
       "retired": true
@@ -2518,7 +2500,8 @@
       "text": "+1 gold and +1 science in every city near another empire's territory.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "gold": 1,
           "science": 1,
           "scope": {
@@ -2539,7 +2522,8 @@
       "text": "+2 production on every hex carrying a strategic resource, and +2 production in your capital for each military Order you have in a slot.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 2,
           "on": {
             "test": "resourceKind",
@@ -2547,15 +2531,13 @@
           }
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "production",
+          "amount": 2,
           "count": "slottedOrdersOfSlot",
-          "slot": "military",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 2,
-            "where": "capital"
-          }
+          "slot": "military"
         }
       ]
     },
@@ -2569,7 +2551,8 @@
       "text": "+2 food on every hill hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 2,
           "on": {
             "test": "hills"
@@ -2627,14 +2610,14 @@
       "text": "+1 authority capacity for each economic Order you have in a slot, at most +4.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "economic",
           "max": 4,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "slot": "economic"
         }
       ]
     },
@@ -2699,24 +2682,22 @@
       "text": "+1 faith for each citizen in your capital · +1 happiness for each 50 banked faith (at most +5).",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "capitalPopulation",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "capitalPopulation"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "bankedFaith",
           "per": 50,
-          "max": 5,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "max": 5
         }
       ]
     },
@@ -2730,15 +2711,13 @@
       "text": "+1 culture for each 3 faith you gain per turn.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "faithPerTurn",
+          "per": 3
         }
       ]
     },
@@ -2752,7 +2731,8 @@
       "text": "+3 science in every city of 5 or more population holding a Library, and +3 more where a University stands.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 3,
           "scope": {
             "test": "all",
@@ -2769,7 +2749,8 @@
           }
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 3,
           "scope": {
             "test": "all",
@@ -2822,15 +2803,13 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 3,
           "count": "garrison",
-          "max": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 3,
-            "where": "city"
-          }
+          "max": 2
         }
       ],
       "retired": true
@@ -2992,7 +2971,8 @@
       "text": "+4 production in every city with a quarry, and +1 production on every quarry.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 4,
           "scope": {
             "test": "hasImprovement",
@@ -3000,7 +2980,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 1,
           "on": {
             "test": "improvement",
@@ -3043,13 +3024,13 @@
           "points": 8
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "bankedFaith",
-          "per": 150,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "per": 150
         }
       ]
     },
@@ -3083,14 +3064,12 @@
       "text": "+1 faith for each citizen in your capital.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "capitalPopulation",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "capitalPopulation"
         }
       ]
     },
@@ -3125,7 +3104,8 @@
           "amount": 2
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "science": 3,
           "on": {
             "test": "improvement",
@@ -3133,7 +3113,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "culture": 3,
           "on": {
             "test": "improvement",
@@ -3141,7 +3122,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 3,
           "on": {
             "test": "improvement",
@@ -3149,7 +3131,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 3,
           "on": {
             "test": "improvement",
@@ -3157,7 +3140,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 3,
           "on": {
             "test": "improvement",
@@ -3213,15 +3197,13 @@
       "note": "The faith is paid in your capital, so anything that raises what your capital receives raises this with it.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "capitalPopulation",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "capital"
-          }
+          "per": 2
         }
       ]
     },
@@ -3264,7 +3246,8 @@
       "text": "+2 culture in every city of 4 population or less.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2,
           "scope": {
             "test": "populationAtMost",
@@ -3308,16 +3291,14 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
           "count": "population",
           "per": 4,
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ],
       "retired": true
@@ -3333,7 +3314,9 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The waterworks of the tree already water a farm beside fresh water.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
           "on": {
             "test": "all",
             "of": [
@@ -3345,8 +3328,7 @@
                 "test": "freshwater"
               }
             ]
-          },
-          "food": 1
+          }
         }
       ],
       "retired": true
@@ -3361,14 +3343,16 @@
       "text": "+2 science in your capital, and +2 science in every city with a Library.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 2,
           "scope": {
             "test": "capital"
           }
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 2,
           "scope": {
             "test": "hasBuilding",
@@ -3387,12 +3371,12 @@
       "text": "+1 happiness for each luxury you hold two or more copies of.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "duplicateLuxuries",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "duplicateLuxuries"
         }
       ]
     },
@@ -3448,7 +3432,8 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 5,
           "scope": {
             "test": "adjacentImprovement",
@@ -3485,7 +3470,8 @@
       "text": "+3 culture and +1 happiness in every city with a Temple.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 3,
           "scope": {
             "test": "hasBuilding",
@@ -3550,7 +3536,8 @@
       "note": "A road is read from the town that sent the caravan, so a Market at the far end of it pays nothing here.",
       "effects": [
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "science": 1,
           "culture": 1,
           "origin": {
@@ -3589,15 +3576,13 @@
       "text": "+1 science for each 40 hexes you have revealed.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "revealedTiles",
-          "per": 40,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 40
         }
       ]
     },
@@ -3664,14 +3649,12 @@
       "note": "The faith is gathered in your capital, so anything that raises what your capital receives raises this with it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "cities",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "capital"
-          }
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "cities"
         }
       ]
     },
@@ -3685,7 +3668,8 @@
       "text": "+2 food on every hex carrying a luxury resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 2,
           "on": {
             "test": "resourceKind",
@@ -3704,7 +3688,8 @@
       "text": "+1 food and +1 production on every unimproved forest or jungle hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "production": 1,
           "on": {
@@ -3735,7 +3720,8 @@
       "text": "+2 food and +2 production on every unimproved hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 2,
           "production": 2,
           "on": {
@@ -3757,12 +3743,12 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid a wide realm far more contentment than any other card of its age.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "workedUnimprovedTiles",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "workedUnimprovedTiles"
         }
       ],
       "retired": true
@@ -3777,11 +3763,12 @@
       "text": "The yields of unimproved hexes are doubled.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "basePercent": 100,
           "on": {
             "test": "unimproved"
-          },
-          "basePercent": 100
+          }
         }
       ]
     },
@@ -3795,7 +3782,8 @@
       "text": "+2 food on every hex carrying a resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 2,
           "on": {
             "test": "hasResource"
@@ -3896,24 +3884,20 @@
       "text": "+4 culture and +4 science for each barbarian camp you have cleared this game.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "clearedCamps",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 4,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 4,
+          "count": "clearedCamps"
         },
         {
-          "kind": "countScaled",
-          "count": "clearedCamps",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 4,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 4,
+          "count": "clearedCamps"
         }
       ]
     },
@@ -3928,7 +3912,8 @@
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "faith": 3,
           "on": {
             "test": "greatWork"
@@ -3946,24 +3931,20 @@
       "text": "+1 gold and +3 culture for each trade route you run.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "tradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "tradeRoutes"
         },
         {
-          "kind": "countScaled",
-          "count": "tradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "tradeRoutes"
         }
       ]
     },
@@ -3977,12 +3958,12 @@
       "text": "+1 happiness for each trade route between your own cities.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "internalTradeRoutes",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "internalTradeRoutes"
         }
       ]
     },
@@ -4018,15 +3999,13 @@
       "text": "+1 science for every 2 citizens in your empire.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "population",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 2
         }
       ]
     },
@@ -4041,7 +4020,8 @@
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 2,
           "production": 2,
           "on": {
@@ -4080,7 +4060,8 @@
       "text": "+4 food in every city while it is building a wonder · +20% production toward wonders.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 4,
           "scope": {
             "test": "queueHolds",
@@ -4127,7 +4108,8 @@
       "text": "+3 production in every coastal city · +30% production toward ships there.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 3,
           "scope": {
             "test": "coastal"
@@ -4199,14 +4181,12 @@
       "text": "+2 culture for each Order you have placed in a slot.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "slottedOrders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
+          "count": "slottedOrders"
         }
       ]
     },
@@ -4220,14 +4200,12 @@
       "text": "+3 culture for each Order you hold but have not placed in a slot.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "unslottedOrders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
+          "count": "unslottedOrders"
         }
       ]
     },
@@ -4277,26 +4255,22 @@
       "text": "+3 gold for each economic Order you have in a slot, and +2 production in your capital for each.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
           "count": "slottedOrdersOfSlot",
-          "slot": "economic",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 3,
-            "where": "empire"
-          }
+          "slot": "economic"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "production",
+          "amount": 2,
           "count": "slottedOrdersOfSlot",
-          "slot": "economic",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 2,
-            "where": "capital"
-          }
+          "slot": "economic"
         }
       ]
     },
@@ -4329,10 +4303,12 @@
       "note": "It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "food",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "culture",
-          "percent": 15
+          "percent": 15,
+          "from": "food"
         }
       ]
     },
@@ -4347,10 +4323,12 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Grain Fleet is the coast’s card now.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "food",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "production",
           "percent": 10,
+          "from": "food",
           "scope": {
             "test": "coastal"
           }
@@ -4368,10 +4346,12 @@
       "text": "Cities with a Library gain 20% of their production again as science.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "production",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "science",
           "percent": 20,
+          "from": "production",
           "scope": {
             "test": "hasBuilding",
             "building": "library"
@@ -4389,10 +4369,12 @@
       "text": "Every city gains 20% of its gold yield again as science.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "gold",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "science",
-          "percent": 20
+          "percent": 20,
+          "from": "gold"
         }
       ]
     },
@@ -4412,10 +4394,12 @@
           },
           "then": [
             {
-              "kind": "yieldConversion",
-              "from": "production",
+              "kind": "pays",
+              "where": "city",
+              "basis": "share",
               "to": "gold",
               "percent": 15,
+              "from": "production",
               "scope": {
                 "test": "hasBuilding",
                 "building": "barracks"
@@ -4436,7 +4420,8 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It reads only at a founding, and the founding age ends.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 2,
           "production": 2,
           "gold": 2,
@@ -4468,15 +4453,13 @@
       "text": "+2 culture per turn for each barbarian you have killed while this Order stands in a slot.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 2,
           "count": "tally",
-          "tally": "barbarianKill",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 2,
-            "where": "empire"
-          }
+          "tally": "barbarianKill"
         }
       ]
     },
@@ -4491,15 +4474,13 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "tally",
-          "tally": "wonderAnywhere",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "tally": "wonderAnywhere"
         }
       ],
       "retired": true
@@ -4514,26 +4495,22 @@
       "text": "+3 faith and +3 culture per turn for each great person you have spent while this Order stands in a slot.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 3,
           "count": "tally",
-          "tally": "greatPersonSpent",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 3,
-            "where": "empire"
-          }
+          "tally": "greatPersonSpent"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
           "count": "tally",
-          "tally": "greatPersonSpent",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 3,
-            "where": "empire"
-          }
+          "tally": "greatPersonSpent"
         }
       ]
     },
@@ -4547,15 +4524,13 @@
       "text": "+1 gold per turn for each unit you have lost in battle while this Order stands in a slot.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
           "count": "tally",
-          "tally": "unitLost",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "tally": "unitLost"
         }
       ]
     },
@@ -4570,16 +4545,14 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less in a whole game than a single flat pays in a turn.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "tally",
-          "tally": "goldSpent",
           "per": 400,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "tally": "goldSpent"
         }
       ],
       "retired": true
@@ -4838,15 +4811,13 @@
       "text": "+1 science for each 20 hexes you have revealed.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "revealedTiles",
-          "per": 20,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 20
         }
       ],
       "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule."
@@ -4862,70 +4833,58 @@
       "note": "It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "food",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "food",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "capital",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "buildingsInCity",
-          "max": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "capital"
-          }
+          "max": 3
         }
       ]
     },
@@ -4940,14 +4899,12 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "roadHexes",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "roadHexes"
         }
       ],
       "retired": true
@@ -4983,7 +4940,8 @@
       "text": "+3 production on every mine · −3 food in every city with one.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "production": 3,
           "on": {
             "test": "improvement",
@@ -4991,7 +4949,8 @@
           }
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": -3,
           "scope": {
             "test": "hasImprovement",
@@ -5011,7 +4970,8 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The Harvest Songs are the food deck’s card now.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 3,
           "culture": -1
         }
@@ -5029,24 +4989,20 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "followingCities",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
+          "count": "followingCities"
         },
         {
-          "kind": "countScaled",
-          "count": "followingCities",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "followingCities"
         }
       ],
       "retired": true
@@ -5061,10 +5017,12 @@
       "text": "Cities of 8 or more population gain 20% of their food yield again as science.",
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "food",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "science",
           "percent": 20,
+          "from": "food",
           "scope": {
             "test": "populationAtLeast",
             "value": 8
@@ -5221,14 +5179,12 @@
       "text": "+10 culture for each wonder you hold. +3 renown per turn for each culture building you hold.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "wonders",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 10,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 10,
+          "count": "wonders"
         },
         {
           "kind": "renown",
@@ -5274,7 +5230,8 @@
           "extra": 1
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 2,
           "on": {
             "test": "improvement",
@@ -5294,14 +5251,12 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less than a common card of a much earlier age.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "foreignTradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 3,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 3,
+          "count": "foreignTradeRoutes"
         }
       ],
       "retired": true
@@ -5316,13 +5271,13 @@
       "text": "+1 authority capacity for each 2 cities you hold · a captured city costs 1 authority.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "cities",
-          "per": 2,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "per": 2
         },
         {
           "kind": "meterRule",
@@ -5341,7 +5296,8 @@
       "text": "+6 food in every coastal city · +50% growth surplus there.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 6,
           "scope": {
             "test": "coastal"
@@ -5367,7 +5323,8 @@
       "text": "+2 culture and +2 faith in every city with a Cathedral.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 2,
           "faith": 2,
           "scope": {
@@ -5388,14 +5345,12 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "wonders",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 10,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 10,
+          "count": "wonders"
         }
       ],
       "retired": true
@@ -5428,15 +5383,13 @@
       "text": "+5 science for each University you hold · completing a technology grants +40 faith.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "science",
+          "amount": 5,
           "count": "buildingsOfKind",
-          "building": "university",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 5,
-            "where": "empire"
-          }
+          "building": "university"
         },
         {
           "kind": "windfallRider",
@@ -5510,11 +5463,12 @@
       "note": "The great-person improvements are the academy, landmark, manufactory, customs house and citadel.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
           "on": {
             "test": "greatWork"
-          },
-          "percent": 100
+          }
         }
       ]
     },
@@ -5529,11 +5483,13 @@
       "note": "The bale is sold three times before it is unloaded, and every sale is written down somewhere.",
       "effects": [
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "culture": 1
         },
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "share": [
             {
               "yield": "science",
@@ -5557,15 +5513,13 @@
       "text": "+3 culture for each Library you hold · +10% science in every city.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 3,
           "count": "buildingsOfKind",
-          "building": "library",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 3,
-            "where": "empire"
-          }
+          "building": "library"
         },
         {
           "kind": "percentYields",
@@ -5590,7 +5544,8 @@
           "percent": 50
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": -1
         }
       ],
@@ -5607,17 +5562,16 @@
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "percent": 3,
+          "stage": "city",
           "count": "buildingsOfCategory",
-          "category": "production",
-          "within": "city",
           "max": 5,
-          "pays": {
-            "to": "percent",
-            "yield": "production",
-            "percent": 3,
-            "stage": "city"
-          }
+          "category": "production",
+          "within": "city"
         }
       ],
       "retired": true
@@ -5653,9 +5607,10 @@
       "text": "+8 faith and +8 culture in every city with a Temple.",
       "effects": [
         {
-          "kind": "cityYields",
-          "faith": 8,
+          "kind": "pays",
+          "where": "city",
           "culture": 8,
+          "faith": 8,
           "scope": {
             "test": "hasBuilding",
             "building": "temple"
@@ -5673,13 +5628,13 @@
       "text": "+1 happiness for each 3 citizens in your empire · happiness tiers +10 percentage points.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "population",
-          "per": 3,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "per": 3
         },
         {
           "kind": "happinessTierBoost",
@@ -5801,7 +5756,8 @@
       "text": "+1 faith on every hex that already supplies faith.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "faith": 1,
           "on": {
             "test": "yields",
@@ -5820,7 +5776,8 @@
       "text": "+1 gold on every hex that already supplies gold.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 1,
           "on": {
             "test": "yields",
@@ -5889,12 +5846,13 @@
       "text": "Every fishing boat pays double what it makes.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
-          },
-          "percent": 100
+          }
         }
       ]
     },
@@ -5928,14 +5886,12 @@
       "note": "Only Order drafts you paid faith to see again are counted, and only while this sits in a chair. A doctrine, a name or a hand of gods asked again counts for nothing here.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "rerollsWhileSlotted",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "rerollsWhileSlotted"
         }
       ]
     },
@@ -6017,12 +5973,13 @@
       "text": "Every mine pays double what it makes.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
           "on": {
             "test": "improvement",
             "improvement": "mine"
-          },
-          "percent": 100
+          }
         }
       ]
     },
@@ -6121,12 +6078,13 @@
       "text": "Every farm pays double what it makes.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
           "on": {
             "test": "improvement",
             "improvement": "farm"
-          },
-          "percent": 100
+          }
         }
       ]
     },
@@ -6347,7 +6305,8 @@
       "text": "+1 science in every city with a Monument.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 1,
           "scope": {
             "test": "hasBuilding",
@@ -6367,7 +6326,8 @@
       "note": "A city counts as coastal when it stands on the water itself, not merely near it.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 1,
           "scope": {
             "test": "coastal"
@@ -6405,13 +6365,13 @@
       "text": "+1 authority capacity for each 2 cities you hold.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "cities",
-          "per": 2,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "per": 2
         }
       ]
     },
@@ -6425,16 +6385,14 @@
       "text": "+1 science in every city for each 3 citizens living there.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "population",
           "per": 3,
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ]
     },
@@ -6468,12 +6426,13 @@
       "note": "The hex has to carry the boats already. Open water with nothing built on it feeds no better.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
-          },
-          "food": 1
+          }
         }
       ]
     }

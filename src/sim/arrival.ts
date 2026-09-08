@@ -185,7 +185,7 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
     // leaves behind, and it is written here for the bounty's reason exactly:
     // this is the single place a camp stops existing, so a record kept anywhere
     // else would be a second answer that drifts. The Last Hunt reads it through
-    // `countScaled`'s `clearedCamps`; nothing lowers it.
+    // `pays` count's `clearedCamps`; nothing lowers it.
     const clearer = state.players[unit.ownerId];
     if (clearer) clearer.campsCleared += 1;
     // The Camp Burned. Beside the bounty rather than in the reducer, for the

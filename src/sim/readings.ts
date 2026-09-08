@@ -236,7 +236,7 @@ export function readCity(state: GameState, city: City): CityReading {
  *
  * The order is the phase's: every town in `state.cities` order (founding order),
  * then the empire's list, then the sum. `explainEmpireLines` is asked **last**
- * for the reason it is asked last in the resolution — a `rateConversion` reads
+ * for the reason it is asked last in the resolution — a `pays` rate reads
  * the rates the standing lines produced — and it is handed the seat's meters so
  * that the towns above and the lines below are read against one answer to "is
  * this empire content, and is it in debt".

@@ -101,7 +101,7 @@ import type { BuildingCategory, ProductionCategory } from './buildingData';
 // until batch H6; one vocabulary now, and no runtime edge either way.
 import type {
   CardAuthorityEffect,
-  CardEmpireYieldsEffect,
+  CardPaysEffect,
   CardHappinessTierBoostEffect,
   CardRule,
   CardYieldBag,
@@ -163,7 +163,7 @@ export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture
  * out of the sea and the sea is what a harbour town is next to).
  *
  * `'owner'` is the smallest set of all: the city that actually holds the seam.
- * It was its own shape (`cityYields`) before the ratified table landed, and it
+ * It was its own shape (town `pays`) before the ratified table landed, and it
  * became a scope when that table turned out to be **wide everywhere** — no row
  * declares it today. Folding it in rather than deleting it keeps a real reading
  * available at the cost of one word, and it is exercised by a row invented at
@@ -176,7 +176,7 @@ export type CityYieldKey = 'food' | 'production' | 'gold' | 'science' | 'culture
  * honey, coral, whales, tyrian), and it exists because a flat paid into **every**
  * town is the shape that made a wide empire's tenth city as good as its first —
  * a capital line is a fixed amount however far the borders run, which is the
- * same tall-friendly reading `empireYields` gives one grade out.
+ * same tall-friendly reading empire `pays` gives one grade out.
  */
 export type ResourceCityScope = 'owner' | CityScope;
 
@@ -250,7 +250,7 @@ type Signature<T> = T & ResourceEffectModifiers;
  *                       for breadth that happiness and authority then tax.
  *   · `perPopulationYields`  the same, multiplied by each city's population and
  *                       floored per city — olives' half a coin a head.
- *   · `empireYields`    flat yields to the whole empire, once per unique kind.
+ *   · empire `pays`    flat yields to the whole empire, once per unique kind.
  *                       Food and production are rejected at load — the empire
  *                       has no basket for either, and an effect that silently
  *                       does nothing is worse than one that fails to load.
@@ -335,11 +335,12 @@ type Signature<T> = T & ResourceEffectModifiers;
 export type ResourceEffect =
   | Signature<{ kind: 'perCityYields'; scope?: ResourceCityScope } & ResourceYieldBag>
   | Signature<{ kind: 'perPopulationYields'; scope?: ResourceCityScope } & ResourceYieldBag>
-  // **The card's own shape, not a copy of it** (batch H6). `CardEmpireYieldsEffect`
-  // and this were the same interface declared in two files, so this is that
-  // interface with the two modifiers on it. A voice added to the bag arrives in
-  // both tables at once or in neither.
-  | Signature<CardEmpireYieldsEffect>
+  // **The card's own shape, not a copy of it** (batch H6, and batch E5's merge
+  // over it). `CardEmpireYieldsEffect` and this were the same interface declared
+  // in two files; that interface is now the empire-flat reading of the one
+  // `pays` shape, narrowed here to the only reading a luxury has ever had. A
+  // voice added to the bag arrives in both tables at once or in neither.
+  | Signature<ResourceEmpirePays>
   | Signature<{ kind: 'extraHappiness'; amount: number; per?: 'city' | 'coastalCity' }>
   // The same, one meter over: `CardAuthorityEffect` is `{ amount, per?: 'city' }`
   // exactly, which is what `authoritySupply` was. The luxury name is retired
@@ -378,11 +379,23 @@ export type ResourceEffect =
   | Signature<{ kind: 'unitUpkeepRebate'; amount: number }>
   | Signature<{ kind: 'connectionPercent'; percent: number }>;
 
+/**
+ * **A luxury's whole use of the cards' one `pays` shape** — flat, to the empire.
+ *
+ * Narrowed rather than taken whole (batch E5): the shape's five bases and five
+ * grounds are the *cards'* vocabulary, and a luxury row has only ever said one
+ * of the twenty-five things it can say. A signature that wanted a count or a
+ * hex would be a design decision about what a luxury is, argued in
+ * `docs/luxuries.md`, rather than a row that happens to load.
+ */
+export type ResourceEmpirePays = CardPaysEffect & { where: 'empire'; basis?: 'flat' };
+
 /** Every effect shape's tag, for the loader's validation and for tests. */
 export const RESOURCE_EFFECT_KINDS: readonly ResourceEffect['kind'][] = [
   'perCityYields',
   'perPopulationYields',
-  'empireYields',
+  // Batch E5: the empire's flat bag is the one `pays` shape's own reading.
+  'pays',
   'extraHappiness',
   // `authoritySupply` until batch H6, when the shape became the card table's own
   // `authority` — one reading, one word. No live row named it either way.
@@ -803,7 +816,7 @@ function validateEffect(where: string, effect: ResourceEffect): void {
     const value = effect[key];
     if (value === undefined) continue;
     if (!Number.isFinite(value)) throw new Error(`${where} has a non-numeric ${key}`);
-    if (effect.kind === 'empireYields' && (key === 'food' || key === 'production')) {
+    if (effect.kind === 'pays' && (key === 'food' || key === 'production')) {
       throw new Error(`${where} pays empire ${key}, which no empire has a basket for`);
     }
     // A **luxury's** caravan line carries three voices (`ROUTE_YIELD_KEYS`), and

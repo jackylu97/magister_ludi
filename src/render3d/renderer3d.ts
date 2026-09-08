@@ -1117,7 +1117,7 @@ export class Renderer3D implements MapView {
    * Told once per accepted command. See `MapView.noteStateChanged`.
    *
    * Every board fingerprint the frame loop already reads is a fact about a
-   * tile's improvement, feature or owner; a card or belief's `tileYield`
+   * tile's improvement, feature or owner; a card or belief's hex `pays`
    * effect moves none of those, so this is the seam that catches it. Cheap to
    * over-call — a command that touched nothing the yields lens draws still
    * only costs one lens rebuild, and it happens on a command rather than a

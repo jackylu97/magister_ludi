@@ -215,7 +215,7 @@ import {
  * one of them a JSON row — nothing in the vocabulary moved. The Monument
  * carries `authorityCapacity` 1 again (ruling n), so the fourth town of Æra I
  * is reachable without a technology; the Imperial Throne's flat five writ
- * becomes **three plus one for every three cities held** (a `countScaled` on
+ * becomes **three plus one for every three cities held** (a `pays` count on
  * the row's own `effects`, read at the empire scale as every `oncePerEmpire`
  * row is). Three authority Orders (The Elders' Writ, The Marches, The Census)
  * and three science Orders (The Tally Sticks, The Scribes' Hall, The Lamp Kept
@@ -463,7 +463,7 @@ import {
  * Five buildings join the table: the **Stable** at The Wheel (which is what The
  * Horse-Tribes was waiting for), the **Printing House** un-retired to take the
  * beakers the roads bring it, the **Bourse** at Paper Money — a `oncePerEmpire`
- * house whose coin becomes culture, which is how a `rateConversion` reaches the
+ * house whose coin becomes culture, which is how a `pays` rate reaches the
  * empire's own books — and the **Bank** and the **Cistern** reworked: a share of
  * the coin where a caravan ends (`routeEndsHere`), and farms watered by the town
  * that works them (`BuildingDef.irrigates`, read where the renewal reads the

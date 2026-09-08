@@ -37,7 +37,7 @@
  *     age's typical strength.
  *   · **A disjunction is two lines.** `CityScope` has no `any`, and
  *     `statecraftData.ts` says out loud that two lines read better; Bezalel's
- *     "a shrine or a temple" is two `cityYields` rows, so a town with both is
+ *     "a shrine or a temple" is two town `pays` rows, so a town with both is
  *     paid twice. That is the vocabulary's own reading and not a shortcut.
  *
  * Anything that still would not fit is **deferred and annotated** on the row

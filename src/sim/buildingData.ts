@@ -381,7 +381,7 @@ export type BuildingId =
   // **Batch E4b's two** (`docs/audit/deferred-rows.md`), each the answer to a
   // row that had been waiting on one: the **Stable** at The Wheel, which is what
   // The Horse-Tribes' struck clause was written for, and the **Bourse** at Paper
-  // Money — a `oncePerEmpire` house because a `rateConversion` is read from the
+  // Money — a `oncePerEmpire` house because a `pays` rate is read from the
   // empire's own books and an ordinary building is only ever read by its town.
   | 'stable'
   | 'bourse'

@@ -113,7 +113,7 @@ describe('the growing-card vocabulary', () => {
     const watched = new Set<TallyOccasion>();
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
-        if (effect.kind !== 'countScaled' || effect.count !== 'tally') continue;
+        if (effect.kind !== 'pays' || effect.count !== 'tally') continue;
         expect(effect.tally, `${id} names no tally occasion`).toBeDefined();
         watched.add(effect.tally!);
       }
@@ -125,14 +125,18 @@ describe('the growing-card vocabulary', () => {
 
   it('pays every growing card out of the empire fold and nowhere else', () => {
     // The whole reason the counter is a `CountKind` rather than a shape of its
-    // own: a growing card's line is an ordinary empire `countScaled` payout, so
+    // own: a growing card's line is an ordinary empire `pays` count, so
     // the ledger, the `×N` label and the stamp are the ones every counting card
     // already had.
     for (const id of ORDER_IDS) {
       for (const effect of orderDef(id).effects) {
-        if (effect.kind !== 'countScaled' || effect.count !== 'tally') continue;
-        expect(effect.pays.to, id).toBe('yield');
-        expect(effect.pays.to === 'yield' && effect.pays.where, id).toBe('empire');
+        if (effect.kind !== 'pays' || effect.count !== 'tally') continue;
+        // A voice, not a meter and not a percentage — `CardPaysEffect`'s two
+        // discriminants read the way the shape declares them.
+        expect(effect.stage, id).toBeUndefined();
+        expect(effect.to, id).not.toBe('happiness');
+        expect(effect.to, id).not.toBe('authority');
+        expect(effect.where, id).toBe('empire');
       }
     }
   });

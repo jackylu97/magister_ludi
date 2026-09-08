@@ -111,25 +111,21 @@
   },
   "founderTrickle": [
     {
-      "kind": "countScaled",
-      "count": "followingForeign",
-      "pays": {
-        "to": "yield",
-        "yield": "faith",
-        "amount": 1,
-        "where": "empire"
-      }
+      "kind": "pays",
+      "where": "empire",
+      "basis": "count",
+      "to": "faith",
+      "amount": 1,
+      "count": "followingForeign"
     },
     {
-      "kind": "countScaled",
+      "kind": "pays",
+      "where": "empire",
+      "basis": "count",
+      "to": "gold",
+      "amount": 1,
       "count": "followingForeign",
-      "per": 2,
-      "pays": {
-        "to": "yield",
-        "yield": "gold",
-        "amount": 1,
-        "where": "empire"
-      }
+      "per": 2
     }
   ],
   "beliefs": {
@@ -140,13 +136,14 @@
       "text": "+1 food on every hex carrying a bonus resource that pays food.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
           "on": {
             "test": "resourceKind",
             "kind": "bonus",
             "yields": "food"
-          },
-          "food": 1
+          }
         }
       ]
     },
@@ -157,7 +154,8 @@
       "text": "Granaries supply +1 faith. +1 happiness in the capital.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 1,
           "scope": {
             "test": "hasBuilding",
@@ -181,7 +179,8 @@
       "text": "+4 science in every city beside a mountain.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 4,
           "scope": {
             "test": "mountainAdjacent"
@@ -214,7 +213,8 @@
       "text": "Monuments supply +1 culture and +1 faith.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
           "faith": 1,
           "scope": {
@@ -231,7 +231,8 @@
       "text": "+1 culture in every city of 4 or more population. +5% culture in every city of 10 or more.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
           "scope": {
             "test": "populationAtLeast",
@@ -256,13 +257,14 @@
       "text": "+1 food and +1 gold on every hex with a Camp improvement. Clearing a barbarian camp pays +10 faith.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "gold": 1,
           "on": {
             "test": "improvement",
             "improvement": "camp"
-          },
-          "food": 1,
-          "gold": 1
+          }
         },
         {
           "kind": "windfallRider",
@@ -289,12 +291,13 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
           "on": {
             "test": "feature",
             "feature": "forest"
-          },
-          "culture": 1
+          }
         }
       ]
     },
@@ -305,7 +308,8 @@
       "text": "+2 food in every city on fresh water. Those cities' shrines supply +1 happiness.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "food": 2,
           "scope": {
             "test": "freshwater"
@@ -337,13 +341,14 @@
       "text": "+1 production and +1 gold on every hex with a Fishing Boat.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "production": 1,
+          "gold": 1,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
-          },
-          "production": 1,
-          "gold": 1
+          }
         }
       ]
     },
@@ -354,7 +359,8 @@
       "text": "Barracks supply +1 production. All your units gain +1 combat strength.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "production": 1,
           "scope": {
             "test": "hasBuilding",
@@ -419,7 +425,8 @@
       "text": "+1 faith in every city.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 1
         }
       ]
@@ -431,12 +438,13 @@
       "text": "+1 faith on every desert hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "faith": 1,
           "on": {
             "test": "terrain",
             "terrain": "desert"
-          },
-          "faith": 1
+          }
         }
       ]
     },
@@ -447,13 +455,14 @@
       "text": "+1 food and +1 faith on every tundra hex.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "faith": 1,
           "on": {
             "test": "terrain",
             "terrain": "tundra"
-          },
-          "food": 1,
-          "faith": 1
+          }
         }
       ]
     },
@@ -464,7 +473,10 @@
       "text": "+1 culture and +1 faith on every hex with a Mine or Quarry carrying a resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
+          "faith": 1,
           "on": {
             "test": "all",
             "of": [
@@ -479,9 +491,7 @@
                 "test": "hasResource"
               }
             ]
-          },
-          "culture": 1,
-          "faith": 1
+          }
         }
       ]
     },
@@ -516,7 +526,8 @@
       "text": "+1 culture on every hex with a Mine carrying a resource.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "culture": 1,
           "on": {
             "test": "all",
@@ -542,13 +553,14 @@
       "text": "+1 food and +1 culture on every hex with a Plantation.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
+          "culture": 1,
           "on": {
             "test": "improvement",
             "improvement": "plantation"
-          },
-          "food": 1,
-          "culture": 1
+          }
         }
       ]
     },
@@ -574,7 +586,10 @@
       "text": "Temples supply +2 science and +2 culture.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
+          "culture": 2,
           "scope": {
             "test": "all",
             "of": [
@@ -586,9 +601,7 @@
                 "building": "temple"
               }
             ]
-          },
-          "science": 2,
-          "culture": 2
+          }
         }
       ]
     },
@@ -599,15 +612,13 @@
       "text": "+1 faith for every luxury held by a city that follows.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "uniqueLuxuries",
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ]
     },
@@ -652,7 +663,10 @@
       "text": "+1 food and +1 faith for every city that follows and stands on fresh water.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
+          "food": 1,
+          "faith": 1,
           "scope": {
             "test": "all",
             "of": [
@@ -663,9 +677,7 @@
                 "test": "freshwater"
               }
             ]
-          },
-          "food": 1,
-          "faith": 1
+          }
         }
       ]
     },
@@ -676,7 +688,9 @@
       "text": "+2 science for every city that follows and has a Shrine.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
+          "science": 2,
           "scope": {
             "test": "all",
             "of": [
@@ -688,8 +702,7 @@
                 "building": "shrine"
               }
             ]
-          },
-          "science": 2
+          }
         }
       ]
     },
@@ -700,16 +713,14 @@
       "text": "+1 culture for every 4 citizens of a city that follows.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "population",
-          "within": "city",
           "per": 4,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ]
     },
@@ -720,16 +731,14 @@
       "text": "+1 gold for every 3 citizens of a city that follows.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
           "count": "population",
-          "within": "city",
           "per": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ]
     },
@@ -740,12 +749,13 @@
       "text": "+1 faith and +1 culture for every city that follows.",
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
+          "culture": 1,
+          "faith": 1,
           "scope": {
             "test": "follows"
-          },
-          "faith": 1,
-          "culture": 1
+          }
         }
       ]
     },
@@ -772,7 +782,8 @@
       "text": "+1 food on every farm worked by a city that follows.",
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "on": {
             "test": "improvement",
@@ -825,15 +836,13 @@
       "text": "+1 culture for every 3 faith you bank each turn.",
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "faithPerTurn",
-          "per": 3,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "faithPerTurn",
+          "per": 3
         }
       ]
     },
@@ -911,12 +920,13 @@
           "delta": 3
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "faith": 3,
           "on": {
             "test": "improvement",
             "improvement": "holySite"
-          },
-          "faith": 3
+          }
         }
       ]
     },
@@ -987,14 +997,14 @@
       "text": "+1 happiness for every 3 cities in the world that follow, up to 5.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "followingCities",
           "per": 3,
-          "max": 5,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "max": 5
         }
       ]
     },
@@ -1005,14 +1015,12 @@
       "text": "+4 gold for every city in the world that follows.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "followingCities",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 4,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 4,
+          "count": "followingCities"
         }
       ]
     },
@@ -1023,14 +1031,13 @@
       "text": "+15% culture for every empire in the world that follows you.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "followingEmpires",
-          "pays": {
-            "to": "percent",
-            "yield": "culture",
-            "percent": 15,
-            "stage": "empire"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "percent": 15,
+          "stage": "empire",
+          "count": "followingEmpires"
         }
       ]
     },
@@ -1041,15 +1048,13 @@
       "text": "+1 culture for every 4 citizens in the world who follow you.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "followingPop",
-          "per": 4,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "per": 4
         }
       ]
     },
@@ -1105,12 +1110,13 @@
       "duration": 10,
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "food": 1,
           "on": {
             "test": "yields",
             "yield": "food"
-          },
-          "food": 1
+          }
         }
       ]
     },
@@ -1122,14 +1128,12 @@
       "duration": 10,
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsInCity",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "buildingsInCity"
         }
       ]
     },
@@ -1141,12 +1145,13 @@
       "duration": 10,
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "culture": 1,
           "on": {
             "test": "resourceKind",
             "kind": "luxury"
-          },
-          "culture": 1
+          }
         },
         {
           "kind": "rulePercent",
@@ -1178,11 +1183,12 @@
       "duration": 10,
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
+          "gold": 1,
           "on": {
             "test": "hasResource"
-          },
-          "gold": 1
+          }
         }
       ]
     },
@@ -1210,15 +1216,13 @@
       "text": "+1 science for every 2 followers in this city.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "followersHere",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "city"
-          }
+          "per": 2
         }
       ]
     },
@@ -1228,15 +1232,13 @@
       "text": "+1 culture for every 2 followers in this city.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "followersHere",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "per": 2
         }
       ]
     },
@@ -1246,16 +1248,14 @@
       "text": "+3 gold for every faith building in this city.",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 3,
           "count": "buildingsOfCategory",
           "category": "faith",
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 3,
-            "where": "city"
-          }
+          "within": "city"
         }
       ]
     },
@@ -1277,14 +1277,12 @@
       "text": "+1 faith for every follower in this city.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "followersHere",
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "followersHere"
         }
       ]
     },
@@ -1294,9 +1292,10 @@
       "text": "+1 faith and +1 culture on every unimproved hex this city works.",
       "effects": [
         {
-          "kind": "tileYield",
-          "faith": 1,
+          "kind": "pays",
+          "where": "hex",
           "culture": 1,
+          "faith": 1,
           "on": {
             "test": "unimproved"
           }

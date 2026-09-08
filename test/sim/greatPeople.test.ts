@@ -1442,7 +1442,7 @@ describe('the one-row shapes, built generically', () => {
     g.state.players[0]!.timed = [{
       card: 'heroOfAlexandria',
       effect: {
-        kind: 'cityYields',
+        kind: 'pays', where: 'city',
         production: 5,
         scope: { test: 'hasBuildingYielding', yields: 'science', wonder: true },
       },

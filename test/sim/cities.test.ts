@@ -3955,7 +3955,7 @@ describe('the empire stage', () => {
   }
 
   it('banks a card’s empire line through the tier, and prints the multiplication as a line', () => {
-    withCard('waysideShrines', [{ kind: 'empireYields', science: 3 }], () => {
+    withCard('waysideShrines', [{ kind: 'pays', where: 'empire', science: 3 }], () => {
       const { state } = tiered();
       const tier = empirePercents(state, 0).meters.find((line) => line.yield === 'science');
       expect(tier?.percent).toBe(10);
@@ -3977,7 +3977,7 @@ describe('the empire stage', () => {
   });
 
   it('is what the resolution banks, and the town’s own science is still staged as before', () => {
-    withCard('waysideShrines', [{ kind: 'empireYields', science: 3 }], () => {
+    withCard('waysideShrines', [{ kind: 'pays', where: 'empire', science: 3 }], () => {
       const { state, city } = tiered();
       const player = playerById(state, 0)!;
       // The town's own basket takes the same tier at its second stage, which is
@@ -3993,7 +3993,7 @@ describe('the empire stage', () => {
   });
 
   it('leaves the treasury’s bills outside the multiplication', () => {
-    withCard('waysideShrines', [{ kind: 'empireYields', gold: 4 }], () => {
+    withCard('waysideShrines', [{ kind: 'pays', where: 'empire', gold: 4 }], () => {
       const { state, city } = tiered();
       // An institution to owe for, so the ledger carries both halves.
       city.buildings.push('market');
@@ -4047,7 +4047,7 @@ describe('the empire stage', () => {
   });
 
   it('folds to what every reader reads, in the phase’s own banking order', () => {
-    withCard('waysideShrines', [{ kind: 'empireYields', science: 3, gold: 2 }], () => {
+    withCard('waysideShrines', [{ kind: 'pays', where: 'empire', science: 3, gold: 2 }], () => {
       const { state } = tiered();
       const lines = explainEmpireLines(state, 0);
       // The additive lines come in the order the phase has always banked in —

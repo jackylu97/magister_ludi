@@ -479,7 +479,7 @@ export function recordWorldScalingOccasion(
  */
 function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
   for (const effect of orderDef(id).effects) {
-    if (effect.kind !== 'countScaled') continue;
+    if (effect.kind !== 'pays' || effect.basis !== 'count') continue;
     if (effect.count !== 'tally') continue;
     if (effect.tally === occasion) return true;
   }

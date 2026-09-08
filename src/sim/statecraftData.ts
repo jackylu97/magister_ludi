@@ -326,14 +326,14 @@ export type CityScope =
    *
    * A boolean question, so it **cannot stack**: three spearmen in the town admit
    * it once, which is what "when a unit is stationed in a city" says. A card
-   * that wants the count says `countScaled` with `garrison`.
+   * that wants the count says `pays` count with `garrison`.
    */
   | { test: 'garrisoned' }
   /**
    * The town has finished this building.
    *
    * Entry XXVIII's addition, and the shape that makes "granaries supply +1
-   * faith" an ordinary `cityYields` line rather than a new effect kind: a
+   * faith" an ordinary town `pays` line rather than a new effect kind: a
    * building's yield *is* a city yield in the towns that have the building.
    */
   | { test: 'hasBuilding'; building: BuildingId }
@@ -551,7 +551,7 @@ export type CityScope =
    * The one scope whose subject is a *caravan* rather than the town, and it is
    * a scope rather than a count for the reason `garrisoned` is: the question is
    * "is there one", not "how many", and a row that wanted the number says
-   * `countScaled`. Read off the pieces — `Unit.trade` **is** the route (there is
+   * `pays` count. Read off the pieces — `Unit.trade` **is** the route (there is
    * no register), and a route naming this town as its destination is a route
    * ending here whoever sent it, which is the same reading `cityRouteYields`
    * banks a foreign caravan's coin by.
@@ -787,7 +787,7 @@ export type CombatScaleCount =
    * Great people of one **family** this empire has earned — The Empire's line
    * ("+1 combat strength for every great general earned this game").
    *
-   * `CardCountScaledEffect.class`' sibling one table over, and the same bargain:
+   * `CardPaysEffect.class`' sibling one table over, and the same bargain:
    * a count that needs an argument names it on the scale (`family`) rather than
    * in the union, so "per great general" and "per great engineer" are one arm.
    * *Earned*, not *held*: the sweep is `Player.legacies` — the people already
@@ -891,7 +891,7 @@ export interface UnitFilter {
 /**
  * What a tile must be for a line of yield to land on it.
  *
- * Declared here because Statecraft's `tileYield` was the first shape to need
+ * Declared here because Statecraft's hex `pays` was the first shape to need
  * one, and shared from here because it was not the last: a building's
  * `tileYields` (`buildingData.ts`) and a luxury's `improvementYields`
  * (`resourceData.ts`) ask exactly the same question of exactly the same hex.
@@ -1052,33 +1052,9 @@ export type TileCondition =
    */
   | { test: 'all'; of: TileCondition[] };
 
-// --- payouts ----------------------------------------------------------------
+// --- the counts -------------------------------------------------------------
 
-/**
- * Where a scaled or converted figure lands. The shared tail of `countScaled` and
- * `rateConversion`, which is what makes those two shapes *one* idea each rather
- * than one idea per destination.
- *
- * `where` on a yield payout is the difference between "+1 gold per unique
- * luxury" (once, to the empire) and "+2 production per garrison" (in each town,
- * counted in that town) — the same distinction `resourceEffects.ts` draws
- * between `empireYields` and `perCityYields`, said once here instead of twice.
- *
- * `'capital'` is the third reading and the narrowest: **once, in one town**. It
- * exists because an empire line has no basket — `collectYields` banks a realm's
- * gold, science, culture and faith and has nowhere to put food or production —
- * so a card that pays a hammer for a thing counted across the whole realm (The
- * Guild Charter's guilds) has to name a town for it to be built in. Read in
- * `explainCardCityYields` beside the ordinary city lines, and skipped by the empire
- * fold, so it is paid exactly once.
- */
-export type CardPayout =
-  | { to: 'yield'; yield: CityYieldKey; amount: number; where: 'empire' | 'city' | 'capital' }
-  | { to: 'happiness'; amount: number }
-  | { to: 'authority'; amount: number }
-  | { to: 'percent'; yield: CityYieldKey; percent: number; stage: ModifierStage };
-
-/** What a `countScaled` counts. Each has exactly one arm in `countOf`. */
+/** What `basis: 'count'` counts. Each has exactly one arm in `countOf`. */
 export type CountKind =
   /** Distinct luxuries the empire controls. `controlledResources`. */
   | 'uniqueLuxuries'
@@ -1142,7 +1118,7 @@ export type CountKind =
   | 'scienceBuildings'
   /**
    * Buildings of **one named kind** the empire holds — one per city that has
-   * built it. The effect names which in `CardCountScaledEffect.building`.
+   * built it. The effect names which in `CardPaysEffect.building`.
    *
    * The Circus Maximus' barracks and Notre-Dame's temples, and the first count
    * in the union that needs an argument. It is empire-wide by default and
@@ -1222,7 +1198,7 @@ export type CountKind =
    */
   | 'agesClosed'
   /**
-   * This empire's **living pieces**, narrowed by `CardCountScaledEffect.class`.
+   * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
    * Murasaki Shikibu's melee line. The second count in the union that takes an
    * argument, and it takes the ordinary `UnitFilter` — so "per melee unit", "per
@@ -1237,7 +1213,7 @@ export type CountKind =
    * counted across the realm, narrowed to the town by `within: 'city'`.
    *
    * `buildingsOfKind`'s variant, and it takes its argument the same way
-   * (`CardCountScaledEffect.category`): where that count names *one row*, this
+   * (`CardPaysEffect.category`): where that count names *one row*, this
    * names what a row is *for* (`BuildingDef.category`, the one word every
    * building declares). The Merchant League's "+1 gold for every gold-producing
    * building" is one line of it, and a second gold building is a JSON row rather
@@ -1322,7 +1298,7 @@ export type CountKind =
   | 'unslottedOrders'
   /**
    * Orders sitting in a chair whose own **flavour** is the one named in
-   * `CardCountScaledEffect.slot` — the deck-readers (The Guild Charter's
+   * `CardPaysEffect.slot` — the deck-readers (The Guild Charter's
    * economic cards, The Synod's wildcards).
    *
    * `slottedOrders` counts how *full* the council is and this counts what kind
@@ -1391,7 +1367,7 @@ export type CountKind =
   | 'followingEmpires'
   /**
    * Following cities that have raised one **named** building — the effect says
-   * which in `CardCountScaledEffect.building`, exactly as `buildingsOfKind`
+   * which in `CardPaysEffect.building`, exactly as `buildingsOfKind`
    * does. Pilgrims' Coin's temples.
    */
   | 'followingWithBuilding'
@@ -1421,7 +1397,7 @@ export type CountKind =
    *
    * It is one member and not five because the difference between The
    * Ballad-Weavers and The Bell-Founders is *which* occasion, and an occasion is
-   * an argument: `CardCountScaledEffect.tally` names it, exactly as `building`
+   * an argument: `CardPaysEffect.tally` names it, exactly as `building`
    * names a building and `slot` a flavour. So a sixth growing card is a JSON row.
    *
    * The counter belongs to the **card**, not to the occasion, which is what lets
@@ -1454,7 +1430,7 @@ export type CountKind =
    * *and* faith houses.
    *
    * `buildingsOfCategory` with a list where that one has a word, reading
-   * `CardCountScaledEffect.categories`, and a member of its own rather than a
+   * `CardPaysEffect.categories`, and a member of its own rather than a
    * widening of that field for `improvedStrategicResources`' reason exactly: the
    * two read differently on a card ("per gold building", "per science or faith
    * building") and a member each is what lets `COUNT_WORDS` write the words
@@ -1470,16 +1446,16 @@ export type CountKind =
    * The one count in the union whose subject is the ledger rather than the board,
    * and it is answered by the ledger's own reading (`foldEmpireRates`,
    * `cities.ts`) rather than by a second sweep of the towns — the same bargain
-   * `rateConversion` strikes one shape over, widened to all six voices because a
+   * `pays` rate strikes one shape over, widened to all six voices because a
    * periodic boon may be quoted in hammers and a rate never was.
    *
    * **It cannot feed itself**, and that is a stated cut rather than an accident:
    * while the empire's books are being computed, this count answers nothing
    * (`rateDepth` in `statecraft.ts`, `conditionDepth`'s idiom one question over).
    * A card that paid gold for the gold it makes would otherwise be a loop with no
-   * answer — `CardYieldConversionEffect`'s first clause, at empire scale.
+   * answer — the share basis' first clause, at empire scale.
    *
-   * Which voice is `CardCountScaledEffect.voice`; a row naming none counts
+   * Which voice is `CardPaysEffect.voice`; a row naming none counts
    * nothing.
    */
   | 'empireYield'
@@ -1559,7 +1535,7 @@ export const TALLY_OCCASIONS: readonly TallyOccasion[] = [
   'goldSpent',
 ];
 
-/** What a `rateConversion` reads. A *rate* or a meter standing, never a bank. */
+/** What a `pays` rate reads. A *rate* or a meter standing, never a bank. */
 export type RateSource =
   /** Faith the empire banked this turn. */
   | 'faithPerTurn'
@@ -2147,7 +2123,7 @@ export interface WindfallGrantSpec {
    * `windfallPayout`, before anything is banked — so the preview, the basket and
    * the announcement are one figure, and a card that pays "a turn of culture"
    * cannot pay a different turn's worth to each of them. The rate itself is the
-   * *base* one (`foldEmpireRates`, the same reading a `rateConversion` takes),
+   * *base* one (`foldEmpireRates`, the same reading a `pays` rate takes),
    * which is what stops a card feeding itself.
    */
   fromRate?: RateSource;
@@ -2248,15 +2224,277 @@ export interface CardYieldBag {
   faith?: number;
 }
 
-/** Flat yields in each city a scope admits. `resourceEffects`' `perCityYields`. */
-export interface CardCityYieldsEffect extends CardYieldBag {
-  kind: 'cityYields';
-  scope?: CityScope;
-}
+/**
+ * **Where a `pays` line lands.** The first of the shape's two dimensions.
+ *
+ * `'capital'` is the narrow reading of the town — *once, in one town* — and it
+ * exists because an empire line has no basket: `collectYields` banks a realm's
+ * gold, science, culture and faith and has nowhere to put food or production, so
+ * a row that pays a hammer for a thing counted across the whole realm (The Guild
+ * Charter's guilds) has to name a town for it to be built in. Read in
+ * `explainCardCityYields` beside the ordinary city lines and skipped by the
+ * empire fold, so it is paid exactly once.
+ */
+export type PayWhere = 'city' | 'capital' | 'hex' | 'empire' | 'route';
 
-/** Flat yields to the empire, once, wherever its cities are. */
-export interface CardEmpireYieldsEffect extends CardYieldBag {
-  kind: 'empireYields';
+/**
+ * **What a `pays` line is a figure of.** The second dimension.
+ *
+ * `'flat'` is the default and is the bag on the row itself. The other four each
+ * read something and pay a share of what they read:
+ *
+ *   · `'count'`  — so many of a counted thing buy one helping (`count`, `per`);
+ *   · `'mirror'` — what the buildings of one shelf pay in `from`, paid as `to`;
+ *   · `'share'`  — a share of the town's own fold of `from`, paid as `to`;
+ *   · `'rate'`   — a rate or a meter standing (`fromRate`), converted per `per`.
+ */
+export type PayBasis = 'flat' | 'count' | 'mirror' | 'share' | 'rate';
+
+/** What one helping of a counted or converted row pays. See `CardPaysEffect.to`. */
+export type PayTarget = CityYieldKey | 'happiness' | 'authority';
+
+/**
+ * **Pay a voice** — the one shape, and the one `kind` that moves one of the six
+ * voices through `docs/yields.md`'s sequence.
+ *
+ * Batch **E5** (`docs/audit/e5-yield-shape.md`, `docs/flags.md` (pp)). Eight
+ * kinds said one thing — town `pays`, hex `pays`, empire `pays`,
+ * route `pays`, `pays` mirror, `pays` count, `pays` share,
+ * `pays` rate — and differed only in **where** the figure lands and on what
+ * **basis** it is computed. Each carried its own reader, its own describer, its
+ * own bot arm and its own row in the yields register, so a ninth way to pay a
+ * voice was a shape somebody could add in eight places rather than a decision
+ * somebody had to make in one. They are that pair of fields now, exactly as
+ * batch H6 folded the four flag-rule kinds into one `rule`.
+ *
+ * `where` is **required**: it is the question the old kind's *name* was
+ * answering, and a default would put it back in the reader's head. `basis` is
+ * optional and defaults to `'flat'`, which is what makes a flat row's whole
+ * declaration `{ kind: 'pays', where: 'city' }` plus its bag.
+ *
+ * **Where each pair lands is the sequence of record and did not move**
+ * (`docs/yields.md`'s register): the hex at step 2, the town's flats, counts and
+ * mirrors at 3, the caravan at 6 and 14, the town's share at 10, a count's
+ * percentage at 11, and the empire's flats, counts and rate conversions at 16.
+ *
+ * **Three fields serve two readings each**, and each pair is disjoint by
+ * (`where`, `basis`) rather than by convention:
+ *
+ *   · **`percent`** is a share in whole percent — of the hex's *works* at
+ *     `where: 'hex'`, of the town's fold of `from` at `basis: 'share'`, and of a
+ *     voice per helping at `basis: 'count'` (where `stage` is present);
+ *   · **`category`** is *which shelf* — the buildings a mirror reads off, and the
+ *     buildings `buildingsOfCategory` counts. One question, one field;
+ *   · **`per`** is *how many of the thing read buy one helping* — the count's and
+ *     the rate's, which were always the same sentence about two readings.
+ *
+ * `stage` is the discriminant between a count's two payout forms: **present iff
+ * the helping pays a percentage**, which is the reading `percentYields` already
+ * gives the field, and the flat form has never carried one.
+ *
+ * A payout to a **meter** (`to: 'happiness' | 'authority'`) carries
+ * `where: 'empire'` and nothing reads it: a meter has exactly one bank per
+ * empire. It is written down rather than left absent so `where` is total and a
+ * reader never has to ask what a blank meant.
+ */
+export interface CardPaysEffect extends CardYieldBag {
+  kind: 'pays';
+  /** The town, the capital, the hex, the empire, or the road. Required. */
+  where: PayWhere;
+  /** How the figure is arrived at. Absent is `'flat'` — the bag above. */
+  basis?: PayBasis;
+
+  // --- what is paid, where the bag does not say it -------------------------
+
+  /**
+   * The voice (or meter) one helping pays — `basis` `'count'`, `'mirror'`,
+   * `'share'` and `'rate'`. The flat basis says it with the bag instead.
+   */
+  to?: PayTarget;
+  /** The flat figure one helping pays. With `to`, on a count or a rate. */
+  amount?: number;
+  /**
+   * A share, in whole percent. **Three readings**, disjoint by (`where`,
+   * `basis`) — see the shape's docblock:
+   *
+   *   · at `where: 'hex'`, a percentage on what the hex's **improvement**
+   *     already pays (The Commonwealth's great-person works). It reaches the
+   *     improvement's own contribution and nothing else, which is why it is a
+   *     field here and not a `percentYields` with a tile scope: a hex's yield is
+   *     a list, and a card saying "this hex pays half again" would be silently
+   *     multiplying the terrain, the resource, the river and whatever a second
+   *     card had already added. Read as one more labelled line of that list, so
+   *     the breakdown still sums to the total. A row may carry both a bag and
+   *     this; the bag lands first as an ordinary flat and the share is taken of
+   *     the improvement's own figure — never of the card's own flat, which would
+   *     be a card paying interest on itself;
+   *   · at `basis: 'share'`, the share of the town's fold of `from` that is paid
+   *     again as `to`, floored per city;
+   *   · at `basis: 'count'` **with `stage`**, the percentage one helping adds.
+   */
+  percent?: number;
+  /**
+   * A percentage on what the hex's **own ground** already pays — its terrain,
+   * the hill or canopy over it, and the seam in it. The Old Ways' doubling.
+   * `where: 'hex'` only.
+   *
+   * `percent`'s opposite number, and the pair is the whole of what a percentage
+   * on a hex may say. That one reaches the *works* — the improvement and its
+   * renewals — and this one reaches everything that was there before anybody
+   * built anything, which is exactly the half The Old Ways is about: *leave the
+   * land alone and it pays you*. Neither reaches the other, and neither reaches
+   * another card's line, so two cards cannot pay each other interest.
+   *
+   * Riders sum before one multiplication and the share is floored per voice,
+   * exactly as the works' percentage is.
+   */
+  basePercent?: number;
+  /** Which of Entry XVII's stages a counted percentage joins. Its discriminant. */
+  stage?: ModifierStage;
+
+  // --- what is read ---------------------------------------------------------
+
+  /** The voice read — `basis: 'mirror'` (off the shelf) and `'share'` (the fold). */
+  from?: CityYieldKey;
+  /** The rate or meter standing read — `basis: 'rate'`. See `RateSource`. */
+  fromRate?: RateSource;
+  /** What `basis: 'count'` counts. See `CountKind`. */
+  count?: CountKind;
+  /**
+   * How many of the thing read buy one helping. Default 1.
+   *
+   * The count's and the rate's, which is one question: "so many luxuries buy a
+   * coin" and "so much faith a turn buys a beaker" are the same sentence about
+   * two readings.
+   */
+  per?: number;
+  /** The most helpings that ever pay. `basis: 'count'`. */
+  max?: number;
+
+  // --- the counts' arguments ------------------------------------------------
+
+  /** Which building `buildingsOfKind` counts. Ignored by every other count. */
+  building?: BuildingId;
+  /**
+   * Which shelf. **Two readings, one question**: the buildings a
+   * `basis: 'mirror'` row reads its `from` off, and the buildings
+   * `buildingsOfCategory` counts.
+   *
+   * On the shape rather than in a union for the stated reason — the count union
+   * stays a list of *questions* and the row says which one it is asking.
+   */
+  category?: BuildingCategory;
+  /**
+   * Which categories `buildingsOfCategories` counts. `category`'s sibling one
+   * grade wider. An absent or empty list counts nothing — see the count.
+   */
+  categories?: BuildingCategory[];
+  /** Which units `unitsInField` counts. Absent counts every piece. */
+  class?: UnitFilter;
+  /**
+   * Which flavour `slottedOrdersOfSlot` counts. Absent counts every slotted
+   * Order whatever its flavour, which is the honest reading of an unnamed
+   * argument rather than a guard.
+   */
+  slot?: SlotType;
+  /**
+   * Which moment `tally` counts. A `tally` row that names no occasion counts
+   * nothing at all — the honest answer for a card that never said what it was
+   * watching, rather than a guard that would quietly count everything.
+   */
+  tally?: TallyOccasion;
+  /**
+   * Which voice `empireYield` reads. Absent counts nothing, which is the honest
+   * answer for a ledger question that never said which column.
+   */
+  voice?: CityYieldKey;
+  /**
+   * Narrows an **empire** count to the town the line is being paid in.
+   *
+   * The Temple of Artemis' "in this city", and a modifier on the *count* rather
+   * than a second count: `improvedBonusResources` is the same sweep whether it
+   * is asked of a realm or of one town's ground, so the question is which
+   * ground, not which sweep. The city-scoped counts (`garrison`, `workedHills`,
+   * the rest) already answer per town and ignore this.
+   */
+  within?: 'city';
+
+  // --- where it lands -------------------------------------------------------
+
+  /**
+   * The hex's own condition — `where: 'hex'`, and required there. The one field
+   * that reaches into `explainTileYield`, and therefore the one that has to obey
+   * rule 5 at the hex.
+   */
+  on?: TileCondition;
+  /**
+   * Which towns admit it. Absent means every one.
+   *
+   * At `where: 'hex'` it is whose *ground*: the hex pays only if its **owning
+   * city** is admitted. Petra's desert and the Hanging Gardens' farms are both
+   * "in this city", which a wonder says the way every other wonder clause says
+   * it — `hasBuilding` on its own row, derived from the board, so a captured
+   * wonder moves its ground bonus with it. It is read where the *town* is known
+   * (`cityContext`) rather than in the empire-wide pass, for the granary's
+   * reason exactly: a fact about one city can only be resolved by whoever has
+   * one in hand, and a hex outside anybody's borders has no city to ask.
+   */
+  scope?: CityScope;
+  /**
+   * Which origin towns' caravans carry it — `where: 'route'`. Absent reaches
+   * every route this empire sends.
+   *
+   * Asked of the town the caravan **left**, which is what makes the Caravanserai
+   * a hub rather than a nationwide subsidy: *"routes originating here +1🌾 +1⚒"*
+   * is `origin: { test: 'hasBuilding', building: … }`, one ordinary `CityScope`
+   * and no field of its own.
+   */
+  origin?: CityScope;
+  /**
+   * Which **destination** towns' caravans carry it — the Printing House's
+   * beakers, paid for the roads that end at its presses.
+   *
+   * `origin`'s twin, asked of the town the caravan is walking *to*. Which
+   * **books** the line lands in does not move: a domestic route's whole figure
+   * is banked by its destination and a route ending abroad carries its lines in
+   * the sender's fold, so a card of this empire's still never pays a foreign
+   * host. The row is read off the **origin's** empire either way, which is the
+   * module's own rule — a route belongs to the seat that sent it — so a rival's
+   * presses do not print your books.
+   */
+  destination?: CityScope;
+  /**
+   * A **share of what the road already carries**, voice by voice — The Silk
+   * Exchange's doubled beakers and songs. `where: 'route'`.
+   *
+   * The bag puts yields *on* the caravan; this multiplies what is on it, which
+   * is the ordering the whole fold is built around ("put yields on a thing, then
+   * multiply the thing"). It is on this shape rather than an `effectAmplifier`
+   * for one reason: that target (`routeYields`) is the whole caravan and cannot
+   * say *which voice*, and a card that meant to double the beakers would have
+   * doubled the grain with them.
+   *
+   * A list, because a row that raises two voices is one clause on a card and
+   * reads as one line in the fold. Every share on one route sums per voice
+   * before a single multiplication, and each voice is floored once — Entry
+   * XVII's rule at the scale of a road.
+   */
+  share?: CardRouteShare[];
+  /**
+   * **Paid once for every luxury held at either end of the road** — The Golden
+   * Roads' *"+1💰 from each luxury resource in the origin or destination city"*.
+   * `where: 'route'`.
+   *
+   * A multiplier on this row's own bag rather than a count of its own, because
+   * the thing counted is a fact about *the route* and nothing else in the
+   * vocabulary can see both ends of one. Counted as the **union** of the two
+   * towns' luxuries, once each: a vineyard at both ends of a road is one wine,
+   * not two — the reading *"in the origin or destination city"* takes literally,
+   * and the one that cannot be farmed by pointing a caravan at a mirror of its
+   * own hinterland. Folded in `routeYields.ts`, the only module holding both
+   * cities.
+   */
+  perEndpointLuxury?: true;
 }
 
 /**
@@ -2335,7 +2573,7 @@ export interface CardProductionBonusEffect {
    * "science buildings cost −50%".
    *
    * `building`'s sibling one grade wider, and it takes its argument the way
-   * `CardCountScaledEffect.category` does: that field names one row, this names
+   * `CardPaysEffect.category` does: that field names one row, this names
    * what a row is *for* (`BuildingDef.category`, the one word every building
    * declares). So a second science building is a JSON row rather than an edit
    * here — the reason it is the category and not a list.
@@ -2380,7 +2618,7 @@ export interface CardHappinessEffect {
    * *"Temples supply +1 happiness"* (the user's mark of 2026-09-08: *"modify, so
    * that this is affected by temple multipliers"*).
    *
-   * `cardLinesOnBuilding`'s bargain one meter over. A `cityYields` naming a
+   * `cardLinesOnBuilding`'s bargain one meter over. A town `pays` naming a
    * building in its scope is already folded into that building's own figure —
    * which is what lets the Synod's share reach a belief's science on a temple —
    * but happiness is not a voice (`CityYieldKey` has no member for it), so the
@@ -2556,7 +2794,7 @@ export interface CardUnitStampEffect {
    * same predicate against the same town: the birth hex is the only town a
    * creation has, and `createUnit` is the one place a piece comes into
    * existence. A wonder says "here" by naming itself
-   * (`{ test: 'hasBuilding' }`), which is the same sentence its `cityYields`
+   * (`{ test: 'hasBuilding' }`), which is the same sentence its town `pays`
    * clauses already say — so a stamp that reaches one town and a yield that
    * reaches one town are one vocabulary.
    *
@@ -2740,90 +2978,7 @@ export interface CardFoundingRiderEffect {
 }
 
 /** A payout scaled by a count. See `CountKind` and `CardPayout`. */
-export interface CardCountScaledEffect {
-  kind: 'countScaled';
-  count: CountKind;
-  /** How many of the counted thing buy one helping. Default 1. */
-  per?: number;
-  /** The most helpings that ever pay. */
-  max?: number;
-  pays: CardPayout;
-  /** Which building `buildingsOfKind` counts. Ignored by every other count. */
-  building?: BuildingId;
-  /**
-   * Which category `buildingsOfCategory` counts. Ignored by every other count.
-   *
-   * `building`'s sibling, one grade wider: that field names a row and this names
-   * what a row is *for*. Both sit on the effect rather than in the union for the
-   * stated reason — the union stays a list of questions and the row says which
-   * one it is asking.
-   */
-  category?: BuildingCategory;
-  /**
-   * Which units `unitsInField` counts. Ignored by every other count.
-   *
-   * `building`'s sibling, and the same bargain one table over: a count that
-   * needs an argument names it on the effect rather than in the union, so the
-   * union stays a list of *questions* and the row says which one it is asking.
-   * Absent counts every piece.
-   */
-  class?: UnitFilter;
-  /**
-   * Which flavour `slottedOrdersOfSlot` counts. Ignored by every other count.
-   *
-   * `building`'s and `category`'s sibling, and here for their reason exactly: a
-   * count that needs an argument names it on the effect, so the union stays a
-   * list of *questions* and the row says which one it is asking. Absent counts
-   * every slotted Order whatever its flavour, which is the honest reading of an
-   * unnamed argument rather than a guard.
-   */
-  slot?: SlotType;
-  /**
-   * Narrows an **empire** count to the town the line is being paid in.
-   *
-   * The Temple of Artemis' "in this city", and a modifier on the *count* rather
-   * than a second count: `improvedBonusResources` is the same sweep whether it
-   * is asked of a realm or of one town's ground, so the question is which
-   * ground, not which sweep. The city-scoped counts (`garrison`, `workedHills`,
-   * the rest) already answer per town and ignore this.
-   */
-  within?: 'city';
-  /**
-   * Which moment `tally` counts. Ignored by every other count.
-   *
-   * `building`'s, `category`'s, `class`' and `slot`'s fifth sibling, and here for
-   * their reason exactly: a count that needs an argument names it on the effect,
-   * so the union stays a list of *questions* and the row says which one it is
-   * asking. A `tally` row that names no occasion counts nothing at all — the
-   * honest answer for a card that never said what it was watching, rather than a
-   * guard that would quietly count everything.
-   */
-  tally?: TallyOccasion;
-  /**
-   * Which categories `buildingsOfCategories` counts. Ignored by every other count.
-   *
-   * `category`'s sibling one grade wider, and here for that field's reason: a
-   * count that needs an argument names it on the effect, so the union stays a
-   * list of questions. An absent or empty list counts nothing — see the count.
-   */
-  categories?: BuildingCategory[];
-  /**
-   * Which voice `empireYield` reads. Ignored by every other count.
-   *
-   * `building`'s, `category`'s and `slot`'s sixth sibling. Absent counts nothing,
-   * which is the honest answer for a ledger question that never said which column.
-   */
-  voice?: CityYieldKey;
-}
-
 /** A payout converted from a rate or a meter standing. See `RateSource`. */
-export interface CardRateConversionEffect {
-  kind: 'rateConversion';
-  from: RateSource;
-  per: number;
-  pays: CardPayout;
-}
-
 /**
  * A rule about a draft offer rather than about the world.
  *
@@ -2967,69 +3122,6 @@ export interface CardMetaRuleEffect {
   kind: 'metaRule';
   rule: MetaRuleId;
   value: number;
-}
-
-/**
- * A yield on every tile a condition admits — the one shape that reaches into
- * `explainTileYield`, and therefore the one that has to obey rule 5 at the
- * hex.
- */
-export interface CardTileYieldEffect extends CardYieldBag {
-  kind: 'tileYield';
-  on: TileCondition;
-  /**
-   * A **percentage on what the hex's improvement already pays**, rather than a
-   * flat addition — The Commonwealth's "great-person improvements pay +50%
-   * more".
-   *
-   * It reaches the *improvement's own* contribution and nothing else, which is
-   * the whole of why it is a field here and not a `percentYields` with a tile
-   * scope: a hex's yield is a list (`explainTileYield`), and a card that said
-   * "this hex pays half again" would be silently multiplying the terrain, the
-   * resource, the river and whatever a second card had already added. Read as
-   * one more labelled line of that list, computed off the improvement lines that
-   * came before it, so the breakdown still sums to the total and a player can
-   * see which half was raised.
-   *
-   * A row may carry both a bag and a percentage; the bag lands first, as an
-   * ordinary flat line, and the percentage is taken of the improvement's own
-   * figure — never of the card's own flat, which would be a card paying interest
-   * on itself.
-   */
-  percent?: number;
-  /**
-   * A percentage on what the hex's **own ground** already pays — its terrain,
-   * the hill or canopy over it, and the seam in it. The Old Ways' doubling.
-   *
-   * `percent`'s opposite number, and the pair is the whole of what a percentage
-   * on a hex may say. That one reaches the *works* — the improvement and its
-   * renewals — and this one reaches everything that was there before anybody
-   * built anything, which is exactly the half The Old Ways is about: *leave the
-   * land alone and it pays you*. Neither reaches the other, and neither reaches
-   * another card's line, so two cards cannot pay each other interest.
-   *
-   * Read as one more labelled `add` in `explainTileYield`, computed off the
-   * entries that came before the works (rule 5 at the hex: the breakdown still
-   * sums to the total, and a player can see which half was raised). Riders sum
-   * before one multiplication and the share is floored per voice, exactly as the
-   * works' percentage is.
-   */
-  basePercent?: number;
-  /**
-   * Whose ground it lands on: the hex pays only if its **owning city** is
-   * admitted. Absent means every hex this empire works.
-   *
-   * Petra's desert and the Hanging Gardens' farms are both "in this city", which
-   * a wonder says the way every other wonder clause says it — `hasBuilding` on
-   * its own row, derived from the board, so a captured wonder moves its ground
-   * bonus with it.
-   *
-   * It is read where the *town* is known (`cityContext` in `cities.ts`) rather
-   * than in the empire-wide pass, for the granary's reason exactly: a fact about
-   * one city can only be resolved by whoever has one in hand, and a hex outside
-   * anybody's borders has no city to ask.
-   */
-  scope?: CityScope;
 }
 
 /**
@@ -3268,7 +3360,7 @@ export interface CardProjectRiderEffect {
  * Renown, paid **every turn** — the fifth Entry XVIII bucket said as a card
  * clause. The Council of Elders' standing: *1 renown per turn in every city*.
  *
- * It is a `renown` shape rather than a `cityYields` one because renown is not a
+ * It is a `renown` shape rather than a town `pays` one because renown is not a
  * yield: it is not worked by a citizen, it is not staged by Entry XVII's
  * percentages, and it does not sit in a city at all — it accumulates on the
  * *player*, toward a great person. So it joins `explainRenown`'s list
@@ -3311,7 +3403,7 @@ export interface CardRenownEffect {
   /**
    * Which shelf `per: 'buildingOfCategory'` counts. Ignored by the other two.
    *
-   * `CardCountScaledEffect.category`'s field one shape over, and on the effect
+   * `CardPaysEffect.category`'s field one shape over, and on the effect
    * for that field's reason exactly: a multiplier that needs an argument names
    * it on the row, so `per` stays a list of questions. Absent counts nothing —
    * the honest answer for a row that never said which shelf.
@@ -3372,88 +3464,6 @@ export interface CardPressureEffect {
   kind: 'pressure';
   amount: number;
   range: number;
-}
-
-/**
- * One voice paid **again as another**, off the buildings of one category — The
- * Curia's "faith buildings supply science equal to their faith".
- *
- * The vocabulary's first clause whose subject is another line of the same
- * ledger, and it is deliberately the narrowest reading of that idea: it sums
- * what the *buildings of one category* pay in `from` and pays that much `to`, as
- * one labelled line in `foldCity`. Not the whole town's faith — a card that
- * mirrored a total would be mirroring the tiles, the resources, the rites and
- * itself, and "faith buildings supply science" says buildings.
- *
- * Read off `BuildingDef.yields` and `BuildingDef.category`, which is what makes
- * a second shrine a JSON row: the day the tree adds a Cathedral, The Curia pays
- * for it with nothing here touched.
- *
- * It is a **flat** line and therefore lands before Entry XVII's percentages,
- * exactly as every other flat does — a mirrored beaker is worth what a library's
- * beaker is worth, and a card that staged it twice would be paying a science
- * bonus on faith.
- */
-export interface CardMirrorYieldEffect {
-  kind: 'mirrorYield';
-  /** The voice read off the buildings. */
-  from: CityYieldKey;
-  /** The voice paid. */
-  to: CityYieldKey;
-  /** Which buildings are read. `BuildingDef.category`. */
-  category: BuildingCategory;
-  /** Which towns it lands in. Absent means every one. */
-  scope?: CityScope;
-}
-
-/**
- * A **share of one voice a town already makes, paid again as another** —
- * Thalassocracy's "coastal cities gain 10% of their food yield as gold".
- *
- * `mirrorYield`'s wider sibling and the second clause in the vocabulary whose
- * subject is another line of the same ledger. That one sums what the *buildings
- * of one category* pay and this one takes a share of the **whole town's** fold,
- * which is the difference the two cards' sentences actually draw: "faith
- * buildings supply science" names the buildings, and "10% of their food yield"
- * names the harvest.
- *
- * The stage, which is the only thing about this shape that could be got wrong
- * ------------------------------------------------------------------------
- * It reads the town's own fold of **flats** — everything the ground, the seams,
- * the buildings, the caravans, the guilds and the other cards pay it, before
- * Entry XVII's two multiplications — and pays its share as one more flat line,
- * which is then staged like every other flat.
- *
- * That is the honest reading of "their food yield" and the only one that is not
- * a second arithmetic:
- *
- *   · **it cannot recur.** A conversion that read the *finished* number would
- *     have to be computed after the multiplication that it then feeds, and a
- *     second card converting gold back into food would be a loop with no
- *     answer. Reading the flats keeps every conversion one pass over a list.
- *   · **it is not staged twice.** The share is taken before the percentages, so
- *     a coastal town under a +30% food doctrine does not sell that doctrine's
- *     food a second time as coin, and the coin it does make is multiplied by
- *     the gold percentages exactly as a market's is (`mirrorYield`'s rule, and
- *     for its reason).
- *   · **it is rule 5's list.** The line is labelled with both voices ("food →
- *     gold") and joins `explainCity`'s fold, so the town's coin is still the sum
- *     of the reasons printed beside it.
- *
- * Floored **per city**, once, on the town's own share — never on an empire
- * total divided out afterwards, which would pay a realm of five villages
- * differently from the same five villages read one at a time.
- */
-export interface CardYieldConversionEffect {
-  kind: 'yieldConversion';
-  /** The voice read: the town's own fold of it. */
-  from: CityYieldKey;
-  /** The voice paid. May be the same one — a card that says so is a bonus. */
-  to: CityYieldKey;
-  /** The share, in whole percent. Floored per city. */
-  percent: number;
-  /** Which towns it lands in. Absent means every one. */
-  scope?: CityScope;
 }
 
 /**
@@ -3708,7 +3718,7 @@ export interface CardSlotPositionEffect {
  * --------------------------------
  * `amount` alone is the flat. With `count`, the figure is that count's answer
  * times `amount` (one by default), and the count's arguments ride on this row
- * exactly as they ride on `countScaled` — so "faith equal to your empire's
+ * exactly as they ride on `pays` count — so "faith equal to your empire's
  * science" is `count: 'empireYield', voice: 'science'` and The Long Count's
  * "renown equal to your science and faith buildings" is
  * `count: 'buildingsOfCategories', categories: ['science', 'faith']`. One
@@ -3728,7 +3738,7 @@ export interface CardPeriodicEffect {
   per?: number;
   /** The most helpings that ever pay. */
   max?: number;
-  /** The count's arguments, `CardCountScaledEffect`'s fields exactly. */
+  /** The count's arguments, `CardPaysEffect`'s fields exactly. */
   building?: BuildingId;
   category?: BuildingCategory;
   categories?: BuildingCategory[];
@@ -3827,103 +3837,7 @@ export interface CardCityRenownPercentEffect {
 }
 
 /**
- * **Yields put on the route itself** — Silk Roads' coin and the Caravanserai's
- * grain, and the thing "double your trade route yields" is a doubling *of*.
- *
- * The grammar the user's marks revealed (`docs/history/orders-pass-3.md` §9): *put yields
- * on a thing, then multiply the thing*. A caravan is the clearest such thing on
- * the board, and until now nothing could put anything on one — a card that wanted
- * to pay for trade had to pay a town instead, which the multiplier
- * (`AmplifierTarget`'s `routeYields`) could then not see. So this joins
- * `explainRouteYieldBetween`'s list **before** the amplifier, and a doubler
- * doubles it like every other line of the fold.
- *
- * It is the **origin's** empire that pays and is paid, which is the rule the
- * whole module already keeps: a route belongs to the seat that sent it. A
- * domestic route's line is banked by the destination with the rest of the
- * caravan's figure; a route ending abroad carries its line in the *sender's*
- * fold, so an empire's own law never pays a foreign host.
- *
- * `origin` is asked of the town the caravan **left**, which is what makes the
- * Caravanserai a hub rather than a nationwide subsidy: *"routes originating here
- * +1🌾 +1⚒"* is `origin: { test: 'hasBuilding', building: … }`, one ordinary
- * `CityScope` and no field of its own. Absent reaches every route this empire
- * sends.
- *
- * Faith is not here, for `RouteYieldLine`'s reason: nothing pays a caravan in it.
- */
-export interface CardRouteYieldEffect {
-  kind: 'routeYield';
-  food?: number;
-  production?: number;
-  gold?: number;
-  science?: number;
-  culture?: number;
-  /** Which origin towns' caravans carry it. Absent means all of them. */
-  origin?: CityScope;
-  /**
-   * Which **destination** towns' caravans carry it — the Printing House's
-   * beakers, paid for the roads that end at its presses.
-   *
-   * `origin`'s twin, asked of the town the caravan is walking *to*. The comment
-   * on `perEndpointLuxury` below said there was deliberately no such field
-   * because "a scope answers about one town, and this question is about a pair"
-   * — which is true of *that* clause and not of this one: "routes ending here"
-   * is a question about exactly one town, and the fold in `routeYields.ts` holds
-   * both ends, so it can be asked where the origin's is.
-   *
-   * Which **books** the line lands in does not move: a domestic route's whole
-   * figure is banked by its destination and a route ending abroad carries its
-   * lines in the sender's fold, so a card of this empire's still never pays a
-   * foreign host. The row is read off the **origin's** empire either way
-   * (`cardRouteYieldLines`), which is the module's own rule — a route belongs to
-   * the seat that sent it — so a rival's presses do not print your books.
-   */
-  destination?: CityScope;
-  /**
-   * A **share of what the road already carries**, voice by voice — The Silk
-   * Exchange's doubled beakers and songs.
-   *
-   * The flats above put yields *on* the caravan; this multiplies what is on it,
-   * which is the ordering the whole fold is built around ("put yields on a
-   * thing, then multiply the thing"). It is on this shape rather than an
-   * `effectAmplifier` for one reason: that target (`routeYields`) is the whole
-   * caravan and cannot say *which voice*, and a card that meant to double the
-   * beakers would have doubled the grain with them.
-   *
-   * A list, because a row that raises two voices is one clause on a card and
-   * reads as one line in the fold. Every share on one route sums per voice
-   * before a single multiplication, and each voice is floored once — Entry
-   * XVII's rule at the scale of a road.
-   */
-  share?: CardRouteShare[];
-  /**
-   * **Paid once for every luxury held at either end of the road** — The Golden
-   * Roads' *"+1💰 from each luxury resource in the origin or destination city"*
-   * (`docs/history/tech-gifts.md` §7).
-   *
-   * A multiplier on this row's own bag rather than a count shape of its own,
-   * because the thing counted is a fact about *the route* and nothing else in
-   * the vocabulary can see both ends of one: `origin` above is a `CityScope`
-   * asked of the town the caravan left, and there is deliberately no
-   * `destination` twin — a scope answers about one town, and this question is
-   * about a pair.
-   *
-   * Counted as the **union** of the two towns' luxuries, once each: a vineyard
-   * at both ends of a road is one wine, not two, which is the reading *"in the
-   * origin or destination city"* takes literally and the one that cannot be
-   * farmed by pointing a caravan at a mirror of its own hinterland. Each town's
-   * own list is `cityResources(…, 'luxury')`, the same one-per-town rule the
-   * luxury signatures keep (`resourceEffects.ts`), so a pillaged plantation
-   * stops paying the caravan and the signature at the same instant.
-   *
-   * Folded in `routeYields.ts`, which is the only module holding both cities.
-   */
-  perEndpointLuxury?: true;
-}
-
-/**
- * One voice of a route raised by a share. See `CardRouteYieldEffect.share`.
+ * One voice of a route raised by a share. See `CardPaysEffect.share`.
  *
  * `CardYieldAmplifierEffect`'s pair of fields exactly (a voice and a percent),
  * because it is the same sentence one ledger over — and `'all'` means every
@@ -4041,8 +3955,11 @@ export interface CardBeadOccasionEffect {
 
 /** Everything a card may say. One union, one evaluator (`statecraft.ts`). */
 export type CardEffect =
-  | CardCityYieldsEffect
-  | CardEmpireYieldsEffect
+  // Batch E5: town `pays`, hex `pays`, empire `pays`, route `pays`,
+  // `pays` mirror, `pays` count, `pays` share and `pays` rate were
+  // eight names for one idea — *pay a voice* — and are retired into this one.
+  // See `CardPaysEffect`, and `docs/audit/e5-yield-shape.md` for the table.
+  | CardPaysEffect
   | CardPercentYieldsEffect
   | CardProductionBonusEffect
   | CardRulePercentEffect
@@ -4054,8 +3971,6 @@ export type CardEffect =
   | CardUnitStampEffect
   | CardWindfallRiderEffect
   | CardFoundingRiderEffect
-  | CardCountScaledEffect
-  | CardRateConversionEffect
   | CardOfferRiderEffect
   | CardRouteRiderEffect
   | CardEffectAmplifierEffect
@@ -4066,7 +3981,6 @@ export type CardEffect =
   // Batch H6: `actionRule`, `behaviorRule`, `cityRule` and `zocRule` were four
   // names for one evaluation and are retired into this one. See `CardRuleEffect`.
   | CardRuleEffect
-  | CardTileYieldEffect
   | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
   // E4b's one new shape: a moment in a piece's life that is not its birth.
@@ -4079,8 +3993,6 @@ export type CardEffect =
   | CardRenownEffect
   | CardPressureRuleEffect
   | CardPressureEffect
-  | CardMirrorYieldEffect
-  | CardYieldConversionEffect
   | CardUpkeepRebateEffect
   | CardUpkeepSurchargeEffect
   // The engine shapes of `docs/history/fewer-things.md` §4 and `docs/history/tech-gifts.md` §7,
@@ -4095,7 +4007,6 @@ export type CardEffect =
   | CardPeriodicEffect
   | CardPeriodShortenEffect
   | CardCityRenownPercentEffect
-  | CardRouteYieldEffect
   // H3's one new shape (`docs/audit/orchestrator.md`): the four Æra V bead
   // Orders had `effects: []` and were being dealt paying nothing.
   | CardBeadOccasionEffect

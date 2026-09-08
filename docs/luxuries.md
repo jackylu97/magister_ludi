@@ -52,8 +52,11 @@ below the original table.
 **The vocabulary is the cards' where the two tables mean the same thing**
 (batch H6). A signature's yield bag *is* `CardYieldBag`; its scope *is*
 `CityScope` plus one word; its `rulePercent` rule union is an `Extract` of
-`CardRule`; and `empireYields`, `happinessTierBoost` and `authority` *are* the
-card interfaces of those names. What stays this table's own is the reading no
+`CardRule`; and `happinessTierBoost` and `authority` *are* the card interfaces
+of those names. Since batch **E5** the empire's flat sum is the cards' one
+`pays` shape, narrowed to the single reading a luxury has ever taken —
+`{"kind": "pays", "where": "empire"}` (`ResourceEmpirePays`);
+`docs/audit/e5-yield-shape.md` is that merge. What stays this table's own is the reading no
 card makes: which luxuries an empire controls, and how many copies each counts
 for. See `resourceEffects.ts`' docblock for the line the batch drew and why a
 luxury is still not a card *class*.
@@ -63,7 +66,7 @@ luxury is still not a card *class*.
 | `perCityYields` | Flat yields in **every** city — or, with `scope`, the towns a `CityScope` admits (`{"test": "coastal"}`, `{"test": "capital"}`), or only the city holding the seam (`"owner"`, the one word `CityScope` cannot say without the row naming itself). |
 | `improvementYields` | Flat yields on **every hex of this empire carrying a named improvement**. The one shape that pays into the *tile* chain, so it shows up as a line in the hex's own breakdown. Whales and tyrian, both on fishing boats. |
 | `perPopulationYields` | The same, multiplied by each city's population, floored per city. |
-| `empireYields` | A flat sum to the empire, once, landing in no city. |
+| `pays` (`where: "empire"`) | A flat sum to the empire, once, landing in no city. The cards' one yield shape, at the one ground a luxury uses it (`empireYields` until batch E5). |
 | `extraHappiness` | On top of the flat `perUniqueLuxury`; optionally `per: "city"` or `per: "coastalCity"`. |
 | `authority` | Authority **capacity**, optionally `per: "city"`. Never a discount on what a city costs. `authoritySupply` until batch H6, which found it to be `CardAuthorityEffect` field for field. |
 | `productionBonus` | A percentage of hammers behind one category, in the owning city or (`scope: "empire"`) every city. |
@@ -92,7 +95,7 @@ one per-yield figure, and the happiness and authority tiers — the whole of the
 at +10% read as +30%, not as 1.1³; a +10% tier over them is worth 13 points of
 base, not 10.
 
-`empireYields` and the `"owner"` scope are the two readings the ratified table
+The empire's flat `pays` and the `"owner"` scope are the two readings the ratified table
 does not currently declare: it is **wide everywhere**. Both are kept — they are
 the only flat readings a tall empire gets as much out of as a wide one — and both
 are held live by an overridden row in `test/resourceEffects.test.ts`. So are

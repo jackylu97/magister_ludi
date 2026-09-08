@@ -225,7 +225,10 @@ function readsSlotPosition(effect: CardEffect): boolean {
   // for any future count that reads a position; today it is the modifier that
   // opens the word.
   if (effect.kind === 'slotPosition') return true;
-  return effect.kind === 'countScaled' && POSITION_READING_COUNTS.includes(effect.count);
+  if (effect.kind !== 'pays' || effect.basis !== 'count' || effect.count === undefined) {
+    return false;
+  }
+  return POSITION_READING_COUNTS.includes(effect.count);
 }
 
 /**

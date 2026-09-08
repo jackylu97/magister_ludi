@@ -2041,10 +2041,10 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
 
   it('gives The Civil Service the writ and the great-person works', () => {
     // The happiness tier boost it always carried, then the two the markup added.
-    expect(kinds('theExaminationHall')).toEqual(['happinessTierBoost', 'authority', 'tileYield']);
+    expect(kinds('theExaminationHall')).toEqual(['happinessTierBoost', 'authority', 'pays']);
     const line = techDef('theExaminationHall').effects![2]!;
     expect(line).toEqual({
-      kind: 'tileYield',
+      kind: 'pays', where: 'hex',
       on: { test: 'greatWork' },
       food: 1,
       production: 1,
@@ -2085,9 +2085,12 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
     expect(techDef('artisanry').effects).toEqual([
       { kind: 'productionBonus', category: 'wonder', percent: 10 },
       {
-        kind: 'countScaled',
+        kind: 'pays',
+        where: 'empire',
+        basis: 'count',
+        to: 'culture',
+        amount: 2,
         count: 'wonders',
-        pays: { to: 'yield', yield: 'culture', amount: 2, where: 'empire' },
       },
     ]);
   });
@@ -2146,7 +2149,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
   it('gives Geomancy the seam under the mine, and leaves the mine’s own line alone', () => {
     expect(techDef('prospecting').effects).toEqual([
       {
-        kind: 'tileYield',
+        kind: 'pays', where: 'hex',
         on: {
           test: 'all',
           of: [{ test: 'improvement', improvement: 'mine' }, { test: 'hasResource' }],
@@ -2160,7 +2163,7 @@ describe('the tree’s gifts (batch E, 2026-09-06)', () => {
   it('gives The Golden Roads a coin for every good at either end', () => {
     expect(techDef('theSilkRoad').effects).toEqual([
       { kind: 'routeRider', extra: 1 },
-      { kind: 'routeYield', gold: 1, perEndpointLuxury: true },
+      { kind: 'pays', where: 'route', gold: 1, perEndpointLuxury: true },
     ]);
   });
 

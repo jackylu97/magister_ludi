@@ -158,7 +158,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
   it('gives every register row a step that exists', () => {
     const steps = new Set(docSteps().map((entry) => String(entry.step)));
     for (const cells of registerRows()) {
-      const named = (cells[2] ?? '').split(',').map((part) => part.trim());
+      // Column 3 since batch E5: the table gained a `where · basis` column, so
+      // that `pays` can carry one row per pair it is written in.
+      const named = (cells[3] ?? '').split(',').map((part) => part.trim());
       expect(named.length, `${cells[1]} names no step`).toBeGreaterThan(0);
       for (const step of named) {
         expect(steps.has(step), `${cells[1]} names step ${step}, which the doc has no row for`)
@@ -189,9 +191,23 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     return docRows(register).filter((cells) => /^`[a-zA-Z]+`$/.test(cells[1] ?? ''));
   }
 
-  /** The kinds the register table names, in the doc's order. */
+  /** The kinds the register table names, in the doc's order. Duplicates kept. */
   function registerKinds(): string[] {
     return registerRows().map((cells) => firstTicked(cells[1] ?? '')!);
+  }
+
+  /**
+   * The `where · basis` cell of every `pays` row — the pairs the doc claims the
+   * one shape is written in.
+   *
+   * Batch E5 folded eight kinds into one, so "which layer does this land in" is
+   * no longer a question about a *name*: it is a question about the pair, and
+   * this is the column that answers it.
+   */
+  function registerPairs(): string[] {
+    return registerRows()
+      .filter((cells) => firstTicked(cells[1] ?? '') === 'pays')
+      .map((cells) => (cells[2] ?? '').replace(/\s*·\s*/, '/'));
   }
 
   /** The kinds named in the "moves a voice but not through this sequence" list. */
@@ -228,18 +244,38 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
    * decides which it is.
    */
   const LANDS = [
-    'tileYield',
-    'cityYields',
-    'countScaled',
-    'mirrorYield',
+    // Batch E5: `tileYield`, `cityYields`, `countScaled`, `mirrorYield`,
+    // `routeYield`, `yieldConversion`, `empireYields` and `rateConversion` were
+    // eight names for one idea — *pay a voice* — and are one shape with two
+    // dimensions now (`docs/audit/e5-yield-shape.md`). The kind lands in the
+    // sequence; **which step** is a question about (`where`, `basis`), and the
+    // pairs are their own register below.
+    'pays',
     'cardYieldAmplifier',
-    'routeYield',
     'buildingYieldPercent',
-    'yieldConversion',
     'percentYields',
     'productionBonus',
-    'empireYields',
-    'rateConversion',
+  ];
+
+  /**
+   * **Every (`where`, `basis`) pair the one shape is written in**, and the doc
+   * carries a register row for each — E5's replacement for the eight names.
+   *
+   * The evaluator's own arms are pinned against live rows by
+   * `test/sim/statecraft.test.ts`; this pins that the *doc* names the same set,
+   * so a pair that starts being written has to say which step it lands at.
+   */
+  const PAYS_PAIRS = [
+    'hex/flat',
+    'city/flat',
+    'city/count',
+    'capital/count',
+    'city/mirror',
+    'route/flat',
+    'city/share',
+    'empire/flat',
+    'empire/count',
+    'empire/rate',
   ];
 
   const OUTSIDE = [
@@ -307,11 +343,21 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
 
   it('gives every yield-paying kind exactly one register row', () => {
     const rows = registerKinds();
-    // Exactly one row apiece, in the doc's own order — a kind named twice would
-    // be a kind whose layer is ambiguous, which is the thing this table exists
-    // to settle.
-    expect(new Set(rows).size, 'a kind is named twice in the register').toBe(rows.length);
-    expect([...rows].sort()).toEqual([...LANDS].sort());
+    // **One row apiece, and `pays` is the one exception** (batch E5): a kind
+    // named twice would be a kind whose layer is ambiguous, which is the thing
+    // this table exists to settle — but the one shape's layer is decided by its
+    // pair, so it carries one row per pair and the pairs are unique instead.
+    const repeated = rows.filter((kind, at) => rows.indexOf(kind) !== at);
+    expect(new Set(repeated), 'a kind other than pays is named twice').toEqual(
+      new Set(repeated.length === 0 ? [] : ['pays']),
+    );
+    expect([...new Set(rows)].sort()).toEqual([...LANDS].sort());
+  });
+
+  it('gives every (where, basis) pair of the one shape its own register row', () => {
+    const pairs = registerPairs();
+    expect(new Set(pairs).size, 'a pair is named twice in the register').toBe(pairs.length);
+    expect([...pairs].sort()).toEqual([...PAYS_PAIRS].sort());
   });
 
   it('names every other voice-moving kind in the list beside it', () => {

@@ -288,16 +288,14 @@
       "requiresBuilding": "monument",
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "population",
-          "within": "city",
           "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ],
       "note": "Every second citizen of this city is worth a further song."
@@ -433,7 +431,8 @@
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "faith": 1,
           "scope": {
             "test": "hasBuilding",
@@ -475,7 +474,8 @@
           "amount": 1
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "faith": 1,
           "on": {
             "test": "resource",
@@ -543,7 +543,8 @@
           "percent": 25
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "on": {
             "test": "all",
@@ -627,7 +628,8 @@
           "percent": -25
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 1,
           "scope": {
             "test": "hasBuilding",
@@ -663,7 +665,8 @@
           "where": "embarked"
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 1,
           "on": {
             "test": "improvement",
@@ -704,7 +707,8 @@
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "on": {
             "test": "improvement",
@@ -712,7 +716,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "on": {
             "test": "improvement",
@@ -720,14 +725,14 @@
           }
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "improvedBonusResources",
-          "within": "city",
           "max": 4,
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "within": "city"
         }
       ],
       "renown": {
@@ -754,7 +759,8 @@
       ],
       "effects": [
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "science": 1,
           "scope": {
             "test": "hasBuilding",
@@ -785,9 +791,10 @@
       },
       "effects": [
         {
-          "kind": "tileYield",
-          "gold": 1,
+          "kind": "pays",
+          "where": "hex",
           "production": 1,
+          "gold": 1,
           "on": {
             "test": "all",
             "of": [
@@ -825,7 +832,8 @@
       },
       "effects": [
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "food": 1,
           "production": 1,
           "on": {
@@ -838,7 +846,8 @@
           }
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 1,
           "on": {
             "test": "feature",
@@ -870,13 +879,13 @@
       "happiness": 4,
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "buildingsOfKind",
-          "building": "barracks",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "building": "barracks"
         }
       ],
       "renown": {
@@ -973,13 +982,13 @@
       ],
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "buildingsOfKind",
-          "building": "amphitheater",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "building": "amphitheater"
         }
       ],
       "renown": {
@@ -1002,17 +1011,16 @@
       "authorityCapacity": 2,
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsInCity",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "buildingsInCity"
         },
         {
-          "kind": "tileYield",
+          "kind": "pays",
+          "where": "hex",
           "gold": 1,
           "on": {
             "test": "improvement",
@@ -1106,9 +1114,10 @@
       ],
       "effects": [
         {
-          "kind": "cityYields",
-          "faith": 1,
+          "kind": "pays",
+          "where": "city",
           "culture": 1,
+          "faith": 1,
           "scope": {
             "test": "hasBuilding",
             "building": "temple"
@@ -1140,15 +1149,13 @@
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
           "count": "workedTilesInCity",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "faith",
-            "amount": 1,
-            "where": "city"
-          }
+          "per": 2
         },
         {
           "kind": "rulePercent",
@@ -1207,16 +1214,17 @@
       "sciencePerPop": 0,
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
           "count": "buildingsOfKind",
-          "building": "temple",
-          "pays": {
-            "to": "happiness",
-            "amount": 1
-          }
+          "building": "temple"
         },
         {
-          "kind": "cityYields",
+          "kind": "pays",
+          "where": "city",
           "culture": 3,
           "scope": {
             "test": "hasBuilding",
@@ -1466,15 +1474,13 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
           "count": "uniqueLuxuries",
-          "within": "city",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "city"
-          }
+          "within": "city"
         }
       ],
       "note": "Every kind of luxury this city can reach pays a further gold here.",
@@ -1702,7 +1708,8 @@
       "oncePerEmpire": true,
       "effects": [
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "food": 1,
           "production": 1,
           "origin": {
@@ -1734,7 +1741,8 @@
       "note": "One carved character, used a thousand times. Every trade route that ends here brings learning and song in with the goods.",
       "effects": [
         {
-          "kind": "routeYield",
+          "kind": "pays",
+          "where": "route",
           "science": 2,
           "culture": 2,
           "destination": {
@@ -1889,15 +1897,13 @@
       "oncePerEmpire": true,
       "effects": [
         {
-          "kind": "rateConversion",
-          "from": "goldPerTurn",
-          "per": 4,
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "empire"
-          }
+          "kind": "pays",
+          "where": "empire",
+          "basis": "rate",
+          "to": "culture",
+          "amount": 1,
+          "fromRate": "goldPerTurn",
+          "per": 4
         }
       ],
       "renown": {
@@ -1941,14 +1947,12 @@
       "sciencePerPop": 1,
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "buildingsInCity",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 1,
-            "where": "city"
-          }
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
+          "count": "buildingsInCity"
         }
       ],
       "renown": {
@@ -2242,26 +2246,22 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "science",
-            "amount": 1,
-            "where": "city"
-          }
+          "slot": "wildcard"
         },
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "wildcard",
-          "pays": {
-            "to": "yield",
-            "yield": "culture",
-            "amount": 1,
-            "where": "city"
-          }
+          "slot": "wildcard"
         }
       ],
       "note": "Built in the seat of your government and nowhere else."
@@ -2284,15 +2284,13 @@
       },
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "production",
+          "amount": 1,
           "count": "slottedOrdersOfSlot",
-          "slot": "military",
-          "pays": {
-            "to": "yield",
-            "yield": "production",
-            "amount": 1,
-            "where": "city"
-          }
+          "slot": "military"
         }
       ],
       "note": "The hammers fall harder for every military Order standing in your government."
@@ -2315,10 +2313,12 @@
       },
       "effects": [
         {
-          "kind": "yieldConversion",
-          "from": "gold",
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
           "to": "culture",
           "percent": 10,
+          "from": "gold",
           "scope": {
             "test": "hasBuilding",
             "building": "coinworks"
@@ -2453,13 +2453,13 @@
       "unitUpkeepRebate": 1,
       "effects": [
         {
-          "kind": "countScaled",
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
           "count": "cities",
-          "per": 3,
-          "pays": {
-            "to": "authority",
-            "amount": 1
-          }
+          "per": 3
         }
       ],
       "renown": {

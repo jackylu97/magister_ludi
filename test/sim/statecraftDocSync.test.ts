@@ -4,6 +4,7 @@ import {
   DOCTRINE_IDS,
   GOVERNMENT_IDS,
   ORDER_IDS,
+  type CardEffect,
   type OrderRarity,
   doctrineDef,
   governmentDef,
@@ -188,31 +189,17 @@ describe('the orders and doctrines doc mirrors the data', () => {
           if (effect.appliedLast === true) payoff = true;
           else engine = true;
           break;
-        case 'countScaled':
-          if (DECK_COUNTS.has(effect.count)) engine = true;
-          else payoff = true;
+        // Batch E5: eight kinds became one shape with two dimensions, so the
+        // marks are read off (`where`, `basis`) where they used to be read off
+        // eight names. The readings themselves are unchanged.
+        case 'pays':
+          markPays(effect);
           break;
         case 'combatLine':
           if (effect.scaled && DECK_COUNTS.has(effect.scaled.count)) engine = true;
           break;
-        case 'tileYield':
-          // "every hex that already supplies X" is the tile test — an engine.
-          // A percentage on the works or on the ground is a doubler — a payoff.
-          if ((effect.on as { test?: string }).test === 'yields') engine = true;
-          else if (effect.percent !== undefined || effect.basePercent !== undefined) payoff = true;
-          break;
-        case 'routeYield':
-          // A flat on a caravan is a standalone; a **share** of what the roads
-          // already carry is a payoff, and it scales with exactly the thing a
-          // payoff scales with — what the empire has built and is running. The
-          // Silk Exchange (batch E4b) is the first row to carry one.
-          if (effect.share !== undefined) payoff = true;
-          break;
-        case 'yieldConversion':
-        case 'rateConversion':
         case 'effectAmplifier':
         case 'percentYields':
-        case 'mirrorYield':
           payoff = true;
           break;
         case 'periodic':
@@ -220,15 +207,46 @@ describe('the orders and doctrines doc mirrors the data', () => {
           // own books, which is what makes the periodic conversions payoffs.
           if (effect.count === 'empireYield') payoff = true;
           break;
-        case 'cityYields': {
-          const scope = effect.scope;
-          if (scope !== undefined && scope.test !== 'capital') payoff = true;
-          break;
-        }
         default:
           break;
       }
     }
+    // **The one yield-paying shape's marks** (batch E5), by (`where`, `basis`).
+    // Every reading below is the one the kind it replaced carried.
+    function markPays(effect: Extract<CardEffect, { kind: 'pays' }>): void {
+      const basis = effect.basis ?? 'flat';
+      if (basis === 'count') {
+        if (effect.count !== undefined && DECK_COUNTS.has(effect.count)) engine = true;
+        else payoff = true;
+        return;
+      }
+      // A share of a voice, a mirror of a shelf and a rate conversion are all
+      // read off what the empire already makes — payoffs, every one.
+      if (basis !== 'flat') {
+        payoff = true;
+        return;
+      }
+      if (effect.where === 'hex') {
+        // "every hex that already supplies X" is the tile test — an engine.
+        // A percentage on the works or on the ground is a doubler — a payoff.
+        if ((effect.on as { test?: string } | undefined)?.test === 'yields') engine = true;
+        else if (effect.percent !== undefined || effect.basePercent !== undefined) payoff = true;
+        return;
+      }
+      if (effect.where === 'route') {
+        // A flat on a caravan is a standalone; a **share** of what the roads
+        // already carry is a payoff, and it scales with exactly the thing a
+        // payoff scales with — what the empire has built and is running. The
+        // Silk Exchange (batch E4b) is the first row to carry one.
+        if (effect.share !== undefined) payoff = true;
+        return;
+      }
+      if (effect.where === 'city') {
+        const scope = effect.scope;
+        if (scope !== undefined && scope.test !== 'capital') payoff = true;
+      }
+    }
+
     return engine ? 'E' : payoff ? 'P' : 'S';
   }
 

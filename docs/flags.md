@@ -368,15 +368,26 @@ directly to confirm rulings — user marginalia are rulings.
   shape (`landfall`), one new composite in the scope union (`any`, for a
   *site* that admits either of two grounds) and the pair resolution moved to
   a leaf (`src/sim/routes.ts`); the batch's own counts are in the proposal's
-  *As built (E4b)* section. **E5 — the
-  yield family collapsed** — **GO** (the user, 2026-09-08: "i'm inclined
-  to go for it after the e4b changes"): flies **after E4b and alone**
-  (nothing else in flight — it migrates rows across every data file and
-  touches the evaluator, the describers and the bot's valuation together);
-  its gates are the parity harness restored from git (byte-identical
-  replays, retired again after) **and a before/after snapshot of every
-  card's printed text**, so the Compendium's wording cannot drift under
-  the migration. **The queue, in order** (2026-09-08): P1 → W1 + D1
+  *As built (E4b)* section. **E5 — the yield family collapsed — BUILT**
+  (no schema move; still 96). Eight kinds that said *pay a voice* —
+  `cityYields`, `tileYield`, `empireYields`, `routeYield`, `mirrorYield`,
+  `countScaled`, `yieldConversion`, `rateConversion` — are one **`pays`**
+  shape with two dimensions, `where` (city · capital · hex · empire ·
+  route) × `basis` (flat · count · mirror · share · rate); `CardPayout` is
+  retired into five fields of it. **291 data rows migrated** by
+  `scripts/migrate-pays.mjs` (committed, run once), and every one of them
+  reverse-maps to its predecessor field for field. The evaluator's eleven
+  loops, the describers' eight arms and the bot's eight arms are one each;
+  `docs/yields.md`'s register carries one row per (`where`, `basis`) pair.
+  The proposal and the counts are **`docs/audit/e5-yield-shape.md`**; as
+  shipped is `docs/audit/evaluations.md` §4c.3. Both gates held: the parity
+  harness (restored from git, re-baselined on the batch's base, a fifth
+  reading added for `explainCity`'s own list line by line — four boards
+  byte-identical at t30/t60/t150, **retired again** at the end as ruled)
+  and the printed-text snapshot, which **stays** as the standing gate
+  (`test/sim/cardTextSnapshot.test.ts` + `test/fixtures/cardText.json`:
+  every card of every class and every luxury, both readings of every
+  clause, byte-identical across the migration). **The queue, in order** (2026-09-08): P1 → W1 + D1
   together (different files; both change how the game feels) → E4b → E5. (qq) **Production
   costs standardised** (the user, 2026-09-07: "we need to scale them back
   … buildings should be sized small, medium, large, wonder … one set of

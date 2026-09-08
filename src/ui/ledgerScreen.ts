@@ -62,7 +62,7 @@
  * And the **flats' split moved once too**, on the same day and on the user's
  * follow-up: *"I think it may just be that the age 3 and onwards orders are not
  * being counted in the display total."* They were not. The later Order pools
- * lean on `tileYield` where the early ones lean on `cityYields`, a card's line
+ * lean on hex `pays` where the early ones lean on town `pays`, a card's line
  * on the ground lands in the hex's own breakdown, and every worked hex was filed
  * whole under **the land** — so an Order paying a hammer on every hill, which is
  * the entire idiom of a late deck, showed up as the land getting better.
@@ -607,7 +607,7 @@ export const DECK_LABEL = 'your cards';
  *   · `explainCardImpact` is **marginal** — a ghost-diff of the empire with one
  *     card taken out. Marginal readings do not sum to a total the moment
  *     anything multiplies (Entry XVII's two stages), converts (a
- *     `yieldConversion`'s share of a fold) or reads another card, which is
+ *     the town's `pays` share of share of a fold) or reads another card, which is
  *     precisely the deck this pass is building: eleven cards each worth "what
  *     the empire would lose without me" adds up to more than the empire makes.
  *     It is also eleven full empire folds, twice each, on every draw.

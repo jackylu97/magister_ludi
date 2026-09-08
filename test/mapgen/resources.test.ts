@@ -886,7 +886,7 @@ describe('a resource nobody wrote code for', () => {
     ).toThrow(/effect kind/);
     expect(() =>
       withExtraResources(
-        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'empireYields', food: 2 }] } as never },
+        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'pays', where: 'empire', food: 2 }] } as never },
         () => undefined,
       ),
     ).toThrow(/basket/);
@@ -894,7 +894,7 @@ describe('a resource nobody wrote code for', () => {
     // arrive, which would fail as silence rather than as an error.
     expect(() =>
       withExtraResources(
-        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'empireYields', gold: 1, fromAge: 9 }] } as never },
+        { bogus: { ...UNOBTANIUM, effects: [{ kind: 'pays', where: 'empire', gold: 1, fromAge: 9 }] } as never },
         () => undefined,
       ),
     ).toThrow(/age 9/);

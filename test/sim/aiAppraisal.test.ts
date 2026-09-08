@@ -109,7 +109,7 @@ import { anyCardDef } from '../../src/sim/statecraft';
 import {
   ORDER_IDS,
   TALLY_OCCASIONS,
-  type CardCountScaledEffect,
+  type CardPaysEffect,
   type CardEffect,
   type OrderId,
   type TallyOccasion,
@@ -929,7 +929,7 @@ describe('the delay discount', () => {
   function growingCard(): OrderId {
     for (const id of ORDER_IDS) {
       for (const effect of anyCardDef(id).effects ?? []) {
-        if (effect.kind === 'countScaled' && effect.count === 'tally') return id;
+        if (effect.kind === 'pays' && effect.count === 'tally') return id;
       }
     }
     throw new Error('no growing card in the Order table');
@@ -1052,11 +1052,14 @@ describe('the delay discount', () => {
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
       bumpRevision(state);
     }
-    const effect: CardCountScaledEffect = {
-      kind: 'countScaled',
+    const effect: CardPaysEffect = {
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      to: 'culture',
+      amount: 1,
       count: 'buildingsOfKind',
       building: 'monument',
-      pays: { to: 'yield', yield: 'culture', amount: 1, where: 'empire' },
     };
     const ctx = valueContext(state, player);
     const appraisal = explainCounted(effect, ctx);
@@ -1112,10 +1115,13 @@ describe('the delay discount', () => {
     expect(forecast).toBeGreaterThan(0);
     const appraisal = explainCounted(
       {
-        kind: 'countScaled',
+        kind: 'pays',
+        where: 'empire',
+        basis: 'count',
+        to: 'culture',
+        amount: 2,
         count: 'tally',
         tally: known,
-        pays: { to: 'yield', yield: 'culture', amount: 2, where: 'empire' },
       },
       ctx,
       id,
@@ -1135,11 +1141,17 @@ describe('the delay discount', () => {
     const { state, player } = towns(1);
     const ctx = valueContext(state, player);
     const id = growingCard();
-    const pays = { to: 'yield', yield: 'culture', amount: 1, where: 'empire' } as const;
+    const pays = { where: 'empire', to: 'culture', amount: 1 } as const;
     // An occasion the table does not name is **visibly** unpriced rather than
     // quietly guessed at — which is what makes a sixth occasion safe to add.
     const unpriced = explainCounted(
-      { kind: 'countScaled', count: 'tally', tally: 'aMomentNobodyHasPriced' as TallyOccasion, pays },
+      {
+        kind: 'pays',
+        basis: 'count',
+        ...pays,
+        count: 'tally',
+        tally: 'aMomentNobodyHasPriced' as TallyOccasion,
+      },
       ctx,
       id,
     );
@@ -1750,7 +1762,7 @@ describe('the engine shapes, priced', () => {
     const beside = priced(
       [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 1 }],
       (state, player) => {
-        undo = fixture(state, player, 0, 'waysideShrines', [{ kind: 'cityYields', food: 2 }]);
+        undo = fixture(state, player, 0, 'waysideShrines', [{ kind: 'pays', where: 'city', food: 2 }]);
       },
     );
     undo();
@@ -1776,7 +1788,7 @@ describe('the engine shapes, priced', () => {
     const empty = priced(engine);
     let undo = (): void => undefined;
     const filled = priced(engine, (state, player) => {
-      undo = fixture(state, player, 1, 'waysideShrines', [{ kind: 'cityYields', gold: 5 }]);
+      undo = fixture(state, player, 1, 'waysideShrines', [{ kind: 'pays', where: 'city', gold: 5 }]);
     });
     undo();
     expect(empty).toBe(0);
@@ -1815,7 +1827,7 @@ describe('the engine shapes, priced', () => {
   it('prices a route line by the caravans this empire is running', () => {
     // No caravan, no coin: the shape pays per route and the count is the
     // simulation's own, so an empire with no trade prices it at nothing.
-    expect(priced([{ kind: 'routeYield', gold: 2 }])).toBe(0);
+    expect(priced([{ kind: 'pays', where: 'route', gold: 2 }])).toBe(0);
   });
 
   it('prices every gift batch E hangs on the tree, and never as an unread shape', () => {
@@ -1864,7 +1876,7 @@ describe('the engine shapes, priced', () => {
     );
     // `countScaled` never reaches that switch in anger — `explainEffects` sends
     // it to `explainCounted` one call earlier — so it is armed by the caller.
-    armed.add('countScaled');
+    armed.add('pays');
     expect(armed.size).toBeGreaterThan(10);
     void score;
     // **The debt list is empty since batch H2**, and that is the batch: every
@@ -1911,16 +1923,19 @@ describe('the engine shapes, priced', () => {
     // `perEndpointLuxury` multiplies the bag by what the realm's shelves hold,
     // so the same row is worth more to an empire with goods to carry — and still
     // nothing at all to one with no caravan on the road.
-    const row: CardEffect[] = [{ kind: 'routeYield', gold: 1, perEndpointLuxury: true }];
+    const row: CardEffect[] = [{ kind: 'pays', where: 'route', gold: 1, perEndpointLuxury: true }];
     expect(priced(row)).toBe(0);
   });
 
   it('counts the new counts through the simulation rather than a nominal guess', () => {
-    const effect: CardCountScaledEffect = {
-      kind: 'countScaled',
+    const effect: CardPaysEffect = {
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      to: 'culture',
+      amount: 1,
       count: 'buildingsOfCategories',
       categories: ['science', 'faith'],
-      pays: { to: 'yield', yield: 'culture', amount: 1, where: 'empire' },
     };
     const { state, player, city } = board();
     const before = explainCounted(effect, valueContext(state, player));
@@ -1982,7 +1997,7 @@ describe('the engine shapes, priced', () => {
     );
     // `countScaled` never reaches that switch in anger — `explainEffects` sends
     // it to `explainCounted` one call earlier — so it is armed by the caller.
-    armed.add('countScaled');
+    armed.add('pays');
     // The named debts, written down rather than swept under. Each wants a
     // reading this file does not have and each prices at the stand-in: an extra
     // caravan *slot* (batch E's, still open); every `CardRule` but the road
@@ -2099,7 +2114,7 @@ describe('the whole deck, priced (batch H2)', () => {
     const armed = armedKinds();
     // `countScaled` is armed by the caller (`explainEffects` sends it to
     // `explainCounted` one call earlier) as well as by a case of its own.
-    armed.add('countScaled');
+    armed.add('pays');
     const missing = [...declared].filter((kind) => !armed.has(kind));
     expect(missing).toEqual([]);
   });
@@ -2251,10 +2266,13 @@ describe('the whole deck, priced (batch H2)', () => {
     const faith = foldEmpireRates(state, player.id).faithPerTurn ?? 0;
     expect(faith).toBeGreaterThan(0);
     const effect: CardEffect = {
-      kind: 'rateConversion',
-      from: 'faithPerTurn',
+      kind: 'pays',
+      where: 'empire',
+      basis: 'rate',
+      to: 'gold',
+      amount: 1,
+      fromRate: 'faithPerTurn',
       per: 1,
-      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'empire' },
     };
     expect(scoreEffects([effect], ctx)).toBe(Math.floor(faith) * ctx.prices.gold);
   });
@@ -2265,7 +2283,7 @@ describe('the whole deck, priced (batch H2)', () => {
     const food = foldEmpireRates(state, player.id).foodPerTurn ?? 0;
     expect(food).toBeGreaterThan(0);
     const effect: CardEffect = {
-      kind: 'yieldConversion',
+      kind: 'pays', where: 'city', basis: 'share',
       from: 'food',
       to: 'gold',
       percent: 10,
@@ -2275,7 +2293,7 @@ describe('the whole deck, priced (batch H2)', () => {
 
   it('prices the Curia’s mirror off the shelves the empire has raised', () => {
     const share: CardEffect[] = [
-      { kind: 'mirrorYield', from: 'faith', to: 'science', category: 'faith' },
+      { kind: 'pays', where: 'city', basis: 'mirror', from: 'faith', to: 'science', category: 'faith' },
     ];
     const { state, player, city } = board();
     expect(scoreEffects(share, valueContext(state, player))).toBe(0);
@@ -2297,10 +2315,13 @@ describe('the whole deck, priced (batch H2)', () => {
     first.population = 6;
     recomputeAllVisibility(state);
     const player = seat(state, 0);
-    const effect: CardCountScaledEffect = {
-      kind: 'countScaled',
+    const effect: CardPaysEffect = {
+      kind: 'pays',
+      where: 'city',
+      basis: 'count',
+      to: 'gold',
+      amount: 1,
       count: 'cities',
-      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'city' },
     };
     const one = explainCounted(effect, valueContext(state, player)).total;
     const second = foundCityAt(state, 0, at(state.map, 9, 5));
@@ -2310,10 +2331,13 @@ describe('the whole deck, priced (batch H2)', () => {
     // Two towns counted, and each of them paid: four times one town's one.
     expect(two).toBe(one * 4);
     // An `empire` line is unmoved by the same board — the fix is scoped.
-    const empireLine: CardCountScaledEffect = {
-      kind: 'countScaled',
+    const empireLine: CardPaysEffect = {
+      kind: 'pays',
+      where: 'empire',
+      basis: 'count',
+      to: 'gold',
+      amount: 1,
       count: 'cities',
-      pays: { to: 'yield', yield: 'gold', amount: 1, where: 'empire' },
     };
     const ctx = valueContext(state, player);
     expect(explainCounted(empireLine, ctx).total).toBe(2 * ctx.prices.gold);
@@ -2335,16 +2359,16 @@ describe('the whole deck, priced (batch H2)', () => {
       {
         kind: 'conditionRule',
         when: { test: 'cityCountAtMost', value: 4 },
-        then: [{ kind: 'cityYields', gold: 2 }],
+        then: [{ kind: 'pays', where: 'city', gold: 2 }],
       },
     ];
     const open = valueContext(state, player);
-    expect(scoreEffects(gated, open)).toBe(scoreEffects([{ kind: 'cityYields', gold: 2 }], open));
+    expect(scoreEffects(gated, open)).toBe(scoreEffects([{ kind: 'pays', where: 'city', gold: 2 }], open));
     const shut: CardEffect[] = [
       {
         kind: 'conditionRule',
         when: { test: 'cityCountAtLeast', value: 9 },
-        then: [{ kind: 'cityYields', gold: 2 }],
+        then: [{ kind: 'pays', where: 'city', gold: 2 }],
       },
     ];
     expect(scoreEffects(shut, open)).toBe(0);

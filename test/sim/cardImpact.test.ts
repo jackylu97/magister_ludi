@@ -688,7 +688,7 @@ describe('the engine shapes stamp', () => {
    * and culture.
    */
   it('reads an empire line at the figure the empire stage banks', () => {
-    withCards([['waysideShrines', [{ kind: 'empireYields', science: 3 }]]], () => {
+    withCards([['waysideShrines', [{ kind: 'pays', where: 'empire', science: 3 }]]], () => {
       const { state } = bench(1);
       // The tier is really standing, or this test proves nothing.
       const tier = empirePercents(state, 0).meters.find((line) => line.yield === 'science');
@@ -707,7 +707,7 @@ describe('the engine shapes stamp', () => {
   it('reads the additive amplifier as what the other cards would pay more', () => {
     withCards(
       [
-        ['waysideShrines', [{ kind: 'cityYields', food: 2 }]],
+        ['waysideShrines', [{ kind: 'pays', where: 'city', food: 2 }]],
         ['theChoir', [{ kind: 'cardYieldAmplifier', yield: 'food', amount: 3 }]],
       ],
       () => {
@@ -737,7 +737,7 @@ describe('the engine shapes stamp', () => {
   it('reads the position engine as the chair it points at', () => {
     withCards(
       [
-        ['waysideShrines', [{ kind: 'cityYields', gold: 4 }]],
+        ['waysideShrines', [{ kind: 'pays', where: 'city', gold: 4 }]],
         ['theChoir', [{ kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 }]],
       ],
       () => {
@@ -798,7 +798,7 @@ describe('the engine shapes stamp', () => {
         { kind: 'periodic', everyTurns: 8, pays: 'gold', amount: 5 },
         { kind: 'periodShorten', turns: 2 },
         { kind: 'cityRenownPercent', percent: 50 },
-        { kind: 'routeYield', gold: 1 },
+        { kind: 'pays', where: 'route', gold: 1 },
       ]]],
       () => {
         const { state, city } = bench();

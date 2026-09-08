@@ -2939,9 +2939,10 @@ describe('the beliefs balance pass', () => {
     const g = game();
     const flat = town(g.state, 0, 6, 6);
     keep(g.state, 0, 'starReaders');
-    const printed = beliefDef('starReaders').effects.find(
-      (effect) => effect.kind === 'cityYields',
-    )!.science;
+    const row = beliefDef('starReaders').effects.find(
+      (effect) => effect.kind === 'pays' && effect.where === 'city',
+    ) as { science?: number };
+    const printed = row.science;
     expect(printed).toBe(4);
     const paid = (city: typeof flat): number =>
       explainCardCityYields(g.state, city)
@@ -3083,8 +3084,8 @@ describe('the beliefs balance pass', () => {
     city.followers = { [religion.id]: city.population };
     bumpRevision(g.state);
     const step = (id: 'choirs' | 'titheHouses'): number => {
-      const effect = beliefDef(id).effects.find((entry) => entry.kind === 'countScaled');
-      return effect !== undefined && effect.kind === 'countScaled' ? (effect.per ?? 1) : 1;
+      const effect = beliefDef(id).effects.find((entry) => entry.kind === 'pays');
+      return effect !== undefined && effect.kind === 'pays' ? (effect.per ?? 1) : 1;
     };
     expect(step('choirs')).toBe(4);
     expect(step('titheHouses')).toBe(3);

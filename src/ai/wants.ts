@@ -958,7 +958,7 @@ function prophetTerms(
  *     `explainEffects` — the evaluator every card in this bot goes through. The
  *     best two of the bag, because two hands cannot deal one belief twice;
  *   · **the founder's trickle.** `RELIGION.founderTrickle` is a pair of ordinary
- *     `countScaled` rows and they are read as ordinary rows
+ *     `pays` count rows and they are read as ordinary rows
  *     (`explainForecastCount`) — the board's own count is nought for an empire
  *     with no faith, so the count handed in is the tide's reach;
  *   · **the tide's reach** is what supplies that count: the foreign towns a holy

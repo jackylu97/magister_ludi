@@ -414,7 +414,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "gold": 3
         },
         {
@@ -448,7 +449,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "culture": 2
         },
         {
@@ -515,7 +517,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "gold": 3
         },
         {
@@ -584,7 +587,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "faith": 2
         },
         {
@@ -621,7 +625,8 @@
           "amount": 1
         },
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "faith": 1
         },
         {
@@ -695,7 +700,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "gold": 3
         },
         {
@@ -730,7 +736,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "culture": 2
         },
         {
@@ -827,7 +834,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "science": 2
         },
         {
@@ -1009,7 +1017,8 @@
       ],
       "effects": [
         {
-          "kind": "empireYields",
+          "kind": "pays",
+          "where": "empire",
           "culture": 2
         },
         {

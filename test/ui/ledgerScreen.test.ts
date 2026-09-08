@@ -310,7 +310,7 @@ describe('the reading', () => {
     const held = orderDef('waysideShrines').effects;
     try {
       (orderDef('waysideShrines') as { effects: CardEffect[] }).effects = [
-        { kind: 'empireYields', science: 3 },
+        { kind: 'pays', where: 'empire', science: 3 },
       ];
       const g = game();
       found(g.state, 0);

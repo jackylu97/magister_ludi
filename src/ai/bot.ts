@@ -745,7 +745,7 @@ function garrisonWorth(
 /**
  * What this empire's treasury gains and loses per turn, **as the simulation
  * reads it** — `foldEmpireRates` (`cities.ts`), which is the very fold
- * `collectYields` banks and a `rateConversion` prices against.
+ * `collectYields` banks and a `pays` rate prices against.
  *
  * Asked rather than reimplemented, and that is the whole point: the collapse
  * Entry LIX found (both seats at −125💰 a turn by t160) is invisible to a bot

@@ -821,7 +821,7 @@ export function agedActFactor(player: Player): number {
  * "What am I making per turn" is asked of `foldEmpireRates` (`cities.ts`) and
  * nowhere else — the very fold `collectYields` banks and the top bar prints — so
  * the preview, the payout and the headline cannot drift. It is the **base**
- * rate, before any `rateConversion` pays anything, which is that reading's own
+ * rate, before any `pays` rate pays anything, which is that reading's own
  * discipline: an act that read a converted rate would be two cards feeding each
  * other through a great person.
  *
