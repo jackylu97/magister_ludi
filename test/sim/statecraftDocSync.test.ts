@@ -316,21 +316,31 @@ describe('the orders and doctrines doc mirrors the data', () => {
    * Both directions, as ever: every government in the data appears in the table
    * with its own spread, and every row of the table names a government.
    */
-  it('prints every government’s chairs as the data lays them out', () => {
+  /**
+   * Every row of the Governments table as `name → { chairs, signature }`.
+   *
+   * One walk for the two columns that mirror data, so a row read twice is
+   * parsed once and the two pins below cannot disagree about which line is a
+   * row.
+   */
+  function governmentRows(): Map<string, { chairs: string; signature: string }> {
     const heading = '## Governments';
     const start = DOC.indexOf(heading);
     expect(start).toBeGreaterThanOrEqual(0);
     const end = DOC.indexOf('\n## ', start + heading.length);
     const section = DOC.slice(start, end === -1 ? undefined : end);
-
-    /** `name → "M/E/W"` for every row of the table. */
-    const doc = new Map<string, string>();
+    const rows = new Map<string, { chairs: string; signature: string }>();
     for (const line of section.split('\n')) {
       const cells = line.split('|').map((cell: string) => cell.trim());
       if (cells.length < 5 || cells[0] !== '' || cells[2] === '') continue;
       if (cells[2] === 'Government' || /^-+$/.test(cells[2])) continue;
-      doc.set(cells[2], cells[3] ?? '');
+      rows.set(cells[2], { chairs: cells[3] ?? '', signature: cells[4] ?? '' });
     }
+    return rows;
+  }
+
+  it('prints every government’s chairs as the data lays them out', () => {
+    const doc = new Map([...governmentRows()].map(([name, row]) => [name, row.chairs]));
 
     for (const id of GOVERNMENT_IDS) {
       const def = governmentDef(id);
@@ -348,5 +358,34 @@ describe('the orders and doctrines doc mirrors the data', () => {
     // And the tier column mirrors the ladder, so a government moved between
     // tiers cannot sit under the wrong heading row.
     expect(doc.size).toBe(GOVERNMENT_IDS.length);
+  });
+
+  /**
+   * The **Signature** half (batch B1b, 2026-09-08 — `docs/flags.md` item (zz)).
+   *
+   * Every Order and Doctrine cell in this worksheet has always been the row's
+   * own `text`, and the governments' Signature column was the one that was
+   * **hand-written**: the four early chairs carried no `text` at all, so there
+   * was nothing to mirror and the cells were composed in the doc — in icons and
+   * middots the data never held. That is how the user's marks on War Chief,
+   * Theocracy and Tyranny came to sit in this table for a fortnight describing
+   * a law the data did not carry: a hand-written cell is a claim nobody checks.
+   *
+   * The four rows have a `text` now and the cells are those strings **verbatim**
+   * — trimmed of the table's own padding and nothing else. A cell edited without
+   * the row fails here, which is the whole point, and a screen and a worksheet
+   * that disagree about what a government does stop being possible.
+   */
+  it('prints every government’s signature in the row’s own ratified words', () => {
+    const doc = governmentRows();
+    for (const id of GOVERNMENT_IDS) {
+      const def = governmentDef(id);
+      const printed = doc.get(def.name)?.signature;
+      expect(printed, `the Governments table has no row for "${def.name}"`).toBeDefined();
+      // Data → doc, and the `text` itself is required: a chair with no ratified
+      // words has nothing to print on the government screen either.
+      expect(def.text, `${def.name} (${id}) carries no ratified text`).toBeDefined();
+      expect(printed, `${def.name} (${id}) — the row's own words are`).toBe(def.text);
+    }
   });
 });

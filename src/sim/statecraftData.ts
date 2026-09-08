@@ -1762,6 +1762,23 @@ export type BehaviorRuleId =
    */
   | 'moveAfterKill'
   /**
+   * A raid **costs this empire nothing to make** — Tyranny's, and the user's
+   * Governments marks of 2026-09-08 ("Pillaging pays +50% and costs no
+   * movement").
+   *
+   * Read in the one place a raid spends a turn (`pillageAt`, `improvements.ts`),
+   * where the single point comes off, and it is that point the rule withholds —
+   * not the whole allowance and not the verb's gate. `pillageError` is untouched
+   * on purpose: a column that has run itself dry still cannot burn a farm, so
+   * the law buys tempo inside a turn rather than a free action out of nothing.
+   *
+   * A rule rather than a second windfall rider because the coin and the walking
+   * are different things: the salvage composes through `windfallPayout` with
+   * three other rows, and the movement is a fact about the piece that no payout
+   * has a field for.
+   */
+  | 'freePillage'
+  /**
    * This empire's pieces **cannot dig in** — Blitz's price.
    *
    * Read in `fortifyError` (`combat.ts`), which is the one rule the button and

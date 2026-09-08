@@ -724,7 +724,7 @@ describe('the research queue field', () => {
     // the authored late columns by the same 10/13). A v90 log settles its
     // second technology on a different turn and never rejoins. (91 is batch
     // T1's, in flight beside it.)
-    expect(SCHEMA_VERSION).toBe(93);
+    expect(SCHEMA_VERSION).toBe(94);
   });
 });
 

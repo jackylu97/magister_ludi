@@ -463,7 +463,43 @@ directly to confirm rulings — user marginalia are rulings.
   `docs/beliefs.md`, tables only from `data/religion.json` (pantheon,
   follower, enhancer beliefs; rites; consecrations), sync-tested by
   `test/sim/beliefsDocSync.test.ts` — batch **R0** (no schema); the
-  user's marks become **B2**. **E4b** flies now in its own worktree
+  user's marks become **B2** — **marked** (the user, 2026-09-08; the
+  marginalia in `docs/beliefs.md` are the rulings): Star Readers +4,
+  Keeper of the Calendar every 10 turns with a chosen unit spawning in
+  the capital, Rites of Blood +25, Lord of the Hoard renamed (The Stone
+  Hoard, the orchestrator's name) and widened to quarries, The Vigil
+  +10% science and culture, The Living Rock withdrawn, two new pantheon
+  beliefs (Vineyard Rites: +1 food +1 culture on plantations; Cult of
+  Heroes: +15% renown — names the orchestrator's); Cathedrals of the Sky
+  and Feast Days become lines **on the Temple** so temple multipliers
+  reach them; Choirs per 4, Tithe Houses per 3; Itinerant Preachers 5
+  hexes, Ecclesia +3 faith, Congregation per 3 up to 5, Pilgrims' Coin
+  +4 gold per following city, World Church +15% culture per following
+  empire; **Holy Order built** as the Knights Templar — a faith-called
+  unit that takes the strength of the empire's best available cavalry,
+  costs 0.8× that unit's production cost in faith, and fights +3 in
+  cities that follow the religion. Also: the `cityHappinessDemand`
+  meter rule and its readers go (the user: "Don't keep the useless
+  rule"); the Muses' Call's great person is once, pinned (B1). Batch
+  **B2** (schema 95, after E4b's 94). (zz) **The Governments marks**
+  (the user, 2026-09-08, in `docs/orders-and-doctrines.md`'s Governments
+  table — missed by B1 because the marks rode into W1's commit before the
+  pass was diffed; found on landing B1): **War Chief** "+3 authority, +2
+  combat strength · killing a unit grants +5 science and +5 culture per
+  slotted Order" (was +1 strength per 2 cities, max +3); **Theocracy**
+  the capital's faith gained again as science and culture at a **fifth**
+  of the rate (was a tenth); **Tyranny** "+5 authority capacity. +2
+  combat strength. Pillaging pays +50% and costs no movement" (was +3,
+  no strength, pillaging costs movement). The Governments table's
+  Signature cells become each row's `text` and the sync test pins them.
+  Batch **B1b** (schema 94) — **built** (2026-09-08): the three rows carry the
+  marks, the strength lines are flat and pay from the first turn, Theocracy
+  tithes at a fifth, and Tyranny's raids cost no movement through one new
+  behaviour rule (`freePillage`) read in `pillageAt` and nowhere else. Every
+  government carries a ratified `text` — the four early chairs gained one — and
+  the Signature column is that string verbatim, sync-tested beside the chairs.
+  `docs/history/orders-and-doctrines-as-built.md` has the pass.
+  **E4b** flies now in its own worktree
   (schema 94), **E5** alone after it lands. **E1 and E2 LANDED** (8d7075a,
   59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
   2026-09-07: "please continue" on the orchestrator's recommended reading):

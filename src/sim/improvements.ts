@@ -94,6 +94,7 @@ import { type FeatureId } from './terrainData';
 import {
   type WindfallPayout,
   cardActionRule,
+  cardBehaviorRule,
   payWindfallGrants,
   settleCultureWindfall,
   windfallPayout,
@@ -1394,7 +1395,10 @@ export interface PillageReport {
  * One movement point, not the whole allowance, and that is the Civ reading: a
  * column burns a farm as it rides past. It is also what makes pillaging a
  * *tempo* move rather than a turn spent — the difference between harassment and
- * a siege.
+ * a siege. **Tyranny takes even that point back** (`freePillage`, the user's
+ * Governments marks of 2026-09-08): the law is read at the one seam that spends
+ * it, so an empire whose raids are free needs no second verb and no branch
+ * anywhere else.
  *
  * No smoke, no ruin state, no repair verb in v1. A pillaged tile is simply an
  * unimproved tile, which means the answer to "how do I fix it?" is the answer to
@@ -1447,7 +1451,14 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // clears it, because `layRoad` never touches a hex that already has a road.
   delete tile.roadFree;
   refreshTileDerived(state, tile);
-  unit.movesLeft = Math.max(0, unit.movesLeft - 1);
+  // Tyranny's `freePillage`, and the one place the raid's single point is
+  // spent — so a law that says pillaging costs no movement is one clause read
+  // here rather than a second pillage verb. The gate is untouched: a column
+  // with nothing left still cannot burn a farm (`pillageError`), because what
+  // the law withholds is the point, not the price of admission.
+  if (!cardBehaviorRule(state, unit.ownerId, 'freePillage')) {
+    unit.movesLeft = Math.max(0, unit.movesLeft - 1);
+  }
   const player = playerById(state, unit.ownerId);
   if (!player) return report;
   // Tyranny, Scorched Earth, The Burning Way, The Iron Price — four rows on one

@@ -429,8 +429,27 @@ import {
  * A v92 log does not replay: a Doctrine pool that no longer holds Divine
  * Inspiration and two Order pools that hold a row they did not deal the same
  * hands, and every offer after the first draft diverges from there.
+ *
+ * v94: **the Governments marks** (batch B1b, `docs/flags.md` item (zz) — the
+ * user's marks on the Governments table of `docs/orders-and-doctrines.md`,
+ * 2026-09-08, which rode into an earlier commit and were missed by B1's pass).
+ * Three chairs move. **War Chief** trades its scaled combat line — +1 for every
+ * second city, capped at three — for +3 authority capacity and a flat +2 that
+ * pays from the first turn it is adopted; the two kill riders stand.
+ * **Theocracy** gains its capital's faith again as science and as culture at a
+ * fifth of the rate where it was a tenth. **Tyranny** goes to +5 authority
+ * capacity, gains a flat +2 combat strength, and its raids cost no movement.
+ *
+ * That last is one new behaviour rule — `freePillage`, read in `pillageAt`
+ * where the raid's single point is spent and nowhere else — and the Governments
+ * table's Signature column becomes each row's own `text`, the four early rows
+ * gaining one, sync-tested beside the chairs.
+ *
+ * A v93 log does not replay: an empire under any of the three banks different
+ * writ, different strength and different beakers from the turn it adopts, and a
+ * raid under Tyranny leaves its column somewhere the old law could not reach.
  */
-export const SCHEMA_VERSION = 93;
+export const SCHEMA_VERSION = 94;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

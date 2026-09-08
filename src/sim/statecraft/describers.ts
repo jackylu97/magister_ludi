@@ -2412,6 +2412,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // Blitz's two halves. The first says *movement* and not "acts again", because
   // one blow a turn is untouched: what comes back is the walking.
   moveAfterKill: 'a unit that kills gets its movement back for the rest of the turn',
+  // Tyranny's, 2026-09-08. It says *costs* rather than "is free", because the
+  // raid still needs a unit with movement left to make it — what the law
+  // withholds is the point, not the price of admission.
+  freePillage: 'pillaging costs your units no movement',
   noFortify: 'your units cannot fortify',
   // The zone of control, and the only rule of it there is. `ZocRuleId`.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',

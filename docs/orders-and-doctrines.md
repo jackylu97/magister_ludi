@@ -4,8 +4,8 @@ Every Order, Doctrine and government in one place, tables only. The tables ARE t
 balance worksheet: edit a cell here, edit the matching field in `data/statecraft.json`,
 and `test/sim/statecraftDocSync.test.ts` fails the build if the two ever disagree —
 every live row appears in its own table and every table row names a live row, retired
-rows excluded from both sides. Every Effect cell is the row’s own ratified `text`;
-pool counts and tiers are the data’s. The reasoning behind each pass lives in
+rows excluded from both sides. Every Effect cell — and every government’s Signature
+cell — is the row’s own ratified `text`; pool counts, chairs and tiers are the data’s. The reasoning behind each pass lives in
 `docs/history/orders-and-doctrines-as-built.md`.
 
 **Rarity** — the mark in an Order’s Rarity column **is** `OrderDef.rarity`: ● common ·
@@ -53,13 +53,13 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 | Tier | Government | Slots M/E/W | Signature |
 |---|---|---|---|
-| 0 | Chiefdom | 1/1/1 | — |
-| 4 | Council of Elders | 0/2/3 | +3 happiness · +1 renown per turn per city |
-|  | Priest-King | 1/2/2 | +2🕯 per city |
-|  | War Chief | 3/1/1 | +3 authority, +2 combat strength · killing a unit grants +5🔬 and +5🎵 per slotted Order |
+| 0 | Chiefdom | 1/1/1 | Grants nothing of its own. |
+| 4 | Council of Elders | 0/2/3 | +3 happiness. +1 renown per turn for each city you hold. |
+|  | Priest-King | 1/2/2 | +2 faith in every city. |
+|  | War Chief | 3/1/1 | +3 authority capacity. +2 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
 | 10 | Republic | 1/3/3 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
 |  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
-|  | Tyranny | 3/1/3 | +5 authority capacity. +2 combat strength Pillaging pays +50% and costs no movement. |
+|  | Tyranny | 3/1/3 | +5 authority capacity. +2 combat strength. Pillaging pays +50% and costs no movement. |
 | 18 | Divine Mandate | 2/2/4 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
 |  | Imperium | 4/2/2 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
 |  | Merchant League | 1/4/3 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |

@@ -1526,6 +1526,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     card's. Named, and a debt on H3 rather than here.
       //   · the world's rules — the wild converting its killers, a realm's roads
       //     laid free. Neither is a rate and neither has a fold. Named.
+      //   · `freePillage` (Tyranny, 2026-09-08) — a movement point given back on
+      //     a raid this bot decides to make. Its worth is the difference between
+      //     two marches, which is the plan's arithmetic and not a card's, and it
+      //     is worth nothing at all to a seat that never raids. Named, and left
+      //     at the stand-in rather than guessed at from a card's face.
       return effect.rule === 'borders'
         ? ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities
         : ctx.ai.score.unknownEffect;

@@ -323,8 +323,13 @@ describe('the card table', () => {
       '+3 happiness',
       '+1 renown per turn in every city',
     ]);
+    // The strength half was re-ratified by the user's Governments marks of
+    // 2026-09-08 (batch B1b): a scaled line that paid nothing until the third
+    // city became writ and a flat two, and the two kill riders are the ones the
+    // playtest ruling settled.
     expect(describeCard('warChief').map((clause) => clause.text)).toEqual([
-      '+1 combat strength per 2 cities you hold (at most +3)',
+      '+3 authority capacity',
+      '+2 combat strength',
       'killing a unit grants +5 science for each Order you have in a slot',
       'killing a unit grants +5 culture for each Order you have in a slot',
     ]);
@@ -1173,6 +1178,14 @@ describe('every hook family, end to end', () => {
     bumpRevision(g.state);
     expect(cardBehaviorRule(g.state, 0, 'barbarianKillsConvert')).toBe(true);
 
+    // B1b's one new rule, and the second behaviour rule a live row names: a
+    // government rather than a Doctrine, which is the same walk read from the
+    // other class of card.
+    expect(cardBehaviorRule(g.state, 0, 'freePillage')).toBe(false);
+    g.state.players[0]!.statecraft.government = 'tyranny';
+    bumpRevision(g.state);
+    expect(cardBehaviorRule(g.state, 0, 'freePillage')).toBe(true);
+
     expect(cardOfferRule(g.state, 0, 'discoveryClaimAll')).toBe(false);
     g.state.players[0]!.statecraft.doctrines.push('athenaeumOfTheRoad');
     bumpRevision(g.state);
@@ -1307,7 +1320,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(93);
+    expect(SCHEMA_VERSION).toBe(94);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -1652,6 +1665,30 @@ describe('the behavioural hooks, in the verbs they change', () => {
     const second = pillageAt(g.state, raider, tile);
     expect(raider.hp).toBe(100);
     expect(second.heal).toBe(5);
+  });
+
+  it('behaviorRule freePillage — Tyranny’s column rides on after the fire', () => {
+    // The user's Governments mark of 2026-09-08 ("Pillaging pays +50% and costs
+    // no movement"), run the way every other hook here is: the same raid twice,
+    // and the difference is the law.
+    const raid = (government?: 'tyranny') => {
+      const g = game(41);
+      const raider = createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+      const tile = getTileAt(g.state.map, raider.col, raider.row)!;
+      tile.improvement = 'farm';
+      if (government) playerById(g.state, 0)!.statecraft.government = government;
+      bumpRevision(g.state);
+      const before = raider.movesLeft;
+      pillageAt(g.state, raider, tile);
+      return { before, after: raider.movesLeft };
+    };
+    const ordinary = raid();
+    expect(ordinary.after).toBe(ordinary.before - 1);
+    const tyrant = raid('tyranny');
+    expect(tyrant.after).toBe(tyrant.before);
+    // And the farm still burns — what the law withholds is the point, not the
+    // verb, so a raid under Tyranny is the same raid.
+    expect(tyrant.before).toBe(ordinary.before);
   });
 
   it('pays the base heal with no card slotted at all', () => {
@@ -2099,10 +2136,11 @@ describe('the master-list cut of 2026-08-28', () => {
     bumpRevision(g.state);
     const lines = explainCardEmpireYields(g.state, 0, { faithPerTurn: 100, capitalFaithPerTurn: 30 });
     const paid = foldCardYields(lines);
-    // Ten percent of the *capital's* thirty, twice over — and deliberately not
-    // ten percent of the empire's hundred.
-    expect(paid.science).toBe(3);
-    expect(paid.culture).toBe(3);
+    // A **fifth** of the *capital's* thirty, twice over — the user's Governments
+    // mark of 2026-09-08, where it was a tenth — and deliberately not a fifth of
+    // the empire's hundred.
+    expect(paid.science).toBe(6);
+    expect(paid.culture).toBe(6);
   });
 
   it('routeYields — the charter is a line in the caravan breakdown, not a multiplication after it', () => {
@@ -2489,18 +2527,24 @@ describe('the master-list cut of 2026-08-28', () => {
       '+1 culture per 5 population in this city',
       '-5% happiness demanded per citizen',
     ]);
+    // Re-ratified by the user's Governments marks of 2026-09-08 (batch B1b):
+    // five points of writ where there were three, a flat +2, and a raid that
+    // costs the column nothing.
     expect(said('tyranny')).toEqual([
-      '+3 authority capacity',
+      '+5 authority capacity',
+      '+2 combat strength',
       'pillaging pays +50%',
+      'pillaging costs your units no movement',
       // Built by the 2026-08-28 pass: unit maintenance exists now (`upkeep.ts`),
       // so the clause is a `rulePercent` on the eighth `CardRule` rather than a
       // sentence struck through.
       '-30% the gold your units cost in maintenance',
     ]);
+    // The same marks: a fifth of the capital's faith where it was a tenth.
     expect(said('theocracy')).toEqual([
       '+2 faith in every city',
-      '+1 science per 10 faith your capital gains per turn',
-      '+1 culture per 10 faith your capital gains per turn',
+      '+1 science per 5 faith your capital gains per turn',
+      '+1 culture per 5 faith your capital gains per turn',
     ]);
     // The Æra III fork of 2026-09-05: each tier-18 government reads its own
     // dominant chair, so the signature moves when a card of its flavour is
@@ -7996,5 +8040,116 @@ describe('the Orders balance pass of 2026-09-08', () => {
     expect(poolDoctrines(10).includes('divineInspiration' as never)).toBe(false);
     // The row still reads, so a save that holds it still loads and still pays.
     expect(said('divineInspiration').length).toBeGreaterThan(0);
+  });
+});
+
+// --- the Governments marks of 2026-09-08 (batch B1b) ------------------------
+
+/**
+ * The user's marks on the Governments table of `docs/orders-and-doctrines.md`
+ * (`docs/flags.md` item (zz)), which rode into an earlier commit and were missed
+ * by the Orders pass above.
+ *
+ * Three chairs, and two of them moved for one reason: a tier-4 or tier-10
+ * government was being taken for its chairs rather than for its law. What the
+ * marks buy is a **reason to be a tyrant** — flat strength that pays on the turn
+ * the chair is taken, where a scaled line paid nothing until the fifth city.
+ */
+describe('the Governments marks of 2026-09-08', () => {
+  /** What a government adds to one warrior's attack, as the plan folds it. */
+  function combatLines(seed: number, government: 'warChief' | 'tyranny'): number {
+    const g = createGame({
+      seed,
+      sizeName: 'duel',
+      players: [{ name: 'Ada', color: '#d4502e', isHuman: true }],
+      barbarians: true,
+    });
+    const wild = g.state.players.find((p) => p.barbarian)!;
+    const mine = g.state.units.find((u) => u.ownerId === 0 && u.type === 'warrior')
+      ?? createUnit(g.state, 0, 'warrior', g.state.units[0]!.col, g.state.units[0]!.row);
+    const target = getTileAt(g.state.map, mine.col + 1, mine.row)!;
+    createUnit(g.state, wild.id, 'warrior', target.col, target.row);
+    const before = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    // Terrain rolled impassable on this seed; nothing to diff. The claim is a
+    // difference, so an unfought bench answers zero difference rather than lying.
+    if (!before.ok) return 0;
+    playerById(g.state, 0)!.statecraft.government = government;
+    bumpRevision(g.state);
+    const after = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+    if (!after.ok) return 0;
+    return after.attackerStrength - before.attackerStrength;
+  }
+
+  it('War Chief — a flat two points, from the one city it starts with', () => {
+    // The line was `scaled` — +1 per two cities, capped at three — so a chief
+    // with one town fought at exactly nothing, which is the whole of why the
+    // mark was made. **One** city is the bench, deliberately: it is the board
+    // the old row paid nothing on.
+    expect(
+      governmentDef('warChief').effects.some(
+        (effect) => effect.kind === 'combatLine' && effect.scaled !== undefined,
+      ),
+    ).toBe(false);
+    expect(combatLines(5, 'warChief')).toBe(2);
+  });
+
+  it('War Chief — three points of writ, and the kill riders still stand', () => {
+    const g = game();
+    found(g.state, 0);
+    const before = foldMeter(explainAuthority(g.state, 0));
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.government = 'warChief';
+    bumpRevision(g.state);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 3);
+    // The two riders were not part of the mark and are untouched: a chief with
+    // an empty council still pays nothing, and one Order pays five and five.
+    expect(windfallPayout(g.state, 0, 'kill').grants).toEqual([]);
+    sc.orders.push('bloodedSpears');
+    sc.slots = [{ card: 'bloodedSpears', sealedUntil: 0 }];
+    bumpRevision(g.state);
+    expect(
+      windfallPayout(g.state, 0, 'kill').grants.map((grant) => [grant.yield, grant.amount]),
+    ).toEqual([
+      ['science', 5],
+      ['culture', 5],
+    ]);
+  });
+
+  it('Tyranny — five points of writ and two of strength', () => {
+    const g = game();
+    found(g.state, 0);
+    const before = foldMeter(explainAuthority(g.state, 0));
+    playerById(g.state, 0)!.statecraft.government = 'tyranny';
+    bumpRevision(g.state);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 5);
+    expect(combatLines(5, 'tyranny')).toBe(2);
+    // The upkeep rebate was not part of the mark and rides along untouched.
+    expect(
+      governmentDef('tyranny').effects.some(
+        (effect) => effect.kind === 'rulePercent' && effect.rule === 'unitUpkeep',
+      ),
+    ).toBe(true);
+  });
+
+  it('Theocracy — a fifth of the capital’s faith, in both voices', () => {
+    // The rate half of the mark, read off the row beside the fold's own bench
+    // higher up this file: two conversions, both at five where both were ten.
+    const conversions = governmentDef('theocracy').effects.filter(
+      (effect) => effect.kind === 'rateConversion',
+    );
+    expect(conversions.map((effect) => effect.per)).toEqual([5, 5]);
+  });
+
+  it('every government prints its own ratified words', () => {
+    // The four early chairs carried no `text` until this batch, which is what
+    // let the Governments table's Signature column drift: a cell with nothing
+    // to be compared against. `statecraftDocSync.test.ts` pins the two sides
+    // together; this pins that there is a side to pin.
+    for (const id of GOVERNMENT_IDS) {
+      const def = governmentDef(id);
+      expect(def.text, id).toBeTruthy();
+      // A ref never escapes the describer's brackets into ratified prose.
+      expect(def.text, id).not.toContain('[[');
+    }
   });
 });

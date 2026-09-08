@@ -321,6 +321,31 @@ Three new rows, one withdrawal, one deferral built, and eleven dials. Schema 93.
   faith a congregation · The Natural Philosophers pays **half** a turn of
   culture a technology · The Elders' Writ seats **two**.
 
+**As built, 2026-09-08 (batch B1b — the Governments marks, `docs/flags.md` item
+(zz), schema 94).** The user's marks on the Governments table, which rode into an
+earlier commit and were missed by B1's pass. Three chairs, and two of them for
+one reason: a government was being taken for its chairs rather than for its law.
+
+- **War Chief** — the scaled combat line (+1 per two cities, at most +3, so a
+  chief with one town fought at nothing) becomes **+3 authority capacity and a
+  flat +2 combat strength**, paying on the turn the chair is taken. The two kill
+  riders — +5 science and +5 culture per slotted Order — are untouched.
+- **Theocracy** — the capital's faith is gained again as science and as culture
+  at a **fifth** of the rate where it was a tenth: the two `rateConversion`s go
+  from `per: 10` to `per: 5`.
+- **Tyranny** — **+5 authority capacity** where it was three, a flat **+2 combat
+  strength**, and **raids cost no movement**. That last is one new behaviour rule
+  (`freePillage`), read in `pillageAt` where the raid's single point is spent and
+  nowhere else — the gate is untouched, so a column with nothing left still
+  cannot burn a farm. The pillage rider and the upkeep rebate ride along.
+
+The Governments table's **Signature column becomes each row's own `text`**, the
+four early chairs (Chiefdom, Council of Elders, Priest-King, War Chief) gaining
+one, and `test/sim/statecraftDocSync.test.ts` pins the two sides beside the
+chairs. Those cells were the last hand-written ones in this worksheet, which is
+how the marks came to sit in the table for a fortnight describing a law the data
+did not carry.
+
 ## The ruling they were written under
 
 RULING (2026-09-04): orders are never upgraded. A card is what it prints, held once; a draft

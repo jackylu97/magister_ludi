@@ -25,6 +25,7 @@
         "wildcard": 1
       },
       "effects": [],
+      "text": "Grants nothing of its own.",
       "note": "The chiefdom is what a people keep before they keep a law. It asks nothing of you and grants you nothing."
     },
     "councilOfElders": {
@@ -46,7 +47,8 @@
           "amount": 1,
           "per": "city"
         }
-      ]
+      ],
+      "text": "+3 happiness. +1 renown per turn for each city you hold."
     },
     "warChief": {
       "name": "War Chief",
@@ -59,16 +61,15 @@
       },
       "effects": [
         {
+          "kind": "authority",
+          "amount": 3
+        },
+        {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
-          },
-          "scaled": {
-            "count": "cities",
-            "per": 2,
-            "max": 3
           }
         },
         {
@@ -89,7 +90,8 @@
           },
           "perSlottedOrder": true
         }
-      ]
+      ],
+      "text": "+3 authority capacity. +2 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot."
     },
     "priestKing": {
       "name": "Priest-King",
@@ -105,7 +107,8 @@
           "kind": "cityYields",
           "faith": 2
         }
-      ]
+      ],
+      "text": "+2 faith in every city."
     },
     "republic": {
       "name": "Republic",
@@ -149,7 +152,15 @@
       "effects": [
         {
           "kind": "authority",
-          "amount": 3
+          "amount": 5
+        },
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "always"
+          }
         },
         {
           "kind": "windfallRider",
@@ -157,12 +168,16 @@
           "percent": 50
         },
         {
+          "kind": "rule",
+          "rule": "freePillage"
+        },
+        {
           "kind": "rulePercent",
           "rule": "unitUpkeep",
           "percent": -30
         }
       ],
-      "text": "+3 authority capacity. Pillaging pays +50%."
+      "text": "+5 authority capacity. +2 combat strength. Pillaging pays +50% and costs no movement."
     },
     "theocracy": {
       "name": "Theocracy",
@@ -181,7 +196,7 @@
         {
           "kind": "rateConversion",
           "from": "capitalFaithPerTurn",
-          "per": 10,
+          "per": 5,
           "pays": {
             "to": "yield",
             "yield": "science",
@@ -192,7 +207,7 @@
         {
           "kind": "rateConversion",
           "from": "capitalFaithPerTurn",
-          "per": 10,
+          "per": 5,
           "pays": {
             "to": "yield",
             "yield": "culture",
@@ -201,7 +216,7 @@
           }
         }
       ],
-      "text": "+2 faith in every city. Your capital's faith is gained again as science and as culture, at a tenth of the rate."
+      "text": "+2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate."
     },
     "merchantLeague": {
       "name": "Merchant League",
