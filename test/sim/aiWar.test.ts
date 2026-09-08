@@ -10,8 +10,9 @@
  *
  *   · **the warscore** — six labelled lines, folding to their own total, and
  *     mirror-imaged between the two empires;
- *   · **the declaration** — a ratio against a bar, a town in reach, and a truce
- *     the *rules* refuse through;
+ *   · **the declaration** — a ratio against a bar, a town in reach, a strike
+ *     force to send and a road to send it down (§13.1), and a truce the *rules*
+ *     refuse through;
  *   · **the peace** — sue below the floor, sign a fair paper, press on above the
  *     ceiling;
  *   · **the bargain** — accept a duplicate-for-lacking swap, decline what costs
@@ -21,7 +22,13 @@
  *   · **the three tactics** of the military brain (ruled 2026-09-04) — a hurt
  *     piece mends, a spearman holds for a bowman that has not shot, and a bowman
  *     steps behind our line. Each is one arranged board and one assertion, and
- *     each is crude v1 by the ruling's own leave.
+ *     each is crude v1 by the ruling's own leave;
+ *   · **the campaign** (W1, §13.2–5) — a seat at war gathers at a muster short
+ *     of the walls whatever its temperament, pushes when the strike force
+ *     stands, takes a blow on a town at the siege exchange its own appetite
+ *     would refuse, walks its workers out of enemy fields, and builds the army
+ *     the campaign wants. The arranged half lives here; the played half is the
+ *     slow tier's two-seat war.
  *
  * The other two thirds of that batch — the sighted levy and the unit mix — are
  * appraisals rather than orders and live in `aiAppraisal.test.ts`.
@@ -40,8 +47,13 @@ import {
   valueContext,
 } from '../../src/ai/bot';
 import { aiConfigFor, aiConfigForPuppet } from '../../src/ai/aiConfig';
-import { armyStrength, diplomacyDecision, explainWarScore } from '../../src/ai/diplomacy';
-import { type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
+import {
+  armyStrength,
+  diplomacyDecision,
+  explainDeclaration,
+  explainWarScore,
+} from '../../src/ai/diplomacy';
+import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
 import { hasResource, foundCityAt, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -114,6 +126,21 @@ function seat(state: GameState, playerId: number): Player {
 function abroad(state: GameState, playerId: number) {
   const player = seat(state, playerId);
   return diplomacyDecision(state, player, valueContext(state, player));
+}
+
+/**
+ * Every label of the declaration's own table, flattened — including the rows a
+ * clause removed, which is the whole reason `explainDeclaration` is a function
+ * of its own (§13.1: a target refused shows *why*).
+ */
+function declareTable(state: GameState, playerId: number): string {
+  const player = seat(state, playerId);
+  const { rows } = explainDeclaration(state, player, valueContext(state, player));
+  const walk = (terms: readonly ValueTerm[]): string =>
+    terms
+      .map((term) => (term.parts === undefined ? term.label : `${term.label} | ${walk(term.parts)}`))
+      .join(' | ');
+  return rows.map((row) => `${row.label}: ${row.rejected ?? ''} ${walk(row.terms)}`).join(' || ');
 }
 
 /** Soldiers for a seat, on one hex. */
@@ -198,6 +225,31 @@ describe('declaring a war', () => {
     return state;
   }
 
+  /**
+   * The same board with a **strike force** on it (§13.1): five warriors and,
+   * unless the caller says otherwise, a bow among them.
+   *
+   * Five rather than three because the force clause counts pieces *beyond* the
+   * garrisons — one town owes one — so four spare is the bar `war.strikeForce`
+   * sets, and it is the number every test below is arranged around. A ratio of
+   * five over one also clears the balanced seat's own bar, which is what makes
+   * the two claims separable: the force is the only thing standing between this
+   * board and a declaration.
+   */
+  function withForce(persona?: string, { bow = true } = {}): GameState {
+    const state = bench();
+    foundCityAt(state, 0, at(state.map, 4, 5));
+    foundCityAt(state, 1, at(state.map, 12, 5));
+    raise(state, 0, 5, 5, 5);
+    if (bow) {
+      createUnit(state, 0, 'archer', 5, 6);
+      seat(state, 0).unitsBuilt.archer = (seat(state, 0).unitsBuilt.archer ?? 0) + 1;
+    }
+    raise(state, 1, 1, 11, 5);
+    if (persona !== undefined) seat(state, 0).persona = persona;
+    return state;
+  }
+
   /** Every label in a term tree, so a nested appraisal's lines are readable. */
   function labelsOf(terms: readonly { label: string; parts?: readonly unknown[] }[]): string {
     return terms
@@ -209,22 +261,73 @@ describe('declaring a war', () => {
       .join(' | ');
   }
 
-  it('declares on the seat it out-arms, and prints the ratio, the bar and the town', () => {
-    const state = facing('warmonger');
+  it('declares on the seat it out-arms, and prints the ratio, the bar, the town, the force and the road', () => {
+    const state = withForce('warmonger');
     const decision = abroad(state, 0);
     expect(decision?.kind).toBe('war');
     expect(decision?.command.type).toBe('declareWar');
     expect(decision?.command).toMatchObject({ type: 'declareWar', playerId: 0, targetId: 1 });
-    // The three things the ruling asked to see.
+    // The five things the ruling asks to see — the first three from section 8,
+    // the last two from §13.1.
     const chosen = decision!.candidates.find((row) => row.chosen)!;
     const labels = labelsOf(chosen.terms);
     expect(labels).toMatch(/strength against their/);
     expect(labels).toMatch(/appetite for a fight/);
     expect(labels).toMatch(/stands \d+ hexes from one of our pieces/);
     expect(labels).toMatch(/the bar is/);
+    expect(labels).toMatch(/spare of the garrisons/);
+    expect(labels).toMatch(/has a road to .*, \d+ steps of it/);
     expect(foldTerms(chosen.terms)).toBe(chosen.score);
     // And the reducer takes it.
     expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  /**
+   * **§13.1, the clause the ratio could not say.** The user's finding
+   * (2026-09-07): a balanced seat declared on an unarmed neighbour because five
+   * against one is a ratio of five, and then sent nobody. Five warriors clear
+   * the balanced bar of 4.5 on both boards below; the only difference is
+   * whether anything in the force can open a town.
+   */
+  it('will not declare with a force that has nothing to open a town with', () => {
+    const state = withForce(undefined, { bow: false });
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    // And it says so rather than simply going quiet: "no war declared" is
+    // otherwise an absence a reader of the feed cannot tell from a seat that
+    // never looked.
+    const rows = declareTable(state, 0);
+    expect(rows).toMatch(/none of them shoots or lays siege/);
+  });
+
+  it('declares once something that shoots stands with the force', () => {
+    const state = withForce();
+    const decision = abroad(state, 0);
+    expect(decision?.command).toMatchObject({ type: 'declareWar', playerId: 0, targetId: 1 });
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('will not declare on a town nothing of its own can walk to', () => {
+    // The road clause (§13.1). Two straits of ocean, because the map is a
+    // cylinder and one strait is a door held open the other way round — with
+    // both, the two empires are on separate islands. The target is still well
+    // inside `war.reachRadius`: the reach is a distance, not a route, which is
+    // exactly the gap this clause closes.
+    const state = bench(2, { width: 30, height: 12 });
+    for (let row = 0; row < state.map.height; row++) {
+      for (const col of [12, 13, 28, 29]) at(state.map, col, row).terrain = 'ocean';
+    }
+    foundCityAt(state, 0, at(state.map, 4, 5));
+    foundCityAt(state, 1, at(state.map, 20, 5));
+    raise(state, 0, 5, 5, 5);
+    createUnit(state, 0, 'archer', 5, 6);
+    raise(state, 1, 1, 19, 5);
+    const decision = abroad(state, 0);
+    expect(decision === null || decision.command.type !== 'declareWar').toBe(true);
+    const table = declareTable(state, 0);
+    // The ratio and the reach both clear; the road is the only thing refusing.
+    expect(table).toMatch(/stands \d+ hexes from one of our pieces/);
+    expect(table).toMatch(/nothing of ours has a road to/);
   });
 
   it('leaves a peaceful seat at peace on the same board', () => {
@@ -892,5 +995,254 @@ describe('the three tactics', () => {
     expect(decision).not.toBeNull();
     // No enemy, no camp, every town held: the piece digs in where it stands.
     expect(decision!.command.type).toBe('fortify');
+  });
+});
+
+// --- 8. the campaign (W1) ---------------------------------------------------
+
+/**
+ * **The campaign** (`docs/war-diplomacy.md` §13.2–5): a seat at war gathers a
+ * force, walks it to a muster short of the walls, pushes it onto the town, and
+ * sends its civilians home.
+ *
+ * Every board here is arranged for the same reason the boards above are: the
+ * claims are about *one decision*, and each of the four is a different sentence
+ * that a played game could only demonstrate statistically. The slow tier plays
+ * the whole thing (`aiBot.slow.test.ts`, the two-seat war) and measures what
+ * arrives.
+ */
+describe('the campaign', () => {
+  /**
+   * Two empires twelve hexes apart, at war, with the attacker's towns held.
+   *
+   * `soldiers` stand in a column at `from`; the garrison is fortified so that
+   * `townsAreHeld` is satisfied without that piece being the one the blocker
+   * names first. Turn 50 puts the board past the opening book.
+   */
+  function frontier({
+    soldiers = 2,
+    from = [4, 5] as [number, number],
+    bow = true,
+  } = {}): { state: GameState; ours: City; theirs: City; column: ReturnType<typeof createUnit>[] } {
+    const state = bench(2);
+    state.turn = 50;
+    seat(state, 0).gold = 120;
+    // Two hexes apart the *short* way: the map is a cylinder, so towns placed
+    // further apart than half its width are approached round the back — which
+    // the muster reads correctly and a reader of this bench would not.
+    const ours = foundCityAt(state, 0, at(state.map, 2, 5));
+    const theirs = foundCityAt(state, 1, at(state.map, 10, 5));
+    const garrison = createUnit(state, 0, 'warrior', ours.col, ours.row);
+    garrison.fortifiedTurns = 0;
+    const theirGarrison = createUnit(state, 1, 'warrior', theirs.col, theirs.row);
+    theirGarrison.fortifiedTurns = 0;
+    const column: ReturnType<typeof createUnit>[] = [];
+    for (let index = 0; index < soldiers; index++) {
+      column.push(createUnit(state, 0, 'warrior', from[0], from[1] + index));
+    }
+    if (bow) column.push(createUnit(state, 0, 'archer', from[0] - 1, from[1]));
+    openWar(state, 0, 1);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, ours, theirs, column };
+  }
+
+  /** The seat's decisions, driven until one is an order to this piece. */
+  function orderFor(state: GameState, playerId: number, unitId: number, budget = 10): BotDecision | null {
+    for (let guard = 0; guard < budget; guard++) {
+      const decision = nextBotDecision(state, playerId);
+      if (decision === null) return null;
+      if ((decision.command as { unitId?: number }).unitId === unitId) return decision;
+      if (!applyCommand(state, decision.command).ok) return null;
+    }
+    return null;
+  }
+
+  /** Every label of a term tree, flattened. */
+  function termLabels(terms: readonly ValueTerm[]): string {
+    return terms
+      .map((term) => (term.parts === undefined ? term.label : `${term.label} | ${termLabels(term.parts)}`))
+      .join(' | ');
+  }
+
+  /** Every label of a decision's term trees, flattened. */
+  function labels(decision: BotDecision): string {
+    return decision.candidates.map((row) => `${row.label}: ${termLabels(row.terms)}`).join(' || ');
+  }
+
+  function hexesTo(state: GameState, at: { col: number; row: number }, city: City): number {
+    return wrappedDistance(
+      state.map,
+      tileHex(getTileAt(state.map, at.col, at.row)!),
+      tileHex(getTileAt(state.map, city.col, city.row)!),
+    );
+  }
+
+  // --- (a) the war is the permission, and the army gathers -------------------
+
+  it('marches a balanced seat’s spare soldiers at the muster, and prints the campaign', () => {
+    // **§13.2 in one board.** The seat is *balanced* — `military.aggression` is
+    // zero, which used to gate the march entirely — and it is at war, which is
+    // now the whole of the permission.
+    const { state, theirs, column } = frontier({ soldiers: 2 });
+    const piece = column[0]!;
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision).not.toBeNull();
+    expect(decision!.command.type).toBe('moveUnit');
+    // Under the strike force, so it is gathering rather than pushing, and it
+    // says so with the campaign's own sentence.
+    expect(decision!.summary).toMatch(new RegExp(`the campaign on ${theirs.name}: \\d+ of 4 mustered`));
+    expect(decision!.summary).toMatch(/marching to the muster at \(\d+,\d+\)/);
+    expect(labels(decision!)).toMatch(/hexes to the muster at/);
+    for (const row of decision!.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
+    }
+    // And it is a step *toward* the target, which is the point of a muster.
+    const target = (decision!.command as { target: { col: number; row: number } }).target;
+    expect(hexesTo(state, target, theirs)).toBeLessThan(hexesTo(state, piece, theirs));
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('stops short of the walls rather than walking at them one at a time', () => {
+    // The muster is `war.musterDistance` back from the town: the old
+    // nearest-thing march walked each piece at the target alone, which is how a
+    // seat came to have soldiers parked beside a wall they could not open.
+    const { state, theirs, column } = frontier({ soldiers: 2 });
+    const decision = orderFor(state, 0, column[0]!.id);
+    const target = (decision!.command as { target: { col: number; row: number } }).target;
+    expect(hexesTo(state, target, theirs)).toBeGreaterThanOrEqual(aiConfigFor(undefined).war.musterDistance);
+  });
+
+  // --- (b) the push, and the siege exchange ---------------------------------
+
+  /**
+   * The same frontier with the force already gathered at the walls: four
+   * warriors and a bow standing in the ring around the target.
+   */
+  function atTheWalls(): ReturnType<typeof frontier> {
+    const built = frontier({ soldiers: 0, bow: false });
+    const { state, theirs } = built;
+    for (const [col, row] of [
+      [9, 5],
+      [9, 4],
+      [9, 6],
+      [8, 5],
+    ] as const) {
+      built.column.push(createUnit(state, 0, 'warrior', col, row));
+    }
+    // The bow stands **out of its own range of the town**, deliberately: the
+    // ranged deferral (2026-09-04) would otherwise hold every melee blow here
+    // for a shot the archer could take, and what is under test is the siege
+    // appetite rather than that rule.
+    built.column.push(createUnit(state, 0, 'archer', 6, 5));
+    expect(theirs.col).toBe(10);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return built;
+  }
+
+  it('takes a blow on the walls at the siege exchange its own appetite would refuse', () => {
+    const { state, theirs, column } = atTheWalls();
+    const piece = column[0]!;
+    const blow = previewCombat(state, piece.id, { col: theirs.col, row: theirs.row });
+    // The exchange is exactly the one a balanced seat refuses: it deals less
+    // than it takes, and it does not kill.
+    if (!blow.ok) throw new Error(blow.error);
+    expect(blow.damageToDefender).toBeLessThanOrEqual(blow.damageToAttacker);
+    expect(blow.damageToDefender).toBeGreaterThan(blow.damageToAttacker * 0.3);
+    expect(blow.defenderHp).toBeGreaterThan(blow.damageToDefender);
+    const decision = orderFor(state, 0, piece.id);
+    expect(decision?.command).toMatchObject({
+      type: 'attack',
+      target: { col: theirs.col, row: theirs.row },
+    });
+    expect(decision!.summary).toMatch(/The force is at the walls/);
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('refuses the same blow when the force is not there', () => {
+    // One warrior at the wall and nothing else: under the strike force, so the
+    // push is not on and the seat's own appetite decides — and it says no.
+    const built = frontier({ soldiers: 0, bow: false });
+    const { state, theirs } = built;
+    const lone = createUnit(state, 0, 'warrior', 9, 5);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const blow = previewCombat(state, lone.id, { col: theirs.col, row: theirs.row });
+    expect(blow.ok && blow.damageToDefender <= blow.damageToAttacker).toBe(true);
+    const decision = orderFor(state, 0, lone.id);
+    expect(decision).not.toBeNull();
+    expect(decision!.command.type).not.toBe('attack');
+  });
+
+  // --- (c) civilians at war flee --------------------------------------------
+
+  it('walks a worker out of enemy fields and home', () => {
+    const { state, ours, theirs } = frontier({ soldiers: 0, bow: false });
+    // A hex of theirs, with our worker standing on it: the user's own complaint
+    // (2026-09-07, "a worker in my lands standing on a tile i want to improve").
+    const hex = at(state.map, theirs.col - 2, theirs.row);
+    state.tileOwner[tileIndex(state.map, hex.col, hex.row)] = theirs.id;
+    const worker = createUnit(state, 0, 'worker', hex.col, hex.row);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const decision = orderFor(state, 0, worker.id);
+    expect(decision?.command).toMatchObject({
+      type: 'moveUnit',
+      unitId: worker.id,
+      target: { col: ours.col, row: ours.row },
+    });
+    expect(decision!.summary).toMatch(/own fields under it, and a war on with them/);
+    for (const row of decision!.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
+    }
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+  });
+
+  it('leaves the same worker alone on its own ground at peace', () => {
+    // The other half: nothing about the flight fires without a war, or every
+    // worker in the game would run home the first time it crossed a border.
+    const { state, ours } = frontier({ soldiers: 0, bow: false });
+    closeWar(state, 0, 1);
+    const worker = createUnit(state, 0, 'worker', ours.col + 1, ours.row);
+    bumpRevision(state);
+    const decision = orderFor(state, 0, worker.id);
+    expect(decision === null || decision.summary).not.toMatch(/runs the \d+ hexes home/);
+  });
+
+  // --- (d) the war economy --------------------------------------------------
+
+  /** The soldier row of this seat's next production table, or `null`. */
+  function soldierRow(state: GameState, label = 'Warrior'): BotCandidate | null {
+    for (let guard = 0; guard < 12; guard++) {
+      const decision = nextBotDecision(state, 0);
+      if (decision === null) return null;
+      if (decision.command.type === 'setCityProduction') {
+        return decision.candidates.find((row) => row.label === label) ?? null;
+      }
+      if (!applyCommand(state, decision.command).ok) return null;
+    }
+    return null;
+  }
+
+  it('wants the strike force besides its garrisons while a war is on', () => {
+    // §13.5, the war economy. The same board twice; the only difference is the
+    // war, and the printed note is what the levy is actually reading.
+    const fighting = frontier({ soldiers: 1, bow: false });
+    const row = soldierRow(fighting.state);
+    expect(row).not.toBeNull();
+    expect(termLabels(row!.terms)).toMatch(
+      new RegExp(`a war on wants a strike force of ${aiConfigFor(undefined).war.strikeForce} besides`),
+    );
+
+    const quiet = frontier({ soldiers: 1, bow: false });
+    closeWar(quiet.state, 0, 1);
+    const peaceRow = soldierRow(quiet.state);
+    expect(peaceRow).not.toBeNull();
+    expect(termLabels(peaceRow!.terms)).not.toMatch(/a war on wants a strike force/);
+    // A war on wants more army, so the same soldier is charged less of a surplus.
+    expect(row!.score).toBeGreaterThan(peaceRow!.score);
   });
 });

@@ -16,7 +16,9 @@
  *   · **A war I am already in.** Sue for peace below the seat's floor, sign a
  *     paper the warscore says is fair, and press on otherwise.
  *   · **A war I could start.** Army ratio against a threshold, a town in reach,
- *     and the truce respected — all three printed.
+ *     a strike force to send and a road to send it down, and the truce
+ *     respected — every one of them printed. The last two are §13.1's, and the
+ *     readings behind them are `src/ai/campaign.ts`', shared with the march.
  *   · **A bargain I could offer.** One 1:1 luxury swap: a kind I hold twice for
  *     a kind I hold none of.
  *
@@ -59,6 +61,7 @@
  */
 
 import { type AiConfig } from './aiConfig';
+import { campaignRoad, strikeForce } from './campaign';
 import {
   type Appraisal,
   type BotCandidate,
@@ -84,7 +87,7 @@ import {
 } from '../sim/diplomacy';
 import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
-import type { City, GameState, Player } from '../sim/state';
+import type { City, GameState, Player, Unit } from '../sim/state';
 import { playerById, realPlayers } from '../sim/state';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
@@ -1026,9 +1029,10 @@ function nearestTownTo(
 /**
  * The declaration, or `null` — the policy the ruling asked for (section 8):
  * *"declare when army advantage × aggression clears a threshold and a target
- * city is in reach"*.
+ * city is in reach"*, with the two clauses §13.1 added after the user found the
+ * ratio declaring wars nobody could fight.
  *
- * Three clauses, all printed:
+ * Five clauses, all printed:
  *
  *   · **the ratio** — this seat's standing army over the target's, which is the
  *     "army advantage"; a target with no army at all reads as a ratio against
@@ -1042,7 +1046,27 @@ function nearestTownTo(
  *     unreachable `declareThresholdPeaceful` instead (tall and zealot both do);
  *   · **the reach** — one of their towns within `war.reachRadius` of one of this
  *     seat's pieces. An empire cannot be invaded across an ocean by a policy
- *     that has no navy.
+ *     that has no navy;
+ *   · **the strike force** (§13.1) — `war.strikeForce` combat pieces *beyond*
+ *     the garrisons every town of this empire is owed, at least one of which
+ *     shoots or lays siege. This is the clause that stops the ratio declaring on
+ *     the unarmed: one warrior against five is a ratio of five however few of
+ *     the five could leave home, and a stack with nothing that shoots trades hit
+ *     points with a wall for ever. **The persona bars are untouched** — balanced
+ *     still wants 4.5, wide 3.2, the warmonger 1.4 — because the force is a
+ *     different question from the advantage and answering it by raising a bar
+ *     would have said neither thing clearly;
+ *   · **the road** (§13.1) — one piece of that force has a `findPath` to the
+ *     target town. Probed last and only for the candidate that has cleared
+ *     everything else, because it is the one expensive question here and this
+ *     arm is re-asked on every command the seat sends. See `campaignRoad` for
+ *     what "to the town" means when a town's own hex is not a legal goal, and
+ *     for the border the probe steps over.
+ *
+ * A target refused for the force or the road stays in the table with the
+ * sentence that refused it, which is the whole point of printing them: *"no war
+ * was declared"* is otherwise an absence a reader of the feed cannot tell from a
+ * seat that never looked.
  *
  * The truce is not a clause here at all: `declareWarError` refuses through one
  * and its sentence carries the countdown, so a target inside a truce appears in
@@ -1053,13 +1077,66 @@ function declareDecision(
   player: Player,
   ctx: ValueContext,
 ): BotDecision | null {
+  const { best, road, rows, force, threshold } = explainDeclaration(state, player, ctx);
+  if (best === null || road === null) return null;
+  rows[best.row]!.chosen = true;
+  return {
+    kind: 'war',
+    command: { type: 'declareWar', playerId: player.id, targetId: best.enemy.id },
+    subject: best.enemy.name,
+    summary:
+      `Declares war on the ${best.enemy.name}: the army ratio with this seat's appetite reads ` +
+      `${round1(best.score)} against a bar of ${threshold}, ${force.spare} soldiers stand spare of the ` +
+      `garrisons with something that shoots among them, and ${best.target.name} is ${road.steps} steps ` +
+      'down a road one of them can walk.',
+    candidates: rows,
+    focus: { col: best.target.col, row: best.target.row },
+  };
+}
+
+/**
+ * **The declaration's whole table**, whether or not anything is declared — the
+ * five clauses above, built once and read twice.
+ *
+ * Split out of `declareDecision` for one reason: a candidate the *force* or the
+ * *road* removed is exactly what the ruling asked to be able to see, and a
+ * `null` decision carries no candidates at all. The arm still prints its table
+ * through the decision it returns (a declaration on one neighbour shows why the
+ * others were passed over), and this is the seam a test — or a future sheet that
+ * wants to say *why this empire is not at war* — reads the same rows from.
+ */
+export function explainDeclaration(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+): {
+  rows: BotCandidate[];
+  best: { enemy: Player; score: number; target: City; distance: number; row: number } | null;
+  road: { piece: Unit; steps: number } | null;
+  force: ReturnType<typeof strikeForce>;
+  threshold: number;
+} {
   const ai = ctx.ai;
   const warlike = ai.military.aggression > 0;
   const threshold = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
   const appetite = 1 + Math.max(0, ai.military.aggression);
   const mine = armyStrength(state, player.id);
+  // One reading for the whole table: what this empire could send is a fact about
+  // *this* empire, not about which neighbour it is looking at.
+  const force = strikeForce(state, player, ai);
+  const wanted = Math.max(1, ai.war.strikeForce);
+  const forceTerm: ValueTerm = {
+    label:
+      `${force.spare} of ${force.soldiers.length} soldiers are spare of the garrisons ` +
+      `(${wanted} wanted for a strike force)` +
+      (force.siege === null
+        ? ', and none of them shoots or lays siege'
+        : `, and ${unitDef(force.siege.type).name} is with them`),
+    value: 0,
+  };
+  const hasForce = force.spare >= wanted && force.siege !== null;
   const rows: BotCandidate[] = [];
-  let best: { enemy: Player; score: number; target: City; distance: number; row: number } | null = null;
+  const clear: { enemy: Player; score: number; target: City; distance: number; row: number }[] = [];
 
   for (const enemy of rivalsOf(state, player)) {
     const label = `the ${enemy.name}`;
@@ -1085,36 +1162,56 @@ function declareDecision(
         value: 0,
       },
       { label: `(the bar is ${threshold})`, value: 0 },
+      forceTerm,
     ];
-    if (reach === null || appraisal.total < threshold) {
+    if (reach === null || appraisal.total < threshold || !hasForce) {
       rows.push({ label, score: appraisal.total, chosen: false, terms });
       continue;
     }
     rows.push({ label, score: appraisal.total, chosen: false, terms });
-    if (best === null || appraisal.total > best.score) {
-      best = {
-        enemy,
-        score: appraisal.total,
-        target: reach.city,
-        distance: reach.distance,
-        row: rows.length - 1,
-      };
-    }
+    clear.push({
+      enemy,
+      score: appraisal.total,
+      target: reach.city,
+      distance: reach.distance,
+      row: rows.length - 1,
+    });
   }
 
-  if (best === null) return null;
-  rows[best.row]!.chosen = true;
-  return {
-    kind: 'war',
-    command: { type: 'declareWar', playerId: player.id, targetId: best.enemy.id },
-    subject: best.enemy.name,
-    summary:
-      `Declares war on the ${best.enemy.name}: the army ratio with this seat's appetite reads ` +
-      `${round1(best.score)} against a bar of ${threshold}, and ${best.target.name} stands ` +
-      `${best.distance} hexes from one of its pieces.`,
-    candidates: rows,
-    focus: { col: best.target.col, row: best.target.row },
-  };
+  // **The road is probed best-first and only for what is left**, which is what
+  // keeps an arm asked four hundred times a turn affordable: everything above
+  // this line is arithmetic over arrays, and a seat with no advantage or no
+  // force never pays for a search at all.
+  clear.sort((a, b) => b.score - a.score || a.enemy.id - b.enemy.id);
+  let best: (typeof clear)[number] | null = null;
+  let road: { piece: Unit; steps: number } | null = null;
+  for (const candidate of clear) {
+    const probe = campaignRoad(state, force, candidate.target, ai);
+    if (probe === null) {
+      rows[candidate.row]!.terms = [
+        ...rows[candidate.row]!.terms,
+        { label: `nothing of ours has a road to ${candidate.target.name}`, value: 0 },
+      ];
+      continue;
+    }
+    rows[candidate.row]!.terms = [
+      ...rows[candidate.row]!.terms,
+      {
+        label: `${unitLabel(probe.piece)} has a road to ${candidate.target.name}, ${probe.steps} steps of it`,
+        value: 0,
+      },
+    ];
+    best = candidate;
+    road = probe;
+    break;
+  }
+
+  return { rows, best, road, force, threshold };
+}
+
+/** A piece as the feed names it: its row's name and where it stands. */
+function unitLabel(unit: Unit): string {
+  return `${unitDef(unit.type).name} (${unit.col},${unit.row})`;
 }
 
 /** The nearest town of `enemy` to any piece of `player`'s, inside the reach. */

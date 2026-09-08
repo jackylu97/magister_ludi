@@ -56,10 +56,10 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | 0 | Chiefdom | 1/1/1 | — |
 | 4 | Council of Elders | 0/2/3 | +3 happiness · +1 renown per turn per city |
 |  | Priest-King | 1/2/2 | +2🕯 per city |
-|  | War Chief | 3/1/1 | +1 combat strength per 2 cities you hold (max +3) · killing a unit grants +5🔬 and +5🎵 per slotted Order |
+|  | War Chief | 3/1/1 | +3 authority, +2 combat strength · killing a unit grants +5🔬 and +5🎵 per slotted Order |
 | 10 | Republic | 1/3/3 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
-|  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a tenth of the rate. |
-|  | Tyranny | 3/1/3 | +3 authority capacity. Pillaging pays +50%. |
+|  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
+|  | Tyranny | 3/1/3 | +5 authority capacity. +2 combat strength Pillaging pays +50% and costs no movement. |
 | 18 | Divine Mandate | 2/2/4 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
 |  | Imperium | 4/2/2 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
 |  | Merchant League | 1/4/3 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |

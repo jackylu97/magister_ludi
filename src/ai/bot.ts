@@ -111,7 +111,20 @@ import {
 // stand on the policy that reads it. The name stays reachable from here because
 // it is one of the three folds the persona suite pins directly.
 export { explainNextTown };
-import { diplomacyDecision } from './diplomacy';
+import {
+  approachHexes,
+  campaignTarget,
+  fieldSoldiersOf,
+  garrisonAt,
+  isFieldSoldier,
+  isSiegePiece,
+  marchClaims,
+  marchIsStalled,
+  musterHex,
+  musteredNear,
+  standingsNear,
+} from './campaign';
+import { diplomacyDecision, explainWarScore } from './diplomacy';
 import { type TileContextField, tileContextField } from './ground';
 import {
   type Appraisal,
@@ -185,6 +198,7 @@ import {
   cityById,
   hasEndedTurn,
   playerById,
+  realPlayers,
 } from '../sim/state';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import {
@@ -304,7 +318,6 @@ import {
   startRouteError,
 } from '../sim/trade';
 import {
-  type UnitDef,
   type UnitTypeId,
   UNIT_TYPE_IDS,
   isCombatant,
@@ -917,24 +930,52 @@ function sightedThreat(state: GameState, player: Player): { camps: number; hosti
 
 /**
  * How many soldiers, over and above the standing levy, what this seat has
- * sighted is asking for — and the sentence a reader of the feed sees.
+ * sighted **and what it has undertaken** are asking for — and the sentence a
+ * reader of the feed sees.
  *
- * Capped by `threat.sightedArmyCap` so a scout that lit up half a continent
- * cannot talk an empire into a garrison it will go bankrupt paying (the Entry
- * LIX finding, one system over). Floored at nothing, which is the quiet world.
+ * Two lines that are two different sentences:
+ *
+ *   · **what it has seen** — camps charted and hostiles in sight, through this
+ *     seat's own fog. Capped by `threat.sightedArmyCap` so a scout that lit up
+ *     half a continent cannot talk an empire into a garrison it will go bankrupt
+ *     paying (the Entry LIX finding, one system over);
+ *   · **the campaign** (§13.5, the war economy) — while a war is on, the seat
+ *     wants `war.strikeForce` soldiers *over* the garrisons the levy already
+ *     asks for, because that is precisely the force the declaration was allowed
+ *     on and the number the muster waits for. One figure for all three readings
+ *     rather than a `campaignArmy` of its own, deliberately: what it takes to
+ *     start a war, what it takes to press one and what the levy builds for one
+ *     must not be tunable into disagreeing. It sits **outside** the sighted cap
+ *     because it is not a fog reading at all — a war is a thing this empire
+ *     signed, not a thing it glimpsed.
+ *
+ * Floored at nothing, which is the quiet world.
  */
 function sightedArmyWanted(ctx: ValueContext): { extra: number; note: string } {
   const ai = ctx.ai;
   const raw =
     ctx.sighted.camps * ai.threat.armyPerSightedCamp +
     ctx.sighted.hostiles * ai.threat.armyPerSightedHostile;
-  const extra = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw));
+  const sighted = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw));
+  const player = playerById(ctx.state, ctx.playerId);
+  const fighting = player !== undefined && atWarWithAnybody(ctx.state, player);
+  const campaign = fighting ? Math.max(0, ai.war.strikeForce) : 0;
   return {
-    extra,
+    extra: sighted + campaign,
     note:
       `${ctx.sighted.camps} camp${ctx.sighted.camps === 1 ? '' : 's'} charted and ` +
-      `${ctx.sighted.hostiles} hostile piece${ctx.sighted.hostiles === 1 ? '' : 's'} in sight`,
+      `${ctx.sighted.hostiles} hostile piece${ctx.sighted.hostiles === 1 ? '' : 's'} in sight` +
+      (fighting ? `, and a war on wants a strike force of ${campaign} besides` : ''),
   };
+}
+
+/** Is this seat at war with any real empire? The wild does not count. */
+function atWarWithAnybody(state: GameState, player: Player): boolean {
+  for (const other of realPlayers(state)) {
+    if (other.id === player.id || other.eliminated) continue;
+    if (atWar(state, player.id, other.id)) return true;
+  }
+  return false;
 }
 
 /**
@@ -1177,6 +1218,11 @@ function housekeeping(
   // idle-settler finding, closed in batch 4. See `wakeIdleSettler`.
   const rousted = wakeIdleSettler(state, player, sitting);
   if (rousted !== null) return rousted;
+
+  // **The campaign wakes its own army** — the trench's sibling of the arm above,
+  // and the finding W1 could not have been built without. See `wakeTheCampaign`.
+  const called = wakeTheCampaign(state, player);
+  if (called !== null) return called;
 
   // **Re-aiming the beeline**, which blocks nothing and is therefore never
   // surfaced by `firstBlocker`: a plan laid in peacetime is still the plan when
@@ -1674,6 +1720,62 @@ function wakeIdleSettler(
       command: choice.command,
       subject: unitLabel(unit),
       summary: `Rouses a sleeping settler — the board has moved. ${choice.summary}`,
+      candidates: choice.candidates,
+      focus: choice.focus ?? { col: unit.col, row: unit.row },
+    };
+  }
+  return null;
+}
+
+/**
+ * **The campaign wakes its own army**, or `null` — one dug-in soldier of a seat
+ * at war, asked whether the board has moved under it.
+ *
+ * Why it has to exist. **A trench is a standing order and nothing but a march or
+ * a blow ends one**: `breakFortify` (`state.ts`) has exactly three callers —
+ * `advanceAlongPath` when a position changes, `applyCombat` when a piece swings,
+ * and `captureUnit` — and `unitAwaitsOrders` answers *false* for anything
+ * carrying `fortifiedTurns`. So a soldier that stood down once is a soldier
+ * `firstBlocker` never names again, and this bot only ever hears about a piece
+ * through `firstBlocker`. Every stand-down in this file therefore used to be
+ * permanent, which is most of what the user was actually looking at
+ * (2026-09-07): *"parking units near my lands"* is a stack that dug in years ago
+ * and was never asked a second question.
+ *
+ * A campaign cannot live with that. Its whole shape is *gather, then push*, and
+ * the gathering piece has nothing to do on the turn it arrives — so it digs in,
+ * and if nothing wakes it the force it was part of never reaches the strike
+ * force it is waiting for.
+ *
+ * **The only answer it will take is a march or a blow**, and that is what makes
+ * the arm monotone rather than a loop: both break the trench by construction
+ * (the two callers above), so this function cannot answer twice about the same
+ * piece. A dug-in piece the soldier arm would only stand down again — the hurt
+ * one mending, the one already at its muster — is left exactly where it is.
+ *
+ * Gated on a war because it is the campaign's arm and nothing else's: a seat at
+ * peace with a fortified line has no business shuffling it, and the cost of the
+ * sweep is paid only by seats that are fighting.
+ */
+function wakeTheCampaign(state: GameState, player: Player): BotDecision | null {
+  if (!atWarWithAnybody(state, player)) return null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    // **The two ways a soldier stops asking**, and neither of them is a decision
+    // this bot ever took: a trench (`fortifiedTurns`) and a march to a hex it
+    // will never be allowed to stand on (`marchIsStalled`). Both make
+    // `unitAwaitsOrders` answer *false* for ever.
+    if (unit.fortifiedTurns === undefined && !marchIsStalled(state, unit)) continue;
+    if (unit.movesLeft <= 0 || unit.hasAttacked === true) continue;
+    if (!isFieldSoldier(unitDef(unit.type))) continue;
+    const choice = soldierCommand(state, player, unit);
+    if (choice === null) continue;
+    if (choice.command.type !== 'moveUnit' && choice.command.type !== 'attack') continue;
+    return {
+      kind: 'unitOrder',
+      command: choice.command,
+      subject: unitLabel(unit),
+      summary: `Calls a dug-in piece back to the colours — the campaign has moved. ${choice.summary}`,
       candidates: choice.candidates,
       focus: choice.focus ?? { col: unit.col, row: unit.row },
     };
@@ -4642,19 +4744,22 @@ function settlerCommand(
   // floor, `marchToSite` proposes a walk only when something in reach beats it,
   // and founding is what "nowhere better" means.
   const legalHere = standing !== null && standing.legal === null;
-  if (legalHere && escorted === null) {
-    // **A settler does not march unescorted** (the user's notes, P3): a hostile
-    // inside `war.escortRadius` and nothing of ours walking with it, and the
-    // piece stops walking. What it does instead is *found where it stands* — a
-    // mediocre town is worth more than a settler captured in the open, and it is
-    // the one answer that cannot oscillate, because founding is terminal.
-    const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
-    if (danger !== null) {
+  // **A settler in danger does not march** (the user's notes, P3; §13.4 made it
+  // one reading shared with the worker). What it does instead is *found where it
+  // stands* — a mediocre town is worth more than a settler captured in the open,
+  // and it is the one answer that cannot oscillate, because founding is terminal
+  // — and where the rules will not let it found, it runs for the nearest town of
+  // its own like any other civilian.
+  const danger = civilianDanger(state, player, unit);
+  if (danger !== null) {
+    if (legalHere) {
       return foundHere(
-        `There is ${danger.what} ${danger.distance} hexes off and nothing of ours walking with it: ` +
-          `founds on ${round1(standing!.appraisal.total)} ground rather than march unescorted.`,
+        `There is ${danger}: founds on ${round1(standing!.appraisal.total)} ground rather than ` +
+          'march unescorted.',
       );
     }
+    const flight = civilianFlight(state, player, unit);
+    if (flight !== null) return flight;
   }
   const march = marchToSite(
     state,
@@ -4917,6 +5022,106 @@ function escortWithin(state: GameState, player: Player, unit: Unit): Unit | null
 }
 
 /**
+ * **Why a civilian standing here is in danger**, or `null` — §13.4's one
+ * reading, and it has two callers by construction (the worker and the settler)
+ * rather than a clause apiece.
+ *
+ * Two clauses, and they are two different sentences:
+ *
+ *   · **it is standing in the fields of an empire this seat is at war with.**
+ *     Unconditional, with no escort clause of its own: a worker improving a hex
+ *     inside your borders after a declaration is the user's own complaint
+ *     (2026-09-07, *"a worker in my lands standing on a tile i want to
+ *     improve"*), and a spearman four hexes away does not make that a sensible
+ *     place to be;
+ *   · **something hostile is inside `war.escortRadius` and nothing of ours is
+ *     walking with it.** This is the settler's own clause, generalised —
+ *     `escortWithin` is *"who is with this piece"* and `nearestHostile` is
+ *     *"what would kill it"*, both unchanged.
+ *
+ * The hostile reading is the **omniscient** one (`nearestHostile`, not
+ * `nearestSightedHostile`), which is this file's creed rather than an oversight:
+ * the bot reads the true board everywhere but the levy, and giving the worker a
+ * fog-honest danger while the settler kept an omniscient one would be two
+ * readings of one question — the exact thing this function exists to prevent.
+ */
+function civilianDanger(state: GameState, player: Player, unit: Unit): string | null {
+  const ai = aiFor(player);
+  const holder = tileOwnerPlayerId(state, unit.col, unit.row);
+  if (holder !== null && holder !== player.id && atWar(state, player.id, holder)) {
+    const owner = playerById(state, holder);
+    return `the ${owner?.name ?? 'enemy'}' own fields under it, and a war on with them`;
+  }
+  if (escortWithin(state, player, unit) !== null) return null;
+  const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
+  if (danger === null) return null;
+  return `${danger.what} ${danger.distance} hexes off and nothing of ours walking with it`;
+}
+
+/**
+ * **A civilian at war goes home** (§13.4), or `null` when it is in no danger or
+ * has nowhere safer to be.
+ *
+ * The nearest town of this empire it can actually walk to, which is the one
+ * destination that needs no valuation: a town is where a worker mends the hexes
+ * it can reach without being captured on the way, and a piece standing in one is
+ * behind a garrison. A civilian already standing in one of its own towns is
+ * answered `null` — it is home.
+ *
+ * Nothing here decides whether the piece *would rather* found or dig; the
+ * settler asks `civilianDanger` first and founds where it stands when the rules
+ * allow it, because a mediocre town is worth more than a settler taken in the
+ * open and founding is the one answer that cannot oscillate.
+ */
+function civilianFlight(state: GameState, player: Player, unit: Unit): UnitChoice | null {
+  const why = civilianDanger(state, player, unit);
+  if (why === null) return null;
+  const home = state.cities.some(
+    (city) => city.ownerId === player.id && city.col === unit.col && city.row === unit.row,
+  );
+  if (home) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const from = tileHex(here);
+  const towns: { city: City; distance: number }[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    towns.push({ city, distance: wrappedDistance(state.map, from, tileHex(tile)) });
+  }
+  towns.sort((a, b) => a.distance - b.distance || a.city.id - b.city.id);
+  const tried: BotCandidate[] = [];
+  for (const entry of towns.slice(0, Math.max(1, aiFor(player).search.pathProbes))) {
+    const tile = getTileAt(state.map, entry.city.col, entry.city.row)!;
+    const label = `run for ${entry.city.name}, ${entry.distance} hexes off`;
+    if (findPath(state, unit, tile) === null) {
+      tried.push(refused(label, 'no route to it'));
+      continue;
+    }
+    // **The lowest score marches**, as in every other walk in this file: the key
+    // is hexes to the nearest town of ours.
+    const terms: ValueTerm[] = [
+      { label: `${entry.distance} hexes to the nearest town of ours`, value: entry.distance },
+      { label: `(${why})`, value: 0 },
+    ];
+    tried.push({ label, score: foldOf(terms), chosen: true, terms });
+    return {
+      command: {
+        type: 'moveUnit',
+        playerId: player.id,
+        unitId: unit.id,
+        target: { col: entry.city.col, row: entry.city.row },
+      },
+      summary: `There is ${why}: runs the ${entry.distance} hexes home to ${entry.city.name}.`,
+      candidates: tried,
+      focus: { col: entry.city.col, row: entry.city.row },
+    };
+  }
+  return null;
+}
+
+/**
  * The settler this soldier walks with, or `null` — **the escort** (the user's
  * notes, P3).
  *
@@ -5095,6 +5300,12 @@ function workerCommand(
 ): UnitChoice | null {
   const ai = aiFor(player);
   const ctx = seatContext(state, player, sitting);
+  // **A worker at war goes home first** (§13.4). Asked before the improvement
+  // plan is even built, and for two reasons: a hex it cannot live to finish is
+  // worth nothing at all, and the user's own complaint was a worker that went on
+  // ploughing inside somebody else's borders after a declaration.
+  const flight = civilianFlight(state, player, unit);
+  if (flight !== null) return flight;
   // Built here rather than hoisted for the whole turn because it is only these
   // few pieces that ask: a plan walked for every settler and scout as well would
   // be the map swept a dozen times a turn for nothing.
@@ -5262,6 +5473,12 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   const ai = aiFor(player);
   const resting = restAndHeal(state, player, unit);
   if (resting !== null) return resting;
+  // **The campaign, re-read from the board** (§13.3). Asked here rather than
+  // beside the march below because the *blow* needs it too: a piece at the walls
+  // of the town its army is pushing on weighs its exchange at the siege appetite
+  // rather than at its seat's temperament, and that is a fact about where the
+  // piece is standing, which nothing downstream of the blow could tell it.
+  const plan = campaignPlan(state, player, unit);
   // Every blow both arms weigh is filed here, so that a piece which ends up
   // digging in can still print what it looked at — a held blow is a decision.
   const weighed: BotCandidate[] = [];
@@ -5274,14 +5491,34 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: blow.at,
     };
   }
-  // **A seat at war swings at what is beside it, whatever its temperament.**
-  // The appetite decides whether this empire goes *looking* for a fight
-  // (`warMarch`, below) and how bad an exchange it will accept — at zero the
-  // bar is the peaceful one, deal more than you take — but declining to hit an
-  // enemy column standing next to a piece is not pacifism, it is negligence.
+  // **A seat at war swings at what is beside it, whatever its temperament**, and
+  // since §13.2 that is *all* the appetite decides. It used to decide two
+  // things: how bad an exchange a piece would accept, and whether the empire
+  // went looking for a fight at all (`ai.military.aggression > 0` gated the
+  // march). The second is gone — **the war is the permission** — because the
+  // declaration policy and the prosecution policy disagreed: a balanced seat
+  // would declare at 4.5× and then never send anybody, which is the user's own
+  // finding (2026-09-07: *"they're just being annoying. Not sending army to
+  // attack me but parking units near my lands"*). What the appetite does now is
+  // loosen this exchange bar and **nothing else**.
+  //
   // A seat with no war on has nothing to swing at: `holdsRival` is gated on
   // `atWar`, and `previewCombat` refuses a peacetime blow besides.
-  const strike = favourableBlow(state, player, unit, holdsRival, ai.military.aggression, weighed);
+  const strike = favourableBlow(
+    state,
+    player,
+    unit,
+    holdsRival,
+    ai.military.aggression,
+    weighed,
+    // **The siege appetite** (§13.3), and only while the force is actually at
+    // the walls: a blow on the town this army is pushing on, or on a defender
+    // standing beside it, clears `war.siegeExchange` instead. Everywhere else on
+    // the map the seat's own temperament still decides.
+    plan !== null && plan.pushing
+      ? { appetite: ai.war.siegeExchange, at: plan.target, within: 1 }
+      : undefined,
+  );
   if (strike !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: strike.at },
@@ -5330,19 +5567,18 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: escort.at,
     };
   }
-  // The march on a rival comes **after** the towns are seen to, which is the
-  // whole of the restraint an aggressive seat still keeps: `warMarch` asks the
-  // same two guards the camp hunt does.
-  if (ai.military.aggression > 0) {
-    const push = warMarch(state, player, unit);
-    if (push !== null) {
-      return {
-        command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: push.at },
-        summary: push.summary,
-        candidates: push.candidates,
-        focus: push.at,
-      };
-    }
+  // The campaign comes **after** the towns are seen to, which is the whole of
+  // the restraint a seat at war still keeps: `campaignMarch` asks the same two
+  // guards the camp hunt does, and `campaignPlan` asked them before it read
+  // anything at all.
+  const push = campaignMarch(state, player, unit, plan);
+  if (push !== null) {
+    return {
+      command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: push.at },
+      summary: push.summary,
+      candidates: push.candidates,
+      focus: push.at,
+    };
   }
   // **The held blow prints here.** A piece that stood down having declined a
   // deferred exchange has to say so, or the ranged deferral is exactly the
@@ -5388,6 +5624,14 @@ interface UnitTarget {
  * `(1 − aggression)` of what it takes, which is a seat that is willing to trade
  * down to break a line.
  *
+ * **`siege` replaces that appetite for the hexes a push is about** (§13.3): the
+ * town the army is pushing on and everything standing beside it. A wall is a
+ * thing an army loses hit points to on purpose, so a stack reading its seat's
+ * ordinary bar there would take one look, refuse the exchange and park — which
+ * is exactly what the old warmonger's lone pieces did. It is scoped to the
+ * hexes rather than switched on for the whole piece, so the same swordsman that
+ * will trade down at the gate still wants a favourable exchange in the field.
+ *
  * **The one thing that can stop an exchange the appetite would take** is the
  * ranged deferral (2026-09-04): a melee piece holds when a bowman of ours can
  * hit the same target this turn and has not shot yet, unless the blow is
@@ -5409,16 +5653,27 @@ function favourableBlow(
    * one thing a printed charge exists not to be.
    */
   log: BotCandidate[] = [],
+  /** The hexes a push is about, and the appetite they are weighed at. */
+  siege?: { appetite: number; at: { col: number; row: number }; within: number },
 ): UnitTarget | null {
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
   const ai = aiFor(player);
   const shoots = isRanged(unitDef(unit.type));
   const tried = log;
-  const appetite = Math.max(0, Math.min(1, aggression));
+  const ordinary = Math.max(0, Math.min(1, aggression));
+  const siegeHex = siege === undefined ? null : getTileAt(state.map, siege.at.col, siege.at.row);
   for (const near of mapRange(state.map, tileHex(here), unitDef(unit.type).range ?? 1)) {
     if (near.col === unit.col && near.row === unit.row) continue;
     if (!holds(state, player, near)) continue;
+    const besieging =
+      siege !== undefined &&
+      siegeHex !== undefined &&
+      siegeHex !== null &&
+      wrappedDistance(state.map, tileHex(siegeHex), tileHex(near)) <= siege.within;
+    const appetite = besieging
+      ? Math.max(0, Math.min(1, siege!.appetite))
+      : ordinary;
     const label = `strike (${near.col},${near.row})`;
     const preview = previewCombat(state, unit.id, { col: near.col, row: near.row });
     if (!preview.ok) {
@@ -5473,10 +5728,13 @@ function favourableBlow(
         at: { col: near.col, row: near.row },
         summary: kills
           ? `The blow kills: ${preview.damageToDefender} damage against ${preview.defenderHp} hit points left.`
-          : appetite > 0
-            ? `An exchange this seat will take: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +
-              `taken, and its appetite of ${round1(appetite)} asks only for more than ${round1(bar)}.`
-            : `A favourable exchange: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} taken.`,
+          : besieging
+            ? `The force is at the walls: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +
+              `taken, and a push asks only for more than ${round1(bar)}.`
+            : appetite > 0
+              ? `An exchange this seat will take: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} ` +
+                `taken, and its appetite of ${round1(appetite)} asks only for more than ${round1(bar)}.`
+              : `A favourable exchange: ${preview.damageToDefender} dealt against ${preview.damageToAttacker} taken.`,
         candidates: tried,
       };
     }
@@ -5773,63 +6031,179 @@ function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
 }
 
 /**
- * The rival's piece or town this seat marches on, or `null` — the warmonger's
- * half of the hunt, and it is `campMarch` with a different quarry.
+ * **The campaign this piece is part of**, or `null` — §13.3's operational plan,
+ * re-read from the board on every ask and remembered nowhere.
+ *
+ * What it replaces is the honest v1 that used to stand here: `warMarch` walked
+ * each piece alone at the nearest enemy *thing* inside `military.huntRadius`,
+ * which had three faults the user found in one sitting (2026-09-07). A target
+ * chosen by where a soldier happens to be standing changes every time the
+ * soldier moves, so no two pieces of one army ever agreed on where they were
+ * going. A piece that arrived alone beside a wall failed the exchange bar and
+ * parked. And a town's own hex is not a legal goal for `findPath` at all
+ * (`approachHexes` says why), so the "march on a rival's town" arm could in fact
+ * only ever march on a rival's *column*.
+ *
+ * The plan answers all three with three readings, and every one of them is a
+ * function of the board alone:
+ *
+ *   · **the enemy** — the one whose target town is nearest this empire's ground.
+ *     A seat the warscore says is losing to (`war.sueFloor`, §13.2) is skipped:
+ *     its soldiers hold their towns through the arms above and the peace arm
+ *     sues, which is the ruling's own clause;
+ *   · **the target** (`campaignTarget`) — that enemy's town nearest our towns;
+ *   · **the muster** (`musterHex`) — the hex `war.musterDistance` short of it,
+ *     and how many of ours already stand within `war.musterRadius` of it.
  *
  * The two guards are the camp hunt's, word for word and for its reasons: every
- * town of this empire must be held before anybody goes hunting, **and** this
- * particular piece must not be the thing holding the town it stands in. An
- * aggressive seat that emptied its capital to chase a column is how a bot loses
- * a capital, and aggression is not permission to be stupid.
- *
- * Nearest quarry first, then map order. There is no operational plan here at
- * all — no siege stack, no line, no war economy — and that is v1 said out loud:
- * this is a piece walking toward the nearest enemy thing until it is adjacent to
- * it, at which point `favourableBlow` decides whether to swing.
+ * town of this empire must be held before anybody goes campaigning, **and** this
+ * particular piece must not be the thing holding the town it stands in. A seat
+ * that emptied its capital to besiege somebody is how a bot loses a capital, and
+ * a war is not permission to be stupid.
  */
-function warMarch(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+interface Campaign {
+  enemy: Player;
+  target: City;
+  muster: { col: number; row: number };
+  gathered: number;
+  wanted: number;
+  pushing: boolean;
+}
+
+function campaignPlan(state: GameState, player: Player, unit: Unit): Campaign | null {
+  const ai = aiFor(player);
   if (!townsAreHeld(state, player)) return null;
   if (!isRedundant(state, player, unit)) return null;
+  let chosen: { enemy: Player; target: City; distance: number } | null = null;
+  for (const enemy of realPlayers(state)) {
+    if (enemy.id === player.id || enemy.eliminated) continue;
+    if (!atWar(state, player.id, enemy.id)) continue;
+    // **A seat that is losing does not campaign** (§13.2): under its own floor
+    // it holds its towns with the arms above and sues with `peaceDecision`.
+    if (explainWarScore(state, player, enemy, ai).total < ai.war.sueFloor) continue;
+    const found = campaignTarget(state, player, enemy);
+    if (found === null) continue;
+    if (chosen === null || found.distance < chosen.distance) {
+      chosen = { enemy, target: found.city, distance: found.distance };
+    }
+  }
+  if (chosen === null) return null;
+  const muster = musterHex(state, player, chosen.target, unit, ai);
+  if (muster === null) return null;
+  const wanted = Math.max(1, ai.war.strikeForce);
+  const gathered = musteredNear(state, player.id, muster.at, ai.war.musterRadius, chosen.target).length;
+  return {
+    enemy: chosen.enemy,
+    target: chosen.target,
+    muster: muster.at,
+    gathered,
+    wanted,
+    pushing: gathered >= wanted,
+  };
+}
+
+/**
+ * Where this piece walks for the campaign, or `null` — **`warMarch`'s
+ * replacement** (§13.3).
+ *
+ * Two behaviours and one sentence between them. Under the strike force the army
+ * **gathers**: every redundant soldier walks to the muster, which is a hex short
+ * of the walls that every piece computes the same answer for. At the strike
+ * force it **pushes**: melee and mounted step to a hex beside the town, a
+ * shooter or a siege engine to a hex within its own range of it, and
+ * `favourableBlow` — reading the siege appetite for those hexes — decides
+ * whether to swing when it gets there.
+ *
+ * `null` in three cases, and each of them means *somebody else decides*: no
+ * campaign at all, a piece already standing where the push wants it (the blow
+ * arm has already had its say this ask), and a piece already gathered at the
+ * muster (it holds, and the arms below stand it down).
+ *
+ * Every candidate carries the campaign's own sentence, which is what the ruling
+ * asked the feed to show: *"the campaign on Lutetia: 5 of 4 mustered —
+ * pushing"*.
+ */
+function campaignMarch(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  plan: Campaign | null,
+): UnitTarget | null {
+  if (plan === null) return null;
+  const ai = aiFor(player);
+  const def = unitDef(unit.type);
   const here = getTileAt(state.map, unit.col, unit.row);
   if (!here) return null;
-  const ai = aiFor(player);
   const from = tileHex(here);
-  const quarry: { at: { col: number; row: number }; distance: number; what: string }[] = [];
-  for (const tile of mapRange(state.map, from, ai.military.huntRadius)) {
-    if (!holdsRival(state, player, tile)) continue;
-    const distance = wrappedDistance(state.map, from, tileHex(tile));
-    if (distance === 0) continue;
-    quarry.push({ at: { col: tile.col, row: tile.row }, distance, what: `(${tile.col},${tile.row})` });
-  }
-  quarry.sort((a, b) => a.distance - b.distance);
+  const walls = getTileAt(state.map, plan.target.col, plan.target.row);
+  if (!walls) return null;
+  const muster = `the campaign on ${plan.target.name}: ${plan.gathered} of ${plan.wanted} mustered`;
   const tried: BotCandidate[] = [];
-  for (const entry of quarry.slice(0, ai.search.pathProbes)) {
-    const tile = getTileAt(state.map, entry.at.col, entry.at.row);
-    if (!tile) continue;
-    const label = `march on ${entry.what}`;
-    if (findPath(state, unit, tile) === null) {
+  // **No two pieces are sent to the same hex.** An army is ordered one piece at
+  // a time and a piece with no movement left keeps its order rather than walking
+  // it, so without this every soldier in a stack is handed the same destination
+  // and all but one of them holds a march that can never finish. See
+  // `marchClaims`.
+  const claimed = marchClaims(state, player.id, unit.id);
+  const unclaimed = (tile: Tile): boolean => !claimed.has(tileIndex(state.map, tile.col, tile.row));
+
+  if (plan.pushing) {
+    // A shooter closes to its own range; everything else to the wall. Asked of
+    // the row (`isSiegePiece`, `UnitDef.range`) and never of a type name.
+    const reach = isSiegePiece(def) ? Math.max(1, def.range ?? 1) : 1;
+    if (wrappedDistance(state.map, from, tileHex(walls)) <= reach) return null;
+    const goals = approachHexes(state, unit, plan.target, reach).filter(unclaimed);
+    for (const goal of goals.slice(0, Math.max(1, ai.search.pathProbes))) {
+      const distance = wrappedDistance(state.map, from, tileHex(goal));
+      const label = `push to (${goal.col},${goal.row})`;
+      if (findPath(state, unit, goal) === null) {
+        tried.push(refused(label, 'no route to it'));
+        continue;
+      }
+      // **The lowest score marches**, as in the two hunts: the key is hexes to
+      // the hex the push wants this piece on.
+      const terms: ValueTerm[] = [
+        { label: `${distance} hexes to the walls of ${plan.target.name}`, value: distance },
+        { label: `(${muster} — pushing)`, value: 0 },
+      ];
+      tried.push({ label, score: foldOf(terms), chosen: true, terms });
+      return {
+        at: { col: goal.col, row: goal.row },
+        summary:
+          `${muster} — pushing. Steps to (${goal.col},${goal.row}), ` +
+          `${wrappedDistance(state.map, tileHex(goal), tileHex(walls))} from the walls.`,
+        candidates: tried,
+      };
+    }
+    // **Nothing reachable at the walls**, so the piece falls back to the muster
+    // — which is the ruling's *"or the nearest reachable hex toward it"* read
+    // the one way that cannot oscillate: the muster is on the road to the town
+    // and it is the same hex for every piece of the army.
+  }
+
+  const radius = Math.max(0, ai.war.musterRadius);
+  const centre = getTileAt(state.map, plan.muster.col, plan.muster.row);
+  if (!centre) return null;
+  if (wrappedDistance(state.map, from, tileHex(centre)) <= radius) return null;
+  for (const goal of standingsNear(state, unit, plan.muster, radius, false)
+    .filter(unclaimed)
+    .slice(0, Math.max(1, ai.search.pathProbes))) {
+    const distance = wrappedDistance(state.map, from, tileHex(goal));
+    const label = `muster at (${goal.col},${goal.row})`;
+    if (findPath(state, unit, goal) === null) {
       tried.push(refused(label, 'no route to it'));
       continue;
     }
-    // **The lowest score marches**, as in the camp hunt: the key is hexes to the
-    // quarry, so the nearest enemy thing is the one walked at.
-    tried.push({
-      label,
-      score: entry.distance,
-      chosen: true,
-      terms: [
-        { label: `${entry.distance} hexes to the nearest rival piece or town`, value: entry.distance },
-        {
-          label: `(this seat's appetite for a fight is ${round1(ai.military.aggression)} — the tie-break is distance)`,
-          value: 0,
-        },
-      ],
-    });
+    const terms: ValueTerm[] = [
+      { label: `${distance} hexes to the muster at (${plan.muster.col},${plan.muster.row})`, value: distance },
+      { label: `(${muster} — gathering)`, value: 0 },
+    ];
+    tried.push({ label, score: foldOf(terms), chosen: true, terms });
     return {
-      at: entry.at,
+      at: { col: goal.col, row: goal.row },
       summary:
-        `Marches ${entry.distance} hexes on ${entry.what} — every town of this empire is held and this piece ` +
-        'is not the thing holding one.',
+        `${muster} — marching to the muster at (${plan.muster.col},${plan.muster.row}), ` +
+        `${distance} hexes off.`,
       candidates: tried,
     };
   }
@@ -5967,17 +6341,6 @@ function undefendedCity(state: GameState, player: Player, unit: Unit): UnitTarge
     };
   }
   return null;
-}
-
-/** How many of this empire's soldiers are standing in this town. */
-function garrisonAt(state: GameState, playerId: number, city: City): number {
-  let count = 0;
-  for (const unit of state.units) {
-    if (unit.ownerId !== playerId) continue;
-    if (unit.col !== city.col || unit.row !== city.row) continue;
-    if (isCombatant(unitDef(unit.type))) count += 1;
-  }
-  return count;
 }
 
 /**
@@ -6542,37 +6905,11 @@ function countCities(state: GameState, playerId: number): number {
 }
 
 /**
- * **A piece of the field army** — what the levy counts and what the mix is a mix
- * of, by the markers and never by a name.
- *
- * A scout has a combat strength (it can be attacked and it can defend a hill),
- * so `isCombatant` is true of it — and it is nevertheless *not* a soldier in the
- * only sense the levy means: it is a ranging piece, governed by its own count
- * (`countRangers`) against its own cap, appraised down its own branch of
- * `valueOfUnit`, and it is the piece an empire sends *away* from its towns. A
- * hull is excluded for the same reason from the other side: this bot has no
- * opinion about ships and never builds one, so counting them would be counting
- * an army it did not raise.
- *
- * One predicate rather than two so the two readings inside one fold cannot
- * disagree: the levy's *"this empire wants 7 soldiers and holds n"* and the
- * mix's *"n of m in this army are melee"* now count the same pieces. They did
- * not, and it was a measurable gap in the threat reading — a seat with a column
- * at its gate, three scouts on the map and one warrior in its town read itself
- * as 57% of the way to the levy it wanted, charged the next spearman three
- * quarters of its worth for an army it did not have, and started a worker
- * (2026-09-05, the fourteen-turn bench, seed 20260831).
+ * How many field soldiers this empire holds — `isFieldSoldier`'s count, and the
+ * predicate itself lives in `campaign.ts` because the declaration asks it too.
  */
-function isFieldSoldier(def: UnitDef): boolean {
-  return isCombatant(def) && !isExplorer(def) && def.category !== 'naval';
-}
-
 function countSoldiers(state: GameState, playerId: number): number {
-  let count = 0;
-  for (const unit of state.units) {
-    if (unit.ownerId === playerId && isFieldSoldier(unitDef(unit.type))) count += 1;
-  }
-  return count;
+  return fieldSoldiersOf(state, playerId).length;
 }
 
 /**

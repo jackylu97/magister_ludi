@@ -423,6 +423,52 @@ export interface AiConfig {
     /** A target town has to stand this near one of this seat's pieces. */
     reachRadius: number;
     /**
+     * **The force a declaration needs** (`docs/war-diplomacy.md` §13.1): combat
+     * pieces *beyond* the garrisons every town of this empire is owed, at least
+     * one of which shoots or lays siege.
+     *
+     * The ratio alone could not say the sentence this knob says. One warrior
+     * against five reads as a ratio of five, so a peaceful empire declared on an
+     * unarmed neighbour it had no army to reach — the user's own finding
+     * (2026-09-07: *"they're just being annoying. Not sending army to attack
+     * me"*). A strike force is what makes the bar a question about an
+     * **expedition** rather than about a scoreboard.
+     *
+     * It is read twice and means the same thing both times: it is the bar the
+     * declaration clears, and it is the number of pieces that must stand at the
+     * muster before the force pushes (§13.3). The war economy reads it a third
+     * time, as the army a seat at war wants over and above its garrisons — one
+     * figure rather than a `campaignArmy` of its own, deliberately, so that
+     * *what it takes to start a war*, *what it takes to press one* and *what the
+     * levy builds for one* cannot be tuned into disagreeing with each other.
+     */
+    strikeForce: number;
+    /**
+     * How many steps **short of the target town** the muster stands.
+     *
+     * Short of the walls rather than at them: a piece that walks straight at a
+     * town arrives alone and parks beside it, which is what the old
+     * nearest-thing march did. See `musterHex`.
+     */
+    musterDistance: number;
+    /** How near the muster a piece has to stand to count as gathered at it. */
+    musterRadius: number;
+    /**
+     * **The appetite of a force that is pushing** — the exchange a blow on the
+     * target town, or on a defender beside it, has to clear while the strike
+     * force is at the walls (§13.3).
+     *
+     * A seat's ordinary appetite (`military.aggression`, zero for every persona
+     * but one) asks a blow to deal more than it takes, which no piece hitting a
+     * town's walls has ever managed: a siege is a thing an army *loses* hit
+     * points to on purpose. So the push reads this instead, and it reads it only
+     * against the target and its neighbours — everywhere else on the map the
+     * seat's own temperament still decides. At 0.7 a blow has to deal more than
+     * three tenths of what it takes, which is a stack that keeps hitting a wall
+     * and withdraws when it is being slaughtered.
+     */
+    siegeExchange: number;
+    /**
      * What "a hostile is about" means to a settler, and how near a soldier has
      * to be to count as its escort. One radius for both halves deliberately:
      * they are the same question asked of two different pieces.

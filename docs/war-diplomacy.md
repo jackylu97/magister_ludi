@@ -72,15 +72,6 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - ▢ Anything else you want IN v1: open borders, trade cities/resources/gold/gpt, these can all be used in peace deals or normal trades
 - trade deals: ai players should accept trades for 1:1 luxuries for copies that it has duplicates of. Figure out a good baseline for gpt/gold for luxuries. Other types of trades can come later.
 - sidebar: Should resource access from other players happen through trade routes? civ 7 has an interesting take on this but i don't want to build their whole resource slotting system.
-- **A luxury is lent by the copy** (ruled 2026-09-08, flags (tt); batch T1,
-  schema 91). One deal row lends **one copy** of a kind — a row names a kind
-  once, and a second copy is a second bargain. The giver keeps the kind while its
-  **net** copies stay above zero: opened tiles, less the copies promised away,
-  plus the copies received (`resourceCopies`, `cities.ts`). The **tile goes on
-  paying** — only the signature crosses the table, never the ground — and a
-  city-local signature follows the empire's net holding, so an empire that lent
-  its only amber keeps neither the contentment nor the local line. Lending the
-  last copy is legal; `dealSideError` refuses a lend with no net copy left.
 
 ## 8. Bots at war
 
@@ -161,8 +152,7 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
   diplomacy screen (hud dock) + toasts + red glow for enemies · white-peace
   proposal command (bots answer in P3) · schema 56.
 - **P2 (deals)**: open borders (both need Writing) · luxury / gold / gpt
-  trades · peace terms incl. cities · the lending readings at empire scale
-  (`resourceCopies`; the clause left `openedResource` in T1, see §7) ·
+  trades · peace terms incl. cities · lent-access clause in openedResource ·
   the deal state (20-turn expiry).
 - **P3 (bots at war, after brain v1 merges)**: declaration policy + warscore
   peace + trade acceptance (1:1 duplicate luxuries, gold baselines) · puppet
@@ -368,6 +358,48 @@ send units to attack me."*
    every term; `docs/bot-priorities.md` gains the section; `test/sim/aiBot`
    core cases for each clause and a slow two-seat war where the attacker
    reaches and reduces a town, measured.
+
+### As built (W1, 2026-09-08)
+
+All six ruled, and two faults underneath them that the diagnosis had not found.
+The declaration's two new clauses live in `explainDeclaration`
+(`src/ai/diplomacy.ts`, split out of `declareDecision` so a target the force or
+the road removed can be read when nothing is declared); the operational readings
+— the force, the road, the target, the muster, who stands at it — are a fourth
+leaf, `src/ai/campaign.ts`, because the declaration and the march both ask them
+and `diplomacy.ts` may not import `bot.ts`. `campaignMarch`, `civilianDanger` /
+`civilianFlight` and the war economy's term are `bot.ts`'. Knobs: `strikeForce`
+4, `musterDistance` 3, `musterRadius` 2, `siegeExchange` 0.7. **No
+`campaignArmy`**: the strike force is the figure the levy wants over its
+garrisons, so what it takes to start a war, to press one and to build for one
+cannot be tuned into disagreeing.
+
+The two faults, both of them why the old bot "parked units near your lands":
+**`warMarch` could not path at a town at all** — `canTransit` refuses a foreign
+city's hex outright, so `findPath` to one answers `null` on every board, and the
+arm meant to push at walls could only walk at a rival's column (every reading now
+asks about the ring); and **a piece that stood down never asked for orders
+again** — nothing but a march, a blow or a capture breaks a trench, and this bot
+only hears about a piece through `firstBlocker`. The campaign therefore wakes its
+own army (`wakeTheCampaign`), taking only a march or a blow, which is what keeps
+it monotone. A third, found by measurement: an army ordered one piece at a time
+in one turn handed several soldiers the same destination, and all but one were
+left holding a march the stacking cap will never let them finish, invisible for
+ever — so a hex somebody is already walking to is now claimed (`marchClaims`) and
+a doomed march is a reason to be woken (`marchIsStalled`).
+
+Measured (`aiBot.slow.test.ts`, the new siege arena — a balanced seat, eleven
+soldiers put in the field, a war opened, forty turns): arrived at the walls on
+**t5**, up to **nine** pieces within two hexes of them, the target's walls from
+**100 down to 21** by t6. Before the batch the same board produced no arrival and
+no damage. Known gaps are listed in `docs/bot-priorities.md`'s W1 section; the
+two that matter are that **nothing sequences a capture** (the push takes walls
+down and stops) and that a declaration is now a **conjunction** — measured on the
+war arena's own board, the warmonger holds a strike force on 70 of 170 turns and
+still never declares, because the ratio, the reach, the force and the road rarely
+hold in the same turn. That arena's claim was reworked into the rule (no
+declaration on a turn when the force is short) and the whole loop — declare,
+fight, sue, sign, truce — moved to a flat bench where it runs in a second.
 
 ## Revisions
 

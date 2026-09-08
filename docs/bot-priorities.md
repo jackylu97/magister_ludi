@@ -2657,3 +2657,145 @@ Neither has been tuned against a game: both are authored figures, like
   `answerAudience`). A sitting is a *turn*, and an audience is not one — but a
   player pressing the two counter buttons repeatedly prices the empire's books
   once per press.
+
+## The campaign (W1, 2026-09-08) — a war declared with a force, and fought
+
+The user, looking at a game: *"right now the two of the ai have declared war on
+me, and they're just being annoying. Not sending army to attack me but parking
+units near my lands, a worker in my lands standing on a tile i want to improve."*
+The rulings are `docs/war-diplomacy.md` §13; this is what was built and what it
+cost.
+
+### The diagnosis, and the two things underneath it nobody had noticed
+
+Three of the four faults were where §13 said they were. The declaration bar was
+an army **ratio** alone, so one warrior against five read as a ratio of five and a
+peaceful empire declared on a neighbour it had no army to reach. The march was
+gated on `military.aggression > 0`, which only the warmonger has, so the
+declaration policy and the prosecution policy disagreed with each other. A worker
+had no war arm at all.
+
+The two that were not in the diagnosis are the reason the batch is bigger than
+its rulings:
+
+- **`warMarch` could never march on a town.** `canTransit` refuses a hex holding
+  somebody else's city outright — a town is taken by capture, never by a step —
+  so `findPath(state, unit, townTile)` answers `null` for *every* enemy town on
+  every board. The arm that was supposed to push at walls could only ever walk at
+  a rival's column. Everything that asks "can we get there" now asks about the
+  **ring** (`approachHexes`).
+- **A soldier that stood down never asked for orders again.** `breakFortify`
+  has three callers — a position change, a blow, a capture — and
+  `unitAwaitsOrders` answers *false* for anything carrying `fortifiedTurns`; this
+  bot only ever hears about a piece through `firstBlocker`. So every `standDown`
+  in `bot.ts` was permanent. *Parking units near my lands* was, in large part,
+  literally that: stacks that dug in once and were never asked a second question.
+
+### What was built
+
+- **The declaration needs a force and a road** (`explainDeclaration`,
+  `src/ai/diplomacy.ts`, split out of `declareDecision` so a refused target's
+  reason is readable when nothing is declared). Two clauses after the ratio and
+  the reach: `war.strikeForce` combat pieces **beyond** the garrisons every town
+  is owed, one of which shoots or lays siege; and one of those pieces with a
+  `findPath` to a hex beside the target town. The road is probed **best-first and
+  last**, because this arm is re-asked on every command a seat sends and it is the
+  only expensive question in it. The persona bars are untouched.
+- **The war is the permission** (`soldierCommand`). The `aggression > 0` gate on
+  the march is gone; a seat at war campaigns unless the warscore reads under
+  `war.sueFloor` for that enemy, in which case its soldiers hold their towns
+  through the arms that were already there and `peaceDecision` sues. The appetite
+  now loosens `favourableBlow`'s exchange and **nothing else**, and the docblock
+  says so.
+- **One target and a muster per enemy** (`src/ai/campaign.ts`, a fourth leaf —
+  the readings are wanted by both the declaration and the march, and
+  `diplomacy.ts` may not import `bot.ts`). `campaignTarget` is the enemy town
+  nearest *this empire's towns* rather than nearest a piece, which is what lets
+  eleven soldiers agree on where they are going without anybody remembering
+  anything. `musterHex` is the last hex on the road from the nearest own town that
+  is still `war.musterDistance` from the walls — written as a distance rather than
+  as an index from the end, so a road allowed to finish two hexes out and one
+  allowed to finish beside the walls name the same muster. `campaignMarch`
+  replaces `warMarch`: gather until `war.strikeForce` stand at the muster, then
+  push — melee to the ring, a shooter to its own range — and every candidate
+  carries the campaign's sentence.
+- **The siege exchange** (`favourableBlow`'s new `siege` argument). While the
+  force is pushing, a blow on the target town or on a defender beside it clears
+  `war.siegeExchange` instead of the seat's temperament. Scoped to those hexes,
+  so the same swordsman still wants a favourable exchange in the field.
+- **Civilians at war flee** (`civilianDanger` + `civilianFlight`). One reading,
+  two callers: the worker asks it before its improvement plan is even built, and
+  the settler's own danger clause is now the same function. Standing in the fields
+  of an empire this seat is at war with is unconditional; the hostile-nearby
+  clause keeps the settler's escort reading exactly as it was.
+- **The war economy** (`sightedArmyWanted`). A seat at war wants
+  `war.strikeForce` soldiers over the garrisons the levy already asks for. One
+  figure for all three readings rather than a `campaignArmy` of its own,
+  deliberately: what it takes to start a war, what it takes to press one and what
+  the levy builds for one must not be tunable into disagreeing.
+
+### The two repairs the campaign could not live without
+
+- **The campaign wakes its own army** (`wakeTheCampaign`, in `housekeeping`
+  beside the sleeping settler's arm). A seat at war walks its own dug-in pieces
+  and asks each whether the board has moved. **The only answer it will take is a
+  march or a blow**, which is what makes the arm monotone rather than a loop:
+  both break the trench by construction, so it cannot answer twice about the same
+  piece. Without it, a piece that arrived at the muster dug in and the force never
+  reached the strike force it was waiting for.
+- **No two pieces are sent to the same hex** (`marchClaims`, `marchIsStalled`).
+  The stacking cap is one, and a `moveUnit` handed to a piece with no movement
+  left is accepted and *stored*; so an army ordered one piece at a time in one
+  turn hands three soldiers the same destination, and two of them are left holding
+  a march that can never finish — invisible for ever, because a stored path also
+  reads as *busy*. Measured on the flat bench (seed 20260907, t10): eleven
+  soldiers, ten of them holding a stored path to the single hex (13,8), frozen
+  there while the target's walls stood at full height. A destination somebody is
+  already walking to is now claimed (a pure reading of `Unit.path`), and the wake
+  arm calls back a piece whose march the rules will never let it finish.
+
+### The knobs
+
+`war.strikeForce` (4) · `war.musterDistance` (3) · `war.musterRadius` (2) ·
+`war.siegeExchange` (0.7), all in `data/ai.json` under `war` with docblocks in
+`aiConfig.ts`. They appear on `arena.html` with no page edit, like every other
+leaf of the sheet.
+
+### Measured
+
+The slow tier's new **siege arena** — a balanced seat, a flat board, two placed
+towns, eleven soldiers put in the field and a war opened, driven forty turns:
+
+```
+[siege] Aldermarch · arrived t5 · closest 1 hexes · up to 9 pieces within 2 of the walls
+[siege] walls: 100 at the start, low of 21 at t6
+```
+
+Before this batch the same board produced no arrival and no damage at all: a
+balanced seat's soldiers never left home, and a warmonger's could not path at a
+town. The assertion is damage rather than capture — see the test's docblock for
+why — and the bench is arranged rather than played, so it makes no replay claim.
+
+### Known gaps, written down rather than fixed
+
+- **The town stops falling at a fifth of its walls** on the siege bench. Two
+  crudities meet there: the ranged deferral (2026-09-04) holds a melee blow for a
+  bowman that then shoots something else, and `cityBeatenDown` stops a beaten town
+  healing but nothing makes the stack finish it. A capture needs walls, garrison
+  and a melee piece with movement on one turn, and no arm sequences that.
+- **A declaration is now a conjunction, and on a generated duel map the four
+  clauses rarely coincide.** Measured on the war arena's own board (seed
+  20260903, 170 turns): the warmonger holds a strike force on **70 of 170
+  turns** and still never declares, because the ratio with its appetite, a town
+  of theirs inside the reach, the force and a road have to hold in the *same*
+  turn. That arena's declaration claim was therefore reworked into the rule it
+  now tests — no declaration on a turn when the force is short — and the
+  positive half of the loop (declare, fight, sue, sign, truce) moved to a flat
+  bench where all four do coincide, which it runs in a second rather than in
+  four minutes. Whether `strikeForce` 4 is the right number for a duel board is
+  a tuning question this batch did not spend a run on.
+- **The muster is one hex for a whole army.** Eleven pieces converging on a
+  radius-2 disc is a traffic problem the claim reading only softens; a real
+  operational plan would give the force a frontage rather than a point.
+- **Nothing sequences a capture.** The push takes walls down; taking the town is
+  still whatever `favourableBlow` happens to do next.

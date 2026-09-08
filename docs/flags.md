@@ -394,7 +394,12 @@ directly to confirm rulings — user marginalia are rulings.
   send units to attack me"): diagnosis and rulings in §13 — a strike force
   and a road before a declaration, the march ungated from aggression, one
   target and a muster per enemy, the siege exchange, civilians fleeing,
-  the war economy; batch **W1** (knobs only, no schema). Both fly after
+  the war economy; batch **W1** (knobs only, no schema) — **built**
+  (`src/ai/campaign.ts`; the strike force, the muster, the siege
+  exchange, civilians fleeing, the campaign waking its own trenches;
+  measured: on the duel arena the warmonger holds a force on 70 of 170
+  turns and never declares, so `strikeForce` 4 is the playtest's first
+  dial). Both fly after
   E4a lands; (rec) defaults stand unless marked. (tt) **A luxury is lent
   by the copy** (the user, 2026-09-08: "i have two copies of amber. I
   traded one amber to the bot for marble. I should be getting the +4
