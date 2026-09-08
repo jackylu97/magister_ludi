@@ -96,7 +96,7 @@ world-scale counts live here.
 | Pilgrims' Coin | road | +4 gold for every city in the world that follows. |
 | World Church | none | +15% culture for every empire in the world that follows you. |
 | The Long Prayer | sun | +1 culture for every 4 citizens in the world who follow you. |
-| The Crusade | war | +5 combat strength inside foreign cities that follow your religion. |
+| The Crusade | war | +2 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field. |
 
 ## Rites
 
