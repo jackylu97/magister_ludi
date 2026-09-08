@@ -254,7 +254,16 @@ export function beliefPool(state: GameState, player: Player): BeliefId[] {
   // **The pantheon's bag alone.** `isBeliefId` spans all three pools now, so a
   // filter that asked it would have offered a Consecrate the enhancer pool;
   // `BELIEF_IDS` is the pantheon's own list, which is what a god is drawn from.
-  return BELIEF_IDS.filter((id) => !held.has(id) && isPantheonBeliefId(id));
+  //
+  // **And a withdrawn god is out of it**, `poolBeliefs`' clause said again at
+  // the third pool (batch B2 — The Living Rock is the first pantheon row the
+  // design has taken out). `retired` is the whole system's discipline: the row
+  // stays so a save that named it loads and still pays, and it simply stops
+  // being dealt. A filter here rather than in `BELIEF_IDS` for that reason —
+  // the list is what a *save* may name, this is what a *draw* may offer.
+  return BELIEF_IDS.filter(
+    (id) => !held.has(id) && isPantheonBeliefId(id) && beliefDef(id).retired !== true,
+  );
 }
 
 // --- buying an agent --------------------------------------------------------

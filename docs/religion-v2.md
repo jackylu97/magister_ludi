@@ -189,5 +189,16 @@ Pressure sources (`explainPressure`, rule-5 list; numbers in
 
 ## Deferred
 
-Holy Order (a faith-bought unit line) · Theocratic Mandate (diplomacy) ·
-Sanctuary (never written into the table). See `docs/flags.md`.
+Theocratic Mandate (diplomacy) · Sanctuary (never written into the table).
+See `docs/flags.md`.
+
+**Holy Order is built** (batch B2, 2026-09-08). It opens the **Knights Templar**
+— a roster row no technology names (`UnitDef.unlockedByCard`, handed over by the
+belief's `unlocksUnit`), bought out of the faith bank and never queued
+(`UnitPurchaseSpec.exclusive`). Its strength and its price are both the best
+mounted row the empire's tree has taught it (`UnitDef.mirrors`, read once by
+`mirrorRowFor`): the difference from its own floor is stamped on the piece at
+`realiseItem`, and the price is that row's production cost taken at the mirror's
+`costPercent`, in faith, as a line of `explainPurchaseCost`'s list. The belief's
+second clause is an ordinary `combatLine` narrowed to the row, paid inside any
+city that follows the religion.

@@ -33,7 +33,7 @@
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { CITY_YIELD_KEYS } from './resourceData';
 import type { City, GameState } from './state';
-import type { TileLine } from './statecraft';
+import type { CardBuildingHappinessLine, TileLine } from './statecraft';
 import type { TechId } from './techData';
 
 /** One line of what a building pays a meter. `cardHappiness`' shape. */
@@ -57,16 +57,41 @@ export interface BuildingCityStatLine {
  * while a happiness building is a thing standing in a named place a player may
  * be about to lose. "Uruk · Funeral Games +3" is the line that survives being
  * read after the city changes hands.
+ *
+ * **And what the law hung on that building** (batch B2): Feast Days' *"Temples
+ * supply +1 happiness"* is a fact about the temple rather than about the town,
+ * so it is added to the row's own figure here and the line still names one
+ * thing standing in one place. `granted` is handed in resolved
+ * (`cardBuildingHappiness`, `statecraft.ts`) rather than read, which is what
+ * keeps this file a leaf with no evaluator behind it — the same bargain
+ * `explainCityRenown` strikes with its shares. A caller passing none gets the
+ * rows' own figures, unchanged, which is what every caller but the happiness
+ * ledger wants.
+ *
+ * A card's line may light a row that pays nothing itself — a temple's own
+ * happiness is zero — so the zero test is asked of the **sum**, after the grants
+ * are folded, or the belief would have paid nothing at all.
  */
-export function buildingHappiness(state: GameState, playerId: number): BuildingMeterLine[] {
+export function buildingHappiness(
+  state: GameState,
+  playerId: number,
+  granted: readonly CardBuildingHappinessLine[] = [],
+): BuildingMeterLine[] {
   const list: BuildingMeterLine[] = [];
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     for (const id of BUILDING_IDS) {
       if (!city.buildings.includes(id)) continue;
-      const amount = buildingDef(id).happiness ?? 0;
+      let amount = buildingDef(id).happiness ?? 0;
+      const cards: string[] = [];
+      for (const line of granted) {
+        if (line.cityId !== city.id || line.building !== id) continue;
+        amount += line.amount;
+        if (!cards.includes(line.source)) cards.push(line.source);
+      }
       if (amount === 0) continue;
-      list.push({ source: `${city.name} · ${buildingDef(id).name}`, amount });
+      const named = [`${city.name} · ${buildingDef(id).name}`, ...cards].join(' · ');
+      list.push({ source: named, amount });
     }
   }
   return list;

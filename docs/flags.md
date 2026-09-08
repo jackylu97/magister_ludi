@@ -491,7 +491,8 @@ directly to confirm rulings — user marginalia are rulings.
   cities that follow the religion. Also: the `cityHappinessDemand`
   meter rule and its readers go (the user: "Don't keep the useless
   rule"); the Muses' Call's great person is once, pinned (B1). Batch
-  **B2** (schema 95, after E4b's 94). (zz) **The Governments marks**
+  **B2 BUILT** (schema 96, after E4b's 95; the Templar's mirror skips a
+  row that awaits a technology — the cataphract). (zz) **The Governments marks**
   (the user, 2026-09-08, in `docs/orders-and-doctrines.md`'s Governments
   table — missed by B1 because the marks rode into W1's commit before the
   pass was diffed; found on landing B1): **War Chief** "+3 authority, +2

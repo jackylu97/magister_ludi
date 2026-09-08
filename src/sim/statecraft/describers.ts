@@ -652,9 +652,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       return;
     case 'happiness':
       out.push({
+        // **A line hung on a building says so** (batch B2): the ledger prints it
+        // as the building's, so the card must too, or a player reading "+1
+        // happiness in every city with a Temple" would go looking for a line
+        // that is filed under the temple. See `CardHappinessEffect.building`.
         text:
-          `${signed(effect.amount)} happiness` +
-          (effect.per === 'city' ? ` in ${cityScopeWords(effect.scope)}` : ''),
+          effect.building !== undefined
+            ? `${buildingName(effect.building)}s supply ${signed(effect.amount)} happiness`
+            : `${signed(effect.amount)} happiness` +
+              (effect.per === 'city' ? ` in ${cityScopeWords(effect.scope)}` : ''),
       });
       return;
     case 'authority':
@@ -1126,6 +1132,22 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({ text: `${plain}${early}` });
       return;
     }
+    case 'unlocksUnit': {
+      // `unlocksBuilding`'s clause one table over, and a rule from the day it
+      // was written: `cardUnlocksUnit` is read by `isUnlocked`, so Holy Order
+      // really does hand the Templars over and this face is not a promise.
+      //
+      // It names the **bank**, because the whole of what the row is is a piece
+      // no queue will take — a clause that said only "unlocks the Knights
+      // Templar" would leave a player looking for them in a build list.
+      const def = unitDef(effect.unit);
+      const marked = ref('unit', effect.unit, def.name);
+      const bank = def.purchase?.currency;
+      out.push({
+        text: `unlocks the ${marked}${bank === undefined ? '' : `, called with ${bank}`}`,
+      });
+      return;
+    }
     case 'pantheonSlots': {
       const slots = effect.amount;
       out.push({ text: `${signed(slots)} pantheon ${slots === 1 || slots === -1 ? 'slot' : 'slots'}` });
@@ -1268,7 +1290,14 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       return;
     case 'cityRenownPercent':
       out.push({
-        text: `${cityScopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
+        // Two scales, one clause each (batch B2): the empire-wide reading is a
+        // share of everything the realm earns every turn and has no town to name,
+        // so a sentence that named one would be the town-scoped share's words
+        // said about the wrong subject. See `CardCityRenownPercentEffect.where`.
+        text:
+          effect.where === 'empire'
+            ? `${signed(effect.percent)}% renown`
+            : `${cityScopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
       });
       return;
     case 'routeYield': {
@@ -1970,6 +1999,20 @@ function tilePhrase(on: TileCondition, into: TilePhrase): void {
         `with ${indefinite(improvementDef(on.improvement).name)} ${ref('improvement', on.improvement, improvementDef(on.improvement).name)}`,
       );
       return;
+    case 'anyImprovement': {
+      // One qualifier made of the whole list, the `improvement` arm's words with
+      // the "or" the condition means — and the article on the first name only,
+      // because "with a Mine or a Quarry" reads as two things and the hex has
+      // one. An empty list names nothing and says nothing, which is the honest
+      // reading of a condition nothing can satisfy.
+      if (on.improvements.length === 0) return;
+      const first = improvementDef(on.improvements[0]!).name;
+      const names = on.improvements
+        .map((id) => ref('improvement', id, improvementDef(id).name))
+        .join(' or ');
+      into.qualifiers.push(`with ${indefinite(first)} ${names}`);
+      return;
+    }
     case 'greatWork':
       into.qualifiers.push("carrying a great person's work");
       return;
@@ -2486,7 +2529,6 @@ const METER_RULE_WORDS: Record<MeterRuleId, string> = {
   capturedCityCost: 'the authority a captured city costs',
   coastalCityCost: 'the authority a coastal city costs',
   hillCityCost: 'the authority a city on hills costs',
-  cityHappinessDemand: 'the happiness every city demands',
   // Said as *who is waived* rather than as a figure on the demand, because that
   // is what the rule does: the first citizens of every town are simply not
   // counted, and "the happiness demanded falls by 3" would have read as a flat

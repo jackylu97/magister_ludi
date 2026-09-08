@@ -83,6 +83,7 @@ import {
   cardAmplifier,
   cardAmplifierFlat,
   cardAuthority,
+  cardBuildingHappiness,
   cardHappiness,
   cardMeterRule,
   cardRulePercent,
@@ -271,7 +272,10 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // to know what leaves with it — and folded through the one evaluator that
   // reads a building's non-yield fields (`buildingEffects.ts`), so nothing in
   // this meter has ever heard of a funeral games.
-  for (const line of buildingHappiness(state, playerId)) {
+  // The card lines standing **on** those buildings ride in with them (batch B2,
+  // Feast Days' temple half): resolved by the one evaluator, folded onto the row
+  // they name, and skipped by `cardHappiness` above so nothing is counted twice.
+  for (const line of buildingHappiness(state, playerId, cardBuildingHappiness(state, playerId))) {
     list.push({ source: line.source, part: 'gain', value: line.amount });
   }
 
@@ -279,11 +283,6 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // multiplies *both* demand lines, because "the happiness cost for population"
   // is the whole of what a town asks for and not only its linear half.
   const demand = ruleFactor(state, playerId, 'happinessDemand');
-  // Manifest of the Steppe's price: a flat surcharge per city, applied *outside*
-  // the demand factor because it is not a share of what a citizen asks for — it
-  // is the cost of governing one more town at all, and a Toleration Edict that
-  // discounted it would be discounting the wrong thing.
-  const perCity = cardMeterRule(state, playerId, 'cityHappinessDemand', 0);
   // The Scattered Hearths' waiver: the first citizens of every town are simply
   // not counted. Applied to *who is charged* rather than to what each one asks
   // for — a discount on the rate is Toleration Edicts and is already `demand`
@@ -327,9 +326,6 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     const relief = (crowding * buildingCrowdingRelief(city)) / 100;
     if (relief > 0) {
       list.push({ source: `${city.name} · the justices sit`, part: 'gain', value: relief });
-    }
-    if (perCity > 0) {
-      list.push({ source: `${city.name} · cost of governing`, part: 'cost', value: -perCity });
     }
     /**
      * **A puppet's citizens ask for less** (`rules.war.puppetHappinessPercent`,
@@ -716,10 +712,9 @@ export function explainFoundingCost(
   list.push({ meter: 'authority', ...prospectAuthorityCost(state, playerId, site) });
 
   // The happiness half, in `explainHappiness`'s own order: what the citizen
-  // asks for, then the crowding that size would carry, then the flat price of
-  // governing one more town at all — the last two through the same two readers,
-  // so a card that discounts a citizen and a card that surcharges a town land
-  // here the way they land on the meter.
+  // asks for, then the crowding that size would carry — both through the same
+  // readers the meter uses, so a card that discounts a citizen lands here the
+  // way it lands on the meter.
   const name = nextCityName(state, playerId);
   const demand = ruleFactor(state, playerId, 'happinessDemand');
   list.push({
@@ -732,16 +727,6 @@ export function explainFoundingCost(
   if (crowding > 0) {
     list.push({ meter: 'happiness', source: `${name} crowding`, part: 'cost', value: -crowding });
   }
-  const perCity = cardMeterRule(state, playerId, 'cityHappinessDemand', 0);
-  if (perCity > 0) {
-    list.push({
-      meter: 'happiness',
-      source: `${name} · cost of governing`,
-      part: 'cost',
-      value: -perCity,
-    });
-  }
-
   return list;
 }
 

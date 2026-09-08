@@ -90,6 +90,11 @@ export type UnitTypeId =
   // The Holy Office's agent (Entry LVIII): the faith rework's third religious
   // piece, bought out of the faith bank and spent on one Purge.
   | 'inquisitor'
+  // Holy Order's fighting order (batch B2): the one row on the roster no
+  // technology opens and no queue takes — a belief hands it over
+  // (`unlockedByCard`) and the faith bank buys it, priced and armed off
+  // whatever horse the empire can raise (`mirrors`).
+  | 'knightsTemplar'
   | 'greatPerson';
 
 /**
@@ -200,8 +205,16 @@ export type ModelClass =
  */
 export interface UnitPurchaseSpec {
   currency: 'faith' | 'gold';
-  /** The base price, before escalation. `UnitDef.cost`'s twin in a bank. */
-  cost: number;
+  /**
+   * The base price, before escalation. `UnitDef.cost`'s twin in a bank.
+   *
+   * **Absent for a row that mirrors another** (`UnitDef.mirrors`): the Templars
+   * are priced as a share of whatever horse the empire can raise today, and a
+   * figure written here would be a number nobody pays sitting where a reader
+   * would take it for the price. `explainPurchaseCost` is the one place either
+   * answer is composed, and it asks the mirror first.
+   */
+  cost?: number;
   /**
    * What the price climbs by for every one of these this empire has already
    * bought, or absent for a flat price. `escalation`'s twin, and read against
@@ -228,6 +241,50 @@ export interface UnitPurchaseSpec {
    * a type's name. Absent falls back to "Buy a ⟨name⟩".
    */
   verb?: string;
+}
+
+/**
+ * **A row with no age of its own**: what it is worth and what it costs are both
+ * taken from the best row of a named line the empire can raise, at the moment
+ * the piece is called (batch B2 — the user's mark of 2026-09-08: *"takes the
+ * strength of your most powerful available cavalry unit. costs 0.8x the
+ * production cost in faith"*).
+ *
+ * The Knights Templar's whole shape, and the reason it is a marker rather than
+ * four numbers: a faith-bought order that a religion opens has to stay worth
+ * calling from the age it arrives in to the end of the game, and a row with a
+ * printed strength would have been a knight in Æra II and a curiosity in Æra IV.
+ * So the row carries a floor and the ladder is read off the roster, exactly as
+ * `bestMeleeFor` reads it for the Statue of Zeus — which means retuning the
+ * horse retunes the order and no data row is edited.
+ *
+ * Two readers, one answer between them (`bestOfClassFor`, `cities.ts`):
+ *
+ *   · **strength** — `realiseItem` stamps the difference between that row's
+ *     figure and this row's own onto the piece (`Unit.stamp.strength`), so it is
+ *     an ordinary labelled line in `planCombat`'s fold and the piece keeps what
+ *     it was worth on the day it was raised. Nothing rewrites it: a knight
+ *     researched next year does not re-arm the order already in the field, which
+ *     is `UnitStamp`'s rule for the tenth time;
+ *   · **price** — `explainPurchaseCost` charges `costPercent` of that row's
+ *     **production** cost, in this row's own bank, as an ordered line of the
+ *     list the price is the fold of. Never a figure on the row; see
+ *     `UnitPurchaseSpec.cost`.
+ *
+ * A seat that can raise nothing of the class has no mirror: the piece has no
+ * price, and the bank refuses to sell one. That is the honest answer rather than
+ * a fallback — an order of knights with no knights to measure against is not a
+ * cheap order, it is not an order at all.
+ */
+export interface UnitMirrorSpec {
+  /**
+   * The line it shadows, by silhouette. `bestMeleeFor`'s reading of
+   * `ModelClass`, which is the roster's own word for a line that closes — the
+   * second of the two deliberate exceptions to "the model class is art".
+   */
+  modelClass: ModelClass;
+  /** Its price, as a share of that row's production cost, in whole percent. */
+  costPercent: number;
 }
 
 /**
@@ -487,6 +544,26 @@ export interface UnitDef {
   trades?: boolean;
   /** What one costs to buy outright, or absent. See `UnitPurchaseSpec`. */
   purchase?: UnitPurchaseSpec;
+  /**
+   * This row's strength and price are another row's. See `UnitMirrorSpec`.
+   *
+   * Presence is the marker, `charges`' and `foundsCity`' convention: nothing in
+   * `src/sim/` asks whether a type is `"knightsTemplar"`.
+   */
+  mirrors?: UnitMirrorSpec;
+  /**
+   * True when **no technology opens this row and a card does** — the Knights
+   * Templar, handed over by Holy Order (`CardUnlocksUnitEffect`).
+   *
+   * `BuildingDef.unlockedByCard`'s field one table over, carrying its sentence
+   * exactly: a row no node names is otherwise available from turn one, which is
+   * the right default for content and precisely wrong for content a belief is
+   * meant to hand over. Read in `isUnlocked` (`tech.ts`), the single source of
+   * truth for availability, so the build list, `buildError` and the bank all ask
+   * one question — and in `purchaseError`, which is the only door this
+   * particular row has.
+   */
+  unlockedByCard?: boolean;
   /**
    * True when every passable hex costs this unit exactly `minStepCost` to
    * enter, whatever grows on it or however steep it is — or the field is

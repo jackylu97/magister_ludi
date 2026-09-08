@@ -34,8 +34,8 @@ redrafted. The pantheon IS the religion’s identity.
 |---|---|---|
 | Goddess of the Harvest | hearth | +1 food on every hex carrying a bonus resource that pays food. |
 | Keeper of the Hearth | hearth | Granaries supply +1 faith. +1 happiness in the capital. |
-| Star Readers | sky | +3 science in every city beside a mountain. |
-| Keeper of the Calendar | sky | Every 20 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached. |
+| Star Readers | sky | +4 science in every city beside a mountain. |
+| Keeper of the Calendar | sky | Every 10 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached. |
 | The Standing Stones | stone | Monuments supply +1 culture and +1 faith. |
 | Ancestor Worship | stone | +1 culture in every city of 4 or more population. +5% culture in every city of 10 or more. |
 | Lady of the Hunt | wild | +1 food and +1 gold on every hex with a Camp improvement. Clearing a barbarian camp pays +10 faith. |
@@ -43,14 +43,15 @@ redrafted. The pantheon IS the religion’s identity.
 | River Mother | water | +2 food in every city on fresh water. Those cities' shrines supply +1 happiness. |
 | Lord of the Sea | water | +1 production and +1 gold on every hex with a Fishing Boat. |
 | God of the Forge | war | Barracks supply +1 production. All your units gain +1 combat strength. |
-| Rites of Blood | war | Killing a unit pays +15 faith, once for each age you have reached. |
+| Rites of Blood | war | Killing a unit pays +25 faith, once for each age you have reached. |
 | Oracle of the Crossroads | road | +3 faith for each ruin you claim. Scouts see one hex further. |
 | Sacred Fire | none | +1 faith in every city. |
 | Desert Fathers | sun | +1 faith on every desert hex. |
 | Winter Mother | frost | +1 food and +1 faith on every tundra hex. |
-| Lord of the Hoard | stone | +1 culture and +1 faith on every hex with a Mine carrying a luxury resource. |
-| The Vigil | none | A city keeping a rite gains +2 science and +2 culture while it lasts. |
-| The Living Rock | stone | +1 culture on every hex with a Mine carrying a resource. |
+| The Stone Hoard | stone | +1 culture and +1 faith on every hex with a Mine or Quarry carrying a resource. |
+| The Vigil | none | A city keeping a rite gains +10% science and +10% culture while it lasts. |
+| Vineyard Rites | hearth | +1 food and +1 culture on every hex with a Plantation. |
+| Cult of Heroes | none | +15% renown. |
 
 ## Follower beliefs
 
@@ -60,13 +61,13 @@ empire, or that counts the world, belongs in the enhancer pool instead.
 
 | Belief | Axis | Effect |
 |---|---|---|
-| Cathedrals of the Sky | sky | +2 science and +2 culture for every city that follows and has a Temple. |
+| Cathedrals of the Sky | sky | Temples supply +2 science and +2 culture. |
 | Pilgrimage | road | +1 faith for every luxury held by a city that follows. |
-| Feast Days | hearth | +1 happiness for every city that follows, and +1 more for each with a Temple. |
+| Feast Days | hearth | +1 happiness for every city that follows, and Temples supply +1 happiness. |
 | Holy Water | water | +1 food and +1 faith for every city that follows and stands on fresh water. |
 | Lamps of the Shrine | sun | +2 science for every city that follows and has a Shrine. |
-| Choirs | none | +1 culture for every 3 citizens of a city that follows. |
-| Tithe Houses | none | +1 gold for every 4 citizens of a city that follows. |
+| Choirs | none | +1 culture for every 4 citizens of a city that follows. |
+| Tithe Houses | none | +1 gold for every 3 citizens of a city that follows. |
 | The Quiet Hours | frost | +1 faith and +1 culture for every city that follows. |
 | Warrior Monks | war | +5 combat strength for units defending a city that follows. |
 | Harvest Blessing | hearth | +1 food on every farm worked by a city that follows. |
@@ -84,16 +85,16 @@ world-scale counts live here.
 | Reliquaries | stone | +1 culture for every 3 faith you bank each turn. |
 | Inquisition | war | A Temple holds off a foreign faith twice as hard. |
 | The Long Road | road | Roads and caravans carry 2 more faith to a city. |
-| Itinerant Preachers | road | Cities that follow reach 2 hexes further. |
+| Itinerant Preachers | road | Cities that follow reach 5 hexes further. |
 | The Pulse of Bells | sky | A proclamation reaches 4 hexes further and presses 20 faith harder. |
-| Ecclesia | stone | Holy sites press 3 harder and pay +1 faith each. |
+| Ecclesia | stone | Holy sites press 3 harder and pay +3 faith each. |
 | Apostles | none | What foreign followers pay you is doubled. |
 | Sacred Cartography | water | A caravan carries your faith both ways along its route. |
-| Holy Order | war | A line of warrior monks may be called with faith. · † |
+| Holy Order | war | Knights Templar may be called with faith. They fight as well as your best horse, and better where the faith is kept. |
 | Theocratic Mandate | none | Rulers who share your faith owe you for it. · † |
-| Congregation | hearth | +1 happiness for every 5 cities in the world that follow, up to 3. |
-| Pilgrims' Coin | road | +1 faith for every city in the world that follows and has a Temple. |
-| World Church | none | +1 happiness for every empire in the world that follows you. |
+| Congregation | hearth | +1 happiness for every 3 cities in the world that follow, up to 5. |
+| Pilgrims' Coin | road | +4 gold for every city in the world that follows. |
+| World Church | none | +15% culture for every empire in the world that follows you. |
 | The Long Prayer | sun | +1 culture for every 4 citizens in the world who follow you. |
 | The Crusade | war | +5 combat strength inside foreign cities that follow your religion. |
 
@@ -126,6 +127,5 @@ chosen, and then a fact about that town for as long as it stands.
 
 ## Notes and deferred halves (from the data rows)
 
-- **Holy Order** — A card cannot yet add a unit to the roster. † a faith-bought fighting order
 - **Theocratic Mandate** — There is no diplomacy for a mandate to be made of. † a claim on empires that follow you
 - **Blessing of Arms** — The rite holds the walls and nothing else: a soldier standing inside them mends at the ordinary pace.

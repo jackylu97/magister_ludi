@@ -475,8 +475,36 @@ import {
  * A v92 log replays identically only in a game where none of those rows was ever
  * held. Where one was, a piece walks further, a levy is stamped, a caravan pays
  * more or a citizen turns — and every basket priced against it moves.
+ *
+ * v96: **the beliefs balance pass** (batch B2, `docs/beliefs.md` — the user's
+ * marks of 2026-09-08; v93 and v94 are the batches in flight beside it). The
+ * worksheet came back marked and the marks are rulings: Star Readers pays four,
+ * the almanac comes round every ten turns, an altar takes twenty-five, Lord of
+ * the Hoard is **The Stone Hoard** and pays a mine *or* a quarry on any seam at
+ * all, The Vigil pays two tenths instead of two flats, and The Living Rock is
+ * withdrawn. Two gods are new — Vineyard Rites on the plantations, Cult of
+ * Heroes on the whole renown trickle. Choirs and the Tithe Houses swapped their
+ * steps; the Preachers walk five hexes; Ecclesia's stones pay three; the
+ * Congregation counts by threes to five; Pilgrims' Coin pays coin for every
+ * following town in the world; the World Church pays a *share* of culture per
+ * following empire. Cathedrals of the Sky and Feast Days moved onto the
+ * **temple** rather than onto the town, so a share of a temple's worth has one
+ * figure to take.
+ *
+ * And **Holy Order is built**: the Knights Templar are a roster row no
+ * technology opens (`UnitDef.unlockedByCard`, `CardUnlocksUnitEffect`), bought
+ * out of the faith bank, armed and priced off whatever horse the age has taught
+ * this empire (`UnitDef.mirrors`). The `cityHappinessDemand` meter rule went
+ * with the pass (the user: *"Don't keep the useless rule"*) and the Manifest of
+ * the Steppe is the settlers' card alone.
+ *
+ * A v92 log does not replay. Every one of those figures is banked into a
+ * different pool on a different turn, a pantheon draw no longer deals The
+ * Living Rock and therefore deals a different god from the same seed, and the
+ * roster grew a row — which moves nothing that was raised and everything that
+ * is drawn against a list of them.
  */
-export const SCHEMA_VERSION = 95;
+export const SCHEMA_VERSION = 96;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

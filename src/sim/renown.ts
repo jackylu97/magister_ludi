@@ -72,7 +72,7 @@ import {
   type Player,
   realPlayers,
 } from './state';
-import { cardCityRenownShares, cardRenownLines } from './statecraft';
+import { cardCityRenownShares, cardEmpireRenownShares, cardRenownLines } from './statecraft';
 import { triumphDef } from './triumphData';
 import { awardCountTriumphs } from './triumphs';
 
@@ -154,6 +154,28 @@ export function explainRenown(state: GameState, playerId: number): RenownLine[] 
   // the feed record that weights the draw does not — see `resourceRenown`.
   for (const line of resourceRenown(state, playerId)) {
     lines.push({ source: line.source, family: null, amount: line.amount, perTurn: true });
+  }
+  // **And the share of the whole trickle** — Cult of Heroes' fifteen percent
+  // (batch B2). Last of the recurring half and taken over the fold of
+  // everything above it: the buildings, the guilds, the cards and the luxuries
+  // are what an empire earns every turn, and "+15% renown" is a share of that
+  // sentence rather than of any town's part of it. Each share is taken over the
+  // same base, never over one another, which is `explainCityRenown`'s rule one
+  // scale up — two shares must buy two shares rather than compounding.
+  //
+  // A Triumph's lump is deliberately outside it: that renown was banked the
+  // instant it was earned, and the lines below are on this list so the hover can
+  // show them, not so a percentage can be taken of them. The line names **no
+  // family**, `resourceRenown`'s construction — the pool grows and the feed
+  // record that weights the draw does not.
+  const shares = cardEmpireRenownShares(state, playerId);
+  if (shares.length > 0) {
+    const base = foldRenown(lines);
+    for (const share of shares) {
+      const amount = (base * share.percent) / 100;
+      if (amount === 0) continue;
+      lines.push({ source: share.source, family: null, amount, perTurn: true });
+    }
   }
   const player = state.players[playerId];
   for (const earned of player?.triumphs ?? []) {

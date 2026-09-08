@@ -578,17 +578,19 @@ describe('a belief', () => {
 
   /**
    * The pooled half, and the assertion the pantheon ghost got wrong: Choirs pays
-   * a note per three citizens **in a city that follows**, and it says nothing at
-   * all about congregations in its own effect — it is the pool that says where
-   * it lands. So an empire of two towns with one congregation is worth the
-   * congregation's four notes, never the eight a pantheon god would have paid.
+   * a note per **four** citizens (per three until the beliefs pass of
+   * 2026-09-08, batch B2 — the user's mark) **in a city that follows**, and it
+   * says nothing at all about congregations in its own effect — it is the pool
+   * that says where it lands. So an empire of two towns with one congregation
+   * of twelve is worth the congregation's three notes, never the six a pantheon
+   * god would have paid across both.
    */
   it('pays a follower belief only where the faith is kept', () => {
     const { state, city, other } = faithful();
     expect(city.population).toBe(12);
     expect(other.population).toBe(14);
     const fold = foldCardImpact(explainCardImpact(state, 0, { kind: 'belief', id: 'choirs' }));
-    expect(fold.culture).toBe(4);
+    expect(fold.culture).toBe(3);
   });
 
   /** And it is the difference the turn resolution would bank, drafted for real. */

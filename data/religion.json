@@ -178,11 +178,11 @@
       "name": "Star Readers",
       "axis": "sky",
       "flavor": "From the high rock the year is a wheel you can see the spokes of.",
-      "text": "+3 science in every city beside a mountain.",
+      "text": "+4 science in every city beside a mountain.",
       "effects": [
         {
           "kind": "cityYields",
-          "science": 3,
+          "science": 4,
           "scope": {
             "test": "mountainAdjacent"
           }
@@ -193,11 +193,11 @@
       "name": "Keeper of the Calendar",
       "axis": "sky",
       "flavor": "Nothing is lost that was written down on the right day.",
-      "text": "Every 20 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached.",
+      "text": "Every 10 turns, you are offered a find from a ruin. A ruin pays once for each age you have reached.",
       "effects": [
         {
           "kind": "periodicOffer",
-          "every": 20,
+          "every": 10,
           "site": "ruins"
         },
         {
@@ -375,7 +375,7 @@
       "name": "Rites of Blood",
       "axis": "war",
       "flavor": "The altar is old. The queue in front of it is older.",
-      "text": "Killing a unit pays +15 faith, once for each age you have reached.",
+      "text": "Killing a unit pays +25 faith, once for each age you have reached.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -383,7 +383,7 @@
           "perAge": true,
           "grant": {
             "yield": "faith",
-            "amount": 15
+            "amount": 25
           }
         }
       ]
@@ -458,10 +458,10 @@
       ]
     },
     "lordOfTheHoard": {
-      "name": "Lord of the Hoard",
+      "name": "The Stone Hoard",
       "axis": "stone",
-      "flavor": "He counts it nightly. He has never spent any of it.",
-      "text": "+1 culture and +1 faith on every hex with a Mine carrying a luxury resource.",
+      "flavor": "Everything the rock gave up is counted, and none of it has ever been spent.",
+      "text": "+1 culture and +1 faith on every hex with a Mine or Quarry carrying a resource.",
       "effects": [
         {
           "kind": "tileYield",
@@ -469,12 +469,14 @@
             "test": "all",
             "of": [
               {
-                "test": "improvement",
-                "improvement": "mine"
+                "test": "anyImprovement",
+                "improvements": [
+                  "mine",
+                  "quarry"
+                ]
               },
               {
-                "test": "resourceKind",
-                "kind": "luxury"
+                "test": "hasResource"
               }
             ]
           },
@@ -487,12 +489,20 @@
       "name": "The Vigil",
       "axis": "none",
       "flavor": "Somebody sits up with the lamp while the rite is running.",
-      "text": "A city keeping a rite gains +2 science and +2 culture while it lasts.",
+      "text": "A city keeping a rite gains +10% science and +10% culture while it lasts.",
       "effects": [
         {
-          "kind": "cityYields",
-          "science": 2,
-          "culture": 2,
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "keepingRite"
+          }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 10,
           "scope": {
             "test": "keepingRite"
           }
@@ -521,6 +531,38 @@
             ]
           }
         }
+      ],
+      "retired": true,
+      "note": "Withdrawn: this pantheon is no longer offered. A religion that already keeps it keeps it."
+    },
+    "vineyardRites": {
+      "name": "Vineyard Rites",
+      "axis": "hearth",
+      "flavor": "The first cup is poured on the ground, and nobody has ever thought it wasted.",
+      "text": "+1 food and +1 culture on every hex with a Plantation.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "plantation"
+          },
+          "food": 1,
+          "culture": 1
+        }
+      ]
+    },
+    "cultOfHeroes": {
+      "name": "Cult of Heroes",
+      "axis": "none",
+      "flavor": "They were people once. The songs have had a long time to work on that.",
+      "text": "+15% renown.",
+      "effects": [
+        {
+          "kind": "cityRenownPercent",
+          "percent": 15,
+          "where": "empire"
+        }
       ]
     }
   },
@@ -529,7 +571,7 @@
       "name": "Cathedrals of the Sky",
       "axis": "sky",
       "flavor": "They built the roof first and reasoned downwards.",
-      "text": "+2 science and +2 culture for every city that follows and has a Temple.",
+      "text": "Temples supply +2 science and +2 culture.",
       "effects": [
         {
           "kind": "cityYields",
@@ -573,7 +615,7 @@
       "name": "Feast Days",
       "axis": "hearth",
       "flavor": "Nobody argues with a calendar that promises dinner.",
-      "text": "+1 happiness for every city that follows, and +1 more for each with a Temple.",
+      "text": "+1 happiness for every city that follows, and Temples supply +1 happiness.",
       "effects": [
         {
           "kind": "happiness",
@@ -598,7 +640,8 @@
                 "building": "temple"
               }
             ]
-          }
+          },
+          "building": "temple"
         }
       ]
     },
@@ -654,13 +697,13 @@
       "name": "Choirs",
       "axis": "none",
       "flavor": "Forty people, one breath, and the roof holds it a moment longer.",
-      "text": "+1 culture for every 3 citizens of a city that follows.",
+      "text": "+1 culture for every 4 citizens of a city that follows.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
           "within": "city",
-          "per": 3,
+          "per": 4,
           "pays": {
             "to": "yield",
             "yield": "culture",
@@ -674,13 +717,13 @@
       "name": "Tithe Houses",
       "axis": "none",
       "flavor": "A tenth of everything, counted by people who can count.",
-      "text": "+1 gold for every 4 citizens of a city that follows.",
+      "text": "+1 gold for every 3 citizens of a city that follows.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "population",
           "within": "city",
-          "per": 4,
+          "per": 3,
           "pays": {
             "to": "yield",
             "yield": "gold",
@@ -829,12 +872,12 @@
       "name": "Itinerant Preachers",
       "axis": "road",
       "flavor": "No roof, no stipend, and an alarming amount of walking.",
-      "text": "Cities that follow reach 2 hexes further.",
+      "text": "Cities that follow reach 5 hexes further.",
       "effects": [
         {
           "kind": "pressureRule",
           "rule": "cityRange",
-          "delta": 2
+          "delta": 5
         }
       ]
     },
@@ -860,7 +903,7 @@
       "name": "Ecclesia",
       "axis": "stone",
       "flavor": "The stones were here first. We only agreed about them.",
-      "text": "Holy sites press 3 harder and pay +1 faith each.",
+      "text": "Holy sites press 3 harder and pay +3 faith each.",
       "effects": [
         {
           "kind": "pressureRule",
@@ -873,7 +916,7 @@
             "test": "improvement",
             "improvement": "holySite"
           },
-          "faith": 1
+          "faith": 3
         }
       ]
     },
@@ -907,12 +950,24 @@
       "name": "Holy Order",
       "axis": "war",
       "flavor": "They took vows. One of them was about the sword.",
-      "text": "A line of warrior monks may be called with faith.",
-      "effects": [],
-      "deferred": [
-        "a faith-bought fighting order"
-      ],
-      "note": "A card cannot yet add a unit to the roster."
+      "text": "Knights Templar may be called with faith. They fight as well as your best horse, and better where the faith is kept.",
+      "effects": [
+        {
+          "kind": "unlocksUnit",
+          "unit": "knightsTemplar"
+        },
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "followingTerritory"
+          },
+          "class": {
+            "type": "knightsTemplar"
+          }
+        }
+      ]
     },
     "theocraticMandate": {
       "name": "Theocratic Mandate",
@@ -929,13 +984,13 @@
       "name": "Congregation",
       "axis": "hearth",
       "flavor": "A crowd that knows the words is a crowd that stays.",
-      "text": "+1 happiness for every 5 cities in the world that follow, up to 3.",
+      "text": "+1 happiness for every 3 cities in the world that follow, up to 5.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "followingCities",
-          "per": 5,
-          "max": 3,
+          "per": 3,
+          "max": 5,
           "pays": {
             "to": "happiness",
             "amount": 1
@@ -947,16 +1002,15 @@
       "name": "Pilgrims' Coin",
       "axis": "road",
       "flavor": "They arrive with nothing and leave having spent it.",
-      "text": "+1 faith for every city in the world that follows and has a Temple.",
+      "text": "+4 gold for every city in the world that follows.",
       "effects": [
         {
           "kind": "countScaled",
-          "count": "followingWithBuilding",
-          "building": "temple",
+          "count": "followingCities",
           "pays": {
             "to": "yield",
-            "yield": "faith",
-            "amount": 1,
+            "yield": "gold",
+            "amount": 4,
             "where": "empire"
           }
         }
@@ -966,14 +1020,16 @@
       "name": "World Church",
       "axis": "none",
       "flavor": "Two kings, one calendar, and a long argument about the date.",
-      "text": "+1 happiness for every empire in the world that follows you.",
+      "text": "+15% culture for every empire in the world that follows you.",
       "effects": [
         {
           "kind": "countScaled",
           "count": "followingEmpires",
           "pays": {
-            "to": "happiness",
-            "amount": 1
+            "to": "percent",
+            "yield": "culture",
+            "percent": 15,
+            "stage": "empire"
           }
         }
       ]

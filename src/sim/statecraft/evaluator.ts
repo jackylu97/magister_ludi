@@ -115,6 +115,7 @@ import {
   type CardDefBase,
   type CardEffect,
   type CardFlagRuleId,
+  type CardHappinessEffect,
   type CardId,
   type CardLandfallEffect,
   type CardRouteYieldEffect,
@@ -2875,6 +2876,12 @@ export function tileConditionHolds(
       return isWaterTerrain(tile.terrain);
     case 'improvement':
       return tile.improvement === on.improvement;
+    case 'anyImprovement':
+      // The `or` the composite does not have, said as a list — `anyFeature`'s
+      // reading one field over, asked of `Tile.improvement`. Bare ground is
+      // absent from the field and matches nothing, which is `unimproved`'s
+      // reading of the same absence from the other side.
+      return tile.improvement !== undefined && on.improvements.includes(tile.improvement);
     case 'greatWork':
       // Asked of the improvement table's own marker (`greatPerson`, presence is
       // the marker), never of a list of five names — so the sixth work joins
@@ -3440,6 +3447,11 @@ export function cardHappiness(state: GameState, playerId: number): CardMeterLine
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'happiness')) {
     const each = effect.amount;
     if (each === 0) continue;
+    // **A line that stands on a building is not the town's** — it is folded onto
+    // the row it names by `buildingHappiness` (`buildingEffects.ts`), off the
+    // list `cardBuildingHappiness` below hands over. Skipped here and counted
+    // there, exactly once. See `CardHappinessEffect.building`.
+    if (effect.building !== undefined) continue;
     if (effect.per !== 'city') {
       if (effect.scope !== undefined) continue;
       list.push({ card, source, amount: each });
@@ -3517,6 +3529,10 @@ function cityLocalHappiness(state: GameState, playerId: number): CardMeterLine[]
     for (const { source, card, effect } of pickKind(local, 'happiness')) {
       const each = effect.amount;
       if (each === 0) continue;
+      // The empire walk's clause, said again here because the two walks are
+      // complementary and a follower belief takes this road: Feast Days' temple
+      // half is the building's line, not the town's.
+      if (effect.building !== undefined) continue;
       if (!cityScopeAdmits(state, city, effect.scope)) continue;
       add(card, source, each);
     }
@@ -3537,6 +3553,60 @@ function cityLocalHappiness(state: GameState, playerId: number): CardMeterLine[]
       source: entry.towns === 1 ? entry.source : label(entry.source, `${entry.towns} cities`),
       amount: entry.amount,
     });
+  }
+  return list;
+}
+
+/**
+ * One happiness a card hangs on a **building standing in a named town**.
+ *
+ * `CardBuildingPercentLine`'s shape one meter over: a resolved fact, not an
+ * effect — the scope has already been asked of the town, so the module that
+ * folds it (`buildingEffects.ts`, a leaf with no evaluator behind it) needs no
+ * opinion about what a `CityScope` is.
+ */
+export interface CardBuildingHappinessLine {
+  card: CardId;
+  source: string;
+  /** The town it stands in. `City.id`, so the fold can find the walls. */
+  cityId: number;
+  building: BuildingId;
+  amount: number;
+}
+
+/**
+ * Every happiness this empire's cards put **on a building** rather than on a
+ * town — Feast Days' *"Temples supply +1 happiness"*, and nothing else today.
+ *
+ * `cardHappiness`' complement, and the two are exhaustive by construction: that
+ * one skips every `happiness` line carrying a `building` and this one takes
+ * exactly those, so a line is counted once and the ledger's total is unchanged
+ * by where it is attributed. Both walks are made — the empire's law
+ * (`effectsOfKind`) and each town's own cards (`cityLocalEffects`, which is how
+ * a follower belief reaches a city a rival converted) — for that function's
+ * reason exactly.
+ *
+ * A **list**, per town and per card, never a total: the fold on the far side
+ * prints "Uruk · Temple" as one line of the happiness ledger, and a number here
+ * would have handed it a figure with no walls behind it. `state.cities` order,
+ * which is founding order and the order every other sweep uses.
+ */
+export function cardBuildingHappiness(
+  state: GameState,
+  playerId: number,
+): CardBuildingHappinessLine[] {
+  const list: CardBuildingHappinessLine[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId !== playerId) continue;
+    const seen: { source: string; card: CardId; effect: CardHappinessEffect }[] = [];
+    for (const entry of effectsOfKind(state, playerId, 'happiness')) seen.push(entry);
+    for (const entry of pickKind(cityLocalEffects(state, city), 'happiness')) seen.push(entry);
+    for (const { source, card, effect } of seen) {
+      const building = effect.building;
+      if (building === undefined || effect.amount === 0) continue;
+      if (!cityScopeAdmits(state, city, effect.scope)) continue;
+      list.push({ card, source, cityId: city.id, building, amount: effect.amount });
+    }
   }
   return list;
 }
@@ -5137,6 +5207,27 @@ export function cardGrantsAbility(
   return false;
 }
 
+/**
+ * Does one of this empire's cards open this **roster** row?
+ *
+ * `cardUnlocksBuilding`'s twin one table over, asked by `isUnlocked` (`tech.ts`)
+ * for a row that declares `UnitDef.unlockedByCard` — so a belief that hands over
+ * a line of soldiers is one clause of the one availability question rather than
+ * a gate of its own beside it.
+ *
+ * Holy Order is an **enhancer** belief, which is to say it pays the founder: the
+ * effects reach this walk through `liveEffects` off the empire that holds the
+ * holy site, and the Templars are that empire's to call and nobody else's. That
+ * is the whole of the rule, and it is not written here — it is where every
+ * founder-side clause already lives.
+ */
+export function cardUnlocksUnit(state: GameState, playerId: number, unit: UnitTypeId): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'unlocksUnit')) {
+    if (effect.unit === unit) return true;
+  }
+  return false;
+}
+
 export function cardPantheonSlots(state: GameState, playerId: number): number {
   let total = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'pantheonSlots')) {
@@ -5352,8 +5443,38 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
   const list: CardCityRenownShare[] = [];
   for (const { source, card, effect } of cityEffectsOfKind(state, city, 'cityRenownPercent')) {
     if (effect.percent === 0) continue;
+    // **An empire-scoped share is not a town's** — it is taken once, over the
+    // whole recurring trickle, by `cardEmpireRenownShares` below. Skipped here
+    // and counted there, exactly once. See `CardCityRenownPercentEffect.where`.
+    if (effect.where === 'empire') continue;
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     list.push({ card, source: label(source, scopeNote(effect.scope)), percent: effect.percent });
+  }
+  return list;
+}
+
+/**
+ * Every `cityRenownPercent` this empire's law takes of the **whole** trickle —
+ * Cult of Heroes' fifteen, and nothing else today.
+ *
+ * `cardCityRenownShares`' complement, and the two are exhaustive by
+ * construction: that one skips `where: 'empire'` and this one takes only those,
+ * so a row is read at exactly one scale. A list for that function's reason —
+ * the renown hover is an ordered ledger and each share arrives as its own line
+ * with its own label.
+ *
+ * Asked of the **empire** (`effectsOfKind`) rather than of a town, which is what
+ * "+15% renown" means and what makes it answerable at all: the figure it is a
+ * share of is the fold of every recurring line, and no town holds that.
+ */
+export function cardEmpireRenownShares(
+  state: GameState,
+  playerId: number,
+): CardCityRenownShare[] {
+  const list: CardCityRenownShare[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'cityRenownPercent')) {
+    if (effect.percent === 0 || effect.where !== 'empire') continue;
+    list.push({ card, source, percent: effect.percent });
   }
   return list;
 }

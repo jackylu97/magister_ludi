@@ -74,6 +74,7 @@ import {
   explainBuildingCost,
   explainUnitCost,
   foldUnitCost,
+  mirrorRowFor,
   productionSettledBy,
   queueItemCost,
   queueItemName,
@@ -279,7 +280,31 @@ export function explainPurchaseCost(
   if (bank !== undefined) {
     if (bank !== currency || item.kind !== 'unit') return null;
     const spec = unitDef(item.id).purchase!;
-    const lines: UnitCostLine[] = [{ source: unitDef(item.id).name, amount: spec.cost }];
+    // **A row that mirrors another is priced off it, here and nowhere else**
+    // (batch B2, `UnitDef.mirrors`): the Templars cost a share of whatever horse
+    // this empire could raise today, in faith, so the order stays worth calling
+    // in every age and no figure on the row ever has to be retuned. The share is
+    // a line of the list the price is the fold of, exactly as the treasury's
+    // `×${rate}` conversion is — so the sheet says which row it was measured
+    // against and what the order's own discount took off.
+    //
+    // A seat that can raise nothing of the class has no price at all: `null`,
+    // and `purchaseError` says the row is not for sale. That is the honest
+    // answer rather than a fallback — see `UnitMirrorSpec`.
+    const mirrors = unitDef(item.id).mirrors;
+    const lines: UnitCostLine[] = [];
+    if (mirrors !== undefined) {
+      const row = mirrorRowFor(state, playerId, item.id);
+      if (row === null) return null;
+      const cost = foldUnitCost(explainUnitCost(state, playerId, row));
+      lines.push({ source: `${unitDef(row).name}'s cost`, amount: cost });
+      lines.push({
+        source: `×${mirrors.costPercent}% in ${bank}`,
+        amount: Math.floor((cost * mirrors.costPercent) / 100) - cost,
+      });
+    } else {
+      lines.push({ source: unitDef(item.id).name, amount: spec.cost ?? 0 });
+    }
     const player = playerById(state, playerId);
     const increment = spec.increment;
     if (increment !== undefined && player) {
@@ -608,6 +633,17 @@ export function purchaseError(
     // of `unlocks`, so "which node hands over an augur" has one answer and this
     // module grows no second opinion about it. `buildError` cannot be used here
     // — it refuses this row on purpose, for being purchase-only.
+    // **A row a card opens is asked of the cards** (batch B2), before the tree,
+    // for `isUnlocked`'s stated reason: a roster row no technology names is
+    // otherwise on sale from turn one, and the Templars are Holy Order's to hand
+    // over. Asked through `isUnlocked`, the single source of truth for
+    // availability, so the belief's gate and the tree's are one question — and
+    // asked here because a `purchase.exclusive` row has no other door.
+    if (bought.kind === 'unit' && unitDef(bought.id).unlockedByCard === true) {
+      if (!isUnlocked(state, playerId, 'unit', bought.id)) {
+        return `${name} is not open to ${player.name} yet`;
+      }
+    }
     const gate = gatingTech(bought.kind, bought.id);
     if (gate !== null && !hasTech(state, playerId, gate)) {
       return `${name}s need ${techDef(gate).name}`;

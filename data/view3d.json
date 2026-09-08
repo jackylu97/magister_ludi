@@ -491,6 +491,7 @@
       "horseman": "mounted",
       "chariot": "chariot",
       "knight": "knight",
+      "knightsTemplar": "knight",
       "chariotArcher": "mountedRanged",
       "catapult": "siege",
       "trebuchet": "trebuchet",

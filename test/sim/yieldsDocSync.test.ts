@@ -283,6 +283,10 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'unitStamp',
     'unitStat',
     'unlocksBuilding',
+    // Batch B2: Holy Order's roster row. A *rule* from the day it was declared
+    // (`isUnlocked` reads it), but it pays no yield, which is what this list is
+    // about — `unlocksBuilding` sits here for the same reason.
+    'unlocksUnit',
   ];
 
   /** Every `kind: '…'` discriminant declared in the union's shapes. */

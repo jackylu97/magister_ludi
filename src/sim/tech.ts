@@ -293,6 +293,7 @@ import type { CityScope } from './statecraftData';
 import {
   cardGrantsAbility,
   cardUnlocksBuilding,
+  cardUnlocksUnit,
   cityScopeAdmits,
   // The article rule, borrowed rather than rewritten: "needs **a** Library" and
   // "in **an** Amphitheater" must agree, and a second vowel test in this file is
@@ -446,6 +447,14 @@ export function isUnlocked(
   // and exactly wrong for content a doctrine is meant to hand over (the Gilded
   // Hall). One clause of the one availability question rather than a second gate
   // beside it — see `BuildingDef.unlockedByCard`.
+  // The roster's half of the same clause (batch B2): the Knights Templar are a
+  // row no node names, handed over by an enhancer belief. Read exactly as the
+  // building's is, and it falls through to the tree the same way — a card is a
+  // way in **early**, never in place of a gate the tree happens to carry.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByCard === true) {
+    if (cardUnlocksUnit(state, playerId, id)) return true;
+    if (gatingTech(kind, id) === null) return false;
+  }
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByCard === true) {
     if (cardUnlocksBuilding(state, playerId, id)) return true;
     // **A card stands in front of the tree's gate, never in place of it**

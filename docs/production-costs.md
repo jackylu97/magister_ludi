@@ -260,3 +260,4 @@ reading for a once-per-empire row.
 | `spearWall` | Spear Wall | line | 6 | 54 |
 | `warElephant` | War Elephant | heavy | 7 | 101 |
 | `fireLance` | The Fire Lance | heavy | 12 | 389 |
+| `knightsTemplar` | Knights Templar | heavy | 11 | 297 |

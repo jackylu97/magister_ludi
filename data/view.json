@@ -61,6 +61,7 @@
       "pikeman": "pawn",
       "crossbowman": "flag",
       "knight": "person",
+      "knightsTemplar": "person",
       "longswordsman": "pawn",
       "trebuchet": "tower",
       "augur": "house",

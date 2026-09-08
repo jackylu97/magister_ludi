@@ -923,6 +923,25 @@ export type TileCondition =
   | { test: 'anyFeature'; features: string[] }
   | { test: 'improved' }
   /**
+   * **Any one of these improvements** stands here — The Stone Hoard's mine and
+   * quarry (batch B2, the user's mark of 2026-09-08: *"a Mine **or** Quarry
+   * carrying a resource"*).
+   *
+   * `anyFeature`'s shape one field over, and here for its reason exactly: the
+   * ratified text names *one* kind of works ("the seams you have opened") that
+   * the improvement table spells as two rows, and there is no `or` composite —
+   * `all` is the only one there is, deliberately, because a card whose condition
+   * could be any boolean tree is a card nobody can print. So a list is the
+   * smallest honest thing to say, and it composes under `all` with
+   * `hasResource` exactly as `unimproved` composes with `anyFeature`.
+   *
+   * `improvement` stays for the single-improvement reading rather than being
+   * folded into a one-element list here: a row that means *one* works says so,
+   * and the describer prints the two differently ("with a Mine", "with a Mine or
+   * Quarry").
+   */
+  | { test: 'anyImprovement'; improvements: ImprovementId[] }
+  /**
    * **Nothing has been built here** — `improved`'s mirror, and the whole home of
    * the 🌿 ladder (The Unbroken Land, The Greenwood Law).
    *
@@ -1665,8 +1684,6 @@ export type MeterRuleId =
    * reading, so the settler sheet cannot disagree with the meter.
    */
   | 'hillCityCost'
-  /** Every city demands `delta` more happiness. */
-  | 'cityHappinessDemand'
   /**
    * How many citizens in each city demand **no happiness at all** — The
    * Scattered Hearths' first three, who are the household and not the crowd.
@@ -2358,6 +2375,28 @@ export interface CardHappinessEffect {
   amount: number;
   per?: 'city';
   scope?: CityScope;
+  /**
+   * **The line stands on a building rather than on the town** — Feast Days'
+   * *"Temples supply +1 happiness"* (the user's mark of 2026-09-08: *"modify, so
+   * that this is affected by temple multipliers"*).
+   *
+   * `cardLinesOnBuilding`'s bargain one meter over. A `cityYields` naming a
+   * building in its scope is already folded into that building's own figure —
+   * which is what lets the Synod's share reach a belief's science on a temple —
+   * but happiness is not a voice (`CityYieldKey` has no member for it), so the
+   * yield path could not carry it and a share of it has nothing to multiply
+   * *yet*. What the field buys today is the **attribution**: the line leaves
+   * `cardHappiness` and is folded by `buildingHappiness` (`buildingEffects.ts`)
+   * onto the row it names, so the happiness ledger says "Uruk · Temple" — a
+   * thing standing in a named town that a player may be about to lose — instead
+   * of naming the law that put it there. The day a card says "your temples are
+   * twice as glad", that share has one figure to take.
+   *
+   * The scope is still asked and is still what admits the town: a row carrying
+   * this says `hasBuilding` too, because the attribution is *which* line the
+   * happiness hangs on and the scope is *whether* it is paid at all.
+   */
+  building?: BuildingId;
 }
 
 /** Flat authority capacity. Capacity, never a discount — `resourceAuthority`'s rule. */
@@ -3120,6 +3159,25 @@ export interface CardUnlocksBuildingEffect {
 }
 
 /**
+ * A **roster row** a card makes available — Holy Order's Knights Templar (batch
+ * B2), and the shape `docs/religion-v2.md` deferred that belief on.
+ *
+ * `CardUnlocksBuildingEffect`'s twin one table over, and it is a *rule* from the
+ * day it was declared rather than a description: `cardUnlocksUnit` is read by
+ * `isUnlocked` (`tech.ts`) for a row that declares `UnitDef.unlockedByCard`, so
+ * availability stays one question with one answer instead of a card gate beside
+ * a tech gate. A row no card names and no node names is shut, which is the
+ * clause the Gilded Hall already relies on.
+ *
+ * It is what an enhancer belief needed and could not say: the founder's law
+ * hands over a line of soldiers, and nothing else in the game may raise one.
+ */
+export interface CardUnlocksUnitEffect {
+  kind: 'unlocksUnit';
+  unit: UnitTypeId;
+}
+
+/**
  * Room for another god — Stonehenge's, and the Great Mosque of Djenné's.
  *
  * A *slot grant*, and the first shape in the vocabulary whose subject is a
@@ -3743,6 +3801,29 @@ export interface CardCityRenownPercentEffect {
   percent: number;
   /** Which towns it lands in. Absent means every one. */
   scope?: CityScope;
+  /**
+   * **Which reading of "renown" the share is taken of** — the town's buildings
+   * (absent, the Heroic Epic's) or the whole recurring trickle (`'empire'`, Cult
+   * of Heroes' *"+15% renown"*, batch B2).
+   *
+   * A field rather than a second kind, because it is the same sentence asked at
+   * two scales and the words differ by one clause. The two are read in two
+   * places and never in both: `cardCityRenownShares` hands the town-scoped ones
+   * to `explainCityRenown`, and `cardEmpireRenownShares` hands this one to
+   * `explainRenown`, which takes it over the fold of every recurring line above
+   * it — the buildings, the specialists, the cards and the luxuries — and never
+   * over another share, because two shares on one empire must buy two shares
+   * rather than compounding.
+   *
+   * A Triumph's lump is deliberately outside it: that renown was banked the
+   * instant it was earned, and a percentage of history is not a trickle. The
+   * line names **no family**, the town-scoped arm's construction exactly.
+   *
+   * An empire-scoped share takes no `scope`: there is no town for one to be
+   * asked about, and a scoped one would be a city reading wearing this field's
+   * name.
+   */
+  where?: 'city' | 'empire';
 }
 
 /**
@@ -3991,6 +4072,7 @@ export type CardEffect =
   // E4b's one new shape: a moment in a piece's life that is not its birth.
   | CardLandfallEffect
   | CardUnlocksBuildingEffect
+  | CardUnlocksUnitEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect
   | CardProjectRiderEffect

@@ -556,6 +556,21 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
           : `Can be bought in a city with ${def.purchase.currency}.`,
     });
   }
+  if (def.unlockedByCard === true) {
+    out.push({
+      text: 'No research reaches this. Something your empire has adopted opens it, and nothing else does.',
+    });
+  }
+  if (def.mirrors !== undefined) {
+    // **The whole of what the row is**, and a shelf that printed a strength and
+    // a price without it would be printing the floor: what one is worth and what
+    // one costs are both taken from the best of another line, on the day it is
+    // called. Said with no figures in it (hard rule 7) — the share and the
+    // strength are facts about an empire's own roster, not about this row.
+    out.push({
+      text: 'One of these is as strong as the best of its line that your empire could raise the day you call it, and is priced against the same one.',
+    });
+  }
   return out;
 }
 
@@ -587,7 +602,13 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
     ...row('Production cost', priced),
     ...row(
       'Purchase cost',
-      def.purchase === undefined ? '' : `${figure(def.purchase.cost)} ${def.purchase.currency}`,
+      // **A mirroring row has no figure to print** (batch B2): the Templars cost
+      // a share of whatever horse the empire can raise today, so the shelf says
+      // the rule instead of a number that would be wrong in every age but one.
+      // `unitMarkers` prints the share; this row simply has nothing to add.
+      def.purchase === undefined || def.purchase.cost === undefined
+        ? ''
+        : `${figure(def.purchase.cost)} ${def.purchase.currency}`,
     ),
     // Always a row, and `None` rather than an omission (Entry XLI). The other
     // rows in this table are dropped when they are empty because an absent
@@ -1036,7 +1057,7 @@ function giftWords(gift: TechGift): string {
     // was free.
     const def = unitDef(gift.id);
     const price =
-      def.purchase !== undefined && def.purchase.exclusive === true
+      def.purchase !== undefined && def.purchase.exclusive === true && def.purchase.cost !== undefined
         ? `${figure(def.purchase.cost)} ${def.purchase.currency}`
         : `${figure(unitRosterCost(gift.id))}${YIELD_GLYPH.production}`;
     return `New unit: ${gift.name} — ${price}`;

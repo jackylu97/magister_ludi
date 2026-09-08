@@ -1435,6 +1435,18 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // build arm's own reading of a shelf and not a second one.
       return scoreUnlockedBuilding(effect.building, ctx);
     }
+    case 'unlocksUnit': {
+      // **A line of soldiers the bank may call**, priced as one of them: the
+      // reading `periodicMuster` gives a gifted piece, without its cadence,
+      // because a row opened is an *option* on a soldier rather than a soldier
+      // every so many turns — and the empire pays for each one it takes, out of
+      // a bank this appraisal has no reason to believe is empty.
+      //
+      // A mirroring row (`UnitDef.mirrors`) is worth what the best of its line
+      // is worth, which `combatScale` is already the empire-free reading of, so
+      // the Templars are not under-read for carrying a floor on their row.
+      return ctx.ai.weights.military * ctx.ai.score.combatScale;
+    }
     case 'meterRule':
       return scoreMeterRule(effect, ctx);
     case 'cityStat': {
@@ -2174,12 +2186,6 @@ function scoreMeterRule(
   const authority = RULES.meters.authority;
   const rule = effect.rule;
   switch (rule) {
-    case 'cityHappinessDemand': {
-      // A shift on what every town demands: a delta of +1 is a point of
-      // contentment gone in every town.
-      const change = effect.delta ?? 0;
-      return -change * ctx.cities * meterWeight(ctx, 'happiness');
-    }
     case 'freeCitizens': {
       // Citizens that demand nothing — contentment handed back, per town.
       const change = effect.delta ?? effect.value ?? 0;

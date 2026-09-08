@@ -174,9 +174,10 @@ import {
 // the top level of both files is a constant from a data table, which is the
 // condition the whole simulation's cycles are safe under — see the docblock in
 // `statecraft.ts`.
-import { buildError, settleResearchWindfall } from './tech';
+import { buildError, isUnlocked, settleResearchWindfall } from './tech';
 import {
   UNIT_TYPE_IDS,
+  type ModelClass,
   type UnitSize,
   type UnitStamp,
   type UnitTypeId,
@@ -3342,6 +3343,25 @@ export function realiseItem(
     for (const held of city.buildings) rebate += buildingDef(held).unitUpkeepRebate ?? 0;
     if (rebate > 0) unit.upkeepRebate = rebate;
   }
+  // **The mirror, stamped where the piece is made** (batch B2, `UnitDef.mirrors`).
+  // A Templar is worth whatever horse this empire could raise on the day it was
+  // called, so the difference between that row's figure and this row's own joins
+  // the piece's stamp — an ordinary labelled line in `planCombat`'s fold, never a
+  // bigger number beside the roster's name (hard rule 5). It is added to
+  // whatever the law already stamped rather than replacing it: a Muster Roll and
+  // a religion are two things that happened to one soldier.
+  //
+  // Here rather than in `createUnit`, and the reason is the module graph: this
+  // file may ask `buildError` which rows an empire can raise and `state.ts` may
+  // not. It costs nothing, because a mirroring row is bought or it does not
+  // exist (`UnitPurchaseSpec.exclusive`) and every purchase realises here.
+  const mirrored = mirrorRowFor(state, city.ownerId, item.id);
+  if (mirrored !== null) {
+    const lift = unitDef(mirrored).combatStrength - unitDef(item.id).combatStrength;
+    if (lift !== 0) {
+      unit.stamp = { ...unit.stamp, strength: (unit.stamp?.strength ?? 0) + lift };
+    }
+  }
   // The ladder climbs at completion, so the next one of this *same type* —
   // anywhere in the empire — is dearer from the very next resolution. Its own
   // key in `Player.unitsBuilt`, not a shared counter (schema 31). A free grant
@@ -3404,12 +3424,89 @@ function pendingResearchCost(player: Player): { missing: number } | null {
  * technologies, the resources and the empire's own law all count.
  */
 export function bestMeleeFor(state: GameState, playerId: number): UnitTypeId | null {
+  return bestOfClassFor(state, playerId, 'melee');
+}
+
+/**
+ * The strongest row of one **silhouette** this empire could build right now, or
+ * `null`.
+ *
+ * `bestMeleeFor` widened by exactly one argument (batch B2), because the
+ * Templars ask the same question of the horse that the Statue of Zeus asks of
+ * the sword and two loops would be two opinions about which era an empire has
+ * reached. `ModelClass` is the roster's own word for a line, which is the second
+ * of the two deliberate exceptions to "the model class is art" — the first is
+ * `UnitCombatLine.vsModelClass`.
+ *
+ * "Can build" is `buildError`'s question, asked whole rather than re-derived, so
+ * the answer obeys the technology gate and the improved-resource gate exactly as
+ * a queued row does — and a purchase-only row (the Templars themselves) is
+ * refused by it, which is what keeps a mirror from measuring itself. Ties go to
+ * roster order, which is the table's own order and therefore a fact a replay
+ * reproduces.
+ */
+export function bestOfClassFor(
+  state: GameState,
+  playerId: number,
+  modelClass: ModelClass,
+): UnitTypeId | null {
   let best: UnitTypeId | null = null;
   let strength = -1;
   for (const id of UNIT_TYPE_IDS) {
     const def = unitDef(id);
-    if (def.modelClass !== 'melee') continue;
+    if (def.modelClass !== modelClass) continue;
     if (buildError(state, playerId, 'unit', id) !== null) continue;
+    if (def.combatStrength <= strength) continue;
+    strength = def.combatStrength;
+    best = id;
+  }
+  return best;
+}
+
+/**
+ * The row a mirroring row shadows **for this empire, right now** — the best
+ * horse the Templars are measured against (`UnitDef.mirrors`).
+ *
+ * One function so that the two readings cannot disagree: the strength
+ * `realiseItem` stamps and the price `explainPurchaseCost` charges are the same
+ * roster answer asked twice, and a piece worth a knight that cost a horseman
+ * would be a bug nobody could see in either file alone. `null` for a row that
+ * mirrors nothing, and for a seat the age has taught no such row — which is what
+ * makes the bank refuse the sale rather than sell one cheap.
+ *
+ * **The tree's gate, not `buildError`'s**, and that is the one place this parts
+ * company with `bestOfClassFor`. A free spear from the Statue of Zeus is a piece
+ * the empire raises, so it obeys the improved-resource gate exactly as a queued
+ * one does; an *order* is not raised out of your own stables — it arrives with
+ * its own horses, bought with faith — so the seams under your ground are not
+ * what decides how good it is. What the age has taught you is.
+ *
+ * A row sold out of a bank is never the measure (`buildableMilitary`'s
+ * exclusion, said again): it is what keeps a mirroring row from measuring
+ * itself, since `isUnlocked` answers **true** for the Templars the moment the
+ * belief that opens them is adopted.
+ */
+export function mirrorRowFor(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): UnitTypeId | null {
+  const mirrors = unitDef(type).mirrors;
+  if (mirrors === undefined) return null;
+  let best: UnitTypeId | null = null;
+  let strength = -1;
+  for (const id of UNIT_TYPE_IDS) {
+    const def = unitDef(id);
+    if (def.modelClass !== mirrors.modelClass) continue;
+    if (def.purchase !== undefined || def.retired === true) continue;
+    // A row that **awaits a technology** the tree does not yet have (the
+    // cataphract, `UnitDef.awaitsTech`) is not one the age has taught anybody:
+    // `isUnlocked` cannot refuse it, because no node gates it, and without this
+    // clause the mirror answered "a strength-22 cataphract" from the first turn
+    // of the game (found landing batch B2, 2026-09-08). The day its node lands
+    // and the marker goes, it joins the walk like any other row.
+    if (def.awaitsTech === true) continue;
+    if (!isUnlocked(state, playerId, 'unit', id)) continue;
     if (def.combatStrength <= strength) continue;
     strength = def.combatStrength;
     best = id;

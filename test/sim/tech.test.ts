@@ -228,6 +228,12 @@ describe('tech data integrity', () => {
       // them, `buildError` and `purchaseError` refuse them outright, and the
       // tree pass deletes the marker from three rows and adds them to a node.
       if (unitDef(id).awaitsTech === true) continue;
+      // **And the row a *card* opens** (batch B2, `UnitDef.unlockedByCard` — the
+      // Knights Templar): the building exception's twin one table over. No node
+      // hangs it, `isUnlocked` asks the cards instead of the tree, and without
+      // that clause an ungated row would be for sale from turn one — which is
+      // exactly what the field exists to prevent.
+      if (unitDef(id).unlockedByCard === true) continue;
       expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
     }
     for (const id of BUILDING_IDS) {
@@ -1356,7 +1362,7 @@ describe('research in the log', () => {
     // ladder is re-run from the first paid column's 10, so every column above
     // the second charges fewer beakers and a v90 log pays a price this build
     // does not ask for from its second technology on.
-    expect(SCHEMA_VERSION).toBe(95);
+    expect(SCHEMA_VERSION).toBe(96);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

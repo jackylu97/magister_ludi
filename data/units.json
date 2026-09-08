@@ -861,6 +861,31 @@
       "minCityPop": 0,
       "modelClass": "melee",
       "glyph": "F"
+    },
+    "knightsTemplar": {
+      "name": "Knights Templar",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 120,
+      "combatStrength": 12,
+      "size": "heavy",
+      "column": 11,
+      "mirrors": {
+        "modelClass": "mounted",
+        "costPercent": 80
+      },
+      "unlockedByCard": true,
+      "purchase": {
+        "currency": "faith",
+        "exclusive": true,
+        "verb": "Call the Templars"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "mounted",
+      "glyph": "T"
     }
   }
 }
