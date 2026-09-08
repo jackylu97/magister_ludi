@@ -28,8 +28,9 @@ import {
   isWonder,
 } from '../buildingData';
 import { type LegacyRevocation, greatPersonDef, isGreatPersonId } from '../greatPeopleData';
-import { improvementDef } from '../improvementData';
+import { improvementDef, isGreatPersonWork } from '../improvementData';
 import { projectDef } from '../projectData';
+import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
 import {
   type AmplifierTarget,
@@ -80,6 +81,74 @@ export interface CardClause {
   deferred?: boolean;
 }
 
+/**
+ * **Who a clause is about** — the subject every per-city phrase names (batch L1,
+ * `docs/audit/legibility.md` §1b).
+ *
+ * The measurement that produced it: thirty-two generated faces said *"in this
+ * city"* on a card that pays in **every** city, because the vocabulary's one
+ * counted-line describer was written for a building — where "this city" is
+ * exactly right — and every other class borrowed its words. A player meets most
+ * of these at the draft, where a card is read **as the empire**, and "+1 science
+ * per building in this city" on a Doctrine is a card that understates itself by
+ * however many towns the realm holds.
+ *
+ * So the subject is a property of the **class**, decided once by `subjectOfCard`
+ * and threaded down into the clause builders rather than guessed per arm:
+ *
+ *   · `'empire'` — an Order, a Doctrine, a government, a technology's own rules,
+ *     a bead's boon, a great person's legacy, a pantheon or enhancer belief.
+ *     A per-city clause says *"in every city"*, or names its scope where it has
+ *     one ("in every coastal city", "in your capital");
+ *   · `'follower'` — a follower belief, which applies city-locally to whoever
+ *     holds a town that keeps the faith: *"in every city that follows your
+ *     religion"*;
+ *   · `'here'` — a building, a wonder, a rite, a consecration and a great
+ *     person's work. Each **is** one town, so the clause is printed beside the
+ *     town it is about and keeps *"in this city"*.
+ *
+ * The asymmetry in where the phrase lands is deliberate and is the whole reason
+ * the subject is threaded rather than swapped in at the end: for `'here'` the
+ * place trails the sentence ("+1 culture per 2 citizens in this city"), because
+ * the count and the payout are the same one town and English says it once at the
+ * end. For a realm it must **lead** ("+1 culture in every city per 2 citizens
+ * there"), because a trailing "in every city" would attach to the count and
+ * promise each town the empire's whole population.
+ */
+export type ClauseSubject = 'empire' | 'follower' | 'here';
+
+/**
+ * The subject a card's own class reads it against. See `ClauseSubject`.
+ *
+ * The cascade is `anyCardDef`'s, in its order and for its reason: the id spaces
+ * are disjoint and the cheaper guard should not have to prove it. It asks the
+ * *tables*, which are frozen at load, so a card's subject cannot change inside a
+ * game — and a class that is not one of the two town-scoped ones is the realm's,
+ * which is the honest default for a vocabulary read at the draft.
+ */
+function subjectOfCard(id: CardId): ClauseSubject {
+  if (isBeliefId(id)) return beliefPoolOf(id) === 'follower' ? 'follower' : 'empire';
+  if (isRiteId(id) || isConsecrationId(id)) return 'here';
+  if (isBuildingId(id)) return 'here';
+  return 'empire';
+}
+
+/**
+ * The town a clause names when its row names none — the subject as a noun
+ * phrase, and the one place `cityScopeWords`' default is overruled.
+ *
+ * A row that carries a `CityScope` says which towns it means and is printed in
+ * its own words ("every coastal city", "your capital"): the ruling is only about
+ * the **absent** scope, which `cityScopeWords` has always read as "every city"
+ * and which is a lie on a building.
+ */
+function scopeWordsFor(subject: ClauseSubject, scope?: CityScope): string {
+  if (scope !== undefined) return cityScopeWords(scope);
+  if (subject === 'here') return 'this city';
+  if (subject === 'follower') return 'every city that follows your religion';
+  return 'every city';
+}
+
 // --- named things, marked in the words ---------------------------------------
 
 /**
@@ -108,7 +177,13 @@ export type RefKind =
   | 'triumph'
   // The Compendium's bead entries are anchored `bead:<id>` already; the four
   // Æra V bead Orders are the first describers to name one (H3).
-  | 'bead';
+  | 'bead'
+  // **A technology's rule, named** (batch L1, §2): the Rules shelf, anchored
+  // `rule:<techId>`. It is not a `tech` ref — the technology has an entry of
+  // its own, about what it *costs* and everything it hands over, and this one
+  // is about the one rule that would not fit on the star chart's card. See
+  // `techRuleWords.ts`, the only describer that emits one.
+  | 'rule';
 
 /**
  * `[[building:granary|a Granary]]` — one named thing, marked inside a clause.
@@ -163,8 +238,20 @@ export function stripRefs(text: string): string {
   );
 }
 
-/** A yield bag in words: "+2 gold, +1 culture". */
+/**
+ * A yield bag in words: "+2 gold, +1 culture" — or "+1 of every yield" where the
+ * bag is one figure on all six (batch L1, §1c).
+ *
+ * The fold is the same ruling `everyVoiceFold` applies to six sibling rows, at
+ * the one place a single row can say the same thing: six names in a row is a
+ * list a reader has to check off, and "of every yield" is what the ratified
+ * texts call it. All six or none — a bag paying five of them names its five.
+ */
 function bagWords(bag: Partial<Record<CityYieldKey, number>>): string {
+  const first = bag[VOICES[0]!] ?? 0;
+  if (first !== 0 && VOICES.every((key) => (bag[key] ?? 0) === first)) {
+    return `${signed(first)} ${EVERY_YIELD}`;
+  }
   const parts: string[] = [];
   for (const key of VOICES) {
     const value = (bag[key] ?? 0);
@@ -230,10 +317,222 @@ function listWords(parts: readonly string[]): string {
  * the *ledger* is where a player folds the arithmetic and it still shows one
  * labelled line per copy.
  */
-export function describeEffects(effects: readonly CardEffect[]): CardClause[] {
+export function describeEffects(
+  effects: readonly CardEffect[],
+  subject: ClauseSubject = 'empire',
+): CardClause[] {
   const clauses: CardClause[] = [];
-  for (const effect of effects) describeEffect(effect, clauses);
+  for (let at = 0; at < effects.length; ) {
+    // **Same-shape siblings fold before anything is worded** (batch L1, §1c).
+    // The Founding Oath was six clauses of one figure on six voices, The
+    // Laureate six tile lines that differ only in the work they name, and The
+    // Compact of Chairs three sentences about three chairs — each of them a
+    // *rule* a designer wrote as one sentence and the vocabulary printed as a
+    // list. The fold is the describer's decision and nothing in the data moves:
+    // the rows stay one effect per thing the evaluator has to do, and the words
+    // say the thing once.
+    const folded = describeFold(effects, at, clauses, subject);
+    if (folded > 0) {
+      at += folded;
+      continue;
+    }
+    describeEffect(effects[at]!, clauses, subject);
+    at += 1;
+  }
   return collapseClauses(clauses);
+}
+
+/**
+ * A run of same-shape siblings said as one sentence, or 0 when none starts here.
+ *
+ * Four folds, each answering a face the length measurement caught
+ * (`docs/audit/legibility.md` §1c). They are tried in order and the first that
+ * matches consumes its run; a fold that does not match costs one comparison and
+ * the effect is worded on its own, exactly as before. **Nothing here changes an
+ * arithmetic**: every one of these is the *same* list of effects, read out loud
+ * the way the row's ratified text already reads it.
+ *
+ * The runs must be **consecutive**, which is not a limitation but the rule: a
+ * designer writes the six voices of one promise together, and effects that are
+ * not adjacent are not one sentence.
+ */
+function describeFold(
+  effects: readonly CardEffect[],
+  at: number,
+  out: CardClause[],
+  subject: ClauseSubject,
+): number {
+  return (
+    everyVoiceFold(effects, at, out, subject) ||
+    greatWorkRunFold(effects, at, out) ||
+    slotPositionFold(effects, at, out) ||
+    scaledCombatFold(effects, at, out)
+  );
+}
+
+/**
+ * **One figure on every voice** — The Founding Oath's six clauses as the one
+ * sentence its ratified text is: *"Your capital pays +1 of every yield for each
+ * building standing in it, at most 3."*
+ *
+ * The six rows are identical but for `to`, because that is what the evaluator
+ * needs — a payout names one voice — and the reader needs the opposite: six
+ * sentences that differ in one word are six things to hold in the head where one
+ * would do. Every voice must be present and every field but the voice must
+ * match, so a row paying five of the six still prints five clauses and says so.
+ */
+function everyVoiceFold(
+  effects: readonly CardEffect[],
+  at: number,
+  out: CardClause[],
+  subject: ClauseSubject,
+): number {
+  const head = effects[at];
+  if (head === undefined || head.kind !== 'pays' || head.basis !== 'count') return 0;
+  const paid = head.to;
+  if (paid === undefined || !VOICES.includes(paid as CityYieldKey)) return 0;
+  const voices: CityYieldKey[] = [];
+  let run = 0;
+  while (at + run < effects.length) {
+    const next = effects[at + run];
+    if (next === undefined || next.kind !== 'pays') break;
+    const to = next.to;
+    if (to === undefined || !VOICES.includes(to as CityYieldKey)) break;
+    if (!sameBut(next, head, 'to')) break;
+    voices.push(to as CityYieldKey);
+    run += 1;
+  }
+  for (const voice of VOICES) if (!voices.includes(voice)) return 0;
+  describePays(head, out, subject, EVERY_YIELD);
+  return run;
+}
+
+/**
+ * Are these two rows the same row but for one field?
+ *
+ * Key by key rather than by a stringify of the whole, because a row's key order
+ * is however its author typed it and two rows that say the same thing in a
+ * different order are still the same shape. The values are compared as JSON,
+ * which is exact for the plain data a card row holds.
+ */
+function sameBut(a: object, b: object, skip: string): boolean {
+  const left = a as Record<string, unknown>;
+  const right = b as Record<string, unknown>;
+  const keys = [...Object.keys(left)];
+  for (const key of Object.keys(right)) if (!keys.includes(key)) keys.push(key);
+  for (const key of keys) {
+    if (key === skip) continue;
+    if (JSON.stringify(left[key]) !== JSON.stringify(right[key])) return false;
+  }
+  return true;
+}
+
+/** The words a folded six-voice payout is said in. See `everyVoiceFold`. */
+const EVERY_YIELD = 'of every yield';
+
+/**
+ * **A run over the great person's works** — The Laureate's five tile lines as
+ * one: *"+3 on every hex carrying a great person's work — science on an Academy,
+ * culture on a Landmark, …"*
+ *
+ * The rows differ in the work they name and in the voice it pays, and nothing
+ * else; the head phrase is the condition they all share, which the vocabulary
+ * already has a word for (`greatWork`). Gated on every member being a great
+ * person's work rather than on the card's name, so a run over five *ordinary*
+ * improvements — which would have no shared noun to lead with — prints as five
+ * clauses and stays honest.
+ */
+function greatWorkRunFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
+  const parts: string[] = [];
+  let amount: number | undefined;
+  let run = 0;
+  while (at + run < effects.length) {
+    const next = effects[at + run];
+    if (next === undefined || next.kind !== 'pays' || next.where !== 'hex') break;
+    if ((next.basis ?? 'flat') !== 'flat' || next.scope !== undefined) break;
+    if (next.percent !== undefined || next.basePercent !== undefined) break;
+    const on = next.on;
+    if (on === undefined || on.test !== 'improvement' || !isGreatPersonWork(on.improvement)) break;
+    const paid = VOICES.filter((voice) => (next[voice] ?? 0) !== 0);
+    if (paid.length !== 1) break;
+    const voice = paid[0]!;
+    const figure = next[voice] ?? 0;
+    if (amount === undefined) amount = figure;
+    else if (figure !== amount) break;
+    const name = improvementDef(on.improvement).name;
+    parts.push(`${voice} on ${indefinite(name)} ${ref('improvement', on.improvement, name)}`);
+    run += 1;
+  }
+  if (run < 3 || amount === undefined) return 0;
+  out.push({
+    text:
+      `${signed(amount)} on every ${tileConditionWords({ test: 'greatWork' })} — ` +
+      `${listWords(parts)}`,
+  });
+  return run;
+}
+
+/**
+ * **A run over the chairs** — The Compact of Chairs' three sentences as the one
+ * its ratified text is: *"The Order in your first military, economic and wildcard
+ * slot each pay twice."*
+ */
+function slotPositionFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
+  const head = effects[at];
+  if (head === undefined || head.kind !== 'slotPosition' || head.slot === undefined) return 0;
+  const slots: SlotType[] = [];
+  let run = 0;
+  while (at + run < effects.length) {
+    const next = effects[at + run];
+    if (next === undefined || next.kind !== 'slotPosition' || next.slot === undefined) break;
+    if (next.position !== head.position || next.factor !== head.factor) break;
+    if (slots.includes(next.slot)) break;
+    slots.push(next.slot);
+    run += 1;
+  }
+  if (run < 2) return 0;
+  out.push({
+    text:
+      `the Order in your ${ordinalWords(head.position)} ` +
+      `${listWords(slots.map((slot) => SLOT_WORDS[slot].toLowerCase()))} slot each ` +
+      `pays ${timesWords(head.factor)}`,
+  });
+  return run;
+}
+
+/**
+ * **A flat strength line and the scale on it** — Border Wardens' two clauses as
+ * one: *"+1 combat strength inside your territory, +1 more per military Order you
+ * have in a slot (at most +3)."*
+ *
+ * The two rows are one rule a player reads in one breath, and split they read
+ * worse than either half: the scaled clause repeated the whole condition after
+ * the count, so the sentence ended on "inside your territory" a second time and
+ * the *"more"* — the word that says this is an increment on the line above —
+ * was nowhere. The fold requires the same fight (`when`, `class`, `vsClass`,
+ * `side`), because two lines about different fights are two rules.
+ */
+function scaledCombatFold(effects: readonly CardEffect[], at: number, out: CardClause[]): number {
+  const flat = effects[at];
+  const scaled = effects[at + 1];
+  if (flat === undefined || flat.kind !== 'combatLine' || flat.scaled !== undefined) return 0;
+  if (scaled === undefined || scaled.kind !== 'combatLine' || scaled.scaled === undefined) return 0;
+  if (JSON.stringify(flat.when) !== JSON.stringify(scaled.when)) return 0;
+  if (JSON.stringify(flat.class) !== JSON.stringify(scaled.class)) return 0;
+  if (JSON.stringify(flat.vsClass) !== JSON.stringify(scaled.vsClass)) return 0;
+  if (flat.side !== scaled.side) return 0;
+  const scale = scaled.scaled;
+  const cap = scale.max === undefined ? '' : ` (at most ${signed(scale.max)})`;
+  const first: CardClause[] = [];
+  describeEffect(flat, first, 'empire');
+  const lead = first[0]?.text;
+  if (lead === undefined) return 0;
+  out.push({
+    text:
+      `${lead}, ${signed(scaled.amount)} more per ` +
+      `${countWords(scale.per, scaleNoun(scale))}${cap}`,
+  });
+  return 2;
 }
 
 /** Identical clauses, folded to one with a count. See `describeEffects`. */
@@ -274,7 +573,10 @@ function collapseClauses(clauses: readonly CardClause[]): CardClause[] {
  */
 export function describeCard(id: CardId): CardClause[] {
   const def: CardDefBase = anyCardDef(id);
-  const clauses: CardClause[] = describeEffects(def.effects);
+  // **The class becomes a word here, and only here** (batch L1): every clause
+  // below is worded against the subject the card's own class reads it against.
+  // See `ClauseSubject`.
+  const clauses: CardClause[] = describeEffects(def.effects, subjectOfCard(id));
   // **A completion grant is not an effect, and it still has to be printed.** It
   // happens once, at the moment the stones go up, so it is a field on the
   // building row rather than a shape in the vocabulary (`CompletionGrant`) — but
@@ -568,7 +870,12 @@ const REVOCATION_WORDS: Record<LegacyRevocation, string> = {
  * `switch` arm should hold and the dispatch reads better as a walk of the two
  * dimensions than as a nest of `if`s inside `describeEffect`.
  */
-function describePays(effect: CardPaysEffect, out: CardClause[]): void {
+function describePays(
+  effect: CardPaysEffect,
+  out: CardClause[],
+  subject: ClauseSubject,
+  voice?: string,
+): void {
   const basis = effect.basis ?? 'flat';
 
   if (basis === 'count') {
@@ -577,24 +884,19 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     // is how every ratified row states it and the only form a player can check
     // against the ledger. A bare "(at most 4)" beside "+2 production per …"
     // read as a cap of four production, which was wrong by half.
-    const cap = effect.max === undefined ? '' : ` (at most ${payoutWords(effect, effect.max)})`;
+    const cap =
+      effect.max === undefined ? '' : ` (at most ${payoutWords(effect, effect.max, voice)})`;
+    const place = countPlace(effect, subject);
     // A count that names a building says the building's own name — "per
     // Barracks", "per Temple" — rather than a stem in the table, because one
     // shape serves every such row and a table entry could only name one of
-    // them. `within` is printed where it changes the sentence's meaning.
-    const words = countNoun(effect);
-    const here =
-      effect.within === 'city' &&
-      effect.count !== undefined &&
-      !CITY_SCOPED_COUNTS.includes(effect.count)
-        ? ' in this city'
-        : '';
-    // **Where the figure lands**, printed where it is one town rather than the
-    // realm: a capital line said as a bare "+1 production" is a card that lies
-    // by omission, exactly as an unprinted `class` was. `empire` and `city`
-    // need no words — the first is what a payout says by default and the
-    // second is already carried by the town the line is printed beside.
-    const paidIn = effect.where === 'capital' ? ' in your capital' : '';
+    // them. The **town** the count is taken in rides in the noun, because
+    // English puts it in different places in different nouns — "building
+    // there", "combat unit standing there", "building there that supplies
+    // science" — see `countNoun`.
+    const words = countNoun(effect, place.counted);
+    // A count whose noun carries no town of its own takes the place as a tail.
+    const here = place.counted === '' || countNamesItsTown(effect) ? '' : ` ${place.counted}`;
     // **The counter's one condition, printed once.** A growing card pays for
     // what it has watched happen, and it only watches from a slot — so the
     // clause belongs beside the count rather than folded into five nouns, and
@@ -603,7 +905,7 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
       effect.count === 'tally' ? ', counted while this Order stands in a slot' : '';
     out.push({
       text:
-        `${payoutWords(effect)}${paidIn} per ${countWords(effect.per, words)}` +
+        `${payoutWords(effect, 1, voice)}${place.paidIn} per ${countWords(effect.per, words)}` +
         `${here}${cap}${counted}`,
     });
     return;
@@ -621,7 +923,7 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     out.push({
       text:
         `${effect.category} buildings supply ${effect.to} equal to their ` +
-        `${effect.from}, in ${cityScopeWords(effect.scope)}`,
+        `${effect.from}, in ${scopeWordsFor(subject, effect.scope)}`,
     });
     return;
   }
@@ -633,7 +935,7 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     // away, a share of it is paid a second time in another voice.
     out.push({
       text:
-        `${effect.percent}% of the ${effect.from} in ${cityScopeWords(effect.scope)} ` +
+        `${effect.percent}% of the ${effect.from} in ${scopeWordsFor(subject, effect.scope)} ` +
         `is gained again as ${effect.to}`,
     });
     return;
@@ -654,11 +956,16 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     // The percentage is its own clause, because it is a share of a *different*
     // number: the flat is what the card pays and this is what the works pay
     // half again of. Said as "the works on" so a player knows which half moved.
+    //
+    // **No "more" after a signed percent** (batch L1, §1c): "+100%" and "more"
+    // both signal an increase, and together they read as two of them — the user
+    // read "pays +100% more" as a quadrupling. The sign carries the direction
+    // and the noun carries what it is a share of.
     if (effect.percent !== undefined && effect.percent !== 0) {
       out.push({
         text:
           `the works on every ${tileConditionWords(on)} pay ` +
-          `${signed(effect.percent)}% more${whose}`,
+          `${signed(effect.percent)}%${whose}`,
       });
     }
     // The ground's share, its own clause for the works' reason exactly, and
@@ -671,7 +978,7 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
           effect.basePercent === 100
             ? `the ground of every ${tileConditionWords(on)} pays double${whose}`
             : `the ground of every ${tileConditionWords(on)} pays ` +
-              `${signed(effect.basePercent)}% more${whose}`,
+              `${signed(effect.basePercent)}%${whose}`,
       });
     }
     return;
@@ -691,11 +998,23 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     // beakers and songs. It is a sentence about what the road *already*
     // carries, so it cannot be folded into the flat's phrase; a row that says
     // both prints both, in the order the fold applies them.
+    //
+    // **Voices at one percentage are one clause** (batch L1, §1c): the row
+    // carries a list because the fold multiplies voice by voice, and a player
+    // reading two sentences that differ in one word is reading one rule twice.
+    // The figure leads, and it drops the "more" the signed percent already
+    // says — see the works' clause above.
+    const shares: { percent: number; voices: string[] }[] = [];
     for (const share of effect.share ?? []) {
       if (share.percent === 0) continue;
       const voice = share.yield === 'all' ? 'everything' : share.yield;
+      const held = shares.find((group) => group.percent === share.percent);
+      if (held === undefined) shares.push({ percent: share.percent, voices: [voice] });
+      else held.voices.push(voice);
+    }
+    for (const group of shares) {
       out.push({
-        text: `${routeWhose(effect)} pays ${signed(share.percent)}% more ${voice}`,
+        text: `${signed(group.percent)}% ${listWords(group.voices)} on ${routeWhose(effect)}`,
       });
     }
     if (!words) return;
@@ -718,11 +1037,65 @@ function describePays(effect: CardPaysEffect, out: CardClause[]): void {
     out.push({ text: `${words} to the empire` });
     return;
   }
-  out.push({ text: `${words} in ${cityScopeWords(effect.scope)}` });
+  out.push({ text: `${words} in ${scopeWordsFor(subject, effect.scope)}` });
+}
+
+/**
+ * **Where a counted line's town is said, and in which words** — the whole of the
+ * subject rule at the one clause that needed it (batch L1, §1b).
+ *
+ * Two phrases, because a counted line names two towns and they are not always
+ * the same one: `paidIn` trails the *payout* ("+1 science **in every city**")
+ * and `counted` says where the *count* is taken ("per building **there**").
+ *
+ * The three readings a row can carry, and they are the three the evaluator
+ * already distinguishes:
+ *
+ *   · `where: 'city'` — every town pays for its own. The realm leads and the
+ *     count trails as "there", so a player reads the promise once per town;
+ *   · `where: 'capital'` — one town pays for its own. "In your capital … there";
+ *   · `where: 'empire'` with a town-scoped count — the realm pays once for the
+ *     sum over its towns, so nothing leads and the count says "in your cities".
+ *
+ * A `'here'` subject short-circuits all three: the clause is printed beside the
+ * town it is about, so it says "in this city" once, at the end, exactly as it
+ * always has.
+ */
+interface CountPlace {
+  /** Trails the payout. `" in every city"`, `" in your capital"`, `""`. */
+  paidIn: string;
+  /** The town the count is taken in. `"there"`, `"in your cities"`, `""`. */
+  counted: string;
+}
+
+function countPlace(effect: CardPaysEffect, subject: ClauseSubject): CountPlace {
+  // **Is *this line* asked of a town?** `isCityScopedCount`'s question on the
+  // words' side of the wall, and the same two clauses: a count that can only
+  // ever be asked of a town, or a line narrowing one that could be asked either
+  // way (`within`).
+  const cityScoped =
+    effect.within === 'city' ||
+    (effect.count !== undefined && CITY_SCOPED_COUNTS.includes(effect.count));
+  // **Where the figure lands**, printed where the row narrows it: a capital line
+  // said as a bare "+1 production" is a card that lies by omission, and so — at
+  // the draft — is a per-town line that never says how many towns there are.
+  const paidIn =
+    effect.where === 'capital'
+      ? ' in your capital'
+      : effect.where === 'city' && subject !== 'here'
+        ? ` in ${scopeWordsFor(subject, effect.scope)}`
+        : '';
+  if (!cityScoped) return { paidIn, counted: '' };
+  if (subject === 'here') return { paidIn, counted: 'in this city' };
+  return { paidIn, counted: effect.where === 'empire' ? 'in your cities' : 'there' };
 }
 
 /** The one place an effect becomes a sentence. Every arm, no default silence. */
-function describeEffect(effect: CardEffect, out: CardClause[]): void {
+function describeEffect(
+  effect: CardEffect,
+  out: CardClause[],
+  subject: ClauseSubject = 'empire',
+): void {
   const kind = effect.kind;
   switch (kind) {
     // **The one shape that pays a voice** (batch E5). Eight arms until the
@@ -731,12 +1104,12 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     // the five clauses below are those eight sentences unchanged, chosen by the
     // row's own two dimensions rather than by eight names for them.
     case 'pays':
-      describePays(effect, out);
+      describePays(effect, out, subject);
       return;
     case 'percentYields': {
       const voice = effect.yield === 'all' ? 'all yields' : effect.yield;
       out.push({
-        text: `${signed(effect.percent)}% ${voice} in ${cityScopeWords(effect.scope)}`,
+        text: `${signed(effect.percent)}% ${voice} in ${scopeWordsFor(subject, effect.scope)}`,
       });
       return;
     }
@@ -784,7 +1157,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     case 'rulePercent':
       out.push({
         text:
-          `${signed(effect.percent)}% ${RULE_WORDS[effect.rule]}` +
+          RULE_WORDS[effect.rule](effect.percent) +
           // A rate that names towns says which, for `cityYields`' reason: an
           // unqualified "of the stored food kept when a city grows" reads as a
           // law of the realm, and Common Table is a law of one congregation.
@@ -801,7 +1174,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
           effect.building !== undefined
             ? `${buildingName(effect.building)}s supply ${signed(effect.amount)} happiness`
             : `${signed(effect.amount)} happiness` +
-              (effect.per === 'city' ? ` in ${cityScopeWords(effect.scope)}` : ''),
+              (effect.per === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)}` : ''),
       });
       return;
     case 'authority':
@@ -963,7 +1336,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         // *what happens* first and *how long* second — a rite's label does the
         // same thing from the other end.
         const inner: CardClause[] = [];
-        for (const nested of grant.timed.effects) describeEffect(nested, inner);
+        for (const nested of grant.timed.effects) describeEffect(nested, inner, subject);
         const turns = Math.max(1, grant.timed.turns);
         // **A bill and a blessing are the same shape and not the same
         // sentence.** Crassus hangs a penalty on the realm and The Triumphal Way
@@ -1025,8 +1398,12 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     case 'foundingRider': {
       const limit = effect.maxCities === undefined ? '' : ` (first ${effect.maxCities} cities)`;
       if (effect.population !== undefined) {
+        // "Citizens", never "population" (batch L1, §1b): the Compendium's word
+        // for a town's people is the one every clause uses now, and a figure
+        // quoted in it is a figure a player can point at on the city panel.
+        const people = effect.population;
         out.push({
-          text: `new cities start ${effect.population} population larger${limit}`,
+          text: `new cities start ${people} ${people === 1 ? 'citizen' : 'citizens'} larger${limit}`,
         });
       }
       if (effect.building !== undefined) {
@@ -1099,7 +1476,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     }
     case 'conditionRule': {
       const inner: CardClause[] = [];
-      for (const nested of effect.then) describeEffect(nested, inner);
+      for (const nested of effect.then) describeEffect(nested, inner, subject);
       out.push({
         text: `${CONDITION_WORDS[effect.when.test]}${conditionValue(effect.when)}: ${inner
           .map((clause) => clause.text)
@@ -1109,7 +1486,11 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     }
     case 'cityStat':
       out.push({
-        text: `${cityScopeWords(effect.scope)}: ${signed(effect.amount)} ${
+        // **The subject, not "every city"** (batch L1): the Great Wall's five
+        // points of defence stand in the town that holds the stones and a
+        // Blessing of Arms in the town keeping the rite, and both said "every
+        // city" until the class supplied the word. See `scopeWordsFor`.
+        text: `${scopeWordsFor(subject, effect.scope)}: ${signed(effect.amount)} ${
           effect.stat === 'defense' ? 'city defence' : 'city sight'
         }`,
       });
@@ -1154,7 +1535,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // that gives strength and a card that gives strength read the same and a
       // second shape added to the bag prints itself here. The duration trails,
       // because "for three turns" is the half a player has to plan around.
-      const inner = describeEffects(effect.effects)
+      const inner = describeEffects(effect.effects, subject)
         .filter((clause) => clause.deferred !== true)
         .map((clause) => clause.text);
       if (inner.length === 0) return;
@@ -1310,7 +1691,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // "one more, on every line the other cards pay" and the share is "worth
       // half again". A row carrying both prints both, in that order.
       const voice = effect.yield === 'all' ? 'a yield' : effect.yield;
-      const where = effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope)}`;
+      const where = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
       if ((effect.amount ?? 0) !== 0) {
         out.push({
           text:
@@ -1328,11 +1709,12 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
     case 'buildingYieldPercent': {
       const voice = effect.yield === undefined || effect.yield === 'all' ? '' : ` ${effect.yield}`;
       const last = effect.appliedLast === true ? ', counted after every other bonus on them' : '';
-      const where = effect.scope === undefined ? '' : ` in ${cityScopeWords(effect.scope)}`;
+      const where = effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
+      // No "more" after a signed percent — see the works' clause in `describePays`.
       out.push({
         text:
           `your ${buildingClassWords(effect)} pay ${signed(effect.percent)}%` +
-          ` more${voice}${where}${last}`,
+          `${voice}${where}${last}`,
       });
       return;
     }
@@ -1353,7 +1735,8 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         return;
       }
       const each = effect.amount ?? 1;
-      const noun = countWords(effect.per, countNoun(periodicProbe(effect)));
+      const probe = periodicProbe(effect);
+      const noun = countWords(effect.per, countNoun(probe, countPlace(probe, subject).counted));
       out.push({ text: `${when}, ${each} ${what} for every ${noun}` });
       return;
     }
@@ -1370,10 +1753,14 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         // share of everything the realm earns every turn and has no town to name,
         // so a sentence that named one would be the town-scoped share's words
         // said about the wrong subject. See `CardCityRenownPercentEffect.where`.
+        // The figure **leads** in both, since batch L1: dropping the "more" a
+        // signed percent already says left "earns +50% renown", which reads as
+        // half the renown rather than half again. Said as the modifier it is,
+        // in the shape every other percentage clause on a card is said in.
         text:
           effect.where === 'empire'
             ? `${signed(effect.percent)}% renown`
-            : `${cityScopeWords(effect.scope)} earns ${signed(effect.percent)}% more renown`,
+            : `${signed(effect.percent)}% renown in ${scopeWordsFor(subject, effect.scope)}`,
       });
       return;
     case 'beadPerOccasion': {
@@ -1599,7 +1986,26 @@ function slotFlavourWords(flavour: SlotType): PluralWords {
  * name* for the one count that takes an argument — so "+1 happiness per
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
-function countNoun(effect: CardPaysEffect): PluralWords {
+function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  // **The town the count is taken in, where the noun carries one** (batch L1).
+  // Eight counts can only ever be asked of a town, and each of them wrote the
+  // town into its own words — "building in this city", "combat unit standing in
+  // the city", "unimproved hex worked here" — which is right for a building and
+  // wrong for every card read at the draft. The place is composed in rather
+  // than looked up because English puts it in a different position in each of
+  // them, and a table of stems plus a tail would have printed "building that
+  // supplies science there". See `TOWN_COUNT_WORDS`.
+  if (place !== '' && place !== 'in this city' && effect.count !== undefined) {
+    const town = TOWN_COUNT_WORDS[effect.count];
+    if (town !== undefined) return town(place);
+  }
+  // The capital's own people, said once. `where: 'capital'` already names the
+  // town the figure lands in, and "in your capital per 2 citizens in your
+  // capital" is the plumbing showing through Fire Keepers — whose ratified text
+  // says "for every 2 citizens living there".
+  if (effect.count === 'capitalPopulation' && effect.where === 'capital') {
+    return { one: 'citizen there', many: 'citizens there' };
+  }
   if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
     // Marked in **both** numbers: the plural is composed off the plain name and
     // then wrapped, so "per Library" and "per Libraries" are one link with two
@@ -1665,6 +2071,56 @@ function countNoun(effect: CardPaysEffect): PluralWords {
     return TALLY_WORDS[effect.tally];
   }
   return effect.count === undefined ? EMPTY_WORDS : COUNT_WORDS[effect.count];
+}
+
+/**
+ * The eight town-scoped counts, said of a town the clause has to **name** —
+ * `COUNT_WORDS`' entries with the place taken out and put back where each
+ * sentence wants it (batch L1, §1b).
+ *
+ * Formatters rather than stems for `PRESSURE_RULE_WORDS`' reason exactly: the
+ * place goes after "building", inside "building … that supplies science", and
+ * after the participle in "combat unit standing …", and one shared tail would
+ * have printed at most one of the three correctly.
+ *
+ * The argument is `countPlace`'s `counted` — "there" for a line paid town by
+ * town, "in your cities" for one the realm is paid once for. A `'here'` subject
+ * never reaches this table: its clause is printed beside the town it is about
+ * and keeps `COUNT_WORDS`' own words, which is why those still say "this city".
+ */
+const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> = {
+  buildingsInCity: (at) => ({ one: `building ${at}`, many: `buildings ${at}` }),
+  workedTilesInCity: (at) => ({ one: `hex worked ${at}`, many: `hexes worked ${at}` }),
+  workedUnimprovedTiles: (at) => ({
+    one: `unimproved hex worked ${at}`,
+    many: `unimproved hexes worked ${at}`,
+  }),
+  workedHills: (at) => ({ one: `worked hill hex ${at}`, many: `worked hill hexes ${at}` }),
+  scienceBuildings: (at) => ({
+    one: `building ${at} that supplies science`,
+    many: `buildings ${at} that supply science`,
+  }),
+  garrison: (at) => ({
+    one: `combat unit standing ${at}`,
+    many: `combat units standing ${at}`,
+  }),
+  garrisonWatch: (at) => ({
+    one: `fortification level among the units ${at}`,
+    many: `fortification levels among the units ${at}`,
+  }),
+  defensiveBuildings: (at) => ({ one: `fortification ${at}`, many: `fortifications ${at}` }),
+};
+
+/**
+ * Does this count's own noun name a town? See `TOWN_COUNT_WORDS`.
+ *
+ * The one question the counted clause asks before it appends a place: a count
+ * that says where it is taken says it once, and a count that does not — a
+ * town's citizens, its luxuries, its production houses — takes the place as a
+ * tail.
+ */
+function countNamesItsTown(effect: CardPaysEffect): boolean {
+  return effect.count !== undefined && TOWN_COUNT_WORDS[effect.count] !== undefined;
 }
 
 /**
@@ -1770,12 +2226,15 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       into.qualifiers.push('on hills');
       return;
     case 'populationAtLeast':
-      into.qualifiers.push(`of ${scope.value}+`);
+      // **"of 6 or more citizens", never "of 6+"** (batch L1, §1c): the shorthand
+      // is the city panel's, where a size sits beside a label that says what it
+      // counts, and inside a sentence it is a figure with no noun on it.
+      into.qualifiers.push(`of ${scope.value} or more citizens`);
       return;
     case 'populationAtMost':
-      // "of 4 or less", not "of −4": the threshold reads downward and a sign
-      // would have printed a size nobody can have.
-      into.qualifiers.push(`of ${scope.value} or less`);
+      // The same threshold read downward — never "of −4", which would print a
+      // size nobody can have.
+      into.qualifiers.push(`of ${scope.value} or fewer citizens`);
       return;
     case 'holding':
       into.qualifiers.push(
@@ -2003,14 +2462,18 @@ function filterWords(filter: UnitFilter): string {
  * and it is the difference between a card that raises the ceiling and one that
  * would appear to hand out writ.
  */
-function payoutWords(effect: CardPaysEffect, times = 1): string {
+function payoutWords(effect: CardPaysEffect, times = 1, voice?: string): string {
   // `stage` is the discriminant of a count's percentage payout — see
   // `CardPaysEffect`. Everything else is a flat figure, and the only one of
   // those that is not said in its own name is the writ.
   if (effect.stage !== undefined) {
-    return `${signed((effect.percent ?? 0) * times)}% ${effect.to ?? ''}`;
+    return `${signed((effect.percent ?? 0) * times)}% ${voice ?? effect.to ?? ''}`;
   }
   const figure = signed((effect.amount ?? 0) * times);
+  // The **folded** voice, where a run of siblings paid the same figure on every
+  // one of them: "of every yield" stands in for the six names — see
+  // `everyVoiceFold`. Asked before the writ, because a fold names its own words.
+  if (voice !== undefined) return `${figure} ${voice}`;
   if (effect.to === 'authority') return `${figure} authority capacity`;
   return `${figure} ${effect.to ?? ''}`;
 }
@@ -2141,16 +2604,53 @@ export function tileConditionWords(on: TileCondition): string {
   return [...phrase.adjectives, 'hex', ...phrase.qualifiers].join(' ');
 }
 
-const RULE_WORDS: Record<CardRule, string> = {
-  happinessDemand: 'happiness demanded per citizen',
-  borderCost: 'culture for the next border hex',
-  growthCarryover: 'of the stored food kept when a city grows',
-  tilePurchase: 'the price of buying a hex',
-  borderCulture: 'border expansion',
-  settlerCost: 'the production a settler costs',
-  growthSurplus: 'food surplus stored toward growth',
-  unitUpkeep: 'the gold your units cost in maintenance',
-  roadStepCost: 'the movement one step along a road costs',
+/**
+ * The nine rules a percentage may bend, in words — **formatters**, since batch
+ * L1 (`docs/audit/legibility.md` §1c).
+ *
+ * A stem table printed "−100% the gold your units cost in maintenance" and
+ * "−40% the movement one step along a road costs", and the user read both
+ * backwards: a *saving* stated as a negative percentage on a cost is two
+ * inversions in one phrase, and the reader has to undo both before the card
+ * means anything. So the four rules that name a **price** say what the player
+ * gets — "your units cost no gold in maintenance", "roads carry units 40%
+ * further" — and the five that name a *gain* keep the figure in front, which is
+ * how a bonus has always read.
+ *
+ * `PRESSURE_RULE_WORDS`' bargain one system over, and for its reason exactly:
+ * these nine do not take the same sentence, and the one that reads backwards is
+ * the one a shared stem would print wrong.
+ */
+const RULE_WORDS: Record<CardRule, (percent: number) => string> = {
+  happinessDemand: (percent) => `${signed(percent)}% happiness demanded per citizen`,
+  borderCost: (percent) => `${signed(percent)}% culture for the next border hex`,
+  growthCarryover: (percent) => `${signed(percent)}% of the stored food kept when a city grows`,
+  // A price, said as the saving. "−25% the price of buying a hex" is a discount
+  // written as a negative bonus on a cost; this is the sentence a player acts on.
+  tilePurchase: (percent) =>
+    percent < 0
+      ? `a hex costs ${-percent}% less to buy`
+      : `a hex costs ${percent}% more to buy`,
+  borderCulture: (percent) => `${signed(percent)}% border expansion`,
+  settlerCost: (percent) =>
+    percent < 0
+      ? `settlers cost ${-percent}% less production`
+      : `settlers cost ${percent}% more production`,
+  growthSurplus: (percent) => `${signed(percent)}% food surplus stored toward growth`,
+  // **"No maintenance" at the whole rebate**, because that is what −100% is and
+  // "−100% the gold your units cost" is a sentence a player has to do algebra on.
+  unitUpkeep: (percent) =>
+    percent <= -100
+      ? 'your units cost no gold in maintenance'
+      : percent < 0
+        ? `your units cost ${-percent}% less gold in maintenance`
+        : `your units cost ${percent}% more gold in maintenance`,
+  // Said as the **distance**, not as the price: a cheaper step is further
+  // marching, and that is the half a player plans around.
+  roadStepCost: (percent) =>
+    percent < 0
+      ? `roads carry units ${-percent}% further`
+      : `roads carry units ${percent}% less far`,
 };
 
 const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
@@ -2383,10 +2883,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'improved strategic resources',
   },
   cities: { one: 'city you hold', many: 'cities you hold' },
-  population: { one: 'population', many: 'population' },
+  // **"Citizens", never "population"** (batch L1, §1b): the city panel, the
+  // Compendium and every ratified text call a town's people citizens, and
+  // "per 4 population" was the schema's word for them leaking onto a card.
+  population: { one: 'citizen', many: 'citizens' },
   capitalPopulation: {
-    one: 'population in your capital',
-    many: 'population in your capital',
+    one: 'citizen in your capital',
+    many: 'citizens in your capital',
   },
   // `garrisonOf` keeps only combatants, and the words say so.
   garrison: { one: 'combat unit standing in the city', many: 'combat units standing in the city' },
@@ -2566,12 +3069,16 @@ const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
   riteDuration: (percent) => `rites last ${signed(percent)}% longer`,
-  routeYields: (percent) => `trade routes pay ${signed(percent)}% more`,
+  // **No "more" after a signed percent** (batch L1, §1c) — the sign already says
+  // the direction, and "pays +100% more" read as a quadrupling.
+  routeYields: (percent) => `trade routes pay ${signed(percent)}%`,
   founderTrickle: (percent) =>
     `what your followers pay you is ${signed(percent)}% higher`,
-  greatPersonAct: (percent) => `a great person's act pays ${signed(percent)}% more`,
-  connectionYields: (percent) => `city connections pay ${signed(percent)}% more`,
-  triumphRenown: (percent) => `every Triumph pays ${signed(percent)}% more renown`,
+  greatPersonAct: (percent) => `a great person's act pays ${signed(percent)}%`,
+  connectionYields: (percent) => `city connections pay ${signed(percent)}%`,
+  // The figure leads, for `cityRenownPercent`'s reason: "pays +100% renown"
+  // reads as the whole payout rather than as the share added to it.
+  triumphRenown: (percent) => `${signed(percent)}% renown from every Triumph`,
 };
 
 /**

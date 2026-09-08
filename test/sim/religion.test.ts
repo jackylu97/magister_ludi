@@ -2914,8 +2914,10 @@ describe('the ratified religion rows', () => {
     // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
     // converted in a turn or two anyway), and the faith clause cut with it, so
     // the row prints only what it still pays whoever holds it in a save.
+    // "Citizen", not "population" (batch L1, §1b): the schema's word for a
+    // town's people never belonged on a card.
     expect(said('thePromisedLand')).toEqual([
-      'new cities start 1 population larger',
+      'new cities start 1 citizen larger',
     ]);
     // The widened condition in the describer's own words: one qualifier made of
     // the whole list, with the article on the first name only — `anyFeature`'s

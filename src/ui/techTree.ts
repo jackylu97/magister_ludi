@@ -146,7 +146,7 @@ import { unitDef } from '../sim/unitData';
 import { HAMMER, PROJECT_GLYPHS, YIELD_GLYPH, turnsLabel } from './figures';
 import { setYieldText } from './yieldMark';
 import { createInfoCard } from './infoCard';
-import { keywordNode } from './keywords';
+import { keywordNode, setDescriptorText } from './keywords';
 import {
   PACK_GAP_MAX,
   PACK_GAP_MIN,
@@ -978,10 +978,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * One line of delegation, and the module it delegates to is the point:
    * `techRuleClauses` is the *one* answer to this question, and the Compendium's
    * technology shelf asks the same function — so the card and the book cannot
-   * come to say different things about the same node. It prefers the row's own
-   * `note` over `describeCard`'s generated sentences, which is the playtest
-   * ruling of 2026-09-03; see that module's docblock for why a generated clause
-   * is the wrong shape for a paragraph somebody wrote first.
+   * come to say different things about the same node.
+   *
+   * What it returns changed in batch L1 (`docs/audit/legibility.md` §2): the
+   * **generated rules**, with their figures in them, rather than the row's
+   * numberless `note` — and, for a node whose rules run past the card's bar, one
+   * *named rule* as a keyword ref into the Compendium's Rules shelf. The note
+   * did not disappear; it moved under the rules in the book.
    */
   function techEffectClauses(gift: TechGift & { kind: 'techEffect' }): string[] {
     return techRuleClauses(gift.id);
@@ -1109,7 +1112,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
           const ruleMark = element('span', `info-card-mark ${GIFT_MARK[gift.kind]}`);
           setYieldText(ruleMark, gift.glyph);
           ruleRow.append(ruleMark);
-          ruleRow.append(element('span', 'info-card-gift-note', clause));
+          // **A descriptor, not a text node** (batch L1): a rule's clause carries
+          // the vocabulary's own keyword marks — a building it names, and, where
+          // the node's rules ran past the bar, the *named rule* itself, which is
+          // a `[[rule:…]]` ref into the Compendium. This card is sticky, so the
+          // keyword is live here exactly as the gift names beneath it are.
+          const note = element('span', 'info-card-gift-note');
+          setDescriptorText(note, clause);
+          ruleRow.append(note);
           list?.append(ruleRow);
         }
         continue;

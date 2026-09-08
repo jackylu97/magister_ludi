@@ -72,7 +72,14 @@ import {
   PAMPHLET_PAGES,
   pamphletEntry,
 } from '../../src/ui/pamphlet';
-import { techRuleClauses, techsAwaitingRuleNotes } from '../../src/ui/techRuleWords';
+import {
+  techRuleClauses,
+  techRuleFullClauses,
+  techRuleIsNamed,
+  techRuleName,
+  techsAwaitingRuleNotes,
+  techsWithNamedRules,
+} from '../../src/ui/techRuleWords';
 
 const BOOK = compendiumSections();
 
@@ -183,11 +190,14 @@ describe('the shelves', () => {
     }
   });
 
-  it('has seventeen of them, every one with something on it', () => {
+  it('has eighteen of them, every one with something on it', () => {
     // The index the brief names, plus the Bead Race's — the seventeenth, added
-    // with the win condition. A shelf that came back empty would be a section
-    // heading a reader clicks and learns nothing from.
-    expect(BOOK).toHaveLength(17);
+    // with the win condition — plus **Rules**, the eighteenth (batch L1,
+    // `docs/audit/legibility.md` §2): the page a technology's named rule points
+    // at when its rules will not fit on a node. A shelf that came back empty
+    // would be a section heading a reader clicks and learns nothing from, which
+    // is what pins the Rules shelf to having a node over the bar.
+    expect(BOOK).toHaveLength(18);
     for (const section of BOOK) {
       expect(section.name.length, section.id).toBeGreaterThan(0);
       expect(section.entries.length, section.id).toBeGreaterThan(0);
@@ -907,14 +917,21 @@ describe('never hand-written prose about a number', () => {
 });
 
 /**
- * **The card and the book say the same words** (the playtest notes, 2026-09-03).
+ * **The card and the book say the same words** (the playtest notes, 2026-09-03),
+ * and since batch L1 they say a **rule** rather than a paragraph.
  *
- * The user's complaint was that a node's effects were unreadable — "I'm having
- * trouble understanding what the effects are and I designed the technologies" —
- * and the fix was to prefer the row's own hand-written `note` over
- * `describeCard`'s generated sentences. What makes that a *fix* rather than a
- * second wording is that both surfaces read one function, which is what this
- * block holds.
+ * The user's first complaint was that a node's effects were unreadable — "I'm
+ * having trouble understanding what the effects are and I designed the
+ * technologies" — and the answer then was to prefer the row's hand-written
+ * `note`. The second complaint (2026-09-08, `docs/audit/legibility.md` §2) was
+ * that a note has **no numbers in it**, because hard rule 7 forbids them in
+ * prose: *"every city joined to your capital pays one more gold"* is a sentence
+ * where a player wanted a figure. So the face is the generated rules again, the
+ * note moved under them in the book, and a node whose rules run past the bar
+ * prints one **named rule** into the Rules shelf.
+ *
+ * What makes any of it a fix rather than a second wording is unchanged: both
+ * surfaces read one function, which is what this block holds.
  */
 describe('a technology says its rules once', () => {
   /** Every node that carries rules at all — the only ones with a clause here. */
@@ -922,19 +939,29 @@ describe('a technology says its rules once', () => {
     return TECH_IDS.filter((id) => (techDef(id).effects ?? []).length > 0);
   }
 
-  it('prints the row\u2019s own note, one sentence per clause', () => {
+  it('prints the generated rules, one to a clause, with their figures in them', () => {
     const nodes = ruleNodes();
     expect(nodes.length, 'the sweep is not vacuous').toBeGreaterThan(0);
+    let numbered = 0;
     for (const id of nodes) {
-      const note = techDef(id).note;
-      if (note === undefined) continue;
       const said = techRuleClauses(id);
-      // Every sentence of the note is a clause of its own, and nothing has been
-      // added to it or taken away: the join is the note back again.
       expect(said.length, id).toBeGreaterThan(0);
-      expect(said.join(' '), id).toBe(note.trim());
-      for (const clause of said) expect(clause, id).not.toContain('[[');
+      // A node under the bar prints its own rules; one over it prints exactly
+      // one clause, and that clause is the named rule's keyword ref.
+      if (techRuleIsNamed(id)) {
+        expect(said, id).toEqual([`[[rule:${id}|${techRuleName(id)}]]`]);
+        continue;
+      }
+      expect(said, id).toEqual(techRuleFullClauses(id));
+      // The note is no longer the face: a node that has both prints the rules,
+      // and they are not the paragraph.
+      const note = techDef(id).note;
+      if (note !== undefined) expect(said.join(' '), id).not.toBe(note.trim());
+      if (/\d/.test(said.join(' '))) numbered += 1;
     }
+    // The whole point of the reversal: most of these faces now carry a figure,
+    // which a note by hard rule 7 never could.
+    expect(numbered).toBeGreaterThan(nodes.length / 2);
   });
 
   it('lays those clauses out one to a line on the shelf', () => {
@@ -952,10 +979,57 @@ describe('a technology says its rules once', () => {
     }
   });
 
+  it('keeps the row’s paragraph, under the rules, on every node that has one', () => {
+    const entries = shelf('tech').entries;
+    for (const id of TECH_IDS) {
+      const note = techDef(id).note;
+      if (note === undefined) continue;
+      const entry = entries.find((row) => row.id === compendiumId('tech', id))!;
+      const prose = entry.clauses.filter((clause) => clause.note === true);
+      // Every sentence of the note is a clause of its own, and nothing has been
+      // added to it or taken away: the join is the note back again.
+      expect(prose.map((clause) => clause.text).join(' '), id).toBe(note.trim());
+      // And it stands **under** the rules, never in front of them.
+      const first = entry.clauses.findIndex((clause) => clause.note === true);
+      expect(first, id).toBe(entry.clauses.length - prose.length);
+    }
+  });
+
+  it('gives a name and a page to every node whose rules run past the bar', () => {
+    const named = techsWithNamedRules(TECH_IDS);
+    // The five the audit measured (§2), and no others: the bar is a decision
+    // this suite holds rather than a threshold that drifts with the wording.
+    expect(named).toEqual([
+      'epicPoetry',
+      'theImperialPost',
+      'theExaminationHall',
+      'theSilkRoad',
+      'movableType',
+    ]);
+    const entries = shelf('rule').entries;
+    for (const id of named) {
+      const entry = entries.find((row) => row.id === compendiumId('rule', id));
+      expect(entry, id).toBeDefined();
+      expect(entry!.name, id).toBe(techRuleName(id));
+      // The page carries the **whole** rule — every clause the node card could
+      // not fit — and names the technology it comes from.
+      const texts = entry!.clauses.map((clause) => clause.text);
+      for (const clause of techRuleFullClauses(id)) expect(texts, id).toContain(clause);
+      expect(
+        entry!.rows.map((one) => one.figures),
+        id,
+      ).toContain(techDef(id).name);
+    }
+    // A node under the bar has no page of its own: the rule is on the node.
+    expect(entries.filter((entry) => entry.id !== `rule:${SHELF_INTRO_KEY}`)).toHaveLength(
+      named.length,
+    );
+  });
+
   it('has a written note for every node that carries rules', () => {
-    // The fallback exists and is correct, but a generated sentence is what the
-    // user could not read — so a row landing here is a paragraph somebody owes,
-    // and the list is how that stays visible instead of being found in play.
+    // The rules print with or without one, but a paragraph is what says *why* —
+    // so a row landing here is one somebody owes, and the list is how that stays
+    // visible instead of being found in play.
     expect(techsAwaitingRuleNotes(TECH_IDS)).toEqual([]);
   });
 });

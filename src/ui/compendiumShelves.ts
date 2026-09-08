@@ -99,6 +99,11 @@ export const SHELF_INTROS: Partial<Record<CompendiumSectionId, CompendiumEntry>>
     'You choose what to research on the research screen. A technology that requires others queues those ahead of it automatically. Technologies are grouped into ages, written here as Æra I, Æra II and Æra III; your empire enters the next age once it holds enough of the current one, which changes unit prices, the look of your cities, and which great people are offered.',
     'Each entry below gives a technology’s research cost, what it requires first, and everything it hands over.',
   ]),
+  rule: lead('rule', 'About named rules', '§', [
+    'Most technologies hand over a thing — a unit, a building, an improvement — and a few hand over a rule instead: something about your empire that is true from the moment the technology is finished, for the rest of the game.',
+    'A short rule is printed on the technology itself, on the star chart and on its page here. A long one would not fit on a node, so it is given a name, the name is printed on the node in bold, and the whole of it is written down on this shelf. The name is the technology’s own.',
+    'Each entry below gives the rule in full, says which technology brings it, and explains in ordinary words what it is for.',
+  ]),
   order: lead('order', 'About Orders', '❧', [
     'An Order is a policy card. Culture is what earns them: when enough has accumulated a draft opens, the game offers a small hand of Orders, and you keep the one you pick.',
     'An Order does nothing while it sits in your collection. You place it in one of your government’s slots on the Statecraft screen, and it works for exactly as long as it stays there. Slots are military, economic or wildcard; a card fits a slot of its own kind, and a wildcard slot takes any card. A newly placed Order is locked for a few turns, meaning it cannot be moved yet.',

@@ -605,8 +605,30 @@ export interface TechDef {
    * words. Printed as an honest caveat, exactly as a card's is.
    */
   deferred?: string[];
-  /** What the node's rules mean, in plain words. Printed under the gifts. */
+  /**
+   * What the node's rules mean, in plain words — the Compendium's prose
+   * paragraph beneath the rules.
+   *
+   * **Not the face**, since batch L1 (`docs/audit/legibility.md` §2, reversing
+   * half of the 2026-09-03 ruling): a note is hard-rule-7 prose with no numbers
+   * in it, and *"every city joined to your capital pays one more gold"* is
+   * exactly the sentence a player wanted a rule instead of. The star chart
+   * prints the generated clauses; this stands under them in the book, where
+   * there is room for the reason as well as the figure.
+   */
   note?: string;
+  /**
+   * What this node's rule is **called**, where the tech's own name is the wrong
+   * word for it (batch L1, §2).
+   *
+   * A node whose rules run past the star chart's bar prints one named rule — a
+   * keyword ref into the Compendium's Rules shelf — and the name is the
+   * technology's unless a row says otherwise. Optional, and no row carries one
+   * today: it is here so that a node whose *rule* has a name of its own in the
+   * fiction ("The King's Road" on a technology called something else) can say
+   * so without the describer growing a table of exceptions.
+   */
+  ruleName?: string;
 }
 
 export interface TechData {

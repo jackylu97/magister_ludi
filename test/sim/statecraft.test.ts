@@ -2596,8 +2596,13 @@ describe('the master-list cut of 2026-08-28', () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
 
+    // Re-aimed by batch L1 (`docs/audit/legibility.md` §1b): a government pays
+    // in **every** city, and the count is that town's own citizens — the words
+    // the ratified text always used ("+1 culture for each 5 population in a
+    // city"), which the generated clause said as "in this city" until the
+    // describer took its subject from the card's class.
     expect(said('republic')).toEqual([
-      '+1 culture per 5 population in this city',
+      '+1 culture in every city per 5 citizens there',
       '-5% happiness demanded per citizen',
     ]);
     // Re-ratified by the user's Governments marks of 2026-09-08 (batch B1b):
@@ -2610,8 +2615,9 @@ describe('the master-list cut of 2026-08-28', () => {
       'pillaging costs your units no movement',
       // Built by the 2026-08-28 pass: unit maintenance exists now (`upkeep.ts`),
       // so the clause is a `rulePercent` on the eighth `CardRule` rather than a
-      // sentence struck through.
-      '-30% the gold your units cost in maintenance',
+      // sentence struck through. Re-said by batch L1 (§1c): a saving stated as a
+      // negative percentage on a cost is two inversions in one phrase.
+      'your units cost 30% less gold in maintenance',
     ]);
     // The same marks: a fifth of the capital's faith where it was a tenth.
     expect(said('theocracy')).toEqual([
@@ -2624,11 +2630,16 @@ describe('the master-list cut of 2026-08-28', () => {
     // slotted beside it.
     expect(said('merchantLeague')).toEqual([
       '+2 gold per economic Order you have in a slot',
-      'trade routes pay +50% more',
+      // Batch L1 (§1c): a signed percent never takes "more" — the sign and the
+      // word both say increase, and "pays +50% more" read as one increase too
+      // many.
+      'trade routes pay +50%',
       '+1 trade route',
     ]);
     expect(said('imperium')).toEqual([
-      '+1 production per military Order you have in a slot',
+      // Batch L1 (§1b): the line is paid town by town (`where: 'city'`), so it
+      // says how many towns.
+      '+1 production in every city per military Order you have in a slot',
       'all units: +1 movement',
       'capturing a city grants +50 gold',
       'capturing a city heals every one of your units',
@@ -2636,12 +2647,12 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('divineMandate')).toEqual([
       '+1 faith in your capital per wildcard Order you have in a slot',
       '+1 culture in your capital per wildcard Order you have in a slot',
-      '+10% faith in every city of 6+',
+      '+10% faith in every city of 6 or more citizens',
     ]);
 
     expect(said('theEstates')).toEqual([
       '+1 happiness in every city',
-      '+2 culture in every city of 8+',
+      '+2 culture in every city of 8 or more citizens',
     ]);
     expect(said('theSultanate')).toEqual([
       'all units: +1 movement',
@@ -2667,7 +2678,7 @@ describe('the master-list cut of 2026-08-28', () => {
     // `tileYield` percentage, which reaches the improvement's own lines only.
     expect(said('theCommonwealth')).toEqual([
       'a great person waiting to be called may be bought with gold',
-      "the works on every hex carrying a great person's work pay +50% more",
+      "the works on every hex carrying a great person's work pay +50%",
     ]);
     expect(said('theEmpire')).toEqual([
       '+6 authority capacity',
@@ -2737,8 +2748,8 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('theLongWatch')).toEqual([
       // 2026-08-28: the user's correction — a unit standing in the city, whatever
       // its fortification, is the watch.
-      '+1 happiness per combat unit standing in the city',
-      '+1 happiness per fortification in this city',
+      '+1 happiness per combat unit standing in your cities',
+      '+1 happiness per fortification in your cities',
     ]);
     expect(said('theWidowsLevy')).toEqual([
       'losing a unit grants +10 production',
@@ -2766,13 +2777,12 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('ritesOfPassage')).toEqual(['completing a unit grants +10 faith']);
     // The Themes Build's rework (sheet 09, the user): the trickle replaces the
     // one-off laureate, and the five works are untouched.
+    // Folded by batch L1 (§1c): the five works differ only in the improvement
+    // they name and the voice it pays, and the ratified text says them in one
+    // sentence — "Every great-person improvement pays +3 more of its own yield."
     expect(said('theLaureate')).toEqual([
       "+2 renown per turn",
-      "+3 science on every hex with an Academy",
-      "+3 culture on every hex with a Landmark",
-      "+3 production on every hex with a Manufactory",
-      "+3 gold on every hex with a Customs House",
-      "+3 production on every hex with a Citadel",
+      "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel",
     ]);
 
     // The beliefs the same pass touched, read by the same evaluator.
@@ -3260,7 +3270,7 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
       '+15% production toward melee units',
     ]);
     expect(said('breadAndCircuses')).toEqual([
-      'while your authority is positive: +2 happiness in every city of 6+',
+      'while your authority is positive: +2 happiness in every city of 6 or more citizens',
       '-2 gold in every city',
     ]);
   });
@@ -3539,14 +3549,14 @@ describe('the Orders pass of 2026-08-29', () => {
   it('prints every new row in the words the user ratified', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('fireKeepers')).toEqual([
-      "+1 faith in your capital per 2 population in your capital",
+      "+1 faith in your capital per 2 citizens there",
     ]);
     expect(said('wolfRunners')).toEqual([
       'scouts: +1 movement',
       'claiming a ruin grants +15 gold',
     ]);
-    expect(said('hearthSongs')).toEqual(['+2 culture in every city of 4 or less']);
-    expect(said('statuteLabour')).toEqual(['+1 production per 4 population in this city']);
+    expect(said('hearthSongs')).toEqual(['+2 culture in every city of 4 or fewer citizens']);
+    expect(said('statuteLabour')).toEqual(['+1 production in every city per 4 citizens there']);
     expect(said('riverWardens')).toEqual([
       // The garrison clause came off in the cards pass of 2026-09-05: a hidden
       // tax on a Ploughshare card, where the plain line is the line's floor.
@@ -3585,7 +3595,7 @@ describe('the Orders pass of 2026-08-29', () => {
     expect(said('drumsOfWar')).toEqual(['newly created units gain +2 combat strength']);
     expect(said('theCartographers')).toEqual(['+1 science per 40 hexes you have revealed']);
     expect(said('theMasonsLodge')).toEqual([
-      '+10% production toward buildings, in every city of 6+',
+      '+10% production toward buildings, in every city of 6 or more citizens',
     ]);
     // "heals 15", not "heals a further 15": a kill pays no heal of its own, and
     // an increment on a number that does not exist is a card promising nothing.
@@ -3880,14 +3890,14 @@ describe('the balance pass of 2026-08-31', () => {
       "+2 food on every hill hex",
     ]);
     expect(said('pilgrimRoads')).toEqual([
-      "+1 faith per population in your capital",
+      "+1 faith per citizen in your capital",
       "+1 happiness per 50 banked faith (at most +5 happiness)",
     ]);
     expect(said('theLyceum')).toEqual([
       'completing a technology grants an extra turn of culture',
     ]);
     expect(said('censusRolls')).toEqual([
-      '+1 happiness per 2 population in your capital',
+      '+1 happiness per 2 citizens in your capital',
     ]);
     expect(said('theUnbrokenLand')).toEqual([
       '+1 food, +1 production on every unimproved forest or jungle hex',
@@ -3898,7 +3908,7 @@ describe('the balance pass of 2026-08-31', () => {
       '+2 food, +2 production on every unimproved hex',
     ]);
     expect(said('theQuietFields')).toEqual([
-      '+1 happiness per unimproved hex worked here',
+      '+1 happiness per unimproved hex worked in your cities',
     ]);
     expect(said('firstFruits')).toEqual([
       "+2 food on every hex carrying a resource",
@@ -4231,7 +4241,7 @@ describe('the ratified cards of the Themes Build', () => {
       'melee units: +1 movement',
       'melee units: +1 movement inside your territory',
     ]);
-    expect(said('theEscortedRoads')).toEqual(['trade routes pay +30% more']);
+    expect(said('theEscortedRoads')).toEqual(['trade routes pay +30%']);
     // Raised by the card-shapes pass of 2026-09-04: the Wild Hunt's counter
     // card now pays like the payoff it always was, in both voices.
     expect(said('theLastHunt')).toEqual([
@@ -4252,7 +4262,7 @@ describe('the ratified cards of the Themes Build', () => {
       '+2 happiness in every city settled on a luxury resource',
     ]);
     expect(said('theCensusEternal')).toEqual([
-      "+1 science per 2 population",
+      "+1 science per 2 citizens",
     ]);
     expect(said('theGroundskeepers')).toEqual([
       "+2 food, +2 production on every hex carrying a great person's work",
@@ -4431,7 +4441,7 @@ describe('the balance pass of 2026-09-02', () => {
     expect(amountOf('siegeDoctrine')).toBe(4);
     expect(said('weightsAndMeasures')).toEqual(['+1 gold in every city']);
     expect(said('theTaxFarm')).toEqual([
-      "+1 gold per 3 population",
+      "+1 gold per 3 citizens",
     ]);
     expect(said('publicGranaries')).toEqual(['+15% of the stored food kept when a city grows']);
     expect(said('masterMasons')).toEqual([
@@ -5207,7 +5217,7 @@ describe('the card-shapes pass of 2026-09-04', () => {
       "+2 production in your capital per economic Order you have in a slot",
     ]);
     expect(said('theSynod')).toEqual([
-      "your buildings that supply faith pay +50% more, counted after every other bonus on them",
+      "your buildings that supply faith pay +50%, counted after every other bonus on them",
     ]);
     expect(said('theHarvestSongs')).toEqual([
       "15% of the food in every city is gained again as culture",
@@ -5226,7 +5236,8 @@ describe('the card-shapes pass of 2026-09-04', () => {
         'again as gold',
     ]);
     expect(said('theCharterOfTheMarches')).toEqual([
-      '+2 food, +2 production, +2 gold, +2 science, +2 culture, +2 faith in your newest city',
+      // Folded by batch L1 (§1c): one figure on every voice reads "of every yield".
+      '+2 of every yield in your newest city',
       'founding a city grants +30 culture',
     ]);
   });
@@ -5485,9 +5496,13 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(said('boundaryStones')).toEqual([
       '+30% border expansion, in every city with a Monument',
     ]);
+    // Folded by batch L1 (§1c): a flat strength line and the scale on it are one
+    // rule read in one breath, and split they said "inside your territory" twice
+    // and "more" not at all. The ratified text is one sentence — "+1 combat
+    // strength inside your territory, and +1 more for each military Order you
+    // have in a slot, at most +3 more" — and this is now that sentence.
     expect(said('borderWardens')).toEqual([
-      '+1 combat strength inside your territory',
-      '+1 combat strength per military Order you have in a slot (at most +3) inside your territory',
+      '+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)',
     ]);
     expect(said('harbourDues')).toEqual([
       '5% of the gold in every coastal city is gained again as culture',
@@ -5496,8 +5511,8 @@ describe('the synergy-density pass of 2026-09-05', () => {
     // which is the fix `indefinite`'s docblock named for the day a name broke
     // the vowel rule.
     expect(said('scholarsStipend')).toEqual([
-      "+3 science in every city of 5+ with a Library",
-      "+3 science in every city of 5+ with a University",
+      "+3 science in every city of 5 or more citizens with a Library",
+      "+3 science in every city of 5 or more citizens with a University",
     ]);
     expect(said('provincialGovernors')).toEqual([
       '+1 authority capacity per economic Order you have in a slot (at most +4 authority capacity)',
@@ -5683,13 +5698,13 @@ describe('the cards pass of 2026-09-05', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said('theLongRoads')).toEqual(['+1 gold per road hex you have laid']);
     expect(said('theConsistory')).toEqual([
-      "your buildings that supply faith pay +100% more, counted after every other bonus on them",
+      "your buildings that supply faith pay +100%, counted after every other bonus on them",
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove this altogether, not a strong
     // engine*), and its unbuilt half cut with it — so the row prints the one
     // clause it still pays whoever holds it in a save.
     expect(said('theGuildCompact')).toEqual([
-      "+3% production per production building in this city (at most +15% production)",
+      "+3% production in every city per production building there (at most +15% production)",
     ]);
     // B1 built the struck strength clause — flat rather than by ground, which
     // is what the strength ledger can say — and dropped the stable with it.
@@ -5731,7 +5746,7 @@ describe('the cards pass of 2026-09-05', () => {
       expect(describeCard(id).every((c) => !c.text.includes('not built yet')), id).toBe(true);
     }
     expect(said('thePhilosophersStone')).toEqual(['+25% production toward The Magnum Opus']);
-    expect(said('theSeaCharter')).toEqual(['trade routes pay +50% more']);
+    expect(said('theSeaCharter')).toEqual(['trade routes pay +50%']);
   });
 });
 
@@ -6142,7 +6157,7 @@ describe('the Æra III fork of 2026-09-05', () => {
       '+1 culture per 5 faith gained per turn',
     ]);
     expect(said('theNaturalPhilosophers')).toEqual([
-      '+1 science in your capital per building in this city',
+      '+1 science in your capital per building there',
       "completing a technology grants 50% of a turn's culture",
     ]);
     expect(said('theDeepDelving')).toEqual([

@@ -1060,7 +1060,10 @@ describe('the legacies this pass built', () => {
     expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
     expect(printed('eratosthenes')).toEqual(['+1 science per 60 hexes you have revealed']);
     expect(printed('ibnBattuta')).toEqual(['+1 gold per foreign city you have sighted']);
-    expect(printed('simaQian')).toEqual(['+1 culture per age that has closed']);
+    // Batch L1 (§1b): a legacy is the realm's, and the line is paid town by town.
+    expect(printed('simaQian')).toEqual([
+      '+1 culture in every city per age that has closed',
+    ]);
     expect(printed('murasakiShikibu')).toEqual(['+2 culture per melee unit in the field']);
     expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
     expect(printed('nzingaOfNdongo')).toEqual([
@@ -1109,8 +1112,11 @@ describe('the legacies this pass built', () => {
     expect(printed('liBing')).toEqual([
       '+1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct',
     ]);
-    // A city-scoped count paid in the town it counts in.
-    expect(printed('aryabhata')).toEqual(['+1 faith per building here that supplies science']);
+    // A city-scoped count paid in the town it counts in — and, since batch L1
+    // (§1b), a legacy that says how many towns those are.
+    expect(printed('aryabhata')).toEqual([
+      '+1 faith in every city per building there that supplies science',
+    ]);
     // The malice re-read per town rather than once for the realm.
     expect(printed('hemiunu')).toEqual([
       '+10% production toward wonders',

@@ -117,7 +117,13 @@ import {
   stripRefs,
   tileConditionWords,
 } from '../sim/statecraft';
-import { techRuleClauses } from './techRuleWords';
+import {
+  techRuleClauses,
+  techRuleFullClauses,
+  techRuleName,
+  techRuleNote,
+  techsWithNamedRules,
+} from './techRuleWords';
 import {
   type CityScope,
   DOCTRINE_IDS,
@@ -181,6 +187,12 @@ export type CompendiumSectionId =
   | 'improvement'
   | 'resource'
   | 'tech'
+  // **The named rules** (batch L1, `docs/audit/legibility.md` §2): a technology
+  // whose rules run past the star chart's bar prints one named rule instead, and
+  // this is where that name goes — the whole of the rule, and the node's own
+  // paragraph under it. Beside the technologies, because that is what a reader
+  // arrives from.
+  | 'rule'
   | 'order'
   | 'doctrine'
   | 'belief'
@@ -276,6 +288,7 @@ const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
   ['improvement', 'Improvements'],
   ['resource', 'Resources'],
   ['tech', 'Technologies'],
+  ['rule', 'Rules'],
   ['order', 'Orders'],
   ['doctrine', 'Doctrines'],
   ['belief', 'Beliefs'],
@@ -1126,7 +1139,10 @@ function techEntry(id: TechId): CompendiumEntry {
   // chart's card (the playtest notes, 2026-09-03). `techRuleClauses` already
   // returns them split at the boundaries their author wrote, so the shelf lays
   // them out rather than joining them back into a paragraph the card refuses to
-  // print. Every other gift is one clause, as it always was.
+  // print. A node over the bar returns one *named rule*, which is a keyword ref
+  // into the Rules shelf — the same clause the card prints, so the reader who
+  // followed the name off the chart lands on the page it points at. Every other
+  // gift is one clause, as it always was.
   const clauses: CompendiumClause[] = techGifts(id).flatMap((gift) =>
     gift.kind === 'techEffect'
       ? techRuleClauses(gift.id).map((text) => ({ text }))
@@ -1135,6 +1151,13 @@ function techEntry(id: TechId): CompendiumEntry {
   if (clauses.length === 0) {
     clauses.push({ text: 'Unlocks nothing by itself. It is a step toward later technologies.' });
   }
+  // **The note, under the rules** (batch L1, §2): the row's own paragraph, in
+  // the italic a standing caveat is printed in, exactly as an Order's `note` is
+  // on its shelf. It stopped being the face when the ruling of 2026-09-08 asked
+  // for figures on the chart, and this is where it went — every node that
+  // carries one, including the ones that hand over no rule at all and therefore
+  // had nowhere to print it.
+  for (const line of techRuleNote(id)) clauses.push({ text: line, note: true });
   return {
     id: compendiumId('tech', id),
     section: 'tech',
@@ -1142,6 +1165,36 @@ function techEntry(id: TechId): CompendiumEntry {
     eyebrow: `${ageWord(def.age)} technology`,
     mark: { kind: 'glyph', glyph: def.glyph },
     rows,
+    clauses,
+    flavor: def.flavor ?? null,
+  };
+}
+
+/**
+ * One **named rule** — the page a node's `[[rule:…]]` clause points at.
+ *
+ * Generated, like every other entry on a generated shelf: the clauses are the
+ * node's own rules read by the describer the card is read by
+ * (`techRuleFullClauses`), and the paragraph is the row's `note`. Nothing here
+ * is prose written about a number, which is the shelf rule this page had to be
+ * built to obey — the reason the entry exists at all is that these rules are
+ * *too long* for the chart, and a page that re-said them in a second voice would
+ * have been the drift the Compendium's docblock forbids.
+ *
+ * The row that names it is quoted as a figure, because "which technology is
+ * this?" is the first thing a reader who arrived by keyword asks.
+ */
+function ruleEntry(id: TechId): CompendiumEntry {
+  const def = techDef(id);
+  const clauses: CompendiumClause[] = techRuleFullClauses(id).map((text) => ({ text }));
+  for (const line of techRuleNote(id)) clauses.push({ text: line, note: true });
+  return {
+    id: compendiumId('rule', id),
+    section: 'rule',
+    name: techRuleName(id),
+    eyebrow: `${ageWord(def.age)} rule`,
+    mark: { kind: 'glyph', glyph: '§' },
+    rows: row('Comes from', def.name),
     clauses,
     flavor: def.flavor ?? null,
   };
@@ -1816,6 +1869,9 @@ export function compendiumSections(): CompendiumSection[] {
   for (const age of [...new Set(TECH_IDS.map((id) => techDef(id).age))].sort((a, b) => a - b)) {
     for (const id of TECH_IDS) if (techDef(id).age === age) push(techEntry(id));
   }
+  // The named rules, in the tree's own order — the pages the star chart's node
+  // cards point at when a node's rules will not fit on one. See `ruleEntry`.
+  for (const id of techsWithNamedRules(TECH_IDS)) push(ruleEntry(id));
   for (const id of ORDER_IDS) push(orderEntry(id));
   for (const id of DOCTRINE_IDS) push(doctrineEntry(id));
   // **All three pools**, in `ALL_BELIEF_IDS`' own order — the pantheon's gods,

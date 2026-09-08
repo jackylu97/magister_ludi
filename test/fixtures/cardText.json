@@ -37,8 +37,8 @@
   ],
   "republic": [
    {
-    "raw": "+1 culture per 5 population in this city",
-    "text": "+1 culture per 5 population in this city"
+    "raw": "+1 culture in every city per 5 citizens there",
+    "text": "+1 culture in every city per 5 citizens there"
    },
    {
     "raw": "-5% happiness demanded per citizen",
@@ -63,8 +63,8 @@
     "text": "pillaging costs your units no movement"
    },
    {
-    "raw": "-30% the gold your units cost in maintenance",
-    "text": "-30% the gold your units cost in maintenance"
+    "raw": "your units cost 30% less gold in maintenance",
+    "text": "your units cost 30% less gold in maintenance"
    }
   ],
   "theocracy": [
@@ -87,8 +87,8 @@
     "text": "+2 gold per economic Order you have in a slot"
    },
    {
-    "raw": "trade routes pay +50% more",
-    "text": "trade routes pay +50% more"
+    "raw": "trade routes pay +50%",
+    "text": "trade routes pay +50%"
    },
    {
     "raw": "+1 trade route",
@@ -97,8 +97,8 @@
   ],
   "imperium": [
    {
-    "raw": "+1 production per military Order you have in a slot",
-    "text": "+1 production per military Order you have in a slot"
+    "raw": "+1 production in every city per military Order you have in a slot",
+    "text": "+1 production in every city per military Order you have in a slot"
    },
    {
     "raw": "all units: +1 movement",
@@ -123,8 +123,8 @@
     "text": "+1 culture in your capital per wildcard Order you have in a slot"
    },
    {
-    "raw": "+10% faith in every city of 6+",
-    "text": "+10% faith in every city of 6+"
+    "raw": "+10% faith in every city of 6 or more citizens",
+    "text": "+10% faith in every city of 6 or more citizens"
    }
   ],
   "theEstates": [
@@ -133,8 +133,8 @@
     "text": "+1 happiness in every city"
    },
    {
-    "raw": "+2 culture in every city of 8+",
-    "text": "+2 culture in every city of 8+"
+    "raw": "+2 culture in every city of 8 or more citizens",
+    "text": "+2 culture in every city of 8 or more citizens"
    }
   ],
   "theSultanate": [
@@ -171,8 +171,8 @@
     "text": "a great person waiting to be called may be bought with gold"
    },
    {
-    "raw": "the works on every hex carrying a great person's work pay +50% more",
-    "text": "the works on every hex carrying a great person's work pay +50% more"
+    "raw": "the works on every hex carrying a great person's work pay +50%",
+    "text": "the works on every hex carrying a great person's work pay +50%"
    }
   ],
   "theEmpire": [
@@ -327,8 +327,8 @@
   ],
   "breadAndCircuses": [
    {
-    "raw": "while your authority is positive: +2 happiness in every city of 6+",
-    "text": "while your authority is positive: +2 happiness in every city of 6+"
+    "raw": "while your authority is positive: +2 happiness in every city of 6 or more citizens",
+    "text": "while your authority is positive: +2 happiness in every city of 6 or more citizens"
    },
    {
     "raw": "-2 gold in every city",
@@ -343,12 +343,12 @@
   ],
   "divineInspiration": [
    {
-    "raw": "+1% science per 200 banked faith",
-    "text": "+1% science per 200 banked faith"
+    "raw": "+1% science in every city per 200 banked faith",
+    "text": "+1% science in every city per 200 banked faith"
    },
    {
-    "raw": "+1% culture per 200 banked faith",
-    "text": "+1% culture per 200 banked faith"
+    "raw": "+1% culture in every city per 200 banked faith",
+    "text": "+1% culture in every city per 200 banked faith"
    }
   ],
   "ironPrice": [
@@ -363,8 +363,8 @@
   ],
   "manifestOfTheSteppe": [
    {
-    "raw": "-40% the production a settler costs",
-    "text": "-40% the production a settler costs"
+    "raw": "settlers cost 40% less production",
+    "text": "settlers cost 40% less production"
    },
    {
     "raw": "settler units: +2 movement",
@@ -425,12 +425,12 @@
   ],
   "paxImperia": [
    {
-    "raw": "+3 happiness in every city of 8+",
-    "text": "+3 happiness in every city of 8+"
+    "raw": "+3 happiness in every city of 8 or more citizens",
+    "text": "+3 happiness in every city of 8 or more citizens"
    },
    {
-    "raw": "+10% culture in every city of 8+",
-    "text": "+10% culture in every city of 8+"
+    "raw": "+10% culture in every city of 8 or more citizens",
+    "text": "+10% culture in every city of 8 or more citizens"
    }
   ],
   "religiousMandate": [
@@ -474,14 +474,14 @@
     "text": "-1 happiness in every city"
    },
    {
-    "raw": "-100% the gold your units cost in maintenance",
-    "text": "-100% the gold your units cost in maintenance"
+    "raw": "your units cost no gold in maintenance",
+    "text": "your units cost no gold in maintenance"
    }
   ],
   "theSeaCharter": [
    {
-    "raw": "trade routes pay +50% more",
-    "text": "trade routes pay +50% more"
+    "raw": "trade routes pay +50%",
+    "text": "trade routes pay +50%"
    }
   ],
   "theRenaissanceCourt": [
@@ -502,8 +502,8 @@
     "text": "+1 production on every hex with a Farm"
    },
    {
-    "raw": "-1 happiness in every city of 10+",
-    "text": "-1 happiness in every city of 10+"
+    "raw": "-1 happiness in every city of 10 or more citizens",
+    "text": "-1 happiness in every city of 10 or more citizens"
    }
   ],
   "absolutism": [
@@ -564,14 +564,14 @@
     "text": "+3 happiness in every city"
    },
    {
-    "raw": "+5 science, +5 culture in every city of 12+",
-    "text": "+5 science, +5 culture in every city of 12+"
+    "raw": "+5 science, +5 culture in every city of 12 or more citizens",
+    "text": "+5 science, +5 culture in every city of 12 or more citizens"
    }
   ],
   "theEncyclopaedia": [
    {
-    "raw": "+1 science per building in this city",
-    "text": "+1 science per building in this city"
+    "raw": "+1 science in every city per building there",
+    "text": "+1 science in every city per building there"
    },
    {
     "raw": "+50% production toward science buildings",
@@ -628,8 +628,8 @@
   ],
   "theNaturalPhilosophers": [
    {
-    "raw": "+1 science in your capital per building in this city",
-    "text": "+1 science in your capital per building in this city"
+    "raw": "+1 science in your capital per building there",
+    "text": "+1 science in your capital per building there"
    },
    {
     "raw": "completing a technology grants 50% of a turn's culture",
@@ -716,12 +716,12 @@
   ],
   "theLongWatch": [
    {
-    "raw": "+1 happiness per combat unit standing in the city",
-    "text": "+1 happiness per combat unit standing in the city"
+    "raw": "+1 happiness per combat unit standing in your cities",
+    "text": "+1 happiness per combat unit standing in your cities"
    },
    {
-    "raw": "+1 happiness per fortification in this city",
-    "text": "+1 happiness per fortification in this city"
+    "raw": "+1 happiness per fortification in your cities",
+    "text": "+1 happiness per fortification in your cities"
    }
   ],
   "theWidowsLevy": [
@@ -784,12 +784,8 @@
   ],
   "borderWardens": [
    {
-    "raw": "+1 combat strength inside your territory",
-    "text": "+1 combat strength inside your territory"
-   },
-   {
-    "raw": "+1 combat strength per military Order you have in a slot (at most +3) inside your territory",
-    "text": "+1 combat strength per military Order you have in a slot (at most +3) inside your territory"
+    "raw": "+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)",
+    "text": "+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)"
    }
   ],
   "vanguard": [
@@ -840,8 +836,8 @@
   ],
   "theTaxFarm": [
    {
-    "raw": "+1 gold per 3 population",
-    "text": "+1 gold per 3 population"
+    "raw": "+1 gold per 3 citizens",
+    "text": "+1 gold per 3 citizens"
    }
   ],
   "harbourDues": [
@@ -852,8 +848,8 @@
   ],
   "landGrants": [
    {
-    "raw": "-25% the price of buying a hex",
-    "text": "-25% the price of buying a hex"
+    "raw": "a hex costs 25% less to buy",
+    "text": "a hex costs 25% less to buy"
    },
    {
     "raw": "+40% border expansion",
@@ -862,8 +858,8 @@
   ],
   "homesteadCharters": [
    {
-    "raw": "new cities start 1 population larger",
-    "text": "new cities start 1 population larger"
+    "raw": "new cities start 1 citizen larger",
+    "text": "new cities start 1 citizen larger"
    }
   ],
   "granaryLevies": [
@@ -874,8 +870,8 @@
   ],
   "censusRolls": [
    {
-    "raw": "+1 happiness per 2 population in your capital",
-    "text": "+1 happiness per 2 population in your capital"
+    "raw": "+1 happiness per 2 citizens in your capital",
+    "text": "+1 happiness per 2 citizens in your capital"
    }
   ],
   "tinkersGuild": [
@@ -970,8 +966,8 @@
     "text": "buying a hex grants +5 science"
    },
    {
-    "raw": "-15% the price of buying a hex",
-    "text": "-15% the price of buying a hex"
+    "raw": "a hex costs 15% less to buy",
+    "text": "a hex costs 15% less to buy"
    }
   ],
   "foreignQuarters": [
@@ -1008,8 +1004,8 @@
     "text": "+50% border expansion"
    },
    {
-    "raw": "-25% the price of buying a hex",
-    "text": "-25% the price of buying a hex"
+    "raw": "a hex costs 25% less to buy",
+    "text": "a hex costs 25% less to buy"
    }
   ],
   "provincialGovernors": [
@@ -1032,8 +1028,8 @@
   ],
   "pilgrimRoads": [
    {
-    "raw": "+1 faith per population in your capital",
-    "text": "+1 faith per population in your capital"
+    "raw": "+1 faith per citizen in your capital",
+    "text": "+1 faith per citizen in your capital"
    },
    {
     "raw": "+1 happiness per 50 banked faith (at most +5 happiness)",
@@ -1048,12 +1044,12 @@
   ],
   "scholarsStipend": [
    {
-    "raw": "+3 science in every city of 5+ with a [[building:library|Library]]",
-    "text": "+3 science in every city of 5+ with a Library"
+    "raw": "+3 science in every city of 5 or more citizens with a [[building:library|Library]]",
+    "text": "+3 science in every city of 5 or more citizens with a Library"
    },
    {
-    "raw": "+3 science in every city of 5+ with a [[building:university|University]]",
-    "text": "+3 science in every city of 5+ with a University"
+    "raw": "+3 science in every city of 5 or more citizens with a [[building:university|University]]",
+    "text": "+3 science in every city of 5 or more citizens with a University"
    }
   ],
   "theMarshals": [
@@ -1064,8 +1060,8 @@
   ],
   "garrisonState": [
    {
-    "raw": "+3 production per combat unit standing in the city (at most +6 production)",
-    "text": "+3 production per combat unit standing in the city (at most +6 production)"
+    "raw": "+3 production in every city per combat unit standing there (at most +6 production)",
+    "text": "+3 production in every city per combat unit standing there (at most +6 production)"
    }
   ],
   "skirmishersCreed": [
@@ -1130,8 +1126,8 @@
   ],
   "theGrainDole": [
    {
-    "raw": "+2 happiness in every city of 6+",
-    "text": "+2 happiness in every city of 6+"
+    "raw": "+2 happiness in every city of 6 or more citizens",
+    "text": "+2 happiness in every city of 6 or more citizens"
    }
   ],
   "mandateOfHeaven": [
@@ -1152,8 +1148,8 @@
   ],
   "censusOfSouls": [
    {
-    "raw": "+1 faith per population in your capital",
-    "text": "+1 faith per population in your capital"
+    "raw": "+1 faith per citizen in your capital",
+    "text": "+1 faith per citizen in your capital"
    }
   ],
   "tolerationEdicts": [
@@ -1168,24 +1164,8 @@
     "text": "+2 renown per turn"
    },
    {
-    "raw": "+3 science on every hex with an [[improvement:academy|Academy]]",
-    "text": "+3 science on every hex with an Academy"
-   },
-   {
-    "raw": "+3 culture on every hex with a [[improvement:landmark|Landmark]]",
-    "text": "+3 culture on every hex with a Landmark"
-   },
-   {
-    "raw": "+3 production on every hex with a [[improvement:manufactory|Manufactory]]",
-    "text": "+3 production on every hex with a Manufactory"
-   },
-   {
-    "raw": "+3 gold on every hex with a [[improvement:customsHouse|Customs House]]",
-    "text": "+3 gold on every hex with a Customs House"
-   },
-   {
-    "raw": "+3 production on every hex with a [[improvement:citadel|Citadel]]",
-    "text": "+3 production on every hex with a Citadel"
+    "raw": "+3 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]] and production on a [[improvement:citadel|Citadel]]",
+    "text": "+3 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel"
    }
   ],
   "theLegion": [
@@ -1204,8 +1184,8 @@
   ],
   "fireKeepers": [
    {
-    "raw": "+1 faith in your capital per 2 population in your capital",
-    "text": "+1 faith in your capital per 2 population in your capital"
+    "raw": "+1 faith in your capital per 2 citizens there",
+    "text": "+1 faith in your capital per 2 citizens there"
    }
   ],
   "wolfRunners": [
@@ -1220,8 +1200,8 @@
   ],
   "hearthSongs": [
    {
-    "raw": "+2 culture in every city of 4 or less",
-    "text": "+2 culture in every city of 4 or less"
+    "raw": "+2 culture in every city of 4 or fewer citizens",
+    "text": "+2 culture in every city of 4 or fewer citizens"
    }
   ],
   "firstFruitsOffering": [
@@ -1232,8 +1212,8 @@
   ],
   "statuteLabour": [
    {
-    "raw": "+1 production per 4 population in this city",
-    "text": "+1 production per 4 population in this city"
+    "raw": "+1 production in every city per 4 citizens there",
+    "text": "+1 production in every city per 4 citizens there"
    }
   ],
   "riverWardens": [
@@ -1332,8 +1312,8 @@
   ],
   "theMasonsLodge": [
    {
-    "raw": "+10% production toward buildings, in every city of 6+",
-    "text": "+10% production toward buildings, in every city of 6+"
+    "raw": "+10% production toward buildings, in every city of 6 or more citizens",
+    "text": "+10% production toward buildings, in every city of 6 or more citizens"
    }
   ],
   "theOathBound": [
@@ -1369,8 +1349,8 @@
   ],
   "theQuietFields": [
    {
-    "raw": "+1 happiness per unimproved hex worked here",
-    "text": "+1 happiness per unimproved hex worked here"
+    "raw": "+1 happiness per unimproved hex worked in your cities",
+    "text": "+1 happiness per unimproved hex worked in your cities"
    }
   ],
   "theOldWays": [
@@ -1409,8 +1389,8 @@
   ],
   "theEscortedRoads": [
    {
-    "raw": "trade routes pay +30% more",
-    "text": "trade routes pay +30% more"
+    "raw": "trade routes pay +30%",
+    "text": "trade routes pay +30%"
    }
   ],
   "theLastHunt": [
@@ -1453,8 +1433,8 @@
   ],
   "theCensusEternal": [
    {
-    "raw": "+1 science per 2 population",
-    "text": "+1 science per 2 population"
+    "raw": "+1 science per 2 citizens",
+    "text": "+1 science per 2 citizens"
    }
   ],
   "theGroundskeepers": [
@@ -1542,8 +1522,8 @@
   ],
   "theSynod": [
    {
-    "raw": "your buildings that supply faith pay +50% more, counted after every other bonus on them",
-    "text": "your buildings that supply faith pay +50% more, counted after every other bonus on them"
+    "raw": "your buildings that supply faith pay +50%, counted after every other bonus on them",
+    "text": "your buildings that supply faith pay +50%, counted after every other bonus on them"
    }
   ],
   "theHarvestSongs": [
@@ -1578,8 +1558,8 @@
   ],
   "theCharterOfTheMarches": [
    {
-    "raw": "+2 food, +2 production, +2 gold, +2 science, +2 culture, +2 faith in your newest city",
-    "text": "+2 food, +2 production, +2 gold, +2 science, +2 culture, +2 faith in your newest city"
+    "raw": "+2 of every yield in your newest city",
+    "text": "+2 of every yield in your newest city"
    },
    {
     "raw": "founding a city grants +30 culture",
@@ -1707,28 +1687,8 @@
   ],
   "theFoundingOath": [
    {
-    "raw": "+1 food in your capital per building in this city (at most +3 food)",
-    "text": "+1 food in your capital per building in this city (at most +3 food)"
-   },
-   {
-    "raw": "+1 production in your capital per building in this city (at most +3 production)",
-    "text": "+1 production in your capital per building in this city (at most +3 production)"
-   },
-   {
-    "raw": "+1 gold in your capital per building in this city (at most +3 gold)",
-    "text": "+1 gold in your capital per building in this city (at most +3 gold)"
-   },
-   {
-    "raw": "+1 science in your capital per building in this city (at most +3 science)",
-    "text": "+1 science in your capital per building in this city (at most +3 science)"
-   },
-   {
-    "raw": "+1 culture in your capital per building in this city (at most +3 culture)",
-    "text": "+1 culture in your capital per building in this city (at most +3 culture)"
-   },
-   {
-    "raw": "+1 faith in your capital per building in this city (at most +3 faith)",
-    "text": "+1 faith in your capital per building in this city (at most +3 faith)"
+    "raw": "+1 of every yield in your capital per building there (at most +3 of every yield)",
+    "text": "+1 of every yield in your capital per building there (at most +3 of every yield)"
    }
   ],
   "theLongRoads": [
@@ -1775,8 +1735,8 @@
   ],
   "theGranaryLaws": [
    {
-    "raw": "20% of the food in every city of 8+ is gained again as science",
-    "text": "20% of the food in every city of 8+ is gained again as science"
+    "raw": "20% of the food in every city of 8 or more citizens is gained again as science",
+    "text": "20% of the food in every city of 8 or more citizens is gained again as science"
    }
   ],
   "theKingsRoad": [
@@ -1893,8 +1853,8 @@
   ],
   "theConsistory": [
    {
-    "raw": "your buildings that supply faith pay +100% more, counted after every other bonus on them",
-    "text": "your buildings that supply faith pay +100% more, counted after every other bonus on them"
+    "raw": "your buildings that supply faith pay +100%, counted after every other bonus on them",
+    "text": "your buildings that supply faith pay +100%, counted after every other bonus on them"
    }
   ],
   "scholastics": [
@@ -1925,8 +1885,8 @@
   ],
   "theSalon": [
    {
-    "raw": "the works on every hex carrying a great person's work pay +100% more",
-    "text": "the works on every hex carrying a great person's work pay +100% more"
+    "raw": "the works on every hex carrying a great person's work pay +100%",
+    "text": "the works on every hex carrying a great person's work pay +100%"
    }
   ],
   "theSilkExchange": [
@@ -1935,12 +1895,8 @@
     "text": "+1 culture on every trade route you send"
    },
    {
-    "raw": "every trade route you send pays +100% more science",
-    "text": "every trade route you send pays +100% more science"
-   },
-   {
-    "raw": "every trade route you send pays +100% more culture",
-    "text": "every trade route you send pays +100% more culture"
+    "raw": "+100% science and culture on every trade route you send",
+    "text": "+100% science and culture on every trade route you send"
    }
   ],
   "printingHouses": [
@@ -1965,8 +1921,8 @@
   ],
   "theGuildCompact": [
    {
-    "raw": "+3% production per production building in this city (at most +15% production)",
-    "text": "+3% production per production building in this city (at most +15% production)"
+    "raw": "+3% production in every city per production building there (at most +15% production)",
+    "text": "+3% production in every city per production building there (at most +15% production)"
    }
   ],
   "manufactories": [
@@ -1983,8 +1939,8 @@
   ],
   "universalSuffrage": [
    {
-    "raw": "+1 happiness per 3 population",
-    "text": "+1 happiness per 3 population"
+    "raw": "+1 happiness per 3 citizens",
+    "text": "+1 happiness per 3 citizens"
    },
    {
     "raw": "+10 percentage points to the bonus your positive happiness pays",
@@ -2016,8 +1972,8 @@
   ],
   "theReevesBell": [
    {
-    "raw": "every 8 turns, 1 food for every population",
-    "text": "every 8 turns, 1 food for every population"
+    "raw": "every 8 turns, 1 food for every citizen",
+    "text": "every 8 turns, 1 food for every citizen"
    }
   ],
   "theFirstChair": [
@@ -2028,8 +1984,8 @@
   ],
   "theScriveners": [
    {
-    "raw": "your buildings that supply science pay +50% more",
-    "text": "your buildings that supply science pay +50% more"
+    "raw": "your buildings that supply science pay +50%",
+    "text": "your buildings that supply science pay +50%"
    }
   ],
   "theSacredGround": [
@@ -2046,8 +2002,8 @@
   ],
   "theCountingHouses": [
    {
-    "raw": "your buildings that supply gold pay +50% more",
-    "text": "your buildings that supply gold pay +50% more"
+    "raw": "your buildings that supply gold pay +50%",
+    "text": "your buildings that supply gold pay +50%"
    }
   ],
   "theAlmanacOfHours": [
@@ -2064,8 +2020,8 @@
   ],
   "theNetsBlessing": [
    {
-    "raw": "the works on every hex with a [[improvement:fishingBoats|Fishing Boat]] pay +100% more",
-    "text": "the works on every hex with a Fishing Boat pay +100% more"
+    "raw": "the works on every hex with a [[improvement:fishingBoats|Fishing Boat]] pay +100%",
+    "text": "the works on every hex with a Fishing Boat pay +100%"
    }
   ],
   "theHighChancery": [
@@ -2082,8 +2038,8 @@
   ],
   "theWorkshopsRule": [
    {
-    "raw": "your buildings that supply production pay +50% more",
-    "text": "your buildings that supply production pay +50% more"
+    "raw": "your buildings that supply production pay +50%",
+    "text": "your buildings that supply production pay +50%"
    }
   ],
   "theWildChair": [
@@ -2106,14 +2062,14 @@
   ],
   "theDeepSeams": [
    {
-    "raw": "the works on every hex with a [[improvement:mine|Mine]] pay +100% more",
-    "text": "the works on every hex with a Mine pay +100% more"
+    "raw": "the works on every hex with a [[improvement:mine|Mine]] pay +100%",
+    "text": "the works on every hex with a Mine pay +100%"
    }
   ],
   "theExchangeCharter": [
    {
-    "raw": "your buildings that supply gold pay +50% more, counted after every other bonus on them",
-    "text": "your buildings that supply gold pay +50% more, counted after every other bonus on them"
+    "raw": "your buildings that supply gold pay +50%, counted after every other bonus on them",
+    "text": "your buildings that supply gold pay +50%, counted after every other bonus on them"
    }
   ],
   "theTriumph": [
@@ -2130,8 +2086,8 @@
   ],
   "theExchequer": [
    {
-    "raw": "trade routes pay +100% more",
-    "text": "trade routes pay +100% more"
+    "raw": "trade routes pay +100%",
+    "text": "trade routes pay +100%"
    }
   ],
   "theAssay": [
@@ -2142,28 +2098,20 @@
   ],
   "theBroadAcres": [
    {
-    "raw": "the works on every hex with a [[improvement:farm|Farm]] pay +100% more",
-    "text": "the works on every hex with a Farm pay +100% more"
+    "raw": "the works on every hex with a [[improvement:farm|Farm]] pay +100%",
+    "text": "the works on every hex with a Farm pay +100%"
    }
   ],
   "theJubilee": [
    {
-    "raw": "every 10 turns, 1 faith for every population",
-    "text": "every 10 turns, 1 faith for every population"
+    "raw": "every 10 turns, 1 faith for every citizen",
+    "text": "every 10 turns, 1 faith for every citizen"
    }
   ],
   "theCompactOfChairs": [
    {
-    "raw": "the Order in your first military slot pays twice",
-    "text": "the Order in your first military slot pays twice"
-   },
-   {
-    "raw": "the Order in your first economic slot pays twice",
-    "text": "the Order in your first economic slot pays twice"
-   },
-   {
-    "raw": "the Order in your first wildcard slot pays twice",
-    "text": "the Order in your first wildcard slot pays twice"
+    "raw": "the Order in your first military, economic and wildcard slot each pays twice",
+    "text": "the Order in your first military, economic and wildcard slot each pays twice"
    }
   ],
   "theLaureatesRule": [
@@ -2190,8 +2138,8 @@
   ],
   "theCollegesRule": [
    {
-    "raw": "your buildings that supply science pay +100% more, counted after every other bonus on them",
-    "text": "your buildings that supply science pay +100% more, counted after every other bonus on them"
+    "raw": "your buildings that supply science pay +100%, counted after every other bonus on them",
+    "text": "your buildings that supply science pay +100%, counted after every other bonus on them"
    }
   ],
   "theGreatEnquiry": [
@@ -2254,8 +2202,8 @@
   ],
   "theScribesHall": [
    {
-    "raw": "+1 science per 3 population in this city",
-    "text": "+1 science per 3 population in this city"
+    "raw": "+1 science in every city per 3 citizens there",
+    "text": "+1 science in every city per 3 citizens there"
    }
   ],
   "theLampKeptLit": [
@@ -2312,12 +2260,12 @@
   ],
   "ancestorWorship": [
    {
-    "raw": "+1 culture in every city of 4+",
-    "text": "+1 culture in every city of 4+"
+    "raw": "+1 culture in every city of 4 or more citizens",
+    "text": "+1 culture in every city of 4 or more citizens"
    },
    {
-    "raw": "+5% culture in every city of 10+",
-    "text": "+5% culture in every city of 10+"
+    "raw": "+5% culture in every city of 10 or more citizens",
+    "text": "+5% culture in every city of 10 or more citizens"
    }
   ],
   "ladyOfTheHunt": [
@@ -2452,8 +2400,8 @@
   ],
   "pilgrimage": [
    {
-    "raw": "+1 faith per unique luxury in this city",
-    "text": "+1 faith per unique luxury in this city"
+    "raw": "+1 faith in every city that follows your religion per unique luxury there",
+    "text": "+1 faith in every city that follows your religion per unique luxury there"
    }
   ],
   "feastDays": [
@@ -2480,14 +2428,14 @@
   ],
   "choirs": [
    {
-    "raw": "+1 culture per 4 population in this city",
-    "text": "+1 culture per 4 population in this city"
+    "raw": "+1 culture in every city that follows your religion per 4 citizens there",
+    "text": "+1 culture in every city that follows your religion per 4 citizens there"
    }
   ],
   "titheHouses": [
    {
-    "raw": "+1 gold per 3 population in this city",
-    "text": "+1 gold per 3 population in this city"
+    "raw": "+1 gold in every city that follows your religion per 3 citizens there",
+    "text": "+1 gold in every city that follows your religion per 3 citizens there"
    }
   ],
   "theQuietHours": [
@@ -2528,8 +2476,8 @@
   ],
   "templeSpires": [
    {
-    "raw": "unlocks the [[building:wat|Wat]] — +1 faith per 2 population in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
-    "text": "unlocks the Wat — +1 faith per 2 population in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
+    "raw": "unlocks the [[building:wat|Wat]] — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it",
+    "text": "unlocks the Wat — +1 faith per 2 citizens in this city; +3 happiness; it is bought with faith and never built; it may be raised only in a city that keeps the faith that opened it"
    }
   ],
   "theOpenKitchen": [
@@ -2635,8 +2583,8 @@
   ],
   "worldChurch": [
    {
-    "raw": "+15% culture per empire that follows you",
-    "text": "+15% culture per empire that follows you"
+    "raw": "+15% culture in every city per empire that follows you",
+    "text": "+15% culture in every city per empire that follows you"
    }
   ],
   "theLongPrayer": [
@@ -2657,8 +2605,8 @@
   ],
   "thePromisedLand": [
    {
-    "raw": "new cities start 1 population larger",
-    "text": "new cities start 1 population larger"
+    "raw": "new cities start 1 citizen larger",
+    "text": "new cities start 1 citizen larger"
    }
   ],
   "marvelsOfTheFaith": [
@@ -2703,8 +2651,8 @@
   ],
   "blessingOfArms": [
    {
-    "raw": "every city: +5 city defence",
-    "text": "every city: +5 city defence"
+    "raw": "this city: +5 city defence",
+    "text": "this city: +5 city defence"
    }
   ],
   "riteOfPlenty": [
@@ -2800,8 +2748,8 @@
   "watermill": [],
   "amphitheater": [
    {
-    "raw": "+1 culture per 2 population in this city",
-    "text": "+1 culture per 2 population in this city"
+    "raw": "+1 culture per 2 citizens in this city",
+    "text": "+1 culture per 2 citizens in this city"
    }
   ],
   "monastery": [],
@@ -2980,8 +2928,8 @@
     "text": "every hex you own exerts zone of control on enemy units, as a unit of yours would"
    },
    {
-    "raw": "every city: +5 city defence",
-    "text": "every city: +5 city defence"
+    "raw": "this city: +5 city defence",
+    "text": "this city: +5 city defence"
    }
   ],
   "theatreOfDionysus": [
@@ -3052,8 +3000,8 @@
     "text": "+1 faith per 2 hexes worked here"
    },
    {
-    "raw": "-25% the price of buying a hex",
-    "text": "-25% the price of buying a hex"
+    "raw": "a hex costs 25% less to buy",
+    "text": "a hex costs 25% less to buy"
    }
   ],
   "greatMosqueOfDjenne": [
@@ -3331,8 +3279,8 @@
   "relic": [],
   "heroicEpic": [
    {
-    "raw": "every city with a [[building:heroicEpic|Heroic Epic]] earns +50% more renown",
-    "text": "every city with a Heroic Epic earns +50% more renown"
+    "raw": "+50% renown in every city with a [[building:heroicEpic|Heroic Epic]]",
+    "text": "+50% renown in every city with a Heroic Epic"
    }
   ],
   "imperialThrone": [
@@ -3363,8 +3311,8 @@
   ],
   "wat": [
    {
-    "raw": "+1 faith per 2 population in this city",
-    "text": "+1 faith per 2 population in this city"
+    "raw": "+1 faith per 2 citizens in this city",
+    "text": "+1 faith per 2 citizens in this city"
    },
    {
     "raw": "+3 happiness",
@@ -3562,8 +3510,8 @@
   ],
   "simaQian": [
    {
-    "raw": "+1 culture per age that has closed",
-    "text": "+1 culture per age that has closed"
+    "raw": "+1 culture in every city per age that has closed",
+    "text": "+1 culture in every city per age that has closed"
    }
   ],
   "phidias": [
@@ -3690,8 +3638,8 @@
   ],
   "aryabhata": [
    {
-    "raw": "+1 faith per building here that supplies science",
-    "text": "+1 faith per building here that supplies science"
+    "raw": "+1 faith in every city per building there that supplies science",
+    "text": "+1 faith in every city per building there that supplies science"
    }
   ],
   "murasakiShikibu": [
@@ -3862,8 +3810,8 @@
     "text": "+30% production toward wonders"
    },
    {
-    "raw": "a great person's act pays +100% more",
-    "text": "a great person's act pays +100% more"
+    "raw": "a great person's act pays +100%",
+    "text": "a great person's act pays +100%"
    }
   ],
   "taqiAlDin": [
@@ -3922,8 +3870,8 @@
   ],
   "graciaMendesNasi": [
    {
-    "raw": "new cities start 1 population larger",
-    "text": "new cities start 1 population larger"
+    "raw": "new cities start 1 citizen larger",
+    "text": "new cities start 1 citizen larger"
    }
   ],
   "cosimoDeMedici": [
@@ -4066,8 +4014,8 @@
   ],
   "colonialCharters": [
    {
-    "raw": "-33% the production a settler costs",
-    "text": "-33% the production a settler costs"
+    "raw": "settlers cost 33% less production",
+    "text": "settlers cost 33% less production"
    },
    {
     "raw": "new cities are founded with a [[building:townCharter|Town Charter]]",
@@ -4106,8 +4054,8 @@
   "banking": [],
   "machinery": [
    {
-    "raw": "-40% the movement one step along a road costs",
-    "text": "-40% the movement one step along a road costs"
+    "raw": "roads carry units 40% further",
+    "text": "roads carry units 40% further"
    }
   ],
   "theAstrolabe": [],
@@ -4185,8 +4133,8 @@
   "theCathedralOfTheAge": [],
   "theEncyclopaedia": [
    {
-    "raw": "+1 science per building in this city",
-    "text": "+1 science per building in this city"
+    "raw": "+1 science in every city per building there",
+    "text": "+1 science in every city per building there"
    },
    {
     "raw": "+50% production toward science buildings",
@@ -4327,8 +4275,8 @@
     "text": "-1 happiness in every city"
    },
    {
-    "raw": "-100% the gold your units cost in maintenance",
-    "text": "-100% the gold your units cost in maintenance"
+    "raw": "your units cost no gold in maintenance",
+    "text": "your units cost no gold in maintenance"
    }
   ],
   "theMostCities": [],
