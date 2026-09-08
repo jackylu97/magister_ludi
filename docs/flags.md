@@ -434,7 +434,29 @@ directly to confirm rulings — user marginalia are rulings.
   worksheet (headings and columns verbatim — the sync test reads them),
   every "As built" block and the proposed Government VI pool move to
   `docs/history/`, the retired rows' notes go (they are out of the doc
-  by rule). Batch **O1** (no schema). **E1 and E2 LANDED** (8d7075a,
+  by rule). Batch **O1** (no schema) — **built** (a447686). (xx) **The
+  Orders balance pass** (the user, 2026-09-08, marked in
+  `docs/orders-and-doctrines.md` — the marginalia are the rulings): a
+  new Pool I Doctrine (great people called early, one called on
+  adoption, +1 production on their works — named The Muses' Call by the
+  orchestrator), Thalassocracy's conversion to production, Mountain Hold
+  scoped to a mountain in the borders, Divine Inspiration withdrawn ("we
+  want to encourage faith to be spent"), The Horse-Tribes built as +1
+  movement and +1 strength for the mounted, The Great Warring Tribes'
+  authority condition dropped, Manifest of the Steppe's happiness clause
+  dropped, The Gilded Court +2 authority, Master of Maps' science riders
+  dropped, Pax Imperia +10% culture for +3, The Pilgrim Ways +3 faith,
+  The Natural Philosophers 50%; two new Orders (Boatwrights: +1
+  production in coastal cities, chiefdom pool; Fish Weirs: +1 food on
+  fishing boats, Government I pool — names, slots and rarities the
+  orchestrator's), The Elders' Writ +2. Batch **B1** (schema 93). (yy)
+  **The beliefs worksheet** (the user, 2026-09-08: "draft a current copy
+  of all the possible religious beliefs, i'd like to make some edits"):
+  `docs/beliefs.md`, tables only from `data/religion.json` (pantheon,
+  follower, enhancer beliefs; rites; consecrations), sync-tested by
+  `test/sim/beliefsDocSync.test.ts` — batch **R0** (no schema); the
+  user's marks become **B2**. **E4b** flies now in its own worktree
+  (schema 94), **E5** alone after it lands. **E1 and E2 LANDED** (8d7075a,
   59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
   2026-09-07: "please continue" on the orchestrator's recommended reading):
   **the benches announce their hand mutations** — a test that mutates a
