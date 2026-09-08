@@ -78,15 +78,12 @@ reaches it, `worldTechReached`).
   deeds (feats, quests, endeavours) — the user's reading, an Æra IV win is very
   possible. ▢ Keep `rules.threshold` at 20 (rec) and re-measure on the arena
   after the first cut; the dial is one number.
-- **The last age has no wager** (the user, 2026-09-08: "era 5 should have no
-  wager, as the game should end by the end of the age"). The wager runs in
-  Æra II, III and IV; Æra V, when its nodes land, deals nothing — the Opus is
-  its whole business. **Until Æra V exists** the chart ends in Æra IV, and
-  ▢ (rec) Æra IV keeps its wager, judged at the Opus or at
-  `rules.wager.lastAgeTurns` (40) after the age opened, whichever is first —
-  because "the last age" is `LAST_TECH_AGE` and the ruling names Æra V by
-  number, so the orchestrator reads it as *the fifth*, not *the last*. Mark
-  if you meant the last age whatever it is.
+- **Æra V has no wager** (the user, 2026-09-08, confirmed: "era 5 will be
+  added later, and will have no wager"). The wager runs in Æra II, III and
+  IV — Æra IV keeps its wager while the chart ends there and after Æra V
+  lands alike; Æra IV's is judged at the Opus or at `rules.wager.lastAgeTurns`
+  (rec 40) after the age opened, whichever is first, and Æra V deals
+  nothing: the Opus is its whole business.
 
 ## 3. The deck — targets that scale with the age
 
@@ -96,15 +93,15 @@ reaches it, `worldTechReached`).
   followed by 4 cities". Anyone who clears it clears it; the leader is not the
   only winner.
 - **Scaling — RULED** (the user, 2026-09-08: "lets have it fixed per age.
-  This will be something we tweak with difficulty level"): each card carries
-  **three figures**, one per wagering age (II · III · IV), in
-  `data/wagers.json`, and a **difficulty** multiplies them — `GameConfig.
-  difficulty` (a new setting on the landing: ▢ (rec) three rungs, *apprentice
-  ×0.75 · journeyman ×1 · master ×1.5*, `rules.wager.difficulty[rung]`), the
-  first place the game has one. The bar prints as a number the turn it is
-  dealt and never moves after. The measured means in §3a are what the
-  journeyman figures are cut from; (b), scaling off the world at the deal, is
-  kept below as the reading that was not taken.
+  This will be something we tweak with difficulty level"; then: "Difficulty
+  we can defer to later — I plan to make modifications/bonuses to the bot to
+  enable harder difficulties, after we try to get as much performance as
+  possible out of the bot"): each card carries **three figures**, one per
+  wagering age (II · III · IV), in `data/wagers.json`. **No difficulty
+  setting yet** — the figures are one table, cut for a realm playing well
+  (the §3a means at 1.5× or above); a difficulty rung, when it comes, is the
+  bot's business first and a multiplier on this table second. The bar prints
+  as a number the turn it is dealt and never moves after.
 - **A first cut of the deck** — every card is a reading the Ledger already
   prints (the rule two bullets down). The *rate* column is (b)'s stretch over
   the world's mean at the deal; the *floor* is the least an age may ask, so a
@@ -122,45 +119,74 @@ reaches it, `worldTechReached`).
   | The Caravans | E | what your trade routes pay a turn, all voices summed | standing |
   | The Standing Army | D | army strength fielded | standing |
   | The Conqueror | D | cities captured this age | flow |
-  | The Marvels | C | wonders you hold | standing |
   | The Faithful | C | cities in the world following your religion | standing |
   | The Laureates | S | great people called this age | flow |
   | The Roads | E | cities joined to your capital by road | standing |
 
-  Eleven kept (the user's cut of 2026-09-08 — the raw food and hammer
-  banks, the luxury count, the camps, the building count, the tech count and
-  the hex count are out: "hard to control", "boring", "penalizes players who
-  started farther up the tree"). The user asked for **more specific** wagers —
-  bars that name a *thing to do* rather than a meter to watch. The
-  orchestrator's suggestions, each a reading or an occasion the game already
-  has; ▢ mark the ones to keep:
+  Ten generic rows kept after the user's two cuts (2026-09-08). **The
+  principle the user set for every wager** (*"the wagers need to feel like
+  'stat checks' for the player, that they're doing the things needed to win at
+  the game, similar to a boss ante in balatro … think more difficult and
+  involve multiple arenas of gameplay"*): a wager is a **boss ante** — a bar
+  that only a realm playing well *across* the game clears, so it asks two or
+  three arenas at once, at figures above the mean, and a build that neglects
+  one of them fails it. Three of the first suggestions survived the cut, with
+  the user's figures:
 
   | Wager | Family | Reads | Kind | Æra II · III · IV |
   |---|---|---|---|---|
-  | The Second Shore | E | a city of yours on a landmass your capital is not on (`cityOnOtherContinent`, the Triumph's own reading) | standing | 1 · 1 · 2 |
-  | The Wonder of the Age | C | a wonder unlocked *in this age* raised by you (`wondersHeldBy` × the row's age) | standing | 1 · 1 · 2 |
-  | The Court of Works | C | great persons' works standing in your borders (`greatWork` improvements) | standing | 1 · 3 · 5 |
-  | The Foreign Road | E | trade routes running to a **foreign** city (`routeIsInternational`) | standing | 1 · 2 · 3 |
-  | The Missionary | C | a **rival's** city following your religion (`followingForeign`) | standing | 1 · 3 · 5 |
-  | The Taken Town | D | a city you captured this age *and still hold* (`City.captured`, the occasion stamped) | flow | 1 · 1 · 2 |
-  | The Fleet | D | naval combat units afloat (`category: naval`) | standing | 2 · 3 · 5 |
-  | The Cavalry | D | mounted combat units fielded (`modelClass: mounted`) | standing | 3 · 4 · 6 |
-  | The Full Court | S | Orders of **one line** slotted at once (`slottedOrdersOfSlot` by line — the Tide, the Star Chart…) | standing | 2 · 3 · 4 |
-  | The Cathedral Town | C | a city holding a consecrated Cathedral (`consecrated`) | standing | 1 · 1 · 2 |
-  | The Contented Realm | E | happiness standing at the age's close (`explainHappiness`'s meter) | standing | +8 · +12 · +16 |
-  | The Open Hand | E | luxuries **lent to rivals** under live deals (`lentCopiesAwayBy`) | standing | 1 · 2 · 3 |
-  | The Stone Circle | C | rites performed this age (`performRite` occasions) | flow | 2 · 4 · 6 |
-  | The Long Peace | D | no war declared *by you* this age, and no city lost (a standing count of the war register) | standing | — |
-  | The Hegemon | D | a rival at peace with you who has signed a paper this age (`state.deals` with your seat) | flow | 1 · 2 · 3 |
+  | The Wonder of the Age | C | wonders unlocked *in this age* raised by you (`wondersHeldBy` × the row's age) | standing | 3 · 3 · 3 — "must be difficult to accomplish" |
+  | The Missionary | C | **rivals'** cities following your religion (`followingForeign`) | standing | 3 · 4 · 5 — "can be redeemed the moment the condition is true" |
+  | The Taken Town | D | cities you captured this age *and still hold* (`City.captured`, the occasion stamped) | flow | 1 · 3 · 5 |
 
-  Each names a system the player steers directly — a boat, a caravan, a
-  Cathedral, a peace — which is what "specific" buys: a wager that reads as a
-  plan ("this age I sail") rather than a meter that fills on its own. The
-  Long Peace is the one **negative** wager (a bar met by *not* doing) and is
-  the orchestrator's flag: it pays a turtle, ▢ keep or cut. The Æra figures
-  are first cuts at journeyman. A wager that would need a new reading is
-  deferred and annotated, never bent; every row above reads something that
-  exists.
+  **Redeemed the moment it is true** (the user's note on The Missionary, read
+  as a rule for every standing wager — ▢ rec): a standing wager is **claimed
+  the turn its bar is first met**, an announced occasion (the Abacus flips,
+  the beads are minted then), never at the close — so a bar met and then lost
+  to a war or a conversion still paid, and a player can *see* it land. A flow
+  wager is claimed the turn its count reaches the bar. The judgement at the
+  close then has one job: the chosen wager still unclaimed takes the malice.
+
+  **The compound wagers** — the orchestrator's second round, each asking two
+  or three arenas at once, every clause a reading the Ledger already prints
+  (the figures are journeyman first cuts at 1.5× the §3a means, or above,
+  and every conjunction must hold **at once** on one turn to be claimed):
+
+  | Wager | Family | The bar — every clause at once | Æra II · III · IV |
+  |---|---|---|---|
+  | **The Capital of the World** | C | your capital holds **N citizens**, **M buildings**, and **a wonder** | 10 · 5 · 1 — 16 · 11 · 2 — 25 · 16 · 3 |
+  | **Bread and Iron** | D | your realm banks **F food surplus a turn** (the growth channel, summed) while fielding **A army strength** | 12 · 150 — 25 · 480 — 40 · 1 000 |
+  | **The War Chest** | E | **G gold in the treasury** and **A army strength**, neither borrowed (no debt) | 300 · 150 — 1 000 · 480 — 2 500 · 1 000 |
+  | **The Schooled Realm** | S | **every** city of yours holds a science building, you hold **C cities**, and **S science a turn** | 4 · 16 — 7 · 42 — 12 · 120 |
+  | **The Merchant Princes** | E | **R trade routes** running, **U unique luxuries**, and **G gold a turn** | 2 · 2 · 12 — 4 · 4 · 60 — 6 · 7 · 150 |
+  | **The Pilgrim Empire** | C | your religion followed by **K cities** of which **R are rivals'**, and **F faith a turn** | 4 · 1 · 5 — 8 · 3 · 15 — 14 · 5 · 60 |
+  | **The Marcher Lords** | E | you hold **C cities**, **none unhappy** (every city's happiness at or above nought), and **authority in surplus** | 5 — 9 — 18 |
+  | **Hammer and Word** | C | a **wonder of this age** raised **and** a **great person called** this age | 1 · 1 — 1 · 1 — 2 · 2 |
+  | **The Conqueror's Peace** | D | a city **captured** this age, still held, **and** the age closed **at peace with every rival** — the war won and closed | 1 — 1 — 2 |
+  | **The Fortified Frontier** | D | **every** city of yours holds a wall and a garrison, and **no city of yours was pillaged** this age (a standing count of the pillage occasions) | — |
+  | **The Full Ledger** | E | **every one of the six voices** at or above its bar a turn at once — the breadth check, the ante with no arena to neglect | 20🌾 15⚙ 8💰 8🔬 6🎵 3🕯 — 60 · 50 · 30 · 30 · 25 · 8 — 120 · 150 · 70 · 60 · 100 · 25 |
+  | **The Renowned Court** | S | **R renown a turn** and **W great persons' works** standing in your borders | 6 · 1 — 12 · 3 — 24 · 5 |
+  | **The Laurels of the Age** | — | **T Triumphs earned this age** (deeds already spanning every arena; the count is the check) | 3 · 4 · 5 |
+  | **The Tall Realm** | E | **three** cities each of **N citizens** with **a market and a granary**, joined to your capital by road | 8 — 12 — 16 |
+  | **The Faith and the Sword** | D | a **religion founded** by you followed by **K cities**, and **a rival's unit killed inside a city that follows it** this age (the Crusade's ground) | 4 · 1 — 8 · 2 — 12 · 3 |
+
+  What each asks across arenas: The Capital of the World — growth, building,
+  a wonder. Bread and Iron — the farms and the levy at once. The War Chest —
+  a treasury *and* an army, which is the thing a warmonger and a merchant
+  each neglect. The Schooled Realm — wide *and* learned. The Merchant Princes
+  — routes, luxuries, coin. The Pilgrim Empire — a faith at home and abroad
+  with the faith to keep it. The Marcher Lords — expansion without the
+  unhappiness and the overrun it usually costs. Hammer and Word — hammers
+  and renown in one age. The Conqueror's Peace — a war *and* the diplomacy to
+  end it. The Fortified Frontier — walls, garrisons and vigilance. The Full
+  Ledger — no neglected voice. The Renowned Court — renown and the works it
+  buys. The Laurels — the deeds themselves. The Tall Realm — three good
+  towns, not one. The Faith and the Sword — religion and war on one ground.
+  A wager that would need a new reading is deferred and annotated, never
+  bent; every clause above reads something that exists (the "none unhappy",
+  "no city pillaged" and "every city holds" clauses are folds over
+  `citiesOf` the Ledger already walks).
+
 - **Families.** Every card names one of the four bead families (D · C · S · E,
   `docs/beads.md`); ▢ (rec) the deal is guaranteed one card from three
   different families, so every build has a wager it can want.
@@ -201,8 +227,7 @@ so this is the *derivation* of the journeyman figures, not a rule the game
 runs): a standing bar is `ceil(1.5 × the measured mean standing)`; a flow bar
 is `friendly(1.5 × the mean per turn × 30 · 60 · 40 sizing turns)`; the two
 per-turn wagers (The Academies, The Chroniclers) are `ceil(1.5 × the mean
-rate at the age's close)`. Difficulty multiplies the printed figure. What the
-table would ask a journeyman world:
+rate at the age's close)`. What the table would ask this world:
 
 | Wager | Æra II | Æra III | Æra IV | note |
 |---|---|---|---|---|
@@ -221,8 +246,7 @@ table would ask a journeyman world:
 | The Laureates (great people this age) | — | — | — | *needs a measurement* |
 
 The Laureates and the routes' pay want a probe before their figures are
-trusted; every figure above is a journeyman first cut for the arena, and
-difficulty (§3) multiplies it. ▢ Whether a flow wager counts from the
+trusted; every figure above is a first cut for the arena. ▢ Whether a flow wager counts from the
 **deal** or from the **age's opening** — one and the same now that the deal
 is the age's first turn (§2); a flow's stamp is `Player.wagerBanked` from
 that turn.
@@ -305,19 +329,19 @@ that every malice's effect kind is one the evaluator reads.
 0. ~~§2 the first deal~~ — **ruled**: no wager in Æra I.
 1. §1 progress = the mean age of each empire's highest tech (rec) — or of
    beakers banked?
-2. §2 Æra IV keeps its wager while the chart ends there (rec) — or did "era
-   5" mean the last age whatever it is?
+2. ~~§2 Æra V~~ — **ruled**: Æra V, when added, has no wager; Æra IV keeps
+   its own.
 3. ~~§2 the choice window and public choices~~ — **ruled**: same turn, secret.
-4. ~~§3 scaling~~ — **ruled**: fixed per age × difficulty. Open: the
-   difficulty rungs (rec three: ×0.75 · ×1 · ×1.5) and the family guarantee
-   (rec yes); which of the fifteen **specific** wagers to keep (§3), and The
-   Long Peace in particular.
+4. ~~§3 scaling~~ — **ruled**: fixed per age; difficulty deferred to the
+   bot. Open: the family guarantee (rec yes); **which of the fifteen compound
+   wagers to keep** (§3), and their first-cut figures; whether every standing
+   wager is claimed the moment it is met (rec yes, from the Missionary
+   note).
 5. §4 the malice's chair (rec: the last chair of its flavour, displacing the
    Order there), its term (rec: until the next wager is judged), stacking (rec:
    two).
 6. §5 reckonings retire (rec yes).
-7. §9 the Horde: the count per seat (rec yes); the grace (rec 15 turns); the
-   "+1 citizen" reading (nearest city, or a settler).
+7. §9 the Horde: the count per seat (rec yes); the grace (rec 15 turns).
 
 ## 9. The Horde — an escalating check at every age
 
@@ -384,9 +408,7 @@ rewarded for meeting it — and punishment comes from the opposite three.
   - 50 · 100 · 200 science
   - 50 · 100 · 200 culture
   - 75 · 150 · 300 faith
-  - +1 citizen in your nearest city *(the user wrote "nearest settler"; the
-    orchestrator reads it as the nearest city — ▢ mark if a settler was
-    meant, i.e. a settler piece founding one larger)*
+  - +1 citizen in your nearest city (confirmed, 2026-09-08)
   - a random military unit (the roster the clearer could build today, the
     Camp Followers' reading)
   The find is announced as a ruin's is (the discovery card), and the ordinary
@@ -416,9 +438,8 @@ reading) but `GameState.ageClose?: {age, turn}` (the countdown, absolute) and
 like triumphs) with each seat's pick on `Player.wager: {age, index}` — the
 state carries every pick (a replay must), and *secrecy* is a UI gate exactly as
 `localPlayerId` is: a sheet shows a rival's pick only after the judgement;
-`Player.malices: {id, untilAge}[]`; `GameConfig.difficulty` (the first
-difficulty setting, read only by the wager's figures until something else
-asks for one). The deal in the `renown` phase of the deal turn; the
+`Player.malices: {id, untilAge}[]`; a claimed wager is an announced
+occasion (`wagerClaimed`) the Abacus flips on. The deal in the `renown` phase of the deal turn; the
 judgement in the phase that closes the age; `chooseWager` a command with the
 usual gates. The wager readings reuse `countOf`/the meters; a new
 `data/wagers.json` and `data/malices.json`, both walked by the Compendium and
