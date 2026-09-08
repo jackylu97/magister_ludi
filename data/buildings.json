@@ -848,16 +848,22 @@
             "test": "inCity"
           },
           "side": "defend"
+        },
+        {
+          "kind": "unitStamp",
+          "strength": 1,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "terracottaArmy"
+          }
         }
-      ],
-      "deferred": [
-        "units built in this city start with +1 combat strength"
       ],
       "renown": {
         "family": "general",
         "onComplete": 10,
         "perTurn": 2
-      }
+      },
+      "note": "Soldiers raised in this city are veterans from the day they muster, and stay veterans wherever they march."
     },
     "greatWall": {
       "name": "The Great Wall",
@@ -980,15 +986,22 @@
           "unit": "bestMelee"
         }
       ],
-      "effects": [],
-      "deferred": [
-        "+15% combat strength when attacking cities"
+      "effects": [
+        {
+          "kind": "unitStat",
+          "stat": "combatPercent",
+          "amount": 15,
+          "when": {
+            "test": "vsCity"
+          }
+        }
       ],
       "renown": {
         "family": "general",
         "onComplete": 10,
         "perTurn": 1
-      }
+      },
+      "note": "Your soldiers strike harder at walls than at men."
     },
     "chichenItza": {
       "name": "Chichen Itza",
@@ -1144,10 +1157,24 @@
             "to": "happiness",
             "amount": 1
           }
+        },
+        {
+          "kind": "cityYields",
+          "culture": 3,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "cathedral"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "cathedral"
+          }
         }
-      ],
-      "deferred": [
-        "+2 culture in every city with a Cathedral"
       ],
       "renown": {
         "family": "artist",
@@ -1236,13 +1263,14 @@
         }
       ],
       "deferred": [
-        "units built here start with the bonus for standing in one of your cities"
+        "units raised here begin dug in, as if they had already fortified"
       ],
       "renown": {
         "family": "general",
         "onComplete": 10,
         "perTurn": 2
-      }
+      },
+      "note": "Being dug in is something a piece does and stops doing, not something it is born with, so the second clause is not built."
     },
     "machuPicchu": {
       "name": "Machu Picchu",
@@ -1528,16 +1556,16 @@
       },
       "productionBonus": {
         "category": "unit",
-        "percent": 10
+        "percent": 10,
+        "class": {
+          "category": "naval"
+        }
       },
       "renown": {
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Built on the coast. Ships and everything else leave the slips faster.",
-      "deferred": [
-        "A discount that reached ships alone waits until a production bonus can name a kind of unit."
-      ],
+      "note": "Built on the coast. Ships leave the slips faster; everything else is built at the ordinary pace.",
       "tileYields": [
         {
           "on": {
@@ -1664,7 +1692,7 @@
         "family": "scholar",
         "perTurn": 2
       },
-      "note": "The sky, written down night after night.",
+      "note": "The sky, written down night after night. An observatory with a mountain inside the city’s borders reads it better.",
       "effects": [
         {
           "kind": "percentYields",
@@ -1674,10 +1702,25 @@
             "test": "hasBuilding",
             "building": "observatory"
           }
+        },
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 10,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "observatory"
+              },
+              {
+                "test": "terrainInBorders",
+                "terrain": "mountain"
+              }
+            ]
+          }
         }
-      ],
-      "deferred": [
-        "A further share of the beakers for one raised in sight of a mountain."
       ],
       "requiresBuilding": "university"
     },
@@ -1974,10 +2017,7 @@
         "onComplete": 25,
         "perTurn": 3
       },
-      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and no empire may begin one until its own rod of beads is full. Gold and faith may be poured into it as well as production. The first one finished anywhere ends the game: the last measures of the age are taken for the record, and the empire that raised it wins.",
-      "deferred": [
-        "Pouring culture into it as well as gold and faith. Culture already fills the basket a draft comes out of, and spending it here needs its own ruling first."
-      ]
+      "note": "The great work of the age. Nobody may begin one until some empire in the world has reached Alchemy, and no empire may begin one until its own rod of beads is full. Gold and faith may be poured into it as well as production. The first one finished anywhere ends the game: the last measures of the age are taken for the record, and the empire that raised it wins."
     },
     "chapel": {
       "name": "Chapel",

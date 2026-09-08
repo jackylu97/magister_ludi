@@ -2613,7 +2613,7 @@ function applyFortify(state: GameState, command: FortifyCommand): CommandResult 
   if (unit.ownerId !== actor.id) {
     return fail(`Unit ${unit.id} does not belong to player ${actor.id}`);
   }
-  const problem = fortifyError(unit);
+  const problem = fortifyError(unit, state);
   if (problem) return fail(problem);
 
   // Zero, not one: the bonus is paid for turns *survived* dug in, and

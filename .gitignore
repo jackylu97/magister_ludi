@@ -6,3 +6,6 @@ dist
 # The grid search's measurements (`scripts/gridSearch.ts`). A run's numbers are a
 # reading, not a source: the table that matters is quoted in docs/bot-priorities.md.
 gridsearch-results.json
+
+# Claude Code agent worktrees (per-session scratch checkouts)
+.claude/worktrees/

@@ -73,10 +73,23 @@ export type TriumphTrigger =
   | { kind: 'wondersInOneCity'; count: number }
   /** *Deferred.* A unit lost in a battle that was then won. Needs Epic Poetry. */
   | { kind: 'unitLostThenWon' }
-  /** *Deferred.* The empire's first naval unit. Needs naval units. */
-  | { kind: 'firstNavalUnit' }
-  /** *Deferred.* Two cities joined by road. Needs roads. */
-  | { kind: 'citiesConnected' };
+  /**
+   * A naval unit was built. Announced at `realiseItem` as `navalUnitBuilt`; the
+   * row's `once` scope is what makes it the *first* one.
+   */
+  | { kind: 'navalUnitBuilt' }
+  /**
+   * At least `count` of this empire's cities are joined to its capital by road.
+   * A **standing count**, swept by the renown phase.
+   *
+   * It was written as an occasion and is one no longer, and the reason is the
+   * union's own docblock: a connection is a *fact about the board* — roads are
+   * laid, borders move, a town changes hands — rather than a moment anybody
+   * announces. `connectedCities` (`roads.ts`) is the reading, the same one the
+   * treasury's ledger counts its coin from, so the road that pays gold and the
+   * road that earns a Triumph are one answer.
+   */
+  | { kind: 'citiesConnected'; count: number };
 
 /** Every trigger kind, for the register test that pins the evaluator's switch. */
 export type TriumphTriggerKind = TriumphTrigger['kind'];
@@ -173,7 +186,7 @@ const TRIGGER_KINDS: readonly TriumphTriggerKind[] = [
   'cityCount',
   'wondersInOneCity',
   'unitLostThenWon',
-  'firstNavalUnit',
+  'navalUnitBuilt',
   'citiesConnected',
 ];
 

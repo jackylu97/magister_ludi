@@ -96,8 +96,14 @@ legacy.
   `enemyEntersCapital` is still hooked at `arriveOnTile` and **no row names it**
   since the nerf pass struck Archimedes' clause — open for a ruling: give it
   back to a row, or take the occasion and its hook out together.
-- Deferred rows (Dinocrates, Yi Sun-sin, Mimar Sinan's cathedral half)
-  carry player-plain `deferred:` prose — see `docs/flags.md`.
+- **No roster row is deferred any more** (batch E4a, 2026-09-07). The three that
+  were — Dinocrates, Yi Sun-sin and Mimar Sinan's cathedral half — were built on
+  shapes that already existed plus one field: a `windfallRider` may now ask
+  whether the thing finished was a *wonder* (`wonder: true`, `vsBarbarians`'
+  fourth sibling), which is what Dinocrates' ten turns of hammers waited on.
+  Yi Sun-sin's line is a `combatLine` and not a `unitStat`: a point of strength
+  is a flat line on the ledger, and that shape's stats are movement, sight,
+  mending, charges, range and a percentage.
 - **Where a legacy is read by the player**: the **Reliquary**
   (`src/ui/reliquaryScreen.ts`), the seventh parchment sheet, opened from the
   renown chip in the top bar. One tarot face at a time over a drawn stack,
@@ -182,7 +188,7 @@ bookkeeping only — nothing in the simulation switches on it.
 | Sima Qian | Artist | ○ situational | +1 culture per age that has closed |  |
 | Phidias | Artist | ○ situational | +3 culture per wonder you hold |  |
 | Li Bing | Engineer | ○ situational | +1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct |  |
-| Dinocrates | Engineer | ◆ strong | finishing or taking a wonder grants +3 production in every city for 10 turns — not built yet |  |
+| Dinocrates | Engineer | ◆ strong | completing a wonder grants +3 production in every city for 10 turns |  |
 | Vitruvius | Engineer | ◆ strong | +1 production in every city with an Aqueduct |  |
 | Eupalinos | Engineer | ○ situational | +1 food on every improved hex beside a mountain |  |
 | Zhang Qian | Merchant | ◆ strong | +2 gold per 60 hexes you have revealed |  |
@@ -237,7 +243,7 @@ bookkeeping only — nothing in the simulation switches on it.
 | Sor Juana | Artist | ○ situational | +2 culture in every city with an University |  |
 | Leonardo | Engineer | ● defining | +30% production toward wonders · a great person's act pays +100% more |  |
 | Taqī al-Dīn | Engineer | ◆ strong | +15% science in your capital · +15% science in every capital city beside a mountain |  |
-| Mimar Sinan | Engineer | ○ situational | +1 culture in every city with a Temple · +30% production toward Temples · cathedrals also cost less to build — not built yet |  |
+| Mimar Sinan | Engineer | ○ situational | +1 culture in every city with a Temple · +30% production toward Temples · +30% production toward Cathedrals |  |
 | Vaucanson | Engineer | ○ situational | newly created worker units gain +1 charge |  |
 | Jakob Fugger | Merchant | ● defining | +30% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −20% to buy |  |
 | Zheng He | Merchant | ◆ strong | +3 gold in every coastal city · all units: +2 movement while embarked |  |
@@ -245,5 +251,5 @@ bookkeeping only — nothing in the simulation switches on it.
 | Cosimo de' Medici | Merchant | ○ situational | +1 culture per 50 gold in the treasury (at most +6 culture) |  |
 | Gustavus Adolphus | General | ◆ strong | +15% combat strength for ranged units · siege units: +1 movement |  |
 | Nzinga of Ndongo | General | ○ situational | +5 combat strength in forest · +5 combat strength in jungle |  |
-| Yi Sun-sin | General | ○ situational | naval units +5 combat strength — not built yet |  |
+| Yi Sun-sin | General | ○ situational | naval units +5 combat strength |  |
 | Lautaro | General | ○ situational | +3 combat strength against mounted units |  |

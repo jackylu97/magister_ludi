@@ -443,9 +443,9 @@ function musterTileFor(state: GameState, camp: BarbarianCamp, type: UnitTypeId):
  * and a piece already dug in must not have its counter reset to zero, which would
  * hand every warden a permanent first rung and never a second.
  */
-function digIn(unit: Unit): void {
+function digIn(state: GameState, unit: Unit): void {
   if (isFortified(unit)) return;
-  if (fortifyError(unit) !== null) return;
+  if (fortifyError(unit, state) !== null) return;
   unit.fortifiedTurns = 0;
 }
 
@@ -492,7 +492,7 @@ export function musterCamps(state: GameState): void {
     // rather than waiting for its first sweep. Through `fortifyError`, the
     // player's own gate, so a camp that somehow mustered a civilian is refused
     // by the rule that refuses a player's worker its trench.
-    if (seat.col === camp.col && seat.row === camp.row) digIn(raised);
+    if (seat.col === camp.col && seat.row === camp.row) digIn(state, raised);
   }
 }
 
@@ -1092,7 +1092,7 @@ function holdCamp(
   const after = unitById(state, unit.id);
   if (!after) return;
   if (after.col !== camp.col || after.row !== camp.row) return;
-  digIn(after);
+  digIn(state, after);
 }
 
 /**

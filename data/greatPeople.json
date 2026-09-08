@@ -567,9 +567,23 @@
       "tier": "strong",
       "epigram": "He offered Alexander a mountain carved into a man.",
       "kernel": "The planner of impossible wonders; Alexandria laid out in a cloak-sweep.",
-      "legacy": [],
-      "deferred": [
-        "finishing or taking a wonder grants +3 production in every city for 10 turns"
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "buildingCompletion",
+          "wonder": true,
+          "grant": {
+            "timed": {
+              "turns": 10,
+              "effects": [
+                {
+                  "kind": "cityYields",
+                  "production": 3
+                }
+              ]
+            }
+          }
+        }
       ]
     },
     "vitruvius": {
@@ -1423,10 +1437,13 @@
           "category": "building",
           "percent": 30,
           "building": "temple"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "cathedral"
         }
-      ],
-      "deferred": [
-        "cathedrals also cost less to build"
       ]
     },
     "vaucanson": {
@@ -1598,9 +1615,18 @@
       "tier": "situational",
       "epigram": "Thirteen ships against three hundred.",
       "kernel": "Myeongnyang.",
-      "legacy": [],
-      "deferred": [
-        "naval units +5 combat strength"
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "always"
+          },
+          "side": "both",
+          "class": {
+            "category": "naval"
+          }
+        }
       ]
     },
     "lautaro": {

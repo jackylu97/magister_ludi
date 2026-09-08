@@ -175,6 +175,148 @@ verbs — each a one-clause addition to an existing refusal, never a parallel
 gate. The expulsion rule (if chosen) runs at declaration through
 `arriveOnTile`'s seam. Bot work lands AFTER brain v1 merges (same files).
 
+## 12. The audience — a paper answered at once (2026-09-07)
+
+The user: *"rework the diplomacy screen to more closely match civ. We should
+have a peace proposal like in civ, where the ai have to respond immediately,
+with an option for 'what would make this work?' for the items on the deal
+table."* Marginalia here are rulings; (rec) is the orchestrator's default and
+flies unless overruled.
+
+What exists: a proposal is a standing paper the bot answers at its next
+sitting (`driveBots`, after the human ends the turn); a peace is two flags
+closed by `settlePeace` at the turn's end; the screen already has the
+trade-table shape (9a). The bot's valuation of a paper is `explainPaper`
+(`src/ai/diplomacy.ts`): coin, tribute at the seat's own rate, a seam at
+`luxuryGoldBaseline` if the receiver lacks the kind, a town at the city
+weight, a right of way at zero; the warscore prices a peace.
+
+- **The answer is the bot's own command, dispatched at once.** When a seat
+  proposes to a bot seat *this client drives*, the client asks the bot's
+  answer arm straight away and dispatches the bot's command through the
+  driver's funnel (`answerAudience(game, …)` in `src/ai/driver.ts`, beside
+  `driveBots`): `acceptDeal` / `declineDeal` for a bargain; for a peace, a
+  bare `proposePeace` (sign) or the new `declinePeace`. Determinism holds
+  because the answer is a pure function of the state and lands in the log as
+  the bot's command — a replay replays it. A human seat (hot-seat, remote)
+  is answered as today: the paper stands. Bot-to-bot papers are unchanged
+  (answered at the sitting).
+- ▢ **A refused peace comes off the table** (rec): new command
+  `declinePeace {playerId, targetId}` — the asked seat clears the other's
+  offer and its terms (the envoy is sent home). Today declining a peace is
+  not a command and a refused offer stands for ever. Schema.
+- ▢ **A peace both sides have signed closes at once** (rec), inside the
+  second signature's command: the pair's settlement (`settlePeace`'s body
+  for one war row — terms, close, truce, expulsions, in that order) runs
+  from the reducer, and the end-of-turn phase remains for the human-vs-human
+  case. Civ's rule: a player who signed is at peace now, not at the turn's
+  end. *Alternative:* keep the end-of-turn close and say so on the sheet.
+- **"What would make this work?"** — a pure read, `counterTerms(state,
+  botSeat, askerSeat, give, take)` → `{give, take, appraisal} | null`, in
+  `src/ai/diplomacy.ts`. The bot's own reading says by how much the paper is
+  short from its side; the counter fills the gap on the **asker's** side in
+  a fixed order — coin from the asker's treasury, then coin a turn at the
+  seat's own rate, then (a peace only, ▢ rec yes) a town of the asker's
+  nearest the bot's ground, since towns are a peace paper's term (9b) — each
+  capped by what `dealSideError` would allow. A gap that cannot be filled
+  answers `null`, and the sheet says the bot's own sentence ("Nothing you
+  hold would make this work"). Its mirror, **"What would you give for
+  this?"**: the asker offers and asks nothing, and the counter fills the
+  **bot's** side down to even — coin, then coin a turn, then a duplicate
+  seam the asker lacks (never a last copy, `asksOurLastCopy` stands).
+  A war the bot is winning (warscore over `acceptCeiling`) has no counter:
+  "The Crimson will not treat while the war goes their way."
+- ▢ **A markup** (rec): `war.counterMarkup` 0.1 — a counter asks a tenth
+  over even, so it is never a paper the bot merely tolerates. ▢ **A right
+  of way gets a price** (rec): `war.openBordersPrice` 60 coin, both ways —
+  today it is priced at zero, so a counter could neither ask for it nor
+  sell it. Both knobs in `data/ai.json` (the arena panel walks the sheet).
+- **The sheet**: under the paper being written, three verbs — *Propose*
+  (the answer draws at once in the middle column as the envoy's sentence,
+  carrying the bot's own reason: "it asks for the only silk this empire
+  holds", "it costs more than it brings"), *What would make this work?*,
+  *What would you give for this?* — the counter is written into the draft,
+  editable, then proposed. At war the same table is the peace paper and an
+  empty table is a white peace; *Propose peace* answers at once. ▢ (rec)
+  **The envoy card**: a bot's paper put to you draws as a card at the
+  turn's start (`onTurnHandedOver`'s moment, the turn card's sibling on
+  `modalShell`) with accept / decline / *open the table*; the standing
+  papers section keeps it meanwhile. Layout in the specimen language; every
+  sentence from the simulation or the bot's own terms, no numbers in prose
+  that the fold does not print.
+- Multiplayer: the client driving the bot seat answers (the host under
+  remote play; netcode later). Nothing about a human seat changes.
+
+## 13. The campaign — a war declared with a force, and fought (2026-09-07)
+
+The user: *"right now the two of the ai have declared war on me, and they're
+just being annoying. Not sending army to attack me but parking units near my
+lands, a worker in my lands standing on a tile i want to improve. bots should
+have something of a threshold to declare war, and when declaring war, should
+send units to attack me."*
+
+**Diagnosis** (the orchestrator's, verified in `src/ai/bot.ts` and
+`src/ai/diplomacy.ts`):
+
+- The declaration bar is an army **ratio** alone (`declareDecision`): a
+  balanced seat declares at 4.5× the target's roster strength (wide 3.2,
+  tall/zealot never), with any town of theirs within 12 hexes of any piece.
+  One warrior against five is a ratio of 4.5, so a peaceful persona declares
+  on an unarmed neighbour and nothing asks whether it has a force to send.
+- The march on a rival is gated on `military.aggression > 0`
+  (`soldierCommand`), which only the warmonger has. Every other persona at
+  war swings only at what stands **next to** a piece; its soldiers near your
+  border are the camp hunt and the garrison shuffle, not an invasion. The
+  declaration policy and the prosecution policy disagree.
+- The warmonger's `warMarch` walks each piece alone at the nearest enemy
+  thing inside `huntRadius`; a lone piece beside walls fails the exchange bar
+  and parks ("no operational plan — no siege stack, no line", its own words).
+- Civilians have no war arm: a worker keeps working a hex inside your
+  borders after the declaration (the settler has an escort clause; the
+  worker has nothing).
+
+**The rulings** — (rec) flies unless marked:
+
+1. **Declaring needs a force, not a ratio alone.** Three printed clauses:
+   the ratio-with-appetite as today; a **strike force** — at least
+   `war.strikeForce` (rec 4) combat pieces beyond the garrisons
+   `garrisonPerCity` asks for, of which at least one is ranged or siege;
+   and a **road** — one of those pieces has a path to the target town
+   (`findPath`). ▢ Persona bars stay (balanced 4.5, wide 3.2, warmonger
+   1.4); the force clause is what stops a declaration on the unarmed.
+2. **A seat at war campaigns, whatever its temperament.** The
+   `aggression > 0` gate on the march goes; the war is the permission. A
+   seat the warscore says is losing (under `sueFloor`) holds its towns and
+   sues, as today; the appetite goes on loosening the exchange and nothing
+   else.
+3. **One target town per enemy, and a muster.** `campaignTarget` = the
+   enemy town nearest this empire's towns (ties: weakest garrison, then map
+   order); the **muster** = the hex `war.musterDistance` (rec 3) short of
+   the target along the path from this seat's nearest town, on ground the
+   seat may stand on. Redundant soldiers (`isRedundant`, `townsAreHeld` —
+   the guards stand) march to the muster (`campaignMarch`, replacing the
+   nearest-thing walk). When `war.strikeForce` pieces stand within
+   `war.musterRadius` (rec 2) of it the force **pushes**: melee and mounted
+   step adjacent to the target, ranged and siege to firing range, and blows
+   on the town and on defenders adjacent to it clear the **siege exchange**
+   (`war.siegeExchange` rec 0.7, the appetite reading for a push) — so a
+   stack keeps hitting walls it is not out-trading blow for blow. Every
+   step is a candidate with terms in the feed ("the campaign on Lutetia:
+   5 of 4 mustered — pushing"). Stateless by construction: the target,
+   the muster and "mustered" are re-read from the board every turn.
+4. **Civilians at war flee.** A worker or settler standing in an enemy's
+   borders, or within `war.escortRadius` of a sighted enemy combatant with
+   none of ours adjacent, walks to the nearest own town (`civilianFlight`,
+   the settler's danger clause made general). The worker on your hex goes
+   home.
+5. **The war economy.** While a war is on, the army wanted is the strike
+   force plus the garrisons (`war.campaignArmy` joins `sightedArmyWanted`'s
+   terms), so a seat that declared builds what the campaign needs.
+6. Knobs in `data/ai.json` (the arena panel walks them); the feed carries
+   every term; `docs/bot-priorities.md` gains the section; `test/sim/aiBot`
+   core cases for each clause and a slow two-seat war where the attacker
+   reaches and reduces a town, measured.
+
 ## Revisions
 
 *(yours — edit away)*

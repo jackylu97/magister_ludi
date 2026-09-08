@@ -2662,3 +2662,101 @@ describe('a town at the floor beside an enemy', () => {
     expect(city.hp).toBe(30 + COMBAT.cityHealPerTurn);
   });
 });
+
+/**
+ * The two strength conditions batch E4a added, and the one it found already
+ * built (`docs/audit/deferred-rows.md`).
+ *
+ * Both are read in `combatConditionHolds` and nowhere else, and both are asked
+ * of the same `(attacker, target, tile)` triple every other condition is — so
+ * what is pinned here is the *fight*, on the ledger, in the forecast the player
+ * reads before committing.
+ */
+describe('the strength conditions of batch E4a', () => {
+  /** Slots one Order for a seat. `cards and stamps`' scaffolding, once more. */
+  function slotOrder(state: GameState, playerId: number, id: string): void {
+    const sc = state.players[playerId]!.statecraft;
+    sc.orders.push(id as never);
+    sc.slots.push({ card: id as never, sealedUntil: 0 });
+    bumpRevision(state);
+  }
+
+  it('The Siege Train pays at a wall, beside an engine, and in no other case', () => {
+    const state = flatState();
+    slotOrder(state, 0, 'theSiegeTrain');
+    const town = foundCityAt(state, 1, at(state.map, 8, 3));
+    expect(town).toBeDefined();
+    const a = createUnit(state, 0, 'warrior', 7, 3);
+    bumpRevision(state);
+    const paid = (col: number, row: number): number =>
+      forecast(state, a.id, col, row)
+        .attackerLines.filter((line) => line.source.includes('Siege Train'))
+        .reduce((sum, line) => sum + line.amount, 0);
+
+    // At the wall with nobody beside it: the escort half of the composite fails.
+    expect(paid(8, 3)).toBe(0);
+    // An engine next door, and the line is worth its six.
+    createUnit(state, 0, 'catapult', 7, 2);
+    bumpRevision(state);
+    expect(paid(8, 3)).toBe(6);
+    // And the wall half: an engine beside a soldier storming a *piece* pays
+    // nothing, because `all` asks for both. The escort is placed on a hex the
+    // board itself calls adjacent, so the case is never vacuously true.
+    const b = createUnit(state, 0, 'warrior', 3, 3);
+    const beside = neighborTiles(state.map, tileHex(at(state.map, 3, 3)))
+      .map((hex) => at(state.map, hex.col, hex.row))
+      .find((tile) => tile.col !== 4 || tile.row !== 3)!;
+    createUnit(state, 0, 'catapult', beside.col, beside.row);
+    createUnit(state, 1, 'warrior', 4, 3);
+    bumpRevision(state);
+    expect(
+      forecast(state, b.id, 4, 3).attackerLines.some((line) =>
+        line.source.includes('Siege Train'),
+      ),
+    ).toBe(false);
+  });
+
+  it('Castellany answers arrows and nothing that closes', () => {
+    const state = flatState();
+    // A technology is `liveEffects`' tenth source, so the node's own card
+    // effects reach the fight the moment it is held.
+    state.players[1]!.techsResearched.push('feudalism');
+    bumpRevision(state);
+    const d = createUnit(state, 1, 'warrior', 4, 3);
+    void d;
+    const archer = createUnit(state, 0, 'archer', 3, 3);
+    const shot = forecast(state, archer.id, 4, 3);
+    const line = shot.defenderLines.find((entry) => entry.source.includes('Castellany'))!;
+    expect(line).toBeDefined();
+    expect(line.amount).toBe(5);
+    // A piece that closes is not an arrow: `vsClass` names the *other* side, and
+    // for a defender's line that is whoever charged in.
+    const beside = neighborTiles(state.map, tileHex(at(state.map, 4, 3)))
+      .map((hex) => at(state.map, hex.col, hex.row))
+      .find((tile) => tile.col !== 3 || tile.row !== 3)!;
+    const melee = createUnit(state, 0, 'warrior', beside.col, beside.row);
+    const charge = forecast(state, melee.id, 4, 3);
+    expect(charge.defenderLines.some((entry) => entry.source.includes('Castellany'))).toBe(false);
+  });
+
+  it('the Statue of Zeus takes its share off a wall and off nothing else', () => {
+    const state = flatState();
+    const home = foundCityAt(state, 0, at(state.map, 2, 3))!;
+    home.buildings.push('statueOfZeus');
+    state.wonders.push({ building: 'statueOfZeus', playerId: 0, cityId: home.id, turn: 1 });
+    foundCityAt(state, 1, at(state.map, 8, 3));
+    bumpRevision(state);
+    const a = createUnit(state, 0, 'warrior', 7, 3);
+    const wall = forecast(state, a.id, 8, 3);
+    const share = wall.attackerLines.find((line) => line.source.startsWith('Cards'))!;
+    expect(share).toBeDefined();
+    // A percentage of the roster's own strength, printed in points — the one
+    // attacker-side share there is, and it names itself in the label.
+    expect(share.source).toContain('+15%');
+    // And a piece in the open is not a wall.
+    createUnit(state, 1, 'warrior', 6, 3);
+    bumpRevision(state);
+    const open = forecast(state, a.id, 6, 3);
+    expect(open.attackerLines.some((line) => line.source.startsWith('Cards'))).toBe(false);
+  });
+});

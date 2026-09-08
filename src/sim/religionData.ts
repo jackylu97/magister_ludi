@@ -131,6 +131,18 @@ export const BELIEF_AXES: readonly BeliefAxis[] = [
  */
 export interface BeliefDef extends CardDefBase {
   axis: BeliefAxis;
+  /**
+   * **Withdrawn from the pool**: never dealt, and still fully readable.
+   *
+   * `RiteDef.retired`'s field one table over and `OrderDef.retired`'s two, for
+   * their reason exactly: a belief the design has taken out (The Promised Land,
+   * 2026-09-07 — a town founded is converted in a turn or two anyway) is not a
+   * belief that never existed. A save from before the cut may hold it named on a
+   * religion, `anyCardDef` would throw on an id the table had forgotten, and its
+   * effects go on paying whoever consecrated it. So the row stays, `poolBeliefs`
+   * stops dealing it, and nothing else changes.
+   */
+  retired?: boolean;
 }
 
 /**
@@ -550,9 +562,17 @@ export const LIVE_RITE_IDS: readonly RiteId[] = RITE_IDS.filter(
  */
 export const CONSECRATION_IDS = Object.keys(RELIGION.consecrations) as ConsecrationId[];
 
-/** The rows of one drawable pool, in file order. `poolOrders`' twin. */
+/**
+ * The rows of one drawable pool, in file order. `poolOrders`' twin.
+ *
+ * **Withdrawn rows leave it** (`BeliefDef.retired`), which is `LIVE_RITE_IDS`'
+ * rule one table over: the id lists stay whole because a save may name a
+ * withdrawn row and `anyCardDef` has to find it, and this is the one reading
+ * that answers "which beliefs may be dealt".
+ */
 export function poolBeliefs(pool: ReligionBeliefPool): BeliefId[] {
-  return pool === 'follower' ? [...FOLLOWER_BELIEF_IDS] : [...ENHANCER_BELIEF_IDS];
+  const ids = pool === 'follower' ? FOLLOWER_BELIEF_IDS : ENHANCER_BELIEF_IDS;
+  return ids.filter((id) => beliefDef(id).retired !== true);
 }
 
 // --- lookups ----------------------------------------------------------------

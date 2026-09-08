@@ -1679,7 +1679,7 @@ describe('trade in the log', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(87);
+    expect(SCHEMA_VERSION).toBe(88);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

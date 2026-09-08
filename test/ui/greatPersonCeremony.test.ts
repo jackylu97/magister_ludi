@@ -18,6 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { CEREMONY_TIMING, deedLine } from '../../src/ui/greatPersonCeremony';
 import { greatPersonFace, legacyIsSilent } from '../../src/ui/greatPersonFace';
 import { type GameState, newGame } from '../../src/sim/state';
+import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -152,10 +153,15 @@ describe('the inversion', () => {
     expect(CEREMONY).toContain(
       'saidAtMs: promoted ? CEREMONY_TIMING.stampMs : CEREMONY_TIMING.deedMs,',
     );
-    // The two roster rows this is actually for.
+    // **The two roster rows this was written for were built** (batch E4a,
+    // 2026-09-07), so the rule is pinned on the shape rather than on a name:
+    // a face with nothing but a deferred clause is promoted, and today no
+    // roster row is one. The day one arrives, this catches it.
     const state = twoSeats();
-    for (const id of ['heroOfAlexandria', 'yiSunSin'] as const) {
-      expect(legacyIsSilent(greatPersonFace(state, 0, id).legacy), id).toBe(true);
+    expect(legacyIsSilent([{ text: 'not built', deferred: true }])).toBe(true);
+    expect(legacyIsSilent([])).toBe(true);
+    for (const id of GREAT_PERSON_IDS) {
+      expect(legacyIsSilent(greatPersonFace(state, 0, id).legacy), id).toBe(false);
     }
     // …and a person whose legacy is real is not promoted.
     expect(legacyIsSilent(greatPersonFace(state, 0, 'imhotep').legacy)).toBe(false);

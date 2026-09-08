@@ -17,12 +17,22 @@
   "reroll": {
     "base": 35,
     "exponent": 1.35,
-    "ageMultiplier": [1, 1, 1.6, 2.2],
+    "ageMultiplier": [
+      1,
+      1,
+      1.6,
+      2.2
+    ],
     "heavyMultiple": 2,
     "ability": "theLongCount"
   },
   "rite": {
-    "costByAge": [40, 56, 72, 90]
+    "costByAge": [
+      40,
+      56,
+      72,
+      90
+    ]
   },
   "relicFaith": 3,
   "apostle": {
@@ -477,11 +487,17 @@
       "name": "The Vigil",
       "axis": "none",
       "flavor": "Somebody sits up with the lamp while the rite is running.",
-      "text": "A city keeping a rite is richer in learning and in song while it lasts.",
-      "deferred": [
-        "While a rite is running, this city gives more science and more culture. The rule that asks a city whether it is keeping a rite has not been written yet, so the god sits quiet."
-      ],
-      "effects": []
+      "text": "A city keeping a rite gains +2 science and +2 culture while it lasts.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "science": 2,
+          "culture": 2,
+          "scope": {
+            "test": "keepingRite"
+          }
+        }
+      ]
     },
     "theLivingRock": {
       "name": "The Living Rock",
@@ -1003,15 +1019,14 @@
       "axis": "road",
       "flavor": "It was described to them before any of them had seen it.",
       "text": "Settlers you send out carry an extra citizen: the cities they found start one larger.",
-      "deferred": [
-        "the cities your settlers found start already keeping your faith — nothing can seed a religion at a founding, and a lump of pressure at the moment a town is planted is a second way to press faith"
-      ],
       "effects": [
         {
           "kind": "foundingRider",
           "population": 1
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Withdrawn: this belief is no longer offered. A religion that already keeps it keeps it."
     }
   },
   "rites": {
@@ -1078,9 +1093,6 @@
       "tech": "bronzeWorking",
       "flavor": "The god does not promise you live. Only that it will be worth watching.",
       "text": "This city is harder to storm while the rite runs.",
-      "deferred": [
-        "Your soldiers were also to mend faster inside this city's bounds. Where a heal is decided there is nothing yet that can ask a city what it is keeping, so only the walls answer."
-      ],
       "duration": 10,
       "effects": [
         {
@@ -1088,7 +1100,8 @@
           "stat": "defense",
           "amount": 5
         }
-      ]
+      ],
+      "note": "The rite holds the walls and nothing else: a soldier standing inside them mends at the ordinary pace."
     },
     "riteOfPlenty": {
       "name": "Rite of Plenty",

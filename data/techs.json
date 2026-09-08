@@ -376,9 +376,6 @@
         }
       ],
       "flavor": "One name at the top of the list, and a list.",
-      "deferred": [
-        "The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn."
-      ],
       "note": "A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's writ reaches further too: your realm may hold more cities in hand than it could."
     },
     "theLongCount": {
@@ -538,7 +535,7 @@
       },
       "flavor": "A note that is worth something because everyone agrees it is.",
       "deferred": [
-        "The Bourse, which would turn a city’s coin into culture every turn, waits for a building that spends gold rather than earning it."
+        "The Bourse, which would turn a city’s coin into culture every turn, waits on a building the whole realm holds one of: a house that spends gold rather than earning it is read from the empire’s books, and an ordinary building is only ever read by its own town."
       ]
     },
     "artisanry": {
@@ -698,9 +695,6 @@
         }
       ],
       "flavor": "A city, written down before it is built.",
-      "deferred": [
-        "A city planted far from the capital costing less authority waits for the writ to know how far from home a site is."
-      ],
       "note": "Settlers are trained faster, and every city you found is founded with its charter already granted."
     },
     "theQadisCourt": {
@@ -1036,8 +1030,19 @@
         ]
       },
       "flavor": "Everyone kneels to someone and calls it order.",
-      "deferred": [
-        "Defenders shrugging off arrows waits until a strength line can be told which weapon it is answering."
+      "note": "A castle may be raised, and pikemen called. Your soldiers also stand better against anything that shoots at them.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 5,
+          "when": {
+            "test": "always"
+          },
+          "side": "defend",
+          "vsClass": {
+            "ranged": true
+          }
+        }
       ]
     },
     "theHolyOffice": {

@@ -174,6 +174,7 @@ import {
 } from '../sim/cities';
 import { roundYield, signedYield } from '../sim/yieldFormat';
 import { buildingDef } from '../sim/buildingData';
+import { buildingRitePay } from '../sim/buildingEffects';
 import type { CampBounty } from '../sim/camps';
 import {
   type CityAttackPhase,
@@ -434,7 +435,33 @@ export function riteSentence(state: GameState, city: City, id: RiteId): string {
       // keyword. `stripRefs` is the plain reading of exactly the same words.
       .map((clause) => stripRefs(clause.text))
       .join(' \u00b7 ');
-  return payoff.length > 0 ? `\u2736 ${def.name}${where} \u00b7 ${payoff}` : `\u2736 ${def.name}${where}`;
+  // **The town's own shelves** (the user, 2026-09-07: "verify the chapel gains
+  // culture after a rite \u2026 it's not appearing for me"). It was paid all along
+  // (`payRiteBuildings`, `religion.ts`) and announced nowhere \u2014 five culture
+  // into a basket of hundreds is invisible unless the sentence says it. The
+  // clause is composed from the same reading the payment is made by
+  // (`buildingRitePay`), so the toast and the bank cannot disagree; the
+  // building is named so the player learns which shelf paid.
+  const clauses = [payoff, riteShelvesClause(city)].filter((clause) => clause.length > 0);
+  return clauses.length > 0
+    ? `\u2736 ${def.name}${where} \u00b7 ${clauses.join(' \u00b7 ')}`
+    : `\u2736 ${def.name}${where}`;
+}
+
+/**
+ * "the Chapel pays 5 culture", or the empty string for a town whose buildings
+ * pay nothing for a rite. Each paying building is named with its own figure;
+ * the total is `buildingRitePay`'s and this walks the same rows it sums.
+ */
+function riteShelvesClause(city: City): string {
+  if (buildingRitePay(city) <= 0) return '';
+  const parts: string[] = [];
+  for (const building of city.buildings) {
+    const pays = buildingDef(building).ritePays ?? 0;
+    if (pays <= 0) continue;
+    parts.push(`the ${buildingDef(building).name} pays ${pays} culture`);
+  }
+  return parts.join(', ');
 }
 
 /** And while the city screen's Buy Tiles mode is up. */
@@ -4607,7 +4634,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     if (!unit) return undefined;
     if (!canOrder()) return `You have ended turn ${getGame().state.turn}`;
-    return fortifyError(unit);
+    return fortifyError(unit, getGame().state);
   }
 
   function fortify(): void {

@@ -301,8 +301,29 @@ import {
  * *snapshot* — `snapshotState` is `JSON.stringify(state)`, so a saved state
  * gains a field and its hash changes, which is why this is a schema bump and not
  * a quiet addition.
+ *
+ * v88: **the deferred rows, first half** (batch E4a,
+ * `docs/audit/deferred-rows.md`). Twenty-odd rows that promised a clause the
+ * game did not keep were ruled one at a time: five clauses built on shapes that
+ * already existed or on a field's worth of new vocabulary, seven struck out of
+ * the rows that carried them, and eight rows withdrawn from their pools
+ * outright. What moves a replay is that the cards themselves changed — The Curia
+ * pays for a Cathedral, Blitz hands a killer its walking back and forbids the
+ * trench, The Siege Train pays beside its engines, Patrons pays renown for the
+ * culture houses, Triumphs pays renown for a town taken, the Terracotta Army
+ * stamps the soldiers raised under it, the Statue of Zeus takes fifteen percent
+ * off a wall, Notre-Dame and the Observatory and the Shipyard read what they
+ * always printed, three great people's legacies stopped being empty, The Vigil
+ * pays while a rite runs, Castellany answers arrows, Ivory puts hammers behind
+ * soldiers, and The Long Road and The First Keel can be earned at last.
+ *
+ * A v87 log replays identically **only** in a game where none of those rows was
+ * ever held, drawn or reachable — which is to say, almost none. A pool that lost
+ * five Orders and gained two Doctrines deals different hands from the first
+ * draft on, and every seeded draw after that belongs to a different game. This
+ * is a content bump, and content is what the log is played against.
  */
-export const SCHEMA_VERSION = 87;
+export const SCHEMA_VERSION = 88;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2692,7 +2713,12 @@ export function createUnit(
   // sheet's 100 and stamped to 110 a line later would be a veteran who starts
   // wounded. The Muster Roll, Drums of War; see `cardUnitStamp`, the one reader
   // of the shape, and `Unit.stamp`, where presence is the state.
-  const stamp = cardUnitStamp(state, ownerId);
+  // The birth hex travels with it since the Terracotta Army: a stamp may name
+  // the town that raised the piece, and this is the one place a piece comes into
+  // existence — so "built in this city" is asked exactly where it can be
+  // answered. A creation on open ground has no town and a scoped stamp is silent
+  // there; see `CardUnitStampEffect.scope`.
+  const stamp = cardUnitStamp(state, ownerId, { col, row });
   const stamped = Object.keys(stamp).length > 0;
   const unit: Unit = {
     id: allocateEntityId(state),

@@ -189,10 +189,13 @@ describe('the legacy is the headline', () => {
     expect(legacyIsSilent([])).toBe(true);
     expect(legacyIsSilent([{ text: 'x', deferred: true }])).toBe(true);
     expect(legacyIsSilent([{ text: 'x' }])).toBe(false);
-    // The two rows this is actually for, both of which carry deferred prose and
-    // an empty `legacy` (the ceremony promotes their deed instead).
-    for (const id of ['heroOfAlexandria', 'yiSunSin'] as const) {
-      expect(greatPersonDef(id).legacy.length, id).toBe(0);
+    // **No roster row is silent any more** (batch E4a, 2026-09-07): the two this
+    // was written for — Dinocrates and Yi Sun-sin — were built, so the rule is
+    // pinned on the shape alone and the sweep asserts the roster has nobody left
+    // for the ceremony to promote. A row that arrives empty tomorrow is caught
+    // by this, which is the honest reading of a rule about a *kind* of card.
+    for (const id of GREAT_PERSON_IDS) {
+      expect(greatPersonDef(id).legacy.length, id).toBeGreaterThan(0);
     }
   });
 

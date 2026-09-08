@@ -24,7 +24,8 @@
         "economic": 1,
         "wildcard": 1
       },
-      "effects": []
+      "effects": [],
+      "note": "The chiefdom is what a people keep before they keep a law. It asks nothing of you and grants you nothing."
     },
     "councilOfElders": {
       "name": "Council of Elders",
@@ -392,12 +393,19 @@
         "economic": 3,
         "wildcard": 4
       },
-      "text": "+3 faith for each Cathedral. Faith buildings supply science equal to their faith.",
-      "note": "There is no cathedral in the game yet — the temple is the last of the faith buildings — so the first clause waits on one.",
-      "deferred": [
-        "+3 faith per Cathedral"
-      ],
+      "text": "+6 faith for each Cathedral. Faith buildings supply science equal to their faith.",
       "effects": [
+        {
+          "kind": "countScaled",
+          "count": "buildingsOfKind",
+          "building": "cathedral",
+          "pays": {
+            "to": "yield",
+            "yield": "faith",
+            "amount": 6,
+            "where": "empire"
+          }
+        },
         {
           "kind": "mirrorYield",
           "from": "faith",
@@ -733,11 +741,7 @@
           }
         }
       ],
-      "deferred": [
-        "the bonus reaching a city with a mountain two hexes away, rather than only one"
-      ],
-      "retired": true,
-      "note": "Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it. It was built for a mountain **next to** the city, where the ratified text said within two hexes."
+      "note": "The mountain has to stand next to the city itself. A peak further off shelters somebody else."
     },
     "theSacredPath": {
       "name": "The Sacred Path",
@@ -776,10 +780,7 @@
           "rule": "freeChop"
         }
       ],
-      "deferred": [
-        "+1 food on every hex you have cleared of forest or jungle"
-      ],
-      "note": "Not built: the board does not remember a clearing. A felled forest leaves bare ground that looks exactly like ground nothing ever grew on, so nothing can tell the two apart to pay for one of them."
+      "note": "The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays."
     },
     "breadAndCircuses": {
       "name": "Bread and Circuses",
@@ -1065,17 +1066,18 @@
     },
     "religiousMandate": {
       "name": "Religious Mandate",
-      "tier": 0,
+      "tier": 10,
       "line": "procession",
       "flavor": "There is one truth, and we are its army.",
       "text": "Permanent war with empires of a different majority religion · your cities cannot be converted.",
-      "note": "None of this is built, and the card is never offered.",
+      "note": "Withdrawn until there is a war a faith can declare and a city a faith can hold shut. The row is kept so a saved game that already holds it keeps it.",
       "deferred": [
         "permanent war with empires of another faith",
         "your cities cannot be converted",
         "a powerful bonus toward the domination and religious beads"
       ],
-      "effects": []
+      "effects": [],
+      "retired": true
     },
     "theAcademyOfDeeds": {
       "name": "The Academy",
@@ -1227,13 +1229,16 @@
       "line": "forge",
       "flavor": "Stop only when there is nothing left in front of you.",
       "text": "Units that kill may move again that turn. Units cannot fortify.",
-      "note": "Retired: neither half is built — nothing gives a unit its movement back for a kill and nothing stops a unit fortifying — so the Doctrine is no longer offered in a draft. A saved game that already holds it keeps it.",
-      "deferred": [
-        "units that kill may move again that turn",
-        "units cannot fortify"
-      ],
-      "effects": [],
-      "retired": true
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "moveAfterKill"
+        },
+        {
+          "kind": "rule",
+          "rule": "noFortify"
+        }
+      ]
     },
     "thePhilosophersStone": {
       "name": "The Philosopher's Stone",
@@ -1377,10 +1382,7 @@
           }
         }
       ],
-      "note": "The extra authority is asked of every city you hold, not only of the ones you found after taking this Doctrine.",
-      "deferred": [
-        "asking the extra authority only of the cities you found after taking this Doctrine"
-      ]
+      "note": "The extra writ is asked of every city you hold, however long you have held it."
     },
     "theScatteredHearths": {
       "name": "The Scattered Hearths",
@@ -2869,7 +2871,7 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "A city taken is a story told forever.",
-      "text": "Capturing a city grants +30 culture.",
+      "text": "Capturing a city grants +30 culture and +25 renown.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -2878,12 +2880,16 @@
             "yield": "culture",
             "amount": 30
           }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "capture",
+          "grant": {
+            "renown": 25
+          }
         }
       ],
       "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
-      "deferred": [
-        "capturing a city also grants 5 renown"
-      ],
       "retired": true
     },
     "theStandingLevy": {
@@ -3612,10 +3618,7 @@
       "flavor": "They may take the gate, the granary and the gold. Not the stones.",
       "text": "Your holy city cannot be taken while it keeps your religion — it is sacked instead.",
       "effects": [],
-      "deferred": [
-        "your holy city is sacked rather than captured while it keeps your religion"
-      ],
-      "note": "Not built: a city can only be captured in this game, never sacked. Retired until sacking exists.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. A city can only be taken in this game, never sacked, so nothing was left to keep.",
       "retired": true
     },
     "waysideShrines": {
@@ -3842,16 +3845,14 @@
       "rarity": "common",
       "flavor": "The merchants pay for the spears, and the spears pay them back in miles.",
       "text": "Trade routes pay 30% more.",
-      "deferred": [
-        "trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the game can say where a route is safe, only what it pays"
-      ],
       "effects": [
         {
           "kind": "effectAmplifier",
           "target": "routeYields",
           "percent": 30
         }
-      ]
+      ],
+      "note": "The escort is paid for in coin and not in safety: a route this law enriches can still be plundered."
     },
     "theLastHunt": {
       "name": "The Last Hunt",
@@ -4121,10 +4122,7 @@
       "rarity": "common",
       "flavor": "Pull the sea out from under her and you can see what she has been hiding.",
       "text": "+25% production toward ships in every city with a Harbour.",
-      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a building the game rarely raises.",
-      "deferred": [
-        "ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn"
-      ],
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "productionBonus",
@@ -4795,10 +4793,7 @@
       "flavor": "The pole goes up where the camp came down.",
       "text": "Every barbarian camp you clear pays its bounty to all of your cities at once.",
       "effects": [],
-      "deferred": [
-        "a cleared camp pays its bounty to every one of your cities, not only to the nearest"
-      ],
-      "note": "Not built: the bounty for a camp reaches your treasury and the nearest city, and there is no way yet to share one out among all of them. Retired until there is.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "retired": true
     },
     "theFarCharts": {
@@ -4822,10 +4817,7 @@
           }
         }
       ],
-      "deferred": [
-        "your caravans may run one route to any city you have ever seen, however far away it is"
-      ],
-      "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. A law that let one route ignore that distance is not built yet."
+      "note": "How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule."
     },
     "theFoundingOath": {
       "name": "The Founding Oath",
@@ -5161,11 +5153,7 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The engines set out a week before the army does.",
-      "text": "Siege units gain +1 movement.",
-      "note": "Nothing can ask what is standing beside the piece that is fighting, so the struck clause is not built.",
-      "deferred": [
-        "+5 combat strength against cities for units standing beside a siege engine"
-      ],
+      "text": "Siege units gain +1 movement. +6 combat strength against cities for units standing beside a siege engine.",
       "effects": [
         {
           "kind": "unitStat",
@@ -5173,6 +5161,25 @@
           "amount": 1,
           "class": {
             "modelClass": "siege"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 6,
+          "side": "attack",
+          "when": {
+            "test": "all",
+            "of": [
+              {
+                "test": "vsCity"
+              },
+              {
+                "test": "beside",
+                "class": {
+                  "modelClass": "siege"
+                }
+              }
+            ]
           }
         }
       ]
@@ -5184,11 +5191,7 @@
       "line": "court",
       "rarity": "uncommon",
       "flavor": "The painter eats, and the city is remembered.",
-      "text": "+10 culture for each wonder you hold.",
-      "note": "Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built.",
-      "deferred": [
-        "+1 renown per turn for each culture building you hold"
-      ],
+      "text": "+10 culture for each wonder you hold. +3 renown per turn for each culture building you hold.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5199,6 +5202,12 @@
             "amount": 10,
             "where": "empire"
           }
+        },
+        {
+          "kind": "renown",
+          "amount": 3,
+          "per": "buildingOfCategory",
+          "category": "culture"
         }
       ]
     },
@@ -5349,10 +5358,7 @@
       "rarity": "uncommon",
       "flavor": "They read the sky the way a clerk reads a ledger.",
       "text": "+10 science for each wonder you hold.",
-      "note": "A completion pays for the kind of thing finished, and a wonder is a building, so a bounty on wonders alone is not built.",
-      "deferred": [
-        "completing a wonder grants +30 science"
-      ],
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5364,7 +5370,8 @@
             "where": "empire"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "theConsistory": {
       "name": "The Consistory",
@@ -5422,10 +5429,7 @@
       "rarity": "rare",
       "flavor": "Sleep is a thing that happens in your own country.",
       "text": "Military units gain +1 movement outside your own territory.",
-      "note": "Nothing remembers how far a piece walked this turn, so the price is not built.",
-      "deferred": [
-        "−5 combat strength on the turn a unit moved three hexes or more"
-      ],
+      "note": "The march is quicker and costs nothing: nothing remembers how far a piece walked this turn.",
       "effects": [
         {
           "kind": "unitStat",
@@ -5568,10 +5572,7 @@
       "rarity": "rare",
       "flavor": "The guilds sign, and the price of everything is settled for a generation.",
       "text": "+3% production in a city for each production building standing in it, at most +15%.",
-      "note": "Nothing yet counts the specialists working in a town, so the compact is paid for the workshops instead.",
-      "deferred": [
-        "the guilds were to be paid for the specialists a town keeps rather than for the halls it has raised"
-      ],
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "countScaled",
@@ -5586,7 +5587,8 @@
             "stage": "city"
           }
         }
-      ]
+      ],
+      "retired": true
     },
     "manufactories": {
       "name": "Manufactories",
@@ -5664,9 +5666,9 @@
       "rarity": "rare",
       "flavor": "The Magister keeps a court, and the court keeps the Work.",
       "text": "+30% production toward the Magnum Opus.",
-      "note": "A card may name a silhouette or a roster row but never a great person, so the second charge is not built.",
+      "note": "The court doubles nothing yet: the fifth age has no great people in it, and no law can yet make a legacy count twice.",
       "deferred": [
-        "great people arrive with a second charge"
+        "the legacies of great people of the fifth age count twice"
       ],
       "effects": [
         {
@@ -6107,10 +6109,7 @@
       "rarity": "uncommon",
       "flavor": "Debts forgiven, doors open, everybody singing.",
       "text": "Every 10 turns, gain faith for each citizen in your empire.",
-      "note": "One Order keeps one calendar, so a second boon on this row would never come round.",
-      "deferred": [
-        "the same festival was to fill the archives with song as well as the shrines with faith"
-      ],
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "periodic",
@@ -6118,7 +6117,8 @@
           "pays": "faith",
           "count": "population"
         }
-      ]
+      ],
+      "retired": true
     },
     "theCompactOfChairs": {
       "name": "The Compact of Chairs",

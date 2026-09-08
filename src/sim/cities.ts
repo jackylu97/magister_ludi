@@ -3147,7 +3147,7 @@ export function realiseItem(
     // here compares a building id against `"cathedral"`.
     const consecration = consecrateBuilding(state, city, item.id);
     const grants = payCompletionGrants(state, city, item.id);
-    payCompletionRiders(state, city, 'building');
+    payCompletionRiders(state, city, 'building', wonder !== undefined);
     // **The finish line**, last and after the grants (design ledger Entry
     // LVIII). The order is the rule: the row's golden bead is one of those
     // grants, so a close that ran first would settle the race on a tally one
@@ -3195,6 +3195,15 @@ export function realiseItem(
   if (unitDef(item.id).escalation !== undefined && !options.free) {
     const player = playerById(state, city.ownerId);
     if (player) player.unitsBuilt[item.id] = (player.unitsBuilt[item.id] ?? 0) + 1;
+  }
+  // **A keel is news** — The First Keel. Announced here, in the one routine that
+  // means "the city now has the thing", so a hull hammered out, bought outright
+  // or handed over by a wonder all say the same word; the Triumph's own `once`
+  // scope is what makes it the first, exactly as a founding's is what makes it
+  // the third city. Asked of the roster's own category, so nothing here compares
+  // a type against a name.
+  if (unitDef(item.id).category === 'naval') {
+    awardOccasion(state, city.ownerId, 'navalUnitBuilt');
   }
   payCompletionRiders(state, city, 'unit');
   return { unitId: unit.id };
@@ -3570,14 +3579,38 @@ function refundBeatenWonders(
  * `unitCompletion` for the kind, so a card may speak about either without the
  * table having to guess which one it meant. Both are asked, so a card that named
  * the general occasion is not silently outranked by one that named the specific.
+ *
+ * `wonder` is the one fact about *what was finished* that travels with the
+ * occasion — Dinocrates' ten turns of hammers for raising a marvel. It is passed
+ * rather than derived for `capturedWonder`'s stated reason one occasion over:
+ * this routine is the only thing still holding the row that was realised, and a
+ * moment later a wonder is one more entry in a town's `buildings` list.
  */
-function payCompletionRiders(state: GameState, city: City, kind: 'unit' | 'building'): void {
+function payCompletionRiders(
+  state: GameState,
+  city: City,
+  kind: 'unit' | 'building',
+  wonder = false,
+): void {
   const player = playerById(state, city.ownerId);
   if (!player) return;
   const at = { col: city.col, row: city.row };
   for (const occasion of ['completion', kind === 'unit' ? 'unitCompletion' : 'buildingCompletion'] as const) {
-    const payout = windfallPayout(state, player.id, occasion);
-    if (payout.grants.length === 0) continue;
+    const payout = windfallPayout(state, player.id, occasion, 0, 0, { wonder });
+    // **Anything at all on the payout is paid**, not the yields alone: a rider
+    // may hang a timed blessing on the realm (Dinocrates), bank renown, gift a
+    // piece or heal the army, and a guard that read only `grants` dropped every
+    // one of them silently. The empty case is the overwhelmingly common one —
+    // most completions carry no rider — so the cheap refusal stays.
+    if (
+      payout.grants.length === 0 &&
+      payout.timed.length === 0 &&
+      payout.renown.length === 0 &&
+      payout.units.length === 0 &&
+      !payout.healAll
+    ) {
+      continue;
+    }
     // Food a rider pays settles into growth; hammers deliberately do **not**
     // settle here, because this *is* a completion and `settleProduction` allows
     // at most one item per city per call — a rider that finished the next item

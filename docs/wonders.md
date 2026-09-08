@@ -29,6 +29,17 @@ new shape is a design decision argued individually (the pantheon-slot grant,
 the purchase-price line, the `borders` zone-of-control rule, and the Sistine's global percent were the
 four that made it).
 
+**Batch E4a (2026-09-07)** built three of the five rows that were carrying a
+deferred half, and each on the vocabulary rather than beside it: the Statue of
+Zeus' +15% at a wall is the attacker-side `combatPercent` share, which gained a
+`when` so a percentage can name one kind of fight; the Terracotta Army's veterans
+are a `unitStamp`, which gained a `scope` so a stamp can name the town that
+raised the piece; and Notre-Dame's Cathedral clause was always an ordinary scoped
+`cityYields` beside a scoped happiness. **Two are still deferred**: The Forbidden
+City's extra Order slot (no shape moves the slot spread, and it touches the
+chairs ruling) and the Alhambra's, because being dug in is a *posture* a piece
+takes and loses, not a fact it can be born with.
+
 ## Refused, on purpose
 
 - Wonders that are a bank statement (accumulate X).

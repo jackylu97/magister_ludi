@@ -4505,7 +4505,7 @@ function unitCommand(
     if (isExplorer(def)) return scoutCommand(state, player, unit);
     if (isCombatant(def)) return soldierCommand(state, player, unit);
     if (def.greatWork === true) return greatPersonCommand(state, player, unit, sitting);
-    return standDown(unit, 'Nothing this bot knows how to do with this piece.');
+    return standDown(state, unit, 'Nothing this bot knows how to do with this piece.');
   })();
   if (choice === null) return null;
   const decision: BotDecision = {
@@ -4559,7 +4559,11 @@ function isPlainBuilder(def: ReturnType<typeof unitDef>): boolean {
 }
 
 /** Sleep for a civilian, fortify for a soldier. The order that always works. */
-function standDown(unit: Unit, why = 'Nothing better to do where it stands.'): UnitChoice | null {
+function standDown(
+  state: GameState,
+  unit: Unit,
+  why = 'Nothing better to do where it stands.',
+): UnitChoice | null {
   const sleep = sleepError(unit);
   if (sleep === null) {
     return {
@@ -4568,7 +4572,7 @@ function standDown(unit: Unit, why = 'Nothing better to do where it stands.'): U
       candidates: [chosenAt('sleep', 0)],
     };
   }
-  const fortify = fortifyError(unit);
+  const fortify = fortifyError(unit, state);
   if (fortify === null) {
     return {
       command: { type: 'fortify', playerId: unit.ownerId, unitId: unit.id },
@@ -4672,7 +4676,7 @@ function settlerCommand(
         `${round1(standing!.appraisal.total)} ground under it. Founds here.`,
     );
   }
-  return standDown(unit, 'Nowhere legal to found and nowhere better to walk.');
+  return standDown(state, unit, 'Nowhere legal to found and nowhere better to walk.');
 }
 
 /**
@@ -5193,7 +5197,11 @@ function workerCommand(
       candidates: tried,
     };
   }
-  return standDown(unit, 'The plan has nothing this piece can reach, and no hill under it to ask.');
+  return standDown(
+    state,
+    unit,
+    'The plan has nothing this piece can reach, and no hill under it to ask.',
+  );
 }
 
 /**
@@ -5341,6 +5349,7 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   // silent refusal a printed charge exists not to be.
   const held = weighed.some((row) => row.terms.some((term) => term.label.includes('has not shot yet')));
   const stand = standDown(
+    state,
     unit,
     held
       ? 'A bowman of ours can take the same target and has not shot yet, so this piece holds; ' +
@@ -5542,7 +5551,7 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
   if (tileOwnerPlayerId(state, unit.col, unit.row) !== player.id) return null;
   const decisive = decisiveBlowAt(state, player, unit);
   if (decisive !== null) return null;
-  if (fortifyError(unit) !== null) return null;
+  if (fortifyError(unit, state) !== null) return null;
   const terms: ValueTerm[] = [
     {
       label: `${unit.hp} of ${maxHp} hit points, and this seat rests below ${round1(ai.military.healBelowHealth * 100)}%`,
@@ -6085,7 +6094,7 @@ function greatPersonCommand(
       focus: { col: site.entry.col, row: site.entry.row },
     };
   }
-  return standDown(unit, 'Nothing to act on and nowhere its work would pay.');
+  return standDown(state, unit, 'Nothing to act on and nowhere its work would pay.');
 }
 
 /**
@@ -6220,7 +6229,11 @@ function friendlyPiecesAround(
 function augurCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   void state;
   void player;
-  return standDown(unit, 'The augur is withdrawn: its rites are a city\'s verbs and its gods arrive on their own.');
+  return standDown(
+    state,
+    unit,
+    'The augur is withdrawn: its rites are a city\'s verbs and its gods arrive on their own.',
+  );
 }
 
 /**
@@ -6270,7 +6283,7 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: step,
     };
   }
-  return standDown(unit, 'Nowhere to plant, nothing to deepen and nowhere legal to step.');
+  return standDown(state, unit, 'Nowhere to plant, nothing to deepen and nowhere legal to step.');
 }
 
 /**
@@ -6323,7 +6336,11 @@ function apostleCommand(state: GameState, player: Player, unit: Unit): UnitChoic
       focus: { col: city.col, row: city.row },
     };
   }
-  return standDown(unit, 'No town of this empire would keep a relic, and its other charges are unpriced.');
+  return standDown(
+    state,
+    unit,
+    'No town of this empire would keep a relic, and its other charges are unpriced.',
+  );
 }
 
 /** Has this town a consecrated shelf — the clause `placeRelicError` calls `cityKeepsRelics`? */
@@ -6424,7 +6441,9 @@ function traderCommand(
     }
   }
 
-  if (best === null) return standDown(unit, 'No pair of towns will take a route from this empire.');
+  if (best === null) {
+    return standDown(state, unit, 'No pair of towns will take a route from this empire.');
+  }
   tried[best.at]!.chosen = true;
   const abroad = routeIsInternational(best.from, best.to);
   return {

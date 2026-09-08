@@ -269,11 +269,10 @@ era 3: trade routes supply +1 gold
 city**. ("Same bonuses as silk", as ratified.)
 
 ### Ivory — plains
-`+1🌾 +1⚙` on tile. +2 production towards military units and buildings
-age 3: the war elephant (a mounted-line replacement with its own combat
-profile) and its Æra III siege bonus — waits on **unique units**, a system this
-game does not have. Ivory ships as tile yields and its flat happiness, as the
-task directed.
+`+1🌾 +1⚙` on tile · **+10% production toward units, in every city**.
+The hammer half is an ordinary `productionBonus` at empire scope — marble's
+shape one category over (batch E4a, 2026-09-07). The war elephant the row was
+ratified with is a roster row now, so nothing here waits on unique units.
 
 ### Amber — forest on grassland/plains/tundra
 `+1🪙` on tile · **+2 happiness** ·

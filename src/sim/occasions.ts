@@ -76,7 +76,18 @@ export type Occasion =
   /** A rival's seat of government changed hands. `captureCity`. */
   | 'capitalCaptured'
   /** A great person was called. `settleGreatPersonChoice`. */
-  | 'greatPersonRecruited';
+  | 'greatPersonRecruited'
+  /**
+   * A **naval** unit was realised by this empire — The First Keel.
+   *
+   * Announced from `realiseItem`, the one routine that means "the city now has
+   * the thing", so a hull hammered out, bought outright or handed over by a
+   * wonder all say the same word. "First" is not in the name and must not be:
+   * the occasion is *a* keel, and the Triumph's own `once` scope is what makes
+   * it the first — a moment that knew how to count itself would be a second
+   * register beside `Player.triumphs`.
+   */
+  | 'navalUnitBuilt';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -93,4 +104,5 @@ export const OCCASIONS: readonly Occasion[] = [
   'religionFounded',
   'capitalCaptured',
   'greatPersonRecruited',
+  'navalUnitBuilt',
 ];

@@ -42,7 +42,7 @@ import {
 } from '../../src/sim/yields/empire';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { beadGrantDef } from '../../src/sim/beadData';
-import { previewCombat } from '../../src/sim/combat';
+import { applyCombat, fortifyError, isCombatant, previewCombat } from '../../src/sim/combat';
 import { type BuildingId, BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { chopFeatureAt, pillageAt, prospectAt } from '../../src/sim/improvements';
 import { nearestTarget } from '../../src/sim/barbarians';
@@ -153,6 +153,7 @@ import {
   explainCardBuildingYields,
 } from '../../src/sim/yields/town';
 import { improvementDef } from '../../src/sim/improvementData';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { awardOccasion } from '../../src/sim/triumphs';
 import { applyCommand } from '../../src/sim/commands';
 import {
@@ -1296,7 +1297,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(87);
+    expect(SCHEMA_VERSION).toBe(88);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2527,9 +2528,11 @@ describe('the master-list cut of 2026-08-28', () => {
     expect(said('theCuria')).toEqual([
       // Built by the 2026-08-28 pass: `mirrorYield` reads one voice off the
       // buildings of one category and pays it as another. The Cathedral half
-      // still waits on the tree.
+      // was struck from the doc's own deferred list on 2026-09-07 (batch E4a) —
+      // there has been a Cathedral in the table since the buildings pass, so the
+      // clause is an ordinary count and the row prints both halves.
+      '+6 faith per Cathedral',
       'faith buildings supply science equal to their faith, in every city',
-      '+3 faith per Cathedral — not built yet',
     ]);
     // Both halves built by the 2026-08-28 pass. A great person is still
     // *called* rather than bought — what the gold buys is the **recruitment**
@@ -2576,9 +2579,10 @@ describe('the master-list cut of 2026-08-28', () => {
     // The pillage heal was Scorched Earth's all along, and the balance pass of
     // 2026-08-31 gave the second half back to the doc's own sentence — which the
     // board cannot answer, so it is deferred rather than approximated.
+    // The food half was **cut** on 2026-09-07 (batch E4a): the board keeps no
+    // memory of a clearing, so the row prints the free axes and nothing else.
     expect(said('burningWay')).toEqual([
       'clearing a forest or jungle costs no worker charge',
-      '+1 food on every hex you have cleared of forest or jungle — not built yet',
     ]);
     expect(said('scorchedEarth')).toEqual([
       'pillaging heals a further 25',
@@ -3204,7 +3208,11 @@ describe('the Orders pass of 2026-08-29', () => {
       const def = orderDef(id as never);
       expect(def.retired, id).toBe(true);
       expect(def.effects, id).toEqual([]);
-      expect(def.deferred, id).toBeDefined();
+      // **No `deferred` any more** (batch E4a): both clauses were *cut* rather
+      // than left labelled, which is what a withdrawn row with nothing built
+      // means — the note says the row is out of the draw and why, and a promise
+      // nobody intends to keep is not printed beside it.
+      expect(def.deferred, id).toBeUndefined();
       expect(def.note, id).toBeTruthy();
       // `poolOrders` is the one reader of `retired`, so a withdrawn row is out
       // of the draw, the upgrade roll and every screen at once.
@@ -3454,10 +3462,9 @@ describe('the Orders pass of 2026-08-29', () => {
     // "heals 15", not "heals a further 15": a kill pays no heal of its own, and
     // an increment on a number that does not exist is a card promising nothing.
     expect(said('theOathBound')).toEqual(['killing a unit heals 15']);
-    // The deferred row says what is missing and nothing else.
-    expect(said('sanctuary')).toEqual([
-      'your holy city is sacked rather than captured while it keeps your religion — not built yet',
-    ]);
+    // The withdrawn row says nothing at all: batch E4a cut the clause rather
+    // than leaving it labelled, so there is no promise left to print.
+    expect(said('sanctuary')).toEqual([]);
   });
 });
 
@@ -3715,7 +3722,6 @@ describe('the balance pass of 2026-08-31', () => {
     expect(said('mountainHold')).toEqual([
       '+15% production in every city beside a mountain',
       'every city beside a mountain: +5 city defence',
-      'the bonus reaching a city with a mountain two hexes away, rather than only one — not built yet',
     ]);
     // Re-aimed by the synergy pass of 2026-09-05: the row reads the council's
     // wildcards now, and the reader is the card's second clause.
@@ -3777,11 +3783,10 @@ describe('the balance pass of 2026-08-31', () => {
       // was not touched.
       '-15% happiness demanded per citizen',
       // Back to 2 by the flag ruling of 2026-09-03: the ratified card asks it of
-      // every *new* city, and until a town remembers when it was founded the
-      // honest reading is the cheaper one asked of all of them — said out loud
-      // in the row's own deferred words below.
+      // every *new* city, and a town remembers no founding turn. Batch E4a
+      // **cut** that clause rather than going on promising it, so the reading
+      // asked of every city is the whole card now and the note says so.
       '-2 authority capacity per city you hold',
-      'asking the extra authority only of the cities you found after taking this Doctrine — not built yet',
     ]);
     expect(said('theScatteredHearths')).toEqual([
       'the citizens in every city who demand no happiness rises by 2',
@@ -4095,11 +4100,7 @@ describe('the ratified cards of the Themes Build', () => {
       'melee units: +1 movement',
       'melee units: +1 movement inside your territory',
     ]);
-    expect(said('theEscortedRoads')).toEqual([
-      'trade routes pay +30% more',
-      'trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the ' +
-        'game can say where a route is safe, only what it pays — not built yet',
-    ]);
+    expect(said('theEscortedRoads')).toEqual(['trade routes pay +30% more']);
     // Raised by the card-shapes pass of 2026-09-04: the Wild Hunt's counter
     // card now pays like the payoff it always was, in both voices.
     expect(said('theLastHunt')).toEqual([
@@ -4140,10 +4141,10 @@ describe('the ratified cards of the Themes Build', () => {
       "+3 production in every coastal city",
       "+30% production toward ships, in every coastal city",
     ]);
+    // Withdrawn on 2026-09-07 (the user: *remove, boring*), and its unbuilt
+    // half cut with it — a row nobody will be dealt promises nothing.
     expect(said('theDryDocks')).toEqual([
       '+25% production toward ships, in every city with a Harbour',
-      'ships mend completely in a port — a heal that depends on where a piece is standing ' +
-        'is a rule about a hex, and healing is a rule about a turn — not built yet',
     ]);
     expect(said('theWinteringGrounds')).toEqual([
       'all units cost no gold in maintenance outside your territory',
@@ -4681,8 +4682,12 @@ describe("the user's card pass of 2026-09-03", () => {
       expect(poolOrders(orderDef(id).pool).includes(id), id).toBe(false);
       expect(describeCard(id).length, id).toBeGreaterThan(0);
     }
-    expect(doctrineDef('mountainHold').retired).toBe(true);
-    expect(poolDoctrines(10).includes('mountainHold' as never)).toBe(false);
+    // **Mountain Hold came back** (batch E4a). It was withdrawn for its unbuilt
+    // half alone — the row was written for a mountain two hexes off and built
+    // for one beside — and cutting that clause leaves a card that pays exactly
+    // what it prints, so it is dealt again.
+    expect(doctrineDef('mountainHold').retired).toBeUndefined();
+    expect(poolDoctrines(10).includes('mountainHold' as never)).toBe(true);
     expect(describeCard('mountainHold').length).toBeGreaterThan(0);
     // And the second row the pass added is dealt. **First Fruits is not**: batch
     // F retired the first citizen's tithe (`docs/history/orders-pass-3.md` §2), so it is
@@ -5316,20 +5321,20 @@ describe('the synergy-density pass of 2026-09-05', () => {
       .filter((line) => line.source.includes('The Far Charts'))
       .reduce((sum, line) => sum + line.science, 0);
     expect(beakers).toBe(Math.floor(seen / 20));
-    // The route half is a rule about how far a caravan may be sent, which is a
-    // fact about the two towns it joins — so it is said on the row and not bent.
-    expect(orderDef('theFarCharts').deferred).toEqual([
-      'your caravans may run one route to any city you have ever seen, however far away it is',
-    ]);
+    // The route half was **cut** on 2026-09-07 (batch E4a): how far a caravan
+    // may be sent is a fact about the two towns it joins, and the law does not
+    // reach that rule. The row's note says so; nothing is promised.
+    expect(orderDef('theFarCharts').deferred).toBeUndefined();
+    expect(orderDef('theFarCharts').note).toBeTruthy();
   });
 
   it('The Wolf-Standard — deferred whole, and out of every pool', () => {
     const def = orderDef('theWolfStandard');
     expect(def.retired).toBe(true);
     expect(def.effects).toEqual([]);
-    expect(def.deferred).toEqual([
-      'a cleared camp pays its bounty to every one of your cities, not only to the nearest',
-    ]);
+    // Batch E4a cut the clause with the row (the user: *remove*), so a
+    // withdrawn card promises nothing.
+    expect(def.deferred).toBeUndefined();
     expect(def.note).toBeTruthy();
     expect(poolOrders('governmentII').includes('theWolfStandard' as never)).toBe(false);
   });
@@ -5359,11 +5364,7 @@ describe('the synergy-density pass of 2026-09-05', () => {
     expect(said('theBannerCall')).toEqual([
       'while you are at war: +15% production toward units; killing a unit grants +5 culture',
     ]);
-    expect(said('theFarCharts')).toEqual([
-      '+1 science per 20 hexes you have revealed',
-      'your caravans may run one route to any city you have ever seen, however far away it is — ' +
-        'not built yet',
-    ]);
+    expect(said('theFarCharts')).toEqual(['+1 science per 20 hexes you have revealed']);
   });
 });
 
@@ -5543,9 +5544,11 @@ describe('the cards pass of 2026-09-05', () => {
     expect(said('theConsistory')).toEqual([
       "your buildings that supply faith pay +100% more, counted after every other bonus on them",
     ]);
+    // Withdrawn on 2026-09-07 (the user: *remove this altogether, not a strong
+    // engine*), and its unbuilt half cut with it — so the row prints the one
+    // clause it still pays whoever holds it in a save.
     expect(said('theGuildCompact')).toEqual([
       "+3% production per production building in this city (at most +15% production)",
-      "the guilds were to be paid for the specialists a town keeps rather than for the halls it has raised — not built yet",
     ]);
     expect(said('theHorseTribes')).toEqual([
       'mounted units: +1 movement',
@@ -5568,10 +5571,15 @@ describe('the cards pass of 2026-09-05', () => {
 
   it('leaves the late Doctrines paying exactly what they print', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
-    // Blitz had no stock half at all, so it is retired rather than left in a
-    // live pool as a card that cannot pay.
-    expect(doctrineDef('blitz').retired).toBe(true);
-    expect(poolDoctrines(45).includes('blitz' as never)).toBe(false);
+    // **Blitz was built** on 2026-09-07 (batch E4a): both halves are one `rule`
+    // apiece — a kill hands the walking back, and the trench is forbidden — so
+    // the row that had no stock half at all now has two and is dealt again.
+    expect(doctrineDef('blitz').retired).toBeUndefined();
+    expect(poolDoctrines(45).includes('blitz' as never)).toBe(true);
+    expect(said('blitz')).toEqual([
+      'a unit that kills gets its movement back for the rest of the turn',
+      'your units cannot fortify',
+    ]);
     // The other five ship their stock halves with the rest struck from the text
     // — a card prints only what it pays.
     for (const id of ['theSeaCharter', 'theRenaissanceCourt', 'absolutism', 'paxMagistri',
@@ -7511,5 +7519,103 @@ describe('a building’s share counts what the law put on it', () => {
     expect(cardLinesOnBuilding(g.state, city, 'temple').culture).toBe(3);
     // A monument's line is the monument's, not the temple's.
     expect(cardLinesOnBuilding(g.state, city, 'monument').culture).toBe(0);
+  });
+});
+
+// --- batch E4a: the deferred rows, first half -------------------------------
+
+/**
+ * The clauses the audit of 2026-09-07 ruled *build*
+ * (`docs/audit/deferred-rows.md`), one case per row.
+ *
+ * Each is a data row on a shape that already existed or on one field's worth of
+ * new vocabulary, so what is pinned here is that the row **pays what its own
+ * text says** on a real bench — not that a shape exists, which the register test
+ * above already answers.
+ */
+describe('the deferred rows of batch E4a', () => {
+  it('The Curia pays for every Cathedral the realm has raised', () => {
+    const g = game(4101);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.government = 'theCuria';
+    bumpRevision(g.state);
+    const faith = (): number =>
+      explainCardEmpireYields(g.state, 0)
+        .filter((line) => line.card === 'theCuria')
+        .reduce((sum, line) => sum + line.faith, 0);
+    // No cathedral, no tithe — a count of nothing pays no line at all.
+    expect(faith()).toBe(0);
+    city.buildings.push('cathedral');
+    bumpRevision(g.state);
+    expect(faith()).toBe(6);
+  });
+
+  // The Siege Train's own strength line is pinned in `combat.test.ts`, beside
+  // Castellany's: a condition about a fight is read where there is a fight.
+
+  it('Blitz hands a killer its walking back, and forbids the trench', () => {
+    const g = game(4102);
+    const player = playerById(g.state, 0)!;
+    const soldier = g.state.units.find(
+      (u) => u.ownerId === 0 && isCombatant(unitDef(u.type)),
+    )!;
+    // The trench first, because it is a refusal and refusals are cheap to read.
+    expect(fortifyError(soldier, g.state)).toBeNull();
+    player.statecraft.doctrines.push('blitz');
+    bumpRevision(g.state);
+    expect(fortifyError(soldier, g.state)).toContain('cannot fortify');
+
+    // And the kill. A wild piece is put next door and struck down; the attacker
+    // ends the blow with a full purse instead of an empty one.
+    const here = getTileAt(g.state.map, soldier.col, soldier.row)!;
+    const there = neighborTiles(g.state.map, tileHex(here))
+      .map((hex) => getTileAt(g.state.map, hex.col, hex.row)!)
+      .find((tile) => !isWaterTerrain(tile.terrain) && !tile.hills)!;
+    const wild = createUnit(g.state, 1, 'warrior', there.col, there.row);
+    wild.hp = 1;
+    soldier.movesLeft = fullMovement(soldier, g.state);
+    applyCombat(g.state, soldier.id, { col: there.col, row: there.row });
+    expect(g.state.units.some((u) => u.id === wild.id)).toBe(false);
+    expect(soldier.movesLeft).toBe(fullMovement(soldier, g.state));
+    // One blow a turn is untouched: what came back is the walking.
+    expect(soldier.hasAttacked).toBe(true);
+  });
+
+  it('Patrons pays renown for the culture houses and for nothing else', () => {
+    const g = game(4104);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'patrons');
+    const paid = (): number =>
+      cardRenownLines(g.state, 0)
+        .filter((line) => line.card === 'patrons')
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(paid()).toBe(0);
+    // A granary is not a culture house.
+    city.buildings.push('granary');
+    bumpRevision(g.state);
+    expect(paid()).toBe(0);
+    city.buildings.push('monument');
+    bumpRevision(g.state);
+    expect(paid()).toBe(3);
+    city.buildings.push('amphitheater');
+    bumpRevision(g.state);
+    expect(paid()).toBe(6);
+  });
+
+  it('Triumphs banks renown for a town taken, through the one seam that pays it', () => {
+    const g = game(4105);
+    found(g.state, 0);
+    keepTheRites(g.state);
+    slot(g.state, 0, 'triumphs');
+    const player = playerById(g.state, 0)!;
+    const before = player.renownPool;
+    const payout = windfallPayout(g.state, 0, 'capture');
+    // Composed before anything is banked: the figure is on the payout, printed
+    // as its own line, and the culture rider is beside it untouched.
+    expect(payout.renown).toEqual([
+      { card: 'triumphs', source: expect.stringContaining('Triumphs'), amount: 25 },
+    ]);
+    payWindfallGrants(g.state, player, payout);
+    expect(player.renownPool - before).toBe(25);
   });
 });

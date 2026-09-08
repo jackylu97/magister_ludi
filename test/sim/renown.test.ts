@@ -427,11 +427,17 @@ describe('the register', () => {
     // card arm's words, so a charter's "unlocks the Gilded Hall — +1 renown per
     // turn" and the compendium's entry are one sentence from one describer.
     // It was the compendium's own reading, moved sim-side; it reads, never
-    // folds. Nobody else has an opinion about the column.
+    // folds. The fifth (2026-09-07, batch E4a) is `statecraft/evaluator.ts`,
+    // which reads `grant.renown` off a **windfall rider** — Triumphs' 25 for a
+    // town taken. It composes the figure with every other on the payout (Entry
+    // XVIII.5) and then hands it straight to `settleRenownWindfall`: it never
+    // touches the pool, which is what the register above pins. Nobody else has
+    // an opinion about the column.
     expect(offenders).toEqual([
       'cities.ts',
       'renown.ts',
       'statecraft/describers.ts',
+      'statecraft/evaluator.ts',
       'upkeep.ts',
     ]);
   });

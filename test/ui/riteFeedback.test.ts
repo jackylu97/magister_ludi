@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { createMap, getTileAt } from '../../src/sim/map';
-import { type City, type GameState, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, newGame } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { computeFreshwater } from '../../src/sim/water';
 import { riteSentence } from '../../src/ui/controls';
@@ -75,6 +75,18 @@ describe('riteSentence', () => {
     const line = riteSentence(state, city, 'omenReading');
     expect(line).toContain('✶ Omen Reading at Uruk ✶');
     expect(line).toContain('lasts 10 turns');
+  });
+
+  it('names the shelf that paid culture for the saying of it, and says nothing when none did', () => {
+    // The Chapel's culture was paid all along and announced nowhere (the user,
+    // 2026-09-07: "it's not appearing for me"). The clause reads the same row
+    // the payment reads (`ritePays`), so the figure is the bank's own.
+    const { state, city } = world();
+    expect(riteSentence(state, city, 'omenReading')).not.toContain('culture');
+    city.buildings.push('chapel');
+    bumpRevision(state);
+    const line = riteSentence(state, city, 'omenReading');
+    expect(line).toContain('the Chapel pays 5 culture');
   });
 
   it('says how long the blessing runs, because that is the whole of what was bought', () => {

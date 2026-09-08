@@ -23,6 +23,7 @@ import {
   controlledHoldings,
   foundCityAt,
   hasResource,
+  realiseItem,
   tileOwnerPlayerId,
 } from '../../src/sim/cities';
 import {
@@ -1405,25 +1406,64 @@ describe('the one-row shapes, built generically', () => {
     expect(foldCity(g.state, city).production).toBe(bare + 5);
   });
 
-  it('Hero of Alexandria says out loud that his new cell is not built', () => {
-    // The user's worksheet asks for "after completing or gaining control of a
-    // wonder" — a `WindfallOccasion` the table does not have, and a *shape* is a
-    // design decision. Deferred and annotated rather than bent into
-    // `completion`, which would have paid for a granary (CLAUDE.md's rule, kept
-    // for the fourth time on this table).
-    expect(greatPersonDef('heroOfAlexandria').legacy).toEqual([]);
-    expect(greatPersonDef('heroOfAlexandria').deferred?.length).toBe(1);
-    expect(stripRefs(describeCard('heroOfAlexandria')[0]!.text)).toContain('not built yet');
-    expect(describeCard('heroOfAlexandria')[0]!.deferred).toBe(true);
+  it('Dinocrates pays ten turns of hammers for a wonder raised, and for nothing else', () => {
+    // The worksheet asked for "after completing a wonder" — an occasion the
+    // table did not have, and the row waited rather than being bent into
+    // `completion`, which would have paid for a granary. Batch E4a gave the
+    // rider the missing *fact* instead of a new occasion: `wonder: true` is a
+    // filter on the completion, `vsBarbarians`' fourth sibling, read where the
+    // seam still knows which row it realised.
+    const g = game(311);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'heroOfAlexandria');
+    expect(greatPersonDef('heroOfAlexandria').deferred).toBeUndefined();
+
+    // A granary is a completion and not a wonder: nothing is hung on the realm.
+    realiseItem(g.state, city, { kind: 'building', id: 'granary' });
+    bumpRevision(g.state);
+    expect(g.state.players[0]!.timed ?? []).toEqual([]);
+
+    // A wonder is. Three hammers in **every** city, for ten turns, hung on the
+    // empire — `Player.timed`, stamped at an absolute turn like every other.
+    realiseItem(g.state, city, { kind: 'building', id: 'stonehenge' });
+    bumpRevision(g.state);
+    const hung = g.state.players[0]!.timed ?? [];
+    expect(hung).toHaveLength(1);
+    expect(hung[0]!.expiresTurn).toBe(g.state.turn + 10);
+    const paid = explainCardCityYields(g.state, city)
+      .filter((line) => line.source.includes('Dinocrates'))
+      .reduce((sum, line) => sum + line.production, 0);
+    expect(paid).toBe(3);
   });
 
-  it('Mimar Sinan hurries a Temple and nothing else', () => {
+  it('Mimar Sinan hurries a Temple and a Cathedral, and nothing else', () => {
     const g = game(227);
     const city = found(g.state, 0);
     bear(g.state, 0, 'mimarSinan');
     const temple = cardProduction(g.state, city, 'building', undefined, 'temple');
     expect(temple.reduce((sum, line) => sum + line.percent, 0)).toBe(30);
+    // The cathedral half was his deferred clause and is a second row of the
+    // same shape (batch E4a) — a `productionBonus` naming one building, which
+    // is what "cathedrals also cost less" always was.
+    const cathedral = cardProduction(g.state, city, 'building', undefined, 'cathedral');
+    expect(cathedral.reduce((sum, line) => sum + line.percent, 0)).toBe(30);
     expect(cardProduction(g.state, city, 'building', undefined, 'granary')).toHaveLength(0);
+  });
+
+  it('Yi Sun-sin stands with the fleet and with nobody on land', () => {
+    const g = game(228);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'yiSunSin');
+    // The legacy is a flat strength line on the ledger — the one shape a card
+    // has for "+5 combat strength" — narrowed to the hulls by the ordinary
+    // filter. `unitStat` could not have said it: its stats are movement, sight,
+    // mending, charges, range and a percentage, and none of them is a point.
+    const hex = getTileAt(g.state.map, city.col, city.row);
+    const hull = createUnit(g.state, 0, 'trireme', city.col, city.row);
+    const foot = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'trireme')!;
+    bumpRevision(g.state);
+    expect(fight(g.state, hull, hex, 'attack')).toBe(5);
+    expect(fight(g.state, foot, hex, 'attack')).toBe(0);
   });
 
   it('an army under noHealAbroad mends at home and never abroad', () => {

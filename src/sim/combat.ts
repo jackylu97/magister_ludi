@@ -302,7 +302,7 @@ import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { improvementDef } from './improvementData';
 import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
-import { hasStackingRoom, unitsOnTile } from './units';
+import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
 
 const COMBAT = RULES.combat;
@@ -374,10 +374,17 @@ export { breakFortify };
  * accepts, so a live button and a rejected command cannot disagree. It asks
  * nothing about the turn or the actor — those belong to the command.
  */
-export function fortifyError(unit: Unit): string | null {
+export function fortifyError(unit: Unit, state?: GameState): string | null {
   const def = unitDef(unit.type);
   if (isCivilian(def)) return `A ${def.name} cannot fortify`;
   if (isFortified(unit)) return `${def.name} is already fortified`;
+  // **Blitz's price**, asked here so the sheet's button and the reducer refuse
+  // in one sentence. `state` is optional for the same reason `fullMovement`'s
+  // is: a caller with no board in hand is asking about the *piece*, and a law
+  // is a fact about the empire around it.
+  if (state && cardBehaviorRule(state, unit.ownerId, 'noFortify')) {
+    return `${def.name} cannot fortify under your law`;
+  }
   return null;
 }
 
@@ -1551,7 +1558,10 @@ function planCombat(
   // river and before any flat line joins: "−10% combat strength" is a fact about
   // this army, not a discount on the terrain somebody else is standing on. See
   // `cardCombatPercent`.
-  const attackerPercent = cardCombatPercent(state, attacker);
+  // The situation travels with it since the Statue of Zeus: a share may name one
+  // kind of fight ("+15% attacking cities"), and it is asked of the same triple
+  // the flat lines are asked of, through the same one evaluator.
+  const attackerPercent = cardCombatPercent(state, attacker, situationFor(attacker, 'attacker'));
   const attackerStat = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
   const attackerBase = Math.floor((attackerStat * (100 + attackerPercent)) / 100);
   // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
@@ -1622,7 +1632,11 @@ function planCombat(
     const defenderUnit = target.unit!;
     const defenderDef = unitDef(defenderUnit.type);
     defenderFortify = fortifyBonus(defenderUnit);
-    const defenderPercent = cardCombatPercent(state, defenderUnit);
+    const defenderPercent = cardCombatPercent(
+      state,
+      defenderUnit,
+      situationFor(defenderUnit, 'defender'),
+    );
     const defenderBase = Math.floor(
       (defenderDef.combatStrength * (100 + defenderPercent)) / 100,
     );
@@ -2156,6 +2170,19 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     attacker.movesLeft = unitDef(attacker.type).hitAndRun === true
       ? Math.max(0, snapMovement(attacker.movesLeft - RULES.naval.hitAndRunCost))
       : 0;
+    /**
+     * **Blitz**: a piece that kills gets its walking back.
+     *
+     * The purse is refilled and nothing else is — `hasAttacked` is set two lines
+     * down and stays set, so "one blow a turn" is untouched and what the
+     * Doctrine buys is somewhere to be afterwards, exactly as the light hull's
+     * hit-and-run does one clause up. It fires **only on a kill**: a blow that
+     * merely wounded ends the turn as it always did, which is what the card's
+     * own words say.
+     */
+    if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill')) {
+      attacker.movesLeft = fullMovement(attacker, state);
+    }
     attacker.hasAttacked = true;
     breakFortify(attacker);
     // The route the player approved ended in a fight. Resuming it next turn

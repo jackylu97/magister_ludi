@@ -48,6 +48,7 @@ import {
   explainCardPercentYields,
   cardProduction,
   cardYieldConversions,
+  unitMatches,
 } from '../statecraft';
 import { type City, type GameState, type QueueItem, capitalCityOf, playerById } from '../state';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield, readTileYield } from '../terrainData';
@@ -744,10 +745,20 @@ export function productionModifiers(
   const category = queueCategory(toward);
   if (category === null) return [];
   const list: ProductionModifier[] = [];
+  // What the city is actually building, where the row narrows to one silhouette
+  // — the Shipyard's ships. Hoisted above both walks because the buildings' own
+  // filter and the cards' ask the same question of the same item, through the
+  // same predicate: two answers to "is this a ship" is how a slipway and a card
+  // start disagreeing about a trireme.
+  const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id) && !hypothetical.includes(id)) continue;
     const bonus = buildingDef(id).productionBonus;
     if (bonus === undefined || bonus.percent === 0 || bonus.category !== category) continue;
+    if (bonus.class !== undefined) {
+      if (unitType === undefined) continue;
+      if (!unitMatches(unitType, bonus.class)) continue;
+    }
     list.push({
       source: buildingDef(id).name,
       building: id,
@@ -767,8 +778,9 @@ export function productionModifiers(
   // A card's hammers behind this category — and behind *this unit*, when the row
   // narrows to one silhouette (The Great Warring Tribes' mounted line). The item
   // is passed through so the narrowing is asked of what the city is actually
-  // building; there is no Conscription case anywhere in this file.
-  const unitType = toward.kind === 'unit' && isUnitTypeId(toward.id) ? toward.id : undefined;
+  // building; there is no Conscription case anywhere in this file. `unitType` is
+  // hoisted above the buildings' walk, which asks the same question of the same
+  // filter.
   // And behind *this building*, when the row names one (Mimar Sinan's mosques).
   // `unitType`'s sibling and passed for its reason exactly: the narrowing is
   // asked of what the city is actually building.

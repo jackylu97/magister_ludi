@@ -635,18 +635,9 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // And who it is *against*, for the same reason: Lautaro's line read as a
       // flat "+3 combat strength" until the horses were printed.
       const against = effect.vsClass === undefined ? '' : ` against ${filterWords(effect.vsClass)}`;
-      // A condition that takes an argument prints it here, so that forest and
-      // jungle are one entry in `COMBAT_WORDS` and two rows on a card.
-      const when =
-        effect.when.test === 'onFeature'
-          ? `${COMBAT_WORDS.onFeature} ${effect.when.feature}`
-          : effect.when.test === 'withinOfCity'
-            ? `${COMBAT_WORDS.withinOfCity} ${effect.when.hexes} ${
-                effect.when.hexes === 1 ? 'hex' : 'hexes'
-              } of one of your cities`
-            : effect.when.test === 'followingTerritory' && effect.when.foreign === true
-              ? FOREIGN_FOLLOWING_WORDS
-              : COMBAT_WORDS[effect.when.test];
+      // A condition that takes an argument prints its own argument — see
+      // `combatWhenWords`, the one place a condition is put into words.
+      const when = combatWhenWords(effect.when);
       out.push({
         text: `${each} combat strength${who}${against}${scale} ${when}`.trim(),
       });
@@ -657,7 +648,11 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
       const amount = effect.amount;
       if (effect.stat === 'combatPercent') {
-        out.push({ text: `${signed(amount)}% combat strength for ${who}${where}` });
+        // The kind of fight, where the row names one — the Statue of Zeus'
+        // assault. Through the one condition-describer, so a share and a flat
+        // line say "against cities" in the same words.
+        const when = effect.when === undefined ? '' : ` ${combatWhenWords(effect.when)}`;
+        out.push({ text: `${signed(amount)}% combat strength for ${who}${where}${when}` });
         return;
       }
       // **Charges are the one stat that is not a standing fact about a piece.**
@@ -684,11 +679,16 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // that promised a fleet-wide refit would be a card that lies.
       const hp = (effect.hp ?? 0);
       const strength = (effect.strength ?? 0);
+      // Where the stamp is written, when the row narrows it to one town — the
+      // Terracotta Army's "units built in this city". The same sentence-builder
+      // every other scoped clause uses, so a stamp and a yield say "in every
+      // city with a Cathedral" the same way.
+      const born = effect.scope === undefined ? 'units' : `units in ${cityScopeWords(effect.scope)}`;
       if (hp !== 0) {
-        out.push({ text: `newly created units gain ${signed(hp)} maximum health` });
+        out.push({ text: `newly created ${born} gain ${signed(hp)} maximum health` });
       }
       if (strength !== 0) {
-        out.push({ text: `newly created units gain ${signed(strength)} combat strength` });
+        out.push({ text: `newly created ${born} gain ${signed(strength)} combat strength` });
       }
       return;
     }
@@ -702,6 +702,7 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         effect.occasion,
         effect.vsBarbarians === true,
         effect.capturedWonder === true,
+        effect.wonder === true,
       );
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -737,6 +738,12 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
             text: `${occasion} grants ${signed(grant.amount)} ${grant.yield}${per}`,
           });
         }
+      }
+      if (grant?.renown !== undefined && grant.renown !== 0) {
+        // Renown reads as renown and never as a voice: it is the bucket a great
+        // person comes out of, and a player who has read the Reliquary knows
+        // exactly what the word buys.
+        out.push({ text: `${occasion} grants ${signed(grant.renown)} renown${per}` });
       }
       if (grant?.heal !== undefined) {
         // "**a further**" only where the occasion already pays a heal of its
@@ -1043,7 +1050,15 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       // card names one, trails as its own phrase rather than modifying "renown"
       // — a player reads *what they gain* first and *whom it favours* second.
       const where =
-        effect.per === 'city' ? ' in every city' : effect.per === 'wonder' ? ' per wonder you hold' : '';
+        effect.per === 'city'
+          ? ' in every city'
+          : effect.per === 'wonder'
+            ? ' per wonder you hold'
+            : effect.per === 'buildingOfCategory'
+              ? // The shelf names itself, because "per building" would not say
+                // which — Patrons pays for the culture houses and nothing else.
+                ` per ${effect.category ?? ''} building you hold`
+              : '';
       const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
       out.push({
         text: `${signed(effect.amount)} renown per turn${where}${family}`,
@@ -1590,6 +1605,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       // defines, and what the rule stands for is a soldier standing in the town.
       into.qualifiers.push('with a unit standing in it');
       return;
+    case 'keepingRite':
+      // The plain words again: a town "keeping a rite" is a town where one is
+      // being performed, which is the sentence the rite panel itself uses.
+      into.qualifiers.push('while it is keeping a rite');
+      return;
     case 'follows':
       // "your religion" was the old ruling's wording and it is now wrong twice
       // over: the card may be printing in a compendium nobody's seat owns, and
@@ -1890,10 +1910,49 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // follow your religion" and "in foreign cities that follow your religion" are
   // one table entry and two data rows — `onFeature`'s bargain.
   followingTerritory: 'inside cities that follow your religion',
+  // The silhouette is printed by `combatWhenWords`, so that "beside a siege
+  // engine" and "beside a ship" are one table entry and two data rows —
+  // `onFeature`'s bargain, at the fourth condition to take an argument.
+  beside: 'while standing beside',
+  // The composite's own words are its members', joined — see `combatWhenWords`.
+  all: '',
 };
 
 /** The `followingTerritory` line narrowed to somebody else's towns. */
 const FOREIGN_FOLLOWING_WORDS = 'inside foreign cities that follow your religion';
+
+/**
+ * A strength line's condition, in the words a printed rule uses.
+ *
+ * **One place**, because there are now two readers — `combatLine`'s own clause
+ * and the Statue of Zeus' `combatPercent` share — and a condition printed twice
+ * is a condition that starts reading two ways. The three arms that take an
+ * argument print it here rather than in `COMBAT_WORDS`, so "in forest" and "in
+ * jungle" stay one table entry, and the composite is simply its members joined
+ * by "and": there is no `or`, so the conjunction is the only joint there is.
+ */
+export function combatWhenWords(when: CombatCondition): string {
+  switch (when.test) {
+    case 'onFeature':
+      return `${COMBAT_WORDS.onFeature} ${when.feature}`;
+    case 'withinOfCity':
+      return (
+        `${COMBAT_WORDS.withinOfCity} ${when.hexes} ` +
+        `${when.hexes === 1 ? 'hex' : 'hexes'} of one of your cities`
+      );
+    case 'followingTerritory':
+      return when.foreign === true ? FOREIGN_FOLLOWING_WORDS : COMBAT_WORDS.followingTerritory;
+    case 'beside':
+      return `${COMBAT_WORDS.beside} ${filterWords(when.class)}`;
+    case 'all':
+      return when.of
+        .map((inner) => combatWhenWords(inner))
+        .filter((words) => words !== '')
+        .join(' and ');
+    default:
+      return COMBAT_WORDS[when.test];
+  }
+}
 
 const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
   cities: { one: 'city you hold', many: 'cities you hold' },
@@ -2002,6 +2061,20 @@ const WONDER_OCCASION_WORDS: Partial<Record<WindfallOccasion, string>> = {
 };
 
 /**
+ * The completion narrowed to a **wonder** — Dinocrates'.
+ *
+ * `WONDER_OCCASION_WORDS`' sibling and a second table rather than a second entry
+ * in it, because the two ask different questions of different moments: that one
+ * is a town taken that *held* a wonder, and this is a wonder *finished*. One
+ * table conflating them would have printed "completing a building, where a
+ * wonder stood".
+ */
+const WONDER_BUILT_WORDS: Partial<Record<WindfallOccasion, string>> = {
+  buildingCompletion: 'completing a wonder',
+  completion: 'completing a wonder',
+};
+
+/**
  * The occasion, in the words a card's own clause uses.
  *
  * Exported for `cardImpact.ts`, which reports a rider in its per-occasion form
@@ -2014,7 +2087,11 @@ export function occasionWords(
   occasion: WindfallOccasion,
   vsBarbarians: boolean,
   capturedWonder = false,
+  wonderBuilt = false,
 ): string {
+  if (wonderBuilt) {
+    return WONDER_BUILT_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, where it is a wonder`;
+  }
   if (capturedWonder) {
     return WONDER_OCCASION_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, where a wonder stood`;
   }
@@ -2305,6 +2382,10 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   noCampClearing: 'you can no longer clear a barbarian camp',
   noHealAbroad: 'your units do not heal outside your own borders',
   freeCityRoads: 'roads near your cities cost nothing to keep',
+  // Blitz's two halves. The first says *movement* and not "acts again", because
+  // one blow a turn is untouched: what comes back is the walking.
+  moveAfterKill: 'a unit that kills gets its movement back for the rest of the turn',
+  noFortify: 'your units cannot fortify',
   // The zone of control, and the only rule of it there is. `ZocRuleId`.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
 };

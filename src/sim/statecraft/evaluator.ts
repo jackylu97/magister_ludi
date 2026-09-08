@@ -70,6 +70,16 @@ import {
   isRiteId,
   riteDef,
 } from '../religionData';
+// **A function-level edge back to `religion.ts`**, the documented kind (see this
+// module's own docblock and `test/mapgen/moduleCycles.test.ts`): `cityRite` is
+// the one reading of "what is this town keeping", it is called from inside
+// `cityScopeAdmits` and nowhere at load time, and the alternative — a second
+// walk of `City.timed` here — would be two answers to one question, which is
+// exactly what the one-evaluator rule exists to prevent.
+import { cityRite } from '../religion';
+// The same edge, one system over: `settleRenownWindfall` is the one place renown
+// is added, called from inside `payWindfallGrants` and never at load time.
+import { settleRenownWindfall } from '../renown';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from '../resourceData';
 import { nextFloat } from '../rng';
 import { connectedCities } from '../roads';
@@ -1394,6 +1404,11 @@ export function cityScopeAdmits(
     }
     case 'hasBuilding':
       return city.buildings.includes(scope.building);
+    case 'keepingRite':
+      // Through `cityRite`, the one reading of what a town is keeping — itself
+      // a comparison against `City.timed`'s absolute stamps, so the lamp goes
+      // out on the turn the rite's own expiry passes and nothing ticks.
+      return cityRite(state, city) !== null;
     case 'hasBuildingYielding':
       // Asked of what a row *does*, off its own six voices, so a retuned library
       // moves the scope with it. `wonder: true` is Hero of Alexandria's half.
@@ -1523,6 +1538,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `${scope.category} seam`;
     case 'hasBuilding':
       return buildingDef(scope.building).name.toLowerCase();
+    case 'keepingRite':
+      return 'keeping a rite';
     case 'hasBuildingYielding':
       return scope.wonder === true ? `${scope.yields} wonder` : `${scope.yields} building`;
     case 'onTerrain':
@@ -3672,6 +3689,20 @@ function combatConditionHolds(
         situation.vsStrength !== undefined &&
         situation.vsStrength > unitDef(situation.unit.type).combatStrength
       );
+    case 'beside':
+      // The ring of six off this piece's own hex, through the sweep that already
+      // answers "who is standing next to me" (`adjacentFriendlies`), narrowed by
+      // the ordinary filter. A *question*, so three engines pay once.
+      return adjacentFriendlies(state, situation.unit, when.class) > 0;
+    case 'all': {
+      // Recursion into the same evaluator, which is the whole reason the
+      // composite is a condition rather than a second field on `combatLine` —
+      // `CityScope`'s `all` one scale over, and the same reading.
+      for (const inner of when.of) {
+        if (!combatConditionHolds(state, situation, inner)) return false;
+      }
+      return true;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -3680,8 +3711,16 @@ function combatConditionHolds(
   }
 }
 
-/** How many friendly combat units stand next to this one. */
-function adjacentFriendlies(state: GameState, unit: Unit): number {
+/**
+ * How many friendly combat units stand next to this one.
+ *
+ * `filter` narrows them to a silhouette — The Siege Train's engines — through
+ * the same `unitMatches` predicate every other "which units" question in the
+ * vocabulary asks. Absent counts every combatant, which is what the count's
+ * first reader (`adjacentFriendlies` as a `CombatScale`) has always meant, so
+ * one sweep answers the count and the `beside` condition alike.
+ */
+function adjacentFriendlies(state: GameState, unit: Unit, filter?: UnitFilter): number {
   const from = getTileAt(state.map, unit.col, unit.row);
   if (!from) return 0;
   let count = 0;
@@ -3691,6 +3730,7 @@ function adjacentFriendlies(state: GameState, unit: Unit): number {
       if (other.ownerId !== unit.ownerId) continue;
       if (other.col !== neighbour.col || other.row !== neighbour.row) continue;
       if (!isCombatant(unitDef(other.type))) continue;
+      if (!unitMatches(other.type, filter)) continue;
       count += 1;
     }
   }
@@ -3842,12 +3882,27 @@ function greatPeopleEarned(state: GameState, playerId: number, family?: Family):
  * rather than adding to it. It applies to the unit's base before any flat line
  * joins, so "−10% combat strength" is a fact about the army and not a discount
  * on the terrain bonus somebody else earned.
+ *
+ * `situation` is what lets a share name **one kind of fight** — the Statue of
+ * Zeus' fifteen percent for storming a town. It is the same triple `planCombat`
+ * already builds for `cardCombatLines`, asked through the same one evaluator, so
+ * a percentage and a flat line cannot disagree about what "against a city"
+ * means. A caller with no fight in hand passes none, and **a row carrying a
+ * `when` pays nothing there** — see `CardUnitStatEffect.when`.
  */
-export function cardCombatPercent(state: GameState, unit: Unit): number {
+export function cardCombatPercent(
+  state: GameState,
+  unit: Unit,
+  situation?: CombatSituation,
+): number {
   let percent = 0;
   for (const { effect } of effectsOfKind(state, unit.ownerId, 'unitStat')) {
     if (effect.stat !== 'combatPercent') continue;
     if (!unitMatches(unit.type, effect.class)) continue;
+    if (effect.when !== undefined) {
+      if (!situation) continue;
+      if (!combatConditionHolds(state, situation, effect.when)) continue;
+    }
     percent += effect.amount;
   }
   return percent;
@@ -3856,7 +3911,7 @@ export function cardCombatPercent(state: GameState, unit: Unit): number {
 // --- unit and city stats ----------------------------------------------------
 
 /** Does this unit type pass a filter? Absent filter admits everything. */
-function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
+export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   if (!filter) return true;
   const def = unitDef(type);
   if (filter.modelClass !== undefined && def.modelClass !== (filter.modelClass as ModelClass)) {
@@ -3990,13 +4045,30 @@ export function cardExtraCharges(
  * day one is, the filter joins `CardUnitStampEffect` and is asked here beside
  * `unitMatches` like every other.
  *
+ * It *is* narrowed by **where the piece was raised**, which is a different
+ * question and the one the Terracotta Army asks ("units built in this city").
+ * `at` is the birth hex, resolved to a town once for the same reason
+ * `cardExtraCharges` resolves it once — the hex does not move between effects,
+ * and a lookup per clause would sweep the realm's towns at every completion.
+ *
  * Every figure is the card's own, and a stamp that comes out to nothing at all
  * is **not written** — see `createUnit`, where presence is the state.
  */
-export function cardUnitStamp(state: GameState, playerId: number): UnitStamp {
+export function cardUnitStamp(
+  state: GameState,
+  playerId: number,
+  at?: { col: number; row: number },
+): UnitStamp {
   let hp = 0;
   let strength = 0;
+  const born = at ? cityAt(state, at.col, at.row) : undefined;
   for (const { effect } of effectsOfKind(state, playerId, 'unitStamp')) {
+    // A scoped stamp asks about the town the piece was raised in, and is silent
+    // where there is no town at all — see `CardUnitStampEffect.scope`.
+    if (effect.scope !== undefined) {
+      if (!born) continue;
+      if (!cityScopeAdmits(state, born, effect.scope, playerId)) continue;
+    }
     if (effect.hp !== undefined) hp += effect.hp;
     if (effect.strength !== undefined) strength += effect.strength;
   }
@@ -4091,6 +4163,17 @@ export interface WindfallPayout {
    * `payWindfallGrants`, which is the only writer of `Player.timed`.
    */
   timed: { card: CardId; source: string; turns: number; effects: CardEffect[] }[];
+  /**
+   * **Renown** a rider banks on this occasion — Triumphs' twenty-five for taking
+   * a town.
+   *
+   * A list beside the yields rather than a figure among them, because renown is
+   * not one of the six voices: it has its own bucket and its own ledger, and it
+   * is banked in `payWindfallGrants` through `settleRenownWindfall`, the one
+   * place renown is ever added. Composed here with every other figure so the
+   * era and the slotted count reach it exactly as they reach a yield grant.
+   */
+  renown: { card: CardId; source: string; amount: number }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
 }
@@ -4114,6 +4197,15 @@ export interface WindfallOccasionFacts {
    * captor's own buildings and nothing can tell them from the ones he raised.
    */
   capturedWonder?: boolean;
+  /**
+   * True when the thing just finished was a **wonder** — Dinocrates' clause.
+   *
+   * `capturedWonder`'s sibling and passed for its reason exactly: the caller is
+   * the one thing holding the row it has realised, and a moment later a wonder
+   * is simply one more entry in a town's `buildings` list. Carried only by the
+   * completion occasions, so a rider asking for it on any other pays nothing.
+   */
+  wonder?: boolean;
   /**
    * The population the town **grew to** — First Fruits' first citizen.
    *
@@ -4164,6 +4256,7 @@ export function windfallPayout(
     units: [],
     healAll: false,
     timed: [],
+    renown: [],
     lines: [],
   };
   let percent = 0;
@@ -4196,6 +4289,9 @@ export function windfallPayout(
     // (every occasion but a growth) never satisfies it, which is what keeps a
     // row written onto the wrong occasion silent rather than universal.
     if (effect.atPopulation !== undefined && facts.population !== effect.atPopulation) continue;
+    // And the fourth: Dinocrates pays for a wonder raised, not for a granary.
+    // An occasion that carries no such fact never satisfies it.
+    if (effect.wonder === true && facts.wonder !== true) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
@@ -4235,6 +4331,19 @@ export function windfallPayout(
       const turns = Math.max(1, grant.timed.turns);
       payout.timed.push({ card, source, turns, effects: grant.timed.effects });
       payout.lines.push({ card, source, note: `for ${turns} turns` });
+    }
+    if (grant.renown !== undefined && grant.renown !== 0) {
+      // Multiplied by the era and by the council exactly as a yield grant is —
+      // two independent facts about the payout, composing as a product — and
+      // composed here so the announcement and the pool see one figure.
+      const amount =
+        grant.renown *
+        (effect.perAge === true ? era : 1) *
+        (effect.perSlottedOrder === true ? slotted : 1);
+      if (amount !== 0) {
+        payout.renown.push({ card, source, amount });
+        payout.lines.push({ card, source, note: `${signed(amount)} renown` });
+      }
     }
     if (grant.unit !== undefined) {
       // Drawn here, delivered later. `randomMilitary` is "one of the soldiers
@@ -4674,6 +4783,19 @@ export function payWindfallGrants(
     for (const effect of hung.effects) list.push({ card: hung.card, effect, expiresTurn });
     player.timed = list;
   }
+  // **The renown last**, and through `settleRenownWindfall` — the one place
+  // renown is ever added, and the seam that opens a great-person offer the
+  // moment the ladder fills. Last because that settlement can deal an offer, and
+  // a deal is the loudest thing a windfall does: the coin, the pieces and the
+  // bills should all be banked before the sheet comes up. One grant a line, so
+  // two riders on one occasion read as two reasons in `explainRenown`.
+  if (payout.renown.length > 0) {
+    settleRenownWindfall(
+      state,
+      player,
+      payout.renown.map((line) => ({ family: null, amount: line.amount })),
+    );
+  }
   return touched;
 }
 
@@ -4995,12 +5117,29 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
         ? cityCount(state, playerId)
         : per === 'wonder'
           ? countOf(state, playerId, card, { kind: 'countScaled', count: 'wonders', pays: RENOWN_PROBE })
-          : 1;
+          : per === 'buildingOfCategory'
+            ? // Patrons' culture houses, through `countOf` — the one sweep that
+              // answers "how many buildings of this shelf does the realm hold",
+              // so a patron's renown and a Merchant League's coin are counting
+              // one thing. A row naming no shelf counts nothing.
+              effect.category === undefined
+              ? 0
+              : countOf(state, playerId, card, {
+                  kind: 'countScaled',
+                  count: 'buildingsOfCategory',
+                  category: effect.category,
+                  pays: RENOWN_PROBE,
+                })
+            : 1;
     const amount = each * helpings;
     if (amount === 0) continue;
+    // The multiplicand and the count, printed into the label — a hover that said
+    // only the total would be the one thing `explainRenown` exists to prevent.
+    // A shelf names itself, because "per building" would not say which.
+    const word = per === 'buildingOfCategory' ? `${effect.category ?? ''} building` : per;
     list.push({
       card,
-      source: per === undefined ? source : `${source} · ${each} per ${per} × ${helpings}`,
+      source: per === undefined ? source : `${source} · ${each} per ${word} × ${helpings}`,
       family: effect.family ?? null,
       amount,
     });

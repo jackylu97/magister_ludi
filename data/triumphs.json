@@ -140,12 +140,12 @@
       "epigram": "Two towns and a week between them, now three days.",
       "text": "You join two of your cities by road.",
       "when": {
-        "kind": "citiesConnected"
+        "kind": "citiesConnected",
+        "count": 1
       },
       "pays": 8,
       "scope": "once",
-      "family": "merchant",
-      "deferred": "Two cities connected by road — roads and connections are both here, but nothing yet watches for the moment two towns are joined."
+      "family": "merchant"
     },
     "eightLuxuries": {
       "name": "The Eight Luxuries",
@@ -176,12 +176,11 @@
       "epigram": "It floats, which was the whole question.",
       "text": "You build your first naval unit.",
       "when": {
-        "kind": "firstNavalUnit"
+        "kind": "navalUnitBuilt"
       },
       "pays": 5,
       "scope": "once",
-      "family": "engineer",
-      "deferred": "Your first naval unit — the hulls are drawn but no age has opened them yet."
+      "family": "engineer"
     },
     "cityOfMarvels": {
       "name": "The City of Marvels",

@@ -236,6 +236,34 @@ Orders and the great-person purchases, on **one** new vocabulary member.
   they are already out of every pool and out of every table. Marking them `retired` would
   say the wrong thing — that is for a row that *was* dealt and has been taken back out.
 
+**As built, 2026-09-07 (batch E4a, `docs/audit/deferred-rows.md`)** — the deferred rows
+whose ruling was a data row, a one-field extension or a removal.
+
+- **Five clauses built.** The Curia's Cathedral tithe (a `countScaled` on a building the
+  table has had since the buildings pass) · Blitz, whose two halves are one `rule` apiece —
+  `moveAfterKill` hands the walking back on a kill, read where an attack spends the turn, and
+  `noFortify` is asked in `fortifyError`, the one gate the button and the reducer share ·
+  The Siege Train's escort, on two new strength conditions (`beside`, a friendly silhouette
+  standing next door, and `all`, the composite `CityScope` and `TileCondition` already had) ·
+  Patrons' renown per culture house (`CardRenownEffect.per` gained a shelf) · Triumphs' 25
+  renown on a capture (`WindfallGrantSpec.renown`, banked through `settleRenownWindfall`,
+  which is still the one place renown is added).
+- **Seven clauses cut.** Mountain Hold's second hex, The Burning Way's cleared ground, The
+  Gentle Yoke's founded-after writ, Sanctuary's sacking, The Escorted Roads' safe route, The
+  Far Charts' unlimited route and Forced March's price. Each row keeps its live half and
+  says in its own note what it does *not* do; **Mountain Hold is dealt again**, since the
+  clause was the whole of why it was withdrawn.
+- **Five rows retired** by the user's word: The Dry Docks · The Wolf-Standard · Court
+  Astronomers · The Jubilee · The Guild Compact. Bodies kept for saves, out of every pool
+  and out of the tables above.
+- **Religious Mandate moved to tier 10** (the user: *religion will be a nonfactor until
+  then*) and is **withdrawn** at that rung until its clauses exist — tier 0 says "never
+  finished" and this row is finished nowhere, but a live tier-10 row paying nothing would be
+  a blank card in a real draft, which is exactly what H3 stopped doing.
+- **The Magister's Court keeps a deferred half**, rewritten to the user's own words: the
+  legacies of great people of the fifth age count twice. Æra V has no roster rows yet.
+- **The Chiefdom says what it is** in its own note: the absence of a law.
+
 ## Themes (the archetype lines)
 
 | Line | Playstyle | Ideas |
@@ -270,7 +298,7 @@ Orders and the great-person purchases, on **one** new vocabulary member.
 | 18 | Divine Mandate | 2/2/4 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
 |  | Imperium | 4/2/2 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
 |  | Merchant League | 1/4/3 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
-| 29 | The Curia | 3/3/4 | +3 faith for each Cathedral. Faith buildings supply science equal to their faith. · †deferred |
+| 29 | The Curia | 3/3/4 | +6 faith for each Cathedral. Faith buildings supply science equal to their faith. |
 |  | The Estates | 2/4/4 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
 |  | The Sultanate | 5/2/3 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
 | 45 | The Commonwealth | 2/5/5 | Great people may be bought with gold. Great-person improvements pay +50% more. |
@@ -296,7 +324,8 @@ Orders and the great-person purchases, on **one** new vocabulary member.
 | Doctrine | Line | Effect |
 |---|---|---|
 | Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as gold. |
-| The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. · †deferred |
+| Mountain Hold | ⚒ | +15% production in every city beside a mountain · +5 city defence there. |
+| The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. |
 | The Sacred Path | ⚒ | +1 faith on every forest hex · +1 culture on every jungle hex. |
 | Bread and Circuses | 🌱 | While your authority is positive: +2 happiness in every city of 6 or more population. −2 gold in every city, always. |
 | The Tithe | 🕯 | +1 gold for each faith you gain per turn. |
@@ -338,6 +367,7 @@ Orders and the great-person purchases, on **one** new vocabulary member.
 
 | Doctrine | Line | Effect |
 |---|---|---|
+| Blitz | ⚒ | Units that kill may move again that turn. Units cannot fortify. |
 | The Philosopher's Stone | — | The Magnum Opus is built 25% faster. |
 | The Grand Tour | — | +3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not. |
 | Mare Nostrum | 🐫 | +1 food and +1 gold on every water hex you own. Coastal cities cost no authority. |
@@ -349,7 +379,6 @@ Orders and the great-person purchases, on **one** new vocabulary member.
 
 | Doctrine | Waits on | Effect |
 |---|---|---|
-| Religious Mandate | permanent war with empires of another faith; your cities cannot be converted; a powerful bonus toward the domination and religious beads | Permanent war with empires of a different majority religion · your cities cannot be converted. |
 | The Closed Realm | your happiness is held at +5 whatever your cities ask for; your units cannot attack outside your own territory | Your happiness is fixed at +5, always · your units cannot attack outside your territory. |
 
 ## Orders
@@ -534,7 +563,7 @@ the ladder `docs/history/orders-pass-3.md` §9 rules.
 | The Exchange Charter | E | 🐫 | ○ | P | Your gold buildings give half again their yield, counted after every other share. |
 | The Triumph | W | 🏛 | ● | P | Every 12 turns, gain culture equal to the production your empire makes in a turn. |
 
-### Government IV pool (20)
+### Government IV pool (18)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -543,23 +572,21 @@ the ladder `docs/history/orders-pass-3.md` §9 rules.
 | Decisive Blows | M | ⚒ | ○ | S | +5 combat strength when attacking a unit below half strength. |
 | The Marshals' Purse | M | ⚒ | ○ | S | Military units cost 25% less to buy. |
 | Knightly Orders | M | ⚒ | ○ | S | Mounted units gain +5 combat strength inside your territory, and cities put 25% less production behind them. |
-| The Siege Train | M | ⚒ | ◆ | S | Siege units gain +1 movement. |
-| Patrons | E | 🏛 | ◆ | P | +10 culture for each wonder you hold. |
+| The Siege Train | M | ⚒ | ◆ | S | Siege units gain +1 movement. +6 combat strength against cities for units standing beside a siege engine. |
+| Patrons | E | 🏛 | ◆ | P | +10 culture for each wonder you hold. +3 renown per turn for each culture building you hold. |
 | The Guild of Masons | E | 🏛 | ● | S | +50% production toward wonders · −15% production toward units. |
 | Harbourmasters | E | 🐫 | ◆ | S | +1 trade route · +2 gold on every fishing boat. |
 | Assize Courts | E | — | ◆ | P | +1 authority capacity for each 2 cities you hold · a captured city costs 1 authority. |
 | The Grain Fleet | E | 🌱 | ○ | P | +6 food in every coastal city · +50% growth surplus there. |
 | Cathedral Chapters | E | 🕯 | ◆ | P | +2 culture and +2 faith in every city with a Cathedral. |
-| Court Astronomers | W | ✶ | ◆ | P | +10 science for each wonder you hold. |
 | The Consistory | W | 🕯 | ○ | P | Your faith buildings pay double, counted after every other share. |
 | Scholastics | W | ✶ | ◆ | P | +5 science for each University you hold · completing a technology grants +40 faith. |
 | The Scholars’ Rule | W | ✶ | ◆ | E | Your Orders that give science give an additional science. |
 | The Exchequer | E | 🐫 | ● | P | Your trade routes pay double. |
 | The Assay | E | 🐫 | ○ | P | Every 20 turns, gain science equal to the gold your empire makes in a turn. |
 | The Broad Acres | E | 🌱 | ○ | P | Every farm pays double what it makes. |
-| The Jubilee | W | 🕯 | ◆ | S | Every 10 turns, gain faith for each citizen in your empire. |
 
-### Government V pool (18)
+### Government V pool (17)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -568,7 +595,6 @@ the ladder `docs/history/orders-pass-3.md` §9 rules.
 | The Salon | E | 🏛 | ● | P | Every great person’s work pays double what it makes. |
 | The Silk Exchange | E | 🐫 | ◆ | P | +2 gold for each trade route you run. |
 | Printing Houses | E | ✶ | ◆ | P | +3 culture for each Library you hold · +10% science in every city. |
-| The Guild Compact | E | ⚒ | ○ | P | +3% production in a city for each production building standing in it, at most +15%. |
 | The Inquisition | W | 🕯 | ○ | P | +8 faith and +8 culture in every city with a Temple. |
 | Universal Suffrage | W | 🌱 | ◆ | P | +1 happiness for each 3 citizens in your empire · happiness tiers +10 percentage points. |
 | The Magister's Court | W | 🏛 | ○ | S | +30% production toward the Magnum Opus. |
@@ -630,7 +656,7 @@ the two wants renaming before this pool is ever dealt.
 - **Garrison State** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Finisher's Art** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. Decisive Blows says the same rule, and says it bigger.
 - **Frontier Forts** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
-- **Triumphs** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. † capturing a city also grants 5 renown
+- **Triumphs** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The renown on a capture is built (batch E4a) and pays whoever holds the row in a save.
 - **The Laureate** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **Fire-Keepers** — The faith is paid in your capital, so anything that raises what your capital receives raises this with it.
 - **Wolf-Runners** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
@@ -644,17 +670,17 @@ the two wants renaming before this pool is ever dealt.
 - **Cistern Works** — It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.
 - **Ledger-Keepers** — A road is read from the town that sent the caravan, so a Market at the far end of it pays nothing here.
 - **The Masons' Lodge** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
-- **Sanctuary** — Not built: a city can only be captured in this game, never sacked. Retired until sacking exists. † your holy city is sacked rather than captured while it keeps your religion
+- **Sanctuary** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. A city can only be taken in this game, never sacked, so the clause was cut rather than left promised (batch E4a).
 - **Wayside Shrines** — The faith is gathered in your capital, so anything that raises what your capital receives raises this with it.
 - **The Greenwood Law** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Quiet Fields** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid a wide realm far more contentment than any other card of its age.
 - **The Quartermasters** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The War Chest stands in its place.
-- **The Escorted Roads** — † trade routes within 3 hexes of your soldiers cannot be plundered — nothing in the game can say where a route is safe, only what it pays
+- **The Escorted Roads** — The escort is paid for in coin and not in safety: a route this law enriches can still be plundered. (The safety clause was cut in batch E4a.)
 - **The Saints' Fields** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Prize Grounds** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Groundskeepers** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Master's Presence** — A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.
-- **The Dry Docks** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a building the game rarely raises. † ships mend completely in a port — a heal that depends on where a piece is standing is a rule about a hex, and healing is a rule about a turn
+- **The Dry Docks** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. (Withdrawn by the user's word, batch E4a; the mending clause was cut with the row.)
 - **The Wintering Grounds** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. The War Chest is the card that pays an army’s keep.
 - **The Auspicious Seal** — Retired: the dice of the Magister are gone from the game, so this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Synod** — A faith building is any building of yours that pays faith at all, and the share is taken last — after everything else that raised it.
@@ -663,8 +689,8 @@ the two wants renaming before this pool is ever dealt.
 - **The Charter of the Marches** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It reads only at a founding, and the founding age ends.
 - **The Bell-Founders** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Almoners' Book** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less in a whole game than a single flat pays in a turn.
-- **The Wolf-Standard** — Not built: the bounty for a camp reaches your treasury and the nearest city, and there is no way yet to share one out among all of them. Retired until there is. † a cleared camp pays its bounty to every one of your cities, not only to the nearest
-- **The Far Charts** — How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. A law that let one route ignore that distance is not built yet. † your caravans may run one route to any city you have ever seen, however far away it is
+- **The Wolf-Standard** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. (Withdrawn by the user's word, batch E4a; the shared bounty was cut with the row.)
+- **The Far Charts** — How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule. (The far-route clause was cut in batch E4a.)
 - **The Founding Oath** — It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.
 - **The Long Roads** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.
 - **The Reckless Levy** — The coin is charged on each soldier the empire is already paying for, so a settler, a scout or a caravan is no dearer than it was.
@@ -673,22 +699,22 @@ the two wants renaming before this pool is ever dealt.
 - **The King's Road** — The roads themselves are struck: a road step costs the same third of a point for everybody, and nothing bends that price. † your roads carry your units further than anybody else’s
 - **Field Hospitals** — A piece mends only where it rests: one that moved or struck this turn heals nothing, here or anywhere.
 - **Decisive Blows** — A fight is decided by points on one ledger rather than by a share of the blow, so what was written as extra damage is printed as a strength line.
-- **The Siege Train** — Nothing can ask what is standing beside the piece that is fighting, so the struck clause is not built. † +5 combat strength against cities for units standing beside a siege engine
-- **Patrons** — Renown is paid for each city or for each wonder and for nothing else, so the struck clause is not built. † +1 renown per turn for each culture building you hold
+- **The Siege Train** — Both halves built (batch E4a): a strength line may now ask what is standing beside the piece that is fighting (`beside`, an adjacency condition), and the two clauses compose under `all` with the assault.
+- **Patrons** — Both halves built (batch E4a): a renown trickle may now be counted per building of one shelf, so the patrons are paid for the culture houses they keep.
 - **Harbourmasters** — A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.
 - **The Factor Houses** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid less than a common card of a much earlier age.
-- **Court Astronomers** — A completion pays for the kind of thing finished, and a wonder is a building, so a bounty on wonders alone is not built. † completing a wonder grants +30 science
+- **Court Astronomers** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. (Withdrawn by the user's word, batch E4a: the wrong shape for its age.)
 - **The Consistory** — A faith building is any building of yours that pays faith at all, and the doubling is taken last — after everything else that raised it.
-- **Forced March** — Nothing remembers how far a piece walked this turn, so the price is not built. † −5 combat strength on the turn a unit moved three hexes or more
+- **Forced March** — The march is quicker and costs nothing: nothing remembers how far a piece walked this turn. (The price was cut in batch E4a.)
 - **Admiralty** — A strength line asks about the hex a fight is on and never about the piece standing on it, so the defence at sea is not built. † +5 combat strength for embarked units
 - **The Salon** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Silk Exchange** — A caravan’s line is read from the town that sent it, and nothing yet asks how big the town at the far end has grown. † a song for every second citizen of the city the caravan is sent to
 - **Tithe Barns** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It cost an empire more to hold than it ever paid back.
-- **The Guild Compact** — Nothing yet counts the specialists working in a town, so the compact is paid for the workshops instead. † the guilds were to be paid for the specialists a town keeps rather than for the halls it has raised
+- **The Guild Compact** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. (Withdrawn by the user's word, batch E4a: not a strong engine.)
 - **Manufactories** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a great person’s work that few realms ever hold. † +1 renown per turn for each manufactory you hold
-- **The Magister's Court** — A card may name a silhouette or a roster row but never a great person, so the second charge is not built. † great people arrive with a second charge
+- **The Magister's Court** — The court doubles nothing yet: the fifth age has no great people in it, and no law can yet make a legacy count twice. † the legacies of great people of the fifth age count twice
 - **The Votive Tally** — Only the drafts you paid faith to see again are counted, and only while this Order sits in a chair.
-- **The Jubilee** — One Order keeps one calendar, so a second boon on this row would never come round. † the same festival was to fill the archives with song as well as the shrines with faith
+- **The Jubilee** — Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. (Withdrawn by the user's word, batch E4a.)
 - **The Great Enquiry** — Dealt only once the last age is reached, and earned only there.
 - **The Last Laurels** — Dealt only once the last age is reached, and earned only there.
 - **The Salted Earth** — Dealt only once the last age is reached, and earned only there.

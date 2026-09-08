@@ -51,6 +51,7 @@ import type { Family } from './greatPeopleData';
 import { tileIndex } from './map';
 import type { Occasion } from './occasions';
 import { landRegions } from './resources';
+import { connectedCities } from './roads';
 import type { RenownGrant } from './renown';
 import { settleRenownWindfall } from './renown';
 import { cardAmplifier } from './statecraft';
@@ -257,6 +258,13 @@ function standingHolds(state: GameState, playerId: number, id: TriumphId): boole
     }
     case 'cityCount':
       return citiesOf(state, playerId).length >= when.count;
+    case 'citiesConnected':
+      // The treasury's own reading of the roads (`connectedCities`), so the
+      // town that pays a connection's coin and the town that earns The Long
+      // Road are one answer. The capital is what the others are joined *to* and
+      // is never in the list, which is why "two cities joined" is a count of
+      // one — see the reading's own docblock.
+      return connectedCities(state, playerId).length >= when.count;
     case 'luxuriesImproved': {
       // *Improved*, not merely held: a luxury a city stands on pays the empire
       // but nobody dug it out, and the row's own text says "improved".
@@ -287,10 +295,10 @@ function standingHolds(state: GameState, playerId: number, id: TriumphId): boole
     case 'beliefConsecrated':
     case 'cityOnOtherContinent':
     case 'cityCaptured':
+    // Announced at a seam too — the keel is realised in `realiseItem`.
+    case 'navalUnitBuilt':
     // Deferred, and refused a rung higher. Here so the switch stays exhaustive.
     case 'unitLostThenWon':
-    case 'firstNavalUnit':
-    case 'citiesConnected':
       return false;
     default: {
       const unhandled: never = kind;

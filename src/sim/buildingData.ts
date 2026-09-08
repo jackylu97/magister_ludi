@@ -93,7 +93,7 @@ import type { BeadGrantId } from './beadData';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
-import type { CardEffect, CityScope, TileCondition } from './statecraftData';
+import type { CardEffect, CityScope, TileCondition, UnitFilter } from './statecraftData';
 // Type-only for `TechId`'s reason: `unitData.ts` imports nothing from here.
 import type { UnitTypeId } from './unitData';
 
@@ -191,6 +191,21 @@ export interface ProductionBonus {
   category: ProductionCategory;
   /** Signed whole percent. `10` is the barracks' ten percent toward units. */
   percent: number;
+  /**
+   * Which units the hammers reach, where the row narrows them — the Shipyard's
+   * ships, and nothing else on the slips.
+   *
+   * `CardProductionBonusEffect.class` one table over, and the *same*
+   * `UnitFilter` read by the same predicate in the same place
+   * (`productionModifiers`), so "ships" is one question with one answer whether
+   * a building or a card asks it. Absent reaches everything of the named
+   * category, which is what every row written before it meant.
+   *
+   * Meaningless on a `category` that is not `'unit'`, which is a fact about the
+   * row rather than a rule here: a filter of silhouettes has nothing to say
+   * about a granary.
+   */
+  class?: UnitFilter;
 }
 
 /**

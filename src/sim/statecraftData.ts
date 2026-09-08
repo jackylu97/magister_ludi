@@ -330,6 +330,18 @@ export type CityScope =
    */
   | { test: 'hasBuilding'; building: BuildingId }
   /**
+   * A **rite is running** in this town — The Vigil, whose lamp is lit only while
+   * somebody is keeping the watch.
+   *
+   * Asked of `cityRite` (`religion.ts`), which is the one reading of "what is
+   * this town keeping" and is itself derived from `City.timed`'s absolute
+   * stamps — so nothing ticks, nothing is stored, and the scope stops admitting
+   * on the turn the rite's own expiry passes. A boolean rather than a named
+   * rite: the belief is about the vigil and not about which prayer is being
+   * said, and a row that wanted one rite would name it the day one is written.
+   */
+  | { test: 'keepingRite' }
+  /**
    * The town holds a building that **supplies this yield at all** — Hero of
    * Alexandria's "a wonder that supplies science".
    *
@@ -658,6 +670,33 @@ export type CombatCondition =
    * reason — nothing charges out of a town.
    */
   | { test: 'strongerTarget' }
+  /**
+   * A piece of this empire's matching `class` is **standing next to** the one
+   * this line is being asked for — The Siege Train's engines, which are worth
+   * something to the spearmen walking beside them.
+   *
+   * `CombatScaleCount`'s `adjacentFriendlies` asked as a *question* rather than
+   * as a count, and narrowed by the ordinary `UnitFilter`: "is there an engine
+   * here" and "how many friends are here" are two different sentences, and a
+   * card that wanted the count would say `scaled`. Boolean, so three engines
+   * beside one column pay once — which is what "standing beside a siege engine"
+   * says.
+   *
+   * The ring of six off the piece's own hex, exactly as `adjacentFriendlies`
+   * counts it, and combatants only for that count's reason: a worker parked next
+   * door is not a formation.
+   */
+  | { test: 'beside'; class: UnitFilter }
+  /**
+   * **Every one of these** holds — The Siege Train's "against a city *and*
+   * beside an engine".
+   *
+   * `CityScope`'s and `TileCondition`'s composite at the third scale, and here
+   * for their stated reason exactly: `all` is the only composite there is and
+   * there will not be an `or`, because a card whose condition could be any
+   * boolean tree is a card nobody can print. A disjunction is two rows.
+   */
+  | { test: 'all'; of: CombatCondition[] }
   /**
    * The contested hex belongs to a city that **keeps this empire's faith** —
    * The Crusade, whose soldiers fight harder among their own congregation.
@@ -1678,7 +1717,30 @@ export type BehaviorRuleId =
    * is what keeps `explainEmpireGold`'s four lines four. `rules.trade.postRange`
    * is how near "near" is, so the reach is data and this is only the switch.
    */
-  | 'freeCityRoads';
+  | 'freeCityRoads'
+  /**
+   * A piece that **kills** is given its movement back for the rest of the turn —
+   * Blitz's first half.
+   *
+   * Read in the one place an attack spends a turn (`applyCombat`, the surviving
+   * attacker's bookkeeping), beside the light hull's hit-and-run price rather
+   * than instead of it: what is refilled is the *purse*, and `hasAttacked` is
+   * still set, so "one blow a turn" is untouched and what the Doctrine buys is
+   * somewhere to be afterwards. It fires only on a kill — a blow that wounded
+   * ends the turn exactly as it always did — which is what the card's own words
+   * say.
+   */
+  | 'moveAfterKill'
+  /**
+   * This empire's pieces **cannot dig in** — Blitz's price.
+   *
+   * Read in `fortifyError` (`combat.ts`), which is the one rule the button and
+   * the reducer both ask, so a Doctrine that forbids the trench greys the button
+   * out and refuses the command with one sentence. It says nothing about a piece
+   * already fortified when the card was slotted: a trench is broken by moving or
+   * attacking (`breakFortify`) and nothing here reaches back to fill one in.
+   */
+  | 'noFortify';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -1969,6 +2031,27 @@ export interface WindfallGrantSpec {
   /** Hit points restored to the acting unit. Pillage's, today. */
   heal?: number;
   /**
+   * **Renown**, banked to the pool the moment the occasion fires — Triumphs'
+   * twenty-five for taking a town.
+   *
+   * `yield`'s sibling and deliberately its own field rather than a seventh
+   * voice: renown is not one of the six (`docs/great-people.md`), it has its own
+   * bucket, its own ladder and its own ledger, and a `CityYieldKey` that could
+   * spell it would have let every yield-bearing shape in the vocabulary pay a
+   * great person by accident.
+   *
+   * Composed with every other figure on the payout — the era and the slotted
+   * count multiply it exactly as they multiply a yield grant (Entry XVIII.5, one
+   * printed figure) — and paid in `payWindfallGrants` through
+   * `settleRenownWindfall`, which is the one place renown is ever added. So an
+   * occasion that fills the ladder opens a great-person offer before the verb
+   * returns, exactly as a Triumph does.
+   *
+   * It feeds no **family**: an occasion is a deed rather than a shelf of
+   * buildings, and the draw's bias is a fact about what an empire keeps.
+   */
+  renown?: number;
+  /**
    * A **piece**, gifted outright — Camp Followers' "and gift a random military
    * unit".
    *
@@ -2245,6 +2328,24 @@ export interface CardUnitStatEffect {
    * about a moment, and a movement allowance is a fact about a hex.
    */
   scope?: CityScope;
+  /**
+   * Narrows the stat to **one kind of fight** — the Statue of Zeus' fifteen
+   * percent for storming a town.
+   *
+   * Read by exactly one of this shape's readers, `cardCombatPercent`, which is
+   * the only one asked inside a fight and therefore the only one holding a
+   * `CombatSituation` to put the question to. Every other reading of a
+   * `unitStat` is asked of a piece standing on a hex with nobody opposite it,
+   * and **a line carrying a `when` is silent to all of them** — `scope`'s
+   * bargain one field over, taken for that field's stated reason: it is the
+   * honest reading rather than an omission, because "when you attack a city" is
+   * a fact about a moment and a movement allowance is a fact about a turn.
+   *
+   * There is no `side` here and none is needed: a defending piece's situation
+   * never carries a city on the other side (`vsCity` is what the *target* is),
+   * so a row written `{ test: 'vsCity' }` pays on the assault and nowhere else.
+   */
+  when?: CombatCondition;
 }
 
 /**
@@ -2283,6 +2384,24 @@ export interface CardUnitStampEffect {
   hp?: number;
   /** Strength points it carries into every fight, both sides. */
   strength?: number;
+  /**
+   * Narrows the stamp to **the town the piece was raised in** — the Terracotta
+   * Army's "units built in this city".
+   *
+   * `CardUnitStatEffect.scope`'s field one shape over, read the same way by the
+   * same predicate against the same town: the birth hex is the only town a
+   * creation has, and `createUnit` is the one place a piece comes into
+   * existence. A wonder says "here" by naming itself
+   * (`{ test: 'hasBuilding' }`), which is the same sentence its `cityYields`
+   * clauses already say — so a stamp that reaches one town and a yield that
+   * reaches one town are one vocabulary.
+   *
+   * **A stamp with a scope is silent where there is no town at all**: a piece
+   * created off the board (a ruin's escort on open ground) is born unstamped by
+   * that row, which is the honest reading of "built in this city" rather than a
+   * quiet default to everywhere.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -2412,6 +2531,20 @@ export interface CardWindfallRiderEffect {
    * system over).
    */
   atPopulation?: number;
+  /**
+   * The rider fires only when the thing finished was a **wonder** — Dinocrates'
+   * ten turns of hammers for raising one.
+   *
+   * `vsBarbarians`', `capturedWonder`'s and `atPopulation`'s fourth sibling, and
+   * a filter on the *occasion* for their reason exactly: a building completed
+   * and a wonder completed are one moment asked two ways, and the seam that
+   * fires it (`payCompletionRiders`) is the one thing holding the row it has
+   * just realised. Read off `WindfallOccasionFacts.wonder`, so a rider written
+   * onto an occasion that carries no such fact is simply never on that payout —
+   * silent rather than universal, which is what keeps a row written onto the
+   * wrong occasion honest.
+   */
+  wonder?: boolean;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -2927,12 +3060,26 @@ export interface CardRenownEffect {
    *   · `'wonder'` — the wonders standing in them. The Magisterium's, and it
    *     follows the stones like every other wonder reading: a captured wonder
    *     pays its captor from the turn the town changes hands.
+   *   · `'buildingOfCategory'` — the buildings of one shelf the realm has
+   *     raised, one per city per row (Patrons' culture houses). The shelf is
+   *     named in `category`, and the sweep is `CountKind`'s
+   *     `buildingsOfCategory` asked through `countOf` — so the renown a patron
+   *     pays and the coin a Merchant League pays are counting one thing.
    *
-   * Both are multipliers on a fact about the *empire* rather than a line per
-   * thing, so one line prints with the arithmetic shown ("… · 3 per wonder × 2")
-   * rather than a column a player has to add up.
+   * All three are multipliers on a fact about the *empire* rather than a line
+   * per thing, so one line prints with the arithmetic shown ("… · 3 per culture
+   * building × 2") rather than a column a player has to add up.
    */
-  per?: 'city' | 'wonder';
+  per?: 'city' | 'wonder' | 'buildingOfCategory';
+  /**
+   * Which shelf `per: 'buildingOfCategory'` counts. Ignored by the other two.
+   *
+   * `CardCountScaledEffect.category`'s field one shape over, and on the effect
+   * for that field's reason exactly: a multiplier that needs an argument names
+   * it on the row, so `per` stays a list of questions. Absent counts nothing —
+   * the honest answer for a row that never said which shelf.
+   */
+  category?: BuildingCategory;
   /** Which family this feeds. Absent feeds the pool and no family. */
   family?: Family;
 }

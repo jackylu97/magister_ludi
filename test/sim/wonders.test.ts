@@ -53,6 +53,7 @@ import {
 import {
   anyCardDef,
   explainCardCityYields,
+  explainCardPercentYields,
   cardPurchaseRiders,
   cardRulePercent,
   cardTileLines,
@@ -65,7 +66,7 @@ import {
 } from '../../src/sim/statecraft';
 import { FAMILIES } from '../../src/sim/greatPeopleData';
 import { pantheonSlots, performRiteAt } from '../../src/sim/religion';
-import { happinessOf } from '../../src/sim/meters';
+import { explainHappiness, happinessOf } from '../../src/sim/meters';
 import { previewCombat } from '../../src/sim/combat';
 import { explainPurchaseCost } from '../../src/sim/purchase';
 import { projectDef } from '../../src/sim/projectData';
@@ -537,13 +538,23 @@ describe('the ratified roster', () => {
   });
 
   it('defers, in words, exactly what the vocabulary cannot say', () => {
-    // The four halves the pass could not build without bending a shape. They
-    // are on the row and struck through on the card, which is the Statecraft
-    // rule applied to a wonder.
-    for (const id of ['statueOfZeus', 'terracottaArmy', 'alhambra', 'notreDame', 'forbiddenCity'] as const) {
+    // **Two halves are left** (batch E4a, 2026-09-07). Three of the five were
+    // built the day the vocabulary could say them without bending: the Statue of
+    // Zeus' fifteen percent is a `combatPercent` share that names its fight, the
+    // Terracotta Army's veterans are a `unitStamp` scoped to the town that
+    // raised them, and Notre-Dame's Cathedral clause is an ordinary scoped
+    // `cityYields` beside a scoped happiness. What is still deferred is on the
+    // row and struck through on the card, which is the Statecraft rule applied
+    // to a wonder.
+    for (const id of ['alhambra', 'forbiddenCity'] as const) {
       expect(buildingDef(id).deferred, id).toBeDefined();
       const struck = describeCard(id).filter((clause) => clause.deferred);
       expect(struck.length, id).toBeGreaterThan(0);
+    }
+    // And the three that were built promise nothing any more.
+    for (const id of ['statueOfZeus', 'terracottaArmy', 'notreDame'] as const) {
+      expect(buildingDef(id).deferred, id).toBeUndefined();
+      expect(describeCard(id).filter((clause) => clause.deferred).length, id).toBe(0);
     }
     // Hagia Sophia's note is gone because the promise it apologised for is
     // kept: prophets exist (`docs/religion-v2.md`), so the row grants one
@@ -1330,5 +1341,100 @@ describe('the lighthouse’s embarked movement', () => {
     // means it embarked to get there.
     at(state.map, 2, 2).terrain = 'coast';
     expect(fullMovement(ashore, state)).toBe(base + 1);
+  });
+});
+
+/**
+ * The four building rows batch E4a built (`docs/audit/deferred-rows.md`).
+ *
+ * Every one of them was a clause the row already *printed* and the evaluator
+ * could not yet say. What is pinned here is the payment, on a bench, in the
+ * words the row uses — the shapes themselves are pinned where they live.
+ */
+describe('the building rows of batch E4a', () => {
+  it('the Terracotta Army stamps the soldiers raised under it, and nobody else’s', () => {
+    const g = game(4111);
+    const home = found(g.state, 0);
+    const other = createCity(g.state, 0, 'Elsewhere', home.col + 3, home.row);
+    home.buildings.push('terracottaArmy');
+    claimWonder(g.state, 'terracottaArmy', home);
+    bumpRevision(g.state);
+
+    // Raised where the stones stand: a veteran, for the rest of its life.
+    const veteran = realiseItem(g.state, home, {
+      kind: 'unit',
+      id: 'warrior',
+      tile: at(g.state.map, home.col, home.row),
+    });
+    const born = g.state.units.find((u) => u.id === veteran.unitId)!;
+    expect(born.stamp?.strength).toBe(1);
+
+    // Raised anywhere else: an ordinary soldier. The scope is the wonder naming
+    // itself, which is the same sentence its yield clauses say.
+    const plain = realiseItem(g.state, other, {
+      kind: 'unit',
+      id: 'warrior',
+      tile: at(g.state.map, other.col, other.row),
+    });
+    expect(g.state.units.find((u) => u.id === plain.unitId)!.stamp).toBeUndefined();
+  });
+
+  it('Notre-Dame pays the cathedral towns in song and in contentment', () => {
+    const g = game(4112);
+    const home = found(g.state, 0);
+    home.buildings.push('notreDame');
+    claimWonder(g.state, 'notreDame', home);
+    bumpRevision(g.state);
+    const song = (): number =>
+      explainCardCityYields(g.state, home)
+        .filter((line) => line.card === 'notreDame')
+        .reduce((sum, line) => sum + line.culture, 0);
+    const mood = (): number =>
+      explainHappiness(g.state, 0)
+        .filter((line) => line.source.includes('Notre-Dame'))
+        .reduce((sum, line) => sum + line.value, 0);
+    expect(song()).toBe(0);
+    // The wonder's own temple line is a different clause and pays already;
+    // what is read here is the shelf the Cathedral opens.
+    const before = mood();
+    home.buildings.push('cathedral');
+    bumpRevision(g.state);
+    expect(song()).toBe(3);
+    expect(mood() - before).toBe(1);
+    void happinessOf;
+  });
+
+  it('the Shipyard hurries ships alone', () => {
+    const g = game(4113);
+    const city = found(g.state, 0);
+    city.buildings.push('shipyard');
+    bumpRevision(g.state);
+    const behind = (id: string): number =>
+      productionModifiers(g.state, city, { kind: 'unit', id: id as never }).reduce(
+        (sum, line) => sum + line.percent,
+        0,
+      );
+    expect(behind('trireme')).toBe(10);
+    expect(behind('warrior')).toBe(0);
+  });
+
+  it('the Observatory reads better with a mountain inside the borders', () => {
+    const g = game(4114);
+    const city = found(g.state, 0);
+    city.buildings.push('observatory');
+    bumpRevision(g.state);
+    const share = (): number =>
+      explainCardPercentYields(g.state, city)
+        .filter((line) => line.card === 'observatory' && line.yield === 'science')
+        .reduce((sum, line) => sum + line.percent, 0);
+    // No mountain in sight: the ordinary share alone.
+    const owned = ownedTiles(g.state, city);
+    expect(owned.every((tile) => tile.terrain !== 'mountain')).toBe(true);
+    expect(share()).toBe(10);
+    // One inside the borders, and the second line lands beside the first.
+    const hex = owned.find((tile) => tile.col !== city.col || tile.row !== city.row)!;
+    hex.terrain = 'mountain';
+    bumpRevision(g.state);
+    expect(share()).toBe(20);
   });
 });

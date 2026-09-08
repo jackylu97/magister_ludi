@@ -712,7 +712,7 @@ describe('the research queue field', () => {
     // `costAgeBand` [1.25, 2.5, 4.5, 8.5] by Æra, so Æra I costs exactly what
     // v81 charged and an Æra IV row eight and a half times its printed figure.
     // A v81 log diverges at the first thing built out of Æra I.
-    expect(SCHEMA_VERSION).toBe(87);
+    expect(SCHEMA_VERSION).toBe(88);
   });
 });
 

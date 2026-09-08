@@ -25,7 +25,7 @@ import { claimDiscoveryAt } from '../../src/sim/discoveries';
 import { type Tile, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { isWaterTerrain, terrainDef } from '../../src/sim/terrainData';
-import { type GameState, createUnit } from '../../src/sim/state';
+import { type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import { adoptGovernmentAt } from '../../src/sim/statecraft';
 import { GOVERNMENT_TIERS, governmentsAtTier } from '../../src/sim/statecraftData';
 import { previewCombat } from '../../src/sim/combat';
@@ -99,10 +99,15 @@ function landPairs(state: GameState, count: number): [Tile, Tile][] {
 // --- the table --------------------------------------------------------------
 
 describe('the table', () => {
-  it('is the doc’s seventeen, three of them waiting on content', () => {
+  it('is the doc’s seventeen, one of them waiting on content', () => {
     expect(TRIUMPH_IDS).toHaveLength(17);
     const deferred = TRIUMPH_IDS.filter((id) => triumphDef(id).deferred !== undefined);
-    expect(deferred.sort()).toEqual(['fallenBecomeVerse', 'firstKeel', 'longRoad']);
+    // **One** waits now (batch E4a): The First Keel is announced at
+    // `realiseItem` and The Long Road is a standing count of the roads the
+    // treasury's ledger already reads, so all that is left is the verse for a
+    // fallen soldier — which waits on combat remembering the exchange, Epic
+    // Poetry's own deferred half.
+    expect(deferred.sort()).toEqual(['fallenBecomeVerse']);
   });
 
   it('pays something for every live row, and names a family for most', () => {
@@ -160,6 +165,26 @@ describe('scope', () => {
     expect(awardOccasion(g.state, 0, 'wonderCompleted')).toHaveLength(1);
     expect(count(g.state, 0, 'marvelRaised')).toBe(2);
     void city;
+  });
+
+  it('The First Keel is announced where a piece comes into existence, once', () => {
+    // `navalUnitBuilt` is announced from `realiseItem` — the one routine that
+    // means "the city now has the thing" — so a hull hammered out, bought
+    // outright or handed over by a wonder all say the same word. "First" is the
+    // row's own `once` scope and never the occasion's: a moment that counted
+    // itself would be a second register beside `Player.triumphs`.
+    const g = game();
+    const city = found(g.state, 0);
+    keepTheRites(g.state);
+    const seat = getTileAt(g.state.map, city.col, city.row)!;
+    // A soldier is not a keel.
+    realiseItem(g.state, city, { kind: 'unit', id: 'warrior', tile: seat });
+    expect(count(g.state, 0, 'firstKeel')).toBe(0);
+    realiseItem(g.state, city, { kind: 'unit', id: 'trireme', tile: seat });
+    expect(count(g.state, 0, 'firstKeel')).toBe(1);
+    // And the second hull earns nothing: the scope is `once`.
+    realiseItem(g.state, city, { kind: 'unit', id: 'trireme', tile: seat });
+    expect(count(g.state, 0, 'firstKeel')).toBe(1);
   });
 
   it('perAge: once in each era, and again when the era turns over', () => {
@@ -249,6 +274,31 @@ describe('the standing counts', () => {
     city.population = 11;
     awardCountTriumphs(g.state, 0);
     expect(count(g.state, 0, 'greatCity')).toBe(1);
+  });
+
+  it('claims The Long Road the turn two towns are joined, and never again', () => {
+    // Written as an occasion and swept as a count since batch E4a: a connection
+    // is a fact about the board — roads laid, borders moved, a town changing
+    // hands — and `connectedCities` is the very reading the treasury's ledger
+    // counts its coin from, so the road that pays gold and the road that earns
+    // this are one answer.
+    const g = game();
+    const first = found(g.state, 0);
+    keepTheRites(g.state);
+    const second = foundCityAt(g.state, 0, getTileAt(g.state.map, first.col + 2, first.row)!)!;
+    expect(second).toBeDefined();
+    awardCountTriumphs(g.state, 0);
+    expect(count(g.state, 0, 'longRoad')).toBe(0);
+    // Pave every hex between them, both ends included, and the two are joined.
+    for (let col = first.col; col <= second.col; col++) {
+      getTileAt(g.state.map, col, first.row)!.road = 0;
+    }
+    bumpRevision(g.state);
+    awardCountTriumphs(g.state, 0);
+    expect(count(g.state, 0, 'longRoad')).toBe(1);
+    // `once`, so a third town joined pays nothing more.
+    awardCountTriumphs(g.state, 0);
+    expect(count(g.state, 0, 'longRoad')).toBe(1);
   });
 
   it('claims seven wonders in one city', () => {

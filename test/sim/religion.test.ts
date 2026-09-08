@@ -637,6 +637,29 @@ describe('rites', () => {
     );
   });
 
+  it('The Vigil keeps the lamp lit for exactly as long as the rite runs', () => {
+    // The belief waited on "the rule that asks a city whether it is keeping a
+    // rite", which is `cityRite` — a town fact since the rites became a city's
+    // verbs (batch C2) — and batch E4a lifted it to a `CityScope`. So the god is
+    // an ordinary scoped `cityYields` line, read by the ordinary evaluator, and
+    // it stops paying on the turn the rite's own absolute stamp passes: nothing
+    // ticks and nothing is stored.
+    const { g, city, player } = town();
+    keep(g.state, 0, 'courtAugurs');
+    const lit = (): number =>
+      explainCardCityYields(g.state, city)
+        .filter((line) => line.card === 'courtAugurs')
+        .reduce((sum, line) => sum + line.science + line.culture, 0);
+    expect(lit()).toBe(0);
+    performRiteAt(g.state, player, city, 'omenReading');
+    bumpRevision(g.state);
+    expect(lit()).toBe(4);
+    g.state.turn += 10;
+    bumpRevision(g.state);
+    expect(cityRite(g.state, city)).toBeNull();
+    expect(lit()).toBe(0);
+  });
+
   it('are one at a time — the seal is the rite’s own ten turns', () => {
     const { g, city, player } = town();
     performRiteAt(g.state, player, city, 'omenReading');
@@ -2646,11 +2669,11 @@ describe('the ratified religion rows', () => {
     expect(said('theCrusade')).toEqual([
       '+5 combat strength inside foreign cities that follow your religion',
     ]);
+    // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
+    // converted in a turn or two anyway), and the faith clause cut with it, so
+    // the row prints only what it still pays whoever holds it in a save.
     expect(said('thePromisedLand')).toEqual([
       'new cities start 1 population larger',
-      'the cities your settlers found start already keeping your faith — nothing can seed a ' +
-        'religion at a founding, and a lump of pressure at the moment a town is planted is a ' +
-        'second way to press faith — not built yet',
     ]);
     expect(said('theLivingRock')).toEqual([
       '+1 culture on every hex with a Mine carrying a resource',

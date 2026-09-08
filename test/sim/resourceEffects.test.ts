@@ -771,6 +771,28 @@ describe('productionBonus: one shape over two tables', () => {
     }
   });
 
+  it('Ivory puts the tusk trade behind the soldiers, everywhere the realm holds it', () => {
+    // The row's own clause, built in batch E4a: "the tusk trade would put
+    // hammers behind soldiers" is an ordinary luxury `productionBonus` — marble's
+    // shape exactly, one category over — so the seam pays the whole realm and
+    // nothing about it is new but the row.
+    const state = flatState();
+    const first = foundCityAt(state, 0, at(state.map, 6, 5));
+    growTerritory(state, first);
+    const second = foundCityAt(state, 0, at(state.map, 20, 5));
+    growTerritory(state, second);
+    plant(state, first, 7, 5, 'ivory');
+    for (const city of [first, second]) {
+      const behind = productionModifiers(state, city, { kind: 'unit', id: 'warrior' } as never);
+      expect(behind.map((line) => line.resource), city.name).toContain('ivory');
+    }
+    // And nothing toward the halls: the row names the soldiers' category alone.
+    expect(
+      productionModifiers(state, first, { kind: 'building', id: 'granary' } as never)
+        .map((line) => line.resource),
+    ).not.toContain('ivory');
+  });
+
   it('folds a building’s bonus and a luxury’s into one list', () => {
     // The generalisation under test: the barracks used to be the only thing that
     // could do this and it did it through a unit-only field. Both tables now

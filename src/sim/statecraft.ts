@@ -148,6 +148,7 @@ export {
   timedCityTileLines,
   timedEffectIsLive,
   timedTurnsLeft,
+  unitMatches,
   windfallPayout,
 } from './statecraft/evaluator';
 export type {

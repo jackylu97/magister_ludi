@@ -349,8 +349,47 @@ directly to confirm rulings — user marginalia are rulings.
   `explain`/`fold`/`read` only; `yields/{hex,town,empire,stages}.ts`,
   `statecraft/{evaluator,describers,draft}.ts`; mechanical, parity the
   gate, the harness retired at its end. **E4 — the deferred rows ruled**
-  (§3e's table, yours). **E5 — the yield family collapsed** (optional,
-  last, H6-shaped). E1 starts when H19 lands. **E1 and E2 LANDED** (8d7075a,
+  (§3e's table, yours — **the proposal is `docs/audit/deferred-rows.md`**,
+  one recommended disposition per row: build 30 · cut 13 · keep 22; mark
+  the exceptions and the batch builds what is marked build). **E4a BUILT**
+  (schema 88): every ruling that was a data row, a one-field extension, a
+  removal or a move — 17 clauses built, 11 cut, 6 rows retired, 9 kept as
+  labelled, Religious Mandate moved to tier 10 and withdrawn there; the
+  batch's own counts and its one deferral (Paper Money's Bourse, which
+  needs a `oncePerEmpire` building row before a `rateConversion` can reach
+  `liveEffects`) are in the proposal's *As built* section. **E4b** — the
+  reworks that need a new shape or a new row — is still open. **E5 — the
+  yield family collapsed** (optional, last, H6-shaped — one go/no-go from
+  you; the parity harness is restored from git for its duration and
+  retired again after). E1 starts when H19 lands. (qq) **Production
+  costs standardised** (the user, 2026-09-07: "we need to scale them back
+  … buildings should be sized small, medium, large, wonder … one set of
+  scaling notation … scale this base production cost by column number in
+  the tech tree"): the proposal is **`docs/production-costs.md`** — one
+  base per size, one rate per column, the rows carry a size and never a
+  number, charters carry their pool's column, uniques keep the
+  √(cities ÷ 4) line, `costAgeBand` retired. **Ruled** (the user,
+  2026-09-07, in the doc): sizes **30 / 40 / 60 / 130**, `columnRate`
+  **1.31** ("I'll let you know if we need to tweak it") — a Market goes
+  147 → 89, a Cathedral 1530 → 397, a column-12 wonder lands near today.
+  Units ride the same curve (the user, 2026-09-07: "this is ok, lets
+  playtest first, because things felt way too cheap during my playtest" —
+  a knight 187 → 297); the gentler-unit-rate reading is kept in the doc
+  for the retune. The batch is **P1 — the cost standard** (schema),
+  queued behind E4a. (rr) **The audience** (the user, 2026-09-07: "a
+  peace proposal like in civ, where the ai have to respond immediately,
+  with an option for 'what would make this work?'"): spec is
+  `docs/war-diplomacy.md` §12 — the bot's answer dispatched at once as its
+  own logged command, `declinePeace`, a peace closing on the second
+  signature, `counterTerms` for the two Civ questions, the envoy card;
+  batch **D1** (schema). (ss) **The campaign** (the user, 2026-09-07: bots
+  "declared war on me, and they're just being annoying … bots should have
+  something of a threshold to declare war, and when declaring war, should
+  send units to attack me"): diagnosis and rulings in §13 — a strike force
+  and a road before a declaration, the march ungated from aggression, one
+  target and a muster per enemy, the siege exchange, civilians fleeing,
+  the war economy; batch **W1** (knobs only, no schema). Both fly after
+  E4a lands; (rec) defaults stand unless marked. **E1 and E2 LANDED** (8d7075a,
   59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
   2026-09-07: "please continue" on the orchestrator's recommended reading):
   **the benches announce their hand mutations** — a test that mutates a
