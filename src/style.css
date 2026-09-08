@@ -2066,7 +2066,6 @@ button.seat:active {
   margin-top: 2px;
   font-family: var(--face-ui);
   font-size: 10px;
-  font-style: italic;
   color: var(--ink-soft);
 }
 
@@ -3612,7 +3611,6 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .city-prod-idle {
   margin: 0;
   font-family: var(--face-display);
-  font-style: italic;
   font-size: 15px;
   color: var(--ink-soft);
 }
@@ -4533,20 +4531,26 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
   white-space: nowrap;
 }
+/* The rite's sentence is copy, so it wears the copy face: the rite's *name*
+   beside it is already in the display serif, and two serifs in one row read
+   as one run of script (the user, 2026-09-08: "it feels a bit weird they're
+   both in the script font"). */
 .city-rite-says {
   grid-column: 1 / -1;
   margin: 0;
-  font-family: var(--face-display);
-  font-style: italic;
+  font-family: var(--face-ui);
   font-size: 12px;
   line-height: 1.3;
   color: var(--ink-soft);
 }
 
-/* The list of what the city has already built: prose, so it reads as prose. */
+/* The list of what the city has already built: prose, so it reads as prose.
+   Upright, not italic — the city screen carries no italics at all since
+   2026-09-08 (the user: "they're a bit hard to parse"); the quiet voice is
+   the ink-soft colour and the display face, which is enough. The same ruling
+   took the italic off `.tile-requires`, `.city-prod-idle` and `.city-rite-says`. */
 .city-built .hint {
   font-family: var(--face-display);
-  font-style: italic;
   font-size: 15px;
   line-height: 1.35;
   color: var(--ink-soft);
@@ -6197,6 +6201,14 @@ body:has(.city-mode:not([hidden])) #hud-context {
 .info-card-notes li.is-caveat {
   font-style: italic;
   color: var(--ink-faint);
+}
+
+/* Inside the city screen the same caveat stands upright: the city screen
+   carries no italics at all (2026-09-08, the user: "they're a bit hard to
+   parse"). The sticky info card on the map keeps its italic — that surface
+   was not in the ruling. The quiet is still the faint ink. */
+#city-panel .info-card-notes li.is-caveat {
+  font-style: normal;
 }
 
 /* Done, in hand, or the reducer's own sentence about why not. */

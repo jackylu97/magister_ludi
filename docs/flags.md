@@ -518,6 +518,53 @@ directly to confirm rulings — user marginalia are rulings.
   enhancer beliefs — +5 science +5 culture for every following city
   holding a wonder (Marvels of the Faith), +1 science per faith building
   in following cities (The Scriptoria). Batch **B3 BUILT** (schema 97).
+  (aaa) **The legibility pass** (the user, 2026-09-08: "keep the effects
+  of bonuses straightforward … give it a name and give it an entry in the
+  compendium … '+X in this city' doesn't make sense because they should
+  apply to all cities … '+X in this city' should probably be 'in cities
+  that follow your religion'"): audit and rulings in
+  `docs/audit/legibility.md` — 32 generated faces say "this city" where
+  the card reaches the realm (the ratified texts are clean); the
+  describer takes its subject from the card's class; same-shape sibling
+  clauses fold; negative-percent phrasing re-said; the star chart prints
+  numbered rules instead of the note, and a node whose rules run past
+  two lines prints one **named rule** (`[[rule:…]]`) with a Rules shelf in
+  the Compendium. Batch **L1** (no schema; the card-text snapshot
+  regenerated and its diff reviewed face by face).
+  (bbb) **Standing orders walk on this turn's points, and say where they
+  will be** (the user, 2026-09-08: "a unit's orders should only be
+  performed at the end of the turn if they have available movement,
+  currently the unit moves at the end of turn and uses movement points
+  from next turn … queued orders take place at the end of a turn, if a
+  unit has remaining movement, the user is prompted to give them further
+  orders … queuing a movement should display badges showing how many
+  turns until the destination, and where the unit will be on each turn
+  … a circular icon, with a decorative border and the turn # in the
+  middle"). Diagnosis: `resetMovement` (`turn.ts`) refills every
+  allowance and then resumes every stored path on the **new** turn's
+  points, so a column arrives at the player's turn already spent.
+  Rulings: `spendLeftoverMovement` (this turn's leftover, before the
+  refill) is the **only** phase that walks a standing order;
+  `resetMovement` refills and resumes nothing; a unit with a stored path
+  and movement at the turn's start is offered to the player in the
+  next-unit cycle with its committed route drawn (rec — it keeps its
+  orders and does not block End Turn); a unit that arrives with points
+  left is idle next turn and prompted. The path preview and the committed
+  route both draw **turn medallions** — a circular badge, decorative
+  border, the turn number — on the hex where each turn's march ends
+  (`pathTurns`), the destination's the largest; one drawn mark in one
+  style, in the flair gallery. Batch **U1** (schema 98 — a replay's
+  columns arrive a turn later). (ccc) **The draft's two answers restyled**
+  (the user, 2026-09-08: "the two buttons for rerolling/passing drafts
+  look better, but they look boring/awkwardly placed. Lets make them
+  more center-aligned and do a general styling check to make them look
+  more consistent, their colors also currently feel out of place"):
+  the offer foot becomes one centred row under the hand, both answers
+  the same size in the specimen's button language, told apart by glyph
+  and the parchment/ink primary-vs-quiet weight rather than by lapis and
+  vermilion (rec — the earlier decorated colours withdrawn); checked
+  against the confirm card's and the city panel's buttons. Batch **U2**
+  (no schema).
   As built: the four houses take the **Temple's** column (5, medium — 117⚙,
   and 117🕯 through the bank, `faithPerHammer` 1); a building may now name
   its own bank (`BuildingDef.purchase`, the roster's marker one table over,
