@@ -158,16 +158,16 @@ reaches it, `worldTechReached`).
   | **Bread and Iron** | D | your realm banks **F food surplus a turn** (the growth channel, summed) while fielding **A army strength** | 12 · 150 — 25 · 480 — 40 · 1 000 |
   | **The War Chest** | E | **G gold in the treasury** and **A army strength**, neither borrowed (no debt) | 300 · 150 — 1 000 · 480 — 2 500 · 1 000 |
   | **The Schooled Realm** | S | **every** city of yours holds a science building, you hold **C cities**, and **S science a turn** | 4 · 16 — 7 · 42 — 12 · 120 |
-  | **The Merchant Princes** | E | **R trade routes** running, **U unique luxuries**, and **G gold a turn** | 2 · 2 · 12 — 4 · 4 · 60 — 6 · 7 · 150 |
-  | **The Pilgrim Empire** | C | your religion followed by **K cities** of which **R are rivals'**, and **F faith a turn** | 4 · 1 · 5 — 8 · 3 · 15 — 14 · 5 · 60 |
+  | **The Merchant Princes** | E | **R trade routes** running, **U unique luxuries**, and **G gold a turn** | 2 · 2 · 12 — 4 · 4 · 60 — 6 · 7 · 150 | [remove, unique luxuries may be difficult to get, i dont want this to be contingent on ai deals]
+  | **The Pilgrim Empire** | C | your religion followed by **K cities** of which **R are rivals'**, and **F faith a turn** | 4 · 1 · 5 — 8 · 3 · 15 — 14 · 5 · 60 | [remove, i view religion more as a way to get bonuses, but religious spread is tedious as a mechanic]
   | **The Marcher Lords** | E | you hold **C cities**, **none unhappy** (every city's happiness at or above nought), and **authority in surplus** | 5 — 9 — 18 |
   | **Hammer and Word** | C | a **wonder of this age** raised **and** a **great person called** this age | 1 · 1 — 1 · 1 — 2 · 2 |
-  | **The Conqueror's Peace** | D | a city **captured** this age, still held, **and** the age closed **at peace with every rival** — the war won and closed | 1 — 1 — 2 |
+  | **The Conqueror's Peace** | D | a city **captured** this age, still held, **and** the age closed **at peace with every rival** — the war won and closed | 1 — 1 — 2 | [remove, peace is not necessarily something you can do with agency in multiplayer]
   | **The Fortified Frontier** | D | **every** city of yours holds a wall and a garrison, and **no city of yours was pillaged** this age (a standing count of the pillage occasions) | — |
-  | **The Full Ledger** | E | **every one of the six voices** at or above its bar a turn at once — the breadth check, the ante with no arena to neglect | 20🌾 15⚙ 8💰 8🔬 6🎵 3🕯 — 60 · 50 · 30 · 30 · 25 · 8 — 120 · 150 · 70 · 60 · 100 · 25 |
+  | **The Full Ledger** | E | **every one of the six voices** at or above its bar a turn at once — the breadth check, the ante with no arena to neglect | 20🌾 15⚙ 8💰 8🔬 6🎵 3🕯 — 60 · 50 · 30 · 30 · 25 · 8 — 120 · 150 · 70 · 60 · 100 · 25 | [remove]
   | **The Renowned Court** | S | **R renown a turn** and **W great persons' works** standing in your borders | 6 · 1 — 12 · 3 — 24 · 5 |
-  | **The Laurels of the Age** | — | **T Triumphs earned this age** (deeds already spanning every arena; the count is the check) | 3 · 4 · 5 |
-  | **The Tall Realm** | E | **three** cities each of **N citizens** with **a market and a granary**, joined to your capital by road | 8 — 12 — 16 |
+  | **The Laurels of the Age** | — | **T Triumphs earned this age** (deeds already spanning every arena; the count is the check) | 3 · 4 · 5 | [remove]
+  | **The Tall Realm** | E | **three** cities each of **N citizens** with **a market and a granary**, joined to your capital by road | 8 — 12 — 16 | [remove]
   | **The Faith and the Sword** | D | a **religion founded** by you followed by **K cities**, and **a rival's unit killed inside a city that follows it** this age (the Crusade's ground) | 4 · 1 — 8 · 2 — 12 · 3 |
 
   What each asks across arenas: The Capital of the World — growth, building,
@@ -186,6 +186,37 @@ reaches it, `worldTechReached`).
   bent; every clause above reads something that exists (the "none unhappy",
   "no city pillaged" and "every city holds" clauses are folds over
   `citiesOf` the Ledger already walks).
+
+  **The competency checks — one number, many causes** (the user, 2026-09-08:
+  *"think single checks that check for overall competency. A good example:
+  total trade yields check = player has founded multiple cities with markets,
+  built buildings in their cities, set up trade routes"*). Each is a single
+  reading the Ledger already folds, and each is reachable only by doing
+  several things well — the check is the *number*, the competency is what it
+  takes to move it. Measured 2026-09-08 on the same two bot duels (the mean
+  empire by age; the bars are 1.5× that, or a floor where the bots are a poor
+  yardstick — noted):
+
+  | Wager | Family | The one number | What it takes to move it | mean II · III · IV | bar II · III · IV |
+  |---|---|---|---|---|---|
+  | **The Caravanserai** | E | what your trade routes pay a turn, all voices | cities to run routes between, markets for the slots, buildings and luxuries at both ends, roads and safe roads | 0 · 5 · 7 *(bots barely trade — a human yardstick is owed)* | 6 · 20 · 40 |
+  | **The Renowned** | C | renown a turn | specialist buildings across every family, wonders, great persons' works, the Orders that feed them | 7 · 24 · 48 | 10 · 36 · 72 |
+  | **The Deck** | S | what your slotted Orders pay a turn (the Ledger's "your cards") | a government tier bought with culture, drafts taken well, Orders that multiply each other | 3 · 10 · 31 | 5 · 15 · 47 |
+  | **The Builders** | E | what your buildings pay a turn (the Ledger's buildings class) | many cities, each built up, the shares that multiply them | 11 · 47 · 136 | 17 · 70 · 200 |
+  | **The Solvent Realm** | E | gold a turn **after** every bill (maintenance of units, roads and buildings, tributes) | markets and routes and connections against a levy kept in proportion — the check a warmonger and a builder each fail from one side | −5 · +5 · +13 *(bots run in the red; the bar is a floor)* | +5 · +20 · +50 |
+  | **The Six Voices** | — | food, production, gold, science, culture and faith a turn, summed | width and height at once; nothing neglected | 95 · 312 · 841 | 140 · 470 · 1 260 |
+  | **The Lettered** | S | specialists at work | buildings with seats and the food surplus to fill them | 1 · 6 · 12 | 2 · 8 · 18 |
+  | **The Contented Trade** | E | happiness paid by luxuries | improved luxury tiles, the reveal technologies, workers with charges, lends from rivals, the Grand Bazaar | 8 · 27 · 69 | 12 · 40 · 100 |
+  | **The Marvels' Pay** | C | what your wonders pay a turn | wonders raised in their age, in towns that keep them | 5 · 33 · 68 | 7 · 50 · 100 |
+  | **The Tithe** | C | what your religion pays a turn (the Ledger's religion class) | a pantheon and a faith founded, beliefs that pay, temples in following towns | 0 · 6 · 34 | — · 9 · 50 |
+  | **The Worked Land** | E | citizens working an **improved** hex | growth, workers, charges, the technologies that open each improvement | *not measured* | — |
+  | **The King's Roads** | E | gold from city connections (the ledger's own line) | a wide realm joined to its capital by road, kept paved | *not measured* | — |
+
+  These sit beside the compound wagers above rather than replacing them: a
+  compound wager names the arenas, a competency check hides them inside one
+  figure — the Balatro reading, where the score is the check and the deck is
+  how you got there. The two unmeasured rows and the two where the bots are
+  a poor yardstick want a human game's numbers before their bars are trusted.
 
 - **Families.** Every card names one of the four bead families (D · C · S · E,
   `docs/beads.md`); ▢ (rec) the deal is guaranteed one card from three
