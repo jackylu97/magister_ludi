@@ -214,10 +214,11 @@ describe('the reroll button', () => {
     expect(OFFER_CARD).toContain("element('span', 'offer-answer-figure', spec.figure)");
     // The refusal answers on hover, which is the whole of the greyed state.
     expect(OFFER_CARD).toContain('button.title = spec.note');
-    // A card wide each, off the width the spread dealt the cards at.
-    const at = STYLE.indexOf('.offer-answer-cell {');
+    // A card wide each, off the width the spread dealt the cards at — the row's
+    // own columns since item (ccc) took the cell wrapper away.
+    const at = STYLE.indexOf('.offer-answers {');
     expect(at).toBeGreaterThan(-1);
-    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('width: var(--offer-card');
+    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('var(--offer-card');
     // And the greyed face keeps its ground: `.btn:disabled` would swap it for
     // the table colour and take the price off the sheet.
     const greyed = STYLE.indexOf('.offer-answer:disabled {');
@@ -306,13 +307,19 @@ describe('every draft deals a tarot face', () => {
 });
 
 /**
- * **The pass, at the bottom right and in a player's words** (the user,
- * 2026-09-07: "make the pass button more prominent/decorated and put it in the
- * bottom right … the 'rare 1 -> 2' text isn't informative for a player").
- * The face says the promise, never the bag's weights; the row places the two
- * answers in opposite corners; the pass wears the heavier plate.
+ * **The pass, in a player's words and beside its twin** (the user, 2026-09-07:
+ * "the 'rare 1 -> 2' text isn't informative for a player"; and 2026-09-08, item
+ * (ccc): "more center-aligned … their colours also currently feel out of
+ * place"). The face says the promise, never the bag's weights.
+ *
+ * The bottom-right corner and the two poster grounds were the answer for a day
+ * and are gone: the row is centred, the two answers are one size, and what tells
+ * them apart is a mark and the house's primary/quiet weight. The corner
+ * assertions are *replaced* rather than dropped — the same three questions
+ * (where the pair sits, how they are told apart, what a greyed one keeps) asked
+ * of the arrangement that shipped.
  */
-describe('the pass at the bottom right', () => {
+describe('the pass beside its twin', () => {
   const STYLE = (
     import.meta.glob('../../src/style.css', { eager: true, query: '?raw', import: 'default' }) as Record<
       string,
@@ -336,21 +343,44 @@ describe('the pass at the bottom right', () => {
     expect(body).toContain("rarityDrawWeight('rare', skips + 1)");
   });
 
-  it('places the two answers in opposite corners, on one plate, in two colours', () => {
-    // Equal emphasis (the user, the same day: "keep the emphasis on the reroll
-    // and pass the same — they should be seen as equally important … separate
-    // colors for visual distinction"): the decoration is one shared rule, and
-    // only the ground differs — vermilion for the spent hand, lapis for the
-    // purchase.
-    expect(CARD).toContain('`offer-answer-cell ${className}-cell`');
+  it('centres the two answers in one row, told apart by mark and weight', () => {
+    // One centred row, and a grid two rows deep so the two buttons are the same
+    // size however long either sentence runs — the "same size" half of (ccc).
     const answers = STYLE.slice(STYLE.indexOf('.offer-answers {'));
-    expect(answers.slice(0, answers.indexOf('}'))).toContain('justify-content: space-between;');
-    expect(STYLE).toContain('.offer-answer-pass-cell {\n  margin-left: auto;\n}');
-    const plate = STYLE.slice(STYLE.indexOf('.offer-answer-pass,\n.offer-answer-reroll {'));
-    const rule = plate.slice(0, plate.indexOf('}'));
-    expect(rule).toContain('border-width: 2px;');
-    expect(rule).toContain('outline-offset: -5px;');
-    expect(STYLE).toContain('.offer-answer-pass {\n  background: var(--vermilion);\n}');
-    expect(STYLE).toContain('.offer-answer-reroll {\n  background: var(--lapis);\n}');
+    const row = answers.slice(0, answers.indexOf('}'));
+    expect(row).toContain('justify-content: center;');
+    expect(row).toContain('grid-template-rows: auto auto;');
+    expect(row).toContain('grid-auto-columns: minmax(0, var(--offer-card');
+    // No cell wrapper any more: the button and its sentence are siblings in the
+    // one grid, which is what makes the two rows shared.
+    expect(CARD).not.toContain('offer-answer-cell');
+    expect(STYLE).not.toContain('.offer-answer-pass-cell');
+    // The mark is the card's own fact, one per answer, hidden from the reading.
+    expect(CARD).toContain("const REROLL_MARK = '⟳';");
+    expect(CARD).toContain("const PASS_MARK = '⊘';");
+    expect(CARD).toContain("mark.setAttribute('aria-hidden', 'true')");
+    expect(CARD).toContain("element('span', 'offer-answer-glyph')");
+    // And the weight, not a colour: the two poster grounds are withdrawn, the
+    // reroll takes parchment-on-ink and the pass the house's quiet parchment.
+    expect(STYLE).toContain('.offer-answer-reroll {\n  background: var(--ink);\n  color: var(--parchment);\n}');
+    expect(STYLE).toContain('.offer-answer-pass {\n  background: var(--parchment);\n  color: var(--ink);\n}');
+    const from = STYLE.indexOf('.offer-answers {');
+    const to = STYLE.indexOf('.offer-answer:disabled {');
+    const block = STYLE.slice(from, to);
+    expect(block).not.toContain('var(--vermilion)');
+    expect(block).not.toContain('var(--lapis)');
+  });
+
+  it('sets the sentence under the row in the hint voice', () => {
+    // The pity and the reroll's fold are the same voice the rest of the
+    // interface explains itself in, centred under the button they belong to.
+    expect(CARD).toContain("element('p', 'hint offer-answer-note', spec.note)");
+    const at = STYLE.indexOf('.offer-answer-note {');
+    expect(at).toBeGreaterThan(-1);
+    expect(STYLE.slice(at, STYLE.indexOf('}', at))).toContain('align-self: start;');
+    // The pass's figure is a promise, not a price — the mono is the number's.
+    const promise = STYLE.indexOf('.offer-answer-pass .offer-answer-figure {');
+    expect(promise).toBeGreaterThan(-1);
+    expect(STYLE.slice(promise, STYLE.indexOf('}', promise))).toContain('font-family: var(--face-ui);');
   });
 });

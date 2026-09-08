@@ -29,9 +29,15 @@
  * taken sometimes for optimal play"*). They were quiet foot links beside View
  * map, which read as ways out of the sheet rather than as answers to it. They
  * are the house's own `.btn` block — the width of a card each, in their own row
- * under the hand, with the figure on the face in tabular mono and the sentence
- * that made it underneath. Nothing about what they *do* moved; what moved is
- * that they look like the decisions they are.
+ * under the hand, with the figure on the face and the sentence that made it
+ * underneath. Nothing about what they *do* moved; what moved is that they look
+ * like the decisions they are.
+ *
+ * They stand in **one centred row** and in one pair of house weights since item
+ * (ccc) (the user, 2026-09-08): the corners and the two poster grounds are gone,
+ * a mark and the primary/quiet weight tell them apart, and the sheet's foot now
+ * reads as the same family as the confirm card's pair. `answer` carries the
+ * whole of that reasoning.
  *
  * Modal, and it means it
  * ----------------------
@@ -102,6 +108,22 @@ import { wantsMotion } from './motion';
  */
 const DEAL_MS = 420;
 const DEAL_STAGGER_MS = 110;
+
+/**
+ * The two answers' marks: deal these again, and take none of them.
+ *
+ * Characters rather than drawings, and the deck's seven emblems are deliberately
+ * not among them: an answer is not a card, and lending the pass a card's plate
+ * would put it in the hand it is refusing. `⟳` is already this interface's mark
+ * for a thing that comes round again (the Compendium's "A turn, in order"), and
+ * `⊘` is the plainest "none of these" a system font can be relied on for.
+ *
+ * They are here rather than in `style.css` as `content:` for the module's own
+ * reason: a mark is *what the answer is*, the same class of fact as its label,
+ * and a label is not a thing this file leaves to a stylesheet.
+ */
+const REROLL_MARK = '⟳';
+const PASS_MARK = '⊘';
 
 /**
  * One card's back: the weave, the gilt rules and the neutral seal.
@@ -450,8 +472,8 @@ const GAP = 12;
 /** The head: eyebrow, title, lede, the widening chips, the rule and its margin. */
 const HEAD = 119;
 /**
- * Everything under the hand: the two **answers** — the reroll and the pass, a
- * decorated button the width of a card each, with their notes beneath — and the
+ * Everything under the hand: the two **answers** — the reroll and the pass, one
+ * centred row of a button a card wide each, with their notes beneath — and the
  * View map strip below them.
  *
  * In the budget for the same reason `HEAD` is: the row's height is what is
@@ -1073,16 +1095,37 @@ export function createOfferCard(
      * user, 2026-09-07, ruling r: *"they should feel like fully featured,
      * decorated buttons that are meant to be taken sometimes for optimal
      * play"*). So they are the house's own button — `.btn`, the bordered block
-     * on a hard ink shadow that every button in this game is — the width of a
-     * card each, in a row under the hand: the reroll first, because it is the
-     * answer that keeps playing, and the pass beside it.
+     * on a hard ink shadow that every button in this game is — a card wide
+     * each: the reroll first, because it is the answer that keeps playing, and
+     * the pass beside it.
      *
-     * Each carries its **figure on the face** in tabular mono, which is the
-     * whole of what makes them decisions rather than escape hatches: a price
-     * that rises with every use, and a bag that leans rarer with every hand
-     * given up. The sentence under each says where its figure came from, and it
-     * is the button's `title` too — so a greyed reroll answers "why not" on
-     * hover with the reducer's own words.
+     * **One centred row, and the same button twice** (the user, 2026-09-08,
+     * item (ccc): *"boring/awkwardly placed … more center-aligned … their
+     * colours also currently feel out of place"*). They stood in opposite
+     * corners in two strong grounds — the pass vermilion, the reroll lapis —
+     * and a sheet whose every other mark is ink on parchment had two poster
+     * colours at the foot of it. Both grounds are withdrawn. What is left is
+     * the language the confirm card's Cancel/Confirm pair and the city panel's
+     * buy tags are already in: one block, one hairline ink border, one hard ink
+     * shadow, the same press. They are told apart by **a mark and a weight** —
+     * the reroll takes the primary's weight (parchment on ink), the pass the
+     * quiet one (ink on parchment) — and each wears the glyph of what it does.
+     *
+     * The primary weight is taken in **ink** rather than in the vermilion
+     * `.btn-primary` carries, and that is the one deliberate difference from
+     * the confirm card: vermilion was the pass's ground on this very sheet an
+     * hour ago, and moving it across to the reroll would say the opposite of
+     * what the player just learned it meant.
+     *
+     * Each carries its **figure on the face**, which is the whole of what makes
+     * them decisions rather than escape hatches: a price that rises with every
+     * use, and a bag that leans rarer with every hand given up. Only the
+     * reroll's is set in tabular mono, because only the reroll's is a number —
+     * the pass's figure is a *promise* ("See rarer cards next draft") and mono
+     * would be typesetting it as a quantity it does not have. The sentence
+     * under each says where its figure came from, centred beneath the row in
+     * the interface's `hint` voice, and it is the button's `title` too — so a
+     * greyed reroll answers "why not" on hover with the reducer's own words.
      *
      * They are deliberately **not** keyboard-shortcut controls: the digits pick
      * cards, and the two irreversible answers on this sheet take a click.
@@ -1090,15 +1133,21 @@ export function createOfferCard(
     function answer(
       spec: { label: string; figure: string; note: string; disabled?: boolean },
       className: string,
+      glyph: string,
       onPress: () => void,
-    ): HTMLElement {
-      // The cell wears the answer's class too, so the row can place the pass
-      // at the sheet's bottom right (the user, 2026-09-07) without asking the
-      // button what it is.
-      const cell = element('div', `offer-answer-cell ${className}-cell`);
+    ): HTMLElement[] {
       const button = document.createElement('button');
       button.className = `btn offer-answer ${className}`;
       button.type = 'button';
+      // The mark, set rather than drawn — `textContent` and not `element`'s
+      // writer for the reason the votive card's plate is: a character here
+      // stands for the *answer*, and must not be mistaken for a yield's glyph
+      // and swapped for a drawing of one. Hidden from the reading, because the
+      // label beside it already says the word out loud.
+      const mark = element('span', 'offer-answer-glyph');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = glyph;
+      button.append(mark);
       button.append(element('span', 'offer-answer-label', spec.label));
       // The figure goes through the yield printer like every other composed
       // figure that reaches the DOM (`setYieldText`, via `element`), so a faith
@@ -1107,17 +1156,21 @@ export function createOfferCard(
       button.title = spec.note;
       button.disabled = spec.disabled === true;
       button.addEventListener('click', onPress);
-      cell.append(button, element('p', 'offer-foot-note', spec.note));
-      return cell;
+      // Button and sentence are **siblings**, not a wrapped cell: the row is one
+      // grid two rows deep, so the two buttons share a height and the two
+      // sentences share a baseline however long either one runs. A cell each
+      // would have let one button grow taller than the other, which is the
+      // "same size" half of the ruling given away for a `<div>`.
+      return [button, element('p', 'hint offer-answer-note', spec.note)];
     }
 
     if (offer.reroll !== undefined || offer.pass !== undefined) {
       const answers = element('div', 'offer-answers');
       if (offer.reroll !== undefined) {
-        answers.append(answer(offer.reroll, 'offer-answer-reroll', () => reroll()));
+        answers.append(...answer(offer.reroll, 'offer-answer-reroll', REROLL_MARK, () => reroll()));
       }
       if (offer.pass !== undefined) {
-        answers.append(answer(offer.pass, 'offer-answer-pass', () => skip()));
+        answers.append(...answer(offer.pass, 'offer-answer-pass', PASS_MARK, () => skip()));
       }
       sheet.append(answers);
     }

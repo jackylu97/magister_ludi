@@ -6639,121 +6639,146 @@ body:has(.city-mode:not([hidden])) #hud-context {
 /* The two answers that are not cards: ask again, and pass (ruled 2026-09-07 —
    "fully featured, decorated buttons that are *meant* to be taken sometimes for
    optimal play"). They were foot links beside View map and read as ways out of
-   the sheet; they are the house's own `.btn` now — same block, same hard ink
-   shadow, same press — the width of a card each, side by side under the hand.
+   the sheet; they are the house's own `.btn` now — same block, same hairline ink
+   border, same hard ink shadow, same press — a card wide each under the hand.
+
+   **One centred row, and nothing coloured** (the user, 2026-09-08, item (ccc):
+   "boring/awkwardly placed … more center-aligned … their colours also currently
+   feel out of place"). They sat in opposite corners in two poster grounds — the
+   pass vermilion, the reroll lapis — on a sheet whose every other mark is ink on
+   parchment, and the corners made a pair of answers read as two unrelated
+   controls. Both grounds are withdrawn (the tokens keep their other uses). What
+   is left is what the confirm card's Cancel/Confirm pair and the city panel's
+   buy tags are already in, checked against both: `.btn`'s block, `--border-thin`
+   of ink, `--shadow-sm`, `--radius-sm`, the press that drops the button onto the
+   page. The two are told apart the way that family tells any pair apart — by
+   **weight and a mark**: the reroll takes the primary's weight (parchment on
+   ink) and the `⟳` of a thing that comes round again, the pass the quiet one
+   (ink on parchment) and the `⊘` of none-of-these.
+
+   The primary weight is taken in **ink** and not in `.btn-primary`'s vermilion,
+   which is the one deliberate difference from the confirm card: vermilion was
+   the *pass's* ground on this sheet until this pass, and moving it onto the
+   reroll would say the opposite of what a player had just learned it meant.
 
    `--offer-card` is the width `offerSpread` dealt the cards at, so an answer is
    exactly a card wide however wide the hand is; the strip's whole height is
    `FOOT` in `offerCard.ts`, and the two must move together or the spread thinks
    it fits and does not. */
 .offer-answers {
-  display: flex;
-  /* The reroll keeps the left, the pass takes the sheet's **bottom right** (the
-     user, 2026-09-07): the two answers are opposite decisions — keep playing
-     this hand, or give it up — and opposite corners say so before a word is
-     read. `space-between` places them; a sheet with only one of the two still
-     puts the pass on the right (`margin-left: auto` on its cell). */
-  justify-content: space-between;
+  /* A grid two rows deep rather than a row of cells: the buttons share row one
+     and the sentences share row two, so the two answers are the *same size*
+     whatever either one has to say — which a cell each cannot promise, and
+     which is half of what the ruling asked for. `display: contents` would be
+     the other way; the button and its sentence are plain siblings instead
+     (`answer` in `offerCard.ts`), which is one element less to explain. */
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, var(--offer-card, 240px));
+  grid-template-rows: auto auto;
+  /* Centred, both of them, and centred alone when there is only one: an answer
+     is an answer to the hand above it and belongs under the middle of it. */
+  justify-content: center;
+  align-items: stretch;
   /* The hand's own gutter (`GAP` in `offerCard.ts`), so the two answers stand on
      the same rhythm the cards above them do. */
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.offer-answer-cell {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 4px;
-  width: var(--offer-card, 240px);
+  column-gap: 12px;
+  row-gap: 5px;
+  margin-top: 12px;
   text-align: center;
 }
 
-.offer-answer-pass-cell {
-  margin-left: auto;
+/* The face: the mark in a column of its own, and beside it what this answer
+   does over what it is worth. The mark spans both lines because it stands for
+   the whole answer rather than for either line of it — and the label and the
+   figure name their column outright, so the reliquary's call (which wears this
+   same face with no mark of its own) still stacks its two lines rather than
+   laying them side by side. */
+.offer-answer {
+  display: grid;
+  grid-template-columns: auto minmax(0, auto);
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  padding: 8px 12px 9px;
 }
 
-/* Two lines on the face: what it does, and what it is worth. The figure is
-   tabular mono because every number in this interface is. */
-.offer-answer {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 1px;
-  padding: 7px 10px 8px;
+/* The air beside the mark is the mark's own margin rather than the grid's
+   `column-gap`: a face with no mark to draw (the reliquary's call wears this
+   one) would otherwise keep the gap of the column it does not fill and sit
+   half of it off centre. */
+.offer-answer-glyph {
+  grid-row: 1 / span 2;
+  grid-column: 1;
+  margin-right: 8px;
+  font-family: var(--face-ui);
+  font-size: 19px;
+  line-height: 1;
+  opacity: 0.85;
 }
 
 .offer-answer-label {
+  grid-column: 2;
   font-family: var(--face-ui);
   font-size: 12.5px;
   font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
+/* Tabular mono, because it is a number and every number in this interface is.
+   Only the reroll's is — see the pass's rule below. */
 .offer-answer-figure {
+  grid-column: 2;
   font-family: var(--face-num);
-  font-size: 12px;
+  font-size: 11.5px;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
   opacity: 0.85;
 }
 
-/* The pass wears the vermilion this interface reserves for a thing that is
-   spent — the hand is gone and the culture stays spent — and the reroll wears
-   plain parchment, because a purchase must not borrow the warning colour. */
-/* **Both decorated, and equally** (the user, 2026-09-07: "more
-   prominent/decorated … keep the emphasis on the reroll and pass the same —
-   they should be seen as equally important. Maybe have them be separate
-   colors for visual distinction"). One plate for the two: the border doubled,
-   a parchment hairline inset inside it so the face reads as a framed seal
-   rather than a flat block, a deeper ink shadow, the label in small capitals
-   with air between the letters. What tells them apart is the ground alone —
-   the pass in the vermilion this interface reserves for a thing that is
-   spent, the reroll in lapis, the one strong colour here that is neither the
-   warning nor the gilt of a price. */
-.offer-answer-pass,
+/* The reroll carries the weight: parchment on ink, which is this interface's
+   strongest neutral emphasis (`.city-buy-tiles.is-active`, `.offer-look:hover`)
+   and the confirm card's primary in the sheet's own colour. */
 .offer-answer-reroll {
+  background: var(--ink);
   color: var(--parchment);
-  border-color: var(--ink);
-  border-width: 2px;
-  box-shadow: 4px 4px 0 var(--ink);
-  outline: 1px solid rgba(255, 250, 236, 0.75);
-  outline-offset: -5px;
-  padding: 9px 12px 10px;
 }
 
+/* And the pass is the quiet one — `.btn`'s own parchment and ink, unchanged,
+   named here so the pair is legible in one place rather than by absence. */
 .offer-answer-pass {
-  background: var(--vermilion);
+  background: var(--parchment);
+  color: var(--ink);
 }
 
-.offer-answer-reroll {
-  background: var(--lapis);
-}
-
-.offer-answer-pass .offer-answer-label,
-.offer-answer-reroll .offer-answer-label {
-  font-size: 13.5px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
+/* The pass's figure is a **promise, not a price** ("See rarer cards next
+   draft"): mono would typeset it as a quantity it does not have, so it takes
+   the label's own face, a step down and a shade back. */
 .offer-answer-pass .offer-answer-figure {
   font-family: var(--face-ui);
-  font-style: italic;
-  opacity: 0.95;
+  font-size: 10.5px;
+  letter-spacing: normal;
+  opacity: 0.9;
 }
 
-.offer-answer-pass:active:not(:disabled),
-.offer-answer-reroll:active:not(:disabled) {
-  transform: translate(3px, 3px);
-  box-shadow: 1px 1px 0 var(--ink);
+/* The sentence that made the figure, centred under its own button in the
+   interface's `hint` voice (`.hint` carries the face and the ink). It takes the
+   button's own column, so it is a card wide too and never sets the width of
+   anything. Pinned to the top of its row, so a short sentence sits under its
+   button rather than floating in the middle of the taller one's space. */
+.offer-answer-note {
+  align-self: start;
+  font-size: 9.5px;
+  line-height: 1.4;
 }
 
-/* **The face is kept and the ink is greyed** (the ruling's own words). The
+/* **The face is kept and the ink is greyed** (ruling r's own words). The
    ordinary `.btn:disabled` swaps the ground for the table colour, which would
    take the button off the sheet entirely — and the whole point of a reroll
-   nobody can afford is that its rising price stays legible. The sentence that
-   says why is the button's `title`, so it answers on hover. */
+   nobody can afford is that its rising price stays legible. It outranks the
+   reroll's ink ground on specificity, which is what keeps a greyed reroll from
+   being a black block. The sentence that says why is the button's `title`, so
+   it answers on hover. */
 .offer-answer:disabled {
   background: var(--parchment);
   color: var(--ink-faint);
@@ -6839,10 +6864,19 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* Under the sheet's own width there is no spread to hold: the cards stack, and
-   the count property stops applying. */
+   the count property stops applying. The two answers stack with them — two
+   card-wide columns is exactly the width there is no longer room for — and the
+   grid's second row goes on holding each button to its own sentence. */
 @media (max-width: 720px) {
   .offer-row {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .offer-answers {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    grid-template-rows: none;
+    grid-template-columns: minmax(0, var(--offer-card, 240px));
   }
 }
 

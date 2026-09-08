@@ -565,6 +565,28 @@ directly to confirm rulings — user marginalia are rulings.
   vermilion (rec — the earlier decorated colours withdrawn); checked
   against the confirm card's and the city panel's buttons. Batch **U2**
   (no schema).
+  (ddd) **The palace pays a beaker and a note** (the user, 2026-09-08:
+  "lets have the starting palace supply 1 science and 1 culture"; asked
+  "do cities give culture on their own currently" — yes, every town
+  makes `baseCulturePerCity` 1 and half a beaker a citizen; the palace's
+  gift is what the capital makes on top): `rules.cities.palaceScience`
+  1, `palaceCulture` 1, on the one "Palace" line; and **+6 starting
+  authority** (`meters.authority.palaceCapacity` 4 → 6 — "the player can
+  settle 3 coastal or 2 regular cities without needing monuments", which
+  is `foundedCity` 3 / `coastalCity` 2 exactly). Landed by the
+  orchestrator (schema 98; U1 renumbers to 99 at its merge). (eee)
+  **The wanting voice** (the user, 2026-09-08: "have the 'taught by
+  ____' in small red italicized script, similar to how tile yields
+  display. Anywhere the game tells the player they're missing a
+  prerequisite tech/building/condition, please keep the same
+  styling"): one class, `.wanting` — small, vermilion, italic, the copy
+  face — beside `.tile-requires.is-wanting`; the rite's "Taught by"
+  wears it (landed with (ddd)), and a sweep puts it on every other line
+  that says "you are missing X": the buildable rows' "needs …", the
+  buildable preview's `info-card-state is-blocked`, the star chart's
+  blocked state, the bead card's gate, the unit sheet's refusals, the
+  Reliquary's closed door. Batch **U3** (no schema; after U2 lands, since
+  both edit `style.css`).
   As built: the four houses take the **Temple's** column (5, medium — 117⚙,
   and 117🕯 through the bank, `faithPerHammer` 1); a building may now name
   its own bank (`BuildingDef.purchase`, the roster's marker one table over,
