@@ -83,6 +83,11 @@ import { settleRenownWindfall } from '../renown';
 import { type CityYieldKey, type ResourceKind, resourceDef, resourceYield } from '../resourceData';
 import { nextFloat } from '../rng';
 import { connectedCities } from '../roads';
+// A leaf, exactly as `roads.ts` beside it is, and it became one so this line
+// could exist: `routeEndsHere` asks whether a caravan's road still describes the
+// board, `routeYields.ts` imports this file for the lines a card puts on a
+// caravan, and a question two hubs ask lives below both of them (`routes.ts`).
+import { routeIsLive } from '../routes';
 import {
   type City,
   type GameState,
@@ -111,6 +116,8 @@ import {
   type CardEffect,
   type CardFlagRuleId,
   type CardId,
+  type CardLandfallEffect,
+  type CardRouteYieldEffect,
   type CardPayout,
   type CardRule,
   type CardTileYieldEffect,
@@ -1526,6 +1533,26 @@ export function cityScopeAdmits(
       }
       return true;
     }
+    case 'any': {
+      // `all` inverted, and the viewer travels with it for that composite's
+      // reason exactly. An empty list admits nothing — "any of none" — which is
+      // the honest reading and the one that makes a mistyped row silent rather
+      // than universal.
+      for (const inner of scope.of) {
+        if (cityScopeAdmits(state, city, inner, viewerId)) return true;
+      }
+      return false;
+    }
+    case 'routeEndsHere':
+      // **`Unit.trade` is the route** — there is no register — so the question
+      // is asked of the pieces, and only of the ones still paying: a lapsed
+      // route is inert (`routeIsLive`) and a town it once ended at is not a
+      // town caravans come to. Whoever *sent* it is not asked, exactly as
+      // `cityRouteYields` does not ask: a foreign caravan in your market is a
+      // caravan in your market.
+      return state.units.some(
+        (unit) => unit.trade?.to === city.id && routeIsLive(state, unit),
+      );
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1597,8 +1624,14 @@ function scopeNote(scope?: CityScope): string | null {
       return 'newest city';
     case 'follows':
       return 'follows this faith';
+    case 'routeEndsHere':
+      return 'a route ends here';
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
+    case 'any':
+      // The composite's own word, so a label reads "pasture or camp" where the
+      // conjunction reads "pasture + camp".
+      return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' or ');
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -4217,6 +4250,17 @@ export interface WindfallPayout {
    * era and the slotted count reach it exactly as they reach a yield grant.
    */
   renown: { card: CardId; source: string; amount: number }[];
+  /**
+   * **Lumps of faith a rider presses** where the occasion happened — The
+   * Crusade's, pressed wherever its soldiers kill.
+   *
+   * Composed here with every other figure (Entry XVIII.5) and pressed in
+   * `payWindfallGrants` through the presser its caller hands in — see that
+   * function's `press` parameter for why the seam is injected rather than
+   * imported. A payout carrying one on a caller that offered no presser presses
+   * nothing, which is the same silence a grant with no city to receive it keeps.
+   */
+  pressure: { card: CardId; source: string; amount: number; range: number }[];
   /** Every rider that touched this payout, for the announcement. */
   lines: { card: CardId; source: string; note: string }[];
 }
@@ -4300,6 +4344,7 @@ export function windfallPayout(
     healAll: false,
     timed: [],
     renown: [],
+    pressure: [],
     lines: [],
   };
   let percent = 0;
@@ -4386,6 +4431,20 @@ export function windfallPayout(
       if (amount !== 0) {
         payout.renown.push({ card, source, amount });
         payout.lines.push({ card, source, note: `${signed(amount)} renown` });
+      }
+    }
+    if (grant.pressure !== undefined && grant.pressure.amount !== 0) {
+      // Multiplied by the era and by the council exactly as a yield grant is,
+      // for that grant's reason: one printed figure, composed before anything is
+      // banked. The *range* is not multiplied — it is a distance the row names
+      // and not a payout.
+      const amount =
+        grant.pressure.amount *
+        (effect.perAge === true ? era : 1) *
+        (effect.perSlottedOrder === true ? slotted : 1);
+      if (amount !== 0) {
+        payout.pressure.push({ card, source, amount, range: grant.pressure.range });
+        payout.lines.push({ card, source, note: `${signed(amount)} faith pressed` });
       }
     }
     if (grant.unit !== undefined) {
@@ -4566,6 +4625,32 @@ export function cardPeriodicOffers(
 }
 
 /**
+ * **What this empire's law hangs on a piece that has just come ashore** —
+ * Admiralty's three turns, and nothing else today (`CardLandfallEffect`).
+ *
+ * A reader like every other, so the *walk* that lands the piece
+ * (`advanceAlongPath`, `movement.ts`) never touches a `CardEffect`: it asks what
+ * the law gives a landing and stamps whatever comes back. The card is carried
+ * out with each row because the stamp is labelled with it — a `TimedEffect`
+ * names the card that hung it, which is how the ledger says "Admiralty · 2 turns
+ * left" without this file being asked again.
+ *
+ * A row is returned whatever it carries, including nothing at all: the caller
+ * skips an empty bag, which is the honest reading of a row that promises nothing
+ * rather than an empty list written onto a soldier.
+ */
+export function cardLandfallEffects(
+  state: GameState,
+  playerId: number,
+): { card: CardId; source: string; effect: CardLandfallEffect }[] {
+  const list: { card: CardId; source: string; effect: CardLandfallEffect }[] = [];
+  for (const { source, card, effect } of effectsOfKind(state, playerId, 'landfall')) {
+    list.push({ card, source, effect });
+  }
+  return list;
+}
+
+/**
  * Musters the pieces this empire's cards raise **on a cadence** — The Standing
  * Levy's spear, and nothing else today.
  *
@@ -4596,7 +4681,16 @@ export function musterPeriodicUnits(state: GameState): void {
       if (type === null) continue;
       const tile = spawnTileFor(state, seat, type);
       if (!tile) continue;
-      realiseItem(state, seat, { kind: 'unit', id: type, tile }, { free: true });
+      // The row's own mark on the levy it raises — The Levée en Masse's point of
+      // movement, kept for the rest of that piece's life. Handed to `realiseItem`
+      // beside `free` and written by `createUnit`, the one writer of a stamp, so
+      // a mustered conscript is stamped exactly where a completed warrior is.
+      realiseItem(
+        state,
+        seat,
+        { kind: 'unit', id: type, tile },
+        { free: true, stamp: effect.stamp },
+      );
     }
   }
 }
@@ -4765,6 +4859,11 @@ function payPeriodicBoon(
  * stand on — type and the city they arrived in — for a caller whose
  * announcement needs to name them (Camp Followers'). Optional and additive
  * only: every existing caller that does not pass it sees no change at all.
+ *
+ * `press` is the **faith seam, injected** — see the parameter. It keeps this the
+ * one place a windfall is paid, which is the invariant that matters: a second
+ * function that banked half a payout would be a second implementation of what an
+ * occasion hands over.
  */
 export function payWindfallGrants(
   state: GameState,
@@ -4772,6 +4871,19 @@ export function payWindfallGrants(
   payout: WindfallPayout,
   at?: { col: number; row: number },
   realized?: { type: UnitTypeId; cityName: string }[],
+  /**
+   * How a lump of this empire's faith is pressed on the towns around `at` — The
+   * Crusade's (`WindfallGrantSpec.pressure`).
+   *
+   * **Injected rather than imported**, and that is the module boundary doing its
+   * job, exactly as `runPeriodicBoons`' `bankRenown` is: `pressLump` is the one
+   * routine that presses a lump and it lives in `religion.ts`, which reads *this*
+   * file — so the seam is handed in by the caller that holds both (`combat.ts`,
+   * where a kill happens). A payout carrying a lump on a caller that offered no
+   * presser presses nothing, which is the honest answer for a caller that did not
+   * offer one.
+   */
+  press?: (amount: number, range: number, at: { col: number; row: number }) => void,
 ): City[] {
   const touched: City[] = [];
   // **The pieces first**, because a gifted soldier is a thing that arrives
@@ -4832,6 +4944,13 @@ export function payWindfallGrants(
   // a deal is the loudest thing a windfall does: the coin, the pieces and the
   // bills should all be banked before the sheet comes up. One grant a line, so
   // two riders on one occasion read as two reasons in `explainRenown`.
+  // **The lump**, before the renown and after the coin, for the timed bill's
+  // reason: a conversion changes what a town is worth and the books above have
+  // already been written. It needs the hex — a lump is pressed *somewhere* — so a
+  // payout with no place to have happened presses nothing.
+  if (payout.pressure.length > 0 && press && at) {
+    for (const lump of payout.pressure) press(lump.amount, lump.range, at);
+  }
   if (payout.renown.length > 0) {
     settleRenownWindfall(
       state,
@@ -5249,6 +5368,12 @@ export function cardCityRenownShares(state: GameState, city: City): CardCityReno
  * here"* is an ordinary `CityScope` and the hub is a building rather than a
  * field.
  *
+ * The **destination** is handed in beside it (`to`), because one clause asks
+ * about the town at the far end — the Printing House's *"routes ending here"*.
+ * It is still the origin's *empire* whose cards are walked: a route belongs to
+ * the seat that sent it, so a rival's presses never print your books, and the
+ * clause only ever narrows which of your own roads a line rides.
+ *
  * Faith is not in the shape and is not here: nothing pays a caravan in it.
  */
 export interface CardRouteLine {
@@ -5263,16 +5388,28 @@ export interface CardRouteLine {
   perEndpointLuxury: boolean;
 }
 
+/**
+ * One share a card takes of what a road already carries — The Silk Exchange's
+ * doubled beakers. `CardRouteYieldEffect.share`, resolved against this pair.
+ */
+export interface CardRouteShareLine {
+  card: CardId;
+  source: string;
+  yield: CityYieldKey | 'all';
+  percent: number;
+}
+
 export function cardRouteYieldLines(
   state: GameState,
   from: City,
+  to?: City,
 ): CardRouteLine[] {
   const list: CardRouteLine[] = [];
-  for (const { source, card, effect } of effectsOfKind(state, from.ownerId, 'routeYield')) {
-    if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) continue;
+  for (const { source, card, effect } of routeRows(state, from, to)) {
+    if (!routeScopesAdmit(state, effect, from, to)) continue;
     const line: CardRouteLine = {
       card,
-      source: label(source, scopeNote(effect.origin)),
+      source: label(source, routeScopeNote(effect)),
       food: effect.food ?? 0,
       production: effect.production ?? 0,
       gold: effect.gold ?? 0,
@@ -5289,6 +5426,102 @@ export function cardRouteYieldLines(
     list.push(line);
   }
   return list;
+}
+
+/**
+ * Every **share** this empire's cards take of what one road carries — the second
+ * half of `cardRouteYieldLines`, kept apart from it for the reason the fold in
+ * `routeYields.ts` keeps them apart: the flats go *on* the caravan and the share
+ * is taken *of* what is on it, so a reader that mixed the two into one list
+ * would have had to know which entries it had already multiplied.
+ *
+ * The same two scopes gate it, asked the same way, so a row that pays a road and
+ * a row that raises one cannot disagree about which roads they mean.
+ */
+export function cardRouteShareLines(
+  state: GameState,
+  from: City,
+  to?: City,
+): CardRouteShareLine[] {
+  const list: CardRouteShareLine[] = [];
+  for (const { source, card, effect } of routeRows(state, from, to)) {
+    if (effect.share === undefined) continue;
+    if (!routeScopesAdmit(state, effect, from, to)) continue;
+    for (const share of effect.share) {
+      if (share.percent === 0) continue;
+      list.push({
+        card,
+        source: label(source, routeScopeNote(effect)),
+        yield: share.yield,
+        percent: share.percent,
+      });
+    }
+  }
+  return list;
+}
+
+/**
+ * Every `routeYield` row that could speak about this road — the **empire's law**,
+ * plus the **two towns' own shelves**.
+ *
+ * The empire's walk is the rule the whole module keeps: a route belongs to the
+ * seat that sent it, so an Order, a Doctrine, a technology and a one-of-a-kind
+ * house (the Caravanserai) are all read off the origin's owner. What it cannot
+ * answer is a row on an **ordinary building**, whose effects reach
+ * `liveCityEffects` and never the realm's — and "routes ending here pay science
+ * and culture" is exactly such a row (the Printing House). A town's own shelves
+ * are read where the town is in hand, which is `cityContext`'s argument for a
+ * granary's tile lines at the scale of a road.
+ *
+ * Both ends, and the destination **only when the road is domestic**: a domestic
+ * route's whole figure is banked by the town it ends at, so its presses are
+ * paying their own empire's books; a foreign host's shelves are not the sender's
+ * to harvest, which is the sentence the international fold already makes about
+ * every other building rate. One-of-a-kind rows are skipped by
+ * `cityBuildingEffects` itself, so nothing is counted twice.
+ */
+function routeRows(
+  state: GameState,
+  from: City,
+  to?: City,
+): { source: string; card: CardId; effect: CardRouteYieldEffect }[] {
+  const rows = [...effectsOfKind(state, from.ownerId, 'routeYield')];
+  const shelves = [
+    ...cityBuildingEffects(state, from),
+    ...(to && to.ownerId === from.ownerId ? cityBuildingEffects(state, to) : []),
+  ];
+  for (const entry of pickKind(shelves, 'routeYield')) rows.push(entry);
+  return rows;
+}
+
+/**
+ * Do this row's two ends admit this road? One question, both readers.
+ *
+ * A `destination` clause with **no destination in hand** admits nothing: the
+ * caller with no far end is asking a question about the origin alone (a preview
+ * of a road nobody has drawn yet), and a line that answered yes there would be a
+ * line the preview promised and the caravan never paid.
+ */
+function routeScopesAdmit(
+  state: GameState,
+  effect: { origin?: CityScope; destination?: CityScope },
+  from: City,
+  to?: City,
+): boolean {
+  if (effect.origin !== undefined && !cityScopeAdmits(state, from, effect.origin)) return false;
+  if (effect.destination !== undefined) {
+    if (!to) return false;
+    if (!cityScopeAdmits(state, to, effect.destination)) return false;
+  }
+  return true;
+}
+
+/** What a route row's ends say about where a line landed, for the label. */
+function routeScopeNote(effect: { origin?: CityScope; destination?: CityScope }): string | null {
+  const notes = [scopeNote(effect.origin), scopeNote(effect.destination)].filter(
+    (note): note is string => note !== null,
+  );
+  return notes.length === 0 ? null : notes.join(' + ');
 }
 
 /**

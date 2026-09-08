@@ -748,6 +748,22 @@ export interface UnitStamp {
   hp?: number;
   /** Strength points added on both sides, as one labelled line in the fold. */
   strength?: number;
+  /**
+   * Movement points added to the roster's allowance, for this piece and forever
+   * — The Levée en Masse's conscripts, who march faster than the men they
+   * replaced.
+   *
+   * `hp`'s sibling in every respect and read the same way: through the one
+   * evaluator of an allowance (`fullMovement`, `units.ts`), so the four readers
+   * of a step's price and the refill at the turn change all quote it by
+   * construction, and nothing anywhere writes a movement number onto a unit.
+   *
+   * It is deliberately **not** in the piece fingerprint (`signUnits`): a stamp
+   * changes nothing that is drawn — a faster warrior and an ordinary one are the
+   * same sculpt on the same hex — which is the fingerprint's own test, answered
+   * no for the same reason `hp` and `strength` are answered no.
+   */
+  movement?: number;
 }
 
 /** The shape either reading needs: a type, and whatever was stamped on it. */
@@ -786,6 +802,19 @@ export function unitMaxHp(unit: StampedUnit): number {
  */
 export function unitStampStrength(unit: StampedUnit): number {
   return unit.stamp?.strength ?? 0;
+}
+
+/**
+ * What a piece's stamp adds to its **allowance** — `unitStampStrength`'s third
+ * sibling, and the one reading of `UnitStamp.movement`.
+ *
+ * Answerable without the state exactly as the other two are, which is what lets
+ * `fullMovement`'s no-state reading (a preview, a pathfinding probe) stay honest
+ * about a piece it was handed: the stamp travels with the unit and is not a fact
+ * about the empire's law today.
+ */
+export function unitStampMovement(unit: StampedUnit): number {
+  return unit.stamp?.movement ?? 0;
 }
 
 /**

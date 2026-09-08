@@ -228,6 +228,9 @@
         "units": [
           "chariot",
           "chariotArcher"
+        ],
+        "buildings": [
+          "stable"
         ]
       },
       "flavor": "Nobody expected the circle to be useful."
@@ -530,13 +533,12 @@
       "unlocks": {
         "buildings": [
           "mint",
-          "bazaar"
+          "bazaar",
+          "bourse"
         ]
       },
       "flavor": "A note that is worth something because everyone agrees it is.",
-      "deferred": [
-        "The Bourse, which would turn a city’s coin into culture every turn, waits on a building the whole realm holds one of: a house that spends gold rather than earning it is read from the empire’s books, and an ordinary building is only ever read by its own town."
-      ]
+      "note": "Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse."
     },
     "artisanry": {
       "name": "Guildhalls",

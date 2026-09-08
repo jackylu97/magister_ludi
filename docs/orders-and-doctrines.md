@@ -139,6 +139,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Pax Magistri | 🌱 | +3 happiness in every city. +5 science and +5 culture in every city of 12 or more population. |
 | The Encyclopaedia | ✶ | +1 science for each building in a city. Science buildings cost −50% production. |
 | The Triumphal Way | ⚒ | Capturing a city grants +5 happiness in every city for 10 turns. |
+| The Levée en Masse | ⚒ | Every 10 turns, a free melee unit musters in your capital. It moves one further for the rest of the game. |
 
 ### Parked (tier 0 — offered in no pool)
 
@@ -309,7 +310,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| The King's Road | M | ⚒ | ◆ | S | Your units gain +1 movement inside your own territory. |
+| The King's Road | M | ⚒ | ◆ | S | A unit that stops in one of your cities gets its movement back. |
 | Field Hospitals | M | ⚒ | ◆ | S | Units resting inside your own territory mend completely each turn. |
 | Decisive Blows | M | ⚒ | ○ | S | +5 combat strength when attacking a unit below half strength. |
 | The Marshals' Purse | M | ⚒ | ○ | S | Military units cost 25% less to buy. |
@@ -328,18 +329,19 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Assay | E | 🐫 | ○ | P | Every 20 turns, gain science equal to the gold your empire makes in a turn. |
 | The Broad Acres | E | 🌱 | ○ | P | Every farm pays double what it makes. |
 
-### Government V pool (17)
+### Government V pool (18)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
 | Forced March | M | ⚒ | ○ | S | Military units gain +1 movement outside your own territory. |
-| Admiralty | M | 🐫 | ○ | S | Embarked units gain +1 movement · +5 defence in every coastal city. |
+| Admiralty | M | 🐫 | ○ | S | Your units come ashore from the water without spending movement, and gain +5 combat strength for 3 turns when they land. |
 | The Salon | E | 🏛 | ● | P | Every great person’s work pays double what it makes. |
-| The Silk Exchange | E | 🐫 | ◆ | P | +2 gold for each trade route you run. |
+| The Silk Exchange | E | 🐫 | ◆ | P | +1 culture on every trade route you run, and your trade routes pay double science and culture. |
 | Printing Houses | E | ✶ | ◆ | P | +3 culture for each Library you hold · +10% science in every city. |
 | The Inquisition | W | 🕯 | ○ | P | +8 faith and +8 culture in every city with a Temple. |
 | Universal Suffrage | W | 🌱 | ◆ | P | +1 happiness for each 3 citizens in your empire · happiness tiers +10 percentage points. |
 | The Magister's Court | W | 🏛 | ○ | S | +30% production toward the Magnum Opus. |
+| Manufactories | E | ⚒ | ◆ | P | +30% production in every city with a manufactory inside its borders. |
 | The Compact of Chairs | W | 🏛 | ○ | E | The Order in your first military, economic and wildcard slot each pay twice. |
 | The Laureates’ Rule | W | 🏛 | ◆ | E | Your Orders that give culture give an additional culture. |
 | The Great Clock | W | 🏛 | ○ | E | Your Orders that pay every so many turns come round 3 turns sooner and pay half again. |
@@ -374,15 +376,15 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Groundskeepers** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Master's Presence** — A city is beside a work when one stands on its own hex or on one of the six touching it. Two works never pay twice.
 - **The Far Charts** — How far a caravan may be sent is settled by the two cities it joins and by the trading posts they have built. This law does not reach that rule.
-- **The King's Road** — The roads themselves are struck: a road step costs the same third of a point for everybody, and nothing bends that price. † your roads carry your units further than anybody else’s
+- **The King's Road** — The realm's towns are stages on a march: a column that reaches one is fed, remounted and out of the gate the same day. Its allowance is filled back up, never added to, so walking in and out again banks nothing.
 - **Field Hospitals** — A piece mends only where it rests: one that moved or struck this turn heals nothing, here or anywhere.
 - **Decisive Blows** — A fight is decided by points on one ledger rather than by a share of the blow, so what was written as extra damage is printed as a strength line.
 - **Harbourmasters** — A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.
 - **The Consistory** — A faith building is any building of yours that pays faith at all, and the doubling is taken last — after everything else that raised it.
 - **Forced March** — The march is quicker and costs nothing: nothing remembers how far a piece walked this turn.
-- **Admiralty** — A strength line asks about the hex a fight is on and never about the piece standing on it, so the defence at sea is not built. † +5 combat strength for embarked units
+- **Admiralty** — A landing is the fleet's business, and the men who make one are still the fleet's for a few days afterwards. Wading *out* still ends the turn; only coming ashore is free.
 - **The Salon** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
-- **The Silk Exchange** — A caravan’s line is read from the town that sent it, and nothing yet asks how big the town at the far end has grown. † a song for every second citizen of the city the caravan is sent to
+- **The Silk Exchange** — The share is taken of everything the road already carries, its own culture included, and before anything that raises the whole caravan.
 - **The Magister's Court** — The court doubles nothing yet: the fifth age has no great people in it, and no law can yet make a legacy count twice. † the legacies of great people of the fifth age count twice
 - **The Great Enquiry** — Dealt only once the last age is reached, and earned only there.
 - **The Last Laurels** — Dealt only once the last age is reached, and earned only there.

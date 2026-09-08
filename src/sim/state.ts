@@ -448,8 +448,35 @@ import {
  * A v93 log does not replay: an empire under any of the three banks different
  * writ, different strength and different beakers from the turn it adopts, and a
  * raid under Tyranny leaves its column somewhere the old law could not reach.
+ *
+ * v95: **the deferred rows that needed a shape** (batch E4b,
+ * `docs/audit/deferred-rows.md`; v93 is batch B1's and v94 batch B1b's, landed beside this one).
+ * E4a built every ruling that was a data row on a shape that already existed and
+ * left the ten that were not. They are built here, and what each needed is
+ * written on its own row: The Levée en Masse musters a levy on the calendar and
+ * **stamps it** with a point of movement for life (`UnitStamp.movement`, read in
+ * `fullMovement`, handed to `createUnit` by the muster); The King's Road fills a
+ * piece's allowance when it comes to rest in one of your towns, and Admiralty
+ * lands its men **free** and gives them three turns of strength — two rules read
+ * at the two movement seams that already exist (`stepCost` prices the pair of
+ * hexes, `advanceAlongPath` hangs the blessing, and neither is a second price).
+ * Five buildings join the table: the **Stable** at The Wheel (which is what The
+ * Horse-Tribes was waiting for), the **Printing House** un-retired to take the
+ * beakers the roads bring it, the **Bourse** at Paper Money — a `oncePerEmpire`
+ * house whose coin becomes culture, which is how a `rateConversion` reaches the
+ * empire's own books — and the **Bank** and the **Cistern** reworked: a share of
+ * the coin where a caravan ends (`routeEndsHere`), and farms watered by the town
+ * that works them (`BuildingDef.irrigates`, read where the renewal reads the
+ * river). The Silk Exchange doubles what its roads carry in beakers and song
+ * (`CardRouteYieldEffect.share`), Manufactories pays the towns that hold one,
+ * and **The Crusade** presses a lump of faith wherever its soldiers kill —
+ * `bankPressure`'s third caller.
+ *
+ * A v92 log replays identically only in a game where none of those rows was ever
+ * held. Where one was, a piece walks further, a levy is stamped, a caravan pays
+ * more or a citizen turns — and every basket priced against it moves.
  */
-export const SCHEMA_VERSION = 94;
+export const SCHEMA_VERSION = 95;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -2832,6 +2859,19 @@ export function createUnit(
   col: number,
   row: number,
   person?: GreatPersonId,
+  /**
+   * A stamp the **caller** is handing this one piece, on top of whatever the
+   * empire's law stamps on everything — The Levée en Masse's point of movement
+   * for the levy it musters (`CardPeriodicMusterEffect.stamp`).
+   *
+   * Passed *in* rather than written on afterwards, and that is the whole reason
+   * it is a parameter: `Unit.stamp` has exactly one writer, and the health a
+   * piece is born at is read off the stamp two lines below — a warrior stamped
+   * after the literal would be a veteran who starts wounded. Summed with the
+   * law's rather than replacing it, so a conscript raised under The Muster Roll
+   * carries both marks.
+   */
+  gift?: UnitStamp,
 ): Unit {
   const def = unitDef(type);
   // **The stamp is decided before the piece exists**, because the maximum it is
@@ -2845,6 +2885,15 @@ export function createUnit(
   // answered. A creation on open ground has no town and a scoped stamp is silent
   // there; see `CardUnitStampEffect.scope`.
   const stamp = cardUnitStamp(state, ownerId, { col, row });
+  // The caller's own mark, folded into the law's before anything is read off it:
+  // one field, one writer, and a piece that is a veteran twice over carries the
+  // sum. Voice by voice, because a mark on a levy and a mark on the whole army
+  // are two reasons for the same point.
+  if (gift !== undefined) {
+    if (gift.hp !== undefined) stamp.hp = (stamp.hp ?? 0) + gift.hp;
+    if (gift.strength !== undefined) stamp.strength = (stamp.strength ?? 0) + gift.strength;
+    if (gift.movement !== undefined) stamp.movement = (stamp.movement ?? 0) + gift.movement;
+  }
   const stamped = Object.keys(stamp).length > 0;
   const unit: Unit = {
     id: allocateEntityId(state),
@@ -2853,7 +2902,14 @@ export function createUnit(
     col,
     row,
     hp: stamped ? unitMaxHp({ type, stamp }) : def.maxHp,
-    movesLeft: def.movement,
+    // "Full movement" is the roster's plus the piece's own stamp, for the
+    // health's reason exactly (`unitMaxHp`): a conscript minted at the sheet's
+    // two points and stamped to three a line later would be born a third of a
+    // turn tired, and `isRested` — which compares the purse against
+    // `fullMovement` — would refuse to heal it on the turn it mustered. The
+    // empire's *law* is deliberately not read here: a card's movement bonus has
+    // always landed at the next refill, and a stamp is not a card.
+    movesLeft: def.movement + (stamp.movement ?? 0),
     hasAttacked: false,
   };
   // Written after the literal and only when the type declares charges, so a

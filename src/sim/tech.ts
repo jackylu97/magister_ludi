@@ -287,6 +287,7 @@ import {
   resourceDef,
   resourceIsVisibleTo,
 } from './resourceData';
+import { improvementDef } from './improvementData';
 import { RULES } from './rulesData';
 import type { CityScope } from './statecraftData';
 import {
@@ -555,6 +556,17 @@ function siteWords(site: CityScope): string {
       return `a ${buildingDef(site.building).name}`;
     case 'all':
       return site.of.map((inner) => siteWords(inner)).join(' and ');
+    case 'any':
+      // The refusal reads "the Stable wants a pasture or a camp; Lagash has
+      // none", which is both halves of the rule in the order a player checks
+      // them — the composite's own word, exactly as `all`'s is.
+      return site.of.map((inner) => siteWords(inner)).join(' or ');
+    case 'hasImprovement':
+      // Named as the *place* like every arm here: what the town wants is the
+      // work standing somewhere inside its borders.
+      return `${indefinite(improvementDef(site.improvement).name)} ${improvementDef(
+        site.improvement,
+      ).name.toLowerCase()} inside its borders`;
     default:
       // Every other scope is a fact about the *empire's* arrangement rather than
       // about the ground — a capital, a conquest, a frontier — and no row asks

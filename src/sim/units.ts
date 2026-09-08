@@ -57,7 +57,13 @@
 import { getTileAt } from './map';
 import type { GameState, Unit } from './state';
 import { cardUnitStat } from './statecraft';
-import { type UnitCategory, isCivilian, isCombatant, unitDef } from './unitData';
+import {
+  type UnitCategory,
+  isCivilian,
+  isCombatant,
+  unitDef,
+  unitStampMovement,
+} from './unitData';
 import { RULES } from './rulesData';
 import { isWaterTerrain } from './terrainData';
 
@@ -224,10 +230,16 @@ function hasEscortRoom(
  * is still askable by a caller with no world in hand (a preview, a test). Every
  * caller inside the simulation passes it, because an allowance that ignored the
  * empire's law would be an allowance the board disagrees with.
+ *
+ * **The piece's own stamp is inside the stateless half** (`UnitStamp.movement`,
+ * The Levée en Masse), exactly as `unitMaxHp` folds the stamped hit points in:
+ * a stamp is a fact the piece carries rather than a reading of the empire's law,
+ * so a preview handed a conscript and the simulation marching one agree about
+ * what it moves.
  */
 export function fullMovement(unit: Unit, state?: GameState): number {
-  const base = unitDef(unit.type).movement;
-  if (!state) return base;
+  const base = unitDef(unit.type).movement + unitStampMovement(unit);
+  if (!state) return Math.max(1, base);
   return Math.max(1, base + cardUnitStat(state, unit, 'movement'));
 }
 

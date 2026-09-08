@@ -54,12 +54,19 @@ import {
   type Cell,
   canStopOn,
   canTransit,
+  isShoreStep,
   moveProfile,
   snapMovement,
   stepCost,
   zocField,
 } from './pathfind';
 import type { GameState, Unit } from './state';
+// The one reading of what an empire's law hangs on a piece that wades ashore.
+// A **function-level edge**, the documented kind: nothing here is called at load
+// time, and the alternative — this file deciding what a landing is worth — would
+// be a second evaluator of a card.
+import { cardLandfallEffects, timedEffectIsLive } from './statecraft';
+import { isWaterTerrain } from './terrainData';
 
 
 export interface AdvanceResult {
@@ -142,6 +149,16 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // changes, one place that can forget — and per *step* rather than at the end
     // of the walk, because a ruin is found by riding over it and not only by
     // stopping on it. See `arrival.ts`.
+    // **The men off the boats** — Admiralty. A landing is a fact about the *pair*
+    // of hexes, which is the one thing `arriveOnTile` cannot see: that seam is
+    // handed the hex a piece came to rest on, and this is the only place in the
+    // walk that still holds the hex it came *from*. It is the same reading
+    // `stepCost` prices the crossing by (`isShoreStep`), narrowed to the wet-to-
+    // dry direction, so the free landing and the blessing that rides it can
+    // never disagree about which step was a landing.
+    if (isShoreStep(from, tile, mover) && isWaterTerrain(from.terrain)) {
+      hangLandfall(state, unit);
+    }
     const found = arriveOnTile(state, unit, tile);
     if (!isEmptyArrival(found)) arrivals.push(found);
     steps += 1;
@@ -158,4 +175,35 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   }
 
   return { steps, cleared, arrivals };
+}
+
+/**
+ * Hangs whatever this empire's law gives a piece that has just come ashore, for
+ * the turns the row names (`CardLandfallEffect`).
+ *
+ * An ordinary `TimedEffect` on `Unit.timed` — absolute expiry, no countdown, one
+ * entry per effect (`stampRite`'s shape, because every reader walks a flat list)
+ * — so a strength line hung by a landing joins `planCombat`'s ledger exactly as
+ * a rite's does and is swept by the same broom. The array is created lazily, so
+ * a piece nothing ever blessed serialises as it always did.
+ *
+ * A card whose landfall carries no effects hangs nothing, which is the honest
+ * reading of a row that promises nothing rather than an empty list on the piece.
+ */
+function hangLandfall(state: GameState, unit: Unit): void {
+  for (const { card, effect } of cardLandfallEffects(state, unit.ownerId)) {
+    if (effect.effects.length === 0) continue;
+    const expiresTurn = state.turn + Math.max(1, Math.floor(effect.turns));
+    // **A second landing refreshes the blessing rather than stacking it**, which
+    // is what "+5 for three turns" says and the reading that cannot be farmed:
+    // the alternative is a piece hopping in and out of the surf to carry two
+    // copies of one card. The card's own live entries are dropped first, so the
+    // piece is always carrying exactly one of them — dead paper is left to the
+    // broom (`pruneTimedEffects`), which is the only thing allowed to tidy.
+    const kept = (unit.timed ?? []).filter(
+      (entry) => entry.card !== card || !timedEffectIsLive(state, entry),
+    );
+    for (const hung of effect.effects) kept.push({ card, effect: hung, expiresTurn });
+    unit.timed = kept;
+  }
 }

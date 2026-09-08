@@ -364,12 +364,38 @@ describe('what each charter building does', () => {
     expect(withOne).toBe(without + 1);
   });
 
-  it('Cistern — ships the farms half struck through, not bent', () => {
-    // The one deferral of the batch, and it is on the row in the player's own
-    // words: what waters a *town* and what waters a *hex* are two questions, and
-    // only the town's is answered.
-    expect(buildingDef('cistern').deferred?.length).toBe(1);
-    expect(buildingDef('cistern').deferred![0]).toMatch(/irrigation|water/i);
+  it('Cistern — waters the farms in its fields, and only the town that holds it', () => {
+    // **The deferral is built** (batch E4b, the user's *"what makes this
+    // difficult? I think this mechanic is interesting"*): the working city
+    // vouches for its farms' water, so Irrigation's renewal pays a farm off the
+    // river when the town that works it holds a Cistern.
+    //
+    // Read where the renewal reads the river and **nowhere else**: `Tile.
+    // freshwater` is untouched, so the hex itself is as dry as it ever was and
+    // a rival town working the same ground gets nothing.
+    const state = bench();
+    const city = capitalOf(state);
+    const owner = playerById(state, city.ownerId)!;
+    if (!owner.techsResearched.includes('irrigation')) owner.techsResearched.push('irrigation');
+    // A farm on flat ground with no river anywhere near it.
+    const field = at(state, 5, 5);
+    field.terrain = 'grassland';
+    field.freshwater = false;
+    field.improvement = 'farm';
+    bumpRevision(state);
+    refreshCityDerived(state, city);
+    const dry = foldTileLines(explainTileYield(field, cityContext(state, city))).food;
+    raise(state, city, 'cistern');
+    const watered = foldTileLines(explainTileYield(field, cityContext(state, city))).food;
+    expect(watered).toBe(dry + 1);
+    // The ground is unchanged: the omniscient reading — no town, no context —
+    // still sees a farm with no water.
+    expect(field.freshwater).toBe(false);
+    expect(foldTileLines(explainTileYield(field)).food).toBe(
+      foldTileLines(explainTileYield(field, undefined)).food,
+    );
+    // And nothing is left promised: the row's own words say what it does.
+    expect(buildingDef('cistern').deferred).toBeUndefined();
   });
 
   it('Assembly Hall — one helping per wildcard Order in the spread', () => {

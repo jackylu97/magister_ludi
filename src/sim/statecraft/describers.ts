@@ -176,6 +176,45 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>): string {
 }
 
 /**
+ * **Which roads a route row is about** — "every trade route you send", "every
+ * trade route that ends in a city with a Printing House".
+ *
+ * One phrase for both clauses of the shape (the flat bag and the share) and for
+ * both ends of a road, so a row that narrows its origin and a row that narrows
+ * its destination read as the same kind of sentence. A row that names both is
+ * two conditions on one caravan and says so.
+ */
+function routeWhose(effect: { origin?: CityScope; destination?: CityScope }): string {
+  const parts: string[] = [];
+  if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  if (effect.destination !== undefined) {
+    // **One town, not every town**: a caravan ends in exactly one place, so the
+    // scope's own "every city with a Printing House" reads as a promise about
+    // the realm rather than about the road. The article is swapped where the
+    // phrase carries one; a scope that names a single town ("your capital")
+    // already reads right and is left alone.
+    const where = cityScopeWords(effect.destination);
+    parts.push(`that ends in ${where.startsWith('every ') ? `a ${where.slice(6)}` : where}`);
+  }
+  if (parts.length === 0) return 'every trade route you send';
+  return `every trade route ${parts.join(' and ')}`;
+}
+
+/**
+ * A short list in a sentence: "one, two and three".
+ *
+ * `bagWords`' comma one grade up, and its own helper because a *clause* read
+ * aloud takes the conjunction where a ledger's label does not — "+1 movement,
+ * +1 combat strength" is a label and "moves one further and hits one harder" is
+ * a sentence. Two callers, both printing what a card hangs on a piece.
+ */
+function listWords(parts: readonly string[]): string {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0]!;
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+}
+
+/**
  * A loose list of effects, in words — `describeCard` for a caller that holds
  * effects rather than an id.
  *
@@ -381,7 +420,12 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
     // the scope a building cannot have: it stands in one town, so the town *is*
     // the scope.
     const bonus = def.productionBonus;
-    out.push({ text: `${signed(bonus.percent)}% production toward ${bonus.category}s` });
+    // Which silhouette, where the row narrows to one — the Stable's horses. The
+    // card arm's own `filterWords`, so a building and a card that say the same
+    // thing print the same words; `modelClass` is the older spelling of the same
+    // question and is read through the same predicate.
+    const narrow = bonus.class !== undefined ? filterWords(bonus.class) : `${bonus.category}s`;
+    out.push({ text: `${signed(bonus.percent)}% production toward ${narrow}` });
   }
   // What the card vocabulary already says about this row — its effects, the two
   // meter fields and anything finishing it hands over. Live clauses here; the
@@ -443,6 +487,13 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
   }
   if (def.waters === true) {
     out.push({ text: 'the city counts as standing beside fresh water' });
+  }
+  if (def.irrigates === true) {
+    // `waters`' sibling and a **second** sentence, because they are the two
+    // questions the two markers answer: one is about the town's own thirst and
+    // this is about the fields it works. Said as what a farmer would say — the
+    // water is carried out to the farms — rather than as the renewal it un-gates.
+    out.push({ text: 'the farms this city works are watered as if they stood beside a river' });
   }
   if (def.faithPurchases !== undefined) {
     out.push({
@@ -796,6 +847,17 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       if (grant?.unit === 'randomMilitary') {
         out.push({ text: `${occasion} grants a random military unit${per}` });
       }
+      if (grant?.pressure !== undefined && grant.pressure.amount !== 0) {
+        // **The plain words** (hard rule 7): "pressure" is the ledger's word for
+        // it, and what a player sees is their faith spreading to the towns near
+        // where it happened. The range is said in hexes because it is the half a
+        // player plans around — how close the fighting has to be.
+        out.push({
+          text:
+            `${occasion} spreads your religion to every city within ` +
+            `${grant.pressure.range} hexes${per}`,
+        });
+      }
       if (effect.percent !== undefined) {
         out.push({ text: `${occasion} pays ${signed(effect.percent)}%${per}` });
       }
@@ -989,7 +1051,36 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         effect.unit === 'bestMelee'
           ? 'the best melee unit you can build'
           : `${indefinite(unitDef(effect.unit).name)} ${ref('unit', effect.unit, unitDef(effect.unit).name)}`;
-      out.push({ text: `every ${effect.every} turns, ${what} musters in your capital` });
+      // The mark on the levy, where the row makes one — "and moves one further,
+      // for good". Said as a trailing clause because it is a fact about the
+      // *piece* and not about the cadence, and only the marks a row actually
+      // carries are printed.
+      const marks: string[] = [];
+      const stamp = effect.stamp;
+      if (stamp?.movement !== undefined) marks.push(`${signed(stamp.movement)} movement`);
+      if (stamp?.strength !== undefined) marks.push(`${signed(stamp.strength)} combat strength`);
+      if (stamp?.hp !== undefined) marks.push(`${signed(stamp.hp)} health`);
+      const kept =
+        marks.length === 0 ? '' : `, and keeps ${listWords(marks)} for the rest of the game`;
+      out.push({
+        text: `every ${effect.every} turns, ${what} musters in your capital${kept}`,
+      });
+      return;
+    }
+    case 'landfall': {
+      // What it hangs is said in the **hung effects' own words**, so a landing
+      // that gives strength and a card that gives strength read the same and a
+      // second shape added to the bag prints itself here. The duration trails,
+      // because "for three turns" is the half a player has to plan around.
+      const inner = describeEffects(effect.effects)
+        .filter((clause) => clause.deferred !== true)
+        .map((clause) => clause.text);
+      if (inner.length === 0) return;
+      out.push({
+        text: `a unit of yours that comes ashore from the water gains ${listWords(inner)} for ${
+          effect.turns
+        } turns`,
+      });
       return;
     }
     case 'unlocksBuilding': {
@@ -1188,11 +1279,19 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
         science: effect.science,
         culture: effect.culture,
       });
+      // **The share, said in its own clause** — The Silk Exchange's doubled
+      // beakers and songs. It is a sentence about what the road *already*
+      // carries, so it cannot be folded into the flat's phrase; a row that says
+      // both prints both, in the order the fold applies them.
+      for (const share of effect.share ?? []) {
+        if (share.percent === 0) continue;
+        const voice = share.yield === 'all' ? 'everything' : share.yield;
+        out.push({
+          text: `${routeWhose(effect)} pays ${signed(share.percent)}% more ${voice}`,
+        });
+      }
       if (!words) return;
-      const whose =
-        effect.origin === undefined
-          ? 'every trade route you send'
-          : `every trade route sent from ${cityScopeWords(effect.origin)}`;
+      const whose = routeWhose(effect);
       // **What the row is paid *for***, when it is paid more than once. The
       // Golden Roads pays its bag per good on the road, so the sentence has to
       // say so or a player reads a flat coin where a caravan of six is earning
@@ -1654,12 +1753,48 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'all':
       for (const inner of scope.of) scopePhrase(inner, into);
       return;
+    case 'any':
+      // A disjunction is **one qualifier**, built from the inner phrases and
+      // joined with "or": "with a Pasture or a Camp". Composing it here rather
+      // than merging the halves into the surrounding phrase is the whole
+      // difference between the two composites — `all` merges because every one
+      // of its clauses is true of the town, and this one must not, because only
+      // one of them is.
+      into.qualifiers.push(anyPhrase(scope.of));
+      return;
+    case 'routeEndsHere':
+      // The plain words: what the town has is caravans arriving, which is the
+      // sentence the trade screen itself uses.
+      into.qualifiers.push('a trade route ends at');
+      return;
     default: {
       const unhandled: never = test;
       void unhandled;
       return;
     }
   }
+}
+
+/**
+ * The `any` composite as one qualifier — "with a Pasture or a Camp".
+ *
+ * Each branch is phrased on its own and then joined, because a disjunction that
+ * merged its halves into the sentence around it would read as a conjunction:
+ * "every city with a Pasture with a Camp" is exactly the sentence `all` means
+ * and exactly the one this does not. An adjective branch ("coastal") is carried
+ * through as the word itself, so "coastal or beside a mountain" still reads.
+ */
+function anyPhrase(scopes: readonly CityScope[]): string {
+  const parts: string[] = [];
+  for (const scope of scopes) {
+    const inner: ScopePhrase = { adjectives: [], qualifiers: [] };
+    scopePhrase(scope, inner);
+    const text = [...inner.adjectives, ...inner.qualifiers].join(' ');
+    if (text !== '') parts.push(text);
+  }
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0]!;
+  return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
 }
 
 /**
@@ -2417,6 +2552,11 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // withholds is the point, not the price of admission.
   freePillage: 'pillaging costs your units no movement',
   noFortify: 'your units cannot fortify',
+  // The King's Road and Admiralty. Both say what a *player* does with them —
+  // where the movement comes back, and which half of the crossing is free —
+  // because "a shore step is free" is the name of a price and not a rule.
+  cityRestoresMovement: 'a unit that stops in one of your cities gets its movement back',
+  freeLanding: 'your units come ashore from the water without spending movement',
   // The zone of control, and the only rule of it there is. `ZocRuleId`.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
 };

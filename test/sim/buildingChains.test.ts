@@ -185,7 +185,7 @@ describe('a chained building wants its parent standing in the same town', () => 
 // --- the withdrawn rows ------------------------------------------------------
 
 describe('a withdrawn building keeps its row and leaves the game', () => {
-  it('is the ten rows the cut withdrew', () => {
+  it('is the nine rows the cut withdrew', () => {
     expect([...RETIRED].sort()).toEqual(
       [
         'armoury',
@@ -195,7 +195,10 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
         'funeralGames',
         'mint',
         'monastery',
-        'printingHouse',
+        // **The Printing House came back** in batch E4b: what it was waiting on
+        // was a route that could pay the town it *ends* at, and that is one
+        // field on `routeYield` now (`destination`). Movable Type opens it, as
+        // it always did.
         'reliquary',
         'steleOfLaws',
       ].sort(),
@@ -235,9 +238,9 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
       const rows = techDef(tech).unlocks.buildings ?? [];
       return rows.length > 0 && rows.every((id) => buildingDef(id).retired === true);
     });
-    expect([...orphaned].sort()).toEqual(
-      ['machinery', 'movableType', 'theExaminationHall'].sort(),
-    );
+    // Movable Type left the list in batch E4b: the Printing House it opens is
+    // live again, so the node hands over something buildable once more.
+    expect([...orphaned].sort()).toEqual(['machinery', 'theExaminationHall'].sort());
   });
 });
 

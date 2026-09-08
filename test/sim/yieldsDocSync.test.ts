@@ -271,6 +271,7 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'metaRule',
     'meterRule',
     'pantheonSlots',
+    'landfall',
     'periodicMuster',
     'periodicOffer',
     'periodShorten',

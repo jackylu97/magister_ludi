@@ -34,7 +34,8 @@ import {
   explainCity,
   foldCity,
 } from '../../src/sim/yields/town';
-import { inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
+import { applyCombat, inquisitorAuraLines, previewCombat } from '../../src/sim/combat';
+import { fullMovement } from '../../src/sim/units';
 import { createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
@@ -1831,6 +1832,19 @@ describe('the pressure ledger', () => {
     expect(body('purgePressure')).toContain('writeBank(');
     expect(source.match(/\bunconvertCitizen\(/g)?.length).toBe(1);
     expect(body('purgePressure')).toContain('unconvertCitizen(');
+
+    // **And the lump has exactly two callers**, in two files: the prophet's
+    // proclamation here, and The Crusade's kill at the battle seam
+    // (`payBattleRiders`, `combat.ts` — the file that holds both the fight and
+    // the faith, which is why the presser is handed *down* to the one place a
+    // windfall is paid rather than imported by it). A third way to press a lump
+    // joins this pin or it is a second implementation of what a lump does.
+    expect(source.match(/\bpressLump\(/g)?.length).toBe(2);
+    expect(body('proclaimAt')).toContain('pressLump(');
+    const fight = simSource('combat.ts');
+    expect(fight.match(/\bpressLump\(/g)?.length).toBe(1);
+    const riders = fight.slice(fight.indexOf('function payBattleRiders('));
+    expect(riders.slice(0, riders.indexOf('\n}\n'))).toContain('pressLump(');
   });
 
   it('lets a wonder press for the empire that holds the stones', () => {
@@ -2593,7 +2607,9 @@ describe('the ratified religion rows', () => {
     const crusading = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
     expect(crusading.ok).toBe(true);
     if (!crusading.ok) return;
-    expect(crusading.attackerStrength - before).toBe(5);
+    // Two since the rework of batch E4b (the user's own words): the belief
+    // bought the spread with the difference.
+    expect(crusading.attackerStrength - before).toBe(2);
 
     // **The banner, not the border.** The same fight over a town that has since
     // stopped following pays nothing at all.
@@ -2602,6 +2618,58 @@ describe('the ratified religion rows', () => {
     expect(lapsed.ok).toBe(true);
     if (!lapsed.ok) return;
     expect(lapsed.attackerStrength).toBe(before);
+  });
+
+  it('The Crusade presses a lump of faith wherever its soldiers kill', () => {
+    // **The spread half** (batch E4b, the user's own words: *killing units
+    // spreads your faith*). It is a `windfallRider` on the kill, whose grant is a
+    // lump — `bankPressure`'s third caller, and a lump rather than a tide because
+    // the tide is what a holy site radiates every turn from where it stands and
+    // this happened once, in a place, because somebody did it.
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    religion.enhancer = ['theCrusade'];
+    bumpRevision(g.state);
+    // A foreign town near the field, keeping nobody's faith.
+    const theirs = town(g.state, 1, 9, 6);
+    theirs.followers = {};
+    theirs.pressureBank = {};
+
+    // A kill on the doorstep. The blow is struck through the one evaluator, so
+    // what is on trial is the seam and not a hand-called routine.
+    const target = getTileAt(g.state.map, theirs.col, theirs.row + 1)!;
+    const victim = createUnit(g.state, 1, 'warrior', target.col, target.row);
+    victim.hp = 1;
+    const mine = createUnit(g.state, 0, 'warrior', theirs.col, theirs.row + 2);
+    mine.movesLeft = fullMovement(mine, g.state);
+    applyCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(g.state.units.some((u) => u.id === victim.id)).toBe(false);
+
+    // The lump landed on the town within reach: either it banked pressure or it
+    // turned a citizen outright, which is what `pressLump` does in one pass.
+    const banked = (theirs.pressureBank?.[religion.id] ?? 0) + (theirs.followers[religion.id] ?? 0);
+    expect(banked).toBeGreaterThan(0);
+  });
+
+  it('presses nothing for an empire that has founded no religion', () => {
+    // The honest silence: the lump is *this empire's own faith*, read through
+    // `heldReligions`, so a seat with no holy city of its own presses nothing
+    // and the kill is an ordinary kill.
+    const g = game();
+    town(g.state, 0, 6, 6);
+    const theirs = town(g.state, 1, 9, 6);
+    theirs.followers = {};
+    theirs.pressureBank = {};
+    const before = JSON.stringify({ f: theirs.followers, p: theirs.pressureBank });
+
+    const target = getTileAt(g.state.map, theirs.col, theirs.row + 1)!;
+    const victim = createUnit(g.state, 1, 'warrior', target.col, target.row);
+    victim.hp = 1;
+    const mine = createUnit(g.state, 0, 'warrior', theirs.col, theirs.row + 2);
+    mine.movesLeft = fullMovement(mine, g.state);
+    applyCombat(g.state, mine.id, { col: target.col, row: target.row });
+    expect(JSON.stringify({ f: theirs.followers, p: theirs.pressureBank })).toBe(before);
   });
 
   it("The Crusade's line stops at your own towns, which is what foreign means", () => {
@@ -2666,8 +2734,12 @@ describe('the ratified religion rows', () => {
 
   it('prints the new rows in the words the sheets ratified', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    // Re-cut in batch E4b (the user's own words: *killing units spreads your
+    // faith · +2 combat in foreign cities following your religion*): the
+    // strength half bought the spread with the difference.
     expect(said('theCrusade')).toEqual([
-      '+5 combat strength inside foreign cities that follow your religion',
+      '+2 combat strength inside foreign cities that follow your religion',
+      'killing a unit spreads your religion to every city within 3 hexes',
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
     // converted in a turn or two anyway), and the faith clause cut with it, so

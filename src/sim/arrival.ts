@@ -7,8 +7,10 @@
  * camp is burnt out, the civilians standing on the hex change hands with the
  * ground (Entry XX.H — the rule that hands a stolen laborer back when its camp
  * is stormed), a **laden caravan on that hex is plundered** rather than taken,
- * and a **road is laid** under a caravan of one's own that has come to rest here
- * (the trade pass). All are consequences of the foot landing, and all have
+ * a **road is laid** under a caravan of one's own that has come to rest here
+ * (the trade pass), and — under The King's Road — a piece that comes to rest in
+ * one of its **own towns has its allowance filled back up** (batch E4b). All are
+ * consequences of the foot landing, and all have
  * exactly two ways to happen — an ordinary march (`advanceAlongPath` in
  * `movement.ts`, which is itself the one implementation of a walk, whether the
  * order was fresh or resumed by `resetMovement`) and the advance a melee attacker
@@ -40,7 +42,7 @@
  */
 
 import { type CampBounty, hasCampAt, removeCampAt, settleCampBounty } from './camps';
-import { capitalCityOf, tileOwnerCityId } from './cities';
+import { capitalCityOf, cityAt, tileOwnerCityId } from './cities';
 import { revokeLegacies } from './greatPeople';
 import { claimDiscoveryAt } from './discoveries';
 import type { Tile } from './map';
@@ -58,7 +60,7 @@ import { layRoadUnder } from './roads';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
 import { isCivilian, isCombatant, trades, unitDef } from './unitData';
-import { unitsOnTile } from './units';
+import { fullMovement, unitsOnTile } from './units';
 
 /** A civilian that changed hands because somebody took the ground it stood on. */
 export interface CapturedCivilian {
@@ -268,6 +270,30 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
       fromWild: playerById(state, fromOwnerId)?.barbarian === true,
     });
     captureUnit(state, other, unit.ownerId);
+  }
+
+  /**
+   * **The King's Road** — a piece that comes to rest in one of its own towns has
+   * its allowance filled back up (`cardBehaviorRule`'s `cityRestoresMovement`).
+   *
+   * The fifth thing that happens because a piece *arrived*, and it is here for
+   * the four above it: this is the one moment a position comes to rest, so a
+   * rule about walking into a place has exactly one seam to be written at, and
+   * the ordinary march and the melee winner's advance both reach it.
+   *
+   * **It cannot loop.** The allowance is *set* to `fullMovement` and never added
+   * to, so nothing accumulates: a piece that arrives and leaves has left, and
+   * leaving costs a step it must pay out of the very allowance the arrival gave
+   * it. The refill belongs to the arrival rather than to the town — standing in
+   * the city does nothing at all — and the turn still ends when the turn ends.
+   *
+   * The town must be **this piece's own owner's**, asked of the hex the piece is
+   * standing on (`cityAt`) rather than of the borders: the clause is about the
+   * gate, not the province.
+   */
+  if (cardBehaviorRule(state, unit.ownerId, 'cityRestoresMovement')) {
+    const here = cityAt(state, tile.col, tile.row);
+    if (here && here.ownerId === unit.ownerId) unit.movesLeft = fullMovement(unit, state);
   }
 
   report.discovery = claimDiscoveryAt(state, unit, tile);

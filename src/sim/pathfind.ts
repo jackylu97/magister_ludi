@@ -94,7 +94,12 @@
 import { cityAt, tileOwnerField } from './cities';
 import { type GameMap, type Tile, getTile, getTileAt, mapNeighbors, tileHex, tileIndex, wrappedDistance } from './map';
 import { RULES } from './rulesData';
-import { cardBorderZoc, cardRulePercent, foldCardRulePercent } from './statecraft';
+import {
+  cardBehaviorRule,
+  cardBorderZoc,
+  cardRulePercent,
+  foldCardRulePercent,
+} from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
 import { atWar } from './wars';
 // Open borders, read at the same seam and for the same reason `atWar` is: one
@@ -205,6 +210,11 @@ export const cheapestStepCost = Math.min(
  * search, off a profile that was hoisted once per sweep.
  */
 export function cheapestStepCostFor(mover?: MoveProfile): number {
+  // **Admiralty's landing is free**, so an empire holding it has an edge of zero
+  // and an estimate built on anything above it would overestimate exactly the
+  // step the card was taken for. The road's argument one clause over, and the
+  // same floor: what a search may assume is the cheapest edge *this* mover has.
+  if (mover?.freeLanding === true) return 0;
   return Math.min(cheapestStepCost, mover?.roadStep ?? Number.POSITIVE_INFINITY);
 }
 
@@ -286,7 +296,17 @@ export function isShoreStep(from: Tile, to: Tile, mover?: MoveProfile): boolean 
  * forgives the balance and floors at zero — so a price equal to a full refill
  * empties any purse that could still start the step, whatever is left in it.
  */
-export function shoreStepCost(mover: MoveProfile): number {
+export function shoreStepCost(mover: MoveProfile, from?: Tile, to?: Tile): number {
+  // **Admiralty lands the men for nothing** (`MoveProfile.freeLanding`). Only
+  // the landing: the pair of hexes is what says which way the piece is going, so
+  // the two ends are handed in and a caller that asks the bare question ("what
+  // does a crossing cost this mover") gets the crossing's own price. Wading
+  // *out* still ends the turn, which is the half of the rule that keeps a sea a
+  // sea — and it is priced here rather than at any of the four readers, so the
+  // highlight, the estimate and the march cannot disagree about a free landing.
+  if (mover.freeLanding === true && from && to) {
+    if (isWaterTerrain(from.terrain) && !isWaterTerrain(to.terrain)) return 0;
+  }
   const rule = RULES.movement.shoreCrossing;
   return snapMovement(rule === 'all' ? mover.full : rule);
 }
@@ -366,6 +386,22 @@ export interface MoveProfile {
    * clause and stays there.
    */
   full: number;
+  /**
+   * True when this piece's empire **lands for free** — Admiralty's
+   * (`cardBehaviorRule`'s `freeLanding`).
+   *
+   * The sixth fact about the mover a step's price depends on, and it is a fact
+   * about the **empire** exactly as `embarks` and `roadStep` are: the answer is
+   * a walk of this seat's whole card table, which is not a lookup to repeat tens
+   * of thousands of times inside one search. Hoisted here, so the highlight, the
+   * estimate and the march quote the free landing by construction — a price
+   * computed anywhere but `stepCost` is a price two of the four readers would
+   * disagree about.
+   *
+   * It is the **landing** alone: a step from water onto land. Embarking still
+   * costs the whole allowance, which is what keeps a sea a sea.
+   */
+  freeLanding?: boolean;
   /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
@@ -586,6 +622,14 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
   const roadStep = roadStepCostWith(
     owner === undefined ? 0 : foldCardRulePercent(cardRulePercent(state, owner.id, 'roadStepCost')),
   );
+  // Admiralty's landing, asked once for the sweep beside the road's price and
+  // for its reason: a fact about the empire, never about the water. Written only
+  // when it is true, so a profile from a world with no such card in it is the
+  // object it always was — `closed`'s bargain one field over.
+  const freeLanding =
+    owner !== undefined && cardBehaviorRule(state, owner.id, 'freeLanding')
+      ? { freeLanding: true as const }
+      : {};
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -596,6 +640,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
       ocean,
       full,
       roadStep,
+      ...freeLanding,
       ports: navalPorts(state),
       ...(closed === undefined ? {} : { closed }),
     };
@@ -621,6 +666,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     ocean,
     full,
     roadStep,
+    ...freeLanding,
     ...(closed === undefined ? {} : { closed }),
   };
 }
@@ -1118,7 +1164,7 @@ export function stepCost(
   // paving on water, so the two can only ever meet on the dry half of the step.)
   // Like the road, it *replaces* the ground's price rather than discounting it.
   let base = isRoadStep(from, to) ? (mover?.roadStep ?? roadStepCost) : ground;
-  if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover);
+  if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover, from, to);
   const zoc = zocBinds(map, field, from, to);
   // Snapped for `snapMovement`'s reason: the base may be a road's third and the
   // toll is a whole point, and a sum of the two has to compare equal to itself

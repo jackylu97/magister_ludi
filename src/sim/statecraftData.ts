@@ -62,7 +62,7 @@ import type { TerrainId } from './terrainData';
 // `CardId`, and a *value* import either way would turn a type cycle into a
 // runtime one. See `CardId`'s tenth class.
 import type { AbilityId, TechAge, TechId } from './techData';
-import type { ModelClass, UnitCategory, UnitTypeId } from './unitData';
+import type { ModelClass, UnitCategory, UnitStamp, UnitTypeId } from './unitData';
 
 // --- ids --------------------------------------------------------------------
 
@@ -544,7 +544,40 @@ export type CityScope =
    * record. An empire holding nothing admits nothing.
    */
   | { test: 'newest' }
-  | { test: 'all'; of: CityScope[] };
+  /**
+   * A **trade route ends here** — the Bank's coin, which is only worth counting
+   * in a town the caravans actually come to.
+   *
+   * The one scope whose subject is a *caravan* rather than the town, and it is
+   * a scope rather than a count for the reason `garrisoned` is: the question is
+   * "is there one", not "how many", and a row that wanted the number says
+   * `countScaled`. Read off the pieces — `Unit.trade` **is** the route (there is
+   * no register), and a route naming this town as its destination is a route
+   * ending here whoever sent it, which is the same reading `cityRouteYields`
+   * banks a foreign caravan's coin by.
+   *
+   * A route that has lapsed pays nothing and admits nothing: the reading is
+   * `routeIsLive`'s, so the scope stops admitting on the turn the caravan's own
+   * expiry passes, exactly as the yield it is scoped over does.
+   */
+  | { test: 'routeEndsHere' }
+  | { test: 'all'; of: CityScope[] }
+  /**
+   * **Any one of these** holds — the Stable's pasture *or* camp.
+   *
+   * The `all` composite's mirror, and it exists for one reason the union's own
+   * docblock had not met: a **site** (`BuildingDef.requiresSite`) is a single
+   * scope, so a row whose ground may be either of two things has nowhere to put
+   * the second line. "A disjunction is two lines on a card and reads better as
+   * two" is still true of a card's *clauses* — and a site is not a clause, it is
+   * one question asked once in `buildError`.
+   *
+   * It stays as narrow as that argument: `all` and `any`, and still no `not`,
+   * because a scope system that can say anything is a query language nobody can
+   * print. An empty list admits nothing, which is the honest reading of "any of
+   * none" and the same answer `all` of none would give inverted.
+   */
+  | { test: 'any'; of: CityScope[] };
 
 /**
  * A fact about the empire that gates a whole clause. `conditionRule`'s subject.
@@ -1787,7 +1820,33 @@ export type BehaviorRuleId =
    * already fortified when the card was slotted: a trench is broken by moving or
    * attacking (`breakFortify`) and nothing here reaches back to fill one in.
    */
-  | 'noFortify';
+  | 'noFortify'
+  /**
+   * A piece of this empire that **comes to rest in one of its own cities** has
+   * its allowance filled back up — The King's Road, whose whole point is that
+   * the realm's towns are stages on a march.
+   *
+   * Read at the one seam a piece comes to rest (`arriveOnTile`), beside the
+   * ruins and the camps, because that is what the clause is: a consequence of
+   * the foot landing rather than a verb anybody issues. The allowance is **set**
+   * to `fullMovement` and never added to, which is what stops it compounding —
+   * a piece cannot bank a second turn's marching by walking in and out, because
+   * leaving costs a step and arriving only ever refills to the same figure. A
+   * piece that arrives and leaves has left; the refill is the arrival's, not the
+   * town's, so standing in the city all turn is worth nothing at all.
+   */
+  | 'cityRestoresMovement'
+  /**
+   * **Wading ashore costs this empire nothing** — Admiralty's landing.
+   *
+   * The shore crossing is a fact about a *pair* of hexes and is therefore priced
+   * in `stepCost` and nowhere else (the movement trap): the rule rides the
+   * mover's own `MoveProfile`, resolved once per sweep like `embarks`, so the
+   * highlight, the estimate and the march all quote the free landing by
+   * construction. It is the **landing** half alone — a step from water onto
+   * land. Embarking still ends the turn, which is what keeps a sea a sea.
+   */
+  | 'freeLanding';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -2139,6 +2198,25 @@ export interface WindfallGrantSpec {
    * not pay by itself. A rite stamps its own because a rite *is* the occasion.
    */
   timed?: { turns: number; effects: CardEffect[] };
+  /**
+   * **A lump of this empire's faith pressed on the towns around the occasion** —
+   * The Crusade's, whose soldiers preach with what they have to hand.
+   *
+   * A *lump* and not a tide, and the difference is the whole of why it is here:
+   * the tide (`spreadReligion`) is what a holy site does every turn from where
+   * it stands, and this is a thing that happened once, in a place, because
+   * somebody did it. That is exactly a windfall — an occasion handing over
+   * something the occasion did not pay by itself — so it is a grant beside the
+   * coin and the renown rather than a rule of its own, and it is banked through
+   * `pressLump`, which is the one routine that presses a lump and converts on
+   * the spot. `bankPressure`'s third caller, and the pin says so.
+   *
+   * `range` is in hexes off the occasion's own tile, so a kill in a rival's
+   * heartland preaches to the rival's towns — the whole point of a crusade.
+   * An empire that has founded no religion presses nothing, which is the same
+   * silence a grant with no city to receive it keeps.
+   */
+  pressure?: { amount: number; range: number };
 }
 
 // --- the vocabulary ---------------------------------------------------------
@@ -2973,6 +3051,60 @@ export interface CardPeriodicMusterEffect {
   unit: UnitTypeId | 'bestMelee';
   /** Where it appears. The seat of government, and nowhere else today. */
   where: 'capital';
+  /**
+   * What the levy is **born carrying** — The Levée en Masse's point of movement,
+   * kept for the rest of that piece's life.
+   *
+   * `Unit.stamp`'s ordinary shape (`UnitStamp`), handed to `createUnit` at the
+   * birth exactly as `cardUnitStamp`'s is and merged with it there, so a
+   * mustered piece raised under The Muster Roll is a veteran twice over and one
+   * routine writes the field. It is on **this** effect rather than said with a
+   * `unitStamp` clause beside it because a `unitStamp` reaches *every* piece the
+   * empire raises, and what the card promises is a mark on the levy it musters
+   * — the conscripts, not the whole army.
+   *
+   * A stamp is a **moment** (see `CardUnitStampEffect`): the piece keeps it when
+   * the Doctrine is gone, which is what "for the rest of the game" says and what
+   * a bonus read live could not.
+   */
+  stamp?: UnitStamp;
+}
+
+/**
+ * **What an empire's law hangs on a piece the moment it wades ashore** —
+ * Admiralty's three turns of fighting strength for the men off the boats.
+ *
+ * The vocabulary's first *moment in a piece's life* that is not its birth, and
+ * it is a shape of its own for exactly the reason `unitStamp` is one: a stamp is
+ * written at a birth by `createUnit` and a landing is not a birth, so a card
+ * that wanted the second could not say it with the first. It is not a
+ * `windfallRider` either — a windfall pays an empire and this hangs on one
+ * soldier — and not a `unitStat`, which is a *standing* reading of the board and
+ * would give the bonus to a column that has been ashore for a decade.
+ *
+ * **What it hangs is an ordinary `TimedEffect`**, on `Unit.timed`, with an
+ * absolute expiry (`state.turn + turns`) and no countdown anywhere: the effects
+ * travel untouched and are read by whichever evaluator already reads them, so a
+ * strength line hung by a landing joins `planCombat`'s list exactly as a rite's
+ * does. That is the whole of why the shape carries a bag of effects rather than
+ * a number — the day a card wants three turns of sight off the boats, it is a
+ * data row.
+ *
+ * **Where it is written** is the disembark seam in `advanceAlongPath`
+ * (`movement.ts`), and that is the one place it can be: a landing is a fact
+ * about a *pair* of hexes (`isShoreStep`, the same reading `stepCost` prices the
+ * crossing by), and `arriveOnTile` — the seam for what was standing on the hex —
+ * is handed the destination alone. One hang per landing, on the piece that
+ * landed, and a **second landing refreshes rather than stacks**: the piece
+ * carries exactly one copy of the row, which is what "for three turns" says and
+ * the only reading a soldier cannot farm by hopping in and out of the surf.
+ */
+export interface CardLandfallEffect {
+  kind: 'landfall';
+  /** How many turns the blessing runs, from the turn the piece came ashore. */
+  turns: number;
+  /** What is hung on it, read by the ordinary evaluators. */
+  effects: CardEffect[];
 }
 
 /**
@@ -3649,6 +3781,42 @@ export interface CardRouteYieldEffect {
   /** Which origin towns' caravans carry it. Absent means all of them. */
   origin?: CityScope;
   /**
+   * Which **destination** towns' caravans carry it — the Printing House's
+   * beakers, paid for the roads that end at its presses.
+   *
+   * `origin`'s twin, asked of the town the caravan is walking *to*. The comment
+   * on `perEndpointLuxury` below said there was deliberately no such field
+   * because "a scope answers about one town, and this question is about a pair"
+   * — which is true of *that* clause and not of this one: "routes ending here"
+   * is a question about exactly one town, and the fold in `routeYields.ts` holds
+   * both ends, so it can be asked where the origin's is.
+   *
+   * Which **books** the line lands in does not move: a domestic route's whole
+   * figure is banked by its destination and a route ending abroad carries its
+   * lines in the sender's fold, so a card of this empire's still never pays a
+   * foreign host. The row is read off the **origin's** empire either way
+   * (`cardRouteYieldLines`), which is the module's own rule — a route belongs to
+   * the seat that sent it — so a rival's presses do not print your books.
+   */
+  destination?: CityScope;
+  /**
+   * A **share of what the road already carries**, voice by voice — The Silk
+   * Exchange's doubled beakers and songs.
+   *
+   * The flats above put yields *on* the caravan; this multiplies what is on it,
+   * which is the ordering the whole fold is built around ("put yields on a
+   * thing, then multiply the thing"). It is on this shape rather than an
+   * `effectAmplifier` for one reason: that target (`routeYields`) is the whole
+   * caravan and cannot say *which voice*, and a card that meant to double the
+   * beakers would have doubled the grain with them.
+   *
+   * A list, because a row that raises two voices is one clause on a card and
+   * reads as one line in the fold. Every share on one route sums per voice
+   * before a single multiplication, and each voice is floored once — Entry
+   * XVII's rule at the scale of a road.
+   */
+  share?: CardRouteShare[];
+  /**
    * **Paid once for every luxury held at either end of the road** — The Golden
    * Roads' *"+1💰 from each luxury resource in the origin or destination city"*
    * (`docs/history/tech-gifts.md` §7).
@@ -3671,6 +3839,19 @@ export interface CardRouteYieldEffect {
    * Folded in `routeYields.ts`, which is the only module holding both cities.
    */
   perEndpointLuxury?: true;
+}
+
+/**
+ * One voice of a route raised by a share. See `CardRouteYieldEffect.share`.
+ *
+ * `CardYieldAmplifierEffect`'s pair of fields exactly (a voice and a percent),
+ * because it is the same sentence one ledger over — and `'all'` means every
+ * voice a caravan pays, which is the five of them: faith is not among them, for
+ * `RouteYieldLine`'s reason (nothing pays a caravan in it).
+ */
+export interface CardRouteShare {
+  yield: CityYieldKey | 'all';
+  percent: number;
 }
 
 /**
@@ -3807,6 +3988,8 @@ export type CardEffect =
   | CardTileYieldEffect
   | CardPeriodicOfferEffect
   | CardPeriodicMusterEffect
+  // E4b's one new shape: a moment in a piece's life that is not its birth.
+  | CardLandfallEffect
   | CardUnlocksBuildingEffect
   | CardPantheonSlotsEffect
   | CardPurchaseRiderEffect

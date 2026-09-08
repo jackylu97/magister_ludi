@@ -261,6 +261,7 @@ import {
   cardCombatLines,
   cardCombatPercent,
   cardUnitStat,
+  heldReligions,
   payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
@@ -280,6 +281,13 @@ import {
   unitById,
 } from './state';
 import { atWar } from './wars';
+// **A function-level edge to `religion.ts`**, the documented kind (CLAUDE.md's
+// cycle trap): `pressLump` is the one routine that presses a lump of faith, it
+// is called from inside `payBattleRiders` and never at load time, and the
+// alternative — a second implementation of what a lump does to a town — is
+// exactly what the two-caller pin exists to prevent. `religion.ts` does not
+// import this file.
+import { pressLump } from './religion';
 import { buildError, settleResearchWindfall } from './tech';
 import { techsGrant } from './techData';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
@@ -2361,11 +2369,36 @@ function payBattleRiders(
     payout.grants.length === 0 &&
     payout.units.length === 0 &&
     !payout.healAll &&
-    payout.timed.length === 0
+    payout.timed.length === 0 &&
+    // The Crusade's lump is a payout like the rest of them, so it joins the one
+    // early return rather than being paid past it.
+    payout.pressure.length === 0
   ) {
     return;
   }
-  const touched = payWindfallGrants(state, player, payout, { col: at.col, row: at.row });
+  // **The Crusade's lump**, and the one thing this seam hands the payer that the
+  // payer cannot import: `pressLump` is the one routine that presses a lump of
+  // faith and converts on the spot, it lives in `religion.ts`, and `religion.ts`
+  // reads the card evaluator — so the seam travels *down* as a closure from the
+  // file that holds both. A **lump and not a tide** (CLAUDE.md's pin, now three
+  // callers): the tide is what a holy site radiates every turn from where it
+  // stands, and this happened once, in a place, because somebody killed
+  // somebody. The faith pressed is this empire's own — the religions it founded
+  // (`heldReligions`, the holy city's, so a conquered shrine moves the sentence
+  // with it) — and an empire that founded none presses nothing.
+  const press = (amount: number, range: number, where: { col: number; row: number }): void => {
+    for (const religion of heldReligions(state, playerId)) {
+      pressLump(state, religion, where, range, amount);
+    }
+  };
+  const touched = payWindfallGrants(
+    state,
+    player,
+    payout,
+    { col: at.col, row: at.row },
+    undefined,
+    press,
+  );
   for (const city of touched) settleProductionWindfall(state, city);
   settleCultureWindfall(state, player);
   settleResearchWindfall(state, player);

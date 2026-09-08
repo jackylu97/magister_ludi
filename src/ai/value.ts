@@ -1183,6 +1183,18 @@ export function scoreEffects(
   return explainEffects(effects, ctx, card).total;
 }
 
+/**
+ * How many voices a caravan pays at all — `RouteYieldLine`'s five (faith is not
+ * among them, because nothing pays a caravan in it).
+ *
+ * The **shape of the ledger** and not a tuning knob, which is why it is here and
+ * not in `data/ai.json`: a designer who added a sixth voice to a route would be
+ * changing what a route *is*, and this number would move with the interface it
+ * counts. It is used once, as the stand-in for "how much of a road is beakers"
+ * when a card raises one voice of it.
+ */
+const ROUTE_VOICES = 5;
+
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
   const nominal = nominalRate(ctx);
   // Switching on an **aliased discriminant** still narrows `effect` inside each
@@ -1331,7 +1343,26 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // the pair between them holds.
       const each = valueOfYields(bagOf(effect), ctx);
       const goods = effect.perEndpointLuxury === true ? countProbe(ctx, 'uniqueLuxuries') : 1;
-      return each * goods * countProbe(ctx, 'tradeRoutes');
+      const routes = countProbe(ctx, 'tradeRoutes');
+      // **The share on top of the flats** — The Silk Exchange's doubled beakers.
+      // Priced exactly as the amplifier that raises a whole caravan is
+      // (`scoreAmplifier`'s `routeYields` arm): the best road this empire has
+      // open, times the roads it is running, times the share — because a
+      // percentage of a route is a percentage of what that route already pays
+      // and there is no second reading of what a route pays.
+      //
+      // A row naming **one voice** is worth a share of one voice, and the stand-
+      // in for "how much of a caravan is beakers" is a flat fraction rather than
+      // a walk of the road's own fold: the fold needs a pair of towns and this
+      // appraisal has a card. Named, and deliberately an under-reading — the
+      // alternative was pricing a doubled voice as a doubled caravan.
+      const best = ctx.routes.open?.pay.total ?? ctx.routes.next?.pay.total ?? 0;
+      let share = 0;
+      for (const row of effect.share ?? []) {
+        const part = row.yield === 'all' ? 1 : 1 / ROUTE_VOICES;
+        share += best * routes * (row.percent / 100) * part;
+      }
+      return each * goods * routes + share;
     }
     case 'offerRider':
       return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount;
@@ -1496,6 +1527,23 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // so a wonder's spear and a card's spear are worth the same thing.
       const every = Math.max(1, Math.floor(effect.every));
       return (ctx.ai.weights.military * ctx.ai.score.combatScale) / every;
+    }
+    case 'landfall': {
+      // **What the men off the boats are worth** — Admiralty's three turns.
+      // Priced as what it hangs, over the turns it hangs it for: the effects are
+      // ordinary card effects, so they are appraised by *this* function
+      // recursively rather than by a second reading of a combat line, and the
+      // duration is the honest discount — a blessing that runs three turns on
+      // one piece is not a line on every piece for ever.
+      //
+      // It is **not** scaled by how often this empire lands: a bot that could
+      // count its own future amphibious wars would be a bot predicting its own
+      // plan, which is `beadPerOccasion`'s stated refusal one shape over. What
+      // is honest is one landing's worth, and the naval weight is what says how
+      // much this seat cares about the sea at all.
+      let hung = 0;
+      for (const inner of effect.effects) hung += scoreEffect(inner, ctx);
+      return (hung * Math.max(1, Math.floor(effect.turns))) / ctx.ai.score.nominalCount;
     }
     case 'unitStamp': {
       // Strength on every piece raised from here on reads exactly as `unitStat`
@@ -1893,6 +1941,15 @@ function windfallGrantWorth(
   if (grant.timed !== undefined) {
     const turns = Math.max(0, grant.timed.turns);
     worth += scoreEffects(grant.timed.effects, ctx) * (turns / Math.max(1, ctx.ai.score.lumpTurns));
+  }
+  if (grant.pressure !== undefined) {
+    // **A lump of faith pressed on somebody else's towns** — The Crusade's.
+    // Named rather than priced, and the reason is the appraisal's own boundary:
+    // what a converted citizen is worth is a fact about *whose* town it is and
+    // what beliefs are hung on it, which is a walk of another empire's ledger
+    // this file does not take. `unknownEffect` is the floor this module uses
+    // wherever a clause is real and unpriceable, and the debt is written here.
+    worth += ctx.ai.score.unknownEffect;
   }
   return worth;
 }

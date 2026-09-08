@@ -143,7 +143,8 @@ be renamed — it would change every seeded outcome. No further rename passes.
   its highlight lies. Zone of control is a toll (`zocExtraCost`), never a lock;
   `zocField` hoisted once per sweep. `snapMovement` keeps numerators integral.
 - **`arriveOnTile`** (`arrival.ts`) is the one "came to rest here" seam (ruins
-  claimed, camps burnt, civilians captured). Exactly two movers call it —
+  claimed, camps burnt, civilians captured, a friendly city refilling a march's
+  allowance under The King's Road). Exactly two movers call it —
   `advanceAlongPath` and the melee winner's advance — plus `startRoute`'s
   teleport; any new way to move a unit calls it. Reports out via
   `CommandResult.arrivals`.
@@ -266,8 +267,11 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `retired: true` rows leave every pool, keep the row for saves. Governments:
   tiers ride `tierLadder`; pools via `poolOfGovernment` (current + previous only).
 - **Religion**: `bankPressure` has exactly two callers — `spreadReligion` (the
-  tide) and `pressLump` (a prophet's lump; a proclamation is an instant lump,
-  no pulse, no broom) — pinned by source. A city's religion is derived (majority),
+  tide) and `pressLump` (a lump; a proclamation is an instant lump, no pulse, no
+  broom) — pinned by source. `pressLump` itself has exactly two: `proclaimAt`
+  and `payBattleRiders` (The Crusade's kill, batch E4b — the presser is a
+  closure `combat.ts` hands *down* to `payWindfallGrants`, since the evaluator
+  may not import `religion.ts`). A city's religion is derived (majority),
   never stored. Follower beliefs apply city-locally to whoever owns the city;
   founder-side pay follows the stones (`religionFounder` = holder of the holy
   site). A follower row paying an empire fails the build. Beliefs/rites are rows
@@ -307,7 +311,9 @@ be renamed — it would change every seeded outcome. No further rename passes.
   refuses a duplicate project row. Known edge: a project-headed town never
   re-decides (no blocker) — the bot works around it; human nudge flagged.
 - **Buildings' non-yield facts** read in one place (`buildingEffects.ts`):
-  `happiness`, `cityStat`, `cityHp` fold through it as lists.
+  `happiness`, `cityStat`, `cityHp` fold through it as lists; `waters` (the
+  town's thirst) and `irrigates` (its *fields'* water, read only where the farm's
+  renewal reads the river) are the two markers beside them.
 - **Production costs are one standard** (`docs/production-costs.md`, batch P1):
   `sizeHammers[size] × columnRate ^ (column − 1)`, floored once, then the
   once-per-empire line and a unit's escalation ladder. A row carries a **size**
@@ -341,7 +347,8 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `export * from` a module that imports you back comes out **empty** under the
   dev server's module runner — re-export by name, which compiles to a getter. Typecheck does not see one; the
   symptom is "X is not a function" everywhere. A helper two modules need lives
-  in a leaf (`roads.ts`, `unitData.ts`, `routeYields.ts`, `empireGold.ts`);
+  in a leaf (`roads.ts`, `unitData.ts`, `routes.ts` — the pair resolution a
+  card's `routeEndsHere` scope asks — `routeYields.ts`, `empireGold.ts`);
   `capitalCityOf`/`tileOwnerField` live in `state.ts`/`cities.ts` for this
   reason. Function-level cycles (types/constants only at top level) are the
   documented exception — `statecraft/evaluator.ts`, `renown.ts` note theirs, and

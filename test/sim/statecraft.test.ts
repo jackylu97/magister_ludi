@@ -24,6 +24,7 @@ import {
   unitProductionCost,
 } from '../../src/sim/cities';
 import {
+  cityContext,
   explainTileYield,
   foldTile,
   foldTileLines,
@@ -195,6 +196,11 @@ import {
 } from '../../src/sim/renown';
 import { unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
+// Batch E4b: two of the rows are facts about movement, and both are read where
+// the walk reads them — the price in `stepCost`, the blessing in the walk.
+import { moveProfile, stepCost, zocField } from '../../src/sim/pathfind';
+import { advanceAlongPath } from '../../src/sim/movement';
+import { cardCombatLines } from '../../src/sim/statecraft';
 import { sightOf } from '../../src/sim/visibility';
 
 // --- harness ----------------------------------------------------------------
@@ -417,6 +423,10 @@ describe('the card table', () => {
       // The Muses' Call is the row, `hasAbility` is the reader, and the pin that
       // there is only one reader is in this file's B1 block at the foot.
       'grantsAbility',
+      // Batch E4b's one new shape: what an empire's law hangs on a piece the
+      // moment it wades ashore (Admiralty). A moment in a piece's life that is
+      // not its birth, which is the one thing `unitStamp` could not say.
+      'landfall',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -1320,7 +1330,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(94);
+    expect(SCHEMA_VERSION).toBe(95);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7077,6 +7087,12 @@ describe('the engine shapes', () => {
     'ledgerKeepers · routeYield',
     'theSynod · buildingYieldPercent',
     'theConsistory · buildingYieldPercent',
+    // The Silk Exchange since batch E4b: a flat culture on every road it runs,
+    // and a **share** of what those roads carry in beakers and song — two rows
+    // of one shape, which is what a card that puts something on a caravan and
+    // then multiplies the caravan reads as.
+    'theSilkExchange · routeYield',
+    'theSilkExchange · routeYield',
     'theMusterRolls · slotPosition',
     'theHarvestHome · cardYieldAmplifier',
     'theReevesBell · periodic',
@@ -7162,6 +7178,9 @@ describe('the engine shapes', () => {
       'waterClockOfSuSong · empireYield',
       // Batch D — two of the five uniques.
       'caravanserai · routeYield',
+      // The Printing House since batch E4b: back in the draw, and paying the
+      // roads that **end** at its presses (`CardRouteYieldEffect.destination`).
+      'printingHouse · routeYield',
       'heroicEpic · cityRenownPercent',
       // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
       'theLongCount · periodic',
@@ -7268,7 +7287,11 @@ describe('the order pass of 2026-09-06', () => {
     'theCongregation', 'theDryDocks', 'theFinishersArt', 'thePrizeGrounds',
     'theSaltingHouses', 'theWinteringGrounds',
     'theFactorHouses',
-    'manufactories', 'titheBarns',
+    // **Manufactories came back** in batch E4b: the user's rework made it a
+    // share of a town's production rather than two points on a great person's
+    // work ("cities with manufactories gain +30% production"), which is a row
+    // worth a chair, so it is live again and out of this list.
+    'titheBarns',
   ] as OrderId[];
 
   it('folds every row it touched, in a chair, without moving the state', () => {
@@ -8151,5 +8174,332 @@ describe('the Governments marks of 2026-09-08', () => {
       // A ref never escapes the describer's brackets into ratified prose.
       expect(def.text, id).not.toContain('[[');
     }
+  });
+});
+
+/**
+ * **The deferred rows of batch E4b** — the ten the user's marginalia sent back
+ * for a *shape* rather than for a data row (`docs/audit/deferred-rows.md`, the
+ * orchestrator's answers). E4a built everything that fitted the vocabulary as it
+ * stood; these are the ones that widened it.
+ *
+ * One behavioural test per row, carried to the ledger it lands in — this file's
+ * own discipline, and the only kind of test that catches a shape declared and
+ * never read. The two that are facts about *movement* (The King's Road's refill,
+ * Admiralty's free landing) are tested here rather than in `movement.test.ts`
+ * because what is on trial is the card and not the walk; the price itself is
+ * `stepCost`'s and is read in the one place a step is priced.
+ */
+describe('the deferred rows of batch E4b', () => {
+  it('The Levée en Masse musters on the calendar and stamps the levy for life', () => {
+    const g = game(4201);
+    const seat = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('theLeveeEnMasse');
+    bumpRevision(g.state);
+    const before = g.state.units.filter((u) => u.ownerId === 0).length;
+
+    // The cadence is the **world's** clock and absolute: a turn that is not a
+    // tenth musters nobody.
+    g.state.turn = 9;
+    musterPeriodicUnits(g.state);
+    expect(g.state.units.filter((u) => u.ownerId === 0).length).toBe(before);
+
+    g.state.turn = 10;
+    musterPeriodicUnits(g.state);
+    const raised = g.state.units.filter((u) => u.ownerId === 0);
+    expect(raised.length).toBe(before + 1);
+    const levy = raised[raised.length - 1]!;
+    // On no payroll: a gift is a gift, exactly as The Standing Levy's spear is.
+    expect(levy.freeUpkeep).toBe(true);
+    void seat;
+
+    // **The stamp**, written by `createUnit` and read by `fullMovement`.
+    expect(levy.stamp).toEqual({ movement: 1 });
+    expect(fullMovement(levy, g.state)).toBe(unitDef(levy.type).movement + 1);
+    // It is born holding the whole of it, so it is rested on the turn it musters.
+    expect(levy.movesLeft).toBe(fullMovement(levy, g.state));
+
+    // **For the rest of the game**: the Doctrine goes and the levy is unchanged,
+    // which is the difference between a stamp and a standing reading.
+    playerById(g.state, 0)!.statecraft.doctrines.length = 0;
+    bumpRevision(g.state);
+    expect(fullMovement(levy, g.state)).toBe(unitDef(levy.type).movement + 1);
+    // And a piece raised with no such card carries no stamp at all.
+    const plain = createUnit(g.state, 0, levy.type, levy.col, levy.row);
+    expect(plain.stamp).toBeUndefined();
+    expect(fullMovement(plain, g.state)).toBe(unitDef(levy.type).movement);
+  });
+
+  it("The King's Road fills a march's allowance in its own towns, and banks nothing", () => {
+    const g = game(4202);
+    const city = found(g.state, 0);
+    const soldier = g.state.units.find(
+      (u) => u.ownerId === 0 && isCombatant(unitDef(u.type)),
+    )!;
+    const seat = getTileAt(g.state.map, city.col, city.row)!;
+
+    // Without the card, arriving in a town is an arrival like any other.
+    soldier.movesLeft = 0;
+    arriveOnTile(g.state, soldier, seat);
+    expect(soldier.movesLeft).toBe(0);
+
+    slot(g.state, 0, 'theKingsRoad');
+    arriveOnTile(g.state, soldier, seat);
+    expect(soldier.movesLeft).toBe(fullMovement(soldier, g.state));
+
+    // **Set, never added**: a second arrival on the same hex leaves the purse
+    // exactly full, so nothing accumulates by walking in and out.
+    arriveOnTile(g.state, soldier, seat);
+    expect(soldier.movesLeft).toBe(fullMovement(soldier, g.state));
+
+    // Somebody else's town is not one of yours, and open ground is not a town.
+    const other = found(g.state, 1);
+    const theirs = getTileAt(g.state.map, other.col, other.row)!;
+    soldier.movesLeft = 0;
+    arriveOnTile(g.state, soldier, theirs);
+    expect(soldier.movesLeft).toBe(0);
+    const wild = neighborTiles(g.state.map, tileHex(seat))
+      .map((hex) => getTileAt(g.state.map, hex.col, hex.row)!)
+      .find((tile) => !isWaterTerrain(tile.terrain))!;
+    arriveOnTile(g.state, soldier, wild);
+    expect(soldier.movesLeft).toBe(0);
+  });
+
+  it('Admiralty lands the men free and blesses them for three turns', () => {
+    const g = game(4203);
+    found(g.state, 0);
+    const soldier = g.state.units.find(
+      (u) => u.ownerId === 0 && isCombatant(unitDef(u.type)),
+    )!;
+    // A wet hex and a dry one beside it, so a crossing exists to be priced.
+    const dry = getTileAt(g.state.map, soldier.col, soldier.row)!;
+    const wet = neighborTiles(g.state.map, tileHex(dry))
+      .map((hex) => getTileAt(g.state.map, hex.col, hex.row)!)
+      .find((tile) => tile.col !== dry.col || tile.row !== dry.row)!;
+    wet.terrain = 'coast';
+    wet.hills = false;
+    wet.feature = 'none';
+    // The empire can put a soldier on the water at all (Sailing widens *which*
+    // water, Wayfinding widens *who*), so the step back in is a real step and
+    // the two directions can be compared.
+    const owner = playerById(g.state, 0)!;
+    for (const tech of ['sailing', 'wayfinding'] as const) {
+      if (!owner.techsResearched.includes(tech)) owner.techsResearched.push(tech);
+    }
+    bumpRevision(g.state);
+    // The piece stands in the water: what is on trial is the step *out* of it,
+    // which is the half the card makes free.
+    soldier.col = wet.col;
+    soldier.row = wet.row;
+
+    const priceOut = (): number =>
+      stepCost(g.state.map, wet, dry, moveProfile(g.state, soldier), zocField(g.state, 0))!.cost;
+    const priceIn = (): number =>
+      stepCost(g.state.map, dry, wet, moveProfile(g.state, soldier), zocField(g.state, 0))!.cost;
+    const crossing = priceOut();
+    expect(crossing).toBeGreaterThan(0);
+
+    slot(g.state, 0, 'admiralty');
+    // **The landing is free and embarking is not**: the pair of hexes says which
+    // way the piece is going, and the price is read where a step is priced.
+    expect(priceOut()).toBe(0);
+    expect(priceIn()).toBe(crossing);
+
+    // And the blessing, hung by the walk at the same seam. Three turns, an
+    // absolute stamp, and an ordinary strength line while it runs.
+    soldier.movesLeft = fullMovement(soldier, g.state);
+    advanceAlongPath(g.state, soldier, [{ col: dry.col, row: dry.row }]);
+    expect(soldier.col).toBe(dry.col);
+    expect(soldier.timed?.length).toBe(1);
+    expect(soldier.timed![0]!.card).toBe('admiralty');
+    expect(soldier.timed![0]!.expiresTurn).toBe(g.state.turn + 3);
+    const situation = {
+      unit: soldier,
+      side: 'attack' as const,
+      tile: dry,
+      vsBarbarians: false,
+      vsCity: false,
+      targetHp: 100,
+      targetMaxHp: 100,
+    };
+    expect(
+      cardCombatLines(g.state, situation)
+        .filter((line) => line.card === 'admiralty')
+        .reduce((sum, line) => sum + line.amount, 0),
+    ).toBe(5);
+    // **A second landing refreshes, never stacks**: the piece carries exactly one
+    // copy of the card, so a soldier hopping in and out of the surf is worth
+    // what the card says and not twice it.
+    g.state.turn += 1;
+    soldier.col = wet.col;
+    soldier.row = wet.row;
+    soldier.movesLeft = fullMovement(soldier, g.state);
+    advanceAlongPath(g.state, soldier, [{ col: dry.col, row: dry.row }]);
+    expect(soldier.timed?.length).toBe(1);
+    expect(soldier.timed![0]!.expiresTurn).toBe(g.state.turn + 3);
+
+    // Nothing ticks: the line is gone the turn the stamp passes.
+    g.state.turn += 3;
+    expect(
+      cardCombatLines(g.state, situation).filter((line) => line.card === 'admiralty'),
+    ).toEqual([]);
+  });
+
+  it('The Silk Exchange puts a culture on the road and doubles what it carries', () => {
+    const g = game(4204);
+    const from = found(g.state, 0);
+    const to = found(g.state, 1);
+    to.ownerId = 0;
+    // Something on the road before the card speaks.
+    from.buildings.push('library', 'monument');
+    bumpRevision(g.state);
+    const plain = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+
+    slot(g.state, 0, 'theSilkExchange');
+    const paid = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    // The flat first — a culture on every road this empire runs — and then the
+    // share, taken of everything above it, its own culture included.
+    expect(paid.culture).toBe((plain.culture + 1) * 2);
+    expect(paid.science).toBe(plain.science * 2);
+    // The voices it does not name are untouched.
+    expect(paid.food).toBe(plain.food);
+    expect(paid.gold).toBe(plain.gold);
+  });
+
+  it('Manufactories pays the towns that hold one, and no others', () => {
+    const g = game(4205);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'manufactories');
+    const share = (): number =>
+      explainCardPercentYields(g.state, city)
+        .filter((line) => line.card === 'manufactories')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(share()).toBe(0);
+    // A hex **inside the borders**, which is the scope's own sweep.
+    const worked = getTileAt(g.state.map, city.col + 1, city.row)!;
+    worked.improvement = 'manufactory';
+    bumpRevision(g.state);
+    expect(share()).toBe(30);
+    // A farm is not a manufactory.
+    worked.improvement = 'farm';
+    bumpRevision(g.state);
+    expect(share()).toBe(0);
+  });
+
+  it("the Bank's share counts a road that ends here, and not one that leaves", () => {
+    const g = game(4206);
+    const city = found(g.state, 0);
+    const other = found(g.state, 1);
+    other.ownerId = 0;
+    const scope = { test: 'routeEndsHere' } as const;
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+
+    // A caravan carrying a route *to* this town — `Unit.trade` is the route, and
+    // no register is consulted.
+    const caravan = createUnit(g.state, 0, 'trader', other.col, other.row);
+    caravan.trade = {
+      from: other.id,
+      to: city.id,
+      expiresTurn: g.state.turn + 20,
+      outbound: true,
+      autoResend: false,
+    };
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(true);
+    // The origin is not a destination.
+    expect(cityScopeAdmits(g.state, other, scope)).toBe(false);
+    // A lapsed road is inert: the scope reads `routeIsLive`, so it stops
+    // admitting on the turn the caravan's own expiry passes.
+    caravan.trade!.expiresTurn = g.state.turn;
+    expect(cityScopeAdmits(g.state, city, scope)).toBe(false);
+
+    // And the row that reads it.
+    expect(buildingDef('bank').effects).toEqual([
+      { kind: 'percentYields', yield: 'gold', percent: 20, scope: { test: 'routeEndsHere' } },
+    ]);
+  });
+
+  it('the Stable wants a pasture or a camp, pays both, and hurries the horses', () => {
+    const g = game(4207);
+    const city = found(g.state, 0);
+    const site = buildingDef('stable').requiresSite!;
+    expect(site.test).toBe('any');
+    // Neither work inside the borders: the site refuses, and the refusal names
+    // the ground rather than a flag.
+    expect(cityScopeAdmits(g.state, city, site)).toBe(false);
+    // The refusal names the **ground** and not a flag — once the node that opens
+    // the row is held, which is the clause `buildError` asks first.
+    const owner = playerById(g.state, 0)!;
+    for (const tech of ['bronzeWorking', 'stonecraft', 'theWheel'] as const) {
+      if (!owner.techsResearched.includes(tech)) owner.techsResearched.push(tech);
+    }
+    bumpRevision(g.state);
+    expect(buildError(g.state, 0, 'building', 'stable', city)).toContain('pasture');
+
+    // Either one admits it — the whole reason the composite exists.
+    const near = getTileAt(g.state.map, city.col + 1, city.row)!;
+    near.improvement = 'camp';
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, site)).toBe(true);
+    near.improvement = 'pasture';
+    bumpRevision(g.state);
+    expect(cityScopeAdmits(g.state, city, site)).toBe(true);
+
+    // The hexes it pays, through the tile chain a building's `tileYields` land
+    // in — the what-if reading, so the build list can price it too.
+    const withStable = foldTileLines(
+      explainTileYield(near, cityContext(g.state, city, ['stable'])),
+    ).production;
+    const without = foldTileLines(explainTileYield(near, cityContext(g.state, city))).production;
+    expect(withStable).toBe(without + 1);
+
+    // And the horses: the row's own `productionBonus` narrowed by a `class`
+    // (E4a's field), read where a queue is priced — so a spearman is no quicker.
+    city.buildings.push('stable');
+    bumpRevision(g.state);
+    const share = (id: string): number =>
+      productionModifiers(g.state, city, { kind: 'unit', id } as never)
+        .filter((line) => line.building === 'stable')
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(share('chariot')).toBe(10);
+    expect(share('warrior')).toBe(0);
+  });
+
+  it("the Bourse turns the realm's coin into culture from the empire's own books", () => {
+    const g = game(4208);
+    const city = found(g.state, 0);
+    const def = buildingDef('bourse');
+    // A `oncePerEmpire` row, which is what lets its `rateConversion` be read
+    // from the empire's walk rather than once per town.
+    expect(def.oncePerEmpire).toBe(true);
+    city.buildings.push('bourse');
+    bumpRevision(g.state);
+    const culture = (rate: number): number =>
+      explainCardEmpireYields(g.state, 0, { goldPerTurn: rate })
+        .filter((line) => line.card === 'bourse')
+        .reduce((sum, line) => sum + line.culture, 0);
+    expect(culture(20)).toBe(5);
+    // No coin, no song — a conversion of nothing pays no line at all.
+    expect(culture(0)).toBe(0);
+  });
+
+  it('the Printing House is paid by the roads that end at its presses', () => {
+    const g = game(4209);
+    const from = found(g.state, 0);
+    const to = found(g.state, 1);
+    to.ownerId = 0;
+    const plain = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    // At the **origin** it pays nothing: the clause asks about the town the
+    // caravan is walking to.
+    from.buildings.push('printingHouse');
+    bumpRevision(g.state);
+    expect(foldRouteYield(explainRouteYieldBetween(g.state, from, to)).science).toBe(
+      plain.science,
+    );
+    from.buildings.length = 0;
+    to.buildings.push('printingHouse');
+    bumpRevision(g.state);
+    const paid = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
+    expect(paid.science).toBe(plain.science + 2);
+    expect(paid.culture).toBe(plain.culture + 2);
   });
 });

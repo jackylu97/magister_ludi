@@ -149,6 +149,28 @@ export function cityIsWatered(city: City): boolean {
 }
 
 /**
+ * **Does a building standing in this town irrigate the fields it works** — the
+ * Cistern's, and nothing else today.
+ *
+ * `cityIsWatered`'s twin one question over, and the two are deliberately two
+ * readings of two markers: that one ends the *town's* thirst (the dry-settle
+ * penalty on its growth) and this vouches for the *ground* a farm stands on. See
+ * `BuildingDef.irrigates`, which says why one flag could not have served both.
+ *
+ * Asked of a **list** rather than of the town, because its one caller
+ * (`cityContext`, `yields/hex.ts`) also asks it of a town plus a building that
+ * does not exist yet — the what-if a build list prices a row with. A boolean for
+ * `cityIsWatered`'s reason: it is a gate, and the reason is printed by the line
+ * it restores.
+ */
+export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
+  for (const id of buildings) {
+    if (buildingDef(id).irrigates === true) return true;
+  }
+  return false;
+}
+
+/**
  * **The row an act leaves behind** — the relic, and nothing else today.
  *
  * `workForFamily`'s trick one table over: the *rule* is "the placed row", the

@@ -94,6 +94,12 @@ Armoury and the Printing House are withdrawn outright; the Forum and the
 Caravanserai return as two of the five uniques. Their rows stay in
 `data/buildings.json` so a save that raised one still replays.
 
+The **Printing House came back** in batch E4b (`docs/audit/deferred-rows.md`):
+what it had been waiting on was a route that could pay the town it *ends* at,
+which is one field on the route shape now, so Movable Type opens a buildable row
+again. Two rows joined the table in the same batch — the **Stable** at The Wheel
+and the **Bourse** at Paper Money.
+
 **Batch E — the tree's gifts** (2026-09-06, `docs/history/tech-gifts.md` §7 as the user
 marked it). The six nodes batch D left handing over no building hand over
 something else now, and every gift is a **row** rather than a branch: the effect
@@ -123,7 +129,7 @@ Workshop → Forge · Shrine → Temple.
 | Divination | 23 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
 | Sailing | 23 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | Embark |
 | Stonecraft | 23 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | Consecration of the Bounds |
-| The Wheel | 53 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | — | — |
+| The Wheel | 53 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | Stable | — |
 | Writing | 53 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | Open Borders |
 
 What the effect rows say (player prose from the data):
@@ -193,14 +199,14 @@ What the effect rows say (player prose from the data):
 | Divine Right | 1100 | Guildhalls | — | Courthouse | — |
 | Geomancy | 1100 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
 | Machinery | 1100 | Horology, Engineering | Crossbowman | — | — |
-| Paper Money † | 1100 | Shipwrights, Guildhalls | — | Bazaar | — |
+| Paper Money | 1100 | Shipwrights, Guildhalls | — | Bazaar, Bourse | — |
 | Scholarship | 1100 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
 | Castellany † | 1300 | Divine Right | Pikeman | Castle | — |
 | Natural Philosophy | 1300 | Scholarship | Trebuchet | **Machu Picchu** | — |
 | Steel | 1300 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
 | The Golden Roads | 1300 | Paper Money | — | — | — |
 | Militant Orders | 1500 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
-| Movable Type | 1500 | Steel, The Golden Roads | — | — | — |
+| Movable Type | 1500 | Steel, The Golden Roads | — | Printing House | — |
 | The Astrolabe | 1500 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
 | The Counting Houses | 1500 | The Golden Roads, Castellany | — | Bank | — |
 | The Holy Office | 1500 | Scholarship | Inquisitor | **Notre-Dame** | — |
@@ -211,7 +217,7 @@ What the effect rows say (player prose from the data):
 - **Divine Right** — A city you have taken by force costs one less authority.
 - **Geomancy** — Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken.
 - **Machinery** — Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to.
-- **Paper Money** † The Bourse, which would turn a city’s coin into culture every turn, waits for a building that spends gold rather than earning it.
+- **Paper Money** — Notes, ledgers and a floor to shout them across: the realm’s coin can be turned into song at the Bourse, of which a realm keeps one.
 - **Castellany** † Defenders shrugging off arrows waits until a strength line can be told which weapon it is answering.
 - **Steel** — Every soldier of the sword line marches one hex further.
 - **The Golden Roads** — One more caravan may be on the road at once, and every caravan of yours is paid for the fine goods held at either end of its journey.

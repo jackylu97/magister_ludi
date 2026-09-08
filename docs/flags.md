@@ -357,8 +357,18 @@ directly to confirm rulings — user marginalia are rulings.
   labelled, Religious Mandate moved to tier 10 and withdrawn there; the
   batch's own counts and its one deferral (Paper Money's Bourse, which
   needs a `oncePerEmpire` building row before a `rateConversion` can reach
-  `liveEffects`) are in the proposal's *As built* section. **E4b** — the
-  reworks that need a new shape or a new row — is still open. **E5 — the
+  `liveEffects`) are in the proposal's *As built* section. **E4b BUILT**
+  (schema 95): the reworks that needed a new shape or a new row — The Levée
+  en Masse's stamped levy, the **Stable** (which is what The Horse-Tribes'
+  struck clause was waiting for), The King's Road, Admiralty's free landing
+  and its three turns ashore, the Silk Exchange's route share with the
+  **Printing House** un-retired beside it, the Bank's route scope,
+  Manufactories, the Cistern's irrigated fields, the belief **Crusade**'s
+  lump of faith on a kill, and E4a's own deferral, the **Bourse**. One new
+  shape (`landfall`), one new composite in the scope union (`any`, for a
+  *site* that admits either of two grounds) and the pair resolution moved to
+  a leaf (`src/sim/routes.ts`); the batch's own counts are in the proposal's
+  *As built (E4b)* section. **E5 — the
   yield family collapsed** — **GO** (the user, 2026-09-08: "i'm inclined
   to go for it after the e4b changes"): flies **after E4b and alone**
   (nothing else in flight — it migrates rows across every data file and
@@ -499,8 +509,9 @@ directly to confirm rulings — user marginalia are rulings.
   government carries a ratified `text` — the four early chairs gained one — and
   the Signature column is that string verbatim, sync-tested beside the chairs.
   `docs/history/orders-and-doctrines-as-built.md` has the pass.
-  **E4b** flies now in its own worktree
-  (schema 94), **E5** alone after it lands. **E1 and E2 LANDED** (8d7075a,
+  **E4b BUILT** (schema 95, its own worktree; the Horse-Tribes' stable clause
+  yielded to the user's later mark — +1 movement and +1 strength, B1),
+  **E5** alone after it lands. **E1 and E2 LANDED** (8d7075a,
   59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
   2026-09-07: "please continue" on the orchestrator's recommended reading):
   **the benches announce their hand mutations** — a test that mutates a

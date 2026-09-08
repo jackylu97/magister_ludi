@@ -683,10 +683,16 @@ function scopeWords(site: CityScope): string {
       return `a city built on ${site.terrain}`;
     case 'terrainBeside':
       return `a city built on or next to ${site.terrain}`;
-    // `all` is the only composite the scope vocabulary has, deliberately — see
-    // `CityScope`. So one branch covers every conjunction a row can carry.
+    case 'hasImprovement':
+      return `a city with ${withArticle(improvementDef(site.improvement).name)} inside its borders`;
+    // The two composites, and the only ones the scope vocabulary has — see
+    // `CityScope`. A conjunction reads as a list and a disjunction as a choice,
+    // which is the whole difference a player needs: the Stable wants a pasture
+    // **or** a camp, and a wonder that wanted both would say so.
     case 'all':
       return words(site.of.map(scopeWords));
+    case 'any':
+      return site.of.map(scopeWords).join(' or ');
     default:
       return named((site as { test: string }).test);
   }

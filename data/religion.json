@@ -1001,18 +1001,29 @@
       "name": "The Crusade",
       "axis": "war",
       "flavor": "They took the long road, and every town along it fed them.",
-      "text": "+5 combat strength inside foreign cities that follow your religion.",
+      "text": "+2 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "followingTerritory",
             "foreign": true
           }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "pressure": {
+              "amount": 20,
+              "range": 3
+            }
+          }
         }
-      ]
+      ],
+      "note": "Preaching, at the pace an army travels: wherever your soldiers kill, the nearest towns hear about your god."
     },
     "thePromisedLand": {
       "name": "The Promised Land",

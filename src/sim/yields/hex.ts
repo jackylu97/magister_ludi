@@ -50,7 +50,7 @@ import {
 } from '../terrainData';
 import { type TechId, techDef } from '../techData';
 import { resourceTileLines } from '../resourceEffects';
-import { buildingTileLines } from '../buildingEffects';
+import { buildingTileLines, buildingsIrrigate } from '../buildingEffects';
 
 // --- tiles ------------------------------------------------------------------
 
@@ -195,6 +195,19 @@ export interface TileYieldContext {
    * loop instead of three.
    */
   lines?: readonly TileLine[];
+  /**
+   * The **working city vouches for this hex's water** — a Cistern in the town
+   * square, standing in for the river a farm out in the fields does not have
+   * (`BuildingDef.irrigates`).
+   *
+   * A fact about *one town* and therefore added only by `cityContext`, exactly
+   * as its buildings' tile lines are: an empire-wide context has no town to ask,
+   * and a hex nobody works is dry. Read in **one place** — the renewal clause
+   * below that asks a farm whether it stands on fresh water — and nowhere else:
+   * `Tile.freshwater` is untouched, so the improvement gate, the card scopes and
+   * the fight's own `freshwater` condition all go on reading the ground.
+   */
+  irrigates?: boolean;
 }
 
 /**
@@ -303,8 +316,16 @@ export function cityContext(
     ...followerCardTileLines(state, city),
     ...consecrationCardTileLines(state, city),
   ];
-  if (own.length === 0) return ctx;
-  return { ...ctx, lines: [...(ctx.lines ?? []), ...own] };
+  // The Cistern, and the sixth fact about *this town* the chain needs: whether a
+  // building of its own irrigates the fields it works. The candidate is included,
+  // so a build list pricing a Cistern sees the farms it would water — which is
+  // `hypothetical`'s whole reason to be carried this far in.
+  const irrigates = buildingsIrrigate([...city.buildings, ...hypothetical]);
+  if (own.length === 0 && !irrigates) return ctx;
+  const next: TileYieldContext = { ...ctx };
+  if (own.length > 0) next.lines = [...(ctx.lines ?? []), ...own];
+  if (irrigates) next.irrigates = true;
+  return next;
 }
 
 /**
@@ -366,7 +387,13 @@ export function explainTileYield(
     // always read in the same order (design ledger, Entry I).
     for (const upgrade of def.upgrades ?? []) {
       if (!ctx || !ctx.techs.includes(upgrade.tech)) continue;
-      if (upgrade.requiresFreshwater && !tile.freshwater) continue;
+      // **Or the town that works this hex waters it** — the Cistern
+      // (`TileYieldContext.irrigates`). The one place a building answers for the
+      // ground, and it is a *clause on this condition* rather than a second kind
+      // of water: `Tile.freshwater` is what the map says, and this is a town
+      // saying it will carry the water out to the fields. A hex evaluated with
+      // no context at all is the omniscient reading and has no town to ask.
+      if (upgrade.requiresFreshwater && !tile.freshwater && ctx?.irrigates !== true) continue;
       list.push({
         source: techDef(upgrade.tech).name,
         kind: 'add',

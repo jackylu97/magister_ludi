@@ -19,10 +19,13 @@
  * (`Unit.trade`); `trade.ts` still owns the verbs, the lifecycle and the slots,
  * and re-exports these names so a screen still has one import site for a route.
  *
- * The pair resolution (`routeCities`, `routeIsLive`) comes with them because it
+ * The pair resolution (`routeCities`, `routeIsLive`) came with them because it
  * is what "this route still describes the board" *means*, and the yield readers
- * are its first callers: splitting the question from the answer would have left
- * the leaf asking the hub whether it was allowed to pay.
+ * are its first callers. It has since moved **one file further down**
+ * (`routes.ts`, batch E4b) and is re-exported from here by name: a card's scope
+ * needs to ask whether a route ends in a town (`routeEndsHere`), the evaluator
+ * that answers it is a file this one imports, and a leaf is where a question two
+ * hubs ask has to live. Every caller still has one import site for a route.
  */
 
 import { cityBlockaded } from './blockade';
@@ -38,16 +41,9 @@ import {
 // and `trade.ts` themselves.
 import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
-import { type City, type GameState, type Unit, cityById } from './state';
-import { cardAmplifier, cardRouteYieldLines } from './statecraft';
-// The war register, and the only thing this leaf asks about diplomacy. `wars.ts`
-// imports the rules, the state and the deal terms and nothing else, so asking it
-// costs the leaf claim in the docblock above nothing at all. **Met-ness is not
-// asked here**, deliberately: whether two empires have *met* is a gate on
-// opening a route (`routeStartable`) and a screen's reading besides, while
-// whether they are at *war* is a fact about whether the goods still move — a
-// route must not stop paying because a scout wandered out of sight of a border.
-import { atWar } from './wars';
+import { routeCities, routeIsInternational, routeIsLive } from './routes';
+import type { City, GameState, Unit } from './state';
+import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
 
 const TRADE = RULES.trade;
 const ABROAD = RULES.trade.international;
@@ -71,71 +67,11 @@ const PRODUCTION_CATEGORIES: readonly BuildingCategory[] = ['production', 'milit
 // --- what a route is, when it is still one ----------------------------------
 
 /**
- * The two cities a caravan's route joins, or `null` when the route no longer
- * describes anything the board agrees with.
- *
- * **One resolution, four readers** — the yields, the shuttle, the slot count and
- * the send gate all ask this, so "a route that has stopped being a route" is one
- * answer rather than four.
- *
- * Two clauses, and they are deliberately not the same clause twice (the
- * international ruling of 2026-09-03):
- *
- *   · **the origin is still the caravan's owner's.** A route is a thing a seat
- *     *sends*, so an origin that changes hands ends it — there is nobody left
- *     whose goods these are;
- *   · **the destination is the caravan's owner's, or a foreign town at peace.**
- *     That is the whole of what "may end abroad" means here, and war is the one
- *     thing that ends it: a declaration stops the goods moving the instant it
- *     lands, and a caravan whose partner is captured by an empire this one is
- *     fighting stops paying without waiting for any broom to reach it
- *     (`cancelRoutesBetween` is the *tidying* of that, not the rule).
- *
- * Met-ness is **not** asked. Whether two empires have met gates *opening* a
- * route (`routeStartable`); a route already running must not lapse because a
- * scout walked out of sight of a border.
+ * The pair resolution, re-exported **by name** from the leaf that now owns it
+ * (`routes.ts` — a star re-export comes out empty in a cycle). One import site
+ * for a route, exactly as `trade.ts` re-exports these onward for the screens.
  */
-export function routeCities(
-  state: GameState,
-  unit: Unit,
-): { from: City; to: City } | null {
-  const route = unit.trade;
-  if (!route) return null;
-  const from = cityById(state, route.from);
-  const to = cityById(state, route.to);
-  if (!from || !to) return null;
-  if (from.ownerId !== unit.ownerId) return null;
-  if (to.ownerId !== unit.ownerId && atWar(state, from.ownerId, to.ownerId)) return null;
-  return { from, to };
-}
-
-/**
- * Does this route end in **another empire's** town?
- *
- * The one reading of "international", asked by both folds and by every screen
- * that words a route differently for it. It is a fact about the two cities as
- * they stand — a partner that changes hands changes the answer next turn, which
- * is the module's own "nothing is snapshotted" one clause further out.
- */
-export function routeIsInternational(from: City, to: City): boolean {
-  return from.ownerId !== to.ownerId;
-}
-
-/**
- * Is this caravan's route still paying?
- *
- * The `TimedEffect` reading exactly (`state.turn < expiresTurn`): an absolute
- * turn, compared and never counted down. A lapsed route is **inert rather than
- * gone** — the piece keeps walking home carrying a dead route, and the shuttle
- * phase is what tidies it up when it gets there, which is the same broom-not-a-
- * clock bargain `pruneTimedEffects` makes.
- */
-export function routeIsLive(state: GameState, unit: Unit): boolean {
-  const route = unit.trade;
-  if (!route) return false;
-  if (state.turn >= route.expiresTurn) return false;
-  return routeCities(state, unit) !== null;
-}
+export { routeCities, routeIsInternational, routeIsLive } from './routes';
 
 // --- what a route pays ------------------------------------------------------
 
@@ -336,6 +272,7 @@ export function explainRouteYieldBetween(
   // thing. A line added after the share would be a line "double your trade route
   // yields" could not see.
   cardLines(state, from, to, lines, label);
+  shares(state, from, to, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }
@@ -363,7 +300,7 @@ function cardLines(
   // Golden Roads). Hoisted before the walk and only when a row asks for it, so
   // a game whose cards say nothing about luxuries pays for no set at all.
   let goods = -1;
-  for (const paid of cardRouteYieldLines(state, from)) {
+  for (const paid of cardRouteYieldLines(state, from, to)) {
     let helpings = 1;
     if (paid.perEndpointLuxury) {
       if (goods < 0) goods = endpointLuxuryCount(state, from, to);
@@ -381,6 +318,66 @@ function cardLines(
         culture: paid.culture * helpings,
       }),
     );
+  }
+}
+
+/**
+ * **A card's share of what the road already carries**, voice by voice — The Silk
+ * Exchange's doubled beakers and songs (`CardRouteYieldEffect.share`).
+ *
+ * `amplify`'s narrow cousin, and the pair is deliberately two functions: that
+ * one is the Merchant League's *whole caravan* raised by one figure, and this is
+ * a row naming which voices it raises. A card that wanted the whole cart says
+ * `effectAmplifier`; a card that wanted the beakers alone could not, and that is
+ * the field's whole reason to exist.
+ *
+ * Placed **after** the flats and **before** the amplifier, which is the fold's
+ * own grammar (put yields on a thing, then multiply the thing): a share reads
+ * every flat line above it, its own row's included, and the amplifier then reads
+ * the share like any other line. Every share is computed off the **same**
+ * handed-in fold and floored **per row and per voice**, which is
+ * `cardYieldConversions`' discipline one ledger over: two rows raising the songs
+ * never read each other, so their order cannot change what either pays, and two
+ * half-points buy two halves rather than rounding into a free one.
+ *
+ * Each row is its own labelled line (rule 5), so the sheet says which card
+ * raised what; a row whose share comes to nothing at all is not printed.
+ */
+function shares(
+  state: GameState,
+  from: City,
+  to: City,
+  lines: RouteYieldLine[],
+  label: (note: string) => string,
+): void {
+  const rows = cardRouteShareLines(state, from, to);
+  if (rows.length === 0) return;
+  // The fold **as it stands before any share spoke**, so two of them read the
+  // same road and their order cannot change what either pays —
+  // `cardYieldConversions`' rule, one ledger over.
+  const base = foldRouteYield(lines);
+  for (const row of rows) {
+    const share = (voice: keyof typeof base): number =>
+      row.yield === 'all' || row.yield === voice
+        ? Math.floor((base[voice] * row.percent) / 100)
+        : 0;
+    const extra = {
+      food: share('food'),
+      production: share('production'),
+      gold: share('gold'),
+      science: share('science'),
+      culture: share('culture'),
+    };
+    if (
+      extra.food === 0 &&
+      extra.production === 0 &&
+      extra.gold === 0 &&
+      extra.science === 0 &&
+      extra.culture === 0
+    ) {
+      continue;
+    }
+    lines.push(line(label(`${row.source} ${row.percent > 0 ? '+' : ''}${row.percent}%`), extra));
   }
 }
 
@@ -525,6 +522,7 @@ export function explainRouteSenderYieldBetween(
   // foreign fold exactly as the amplifier does, because the line belongs to the
   // seat that sent the goods and this is that seat's book.
   cardLines(state, from, to, lines, label);
+  shares(state, from, to, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }

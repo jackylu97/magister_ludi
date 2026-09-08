@@ -378,6 +378,13 @@ export type BuildingId =
   // The Holy Office's tenant (Entry LVIII, the faith rework): the tier-4 faith
   // building, and the one row that opens a bank (`faithPurchases`).
   | 'reliquary'
+  // **Batch E4b's two** (`docs/audit/deferred-rows.md`), each the answer to a
+  // row that had been waiting on one: the **Stable** at The Wheel, which is what
+  // The Horse-Tribes' struck clause was written for, and the **Bourse** at Paper
+  // Money — a `oncePerEmpire` house because a `rateConversion` is read from the
+  // empire's own books and an ordinary building is only ever read by its town.
+  | 'stable'
+  | 'bourse'
   // **The endgame** (Entry LVIII): the Opus the world opens at the first
   // Alchemy, and the three great works of the Observatory that pay a bead
   // apiece. All four are `oncePerEmpire`; only the first `endsTheGame`. They are
@@ -1085,6 +1092,30 @@ export interface BuildingDef {
    * to a question the board already answers.
    */
   waters?: boolean;
+  /**
+   * **This building irrigates the fields the town works** — the Cistern's
+   * cisterns, and the answer to the user's *"what makes this difficult?"*
+   * (`docs/audit/deferred-rows.md`, 2026-09-07).
+   *
+   * `waters`' sibling and deliberately a **second** marker rather than a widening
+   * of it, because the two are the two questions that field's own docblock says
+   * they are: `waters` ends the *town's* thirst (the dry-settle penalty on its
+   * growth) and this vouches for the *ground* — a farm out in the third ring
+   * drawing its water from the town instead of from a river. An aqueduct does
+   * the first and not the second, which is exactly why one flag could not have
+   * served both.
+   *
+   * Read in **one place**: the renewal clause in `explainTileYield`
+   * (`yields/hex.ts`) that asks a farm whether it stands on fresh water
+   * (`ImprovementUpgrade.requiresFreshwater`). It reaches the hex through the
+   * working city's own context (`cityContext`), which is what makes it a fact
+   * about a *town* answering for its fields rather than a second kind of water
+   * on the map — `Tile.freshwater` is untouched, and a hex nobody works is dry.
+   *
+   * A marker like every other here: nothing in `src/sim/` compares a building id
+   * against `"cistern"`, so a second row that irrigates is a JSON flag.
+   */
+  irrigates?: boolean;
   /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.

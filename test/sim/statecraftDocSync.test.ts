@@ -201,6 +201,13 @@ describe('the orders and doctrines doc mirrors the data', () => {
           if ((effect.on as { test?: string }).test === 'yields') engine = true;
           else if (effect.percent !== undefined || effect.basePercent !== undefined) payoff = true;
           break;
+        case 'routeYield':
+          // A flat on a caravan is a standalone; a **share** of what the roads
+          // already carry is a payoff, and it scales with exactly the thing a
+          // payoff scales with — what the empire has built and is running. The
+          // Silk Exchange (batch E4b) is the first row to carry one.
+          if (effect.share !== undefined) payoff = true;
+          break;
         case 'yieldConversion':
         case 'rateConversion':
         case 'effectAmplifier':

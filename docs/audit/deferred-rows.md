@@ -131,7 +131,15 @@ pass, not eleven rows.
 
 ## Counts
 
-Recommended: **build 30 · cut 13 · keep 22** (the nine beads and the five
+**As built, E4a + E4b together: built 27 · cut 11 · retired 5 · kept 9 · moved
+1.** (E4a's own count says 17 built, 11 cut, 6 retired, 9 kept, 1 moved and 1
+deferred; E4b builds those ten plus its own deferral, and takes Manufactories,
+the Printing House and The Levée en Masse *back out* of the retired list, which
+is what moves 6 to 5.) The two rows still labelled by these batches are The
+Horse-Tribes' flat-ground clause and The Magister's Court's doubled legacies;
+everything else in the tables above is built, cut or kept on purpose.
+
+Recommended (the original reading): **build 30 · cut 13 · keep 22** (the nine beads and the five
 empty religion rows counted as keep pending). The builds are mostly data rows
 on existing shapes; the six that extend a shape by one field (a `destination`
 route scope, `class: naval` on a production bonus, a `routesHere` and a
@@ -182,3 +190,78 @@ own.**
   `ProductionBonus.class` · `BeliefDef.retired`. **Castellany needed nothing**:
   `CardCombatLineEffect.vsClass` already names the other side's silhouette, and
   a defender's "other side" is whoever charged in.
+
+### As built — E4b (2026-09-08, schema 95)
+
+**Built 10 · one new shape · four new scope-and-grant words · two new building
+rows · one row un-retired.** E4a built every ruling that fitted the vocabulary as
+it stood; this batch is the set that needed the vocabulary widened, and each row
+says below what it needed.
+
+- **The Levée en Masse** (Doctrine, tier 45 — un-retired) — `periodicMuster`
+  every 10 turns, and the muster now carries a **stamp**: `UnitStamp.movement`,
+  handed to `createUnit` (the one writer of a stamp) through
+  `RealiseOptions.stamp`, read by `fullMovement`. A stamp is a moment, so the
+  levy keeps its point of movement when the Doctrine is gone.
+- **The Stable** (new building, The Wheel) — `tileYields` on pastures and camps,
+  a `productionBonus` narrowed by `class: { modelClass: 'mounted' }` (E4a's
+  field), and a site that wanted a disjunction. **The Horse-Tribes' struck
+  stable clause is built with it** (+1 food in every city with a Stable); its
+  flat-ground clause stays struck.
+- **The King's Road** (Order, Gov IV) — a `rule` of the behaviour family,
+  `cityRestoresMovement`, read at the one "came to rest" seam (`arriveOnTile`).
+  The allowance is **set** to `fullMovement`, never added to, so nothing
+  accumulates: a piece that arrives and leaves has left, and leaving costs a step
+  out of the very allowance the arrival gave it.
+- **Admiralty** (Order, Gov V) — two halves at the two movement seams. The
+  landing is priced in `stepCost` and nowhere else (`MoveProfile.freeLanding`, an
+  empire fact hoisted once per sweep beside `embarks`), so the highlight, the
+  estimate and the march agree by construction; embarking still ends the turn.
+  The blessing is the batch's **one new shape**, `landfall`, hung by
+  `advanceAlongPath` — the only place in the walk that holds *both* hexes, which
+  is what a crossing is a fact about.
+- **The Silk Exchange** (Order, Gov V) — a flat culture on every route, and
+  `CardRouteYieldEffect.share`, a percentage voice by voice on what the road
+  already carries. Folded in `routeYields.ts` after the flats and before the
+  amplifier, each row floored per voice.
+- **The Printing House** (building, un-retired) —
+  `CardRouteYieldEffect.destination`, the twin of `origin`. A route's card lines
+  are now read from the origin's empire **plus the two towns' own shelves** (the
+  destination's only on a domestic road), because an ordinary building's effects
+  reach `liveCityEffects` and never the realm's.
+- **The Bank** (building, re-cut) — +4 gold flat and a `percentYields` scoped by
+  the new `routeEndsHere`, which asks the pieces (`Unit.trade` *is* the route)
+  through `routeIsLive`.
+- **Manufactories** (Order, Gov V — un-retired) — `percentYields` production
+  scoped `hasImprovement: manufactory`, the scope that already existed.
+- **The Cistern** (building, re-cut) — `BuildingDef.irrigates`, read in exactly
+  one place: the renewal clause in `explainTileYield` that asks a farm whether it
+  stands on fresh water. It reaches the hex through the working city's own
+  context, so `Tile.freshwater` is untouched and a rival working the same ground
+  gets nothing.
+- **The Crusade** (belief — the **enhancer** pool, where it already lived: the
+  subject is the empire that founded the faith, acting abroad, and a follower row
+  pays whoever holds the town, which would hand a crusade to the empire being
+  crusaded against). The strength half drops to +2 and buys the spread with the
+  difference: a `windfallRider` on the kill whose grant is a **pressure lump** at
+  the field. `pressLump`'s second caller and `bankPressure`'s third call — a lump
+  and not a tide, because the tide is what a holy site radiates every turn from
+  where it stands and this happened once, in a place, because somebody did it.
+- **The Bourse** (new building, Paper Money) — E4a's own deferral, answered by
+  the row rather than by a shape: a `oncePerEmpire` building is read from
+  `liveEffects` exactly as a wonder is (the capstone clause), so its
+  `rateConversion` reaches the empire's own books with nothing added beside it.
+
+**New vocabulary**, one shape and seven members: `CardLandfallEffect` (the shape)
+· `CityScope`'s `any` and `routeEndsHere` · `BehaviorRuleId`'s
+`cityRestoresMovement` and `freeLanding` · `CardRouteYieldEffect.destination` and
+`.share` (`CardRouteShare`) · `CardPeriodicMusterEffect.stamp` ·
+`UnitStamp.movement` · `WindfallGrantSpec.pressure` · `BuildingDef.irrigates`.
+`any` is the first disjunction in the scope union and it earns its place on a
+stated exception: a **site** is one scope asked once, so a row whose ground may
+be either of two things has nowhere to put a second line.
+
+**One module moved**: `routeCities` / `routeIsInternational` / `routeIsLive` are
+a leaf now (`src/sim/routes.ts`), re-exported by name from `routeYields.ts`. A
+card's scope had to ask whether a route still describes the board, and the file
+that answered it imports the evaluator back.

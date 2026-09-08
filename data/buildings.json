@@ -62,6 +62,62 @@
         "perTurn": 1
       }
     },
+    "stable": {
+      "name": "Stable",
+      "category": "military",
+      "size": "medium",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "productionBonus": {
+        "category": "unit",
+        "percent": 10,
+        "class": {
+          "modelClass": "mounted"
+        }
+      },
+      "requiresSite": {
+        "test": "any",
+        "of": [
+          {
+            "test": "hasImprovement",
+            "improvement": "pasture"
+          },
+          {
+            "test": "hasImprovement",
+            "improvement": "camp"
+          }
+        ]
+      },
+      "tileYields": [
+        {
+          "on": {
+            "test": "improvement",
+            "improvement": "pasture"
+          },
+          "add": {
+            "production": 1
+          }
+        },
+        {
+          "on": {
+            "test": "improvement",
+            "improvement": "camp"
+          },
+          "add": {
+            "production": 1
+          }
+        }
+      ],
+      "renown": {
+        "family": "general",
+        "perTurn": 1
+      },
+      "note": "Built where the herds are. Every pasture and camp the city works is worked harder, and horsemen are raised here faster than anywhere else."
+    },
     "palisade": {
       "name": "Palisade",
       "category": "military",
@@ -1675,11 +1731,18 @@
         "family": "scholar",
         "perTurn": 1
       },
-      "note": "One carved character, used a thousand times.",
-      "deferred": [
-        "Beakers and songs carried in by the caravans that end here wait until a route can pay its destination something the origin did not send."
-      ],
-      "retired": true
+      "note": "One carved character, used a thousand times. Every trade route that ends here brings learning and song in with the goods.",
+      "effects": [
+        {
+          "kind": "routeYield",
+          "science": 2,
+          "culture": 2,
+          "destination": {
+            "test": "hasBuilding",
+            "building": "printingHouse"
+          }
+        }
+      ]
     },
     "observatory": {
       "name": "Observatory",
@@ -1792,7 +1855,7 @@
       "size": "large",
       "food": 0,
       "production": 0,
-      "gold": 3,
+      "gold": 4,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
@@ -1800,30 +1863,48 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Coin that stays still long enough to be counted twice.",
-      "deferred": [
-        "A further coin for each caravan route touching this city waits until a count can ask which routes end here."
-      ],
+      "note": "Coin that stays still long enough to be counted twice, and counts fastest in a city the caravans come to.",
       "requiresBuilding": "market",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "population",
-          "within": "city",
-          "per": 2,
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 1,
-            "where": "city"
-          }
-        },
-        {
           "kind": "percentYields",
           "yield": "gold",
-          "percent": 10
+          "percent": 20,
+          "scope": {
+            "test": "routeEndsHere"
+          }
         }
       ]
+    },
+    "bourse": {
+      "name": "Bourse",
+      "category": "gold",
+      "size": "large",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "effects": [
+        {
+          "kind": "rateConversion",
+          "from": "goldPerTurn",
+          "per": 4,
+          "pays": {
+            "to": "yield",
+            "yield": "culture",
+            "amount": 1,
+            "where": "empire"
+          }
+        }
+      ],
+      "renown": {
+        "family": "merchant",
+        "perTurn": 2
+      },
+      "note": "The floor where the realm's coin changes hands, and a little of it turns into song. One realm, one Bourse."
     },
     "bastion": {
       "name": "Bastion",
@@ -2136,10 +2217,8 @@
           }
         }
       ],
-      "note": "The city counts as standing on fresh water, and every desert hex it works feeds it a little better.",
-      "deferred": [
-        "Farms out in the fields drawing their irrigation from this city as they would from a river. What waters a town and what waters a hex are two different questions today, and only the town's is answered."
-      ]
+      "note": "The city counts as standing on fresh water, every desert hex it works feeds it a little better, and the farms in its fields draw their irrigation from the town as they would from a river.",
+      "irrigates": true
     },
     "assemblyHall": {
       "name": "Assembly Hall",

@@ -66,8 +66,17 @@ History and the original proposal: `docs/design-history.md`.
   `goldPerCombinedPop`). A wonder counts by its yield category ("the
   Colossus is a gold building to a caravan").
 - One fold (`explainRouteYieldBetween`, `routeYields.ts`): flats first
-  (cards, furs' luxury line), then the percent amplifiers (Merchant League,
-  The Escorted Roads) — floored once, split by running difference.
+  (cards, furs' luxury line), then the **row shares** (`routeYield.share`, a
+  percentage voice by voice — The Silk Exchange's doubled beakers and songs,
+  floored per row and per voice off the fold as it stood), then the percent
+  amplifiers (Merchant League, The Escorted Roads) — floored once, split by
+  running difference.
+- A card's route rows are read off the **origin's empire**, plus the **two
+  towns' own shelves** (the destination's only on a domestic road, because a
+  foreign host's presses are not the sender's to harvest). `routeYield.origin`
+  and `.destination` are ordinary `CityScope`s asked of the two ends: the
+  Caravanserai is a hub (`origin`), the Printing House a terminus
+  (`destination`).
 - Route slots: fold over building `routeSlots` (+ card riders);
   `explainRouteSlots` is the list.
 

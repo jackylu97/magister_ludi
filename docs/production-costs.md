@@ -132,6 +132,7 @@ reading for a once-per-empire row.
 | `granary` | Granary | small | 1 | 30 |
 | `shrine` | Shrine | small | 2 | 39 |
 | `barracks` | Barracks | small | 2 | 39 |
+| `stable` | Stable | medium | 3 | 68 |
 | `palisade` | Palisade | medium | 2 | 52 |
 | `stoneWalls` | Stone Walls | medium | 5 | 117 |
 | `library` | Library | small | 3 | 51 |
@@ -157,6 +158,8 @@ reading for a once-per-empire row.
 | `lighthouse` | Lighthouse | small | 2 | 39 |
 | `townCharter` | Town Charter | small | 8 | 198 |
 | `bank` | Bank | large | 11 | 893 |
+| `bourse` | Bourse | large | 9 | 520 |
+| `printingHouse` | Printing House | large | 11 | 893 |
 | `bastion` | Bastion | large | 10 | 681 |
 | `alchemicalSociety` | The Alchemical Society | large | 12 | 1169 |
 | `chartTheStars` | Chart the Stars | large | 4 | 134 |

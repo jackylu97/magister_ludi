@@ -178,6 +178,7 @@ import { buildError, settleResearchWindfall } from './tech';
 import {
   UNIT_TYPE_IDS,
   type UnitSize,
+  type UnitStamp,
   type UnitTypeId,
   isNaval,
   isUnitTypeId,
@@ -3174,6 +3175,18 @@ export interface RealiseOptions {
    * the stones exactly as a wonder's renown does.
    */
   free?: boolean;
+  /**
+   * A stamp for **this piece alone**, on top of whatever the empire's law stamps
+   * on everything — The Levée en Masse's point of movement for the levy it
+   * musters (`CardPeriodicMusterEffect.stamp`).
+   *
+   * `free`'s sibling and here for its stated reason: it cannot be derived from
+   * anything this routine can see — the piece, the town and the roster are
+   * identical either way — so it is a parameter. Handed straight to `createUnit`,
+   * which is still the one writer of `Unit.stamp`; ignored for a building, which
+   * has none.
+   */
+  stamp?: UnitStamp;
 }
 
 export interface RealisedItem {
@@ -3295,7 +3308,19 @@ export function realiseItem(
     if (grants.length > 0) realised.grants = grants;
     return realised;
   }
-  const unit = createUnit(state, city.ownerId, item.id, item.tile.col, item.tile.row);
+  // The caller's own stamp travels *into* the constructor rather than being
+  // written on afterwards, because the health a piece is born at is read off the
+  // stamp — see `createUnit`, the one writer of `Unit.stamp`. `person` is
+  // undefined here: nothing calls a great person through production.
+  const unit = createUnit(
+    state,
+    city.ownerId,
+    item.id,
+    item.tile.col,
+    item.tile.row,
+    undefined,
+    options.stamp,
+  );
   // The maintenance mark, and the *only* thing `options` is for. A gift is a
   // gift: a Levy's spearman and Camp Followers' stray cost their empire nothing
   // to keep, while a piece the queue paid for or the treasury bought goes on the

@@ -1322,16 +1322,22 @@
     },
     "theLeveeEnMasse": {
       "name": "The Levée en Masse",
-      "retired": true,
       "tier": 45,
       "line": "forge",
       "flavor": "Every hearth owes a son, and the ledger remembers which.",
-      "text": "When an enemy unit enters your borders, every city with a Barracks musters a militia unit (at most once every 10 turns).",
-      "note": "Not built: nothing in the game happens when a foreign unit crosses your border.",
-      "deferred": [
-        "cities with a Barracks muster a militia when an enemy enters your borders"
-      ],
-      "effects": []
+      "text": "Every 10 turns, a free melee unit musters in your capital. It moves one further for the rest of the game.",
+      "note": "Every hearth owes a soldier, and the ones it sends march quicker than the men they replace.",
+      "effects": [
+        {
+          "kind": "periodicMuster",
+          "every": 10,
+          "unit": "bestMelee",
+          "where": "capital",
+          "stamp": {
+            "movement": 1
+          }
+        }
+      ]
     },
     "paxMagistri": {
       "name": "Pax Magistri",
@@ -5073,17 +5079,12 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The king's peace ends where the king's road does.",
-      "text": "Your units gain +1 movement inside your own territory.",
-      "note": "The roads themselves are struck: a road step costs the same third of a point for everybody, and nothing bends that price.",
-      "deferred": [
-        "your roads carry your units further than anybody else’s"
-      ],
+      "text": "A unit that stops in one of your cities gets its movement back.",
+      "note": "The realm's towns are stages on a march: a column that reaches one is fed, remounted and out of the gate the same day.",
       "effects": [
         {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "where": "ownTerritory"
+          "kind": "rule",
+          "rule": "cityRestoresMovement"
         }
       ]
     },
@@ -5475,25 +5476,26 @@
       "line": "caravan",
       "rarity": "rare",
       "flavor": "The fleet is the frontier.",
-      "text": "Embarked units gain +1 movement · +5 defence in every coastal city.",
-      "note": "A strength line asks about the hex a fight is on and never about the piece standing on it, so the defence at sea is not built.",
-      "deferred": [
-        "+5 combat strength for embarked units"
-      ],
+      "text": "Your units come ashore from the water without spending movement, and gain +5 combat strength for 3 turns when they land.",
+      "note": "A landing is the fleet's business, and the men who make one are still the fleet's for a few days afterwards.",
       "effects": [
         {
-          "kind": "unitStat",
-          "stat": "movement",
-          "amount": 1,
-          "where": "embarked"
+          "kind": "rule",
+          "rule": "freeLanding"
         },
         {
-          "kind": "cityStat",
-          "stat": "defense",
-          "amount": 5,
-          "scope": {
-            "test": "coastal"
-          }
+          "kind": "landfall",
+          "turns": 3,
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 5,
+              "side": "both",
+              "when": {
+                "test": "always"
+              }
+            }
+          ]
         }
       ]
     },
@@ -5523,21 +5525,25 @@
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The bale is sold three times before it is unloaded.",
-      "text": "+2 gold for each trade route you run.",
-      "note": "A caravan’s line is read from the town that sent it, and nothing yet asks how big the town at the far end has grown.",
-      "deferred": [
-        "a song for every second citizen of the city the caravan is sent to"
-      ],
+      "text": "+1 culture on every trade route you run, and your trade routes pay double science and culture.",
+      "note": "The bale is sold three times before it is unloaded, and every sale is written down somewhere.",
       "effects": [
         {
-          "kind": "countScaled",
-          "count": "tradeRoutes",
-          "pays": {
-            "to": "yield",
-            "yield": "gold",
-            "amount": 2,
-            "where": "empire"
-          }
+          "kind": "routeYield",
+          "culture": 1
+        },
+        {
+          "kind": "routeYield",
+          "share": [
+            {
+              "yield": "science",
+              "percent": 100
+            },
+            {
+              "yield": "culture",
+              "percent": 100
+            }
+          ]
         }
       ]
     },
@@ -5623,22 +5629,19 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "One roof, a hundred hands, one thing made over and over.",
-      "text": "+2 production on every manufactory.",
-      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It is a line on a great person’s work that few realms ever hold.",
-      "deferred": [
-        "+1 renown per turn for each manufactory you hold"
-      ],
+      "text": "+30% production in every city with a manufactory inside its borders.",
+      "note": "One roof, a hundred hands, one thing made over and over — and the whole town builds faster for it.",
       "effects": [
         {
-          "kind": "tileYield",
-          "production": 2,
-          "on": {
-            "test": "improvement",
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 30,
+          "scope": {
+            "test": "hasImprovement",
             "improvement": "manufactory"
           }
         }
-      ],
-      "retired": true
+      ]
     },
     "theInquisition": {
       "name": "The Inquisition",

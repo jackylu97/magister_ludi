@@ -724,7 +724,16 @@ describe('the research queue field', () => {
     // the authored late columns by the same 10/13). A v90 log settles its
     // second technology on a different turn and never rejoins. (91 is batch
     // T1's, in flight beside it.)
-    expect(SCHEMA_VERSION).toBe(94);
+    // 95 since batch E4b (2026-09-08, `docs/audit/deferred-rows.md`): the ten
+    // deferred rows that needed a shape are built — a levy stamped with a point
+    // of movement for life, a town that fills a march's allowance, a free
+    // landing and three turns of strength off the boats, five buildings (the
+    // Stable, the Bourse, the Printing House un-retired, the Bank and the
+    // Cistern re-cut) and a lump of faith pressed wherever a Crusade kills. A
+    // v92 log replays only where none of those rows was ever held; where one
+    // was, a piece walks further or a citizen turns and everything priced
+    // against it moves. (93 is batch B1's and 94 batch B1b's, landed beside it.)
+    expect(SCHEMA_VERSION).toBe(95);
   });
 });
 
