@@ -83,37 +83,37 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Wolf-Mother's Pact | 🏹 | Barbarians you kill join you at full health. |
 | The Founders' Road | — | Newly founded cities are joined to your nearest city by road · +1 culture in every city. |
 | The Founders' Charter | 📜 | +2 authority capacity · newly founded cities are founded with a Monument. |
+| The Muses' Call | 🏛 | Great people may be called before the technology that opens them. Adopting this calls one great person. Great-person improvements pay +1 production. |
 
 ### Pool II (tier 10)
 
 | Doctrine | Line | Effect |
 |---|---|---|
-| Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as gold. |
-| Mountain Hold | ⚒ | +15% production in every city beside a mountain · +5 city defence there. |
+| Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as production. |
+| Mountain Hold | ⚒ | +15% production in every city with a mountain tile · +5 city defence there. |
 | The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. |
 | The Sacred Path | ⚒ | +1 faith on every forest hex · +1 culture on every jungle hex. |
 | Bread and Circuses | 🌱 | While your authority is positive: +2 happiness in every city of 6 or more population. −2 gold in every city, always. |
 | The Tithe | 🕯 | +1 gold for each faith you gain per turn. |
-| Divine Inspiration | 🕯 | +1% science and +1% culture for each 200 banked faith. |
 | The Gentle Yoke | 🌱 | −15% happiness demanded per citizen · every city costs 2 more authority. |
 | The Scattered Hearths | 🌱 | The first 2 citizens in every city demand no happiness · −4 happiness in your capital. |
-| The Horse-Tribes | ⚒ | Mounted units gain +1 movement. · †deferred |
-| The Great Warring Tribes | ⚒ | While your authority is negative: +10% production toward units. Captured cities pay +5 science and +5 culture. |
+| The Horse-Tribes | ⚒ | Mounted units gain +1 movement and +1 combat strength. |
+| The Great Warring Tribes | ⚒ | +10% production toward units. Captured cities pay +5 science and +5 culture per turn. |
 
 ### Pool III (tier 18)
 
 | Doctrine | Line | Effect |
 |---|---|---|
 | The Iron Price | ⚒ | Killing a unit grants +20 culture · pillaging pays double. |
-| Manifest of the Steppe | — | Settlers cost 40% less to train and have +2 movement · every city demands +1 happiness. |
-| The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. |
+| Manifest of the Steppe | — | Settlers cost 40% less to train and have +2 movement. |
+| The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +2 authority capacity. |
 | The Grand Bazaar | 🐫 | Happiness from unique luxuries +50%. A second or later copy of a luxury pays 30% of its bonus instead of nothing. +2 gold for each unique luxury. |
-| Master of Maps | 🧭 | All units +1 sight and +1 movement · every vein you surface and every ruin you claim pays +25 science · all units −2 combat strength. |
+| Master of Maps | 🧭 | All units +1 sight and +1 movement, all units −2 combat strength. |
 | Hegemony | ⚒ | A captured city costs 1 authority · capturing a city grants +5% production in every city for 10 turns. |
-| Pax Imperia | 🌱 | +3 happiness and +3 culture in every city of 8 or more population. |
+| Pax Imperia | 🌱 | +3 happiness and +10% culture in every city of 8 or more population. |
 | The Wandering Court | 🌱 | −15% to every yield in your capital · +3 food, production, science, culture and faith, and +3 happiness, in every city but your capital. |
-| The Pilgrim Ways | 🕯 | +2 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn. |
-| The Natural Philosophers | ✶ | +1 science in your capital for each building standing in it · completing a technology grants 20% of a turn's culture. |
+| The Pilgrim Ways | 🕯 | +3 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn. |
+| The Natural Philosophers | ✶ | +1 science in your capital for each building standing in it · completing a technology grants 50% of a turn’s culture. |
 | The Deep Delving | ⛰ | +1 production on every mine and every quarry · surfacing a vein pays +40 gold, and a mine standing on rich ore pays +2 production more. |
 
 ### Pool IV (tier 29)
@@ -148,7 +148,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 ## Orders
 
-### Chiefdom pool (12)
+### Chiefdom pool (13)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -156,16 +156,17 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Camp Followers | M | 🏹 | ◆ | S | Clearing a barbarian camp grants +25 food and a random military unit. |
 | Far Runners | M | 🧭 | ● | S | All your units gain +1 sight. Claiming a ruin grants +10 culture. |
 | The Widow's Levy | M | — | ◆ | S | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. |
+| Boatwrights | E | ⚓ | ● | P | +1 production in every coastal city. |
 | Common Granary | E | 🌱 | ● | P | +2 food in every city holding an improved luxury resource. |
 | Salt Tithes | E | 🐫 | ● | P | +3 gold for each unique luxury. |
 | Boundary Stones | E | — | ● | S | +30% border expansion in every city with a Monument. |
 | First Rites | W | 🕯 | ● | E | +1 faith in your capital, and +1 faith for each wildcard Order you have in a slot. |
 | Fire-Keepers | W | 🕯 | ● | P | +1 faith in your capital for every 2 citizens living there. |
 | The Founding Oath | W | 📜 | ○ | P | Your capital pays +1 of every yield for each building standing in it, at most 3. |
-| The Elders' Writ | E | 📜 | ● | S | +1 authority capacity. |
+| The Elders' Writ | E | 📜 | ● | S | +2 authority capacity. |
 | The Tally Sticks | E | ✶ | ● | P | +1 science in every city with a Monument. |
 
-### Government I pool (32)
+### Government I pool (33)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -201,6 +202,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Census | E | 📜 | ◆ | P | +1 authority capacity for each 2 cities you hold. |
 | The Scribes' Hall | E | ✶ | ◆ | P | +1 science in every city for each 3 citizens living there. |
 | The Lamp Kept Lit | W | ✶ | ○ | P | +25% science in your capital. |
+| Fish Weirs | E | ⚓ | ● | S | +1 food on every fishing boat. |
 
 ### Government II pool (49)
 
@@ -353,6 +355,8 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **Boundary Stones** — Border expansion is how fast a city claims its next hex, fed by that city’s own culture — separate from the culture your empire saves toward its next draft. This hurries the borders only.
 - **Fire-Keepers** — The faith is paid in your capital, so anything that raises what your capital receives raises this with it.
 - **The Founding Oath** — It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.
+- **Boatwrights** — A city counts as coastal when it stands on the water itself, not merely near it.
+- **Fish Weirs** — The hex has to carry the boats already. Open water with nothing built on it feeds no better.
 - **Conscription** — The unhappiness is a flat charge on the realm, not a charge per city: nothing can count only the cities past a fourth one.
 - **Spoils of the Wild** — It adds to Camp Followers rather than replacing it: a camp cleared under both pays both.
 - **Silk Roads** — The coin rides on the road itself, so anything that raises what a route pays raises this with it.
@@ -384,11 +388,10 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Last Laurels** — Dealt only once the last age is reached, and earned only there.
 - **The Salted Earth** — Dealt only once the last age is reached, and earned only there.
 - **The Final Proclamation** — Dealt only once the last age is reached, and earned only there.
-- **Mountain Hold** — The mountain has to stand next to the city itself. A peak further off shelters somebody else.
+- **The Muses' Call** — Renown banks from the first turn whether or not anybody answers it. This opens the door early, and opens it with somebody already through.
+- **Mountain Hold** — The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody.
 - **The Burning Way** — The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays.
-- **Divine Inspiration** — Faith income today rarely reaches 200 banked faith, so this pays little until faith yields grow.
 - **The Gentle Yoke** — The extra writ is asked of every city you hold, however long you have held it.
-- **The Horse-Tribes** — Neither struck clause is built: a strength line asks what the ground is and there is no word for open ground, and no building in the game is a stable. † mounted units gain +1 combat strength on flat ground · every stable pays +1 food
 - **The Great Warring Tribes** — The courthouse clause did nothing — there is no courthouse in the game — and is struck.
 - **Hegemony** — A city you take costs one authority — the least any law can make it.
 - **The Pilgrim Ways** — Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.

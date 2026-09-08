@@ -68,6 +68,9 @@ export const CARD_LINE_NAME: Record<AnyCardLine, string> = {
   charter: 'The Charter',
   ploughshare: 'The Ploughshare',
   highlands: 'The Highlands',
+  // The sixth of the newer threads, declared in `CardLine` from the day it had
+  // rows (B1: Boatwrights and Fish Weirs).
+  tide: 'The Tide',
 };
 
 /**
@@ -99,6 +102,7 @@ export const CARD_LINE_ACCENT: Record<AnyCardLine, string> = {
   charter: 'charter',
   ploughshare: 'ploughshare',
   highlands: 'highlands',
+  tide: 'tide',
 };
 
 /** A card's line, defaulting the way the data does: an absent thread is neutral. */

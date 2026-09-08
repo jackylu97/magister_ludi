@@ -221,6 +221,19 @@ export const CARD_LINE_MARKS: Readonly<Record<AnyCardLine, LineMark>> = {
       ink('M38 52L50 32L60 52'),
     ],
   },
+  tide: {
+    note: 'an anchor: the ring, the stock across it and the arms sweeping up',
+    paths: [
+      // An anchor rather than the wave the theme's own name suggests: a wave at
+      // emblem size is one stroke, and the stroke it most resembles is the Long
+      // Caravan's road. The anchor is the silhouette nothing else here owns,
+      // and it survives being faded the way a slot ghost has to.
+      ink(dot(32, 12, 6)),
+      ink(line(32, 18, 32, 54)),
+      ink(line(18, 26, 46, 26)),
+      ink('M12 34Q12 54 32 54Q52 54 52 34'),
+    ],
+  },
 };
 
 /**

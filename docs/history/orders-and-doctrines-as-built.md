@@ -274,6 +274,53 @@ discovery* → **claiming a ruin**, *garrisoned* → **standing in one of your
 cities**, *seals* → **locked**. Numbers are unchanged throughout; the ratified
 text in the tables above is the design record and reads in its own voice.
 
+**As built, 2026-09-08 (batch B1 — the Orders balance pass, `docs/flags.md` item
+(xx)).** The user marked the worksheet by hand; the marginalia were the rulings.
+Three new rows, one withdrawal, one deferral built, and eleven dials. Schema 93.
+
+- **The Muses' Call** — a new Pool I Doctrine, in three clauses and three shapes.
+  *Great people may be called before the technology that opens them* is one new
+  **`grantsAbility { ability }`**: the great-person gate has always been an
+  ability (`ABILITY_TECH`), and the ability union is a list of *verbs* precisely
+  so a rule can ask "may this empire do that" without knowing which node teaches
+  it — so the card joins the tree at the same door rather than bolting a clause
+  onto the one seam that reads it. `hasAbility` (`tech.ts`) is the fold and the
+  **only** reader; `renown.ts`'s gate and the renown card in the top bar were
+  both moved off `techsGrant` and onto it in this pass. *Adopting this calls one
+  great person* is **`DoctrineDef.onAdopt`**, `OrderDef.onSlot` at the
+  Doctrine's scale, settled in the reducer through `settleRenownWindfall` by the
+  same routine that settles The Laureate's gift (`payMomentGrants`). It is
+  deliberately **not** a `windfallRider` on an adoption occasion: a standing
+  rider would have paid a great person at every tier the empire ever reached,
+  four more times over a game, for a card whose printed words say one — and an
+  adoption needs no once-flag, because `settleDoctrineChoice` pushes onto a list
+  that is never spliced. *Great-person improvements pay +1 production* is an
+  ordinary `tileYield` on `TileCondition.greatWork`.
+- **Boatwrights** (chiefdom, economic, common) and **Fish Weirs** (Government I,
+  economic, common) — the first two rows of the worksheet's ⚓ **Tide** thread,
+  which was named in the themes table from the day the threads were drawn and is
+  declared in `CardLine` now that it has rows. Its mark (an anchor) and its ink
+  joined `src/art/lineMarks.ts` and `style.css` in the same pass, so the flair
+  gallery picked it up with no page edit.
+- **Divine Inspiration withdrawn** — the user: *we want to encourage faith to be
+  spent*. `retired: true`, row kept for saves, out of the tier-10 table.
+- **The Horse-Tribes' struck strength clause built** — flat +1 for the mounted
+  rather than the ratified *"on flat ground"*, which the strength ledger still
+  has no word for; the stable half is dropped rather than carried, so the row
+  keeps no dagger.
+- **The dials.** Thalassocracy converts food to **production** where it minted
+  gold · Mountain Hold reads `terrainInBorders: mountain` where it read
+  `mountainAdjacent`, so the peak may be anywhere the bounds have taken in ·
+  The Great Warring Tribes drops its `conditionRule` wrapper and the hammers
+  stand whatever the authority book says · Manifest of the Steppe drops the
+  happiness `meterRule`, which leaves `cityHappinessDemand` a rule with no live
+  row · The Gilded Court gains **+2 authority capacity**, the writ the Æra III
+  fork had taken off it · Master of Maps drops both science `windfallRider`s and
+  is the eyes and the legs again, bought with the strength · Pax Imperia's flat
+  +3 culture becomes **+10%**, scoped as before · The Pilgrim Ways pays **3**
+  faith a congregation · The Natural Philosophers pays **half** a turn of
+  culture a technology · The Elders' Writ seats **two**.
+
 ## The ruling they were written under
 
 RULING (2026-09-04): orders are never upgraded. A card is what it prints, held once; a draft

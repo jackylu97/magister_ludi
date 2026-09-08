@@ -168,8 +168,8 @@ import {
   unitUpkeepTotal,
 } from '../../src/sim/upkeep';
 import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
-import { buildError, isUnlocked } from '../../src/sim/tech';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
+import { buildError, hasAbility, isUnlocked } from '../../src/sim/tech';
+import { ABILITY_TECH, TECH_IDS, techDef } from '../../src/sim/techData';
 import {
   explainEmpireGold,
   explainRouteSlots,
@@ -186,7 +186,13 @@ import {
   createUnit,
   playerById,
 } from '../../src/sim/state';
-import { explainCityRenown, explainRenown, foldRenown } from '../../src/sim/renown';
+import {
+  explainCityRenown,
+  explainRenown,
+  foldRenown,
+  renownThreshold,
+  settleRenownWindfall,
+} from '../../src/sim/renown';
 import { unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { sightOf } from '../../src/sim/visibility';
@@ -402,6 +408,10 @@ describe('the card table', () => {
       // being dealt paying nothing (`docs/audit/dead-code.md` §1.5). One shape
       // lights all four, and it is in this register the moment it is declared.
       'beadPerOccasion',
+      // Batch B1's one new shape: a card handing over a verb the tree teaches.
+      // The Muses' Call is the row, `hasAbility` is the reader, and the pin that
+      // there is only one reader is in this file's B1 block at the foot.
+      'grantsAbility',
     ];
     for (const kind of expected) expect(used.has(kind), kind).toBe(true);
   });
@@ -1297,7 +1307,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(92);
+    expect(SCHEMA_VERSION).toBe(93);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2575,6 +2585,9 @@ describe('the master-list cut of 2026-08-28', () => {
       // of the breakdown the hex has already been reckoned to pay. The Æra III
       // fork (2026-09-05) dropped the writ altogether: two clauses, one identity.
       '+1 science, +1 culture on every hex that yields gold',
+      // B1 gave the writ back, at twice what it was: the court seats more of
+      // the realm, which is what a court is for.
+      '+2 authority capacity',
     ]);
     // The pillage heal was Scorched Earth's all along, and the balance pass of
     // 2026-08-31 gave the second half back to the doc's own sentence — which the
@@ -3114,11 +3127,9 @@ describe('the master-list cut of 2026-08-28, second pass', () => {
     expect(said('masterOfMaps')).toEqual([
       'all units: +1 sight',
       'all units: +1 movement',
-      // The Æra III fork (2026-09-05) made this the Geomancy row: the eyes and
-      // the legs stay, the strength stays as the trade, and what a surveyor
-      // *finds* is now worth something.
-      'surfacing a vein grants +25 science',
-      'claiming a ruin grants +25 science',
+      // The Æra III fork (2026-09-05) made this the Geomancy row and B1 took
+      // that back out: the two science riders are gone and the card is the eyes
+      // and the legs again, bought with the strength.
       // Flat points on the one ledger (Entry XXXVII), where it used to be the
       // only percentage a card put on a strength.
       '-2 combat strength',
@@ -3719,9 +3730,12 @@ describe('the balance pass of 2026-08-31', () => {
 
   it('prints every changed and new row in the words the doc ratified', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    // B1 moved the peak from the ring of six to the borders (the user's mark:
+    // "every city with a mountain tile"), so both clauses read the same scope
+    // one grade wider.
     expect(said('mountainHold')).toEqual([
-      '+15% production in every city beside a mountain',
-      'every city beside a mountain: +5 city defence',
+      '+15% production in every city with a mountain hex inside its borders',
+      'every city with a mountain hex inside its borders: +5 city defence',
     ]);
     // Re-aimed by the synergy pass of 2026-09-05: the row reads the council's
     // wildcards now, and the reader is the card's second clause.
@@ -4581,20 +4595,22 @@ describe("the user's card pass of 2026-09-03", () => {
     const lines = cardYieldConversions(g.state, city, flats);
     expect(lines).toHaveLength(1);
     expect(lines[0]!.source).toContain('Thalassocracy');
-    expect(lines[0]!.source).toContain('food → gold');
-    expect(lines[0]!.gold).toBe(flats.food / 10);
+    // B1 turned the conversion to hammers (the user's mark): the shape and the
+    // share are what they were, and only the voice paid moved.
+    expect(lines[0]!.source).toContain('food → production');
+    expect(lines[0]!.production).toBe(flats.food / 10);
     // **Per city**, on that town's own share, and exact since batch X — a tenth
     // of nine is nine tenths of a coin and the treasury keeps it. Only a town
     // making nothing at all is not a line.
-    expect(cardYieldConversions(g.state, city, { ...flats, food: 9 })[0]!.gold).toBe(0.9);
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 9 })[0]!.production).toBe(0.9);
     expect(cardYieldConversions(g.state, city, { ...flats, food: 0 })).toEqual([]);
-    expect(cardYieldConversions(g.state, city, { ...flats, food: 10 })[0]!.gold).toBe(1);
+    expect(cardYieldConversions(g.state, city, { ...flats, food: 10 })[0]!.production).toBe(1);
 
     // And it is really in the fold the panel prints: the flats the town is
     // staged from carry the coin, and the harvest it was read off is untouched.
     const after = explainCity(g.state, city).flats;
     expect(after.food).toBe(flats.food);
-    expect(after.gold).toBe(flats.gold + flats.food / 10);
+    expect(after.production).toBe(flats.production + flats.food / 10);
   });
 
   it('yieldConversion — the scope is the whole of it: an inland town mints nothing', () => {
@@ -4612,7 +4628,7 @@ describe("the user's card pass of 2026-09-03", () => {
     const flats = explainCity(g.state, city).flats;
     expect(flats.food).toBeGreaterThanOrEqual(10);
     expect(cardYieldConversions(g.state, city, flats)).toEqual([]);
-    expect(explainCity(g.state, city).flats.gold).toBe(flats.gold);
+    expect(explainCity(g.state, city).flats.production).toBe(flats.production);
   });
 
   it('atPopulation — First Fruits pays for the first citizen and for no other', () => {
@@ -4713,8 +4729,9 @@ describe("the user's card pass of 2026-09-03", () => {
 
   it('prints every changed and new row in the words the user ratified', () => {
     const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+    // B1 turned the tenth into hammers; the sentence is the shape's, unchanged.
     expect(said('thalassocracy')).toEqual([
-      '10% of the food in every coastal city is gained again as gold',
+      '10% of the food in every coastal city is gained again as production',
     ]);
     expect(said('theSacredPath')).toEqual([
       '+1 faith on every forest hex',
@@ -5550,10 +5567,11 @@ describe('the cards pass of 2026-09-05', () => {
     expect(said('theGuildCompact')).toEqual([
       "+3% production per production building in this city (at most +15% production)",
     ]);
+    // B1 built the struck strength clause — flat rather than by ground, which
+    // is what the strength ledger can say — and dropped the stable with it.
     expect(said('theHorseTribes')).toEqual([
       'mounted units: +1 movement',
-      'mounted units gain +1 combat strength on flat ground — not built yet',
-      'every stable pays +1 food — not built yet',
+      '+1 combat strength for mounted units',
     ]);
     // **The deferred half became the card** (the user's ruling of 2026-09-06):
     // the levy is a coin on each soldier now rather than a share of the payroll,
@@ -5749,19 +5767,28 @@ describe('the Æra III fork of 2026-09-05', () => {
     expect(salvage.grants).toEqual([]);
   });
 
-  it('The Gilded Court — two clauses, one identity: the writ is gone', () => {
+  /**
+   * **The writ came back at twice what it was** (B1, the user's mark: *"+2
+   * authority"*). The Æra III fork had cut it to two clauses and one identity;
+   * the balance pass decided a court is a thing that seats a realm, and this
+   * pins the meter rather than the row's shape — the reading a player takes.
+   */
+  it('The Gilded Court — the writ is back, and it is two', () => {
     const g = game(906);
     found(g.state, 0);
     const before = foldMeter(explainAuthority(g.state, 0));
     playerById(g.state, 0)!.statecraft.doctrines.push('gildedCourt' as never);
     bumpRevision(g.state);
-    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before);
-    expect(
-      doctrineDef('gildedCourt').effects.some((effect) => effect.kind === 'authority'),
-    ).toBe(false);
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 2);
   });
 
-  it('Master of Maps — the Geomancy row pays for what a survey finds', () => {
+  /**
+   * **The Geomancy riders are gone** (B1): Master of Maps is the eyes and the
+   * legs, bought with the strength, and nothing on it pays for what a surveyor
+   * finds. Pinned as a silence rather than deleted, because the row's identity
+   * is what the pass changed.
+   */
+  it('Master of Maps — the science riders are off the row', () => {
     const g = game(907);
     found(g.state, 0);
     playerById(g.state, 0)!.statecraft.doctrines.push('masterOfMaps' as never);
@@ -5770,18 +5797,24 @@ describe('the Æra III fork of 2026-09-05', () => {
       windfallPayout(g.state, 0, occasion).grants
         .filter((grant) => grant.yield === 'science')
         .reduce((sum, grant) => sum + grant.amount, 0);
-    expect(beakers('veinFound')).toBe(25);
-    expect(beakers('discovery')).toBe(25);
-    // **The asking pays nothing**: `prospect` is the survey, strike or barren,
-    // and the row is written on the answer.
+    expect(beakers('veinFound')).toBe(0);
+    expect(beakers('discovery')).toBe(0);
     expect(beakers('prospect')).toBe(0);
+    expect(
+      doctrineDef('masterOfMaps').effects.some((effect) => effect.kind === 'windfallRider'),
+    ).toBe(false);
   });
 
+  /**
+   * The occasion itself, read off **The Deep Delving** since B1 took Master of
+   * Maps' rider away: the vehicle changed, the rule under test did not — the
+   * strike fires from the survey, and only on a strike.
+   */
   it('veinFound — the strike is fired from the survey, and only on a strike', () => {
     const g = game(908);
     found(g.state, 0);
     const player = playerById(g.state, 0)!;
-    player.statecraft.doctrines.push('masterOfMaps' as never);
+    player.statecraft.doctrines.push('theDeepDelving' as never);
     bumpRevision(g.state);
     const hill = (col: number, row: number, seam: boolean) => {
       const tile = getTileAt(g.state.map, col, row)!;
@@ -5794,13 +5827,15 @@ describe('the Æra III fork of 2026-09-05', () => {
     };
 
     // A barren hill: the assay is paid, the strike never happens, and the
-    // Geomancy line is not on the report.
+    // Delving's line is not on the report. The survey's own assay *is* gold, so
+    // the reading is the difference the strike makes and not the bank itself.
     const barren = hill(2, 2, false);
     const empty = createUnit(g.state, 0, 'worker', 2, 2);
-    const before = player.sciencePool;
+    const before = player.gold;
     const dry = prospectAt(g.state, empty, barren);
     expect(dry.struck).toBeNull();
-    expect(player.sciencePool).toBe(before);
+    expect(dry.lines.some((line) => line.card === 'theDeepDelving')).toBe(false);
+    const afterDry = player.gold;
 
     // A seam: the ore surfaces and the occasion fires, into the empire's own
     // bank through the one grant routine.
@@ -5809,8 +5844,9 @@ describe('the Æra III fork of 2026-09-05', () => {
     const report = prospectAt(g.state, digger, struck);
     expect(report.struck).toBe('richOre');
     expect(struck.resource).toBe('richOre');
-    expect(player.sciencePool - before).toBe(25);
-    expect(report.lines.some((line) => line.card === 'masterOfMaps')).toBe(true);
+    // The same assay both times, plus the forty the strike is worth.
+    expect(player.gold - afterDry).toBe(afterDry - before + 40);
+    expect(report.lines.some((line) => line.card === 'theDeepDelving')).toBe(true);
   });
 
   it('Hegemony — the user’s rewrite: a cheap conquest, and ten turns of forges', () => {
@@ -5857,12 +5893,13 @@ describe('the Æra III fork of 2026-09-05', () => {
     expect(paid('faith')).toBe(0);
     const religion = foundReligion(g.state, playerById(g.state, 0)!);
     city.followers = { [religion.id]: city.population };
-    expect(paid('faith')).toBe(2);
+    // B1 raised the congregation from two faith to three.
+    expect(paid('faith')).toBe(3);
     expect(paid('culture')).toBe(0);
     // The tide, counted where it has reached: a foreign town that keeps your
     // faith pays the culture clause as well as the faith one.
     theirs.followers = { [religion.id]: theirs.population };
-    expect(paid('faith')).toBe(4);
+    expect(paid('faith')).toBe(6);
     expect(paid('culture')).toBe(1);
     // And the conversion Divine Mandate gave up, read off the turn's rate.
     expect(paid('culture', { faithPerTurn: 20 })).toBe(1 + 4);
@@ -5901,7 +5938,8 @@ describe('the Æra III fork of 2026-09-05', () => {
         card: 'theNaturalPhilosophers',
         source: 'Doctrine · The Natural Philosophers',
         yield: 'culture',
-        amount: rate * 0.2,
+        // B1: half a turn of culture a technology, where it was a fifth.
+        amount: rate * 0.5,
       },
     ]);
     // The occasion is the whole of the gate.
@@ -5975,13 +6013,13 @@ describe('the Æra III fork of 2026-09-05', () => {
       'capturing a city grants +5% production in every city for 10 turns',
     ]);
     expect(said('thePilgrimWays')).toEqual([
-      '+2 faith per city that follows you',
+      '+3 faith per city that follows you',
       '+1 culture per foreign city that follows you',
       '+1 culture per 5 faith gained per turn',
     ]);
     expect(said('theNaturalPhilosophers')).toEqual([
       '+1 science in your capital per building in this city',
-      "completing a technology grants 20% of a turn's culture",
+      "completing a technology grants 50% of a turn's culture",
     ]);
     expect(said('theDeepDelving')).toEqual([
       '+1 production on every hex with a Mine',
@@ -7680,5 +7718,283 @@ describe('terrainBeside — the third ring in the family', () => {
       test: 'terrainBeside',
       terrain: 'desert',
     });
+  });
+});
+
+/**
+ * **The Orders balance pass** — batch B1, `docs/flags.md` item (xx), the user's
+ * marks on `docs/orders-and-doctrines.md` of 2026-09-08.
+ *
+ * Fifteen rows moved and three are new. What is pinned here is what the *pass
+ * decided*: the shape it added, the three clauses of the row that needed one,
+ * and the reading of every dial the user turned. The rows whose printed words
+ * moved are pinned in the passes that first ratified them, one block up — a
+ * sentence has one home in this file — so what follows is the arithmetic.
+ */
+describe('the Orders balance pass of 2026-09-08', () => {
+  const said = (id: string): string[] => describeCard(id as never).map((c) => stripRefs(c.text));
+
+  /**
+   * **The shape, and the one reader** (`CardGrantsAbilityEffect`).
+   *
+   * A card may open a door a technology opens, and the fold of the two answers
+   * is `hasAbility` — so a seam that gated on `techsGrant` directly would be a
+   * gate the cards cannot open. The register is a source read, which is the
+   * only way to say "and nowhere else": `renown.ts` and the renown card in the
+   * top bar were both moved onto `hasAbility` by this pass.
+   */
+  it('grantsAbility — hasAbility is the fold, and the seams come through it', () => {
+    const sources = import.meta.glob(
+      ['../../src/sim/*.ts', '../../src/sim/*/*.ts', '../../src/ui/topBar.ts'],
+      { eager: true, query: '?raw', import: 'default' },
+    ) as Record<string, string>;
+
+    // One reader of the evaluator's clause, and it is `tech.ts`.
+    const readers = Object.entries(sources).filter(
+      ([path, text]) =>
+        !path.endsWith('/statecraft.ts') &&
+        !path.endsWith('/statecraft/evaluator.ts') &&
+        text.includes('cardGrantsAbility'),
+    );
+    expect(readers.map(([path]) => path)).toEqual(['../../src/sim/tech.ts']);
+
+    // And the great-person gate is asked through the fold rather than of the
+    // tree — in the settlement and on the card that explains the closed door.
+    expect(sources['../../src/sim/renown.ts']).toContain(
+      "hasAbility(state, player.id, 'ancestorRites')",
+    );
+    expect(sources['../../src/sim/renown.ts']).not.toContain('techsGrant(');
+    expect(sources['../../src/ui/topBar.ts']).toContain(
+      "hasAbility(state, playerId, 'ancestorRites')",
+    );
+  });
+
+  /**
+   * **The Muses' Call, clause by clause.** Three sentences on one row, and each
+   * is a different kind of thing: a door, a moment, and a line on the ground.
+   */
+  it("The Muses' Call — the door opens before the tree does", () => {
+    const g = game(931);
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    const gate = ABILITY_TECH.get('ancestorRites')!;
+    expect(player.techsResearched).not.toContain(gate);
+    expect(hasAbility(g.state, 0, 'ancestorRites')).toBe(false);
+
+    player.statecraft.doctrines.push('musesCall' as never);
+    bumpRevision(g.state);
+    expect(hasAbility(g.state, 0, 'ancestorRites')).toBe(true);
+    // The verb, and only that verb: a card grants what it names.
+    expect(hasAbility(g.state, 0, 'embark')).toBe(false);
+    // The tree is untouched — the card opens a door, it does not teach a node.
+    expect(player.techsResearched).not.toContain(gate);
+  });
+
+  it("The Muses' Call — renown banked behind the closed door is answered at once", () => {
+    const g = game(932);
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+
+    // The pool fills whatever the gate says (the tree pass of 2026-08-30), so a
+    // realm that opens the door late finds a great person waiting.
+    settleRenownWindfall(g.state, player, [{ family: null, amount: renownThreshold(player) }]);
+    expect(player.greatPersonOffer).toBeUndefined();
+
+    player.statecraft.doctrines.push('musesCall' as never);
+    bumpRevision(g.state);
+    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: 0 }])).not.toBeNull();
+    expect(player.greatPersonOffer).toBeDefined();
+  });
+
+  /**
+   * **Adopting it calls one great person** — an `onAdopt` grant, fired by the
+   * verb that takes the card, and deliberately *not* a `windfallRider` on an
+   * adoption occasion: a standing rider would have paid again at every tier the
+   * empire ever reached. So the count is what the test is about.
+   */
+  it("The Muses' Call — the adoption calls one great person, and only one", () => {
+    const g = game(933);
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    expect(player.renownPool).toBe(0);
+    expect(player.greatPersonOffer).toBeUndefined();
+
+    player.statecraft.pendingDoctrine = { options: ['musesCall' as never] };
+    bumpRevision(g.state);
+    expect(
+      applyCommand(g.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok,
+    ).toBe(true);
+    expect(player.statecraft.doctrines).toContain('musesCall');
+    // The offer is open — the ladder was poured exactly what it still wanted,
+    // through the one seam renown is ever added at.
+    expect(player.greatPersonOffer).toBeDefined();
+
+    // And a **second** Doctrine adopted later calls nobody: the grant is the
+    // card's own moment, not a standing reading of "a Doctrine was adopted".
+    delete player.greatPersonOffer;
+    player.renownPool = 0;
+    player.statecraft.pendingDoctrine = { options: ['hermitCrown' as never] };
+    bumpRevision(g.state);
+    expect(
+      applyCommand(g.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 }).ok,
+    ).toBe(true);
+    expect(player.greatPersonOffer).toBeUndefined();
+    expect(player.renownPool).toBe(0);
+  });
+
+  it("The Muses' Call — a great person's work pays a hammer more", () => {
+    const g = game(934);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('musesCall' as never);
+    bumpRevision(g.state);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    const ours = (): number =>
+      explainTileYield(tile, yieldContextFor(g.state, 0))
+        .filter((line) => line.source.includes('Muses'))
+        .reduce((sum, line) => sum + (line.production ?? 0), 0);
+
+    expect(ours()).toBe(0);
+    // An ordinary improvement is not a work — the condition reads the
+    // improvement table's own marker, never a list of five names.
+    tile.improvement = 'farm';
+    expect(ours()).toBe(0);
+    tile.improvement = 'academy';
+    expect(ours()).toBe(1);
+    tile.improvement = 'citadel';
+    expect(ours()).toBe(1);
+  });
+
+  it("The Muses' Call — prints its two standing clauses", () => {
+    expect(said('musesCall')).toEqual([
+      'renown now earns great-person offers without waiting for ' +
+        techDef(ABILITY_TECH.get('ancestorRites')!).name,
+      "+1 production on every hex carrying a great person's work",
+    ]);
+    // The adoption's gift is a *field* and not a `CardEffect`, so it is not a
+    // clause — the row's own `text` is where a player reads it, exactly as The
+    // Laureate's slot grant is.
+    expect(doctrineDef('musesCall').onAdopt).toEqual([{ grant: 'greatPerson' }]);
+    expect(doctrineDef('musesCall').text).toContain('calls one great person');
+  });
+
+  /** **Boatwrights** — the chiefdom's coastal hammer, and the first Tide row. */
+  it('Boatwrights — a hammer in every coastal town and nowhere else', () => {
+    const g = game(941);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'boatwrights' as never);
+    const ours = (target: City): number =>
+      explainCardCityYields(g.state, target)
+        .filter((line) => line.card === 'boatwrights')
+        .reduce((sum, line) => sum + line.production, 0);
+    expect(cityScopeAdmits(g.state, city, { test: 'coastal' })).toBe(true);
+    expect(ours(city)).toBe(1);
+
+    // Seed 905's capital is inland on this board — the same bench the
+    // Thalassocracy scope test stands on, and asserted for the same reason.
+    const inland = game(905);
+    const dry = found(inland.state, 0);
+    slot(inland.state, 0, 'boatwrights' as never);
+    expect(cityScopeAdmits(inland.state, dry, { test: 'coastal' })).toBe(false);
+    expect(
+      explainCardCityYields(inland.state, dry).filter((line) => line.card === 'boatwrights'),
+    ).toEqual([]);
+  });
+
+  /** **Fish Weirs** — Government I's food, read off the works on the water. */
+  it('Fish Weirs — the boats feed better, and open water does not', () => {
+    const g = game(936);
+    const city = found(g.state, 0);
+    slot(g.state, 0, 'fishWeirs' as never);
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    const ours = (): number =>
+      explainTileYield(tile, yieldContextFor(g.state, 0))
+        .filter((line) => line.source.includes('Fish Weirs'))
+        .reduce((sum, line) => sum + (line.food ?? 0), 0);
+    delete tile.improvement;
+    expect(ours()).toBe(0);
+    tile.improvement = 'farm';
+    expect(ours()).toBe(0);
+    tile.improvement = 'fishingBoats';
+    expect(ours()).toBe(1);
+  });
+
+  it('the two new Orders print what their rows say, in the Tide', () => {
+    expect(said('boatwrights')).toEqual(['+1 production in every coastal city']);
+    expect(said('fishWeirs')).toEqual(['+1 food on every hex with a Fishing Boat']);
+    expect(orderDef('boatwrights' as never).line).toBe('tide');
+    expect(orderDef('fishWeirs' as never).line).toBe('tide');
+    expect(orderDef('boatwrights' as never).pool).toBe('chiefdom');
+    expect(orderDef('fishWeirs' as never).pool).toBe('governmentI');
+    // Both are dealt: a row in the data and out of the bag would be a card
+    // nobody can ever hold.
+    expect(poolOrders('chiefdom').includes('boatwrights' as never)).toBe(true);
+    expect(poolOrders('governmentI').includes('fishWeirs' as never)).toBe(true);
+  });
+
+  it("The Elders' Writ seats two", () => {
+    const g = game(937);
+    found(g.state, 0);
+    const before = foldMeter(explainAuthority(g.state, 0));
+    slot(g.state, 0, 'theEldersWrit');
+    expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 2);
+  });
+
+  it('The Great Warring Tribes — the hammers stand without the authority gate', () => {
+    const g = game(938);
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.statecraft.doctrines.push('greatWarringTribes' as never);
+    bumpRevision(g.state);
+    // Authority is positive on a fresh empire, which is precisely the state the
+    // old `conditionRule` shut the card off in.
+    expect(foldMeter(explainAuthority(g.state, 0))).toBeGreaterThan(0);
+    const behind = cardProduction(g.state, city, 'unit', 'warrior' as never);
+    expect(behind).toHaveLength(1);
+    expect(behind[0]!.percent).toBe(10);
+    expect(
+      doctrineDef('greatWarringTribes').effects.some((effect) => effect.kind === 'conditionRule'),
+    ).toBe(false);
+  });
+
+  it('Manifest of the Steppe — the happiness bill is dropped', () => {
+    const g = game(939);
+    found(g.state, 0);
+    const before = foldMeter(explainHappiness(g.state, 0));
+    playerById(g.state, 0)!.statecraft.doctrines.push('manifestOfTheSteppe' as never);
+    bumpRevision(g.state);
+    expect(foldMeter(explainHappiness(g.state, 0))).toBe(before);
+    expect(
+      doctrineDef('manifestOfTheSteppe').effects.some((effect) => effect.kind === 'meterRule'),
+    ).toBe(false);
+  });
+
+  it('Pax Imperia — the culture is a share of a great city now', () => {
+    const g = game(940);
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.statecraft.doctrines.push('paxImperia' as never);
+    bumpRevision(g.state);
+    const share = (target: City): number =>
+      explainCardPercentYields(g.state, target)
+        .filter((line) => line.card === 'paxImperia' && line.yield === 'culture')
+        .reduce((sum, line) => sum + line.percent, 0);
+    city.population = 4;
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(share(city)).toBe(0);
+    city.population = 8;
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(share(city)).toBe(10);
+    // And nothing flat is left on the row: the +3 became the percentage.
+    expect(
+      explainCardCityYields(g.state, city).filter((line) => line.card === 'paxImperia'),
+    ).toEqual([]);
+  });
+
+  it('Divine Inspiration leaves the bag and keeps its row', () => {
+    expect(doctrineDef('divineInspiration').retired).toBe(true);
+    expect(poolDoctrines(10).includes('divineInspiration' as never)).toBe(false);
+    // The row still reads, so a save that holds it still loads and still pays.
+    expect(said('divineInspiration').length).toBeGreaterThan(0);
   });
 });

@@ -140,7 +140,14 @@ import {
 import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
 import { beadCapEffects } from '../beads';
-import { UNIT_UNLOCK_TECH, eraNumeral, highestAge, isTechId, techDef } from '../techData';
+import {
+  type AbilityId,
+  UNIT_UNLOCK_TECH,
+  eraNumeral,
+  highestAge,
+  isTechId,
+  techDef,
+} from '../techData';
 import {
   type ModelClass,
   type UnitStamp,
@@ -435,7 +442,7 @@ function liveReading(state: GameState, playerId: number): LiveReading {
  * once when it is finished, a phase once when it is done, and nothing else is
  * asked in between. This is the register of the places where that is not true —
  * where the simulation changes the law it is about to read in the same call —
- * and there is exactly one:
+ * and there are four:
  *
  *   · **`realiseItem` (`cities.ts`) putting a building in a town.** The stones
  *     go up *before* the row's completion grants are asked for, deliberately
@@ -443,6 +450,14 @@ function liveReading(state: GameState, playerId: number): LiveReading {
  *     now stands), and a wonder is the fifth source of this walk — so Stonehenge
  *     opening a place in the pantheon is the law reading a building raised three
  *     lines above it.
+ *   · **`applyChooseDoctrine`, `applySlotOrder`, `applyAdoptGovernment`
+ *     (`commands.ts`)** — a Doctrine taken, an Order slotted, a government
+ *     adopted, each a source of this walk, each followed in the same command by
+ *     a grant whose settlement reads it (`payMomentGrants` →
+ *     `settleRenownWindfall` → `hasAbility`, which asks the cards since batch
+ *     B1). Found by the replay test: a slate warmed before the command — by the
+ *     bot's appraisal in the live game and by nobody in the replay — answered
+ *     for the law as it was, and the two boards parted.
  *
  * It drops the slate rather than raising `GameState.revision` for one reason and
  * it is not taste: the revision is a **serialised field**, in every save hash
@@ -4977,6 +4992,28 @@ export function cardUnlocksBuilding(
 ): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'unlocksBuilding')) {
     if (effect.building === building) return true;
+  }
+  return false;
+}
+
+/**
+ * Does one of this empire's cards hand over this **verb**? The Muses' Call's
+ * one clause.
+ *
+ * `cardUnlocksBuilding`'s sibling in every respect, one register over: that one
+ * is asked by `isUnlocked` for a shelf and this one by `hasAbility` (`tech.ts`)
+ * for a verb, so a door has one answer whether it was the tree that opened it
+ * or the empire's own law. `CardGrantsAbilityEffect`'s docblock is where the
+ * design reason lives; `hasAbility` is the one reader of this function, exactly
+ * as `isUnlocked` is the one reader of that one.
+ */
+export function cardGrantsAbility(
+  state: GameState,
+  playerId: number,
+  ability: AbilityId,
+): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'grantsAbility')) {
+    if (effect.ability === ability) return true;
   }
   return false;
 }

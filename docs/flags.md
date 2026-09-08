@@ -449,7 +449,15 @@ directly to confirm rulings — user marginalia are rulings.
   The Natural Philosophers 50%; two new Orders (Boatwrights: +1
   production in coastal cities, chiefdom pool; Fish Weirs: +1 food on
   fishing boats, Government I pool — names, slots and rarities the
-  orchestrator's), The Elders' Writ +2. Batch **B1** (schema 93). (yy)
+  orchestrator's), The Elders' Writ +2. Batch **B1** (schema 93) —
+  **built**: one new shape (`grantsAbility`, folded into `hasAbility`,
+  which is its only reader) and one new field (`DoctrineDef.onAdopt`,
+  `OrderDef.onSlot` at the Doctrine's scale — a `windfallRider` on an
+  adoption occasion would have called a great person at every tier the
+  empire reached), plus the ⚓ Tide line declared in `CardLine` with its
+  mark and its ink, since the two new Orders are its first rows. The
+  pass is written up in
+  `docs/history/orders-and-doctrines-as-built.md`. (yy)
   **The beliefs worksheet** (the user, 2026-09-08: "draft a current copy
   of all the possible religious beliefs, i'd like to make some edits"):
   `docs/beliefs.md`, tables only from `data/religion.json` (pantheon,

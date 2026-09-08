@@ -943,7 +943,7 @@ describe('a captured city, end to end', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(92);
+    expect(SCHEMA_VERSION).toBe(93);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -1056,13 +1056,15 @@ describe('what founding a city here would cost', () => {
     );
     expect(legislated).toBeGreaterThan(printed);
 
-    // And the happiness half's card, which is a surcharge on governing one more
-    // town at all — its own line, outside the demand factor.
-    playerById(state, 0)!.statecraft.doctrines.push('manifestOfTheSteppe');
-    bumpRevision(state);
+    // The happiness half is **read from no live card since batch B1**, which
+    // took Manifest of the Steppe's "+1 happiness demanded per city" away (the
+    // user's mark on the worksheet). `cityHappinessDemand` is still the rule and
+    // `cardMeterRule` still the one reading of it, so what is pinned now is the
+    // preview's own shape: one happiness line and no surcharge beside it, which
+    // is exactly what an empire under no such law should be shown.
     const happiness = foundingCostLines(explainFoundingCost(state, 0, site), 'happiness');
-    expect(happiness).toHaveLength(2);
-    expect(lineFor(happiness, 'cost of governing')).toBeLessThan(0);
+    expect(happiness).toHaveLength(1);
+    expect(lineFor(happiness, 'cost of governing')).toBeUndefined();
   });
 
   it('prices a hill town by Hill Forts, in the meter and in the preview alike', () => {

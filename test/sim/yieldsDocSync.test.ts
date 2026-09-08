@@ -263,6 +263,9 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'combatLine',
     'conditionRule',
     'effectAmplifier',
+    // A door, not a yield (batch B1): a card opening an ability a technology
+    // opens. Read by `hasAbility` alone.
+    'grantsAbility',
     'happiness',
     'happinessTierBoost',
     'metaRule',

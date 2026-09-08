@@ -85,6 +85,11 @@
   --line-ploughshare: #8a9a2a;
   --line-highlands: #5d7566;
 
+  /* The Tide, added with its first two rows (B1). A deep sea-blue, spaced off
+     the Star Chart's lapis and the Wayfarers' teal rather than borrowed from
+     either: the sea is not knowledge and it is not distance. */
+  --line-tide: #2e6b8f;
+
   /* --- yield voices ----------------------------------------------------- */
   --y-food: #3f9636;
   --y-prod: #c26a1d;
@@ -333,6 +338,10 @@ body {
 
 [data-line='highlands'] {
   --line-ink: var(--line-highlands);
+}
+
+[data-line='tide'] {
+  --line-ink: var(--line-tide);
 }
 
 /* A mark that *leads* a figure (`⚙ +10%`, the modifier voice) wants its air on

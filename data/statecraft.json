@@ -611,21 +611,13 @@
       "tier": 10,
       "line": "forge",
       "flavor": "No writ runs faster than a horse.",
-      "text": "While your authority is negative: +10% production toward units. Captured cities pay +5 science and +5 culture.",
+      "text": "+10% production toward units. Captured cities pay +5 science and +5 culture per turn.",
       "note": "The courthouse clause did nothing — there is no courthouse in the game — and is struck.",
       "effects": [
         {
-          "kind": "conditionRule",
-          "when": {
-            "test": "authorityNegative"
-          },
-          "then": [
-            {
-              "kind": "productionBonus",
-              "category": "unit",
-              "percent": 10
-            }
-          ]
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": 10
         },
         {
           "kind": "cityYields",
@@ -699,17 +691,43 @@
         }
       ]
     },
+    "musesCall": {
+      "name": "The Muses' Call",
+      "tier": 4,
+      "line": "court",
+      "flavor": "The nine came before the schools did, and were not asked for papers.",
+      "text": "Great people may be called before the technology that opens them. Adopting this calls one great person. Great-person improvements pay +1 production.",
+      "note": "Renown banks from the first turn whether or not anybody answers it. This opens the door early, and opens it with somebody already through.",
+      "effects": [
+        {
+          "kind": "grantsAbility",
+          "ability": "ancestorRites"
+        },
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "greatWork"
+          },
+          "production": 1
+        }
+      ],
+      "onAdopt": [
+        {
+          "grant": "greatPerson"
+        }
+      ]
+    },
     "thalassocracy": {
       "name": "Thalassocracy",
       "tier": 10,
       "line": "caravan",
       "flavor": "Our borders are wherever the tide reaches.",
-      "text": "Coastal cities gain 10% of their food yield as gold.",
+      "text": "Coastal cities gain 10% of their food yield as production.",
       "effects": [
         {
           "kind": "yieldConversion",
           "from": "food",
-          "to": "gold",
+          "to": "production",
           "percent": 10,
           "scope": {
             "test": "coastal"
@@ -722,14 +740,15 @@
       "tier": 10,
       "line": "forge",
       "flavor": "The peaks are a wall nobody had to build.",
-      "text": "+15% production in every city beside a mountain · +5 city defence there.",
+      "text": "+15% production in every city with a mountain tile · +5 city defence there.",
       "effects": [
         {
           "kind": "percentYields",
           "yield": "production",
           "percent": 15,
           "scope": {
-            "test": "mountainAdjacent"
+            "test": "terrainInBorders",
+            "terrain": "mountain"
           }
         },
         {
@@ -737,11 +756,12 @@
           "stat": "defense",
           "amount": 5,
           "scope": {
-            "test": "mountainAdjacent"
+            "test": "terrainInBorders",
+            "terrain": "mountain"
           }
         }
       ],
-      "note": "The mountain has to stand next to the city itself. A peak further off shelters somebody else."
+      "note": "The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody."
     },
     "theSacredPath": {
       "name": "The Sacred Path",
@@ -838,7 +858,6 @@
       "line": "procession",
       "flavor": "Prayer, given long enough, thinks.",
       "text": "+1% science and +1% culture for each 200 banked faith.",
-      "note": "Faith income today rarely reaches 200 banked faith, so this pays little until faith yields grow.",
       "effects": [
         {
           "kind": "countScaled",
@@ -862,7 +881,9 @@
             "stage": "empire"
           }
         }
-      ]
+      ],
+      "retired": true,
+      "note": "Retired: this Doctrine is no longer offered in a draft. A saved game that already holds it keeps it. Banked faith is meant to be spent, and a card that paid for hoarding it argued the other way."
     },
     "ironPrice": {
       "name": "The Iron Price",
@@ -891,7 +912,7 @@
       "tier": 18,
       "line": "none",
       "flavor": "There is always more land. There is never enough rest.",
-      "text": "Settlers cost 40% less to train and have +2 movement · every city demands +1 happiness.",
+      "text": "Settlers cost 40% less to train and have +2 movement.",
       "effects": [
         {
           "kind": "rulePercent",
@@ -905,11 +926,6 @@
           "class": {
             "modelClass": "settler"
           }
-        },
-        {
-          "kind": "meterRule",
-          "rule": "cityHappinessDemand",
-          "delta": 1
         }
       ]
     },
@@ -918,7 +934,7 @@
       "tier": 18,
       "line": "caravan",
       "flavor": "Gold on the walls, gold in the words, gold under the throne.",
-      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold.",
+      "text": "Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +2 authority capacity.",
       "effects": [
         {
           "kind": "unlocksBuilding",
@@ -932,6 +948,10 @@
           },
           "science": 1,
           "culture": 1
+        },
+        {
+          "kind": "authority",
+          "amount": 2
         }
       ]
     },
@@ -969,7 +989,7 @@
       "tier": 18,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
-      "text": "All units +1 sight and +1 movement · every vein you surface and every ruin you claim pays +25 science · all units −2 combat strength.",
+      "text": "All units +1 sight and +1 movement, all units −2 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
@@ -980,22 +1000,6 @@
           "kind": "unitStat",
           "stat": "movement",
           "amount": 1
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "veinFound",
-          "grant": {
-            "yield": "science",
-            "amount": 25
-          }
-        },
-        {
-          "kind": "windfallRider",
-          "occasion": "discovery",
-          "grant": {
-            "yield": "science",
-            "amount": 25
-          }
         },
         {
           "kind": "combatLine",
@@ -1043,7 +1047,7 @@
       "tier": 18,
       "line": "green",
       "flavor": "In great cities the noise itself is a kind of peace.",
-      "text": "+3 happiness and +3 culture in every city of 8 or more population.",
+      "text": "+3 happiness and +10% culture in every city of 8 or more population.",
       "effects": [
         {
           "kind": "happiness",
@@ -1055,8 +1059,9 @@
           }
         },
         {
-          "kind": "cityYields",
-          "culture": 3,
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": 10,
           "scope": {
             "test": "populationAtLeast",
             "value": 8
@@ -1447,7 +1452,7 @@
       "tier": 18,
       "line": "procession",
       "flavor": "Every road that ends at an altar is a road somebody paid for.",
-      "text": "+2 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn.",
+      "text": "+3 faith for each city in the world that follows your religion · +1 culture for each foreign city that follows you · +1 culture for each 5 faith you gain per turn.",
       "note": "Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.",
       "effects": [
         {
@@ -1456,7 +1461,7 @@
           "pays": {
             "to": "yield",
             "yield": "faith",
-            "amount": 2,
+            "amount": 3,
             "where": "empire"
           }
         },
@@ -1488,7 +1493,7 @@
       "tier": 18,
       "line": "star",
       "flavor": "They measured the tower's shadow, and then they measured the tower.",
-      "text": "+1 science in your capital for each building standing in it · completing a technology grants 20% of a turn's culture.",
+      "text": "+1 science in your capital for each building standing in it · completing a technology grants 50% of a turn’s culture.",
       "effects": [
         {
           "kind": "countScaled",
@@ -1505,7 +1510,7 @@
           "occasion": "tech",
           "grant": {
             "yield": "culture",
-            "amount": 0.2,
+            "amount": 0.5,
             "fromRate": "culturePerTurn"
           }
         }
@@ -1606,17 +1611,23 @@
       "tier": 10,
       "line": "forge",
       "flavor": "They were never conquered. They were hired.",
-      "text": "Mounted units gain +1 movement.",
-      "note": "Neither struck clause is built: a strength line asks what the ground is and there is no word for open ground, and no building in the game is a stable.",
-      "deferred": [
-        "mounted units gain +1 combat strength on flat ground",
-        "every stable pays +1 food"
-      ],
+      "text": "Mounted units gain +1 movement and +1 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
           "stat": "movement",
           "amount": 1,
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "both",
+          "when": {
+            "test": "always"
+          },
           "class": {
             "modelClass": "mounted"
           }
@@ -6300,11 +6311,11 @@
       "line": "charter",
       "rarity": "common",
       "flavor": "The old men remember where every boundary stone was set.",
-      "text": "+1 authority capacity.",
+      "text": "+2 authority capacity.",
       "effects": [
         {
           "kind": "authority",
-          "amount": 1
+          "amount": 2
         }
       ]
     },
@@ -6323,6 +6334,25 @@
           "scope": {
             "test": "hasBuilding",
             "building": "monument"
+          }
+        }
+      ]
+    },
+    "boatwrights": {
+      "name": "Boatwrights",
+      "pool": "chiefdom",
+      "slot": "economic",
+      "line": "tide",
+      "rarity": "common",
+      "flavor": "Every village on the water keeps one man who knows what a keel is for.",
+      "text": "+1 production in every coastal city.",
+      "note": "A city counts as coastal when it stands on the water itself, not merely near it.",
+      "effects": [
+        {
+          "kind": "cityYields",
+          "production": 1,
+          "scope": {
+            "test": "coastal"
           }
         }
       ]
@@ -6406,6 +6436,26 @@
           "scope": {
             "test": "capital"
           }
+        }
+      ]
+    },
+    "fishWeirs": {
+      "name": "Fish Weirs",
+      "pool": "governmentI",
+      "slot": "economic",
+      "line": "tide",
+      "rarity": "common",
+      "flavor": "The tide brings them in twice a day and asks nothing back.",
+      "text": "+1 food on every fishing boat.",
+      "note": "The hex has to carry the boats already. Open water with nothing built on it feeds no better.",
+      "effects": [
+        {
+          "kind": "tileYield",
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          },
+          "food": 1
         }
       ]
     }

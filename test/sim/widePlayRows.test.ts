@@ -173,12 +173,13 @@ describe('the writ the stones supply', () => {
 // --- authority in the Orders (ruling cc) ------------------------------------
 
 describe('the authority Orders', () => {
-  it("pays a flat point for The Elders' Writ", () => {
+  it("pays two flat points for The Elders' Writ", () => {
     const g = game();
     found(g.state, 0);
     const bare = writ(g.state, 0);
     slot(g.state, 0, 'theEldersWrit');
-    expect(writ(g.state, 0)).toBe(bare + 1);
+    // Two since batch B1 (the user's mark on the worksheet), where it was one.
+    expect(writ(g.state, 0)).toBe(bare + 2);
   });
 
   it('pays two for The Marches, and takes a point of cheer in every city', () => {

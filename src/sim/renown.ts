@@ -58,7 +58,12 @@ import type { Family } from './greatPeopleData';
 import { drawGreatPersonOffer } from './greatPeople';
 import { resourceRenown } from './resourceEffects';
 import { RULES } from './rulesData';
-import { techsGrant } from './techData';
+// `hasAbility` rather than `techsGrant` since B1: the great-person door may be
+// opened by the tree *or* by a card, and that fold lives in one function
+// (`tech.ts`). The edge is a function-level one — nothing here reads a value out
+// of `tech.ts` while the modules are being evaluated — and it is asserted by
+// `test/mapgen/moduleCycles.test.ts` like every other edge in this graph.
+import { hasAbility } from './tech';
 import { citySpecialistYields } from './specialists';
 import {
   type City,
@@ -336,9 +341,11 @@ export function settleRenownWindfall(
   // the point, and it is why the gate sits *after* the grants are banked rather
   // than at the top: a realm that reaches the rites late finds a great person
   // waiting the moment it does, instead of having thrown away the renown it
-  // earned getting there. Read through `techsGrant`, the one register for "may
-  // this empire do that", so moving the gate is one line of `data/techs.json`.
-  if (!techsGrant(player.techsResearched, 'ancestorRites')) return null;
+  // earned getting there. Read through `hasAbility`, the one register for "may
+  // this empire do that", so moving the gate is one line of `data/techs.json` —
+  // and, since B1, so that a card may open it: The Muses' Call grants the
+  // ability outright, and this seam has no clause about the card at all.
+  if (!hasAbility(state, player.id, 'ancestorRites')) return null;
 
   let first: GreatPersonOffer | null = null;
   for (;;) {

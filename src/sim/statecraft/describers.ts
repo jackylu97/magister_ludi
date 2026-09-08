@@ -64,6 +64,7 @@ import {
   orderDef,
 } from '../statecraftData';
 import { beadGrantDef } from '../beadData';
+import { ABILITY_TECH, abilityDef, techDef } from '../techData';
 import { unitDef } from '../unitData';
 import { SLOT_WORDS } from './draft';
 import { anyCardDef } from './evaluator';
@@ -1013,6 +1014,25 @@ function describeEffect(effect: CardEffect, out: CardClause[]): void {
       out.push({
         text: `unlocks the ${buildingName(effect.building)}${does === '' ? '' : ` — ${does}`}`,
       });
+      return;
+    }
+    case 'grantsAbility': {
+      // **The ability's own sentence, and the node it need no longer wait
+      // for.** The summary is the word table `data/techs.json` already keeps
+      // for the star chart's card, so a verb re-worded there re-words itself
+      // here and the two cannot come apart — the same bargain the charter
+      // clause above strikes with `describeBuildingRow`.
+      //
+      // The technology is named because that is the whole of what the card
+      // buys: "great people may be called" says nothing to a player who does
+      // not know they were waiting. It is a keyword ref, so the name leads
+      // where a player would expect it to.
+      const gate = ABILITY_TECH.get(effect.ability);
+      const summary = abilityDef(effect.ability).summary.replace(/\.$/, '');
+      const plain = summary.charAt(0).toLowerCase() + summary.slice(1);
+      const early =
+        gate === undefined ? '' : ` without waiting for ${ref('tech', gate, techDef(gate).name)}`;
+      out.push({ text: `${plain}${early}` });
       return;
     }
     case 'pantheonSlots': {

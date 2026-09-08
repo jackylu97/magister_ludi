@@ -29,9 +29,10 @@ import {
 import { improvementForResource } from '../../src/sim/improvementData';
 import { tileIndex } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, claimWonder } from '../../src/sim/state';
+import { type GameState, bumpRevision, claimWonder } from '../../src/sim/state';
 import { offerSize } from '../../src/sim/statecraft';
 import { isWaterTerrain } from '../../src/sim/terrainData';
+import { ABILITY_TECH } from '../../src/sim/techData';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { game, found, keepTheRites } from './statecraftHelpers';
 import { plainTechs } from './techHelpers';
@@ -298,6 +299,30 @@ describe('settleRenownWindfall', () => {
     const offer = settleRenownWindfall(g.state, player, []);
     expect(offer).not.toBeNull();
     expect(player.renownPool).toBe(LADDER.first);
+  });
+
+  /**
+   * **The gate is a verb, and a card may hand it over** (batch B1). The Muses'
+   * Call grants `ancestorRites` outright, and this seam has no clause about the
+   * card at all — it asks `hasAbility`, which is the fold of the tree's answer
+   * and the empire's own law. A gate that asked `techsGrant` here would be a
+   * door the cards could not open.
+   */
+  it('opens for a card that grants the rites, with no technology at all', () => {
+    const g = game();
+    found(g.state, 0);
+    const player = g.state.players[0]!;
+    const gate = ABILITY_TECH.get('ancestorRites')!;
+    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first }])).toBe(
+      null,
+    );
+
+    player.statecraft.doctrines.push('musesCall' as never);
+    bumpRevision(g.state);
+    expect(settleRenownWindfall(g.state, player, [])).not.toBeNull();
+    expect(player.greatPersonOffer).toBeDefined();
+    // The tree is untouched: the card opened a door, it did not teach a node.
+    expect(player.techsResearched).not.toContain(gate);
   });
 
   it('banks rather than blocks when the whole roster is spent', () => {

@@ -1438,6 +1438,16 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     }
     case 'foundingRider':
       return scoreFoundingRider(effect, ctx);
+    case 'grantsAbility':
+      // **A verb, and this file prices rates.** An ability is not a yield, a
+      // strength line or a rule with a figure on it — it is a door, and what a
+      // door is worth is what stands behind it. The one live grant is the
+      // great-person gate, whose worth is an *offer opened sooner*, and nothing
+      // here prices an offer (`pantheonSlots` above says the same thing about a
+      // belief, for the same reason and with the same stand-in). Named rather
+      // than guessed: a figure invented here would make The Muses' Call read as
+      // whatever number somebody typed.
+      return ctx.ai.score.unknownEffect;
     case 'pantheonSlots':
       // Room for another god, priced at what the faith book says a belief is
       // worth. That book is `wants.ts`, which reads *this* file — so the reading

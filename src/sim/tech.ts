@@ -290,6 +290,7 @@ import {
 import { RULES } from './rulesData';
 import type { CityScope } from './statecraftData';
 import {
+  cardGrantsAbility,
   cardUnlocksBuilding,
   cityScopeAdmits,
   // The article rule, borrowed rather than rewritten: "needs **a** Library" and
@@ -350,11 +351,27 @@ export function hasTech(state: GameState, playerId: number, techId: TechId): boo
  * Sailing hands over. It is `techsGrant` with a player looked up, because the
  * gate itself is a fact about the tree and belongs in `techData.ts` (see that
  * function for why `pathfind.ts` cannot come through here).
+ *
+ * **And a second clause, since B1: the empire's own law may open the same
+ * door.** The Muses' Call says *"great people may be called before the
+ * technology that opens them"*, and the great-person gate is an ability — so
+ * the honest place for the card is beside the tree rather than at the one seam
+ * that happens to read the gate today. The ability union is a list of *verbs*
+ * precisely so that a rule can ask "may this empire do that" without knowing
+ * which node teaches it; a Doctrine asking the same question is asking the same
+ * question, and the answer belongs in the same function.
+ *
+ * That makes this the **one reader** of `cardGrantsAbility`
+ * (`statecraft/evaluator.ts`) and the one place the two answers are folded. A
+ * seam that asked `techsGrant` directly would be a gate the cards cannot open,
+ * which is exactly what `renown.ts` and the renown card in the top bar were
+ * before this pass — both come through here now.
  */
 export function hasAbility(state: GameState, playerId: number, ability: AbilityId): boolean {
   const player = playerById(state, playerId);
   if (!player) return false;
-  return techsGrant(player.techsResearched, ability);
+  if (techsGrant(player.techsResearched, ability)) return true;
+  return cardGrantsAbility(state, playerId, ability);
 }
 
 /**

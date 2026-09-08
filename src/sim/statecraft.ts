@@ -111,6 +111,7 @@ export {
   cardRouteYieldLines,
   cardRulePercent,
   cardTierBoost,
+  cardGrantsAbility,
   cardTileLines,
   cardUnitStamp,
   cardUnitStat,

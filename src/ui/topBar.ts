@@ -98,7 +98,8 @@ import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../si
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
-import { ABILITY_TECH, highestAge, techDef, techsGrant } from '../sim/techData';
+import { ABILITY_TECH, highestAge, techDef } from '../sim/techData';
+import { hasAbility } from '../sim/tech';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
@@ -918,7 +919,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     // reads as a bug (found in live play, 2026-09-03) — so the closed gate is
     // said out loud, named off the ability's own home so a tree move cannot
     // strand the sentence.
-    if (player && !techsGrant(player.techsResearched, 'ancestorRites')) {
+    if (player && !hasAbility(state, playerId, 'ancestorRites')) {
       const gate = ABILITY_TECH.get('ancestorRites');
       if (gate !== undefined) {
         box.append(

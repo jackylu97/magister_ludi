@@ -170,6 +170,7 @@ import {
 import {
   adoptGovernmentAt,
   doctrineChoiceError,
+  forgetTheLaw,
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
@@ -181,7 +182,7 @@ import {
   unslotOrderAt,
   unslotOrderError,
 } from './statecraft';
-import type { OrderId } from './statecraftData';
+import { type OrderId, type OrderSlotGrant, doctrineDef } from './statecraftData';
 import {
   type ResearchQueueMode,
   buildError,
@@ -3091,15 +3092,39 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
   if (problem) return fail(problem);
 
   const outcome = slotOrderAt(state, actor, command.cardId, command.slotIndex);
-  // **The Laureate's once-per-game gift, settled here and nowhere else.** The
-  // claim is `slotOrderAt`'s — it is the one place a card enters a slot — and
-  // the *settlement* is the reducer's, because "gain a great person" is a renown
-  // windfall and `renown.ts` reads `statecraft.ts`: the arrow points one way, so
-  // the module above both is what turns a claim into an offer. Poured through
-  // `settleRenownWindfall`, the bucket's own Entry XVIII seam, so the draft
-  // opens exactly as a Triumph opens one — including the rule that an empire
-  // already holding an offer banks rather than blocks.
-  for (const grant of outcome.granted) {
+  // **The law just changed and is read again below** (`forgetTheLaw`'s
+  // register): a slotted Order is a source of `liveEffects`, and the grant's
+  // settlement reads the law — `settleRenownWindfall` asks `hasAbility`, which
+  // asks the cards since B1. A slate warmed before this command by any reader
+  // (the bot's appraisal, a hover) would answer for the deck as it was.
+  forgetTheLaw(state);
+  payMomentGrants(state, actor, outcome.granted);
+  return ok();
+}
+
+/**
+ * **A card's moment-grants, settled here and nowhere else** — The Laureate's
+ * once-per-game gift on first slotting, and The Muses' Call's on adoption.
+ *
+ * The *claim* belongs to the verb that takes the card (`slotOrderAt` is the one
+ * place a card enters a slot; `settleDoctrineChoice` is the one place a Doctrine
+ * is taken) and the *settlement* is the reducer's, because "gain a great person"
+ * is a renown windfall and `renown.ts` reads `statecraft.ts`: the arrow points
+ * one way, so the module above both is what turns a claim into an offer. Poured
+ * through `settleRenownWindfall`, the bucket's own Entry XVIII seam, so the
+ * draft opens exactly as a Triumph opens one — including the rule that an empire
+ * already holding an offer banks rather than blocks.
+ *
+ * One routine for both because it is one grant vocabulary (`OrderSlotGrant`),
+ * and two copies of this loop is exactly how a second kind of grant would come
+ * to be paid at one moment and not at the other.
+ */
+function payMomentGrants(
+  state: GameState,
+  actor: Player,
+  granted: readonly OrderSlotGrant[],
+): void {
+  for (const grant of granted) {
     if (grant.grant !== 'greatPerson') continue;
     // Exactly what the ladder still wants, and never more: the gift is *a great
     // person*, not a lump of renown, so an empire two renown short of the next
@@ -3110,7 +3135,6 @@ function applySlotOrder(state: GameState, command: SlotOrderCommand): CommandRes
     const owed = plan === null ? renownThreshold(actor) - actor.renownPool : 0;
     settleRenownWindfall(state, actor, [{ family: null, amount: Math.max(0, owed) }]);
   }
-  return ok();
 }
 
 /** Empties a slot. See `UnslotOrderCommand`. `applySlotOrder`'s mirror. */
@@ -3150,6 +3174,10 @@ function applyAdoptGovernment(
   if (problem) return fail(problem);
 
   adoptGovernmentAt(state, actor, command.choiceIndex);
+  // A government is the first source of `liveEffects`; nothing reads the law
+  // again inside this command today, and the drop costs nothing — it is here
+  // so the seam is in `forgetTheLaw`'s register the day something does.
+  forgetTheLaw(state);
   return ok();
 }
 
@@ -3167,7 +3195,20 @@ function applyChooseDoctrine(
   const problem = doctrineChoiceError(state, actor.id, command.optionIndex);
   if (problem) return fail(problem);
 
-  settleDoctrineChoice(actor, command.optionIndex);
+  const taken = settleDoctrineChoice(actor, command.optionIndex);
+  // **The law just changed and is read again below** (`forgetTheLaw`'s
+  // register): a Doctrine is a source of `liveEffects`, and The Muses' Call's
+  // own grant is the case that found this — its `grantsAbility` opens the
+  // great-person gate that `settleRenownWindfall` asks about a line later, and
+  // a slate warmed before the command answered for the empire without it. The
+  // live game and its replay warmed the slate at different moments, and the
+  // two boards parted (a great person called in one and not the other).
+  forgetTheLaw(state);
+  // The Muses' Call's own line — see `DoctrineDef.onAdopt`, and `payMomentGrants`
+  // for why the settlement is the reducer's. A Doctrine is adopted once and
+  // never unadopted, so the moment needs no once-flag: `applySlotOrder`'s half
+  // keeps one because a slot may be emptied and filled again.
+  if (taken !== null) payMomentGrants(state, actor, doctrineDef(taken.id).onAdopt ?? []);
   return ok();
 }
 

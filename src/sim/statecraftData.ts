@@ -61,7 +61,7 @@ import type { TerrainId } from './terrainData';
 // are: a technology's row carries ordinary `CardEffect`s and a tech id is a
 // `CardId`, and a *value* import either way would turn a type cycle into a
 // runtime one. See `CardId`'s tenth class.
-import type { TechAge, TechId } from './techData';
+import type { AbilityId, TechAge, TechId } from './techData';
 import type { ModelClass, UnitCategory, UnitTypeId } from './unitData';
 
 // --- ids --------------------------------------------------------------------
@@ -223,6 +223,14 @@ export type CardLine =
   | 'charter'
   | 'ploughshare'
   | 'highlands'
+  /**
+   * **The Tide** — the sea, the coast and the trade that runs along it. Named in
+   * the worksheet's own theme table since the threads were drawn and declared
+   * here in B1, when Boatwrights and Fish Weirs became the first two rows to
+   * claim it. Its mark and its ink joined `src/art/lineMarks.ts` and
+   * `style.css` in the same pass, which is the rule for a new visual asset.
+   */
+  | 'tide'
   | 'none';
 
 // --- conditions -------------------------------------------------------------
@@ -3709,6 +3717,40 @@ export const ORDER_BEAD_OCCASIONS: readonly OrderBeadOccasion[] = [
  * nobody can be holding earlier, and a second age gate here would be the same
  * rule written twice.
  */
+/**
+ * **A verb the tree teaches, held without the node that teaches it** — The
+ * Muses' Call's *"great people may be called before the technology that opens
+ * them"*.
+ *
+ * An `AbilityId` is the one register for *"may this empire do that"*
+ * (`techData.ts`): embarkation, the siege, the five rites, and the door the
+ * great-person offer opens behind. Until B1 every one of them was a fact about
+ * the *tree* alone — `techsGrant` walked the researched list and that was the
+ * whole answer — and a card that wanted to open one of those doors had nothing
+ * to say.
+ *
+ * **Why a card may open a door a technology opens.** The ability union is
+ * deliberately a list of *verbs* rather than a list of nodes: it exists so that
+ * a rule can ask "may this empire call a great person" without knowing which
+ * node happens to teach it today, which is exactly what let the tree pass move
+ * the gate with one line of `data/techs.json`. A Doctrine that says the same
+ * sentence is asking the same question, so the honest place for it is the same
+ * door — not a second flag on the player, and not a clause bolted to the one
+ * seam that reads it. What changes is only *who may answer*: the tree, or the
+ * empire's own law.
+ *
+ * **`hasAbility` (`tech.ts`) is the only reader**, and that is the whole of the
+ * discipline. It was already the sibling every surface but the movement
+ * evaluator asked; it is now `techsGrant` **or** this shape, in one function, so
+ * a rule that gates on a verb cannot come to disagree with the card that grants
+ * it. A second reader here would be a second answer to "may this empire do
+ * that", which is the drift the ability register exists to prevent.
+ */
+export interface CardGrantsAbilityEffect {
+  kind: 'grantsAbility';
+  ability: AbilityId;
+}
+
 export interface CardBeadOccasionEffect {
   kind: 'beadPerOccasion';
   occasion: OrderBeadOccasion;
@@ -3774,7 +3816,9 @@ export type CardEffect =
   | CardRouteYieldEffect
   // H3's one new shape (`docs/audit/orchestrator.md`): the four Æra V bead
   // Orders had `effects: []` and were being dealt paying nothing.
-  | CardBeadOccasionEffect;
+  | CardBeadOccasionEffect
+  // B1's one new shape: The Muses' Call opens a door the tree opens.
+  | CardGrantsAbilityEffect;
 
 /** Every `kind` in the union, for the register test that pins the evaluator. */
 export type CardEffectKind = CardEffect['kind'];
@@ -3828,6 +3872,31 @@ export interface DoctrineDef extends CardDefBase {
    * back out.
    */
   retired?: boolean;
+  /**
+   * **What adopting this hands over, at the moment it is adopted** — The Muses'
+   * Call's *"adopting this calls one great person"*.
+   *
+   * `OrderDef.onSlot` at the Doctrine's scale, in the shape that field already
+   * uses (`OrderSlotGrant`), and it is a second field rather than a widening of
+   * that one for the reason `retired` is two fields: an Order enters a *slot*
+   * and may leave it and enter it again, a Doctrine is *adopted* and never
+   * leaves — so the two are read by the two verbs that settle their own kind.
+   *
+   * The Order's half needs a once-flag (`PlayerStatecraft.grantedOnSlot`) and
+   * this one deliberately has none: `settleDoctrineChoice` pushes the id onto a
+   * list that is never spliced, so an adoption *is* the once. That is the same
+   * discipline the timed effects keep — a rule made of what the board already
+   * says beats a second ledger saying it again.
+   *
+   * **It is not a `windfallRider` on an adoption occasion**, and the difference
+   * is the whole reason this exists. A rider is a *standing* reading — it fires
+   * on every occasion of its kind for as long as the card is held — so a rider
+   * hung on "a Doctrine was adopted" would have paid a great person at every
+   * tier the empire ever reached, four more times over a game, for a card whose
+   * printed words say *one*. A grant fired by the verb that takes the card pays
+   * exactly what the card says, once, and nothing is written down about it.
+   */
+  onAdopt?: OrderSlotGrant[];
 }
 
 /**
@@ -3841,6 +3910,12 @@ export interface DoctrineDef extends CardDefBase {
  * fired by `slotOrderAt` against a once-flag on the player
  * (`PlayerStatecraft.grantedOnSlot`), and a second Order that wants one is a
  * JSON row rather than a clause in the slot verb.
+ *
+ * **A Doctrine's adoption reads the same shape** (`DoctrineDef.onAdopt`, B1),
+ * because it is the same sentence at another scale: a thing handed over at a
+ * moment and never again. The name kept the Order's word rather than growing a
+ * neutral one — the two verbs that fire it say which moment they mean, and a
+ * rename would have moved a field nobody's reading changed.
  *
  * It is deliberately a *named kind of grant* rather than a figure: "gain a great
  * person" is not renown, it is the recruitment the ladder would have opened, so

@@ -402,8 +402,35 @@ import {
  * A v90 log does not replay. Every technology after the first lands on a
  * different turn, and a tree that arrives early takes every unlock, every
  * escalation and every bead threshold in the game with it.
+ *
+ * v93: **the Orders balance pass** (batch B1, `docs/flags.md` item (xx) — the
+ * user's marks on `docs/orders-and-doctrines.md`, 2026-09-08). Fifteen rows
+ * moved and three are new. The new ones first: **The Muses' Call** is a Pool I
+ * Doctrine that opens the great-person door before the tree does, calls one
+ * great person the moment it is adopted, and pays +1 production on every great
+ * person's work; **Boatwrights** (chiefdom) pays +1 production in every coastal
+ * city and **Fish Weirs** (Government I) +1 food on every fishing boat, the
+ * first two rows of the worksheet's Tide thread. **Divine Inspiration is
+ * withdrawn** — banked faith is meant to be spent — and **The Horse-Tribes'**
+ * struck strength clause is built as a flat +1 for the mounted, its second
+ * deferral dropped with it. The rest are dials: Thalassocracy converts food to
+ * production rather than gold, Mountain Hold reads a mountain anywhere in the
+ * borders rather than one hex from the centre, The Great Warring Tribes' hammers
+ * stand without the authority gate, Manifest of the Steppe loses its happiness
+ * bill, The Gilded Court gains +2 authority capacity, Master of Maps loses both
+ * science riders, Pax Imperia's +3 culture becomes +10%, The Pilgrim Ways pays 3
+ * faith a congregation and The Natural Philosophers half a turn of culture a
+ * technology; The Elders' Writ seats two.
+ *
+ * One shape is new — `grantsAbility`, a card handing over a verb the tree
+ * teaches, folded into `hasAbility` so a door keeps one answer — and one field,
+ * `DoctrineDef.onAdopt`, which is `OrderDef.onSlot` at the Doctrine's scale.
+ *
+ * A v92 log does not replay: a Doctrine pool that no longer holds Divine
+ * Inspiration and two Order pools that hold a row they did not deal the same
+ * hands, and every offer after the first draft diverges from there.
  */
-export const SCHEMA_VERSION = 92;
+export const SCHEMA_VERSION = 93;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

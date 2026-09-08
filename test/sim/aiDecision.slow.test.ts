@@ -269,12 +269,20 @@ describe('a war is a decision like any other', () => {
       }
       expect(failures).toEqual([]);
 
-      // The kinds the war pass added, and the proof that the fold above walked
-      // some of them. `deal` is not asserted: whether two empires ever hold the
-      // seams a swap needs is a fact about the map, not about the policy — it is
-      // pinned on an arranged board in `test/sim/aiWar.test.ts`.
-      const kinds = new Set(steps.map((step) => step.decision.kind));
-      expect(kinds.has('war')).toBe(true);
+      // **Whether a war is reached is no longer asserted here** (re-aimed
+      // 2026-09-08, after batches W1 and B1). Since the campaign (W1) a
+      // declaration is a conjunction — the ratio, a town in reach, a strike
+      // force with a shooter, and a road, all on one turn — and W1 measured that
+      // on a duel map the four rarely coincide (the warmonger held a force on
+      // 70 of 170 turns and never declared). Seed 20260903 happened to reach one
+      // until B1's rows moved the bots' play; a probe of eight neighbouring
+      // seeds found none that does in 130 turns. That is the ruling working,
+      // and `strikeForce` is the user's dial — so the war kinds are pinned on
+      // an arranged board in `test/sim/aiWar.test.ts` and `aiBot.slow.test.ts`'s
+      // war loop, exactly as `deal` always was. What this free game still
+      // proves is the claim in the describe's name: every war decision that
+      // *is* reached folds and replays; the two assertions below are vacuous
+      // on a peaceful seed and bite the day one fights.
       const wars = steps.filter((step) => step.decision.kind === 'war');
       expect(wars.every((step) => step.decision.summary.length > 0)).toBe(true);
       expect(wars.every((step) => step.result.ok)).toBe(true);

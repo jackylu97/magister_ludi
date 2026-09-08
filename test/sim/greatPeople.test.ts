@@ -46,6 +46,7 @@ import {
   drawGreatPersonOffer,
   familyOf,
   greatPersonActError,
+  greatPersonBlocker,
   greatPersonPool,
   greatPersonWeights,
   greatPersonWorkError,
@@ -1185,6 +1186,57 @@ describe('the register', () => {
       expect(familyOf(unit)).toBe(family);
       expect(workOf(unit), family).not.toBeNull();
     }
+  });
+});
+
+// --- a card that calls one --------------------------------------------------
+
+/**
+ * **A Doctrine's adoption is a way a great person is called** (batch B1).
+ *
+ * The Muses' Call is the first row to open the ladder's door *and* to pour it
+ * full in the same moment, and both halves are read from this side here: the
+ * door is `hasAbility` (the tree's answer folded with the empire's own law) and
+ * the pouring is `settleRenownWindfall`, which is the one seam renown is ever
+ * added at. So an adoption opens an offer exactly as a Triumph opens one, and
+ * the piece it eventually mints is an ordinary great person in every respect.
+ */
+describe('a Doctrine that calls a great person', () => {
+  it("opens the offer on the adoption, without the technology and without a lump", () => {
+    const g = game(151);
+    found(g.state, 0);
+    const player = g.state.players[0]!;
+    expect(player.renownPool).toBe(0);
+    expect(player.greatPersonOffer).toBeUndefined();
+
+    player.statecraft.pendingDoctrine = { options: ['musesCall' as never] };
+    bumpRevision(g.state);
+    expect(
+      applyCommand(g.state, { type: 'chooseDoctrine', playerId: 0, optionIndex: 0 } as Command).ok,
+    ).toBe(true);
+
+    // A real offer, drawn from the roster the ordinary way — and the pool it
+    // was opened with is spent, not left over: the gift is *a great person*,
+    // never a lump of renown.
+    const offer = player.greatPersonOffer;
+    expect(offer).toBeDefined();
+    expect(offer!.options.length).toBeGreaterThan(0);
+    expect(player.renownPool).toBe(0);
+    // The blocker is the ordinary one, so the seat owes the game a decision
+    // exactly as it would after a Triumph.
+    expect(greatPersonBlocker(player)).toBe('a great person is waiting to be chosen');
+
+    // And the name it deals is spendable: the piece is a great person like any
+    // other, with a family and a work.
+    expect(
+      applyCommand(g.state, {
+        type: 'chooseGreatPerson',
+        playerId: 0,
+        optionIndex: 0,
+      } as Command).ok,
+    ).toBe(true);
+    const piece = g.state.units.find((unit) => unit.person !== undefined)!;
+    expect(familyOf(piece)).not.toBeNull();
   });
 });
 

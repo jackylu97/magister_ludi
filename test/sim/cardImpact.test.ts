@@ -190,16 +190,17 @@ describe('a percentage card', () => {
 
 describe('a yield conversion', () => {
   /**
-   * Thalassocracy mints a tenth of a coastal town's food as coin — a share of a
-   * *fold*, taken inside `explainCity` and therefore invisible to any list of
-   * flats. It has to reach the stamp, and it does, through the same
-   * reconciliation the percentages take.
+   * Thalassocracy mints a tenth of a coastal town's food as hammers — a share
+   * of a *fold*, taken inside `explainCity` and therefore invisible to any list
+   * of flats. It has to reach the stamp, and it does, through the same
+   * reconciliation the percentages take. (The voice paid became production in
+   * batch B1; the shape and the reconciliation are what is on trial.)
    */
   it('reaches the stamp through the town it lands in', () => {
     const made = game();
     coastalTown(made.state);
     const lines = explainCardImpact(made.state, 0, { kind: 'doctrine', id: 'thalassocracy' });
-    expect(foldCardImpact(lines).gold).toBeGreaterThan(0);
+    expect(foldCardImpact(lines).production).toBeGreaterThan(0);
     expect(lines.every((line) => line.kind !== 'occasion')).toBe(true);
   });
 });
