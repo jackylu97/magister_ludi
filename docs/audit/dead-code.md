@@ -147,7 +147,8 @@ exist — a blank card in a draft of three is a wasted hand.
 
 ### 1.6 `PROPOSED` tables in docs
 
-Exactly one: `docs/orders-and-doctrines.md:545`, *"Government VI pool — PROPOSED
+Exactly one: `docs/history/orders-and-doctrines-as-built.md` (moved there from
+the worksheet by batch O1, 2026-09-08), *"Government VI pool — PROPOSED
 (no rung exists yet) (10)"*. `data/statecraft.json` tops out at tier 45
 (`theCommonwealth`, `theEmpire`, `theMagisterium`), and nothing in
 `src/sim/statecraft.ts` reads a tier past it. The doc itself flags a name clash
@@ -512,7 +513,7 @@ fail if the cut is wrong.
 | 16 | `docs/design-notes.md` augur lines | `:106,209` | 2 | nothing | **none** |
 | 17 | the batch-A "no data row uses one yet" comment | `src/sim/statecraftData.ts:3469-3472` | 4 | nothing | **none** |
 | 18 | promote `city-screen.md` + `pamphlet.md` to the shelf | `docs/README.md` | +2 | nothing | **none** |
-| 19 | resolve the *Encyclopaedists* name clash | `docs/orders-and-doctrines.md:545-560` | 0 | `statecraftDocSync` when the pool lands | low |
+| 19 | resolve the *Encyclopaedists* name clash | `docs/history/orders-and-doctrines-as-built.md` (the Government VI table) | 0 | `statecraftDocSync` when the pool lands | low |
 | 20 | `data/view3d.json` six unnamed palette colours | `palette.{mere,brook,oxbloodDeep,vellumDeep,chartWash,warRed}` | 6 | `test/render/lookData.test.ts` | low — **or keep**; a palette is a swatch book |
 
 **Totals if 1–11 land: ≈6977 lines removed**, of which 3523 are dead

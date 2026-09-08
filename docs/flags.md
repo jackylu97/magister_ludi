@@ -395,7 +395,36 @@ directly to confirm rulings — user marginalia are rulings.
   and a road before a declaration, the march ungated from aggression, one
   target and a muster per enemy, the siege exchange, civilians fleeing,
   the war economy; batch **W1** (knobs only, no schema). Both fly after
-  E4a lands; (rec) defaults stand unless marked. **E1 and E2 LANDED** (8d7075a,
+  E4a lands; (rec) defaults stand unless marked. (tt) **A luxury is lent
+  by the copy** (the user, 2026-09-08: "i have two copies of amber. I
+  traded one amber to the bot for marble. I should be getting the +4
+  happiness from having a unique amber and a unique marble"): the deal
+  register lent the *kind* (`lentAwayBy`'s docblock: "an empire with two
+  seams that lends silk keeps neither"), which is neither Civ's model nor
+  the user's own "copies that it has duplicates of". Ruled: one deal row
+  lends **one copy**; the giver keeps the kind while its net copies
+  (opened tiles − copies lent + copies received) stay above zero; the
+  tile itself goes on paying its yield (only the signature moves); a
+  city-local signature follows the empire's net holding. Batch **T1**
+  (schema). (uu) **Petra's site relaxed** (the user, 2026-09-08: "To
+  build petra, you only need to be settled on or adjacent to desert"):
+  `requiresSite` becomes the centre on desert **or** desert adjacent to
+  the centre — with T1. (vv) **The tech ladder re-anchored at 10** (the
+  user, 2026-09-08: "adjust the science tree costs according to the
+  decreased cost from the first tech … let's go with A for now"): the
+  taper `cost(1)=13, cost(n)=friendly(cost(n−1)×r(n)), r(n)=1+1.3×0.72^max(0,n−3)`
+  re-run from **cost(1)=10** for the formula's columns (2–5: 23 · 53 ·
+  105 · 175, from 30 · 69 · 135 · 225) and the authored late columns
+  scaled by the same 10/13 (Æra III 310 · 415 · 525; Æra IV 1100 · 1300 ·
+  1500 · 1700); ages 261 / 1295 / 5940 / 19900, tree 27396 (was 35693).
+  Reading B (early columns only) kept in chat for the retune. Batch
+  **S1** (schema). (ww) **The Orders doc consolidated** (the user,
+  2026-09-08: "consolidate the orders and doctrines md file? I'd like to
+  make some balance changes after playtesting"): the tables stay the
+  worksheet (headings and columns verbatim — the sync test reads them),
+  every "As built" block and the proposed Government VI pool move to
+  `docs/history/`, the retired rows' notes go (they are out of the doc
+  by rule). Batch **O1** (no schema). **E1 and E2 LANDED** (8d7075a,
   59f17e8, ec73ff6; schema 87). E2's one deferral ruled (the user,
   2026-09-07: "please continue" on the orchestrator's recommended reading):
   **the benches announce their hand mutations** — a test that mutates a

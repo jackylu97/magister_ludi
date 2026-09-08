@@ -21,6 +21,7 @@ markup, or that a live plan reads as its spec, stays there — not here.
 | `tech-gifts.md` | every node's gift after the cut | built, schema 76 |
 | `orders-pass-3.md` | every Order's verdict and the deck's grammar | built, schema 77 |
 | `fewer-things.md` | the choice-size pass — buildings, religion, shapes, cadence | built, schemas 71–78 |
+| `orders-and-doctrines-as-built.md` | the "As built" notes each Statecraft pass left on the worksheet, 2026-08-28 → 2026-09-07, and the Government VI pool that was only ever a proposal | built; the live tables are `docs/orders-and-doctrines.md` |
 
 The four above that `docs/fewer-things-plan.md` names as its docs of record are
 still exactly that; the plan's pointers follow them here. `balance-turn.md` is
