@@ -942,6 +942,58 @@ export type YieldKey = (typeof YIELD_KEYS)[number];
 export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 /**
+ * **The turn medallions**: one cell per number a march's rest can wear
+ * (`docs/flags.md` (bbb), the user 2026-09-08: *"queuing a movement should
+ * display badges showing how many turns until the destination, and where the
+ * unit will be on each turn … a circular icon, with a decorative border and the
+ * turn # in the middle"*).
+ *
+ * A medallion is the badge roundel's sibling one plane down: parchment, a
+ * decorative ink border, and a numeral in the specimen's tabular mono. Where a
+ * badge names *which piece this is*, a medallion names *when it gets here* — so
+ * it lies flat on the hex like every other thing printed on the ground rather
+ * than standing on a pin, and it rides in this atlas for the reason the numerals
+ * do: one canvas, one texture, one material.
+ *
+ * **A cell per number, not a blank plus a digit.** The alternative — one field
+ * cell with the existing numeral cells printed over it — cannot work, because a
+ * numeral cell is itself a parchment disc with a digit on it and would print a
+ * second roundel inside the first. Rasterising the whole mark once is also what
+ * lets the numeral be centred by the same `fillText` that centres a digit
+ * anywhere else, at whatever cell size the data asks for.
+ *
+ * The set runs to `MEDALLION_TURNS` and then stops, with one overflow cell:
+ * a march longer than that is rare, its later rests are guesswork anyway (see
+ * `pathTurns` — an estimate, not a promise), and a dozen more cells for a
+ * number nobody plans around would be a dozen more rows of atlas. `'more'`
+ * prints the ceiling with a plus after it, which is the honest reading: *at
+ * least this many turns*.
+ */
+export const MEDALLION_TURNS = 9;
+export type MedallionId = number | 'more';
+export const MEDALLION_CELLS: readonly MedallionId[] = [
+  ...Array.from({ length: MEDALLION_TURNS }, (_, i) => i + 1),
+  'more',
+];
+
+/**
+ * Which medallion cell a turn number wears — the ceiling's own cell for
+ * anything past the set, never a wrap and never a throw.
+ *
+ * The one reader of `MEDALLION_TURNS` outside the painter, so a route eleven
+ * turns long has exactly one place to be turned into a mark that exists.
+ */
+export function medallionIdFor(turn: number): MedallionId {
+  const whole = Math.max(1, Math.round(turn));
+  return whole > MEDALLION_TURNS ? 'more' : whole;
+}
+
+/** What a medallion prints: its number, or the ceiling with a plus after it. */
+export function medallionLabel(id: MedallionId): string {
+  return id === 'more' ? `${MEDALLION_TURNS}+` : String(id);
+}
+
+/**
  * The marginalia: marks that are drawn on the *chart* rather than on the world.
  *
  * The only purely decorative set in the project — what a cartographer puts in
@@ -1038,6 +1090,7 @@ export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
   | { set: 'yield'; id: YieldKey }
   | { set: 'numeral'; id: number }
+  | { set: 'medallion'; id: MedallionId }
   | { set: 'marginalia'; id: MarginaliaKey }
   | { set: 'site'; id: DiscoveryKind }
   | { set: 'charge'; id: HeraldryId }
@@ -1064,6 +1117,9 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   ...CHARGE_CELLS.map((id) => ({ set: 'charge', id }) as TileIconCell),
   ...AXIS_CELLS.map((id) => ({ set: 'axis', id }) as TileIconCell),
   ...SURVEY_MARK_CELLS.map((id) => ({ set: 'survey', id }) as TileIconCell),
+  // On the end, like every set before it, and for this list's one rule: an
+  // index here is a texture coordinate.
+  ...MEDALLION_CELLS.map((id) => ({ set: 'medallion', id }) as TileIconCell),
 ];
 
 /**
@@ -1918,6 +1974,91 @@ function drawNumeralCell(
 }
 
 /**
+ * Paints one turn medallion: parchment, a decorative ink border, and the turn
+ * number set in the middle.
+ *
+ * Not `drawDiscCell` with a numeral on top, because the border is the point.
+ * The badge roundel takes its edge from a *rim of geometry* in the player's
+ * colour, which a mark lying on the ground has no equivalent for — so the
+ * decoration is inked into the cell instead, and it is the badge's language
+ * read in one ink: a heavy outer rule, and a ring of beads set just inside it.
+ * Beads rather than a second rule for the same reason a real medal has them —
+ * at forty pixels a plain double ring reads as a slightly thicker single ring,
+ * where a beaded course still reads as *decorated* — and, unlike a hairline,
+ * they survive the alpha test at the sizes this atlas is minified to.
+ *
+ * The numeral is the numerals' own face and their own arithmetic
+ * (`drawNumeralCell`), set at a size of its own: this disc has a border eating
+ * into it, so the digit that fits inside a plain roundel would be crowded here.
+ * Two-figure labels come out narrower than one, which is what a mono face is
+ * for — the medallions on one route stay the same object at the same weight
+ * whatever number they carry.
+ */
+function drawMedallionCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: MedallionId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+  // The same outer edge every other disc in this atlas draws to, so a medallion
+  // and a resource roundel are the same size object on the board.
+  const outer = paperRadiusFraction() * cell;
+  const rule = Math.max(1, ICONS.medallionRimWidth * cell);
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, outer, 0, Math.PI * 2);
+  context.fill();
+
+  context.strokeStyle = cssHex(ICONS.inkColor);
+  context.lineWidth = rule;
+  // Half a stroke falls outside the path it is drawn on, so the rule is walked
+  // inside the paper's edge rather than on it — `markerPaperRadius`' own
+  // accounting, one shape over.
+  context.beginPath();
+  context.arc(center.x, center.y, outer - rule / 2, 0, Math.PI * 2);
+  context.stroke();
+
+  const beads = Math.max(0, Math.round(ICONS.medallionBeads));
+  const beadRadius = Math.max(0.5, ICONS.medallionBeadRadius * cell);
+  // Set inside the rule with a bead's own width of paper between the two, so
+  // the course reads as a course and not as a lumpy edge.
+  const course = outer - rule - beadRadius * 2;
+  if (beads > 0 && course > beadRadius) {
+    context.fillStyle = cssHex(ICONS.inkColor);
+    for (let i = 0; i < beads; i++) {
+      // Phased off the top of the circle so the ring is symmetric about the
+      // numeral's own vertical, whatever the count.
+      const angle = -Math.PI / 2 + (i / beads) * Math.PI * 2;
+      context.beginPath();
+      context.arc(
+        center.x + course * Math.cos(angle),
+        center.y + course * Math.sin(angle),
+        beadRadius,
+        0,
+        Math.PI * 2,
+      );
+      context.fill();
+    }
+  }
+  context.restore();
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.inkColor);
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  context.font = `700 ${Math.round(cell * ICONS.medallionNumeralScale)}px "IBM Plex Mono", ui-monospace, monospace`;
+  // The numerals' own optical centre, not the geometric one: see
+  // `drawNumeralCell`, which sets its digits at the same fraction.
+  context.fillText(medallionLabel(id), center.x, origin.y + cell * 0.54);
+  context.restore();
+}
+
+/**
  * The flags that put a *flat* tile icon — a yield glyph, its numeral — above
  * everything printed on the hex it stands on.
  *
@@ -1983,6 +2124,11 @@ export class TileIcons {
    * that use each one were never in the same bucket anyway.
    */
   readonly standingMaterial: MeshBasicMaterial;
+  /**
+   * The flat material again at reduced strength, one entry per opacity anybody
+   * has asked for. See `flatMaterialAt`.
+   */
+  private readonly faded = new Map<number, MeshBasicMaterial>();
 
   private constructor(texture: CanvasTexture) {
     this.texture = texture;
@@ -2004,9 +2150,44 @@ export class TileIcons {
     });
   }
 
+  /**
+   * The flat material, printed **quieter**.
+   *
+   * An overlay says how loud a mark is with an opacity, and everything else in
+   * this atlas is printed at full strength — so the collector's own `opacity`
+   * option is no use here: a bucket that brings its own material bypasses the
+   * material library entirely (see `InstanceCollector.flush`). This is the way
+   * a caller asks for the same atlas at a lower voice, and the memo is what
+   * keeps that honest: buckets are keyed by material *identity*, so two calls
+   * at one opacity must hand back one object or the same marks would batch into
+   * two draws.
+   *
+   * Full strength returns the shared material rather than a fourth copy of it.
+   * Rounded to a thousandth before it is looked up, so a knob that arrives as
+   * 0.4 and 0.4000000000000001 is one material and not two.
+   */
+  flatMaterialAt(opacity: number): MeshBasicMaterial {
+    const wanted = Math.max(0, Math.min(1, opacity));
+    if (wanted >= 1) return this.material;
+    const key = Math.round(wanted * 1000) / 1000;
+    const found = this.faded.get(key);
+    if (found) return found;
+    const made = new MeshBasicMaterial({
+      map: this.texture,
+      ...tileIconFlags(),
+      opacity: key,
+      side: DoubleSide,
+      toneMapped: false,
+    });
+    this.faded.set(key, made);
+    return made;
+  }
+
   dispose(): void {
     this.material.dispose();
     this.standingMaterial.dispose();
+    for (const material of this.faded.values()) material.dispose();
+    this.faded.clear();
     this.texture.dispose();
   }
 
@@ -2062,6 +2243,12 @@ export class TileIcons {
     TILE_ICON_CELLS.forEach((cell, index) => {
       if (cell.set === 'numeral') {
         drawNumeralCell(context, cell.id, index, layout);
+        return;
+      }
+      // A turn medallion: the same parchment, an inked border of its own, and
+      // the number a march's rest wears. See `MEDALLION_CELLS`.
+      if (cell.set === 'medallion') {
+        drawMedallionCell(context, index, layout, cell.id);
         return;
       }
       // A resource is ink on parchment shaped by its kind, like a unit badge

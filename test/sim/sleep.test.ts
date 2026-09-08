@@ -270,7 +270,7 @@ describe('wakeSleepers', () => {
     // and the sleeper must be woken by where it *ends up*.
     const state = flatState();
     const worker = sleeper(state);
-    const raider = createUnit(state, 1, 'warrior', 9, 5);
+    const raider = createUnit(state, 1, 'warrior', 10, 5);
     expect(applyCommand(state, {
       type: 'moveUnit',
       playerId: 1,
@@ -279,8 +279,19 @@ describe('wakeSleepers', () => {
     })).toEqual({ ok: true });
     // It could not walk the whole way this turn, so it is still out of sight
     // and holding the rest as a standing order.
+    expect(raider.col).toBe(8);
     expect(raider.path).toBeDefined();
     expect(worker.sleeping).toBe(true);
+
+    // The order was given with the turn's points already spent, so this
+    // resolution walks it nowhere (batch U1, 2026-09-08) and the sleeper is
+    // still out of anybody's way.
+    resolve(state);
+    expect(raider.col).toBe(8);
+    expect(worker.sleeping).toBe(true);
+
+    // And the resolution that *does* march it is the one that wakes the
+    // sleeper — which is the property this phase's position exists for.
     resolve(state);
     expect(raider.col).toBe(6);
     expect(worker.sleeping).toBeUndefined();

@@ -175,7 +175,16 @@ describe('an order given at zero movement', () => {
     // A spent piece walks nothing this turn, so the route drawn under it is the
     // only thing on the board that moved. It is the selected unit's own path and
     // goes through the optional `MapView` hook, never a renderer reached into.
-    expect(source('controls.ts')).toContain('renderer.setCommittedPath?.(unit?.path ?? [])');
+    //
+    // Re-aimed 2026-09-08 (batch U1): the route now goes over with its
+    // **schedule** — where the piece will be at the end of each turn it keeps
+    // walking — which is one call rather than two so the two cannot fall out of
+    // step (see `MapView.setCommittedPath`). Still the unit's own path, still
+    // through the optional hook.
+    const text = source('controls.ts');
+    expect(text).toContain('const committed = unit?.path ?? [];');
+    expect(text).toContain('renderer.setCommittedPath?.(');
+    expect(text).toContain('pathTurnMarks(getGame().state, unit, committed)');
   });
 });
 

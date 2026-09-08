@@ -35,6 +35,25 @@
  * file: this module decides *what the button does about* a unit that is
  * awaiting orders, not *what counts as* awaiting orders.
  *
+ * **Blocking and offering are two questions** (2026-09-08, `docs/flags.md`
+ * (bbb)). Since standing orders started marching on the turn's own points, a
+ * column under orders opens its owner's turn standing still with a *full*
+ * allowance — the single most useful thing a camera could show, and the last
+ * thing anybody wants End Turn to bar on, because then every multi-turn march
+ * would be a button press to get past. So there are two readings and two
+ * functions here:
+ *
+ *   · `firstBlocker` — what the button may not go past. Asks the narrow
+ *     `unitAwaitsOrders`, which keeps its "no stored path" clause exactly as
+ *     written: a piece with orders has been told what to do.
+ *   · `firstUnitOffer` — where the camera goes next. Asks the wide
+ *     `unitOfferedForOrders`, so a piece under orders is offered with its
+ *     committed route drawn and may simply be walked past.
+ *
+ * The offer never bars anything, which is why it is a second function rather
+ * than a flag on the first: a caller that wanted "what stops the turn" and got
+ * "what is worth looking at" would be a locked End Turn button.
+ *
  * **Workers need no clause of their own, and that is a result rather than an
  * oversight.** M7's builders are exactly the unit this prompt exists for — a
  * worker parked on a hex it could be farming is a wasted turn — and
@@ -97,7 +116,7 @@ import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
 import { availableTechs } from '../sim/tech';
 import { type GameState, hasEndedTurn, playerById } from '../sim/state';
-import { unitAwaitsOrders } from '../sim/units';
+import { unitAwaitsOrders, unitOfferedForOrders } from '../sim/units';
 
 /**
  * One piece of unfinished business, carrying whatever the interface needs to
@@ -234,5 +253,49 @@ export function firstBlocker(
     return { kind: 'research' };
   }
 
+  return null;
+}
+
+/**
+ * The next piece to **hand the player**, or `null` when there is nobody worth
+ * flying the camera to.
+ *
+ * `firstBlocker`'s unit arm read one clause wider — see "Blocking and offering"
+ * in the module docblock, and `unitOfferedForOrders` (`sim/units.ts`) for the
+ * predicate itself. It answers "who should I be looking at", where its sibling
+ * answers "what may I not end the turn without settling", and the difference is
+ * a column under standing orders: it is not idle, it must not bar the button,
+ * and it is exactly the piece a player wants in hand at the top of a turn — it
+ * is standing still with a full allowance, and the route it is holding is the
+ * thing they might want to change.
+ *
+ * Only ever `{ kind: 'idleUnit' }` or nothing: the four offers a seat owes
+ * (a discovery, a draft, a god, a name) are `firstBlocker`'s business and are
+ * raised by the button, not by the camera. Every caller of this asks the
+ * blocker first anyway, so an empire owing a card is never quietly steered past
+ * it.
+ *
+ * The three never-offered seats are `firstBlocker`'s three, for its reasons: a
+ * player who does not exist, the wild, and a seat that has already ended this
+ * turn — steering a finished seat's camera to a piece it may not move would be
+ * a worse answer than nothing. `exclusions.skippedUnitIds` is honoured too: a
+ * piece the player has waved off this turn is waved off for the cycle as well,
+ * which is what Skip Turn means.
+ */
+export function firstUnitOffer(
+  state: GameState,
+  playerId: number,
+  exclusions?: BlockerExclusions,
+): TurnBlocker | null {
+  const player = playerById(state, playerId);
+  if (!player || player.eliminated) return null;
+  if (player.barbarian) return null;
+  if (hasEndedTurn(state, playerId)) return null;
+
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
+    if (unitOfferedForOrders(unit)) return { kind: 'idleUnit', unitId: unit.id };
+  }
   return null;
 }

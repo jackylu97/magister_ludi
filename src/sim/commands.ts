@@ -269,7 +269,8 @@ export interface EndTurnCommand extends PlayerCommand {
  *
  * One command covers both a single step and a ten-turn march: the reducer finds
  * the route, walks as much of it as this turn's movement pays for, and parks the
- * remainder on the unit as a standing order that `resetMovement` resumes. A
+ * remainder on the unit as a standing order that `spendLeftoverMovement` walks
+ * at the end of the turn, on whatever that turn had left. A
  * second `moveUnit` for the same unit replaces the first — the player changed
  * their mind, and half of an abandoned route is not a plan.
  *
@@ -292,7 +293,8 @@ export interface MoveUnitCommand extends PlayerCommand {
  * Cancels a unit's standing order, leaving it where it is.
  *
  * The other half of `moveUnit`: an order that spans turns is resumed by
- * `resetMovement` without asking again, so there has to be a way to say "stop".
+ * `spendLeftoverMovement` without asking again, so there has to be a way to say
+ * "stop".
  * It names the unit rather than carrying the route, because the route is
  * whatever the unit is still holding — a command that restated it could disagree
  * with the state it was meant to clear.
@@ -300,7 +302,7 @@ export interface MoveUnitCommand extends PlayerCommand {
  * It is *not* a movement command: nothing on the board moves, and the unit keeps
  * every movement point it has. It is still turn-gated exactly like `moveUnit`,
  * and that is a deliberate choice rather than an inherited one. A stored order is
- * a decision the player made during their turn, and `resetMovement` will act on
+ * a decision the player made during their turn, and `spendLeftoverMovement` will act on
  * it in the resolution that a finished seat has already handed over to. Letting a
  * seat that has declared itself finished reach back in and revoke that decision
  * would make "I have ended my turn" mean less than it says — and under
@@ -1825,8 +1827,8 @@ export type CommandResult =
  *
  * `campBounties` is the thirteenth, from `endTurn` alone (`TurnReport.campBounties`,
  * 2026-08-29): every camp a **standing order** burnt out during the resolution,
- * which `spendLeftoverMovement` and `resetMovement` cannot report any other way
- * — they are phases, with no `CommandResult` of their own to write into. A camp
+ * which `spendLeftoverMovement` cannot report any other way
+ * — it is a phase, with no `CommandResult` of its own to write into. A camp
  * a fresh `moveUnit` clears is still `arrivals`' own field; this is only the
  * gap a phase leaves.
  *
@@ -2037,7 +2039,8 @@ function applyMoveUnit(state: GameState, command: MoveUnitCommand): CommandResul
   // **No movement left is not a refusal** (playtest batch two). A spent unit
   // given a march records the route and walks none of it: `advanceAlongPath`
   // takes no step it cannot pay for, so an allowance of zero stores the whole
-  // path and moves nothing, and `resetMovement` sets off next turn. That is what
+  // path and moves nothing, and `spendLeftoverMovement` sets off at the end of
+  // the *next* turn, on that turn's own points. That is what
   // a player means by ordering a unit that has already moved — "go there,
   // starting when you can" — and refusing it made the last click of a unit's
   // turn the one click that did nothing. Every other gate below still applies,
@@ -3675,8 +3678,8 @@ function applyGreatPersonWork(
  * is worn by arriving somewhere and it started there.
  *
  * The caravan does not march here. `startRouteAt` sets the path and the pipeline
- * walks it — `spendLeftoverMovement` on this very turn, `resetMovement` on the
- * next — which is what keeps one implementation of a walk instead of two, and
+ * walks it — `spendLeftoverMovement`, at the end of this turn and of every turn
+ * after it — which is what keeps one implementation of a walk instead of two, and
  * what makes the road a caravan lays a thing `arriveOnTile` writes on every step
  * of every leg rather than a thing this command writes once.
  */

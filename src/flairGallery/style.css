@@ -509,6 +509,22 @@ body {
   border-radius: var(--radius-sm);
 }
 
+/* --- the turn medallions -------------------------------------------------- */
+
+/* Sized in CSS pixels by the stall itself (board scale is a pixel count, not a
+   fraction of the page), so this only frames it. `max-width` rather than
+   `width` for the one thing that matters on a narrow window: the strip is nine
+   hexes wide and must be allowed to scroll rather than squash, since a
+   medallion resampled by the layout would be a medallion this page is lying
+   about. */
+.route-canvas {
+  display: block;
+  max-width: 100%;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
 /* --- the palette and the ramp -------------------------------------------- */
 
 .palette-grid {

@@ -450,7 +450,11 @@
     "routeColor": "#c08a2b",
     "routeOpacity": 0.9,
     "routeScale": 0.8,
-    "routeStride": 2
+    "routeStride": 2,
+    "medallionScale": 0.62,
+    "medallionDestinationScale": 1.28,
+    "medallionOpacity": 1,
+    "medallionQuietOpacity": 0.55
   },
   "vignette": {
     "innerRadius": 1.05,
@@ -622,6 +626,10 @@
     "inscriptionColor": "vellumDeep",
     "inscriptionPad": 0.08,
     "chargeScale": 0.78,
+    "medallionRimWidth": 0.05,
+    "medallionBeads": 16,
+    "medallionBeadRadius": 0.022,
+    "medallionNumeralScale": 0.46,
     "resourceKinds": {
       "bonus": {
         "shape": "circle",

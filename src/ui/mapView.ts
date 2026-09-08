@@ -32,6 +32,22 @@ export interface CellRef {
 }
 
 /**
+ * A hex a march comes to rest on at the end of a turn, and which turn that is —
+ * what a renderer draws a **turn medallion** on.
+ *
+ * Handed to the board beside the route it belongs to (`setPathPreview`,
+ * `setCommittedPath`) rather than worked out there, which is this interface's
+ * one standing rule: the renderer is told what to draw and never why. Which
+ * hexes those are is `pathTurnMarks` (`sim/pathfind.ts`) — the same loop, the
+ * same purse and the same step price as the "~N turns" the unit sheet prints,
+ * so the marks on the board and the number beside it cannot disagree.
+ */
+export interface TurnMarkRef extends CellRef {
+  /** Turns from now, counting `pathTurns`' way: the first rest is 1. */
+  turn: number;
+}
+
+/**
  * A unit as it was the instant before it left the board.
  *
  * Everything the renderer needs to draw one more time — which piece, in whose
@@ -228,8 +244,18 @@ export interface MapView {
    * not draw it, and combat there still works from the cursor and the card.
    */
   setAttackable?(cells: readonly CellRef[]): void;
-  /** The route drawn under the cursor, start tile excluded. */
-  setPathPreview(cells: readonly CellRef[]): void;
+  /**
+   * The route drawn under the cursor, start tile excluded.
+   *
+   * `marks` is the same route read as a schedule: one entry per turn of the
+   * march, on the hex it comes to rest on, for the **turn medallions** the
+   * ruling of 2026-09-08 asks for (`docs/flags.md` (bbb)). Second and optional
+   * rather than a call of its own, because a route and where it stops each turn
+   * are one answer to one question and two setters would be two ways for them
+   * to fall out of step. A caller that omits it draws a route with no
+   * medallions on it, which is what the frozen 2D pipeline does.
+   */
+  setPathPreview(cells: readonly CellRef[], marks?: readonly TurnMarkRef[]): void;
 
   /**
    * Optional: the route the selected unit has already *committed* to — the
@@ -242,11 +268,15 @@ export interface MapView {
    * two can be on screen together — which they are constantly, since hovering a
    * new destination for a marching unit shows exactly that comparison.
    *
+   * `marks` is `setPathPreview`'s, one route over: where this piece will be at
+   * the end of each turn it keeps walking. Drawn quieter than the preview's for
+   * the route's own reason — a decision already taken is not a proposal.
+   *
    * Optional for the usual reason: it is a 3D feature and the 2D pipelines are
    * frozen. Under `?art=flat` a marching unit's route simply is not drawn, and
    * the unit sheet still says where it is going.
    */
-  setCommittedPath?(cells: readonly CellRef[]): void;
+  setCommittedPath?(cells: readonly CellRef[], marks?: readonly TurnMarkRef[]): void;
 
   /**
    * Optional: the trade route under the cursor — the run a caravan would shuttle

@@ -1221,6 +1221,37 @@ export interface OverlaySpec {
   committedScale: number;
   committedStride: number;
   /**
+   * **The turn medallions** — the mark on the hex each turn's march ends on
+   * (`docs/flags.md` (bbb)). One drawn object in one style, printed from the
+   * tile atlas (`MEDALLION_CELLS` in `badges3d.ts`, where the border's own
+   * knobs live under `icons`); these three are what the *board* decides about
+   * it.
+   *
+   * Size as a fraction of the hex radius, and it is the number that matters:
+   * a medallion has to be readable at game zoom and must not cover the piece
+   * standing on the hex it marks. See the flair gallery's stall, which is a
+   * slider on exactly this.
+   */
+  medallionScale: number;
+  /**
+   * How much larger the **destination's** medallion is drawn than the rests on
+   * the way to it — `destinationScale`'s rule for a mark that carries a number.
+   * A multiple of `medallionScale`, so dialling the size moves all of them.
+   */
+  medallionDestinationScale: number;
+  /**
+   * How loud a medallion on the **hovered** route is: the proposal the cursor
+   * is making, and the loudest of the two.
+   */
+  medallionOpacity: number;
+  /**
+   * And on the **committed** route: quieter, for `committedOpacity`'s reason
+   * exactly — one is a proposal, the other a decision already taken, and both
+   * are on screen together every time somebody hovers a new destination for a
+   * marching piece.
+   */
+  medallionQuietOpacity: number;
+  /**
    * Tiles the selected unit could attack this turn.
    *
    * The same decal the reachable set uses and deliberately so — it answers the
@@ -1532,6 +1563,20 @@ export interface IconSpec {
    * in the atlas.
    */
   chargeScale: number;
+  /**
+   * The turn medallion's **decorative border**, inked into the cell: the weight
+   * of the outer rule, and the course of beads set inside it.
+   *
+   * All four are fractions of the atlas cell, so the mark is drawn the same
+   * whatever `atlasCell` is dialled to — the rule's width, the number of beads,
+   * a bead's radius, and the numeral's own size, which is its own knob because
+   * this disc has a border eating into it where a plain numeral cell does not.
+   * See `drawMedallionCell`.
+   */
+  medallionRimWidth: number;
+  medallionBeads: number;
+  medallionBeadRadius: number;
+  medallionNumeralScale: number;
   /** How a resource roundel's paper and rim differ by `ResourceKind`. */
   resourceKinds: Record<ResourceKind, MarkerPaperStyle>;
   /**
@@ -2253,6 +2298,10 @@ export const VIEW3D: View3DData = {
     routeScale: viewJson.overlay.routeScale,
     // At least 1, for `committedStride`'s reason exactly.
     routeStride: Math.max(1, Math.round(viewJson.overlay.routeStride)),
+    medallionScale: viewJson.overlay.medallionScale,
+    medallionDestinationScale: viewJson.overlay.medallionDestinationScale,
+    medallionOpacity: viewJson.overlay.medallionOpacity,
+    medallionQuietOpacity: viewJson.overlay.medallionQuietOpacity,
   },
   vignette: {
     innerRadius: viewJson.vignette.innerRadius,
@@ -2370,6 +2419,11 @@ export const VIEW3D: View3DData = {
     inscriptionColor: named(viewJson.icons.inscriptionColor, 'icons.inscriptionColor'),
     inscriptionPad: viewJson.icons.inscriptionPad,
     chargeScale: viewJson.icons.chargeScale,
+    medallionRimWidth: viewJson.icons.medallionRimWidth,
+    // At least none, and whole: a fractional bead is half a dot on the ring.
+    medallionBeads: Math.max(0, Math.round(viewJson.icons.medallionBeads)),
+    medallionBeadRadius: viewJson.icons.medallionBeadRadius,
+    medallionNumeralScale: viewJson.icons.medallionNumeralScale,
     resourceKinds: parseMarkerPaperStyles(viewJson.icons.resourceKinds),
     sitePaper: parseMarkerPaperStyle(viewJson.icons.sitePaper, 'icons.sitePaper'),
   },

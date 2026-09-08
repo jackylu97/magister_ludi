@@ -915,9 +915,9 @@ export function originCityOf(state: GameState, unit: Unit): City | null {
  *   · **a trading post at both ends**, permanently. History, never cleared —
  *     the range every later caravan is sent on;
  *   · **the path**, toward the destination. The send is an *order*, not a march:
- *     the pipeline walks it like any other standing order (`spendLeftoverMovement`
- *     the same turn, `resetMovement` the next), which is what keeps the walk in
- *     one place instead of two.
+ *     the pipeline walks it like any other standing order
+ *     (`spendLeftoverMovement`, at the end of this turn and of every turn after
+ *     it), which is what keeps the walk in one place instead of two.
  *
  * The **teleport is not here**, and that is deliberate: putting a piece on a hex
  * means answering what was standing there, which is `arriveOnTile`'s job and

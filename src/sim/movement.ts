@@ -2,9 +2,9 @@
  * The one implementation of "walk a unit along a path, spending movement".
  *
  * Two callers share it and must never drift apart: the `moveUnit` command,
- * which starts an order, and the `resetMovement` turn phase, which continues a
- * stored one. A multi-turn move is not a special case — it is the same walk,
- * resumed with a refilled allowance.
+ * which starts an order, and the `spendLeftoverMovement` turn phase, which
+ * continues a stored one on whatever the turn had left. A multi-turn move is
+ * not a special case — it is the same walk, resumed a turn later.
  *
  * Entering costs "at least a point, not exactly the cost"
  * ------------------------------------------------------
@@ -140,7 +140,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     unit.movesLeft = after;
     // A trench is a place, not a posture: the step out of it is the moment it
     // stops counting. Written here rather than in the `moveUnit` handler so it
-    // also covers a stored order resumed by `resetMovement` — one implementation
+    // also covers a stored order resumed by `spendLeftoverMovement` — one implementation
     // of "the unit moved", exactly as this function is one implementation of the
     // walk itself.
     breakFortify(unit);

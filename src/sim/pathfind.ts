@@ -1239,6 +1239,76 @@ export function pathTurns(
   return turns + 1;
 }
 
+/** A hex a march comes to rest on at the end of a turn, and which turn that is. */
+export interface PathTurnMark {
+  col: number;
+  row: number;
+  /** Turns from now, counting the way `pathTurns` counts: the first is 1. */
+  turn: number;
+}
+
+/**
+ * **Where** the march stops each turn — `pathTurns` read out cell by cell
+ * instead of summed.
+ *
+ * The same question the estimate answers ("how long is this walk"), asked so
+ * the board can say it on the board: one mark on the hex the first turn ends
+ * on, one on the hex the second ends on, and so on to the destination, whose
+ * mark is `pathTurns` itself. That equality is the contract — the same loop,
+ * the same purse, the same `stepCost` — and it is what stops the medallions on
+ * the route disagreeing with the "~N turns" the unit sheet prints beside them.
+ *
+ * One mark per turn, never one per hex: the marks are the *rests*, so a route
+ * that takes four turns carries four of them however many hexes long it is. The
+ * final cell always carries one, because a march that ends mid-turn still ends.
+ *
+ * An estimate, with `pathTurns`' caveats and its stopping rule: a waypoint
+ * nothing can walk on ends the count, and the marks end with it rather than
+ * inventing rests beyond a route that is about to be abandoned.
+ *
+ * `purse` defaults to what the unit is holding, exactly as it does one function
+ * up — a preview of a route the player has not committed to yet is priced from
+ * the points the piece has now.
+ */
+export function pathTurnMarks(
+  state: GameState,
+  unit: Unit,
+  path: readonly Cell[],
+  purse: MovePurse = movePurse(state, unit),
+): PathTurnMark[] {
+  const { map } = state;
+  const mover = moveProfile(state, unit);
+  const field = zocField(state, unit.ownerId);
+  let from = getTileAt(map, unit.col, unit.row);
+  let turns = 0;
+  let budget = purse.left;
+  const marks: PathTurnMark[] = [];
+  for (const cell of path) {
+    if (budget <= 0) {
+      turns += 1;
+      budget = purse.refill;
+    }
+    const to = getTileAt(map, cell.col, cell.row);
+    if (!from || !to) break;
+    const price = stepCost(map, from, to, mover, field);
+    if (price === null) break;
+    budget = Math.max(0, snapMovement(budget - price.cost));
+    from = to;
+    // The last cell reached on this turn wins the mark: written every step and
+    // overwritten until the budget runs out, which is cheaper and harder to get
+    // wrong than looking ahead to see whether the next step still fits.
+    const turn = turns + 1;
+    const last = marks[marks.length - 1];
+    if (last !== undefined && last.turn === turn) {
+      last.col = cell.col;
+      last.row = cell.row;
+    } else {
+      marks.push({ col: cell.col, row: cell.row, turn });
+    }
+  }
+  return marks;
+}
+
 // --- open set ---------------------------------------------------------------
 
 /**

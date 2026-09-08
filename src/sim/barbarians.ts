@@ -1129,8 +1129,8 @@ function holdCamp(
  *
  * **The wild carries no standing orders.** Every walk in this sweep ends with
  * the unit's `path` deleted, and that is the same decision the roles are: a
- * stored route is stored intent, `resetMovement` would resume it a few phases
- * later — handing every barbarian a free second march on a refilled allowance —
+ * stored route is stored intent, `spendLeftoverMovement` would walk it a phase
+ * later — handing every barbarian a second march inside one resolution —
  * and it would be an opinion formed on a board two turns stale. The wild decides
  * again, from scratch, every turn.
  */

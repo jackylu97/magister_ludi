@@ -65,11 +65,19 @@
  * still all turn?" must already have been answered, so that a piece's healing
  * never depends on whether a neighbour got out of its way. See the function.
  *
+ * Batch U1 (2026-09-08) makes it the **only** phase that walks a standing
+ * order. `resetMovement` used to refill every allowance and then resume every
+ * stored path on the new turn's points, so a column arrived at its owner's turn
+ * with that turn's movement already spent; now the refill resumes nothing, the
+ * march happens one line above it on the points the turn actually had, and the
+ * player opens the turn on a piece holding a full allowance with its route
+ * still drawn. See both functions, and `docs/flags.md` (bbb).
+ *
  * Entry XXI adds `wakeSleepers`, and it is the one phase whose position is "as
  * late as it can be": it asks whether an enemy is standing next to a sleeping
  * civilian, and that question is only worth asking of a board that has stopped
- * moving — after the wild has raided *and* after `resetMovement` has walked
- * everybody's standing orders. It still sits *above* `refreshVisibility`, which
+ * moving — after the wild has raided *and* after `spendLeftoverMovement` has
+ * walked everybody's standing orders. It still sits *above* `refreshVisibility`, which
  * stays last and unconditional, because clearing a flag moves no piece and
  * claims no tile. The full argument is on the function.
  *
@@ -329,7 +337,7 @@ export interface TurnReport {
    *
    * A fresh march clears a camp too, but that is `moveUnit`'s own
    * `CommandResult.arrivals` and never reaches here: this list exists only
-   * because `spendLeftoverMovement` and `resetMovement` are **phases**, and a
+   * because `spendLeftoverMovement` is a **phase**, and a
    * phase has no `CommandResult` to hand its findings out through (see
    * `spendLeftoverMovement`'s docblock — "the report is dropped"). Without
    * this the bounty was still paid, correctly, into the treasury and the
@@ -472,7 +480,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // *relations* are settled. A peace signed during this turn's window means
     // the two empires are not at war while their armies heal, their cities
     // build and their caravans walk — and the columns it sends home are walked
-    // out before `spendLeftoverMovement` and `resetMovement` resume anybody's
+    // out before `spendLeftoverMovement` resumes anybody's
     // standing orders, which is what stops an expelled piece marching straight
     // back in on the same resolution. See `settlePeace` (`diplomacy.ts`).
     run: settleDiplomacy,
@@ -707,8 +715,9 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: 'resetMovement',
-    // Refills every allowance, clears `hasAttacked`, then walks standing orders
-    // with the new points.
+    // Refills every allowance and clears `hasAttacked` — and resumes nothing.
+    // The march is the phase above, on the points this turn granted; see both
+    // functions for the ruling that moved it there.
     run: resetMovement,
   },
   {
@@ -728,7 +737,8 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // order resumed by the phase directly above: a unit that marched during
     // `resetMovement` did so inside a phase, not inside a command, and the
     // cheapest honest way to be sure nobody's map is a turn stale is to redraw
-    // all of them once the world has stopped moving.
+    // all of them once the world has stopped moving. (Since batch U1 that phase
+    // is `spendLeftoverMovement`, two above; the argument is unchanged.)
     //
     // Its position is therefore not negotiable: it must be after every phase
     // that can move a piece, claim a tile or retype a unit, which is all of them.
@@ -826,8 +836,8 @@ function keepHeal(state: GameState, unit: Unit): number {
  *   · **After `barbarians`**, because the wild's raid is the commonest thing
  *     that puts an enemy beside a sleeping worker, and a wake that ran before it
  *     would answer about last turn's board.
- *   · **After `resetMovement`**, which is the stronger half of the same claim:
- *     that phase resumes standing orders, so a rival's column three hexes away
+ *   · **After `spendLeftoverMovement`**, which is the stronger half of the same
+ *     claim: that phase walks standing orders, so a rival's column three hexes away
  *     may finish its march right next to the sleeper *inside the resolution*. A
  *     wake asked any earlier is a wake asked of a board that has not stopped
  *     moving.
@@ -883,8 +893,8 @@ function wakeSleepers(state: GameState): void {
  *
  *   · **Immediately before `spendLeftoverMovement`**, so a caravan that has just
  *     turned around sets off on *this* turn's remaining points rather than
- *     standing in the gateway for a turn. That phase and `resetMovement` then
- *     walk the path this one set, which is what keeps the walk in one place: this
+ *     standing in the gateway for a turn. That phase then walks
+ *     the path this one set, which is what keeps the walk in one place: this
  *     phase decides *where* a caravan is going and never how far it gets.
  *   · **After everything that can move a piece or take a city** — the wild's
  *     raid above all — because a route whose destination changed hands during
@@ -1005,9 +1015,28 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
 
 /**
  * Marches every standing order that still has movement to spend, on the points
- * this turn left it.
+ * this turn left it — **the only phase that walks one** (2026-09-08).
  *
- * The case it exists for is a **jam that has since cleared**. `advanceAlongPath`
+ * It began as the tidy-up below and is now the whole of the rule, because the
+ * two used to be one march split across the turn change and that was the bug.
+ * `resetMovement` refilled every allowance and then resumed every stored path
+ * on the *new* turn's points, so a column under orders arrived at its owner's
+ * next turn with that turn's allowance already spent — the player opened the
+ * turn looking at a piece they could not move, standing somewhere they had not
+ * watched it walk to. The user's ruling (`docs/flags.md` (bbb)): "a unit's
+ * orders should only be performed at the end of the turn if they have available
+ * movement". So the queued action takes place at the end of the turn, on the
+ * points the turn had, and the resumption moved *here* — the one place in the
+ * pipeline where "this turn's leftover" is still a live number. What the player
+ * then sees at the top of their turn is the piece where it stopped, holding a
+ * **full** allowance, with its route still drawn and still theirs to change.
+ *
+ * It follows that a piece whose march finished with points to spare is idle
+ * next turn and worth prompting about, and that a piece still under orders is
+ * worth *offering* without nagging: `unitOfferedForOrders` (`units.ts`) is that
+ * reading, and it is the interface's, not a rule.
+ *
+ * The case it was built for is a **jam that has since cleared**. `advanceAlongPath`
  * stops short of a tile the mover may not come to rest on and *keeps* the order
  * (see `movement.ts`): traffic, not a wall. Until now the column then sat on a
  * full purse for the rest of the turn while the friendly piece in its way walked
@@ -1043,7 +1072,7 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
  * contending for the same tile always resolve the same way. Whatever the march
  * turns up — a ruin, a camp — is claimed by `arriveOnTile` per step; a
  * discovery and a captured civilian are still dropped here exactly as
- * `resetMovement` drops them (this is a phase, and a phase has no
+ * a command's own walk drops them (this is a phase, and a phase has no
  * `CommandResult` to hand them out through), but a camp's bounty is now
  * collected into `report.campBounties` (2026-08-29), because a boon a
  * standing order earned and nobody was told about is the bug the user's
@@ -1052,8 +1081,9 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
 function spendLeftoverMovement(state: GameState, report: TurnReport): void {
   for (const unit of state.units) {
     const path = unit.path;
-    // `length === 0` is only reachable from a hand-edited save; `resetMovement`
-    // is one line away and owns tidying it up.
+    // `length === 0` is only reachable from a hand-edited save; an empty route
+    // is not an order, and `resetMovement` — one line down, and the phase that
+    // already touches every unit — owns sweeping the key away.
     if (!path || path.length === 0) continue;
     if (unit.movesLeft <= 0) continue;
     const result = advanceAlongPath(state, unit, path);
@@ -1063,9 +1093,14 @@ function spendLeftoverMovement(state: GameState, report: TurnReport): void {
 
 /**
  * Pulls the camp bounties out of a walk's arrivals and into the resolution's
- * report, with the unit's position when the walk finished — `resetMovement`
- * and `spendLeftoverMovement`'s one shared line, so the two phases that both
- * resume a standing order cannot drift on how they report what it found.
+ * report, with the unit's position when the walk finished.
+ *
+ * It was `spendLeftoverMovement`'s and `resetMovement`'s one shared line, so
+ * the two phases that both resumed a standing order could not drift on how they
+ * reported what one found. Since 2026-09-08 there is only one such phase and
+ * this has one caller; it stays a function anyway, because the day a second
+ * phase learns to walk a piece is the day it has to report a burnt camp the
+ * same way, and that is a rule about the report rather than about the march.
  */
 function collectCampBounties(
   report: TurnReport,
@@ -1085,36 +1120,43 @@ function collectCampBounties(
 }
 
 /**
- * Refills movement, then resumes standing orders.
+ * Refills movement, clears `hasAttacked`, and **resumes nothing**.
  *
- * Two passes, and the order matters: every unit is refilled *before* anyone
- * moves, so a unit stepping aside frees its tile for a unit resuming later in
- * the array with a full allowance rather than a stale one. Within the second
- * pass units are walked in `state.units` order, which is part of the state — so
- * two units whose orders contend for the same tile always resolve the same way.
+ * One pass now, and the second one's absence is the ruling of 2026-09-08
+ * (`docs/flags.md` (bbb), the user: "a unit's orders should only be performed
+ * at the end of the turn if they have available movement, currently the unit
+ * moves at the end of turn and uses movement points from next turn"). This
+ * phase used to refill every allowance and then walk every stored path on the
+ * points it had just granted, which meant a column under orders arrived at its
+ * owner's next turn with the new turn's allowance already spent: the player
+ * opened the turn on a piece they could not move and had not moved. A standing
+ * order is now walked exactly once per turn, on the points *that* turn granted,
+ * and it is walked one line up — see `spendLeftoverMovement`, which is the only
+ * phase that marches one.
  *
- * `spendLeftoverMovement`'s sibling for `collectCampBounties`: a camp burnt
- * out by a standing order resumed *here*, on the freshly refilled allowance,
- * is exactly as much news as one burnt out on last turn's leftover points.
+ * What is left is a refill and a broom. The `path.length === 0` tidy-up stays
+ * here rather than moving up with the march: it is a *refill*-time chore, not a
+ * marching one — an empty route is not an order for `spendLeftoverMovement` to
+ * walk (it `continue`s past one) but it is a key `state.ts` promises an idle
+ * unit does not carry, and this is the phase that already touches every unit on
+ * the board. One line, no walk.
+ *
+ * The refill is still unconditional and still covers every seat, so a piece the
+ * march above finished stands at its owner's next turn with a **full**
+ * allowance and its remaining route intact — which is exactly what the player
+ * is shown, and what the turn medallions count from.
  */
-function resetMovement(state: GameState, report: TurnReport): void {
+function resetMovement(state: GameState): void {
   for (const unit of state.units) {
     unit.movesLeft = fullMovement(unit, state);
     // The same allowance, refilled in the same breath: one attack per unit per
     // turn, and this is the turn ending. It is cleared *after* `healUnits` has
     // read it, which is the whole reason that phase comes first.
     unit.hasAttacked = false;
-  }
-  for (const unit of state.units) {
-    const path = unit.path;
-    if (!path) continue;
-    if (path.length === 0) {
-      // Only reachable from a hand-edited save; an idle unit has no `path` key.
-      delete unit.path;
-      continue;
-    }
-    const result = advanceAlongPath(state, unit, path);
-    collectCampBounties(report, unit, result.arrivals);
+    // The broom. Only reachable from a hand-edited save; an idle unit has no
+    // `path` key at all (`state.ts` keeps that invariant so snapshots compare
+    // byte for byte).
+    if (unit.path !== undefined && unit.path.length === 0) delete unit.path;
   }
 }
 
@@ -1129,13 +1171,13 @@ export function runEndOfTurn(state: GameState): TurnReport {
   // The marks are taken **before** a phase runs, because a triumph can be earned
   // by nearly any of them — a wonder in `advanceProduction`, an era in
   // `advanceResearch`, a camp burnt out by a raider's own march in
-  // `resetMovement`, a standing count in `renown` — and a diff of one
+  // `spendLeftoverMovement`, a standing count in `renown` — and a diff of one
   // append-only list is cheaper and less forgettable than a sink threaded
   // through all four. See `TurnReport.triumphs`.
   const marks = triumphMarks(state);
   // The bead marks are taken for the same reason and in the same breath: a feat
   // can be earned by nearly any phase — an era in `advanceResearch`, a wonder in
-  // `advanceProduction`, a palace taken by a raider in `resetMovement` — and the
+  // `advanceProduction`, a palace taken by a raider in `spendLeftoverMovement` — and the
   // `beads` phase itself is only one of them.
   const beadMarksBefore = beadMarks(state);
   // **Each phase moves the revision** (batch E2). A resolution is the one place

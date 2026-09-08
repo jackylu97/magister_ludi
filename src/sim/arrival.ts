@@ -13,7 +13,7 @@
  * consequences of the foot landing, and all have
  * exactly two ways to happen — an ordinary march (`advanceAlongPath` in
  * `movement.ts`, which is itself the one implementation of a walk, whether the
- * order was fresh or resumed by `resetMovement`) and the advance a melee attacker
+ * order was fresh or resumed by `spendLeftoverMovement`) and the advance a melee attacker
  * makes into the tile it took (`applyCombat` in `combat.ts`) — whether it took
  * that tile by emptying it or by there having been nothing on it that could
  * swing back (user, 2026-08-28: a blow on a lone civilian *is* the step onto its

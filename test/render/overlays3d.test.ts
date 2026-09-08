@@ -9,7 +9,12 @@ import {
   Vector3,
 } from 'three';
 
-import type { TileIcons } from '../../src/render3d/badges3d';
+import {
+  MEDALLION_CELLS,
+  MEDALLION_TURNS,
+  type MedallionId,
+  type TileIcons,
+} from '../../src/render3d/badges3d';
 import { BoardGeometry } from '../../src/render3d/board3d';
 import {
   TerritoryLayer,
@@ -135,7 +140,22 @@ const fakeIcons = {
   // depth-tested world objects. See `test/resources3d.test.ts` for what is
   // asserted about them; nothing in this file draws one.
   standingMaterial: new MeshBasicMaterial(),
+  // The quieter half, for the turn medallions on a *committed* route: the real
+  // one memoises a material per opacity, and identity is the whole of the
+  // feature — buckets are keyed on it, so two voices must be two objects and
+  // one voice must be one. The stub memoises the same way for the same reason.
+  flatMaterialAt(opacity: number): Material {
+    const key = Math.round(Math.max(0, Math.min(1, opacity)) * 1000) / 1000;
+    if (key >= 1) return fakeIcons.material;
+    const found = fakeFaded.get(key);
+    if (found) return found;
+    const made = new MeshBasicMaterial({ depthTest: false, depthWrite: false, opacity: key });
+    fakeFaded.set(key, made);
+    return made;
+  },
 } as unknown as TileIcons;
+
+const fakeFaded = new Map<number, MeshBasicMaterial>();
 
 /** The fixed camera's rotation, which every standing marker is turned by. */
 const faceCamera = new Quaternion();
@@ -304,6 +324,196 @@ describe('board overlays draw over the board', () => {
     expect(VIEW3D.overlay.reachableScale).toBeGreaterThanOrEqual(
       VIEW3D.overlay.reachableRimOuter,
     );
+  });
+
+  /**
+   * **The turn medallions** (batch U1, `docs/flags.md` (bbb)): the mark on the
+   * hex each turn of a march ends on, the number in the middle.
+   *
+   * The board is *told* which hexes those are and which number each wears —
+   * `pathTurnMarks` (`sim/pathfind.ts`) is the reader, and `test/sim/
+   * pathfind.test.ts` is where the arithmetic is pinned. What is asserted here
+   * is the other half of that contract: the layer draws one mark per mark it
+   * was handed, on that hex, out of that number's own atlas cell, and nowhere
+   * else.
+   */
+  describe('the turn medallions', () => {
+    /** The one call these tests vary, with everything else quiet. */
+    function drawMarks(
+      state: GameState,
+      marks: { col: number; row: number; turn: number }[],
+      committedMarks: { col: number; row: number; turn: number }[] = [],
+    ): OverlayLayer {
+      const layer = new OverlayLayer();
+      layer.build(
+        state.map,
+        {
+          reachable: [],
+          path: marks.map((mark) => ({ col: mark.col, row: mark.row })),
+          pathMarks: marks,
+          committed: committedMarks.map((mark) => ({ col: mark.col, row: mark.row })),
+          committedMarks,
+          hover: null,
+          selection: null,
+          worked: [],
+          locked: [],
+        },
+        geometry,
+        materials,
+        fakeIcons,
+      );
+      return layer;
+    }
+
+    /** The medallion instances a layer drew, by the cell each came out of. */
+    function medallionsOf(layer: OverlayLayer): { id: MedallionId; count: number }[] {
+      const found: { id: MedallionId; count: number }[] = [];
+      for (const entry of decals(layer.group)) {
+        const index = geometry.medallions.indexOf(entry.mesh.geometry);
+        if (index < 0) continue;
+        found.push({ id: MEDALLION_CELLS[index]!, count: entry.mesh.count });
+      }
+      return found;
+    }
+
+    it('marks each turn’s resting hex, and no other hex on the route', () => {
+      const state = flatState();
+      const layer = drawMarks(state, [
+        { col: 3, row: 2, turn: 1 },
+        { col: 5, row: 2, turn: 2 },
+        { col: 6, row: 2, turn: 3 },
+      ]);
+
+      // Three marks, three cells, and one instance apiece per wrap copy: the
+      // route's other hexes carry a dot and no number.
+      const drawn = medallionsOf(layer);
+      expect(drawn.map((entry) => entry.id).sort()).toEqual([1, 2, 3]);
+      for (const entry of drawn) expect(entry.count).toBe(WRAP_COPIES);
+      layer.dispose();
+    });
+
+    it('draws nothing at all when the route carries no schedule', () => {
+      const state = flatState();
+      const layer = new OverlayLayer();
+      layer.build(
+        state.map,
+        {
+          reachable: [],
+          path: [{ col: 3, row: 2 }, { col: 4, row: 2 }],
+          committed: [],
+          hover: null,
+          selection: null,
+          worked: [],
+          locked: [],
+        },
+        geometry,
+        materials,
+        fakeIcons,
+      );
+      expect(medallionsOf(layer)).toEqual([]);
+      layer.dispose();
+    });
+
+    it('draws nothing until the atlas has rasterised', () => {
+      // A medallion is a *printed* mark; there is no colour-only stand-in for a
+      // number, so the layer says nothing rather than something wrong.
+      const state = flatState();
+      const layer = new OverlayLayer();
+      layer.build(
+        state.map,
+        {
+          reachable: [],
+          path: [{ col: 3, row: 2 }],
+          pathMarks: [{ col: 3, row: 2, turn: 1 }],
+          committed: [],
+          hover: null,
+          selection: null,
+          worked: [],
+          locked: [],
+        },
+        geometry,
+        materials,
+        null,
+      );
+      expect(medallionsOf(layer)).toEqual([]);
+      layer.dispose();
+    });
+
+    it('prints the committed route’s quieter than the hovered one’s', () => {
+      const state = flatState();
+      const layer = drawMarks(
+        state,
+        [{ col: 3, row: 2, turn: 1 }],
+        [{ col: 8, row: 6, turn: 2 }],
+      );
+      const found = decals(layer.group).filter(
+        (entry) => geometry.medallions.indexOf(entry.mesh.geometry) >= 0,
+      );
+      expect(found).toHaveLength(2);
+      const opacities = found.map((entry) => entry.material.opacity).sort((a, b) => a - b);
+      expect(opacities[0]).toBeLessThan(opacities[1]!);
+      // And the data says the same thing, which is where the decision lives.
+      expect(VIEW3D.overlay.medallionQuietOpacity).toBeLessThan(
+        VIEW3D.overlay.medallionOpacity,
+      );
+      layer.dispose();
+    });
+
+    it('sends a march past the set’s ceiling to the overflow cell', () => {
+      const state = flatState();
+      const layer = drawMarks(state, [{ col: 4, row: 4, turn: MEDALLION_TURNS + 5 }]);
+      expect(medallionsOf(layer).map((entry) => entry.id)).toEqual(['more']);
+      layer.dispose();
+    });
+
+    it('sits over the route dots and under the piece’s own badge', () => {
+      const state = flatState();
+      const layer = drawMarks(state, [{ col: 3, row: 2, turn: 1 }]);
+      const medallion = decals(layer.group).find(
+        (entry) => geometry.medallions.indexOf(entry.mesh.geometry) >= 0,
+      );
+      expect(medallion).toBeDefined();
+      expect(medallion!.mesh.renderOrder).toBe(RENDER_ORDER.tileIcon);
+      expect(RENDER_ORDER.tileIcon).toBeGreaterThan(RENDER_ORDER.onTop);
+      expect(RENDER_ORDER.tileIcon).toBeLessThan(RENDER_ORDER.badge);
+      layer.dispose();
+    });
+
+    /**
+     * CLAUDE.md's standing rule for this project's art: *a new visual asset
+     * joins the flair gallery in the same pass that ships it*. The medallion is
+     * the hardest mark in the game to look at in place — it is only on screen
+     * while a route is — so a stall is not a courtesy here, it is the only
+     * place the thing can be judged. Read from the source, because a stall that
+     * quietly stopped being built would go unnoticed exactly as long as nobody
+     * opened the page.
+     */
+    it('has a stall in the flair cabinet, with a size knob', () => {
+      const gallery = import.meta.glob('../../src/flairGallery/*.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>;
+      const stall = Object.entries(gallery).find(([path]) => path.endsWith('/route.ts'))?.[1];
+      expect(stall).toBeDefined();
+      // The stall reads the atlas rather than drawing a picture of a medallion,
+      // which is the cabinet's own bargain ("Nothing is reproduced").
+      expect(stall).toContain("tileIconIndex({ set: 'medallion'");
+      expect(stall).toContain('medallionIdFor');
+      // And a slider on the one number a look-dev page is for.
+      expect(stall).toContain('OVERLAY.medallionScale');
+      expect(stall).toContain('slider(');
+      const main = Object.entries(gallery).find(([path]) => path.endsWith('/main.ts'))?.[1];
+      expect(main).toContain('drawRouteMedallions');
+    });
+
+    it('is sized to sit on the hex without covering the piece standing on it', () => {
+      // A fraction of the hex, and under the ring that marks the hex itself —
+      // the mark says "you will be here on turn three", and a mark that hid the
+      // piece would be answering a question nobody asked.
+      expect(VIEW3D.overlay.medallionScale).toBeGreaterThan(0);
+      expect(VIEW3D.overlay.medallionScale).toBeLessThan(VIEW3D.overlay.ringOuter);
+    });
   });
 
   it('tints attackable tiles in their own colour, over the reachable wash', () => {

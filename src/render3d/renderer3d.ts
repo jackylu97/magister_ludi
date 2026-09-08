@@ -94,7 +94,7 @@ import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens, signReligion } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
-import { OverlayLayer } from './overlays';
+import { type TurnMarkRef, OverlayLayer } from './overlays';
 import {
   CityFocusVignette,
   type FocusAnchor,
@@ -218,8 +218,16 @@ export class Renderer3D implements MapView {
   /** Tiles the selected unit could attack. See `setAttackable`. */
   private attackable: readonly CellRef[] = [];
   private pathPreview: readonly CellRef[] = [];
+  /**
+   * Where the hovered route rests each turn — the turn medallions. Kept beside
+   * the route rather than derived from it: this class is handed both by
+   * `setPathPreview` and asks the simulation nothing. See `OverlayState.pathMarks`.
+   */
+  private pathMarks: readonly TurnMarkRef[] = [];
   /** The selected unit's stored order. See `MapView.setCommittedPath`. */
   private committedPath: readonly CellRef[] = [];
+  /** And its medallions, drawn quieter. See `setCommittedPath`. */
+  private committedMarks: readonly TurnMarkRef[] = [];
   /** The trade route under the cursor. See `MapView.previewRoute`. */
   private routePreview: readonly CellRef[] = [];
   private workedTiles: readonly CellRef[] = [];
@@ -391,7 +399,8 @@ export class Renderer3D implements MapView {
    *
    * The units layer reads it too now, for the worker charge badge's numeral
    * boss (`UnitLayer.build`'s `icons` parameter), and so does the sites layer,
-   * for the standing markers over the ruins and the villages. So every layer
+   * for the standing markers over the ruins and the villages — and the overlay
+   * layer, for the turn medallions along a route. So every layer
    * that prints out of this atlas is rebuilt the moment it is ready —
    * otherwise a worker or a ruin placed before it arrived would go unmarked
    * until some unrelated change next touched its own fingerprint.
@@ -420,6 +429,10 @@ export class Renderer3D implements MapView {
       // not a rebuild of the *board*: the fog's own instances are the only ones
       // affected.
       this.rebuildFog();
+      // And the overlays, whose turn medallions are cells of this atlas: a unit
+      // selected before it arrived would show its committed route with no
+      // schedule on it until the next hover moved the layer.
+      this.rebuildOverlays();
       this.invalidate();
     });
   }
@@ -887,7 +900,9 @@ export class Renderer3D implements MapView {
         reachable: this.reachable,
         attackable: this.attackable,
         path: this.pathPreview,
+        pathMarks: this.pathMarks,
         committed: this.committedPath,
+        committedMarks: this.committedMarks,
         route: this.routePreview,
         hover: this.hover ? { col: this.hover.tile.col, row: this.hover.tile.row } : null,
         selection: selected ? { col: selected.col, row: selected.row } : null,
@@ -909,6 +924,10 @@ export class Renderer3D implements MapView {
       },
       this.geometry,
       this.materials,
+      // The medallions are printed marks out of the tile atlas, so the layer
+      // needs it — and gets nothing to draw until it has rasterised, exactly as
+      // the lens does. Rebuilt when the atlas arrives (see `loadTileIcons`).
+      this.icons,
     );
     this.invalidate();
   }
@@ -979,9 +998,14 @@ export class Renderer3D implements MapView {
     this.rebuildOverlays();
   }
 
-  setPathPreview(cells: readonly CellRef[]): void {
-    if (sameCells(this.pathPreview, cells)) return;
+  setPathPreview(cells: readonly CellRef[], marks: readonly TurnMarkRef[] = []): void {
+    // Both halves are compared, because either can change on its own: a route
+    // whose hexes are unchanged can still be a turn longer once the piece has
+    // spent a point, and a route that moved by one hex may rest in the same
+    // places. See `sameMarks`.
+    if (sameCells(this.pathPreview, cells) && sameMarks(this.pathMarks, marks)) return;
     this.pathPreview = cells;
+    this.pathMarks = marks;
     this.rebuildOverlays();
   }
 
@@ -989,9 +1013,10 @@ export class Renderer3D implements MapView {
    * The route the selected unit has already committed to. Drawn quietly, under
    * the hovered preview — see `OverlayState.committed`.
    */
-  setCommittedPath(cells: readonly CellRef[]): void {
-    if (sameCells(this.committedPath, cells)) return;
+  setCommittedPath(cells: readonly CellRef[], marks: readonly TurnMarkRef[] = []): void {
+    if (sameCells(this.committedPath, cells) && sameMarks(this.committedMarks, marks)) return;
     this.committedPath = cells;
+    this.committedMarks = marks;
     this.rebuildOverlays();
   }
 
@@ -2073,6 +2098,25 @@ export class Renderer3D implements MapView {
 }
 
 /** Cheap equality for overlay cell lists, so a repaint is not a rebuild. */
+/**
+ * `sameCells` with the turn each mark carries — the guard on the medallions.
+ *
+ * Its own function rather than a flag on `sameCells`, because the two lists are
+ * different questions about one route: where it goes, and when it gets there.
+ * A route can keep every hex and change every number (the piece spent a point)
+ * and the board must repaint for the second alone.
+ */
+function sameMarks(a: readonly TurnMarkRef[], b: readonly TurnMarkRef[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i]!;
+    const y = b[i]!;
+    if (x.col !== y.col || x.row !== y.row || x.turn !== y.turn) return false;
+  }
+  return true;
+}
+
 function sameCells(a: readonly CellRef[], b: readonly CellRef[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;

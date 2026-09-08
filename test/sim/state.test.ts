@@ -490,17 +490,20 @@ describe('end-of-turn pipeline', () => {
       // seat and argument, one verb over: the phase decides *where* a ranging
       // piece goes, and the spender below walks it. See `marchExplorers`.
       'marchExplorers',
-      // A standing order that was jammed marches once more on *this* turn's
-      // unspent points — after the two phases that ask "has this unit been
-      // still all turn?", so a piece's healing never depends on whether a
-      // neighbour got out of its way, and immediately before the refill, so the
-      // points it spends are the turn's own. See `spendLeftoverMovement`.
+      // **The one phase that walks a standing order** (batch U1, 2026-09-08):
+      // every march goes on *this* turn's unspent points — after the two phases
+      // that ask "has this unit been still all turn?", so a piece's healing
+      // never depends on whether a neighbour got out of its way, and
+      // immediately before the refill, so the points it spends are the turn's
+      // own. See `spendLeftoverMovement`.
       'spendLeftoverMovement',
+      // Refills every allowance and clears `hasAttacked` — and resumes nothing.
       'resetMovement',
       // As late as it can be: the question "is an enemy standing next to my
       // sleeping worker" is only worth asking of a board that has stopped
-      // moving, which is after the wild has raided *and* after `resetMovement`
-      // has walked everybody's standing orders. See `wakeSleepers`.
+      // moving, which is after the wild has raided *and* after
+      // `spendLeftoverMovement` has walked everybody's standing orders. See
+      // `wakeSleepers`.
       'wakeSleepers',
       // Still last and unconditional: clearing a flag moves no piece.
       'refreshVisibility',
@@ -733,7 +736,7 @@ describe('the research queue field', () => {
     // v92 log replays only where none of those rows was ever held; where one
     // was, a piece walks further or a citizen turns and everything priced
     // against it moves. (93 is batch B1's and 94 batch B1b's, landed beside it.)
-    expect(SCHEMA_VERSION).toBe(97);
+    expect(SCHEMA_VERSION).toBe(98);
   });
 });
 

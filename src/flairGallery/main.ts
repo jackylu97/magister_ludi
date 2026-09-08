@@ -41,6 +41,7 @@ import './style.css';
 import { installFlourishMarks } from '../ui/deviceMarks';
 import { CityStrip, PART_CAPTIONS, PART_IDS, PartsShelf } from './cityStage';
 import { drawMarginaliaSwatches } from './chart';
+import { drawRouteMedallions } from './route';
 import { drawFlourishes, drawFrontispiece, drawWheel } from './flourishes';
 import {
   drawHeraldry,
@@ -215,7 +216,17 @@ const chartBlock = block(
   'The atlas’s own two cells, blitted onto fog.chartColor over the ghost hexes the fog rules. Not a reproduction: these are the pixels the renderer samples.',
 );
 
-// --- 8. palette and ramp ----------------------------------------------------
+// --- 8. the turn medallions -------------------------------------------------
+
+const routeStall = drawRouteMedallions(
+  open(
+    'medallions',
+    'Turn Medallions',
+    'The mark on the hex each turn of a march ends on — a circular parchment roundel with an inked border and the turn number in it. On the board it is only ever on screen while a route is: under the cursor, or along the order a selected piece is already walking.',
+  ),
+);
+
+// --- 9. palette and ramp ----------------------------------------------------
 
 drawPaletteAndRamp(
   open(
@@ -247,8 +258,8 @@ drawPaletteAndRamp(
  * The atlas is loaded **once** and handed to all three consumers.
  *
  * Rasterising it is the one genuinely expensive thing on this page — every
- * resource, site, charge, yield and numeral traced into a canvas — and three
- * copies would be three of them held in memory for no reason. It also has to
+ * resource, site, charge, yield, numeral and turn medallion traced into a
+ * canvas — and four copies would be four of them held in memory for no reason. It also has to
  * arrive *after* the layers that read it exist, which is the same order the
  * game observes: `sites3d` and the city flags are rebuilt in `loadIcons`, or
  * marks placed before the atlas finished stand blank.
@@ -256,6 +267,8 @@ drawPaletteAndRamp(
 void drawMarginaliaSwatches(chartBlock).then((icons) => {
   strip.setIcons(icons);
   shelf.setIcons(icons);
+  // The medallions come out of the same atlas and wait for it the same way.
+  routeStall.setIcons(icons);
 });
 
 window.addEventListener('resize', () => {

@@ -1,7 +1,7 @@
 /**
  * The interaction vocabulary, drawn as flat decals on top of the board:
- * reachable tiles, the hovered route, the hover highlight and the selection
- * ring.
+ * reachable tiles, the hovered route, the turn medallions along it, the hover
+ * highlight and the selection ring.
  *
  * These are the 3D counterpart of the 2D renderer's overlay canvas, and they
  * follow the same rule it does: an overlay is anchored to a tile's *face*, not
@@ -42,14 +42,26 @@
  * rebuilding is what keeps this layer incapable of disagreeing with the state
  * that produced it. Two instances per reachable hex is still two buckets for the
  * whole set, because both are keyed on one colour apiece.
+ *
+ * The medallions are the one thing here that is a *printed* mark rather than
+ * flat ink — a cell of the tile atlas, like a yield glyph (see `badges3d.ts`).
+ * They cost one bucket per number on screen per voice — a bucket is keyed on
+ * its geometry and its material, and a medallion's number *is* its geometry
+ * (one atlas cell each) while its voice is its material (two: the proposal's
+ * and the decision's). A ten-turn march is ten instances in ten buckets, which
+ * is nothing beside the reachable set rebuilt beside it, and there is no
+ * arrangement that batches them: they are ten different pictures. They are
+ * drawn only once the atlas has rasterised, and the
+ * board is told which hexes wear them — never asked to work it out.
  */
 
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { type GameMap, getTileAt } from '../sim/map';
 
+import { MEDALLION_CELLS, type TileIcons, medallionIdFor } from './badges3d';
 import type { BoardGeometry } from './board3d';
-import { InstanceCollector, disposeInstancedGroup } from './instances';
+import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
@@ -61,6 +73,22 @@ const TERRITORY = VIEW3D.territory;
 export interface CellRef {
   col: number;
   row: number;
+}
+
+/**
+ * A hex a march comes to rest on at the end of a turn, and which turn that is —
+ * one **turn medallion**.
+ *
+ * Structurally `PathTurnMark` (`sim/pathfind.ts`), which is where the answer
+ * comes from, and stated again here for the reason `CellRef` is: this layer is
+ * told *what to draw* and never asks the simulation anything. The renderer does
+ * not know that `pathTurns` exists, and must not — a board that re-derived a
+ * march's length would be a second opinion about a number the unit sheet is
+ * already printing.
+ */
+export interface TurnMarkRef extends CellRef {
+  /** Turns from now, counting `pathTurns`' way: the first rest is 1. */
+  turn: number;
 }
 
 export interface OverlayState {
@@ -76,6 +104,23 @@ export interface OverlayState {
    * hovers a new destination for a marching unit.
    */
   committed: readonly CellRef[];
+  /**
+   * The hexes the hovered route comes to rest on, one per turn of the march,
+   * with the turn each one is (`MapView.setPathPreview`'s second argument).
+   *
+   * The legibility half of the standing-orders ruling (`docs/flags.md` (bbb),
+   * the user 2026-09-08: *"queuing a movement should display badges showing how
+   * many turns until the destination, and where the unit will be on each
+   * turn"*). The dots say which way; these say *when*, which is the question a
+   * multi-turn march actually raises now that one is walked a turn at a time.
+   *
+   * Optional like `route` and `attackable`: a caller with nothing to say about
+   * a route's length — the overlay tests, a gallery harness — says nothing, and
+   * the medallions simply are not drawn.
+   */
+  pathMarks?: readonly TurnMarkRef[];
+  /** The same for the committed route, drawn quieter. See `committed`. */
+  committedMarks?: readonly TurnMarkRef[];
   /**
    * The road a caravan would walk to a candidate town — the send-mode hover
    * preview.
@@ -171,6 +216,20 @@ const MOVE_MODE_HALO_SCALE = 1.28;
 /** The halo's opacity. Under the ring's own, so it reads as a glow around it. */
 const MOVE_MODE_HALO_OPACITY = 0.5;
 
+/**
+ * The medallion quad for one turn number: the atlas cell `medallionIdFor`
+ * chooses, looked up in the board's own array of them.
+ *
+ * Two lookups keyed by the same list (`MEDALLION_CELLS`) and therefore written
+ * in one place, because they are one fact — an index here is a texture
+ * coordinate, and a route eleven turns long has to reach the ceiling's cell
+ * rather than fall off the end of the array.
+ */
+function medallionGeometry(geometry: BoardGeometry, turn: number) {
+  const index = MEDALLION_CELLS.indexOf(medallionIdFor(turn));
+  return index < 0 ? undefined : geometry.medallions[index];
+}
+
 export class OverlayLayer {
   readonly group = new Group();
   private drawCallCount = 0;
@@ -181,6 +240,7 @@ export class OverlayLayer {
     state: OverlayState,
     geometry: BoardGeometry,
     materials: MaterialLibrary,
+    icons: TileIcons | null = null,
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -301,6 +361,50 @@ export class OverlayLayer {
         new Matrix4().compose(at, identity, new Vector3(s, 1, s)),
         { onTop: true, opacity: OVERLAY.pathOpacity },
       );
+    }
+
+    // The turn medallions, over both runs of dots and under nothing else in
+    // this layer: they are the only mark here carrying a *number*, and a chip
+    // printed over a numeral is a numeral nobody can read.
+    //
+    // The committed route's are laid first and quieter, so where a hovered
+    // route crosses the one the piece is already walking the proposal's
+    // medallion is the one on top — the same order, and the same argument, as
+    // the two runs of dots above.
+    //
+    // Nothing at all until the atlas has rasterised (`icons`), exactly as the
+    // lens draws no yields until then: a medallion is a printed mark, and there
+    // is no colour-only stand-in for one.
+    if (icons) {
+      const marks: readonly [readonly TurnMarkRef[], number][] = [
+        [state.committedMarks ?? [], OVERLAY.medallionQuietOpacity],
+        [state.pathMarks ?? [], OVERLAY.medallionOpacity],
+      ];
+      for (const [list, opacity] of marks) {
+        const material = icons.flatMaterialAt(opacity);
+        for (let i = 0; i < list.length; i++) {
+          const mark = list[i]!;
+          const at = anchor(mark);
+          if (!at) continue;
+          const quad = medallionGeometry(geometry, mark.turn);
+          if (!quad) continue;
+          // The destination's is the largest, which is the route dots' own rule
+          // (`destinationScale`) read for a mark that carries a number: the eye
+          // finds the end of the march without counting, and the number it
+          // finds there is the one the player actually asked for — *when do I
+          // arrive*. The rests on the way are the same mark a size down.
+          const last = i === list.length - 1;
+          const s = OVERLAY.medallionScale * (last ? OVERLAY.medallionDestinationScale : 1);
+          collector.add(quad, [], new Matrix4().compose(at, identity, new Vector3(s, 1, s)), {
+            material,
+            // The tile icons' own order, which is what puts a medallion over
+            // the terrain, over every wash printed on it, and over the route
+            // dots collected in this same layer — and still under the unit
+            // badges, which name the piece and outrank a schedule.
+            order: RENDER_ORDER.tileIcon,
+          });
+        }
+      }
     }
 
     // Worked-tile marks: one small hex ring per worked tile, no filled dot. The

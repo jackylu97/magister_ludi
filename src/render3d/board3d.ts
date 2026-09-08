@@ -60,6 +60,7 @@ import {
   BADGE_CELLS,
   navalBadgeId,
   CHARGE_CELLS,
+  MEDALLION_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
   SURVEY_MARK_CELLS,
@@ -877,6 +878,7 @@ function buildSiteProps(): Record<SiteKind, BufferGeometry> {
 function buildIconDecals(): {
   yields: Record<YieldKey, BufferGeometry>;
   numerals: BufferGeometry[];
+  medallions: BufferGeometry[];
 } {
   const decal = (cell: Parameters<typeof tileIconRect>[0]): BufferGeometry => {
     const rect = tileIconRect(cell);
@@ -887,6 +889,10 @@ function buildIconDecals(): {
   return {
     yields: yields as Record<YieldKey, BufferGeometry>,
     numerals: NUMERAL_CELLS.map((digit) => decal({ set: 'numeral', id: digit })),
+    // The turn medallions lie on the ground like the numerals and for the same
+    // reason: a mark on the route is a mark on the *route*, which is drawn on
+    // the board. Indexed by `MEDALLION_CELLS`, whose order is the atlas's.
+    medallions: MEDALLION_CELLS.map((id) => decal({ set: 'medallion', id })),
   };
 }
 
@@ -1172,6 +1178,13 @@ export class BoardGeometry {
   readonly yieldGlyphs: Record<YieldKey, BufferGeometry>;
   readonly numerals: BufferGeometry[];
   /**
+   * One flat quad per **turn medallion** cell — the mark `overlays.ts` prints
+   * on the hex each turn of a march ends on. Indexed by `MEDALLION_CELLS`, so
+   * `medallionIdFor(turn)` and this array are read together (see
+   * `medallionGeometry` in `overlays.ts`).
+   */
+  readonly medallions: BufferGeometry[];
+  /**
    * The standing form of the same twelve roundels — an upright quad turned to
    * the camera — and the one pin every marker is planted on. See
    * `buildResourceMarkers` and `addResourceMarkers` in `lens3d.ts`.
@@ -1321,6 +1334,7 @@ export class BoardGeometry {
     const icons = buildIconDecals();
     this.yieldGlyphs = icons.yields;
     this.numerals = icons.numerals;
+    this.medallions = icons.medallions;
     this.resourceMarkers = buildResourceMarkers();
     this.siteMarkers = buildSiteMarkers();
     this.surveyMarkers = buildSurveyMarkers();
@@ -1414,6 +1428,7 @@ export class BoardGeometry {
     for (const quad of this.numeralMarkers) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();
     for (const quad of this.numerals) quad.dispose();
+    for (const quad of this.medallions) quad.dispose();
     this.river.dispose();
     this.borderBand.dispose();
     this.borderCorner.dispose();

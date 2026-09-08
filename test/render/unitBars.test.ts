@@ -174,14 +174,19 @@ describe('the bar after a turn resolution', () => {
     const beat = new RendererBeat(state, board, materials());
 
     // A standing order the resolution will walk, and a fight before the press.
-    expect(
-      applyCommand(state, {
-        type: 'moveUnit',
-        playerId: 0,
-        unitId: marcher.id,
-        target: { col: 9, row: 3 },
-      }),
-    ).toMatchObject({ ok: true });
+    //
+    // Written on the piece rather than ordered through the reducer, re-aimed
+    // 2026-09-08 (batch U1): a march is now walked on the turn's *own* points,
+    // and a `moveUnit` that stores a remainder has by definition just spent
+    // them — so an ordered piece stands still through the very next resolution.
+    // This test needs one that moves in it, which is a piece opening the turn
+    // with an order and a full purse, exactly as the ruling produces.
+    marcher.path = [
+      { col: 3, row: 3 },
+      { col: 4, row: 3 },
+      { col: 5, row: 3 },
+      { col: 6, row: 3 },
+    ];
     beat.skipAnimations();
     beat.frame(0);
     expect(

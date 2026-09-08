@@ -750,19 +750,22 @@ describe('clearing a camp', () => {
   });
 
   it('reports a camp a standing order burns out at End Turn, which a phase used to drop', () => {
-    // Before 2026-08-29 a camp cleared by `resetMovement` resuming a stored
-    // order paid correctly and told nobody — `spendLeftoverMovement`'s own
-    // docblock said the report was dropped. `TurnReport.campBounties` is the
-    // seam that carries it out, so `CommandResult.campBounties` (and the
-    // chronicle) can hear about it too.
+    // Before 2026-08-29 a camp cleared by a phase resuming a stored order paid
+    // correctly and told nobody — `spendLeftoverMovement`'s own docblock said
+    // the report was dropped. `TurnReport.campBounties` is the seam that
+    // carries it out, so `CommandResult.campBounties` (and the chronicle) can
+    // hear about it too.
     const state = wildState();
     foundCityAt(state, 0, at(state, 5, 5));
     const city = state.cities[0]!;
     state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
     const warrior = createUnit(state, 0, 'warrior', 8, 5);
-    // A standing order with no movement left this turn — exactly what
-    // `resetMovement` resumes once it has refilled the allowance.
-    warrior.movesLeft = 0;
+    // A standing order with a point of **this turn's** movement still on it —
+    // re-aimed 2026-09-08 (batch U1), where it used to be a spent piece waiting
+    // for `resetMovement` to refill and march it. The refill marches nobody
+    // now, so the case the report exists for is the one it was always about:
+    // the leftover phase walking the last point of the turn.
+    warrior.movesLeft = 1;
     warrior.path = [{ col: 9, row: 5 }];
 
     const report = runEndOfTurn(state);
@@ -785,7 +788,9 @@ describe('clearing a camp', () => {
     foundCityAt(state, 0, at(state, 5, 5));
     state.camps.push({ col: 9, row: 5, foundedTurn: 1 });
     const warrior = createUnit(state, 0, 'warrior', 8, 5);
-    warrior.movesLeft = 0;
+    // A point of this turn's movement left on it — see the test above for why
+    // that is the standing-order case since batch U1.
+    warrior.movesLeft = 1;
     warrior.path = [{ col: 9, row: 5 }];
 
     expect(applyCommand(state, { type: 'endTurn', playerId: 0 }).ok).toBe(true);
@@ -1196,7 +1201,7 @@ describe('escorting', () => {
     expect(soldiers).toHaveLength(1);
   });
 
-  it('leaves no standing orders behind for `resetMovement` to walk', () => {
+  it('leaves no standing orders behind for `spendLeftoverMovement` to walk', () => {
     const state = wildState();
     const wild = wildId(state);
     state.camps.push({ col: 8, row: 8, foundedTurn: 1 });

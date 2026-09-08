@@ -245,7 +245,7 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
-import { findPath, reachableTiles, takesByWalking } from '../sim/pathfind';
+import { findPath, pathTurnMarks, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
   type City,
@@ -354,7 +354,7 @@ import {
   routeReading as routeReadingOf,
   routeSlotsLine as routeSlotsLineOf,
 } from './tradeLines';
-import { type TurnBlocker, firstBlocker } from './turnBlockers';
+import { type TurnBlocker, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
 
@@ -383,7 +383,7 @@ const MOVE_MODE_NOTICE = 'Move mode — click a destination (Esc cancels)';
  * answer to the question the player is asking, so the line says the other half
  * out loud rather than the highlight pretending to a reach the turn does not
  * have. The order lands, the unit sheet's Orders line confirms it, and the march
- * begins when `resetMovement` refills the purse.
+ * begins at the end of the *next* turn, on that turn's own points.
  */
 const MOVE_MODE_SPENT_NOTICE =
   'Move mode — spent for this turn; click a destination and it sets off on the next (Esc cancels)';
@@ -3931,10 +3931,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     refreshSpotlight();
     refreshCityFocus();
     refreshLens();
-    // A unit that is already marching shows the route it is marching on. Only
-    // the selected one: every stored order on the board at once would be a
-    // cat's cradle, and the question is always about the piece in hand.
-    renderer.setCommittedPath?.(unit?.path ?? []);
+    // A unit that is already marching shows the route it is marching on, and
+    // the turn medallions along it — where the piece will be at the end of each
+    // turn it keeps walking (`docs/flags.md` (bbb)), which is the question a
+    // stored order raises now that one is walked a turn at a time. Only the
+    // selected one: every stored order on the board at once would be a cat's
+    // cradle, and the question is always about the piece in hand.
+    const committed = unit?.path ?? [];
+    renderer.setCommittedPath?.(
+      committed,
+      unit ? pathTurnMarks(getGame().state, unit, committed) : [],
+    );
     refreshPathPreview();
   }
 
@@ -4185,7 +4192,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       renderer.setPathPreview([]);
       return;
     }
-    renderer.setPathPreview(findPath(getGame().state, unit, hover.tile) ?? []);
+    const path = findPath(getGame().state, unit, hover.tile) ?? [];
+    // The route *and* its schedule, in one call: where the march stops at the
+    // end of each turn, which is what the board prints its turn medallions on
+    // (`docs/flags.md` (bbb)). Asked of the simulation here rather than worked
+    // out over there, like every other set this file hands the renderer — and
+    // asked of `pathTurnMarks`, which is `pathTurns`' own loop, so a medallion
+    // and the "~N turns" on the unit sheet cannot say different things.
+    renderer.setPathPreview(path, pathTurnMarks(getGame().state, unit, path));
   }
 
   function select(id: number | null): void {
@@ -4758,9 +4772,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
     renderer.invalidate();
     // The same advance Skip Turn makes, for the same reason and out of the same
-    // two lines: hop to the next piece actually waiting, and with nothing else
-    // waiting simply let go. See `skipUnit`.
-    const next = endTurnBlocker();
+    // two lines: hop to the next piece actually worth showing, and with nothing
+    // else waiting simply let go. See `skipUnit`, and `nextUnitOffer` for why
+    // the cycle asks one clause wider than the button does.
+    const next = nextUnitOffer();
     if (next?.kind === 'idleUnit') focusBlocker(next);
     else clearSelection();
   }
@@ -4853,7 +4868,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * changes is whether `firstBlocker` is still willing to call it idle.
    *
    * The advance afterwards is deliberately the narrow half of `endTurn`'s own
-   * post-resolution courtesy: jump to the next idle unit and put it in hand,
+   * post-resolution courtesy: jump to the next piece worth showing and put it
+   * in hand (`nextUnitOffer`, which is one clause wider than the button's gate),
    * exactly as a resolved turn hands the camera to the first piece still
    * awaiting one, but never open a city screen or the tech tree the way
    * pressing End Turn itself is allowed to — a player skipping down a column
@@ -4865,7 +4881,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = selectedUnit();
     if (!unit || skipBlocker() !== null) return;
     skippedUnitIds.add(unit.id);
-    const next = endTurnBlocker();
+    const next = nextUnitOffer();
     if (next?.kind === 'idleUnit') focusBlocker(next);
     else clearSelection();
   }
@@ -6211,8 +6227,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Where every unit under a standing order is standing, and what that order
    * still is, captured immediately before a dispatch that might resolve the turn.
    *
-   * This is the only moment the information exists. `resetMovement` walks those
-   * orders in place, so a heartbeat later the unit is at its new tile and the
+   * This is the only moment the information exists. `spendLeftoverMovement` walks
+   * those orders in place, so a heartbeat later the unit is at its new tile and the
    * waypoints it crossed have been consumed from its `path` — there is nothing
    * left to reconstruct the walk from. Only units that actually hold an order
    * are captured, because they are the only ones resolution can move.
@@ -6464,17 +6480,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // the card and the camera arrive together, as they always did.
       afterBeat(prefersReducedMotion() ? 0 : HANDOVER_PAN_MS, () => {
         // The Civ gesture: the same click that marched the standing orders hands
-        // the new turn over *on* the first piece still awaiting one — a unit
-        // whose walk finished with movement to spare would otherwise stand
-        // unnoticed until the next End Turn press tripped over it. Units only:
+        // the new turn over *on* the first piece worth showing — a unit whose
+        // walk finished with movement to spare would otherwise stand unnoticed
+        // until the next End Turn press tripped over it. Units only:
         // the blocker gate still catches production and research on the next
         // press, but auto-opening a city screen or the star chart at every turn
         // open would be the interface grabbing the wheel, where a camera glide
         // to a waiting piece is it pointing.
         //
+        // `nextUnitOffer` rather than `endTurnBlocker`, and that is the 2026-09-08
+        // ruling arriving where it is most visible: the marches were walked on
+        // *this* turn's points, so a column still under orders is standing here
+        // with a full allowance and its route drawn. That is the piece the player
+        // most wants in hand at the top of a turn — and the one thing that must
+        // never bar the button, or every multi-turn march becomes a press to get
+        // past. See `turnBlockers.ts`, "Blocking and offering".
+        //
         // Asked *here* rather than carried from the resolution, because a player
         // who spent the marches giving orders has answered it already.
-        const idle = endTurnBlocker();
+        const idle = nextUnitOffer();
         if (idle?.kind === 'idleUnit') focusBlocker(idle);
         // A culture meter that filled during the resolution is **news**, and it
         // is said rather than shown: Entry XVIII.4's rule is that a screen
@@ -6512,6 +6536,21 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    */
   function endTurnBlocker(): TurnBlocker | null {
     return firstBlocker(getGame().state, localPlayerId, { skippedUnitIds });
+  }
+
+  /**
+   * The next piece to put in the player's hand — the camera's own question,
+   * one clause wider than the button's (`firstUnitOffer`, and the split is
+   * argued in `turnBlockers.ts`).
+   *
+   * The three places that advance to "the next piece still waiting" ask this
+   * rather than `endTurnBlocker`, because since 2026-09-08 a column under
+   * standing orders opens the turn holding a full allowance: it is the most
+   * useful thing to be shown and the last thing that should bar the button.
+   * Everything that *gates* still asks `endTurnBlocker`.
+   */
+  function nextUnitOffer(): TurnBlocker | null {
+    return firstUnitOffer(getGame().state, localPlayerId, { skippedUnitIds });
   }
 
   /**

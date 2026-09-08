@@ -14,6 +14,8 @@ import {
   AXIS_CELLS,
   CHARGE_CELLS,
   MARGINALIA_CELLS,
+  MEDALLION_CELLS,
+  MEDALLION_TURNS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
   SURVEY_MARK_CELLS,
@@ -25,6 +27,8 @@ import {
   paperRadiusFraction,
   markerPaperExtent,
   markerPaperRadius,
+  medallionIdFor,
+  medallionLabel,
   tileAtlasSize,
   tileIconIndex,
   tileIconRect,
@@ -366,6 +370,16 @@ describe('the tile-icon atlas', () => {
     // exactly as a discovery kind would.
     expect(surveys).toEqual([...SURVEY_MARK_CELLS]);
     expect(SURVEY_MARK_CELLS).toEqual([...SURVEY_MARK_IDS]);
+    // And the ninth, appended by batch U1: the turn medallions — one cell per
+    // number a march's rest can wear, plus the overflow the set stops at. A
+    // turn number with no cell here is a mark that throws from inside the
+    // rasterisation, which `medallionIdFor` is the one guard against.
+    const medallions = TILE_ICON_CELLS.filter((cell) => cell.set === 'medallion').map(
+      (c) => c.id,
+    );
+    expect(medallions).toEqual([...MEDALLION_CELLS]);
+    expect(MEDALLION_CELLS).toHaveLength(MEDALLION_TURNS + 1);
+    expect(MEDALLION_CELLS[MEDALLION_CELLS.length - 1]).toBe('more');
     expect(TILE_ICON_CELLS).toHaveLength(
       RESOURCE_IDS.length +
         6 +
@@ -374,8 +388,29 @@ describe('the tile-icon atlas', () => {
         SITE_MARK_CELLS.length +
         CHARGE_CELLS.length +
         AXIS_CELLS.length +
-        SURVEY_MARK_CELLS.length,
+        SURVEY_MARK_CELLS.length +
+        MEDALLION_CELLS.length,
     );
+  });
+
+  /**
+   * The medallion's own arithmetic: which cell a turn number wears. It is the
+   * only place the set's ceiling is read, and the failure it prevents is a
+   * throw from inside `tileIconRect` on a march eleven turns long.
+   */
+  it('gives every turn number a cell, and a long march the ceiling', () => {
+    for (let turn = 1; turn <= MEDALLION_TURNS; turn++) {
+      expect(medallionIdFor(turn)).toBe(turn);
+      expect(medallionLabel(medallionIdFor(turn))).toBe(String(turn));
+      expect(tileIconIndex({ set: 'medallion', id: medallionIdFor(turn) })).toBeGreaterThanOrEqual(0);
+    }
+    expect(medallionIdFor(MEDALLION_TURNS + 1)).toBe('more');
+    expect(medallionIdFor(400)).toBe('more');
+    expect(medallionLabel('more')).toBe(`${MEDALLION_TURNS}+`);
+    // A turn count below the first rest is not a thing the marks can carry, and
+    // it is floored rather than refused: the board draws what it is told.
+    expect(medallionIdFor(0)).toBe(1);
+    expect(tileIconIndex({ set: 'medallion', id: 'more' })).toBe(TILE_ICON_CELLS.length - 1);
   });
 
   /**
@@ -396,6 +431,7 @@ describe('the tile-icon atlas', () => {
         CHARGE_CELLS.length -
         AXIS_CELLS.length -
         SURVEY_MARK_CELLS.length -
+        MEDALLION_CELLS.length -
         MARGINALIA_CELLS.length,
     );
     // The inscription joined the marginalia *behind* the serpent, so the serpent
@@ -404,17 +440,26 @@ describe('the tile-icon atlas', () => {
       tileIconIndex({ set: 'marginalia', id: 'serpent' }) + 1,
     );
     expect(tileIconIndex({ set: 'charge', id: CHARGE_CELLS[CHARGE_CELLS.length - 1]! })).toBe(
-      TILE_ICON_CELLS.length - AXIS_CELLS.length - SURVEY_MARK_CELLS.length - 1,
+      TILE_ICON_CELLS.length -
+        AXIS_CELLS.length -
+        SURVEY_MARK_CELLS.length -
+        MEDALLION_CELLS.length -
+        1,
     );
     // The axes kept their place when the survey notes arrived behind them, which
     // is the property this suite is really about.
     expect(tileIconIndex({ set: 'axis', id: AXIS_CELLS[AXIS_CELLS.length - 1]! })).toBe(
-      TILE_ICON_CELLS.length - SURVEY_MARK_CELLS.length - 1,
+      TILE_ICON_CELLS.length - SURVEY_MARK_CELLS.length - MEDALLION_CELLS.length - 1,
     );
-    // The survey notes are the newest set and are on the end, which is the rule.
+    // The survey notes kept their place when the medallions arrived behind
+    // them, which is the property this suite is really about.
     expect(
       tileIconIndex({ set: 'survey', id: SURVEY_MARK_CELLS[SURVEY_MARK_CELLS.length - 1]! }),
-    ).toBe(TILE_ICON_CELLS.length - 1);
+    ).toBe(TILE_ICON_CELLS.length - MEDALLION_CELLS.length - 1);
+    // The medallions are the newest set and are on the end, which is the rule.
+    expect(tileIconIndex({ set: 'medallion', id: 1 })).toBe(
+      TILE_ICON_CELLS.length - MEDALLION_CELLS.length,
+    );
   });
 
   /**

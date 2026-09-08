@@ -225,8 +225,8 @@ export function exploreTarget(state: GameState, unit: Unit): Cell | null {
  *
  * The walk is deliberately not here — `startRoute`'s sentence for a piece
  * changing vocation: the pipeline walks what this sets
- * (`spendLeftoverMovement` on the very turn the order is given,
- * `resetMovement` after it), which keeps one implementation of a march and
+ * (`spendLeftoverMovement`, on the very turn the order is given and at the end
+ * of every turn after it), which keeps one implementation of a march and
  * sends every step through `arriveOnTile`.
  */
 export function aimExplorer(state: GameState, unit: Unit): boolean {

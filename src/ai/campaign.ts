@@ -445,10 +445,10 @@ export function marchClaims(state: GameState, playerId: number, exceptId: number
  *
  * The other half of `marchClaims`: the pieces that were given a doomed order
  * before anybody claimed anything. A stored path is a standing order the
- * simulation resumes every turn (`resetMovement`), and one whose destination is
- * occupied is resumed, blocked and kept — for ever — with the piece invisible to
- * the bot the whole time, because `unitAwaitsOrders` reads a stored path as
- * *busy*. Read as *the rules would not let it stop there*, which is `canStopOn`
+ * simulation walks at the end of every turn (`spendLeftoverMovement`), and one
+ * whose destination is occupied is walked, blocked and kept — for ever — with
+ * the piece invisible to the bot the whole time, because `unitAwaitsOrders`
+ * reads a stored path as *busy*. Read as *the rules would not let it stop there*, which is `canStopOn`
  * and not a second opinion about stacking.
  */
 export function marchIsStalled(state: GameState, unit: Unit): boolean {

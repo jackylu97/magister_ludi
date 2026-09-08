@@ -530,7 +530,25 @@ import {
  * and a town that bought a faith house is a town holding stones the old build
  * has no id for.
  */
-export const SCHEMA_VERSION = 97;
+/**
+ * v98: **standing orders walk on this turn's points** (batch U1,
+ * `docs/flags.md` (bbb) — the user, 2026-09-08: *"a unit's orders should only be
+ * performed at the end of the turn if they have available movement"*).
+ *
+ * One phase changed and one march moved. `resetMovement` (`turn.ts`) used to
+ * refill every allowance and then walk every stored path on the points it had
+ * just handed out, so a column under orders opened its owner's turn with that
+ * turn's movement already spent, standing somewhere nobody had watched it walk
+ * to. The second pass is gone: the refill resumes nothing, and
+ * `spendLeftoverMovement` — one line above it, on this turn's own leftover — is
+ * now the only phase in the pipeline that marches a standing order.
+ *
+ * A v97 log does not replay. **Every multi-turn march arrives a turn later**,
+ * and a column stands one turn's allowance short of where the old pipeline put
+ * it on the turn it set out — which moves what a scout sees, which hex a raider
+ * burns a camp on, and therefore every die rolled after it.
+ */
+export const SCHEMA_VERSION = 98;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1317,6 +1335,17 @@ export interface Unit {
    * healing rule reads it on every unit in the game every turn.
    */
   hasAttacked: boolean;
+  /**
+   * The rest of a march this unit has been ordered on, or the key is **absent**
+   * when it is standing where it was put. Presence is the state, like
+   * `sleeping`'s and `fortifiedTurns`'.
+   *
+   * Walked at the **end** of a turn, on the points that turn granted
+   * (`spendLeftoverMovement` in `turn.ts`, and only there since 2026-09-08 —
+   * `docs/flags.md` (bbb)). So a piece under orders opens its owner's next turn
+   * standing where it stopped, holding a full allowance and still carrying what
+   * is left of the route: the order is kept, and the player may change it.
+   */
   path?: { col: number; row: number }[];
   /**
    * How many turns this unit has been fortified, or the key is absent when it is

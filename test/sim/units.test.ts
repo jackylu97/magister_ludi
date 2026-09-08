@@ -298,25 +298,77 @@ describe('moveUnit', () => {
     ]);
   });
 
-  it('continues a standing order on the following turns', () => {
+  /**
+   * The two-turn march, re-aimed on **2026-09-08** (batch U1, `docs/flags.md`
+   * (bbb)). It used to expect the column at col 4 after one resolution and at
+   * col 5 holding one point after the second: `resetMovement` refilled the
+   * allowance and then spent it walking the stored order, so every turn opened
+   * on a piece that had already marched. Now the march is walked by
+   * `spendLeftoverMovement`, before the refill, on the points the turn actually
+   * had — so the order that was given with nothing left walks nothing on the
+   * turn it was given, and every turn after opens with a **full** allowance and
+   * the rest of the route still stored.
+   */
+  it('continues a standing order at the end of each following turn', () => {
     const state = flatState();
     const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    const full = unitDef('warrior').movement;
     applyCommand(state, move(warrior.id, 5, 3));
+    expect(warrior.col).toBe(2);
 
+    // Turn one's points went into the two hexes the command itself walked, so
+    // the resolution has nothing to spend — and refills.
+    endRound(state);
+    expect(warrior.col).toBe(2);
+    expect(warrior.movesLeft).toBe(full);
+    expect(warrior.path).toEqual([
+      { col: 3, row: 3 },
+      { col: 4, row: 3 },
+      { col: 5, row: 3 },
+    ]);
+
+    // Turn two: the player spent none of it, so the whole allowance goes into
+    // the march — and the piece stands at the far end of it, refilled.
     endRound(state);
     expect(warrior.col).toBe(4);
-    expect(warrior.movesLeft).toBe(0);
+    expect(warrior.movesLeft).toBe(full);
     expect(warrior.path).toEqual([{ col: 5, row: 3 }]);
 
     endRound(state);
     expect(warrior.col).toBe(5);
-    expect(warrior.movesLeft).toBe(1);
+    expect(warrior.movesLeft).toBe(full);
     expect(warrior.path).toBeUndefined();
 
     // Idle from here on.
     endRound(state);
     expect(warrior.col).toBe(5);
-    expect(warrior.movesLeft).toBe(2);
+    expect(warrior.movesLeft).toBe(full);
+  });
+
+  /**
+   * The other half of the same ruling, said as the player sees it: a piece
+   * ordered with **nothing left to spend** stands still on the turn it was
+   * ordered and walks at the end of the next one. Before 2026-09-08 the order
+   * was walked on the very next turn's fresh allowance, which is the same
+   * arrival one turn earlier and a turn the player never got to spend.
+   */
+  it('stands still the turn it is ordered at zero movement, and walks at the next turn’s end', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    const full = unitDef('warrior').movement;
+    warrior.movesLeft = 0;
+    expect(applyCommand(state, move(warrior.id, 3, 3))).toEqual({ ok: true });
+    expect(warrior.col).toBe(0);
+
+    // Nothing this turn: there were no points to walk it with.
+    endRound(state);
+    expect(warrior.col).toBe(0);
+    expect(warrior.movesLeft).toBe(full);
+
+    // And the next resolution spends the allowance that turn granted.
+    endRound(state);
+    expect(warrior.col).toBe(full);
+    expect(warrior.movesLeft).toBe(full);
   });
 
   it('replaces a standing order when a new one is issued', () => {
@@ -325,17 +377,19 @@ describe('moveUnit', () => {
     applyCommand(state, move(warrior.id, 6, 3));
     expect(warrior.path).toHaveLength(4);
 
-    // A friendly soldier blocks the far end, so next turn the march stops early
-    // and keeps a movement point — the one moment an order and spare movement
-    // coexist, and therefore the only way to re-order a marching unit.
-    createUnit(state, 0, 'warrior', 4, 3);
+    // 2026-09-08 (batch U1): "an order and spare movement at once" used to be
+    // the one moment a cleared jam produced, and this test needed a friendly
+    // soldier parked on the route to manufacture it. It is now the ordinary
+    // case — a marching piece opens every turn with a full allowance and the
+    // rest of its route — which is the whole point of the ruling: the order is
+    // the player's to change, on a turn they can still spend.
     endRound(state);
-    expect(warrior.col).toBe(3);
-    expect(warrior.movesLeft).toBe(1);
-    expect(warrior.path).toHaveLength(3);
+    expect(warrior.col).toBe(2);
+    expect(warrior.movesLeft).toBe(unitDef('warrior').movement);
+    expect(warrior.path).toHaveLength(4);
 
-    applyCommand(state, move(warrior.id, 3, 4));
-    expect(warrior.col).toBe(3);
+    applyCommand(state, move(warrior.id, 2, 4));
+    expect(warrior.col).toBe(2);
     expect(warrior.row).toBe(4);
     expect(warrior.path).toBeUndefined();
   });
@@ -358,6 +412,13 @@ describe('moveUnit', () => {
 
     // The world changes under the order: the next step becomes a mountain.
     at(state.map, 3, 3).terrain = 'mountain';
+    // Two resolutions now, not one (2026-09-08, batch U1): the order was given
+    // with the turn's points already spent, so the first resolution has nothing
+    // to walk it with and the wall is not met until the second.
+    endRound(state);
+    expect(warrior.col).toBe(2);
+    expect(warrior.path).toHaveLength(4);
+
     endRound(state);
     expect(warrior.col).toBe(2);
     expect(warrior.path).toBeUndefined();
@@ -369,6 +430,11 @@ describe('moveUnit', () => {
     applyCommand(state, move(warrior.id, 6, 3));
     // A friendly soldier parks exactly where the march would come to rest.
     createUnit(state, 0, 'warrior', 4, 3);
+
+    // The first resolution has nothing to spend (batch U1); the second walks
+    // the turn's allowance into the traffic.
+    endRound(state);
+    expect(warrior.col).toBe(2);
 
     endRound(state);
     expect(warrior.col).toBe(3);
@@ -492,9 +558,13 @@ describe('moveUnit under simultaneous turns', () => {
 
     // The seats finish in a different order each turn; a stored order is
     // owner-agnostic and resolves with the turn, not with its owner's seat.
+    // Three resolutions rather than two since batch U1 — the first has this
+    // turn's points, and the command already spent them.
     endRound(state, [1, 0]);
-    expect(warrior.col).toBe(4);
+    expect(warrior.col).toBe(2);
     endRound(state, [0, 1]);
+    expect(warrior.col).toBe(4);
+    endRound(state, [1, 0]);
     expect(warrior.col).toBe(5);
     expect(warrior.path).toBeUndefined();
   });
@@ -554,6 +624,41 @@ describe('resetMovement', () => {
     expect(theirs.movesLeft).toBe(unitDef('scout').movement);
   });
 
+  /**
+   * The ruling of 2026-09-08 (batch U1, `docs/flags.md` (bbb)) as one
+   * assertion: the refill walks nobody. A stored order left on a piece that had
+   * *nothing* this turn is walked by nothing this resolution — the old second
+   * pass would have spent the allowance it had just handed out and put the
+   * piece two hexes on, holding none of it.
+   */
+  it('refills and resumes nothing — the piece keeps its order and its points', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    warrior.movesLeft = 0;
+    warrior.path = [
+      { col: 1, row: 3 },
+      { col: 2, row: 3 },
+    ];
+
+    endRound(state);
+    expect([warrior.col, warrior.row]).toEqual([0, 3]);
+    expect(warrior.movesLeft).toBe(unitDef('warrior').movement);
+    expect(warrior.path).toEqual([
+      { col: 1, row: 3 },
+      { col: 2, row: 3 },
+    ]);
+  });
+
+  /** The broom that is all the second pass left behind. */
+  it('sweeps away an empty route rather than walking it', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 4, 4);
+    // Only reachable from a hand-edited save; an idle unit carries no `path`.
+    warrior.path = [];
+    endRound(state);
+    expect(Object.prototype.hasOwnProperty.call(warrior, 'path')).toBe(false);
+  });
+
   it('resolves contended standing orders in array order', () => {
     const state = flatState();
     // Two soldiers three tiles either side of the same destination.
@@ -563,6 +668,12 @@ describe('resetMovement', () => {
     applyCommand(state, move(second.id, 3, 4));
 
     // Each order walks two of its three steps immediately.
+    expect([first.col, second.col]).toEqual([2, 4]);
+
+    // The first resolution has nothing left to spend on either of them (batch
+    // U1, 2026-09-08); the second is where they contend. The tie-break is
+    // unchanged, and it is what this test is about.
+    endRound(state);
     expect([first.col, second.col]).toEqual([2, 4]);
 
     endRound(state); // the earlier unit in the array takes the tile
@@ -600,7 +711,12 @@ describe('standing orders and leftover movement', () => {
       Array.from({ length: movement }, (_, i) => ({ col: 3 + i, row: 2 })),
     );
 
-    // And the stored order is what sets off next turn.
+    // And the stored order is what sets off — at the end of the *next* turn,
+    // on that turn's own points (batch U1, 2026-09-08). This resolution has
+    // nothing to walk it with, which is the ruling said plainly.
+    endRound(state);
+    expect([scout.col, scout.row]).toEqual([2, 2]);
+
     endRound(state);
     expect(scout.col).toBe(destCol);
     expect(scout.path).toBeUndefined();
@@ -653,14 +769,41 @@ describe('standing orders and leftover movement', () => {
     expect(unitsOnTile(state, 2, 3)).toHaveLength(0);
 
     endRound(state);
-    // Four hexes, not three: `spendLeftoverMovement` walks the one point the
-    // jam left unspent *before* the allowance is refilled, and `resetMovement`
-    // then walks the two the new turn granted.
-    expect(column.col).toBe(4);
+    // Two hexes, not four (re-aimed 2026-09-08, batch U1): `spendLeftoverMovement`
+    // still walks the one point the jam left unspent, and it is still the whole
+    // reason this phase exists — but the refill no longer marches the column a
+    // second time on the *next* turn's allowance, so the piece stands one hex
+    // on with a full purse and the rest of its route.
+    expect(column.col).toBe(2);
+    expect(column.movesLeft).toBe(unitDef('warrior').movement);
     expect(column.path).toEqual([
+      { col: 3, row: 3 },
+      { col: 4, row: 3 },
       { col: 5, row: 3 },
       { col: 6, row: 3 },
     ]);
+  });
+
+  /**
+   * `spendLeftoverMovement`'s position, unchanged by batch U1 and now exercised
+   * by every standing order rather than only by a cleared jam: the healing is
+   * decided **before** the march. A column that stood still all turn under
+   * orders has rested, so it heals — and then walks. Put the march first and
+   * the same piece would never heal again as long as it was marching.
+   */
+  it('heals a marching column before it walks, never after', () => {
+    const state = flatState();
+    const warrior = createUnit(state, 0, 'warrior', 0, 3);
+    warrior.hp = 40;
+    warrior.path = [
+      { col: 1, row: 3 },
+      { col: 2, row: 3 },
+    ];
+
+    endRound(state);
+    // It marched inside the resolution, and it healed on the way out.
+    expect(warrior.col).toBe(2);
+    expect(warrior.hp).toBe(40 + RULES.healing.perTurnIfRested);
   });
 
   it('is deterministic: the same orders resolve byte-identically, in array order', () => {
@@ -691,6 +834,14 @@ describe('standing orders and leftover movement', () => {
     // give it: one turn is one allowance, and the phase is not a second one.
     expect(scout.movesLeft).toBe(0);
     const reached = scout.col;
+    endRound(state);
+    // Re-aimed 2026-09-08 (batch U1): the resolution used to add a whole fresh
+    // allowance on top of the one the command had just spent, which is exactly
+    // the double march the ruling removed. The piece stands where it stopped.
+    expect(scout.col - reached).toBe(0);
+    expect(scout.movesLeft).toBe(unitDef('scout').movement);
+
+    // The next turn's allowance is what walks it, once.
     endRound(state);
     expect(scout.col - reached).toBe(unitDef('scout').movement);
   });

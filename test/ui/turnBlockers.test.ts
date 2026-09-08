@@ -22,9 +22,9 @@ import {
 } from '../../src/sim/state';
 import { availableTechs } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
-import { unitAwaitsOrders } from '../../src/sim/units';
+import { unitAwaitsOrders, unitOfferedForOrders } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
-import { firstBlocker } from '../../src/ui/turnBlockers';
+import { firstBlocker, firstUnitOffer } from '../../src/ui/turnBlockers';
 
 /** A two-player state on a blank grassland rectangle, as `tech.test.ts` uses. */
 function flatState(width = 16, height = 12): GameState {
@@ -174,6 +174,148 @@ describe('unitAwaitsOrders', () => {
     unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
     delete unit.trade;
     expect(unitAwaitsOrders(unit)).toBe(true);
+  });
+});
+
+/**
+ * **Offering is not blocking** (batch U1, 2026-09-08, `docs/flags.md` (bbb)).
+ *
+ * Since standing orders march on the turn's own points, a column under orders
+ * opens its owner's next turn standing still with a full allowance — the most
+ * useful thing a camera could show, and the last thing End Turn should bar on.
+ * So there are two predicates and this is the wire between them: everything the
+ * narrow one calls idle, the wide one offers, and the wide one adds exactly one
+ * case — a piece marching with points in hand.
+ */
+describe('unitOfferedForOrders', () => {
+  it('offers everything the narrow predicate calls idle', () => {
+    const state = flatState();
+    const fresh = createUnit(state, 0, 'warrior', 3, 3);
+    expect(unitAwaitsOrders(fresh)).toBe(true);
+    expect(unitOfferedForOrders(fresh)).toBe(true);
+  });
+
+  it('offers a unit under a standing order that still has movement', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    unit.path = [{ col: 4, row: 3 }, { col: 5, row: 3 }];
+    // The one case the two predicates disagree about, and the whole reason the
+    // second one exists.
+    expect(unitAwaitsOrders(unit)).toBe(false);
+    expect(unitOfferedForOrders(unit)).toBe(true);
+  });
+
+  it('does not offer a marching unit with nothing left to spend', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    unit.path = [{ col: 4, row: 3 }];
+    unit.movesLeft = 0;
+    expect(unitOfferedForOrders(unit)).toBe(false);
+  });
+
+  it('carries every exclusion the narrow predicate makes, orders or not', () => {
+    // The reason it is written as the narrow reading with the march set aside
+    // rather than as a second list of clauses: each of these holds a `path` and
+    // a full allowance, and not one of them is a piece to hand the player.
+    const state = flatState();
+
+    const asleep = createUnit(state, 0, 'worker', 3, 3);
+    asleep.sleeping = true;
+    asleep.path = [{ col: 4, row: 3 }];
+    expect(unitOfferedForOrders(asleep)).toBe(false);
+
+    const dugIn = createUnit(state, 0, 'warrior', 4, 4);
+    dugIn.fortifiedTurns = 2;
+    dugIn.path = [{ col: 5, row: 4 }];
+    expect(unitOfferedForOrders(dugIn)).toBe(false);
+
+    const ranging = createUnit(state, 0, 'scout', 5, 5);
+    ranging.autoExplore = true;
+    ranging.path = [{ col: 6, row: 5 }];
+    expect(unitOfferedForOrders(ranging)).toBe(false);
+
+    const caravan = createUnit(state, 0, 'trader', 6, 6);
+    caravan.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: true };
+    caravan.path = [{ col: 7, row: 6 }];
+    expect(unitOfferedForOrders(caravan)).toBe(false);
+  });
+
+  it('treats an emptied route as no order at all, exactly as the narrow one does', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    unit.path = [];
+    expect(unitOfferedForOrders(unit)).toBe(true);
+  });
+});
+
+describe('firstUnitOffer · the camera cycle', () => {
+  it('offers a marching column the button would never stop on', () => {
+    const state = settled();
+    const column = createUnit(state, 0, 'warrior', 3, 3);
+    column.path = [{ col: 4, row: 3 }];
+    // Nothing else is outstanding, so End Turn is free to end the turn — and
+    // the camera still has somewhere useful to go.
+    expect(firstBlocker(state, 0)).toBeNull();
+    expect(firstUnitOffer(state, 0)).toEqual({ kind: 'idleUnit', unitId: column.id });
+  });
+
+  it('agrees with the blocker whenever a piece is plainly idle', () => {
+    const state = settled();
+    const unit = createUnit(state, 0, 'warrior', 3, 3);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: unit.id });
+    expect(firstUnitOffer(state, 0)).toEqual({ kind: 'idleUnit', unitId: unit.id });
+  });
+
+  it('follows `state.units` order, so the same board offers the same piece first', () => {
+    const state = settled();
+    const marching = createUnit(state, 0, 'warrior', 3, 3);
+    marching.path = [{ col: 4, row: 3 }];
+    createUnit(state, 0, 'warrior', 8, 8);
+    expect(firstUnitOffer(state, 0)).toEqual({ kind: 'idleUnit', unitId: marching.id });
+  });
+
+  it('never offers another seat’s pieces', () => {
+    const state = settled();
+    const theirs = createUnit(state, 1, 'warrior', 3, 3);
+    theirs.path = [{ col: 4, row: 3 }];
+    expect(firstUnitOffer(state, 0)).toBeNull();
+  });
+
+  it('honours a skip, which is what Skip Turn means for the cycle too', () => {
+    const state = settled();
+    const column = createUnit(state, 0, 'warrior', 3, 3);
+    column.path = [{ col: 4, row: 3 }];
+    expect(
+      firstUnitOffer(state, 0, { skippedUnitIds: new Set([column.id]) }),
+    ).toBeNull();
+  });
+
+  it('offers nothing to a seat that has already ended its turn', () => {
+    const state = settled();
+    const column = createUnit(state, 0, 'warrior', 3, 3);
+    column.path = [{ col: 4, row: 3 }];
+    state.turnEnded[0] = true;
+    expect(firstUnitOffer(state, 0)).toBeNull();
+  });
+
+  it('offers nothing to the wild or to a seat that is out', () => {
+    const state = settled();
+    createUnit(state, 1, 'warrior', 3, 3);
+    state.players[1]!.barbarian = true;
+    expect(firstUnitOffer(state, 1)).toBeNull();
+    state.players[1]!.barbarian = false;
+    state.players[1]!.eliminated = true;
+    expect(firstUnitOffer(state, 1)).toBeNull();
+  });
+
+  it('says nothing at all about the four offers a seat owes — those are the button’s', () => {
+    // A discovery is `firstBlocker`'s first answer and this function's business
+    // is only ever a piece on the board; every caller asks the blocker too, so
+    // an empire owing a card is never quietly steered past it.
+    const state = settled();
+    state.players[0]!.pendingDiscovery = { kind: 'ruins', col: 3, row: 3, options: [] };
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'discovery' });
+    expect(firstUnitOffer(state, 0)).toBeNull();
   });
 });
 
@@ -517,6 +659,22 @@ describe('the idle-unit predicate', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('splits the cycle from the gate — the camera asks the wide reading', () => {
+    // Batch U1's half of the same claim, and the same failure mode: the day
+    // somebody points the post-resolution camera back at `endTurnBlocker`, a
+    // column standing under orders with a full allowance goes unshown again,
+    // and no behavioural test in this suite would notice. So the wiring is
+    // read. Three advances ask the cycle — Sleep, Skip and the hand-over after
+    // a resolution — plus the one line that defines it.
+    const key = Object.keys(UI_SOURCE).find((path) => path.endsWith('/controls.ts'));
+    expect(key).toBeDefined();
+    const source = code(UI_SOURCE[key!]!);
+    expect(source).toContain('firstUnitOffer(getGame().state, localPlayerId, { skippedUnitIds })');
+    expect(source.match(/nextUnitOffer\(\)/g)?.length).toBe(4); // three calls + its own signature
+    // And the gate is still the narrow one: End Turn reads the blocker.
+    expect(source).toContain('firstBlocker(getGame().state, localPlayerId, { skippedUnitIds })');
   });
 
   it('is asked at all — controls.ts imports it from the sim', () => {

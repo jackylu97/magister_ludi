@@ -8,6 +8,7 @@ import {
   isPassable,
   isShoreStep,
   moveProfile,
+  pathTurnMarks,
   pathTurns,
   reachableTiles,
   shoreStepCost,
@@ -521,6 +522,105 @@ describe('reachableTiles', () => {
  * `advanceAlongPath`, and each gets its own assertion below rather than a claim
  * that they "read the same function".
  */
+/**
+ * **The turn medallions' reader** (batch U1, 2026-09-08, `docs/flags.md` (bbb)):
+ * where a march rests at the end of each turn, so the board can print the
+ * number on the hex.
+ *
+ * `pathTurnMarks` is `pathTurns` read out cell by cell instead of summed, and
+ * the contract that matters is that the two never disagree: the last mark's
+ * turn *is* the estimate, every time, on any route. A medallion saying "three"
+ * on a destination the unit sheet calls two turns away would be the interface
+ * arguing with itself, and it is the only bug this pair can produce.
+ */
+describe('pathTurnMarks', () => {
+  it('marks the hex each turn ends on, and no other hex on the route', () => {
+    const state = flatState();
+    // Two movement points, four hexes: rest, rest, arrive.
+    const warrior = unit(state, 1, 4, 'warrior');
+    expect(fullMovement(warrior, state)).toBe(2);
+    const path = [
+      { col: 2, row: 4 },
+      { col: 3, row: 4 },
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+    ];
+    expect(pathTurnMarks(state, warrior, path)).toEqual([
+      { col: 3, row: 4, turn: 1 },
+      { col: 5, row: 4, turn: 2 },
+    ]);
+  });
+
+  it('agrees with `pathTurns` on the destination, which is the whole contract', () => {
+    const state = flatState();
+    const worker = unit(state, 1, 4, 'worker');
+    const path = [
+      { col: 2, row: 4 },
+      { col: 3, row: 4 },
+      { col: 4, row: 4 },
+      { col: 5, row: 4 },
+      { col: 6, row: 4 },
+    ];
+    const marks = pathTurnMarks(state, worker, path);
+    const last = marks[marks.length - 1]!;
+    expect(last).toMatchObject({ col: 6, row: 4 });
+    expect(last.turn).toBe(pathTurns(state, worker, path));
+    // One mark per *rest*, never one per hex.
+    expect(marks).toHaveLength(last.turn);
+  });
+
+  it('counts from the purse the piece is actually holding', () => {
+    const state = flatState();
+    const warrior = unit(state, 1, 4, 'warrior');
+    const path = [
+      { col: 2, row: 4 },
+      { col: 3, row: 4 },
+    ];
+    // With a full purse both hexes are this turn's, so there is one rest.
+    expect(pathTurnMarks(state, warrior, path)).toEqual([{ col: 3, row: 4, turn: 1 }]);
+    // Spend a point and the same route rests twice — which is exactly why the
+    // renderer is handed the marks rather than deriving them from the cells.
+    warrior.movesLeft = 1;
+    expect(pathTurnMarks(state, warrior, path)).toEqual([
+      { col: 2, row: 4, turn: 1 },
+      { col: 3, row: 4, turn: 2 },
+    ]);
+  });
+
+  it('marks a march ordered with nothing left as arriving the turn after next', () => {
+    // The standing-orders ruling read as a number, and the one place batch U1
+    // made an **existing** estimate honest rather than changing it: a piece
+    // with nothing left walks none of the route in the resolution it is ordered
+    // in, so its first hex is the *second* turn change away. `pathTurns` always
+    // said two here — it counts a refill it needs as a turn, which the old
+    // pipeline then quietly spent inside the same resolution — and the marks
+    // agree with it by construction, which is the contract above.
+    const state = flatState();
+    const warrior = unit(state, 1, 4, 'warrior');
+    warrior.movesLeft = 0;
+    const path = [{ col: 2, row: 4 }];
+    expect(pathTurnMarks(state, warrior, path)).toEqual([{ col: 2, row: 4, turn: 2 }]);
+    expect(pathTurns(state, warrior, path)).toBe(2);
+  });
+
+  it('stops at a waypoint nothing can walk on, rather than inventing rests past it', () => {
+    const state = flatState();
+    const warrior = unit(state, 1, 4, 'warrior');
+    at(state.map, 3, 4).terrain = 'mountain';
+    const marks = pathTurnMarks(state, warrior, [
+      { col: 2, row: 4 },
+      { col: 3, row: 4 },
+      { col: 4, row: 4 },
+    ]);
+    expect(marks).toEqual([{ col: 2, row: 4, turn: 1 }]);
+  });
+
+  it('has nothing to say about an empty route', () => {
+    const state = flatState();
+    expect(pathTurnMarks(state, unit(state, 1, 4, 'warrior'), [])).toEqual([]);
+  });
+});
+
 describe('the shore crossing', () => {
   /**
    * A strait: dry land, two columns of coast, dry land again. Both seats hold

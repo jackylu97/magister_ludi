@@ -46,8 +46,8 @@
  * takes it; the second one's finds a foreign unit standing there and is rejected
  * cleanly, leaving its unit exactly where it was. Log order *is* the tie-break,
  * which is why a replay resolves every race the same way the live game did.
- * Standing orders resolving inside `resetMovement` are ordered by `state.units`
- * instead, for the same reason and with the same guarantee.
+ * Standing orders resolving inside `spendLeftoverMovement` are ordered by
+ * `state.units` instead, for the same reason and with the same guarantee.
  *
  * The scan is linear. Unit counts stay in the hundreds and an array keeps
  * iteration order honest; a spatial index becomes worthwhile only when profiling
@@ -259,8 +259,12 @@ export function isRested(unit: Unit, state?: GameState): boolean {
 
 /**
  * Is this unit awaiting orders — the one predicate for "does this piece need
- * the player's attention before the turn can end", asked by End Turn's
- * blocker, the idle-unit camera cycle, and Skip Turn's own gate alike.
+ * the player's attention before the turn can end", asked by End Turn's blocker
+ * and Skip Turn's own gate alike.
+ *
+ * The **camera cycle** stopped asking it on 2026-09-08 and asks the wider
+ * `unitOfferedForOrders` below instead; the split is that function's docblock,
+ * and this one stays the narrow reading — the one that *bars* the button.
  *
  * A unit is idle when it **can still be told to do something and has not been
  * told**:
@@ -303,6 +307,61 @@ export function unitAwaitsOrders(unit: Unit): boolean {
   if (unit.autoExplore === true) return false;
   if (unit.trade !== undefined) return false;
   return true;
+}
+
+/**
+ * Is this unit worth **offering** to the player this turn — the wider of the
+ * two readings, and the one the next-unit cycle steers by.
+ *
+ *     awaits orders  ||  (a stored path && movement left)
+ *
+ * The pair exists because of the 2026-09-08 ruling on standing orders
+ * (`docs/flags.md` (bbb), and `spendLeftoverMovement` in `turn.ts`). A column
+ * under orders now marches at the *end* of the turn, on the points that turn
+ * granted, and opens its owner's next turn standing where it stopped with a
+ * full allowance and the rest of its route still drawn. That piece is in a
+ * state the old pipeline could not produce: it has orders, so it is not idle —
+ * and it has a whole turn's movement in hand, so it is the single most useful
+ * thing the camera could show its owner. "Take me to it" and "you may not end
+ * the turn until you deal with it" are two different sentences, and the pair of
+ * predicates is that distinction:
+ *
+ *   · `unitAwaitsOrders` — the **narrow** one. It is what End Turn blocks on,
+ *     and it keeps its "no stored path" clause exactly as written: a piece with
+ *     orders has been told what to do, and nagging about it would make every
+ *     multi-turn march a button the player has to press past. Skip Turn's gate
+ *     and the unit sheet ask it too.
+ *   · `unitOfferedForOrders` — the **wide** one, this. It is what the interface
+ *     *offers*: the cycle hands the player the piece with its committed route
+ *     drawn, and the player may change its mind, cancel it, or walk on by. It
+ *     never bars anything.
+ *
+ * It is written as **the narrow predicate asked with the march set aside**
+ * rather than as a second list of clauses, and that is the whole implementation
+ * decision. A hand-rolled copy would be a second definition of "idle" that
+ * quietly disagrees with the first the day a sixth exclusion is added — which
+ * is the exact failure `test/ui/turnBlockers.test.ts` reads the source to
+ * prevent — and every one of those clauses is still wanted here. A caravan
+ * carrying a route, a scout ranging ahead, a sleeper and a fortified soldier
+ * all hold a `path` or a standing order of their own from time to time, and not
+ * one of them is a piece the player should be handed: `Unit.trade`,
+ * `autoExplore`, `sleeping` and `fortifiedTurns` say so once, over there.
+ *
+ * `movesLeft > 0` comes along in the same breath, and it is the ruling's own
+ * reason: a piece that spent its allowance getting here has nothing to be
+ * offered *for* this turn, and the offer would be a camera trip to a piece that
+ * cannot move.
+ *
+ * Lives in the sim beside its sibling so both answers come from one file, even
+ * though only one of them is a rule; see `ui/turnBlockers.ts` for why the thing
+ * done *about* an answer is the interface's business and not this module's.
+ */
+export function unitOfferedForOrders(unit: Unit): boolean {
+  if (unit.path === undefined || unit.path.length === 0) return unitAwaitsOrders(unit);
+  // The one march set aside, and nothing else touched: a copy, because the
+  // simulation is pure and a reading may not edit the board it is reading.
+  const { path: _standingOrder, ...withoutOrders } = unit;
+  return unitAwaitsOrders(withoutOrders as Unit);
 }
 
 // --- sleep ------------------------------------------------------------------
