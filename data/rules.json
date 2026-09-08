@@ -121,6 +121,8 @@
     "sciencePerPop": 0.5,
     "baseCulturePerCity": 1,
     "palaceGold": 2,
+    "palaceScience": 1,
+    "palaceCulture": 1,
     "borderCostBase": 5,
     "borderCostLinear": 3.2,
     "borderCostExponent": 1.45,
@@ -236,7 +238,7 @@
       "crowdingExponent": 1.6
     },
     "authority": {
-      "palaceCapacity": 4,
+      "palaceCapacity": 6,
       "perAge": 2,
       "capital": 0,
       "foundedCity": 3,

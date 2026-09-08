@@ -78,7 +78,7 @@ import {
 } from '../../src/sim/game';
 import { improvementYield } from '../../src/sim/improvementData';
 import { type GameMap, type Tile, createMap, getTileAt, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
-import { meterEffects, yieldFactor } from '../../src/sim/meters';
+import { authorityOf, borderFactor, meterEffects, tierPercent, yieldFactor } from '../../src/sim/meters';
 import { RULES } from '../../src/sim/rulesData';
 import { config, twoCityGame } from './citiesHelpers';
 import { found as statecraftFound, game as statecraftGame } from './statecraftHelpers';
@@ -1543,8 +1543,11 @@ describe('city yields', () => {
       // The base beaker is half a citizen's since the fewer-things pass
       // (`docs/balance-turn.md` §4b), and it is **exact** since batch X — a town
       // of one banks half a beaker where the old floor banked nothing.
-      science: city.population * CITIES.sciencePerPop,
-      culture: CITIES.baseCulturePerCity,
+      // …plus the palace's beaker and note since 2026-09-08 (the user's ruling:
+      // the seat of government pays a little learning and a little song beside
+      // its coin), on the same line as the coin above.
+      science: city.population * CITIES.sciencePerPop + CITIES.palaceScience,
+      culture: CITIES.baseCulturePerCity + CITIES.palaceCulture,
       faith: 0,
     });
     // And the printed answer is those flats through the one multiplication, with
@@ -1571,12 +1574,14 @@ describe('city yields', () => {
     // The **flats**, because a contented empire's first happiness rung is an
     // empire-stage percentage and since batch X it is no longer floored away.
     const smallFlats = explainCity(state, city).flats;
-    expect(smallFlats.culture).toBe(CITIES.baseCulturePerCity + 2);
+    // The monument's two, the town's own one, and the palace's note (2026-09-08).
+    expect(smallFlats.culture).toBe(CITIES.baseCulturePerCity + 2 + CITIES.palaceCulture);
     expect(smallFlats.food).toBe(CITIES.baseCityYields.food + granary.food);
     // The population's own beaker, plus both of the library's terms — the flat
     // one and the per-citizen one, exact on its own (batch X).
+    // …and the palace's beaker (2026-09-08): this one town is the capital.
     expect(smallFlats.science).toBe(
-      1 * CITIES.sciencePerPop + library.science + 1 * library.sciencePerPop,
+      1 * CITIES.sciencePerPop + library.science + 1 * library.sciencePerPop + CITIES.palaceScience,
     );
 
     city.population = 4;
@@ -1587,7 +1592,8 @@ describe('city yields', () => {
     // fraction that falls out is what the pool banks.
     const factor = yieldFactor(meterEffects(state, city.ownerId), 'science');
     expect(foldCity(state, city).science).toBe(
-      (4 * CITIES.sciencePerPop + library.science + 4 * library.sciencePerPop) * factor,
+      (4 * CITIES.sciencePerPop + library.science + 4 * library.sciencePerPop + CITIES.palaceScience) *
+        factor,
     );
   });
 
@@ -1661,11 +1667,20 @@ describe('city yields', () => {
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
     bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'barracks');
-    expect(lines).toHaveLength(1);
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace supplies six
+    // authority where it supplied four, so a one-town empire now stands on the
+    // authority meter's first bonus rung and carries its tenth on production.
+    // The belief's flat point is still the belief's flat point; what joined the
+    // list is the reconciliation line the preview has always appended when a
+    // stage multiplies a new flat (`explainBuildingPreview` step 4), and it is
+    // pinned by name rather than by widening the length.
+    expect(lines.map((line) => line.source).slice(1)).toEqual(['Multipliers and rounding']);
     expect(lines[0]!.card).toBe('godOfTheForge');
     expect(lines[0]!.source).toMatch(new RegExp(beliefDef('godOfTheForge').name));
     expect(lines[0]!.production).toBe(1);
-    expect(foldBuildingPreview(lines).production).toBe(1);
+    const writ = 1 + tierPercent(authorityOf(state, 0)) / 100;
+    expect(writ).toBeGreaterThan(1);
+    expect(foldBuildingPreview(lines).production).toBeCloseTo(1 * writ, 10);
 
     // And the belief pays nothing until the barracks stands: the preview is a
     // *difference*, so the town's current yields are untouched by asking.
@@ -1753,7 +1768,18 @@ describe('city yields', () => {
     bumpRevision(state);
     // A unit gets the bonus, exactly and unrounded (batch X); a building never
     // does, and neither does a city asked about itself rather than about a build.
-    expect(foldCity(state, city, [], unit).production).toBe((plain * (100 + bonus * 100)) / 100);
+    //
+    // `toBeCloseTo` since 2026-09-08 (ruling ddd — the writ): the palace's six
+    // authority puts this one-town empire on the meter's first bonus rung, so
+    // `plain` is 2.2 rather than a whole 2, and the line below is a *product of
+    // a product*. `applyStages` multiplies the two percentages in one
+    // expression over 10 000 and lands on 2.42 exactly; the test's own
+    // arithmetic multiplies twice and lands one ulp away. The claim is the ten
+    // percent, never the seventeenth decimal.
+    expect(foldCity(state, city, [], unit).production).toBeCloseTo(
+      (plain * (100 + bonus * 100)) / 100,
+      10,
+    );
     expect(foldCity(state, city, [], building).production).toBe(plain);
     expect(foldCity(state, city).production).toBe(plain);
     expect(productionModifiers(state, city, unit)).toEqual([
@@ -1766,7 +1792,7 @@ describe('city yields', () => {
     city.queue = [unit];
     city.hammerBasket = 0;
     collectYields(state);
-    expect(city.hammerBasket).toBe((plain * (100 + bonus * 100)) / 100);
+    expect(city.hammerBasket).toBeCloseTo((plain * (100 + bonus * 100)) / 100, 10);
   });
 });
 
@@ -3216,11 +3242,22 @@ describe('the turn pipeline over a live empire', () => {
     const banked = foldCity(state, city);
     expect(banked.science).toBeGreaterThan(0);
     expect(player.sciencePool).toBe(banked.science);
+    // The citizen's half a beaker plus the palace's whole one (2026-09-08):
+    // this is the empire's only town, so it is the capital.
     expect(explainCity(state, city).flats.science).toBe(
-      city.population * CITIES.sciencePerPop,
+      city.population * CITIES.sciencePerPop + CITIES.palaceScience,
     );
     expect(player.culturePool).toBe(banked.culture);
-    expect(city.culture).toBe(banked.culture);
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** Culture banks into two
+    // accounts and the writ is the difference between them (`borderGrowth`):
+    // all of it into the empire's pool, and `perTurn` — the harvest through the
+    // border channel's own factor — into the ground. The palace's six authority
+    // puts this one-town empire on the meter's first bonus rung, whose effect
+    // carries `borders: true`, so the two figures now differ by that tenth
+    // instead of agreeing by accident at a factor of one. The claim the line
+    // makes is unchanged: the ground gets what the border channel says it gets.
+    expect(city.culture).toBeCloseTo(banked.culture * borderFactor(meterEffects(state, 0)), 10);
+    expect(borderFactor(meterEffects(state, 0))).toBeGreaterThan(1);
     expect(player.gold).toBeGreaterThanOrEqual(0);
   });
 
@@ -3318,7 +3355,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(98);
+    expect(SCHEMA_VERSION).toBe(99);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

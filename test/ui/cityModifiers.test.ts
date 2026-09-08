@@ -139,15 +139,22 @@ describe('every percentage the stages fold has a line of its own', () => {
 
   it('gives the happiness tier one row, not a fold and its reason', () => {
     const state = empire();
-    // A fresh capital is content, so the empire stage holds exactly one effect.
+    // A fresh capital is content — and, since the palace's writ of six
+    // (2026-09-08, ruling ddd), solvent as well, so the empire stage holds two
+    // effects rather than one: the happiness tier on thought and the writ's on
+    // hammers. The subject here is the *happiness* row and the collapse it
+    // must not get, so the row is built from the happiness line alone; the
+    // writ's line is pinned beside it rather than filtered away in silence.
     const effects = meterEffects(state, 0).filter(
       (effect) => !effect.growth && effect.yields.length > 0,
     );
-    expect(effects).toHaveLength(1);
+    expect(effects.map((effect) => effect.meter)).toEqual(['happiness', 'authority']);
+    const happiness = effects.filter((effect) => effect.meter === 'happiness');
+    expect(happiness).toHaveLength(1);
     const rows = stageRows('Empire', '🔬 +10%  🎭 +10%', [
-      [`Happiness +${effects[0]!.value}`, '🔬🎭 +10%', false],
+      [`Happiness +${happiness[0]!.value}`, '🔬🎭 +10%', false],
     ]);
     expect(rows).toHaveLength(1);
-    expect(rows[0]!.label).toBe(`Happiness +${effects[0]!.value}`);
+    expect(rows[0]!.label).toBe(`Happiness +${happiness[0]!.value}`);
   });
 });

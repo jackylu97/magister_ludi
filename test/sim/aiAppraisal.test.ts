@@ -1588,8 +1588,10 @@ describe('the constraint prices', () => {
   }
 
   it('sits at the table’s own figure while nothing is over-spending the writ', () => {
-    // One town: the palace's four points against a capital that costs nothing,
+    // One town: the palace's six points against a capital that costs nothing,
     // so a second town's three are covered and the meter is nobody's constraint.
+    // (The palace paid four until 2026-09-08, ruling ddd; the sentence is the
+    // same one, one number wider.)
     const ctx = valueContext(settled(1), seat(settled(1), 0));
     expect(ctx.expansion!.short.authority).toBe(0);
     expect(ctx.prices.authority).toBe(aiJson.weights.authority);
@@ -1597,21 +1599,27 @@ describe('the constraint prices', () => {
   });
 
   it('rides its ceiling when the next town would over-spend it', () => {
-    const state = settled(2);
+    // **Re-benched 2026-09-08 (ruling ddd — the writ).** The palace supplies
+    // six authority where it supplied four, so a two-town empire is no longer
+    // short of anything and read a shortfall of zero: the bench is a town wider
+    // now, which is the same board this claim was always about — an empire
+    // whose *next* town cannot be paid for. Six from the palace, three each for
+    // the second and third towns: nothing standing and three asked for.
+    const state = settled(3);
     const ctx = valueContext(state, seat(state, 0));
-    // Four from the palace, three for the second town: one point standing and
-    // three asked for.
-    expect(ctx.expansion!.short.authority).toBe(2);
+    expect(ctx.expansion!.short.authority).toBe(3);
     expect(ctx.prices.authority).toBe(
       aiJson.weights.authority * aiJson.priorities.priceBandHigh,
     );
-    expect(ctx.priceNotes.authority).toMatch(/over-spends 2 authority, capped by the band/);
+    expect(ctx.priceNotes.authority).toMatch(/over-spends 3 authority, capped by the band/);
   });
 
   it('lets a capacity building outbid its own flat-weight self', () => {
     // The audit's example, pinned: the same row, the same board, appraised once
-    // at the table's figure and once at the price the blocked chain sets.
-    const state = settled(2);
+    // at the table's figure and once at the price the blocked chain sets. Three
+    // towns rather than two since 2026-09-08 (ruling ddd), for the reason the
+    // bench above gives: at the palace's new six, two towns are not blocked.
+    const state = settled(3);
     const blocked = valueContext(state, seat(state, 0));
     const flat = { ...blocked, prices: { ...blocked.prices, authority: aiJson.weights.authority } };
     const capacity = BUILDING_IDS.find(

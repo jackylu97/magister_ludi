@@ -112,14 +112,22 @@ describe('the hover card: every preview line, the sim’s own label', () => {
     state.players[0]!.pantheon.beliefs.push('godOfTheForge');
     bumpRevision(state);
     const lines = explainBuildingPreview(state, city, 'barracks');
-    expect(lines).toHaveLength(1);
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace supplies six
+    // authority, so a one-town empire stands on the meter's first bonus rung
+    // and the empire stage multiplies the belief's new hammer: the sim appends
+    // its reconciliation line, and the panel prints it. Pinned by name, and the
+    // hover for it is asserted below — it is the figure-less line the contract
+    // three tests down describes, because a tenth of a hammer rounds to nothing
+    // at the eye while staying in the fold.
+    expect(lines.map((line) => line.source).slice(1)).toEqual(['Multipliers and rounding']);
 
     const hover = lines.map(previewLineText);
-    expect(hover).toHaveLength(1);
+    expect(hover).toHaveLength(2);
     // The sim's own label, printed exactly as it labelled it — never reworded
     // or re-derived by the panel.
     expect(hover[0]).toBe(`${lines[0]!.source} +1⚙`);
     expect(hover[0]).toContain(beliefDef('godOfTheForge').name);
+    expect(hover[1]).toBe('Multipliers and rounding');
   });
 
   it('prints no line at all without the belief', () => {
@@ -129,10 +137,12 @@ describe('the hover card: every preview line, the sim’s own label', () => {
   });
 
   it('joins a source and its figures with one space, and a figure-less line — the reconciliation floor, say — with none', () => {
-    // No zero-figure line exists in today's content (`previewPays` never lets
-    // one into the sim's list), so this is `previewLineText`'s own contract
-    // rather than a fixture: the fallback branch a future all-rounding line
-    // would take is exercised directly.
+    // `previewPays` never lets a line worth *nothing* into the sim's list, but
+    // since 2026-09-08 (ruling ddd — the writ) it does let through a line worth
+    // a tenth of a hammer, which `roundYield` prints as no figure at all: the
+    // barracks preview above is exactly that case. This stays stated as
+    // `previewLineText`'s own contract rather than as a fixture, because the
+    // branch is the formatter's and not the content's.
     expect(previewLineText({ source: 'Rounding', food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 })).toBe(
       'Rounding',
     );

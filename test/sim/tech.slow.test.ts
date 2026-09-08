@@ -638,8 +638,17 @@ describe('pacing', () => {
 
     // The band: a capital that opens on one hammer is unplayable and one that
     // opens on eight has been handed a mountain range.
+    //
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace supplies six
+    // authority where it supplied four, so every one-town empire in this sweep
+    // stands on the authority meter's first bonus rung and its opening hammers
+    // are read through that tenth: the band the ground draws is unchanged at
+    // 2..6, and what the fold *reports* is 2.2..6.6. The bounds carry the rung
+    // rather than being widened past it, and they are written out because
+    // `applyStages` multiplies both percentages in one expression over 10 000
+    // — 2.2 and 6.6 land exactly, where `2 * 1.1` written here would not.
     expect(`opening ${openings[0]}..${openings[openings.length - 1]}`).toBe(
-      `opening ${Math.max(openings[0]!, 2)}..${Math.min(openings[openings.length - 1]!, 6)}`,
+      `opening ${Math.max(openings[0]!, 2.2)}..${Math.min(openings[openings.length - 1]!, 6.6)}`,
     );
     // And the prices, read straight off it.
     // **Re-pinned 2026-08-29**: the coast ruling (`coast.rings` 2) re-sequenced
@@ -655,14 +664,22 @@ describe('pacing', () => {
     // seeds shifts up by one to **2..4**, inside the 2..6 the band above
     // allows. `buildSinks.slow.test.ts` reads the same sweep from the roster's
     // side and carries the turn counts.
-    expect(median).toBe(3);
+    //
+    // **Re-measured 2026-09-08 (ruling ddd — the writ): 3⚙ reads as 3.3⚙.** No
+    // price moved and the ground did not move either; the palace's six
+    // authority puts a one-town empire on the meter's first bonus rung, and a
+    // rung is a percent stage, so the same median capital reports a tenth more.
+    // `toBeCloseTo` because the figure is a product.
+    expect(median).toBeCloseTo(3.3, 10);
     // **Re-pinned batch P1** (2026-09-07, the production standard): the scout
     // and the warrior are `light` pieces opened at the first column, so what
     // they cost is the light base itself — the anchor is now one number in
     // `data/rules.json` rather than two figures on two rows.
     expect(unitRosterCost('scout')).toBe(RULES.production.unitSizeHammers.light);
     expect(unitRosterCost('warrior')).toBe(RULES.production.unitSizeHammers.light);
-    // Four turns at the re-measured median of 3.
+    // Four turns, at the re-measured median of 3 and at the writ's 3.3 alike:
+    // ten light hammers over three and a third is still a fourth turn, so the
+    // rung moved the reading without moving the opening's shape.
     expect(Math.ceil(unitRosterCost('warrior') / median)).toBe(4);
   }, 30_000);
 

@@ -219,10 +219,19 @@ describe('what the pass did to the opening', () => {
      * ("this is ok, lets playtest first"), and the scout no longer sits a
      * turn outside the warrior. If the playtest wants the opening dearer, the
      * lever is `unitSizeHammers.light`, not this pin.
+     *
+     * **Re-measured 2026-09-08 (ruling ddd — the writ).** The palace supplies
+     * six authority where it supplied four, so every one-town empire in this
+     * sweep clears the authority meter's first bonus rung, and a rung is a
+     * percent stage: the same median capital on the same ground now reports
+     * **3.3⚙**, and the band it is drawn from is 2.2..6.6. The ground did not
+     * move and neither did a price — the turn counts below are unchanged,
+     * because ten light hammers over three and a third is still four turns.
+     * `tech.slow.test.ts` reads the same sweep from the tree's side.
      */
-    expect(median).toBe(3);
-    expect(openings[0]).toBeGreaterThanOrEqual(2);
-    expect(openings[openings.length - 1]).toBeLessThanOrEqual(6);
+    expect(median).toBeCloseTo(3.3, 10);
+    expect(openings[0]).toBeGreaterThanOrEqual(2.2);
+    expect(openings[openings.length - 1]).toBeLessThanOrEqual(6.6);
     const priced = createGame({
       seed: 4242,
       sizeName: 'standard',

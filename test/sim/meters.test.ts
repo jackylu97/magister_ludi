@@ -610,8 +610,17 @@ describe('what the meters do to the economy', () => {
     const effects = meterEffects(state, 0);
     const bonus = effects.find((effect) => effect.meter === 'happiness' && !effect.growth)!;
     expect(bonus.yields).toEqual(['science', 'culture']);
-    // Contentment buys thought, never iron.
-    expect(yieldFactor(effects, 'production')).toBe(1);
+    // Contentment buys thought, never iron — asked of the happiness lines
+    // alone since 2026-09-08 (ruling ddd — the writ). The palace supplies six
+    // authority where it supplied four, so this one-town empire also clears the
+    // *authority* meter's first bonus rung, and that rung is what now puts a
+    // tenth on production. Narrowed rather than deleted, and the writ's own
+    // line is asserted below so the move is stated instead of hidden.
+    const fromHappiness = effects.filter((effect) => effect.meter === 'happiness');
+    expect(yieldFactor(fromHappiness, 'production')).toBe(1);
+    expect(yieldFactor(effects, 'production')).toBe(
+      1 + tierPercent(authorityOf(state, 0)) / 100,
+    );
     expect(yieldFactor(effects, 'science')).toBe(1 + bonus.percent / 100);
   });
 
@@ -623,12 +632,20 @@ describe('what the meters do to the economy', () => {
     expect(happiness).toBeLessThan(0);
 
     const effects = meterEffects(state, 0);
-    expect(effects.every((effect) => effect.meter === 'happiness')).toBe(true);
-    expect(effects.filter((effect) => effect.growth)).toHaveLength(1);
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace's six
+    // authority means a one-town empire is no longer short, so the fold is not
+    // happiness alone any more: the writ's own bonus rung stands beside it,
+    // paying hammers. The claim under test is what a happiness *deficit* does,
+    // so it is asked of the happiness lines; the other line is pinned by meter
+    // and by what it pays rather than assumed away.
+    const unhappy = effects.filter((effect) => effect.meter === 'happiness');
+    expect(effects.filter((effect) => effect.meter !== 'happiness').map((effect) => effect.yields))
+      .toEqual([['production']]);
+    expect(unhappy.filter((effect) => effect.growth)).toHaveLength(1);
     // A happiness deficit is a growth problem and nothing else.
-    expect(yieldFactor(effects, 'production')).toBe(1);
-    expect(yieldFactor(effects, 'science')).toBe(1);
-    expect(yieldFactor(effects, 'culture')).toBe(1);
+    expect(yieldFactor(unhappy, 'production')).toBe(1);
+    expect(yieldFactor(unhappy, 'science')).toBe(1);
+    expect(yieldFactor(unhappy, 'culture')).toBe(1);
     expect(growthFactor(effects)).toBeLessThan(1);
   });
 
@@ -943,7 +960,7 @@ describe('a captured city, end to end', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(98);
+    expect(SCHEMA_VERSION).toBe(99);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

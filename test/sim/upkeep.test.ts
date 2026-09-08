@@ -34,6 +34,7 @@ import {
 } from '../../src/sim/cities';
 import {
   cityYieldPercents,
+  explainCity,
   explainPalaceYield,
   foldCity,
 } from '../../src/sim/yields/town';
@@ -440,12 +441,24 @@ describe('the palace', () => {
     const { state, city } = world();
     const second = foundCityAt(state, 0, at(state, 9, 5));
     expect(explainPalaceYield(state, city)).toEqual([
-      { source: 'Palace', gold: RULES.cities.palaceGold },
+      {
+        source: 'Palace',
+        gold: RULES.cities.palaceGold,
+        science: RULES.cities.palaceScience,
+        culture: RULES.cities.palaceCulture,
+      },
     ]);
     expect(explainPalaceYield(state, second)).toEqual([]);
-    // Folded, never added beside — the capital's gold carries it.
+    // Folded, never added beside — the capital's gold carries it, and since
+    // 2026-09-08 its beaker and its note too (the user's ruling).
     expect(foldCity(state, city).gold - foldCity(state, second).gold).toBe(
       RULES.cities.palaceGold,
+    );
+    expect(foldCity(state, city).science - foldCity(state, second).science).toBe(
+      RULES.cities.palaceScience,
+    );
+    expect(foldCity(state, city).culture - foldCity(state, second).culture).toBe(
+      RULES.cities.palaceCulture,
     );
   });
 
@@ -455,7 +468,12 @@ describe('the palace', () => {
     city.captured = true;
     expect(explainPalaceYield(state, city)).toEqual([]);
     expect(explainPalaceYield(state, second)).toEqual([
-      { source: 'Palace', gold: RULES.cities.palaceGold },
+      {
+        source: 'Palace',
+        gold: RULES.cities.palaceGold,
+        science: RULES.cities.palaceScience,
+        culture: RULES.cities.palaceCulture,
+      },
     ]);
   });
 });
@@ -503,9 +521,15 @@ describe('a treasury under water', () => {
       .reduce((sum, line) => sum + line.percent, 0);
     // Recompute the same arithmetic the evaluator does: the base is what the
     // town made when the only empire-stage lines were the meters'.
-    const withoutDebt = empire - UPKEEP.debtPercent;
-    const base = Math.round(before / (1 + withoutDebt / 100));
-    expect(after).toBe(Math.floor(base * (1 + empire / 100)));
+    // The base is read off the town's own flats rather than backed out of the
+    // staged figure by a rounding: since the palace pays a beaker beside the
+    // citizens' halves (2026-09-08) the flats carry a fraction, and a `round`
+    // of the staged figure divided back out landed a quarter-beaker off.
+    // And no floor: the fold has been exact since batch X (`exactYields.test.ts`
+    // — the pools bank the staged figure, tier and all). The old `Math.floor`
+    // here was only ever a no-op on an integral base.
+    const base = explainCity(state, city).flats.science;
+    expect(after).toBeCloseTo(base * (1 + empire / 100), 9);
     expect(after).toBeLessThan(before);
   });
 

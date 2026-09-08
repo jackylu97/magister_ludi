@@ -199,8 +199,9 @@ describe('a monument buys three or four tiles by the early game', () => {
    *
    * The fixture is a capital that has its monument from turn one, on flat
    * grassland so that nothing but the curve is moving: `baseCulturePerCity` 1
-   * plus the monument's 2 is a flat 3 culture a turn, and the writ sits at
-   * palace 4 + monument 1 − a free capital = +5, which is the first bonus rung.
+   * plus the palace's 1 (2026-09-08) plus the monument's 2 is a flat 4 culture
+   * a turn, and the writ sits at palace 6 + monument 1 − a free capital = +7,
+   * which is the first bonus rung.
    *
    * The arithmetic that follows, and which the run below has to reproduce:
    * banking 3 a turn against 6 · 10 · 16 · 25 (the curve was reshaped on
@@ -230,6 +231,16 @@ describe('a monument buys three or four tiles by the early game', () => {
    * the user 2026-09-06): three culture under a +10% writ is 3.3 and the three
    * tenths bank, so a monument town on the ladder does now creep, and the
    * schedule below moved a turn or two earlier the day the floors came out.
+   *
+   * **Re-measured 2026-09-08 (ruling ddd — the note and the beaker).** The
+   * palace pays a culture point beside its coin now, so this capital makes
+   * `baseCulturePerCity` 1 + palace 1 + monument 2 = **4** a turn where it made
+   * 3. Both tenths ride on the larger figure: the happiness rung takes it to
+   * 4.4 into the pools, and the writ's border factor to **4.84** into the
+   * ground, against 3.63 before. A third more ground per turn moves every rung
+   * after the first earlier, and the measured schedule below is the new one
+   * rather than the old one bent to fit — the fifth tile now lands on turn 17,
+   * where the tuning item asked for the fourth around turn 25.
    */
   it('claims its fourth and fifth tiles inside turns 25–30', () => {
     const state = flatState(24, 18);
@@ -268,23 +279,33 @@ describe('a monument buys three or four tiles by the early game', () => {
     // the town now stands at the first writ rung, and the rung's tenth on
     // three culture a turn — the three tenths batch X stopped throwing away —
     // buys the fourth and fifth tiles a turn or two sooner.
-    expect(claimedOn.slice(0, 5)).toEqual([2, 4, 8, 14, 22]);
+    // Re-pinned 2026-09-08 (ruling ddd — the palace's culture point):
+    // 2 · 4 · 8 · 14 · 22 became 2 · 3 · 6 · 10 · 17. The curve still did not
+    // move; the town simply makes a third more culture, so it climbs the same
+    // rungs a third faster. The sixth tile lands on 25 and the seventh on 36.
+    expect(claimedOn.slice(0, 5)).toEqual([2, 3, 6, 10, 17]);
 
-    // And the claim, as a band over the window: four or five tiles on every
-    // turn from 25 to 30 (the 2026-09-05 ruling's reading — it was three or
-    // four). Read off the same schedule so that a curve change has to move
-    // this line, not just the one above.
+    // And the claim, as a band over the window, read off the same schedule so
+    // that a curve change has to move this line and not just the one above.
+    // **Six** on every turn from 25 to 30 since 2026-09-08 — it was four or
+    // five, and three or four before the 2026-09-05 ruling. The tuning item
+    // that set the target ("3–4 tiles by ~turn 25–30") has now been overtaken
+    // twice by rulings that bought ground deliberately; this is the
+    // measurement, and moving the target is the designer's call, not a band
+    // widened here to keep the old sentence true.
     for (const turn of [25, 26, 27, 28, 29, 30]) {
       const byThen = claimedOn.filter((on) => on <= turn).length;
-      expect(byThen, `turn ${turn}`).toBeGreaterThanOrEqual(4);
-      expect(byThen, `turn ${turn}`).toBeLessThanOrEqual(5);
+      expect(byThen, `turn ${turn}`).toBe(6);
     }
   });
 
   it('slides later, but stays in the band, when the monument is built first', () => {
     // The honest version: the city has to pay for the monument before it pays
-    // for any ground. Six turns of 1 culture, then 3 a turn — which is the
-    // "about five or six turns later" the band is drawn wide enough to hold.
+    // for any ground. Six turns of the town's bare culture, then the monument's
+    // two on top — which is the "about five or six turns later" the band is
+    // drawn wide enough to hold. (Since 2026-09-08, ruling ddd, the bare figure
+    // is the palace's point beside `baseCulturePerCity`'s, so the opening six
+    // turns creep at 2.42 into the ground rather than 1.21.)
     const state = flatState(24, 18);
     const city = foundCityAt(state, 0, at(state.map, 8, 8));
 
@@ -301,10 +322,16 @@ describe('a monument buys three or four tiles by the early game', () => {
       }
     }
     // Measured 5 · 8 · 12 · 19 · 28 on the 2026-09-05 curve: four by turn 19
-    // and the fifth at 28, so the window holds four then five.
+    // and the fifth at 28, so the window held four then five.
+    //
+    // Re-measured 2026-09-08 (ruling ddd — the palace's culture point):
+    // 3 · 6 · 8 · 13 · 19 · 28 · 39, which is **six** by turn 30. The slide is
+    // still there — the town from the sibling test above is a tile ahead at
+    // every rung — but both cases now clear six inside the window, so the band
+    // has collapsed to a point rather than being stretched to keep holding
+    // them both.
     const byThirty = claimedOn.filter((on) => on <= 30).length;
-    expect(byThirty, claimedOn.join(',')).toBeGreaterThanOrEqual(4);
-    expect(byThirty, claimedOn.join(',')).toBeLessThanOrEqual(5);
+    expect(byThirty, claimedOn.join(',')).toBe(6);
   });
 });
 

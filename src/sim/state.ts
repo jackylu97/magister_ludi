@@ -547,8 +547,19 @@ import {
  * and a column stands one turn's allowance short of where the old pipeline put
  * it on the turn it set out — which moves what a scout sees, which hex a raider
  * burns a camp on, and therefore every die rolled after it.
+ *
+ * v99: **the palace pays a beaker, a note and six writ** (the user,
+ * 2026-09-08: "lets have the starting palace supply 1 science and 1 culture";
+ * "+6 starting authority. That way the player can settle 3 coastal or 2
+ * regular cities without needing monuments"). The one "Palace" line in the
+ * capital's list carries `palaceScience` and `palaceCulture` beside its coin
+ * (`rules.cities`), staged like everything else the town banks; and the
+ * palace's writ is six (`meters.authority.palaceCapacity`, was four). A v98
+ * log does not replay: every capital researches and drafts a little sooner
+ * from the first turn, the first technology lands on a different turn, and an
+ * empire's third town no longer pays an overrun the old law charged.
  */
-export const SCHEMA_VERSION = 98;
+export const SCHEMA_VERSION = 99;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

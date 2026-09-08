@@ -959,6 +959,16 @@ export interface CityRules {
    */
   palaceGold: number;
   /**
+   * Beakers and song the palace pays beside its coin (the user, 2026-09-08:
+   * "lets have the starting palace supply 1 science and 1 culture"). Two more
+   * voices on the same one "Palace" line, for `palaceGold`'s reasons exactly:
+   * a fact about the seat of government, staged like a library's, following
+   * the capital. Every town already makes `baseCulturePerCity` on its own; this
+   * is what the *capital* makes on top for being the capital.
+   */
+  palaceScience: number;
+  palaceCulture: number;
+  /**
    * Border cost curve. The `t`-th tile a city claims beyond its initial ring
    * costs `borderCostBase + borderCostLinear · (t − 1) ^ borderCostExponent`
    * culture, floored. The initial claim at founding is free and is not counted.
@@ -1096,7 +1106,12 @@ export interface HappinessRules {
 }
 
 export interface AuthorityRules {
-  /** Capacity the capital supplies. */
+  /**
+   * Capacity the capital supplies. **Six** since 2026-09-08 (the user: "have
+   * the palace give +6 starting authority. That way the player can settle 3
+   * coastal or 2 regular cities without needing monuments") — read against
+   * `foundedCity` 3 and `coastalCity` 2, which is exactly that arithmetic.
+   */
   palaceCapacity: number;
   /** Capacity each age *advance* supplies. See `agesAdvanced` in `meters.ts`. */
   perAge: number;

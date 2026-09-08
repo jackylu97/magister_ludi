@@ -530,7 +530,9 @@ directly to confirm rulings — user marginalia are rulings.
   numbered rules instead of the note, and a node whose rules run past
   two lines prints one **named rule** (`[[rule:…]]`) with a Rules shelf in
   the Compendium. Batch **L1** (no schema; the card-text snapshot
-  regenerated and its diff reviewed face by face).
+  regenerated and its diff reviewed face by face) — **built** (L1, 2026-09-08: 81
+  faces changed, every one under its ruling in the audit's §4; five named
+  rules on the Rules shelf).
   (bbb) **Standing orders walk on this turn's points, and say where they
   will be** (the user, 2026-09-08: "a unit's orders should only be
   performed at the end of the turn if they have available movement,
@@ -554,7 +556,9 @@ directly to confirm rulings — user marginalia are rulings.
   border, the turn number — on the hex where each turn's march ends
   (`pathTurns`), the destination's the largest; one drawn mark in one
   style, in the flair gallery. Batch **U1** (schema 98 — a replay's
-  columns arrive a turn later). (ccc) **The draft's two answers restyled**
+  columns arrive a turn later) — **built** (U1: the refill resumes nothing;
+  `unitOfferedForOrders` feeds the cycle; medallions on the route, a ninth
+  atlas set, a gallery stall). (ccc) **The draft's two answers restyled**
   (the user, 2026-09-08: "the two buttons for rerolling/passing drafts
   look better, but they look boring/awkwardly placed. Lets make them
   more center-aligned and do a general styling check to make them look
@@ -564,7 +568,8 @@ directly to confirm rulings — user marginalia are rulings.
   and the parchment/ink primary-vs-quiet weight rather than by lapis and
   vermilion (rec — the earlier decorated colours withdrawn); checked
   against the confirm card's and the city panel's buttons. Batch **U2**
-  (no schema).
+  (no schema) — **built** (the reroll takes the primary's weight in ink,
+  not vermilion; the pass the quiet parchment; marks ⟳ / ⊘).
   (ddd) **The palace pays a beaker and a note** (the user, 2026-09-08:
   "lets have the starting palace supply 1 science and 1 culture"; asked
   "do cities give culture on their own currently" — yes, every town
@@ -574,7 +579,11 @@ directly to confirm rulings — user marginalia are rulings.
   authority** (`meters.authority.palaceCapacity` 4 → 6 — "the player can
   settle 3 coastal or 2 regular cities without needing monuments", which
   is `foundedCity` 3 / `coastalCity` 2 exactly). Landed by the
-  orchestrator (schema 98; U1 renumbers to 99 at its merge). (eee)
+  orchestrator (schema 99, landed after U1's 98). **Open:** the border
+  target "a monument buys three or four tiles by turn 25–30" has been
+  overtaken twice by rulings (the 2026-09-05 border boost, then the
+  palace's note); both fixtures now measure **six** inside that window and
+  the pins say so. Whether the target moves is a ruling, not a pin. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
@@ -586,7 +595,9 @@ directly to confirm rulings — user marginalia are rulings.
   buildable preview's `info-card-state is-blocked`, the star chart's
   blocked state, the bead card's gate, the unit sheet's refusals, the
   Reliquary's closed door. Batch **U3** (no schema; after U2 lands, since
-  both edit `style.css`).
+  both edit `style.css`) — **built** (eleven lines; three vermilions folded;
+  `.wanting.wanting` for the cascade; `test/ui/wantingVoice.test.ts` resolves
+  it).
   As built: the four houses take the **Temple's** column (5, medium — 117⚙,
   and 117🕯 through the bank, `faithPerHammer` 1); a building may now name
   its own bank (`BuildingDef.purchase`, the roster's marker one table over,

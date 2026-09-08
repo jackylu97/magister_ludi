@@ -69,6 +69,9 @@ export interface PalaceYieldLine {
   /** Display label. `"Palace"`, and only ever that today. */
   source: string;
   gold: number;
+  /** A beaker and a note beside the coin since 2026-09-08 (`palaceScience`, `palaceCulture`). */
+  science: number;
+  culture: number;
 }
 
 /**
@@ -77,7 +80,10 @@ export interface PalaceYieldLine {
  *
  * The user's ruling of 2026-08-28: `rules.cities.palaceGold` is 2💰, and it is
  * a *line* rather than a term because that is what rule 5 asks of any new source
- * of a yield. A player looking at a capital that makes more gold than its tiles
+ * of a yield. Since 2026-09-08 the same line carries `palaceScience` and
+ * `palaceCulture` ("lets have the starting palace supply 1 science and 1
+ * culture") — the second and third things the seat of government supplies,
+ * appended to the one line exactly as the docblock below said they would be. A player looking at a capital that makes more gold than its tiles
  * explain must be able to read why.
  *
  * It is the palace's third gift and it is shaped like the other two — the
@@ -92,10 +98,15 @@ export interface PalaceYieldLine {
  * it exactly as it folds the luxuries, the cards and the routes beside it.
  */
 export function explainPalaceYield(state: GameState, city: City): PalaceYieldLine[] {
-  if (CITIES.palaceGold === 0) return [];
+  const { palaceGold, palaceScience, palaceCulture } = CITIES;
+  if (palaceGold === 0 && palaceScience === 0 && palaceCulture === 0) return [];
   const capital = capitalCityOf(state, city.ownerId);
   if (!capital || capital.id !== city.id) return [];
-  return [{ source: 'Palace', gold: CITIES.palaceGold }];
+  // One line carrying every voice the seat of government pays, rather than a
+  // line per voice: the palace is one fact about one town, and the ledger
+  // should read it as one. The beaker and the note joined the coin on
+  // 2026-09-08 (the user's ruling), through the same door.
+  return [{ source: 'Palace', gold: palaceGold, science: palaceScience, culture: palaceCulture }];
 }
 
 // --- yields -----------------------------------------------------------------

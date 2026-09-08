@@ -75,7 +75,7 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import { arriveOnTile } from '../../src/sim/arrival';
-import { happinessOf } from '../../src/sim/meters';
+import { authorityOf, happinessOf, tierPercent } from '../../src/sim/meters';
 import { revokeLegacies } from '../../src/sim/greatPeople';
 import { unitDef } from '../../src/sim/unitData';
 import {
@@ -1461,7 +1461,15 @@ describe('the one-row shapes, built generically', () => {
     expect(foldCity(g.state, city).production).toBe(bare);
     city.buildings.push('greatLibrary');
     bumpRevision(g.state);
-    expect(foldCity(g.state, city).production).toBe(bare + 5);
+    // **Re-aimed 2026-09-08 (ruling ddd — the writ).** The palace supplies six
+    // authority where it supplied four, so a one-town empire stands on the
+    // meter's first bonus rung and Entry XVII's empire stage multiplies every
+    // hammer — the card's five flat included. The claim is the scope, so the
+    // five is read through the same rung `bare` was read through rather than
+    // added beside it.
+    const writ = 1 + tierPercent(authorityOf(g.state, 0)) / 100;
+    expect(writ).toBeGreaterThan(1);
+    expect(foldCity(g.state, city).production).toBeCloseTo(bare + 5 * writ, 10);
   });
 
   it('Dinocrates pays ten turns of hammers for a wonder raised, and for nothing else', () => {

@@ -90,8 +90,11 @@ describe('nothing rounds inside a fold', () => {
     city.population = 1;
 
     // The flats, which is where the per-citizen line lands. Entry XVII's stages
-    // multiply this afterwards and are asserted in their own section.
-    expect(explainCity(state, city).flats.science).toBe(0.5);
+    // multiply this afterwards and are asserted in their own section. The
+    // palace's own beaker sits beside the half (2026-09-08 — a founded first
+    // town is the capital); the claim here is the fraction, so it is read
+    // off the total less the palace's whole number.
+    expect(explainCity(state, city).flats.science - CITIES.palaceScience).toBe(0.5);
     expect(Math.floor(1 * CITIES.sciencePerPop)).toBe(0);
 
     collectYields(state);
