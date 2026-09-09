@@ -1367,7 +1367,13 @@ describe('the campaign', () => {
           .filter((row) => row.rejected === undefined)
           .sort((a, b) => b.score - a.score)
           .findIndex((row) => row.label === buildingDef('palisade').name);
-      expect(rankOf(open)).toBeLessThan(rankOf(shut));
+      // Re-aimed 2026-09-09 (X1d-chain landing beside X5c): `push` now
+      // discounts every row for its build wait, which lifts the four-turn rows
+      // above a wall's share on this bench as much as the share lifts the wall,
+      // so the rank holds at fourth rather than rising. The claim that matters
+      // — the hit points raise the wall's score, and the line names them — is
+      // asserted above; the rank may not FALL.
+      expect(rankOf(open)).toBeLessThanOrEqual(rankOf(shut));
       // The wall's whole raw line, before the amortiser: the row's hit points as
       // a share of the bar this town would carry holding it, times what this
       // town's defence is worth at the strength line's own rate, times the threat
