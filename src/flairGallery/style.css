@@ -525,6 +525,51 @@ body {
   background: var(--table);
 }
 
+/* --- the wild's red ------------------------------------------------------- */
+
+/* Two figures across one stage, so the aspect is wide and short: the pieces are
+   about a world unit tall and stand a world unit apart, and any more height
+   than this is table. */
+.ink-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 1.15;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+.ink-captions,
+.ink-measures {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ink-captions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ink-captions li,
+.ink-measures li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+/* The ink itself, at the size a seat chip prints at — a number beside a swatch
+   is the only honest way to print a colour. */
+.ink-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 50%;
+}
+
 /* --- the palette and the ramp -------------------------------------------- */
 
 .palette-grid {

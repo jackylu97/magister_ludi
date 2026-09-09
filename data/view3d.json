@@ -29,7 +29,8 @@
     "gilt": "#c08a2b",
     "brass": "#c2a35c",
     "chartWash": "#b3ab99",
-    "warRed": "#9b1b3a"
+    "warRed": "#9b1b3a",
+    "wildRed": "#7a1f2b"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -53,7 +54,7 @@
     "byColor": {
       "#d4502e": "crimson",
       "#1f8a85": "teal",
-      "#3a3a42": "raven"
+      "#7a1f2b": "wildRed"
     },
     "fallbackOrder": [
       "crimson",
@@ -480,9 +481,9 @@
     "paperOverlap": 0.6,
     "paperColor": "bone",
     "inkColor": "ink",
-    "wildPaperColor": "vellumDeep",
-    "wildInkColor": "oxbloodDeep",
-    "wildRimColor": "oxblood",
+    "wildPaperColor": "wildRed",
+    "wildInkColor": "bone",
+    "wildRimColor": "vellumDeep",
     "byUnitType": {
       "warrior": "warrior",
       "swordsman": "melee",

@@ -819,15 +819,20 @@ export interface UnitStyleSpec {
    * war with should glow red. Please use a red that's different from the
    * current crimson player type."* So it is a palette entry rather than a reuse
    * of `crimson` or `oxblood` — the first is a seat may wear, the second is the
-   * wild's — and it is a *hostility* mark rather than a seat mark: the wild has
-   * always read as dangerous and every empire you have declared on now reads
-   * the same way.
+   * deck's word for blood — and it is a *hostility* mark rather than a seat
+   * mark: an empire you have declared on reads as something you may hit.
    *
    * It reaches exactly two of the three meshes a piece is drawn from: the
    * outline shell and the x-ray ghost. The sculpt's body keeps the owner's own
    * colour, because the question a player asks first is still *whose is it* —
    * the glow answers *may I hit it*, which is the second question and belongs
    * on the rim.
+   *
+   * **The wild is not glowed** (user, 2026-09-08; `hostileOwners` in
+   * `pieces.ts` holds the clause). A barbarian piece is `wildRed` to the ankles
+   * now, so a red rim and a red ghost over a red body would be three reds on
+   * one piece and would put the wild back in the crimson seat's family — which
+   * is the whole thing the base colour was moved to fix.
    */
   hostileGlow: number;
   /**
@@ -1383,17 +1388,26 @@ export interface BadgeSpec {
    * exactly the complaint: "barbarian icons should have red tint … should look
    * different than a player unit" (user, 2026-08-27). A seat colour is a *name*
    * — Crimson, Teal, Raven — and the wild is not a name a player negotiates
-   * with, so it is given a different *paper* rather than a thirteenth tincture:
-   * the roundel darkens to `vellumDeep` and the mark and the rim go oxblood, the
-   * Statecraft deck's `hunt` line, which is this project's word for blood.
+   * with, so it is given a different *paper* rather than a thirteenth tincture.
    *
-   * Three colours and not one because the badge has three surfaces and a red
-   * rim on bone paper reads as "a player whose colour happens to be red". It is
-   * the darkened parchment that says *this one is not a seat*.
+   * **The red is the paper now** (user, 2026-09-08: *"the barbarian colors and
+   * the crimson color are too similar … barbarian units having red as its icon
+   * base color instead of its outline"*). The first answer put oxblood on the
+   * mark and the rim and left the disc parchment, which spent the whole of the
+   * wild's red on two thin strokes — and a thin red stroke beside the crimson
+   * seat's own red pieces is exactly the confusion the ruling names. So the
+   * roundel is `wildRed`, the seat's own ink (`seatBarbarians` in
+   * `src/sim/state.ts` holds the same string), and nothing about a wild badge is
+   * a stroke of colour that could be mistaken for a seat's.
    *
-   * The ink is a deeper oxblood than the rim on purpose: a mark has to survive
-   * being ten pixels of stroke on its own paper, and `#c2452a` on `vellumDeep`
-   * is about three to one, which is a rim's contrast rather than a letter's.
+   * Three colours and not one because the badge has three surfaces and each one
+   * answers a different question. The **ink is inverted to `bone`**: black on
+   * `#7a1f2b` is 1.36 to one and unreadable, white on it is 8.15, so the mark
+   * that names the unit survives being ten pixels of stroke on its own paper —
+   * which is the check the ruling asked for ("double check the icon is still
+   * legible, and invert the black to white if needed"). The **rim is
+   * `vellumDeep`**, no longer red at all: a ring of the disc's own colour would
+   * be invisible, and a pale ring is what the selection lift reads against.
    */
   wildPaperColor: number;
   wildInkColor: number;
@@ -2560,6 +2574,36 @@ export function mixColor(a: number, b: number, t: number): number {
     return Math.round(from + (to - from) * clamped) & 0xff;
   };
   return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
+
+/**
+ * How far apart two inks are to the eye: the WCAG contrast ratio, 1 to 21.
+ *
+ * Here because a *legibility* question keeps being asked of this palette by
+ * hand and then written down as a sentence in a docblock — is a black mark
+ * readable on the wild's red disc, does a rim show against the paper it is
+ * printed on — and a sentence cannot fail a test. 4.5 is the ordinary threshold
+ * for a small mark; the badge's ink clears it against the badge's paper, and
+ * `test/render/pieces3d.test.ts` is where that is held rather than trusted.
+ *
+ * It is not a *distance*: two colours of the same lightness (a red and a green
+ * of equal weight) contrast at 1 and are still plainly two colours. Telling two
+ * seats apart is a question about hue as much as about weight, so a ratio is
+ * the wrong instrument for it and is not spent that way anywhere here.
+ */
+export function contrastRatio(a: number, b: number): number {
+  const luminance = (color: number): number => {
+    const channel = (shift: number): number => {
+      const value = ((color >> shift) & 0xff) / 255;
+      return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * channel(16) + 0.7152 * channel(8) + 0.0722 * channel(0);
+  };
+  const la = luminance(a);
+  const lb = luminance(b);
+  const lighter = Math.max(la, lb);
+  const darker = Math.min(la, lb);
+  return (lighter + 0.05) / (darker + 0.05);
 }
 
 /** Pulls a colour toward its own grey. `amount` 0 = unchanged, 1 = grey. */

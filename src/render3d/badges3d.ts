@@ -765,7 +765,7 @@ export function nationBadgeStyle(): BadgeInkStyle {
   return { paper: BADGE.paperColor, ink: BADGE.inkColor };
 }
 
-/** The wild's: darkened parchment, oxblood mark. See `BadgeSpec.wildPaperColor`. */
+/** The wild's: a red disc, the mark inverted to white. See `BadgeSpec.wildPaperColor`. */
 export function wildBadgeStyle(): BadgeInkStyle {
   return { paper: BADGE.wildPaperColor, ink: BADGE.wildInkColor };
 }
@@ -840,8 +840,8 @@ const NAVAL_CANTON_OFFSET = 0.3;
  *
  * `drawBadgeCell`'s sibling for the drawn half of the set, and it takes the same
  * `BadgeInkStyle` — so the wild's second print is free here exactly as it is
- * there, and a barbarian trireme is the same two drawings in oxblood on darkened
- * vellum with no second table.
+ * there, and a barbarian trireme is the same two drawings in bone on the wild's
+ * red with no second table.
  *
  * `rig` may be absent, which is the bare-canton fallback: a naval row with a
  * class but no `masts` gets its line's mark alone, centred, at the hull's size.
@@ -2373,7 +2373,7 @@ export function badgeDiscFlags(): {
  *
  * One texture and one material for every badge a *nation* flies, whatever class
  * or seat, and a second pair for the wild — same twenty cells, same layout, same
- * quads, printed on darkened parchment in oxblood (`wildBadgeStyle`). Two
+ * quads, printed on the wild's red in bone (`wildBadgeStyle`). Two
  * textures rather than one because a printed bucket cannot be tinted: an atlas
  * material carries the ink in its own pixels, and `InstanceCollector` refuses a
  * per-instance colour on a textured bucket precisely so that nothing can grey

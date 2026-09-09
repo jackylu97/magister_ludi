@@ -629,10 +629,19 @@ const HOSTILE_GLOW = VIEW3D.units.hostileGlow;
  *
  * Empty for the omniscient board (`seat === null`, which is every gallery and
  * both frozen 2D pipelines) and for a seat that has declared on nobody, which
- * is every game until somebody does. The **wild is in it** without a row, for
- * the reason `atWar` answers *true* for a barbarian without reading the
- * register: a raider has always been something you may hit, and the glow is the
- * board finally saying so.
+ * is every game until somebody does.
+ *
+ * **The wild is not in it**, though `atWar` answers *true* for a barbarian
+ * without reading the register. It used to be — a raider has always been
+ * something you may hit, and the glow was the board saying so — but the wild's
+ * pieces are painted in `palette.wildRed` now (the user's ruling of 2026-09-08:
+ * the red belongs on the base, not the rim), and a piece already red to the
+ * ankles gains nothing from a second red round its edge and a third in its
+ * ghost. Worse, it would put the wild back into the same red family as the
+ * crimson seat's soldiers, which is the confusion the ruling exists to end. So
+ * the glow stays what it was built for: an *empire* that has declared on you.
+ * Asked of `isBarbarian` (`src/sim/state.ts`), the register for that seat,
+ * never of a colour or a name.
  *
  * A `Set` is only ever asked `.has`, so nothing about the picture can depend on
  * its order.
@@ -642,6 +651,7 @@ function hostileOwners(state: GameState, seat: number | null): ReadonlySet<numbe
   const hostile = new Set<number>();
   for (const player of state.players) {
     if (player.id === seat) continue;
+    if (isBarbarian(state, player.id)) continue;
     if (atWar(state, seat, player.id)) hostile.add(player.id);
   }
   return hostile;
@@ -797,9 +807,11 @@ export class UnitLayer {
    * --------------
    * `seat` is the seat whose board this is — the same `localPlayerId` the fog
    * grid above belongs to, or null for the omniscient board the galleries draw.
-   * Every piece belonging to a seat that seat is at war with is outlined and
-   * ghosted in `units.hostileGlow` instead of its owner's ink, which is the
+   * Every piece belonging to an *empire* that seat is at war with is outlined
+   * and ghosted in `units.hostileGlow` instead of its owner's ink, which is the
    * user's ruling of 2026-09-03 (see the field's docblock in `lookData.ts`).
+   * The wild is the one seat it skips, and `hostileOwners` says why: its pieces
+   * are already red in the body.
    *
    * It is a **fact about the viewer**, not about the piece, and that is why it
    * is a parameter rather than something `unitColor` could answer: the same
@@ -987,8 +999,10 @@ export class UnitLayer {
    * **The wild is the one seat whose badge is not a seat colour.** A barbarian
    * warrior standing next to your own was reading as another empire's piece
    * (user, 2026-08-27), because it *is* a `Player` and so it was drawn like one.
-   * It now takes the wild atlas — darkened parchment, oxblood mark — and an
-   * oxblood rim, all three from `badges.wild*` in `data/view3d.json`. Asked of
+   * It now takes the wild atlas — a **red disc with a white mark on it**, the
+   * base carrying the colour and the print inverted to keep it legible over one
+   * (user, 2026-09-08) — and a darkened-parchment rim, all three from
+   * `badges.wild*` in `data/view3d.json`. Asked of
    * `isBarbarian`, the sim's register for that seat (CLAUDE.md's `realPlayers`
    * rule, read from the other end), never of the seat's colour or its name.
    *
@@ -1041,10 +1055,13 @@ export class UnitLayer {
     // bucket and costs one extra draw for the one selected unit, and nothing at
     // all on a board with no selection.
     //
-    // The wild's rim is oxblood rather than its seat ink, and it still takes the
-    // selection lift — a barbarian a player has clicked on is still the piece in
-    // hand, and a selection that only worked on your own units would be the kind
-    // of hole nobody notices until they are trying to read a stack.
+    // The wild's rim is darkened parchment rather than its seat ink — the ink
+    // is the disc now, and a ring of the same red round it would be a ring
+    // nobody could see. It still takes the selection lift, and a pale rim is the
+    // ground that lift reads best on: a barbarian a player has clicked on is
+    // still the piece in hand, and a selection that only worked on your own
+    // units would be the kind of hole nobody notices until they are trying to
+    // read a stack.
     const ink = wild ? BADGE.wildRimColor : unitColor(state, unit);
     const rimColor = selected ? shade(ink, BADGE.selectedRimShade) : ink;
     const front = anchor

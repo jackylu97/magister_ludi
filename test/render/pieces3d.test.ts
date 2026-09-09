@@ -48,7 +48,7 @@ import {
 } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
-import { VIEW3D, playerPieceColor } from '../../src/render3d/lookData';
+import { VIEW3D, contrastRatio, playerPieceColor } from '../../src/render3d/lookData';
 import {
   UnitLayer,
   buildSpriteUnit,
@@ -63,7 +63,7 @@ import {
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
+import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
 import { isEmbarkableTerrain } from '../../src/sim/terrainData';
 import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
@@ -2616,5 +2616,246 @@ describe('what a health bar says', () => {
 
     layer.dispose();
     board.dispose();
+  });
+});
+
+// --- the wild's red ----------------------------------------------------------
+
+/**
+ * What a barbarian piece is painted in, and what it is no longer painted in.
+ *
+ * The user's ruling of 2026-09-08: *"the barbarian colors and the crimson color
+ * are too similar, could use a different color scheme, with the barbarian units
+ * having red as its icon base color instead of its outline? Double check the
+ * icon is still legible, and invert the black to white if needed."*
+ *
+ * The wild used to be `raven` in the body with its red spent on two thin
+ * strokes — the outline shell washed toward `units.hostileGlow` (every
+ * barbarian is somebody you may hit) and the badge's mark and rim in oxblood.
+ * Two thin red strokes beside the crimson seat's own red pieces is the whole of
+ * the complaint. So the red moved to the **base**: `palette.wildRed` is the
+ * barbarian seat's colour in `src/sim/state.ts`, which puts it on the sculpt,
+ * the x-ray ghost and the badge's disc together, and takes it off the rim.
+ *
+ * These are the four halves of that, each pinned where it can actually fail:
+ * the seat's ink, the three meshes, the glyph's contrast over its new ground,
+ * and the crimson seat left exactly as it was.
+ */
+describe("the wild's red", () => {
+  const BADGE = VIEW3D.badges;
+  const CRIMSON_SEAT = '#d4502e';
+
+  function wildState(): GameState {
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: CRIMSON_SEAT, isHuman: true },
+        { name: 'B', color: '#3f639f' },
+      ],
+      barbarians: true,
+    });
+    game.map = createMap({ width: 14, height: 10, terrain: 'grassland' });
+    game.tileOwner = new Array<number | null>(14 * 10).fill(null);
+    game.cities = [];
+    game.units = [];
+    return game;
+  }
+
+  function put(game: GameState, ownerId: number, col: number): void {
+    game.units.push({
+      id: game.units.length + 1,
+      type: 'warrior',
+      ownerId,
+      col,
+      row: 3,
+      hp: unitDef('warrior').maxHp,
+      movesLeft: 2,
+      hasAttacked: false,
+    });
+  }
+
+  function draw(game: GameState, seat: number | null) {
+    const board = new BoardGeometry();
+    const materials = new MaterialLibrary(VIEW3D.look.rampSteps, VIEW3D.palette.ink!);
+    const layer = new UnitLayer();
+    layer.build(game, board, materials, new Quaternion(), false, null, null, null, null, null, seat);
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+    return { board, materials, layer, meshes };
+  }
+
+  /** The ghost inks on the board — the third of a piece's three meshes. */
+  function ghostInks(meshes: InstancedMesh[]): number[] {
+    return meshes
+      .filter(
+        (mesh) =>
+          mesh.material instanceof MeshBasicMaterial && mesh.material.depthFunc === GreaterDepth,
+      )
+      .map((mesh) => (mesh.material as MeshBasicMaterial).color.getHex());
+  }
+
+  /** The outline shells, and whether each carries a per-instance wash. */
+  function shellWashes(meshes: InstancedMesh[], materials: MaterialLibrary): boolean[] {
+    return meshes
+      .filter((mesh) => mesh.material === materials.outline)
+      .map((mesh) =>
+        [...(mesh.instanceColor!.array as Float32Array).slice(0, 3)].some((c) => c !== 1),
+      );
+  }
+
+  it('paints the wild in the palette’s own red, which is nobody’s tincture', () => {
+    const game = wildState();
+    const wild = barbarianPlayer(game)!;
+    // The seat colour and the diorama ink are one decision in two files, and
+    // this is the seam between them: `state.ts` holds the CSS string every
+    // panel prints (a camp's banner, the info card, the spectator's feed) and
+    // `players.byColor` maps it to the ink the board paints. A change to one
+    // and not the other silently drops the wild onto a *seat's* fallback
+    // tincture, which is the confusion the ruling is about.
+    expect(playerPieceColor(wild.color, wild.id)).toBe(VIEW3D.palette.wildRed);
+    for (const tincture of VIEW3D.players.fallbackOrder) {
+      expect(tincture).not.toBe(VIEW3D.palette.wildRed);
+    }
+    // And it is not the war rim either: an empire you have declared on and the
+    // wild are two different statements and may not be the same red.
+    expect(VIEW3D.units.hostileGlow).not.toBe(VIEW3D.palette.wildRed);
+  });
+
+  it('gives all three of a wild piece’s meshes the red, and reddens none of its rim', () => {
+    const game = wildState();
+    const wild = barbarianPlayer(game)!;
+    put(game, 0, 3);
+    put(game, wild.id, 7);
+    resetVisibility(game);
+
+    const { layer, meshes, board, materials } = draw(game, 0);
+    const wildUnit = game.units.find((unit) => unit.ownerId === wild.id)!;
+    // 1. the sculpt's body, through the layer's own ink function.
+    expect(unitColor(game, wildUnit)).toBe(VIEW3D.palette.wildRed);
+    // 2. the x-ray ghost, which used to be the war red for every barbarian.
+    const inks = ghostInks(meshes);
+    expect(inks).toContain(VIEW3D.palette.wildRed);
+    expect(inks).not.toContain(VIEW3D.units.hostileGlow);
+    // 3. the outline shell: untouched, which is the "instead of its outline"
+    // half of the ruling. The shell is one shared material for the whole board,
+    // so "not red" is the *absence* of a per-instance wash.
+    expect(shellWashes(meshes, materials).some((washed) => washed)).toBe(false);
+
+    layer.dispose();
+    board.dispose();
+    materials.dispose();
+  });
+
+  it('still reddens the rim of an empire you have declared on', () => {
+    // The glow was not deleted with the wild's rim — it was returned to the
+    // thing it was built for (ruling, 2026-09-03). A nation at war is still
+    // outlined and ghosted in `units.hostileGlow`.
+    const game = wildState();
+    put(game, 0, 3);
+    put(game, 1, 7);
+    resetVisibility(game);
+    openWar(game, 0, 1);
+
+    const { layer, meshes, board, materials } = draw(game, 0);
+    expect(ghostInks(meshes)).toContain(VIEW3D.units.hostileGlow);
+    expect(shellWashes(meshes, materials).filter((washed) => washed)).toHaveLength(1);
+
+    layer.dispose();
+    board.dispose();
+    materials.dispose();
+  });
+
+  it('prints the badge’s mark in white on the red, because black on it is unreadable', () => {
+    // "Double check the icon is still legible, and invert the black to white if
+    // needed." It was needed: the badge's own ink is near-black, and the disc
+    // is now a dark red. The check is the ratio rather than a judgement, and
+    // 4.5 is the ordinary threshold for a small mark.
+    expect(BADGE.wildPaperColor).toBe(VIEW3D.palette.wildRed);
+    expect(contrastRatio(BADGE.inkColor, BADGE.wildPaperColor)).toBeLessThan(4.5);
+    expect(contrastRatio(BADGE.wildInkColor, BADGE.wildPaperColor)).toBeGreaterThanOrEqual(4.5);
+    // The nation's badge is unchanged and passes the same check on its own
+    // parchment — the two prints are the same drawings in two pairs of colours.
+    expect(contrastRatio(BADGE.inkColor, BADGE.paperColor)).toBeGreaterThanOrEqual(4.5);
+    // The rim is the third surface and carries no red at all now: not the
+    // wild's own (a ring the colour of its disc is a ring nobody can see), not
+    // the war red, and not a seat's.
+    for (const red of [
+      VIEW3D.palette.wildRed,
+      VIEW3D.palette.crimson,
+      VIEW3D.palette.oxblood,
+      VIEW3D.units.hostileGlow,
+    ]) {
+      expect(BADGE.wildRimColor).not.toBe(red);
+    }
+    // And it is visible on the disc it rings.
+    expect(contrastRatio(BADGE.wildRimColor, BADGE.wildPaperColor)).toBeGreaterThan(3);
+  });
+
+  /**
+   * The stall on `flair.html`, which is where this decision is iterated.
+   *
+   * CLAUDE.md's rule for the cabinet: a new visual asset joins it in the same
+   * pass that ships it, and nothing on that page is a second copy of what the
+   * game draws. Both halves are checkable from the source — the section is
+   * opened by `main.ts`, and the module that draws it names no colour of its
+   * own, reading its two inks through `playerPieceColor` and the palette
+   * exactly as the board does.
+   */
+  it('stands the two pieces side by side on the flair cabinet', () => {
+    const modules = import.meta.glob(
+      ['../../src/flairGallery/pieceInks.ts', '../../src/flairGallery/main.ts'],
+      { eager: true, query: '?raw', import: 'default' },
+    ) as Record<string, string>;
+    const source = (name: string): string => {
+      const key = Object.keys(modules).find((path) => path.endsWith(name))!;
+      const text = modules[key];
+      if (typeof text !== 'string' || text.length === 0) throw new Error(`${name} came back empty`);
+      return text;
+    };
+
+    const page = source('flairGallery/main.ts');
+    expect(page).toContain('drawPieceInks');
+    const stall = source('flairGallery/pieceInks.ts');
+    // Read, not typed: the wild's ink comes out of a real game through the
+    // renderer's own door, so a seat colour changed in `state.ts` and not in
+    // `players.byColor` shows up on the page as the wrong tincture instead of
+    // being quietly redrawn correctly from a hard-coded string.
+    expect(stall).toContain('playerPieceColor');
+    expect(stall).toContain('pieceMaterials');
+    expect(stall).toContain('silhouette');
+    expect(stall).toContain('contrastRatio');
+    // And no colour of its own anywhere in it.
+    expect(stall.match(/#[0-9a-fA-F]{6}\b/)).toBeNull();
+    // Knobs, which is what makes it a stall rather than a picture: value and
+    // saturation, written once and hung on each of the two inks.
+    expect(stall.match(/slider\(/g) ?? []).toHaveLength(2);
+  });
+
+  it('leaves the crimson seat’s own pieces exactly as they were', () => {
+    // The other half of "too similar" is the half that must not move: the
+    // complaint was about the wild, and a fix that also repainted the seat
+    // would have answered a question nobody asked.
+    const game = wildState();
+    const wild = barbarianPlayer(game)!;
+    put(game, 0, 3);
+    put(game, wild.id, 7);
+    resetVisibility(game);
+
+    const crimson = game.units.find((unit) => unit.ownerId === 0)!;
+    expect(unitColor(game, crimson)).toBe(VIEW3D.palette.crimson);
+    expect(playerPieceColor(CRIMSON_SEAT, 0)).toBe(VIEW3D.palette.crimson);
+
+    const { layer, meshes, board, materials } = draw(game, 0);
+    // Both pieces are on the board and each ghosts in its own ink: two buckets,
+    // two inks, and the whole ruling is that a player can tell which is which.
+    expect(ghostInks(meshes).sort()).toEqual(
+      [VIEW3D.palette.crimson!, VIEW3D.palette.wildRed!].sort(),
+    );
+
+    layer.dispose();
+    board.dispose();
+    materials.dispose();
   });
 });

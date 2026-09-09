@@ -50,6 +50,7 @@ import {
   drawSeatChips,
   seatTinctures,
 } from './marks';
+import { drawPieceInks } from './pieceInks';
 import { block, checkbox, controls, element, section, select } from './sheet';
 import { requireElement } from '../ui/dom';
 
@@ -226,7 +227,17 @@ const routeStall = drawRouteMedallions(
   ),
 );
 
-// --- 9. palette and ramp ----------------------------------------------------
+// --- 9. the wild's red ------------------------------------------------------
+
+const inkStage = drawPieceInks(
+  open(
+    'piece-inks',
+    'The Wild’s Red',
+    'The one comparison the board only ever shows you by accident: a barbarian piece beside the crimson seat’s. Both sculpts are painted through the renderer’s own pieceMaterials, both stand half behind a canopy so the x-ray ghost is visible, and the contrast between the two inks is measured under them rather than judged.',
+  ),
+);
+
+// --- 10. palette and ramp ---------------------------------------------------
 
 drawPaletteAndRamp(
   open(
@@ -274,4 +285,5 @@ void drawMarginaliaSwatches(chartBlock).then((icons) => {
 window.addEventListener('resize', () => {
   strip.resize();
   shelf.resize();
+  inkStage.resize();
 });

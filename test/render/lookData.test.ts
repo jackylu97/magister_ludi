@@ -81,14 +81,21 @@ describe('player inks', () => {
       barbarians: true,
     }).players.find((player) => player.barbarian)!;
 
-    const raven = playerPieceColor(wild.color, wild.id);
-    expect(PLAYERS.byColor[wild.color.toLowerCase()]).toBe('raven');
-    expect(PLAYERS.fallbackOrder).not.toContain('raven');
+    // The ink is `wildRed` since 2026-09-08: the wild's red moved off its rim
+    // and onto its base, so the seat colour a barbarian carries *is* the red
+    // every surface prints it in — piece, camp banner, info card, spectator
+    // feed. It is still nobody's tincture, which is the whole of the clause
+    // below.
+    const wildInk = playerPieceColor(wild.color, wild.id);
+    expect(PLAYERS.byColor[wild.color.toLowerCase()]).toBe('wildRed');
+    expect(PLAYERS.fallbackOrder).not.toContain('wildRed');
     for (let seat = 0; seat < RULES.game.maxPlayers; seat++) {
-      expect(`seat ${seat}`).toBe(playerPieceColor('', seat) === raven ? 'clashes' : `seat ${seat}`);
+      expect(`seat ${seat}`).toBe(
+        playerPieceColor('', seat) === wildInk ? 'clashes' : `seat ${seat}`,
+      );
     }
     // And it is not a ground ink either, for the reason every other flag is not.
-    expect(GROUND_INKS.has('raven')).toBe(false);
+    expect(GROUND_INKS.has('wildRed')).toBe(false);
   });
 
   it('prefers the explicit table over the fallback, and wraps rather than throwing', () => {

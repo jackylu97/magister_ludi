@@ -1205,6 +1205,35 @@ directly to confirm rulings — user marginalia are rulings.
      has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
+  (hhh) item 7 **The wild's red — BUILT** (batch V2; the user, 2026-09-08:
+  *"the barbarian colors and the crimson color are too similar, could use a
+  different color scheme, with the barbarian units having red as its icon
+  base color instead of its outline? Double check the icon is still legible,
+  and invert the black to white if needed."*). The wild was `raven` in the
+  body and spent its red on two thin strokes — the outline shell washed
+  toward `units.hostileGlow` (a barbarian is always somebody you may hit)
+  and the badge's mark and rim in oxblood — which is a red stroke beside the
+  crimson seat's own red pieces. The red is the **base** now:
+  `palette.wildRed` `#7a1f2b` is the barbarian seat's colour in
+  `seatBarbarians` (`src/sim/state.ts`, a config string the sim never reads
+  — no outcome moves) and its `players.byColor` ink, so the sculpt, the
+  x-ray ghost, the badge's disc, a camp's banner, the info card and the
+  spectator's seat ink all say the same thing. Measured: `#7a1f2b` against
+  the crimson piece ink `#b35843` is ΔE2000 19.9 (against the panel's
+  `#d4502e`, 25.3) where the old oxblood rim was 8.6 from it; against the
+  parchment ground 6.27:1 on desert, 4.68 on plains, 3.94 on grassland.
+  The **glyph inverted to bone**: the badge's near-black on the new disc is
+  1.36:1 and unreadable, bone is 8.15:1. The rim goes `vellumDeep` — no red
+  anywhere on a wild badge, and the pale ring is what the selection lift
+  reads against. `hostileOwners` no longer glows the wild (an *empire* you
+  declared on still glows). Pinned: `test/render/pieces3d.test.ts` ("the
+  wild's red", five cases, the contrast checks computed by the new
+  `contrastRatio` in `lookData.ts`), `lookData.test.ts`, `badges3d.test.ts`.
+  Stall: **section 9 of `flair.html`**, the two pieces side by side behind a
+  canopy (so the ghost shows) with a knob per ink and the ratios printed.
+  Left alone deliberately: the camp *prop* (`sites.props.camp.color`) and
+  the faith lens's `campColor` are hex marks on the ground, not seat ink.
+
 - **H18 — the performance pass — BUILT** (the user, 2026-09-07: "could you do
   a performance pass on the game? I think it's starting to feel slow again.
   The Reliquary in particular is very slow."). Measured on a 150-turn
@@ -1729,7 +1758,9 @@ rulings yet:
 - **Pamphlet shots: 3 outstanding** — move-attack, worker-improve,
   diplomacy-with-a-met-rival need a riper save; captions meanwhile.
 - **Closed by your marginalia, for the record**: mid-peace expulsion (not
-  now) · barbarian red rim (keep) · 4.5× declare (tune in playtest) ·
+  now) · barbarian red rim (kept then, and **superseded** by (hhh) item 7:
+  the red is the wild's base now and its rim carries none) · 4.5× declare
+  (tune in playtest) ·
   project-headed towns (Civ V behaviour, confirmed) · authority roominess
   (defer to playtest) · camera easing (not needed; pan lock shipped) ·
   the seal lengthening (vetoed — slot-in/out is skill expression).

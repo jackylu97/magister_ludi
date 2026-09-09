@@ -2886,8 +2886,14 @@ function seatBarbarians(state: GameState): void {
     id: state.players.length,
     name: 'Barbarians',
     // The simulation never interprets a colour (see `PlayerSpec`); the diorama
-    // maps this one onto the raven ink in `data/view3d.json`.
-    color: '#3a3a42',
+    // maps this one onto `palette.wildRed` in `data/view3d.json`, and every
+    // panel that prints a seat's ink — a camp's banner, the info card, the
+    // spectator's feed — reads the same string. The wild used to be raven, with
+    // its red spent on a rim, and the rim was close enough to the crimson seat
+    // to be read as another empire's (user, 2026-09-08). The red is the *base*
+    // now and the rim is nobody's; changing the value here is a config change
+    // and moves no outcome, because nothing in `src/sim/` ever reads it.
+    color: '#7a1f2b',
     isHuman: false,
     gold: 0,
     sciencePool: 0,

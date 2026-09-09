@@ -596,13 +596,15 @@ function badgeFamily(into: HTMLElement): void {
  * one.
  *
  * **Three and not two**, and the third is the point of the row. Seat 0's own
- * tincture is crimson, which is close enough to the wild's oxblood that a rim
- * alone would not tell them apart — so the near-miss case is drawn here beside
- * the wild rather than left to be discovered on a board. What separates them is
- * the *paper*, which is most of a roundel's area and the thing the eye reads
- * first, and the mark's ink behind it. A version of this treatment that lost the
- * darkened parchment and kept only the red rim would look right in isolation and
- * fail against exactly one seat.
+ * tincture is crimson, and the first version of the wild's badge spent its red
+ * on a rim and a mark — which is close enough to that one seat that a player
+ * read a raider as a neighbour (user, 2026-09-08). So the near-miss case is
+ * drawn here beside the wild rather than left to be discovered on a board. What
+ * separates them now is the *paper*, which is most of a roundel's area and the
+ * thing the eye reads first: the wild's disc is the red, the mark on it is
+ * inverted to bone to stay legible over one, and no stroke of the badge is a
+ * red a seat could be wearing. Section 9 measures the same decision on the
+ * pieces.
  */
 function drawBadgeRoundels(into: HTMLElement): void {
   const BADGE = VIEW3D.badges;
@@ -621,14 +623,14 @@ function drawBadgeRoundels(into: HTMLElement): void {
       paper: BADGE.paperColor,
       ink: BADGE.inkColor,
       rim: tinctures[0]!.color,
-      note: 'the near miss: seat 0 flies a red of its own, so the rim cannot be the thing that says “wild”',
+      note: 'the near miss: seat 0 flies a red of its own, which is why the wild’s red had to move off the rim and onto the disc',
     },
     {
       id: 'the wild',
       paper: BADGE.wildPaperColor,
       ink: BADGE.wildInkColor,
       rim: hex(BADGE.wildRimColor),
-      note: 'darkened parchment and oxblood — a barbarian is a seat the sim needs and not a nation the player negotiates with',
+      note: 'a red disc, the mark inverted to bone, a parchment rim — a barbarian is a seat the sim needs and not a nation the player negotiates with',
     },
   ];
   for (const spec of specs) {

@@ -848,10 +848,15 @@ describe('badges in the units layer', () => {
    * "barbarian icons should have red tint … should look different than a player
    * unit"). What is held still here is the whole of the fix and each half of it
    * separately, because either half alone is wrong: a red rim on bone parchment
-   * reads as "a player whose colour is red", and darkened parchment with a seat
+   * reads as "a player whose colour is red", and a paper of its own with a seat
    * rim reads as a rendering fault.
+   *
+   * The three colours moved on 2026-09-08 — the red is the *disc* now and the
+   * rim carries none of it (`test/render/pieces3d.test.ts`, "the wild's red")
+   * — but what this holds is the shape of the treatment, not the tones: two
+   * atlases, two rims, and neither of them a nation's.
    */
-  it('prints the wild’s badge on its own atlas, and rims it in oxblood', () => {
+  it('prints the wild’s badge on its own atlas, and rims it in a colour no seat can take', () => {
     const game = newGame({
       seed: 7,
       sizeName: 'duel',
@@ -900,15 +905,16 @@ describe('badges in the units layer', () => {
     expect(discMaterials).toContain(badges.material);
     expect(discMaterials).toContain(badges.wildMaterial);
 
-    // And two rims: the seat's own ink, and the wild's oxblood — which is a
+    // And two rims: the seat's own ink, and the wild's parchment — which is a
     // colour no seat tincture can take, so the two can never collide.
     const rims = meshes.filter((m) => m.geometry === board.badgeRim);
     expect(rims).toHaveLength(2);
     const rimColors = rims.map((m) => (m.material as MeshBasicMaterial).color.getHex());
     expect(rimColors).toContain(BADGE.wildRimColor);
     expect(VIEW3D.players.fallbackOrder).not.toContain(BADGE.wildRimColor);
-    // The darkened parchment is the half that says "not a seat"; the rim alone
-    // would only say "a red one".
+    // The paper is the half that says "not a seat" — it is most of a roundel's
+    // area — and the ink is the half that keeps the mark on it readable; the
+    // rim alone would only ever say "a red one".
     expect(BADGE.wildPaperColor).not.toBe(BADGE.paperColor);
     expect(BADGE.wildInkColor).not.toBe(BADGE.inkColor);
 

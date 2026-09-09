@@ -517,7 +517,7 @@ describe('the ways a bar can come up empty', () => {
     theirs.hp = 30;
     const beat = new RendererBeat(state, board, materials());
 
-    // The wild's badge is a second print — darkened parchment, oxblood ink — and
+    // The wild's badge is a second print — a red disc, the mark in bone — and
     // its rim is a colour of its own, so both of those *do* take buckets a
     // nation's pieces never touch. A health bar is not heraldry: the ink is the
     // fraction's, not the seat's, so one backing and one fill carry the whole
