@@ -74,20 +74,25 @@ import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/a
 import {
   BUILDING_ROW_FOLDED,
   BUILDING_ROW_SILENT,
+  type ValueContext,
+  delayDiscount,
   delayTerm,
   explainBuildingRow,
   explainCounted,
   explainEffects,
+  explainYields,
   hasFoldReadEngine,
   meterWeight,
   rowDoor,
   scopeDoor,
   scoreEffects,
+  sciencePrice,
   signDoor,
   siteRefusal,
   townsAdmitting,
   voiceWeight,
   workedHexesAdmitting,
+  yieldWeight,
 } from '../../src/ai/value';
 import { levyReading } from '../../src/ai/campaign';
 import aiJson from '../../data/ai.json';
@@ -1431,6 +1436,142 @@ describe('the tech chain', () => {
     expect(walked.held).toBe(true);
     const now = walked.steps.find((one) => one.kind === 'unit')!;
     expect(findTerm(now.terms, /the node has still to land/)).toBeNull();
+  });
+
+  /**
+   * **Batch X1c — what a beaker is worth is what the road is worth hurrying**
+   * (the user's ruling of 2026-09-09, `docs/flags.md` item (ggg), and the
+   * intent behind it: *"the bot should prioritize science gain more heavily than
+   * it values science spent"*).
+   *
+   * X1b said what a beaker does not cost. This is the other side: a beaker's
+   * whole worth is the wait it removes, so `sciencePrice` is the table plus what
+   * one more beaker a turn takes off every live chain's payoffs —
+   * `hammerPrice`'s twin, on the same chains, through the same discount.
+   *
+   * Four claims, and the first is the one that keeps the price honest: an empire
+   * with no road left prices a beaker at exactly the table, so nothing anywhere
+   * in the bot moved for an empire the batch has nothing to say about.
+   */
+  /**
+   * **The goal X1c's three cases price a beaker against**, and it is chosen
+   * rather than arbitrary. The bench's empire makes ten beakers a turn, so a road
+   * of a few nodes lands well inside the sixty-turn horizon and every step of the
+   * chain is a payoff the premium can actually hurry — where Education, the goal
+   * the batch-3 cases use, is forty turns off on this board and worth nothing to
+   * bring forward at all. That zero is a real reading (`delayDiscount`'s floor is
+   * the whole of it) and not the one these cases are about.
+   */
+  const GOAL: TechId = 'sailing';
+
+  it('prices a beaker at the table with no road left, and above it with one', () => {
+    const { state, player } = chained(3);
+    const ctx = valueContext(state, player);
+    const table = yieldWeight(ctx.ai, 'science', ctx.age);
+
+    // (a) **No chain at all** — the table, to the bit. A `ValueContext` is the
+    // memo's key, so each of these spreads is a fresh reading rather than a
+    // remembered one.
+    const idle: ValueContext = { ...ctx, chains: [] };
+    expect(sciencePrice(idle)).toBe(table);
+
+    // (b) **A chain whose road is walked** owes no beakers, so it has nothing for
+    // a beaker to hurry: a held technology's outstanding buildings are waiting on
+    // stones, and the hammer price is the one that prices those.
+    const { state: held, player: holder } = chained(3, 'education');
+    const walkedCtx = valueContext(held, holder);
+    const walked = techChain(held, holder, walkedCtx, 'education');
+    expect(walked.held).toBe(true);
+    expect(walked.remainingBeakers).toBe(0);
+    // Its own table: holding the road put that empire in the next age, and the
+    // weight is an age's.
+    const walkedTable = yieldWeight(walkedCtx.ai, 'science', walkedCtx.age);
+    expect(sciencePrice({ ...walkedCtx, chains: [walked] })).toBe(walkedTable);
+
+    // (c) **A road ahead prices a beaker above the table**, by exactly the drop in
+    // the research delay times what the chain's payoffs are worth per turn of it.
+    const road = techChain(state, player, ctx, GOAL);
+    expect(road.remainingBeakers).toBeGreaterThan(0);
+    const priced: ValueContext = { ...ctx, chains: [road] };
+    const rate = Math.max(1, ctx.scienceRate);
+    const drop = road.remainingBeakers / rate - road.remainingBeakers / (rate + 1);
+    expect(drop).toBeGreaterThan(0);
+    let premium = 0;
+    for (const step of road.steps) {
+      premium +=
+        step.rate * (delayDiscount(Math.max(0, step.delay - drop), ctx) - delayDiscount(step.delay, ctx));
+    }
+    expect(premium).toBeGreaterThan(0);
+    // `===`: the price is the formula and nothing beside it, cap included.
+    expect(sciencePrice(priced)).toBe(
+      Math.min(table * ctx.ai.priorities.priceBandHigh, table + premium),
+    );
+    expect(sciencePrice(priced)).toBeGreaterThan(table);
+  });
+
+  /**
+   * **The premium is the beakers owed, scaled** — the claim behind the whole
+   * shape. `drop` is `owed ÷ (rate·(rate+1))` and the discount is linear, so a
+   * road twice as long is a premium twice as large: an empire aiming at something
+   * far away values a beaker more than one aiming at the node next door.
+   *
+   * Read with the band opened, because the band is a *cap on the price* and this
+   * is a claim about the *premium* — the two are different questions and the
+   * measured board hits the cap often enough that reading them together would
+   * pin the cap instead.
+   */
+  it('scales the premium with the beakers the road still owes', () => {
+    const { state, player } = chained(3);
+    const ctx = valueContext(state, player);
+    const uncapped: ValueContext = {
+      ...ctx,
+      ai: { ...ctx.ai, priorities: { ...ctx.ai.priorities, priceBandHigh: 1_000_000 } },
+    };
+    const table = yieldWeight(ctx.ai, 'science', ctx.age);
+    const road = techChain(state, player, ctx, GOAL);
+    const halved = { ...road, remainingBeakers: road.remainingBeakers / 2 };
+
+    const full = sciencePrice({ ...uncapped, chains: [road] }) - table;
+    const half = sciencePrice({ ...uncapped, chains: [halved] }) - table;
+    expect(half).toBeGreaterThan(0);
+    expect(full).toBeCloseTo(half * 2, 9);
+
+    // And two chains owing the same road are two roads' worth of hurry — the sum
+    // over `liveChains` the docblock states, not a maximum over them.
+    const both = sciencePrice({ ...uncapped, chains: [road, road] }) - table;
+    expect(both).toBeCloseTo(full * 2, 9);
+  });
+
+  /**
+   * **The premium is printed where science is folded**, which is the ruling's
+   * other half — the feed has to be able to say why a library is worth what it is
+   * this turn and not what it was worth last turn. Gold has said its shadow price
+   * in the same place since batch 1.
+   */
+  it('names the premium in the science line, and folds to its own total', () => {
+    const { state, player } = chained(3);
+    const ctx = valueContext(state, player);
+    const table = yieldWeight(ctx.ai, 'science', ctx.age);
+    const road = techChain(state, player, ctx, GOAL);
+    const priced: ValueContext = { ...ctx, chains: [road] };
+
+    const appraisal = explainYields({ science: 2 }, priced);
+    const line = appraisal.terms.find((term) => term.label.startsWith('science'));
+    expect(line).toBeDefined();
+    expect(line!.label).toMatch(/the science price/);
+    expect(line!.label).toMatch(/the table's/);
+    // The number in the line is the number that was multiplied.
+    expect(line!.value).toBe(2 * sciencePrice(priced));
+    // Rule 5's discipline, one system over: the total is the fold of the list.
+    expect(foldTerms(appraisal.terms)).toBe(appraisal.total);
+
+    // An empire with no road left says so plainly, and folds at the table.
+    const idle: ValueContext = { ...ctx, chains: [] };
+    const plain = explainYields({ science: 2 }, idle);
+    const plainLine = plain.terms.find((term) => term.label.startsWith('science'))!;
+    expect(plainLine.label).toMatch(/age weight/);
+    expect(plainLine.value).toBe(2 * table);
+    expect(foldTerms(plain.terms)).toBe(plain.total);
   });
 
   it('drops a realised step out, and is worth more for the one that was paid', () => {

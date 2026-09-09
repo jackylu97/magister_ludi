@@ -4801,3 +4801,186 @@ own board without X7 in it, so most of the gap is not this batch's. And the
 ceiling is re-aimed to **19** — the four-batch gate's own reading, with no slack
 — rather than to a comfortable round number: the next thing that moves it is
 meant to be looked at.
+
+## Batch X1c as shipped — what a beaker is worth is the road it hurries (2026-09-09)
+
+The other half of the user's ruling on `docs/flags.md` item (ggg). X1b answered
+what a beaker **costs** — nothing, because research always runs and the chain
+already carries the wait. X1c answers what a beaker is **worth**, and it is the
+user's stated intent: *"the intended outcome is for the bot to prioritize science
+gain more heavily than it values science spent, so it should lean more towards
+spending science for science gain."*
+
+If a beaker's only cost is a wait, then a beaker's whole worth is **the wait it
+removes** — and the table's flat five or six says nothing about how long *this*
+empire's road is. So science joins gold, faith, culture and hammers in being
+priced rather than tabled, and it is priced the way hammers are: as a derivative
+on the chains the empire is already executing.
+
+### The arithmetic
+
+`sciencePrice(ctx)` (`src/ai/value.ts`), beside `hammerPrice` and built to mirror
+it line for line:
+
+```
+price = weights.science
+      + Σ over the live chains that still owe beakers of
+          drop = owed ÷ rate − owed ÷ (rate + 1)                    (turns)
+          Σ over that chain's steps of
+            step.rate × ( discount(max(0, step.delay − drop)) − discount(step.delay) )
+```
+
+capped at `weights.science × priorities.priceBandHigh` and floored at
+`weights.science` itself.
+
+- `owed` is `chain.remainingBeakers`; `rate` is `ValueContext.scienceRate` floored
+  at one, which is `researchRoad`'s own floor.
+- `drop` is the **marginal fall in `researchDelay`** — `owed ÷ (rate·(rate+1))`,
+  the honest discrete form of the `owed ÷ rate²` a continuous derivative gives.
+- Every step of a chain waits through the research delay, so shortening it brings
+  **every** payoff of that chain forward by the same `drop`. That is the one place
+  the shape differs from `chainCompression` (where a purchased row hurries only
+  the steps behind it) and from `hammerPrice` (where a hammer hurries one town's
+  one row).
+- The second factor is read through `delayDiscount` **twice** rather than through
+  its slope. The discount is linear, so the two agree at `drop ÷ horizonTurns` in
+  the middle of the range — but the function knows two things a slope does not: a
+  step already past the horizon is worth nothing however much sooner it arrives,
+  and one that *crosses* the horizon gains only the part of the drop that lands
+  inside it. That is `chainCompression`'s own device, and it keeps the premium
+  agreeing with the chain it is a derivative of.
+- **A chain with no road contributes nothing, by construction.** A held-tech
+  chain owes no beakers, so `drop` is nought and its outstanding rows are waiting
+  on stones — which is `hammerPrice`'s question, not this one. An empire with no
+  research plan prices a beaker at the table exactly, and nothing anywhere in the
+  bot moves for it.
+
+`voiceWeight(ctx, 'science')` returns it, so every fold in the file reads the
+price through the **one door** touch point (a) of this spec has walked through
+since batch 1, and `explainYields`' label prints the premium beside the table the
+way a coin has printed its shadow price since then. Memoised per `ValueContext`
+in a `WeakMap`, like `ratesOf` and for `hammerPrice`'s reason: it is asked of
+every science line of every candidate and the answer is a fact about the empire,
+not about the row. It takes **no town** — a beaker is banked by the empire and
+spent by the empire, and no town owes the road.
+
+**The chains are built before the price exists**, which is the fixed point batch
+1 refused, said once more: `valueContext` builds `liveChains` on the prior, whose
+`chains` are empty, so a chain's own science lines fold at the table and every
+arm that reads the chain afterwards folds them at the price. One honest pass,
+like the book and the three banks.
+
+### The one thing that is not `hammerPrice`'s, and why
+
+`hammerTerm` folds the **difference** from the table, because every candidate
+already prices its production delta at `weights.production` through
+`explainYields` and a term carrying the whole price would pay twice. Science needs
+no such term: the price goes into `voiceWeight`, so `explainYields` multiplies by
+the whole of it once and there is nothing to correct. A second `scienceTerm`
+would be the double count `hammerTerm` exists to avoid, wearing the other hat.
+
+### The cap, which was measured to be needed
+
+The first build had no ceiling, and the docblock argued the formula bounded
+itself. The measurement said otherwise: `drop` is `owed ÷ (rate·(rate+1))`, so on
+a young empire's four beakers a turn one more beaker takes **whole turns** off the
+road, and the premium read **4.5× the table** on turn 40 of the acceptance bench —
+a beaker dearer than a bushel, a hammer and a coin together, which is the
+every-town leaning `hammerTerm`'s own ceiling exists to stop.
+
+So the ceiling is `priorities.priceBandHigh`, the band gold, faith, culture and
+hammers are all banded around the table by. **No new knob**: a fifth price outside
+the band would be the odd one out rather than the honest one. The floor is the
+**table** rather than `priceBandLow`, and that is the one asymmetry — a beaker's
+premium is a wait removed, and a wait removed is never negative.
+
+The band is worth what it cost to find. On the acceptance bench, banded against
+raw: science +7.08 against +6.08, technologies +1.44 against +1.19, cities −0.62
+against −0.75 and buildings −1.94 against −2.06. It buys *more* science for *less*
+map, because the readings it trims are the early boards where the premium was
+telling a three-town empire that a beaker was worth five bushels.
+
+### The t100 row (eight seeds, standard map, sixteen seats, paired against `main`)
+
+Seeds 1/2/3/42/101/999/31337/20260101, two balanced seats, wild on, played to
+turn 100 through `createBotStepper().playTurn()`. `d` is the **paired** mean
+difference over the sixteen seats and `t` is `d ÷ SE(d)`; the level SE beside it
+is the eight-seed noise the X-batches quote.
+
+| | main | SE | **X1c** | d | t | X1c + ×2 weight | d | t |
+|---|---|---|---|---|---|---|---|---|
+| cities | 5.50 | 0.42 | **4.88** | −0.62 | −1.32 | 4.50 | −1.00 | −2.28 |
+| citizens | 35.50 | 2.40 | **34.00** | −1.50 | −0.65 | 32.00 | −3.50 | −1.53 |
+| buildings | 14.94 | 1.77 | **13.00** | −1.94 | −1.82 | 11.75 | −3.19 | −2.51 |
+| food/turn | 114.9 | 9.8 | **112.8** | −2.16 | −0.26 | 100.9 | −14.04 | −1.58 |
+| production/turn | 48.9 | 4.8 | **49.7** | +0.79 | +0.15 | 42.7 | −6.20 | −1.29 |
+| gold/turn | 16.0 | 5.9 | **17.4** | +1.41 | +0.30 | 18.9 | +2.87 | +0.72 |
+| **science/turn** | 36.6 | 4.4 | **43.6** | **+7.08** | **+1.78** | 50.4 | +13.87 | +3.61 |
+| culture/turn | 46.0 | 5.6 | **42.3** | −3.69 | −0.62 | 38.0 | −7.99 | −1.42 |
+| faith/turn | 16.6 | 2.9 | **21.0** | +4.46 | +1.53 | 21.3 | +4.78 | +2.33 |
+| treasury | 335 | 62 | **334** | −0.84 | −0.01 | 275 | −59.9 | −1.08 |
+| **technologies** | 19.9 | 0.7 | **21.3** | **+1.44** | **+1.90** | 21.9 | +2.00 | +3.13 |
+| happiness | −1.04 | 1.24 | **−0.37** | +0.67 | +0.57 | −1.64 | −0.60 | −0.30 |
+
+**The acceptance is met.** Science and technologies are up — +19% and +7%, both
+around two standard errors of the paired difference — and cities and buildings
+are inside two, treasury is flat to a pound and production leans up.
+
+**The building line is the town line.** Buildings **per town** read 2.72 on `main`
+and 2.66 here: the empire has not stopped raising shelves, it has founded half a
+town less. That is the honest cost of the batch and it is worth stating plainly
+rather than folding into "within noise" — a beaker priced dear is a library
+outranking a settler at the margin, and half a town at t100 is what that came to.
+
+**The ×2 sweep beside it** (`setAiTuning({ weights: { science: [10,12,12,12] } })`
+on top of X1c) is the comparison the ruling asked for, and it settles the choice
+between the two levers. It buys twice the science and half as much again in
+technologies — and pays −1.0 cities, −3.2 buildings and −14 food for it, both
+costs **outside** the noise where X1c's are inside it. The blunt weight wants
+beakers everywhere; the premium wants them where a road is waiting.
+
+### What the premium actually reads on a board
+
+Four seeds, both seats, sampled at the start of every tenth turn to t100 (a
+throwaway probe, deleted):
+
+| turns | mean premium | median | mean ÷ table | readings at nought |
+|---|---|---|---|---|
+| 10–50 | 3.8 | 1.2 | **0.75** | 14 of 40 |
+| 60–100 | 2.4 | 0.9 | **0.43** | 13 of 40 |
+| all | 3.1 | 1.3 | 0.59 | **27 of 80** |
+
+Three readings of that:
+
+- **It is an early-game price.** A beaker is dear when the empire makes four of
+  them a turn and one more takes a turn and a half off a twenty-turn road; it is
+  nearly free when the empire makes sixty and one more takes a fifth of a turn off
+  a road it will walk anyway. That is the ruling's own shape — the premium is a
+  *derivative*, and a derivative falls as the rate rises.
+- **A third of the readings are exactly nought**, and every one of them is honest:
+  an empire between plans (`incumbentGoal` is null the turn a node lands), an
+  empire whose only chains are held technologies with rows outstanding, or an
+  empire whose road is past the sixty-turn horizon and worth nothing to hurry.
+  Those empires price a beaker at the table and nothing in their appraisal moved.
+- **The sampled figure under-reads what the bot sees.** The reading is taken at
+  the start of a seat's turn, which is exactly when a just-settled goal can leave
+  the plan empty; mid-decision, with a plan installed, the premium is live.
+
+### What this batch does not claim
+
+- **It is not a second charge on science spent.** Nothing subtracts a beaker
+  anywhere — X1b's removal stands, and this is a price on the *gain* only.
+- **It is linear where the truth is concave.** The premium is the worth of *one*
+  more beaker a turn, multiplied by a candidate's whole science delta, so a
+  library paying four beakers is credited four times the first beaker's worth
+  when the fourth is worth slightly less. `hammerPrice` has done exactly this
+  since batch 6 and the band bounds the error; a candidate-sized integral is a
+  batch, not a line.
+- **It does not price the technology itself arriving sooner.** `weights.tech`
+  ("holding one more technology") rides a chain undiscounted, so its derivative is
+  nought and the premium does not carry it. Discounting that line is X1b's third
+  written-down gift, still unswept.
+- **It does not reach the ×2 sweep's science.** It buys about half of it, and
+  keeps the map that the sweep spends. Whether the other half is worth a town is
+  a design question this batch deliberately leaves to the user, with both rows
+  measured on one bench and printed side by side above.

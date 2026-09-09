@@ -592,11 +592,18 @@ export function voiceWeight(ctx: ValueContext, voice: Voice): number {
   if (voice === 'gold') return ctx.prices.gold;
   if (voice === 'faith') return ctx.prices.faith;
   // **Culture joined them in batch 6**, off the draft plan (`draftPlan`,
-  // `wants.ts`). The three priced voices are exactly the three banks this game
-  // holds a *stock* of and spends on rows somebody deals; food, hammers and
-  // beakers are flows nothing banks, and hammers' own reading is a premium
-  // rather than a rate (see `hammerPrice`).
+  // `wants.ts`). Those three are exactly the banks this game holds a *stock* of
+  // and spends on rows somebody deals, and their price is read off a book of
+  // things to buy. Beakers and hammers are flows nothing banks, so neither has a
+  // book — and both are priced anyway, off the chains that are waiting on them,
+  // as the **table plus a premium** rather than as a rate of their own.
   if (voice === 'culture') return ctx.prices.culture;
+  // **Beakers joined them in batch X1c**, off the chains rather than off a bank
+  // (`sciencePrice`). Science is the one flow this empire spends without ever
+  // banking it — research always runs — so its price is not what a stock could
+  // buy but what one more beaker a turn brings *forward*, and that is a
+  // derivative of the same chains `hammerPrice` differentiates.
+  if (voice === 'science') return sciencePrice(ctx);
   return yieldWeight(ctx.ai, voice, ctx.age);
 }
 
@@ -746,6 +753,115 @@ export function hammerTerm(
           `${round(price)} a hammer against the table's ${round(price - over)}`,
     value: production * over,
   };
+}
+
+/**
+ * **What one more beaker a turn is worth to this empire** — the chain-derivative
+ * *science* price (batch X1c of `docs/bot-priorities.md`), and `hammerPrice`'s
+ * twin in shape, in memo and in the argument behind it.
+ *
+ * The user's ruling of **2026-09-09** (`docs/flags.md`, item (ggg)) has two
+ * halves and batch X1b shipped only the first. Beakers are **time, never coin**:
+ * research always runs, so aiming at A costs nothing a chain does not already
+ * carry as its wait, and the lump the beeline used to subtract at
+ * `weights.science` was one thing charged twice. That is the spend. The second
+ * half is the *gain*, and it is the user's stated intent — *"the bot should
+ * prioritize science gain more heavily than it values science spent, so it
+ * should lean more towards spending science for science gain"*. If a beaker's
+ * only cost is a wait, then a beaker's whole worth is **the wait it removes**,
+ * and the table's flat five or six says nothing about how long this empire's own
+ * road is.
+ *
+ * So the price is the table plus a premium, and the premium is a derivative on
+ * numbers the chains already carry — no sweep, no search, closed form:
+ *
+ *     price = weights.science
+ *           + Σ over the live chains that still owe beakers of
+ *               drop = owed ÷ rate − owed ÷ (rate + 1)          — turns saved
+ *               Σ over that chain's steps of
+ *                 step.rate × ( discount(step.delay − drop) − discount(step.delay) )
+ *
+ * `owed` is `chain.remainingBeakers`, `rate` is `ValueContext.scienceRate`
+ * floored at one (`researchRoad`'s own floor), and `drop` is the marginal fall in
+ * `researchDelay` — `owed ÷ (rate·(rate+1))`, which is the honest discrete form
+ * of the `owed ÷ rate²` a continuous derivative would give. Every step of a chain
+ * waits through that research delay, so shortening it brings **every** payoff of
+ * that chain forward by the same `drop` — which is the one place this differs
+ * from `chainCompression`, where a purchased row hurries only the steps behind
+ * it, and from `hammerPrice`, where a hammer hurries one town's one row.
+ *
+ * The second factor is what a turn of that wait is worth, taken through
+ * `delayDiscount` itself rather than through its slope. The discount is linear,
+ * so the two agree to `drop ÷ horizonTurns` in the middle of the range — but the
+ * function knows two things a slope does not: a step already past the horizon is
+ * worth nothing however much sooner it arrives, and one that *crosses* the
+ * horizon gains only the part of the drop that lands inside it. Reading the
+ * discount twice is `chainCompression`'s own device, and it keeps this premium
+ * agreeing with the chain it is a derivative of.
+ *
+ * **A chain with no road contributes nothing**, by construction: a held-tech
+ * chain owes no beakers, so `drop` is nought and every one of its steps is
+ * waiting on stones rather than on study. An empire with tech road ahead prices a
+ * beaker dear; an empire whose plan is empty prices it at the table exactly.
+ *
+ * **Floored at the table, never capped.** A step's `rate` may be negative (a unit
+ * step whose levy shortfall outweighs the piece), and a beaker that arrives
+ * sooner is not a thing this empire should be paid to avoid — `meterWeight`'s
+ * floor said one voice over. The **ceiling is the band every other price in this
+ * file lives in**, `priorities.priceBandHigh`, and it is there because it was
+ * measured to be needed rather than on principle: the drop is `owed ÷ (rate·
+ * (rate+1))`, so on a young empire's four beakers a turn one more beaker takes
+ * *whole turns* off the road, and the premium was read at four and a half times
+ * the table on turn 40 of the acceptance bench — a beaker dearer than a bushel,
+ * a hammer and a coin together, which is the every-town leaning `hammerTerm`'s
+ * own ceiling exists to stop. No new knob: gold, faith, culture and hammers are
+ * all banded around the table by this same number, and a fifth price outside the
+ * band would be the odd one out rather than the honest one. The floor is the
+ * table itself rather than `priceBandLow`, which is the one asymmetry — a
+ * beaker's premium is a wait removed and a wait removed is never negative.
+ *
+ * **Memoised for the life of the context**, as `ratesOf` is and for
+ * `hammerPrice`'s reason: it is asked of every science line of every candidate,
+ * and the answer is a fact about the empire rather than about the row. It takes
+ * no town, which is the other difference from the hammer price — a beaker is
+ * banked by the empire and spent by the empire, and no town owes the road.
+ *
+ * **The chains are built before this price exists**, which is the fixed point
+ * batch 1 refused, said once more: `valueContext` builds `liveChains` on the
+ * prior, whose `chains` are empty, so a chain's own science lines are folded at
+ * the table and every arm that reads the chain afterwards folds them at the
+ * price. One honest pass, like the book and the two banks.
+ */
+const SCIENCE_PRICE_MEMO = new WeakMap<ValueContext, number>();
+export function sciencePrice(ctx: ValueContext): number {
+  const held = SCIENCE_PRICE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const rate = Math.max(1, ctx.scienceRate);
+  let premium = 0;
+  for (const chain of ctx.chains) {
+    const owed = chain.remainingBeakers;
+    if (owed <= 0) continue;
+    const drop = owed / rate - owed / (rate + 1);
+    if (drop <= 0) continue;
+    for (const step of chain.steps) {
+      // Floored at nought: `delayDiscount` has no ceiling, so a negative delay
+      // would answer more than one and pay a step for arriving before it was
+      // wanted. The floor cannot bind while the rate is at least one (the drop
+      // is half the research delay at worst), and it is written down rather than
+      // argued away.
+      const sooner =
+        delayDiscount(Math.max(0, step.delay - drop), ctx) - delayDiscount(step.delay, ctx);
+      if (sooner <= 0) continue;
+      premium += step.rate * sooner;
+    }
+  }
+  const table = yieldWeight(ctx.ai, 'science', ctx.age);
+  const price = Math.min(
+    table * ctx.ai.priorities.priceBandHigh,
+    table + Math.max(0, premium),
+  );
+  SCIENCE_PRICE_MEMO.set(ctx, price);
+  return price;
 }
 
 /**
@@ -910,11 +1026,28 @@ export function valueOfYields(bag: YieldBag, ctx: ValueContext): number {
 }
 
 /**
- * What the number a voice was multiplied by **is** — the age weight for the four
- * unpriced voices, and the live price with its reason for the two the book
- * prices. A label: it changes no fold.
+ * What the number a voice was multiplied by **is** — the age weight for the two
+ * unpriced voices, the live price with its reason for the three the book prices,
+ * and the table with its premium beside it for beakers. A label: it changes no
+ * fold.
+ *
+ * Science's clause is batch X1c's printed half (`sciencePrice`): the whole point
+ * of the premium is that a library is worth a different number in an empire with
+ * road ahead than in one with none, so the feed says which of the two it read and
+ * what the road did to it — the way a coin has said its shadow price since batch
+ * 1. A premium of nought prints as the plain age weight, because that is what it
+ * is.
  */
 function weightWords(ctx: ValueContext, voice: Voice): string {
+  if (voice === 'science') {
+    const table = yieldWeight(ctx.ai, 'science', ctx.age);
+    const premium = sciencePrice(ctx) - table;
+    if (premium <= 0) return 'age weight, with no road left to hurry';
+    return (
+      `the science price — the table's ${round(table)} and ${round(premium)} more ` +
+      `for the turns one more beaker a turn takes off the road ahead`
+    );
+  }
   if (voice !== 'gold' && voice !== 'faith' && voice !== 'culture') return 'age weight';
   const note = ctx.priceNotes[voice];
   return `the ${voice} price` + (note === '' ? '' : ` (${note})`);
