@@ -153,6 +153,10 @@ describe("the top bar's age card", () => {
     const body = card.slice(0, card.indexOf('\n  }\n'));
     expect(body).toContain('realPlayers(state)');
     expect(body).toContain('highestAge(seat.techsResearched)');
+  });
+});
+
+/**
  * **The routes chip wears a drawn cart** (batch R2, `docs/flags.md` item (iii)).
  *
  * The user's ruling of 2026-09-09 asks for an icon for the Trade sheet beside
