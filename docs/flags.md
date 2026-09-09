@@ -1100,32 +1100,15 @@ directly to confirm rulings — user marginalia are rulings.
   roundels stand on the tile beneath it, fanned as the pieces layer
   already fans a stack; U6's roundel suppression and U5/U6's plate slot
   are **removed** — one icon in one place, the piece's own. **U7 built
-  2026-09-09**: `projectCell(col, row, rise = 0)` gained a world-Y rise
-  (the ground point is the default, so the badge hit test, the price
-  plates and the damage figures are untouched) and `reposition` passes
-  `BANNER_RISE` — **2.445**, and the pole's top was not enough: the rise
-  is `max(poleHeight 1.15, the tallest roster row's furniture 2.345) +
-  city.bannerClearance 0.1`, derived in `bannerRise` (`ui/cityBanners.ts`)
-  rather than dialled, because what the plate must clear is the pieces and
-  not the flag. The furniture figure is the tallest visual on the roster
-  (the standee's 1.16, over the horseman's 1.12) plus a hurt piece's hit
-  bar (`hpBarY` 1.73 — the user's acceptance: a wounded garrison shows its
-  bar on the tile), plus the two conversions the fixed camera forces — a
-  billboard's own height is not foreshortened (`÷cos 57°`) while a rise up
-  Y is, and a stack's fan climbs the screen by `stackSpread · tan 57°`
-  (0.524), which is the "scales with several units" half. Screen: the
-  plate's foot lands 88px above the tile centre at the opening zoom, ~24px
-  clear of the centre piece's bar. Removed with it: the plate's garrison
-  slot and every part of it (`garrisonSlot`/`strongestGarrison`/
-  `garrisonBadgeUri`/`buildGarrison`/`paintGarrison`/`garrisonSelectable`,
-  the `is-held` and `.city-banner-garrison` rules, `onSelectGarrison` and
-  `controls.selectUnitAt`), U6's `banneredTownCells` and both its gates in
-  the pieces layer, and the pill's old `margin-top: -46px` — a world
-  height written in pixels, right at exactly one zoom, and the thing that
-  put the plate on the roundels in the first place. The flair gallery's
-  garrison stall is replaced by one that mounts the **real** renderer and
-  the **real** banner overlay over a real town, with knobs for the stack
-  (0–3 pieces) and the wound. **V2 (heraldry)** — (7) *"the
+  2026-09-09**: `projectCell(col, row, rise)`; the banner's rise is
+  max(the pole 1.15, the tallest row's hit-bar top on screen with the
+  stack fan's climb, 2.345) + `city.bannerClearance` 0.1 = 2.445, so the
+  bar clears too (the user's added clause); a −46px pixel margin that
+  had pinned the plate to one zoom is gone; U5/U6's slot and wiring and
+  U6's suppression removed; a wounded warrior on the city hex draws its
+  roundel and its bar beneath the plate; the gallery stall drives the
+  real renderer and overlay. **V2
+  (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if
@@ -1141,6 +1124,28 @@ directly to confirm rulings — user marginalia are rulings.
   every land ground, the ghost more legible than before — the glyph
   inverted to bone (8.15:1 where black read 1.36:1), the wild no longer
   counted hostile for the outline, the seat colour followed. (eee)
+- (jjj) **The turn mark** (the user, 2026-09-09: "I don't love the look
+  of the orders icon … draft a mock with a few proposal candidates …
+  a magister giving orders to a tabletop piece"; seven drawn at
+  https://claude.ai/code/artifact/272102b1-6df0-47b1-8690-5b13cf3355f9):
+  **RULED — the counter.** A flat bone gaming counter — the object a
+  magister moves on a table — with **one gilt hairline** inside an ink
+  edge and the numeral in mono; no beads, no heavy rule. Batch **V3**:
+  `drawMedallionCell` (`badges3d.ts`) repaints the ninth atlas set as
+  the counter — the same outer radius every disc in the atlas draws to,
+  the paper bone, the ink edge at `medallionRimWidth`, a gilt ring at
+  ~0.8 of the radius (`icons.medallionGiltColor` gilt, `icons.
+  medallionGiltRadius`, `icons.medallionGiltWidth` in `data/view3d.json`),
+  the numeral as today; the flair gallery's stall follows; the legibility
+  pin (`test/render/unitBars`/wherever the medallion is pinned) re-aimed
+  to the gilt ring and no beads. **V3 built 2026-09-09**: the counter —
+  bone, the ink edge at 0.03, a gilt ring at 0.8 of the paper radius
+  and 0.04 wide (wider than the ink it sits inside: gilt on bone carries
+  a third of ink's contrast), the numeral at 0.48 (ceiling 0.4987 for
+  "9+"); the ring sits more than a mip texel inside the edge so the
+  alpha test never touches it, and keeps 32% of its colour at the 20 px
+  level; `medallionGeometry`/`paintMedallion` exported so the fit and
+  the minification are measured, the gallery painting through them.
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
@@ -1548,46 +1553,6 @@ directly to confirm rulings — user marginalia are rulings.
      citizen line and the Counting Houses are the deck's answer; the tree
      has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
-
-- (jjj) **The turn mark is a counter, not a medal** (the user, 2026-09-09;
-  the ruling was relayed with batch **V3**'s brief and is written down here
-  after the fact, which is the wrong order — the mock is the spec of record).
-  The mark on the hex each turn of a march ends on ((bbb)'s medallion) was
-  drawn as a medal: parchment, a heavy ink rule, a course of sixteen beads
-  inside it, the numeral in the middle. Ruled against, on the mock's third
-  candidate — **"The counter"**: *a flat bone gaming counter with one gilt
-  hairline inside an ink edge and the numeral in mono; no beads, no heavy
-  rule*. The argument the old drawing's own docblock made for beads is
-  overturned with it: **a medal is a reward, not an order**, and four rewards
-  in a row down a hillside is not what a route says. The same outer radius
-  every disc in the atlas draws to; the paper in `bone`; the ink edge walked
-  inside the paper's edge as before but lighter; a gilt ring at about four
-  fifths of the outer radius; the numeral re-fitted; three new keys
-  (`icons.medallionGiltRadius`, `icons.medallionGiltWidth`,
-  `icons.medallionGiltColor`) with sliders in the flair cabinet, and the ring
-  measured against the atlas's own minification at the twenty pixels the mock
-  is judged at. **V3 built 2026-09-09**: `medallionRimWidth` 0.05 → **0.03**
-  (a hairline-and-a-half, under the badge rim's own 0.042), gilt at
-  `medallionGiltRadius` **0.8** of the paper radius and `medallionGiltWidth`
-  **0.04** of the cell in `medallionGiltColor` **gilt**, the two bead keys
-  gone; on the 128px cell that is paper r58.6, an ink edge 3.8 wide walked at
-  r56.7, a gilt line 5.1 wide at r46.9 with 5.3px of bare bone between the two
-  and 9.2px outside it. The gilt is drawn **wider than the ink it sits
-  inside** on purpose: gilt on bone carries about a third of ink-on-bone's
-  contrast, so at equal width it reads at half the weight — the brief's
-  recommended 0.035 measured at 28% worst-case texel coverage at the mip a
-  twenty-pixel draw samples, and 0.04 lifts that to 32%. The alpha test was
-  never the risk (the ring is a colour on opaque paper, a whole coarse texel
-  clear of the disc's soft edge); what a hairline loses under minification is
-  colour, and that is the floor now pinned. The numeral **0.46 → 0.48**: the
-  counter's field (r44.3) is only 1.3% wider than the bead course's was
-  (r43.8), so the digit takes a notch, not a size — the ceiling is 0.4987 and
-  0.50 puts the widest label's corner outside the gilt. The widest label is
-  `9+` (the set caps at nine; every other label is one figure). The painter is
-  `paintMedallion` now, shared by the atlas cell and the cabinet's new counter
-  stall — the plate, board scale and twenty pixels, one figure and two, with a
-  slider on each of the three keys, since the atlas is rasterised once and a
-  slider cannot move a blit.
 
 - **H18 — the performance pass — BUILT** (the user, 2026-09-07: "could you do
   a performance pass on the game? I think it's starting to feel slow again.
