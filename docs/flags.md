@@ -618,7 +618,18 @@ directly to confirm rulings — user marginalia are rulings.
   never founds a house-opening faith in 150 turns (why the bots reach
   t150 without a religion is upstream of the book), and the X1 bench's
   treasuries at t150 fell (315/404 → 198/153, 666/392 → 384/352) while
-  the tree grew — solvent, watched. (eee)
+  the tree grew — solvent, watched. **X4 and X5 fly next** (2026-09-08),
+  rulings: (X4) a paper the rival declined is remembered by the **driver**
+  (the harness that runs the seats, `stepper.ts`/`driver.ts`), not the
+  state — no schema; keyed on the paper's own JSON and a fingerprint of
+  the rival's holdings, and forgotten when that fingerprint moves or after
+  `ai.war.refusalMemoryTurns` (rec 20); a refused straight swap is
+  answered by `counterTerms` **once** (the bot sweetens with coin by the
+  rival's own `dealSideError` caps) before the memory closes it. A save
+  loaded mid-game forgets — one re-send, accepted. (X5) `explainCitizen`
+  charges `happinessDemand` at the live happiness price as a signed line;
+  `explainBuildingRow` folds `cityHp` beside `cityStat` through the
+  sim's own `buildingEffects` reading. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
