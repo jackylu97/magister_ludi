@@ -141,6 +141,17 @@ the bank cannot pay (which is what makes the price honest), and the empire has
 no *cheaper* faith row to fall to, because the two that exist — a faith house and
 a Templar — are priced at zero and at their own price respectively.
 
+**Closed by batch X3** (2026-09-08), with one reading this finding got wrong: the
+two rows are priced properly now (a Gurdwara at 48.40 for 117🕯 where it read
+0.00; a Templar at 120.00 for 80🕯 where the lump read 36.00, its fold naming the
+horse it rides as), and on an arranged board the bank is spent — but on *this
+bench* the two rows never exist at all. No seat on either seed founds a
+house-opening faith, adopts Holy Order or raises a Cathedral, so the faith book
+on these four seat-games holds rites and the ladder and nothing else, and the
+four seats' figures are byte-identical after the fix. **Why these seats reach
+t150 without a religion is the question underneath this finding**, and it is
+upstream of the book.
+
 ## The Wager (`docs/wager.md`, not built)
 
 Nothing in `src/` or `data/` names it; the batches queued are G1 clock → G2 deal →
@@ -382,7 +393,7 @@ unless it says so.
 |---|---|---|---|
 | **X1** | ~~**The unit step pays for itself**~~ **BUILT 2026-09-08** | `techChain`'s unit steps take a hammer cost and the levy's surplus; `unitTerm` loses its unconditional ×3 or keeps it only against the levy's shortfall | **military re-aims 63% → 40% and 67% → 44%** (both below 45%); **technologies at t150 32 → 54 and 36 → 40** (up on both benches); no bankruptcy on either board. **The negative share went 62% → 78% and 64% → 72% and the target was unreachable from the unit side** — see below |
 | **X2** ✅ | **The scope, evaluated** — **built 2026-09-08** (`docs/bot-priorities.md`, "Batch X2 as shipped") | `townsAdmitting(ctx, scope)` over `cityScopeAdmits` and `workedHexesAdmitting(ctx, effect)` over `tileConditionHolds`, both memoised per `ValueContext` on the row's own object; **eighteen arms** re-counted; `routeEndsHere` and `terrainBeside` closed | **met.** A coastal clause reads **0 towns and scores exactly 0** in a landlocked realm and 1 with one hex of water; Petra's `terrainBeside` reads 0 → 1 on one desert hex; the Bank's `routeEndsHere` reads 0 → 1 on one live caravan. **Six of six boards moved**, both halves (towns · hexes) moving all six alone, and **five of the six first diverge on a Statecraft draft** — three of them now *pass* an offer they used to take; the sixth swaps the Great Lighthouse for a scout. Cost on one identical board: **+1% at t75 and +2.8% at t150** on the minimum, inside the median's own spread |
-| **X3** | **The faith book prices the piece** | `faithPlan`'s building loop gains the `foldCity` delta; `faithRowTerms` dispatches on markers; `ownsAny` becomes a count against a want rather than a bar | faith below its ceiling in at least half the seats at t120, or a bank spent; a Templar's fold names its strength; a faith house's fold names its yields |
+| **X3** ✅ | **The faith book prices the piece** — **BUILT** 2026-09-08 (`docs/bot-priorities.md`, "Batch X3") | `faithPlan`'s building loop gains the `foldCity` delta (memoised per sitting with the gold loop's, `townFolds`); `faithRowTerms` dispatches on markers — `isCombatant` → `explainSoldier` + the mirror (`mirrorRowFor` × `unitStampStrength`), `foundsCity` → the expansion chain, the lump only for a row none describe; `ownsAny` becomes the levy's surplus charge (`levyReading`, handed in through `WantInputs.levy`) | **Gurdwara 0.00 → 48.40 for 117🕯** (0.000 → 0.414 a coin), **Templar 36.00 → 120.00 for 80🕯** (0.450 → 1.500 a coin, the fold naming the War Elephant it rides as), and the bank **spent** — the seat's first decision on that board is `purchaseItem {gurdwara, faith}`. On **this pass's own bench the four seats do not move at all**, and that is the finding's blind spot rather than the fix's: no seat on either seed founds a house-opening faith, adopts Holy Order or raises a Cathedral, so the faith book on those boards holds rites and the ladder and none of the three rows repriced here. Science and culture per turn at t150 identical on all four seats |
 | **X4** | **The paper remembers** | a refusal memory keyed on the paper across turns; `counterTerms` called by `swapDecision` when a straight swap is refused; the first paper the bot writes that is not 1:1 | `proposeDeal` down by an order of magnitude on seed 4242; deals struck > 0 on a board where a swap is mutually profitable |
 | **X5** | **The two missing signs** | `explainCitizen` charges `happinessDemand`; `explainBuildingRow` folds `cityHp` beside `cityStat` | the citizen half on the eight-seed sweep (towns, focus orders, happiness at t100/t150); the wall half on W1's siege bench |
 | **X6** | **`tileWants` earns its 21%** | the arm is the hottest in the bot and buys six hexes in 150 turns; the cheap fix is a **bound** (the town's own `bestExpansionTile` and its ring, not every purchasable hex) and hoisting the hypothetical the way `buildCandidates` hoists `standing` | mean ms/turn at t100–150 down from 142/206; `purchaseTile` count unchanged or up |

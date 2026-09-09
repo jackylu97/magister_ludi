@@ -95,9 +95,12 @@ import {
 import {
   foundCityAt,
   hasResource,
+  mirrorRowFor,
   purchasableTiles,
   refreshCityDerived,
 } from '../../src/sim/cities';
+import { applyCommand } from '../../src/sim/commands';
+import { unitDef, unitStampStrength } from '../../src/sim/unitData';
 import {
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
@@ -2239,5 +2242,193 @@ describe('the faith book', () => {
     delete player.statecraft.pendingDoctrine;
     expect(nextBeliefRerollCost(state, player.id)).toBe(0);
     expect(nextBotDecision(state, player.id)?.command.type).toBe('rerollOffer');
+  });
+});
+
+// --- batch X3: the faith book prices the piece -------------------------------
+
+/**
+ * **The audit's finding 3** (`docs/audit/bot-pass-2.md`): *"faith rides its
+ * ceiling and buys nothing."* Measured at t120 on the audit's own bench, all
+ * four seats read a faith price of **9.00 — the band's ceiling — with 29 to 55
+ * faith banked and nothing bought at all**, because the only rows cheaper than a
+ * rite were priced wrong in three different ways. The three are one sentence
+ * each and they are three separate claims below:
+ *
+ *   · a **faith house** (the Mosque, the Wat, the Gurdwara, the Dar-e Mehr —
+ *     batch B3, bought with faith and only in a town that keeps the faith that
+ *     opened it) folded `explainBuildingRow`, which is *what a row gives beyond
+ *     a yield*, and not the `foldCity` delta its gold-bought sibling has folded
+ *     since batch 1. A Gurdwara's kitchen, school and faith priced at **zero**;
+ *   · a **Knights Templar** — a twelve-strength heavy horse that fights as
+ *     whatever mounted row the age has taught this empire (`UnitDef.mirrors`) —
+ *     fell to *"worth at least the faith it costs"*, so the piece was priced as a
+ *     function of its own price and of nothing else;
+ *   · `ownsAny` barred a **second** copy of any faith row for ever, whatever the
+ *     levy looked like.
+ *
+ * The bench itself is recorded in `docs/bot-priorities.md` under "Batch X3", and
+ * with it the honest reading these four cases exist because of: on the two audit
+ * seeds no seat ever opens a faith house or a Templar at all, so the boards that
+ * *found* the defect cannot measure the fix. These are the arranged boards where
+ * the rows exist.
+ */
+describe('batch X3 — the faith book prices the piece', () => {
+  /**
+   * A founded faith with the beliefs named, and towns that keep it.
+   *
+   * The congregation is set the way `cathedral.test.ts` sets one — every citizen
+   * of the town follows, so the majority `cityReligion` asks for is strict — and
+   * the religion itself is the simulation's own (`foundReligion`), so the
+   * follower and enhancer bags are the ones the rules read.
+   */
+  function keeping(
+    towns: number,
+    tech: string,
+    follower: readonly string[],
+    enhancer: readonly string[],
+  ): { state: GameState; player: Player } {
+    const state = benchState(towns);
+    const player = seat(state, 0);
+    grant(state, player, tech);
+    const religion = foundReligion(state, player);
+    for (const id of follower) religion.follower.push(id as never);
+    for (const id of enhancer) religion.enhancer.push(id as never);
+    for (const city of state.cities) city.followers = { [religion.id]: city.population };
+    bumpRevision(state);
+    return { state, player };
+  }
+
+  /**
+   * A technology that has taught this empire a horse — the mirror measures a
+   * Templar against the best **mounted** row the age has opened, and a bank that
+   * has no such row to measure against refuses the sale outright
+   * (`mirrorRowFor` answers `null`, `explainPurchaseCost` prices nothing). Read
+   * off the roster's own unlock table rather than named, so the day the tree
+   * moves the horse under it the case follows.
+   */
+  const MOUNTED = UNIT_UNLOCK_TECH.get('horseman' as never) ?? 'divination';
+
+  it('prices a following town’s Gurdwara by the five yields it would bank', () => {
+    const { state, player } = keeping(2, 'divination', ['theOpenKitchen'], []);
+    player.faithPool = 2000;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Gurdwara at '));
+    expect(row).toBeDefined();
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+    // The first term is the gold loop's own first term, word for word: what the
+    // town would actually make with it, staged by the real arithmetic.
+    const made = row!.terms[0]!;
+    expect(made.label).toBe('what this town would actually make with it');
+    // Its five yields, by voice — the row pays +3 food, +2 science and +3 faith,
+    // and every one of them is named in the parts rather than folded away.
+    const voices = (made.parts ?? []).map((term) => term.label);
+    expect(voices.some((label) => /^food \+3 /.test(label))).toBe(true);
+    expect(voices.some((label) => /^science \+2 /.test(label))).toBe(true);
+    expect(voices.some((label) => /^faith \+3 /.test(label))).toBe(true);
+    expect(made.value).toBeGreaterThan(0);
+    // **And what it was worth before.** The row carries no happiness, no writ, no
+    // renown and no effects at all, so everything the old loop could read about it
+    // — `explainBuildingRow` less the upkeep — folds to nothing, and a want worth
+    // nothing is a want no bank ever spends on.
+    const beyond = explainBuildingRow('gurdwara' as never, ctx).total;
+    expect(beyond).toBe(0);
+    expect(row!.worth).toBeGreaterThan(beyond);
+  });
+
+  it('prices a Templar as the horse it fights as, not as the faith it costs', () => {
+    const { state, player } = keeping(1, MOUNTED, [], ['holyOrder']);
+    player.faithPool = 2000;
+    const ctx = valueContext(state, player);
+    const row = ctx.wants.faith.find((want) => want.label.startsWith('Knights Templar at '));
+    expect(row).toBeDefined();
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+    // Not the lump. That clause is the floor under a row nothing can read, and a
+    // heavy horse is not one.
+    expect(row!.terms.some((term) => /worth at least the faith it costs/.test(term.label))).toBe(
+      false,
+    );
+    const soldier = row!.terms[0]!;
+    expect(soldier.label).toBe('what this soldier is worth');
+    const parts = soldier.parts ?? [];
+    expect(parts[0]!.label).toBe('what this piece is worth as a soldier');
+    // **The mirror names the horse, and the strength it lends.** `mirrorRowFor`
+    // is the simulation's own answer to "which row does this one shadow for this
+    // empire today", so the term prints a roster name rather than a guess.
+    const mirrored = mirrorRowFor(state, player.id, 'knightsTemplar' as never)!;
+    expect(mirrored).not.toBeNull();
+    const lift =
+      unitDef(mirrored).combatStrength - unitDef('knightsTemplar' as never).combatStrength;
+    const mirror = parts[1]!;
+    expect(mirror.label).toContain(`it rides as the ${unitDef(mirrored).name}`);
+    expect(mirror.label).toContain(`${lift > 0 ? '+' : ''}${lift} strength`);
+    expect(mirror.value).toBe(lift * ctx.ai.weights.military);
+
+    // **And the strength it prints is the strength the simulation stamps.** The
+    // one clause of the rules `mirrorTerm` restates is the stamp `realiseItem`
+    // composes, so the coupling is pinned by buying the piece and reading what the
+    // board actually put on it.
+    const bought = applyCommand(state, {
+      type: 'purchaseItem',
+      playerId: player.id,
+      cityId: row!.buy!.cityId,
+      item: row!.buy!.item,
+      currency: 'faith',
+    } as never);
+    expect(bought.ok).toBe(true);
+    const piece = state.units.find((unit) => unit.type === ('knightsTemplar' as never))!;
+    expect(piece).toBeDefined();
+    expect(unitStampStrength(piece)).toBe(lift);
+  });
+
+  it('prices a second Templar against the levy rather than refusing it', () => {
+    const { state, player } = keeping(1, MOUNTED, [], ['holyOrder']);
+    player.faithPool = 2000;
+    const first = valueContext(state, player).wants.faith.find((want) =>
+      want.label.startsWith('Knights Templar at '),
+    )!;
+    expect(first).toBeDefined();
+    // One called. Before this batch `ownsAny` struck the row out of the book for
+    // the rest of the game; now it stays, and what it is worth falls by what the
+    // levy already has standing.
+    const bought = applyCommand(state, {
+      type: 'purchaseItem',
+      playerId: player.id,
+      cityId: first.buy!.cityId,
+      item: first.buy!.item,
+      currency: 'faith',
+    } as never);
+    expect(bought.ok).toBe(true);
+    // A turn on: a town buys one unit of a class a turn (`City.purchasedUnitTurns`,
+    // absolute stamps), and that refusal is the simulation's own rather than the
+    // book's — what is under test is what the row is *worth* once the rules will
+    // sell a second one at all.
+    state.turn += 1;
+    bumpRevision(state);
+    const second = valueContext(state, player).wants.faith.find((want) =>
+      want.label.startsWith('Knights Templar at '),
+    );
+    expect(second).toBeDefined();
+    expect(foldTerms(second!.terms)).toBe(second!.worth);
+    const levy = second!.terms.find((term) => /of a levy already standing/.test(term.label));
+    expect(levy).toBeDefined();
+    expect(levy!.label).toMatch(/and holds 1 —/);
+    expect(levy!.value).toBeLessThan(0);
+    expect(second!.worth).toBeLessThan(first.worth);
+  });
+
+  it('spends a faith bank the old book would have held', () => {
+    // The acceptance, on a board where the rows exist: the first thing this seat
+    // does with its faith is buy the house, where before the batch the want was
+    // worth nothing and every point of the bank was held against a rite.
+    const { state, player } = keeping(2, 'divination', ['theOpenKitchen'], []);
+    player.faithPool = 400;
+    const decision = nextBotDecision(state, player.id);
+    expect(decision?.command.type).toBe('purchaseItem');
+    expect((decision!.command as { currency?: string }).currency).toBe('faith');
+    expect((decision!.command as { item?: { id?: string } }).item?.id).toBe('gurdwara');
+    const spent = applyCommand(state, decision!.command as never);
+    expect(spent.ok).toBe(true);
+    expect(player.faithPool).toBeLessThan(400);
   });
 });

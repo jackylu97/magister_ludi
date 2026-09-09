@@ -90,7 +90,13 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
-import { type ExpansionChain, chainCompression, chainStepFor, raceTerm } from './chain';
+import {
+  type ExpansionChain,
+  chainCompression,
+  chainStepFor,
+  expansionStepShare,
+  raceTerm,
+} from './chain';
 import {
   type PricedMeter,
   type ValueContext,
@@ -100,6 +106,7 @@ import {
   explainEffects,
   explainForecastCount,
   explainLump,
+  explainSoldier,
   explainUpkeepCost,
   explainYields,
   bagOfTileYield,
@@ -110,8 +117,10 @@ import {
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import {
+  type CityYields,
   bestExpansionTile,
   borderGrowth,
+  mirrorRowFor,
   purchasableTiles,
   yieldScore,
 } from '../sim/cities';
@@ -169,7 +178,13 @@ import {
 import { SLOT_TYPES, type OrderId, orderDef } from '../sim/statecraftData';
 import { hasAbility } from '../sim/tech';
 import { techDef } from '../sim/techData';
-import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../sim/unitData';
+import {
+  UNIT_TYPE_IDS,
+  type UnitTypeId,
+  isCombatant,
+  unitDef,
+  unitStampStrength,
+} from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
 import { round } from './decision';
 import { foundedReligionOf, hasFoundedReligion } from './ground';
@@ -298,6 +313,26 @@ export interface WantInputs {
    * policy, and this module is the leaf `value.ts` and `bot.ts` both stand on.
    */
   cardWorth: (id: OrderId) => Appraisal;
+  /**
+   * **The levy** — how many field soldiers this empire wants standing, how many
+   * it holds, and in one clause why it wants that many.
+   *
+   * `soldierWorth`'s and `cardWorth`'s bargain a third time: the reading is
+   * `bot.ts`' (the standing army an empire this size keeps, the emergency of a
+   * column at the gate, and the appetite that comes of having charted the wild),
+   * handed in rather than imported so this module stays the leaf `value.ts` and
+   * `bot.ts` both stand on. It is a value rather than a function because it is
+   * one fact about the empire and every faith soldier in the book is charged
+   * against the same one.
+   */
+  levy: LevyReading;
+}
+
+/** What the levy wants, what it holds, and the sentence that says why. */
+export interface LevyReading {
+  wanted: number;
+  held: number;
+  note: string;
 }
 
 /** Worth per coin — the one ranking. A price of nought cannot divide. */
@@ -312,10 +347,66 @@ export function wantBook(
   ctx: ValueContext,
   inputs: WantInputs,
 ): WantBook {
+  // **One sitting, one set of town folds** (batch X3). Both books price a shelf
+  // by what the town would actually make with it, and before this batch only one
+  // of them did — see `faithPlan`. Now that they ask the same question the answer
+  // is taken once: the same town's standing yields, and the same (town, row)
+  // hypothetical, are folded on first ask and remembered for the rest of the
+  // sitting rather than recomputed per book.
+  const folds = townFolds(state, player);
   return {
-    gold: purchasingPlan(state, player, ctx, inputs),
-    faith: faithPlan(state, player, ctx, inputs),
+    gold: purchasingPlan(state, player, ctx, inputs, folds),
+    faith: faithPlan(state, player, ctx, inputs, folds),
     culture: draftPlan(state, player, ctx, inputs),
+  };
+}
+
+/**
+ * **What every town of this empire makes, and would make with one more shelf** —
+ * the reading both books stand on, folded once per sitting.
+ *
+ * Two things are hoisted here and they are hoisted for different reasons. The
+ * *standing* fold is a fact about the town that every row of every book compares
+ * against, so it is taken once a town (`purchasingPlan`'s own bargain since batch
+ * 1, moved up one level). The *hypothetical* fold is a fact about a pair — this
+ * town, that row — and it is memoised rather than pre-computed, because a book
+ * asks for a handful of the pairs and computing the whole grid would be forty
+ * town folds to choose one purchase.
+ *
+ * The empire's half of the percentages (`readEmpirePercents`) is the same reading
+ * for every town, so it is taken once for the whole sitting and handed to every
+ * quote — batch E2's bargain kept at the level the two books share rather than
+ * once per book.
+ *
+ * A `Map` keyed by the pair, and nothing iterates it: the memo answers lookups
+ * and never decides an outcome, which is what hard rule 2 asks of a Map.
+ */
+interface TownFolds {
+  /** This empire's towns, in founding order. Both books walk this array. */
+  towns: readonly City[];
+  /** What the town at this index makes today. */
+  standing: (index: number) => CityYields;
+  /** What it would make with one more of this row standing in it. */
+  with: (index: number, id: BuildingId) => CityYields;
+}
+
+function townFolds(state: GameState, player: Player): TownFolds {
+  const towns = ownedCities(state, player.id);
+  const empire = readEmpirePercents(state, player.id);
+  const bases = towns.map((city) => foldCity(state, city, [], null, readCity(state, city)));
+  const hypothetical = new Map<string, CityYields>();
+  return {
+    towns,
+    standing: (index) => bases[index]!,
+    with: (index, id) => {
+      const key = `${index}:${id}`;
+      const found = hypothetical.get(key);
+      if (found !== undefined) return found;
+      const city = towns[index]!;
+      const fold = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
+      hypothetical.set(key, fold);
+      return fold;
+    },
   };
 }
 
@@ -344,15 +435,14 @@ export function purchasingPlan(
   player: Player,
   ctx: ValueContext,
   inputs: WantInputs,
+  folds: TownFolds = townFolds(state, player),
 ): Want[] {
   const wants: Want[] = [];
-  const towns = ownedCities(state, player.id);
-  // The empire's half of every town's percentages, taken **once** for the whole
-  // sweep — `readEmpirePercents` since batch E2, which is that bargain kept for
-  // every reader at once rather than re-hoisted here; the standing readings come
-  // through `readCity` and only the what-ifs still quote by hand.
-  const empire = readEmpirePercents(state, player.id);
-  const bases = towns.map((city) => foldCity(state, city, [], null, readCity(state, city)));
+  // The town folds are the sitting's (`townFolds`, batch X3) — the standing
+  // reading taken once a town and the hypothetical memoised per pair, so the
+  // faith book below prices the same shelf off the same arithmetic rather than
+  // off a second sweep of its own.
+  const towns = folds.towns;
 
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
@@ -366,8 +456,7 @@ export function purchasingPlan(
       const item: PurchasableItem = { kind: 'building', id };
       const reach = reachOf(state, player, city, item, 'gold');
       if (reach === null) continue;
-      const after = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
-      const delta = yieldDelta(after, bases[index]!);
+      const delta = yieldDelta(folds.with(index, id), folds.standing(index));
       const terms: ValueTerm[] = [
         nest('what this town would actually make with it', explainYields(delta, ctx)),
         nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
@@ -627,17 +716,23 @@ function wageReserveRow(ctx: ValueContext, reserve: number): Want | null {
  * (batch H12, ruling i): a rung is charged at the deal, by the phase, with no
  * decision asked of anybody.
  *
- * A row this empire already has one of is left out of the book entirely: a
- * second prophet standing beside an idle first is faith that bought nothing.
+ * A row this empire already has one of is left out of the book **only where its
+ * worth cannot count them** (batch X3, and see `alreadyCounted`): a second
+ * prophet standing beside an idle first is faith that bought nothing, and that
+ * is what the bar was written for — but the same bar was refusing a second
+ * Templar for ever, in an empire whose levy was ten soldiers short. A soldier
+ * and a settler are priced by readings that already know how many this empire
+ * holds, so for those two the count is a charge rather than a door.
  */
 export function faithPlan(
   state: GameState,
   player: Player,
   ctx: ValueContext,
   inputs: WantInputs,
+  folds: TownFolds = townFolds(state, player),
 ): Want[] {
   const wants: Want[] = [];
-  const towns = ownedCities(state, player.id);
+  const towns = folds.towns;
   const noPantheon = player.pantheon.beliefs.length === 0;
   const unfounded = !hasFoundedReligion(state, player.id);
   // **How far off the god is**, for the one row whose wait is another row (see
@@ -650,7 +745,10 @@ export function faithPlan(
     // refuses it (`purchaseError`), and a want the purse can never reach would
     // be a saving row banking faith for ever against a price nobody sells.
     if (def.retired === true) continue;
-    if (ownsAny(state, player.id, id)) continue;
+    // **The bar, narrowed to the rows it was written for** (batch X3). See
+    // `alreadyCounted`: a row whose worth already reads how many of it this
+    // empire holds is charged for the ones standing, not refused because of them.
+    if (!alreadyCounted(def) && ownsAny(state, player.id, id)) continue;
     for (const city of towns) {
       const item: PurchasableItem = { kind: 'unit', id };
       // A row the faith bank does not price at all answers `null` here before
@@ -667,12 +765,14 @@ export function faithPlan(
           city,
           item,
           faithRowTerms(state, player, ctx, reach.price, {
+            id,
             prophet: def.prophesies === true,
             apostle: def.proclaims === true,
             founder: def.prophesies === true && unfounded,
             towns: towns.length,
             noPantheon,
             godTurns,
+            levy: inputs.levy,
           }),
         ),
       );
@@ -680,22 +780,48 @@ export function faithPlan(
   }
 
   // **The faith bank a building opens** (the Almshouse's civilians, the
-  // Reliquary's rows). `explainPurchaseCost` answers `null` unless the town's
-  // stones open the bank, so the whole clause is the sim's own and this loop
-  // costs one question per row in an empire that has neither.
+  // Reliquary's rows) **and the four faith houses sold out of it** (batch B3:
+  // the Mosque, the Wat, the Gurdwara, the Dar-e Mehr, each bought with faith
+  // and only in a town that keeps the faith that opened it).
+  // `explainPurchaseCost` answers `null` unless the row and the town open the
+  // bank between them, so the whole clause is the sim's own and this loop costs
+  // one question per row in an empire that has neither.
+  //
+  // **The row is the gold loop's row, line for line** (batch X3), and that it
+  // was not is the audit's finding 3. This loop folded `explainBuildingRow` and
+  // the upkeep and stopped — and `explainBuildingRow` is *what a row gives
+  // beyond a yield*, so a Gurdwara's kitchen and its school and its faith were
+  // worth nothing at all to the book that was supposed to be buying it. A Mosque
+  // read its one writ; a Dar-e Mehr read a percentage of a faith line the fold
+  // never took. The gold loop had asked the right question since batch 1 — what
+  // would this town actually *make* with it, `foldCity` asked hypothetically and
+  // staged by the real arithmetic — and the asymmetry between two loops pricing
+  // the same shelf was the whole of the defect. The hypothetical is the sitting's
+  // (`townFolds`): where both books enumerate one row in one town it is folded
+  // once, so the second question is free.
   for (const id of BUILDING_IDS) {
     const upkeep = buildingUpkeep(id);
-    for (const city of towns) {
+    for (let index = 0; index < towns.length; index++) {
+      const city = towns[index]!;
       const item: PurchasableItem = { kind: 'building', id };
       if (explainPurchaseCost(state, player.id, city.id, item, 'faith') === null) continue;
       const reach = reachOf(state, player, city, item, 'faith');
       if (reach === null) continue;
-      wants.push(
-        want(`${buildingDef(id).name} at ${city.name}`, 'faith', reach, city, item, [
-          nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
-          nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
-        ]),
-      );
+      const delta = yieldDelta(folds.with(index, id), folds.standing(index));
+      const terms: ValueTerm[] = [
+        nest('what this town would actually make with it', explainYields(delta, ctx)),
+        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
+        nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
+      ];
+      // The bridge and the race are the gold row's other two terms, and they are
+      // here for the same reason the delta is: a shelf that shortens a chain or
+      // mints a bead does so whichever bank paid for it, and a second loop that
+      // read a row differently is exactly what this batch came to close.
+      const bridge = bridgeTerm(ctx, city, id);
+      if (bridge !== null) terms.push(bridge);
+      const race = raceTerm(ctx, { kind: 'building', id });
+      if (race !== null) terms.push(race);
+      wants.push(want(`${buildingDef(id).name} at ${city.name}`, 'faith', reach, city, item, terms));
     }
   }
 
@@ -844,6 +970,29 @@ function ladderPlan(
  * The **appetite is a floor now, not the price** (see `prophetTerms`). And the
  * `firstGod` clause is gone with the augur: no row consecrates any more, the
  * ladder is the only way to a first god, and its appetite is `ladderPlan`'s.
+ *
+ * **Batch X3 dispatches the last clause on the row's markers**, the way
+ * `unitRoleValue` dispatches the queue's. *"Worth at least the faith it costs"*
+ * was written as the floor under an unreadable row and it had quietly become the
+ * price of the two most readable rows in the bank: a Knights Templar — a
+ * twelve-strength heavy horse that rides as whatever the empire's best is
+ * (`UnitMirrorSpec`) — and every ordinary soldier a Reliquary or a Cathedral
+ * puts on sale. A lump of its own price is a number that is a function of the
+ * price and of nothing else: double the price and the piece is worth twice as
+ * much, which is the one thing a piece is certainly not. So the clause asks the
+ * markers first, and the fall-through is what it was written to be — the floor
+ * under a row nothing here can read:
+ *
+ *   · **`isCombatant`** → `explainSoldier`, the very fold the queue prices a
+ *     spear by, plus the mirror it fights as (`mirrorTerm`) and the levy it is
+ *     the next of (`levyTerm`);
+ *   · **`foundsCity`** → the expansion chain, which is `unitRoleValue`'s whole
+ *     answer for a settler and is right for one bought out of an Almshouse for
+ *     exactly the same reason: a settler makes nothing anywhere, and the town it
+ *     founds is what the chain prices;
+ *   · **a hull** falls through with the rest. This bot has no opinion about
+ *     ships (`unitRoleValue` refuses one outright), and a naval row priced as a
+ *     soldier would be a fleet bought by a landlocked empire.
  */
 function faithRowTerms(
   state: GameState,
@@ -851,12 +1000,14 @@ function faithRowTerms(
   ctx: ValueContext,
   price: number,
   row: {
+    id: UnitTypeId;
     prophet: boolean;
     apostle: boolean;
     founder: boolean;
     towns: number;
     noPantheon: boolean;
     godTurns: number;
+    levy: LevyReading;
   },
 ): ValueTerm[] {
   if (row.prophet) return prophetTerms(state, player, ctx, row);
@@ -872,9 +1023,135 @@ function faithRowTerms(
       ];
     }
   }
+  const def = unitDef(row.id);
+  if (isCombatant(def) && def.category !== 'naval') {
+    const soldier = appraise([
+      nest('what this piece is worth as a soldier', explainSoldier(row.id, ctx)),
+      ...mirrorTerm(state, player, ctx, row.id),
+    ]);
+    return [nest('what this soldier is worth', soldier), levyTerm(soldier.total, row.levy)];
+  }
+  if (def.foundsCity === true) return [expansionTerm(ctx)];
   return [
     nest('worth at least the faith it costs — nothing it does is priced', explainLump({ faith: price }, ctx)),
   ];
+}
+
+/**
+ * **Does this row's own worth already count the ones this empire holds?**
+ *
+ * The question `ownsAny` was standing in for, asked honestly. A prophet is spent
+ * whole on one act and a second one standing beside an idle first is faith that
+ * bought nothing, so the bar is right for it; an apostle is the same sentence one
+ * relic over. A **soldier** and a **settler** are not: what a soldier is worth is
+ * `explainSoldier` less the levy already standing, and what a settler is worth is
+ * the expansion chain, whose steps drop out as they are realised. Both readings
+ * fall to nothing on their own when the empire has enough, and both of them were
+ * being refused at the door instead — which is why a Templar was a thing this bot
+ * bought once a game at most, whatever the war looked like.
+ *
+ * A hull is deliberately not on this list: it falls to the lump, and a lump is
+ * not a count.
+ */
+function alreadyCounted(def: ReturnType<typeof unitDef>): boolean {
+  if (def.foundsCity === true) return true;
+  return isCombatant(def) && def.category !== 'naval';
+}
+
+/**
+ * **The horse a mirroring row fights as** — nothing, for every row that mirrors
+ * none.
+ *
+ * `UnitDef.mirrors` (batch B2) says a Knights Templar is worth whatever mounted
+ * row the age has taught this empire, and `realiseItem` makes that true by
+ * *stamping* the difference on the piece the day it is called. So the roster's
+ * own `combatStrength` — the figure `explainSoldier` reads — is the floor of what
+ * a Templar is, not the whole of it, and a book that read the floor was pricing a
+ * knight as a light horseman.
+ *
+ * Two readings of the simulation's, and no third of this file's: `mirrorRowFor`
+ * answers *which* row (the tree's gate, a bank's rows excluded, so the mirror
+ * never measures itself) and `unitStampStrength` reads what a stamp is worth in a
+ * fight. The stamp itself is composed here the way `realiseItem` composes it, and
+ * that is the one clause of the rules this restates — written down as the
+ * coupling it is, and pinned by a test that calls a Templar on a board and
+ * compares the piece the simulation actually stamps against the strength this
+ * term prints.
+ */
+function mirrorTerm(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  id: UnitTypeId,
+): ValueTerm[] {
+  const mirrored = mirrorRowFor(state, player.id, id);
+  if (mirrored === null) return [];
+  const stamp = { strength: unitDef(mirrored).combatStrength - unitDef(id).combatStrength };
+  const lift = unitStampStrength({ type: id, stamp });
+  if (lift === 0) return [];
+  return [
+    {
+      label:
+        `it rides as the ${unitDef(mirrored).name} this empire could raise today — ` +
+        `${lift > 0 ? '+' : ''}${lift} strength × ${ctx.ai.weights.military}`,
+      value: lift * ctx.ai.weights.military,
+    },
+  ];
+}
+
+/**
+ * **What the levy still wants, charged as the queue charges it** — the surplus,
+ * never the shortfall (`unitRoleValue`'s own shape, batch 4's wage-aware levy).
+ *
+ * At an empty levy it is nothing and the piece is worth exactly what it is worth;
+ * at the levy it charges the whole of that back, so the next one has to beat a
+ * rite on the strength of the emergency alone; past it the charge keeps growing,
+ * so an army nobody needs prices itself out one purchase at a time. That is the
+ * arithmetic that replaces `ownsAny`'s door for a soldier: a second Templar is
+ * worth what the levy still wants, and a fifth is worth less than holding.
+ *
+ * The reading is `bot.ts`' — handed in through `WantInputs` rather than
+ * recomputed, for `soldierWorth`'s stated reason exactly. A levy this file
+ * counted for itself would be a levy the town and the bank could disagree about.
+ */
+function levyTerm(worth: number, levy: LevyReading): ValueTerm {
+  const surplus = levy.wanted <= 0 ? 1 : levy.held / levy.wanted;
+  return {
+    label:
+      `this empire wants ${round(levy.wanted)} soldier${levy.wanted === 1 ? '' : 's'} and holds ` +
+      `${levy.held} — ${round(surplus * 100)}% of a levy already standing (${levy.note})`,
+    value: -worth * surplus,
+  };
+}
+
+/**
+ * **A settler's whole worth: its share of the expansion chain** — the term
+ * `unitRoleValue` folds for the queue's settler, said once more for one bought
+ * out of a bank.
+ *
+ * The share rather than the town, and it is `unitRoleValue`'s note repeated: a
+ * settler makes nothing anywhere, so the whole of what it is worth is the town it
+ * founds, and that is what the chain already prices. A chain with nothing left to
+ * raise shares nothing — a settler already walking is no step — and an empire
+ * with nowhere legal to put a town has no chain at all, which is a want worth
+ * nought and says so.
+ *
+ * The citizen the town loses is **not** charged here, and that is the one place
+ * this parts from the queue's settler: a bought piece costs a bank rather than a
+ * town's next citizen, and the town it is bought in is not asked to shrink.
+ */
+function expansionTerm(ctx: ValueContext): ValueTerm {
+  const chain = ctx.expansion;
+  if (chain === null || chain.stepsRemaining <= 0) {
+    return { label: 'nowhere this empire could still put a town — nothing for one to found', value: 0 };
+  }
+  const where = `(${chain.site.tile.col},${chain.site.tile.row})`;
+  return {
+    label:
+      `a step of the next town at ${where} — ` +
+      `one of ${chain.stepsRemaining} thing${chain.stepsRemaining === 1 ? '' : 's'} still to happen`,
+    value: expansionStepShare(chain),
+  };
 }
 
 /**

@@ -3128,3 +3128,119 @@ as the second held node) — the near-tie it needs used to be Bronze Panoply aga
 Divination, and that was a tie only because a unit step cost nothing; a sweep of
 every one- and two-node held set on the same bench found the three that still
 produce one. `aiDecision.slow.test.ts` still replays byte-identical to itself.
+
+---
+
+## Batch X3 as shipped — the faith book prices the piece (2026-09-08)
+
+`docs/audit/bot-pass-2.md`'s finding 3 and change 3. At t120 on the audit's
+bench all four seats read a faith price of **9.00 — the band's ceiling — with 29
+to 55 faith banked and nothing bought**, and the reason was not the price: H12
+made the faith price honest before the rows underneath it were worth anything.
+Three rows of one book were wrong in three different ways, and this batch is
+those three arithmetics and nothing else. No new arm, no new gate, one shared
+memo.
+
+### The three mechanisms
+
+**1 — a faith house folds the town, not the row.** The gold loop has priced a
+shelf since batch 1 by what the town would *actually make* with it — `foldCity`
+asked hypothetically, staged and percentaged by the real arithmetic. The faith
+loop folded `explainBuildingRow`, which is by construction *what a row gives
+beyond a yield*, and the four faith houses (Mosque · Wat · Gurdwara · Dar-e Mehr,
+batch B3) are almost nothing but yields. The two loops now build the identical
+row — the delta, the row beyond it, the maintenance, the bridge, the race — off
+one `foldCity` hypothetical, and the hypothetical is the **sitting's**:
+`townFolds` (`wants.ts`) takes each town's standing fold once and memoises each
+(town, row) what-if, so where both books enumerate the same shelf in the same
+town the second question is free.
+
+**2 — a soldier is priced as a soldier.** `faithRowTerms`' last clause —
+*"worth at least the faith it costs"* — is the floor under a row nothing can
+read, and it had become the price of the two most readable rows in the bank. It
+dispatches on the row's markers now, the way `unitRoleValue` dispatches the
+queue's: `isCombatant` (and not a hull) → `explainSoldier` plus the mirror it
+fights as, `foundsCity` → the expansion chain's own step share, and the lump only
+for a row none of those describe. The mirror is two readings of the simulation's
+— `mirrorRowFor` for *which* row a Templar shadows for this empire today, and
+`unitStampStrength` for what the stamp is worth in a fight — with the stamp
+composed the way `realiseItem` composes it. That one restated clause is pinned by
+a test that buys the piece and compares the strength the board actually stamps.
+
+**3 — `ownsAny` became a count against a want.** The bar struck any faith row
+this empire held one of out of the book for ever. It is right for a prophet (spent
+whole on one act; a second beside an idle first is faith that bought nothing) and
+it was wrong for a Templar. It now applies only where the row's worth cannot count
+the ones already standing (`alreadyCounted`): a soldier is charged the levy's
+**surplus** — `unitRoleValue`'s own shape, the reading extracted into `levyReading`
+(`bot.ts`) and handed in through `WantInputs.levy` so the town and the bank cannot
+disagree about how many spears this empire wants — and a settler is priced by the
+expansion chain, whose steps drop out as they are realised.
+
+### The measurement
+
+**The audit's bench, unchanged and honestly so.** Two duels, two balanced seats,
+wild on, seeds 20260903 and 4242, 150 turns, stepped a decision at a time. Every
+figure below is **identical before and after**, and the reason is the finding's
+own blind spot: on these four seat-games no seat ever founds a religion with a
+house-opening belief, adopts Holy Order, or raises a Cathedral, Reliquary or
+Almshouse — so the faith book on these boards holds **rites and the ladder and
+nothing else**, and the three rows this batch reprices are never in it. The
+cheapest faith row on the board is a rite at 72🕯; the bank crosses it twice in
+600 seat-turns, both times inside the last turn measured.
+
+| | 20260903 s0 | 20260903 s1 | 4242 s0 | 4242 s1 |
+|---|---|---|---|---|
+| faith price t120 | 9.00 | 9.00 | 9.00 | 9.00 |
+| bank t120 | 29 | 45 | 30 | 55 |
+| faith purchases t120 | 0 | 0 | 0 | 0 |
+| faith price t150 | 9.00 | 9.00 | 9.00 | 9.00 |
+| bank t150 | 73 | 20 | 30 | 72 |
+| faith purchases t150 | 0 | 0 | 0 | 0 |
+| science/turn t150 | 18.5 | 28.5 | 17.5 | 41.5 |
+| culture/turn t150 | 9.0 | 39.0 | 29.0 | 43.0 |
+
+A zealot pair on the same two seeds (doubled faith weights, `prophetTechValue`
+950) reads the same story one band higher — price 18.00 against a prior of 5.00,
+banks of 22 to 77, nothing bought, and no faith house or Templar in any book.
+**The rows the finding names do not open on the boards the finding was measured
+on**, which is worth writing down as its own reading: what keeps these seats out
+of the faith economy is upstream of the book.
+
+**The arranged boards, where the rows exist.** A founded faith, a town that keeps
+it, and the belief that opens the row (`test/sim/aiWants.test.ts`, "batch X3"):
+
+| row | price | worth before | per coin | worth after | per coin |
+|---|---|---|---|---|---|
+| Gurdwara at Aldermarch (+3🌾 +2🔬 +3🕯) | 117🕯 | **0.00** | 0.000 | **48.40** | 0.414 |
+| Knights Templar at Aldermarch (12 str, mirrors the War Elephant at 24) | 80🕯 | **36.00** (the lump) | 0.450 | **120.00** | 1.500 |
+
+The Gurdwara's before-figure is not a rounding: the row carries no happiness, no
+writ, no renown, no completion grant and no effects at all, so everything the old
+loop could read about it folded to nought and the want was never worth spending
+on. The Templar's before-figure is the lump — `price × the faith price ÷
+lumpTurns` — a number that is a function of the price and of nothing else.
+
+**And the bank is spent.** On the Gurdwara board with 400🕯 banked, the seat's
+very first decision is `purchaseItem {gurdwara, faith}`; before the batch the row
+was worth nothing and every point of the bank was held against a rite.
+
+### Knobs added
+
+**None.** Every figure is an existing weight read through an existing fold.
+
+### Known gaps, written down rather than fixed
+
+- **The faith price still rides its ceiling** wherever the book holds anything at
+  all — a Templar at 1.5 a coin is 30 against a band that stops at 9. The band is
+  doing what it is for; what changed is that the ceiling now sits over rows the
+  bank will actually buy.
+- **A hull falls to the lump.** This bot has no opinion about ships anywhere
+  (`unitRoleValue` refuses one outright), and a naval row priced as a soldier
+  would be a fleet bought by a landlocked empire.
+- **The faith house's own scope is not read.** The Dar-e Mehr's +10% faith is a
+  scoped `percentYields` clause, and no scope is evaluated anywhere in `value.ts`
+  — that is X2's whole batch, and the delta this one folds is the flat half.
+- **Nothing was done about why the rows never open.** The audit's seats reach
+  t150 without a religion; that is a research- and belief-side question, not a
+  book one.

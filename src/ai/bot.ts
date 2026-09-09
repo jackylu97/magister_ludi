@@ -503,6 +503,10 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // price it is itself about to set would be the fixed point batch 1 refused.
     cultureRate: rates.culturePerTurn ?? 0,
     cardWorth: (id) => explainCard(player, id, prior),
+    // **The levy the faith book charges a bought soldier against** (batch X3),
+    // read at the prior for `soldierWorth`'s reason: the book is what sets the
+    // live price, so every row in it is appraised before that price exists.
+    levy: levyReading(prior),
   } satisfies WantInputs);
   const priced = shadowPrices(book, prior);
   return {
