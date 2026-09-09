@@ -888,7 +888,8 @@ export interface MeterEffect {
  * building and thinking at full rate, it has simply stopped growing outward.
  */
 export function meterEffects(state: GameState, playerId: number): MeterEffect[] {
-  // **Remembered on the revision** (batch M1, `slate.ts`). This is the reading
+  // **Remembered on the economy clock** (batch M1, re-keyed by M2; `slate.ts`).
+  // This is the reading
   // `empirePercents`, `borderGrowth`, `explainGrowthPercent` and
   // `tilePurchaseError` all ask, and the one the bot reaches through every one
   // of them — 11.3% of a turn measured, with `explainHappiness`'s walk of every
@@ -899,7 +900,13 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
   // `authorityOf` are asked directly only by surfaces that ask once. The slate
   // is suspended while a writer holds the world open, so `collectYields` and
   // `expandBorders` still read a world halfway moved exactly as they always did.
-  return slateMemo(state, 'meterEffects', String(playerId), () =>
+  //
+  // The **economy** clock rather than the revision (batch M2): this file walks
+  // `state.cities`, the buildings on them, the empire's luxuries and its law,
+  // and never opens `state.units` at all — a fact worth stating, because it is
+  // what makes a scout's step unable to reach this answer. A seat's happiness is
+  // now taken once per thing that could change it rather than once per command.
+  return slateMemo(state, 'economy', 'meterEffects', String(playerId), () =>
     meterEffectsOf(state, playerId),
   );
 }

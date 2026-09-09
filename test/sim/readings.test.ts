@@ -35,8 +35,9 @@ import {
   emptyCityYields,
 } from '../../src/sim/cities';
 import { meterEffects } from '../../src/sim/meters';
-import { beginWrite, endWrite, slateSuspended } from '../../src/sim/slate';
-import { tileIndex } from '../../src/sim/map';
+import { beginWrite, economyStamp, endWrite, slateSuspended } from '../../src/sim/slate';
+import { getTile, getTileAt, mapNeighbors, tileHex, tileIndex } from '../../src/sim/map';
+import { isWaterTerrain } from '../../src/sim/terrainData';
 import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
 import {
   explainCity,
@@ -300,6 +301,157 @@ describe('the two empire walks are remembered on the same slate', () => {
   });
 });
 
+/**
+ * **The second clock** — batch M2.
+ *
+ * M1's closing finding: *"what remains is misses — the revision moves on every
+ * command, so a seat pays one walk per command rather than one per question."* A
+ * seat sends dozens of commands a turn that move a piece and nothing else, and
+ * every one of them threw away the empire's holdings and meters, which no step
+ * can reach. The economy clock is the answer, and the three claims below are the
+ * ways it could be wrong: still when it should have moved (a stale reading, the
+ * only real failure), moving when it needn't (merely slow), and the one command
+ * kind whose honest answer is not a property of its kind.
+ */
+describe('the economy clock is the coarser subscription', () => {
+  /** The seat's own piece, and a hex beside it that it may walk onto. */
+  const stepOut = (
+    state: ReturnType<typeof game>['state'],
+    unitId: number,
+  ): { col: number; row: number } => {
+    const unit = state.units.find((piece) => piece.id === unitId)!;
+    const from = getTileAt(state.map, unit.col, unit.row)!;
+    for (const hex of mapNeighbors(state.map, tileHex(from))) {
+      const tile = getTile(state.map, hex);
+      if (tile && !isWaterTerrain(tile.terrain)) return { col: tile.col, row: tile.row };
+    }
+    throw new Error('no dry hex beside the piece');
+  };
+
+  it('stands still on a command that only moves a piece', () => {
+    const { state } = game();
+    found(state, 0);
+    const town = state.cities[0]!;
+    const meters = meterEffects(state, 0);
+    const holdings = controlledHoldings(state, 0, 'luxury');
+    const percents = readEmpirePercents(state, 0);
+    const list = readCity(state, town);
+    const economy = economyStamp(state);
+    const revision = state.revision;
+
+    // A scout takes one step over ordinary ground. Nothing it can reach is in
+    // the empire's happiness, its holdings or its meters.
+    const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
+    const marched = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: scout.id,
+      target: stepOut(state, scout.id),
+    });
+    expect(marched).toEqual({ ok: true });
+
+    // The world moved — the revision says so, and the town's own list is a fresh
+    // object because a piece is exactly the kind of thing a town's list can see.
+    expect(state.revision).toBe(revision + 1);
+    expect(readCity(state, town)).not.toBe(list);
+    // And the economy did not: the very same objects, not merely equal ones.
+    expect(economyStamp(state)).toBe(economy);
+    expect(meterEffects(state, 0)).toBe(meters);
+    expect(controlledHoldings(state, 0, 'luxury')).toBe(holdings);
+    expect(readEmpirePercents(state, 0)).toBe(percents);
+  });
+
+  it('stands still on the other four orders too', () => {
+    const { state } = game();
+    found(state, 0);
+    const settler = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'settler')!;
+    const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
+    const economy = economyStamp(state);
+    void meterEffects(state, 0);
+    const held = meterEffects(state, 0);
+
+    // Sleep, then never mind; explore, then never mind. Four accepted orders,
+    // four turns of the revision, and one still economy clock.
+    expect(applyCommand(state, { type: 'sleepUnit', playerId: 0, unitId: settler.id }).ok).toBe(
+      true,
+    );
+    expect(applyCommand(state, { type: 'cancelOrder', playerId: 0, unitId: settler.id }).ok).toBe(
+      true,
+    );
+    expect(
+      applyCommand(state, { type: 'setAutoExplore', playerId: 0, unitId: scout.id, on: true }).ok,
+    ).toBe(true);
+    expect(applyCommand(state, { type: 'cancelOrder', playerId: 0, unitId: scout.id }).ok).toBe(
+      true,
+    );
+    expect(state.revision).toBeGreaterThan(0);
+    expect(economyStamp(state)).toBe(economy);
+    expect(meterEffects(state, 0)).toBe(held);
+  });
+
+  it('moves on a command that changes what the walks read', () => {
+    const { state } = game();
+    found(state, 0);
+    const meters = meterEffects(state, 0);
+    const economy = economyStamp(state);
+    const taken = applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'mining' });
+    expect(taken.ok).toBe(true);
+    // A technology is one of `liveEffects`' sources and the meters fold them.
+    expect(economyStamp(state)).toBe(economy + 1);
+    expect(meterEffects(state, 0)).not.toBe(meters);
+    expect(meterEffects(state, 0)).toEqual(meters);
+  });
+
+  it('moves when a march arrives on a ruin', () => {
+    // The one kind whose answer is not a property of its kind. A march ends in
+    // `arriveOnTile` on every step, and arriving is how a ruin is claimed and a
+    // camp is burnt out — each of which pays somebody. The decision is made from
+    // the *result*, after the command, so it is exact rather than by category.
+    const { state } = game();
+    found(state, 0);
+    const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
+    const target = stepOut(state, scout.id);
+    getTileAt(state.map, target.col, target.row)!.discovery = 'ruins';
+    bumpRevision(state);
+    const meters = meterEffects(state, 0);
+    const economy = economyStamp(state);
+
+    const marched = applyCommand(state, {
+      type: 'moveUnit',
+      playerId: 0,
+      unitId: scout.id,
+      target,
+    });
+    expect(marched.ok && marched.arrivals?.length).toBe(1);
+    expect(economyStamp(state)).toBe(economy + 1);
+    expect(meterEffects(state, 0)).not.toBe(meters);
+  });
+
+  it('moves once per phase across a resolution, like the revision', () => {
+    // A phase is a writer that says nothing about how much it moved, so both
+    // clocks follow it. `bumpRevision` is that announcement.
+    const { state } = game();
+    found(state, 0);
+    const economy = economyStamp(state);
+    runEndOfTurn(state);
+    expect(economyStamp(state) - economy).toBe(END_OF_TURN_PHASES.length);
+  });
+
+  it('never reaches the snapshot', () => {
+    // The revision is a serialised field and this is not: the state is
+    // `JSON.stringify`d into every save hash, and a second counter on it would
+    // be a schema change for a key no rule reads.
+    const { state } = game();
+    found(state, 0);
+    const clean = snapshotState(state);
+    bumpRevision(state);
+    expect(economyStamp(state)).toBeGreaterThan(0);
+    expect(snapshotState(state).replace(/"revision":\d+/, '')).toBe(
+      clean.replace(/"revision":\d+/, ''),
+    );
+  });
+});
+
 describe('the empire’s reading is what the surfaces read', () => {
   it('totals exactly what the top bar prints', () => {
     const { state } = game();
@@ -358,6 +510,14 @@ describe('nobody rebuilds the town’s list', () => {
     expect(key, `${name} readable`).toBeDefined();
     return SOURCE[key!]!;
   };
+
+  /** The file with its prose taken out — a docblock naming a function is not a call. */
+  const code = (text: string): string =>
+    text
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map((line) => line.replace(/\/\/.*$/, ''))
+      .join('\n');
 
   it('has no `cityFlatsByClass` left anywhere', () => {
     // The Ledger's mirror of `explainCity` — eleven lists walked a second time —
@@ -446,7 +606,7 @@ describe('nobody rebuilds the town’s list', () => {
     }
   });
 
-  it('holds the slate in one file, and keys it on the revision', () => {
+  it('holds the slate in one file, and keys it on the two clocks', () => {
     // Batch M1: the machinery moved into `slate.ts` so that the two tenants
     // below it — `meterEffects` and `controlledHoldings`, which are asked from
     // *inside* the simulation and cannot import `readings.ts` — sit on the same
@@ -454,10 +614,69 @@ describe('nobody rebuilds the town’s list', () => {
     // integer would be two caches with two lifetimes.
     const slate = read('slate.ts');
     expect(slate).toContain('new WeakMap<GameState, Slate>');
-    expect(slate).toContain('held.revision === state.revision');
+    // Batch M2: one slate still, in two halves, each thrown away by its own
+    // clock — the revision as it always was, and the economy clock beside it.
+    expect(slate).toContain("clock === 'revision' ? state.revision : economyStamp(state)");
+    expect(slate).toContain('half.stamp !== stamp || half.epoch !== epoch');
     expect(read('readings.ts')).toContain("from './slate'");
     // And nowhere else keeps one: the readings' own `WeakMap` is gone.
     expect(read('readings.ts').includes('new WeakMap')).toBe(false);
+  });
+
+  it('keeps the economy clock off the state, where the revision is', () => {
+    // The first of the slate's three facts, applied to the second counter: the
+    // state is `JSON.stringify`d into every save hash, so a field would be a
+    // schema change and a different byte in every snapshot for a key no rule
+    // reads. The revision earned its place there by being replayed; this is a
+    // cache key and lives with the cache.
+    expect(read('slate.ts')).toContain('new WeakMap<GameState, number>');
+    expect(read('state.ts').includes('economyRevision:')).toBe(false);
+    // And the broad announcement moves both, so a hand that pokes the board is
+    // conservative by default (`bumpRevision`) and only `applyCommand` may say
+    // the narrow thing.
+    const state = read('state.ts');
+    expect(state).toContain('state.revision += 1;\n  bumpEconomy(state);');
+    expect(state).toContain('export function bumpPiecesOnly');
+    const callers = Object.entries(SOURCE).filter(
+      ([path, text]) => !path.endsWith('/state.ts') && code(text).includes('bumpPiecesOnly'),
+    );
+    expect(callers.map(([path]) => path.slice(path.lastIndexOf('/') + 1))).toEqual([
+      'commands.ts',
+    ]);
+  });
+
+  it('registers every command kind on exactly one clock', () => {
+    // The rule of record (batch M2). A kind in neither list is a kind whose
+    // memos nobody thought about, and the failure it causes is a stale reading
+    // rather than a slow one — so it fails here, beside the `Record` that
+    // already fails the typecheck.
+    const source = read('commands.ts');
+    const table = /export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = \{([\s\S]*?)\n\};/
+      .exec(source);
+    expect(table, 'COMMAND_CLOCKS readable').not.toBeNull();
+    const registered = new Map<string, string>();
+    for (const line of table![1]!.split('\n')) {
+      if (line.trim() === '') continue;
+      const row = /^\s*([A-Za-z]+): '(economy|movement)',$/.exec(line);
+      expect(row, `registered row: ${line}`).not.toBeNull();
+      expect(registered.has(row![1]!), `${row![1]!} listed once`).toBe(false);
+      registered.set(row![1]!, row![2]!);
+    }
+    // Every kind the reducer dispatches, read off the switch itself.
+    const switchBody = /function runCommand\(state: GameState, command: Command\): CommandResult \{([\s\S]*?)\n\}/
+      .exec(source);
+    expect(switchBody, 'runCommand readable').not.toBeNull();
+    const dispatched = [...switchBody![1]!.matchAll(/case '([A-Za-z]+)':/g)].map((hit) => hit[1]!);
+    expect(dispatched.length).toBeGreaterThan(50);
+    expect([...registered.keys()].sort()).toEqual([...dispatched].sort());
+    // And the five that are not economy are the orders that only move a piece.
+    const movement = [...registered.entries()]
+      .filter(([, clock]) => clock === 'movement')
+      .map(([kind]) => kind)
+      .sort();
+    expect(movement).toEqual(
+      ['cancelOrder', 'fortify', 'moveUnit', 'setAutoExplore', 'sleepUnit'].sort(),
+    );
   });
 
   it('keeps the reading leaf out of `cities.ts`', () => {

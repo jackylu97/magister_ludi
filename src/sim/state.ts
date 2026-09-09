@@ -73,6 +73,10 @@ import {
   type SpecialistFamily,
 } from './greatPeopleData';
 import type { TriumphId } from './triumphData';
+// The economy clock lives beside the slate rather than on the state (batch M2,
+// `slate.ts`). That file is a true leaf — a type-only import of `GameState` and
+// no runtime edge at all — so this edge cannot make a cycle from here either.
+import { bumpEconomy } from './slate';
 import type { GameMap } from './map';
 import { generateMap, getMapSize } from './mapgen';
 import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
@@ -2368,6 +2372,16 @@ export interface GameState {
    * that on purpose — a reader is a reader and a writer is a writer — and
    * `bumpRevision` is exported so that a test which pokes the state by hand can
    * say so the way a command would.
+   *
+   * **There is a second clock, and it is deliberately not here** (batch M2,
+   * `slate.ts`, "The two clocks"). This counter moves on *every* accepted
+   * command, which is right for a town's own list — one hull moved into a
+   * harbour mouth changes what a port makes — and far too blunt for the empire's
+   * happiness walk, which no step can reach. The coarser *economy* clock beside
+   * it moves only where a write could change those, and it lives in a `WeakMap`
+   * rather than on this object precisely because this object is stringified into
+   * every save hash: it is a cache key no rule reads, and a field would make it
+   * a schema.
    */
   revision: number;
   /** The one and only gameplay generator. Advanced by mutation. */
@@ -3275,7 +3289,8 @@ export function claimWonder(
 // --- the revision -----------------------------------------------------------
 
 /**
- * **The world moved** — the one writer of `GameState.revision`.
+ * **The world moved** — the one writer of `GameState.revision`, and the broad
+ * announcement of the two (batch M2).
  *
  * Two callers in the simulation and they are the whole contract: `applyCommand`
  * after a command it accepted, and `runEndOfTurn` after each phase in the fixed
@@ -3290,8 +3305,38 @@ export function claimWonder(
  * design said out loud: **a writer moves the state and the revision moves with
  * it**, and the readings follow without being told (`docs/audit/evaluations.md`
  * §2b).
+ *
+ * **It moves the economy clock too**, and that is why it is the one to reach
+ * for. Batch M2 put a coarser second counter beside the revision (`slate.ts`,
+ * "The two clocks") so that a scout's step stops throwing away the empire's
+ * happiness walk; this function is the announcement that says *the world moved*
+ * and nothing about how much of it, which is exactly what a bench poking the
+ * state by hand means by it. Saying the narrower thing is `bumpPiecesOnly`, and
+ * it has exactly one caller.
  */
 export function bumpRevision(state: GameState): void {
+  state.revision += 1;
+  bumpEconomy(state);
+}
+
+/**
+ * **Only the pieces moved** — the revision, and not the economy clock beside it.
+ *
+ * `applyCommand`'s narrow door and nowhere else's (batch M2). A seat sends
+ * dozens of commands a turn that move a piece and nothing else — a step, a
+ * fortification, a unit put to sleep — and under one counter every one of them
+ * threw away the empire's holdings and meters, which no step can reach. Which
+ * commands may come through here is a **register** rather than a judgement made
+ * at the call site: `COMMAND_CLOCKS` in `commands.ts`, one row per
+ * `Command['type']`, with the arrival's own outcome deciding the one kind whose
+ * answer is not a property of its kind.
+ *
+ * Deliberately not exported to the benches: a hand that pokes the state knows it
+ * moved the world and cannot know it moved nothing else, so it calls
+ * `bumpRevision` and is merely slower than it had to be. Wrong in that direction
+ * is a miss; wrong in the other is a stale answer.
+ */
+export function bumpPiecesOnly(state: GameState): void {
   state.revision += 1;
 }
 

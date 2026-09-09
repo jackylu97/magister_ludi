@@ -51,8 +51,8 @@ Two stated shapes inside those rules, each because the layer is what it is:
 ### The slate, and the two tenants beneath the verb (batch M1)
 
 The **machinery** the third verb sits on lives in `src/sim/slate.ts`: one
-`WeakMap` on the state, one slate keyed on `GameState.revision`, thrown away
-whole when it moves. `readings.ts` is a tenant of it; so are two readings that
+`WeakMap` on the state, one slate in two halves, each thrown away whole when its
+own clock moves. `readings.ts` is a tenant of it; so are two readings that
 are **not** `read…` verbs and cannot be:
 
 | reading | where | why it is not a `read…` |
@@ -71,6 +71,46 @@ phase, so a reading taken inside one is a reading of a world halfway moved, and
 loop announce themselves (`beginWrite`/`endWrite`); inside the window every
 tenant computes fresh, which is byte for byte the tree before the slate existed.
 A bench that pokes the state by hand is a writer and calls `bumpRevision`.
+
+### The two clocks (batch M2)
+
+`GameState.revision` moves on **every** accepted command, and a seat sends dozens
+a turn that move a piece and nothing else. So a tenant now names the clock it is
+a reading *of*, and the slate keeps a half per clock:
+
+| tenant | clock | why |
+|---|---|---|
+| `meterEffects` | economy | walks towns, buildings, luxuries and law; never opens `state.units` |
+| `controlledHoldings` | economy | walks the ground |
+| `readEmpirePercents` | economy | those, plus the treasury |
+| `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) — a **unit position** |
+| `readEmpire` | revision | that reading summed |
+
+The split is a claim about what each walk can *see*, not a taxonomy of yields.
+
+- **The economy clock is not a field of `GameState`.** The state is
+  `JSON.stringify`d into every save hash, so a second counter on it would be a
+  schema change and a different byte in every snapshot for a key no rule reads.
+  It is a `WeakMap` beside the slate — per board, gone with the board. A board
+  restored from a save starts at nought against an empty slate: a miss, never a
+  stale answer.
+- **The register of record is `COMMAND_CLOCKS` in `commands.ts`** — one row per
+  `Command['type']`, typed as a `Record` so a new kind fails the typecheck, and
+  read out of the source beside the reducer's own switch by
+  `test/sim/readings.test.ts`. Five rows are `movement` (`moveUnit`,
+  `cancelOrder`, `fortify`, `sleepUnit`, `setAutoExplore`); every other row is
+  `economy`, and every end-of-turn phase moves both clocks.
+- **`moveUnit` is decided from its result, not from its kind.** A march ends in
+  `arriveOnTile` on every step, and arriving is how a ruin is claimed, a camp
+  burnt out, a civilian taken and a caravan plundered — each reported in
+  `CommandResult`. The rule is the report: a movement command whose result says
+  anything beyond `ok` is an economy command. The two writes the report cannot
+  carry announce themselves (`noteEconomyWrite`): a legacy revoked when a soldier
+  enters a rival capital, and a road worn under a laden caravan.
+- **`bumpRevision` moves both clocks** and is what every writer outside
+  `applyCommand` calls, benches included. The narrow door (`bumpPiecesOnly`) has
+  one caller, holding a command and its result. Wrong in the broad direction is a
+  miss; wrong in the narrow one is a stale reading.
 
 ### What was renamed (E3b)
 

@@ -119,6 +119,30 @@
  * every tenant computes fresh — which is what makes a memo asked from inside a
  * handler a cache rather than a rule. `slate.ts`'s docblock is the statement of
  * record.
+ *
+ * ---
+ *
+ * **A tenant names its clock** (batch M2, `slate.ts`, "The two clocks").
+ *
+ * The revision moves on every accepted command, and a seat sends dozens a turn
+ * that move a piece and nothing else. M1's closing finding was that what was
+ * left of the two empire walks in the profile was *misses*: one walk per command
+ * rather than one per question. So there is a coarser **economy** clock beside
+ * the revision, moved by every phase and by every command kind except the five
+ * that touch only positions and orders (the register is `COMMAND_CLOCKS` in
+ * `commands.ts`), and each tenant declares which of the two it is a reading of.
+ *
+ * | tenant | clock | why |
+ * |---|---|---|
+ * | `meterEffects` | economy | walks towns, buildings, luxuries and law; never opens `state.units` |
+ * | `controlledHoldings` | economy | walks the ground |
+ * | `readEmpirePercents` | economy | those, plus the treasury |
+ * | `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) |
+ * | `readEmpire` | revision | that reading summed |
+ *
+ * The split is not a taxonomy of yields; it is a claim about what each walk can
+ * *see*. A town's list can see a piece and the empire's walks cannot, and that
+ * one sentence is the whole batch.
  */
 
 import type { City, GameState } from './state';
@@ -202,7 +226,13 @@ export interface EmpireReading {
  * default would have made.
  */
 export function readEmpirePercents(state: GameState, playerId: number): EmpirePercents {
-  return slateMemo(state, 'percents', String(playerId), () => empirePercents(state, playerId));
+  // **On the economy clock** (batch M2, `slate.ts`), with the two walks beneath
+  // it: this is `meterEffects` plus one question of the treasury, and neither
+  // can see where a piece is standing. A seat that spends its turn marching pays
+  // for it once rather than once a step.
+  return slateMemo(state, 'economy', 'percents', String(playerId), () =>
+    empirePercents(state, playerId),
+  );
 }
 
 /**
@@ -221,7 +251,14 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
  * the slate away.
  */
 export function readCity(state: GameState, city: City): CityReading {
-  return slateMemo(state, 'towns', String(city.id), () =>
+  // **On the revision, and deliberately not on the economy clock** (batch M2).
+  // A town's list folds the caravans arriving (step 6 of `docs/yields.md`), and
+  // what a caravan pays is cut when either end is blockaded — `cityBlockaded`,
+  // which is a reading of **where a hull is standing**. One enemy ship moved
+  // into the harbour mouth changes what this town makes with nothing else on the
+  // board different, so this reading moves with every command and the coarser
+  // clock is for the walks that cannot see a piece at all.
+  return slateMemo(state, 'revision', 'towns', String(city.id), () =>
     explainCity(state, city, [], readEmpirePercents(state, city.ownerId)),
   );
 }
@@ -239,7 +276,11 @@ export function readCity(state: GameState, city: City): CityReading {
  * this empire content, and is it in debt".
  */
 export function readEmpire(state: GameState, playerId: number): EmpireReading {
-  return slateMemo(state, 'empires', String(playerId), () => empireReading(state, playerId));
+  // On the revision, for `readCity`'s reason exactly — this is that reading
+  // summed, over lines that include the caravans abroad.
+  return slateMemo(state, 'revision', 'empires', String(playerId), () =>
+    empireReading(state, playerId),
+  );
 }
 
 function empireReading(state: GameState, playerId: number): EmpireReading {

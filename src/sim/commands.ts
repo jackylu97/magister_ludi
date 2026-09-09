@@ -157,6 +157,7 @@ import {
   type Player,
   type QueueItem,
   allTurnsEnded,
+  bumpPiecesOnly,
   bumpRevision,
   cityById,
   clearTurnEnded,
@@ -167,7 +168,7 @@ import {
   unitById,
   wakeUnit,
 } from './state';
-import { beginWrite, endWrite } from './slate';
+import { beginWrite, economyNoted, endWrite } from './slate';
 import {
   adoptGovernmentAt,
   doctrineChoiceError,
@@ -4250,6 +4251,142 @@ function orderedUnitId(command: Command): number | undefined {
   }
 }
 
+// --- the two clocks ---------------------------------------------------------
+
+/**
+ * Which of the slate's two clocks a command kind moves (batch M2, `slate.ts`).
+ *
+ *   · **`economy`** — the command could change what the empire-wide walks read:
+ *     the holdings, the meters, the percentages they produce. Both clocks move.
+ *   · **`movement`** — the command touches only pieces' positions and orders.
+ *     The revision moves; the economy clock stands still, and the empire's
+ *     happiness walk taken before it is still the answer after it.
+ */
+export type CommandClock = 'economy' | 'movement';
+
+/**
+ * **The register of record: every command kind, on one clock or the other.**
+ *
+ * A `Record<CommandType, …>` rather than two lists, so a kind in neither fails
+ * the *typecheck* the day it is added — the same bargain `runCommand`'s
+ * exhaustive switch makes one screen down. `test/sim/readings.test.ts` reads
+ * this table out of the source beside the switch's own cases, so a kind that
+ * dispatches and is not registered fails there too.
+ *
+ * **Five rows are `movement` and every other row is `economy`**, and the
+ * asymmetry is the design rather than an audit that ran out of time. The five
+ * are the orders a seat gives dozens of times a turn — a step, a cancelled
+ * order, a fortification, a piece put to sleep, a scout told to wander — and
+ * they are the whole reason for the second clock: M1 measured the empire's
+ * holdings and meters recomputed once per command per seat, and it is these five
+ * that make "per command" mean "per step". Everything else is rare enough that
+ * the conservative answer costs nothing, and being wrong in that direction is a
+ * miss where the other direction is a stale reading.
+ *
+ * What makes the five safe is not their handlers but what the economy clock's
+ * tenants read (`readings.ts`): `meterEffects` walks towns, buildings, cards and
+ * luxuries and never opens `state.units` at all; `controlledHoldings` walks the
+ * ground; `readEmpirePercents` is those plus the treasury. None of them can see
+ * where a piece is standing. The town's own list *can* — a caravan's yield is
+ * cut by a hull in the harbour mouth — and stays on the revision for it.
+ *
+ * `moveUnit` is the one row whose honest answer is not a property of its kind:
+ * see `economyMoved`.
+ */
+export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
+  endTurn: 'economy',
+  moveUnit: 'movement',
+  cancelOrder: 'movement',
+  spawnUnit: 'economy',
+  foundCity: 'economy',
+  setCityProduction: 'economy',
+  setLockedTiles: 'economy',
+  setCitizenFocus: 'economy',
+  dismissSpecialist: 'economy',
+  chooseResearch: 'economy',
+  dequeueResearch: 'economy',
+  attack: 'economy',
+  fortify: 'movement',
+  sleepUnit: 'movement',
+  setAutoExplore: 'movement',
+  buildImprovement: 'economy',
+  chopFeature: 'economy',
+  prospect: 'economy',
+  removeImprovement: 'economy',
+  pillage: 'economy',
+  purchaseTile: 'economy',
+  chooseDiscovery: 'economy',
+  chooseOrder: 'economy',
+  skipOrderOffer: 'economy',
+  rerollOffer: 'economy',
+  slotOrder: 'economy',
+  unslotOrder: 'economy',
+  adoptGovernment: 'economy',
+  chooseDoctrine: 'economy',
+  purchaseItem: 'economy',
+  contribute: 'economy',
+  consecrate: 'economy',
+  chooseBelief: 'economy',
+  performRite: 'economy',
+  plantHolySite: 'economy',
+  gainBelief: 'economy',
+  purge: 'economy',
+  proclaim: 'economy',
+  empireRite: 'economy',
+  healAdjacent: 'economy',
+  placeRelic: 'economy',
+  renameReligion: 'economy',
+  chooseGreatPerson: 'economy',
+  purchaseGreatPersonOffer: 'economy',
+  greatPersonAct: 'economy',
+  greatPersonWork: 'economy',
+  startRoute: 'economy',
+  setAutoResend: 'economy',
+  cancelRoute: 'economy',
+  disbandUnit: 'economy',
+  declareWar: 'economy',
+  proposePeace: 'economy',
+  withdrawPeace: 'economy',
+  declinePeace: 'economy',
+  annexCity: 'economy',
+  razeCity: 'economy',
+  proposeDeal: 'economy',
+  acceptDeal: 'economy',
+  declineDeal: 'economy',
+  withdrawDeal: 'economy',
+};
+
+/**
+ * **Did this command move the economy, or only the pieces?** Asked of the
+ * *result*, after the handler, so the one kind whose answer is not a property of
+ * its kind is answered exactly rather than by category.
+ *
+ * That kind is `moveUnit`. A march ends in `arriveOnTile` (`arrival.ts`) on
+ * every step, and arriving is how a ruin is claimed, a camp burnt out, a
+ * civilian taken and a laden caravan plundered — each of which pays somebody,
+ * and every one of which the march reports in `CommandResult.arrivals`. A plain
+ * step over ordinary ground reports nothing, and there are hundreds of those for
+ * every one of the others.
+ *
+ * So the rule is the report: **a movement command whose result says anything at
+ * all beyond "it worked" is an economy command.** Every key on the shape is a
+ * difference the board can no longer be asked about — a bead earned, a triumph
+ * awarded, a camp's bounty banked — which is the same reason `CommandResult`
+ * carries them in the first place, and reading the whole shape rather than
+ * `arrivals` alone means a field added later needs no second thought here.
+ *
+ * The two writes the report cannot carry announce themselves instead
+ * (`noteEconomyWrite`): the legacy revoked when a soldier walks into a rival's
+ * capital, and the road worn under a laden caravan. Both are inside
+ * `arriveOnTile`, both change what a reading folds, and neither is news anybody
+ * outside the simulation asked for.
+ */
+function economyMoved(command: Command, result: CommandResult): boolean {
+  if (COMMAND_CLOCKS[command.type] !== 'movement') return true;
+  if (economyNoted()) return true;
+  return Object.keys(result).length > 1;
+}
+
 /**
  * Applies one command. The only function in the simulation that mutates state.
  * See the module docblock for the success/failure contract.
@@ -4326,7 +4463,14 @@ function applyCommandInside(state: GameState, command: Command): CommandResult {
   // and a counter that moved would be a byte that moved with it. Every derived
   // reading in the game is remembered under this integer; see
   // `GameState.revision` and `bumpRevision`.
-  bumpRevision(state);
+  //
+  // **How much of it moved** is the second half of the sentence (batch M2):
+  // `bumpRevision` moves the economy clock beside the revision, and the narrow
+  // door says only the pieces did. This is the one caller allowed to take it,
+  // because this is the one place that holds both the command and its result —
+  // see `economyMoved` and `COMMAND_CLOCKS`.
+  if (economyMoved(command, result)) bumpRevision(state);
+  else bumpPiecesOnly(state);
   return result;
 }
 

@@ -5161,3 +5161,177 @@ Unchanged and green: `verbs.test.ts` (still exactly three `read…`, all in
 `readings.ts`), `moduleCycles.test.ts`, `aiDecision.slow.test.ts`,
 `aiBot.slow.test.ts`, `saves.test.ts`, and the whole of `test/ui`, `test/render`
 and `test/mapgen`.
+
+---
+
+---
+
+## Batch M2 as shipped — the second clock, and where the time actually is (2026-09-09)
+
+M1's closing finding was the brief for this one: *"what remains is misses — the
+revision moves on every command, so a seat pays one walk per command rather than
+one per question."* A seat sends commands that move a piece and nothing else — a
+step, a fortification, a scout told to wander — and `GameState.revision` moves on
+every one of them, throwing away the empire's holdings and meters, which no step
+can reach.
+
+The batch builds the second clock, and the outcomes are byte-identical. **It is
+not measurably faster**, and the accounting below says exactly why: after M1, a
+miss *at rest* is no longer where the time in those two readings goes. That is
+the finding, and it points the next batch somewhere else.
+
+### What was built
+
+- **Two clocks on one slate** (`src/sim/slate.ts`). The slate is two halves, each
+  thrown away whole when its own clock moves: `'revision'` as before, and
+  `'economy'` beside it. A tenant declares the clock it is a reading *of*.
+- **The economy clock is a `WeakMap` beside the slate, not a field of the
+  state.** `snapshotState` is `JSON.stringify(state)`, so a second counter on
+  `GameState` would be a schema change and a different byte in every save hash —
+  for a key no rule reads. Per board, gone with the board; a board restored from
+  a save starts at nought against an empty slate, which is a miss and never a
+  stale answer.
+- **The register is `COMMAND_CLOCKS` in `commands.ts`** — a
+  `Record<CommandType, 'economy' | 'movement'>`, so a kind in neither fails the
+  *typecheck*, read out of the source beside the reducer's own switch by
+  `test/sim/readings.test.ts`. Five rows are `movement` — `moveUnit`,
+  `cancelOrder`, `fortify`, `sleepUnit`, `setAutoExplore` — and every other row,
+  and every end-of-turn phase, moves both.
+- **`bumpRevision` moves both clocks.** It is the announcement "the world moved"
+  and says nothing about how much of it, which is what a bench poking the state
+  by hand means by it. The narrow door (`bumpPiecesOnly`) has exactly one caller,
+  `applyCommand`, holding a command and its result. Wrong broadly is a miss;
+  wrong narrowly is a stale reading.
+
+### Which tenant sits on which clock, and the one that surprised the brief
+
+| tenant | clock | why |
+|---|---|---|
+| `meterEffects` | economy | walks towns, buildings, luxuries and law; `meters.ts` never writes the word `unit` |
+| `controlledHoldings` | economy | walks the ground: the owner field, the tiles, what is dug on them, what a bargain lent away |
+| `readEmpirePercents` | economy | those, plus one question of the treasury |
+| `readCity` | **revision** | step 6 of `docs/yields.md` is the caravans arriving, and `cityRouteYields` cuts a route through `cityBlockaded` — *a unit position* |
+| `readEmpire` | **revision** | that reading summed |
+
+The brief expected a town's list to be economy-clock too ("a city's yields change
+with citizens, buildings, tiles, cards"). It cannot be: **one enemy hull moved
+into a harbour mouth changes what a port makes**, with nothing else on the board
+different. The split is a claim about what each walk can *see*, not a taxonomy of
+yields.
+
+### The arrival decision
+
+`moveUnit` is the one kind whose honest answer is not a property of its kind. A
+march ends in `arriveOnTile` on every step, and arriving is how a ruin is
+claimed, a camp burnt out, a civilian taken and a laden caravan plundered — each
+of which pays somebody, and each of which the march reports.
+
+So the decision is made from the **result**, after the command: *a movement
+command whose result says anything at all beyond `ok` is an economy command.* The
+whole shape rather than `arrivals` alone, because every key on it is a difference
+the board can no longer be asked about (a bead earned, a triumph awarded, a
+bounty banked), and a field added later then needs no second thought.
+
+`arriveOnTile` does two things the report does not carry, and they announce
+themselves instead (`noteEconomyWrite`): the **legacy revoked** when a soldier
+walks into a rival's capital (`revokeLegacies`, one of `liveEffects`' sources),
+and the **road worn** under a laden caravan (`layRoadUnder` — road maintenance,
+and a town connected to the capital). Neither is news anybody outside the
+simulation asked for, and re-deriving them from the board afterwards is exactly
+what `CommandResult` exists to avoid.
+
+### The measurements
+
+The switch off and on in one process, alternating, on a machine shared with three
+other agents — M1's method and for its reason.
+
+**1 · The t100 probe.** Eight seeds 1/2/3/42/101/999/31337/20260101, standard
+map, two balanced seats, wild on, stepper to t100, mean of sixteen seats.
+
+| | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness | ms/turn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| before | 4.9375 | 34.5625 | 116.1375 | 51.7294 | 33.1187 | 50.6681 | 52.8094 | 22.0594 | 344.7156 | 21.6250 | 0.8814 | 96.2 |
+| after | 4.9375 | 34.5625 | 116.1375 | 51.7294 | 33.1187 | 50.6681 | 52.8094 | 22.0594 | 344.7156 | 21.6250 | 0.8814 | 96.5 |
+
+**Every column equal to four decimals and all eight state hashes identical**
+(`348836342e88 c2418602e45e 2c9b1dd231d8 3f66d5a97130 c686d5670f70 5ea83a4bcfc7
+fac9ddeab4af 7b041acf7cad`, both arms) — the same eight games, at the same speed.
+
+**2 · Whole games**, duel, two seats, wild, 150 turns, stepper, three rounds a
+seed alternating, the fastest of each kept. One state hash per seed across all
+six runs: the games are identical.
+
+| seed | | mean ms/turn | t0–50 | t50–100 | t100–150 |
+|---|---|---|---|---|---|
+| 20260903 | before | 66.0 | 24.6 | 60.4 | 113.1 |
+| 20260903 | after | 55.0 | 18.5 | 34.5 | 112.1 |
+| 4242 | before | 48.0 | 16.3 | 45.3 | 82.5 |
+| 4242 | after | 65.3 | 21.1 | 62.3 | 112.4 |
+
+The two seeds disagree by more than the effect and in opposite directions — this
+is the machine, not the batch. Section 4 says why it has to be.
+
+**3 · One identical board**, X2's method: the board played to a fixed turn, then
+ten `nextBotDecision` of that same state a block, eight blocks each way
+alternating; and beside it one whole `playTurn` from the same restored board,
+which is the thing a second clock could actually help.
+
+| board | 10 decisions before (min · median) | after | one turn before (min · median) | after |
+|---|---|---|---|---|
+| 20260903 t75, 3 towns | 19.3 · 21.3 | 19.9 · 21.6 | 63.9 · 66.3 | 64.7 · 66.0 |
+| 20260903 t150, 4 towns | 29.7 · 35.5 | 27.9 · 35.4 | 211.2 · 264.6 | 204.4 · 263.6 |
+| 4242 t75, 3 towns | 13.0 · 14.0 | 13.5 · 14.4 | 69.0 · 71.0 | 67.3 · 69.8 |
+| 4242 t150, 3 towns | 24.2 · 25.5 | 24.3 · 25.3 | 74.8 · 77.5 | 74.4 · 77.4 |
+
+Parity, both halves. The ten-decision block is *expected* to be parity — no
+command is dispatched inside it, so M1 already answered every question once — and
+the whole-turn column, where the commands are, is parity too.
+
+**4 · The slate's own counters, and the finding.** One 150-turn game of seed
+20260903, every ask counted and the misses timed, both arms.
+
+| | asks at rest | hits | misses | hit rate | asked while suspended |
+|---|---|---|---|---|---|
+| before | 159,318 | 152,453 | 6,865 | 95.7% | 44,281 |
+| after | 158,223 | 151,999 | 6,224 | 96.1% | 44,281 |
+
+The register does what it says — 292 of the game's 1,168 commands took the narrow
+door (225 `moveUnit`, 50 `fortify`, 14 `setAutoExplore`, 3 `cancelOrder`), and
+the economy tenants miss less for it: `controlledHoldings` 1,892 → 1,536 (−19%),
+`meterEffects` 1,436 → 1,274 (−11%), `readEmpirePercents` 1,339 → 1,216 (−9%).
+
+And it buys nothing, because **a miss at rest costs almost nothing after M1**:
+
+| bucket | asks | share of the 150-turn game |
+|---|---|---|
+| `meterEffects`, missed at rest | 1,436 | 1.5% |
+| `readCity`, missed at rest (revision clock — not this batch's) | 2,196 | 2.0% |
+| `controlledHoldings`, missed at rest | 1,892 | 0.3% |
+| **`controlledHoldings`, asked while suspended** | **39,879** | **4.5%** |
+| **`meterEffects`, asked while suspended** | **4,402** | **5.6%** |
+
+**Ten per cent of the game is these two readings taken inside a write window**,
+where the slate must not remember anything at all, against 1.8% at rest — of
+which this batch could remove at most a fifth. That is the honest reading of
+M1's closing sentence: what remained was not misses, it was the **suspension**.
+The write window is `applyCommand`'s and each phase's, and `endTurn` puts the
+entire resolution inside one — `collectYields` pricing every town and
+`expandBorders` claiming hexes, each asking the meters again. Shrinking that
+window (a phase that announces its own writes rather than the whole phase; or the
+economy clock bumped *before* a write rather than after) is the next batch, and
+it is now a well-posed one.
+
+### Pins
+
+`test/sim/readings.test.ts` grows a describe of six claims — the economy clock
+still on a step and the tenants handing back the *same objects*; still on the
+other four orders; moved by a research pick; moved by a march that arrives on a
+ruin; moved once per phase across a resolution; and never reaching the snapshot —
+plus two register claims: every `Command['type']` on exactly one clock, read off
+`COMMAND_CLOCKS` and cross-checked against the reducer's own switch, with the
+five movement rows named; and the economy clock held off the state with
+`bumpPiecesOnly` called from `commands.ts` alone.
+
+Unchanged and green: the whole core `test/sim` tier (3,015 tests),
+`aiDecision.slow.test.ts`, `saves.test.ts`, `moduleCycles.test.ts`,
+`verbs.test.ts` (still exactly three `read…`, all in `readings.ts`).

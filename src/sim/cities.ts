@@ -528,14 +528,20 @@ export function controlledHoldings(
   playerId: number,
   kind: ResourceKind,
 ): ResourceHolding[] {
-  // **Remembered on the revision** (batch M1), keyed on the pair the question is
-  // about. The paragraph above calls this the most-asked question in the game
-  // and the profile agrees — 15.3% of a bot's turn after batch X6, half of it
-  // under `explainHappiness` and half of it the card evaluator asking what the
-  // empire holds. The slate is suspended while a writer holds the world open
-  // (`slate.ts`), so a phase that claims a hex and then prices the next town
-  // still sees the ground it just took.
-  return slateMemo(state, `holdings:${kind}`, String(playerId), () =>
+  // **Remembered on the economy clock** (batch M1, re-keyed by M2), on the pair
+  // the question is about. The paragraph above calls this the most-asked
+  // question in the game and the profile agrees — 15.3% of a bot's turn after
+  // batch X6, half of it under `explainHappiness` and half of it the card
+  // evaluator asking what the empire holds. The slate is suspended while a
+  // writer holds the world open (`slate.ts`), so a phase that claims a hex and
+  // then prices the next town still sees the ground it just took.
+  //
+  // The **economy** clock rather than the revision, because this walk is the
+  // ground and nothing but: the owner field, the tiles, what has been dug on
+  // them and what a bargain lent away. Where a piece is standing cannot enter
+  // it, and a seat that spends its turn marching now pays for this once instead
+  // of once a step. See "The two clocks" in `slate.ts`.
+  return slateMemo(state, 'economy', `holdings:${kind}`, String(playerId), () =>
     holdingsOf(state, playerId, kind),
   );
 }
