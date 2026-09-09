@@ -60,6 +60,7 @@ import {
 } from '../../src/sim/state';
 import { cardCombatLines, cardUnitStat } from '../../src/sim/statecraft';
 import { buildError, hasAbility, opusOpen, worldTechReached } from '../../src/sim/tech';
+import { currentWorldAge } from '../../src/sim/worldClock';
 import { unlockDataProblems } from '../../src/sim/techUnlocks';
 import { BUILDING_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
@@ -597,7 +598,9 @@ describe('finishing the Opus wins the game for whoever raised it', () => {
     // to the same routine measures nothing, because the register refuses it.
     const after = g.state.beads.claimed.length;
     expect(after).toBeGreaterThanOrEqual(before);
-    expect(takeReckonings(g.state, g.state.beads.worldAge)).toEqual([]);
+    // The world's age is derived since batch G1 (`worldClock.ts`) — the same
+    // number this routine reads, asked the way the routine asks it.
+    expect(takeReckonings(g.state, currentWorldAge(g.state))).toEqual([]);
   });
 
   it('never unseats a winner somebody else already is', () => {

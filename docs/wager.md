@@ -13,32 +13,53 @@ A worksheet in the `war-diplomacy.md` shape: the ruled parts are stated, the
 unless overruled. Marginalia here are rulings. Nothing flies until the ▢ are
 marked. What exists today is `docs/beads.md` (the Bead Race: feats,
 endeavours, quests, reckonings, grants; threshold 20 opens the Opus; the
-builder wins) and the world clock (an age opens when the **first** seat
-reaches it, `worldTechReached`).
+builder wins) and the world clock — **built** as §1 states it (batch G1,
+schema 101): the mean of the board, with a ten-turn countdown. Until G1 an age
+opened the turn the **first** seat reached it.
 
 ## 1. The global age — one clock, averaged
 
+**BUILT — batch G1, schema 101** (2026-09-09). The whole of this section is
+code: `src/sim/worldClock.ts` (the readings, a leaf), the `worldClock` phase in
+`END_OF_TURN_PHASES` directly before `beads` (its body in `beads.ts`, which owns
+the age's own table), `GameState.ageClose` (one absolute `{age, turn}` stamp,
+nothing stored and nothing ticking), the `ageClosed` occasion, and
+`rules.wager.countdown` / `rules.wager.lastAgeTurns`. The first-seat rule —
+`BeadTable.worldAge`, a stored clock raised by `Math.max` over the seats — is
+**retired**, which settles the flags board's open Abacus world-clock ruling. The
+top bar's age card carries the age and the countdown. `test/sim/worldClock.test.ts`
+is the register.
+
 - **The world's age is the mean of every real player's progress** (`realPlayers`),
-  not the first seat's. ▢ *Progress* = (rec) the age of each empire's highest
-  researched technology, averaged and floored — so the world enters Æra II when
+  not the first seat's. **RULED** (§11): *progress* = the age of each empire's
+  highest researched technology, averaged and floored — an **eliminated** seat is
+  excluded, so a conquered rival frozen in Æra I does not hold the survivors
+  back — so the world enters Æra II when
   the average empire has; a runaway leader does not drag everyone into an age
   they have not reached, and a lagging bot does not hold the leader back for
   ever, because the mean moves as soon as most seats do.
 - **The countdown.** When the mean first crosses into the next age, the current
   age is given **10 turns** to close (the user's figure; `rules.wager.countdown`).
-  At the close: the age's wagers are judged, then the new age opens. ▢ (rec)
-  The countdown is public on the top bar's age card and the Abacus — "Æra II
-  closes in 7 turns" — because a wager with a hidden deadline is a coin toss.
-- **What the clock gates**: (rec) only the calendar — the wager deals, the
-  age's deed table, the age-entry occasions. It does **not** gate research or
-  the tree (an empire may research ahead of the world) and it does not move the
-  Opus door. The bead tables that opened "on the world's clock" (the open
-  Abacus ruling on the flags board) open on *this* clock, which settles that
-  ruling too.
+  At the close the age's occasion is announced to every seat (`ageClosed` — the
+  moment G2 judges its wagers on), the closing age's reckonings are taken, and
+  the new age opens. **RULED**: the countdown is public on the top bar's age
+  card ("Æra II · closes in 7 turns") — a wager with a hidden deadline is a coin
+  toss. The Abacus prints no age today and gains one with G2's rework.
+- **What the clock gates**: only the calendar — the wager deals, the age's deed
+  table, the age-entry occasions. It does **not** gate research or the tree (an
+  empire may research ahead of the world) and it does not move the Opus door:
+  `worldTechReached` (`tech.ts`) is a *different* question — has anybody
+  anywhere reached this node — and stays the first seat's reading, because a
+  finish line announces itself to all contestants at once. The bead tables that
+  opened "on the world's clock" (the open Abacus ruling on the flags board) open
+  on *this* clock, which settles that ruling too.
 - The **first** age has no countdown to start it and deals no wager (§2,
-  ruled). The **last** age closes only by the Opus; its wager (Æra IV's, while
-  the chart ends there — §2) is judged when the Opus is raised or at
-  `rules.wager.lastAgeTurns` (rec 40) after the age opened, whichever is first.
+  ruled): `ageClose` absent *is* the first age, which is also what a save from
+  before G1 loads as. The **last** age closes only by the Opus; its wager (Æra
+  IV's, while the chart ends there — §2) is judged when the Opus is raised or at
+  `rules.wager.lastAgeTurns` (40) after the age opened, whichever is first —
+  built as one comparison rather than as two rules: the last age's stamp is
+  written the turn it opens, and `closeTheGreatWork` pulls it forward to *now*.
 
 ## 2. The deal — three targets, five turns in
 
@@ -501,8 +522,8 @@ that every malice's effect kind is one the evaluator reads.
 ## 7. Rulings needed before anything flies
 
 0. ~~§2 the first deal~~ — **ruled**: no wager in Æra I.
-1. §1 progress = the mean age of each empire's highest tech (rec) — or of
-   beakers banked?
+1. ~~§1 progress~~ — **ruled and built** (batch G1): the mean age of each
+   empire's highest technology, floored, over the living real seats.
 2. ~~§2 Æra V~~ — **ruled**: Æra V, when added, has no wager; Æra IV keeps
    its own.
 3. ~~§2 the choice window and public choices~~ — **ruled**: same turn, secret.
@@ -689,9 +710,10 @@ to the player — the countdown lives on the top bar's age card only); no
   turn it is first met; the malice takes the last chair of its flavour,
   lasts until the next wager is judged, stacks to two, survives adoption;
   reckonings retire. Any of these is one line to change.
-- **Batches, in order**: **G1** the world clock and the countdown (schema;
-  retires the first-seat rule; the top bar's age card carries the
-  countdown) → **G2** the deal, the choice, the judgement, `data/wagers.json`
+- **Batches, in order**: ~~**G1** the world clock and the countdown~~ —
+  **landed 2026-09-09, schema 101** (the first-seat rule retired, the top bar's
+  age card carries the countdown, `ageClosed` in the occasion union) →
+  **G2** the deal, the choice, the judgement, `data/wagers.json`
   from §3b's 24 with the seven *bot baseline* bars measured on the bench
   first, the Abacus reworked as the wager screen and the Æra III/IV
   conditions draw retired (the mock is the spec) → **G3** the malice deck
@@ -700,16 +722,17 @@ to the player — the countdown lives on the top bar's age card only); no
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 
-Schema. New state: `GameState.worldAge` (derived, not stored — the mean is a
-reading) but `GameState.ageClose?: {age, turn}` (the countdown, absolute) and
+Schema. New state — **G1's half is built**: `worldAge`/`currentWorldAge` are
+derived, not stored (`src/sim/worldClock.ts`), and `GameState.ageClose?: {age,
+turn}` is the one stamp (`BeadTable.worldAge` retired with it). Still to come:
 `GameState.wagers: {age, dealt: WagerId[3], judged: boolean}[]` (append-only,
 like triumphs) with each seat's pick on `Player.wager: {age, index}` — the
 state carries every pick (a replay must), and *secrecy* is a UI gate exactly as
 `localPlayerId` is: a sheet shows a rival's pick only after the judgement;
 `Player.malices: {id, untilAge}[]`; a claimed wager is an announced
 occasion (`wagerClaimed`) the Abacus flips on. The deal in the `renown` phase of the deal turn; the
-judgement in the phase that closes the age; `chooseWager` a command with the
-usual gates. The wager readings reuse `countOf`/the meters; a new
+judgement hangs off the `ageClosed` occasion the `worldClock` phase announces
+(built in G1); `chooseWager` a command with the usual gates. The wager readings reuse `countOf`/the meters; a new
 `data/wagers.json` and `data/malices.json`, both walked by the Compendium and
 sync-tested against `docs/wager.md`'s tables once the rows are written. The
 Abacus and the top bar's age card read the countdown. Batches: **G1** (the

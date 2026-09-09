@@ -45,11 +45,15 @@
  *
  * The world's clock
  * -----------------
- * `state.beads.worldAge` is the highest age any real seat has reached, and an
- * age **opens** the turn it rises: that age's hand turns face up, the closing
- * age's reckonings are taken across every seat at once, and the per-age
- * counters reset. One clock for everybody (the user's rule), which is what
- * makes rushing the tree *call* a reckoning rather than forfeit one.
+ * One clock for everybody (the user's rule), and since batch G1 it is the
+ * **mean** of the board rather than the first seat's tree — the readings live
+ * in `worldClock.ts` and the phase that turns it lives here (`runWorldClock`),
+ * because opening an age is this table's own business: the closing age's
+ * reckonings are taken across every seat at once, the new age's hand turns face
+ * up, and the per-age counters reset. What changed is *when* — an age is given
+ * `rules.wager.countdown` turns' notice — and what it is read off. What did not
+ * is the rule that makes rushing the tree *call* a reckoning rather than
+ * forfeit one.
  */
 
 import {
@@ -125,9 +129,26 @@ import {
   stripRefs,
 } from './statecraft';
 import { settleResearchWindfall } from './tech';
-import { BUILDING_UNLOCK_TECH, highestAge, isTechId, techDef, techsGrant } from './techData';
+import {
+  BUILDING_UNLOCK_TECH,
+  LAST_TECH_AGE,
+  highestAge,
+  isTechId,
+  techDef,
+  techsGrant,
+} from './techData';
 import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { bumpEconomy } from './slate';
+// The world's clock is a **leaf** (batch G1): every reading of it is derived,
+// and the module imports nothing but the state, the tree's ages and the rules
+// sheet — so this file may ask it without the phase below becoming a cycle.
+import {
+  ageCountdownTurns,
+  ageClosesThisTurn,
+  currentWorldAge,
+  lastAgeTurns,
+  worldAge,
+} from './worldClock';
 
 /**
  * What one bead award did, for the line the interface announces it in.
@@ -317,8 +338,9 @@ function deedMatches(deed: BeadDeed, occasion: BeadOccasion, family?: Family): b
  * whole book.
  */
 export function beadHandIsShownTo(state: GameState, playerId: number, age: number): boolean {
-  if (age <= state.beads.worldAge) return true;
-  if (age !== state.beads.worldAge + 1) return false;
+  const open = currentWorldAge(state);
+  if (age <= open) return true;
+  if (age !== open + 1) return false;
   const player = playerById(state, playerId);
   return player !== undefined && techsGrant(player.techsResearched, 'theLongCount');
 }
@@ -376,11 +398,16 @@ export function beadCount(state: GameState, playerId: number, count: BeadCount):
     case 'wondersHeld':
       return wondersHeld(state, playerId, null);
     case 'wondersOfWorldAgeHeld':
-      return wondersHeld(state, playerId, state.beads.worldAge);
+      return wondersHeld(state, playerId, currentWorldAge(state));
     case 'techsOfWorldAgeCompleted': {
+      // **The world's clock, not this empire's** — and since batch G1 that
+      // clock is the mean rather than the first seat's tree (`worldClock.ts`),
+      // so a runaway leader's own Æra III nodes no longer count toward a card
+      // the world has not opened.
+      const age = currentWorldAge(state);
       let held = 0;
       for (const id of player.techsResearched) {
-        if (isTechId(id) && techDef(id).age === state.beads.worldAge) held += 1;
+        if (isTechId(id) && techDef(id).age === age) held += 1;
       }
       return held;
     }
@@ -1087,8 +1114,19 @@ export interface GreatWorkClose {
  * stays won.
  */
 export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose {
-  const age = state.beads.worldAge;
+  const age = currentWorldAge(state);
   const awards = takeReckonings(state, age);
+
+  // **The Opus closes the age it was raised in** (`docs/wager.md` §1: the last
+  // age "closes only by the Opus … or at `lastAgeTurns` after it opened,
+  // whichever is first"). Said as one comparison rather than as two rules: the
+  // standing stamp is pulled forward to *this* turn, and the `worldClock` phase
+  // at the end of it announces the close exactly as it would have announced the
+  // backstop. Absolute, and never pushed *out* — a work raised after the
+  // backstop has already fired leaves the stamp where it is.
+  if (state.ageClose === undefined || state.turn < state.ageClose.turn) {
+    state.ageClose = { age, turn: state.turn };
+  }
 
   let winner: number | null = null;
   if (state.winnerId === null) {
@@ -1102,19 +1140,22 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
 // --- the phase --------------------------------------------------------------
 
 /**
- * The `beads` phase, in four beats. Its position in `END_OF_TURN_PHASES` is a
- * rules decision like every other entry: **directly after `renown`**, so the
- * turn's standing Triumphs are already on the register and a bead swept here
- * reads a board that has finished settling.
+ * The `beads` phase, in three beats. Its position in `END_OF_TURN_PHASES` is a
+ * rules decision like every other entry: **directly after `worldClock`**, which
+ * is itself directly after `renown` — so the turn's standing Triumphs are on
+ * the register, the world's age is settled, and a bead swept here reads a board
+ * that has finished moving.
  *
- *   1. **the clock** — `worldAge` is the highest age any real seat holds. On the
- *      turn it rises the new age *opens*: the closing age's reckonings are taken
- *      across every seat at once, the new age's hand turns face up, and the
- *      per-age counters reset.
- *   2. **the deal** — one card a turn off the first deck that still has one, into
+ *   1. **the deal** — one card a turn off the first deck that still has one, into
  *      a hand that is not yet full. Face down until its age opens.
- *   3. **the sweep** — every face-up count and streak deed, and every feat whose
+ *   2. **the sweep** — every face-up count and streak deed, and every feat whose
  *      trigger is a count, in seat order.
+ *
+ * The clock used to be beat one of this phase, because the Bead Race was the
+ * only system that asked what age the world was in. Batch G1 lifted it into a
+ * phase of its own (`runWorldClock`, below) — the wager, the Horde and the top
+ * bar all read it now, and a clock several systems read is not one system's
+ * beat. The order is unchanged: it still runs immediately before this.
  *
  * There is **no fourth beat**. Until 2026-09-04 there was one — the first seat
  * to `BEAD_RULES.threshold` beads simply won — and it never once decided a game
@@ -1132,19 +1173,11 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
 export function runBeads(state: GameState, report?: BeadReport): void {
   const awards: BeadAward[] = [];
 
-  const opened = advanceWorldClock(state, awards);
   clearSpentCards(state);
   dealOneCard(state);
   sweepStandingBeads(state, awards);
 
-  if (report) {
-    report.beads.push(...awards);
-    // **The opening is news, not a diff.** An age opens once, on one turn, and
-    // by the time the resolution returns `worldAge` simply *is* the new number
-    // — nothing on the board says it moved this turn rather than eight turns
-    // ago. `TurnReport.beads`' argument for a fact that is not an award.
-    if (opened !== null) report.beadAgeOpened = opened;
-  }
+  if (report) report.beads.push(...awards);
 }
 
 /** What the phase writes into. `TurnReport`'s two bead fields and nothing else. */
@@ -1153,24 +1186,96 @@ export interface BeadReport {
   beadAgeOpened?: BeadAge;
 }
 
+// --- the world clock --------------------------------------------------------
+
 /**
- * The world's clock, and the age it opens when it rises. See `runBeads`.
+ * **The `worldClock` phase** (batch G1, `docs/wager.md` §1): the world's age,
+ * and the countdown that closes one.
  *
- * Answers the age that opened, or `null` on the overwhelmingly common turn
- * where nothing did — which is what the report rides out on. A rise **past** a
- * deck age (two ages in one turn, which nothing today can do) still answers the
- * age reached, because that is the number a player is told.
+ * Three sentences, and each of them is a ruling:
+ *
+ *   1. **an age closes on the turn its stamp names.** `GameState.ageClose` is
+ *      one absolute `{age, turn}` and this is the one place it is compared:
+ *      when the turn arrives the age's occasion is announced to every seat
+ *      (`ageClosed` — the moment G2's wagers are judged on), the closing age's
+ *      reckonings are taken across the board at once, the new age's hand turns
+ *      face up and the per-age counters reset.
+ *   2. **a countdown opens when the world's progress crosses.** `worldAge` is
+ *      the *mean* of every living empire's highest technology, floored, and the
+ *      turn it first exceeds the age the world is in, that age is given
+ *      `rules.wager.countdown` turns to close. Never sooner and never twice: a
+ *      stamp already standing for this age is left exactly where it is.
+ *   3. **the last age closes on its own.** Nothing is above it for the mean to
+ *      cross into, so its stamp is written the moment it opens — the turn it
+ *      opened plus `rules.wager.lastAgeTurns` — and the Great Work being raised
+ *      pulls that stamp forward to *now* (`closeTheGreatWork`), which is §1's
+ *      "the Opus or the backstop, whichever is first" said as one comparison
+ *      rather than as two rules.
+ *
+ * **Where it sits.** Directly after `renown` and directly before `beads`, which
+ * is exactly the seat the clock held when it was beat one of `runBeads`. The
+ * position is the usual rules decision and it is one sentence: *every phase
+ * that reads the world's age must run after this one*. The deed tables are the
+ * loudest of them — a hand turns face up here and is swept for a bead in the
+ * very next phase — and the wager's judgement and deal (G2) and the Horde's
+ * surge (H1) join them behind it for the same reason. `renown` before it, so
+ * the turn's standing Triumphs and its recruitments are on the register before
+ * an age is snapshotted by a reckoning.
+ *
+ * **Why it lives in this file.** The readings are a leaf (`worldClock.ts`) that
+ * every surface may ask; the *phase* is here because opening an age is the
+ * bead table's own business — the reckonings, the face-up rule and the per-age
+ * counters are all in this module — and `awardBeadOccasion` is the announcement
+ * seam. Moving the body out would be a runtime cycle for nothing.
  */
-function advanceWorldClock(state: GameState, awards: BeadAward[]): BeadAge | null {
-  let reached = state.beads.worldAge;
-  for (const player of realPlayers(state)) {
-    reached = Math.max(reached, highestAge(player.techsResearched));
+export function runWorldClock(state: GameState, report?: BeadReport): void {
+  const awards: BeadAward[] = [];
+
+  // Read **before** anything is written, so every branch below is deciding
+  // about the same board. The close is fired first: the age it opens is the age
+  // the countdown clause one paragraph down is then measured against.
+  if (ageClosesThisTurn(state)) {
+    const closing = state.ageClose!.age;
+    // Announced to every real seat at once. An age closing is a fact about the
+    // *world* rather than about one empire, which is what makes it the one
+    // occasion in the union announced in a sweep instead of at a verb — and why
+    // it goes through `awardBeadOccasion` rather than `awardOccasion`: no
+    // Triumph row names it yet, and the day one does, this line becomes
+    // `awardOccasion` (which calls this one itself) and nothing else moves.
+    for (const player of realPlayers(state)) {
+      awards.push(...awardBeadOccasion(state, player.id, 'ageClosed'));
+    }
+    openBeadAge(state, closing, awards);
+    if (report) {
+      const opened = currentWorldAge(state);
+      // **The opening is news, not a diff.** An age opens once, on one turn, and
+      // by the time the resolution returns the clock simply *is* the new number
+      // — nothing on the board says it moved this turn rather than eight turns
+      // ago. `TurnReport.beads`' argument for a fact that is not an award.
+      if (isBeadAge(opened) && opened > closing) report.beadAgeOpened = opened;
+    }
   }
-  if (reached <= state.beads.worldAge) return null;
-  const closing = state.beads.worldAge;
-  state.beads.worldAge = reached;
-  openBeadAge(state, closing, awards);
-  return isBeadAge(reached) ? reached : null;
+
+  const now = currentWorldAge(state);
+  const standing = state.ageClose;
+  if (standing === undefined || standing.age < now) {
+    // Nothing is counting down for the age the world is in. Two ways one starts:
+    if (now >= LAST_TECH_AGE) {
+      // **The last age**, which has no age above it and therefore no crossing to
+      // wait for. It is given its length the moment it opens, so the card can
+      // print a deadline from the first turn of it — and `state.turn` *is* that
+      // moment: the only way into this arm is the resolution that just fired
+      // the previous age's close, and once the stamp below is written the arm's
+      // own condition is false for the rest of the game.
+      state.ageClose = { age: now, turn: state.turn + lastAgeTurns() };
+    } else if (worldAge(state) > now) {
+      // **The crossing.** The middle of the board has entered the next age, so
+      // the age the world is in is given its notice.
+      state.ageClose = { age: now, turn: state.turn + ageCountdownTurns() };
+    }
+  }
+
+  if (report) report.beads.push(...awards);
 }
 
 /**
@@ -1190,8 +1295,13 @@ function advanceWorldClock(state: GameState, awards: BeadAward[]): BeadAge | nul
 function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): void {
   awards.push(...takeReckonings(state, closing));
 
+  // The world's own clock, asked rather than a number handed in: `closing` says
+  // which age's reckonings are due, and `currentWorldAge` says which hands are
+  // now open. Two questions, and on the last age's close they answer differently
+  // — the fourth age closes and nothing opens above it.
+  const open = currentWorldAge(state);
   for (const age of BEAD_DECK_AGES) {
-    if (age > state.beads.worldAge) continue;
+    if (age > open) continue;
     for (const card of state.beads.hands[String(age)] ?? []) card.faceUp = true;
   }
 
@@ -1217,9 +1327,9 @@ function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): vo
  * broken by seat order is a fact about the roster rather than about which sweep
  * ran first.
  *
- * Two callers, and both are *history*: `advanceWorldClock`, when the world's
- * clock rises, and `closeTheGreatWork`, so the age a great work ended in is
- * measured like every age before it. Neither reading decides a winner — since
+ * Two callers, and both are *history*: `openBeadAge`, when the `worldClock`
+ * phase closes an age, and `closeTheGreatWork`, so the age a great work ended
+ * in is measured like every age before it. Neither reading decides a winner — since
  * schema 69 the builder of the Opus wins outright — so a reckoning taken at the
  * curtain is an annal and nothing more. Exported besides because it is the one
  * seam a test can reach without an age-four technology.
@@ -1327,7 +1437,7 @@ function dealOneCard(state: GameState): void {
     if (hand.length >= beadHandSize(age)) continue;
     const id = deck.shift();
     if (id === undefined) continue;
-    hand.push({ id, faceUp: age <= state.beads.worldAge });
+    hand.push({ id, faceUp: age <= currentWorldAge(state) });
     return;
   }
 }

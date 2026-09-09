@@ -87,7 +87,23 @@ export type Occasion =
    * it the first — a moment that knew how to count itself would be a second
    * register beside `Player.triumphs`.
    */
-  | 'navalUnitBuilt';
+  | 'navalUnitBuilt'
+  /**
+   * **The world's age closed** — the countdown reaching nought (batch G1,
+   * `docs/wager.md` §1). `runWorldClock`.
+   *
+   * The one member of this union that is a fact about the *world* rather than
+   * about one empire, and it is announced to every real seat at once for that
+   * reason: an age ending happens to everybody, and a deed that names it is
+   * asking "were you the empire that had done X when the age turned over". It
+   * is the moment G2 judges a wager on, which is why it is a word in the
+   * shared vocabulary rather than a private signal inside the wager's own
+   * module — a bead, and one day a Triumph, may name it too.
+   *
+   * Announced from the sweep rather than from a verb, which is the other thing
+   * that makes it unlike its thirteen neighbours: nobody *does* it.
+   */
+  | 'ageClosed';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -105,4 +121,5 @@ export const OCCASIONS: readonly Occasion[] = [
   'capitalCaptured',
   'greatPersonRecruited',
   'navalUnitBuilt',
+  'ageClosed',
 ];

@@ -277,6 +277,10 @@ const EXCUSED = new Map<string, string>([
     'writes the turn report, not the board — `awardBead` is where the row lands',
   ],
   [
+    'beads.ts#runWorldClock',
+    'writes the turn report, not the board — `runBeads`’ excuse one phase up: the close’s own awards land through `awardBead`, and the clock’s state (`GameState.ageClose`) is an absolute stamp no tenant folds a yield from',
+  ],
+  [
     'turn.ts#runEndOfTurn',
     'writes the turn report, not the board — the bead diff, already announced by `awardBead`',
   ],

@@ -46,8 +46,10 @@ import {
   endeavourError,
   endeavourPrerequisiteMet,
   runBeads,
+  runWorldClock,
   takeReckonings,
 } from '../../src/sim/beads';
+import { currentWorldAge } from '../../src/sim/worldClock';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { ABILITY_TECH, TECH_IDS } from '../../src/sim/techData';
 import { cardBeadOccasions, settleOrderSkip, stripRefs } from '../../src/sim/statecraft';
@@ -127,8 +129,27 @@ function reachAge(state: GameState, playerId: number, age: 3 | 4): void {
   bumpRevision(state);
 }
 
-/** Runs the bead phase alone, which is what every clock and sweep test wants. */
+/**
+ * Puts the **world** in an age, the way the clock does.
+ *
+ * Since batch G1 the world's age is derived rather than stored (`worldClock.ts`
+ * — the mean of the board, ten turns after it crossed), so a bench that wants
+ * the world in Æra III stamps Æra II's close on a turn that has already passed.
+ * There is no field to set: that is the whole point of the change, and a test
+ * that could still set one would be the second clock the batch removed.
+ */
+function worldIn(state: GameState, age: number): void {
+  state.ageClose = { age: age - 1, turn: state.turn - 1 };
+  bumpRevision(state);
+}
+
+/**
+ * Runs the world's clock and then the bead phase, in the order
+ * `END_OF_TURN_PHASES` runs them — which is what every sweep test wants: a deed
+ * swept on a board whose age has already settled this turn.
+ */
 function beat(state: GameState): void {
+  runWorldClock(state);
   runBeads(state);
 }
 
@@ -221,12 +242,16 @@ describe('the bead catalogue', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(100);
+    expect(SCHEMA_VERSION).toBe(101);
   });
 
-  it('puts the beads phase directly after renown', () => {
+  it('puts the beads phase directly after the world clock, itself after renown', () => {
+    // Re-aimed by batch G1: the clock was beat one of this phase and is now a
+    // phase of its own in the same seat, so the deed tables are still swept on
+    // a board whose age has just settled. See `runWorldClock`.
     const names = END_OF_TURN_PHASES.map((phase) => phase.name);
-    expect(names.indexOf('beads')).toBe(names.indexOf('renown') + 1);
+    expect(names.indexOf('worldClock')).toBe(names.indexOf('renown') + 1);
+    expect(names.indexOf('beads')).toBe(names.indexOf('worldClock') + 1);
   });
 });
 
@@ -290,7 +315,7 @@ describe('the deal', () => {
     // showing four of its rows in a whole game.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     const size = BEAD_RULES.handSize['3']!;
     const deck = state.beads.decks['3']!;
     state.beads.decks['3'] = deck.filter((id) => id !== 'theFounder');
@@ -317,7 +342,7 @@ describe('the deal', () => {
     // lands, a twenty-five card deck empties rather than stopping at four.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     const dealt = new Set<string>();
     for (let turn = 0; turn < 120; turn++) {
       state.turn += 1;
@@ -356,20 +381,37 @@ describe('the deal', () => {
 
 // --- 3. the world's clock ---------------------------------------------------
 
+/**
+ * **Re-aimed by batch G1.** These two used to read "an age opens the turn the
+ * *first* seat reaches it" off `state.beads.worldAge`. The rule is the mean now
+ * and the field is gone (`docs/wager.md` §1, `worldClock.ts`): what the tables
+ * still owe is that *when the world's age turns over*, the hand turns face up
+ * and the per-age counters reset — which is the claim these always made, asked
+ * of the new clock. The clock's own arithmetic is `worldClock.test.ts`'s.
+ */
 describe("the world's clock", () => {
-  it('opens an age on the first seat that reaches it, and turns the hand over', () => {
+  it('turns a hand over when the world enters its age', () => {
     const state = newGame(config());
     for (let turn = 0; turn < 3; turn++) {
       state.turn += 1;
       beat(state);
     }
-    expect(state.beads.worldAge).toBe(1);
+    expect(currentWorldAge(state)).toBe(1);
     expect(state.beads.hands['3']!.every((card) => !card.faceUp)).toBe(true);
 
+    // One seat alone no longer moves the world: the mean of a seat in Æra III
+    // and a seat in Æra I is Æra II, and Æra III's hand stays face down.
     reachAge(state, 1, 3);
     state.turn += 1;
     beat(state);
-    expect(state.beads.worldAge).toBe(3);
+    expect(state.beads.hands['3']!.every((card) => !card.faceUp)).toBe(true);
+
+    // Æra II's close falling on the next turn is what turns them: the hand
+    // opens *at* the close, which is the one moment the world changes age.
+    state.ageClose = { age: 2, turn: state.turn + 1 };
+    state.turn += 1;
+    beat(state);
+    expect(currentWorldAge(state)).toBe(3);
     expect(state.beads.hands['3']!.every((card) => card.faceUp)).toBe(true);
   });
 
@@ -378,10 +420,12 @@ describe("the world's clock", () => {
     plant(state, 0, 4, 4);
     state.players[0]!.greatPeopleThisAge = 4;
     state.players[0]!.routeYieldsThisAge = 90;
-    reachAge(state, 0, 3);
+    // The countdown is standing and closes on the very next turn, which is the
+    // moment the counters are meant to be zeroed.
+    state.ageClose = { age: 2, turn: state.turn + 1 };
     state.turn += 1;
     beat(state);
-    expect(state.beads.worldAge).toBe(3);
+    expect(currentWorldAge(state)).toBe(3);
     expect(state.players[0]!.greatPeopleThisAge).toBe(0);
     expect(state.players[0]!.routeYieldsThisAge).toBe(0);
   });
@@ -411,7 +455,7 @@ describe('a reckoning', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     plant(state, 1, 9, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: true }];
 
     // Two seats, one city each: The Most Cities is a tie and pays nobody.
@@ -433,7 +477,7 @@ describe('a reckoning', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     plant(state, 0, 6, 8);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: false }];
     expect(takeReckonings(state, 3)).toHaveLength(0);
     // A card nobody was ever shown is a card the world never answered.
@@ -459,7 +503,7 @@ describe('a count quest', () => {
     const state = flatState();
     reachAge(state, 0, 3);
     table(state, 'theFounder');
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     state.players[1]!.citiesFounded = 8;
     state.players[0]!.citiesFounded = 8;
     plant(state, 0, 4, 4);
@@ -476,7 +520,7 @@ describe('a count quest', () => {
 
   it('is not claimable while its card is off the table', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     state.beads.hands['3'] = [];
     state.players[0]!.citiesFounded = 8;
     beat(state);
@@ -487,7 +531,7 @@ describe('a count quest', () => {
 describe('a streak quest', () => {
   it('needs the whole run, and starts again on a miss', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theStandingArmy', 3);
     const def = beadQuestDef('theStandingArmy');
     expect(def.deed.shape).toBe('streak');
@@ -556,7 +600,7 @@ describe('a race project', () => {
     expect(isUnlocked(state, 0, 'project', 'theGrandSatrapy')).toBe(false);
     expect(buildError(state, 0, 'project', 'theGrandSatrapy')).toMatch(/not on the table/);
 
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theGrandSatrapy');
     // On the table but out of reach: the sentence names what is missing.
     expect(buildError(state, 0, 'project', 'theGrandSatrapy')).toMatch(/wants 10 cities/);
@@ -570,7 +614,7 @@ describe('a race project', () => {
 
   it('is claimed by the first finisher, with the bead and the boon', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theGrandSatrapy');
     const cities: City[] = [];
     for (let i = 0; i < 10; i++) cities.push(plant(state, 0, i, 4));
@@ -592,7 +636,7 @@ describe('a race project', () => {
 
   it('pays the second finisher nothing at all', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 10; i++) plant(state, 0, i, 4);
     for (let i = 0; i < 10; i++) plant(state, 1, i, 9);
@@ -621,7 +665,7 @@ describe('a boon settles through the seam that already exists', () => {
   it('banks a windfall in the bank it names', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const before = state.players[0]!.gold;
@@ -632,7 +676,7 @@ describe('a boon settles through the seam that already exists', () => {
   it('grants a piece through the free-unit path', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theFounder');
     state.players[0]!.citiesFounded = 8;
     beat(state);
@@ -776,21 +820,31 @@ describe('the threshold', () => {
 
 // --- 8. the news ------------------------------------------------------------
 
+/**
+ * **Re-aimed by batch G1.** The news is unchanged — an age opens once and the
+ * report says so — but the *moment* is: an age opens when a countdown reaches
+ * nought (`worldClock.ts`), not when a seat researches something. So both
+ * benches now stand a close on the very next turn rather than handing one seat
+ * a technology and expecting the world to move.
+ */
 describe('the age opening', () => {
   it('rides out on the report and on the command result', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
     // A quiet turn says nothing at all.
     expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
-    reachAge(state, 0, 3);
+    // Æra II closes on the turn about to resolve, so Æra III opens on it.
+    state.ageClose = { age: 2, turn: state.turn + 1 };
+    state.turn += 1;
     expect(runEndOfTurn(state).beadAgeOpened).toBe(3);
-    // And once only: the clock rose, and it does not rise again.
+    // And once only: the age opened, and it does not open again.
+    state.turn += 1;
     expect(runEndOfTurn(state).beadAgeOpened).toBeUndefined();
   });
 
   it('reaches the caller through endTurn', () => {
     const game = createGame(config({ seed: 3 }));
-    reachAge(game.state, 0, 3);
+    game.state.ageClose = { age: 2, turn: game.state.turn };
     let opened: number | undefined;
     for (const player of game.state.players) {
       if (player.barbarian) continue;
@@ -805,7 +859,7 @@ describe('every award reaches the caller', () => {
   it('rides out on the turn report and on the command result', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const report = runEndOfTurn(state);
@@ -873,7 +927,7 @@ describe('describeBeadBoon', () => {
     // that promised different words from the toast would be two vocabularies.
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theTithe');
     state.players[0]!.tithesGold = 600;
     const report = runEndOfTurn(state);
@@ -906,7 +960,7 @@ describe('describeBeadBoon', () => {
 describe('endeavourPrerequisiteMet', () => {
   it('is the reachability question, separate from the claim', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 9; i++) plant(state, 0, i, 4);
     expect(endeavourPrerequisiteMet(state, 0, 'theGrandSatrapy')).toBe(false);
@@ -948,7 +1002,7 @@ describe('the endeavour rows', () => {
 describe('the production phase', () => {
   it('finishes a race project inside the ordinary sweep', () => {
     const state = flatState();
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
     table(state, 'theGrandSatrapy');
     for (let i = 0; i < 10; i++) plant(state, 0, i, 4);
     const city = state.cities[0]!;
@@ -974,7 +1028,7 @@ describe('The Long Count', () => {
   it('shows the next age’s hand a turn early, and never turns a card over', () => {
     const state = flatState();
     plant(state, 0, 4, 4);
-    state.beads.worldAge = 3;
+    worldIn(state, 3);
 
     // Without it, the age ahead is shut.
     expect(beadHandIsShownTo(state, 0, 3)).toBe(true);

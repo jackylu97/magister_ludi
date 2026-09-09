@@ -373,6 +373,10 @@
     "debtPercent": -25,
     "disbandBelow": -10
   },
+  "wager": {
+    "countdown": 10,
+    "lastAgeTurns": 40
+  },
   "startingUnits": [
     "settler",
     "scout"

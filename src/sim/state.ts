@@ -576,8 +576,28 @@ import {
  * log does not replay: the caravan a seat used to queue is now a coin it
  * spends, every bot seat's purse and build order move with it, and a sea route
  * already running banks half again from the turn this lands.
+ *
+ * v101: **the world clock is the mean, and an age is given ten turns to close**
+ * (batch G1; the user, 2026-09-08, `docs/wager.md` §1: "lets take the idea of a
+ * global age (takes the mean of all players, with a 10 turn countdown for age
+ * end)"). The first-seat rule is **retired**: `BeadTable.worldAge` — a stored
+ * clock raised to the highest age any real seat had reached — is gone, and in
+ * its place `GameState.ageClose` carries one absolute `{age, turn}` stamp off
+ * which two readings are derived (`worldClock.ts`): `worldAge`, the mean of
+ * every living empire's highest technology floored, and `currentWorldAge`, the
+ * age the world is in. When the mean first crosses, the age it is leaving is
+ * given `rules.wager.countdown` turns; at the close a new announced occasion —
+ * `ageClosed`, the moment G2's wagers are judged on — fires for every seat and
+ * the world enters the next age, which is when the deed tables turn over. The
+ * last age has nothing above it and closes `rules.wager.lastAgeTurns` after it
+ * opened, or the turn the Great Work is raised, whichever comes first.
+ *
+ * A v100 log does not replay. Every age now opens a countdown later than it did
+ * and off a different reading, so a hand turns face up on a different turn, a
+ * reckoning is taken on a different board, and the per-age counters the opening
+ * resets are zeroed somewhere else entirely.
  */
-export const SCHEMA_VERSION = 100;
+export const SCHEMA_VERSION = 101;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1199,9 +1219,13 @@ export interface BeadClaim {
  *
  * `faceUp` is the whole of Entry VI's drafting model: a card dealt before its
  * age opens is face down — it is *there*, it is in the seeded order, and nobody
- * may claim it — and the turn the first seat in the world reaches that age every
- * card in the hand turns over at once. A card dealt after the age has opened
- * arrives face up.
+ * may claim it — and the turn the world's own clock enters that age every card
+ * in the hand turns over at once. A card dealt after the age has opened arrives
+ * face up.
+ *
+ * "The world's own clock" was the *first seat* to reach the age until batch G1;
+ * it is the mean now, ten turns after the middle of the board crossed
+ * (`worldClock.ts`). Which age is open moved; nothing about `faceUp` did.
  */
 export interface BeadCard {
   id: BeadCardId;
@@ -1209,9 +1233,26 @@ export interface BeadCard {
 }
 
 /**
+ * **An age's close, decided** (batch G1, `docs/wager.md` §1).
+ *
+ * `age` is the age that is closing — the age the world is in until `turn`
+ * arrives — and `turn` is the absolute turn it closes on. Both halves are
+ * load-bearing: the turn alone would not say what it is the end of, and the age
+ * alone would be a countdown somebody had to tick.
+ *
+ * The whole subsystem is this pair plus two comparisons (`worldClock.ts`),
+ * which is `TimedEffect`'s lesson taken a second time: an absolute turn is
+ * *compared*, never maintained.
+ */
+export interface AgeClose {
+  age: number;
+  turn: number;
+}
+
+/**
  * The Bead Race's whole world state (design ledger Entry VI).
  *
- * Five fields, and each of them is one sentence:
+ * Four fields, and each of them is one sentence:
  *
  *   · `decks` — the shuffled order of each age's cards, drawn from `state.rng`
  *     **once, in `newGame`**, so a seed *is* a deal (Entry II's fairness: every
@@ -1223,8 +1264,14 @@ export interface BeadCard {
  *     were applied in rather than of a check somebody could forget.
  *   · `streaks` — how many consecutive turns each seat has held each streak
  *     deed's count at or above its value. Reset to zero the turn it falls short.
- *   · `worldAge` — the world's clock, one clock for everybody: the highest age
- *     any real seat has reached. An age *opens* the turn this rises.
+ *
+ * There was a fifth until batch G1: `worldAge`, a **stored** clock raised to the
+ * highest age any real seat had reached. That was the first-seat rule, and it
+ * lived here because the Bead Race was the only system that asked. It is gone —
+ * the world's age is derived from the mean (`worldClock.ts`) off one absolute
+ * stamp on the state itself (`GameState.ageClose`), because a clock several
+ * systems read is not one system's field, and a *stored* age is a second answer
+ * to a question the technology lists already answer.
  *
  * Plain objects and arrays throughout, never a `Map` or a `Set`: every one of
  * them is iterated for an outcome, and an outcome that depends on iteration
@@ -1235,7 +1282,6 @@ export interface BeadTable {
   hands: Record<string, BeadCard[]>;
   claimed: BeadClaim[];
   streaks: Record<string, Record<string, number>>;
-  worldAge: number;
 }
 
 /**
@@ -2601,6 +2647,27 @@ export interface GameState {
    */
   beads: BeadTable;
   /**
+   * **The world's clock, and the only thing about it the state carries**
+   * (batch G1, `docs/wager.md` §1 and §8).
+   *
+   * One absolute stamp — the age that is closing and the turn it closes on —
+   * overwritten each time a close is decided. Both of the numbers a surface
+   * asks for are folds of it and neither is stored: `worldAge` is the world's
+   * *progress* (the mean of every living empire's highest technology, floored)
+   * and `currentWorldAge` is the age the world is *in*. See `worldClock.ts`,
+   * which is the whole of the reading.
+   *
+   * Absent means **no age has closed yet**, which is presence-is-state in the
+   * `researchPlan` sense rather than a flag: a world in its first age has no
+   * countdown to have started it (§1), and a save written before this batch
+   * loads as exactly that.
+   *
+   * It replaced `BeadTable.worldAge`, a *stored* clock raised by `Math.max`
+   * over the seats — the first-seat rule, and a second answer to a question the
+   * technology lists already answer.
+   */
+  ageClose?: AgeClose;
+  /**
    * The winner, once there is one; `null` while the game is live.
    *
    * **One field, two ways to reach it** (Entry VI.3): the last empire standing
@@ -2729,10 +2796,10 @@ function newBeadTable(rng: Rng): BeadTable {
     decks[String(age)] = shuffle(rng, [...beadDeckFor(age), ...reckonings]);
     hands[String(age)] = [];
   }
-  // The world begins in its first age, whatever the tree's opening technologies
-  // are: `worldAge` is the *clock*, and a clock that started at the highest age
-  // anybody happened to hold would open an age before anybody had entered it.
-  return { decks, hands, claimed: [], streaks: {}, worldAge: 1 };
+  // No clock here since batch G1. The world begins in its first age because
+  // nothing has closed one yet (`GameState.ageClose` absent), which is a fact
+  // about the calendar rather than about the deck this function builds.
+  return { decks, hands, claimed: [], streaks: {} };
 }
 
 /**

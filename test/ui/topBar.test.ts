@@ -106,3 +106,49 @@ describe('readEmpire carries the empire-scale card lines', () => {
     expect(source('readings.ts')).toMatch(/foldEmpireLines\(lines\)/);
   });
 });
+
+/**
+ * **The age card** (batch G1, `docs/wager.md` §1).
+ *
+ * The one chip on the strip that is not about the local empire: the world's age
+ * is held in common, and the countdown on it is the deadline a wager (G2) is
+ * played to — "a wager with a hidden deadline is a coin toss" is the user's own
+ * reading. Source-reading, like every other register in `test/ui`: this suite
+ * runs without a DOM, and what is pinned is that the bar *asks the simulation*
+ * rather than keeping a second clock of its own.
+ */
+describe("the top bar's age card", () => {
+  it('reads the world clock rather than deriving an age of its own', () => {
+    const bar = source('topBar.ts');
+    // The two folds off `GameState.ageClose`, asked by name. A bar that read
+    // the seats' technologies and averaged them itself would be the second
+    // clock this batch removed — right up until the day a rule moved.
+    expect(bar).toMatch(
+      /import \{ currentWorldAge, worldAgeCountdown \} from '\.\.\/sim\/worldClock'/,
+    );
+    expect(bar).toMatch(/worldAgeCountdown\(state\)/);
+    expect(bar).toMatch(/eraNumeral\(currentWorldAge\(state\)\)/);
+  });
+
+  it('prints the age always and the countdown only while one runs', () => {
+    const bar = source('topBar.ts');
+    // The sentence is the strip's business and the number is the simulation's,
+    // which is every other chip's split. `figure` is what prints the count, and
+    // the chip's own face is already tabular mono (`.civ-yield`, `style.css`).
+    expect(bar).toContain('closes in ${figure(countdown.turnsLeft)} turn');
+    // A chip bound to the shared info card like its neighbours, and no button:
+    // there is no age screen to open.
+    expect(bar).toMatch(/info\.bind\(ageItem, \(\) => ageCard\(\)\)/);
+    expect(bar).not.toMatch(/ageItem\.addEventListener/);
+  });
+
+  it('shows every empire its own age, because the world clock is a mean', () => {
+    const bar = source('topBar.ts');
+    // "Why has the age not turned over yet" is a question about the *other*
+    // empires once the clock is an average, so the card prints the summands.
+    const card = bar.slice(bar.indexOf('function ageCard()'));
+    const body = card.slice(0, card.indexOf('\n  }\n'));
+    expect(body).toContain('realPlayers(state)');
+    expect(body).toContain('highestAge(seat.techsResearched)');
+  });
+});

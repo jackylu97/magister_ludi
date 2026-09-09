@@ -428,6 +428,15 @@ export function hasAbility(state: GameState, playerId: number, ability: AbilityI
  * Availability that a *rival* opens is new, and it only ever moves one way (a
  * technology is never un-researched), so it keeps `isUnlocked`'s promise that
  * availability never goes backwards.
+ *
+ * **Not the world's clock**, and the distinction survived batch G1 deliberately
+ * (`docs/wager.md` §1: the clock "does not move the Opus door"). This asks *has
+ * anybody anywhere reached this node* — a first-seat reading, and the right one
+ * for a finish line that "announces itself to all contestants at once".
+ * `worldClock.ts` asks what age the world is **in**, which is the mean and is
+ * the calendar's business alone: the deed tables, the age-entry moments and the
+ * wager. Two questions with two answers; a row that wants the door asks this
+ * one, a table that wants the age asks that one.
  */
 export function worldTechReached(state: GameState, tech: TechId): boolean {
   for (const player of realPlayers(state)) {

@@ -22,6 +22,7 @@ import { type Game, createGame, dispatch } from '../../src/sim/game';
 import { unitDef } from '../../src/sim/unitData';
 import { availableTechs, isUnlocked } from '../../src/sim/tech';
 import { TECH_IDS, highestAge, techDef } from '../../src/sim/techData';
+import { currentWorldAge } from '../../src/sim/worldClock';
 
 /**
  * One seat, one capital, the cheapest tech available every turn, and a queue of
@@ -108,6 +109,12 @@ describe('the table in a played game', () => {
     // ages in front of it are cheaper, which is the whole of the change; the
     // horizon (400) still has room in it.
     console.info(`[pacing] the scripted seat opens the Æra III table on t${opened}`);
+    // **Re-measured 2026-09-09, batch G1** (the world clock is the mean with a
+    // ten-turn countdown): this lone seat reaches built age 2 on t82 and built
+    // age 3 on t201, the world enters Æra II on t91 and Æra III on t210, and the
+    // hand turns over on t211. On a one-seat board the mean *is* that seat, so
+    // what the batch added to this pacing is exactly the countdown — ten turns
+    // between the tree arriving and the calendar following it.
     // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
     // band around t100 on this seed; the band stays deliberately loose.
     // Re-banded 2026-09-02 (the column-formula costs): every price in the tree
@@ -132,7 +139,12 @@ describe('the table in a played game', () => {
     // spare. The horizon grows 260 → 400 with the band, for the reason every
     // pacing harness in this suite gives: one that stops before the thing it
     // measures happens measures nothing at all.
-    expect(game.state.beads.worldAge).toBeGreaterThanOrEqual(3);
+    // **Re-aimed by batch G1**: the world's age is derived from the mean and
+    // lags the tree by a countdown (`worldClock.ts`), so this lone capital's
+    // own age is what the tree pace is measured by, and the world's is what the
+    // hand is measured by. On a solo board the two are the same reading ten
+    // turns apart, which is why the horizon below still reaches both.
+    expect(currentWorldAge(game.state)).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 
     // Once open, the hand is full and the deck is still dealing behind it.

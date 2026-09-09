@@ -98,8 +98,9 @@ import { explainRenown, foldRenown, renownPerTurn, renownThreshold } from '../si
 import { TRIUMPH_IDS, type TriumphScope, triumphDef } from '../sim/triumphData';
 import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
-import { ABILITY_TECH, highestAge, techDef } from '../sim/techData';
+import { ABILITY_TECH, eraNumeral, highestAge, techDef } from '../sim/techData';
 import { hasAbility } from '../sim/tech';
+import { currentWorldAge, worldAgeCountdown } from '../sim/worldClock';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
@@ -744,6 +745,107 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   container.append(beadsItem);
   info.bind(beadsItem, () => beadsCard());
 
+  // --- the age --------------------------------------------------------------
+
+  /**
+   * **The age card**: what age the world is in, and how long it has left
+   * (batch G1, `docs/wager.md` §1).
+   *
+   * The one chip on this strip that is not about *this* empire. Every other
+   * figure here is the local seat's own — its yields, its renown, its routes,
+   * its beads — and the age is the world's, held in common: it is the calendar
+   * every empire's deed table, and from G2 every empire's wager, is judged
+   * against. A player who cannot see it cannot see the deadline they are
+   * playing to, and "a wager with a hidden deadline is a coin toss" is the
+   * user's own reading (§1).
+   *
+   * The countdown rides in the same span rather than in a badge of its own,
+   * because it is not a second fact: an age with ten turns left and an age with
+   * none are the same reading of the same clock, and the strip already prints
+   * two-part figures ("27/90 (+2)") in one span for exactly that reason. The
+   * chip is not a button — there is no age screen to open, and the Abacus, which
+   * is the nearest thing, is one chip along.
+   */
+  const ageItem = element('span', 'civ-yield is-age');
+  {
+    const icon = element('span', 'civ-yield-icon', '⧗');
+    icon.setAttribute('aria-hidden', 'true');
+    ageItem.append(icon);
+    ageItem.tabIndex = 0;
+  }
+  const ageValue = element('span', 'civ-yield-value', '—');
+  ageItem.append(ageValue);
+  ageItem.title = '⧗ The age the world is in, and the turns left before it closes';
+  ageItem.setAttribute('aria-label', 'the age of the world');
+  container.append(ageItem);
+  info.bind(ageItem, () => ageCard());
+
+  /**
+   * What the age is, what it is waiting on, and where every empire stands in
+   * its own tree.
+   *
+   * The last block is the whole argument for the card: the world's age is a
+   * **mean**, so "why has the age not turned over yet" is a question about the
+   * other empires, and a card that printed the answer without its summands
+   * would be asking to be taken on trust. It is the same list the bead chip
+   * prints one along, asked of a different column.
+   */
+  function ageCard(): Node {
+    const { state } = getGame();
+    const box = element('div');
+    const age = currentWorldAge(state);
+    const countdown = worldAgeCountdown(state);
+
+    const head = element('div', 'info-card-head');
+    head.append(element('span', 'info-card-name', 'The Age of the World'));
+    head.append(element('span', 'info-card-kind', `Æra ${eraNumeral(age)}`));
+    box.append(head);
+
+    if (countdown) {
+      const list = element('ul', 'meter-lines ledger');
+      const row = element('li', 'meter-line');
+      row.append(element('span', 'meter-line-source', 'This age closes in'));
+      row.append(
+        element(
+          'span',
+          'meter-line-value',
+          `${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`,
+        ),
+      );
+      list.append(row);
+      box.append(list);
+      box.append(
+        element(
+          'p',
+          'hint',
+          'The world has moved on. When the count runs out this age ends and the next begins.',
+        ),
+      );
+    } else {
+      box.append(
+        element(
+          'p',
+          'hint',
+          'The age turns over when most of the world has entered the next one — not when the first empire does.',
+        ),
+      );
+    }
+
+    box.append(element('p', 'eyebrow renown-heading', 'the empires'));
+    const seats = element('ul', 'meter-lines ledger');
+    for (const seat of realPlayers(state)) {
+      const row = element('li', 'meter-line');
+      row.classList.toggle('is-earned', seat.id === localPlayerId());
+      row.append(element('span', 'meter-line-source', seat.name));
+      row.append(
+        element('span', 'meter-line-value', `Æra ${eraNumeral(highestAge(seat.techsResearched))}`),
+      );
+      seats.append(row);
+    }
+    box.append(seats);
+    return box;
+  }
+
   /**
    * The last three beads, and every seat's standing under them.
    *
@@ -1385,6 +1487,23 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
         ? `${figure(player.beads.length)} / ${figure(BEAD_RULES.threshold)}`
         : '—';
       if (beadsValue.textContent !== beads) beadsValue.textContent = beads;
+
+      // The age, and the countdown when there is one. Both readings come off
+      // `worldClock.ts` — the simulation's own folds of the one stamp on the
+      // state — so the bar cannot come to disagree with the phase that wrote it.
+      // The sentence is written here rather than in the sim for the reason every
+      // other chip's is: what the number *means* is the strip's business, and
+      // what it *is* is the simulation's.
+      const countdown = worldAgeCountdown(state);
+      const era = `Æra ${eraNumeral(currentWorldAge(state))}`;
+      const ageText = countdown
+        ? `${era} · closes in ${figure(countdown.turnsLeft)} turn${countdown.turnsLeft === 1 ? '' : 's'}`
+        : era;
+      if (ageValue.textContent !== ageText) ageValue.textContent = ageText;
+      // The quiet ink means "something you can act on is true here", and a
+      // closing age is exactly that: it is the last window a bar staked on this
+      // age can still be met in.
+      ageItem.classList.toggle('is-good', countdown !== null);
 
       // The badge used to ride here — a small mark on the culture chip while
       // Statecraft owed the player a decision. It has moved to the HUD dock's

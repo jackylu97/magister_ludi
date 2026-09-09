@@ -20,8 +20,9 @@
  *     empire to finish takes the bead and the boon. Nobody else gets either.
  *   · a **quest** is a deed, dealt from an age's deck, taken by the first seat
  *     that does it.
- *   · a **reckoning** is the age's snapshot, taken the moment the first seat
- *     enters the next age: every seat measured at once over one count, a victor
+ *   · a **reckoning** is the age's snapshot, taken the moment the **world's**
+ *     age closes (`worldClock.ts` — the mean of the board since batch G1, not
+ *     the first seat): every seat measured at once over one count, a victor
  *     named, and **ties pay nobody**.
  *   · a **grant** is a bead a *thing hands over* — the closing technology, the
  *     Magnum Opus, the three great works of the Observatory (Entry LVIII, the

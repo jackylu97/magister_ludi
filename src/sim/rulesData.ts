@@ -1710,6 +1710,39 @@ export interface ReligionRules {
   maxReligions: { numerator: number; denominator: number };
 }
 
+/**
+ * **The Wager's calendar** (`docs/wager.md` §1, batch G1).
+ *
+ * The world keeps one age, and it is the **mean** of every living empire's own
+ * highest technology rather than the first seat's (`worldClock.ts`). The two
+ * numbers here are the whole of what that clock needs, and both are read as
+ * *lengths* rather than as countdowns: a close is stamped as an absolute turn
+ * the moment it is decided, and nothing anywhere decrements anything — the
+ * `TimedEffect` discipline, one system over.
+ */
+export interface WagerRules {
+  /**
+   * How many turns an age is given to close once the world's mean has crossed
+   * into the next one. Ten, the user's own figure (`docs/wager.md` §1).
+   *
+   * It is the whole of the pace: the countdown is what a player is shown on the
+   * age card, what a wager's bar is judged at the end of, and what the Horde
+   * (§9) will be announced by. A shorter one makes the crossing a surprise; a
+   * longer one makes the age that has already ended outstay it.
+   */
+  countdown: number;
+  /**
+   * How long the **last** age runs before it closes on its own.
+   *
+   * The last age has nothing above it for the mean to cross into, so it cannot
+   * be closed by the clock the way every other age is (`docs/wager.md` §1: "the
+   * last age closes only by the Opus"). Forty turns after it opened is the
+   * backstop, so an age whose Opus nobody ever raises still has an end, and its
+   * wager still has a turn to be judged on.
+   */
+  lastAgeTurns: number;
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -1732,6 +1765,7 @@ export interface RulesConfig {
   greatPeople: GreatPeopleRules;
   production: ProductionRules;
   upkeep: UpkeepRules;
+  wager: WagerRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
 }

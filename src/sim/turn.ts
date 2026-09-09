@@ -140,7 +140,7 @@ import { pruneTruces } from './wars';
 import { type DealEndReport, pruneDeals } from './deals';
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
-import { type BeadAward, beadMarks, beadsSince, runBeads } from './beads';
+import { type BeadAward, beadMarks, beadsSince, runBeads, runWorldClock } from './beads';
 import type { BeadAge } from './beadData';
 import { runRenown, settleRenownWindfall } from './renown';
 import { advanceResearch } from './tech';
@@ -377,12 +377,15 @@ export interface TurnReport {
    * it is on every turn but two or three in a whole game.
    *
    * `beads`' sibling and a *difference* for the identical reason: an age opens
-   * once, and by the time this returns `state.beads.worldAge` simply *is* the
+   * once, and by the time this returns `currentWorldAge(state)` simply *is* the
    * new number, with nothing on the board to say whether it moved this turn or
    * forty turns ago. An interface that wanted to announce "Æra III opens" would
-   * otherwise have to keep its own copy of the previous turn's `worldAge` and
-   * diff it — which is a second clock, and a second clock is how a reload comes
-   * to announce an age that opened a decade back.
+   * otherwise have to keep its own copy of the previous turn's age and diff it
+   * — which is a second clock, and a second clock is how a reload comes to
+   * announce an age that opened a decade back.
+   *
+   * Written by the `worldClock` phase since batch G1, on the turn a countdown
+   * reaches nought rather than on the turn the first seat crossed.
    *
    * The **built** age number (see `BeadAge`): what the interface prints beside
    * it is the interface's business.
@@ -619,10 +622,33 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: runRenown,
   },
   {
+    name: 'worldClock',
+    // **The world's calendar** (batch G1, `docs/wager.md` §1): an age closes
+    // when the stamp on it says so, and a new countdown opens when the world's
+    // *mean* age crosses into the next one.
+    //
+    // Its position is the usual rules decision, and it is one sentence: **every
+    // phase that reads the world's age must run after this one.** The loudest
+    // of them is directly below — the deed tables turn face up in this phase
+    // and are swept for a bead in the next — and the wager's deal and
+    // judgement (G2) and the Horde's surge (H1) join them behind it for the
+    // same reason. A world that opened an age in one phase and swept its cards
+    // in a phase *above* it would be dealing this age's table for the last
+    // age's world.
+    //
+    // **After `renown`**, which is the seat the clock held when it was beat one
+    // of `runBeads` (this is a lift, not a move): the turn's standing Triumphs
+    // and its recruitments are on the register before an age is snapshotted by
+    // a reckoning. It became a phase of its own because the clock is no longer
+    // the Bead Race's private business — the wager, the Horde and the top bar
+    // all read it. See `runWorldClock`.
+    run: runWorldClock,
+  },
+  {
     name: 'beads',
-    // The Bead Race's own beat (design ledger Entry VI): the world's clock
-    // advances, an age opens if it rose, one card is dealt, every standing deed
-    // is swept, and the threshold is checked.
+    // The Bead Race's own beat (design ledger Entry VI): one card is dealt and
+    // every standing deed is swept, on a board whose age the phase above has
+    // just settled.
     //
     // Its position is the usual rules decision. **Directly after `renown`**, so
     // the turn's standing Triumphs and its recruitments are already on the

@@ -463,9 +463,15 @@ describe('end-of-turn pipeline', () => {
       // this turn pays into the sweep that banks the library beside it. See
       // `runRenown`.
       'renown',
-      // The Bead Race's own beat, directly after `renown` so the turn's standing
-      // Triumphs and this turn's recruitments are already on the register before
-      // a deed is swept. See `runBeads` (design ledger Entry VI).
+      // The world's calendar (batch G1, `docs/wager.md` §1): an age closes when
+      // its stamp says so and a countdown opens when the world's *mean* age
+      // crosses. Directly after `renown` — the seat the clock held when it was
+      // beat one of `runBeads` — and directly before the tables that read it,
+      // which is the whole of its position. See `runWorldClock`.
+      'worldClock',
+      // The Bead Race's own beat, directly after the clock so the turn's
+      // standing Triumphs, this turn's recruitments and the world's age are all
+      // on the register before a deed is swept. See `runBeads` (Entry VI).
       'beads',
       // The two revocations that are conditions of a turn rather than events —
       // Hypatia's mob, Boudica's century. A broom's twin: marking a record
@@ -736,7 +742,7 @@ describe('the research queue field', () => {
     // v92 log replays only where none of those rows was ever held; where one
     // was, a piece walks further or a citizen turns and everything priced
     // against it moves. (93 is batch B1's and 94 batch B1b's, landed beside it.)
-    expect(SCHEMA_VERSION).toBe(100);
+    expect(SCHEMA_VERSION).toBe(101);
   });
 });
 
