@@ -680,7 +680,47 @@ directly to confirm rulings — user marginalia are rulings.
   lump (hammers keep theirs — they compete for a queue); science *gained*
   keeps its weight as a yield. Acceptance: negative-scoring nodes fall to
   what hammers alone account for; military re-aims stay under 45%;
-  technologies at t150 not below X1's; the t100 yields row. (eee)
+  technologies at t150 not below X1's; the t100 yields row. **X5c, X1b,
+  X6, X7 landed 2026-09-09** (a57d143 · b7e0bd5 · f5f62ba · 74a2f26): the
+  wall a share of the town's bar; the beaker lump gone and the unit gift
+  discounted by the research delay (every remaining negative node is
+  hammers-only; techs at t150 39/37 → 49/47); `tileWants` bounded to the
+  four best hexes by worth per coin (late-game ms/turn −46/−59%, fourteen
+  boards byte-identical); the march re-asked through
+  `unitOfferedForOrders` once a turn. The t100 row (eight seeds, 16
+  seats) on the landed tree: cities 5.5 · citizens 35.5 · food 115 · prod
+  49 · gold 16 · sci 36.6 · culture 46 · faith 16.5 · treasury 335 · techs
+  19.9 · happiness −1.0 — against the pre-pass 5.6 · 31.6 · 96 · 58 · 26 ·
+  30.6 · 37 · 16 · 239 · 15.8 · +3.4. **The science-weight experiment**
+  (the user, 2026-09-09: "massively increasing the value of science"):
+  swept ×1.5/×2/×3/×4/×8 on the t100 probe — ×2 through ×3 plateau near
+  43–48 science and 21.5 techs; past ×3 science itself falls (×8: 37,
+  cities 4.0); on the landed tree ×2 buys +11.5 science and +1.5 techs
+  for −0.8 cities, −3 citizens, −3.5 buildings, −14 food, −8 culture.
+  **Not landed** — the blunt weight wants beakers everywhere, including
+  where no road is left. **Ruled, X1c flies**: science's price is the
+  weight plus a chain-derivative premium, `hammerPrice`'s twin — what one
+  more beaker a turn saves in delay across the live chains' payoffs —
+  so an empire with tech road ahead prices a beaker high and one with
+  none prices it at the table. Acceptance: the t100 row's science and
+  techs up on the landed tree with cities and buildings within noise,
+  and the ×2 sweep re-run beside it. Written down from the batches: seed
+  4242 spends 2,462 of 3,324 commands on a pre-existing march
+  oscillation (X7's finding, a queue item); `controlledHoldings` and
+  `meterEffects` are the bot's largest unmemoised costs (X6's finding, a
+  sim batch); the bots on the audit's bench never found a house-opening
+  faith in 150 turns (X3's finding). **The user, 2026-09-09: "I fear the
+  bot is starting to get slow and we're adding too much to it … let's add
+  X1c and the sim readings and do a performance comparison."** Ruled: no
+  new arms after X1c; X9/X10 held until the user has played on this bot;
+  **batch M1** memoises `controlledHoldings` (`cities.ts`) and
+  `meterEffects` (`meters.ts`) per `(revision, seat)` in `readings.ts`'s
+  slate — a sim batch, no schema, byte-identical outcomes — and the
+  performance comparison is ms/turn before/after on the two benches
+  (whole game and X2's identical-state method) plus the t100 probe's own
+  ms/turn column; the five attribution doors (`scopeDoor`, `signDoor`,
+  `keepDoor`, `hexDoor`, `rowDoor`) come out in a cleanup pass after M1.
+  (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
