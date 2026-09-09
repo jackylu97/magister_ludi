@@ -1068,39 +1068,26 @@ directly to confirm rulings — user marginalia are rulings.
   than a meter line) and a capture has no `CommandResult` channel (the
   sheet infers it as the toast does) — a `captures?:` field. The
   spectate feed's great-person summary (`greatPersonCommand`, `bot.ts`)
-  still says act/work — R1's fence. **(6) rebuilt as U5 and again as U6,
-  2026-09-09.** U4 hung the badge as a drawn 3D mark over the flagpole
-  and the user could not see it (*"I can't see it with the opening
-  scout"*), for a structural reason: the banner is a **DOM plate over the
-  canvas** covering the town's own hex, so a mark at the pole's height is
-  behind it exactly as the piece's own sculpt is. **U5** set the badge
-  *into the plate* — the strongest piece's own badge file (civilians
-  included; a ship's mark composed from the atlas's own two tables)
-  masked in the plate's ink on a disc of parchment rimmed in the
-  **piece's** seat colour, a numeral bossing the corner past one, on the
-  banner's watched gate (nothing on a remembered town) and in the plate's
-  own signature; `render3d/garrison3d.ts` retired with its wiring and its
-  `view3d.json` keys, the flair gallery's tag sliders replaced by a
-  garrison stall on the banner itself. **U6** answered the user's second
-  look — the fly was still too subtle to spot, and Civ V's arrangement is
-  the one wanted (the icon at the **top left**, distinct and clickable,
-  and the unit's own flag not drawn while it stands in the town): the
-  roundel moved to the **hoist**, between the size badge and the name, on
-  the size badge's own 26px box, so the plate opens with two discs of one
-  diameter — how big the town is, and what is standing in it; the wound's
-  *left* inset clears both and U5's right-hand override is gone. It is a
-  **control**: a press on your own piece's icon selects that piece
-  through `selectOnTile` (`controls.selectUnitAt`), the board badge's own
-  path, so the plate and the tag cycle a stack in one order — a rival's
-  icon shows, does nothing, and says so with the cursor. And the piece's
-  own floating roundel is **off** while the banner carries it
-  (`banneredTownCells`, `render3d/pieces.ts`), filtered at build rather
-  than bitted on the handle — the three bits in `instances.ts` are the
-  *board's*, which is built once per game, while this layer is rebuilt on
-  every move and every fog step — on the banner's own watched gate, so a
-  remembered town's piece keeps its tag; the **sculpt stays**, and the
-  badge's click target goes with the badge. One badge, one place, in both
-  directions. **V2 (heraldry)** — (7) *"the
+  still says act/work — R1's fence. **(6) rebuilt again as U6** (the user,
+  2026-09-09: "I don't like that placement … too subtle to spot … double
+  check how Civ 5 handles it"): Civ V's city bar carries the **garrisoned
+  unit's icon at the top left**, distinct and clickable (selecting the
+  unit), and the unit's own flag is not drawn while it stands in the
+  city — the banner's icon *is* the unit. Ruled the same: the garrison
+  icon moves to the **hoist** (the left, beside the size badge), the
+  size of the size badge, in the piece's seat ink with its badge mark,
+  clickable to select the piece (the unit panel opens); and the piece's
+  own roundel in the scene is **hidden** while it stands on a city hex
+  whose banner shows it (the sculpt stays), so one icon is drawn in one
+  place. **U5 and U6 built 2026-09-09**: the plate carries the garrison
+  slot at the hoist beside the size badge at its size, the piece's badge
+  mark on a parchment disc rimmed in the owner's ink with a count past
+  one, a scout/worker/settler/caravan/great person taking it when nothing
+  stronger stands there, gated by the banner's watched gate, clickable
+  for your own piece (`selectOnTile`, the board badge's own path); the
+  piece's roundel is not built while its banner carries it, the sculpt
+  and hit bar staying; the 3D layer, its wiring and its view3d keys are
+  gone. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if
@@ -1203,34 +1190,28 @@ directly to confirm rulings — user marginalia are rulings.
   one accent; the **mode column** in the Running and All-routes tables
   is not prose ("land, road laid") but the same Land | Sea control the
   cards carry, or a single chip where only one mode is possible, with
-  the road state as its own column. The mock is the spec of record.
-  **R2 BUILT 2026-09-09** (no schema): the sheet is the tenth on
-  `modalShell.ts` — masthead, four cut tabs (gilt inner edge, hedera vermilion
-  on the open one, ink rule alone beneath), one leaf. `readRoutes` is its whole
-  subject and **nothing else on it prices a pair** (a source pin forbids
-  `routeStartable`, `routeModesAvailable`, `explainRouteYieldBetween` and
-  `findPath` in the file). Recommended holds the four purpose groups in the
-  ruling's priority, three cards each, best first with the hard shadow and the
-  hedera, and an **empty group is not built at all**; a card's facts are the
-  reading's own (`routeFacts`' table, mirrored in `docs/trade.md`) and the
-  Land | Sea control re-reads them; Running is the table with ↻/Renew/Cancel;
-  All routes is the old screen behind a tab, `<details>` per origin with the
-  filter and sort chips; Unavailable groups by re-asking the gate's clauses **in
-  `routeStartable`'s order**, never by matching its prose. Send is `buyRoute`
-  through a new `controls.buyRouteOf`; the unit sheet's three route verbs became
-  one link; the top bar's chip and a **fourth HUD dock button** wear a drawn cart
-  (`TRADE_MARK`, joins the flair gallery's dock cabinet), and `E` opens the sheet
-  beside `C`/`H`/`W` with its listener in `gameDisposers`. The caravan's own
-  sculpt (a pack beast with panniers, a gilt bale when laden) shipped on
-  2026-08-28 and is now in the flair gallery beside a soldier with a live routed
-  wash. **Measured** on a twelve-town board (88 pairs, warm, median of five):
-  open 33.5ms → 67.1ms, redraw **33.5ms → 0.29ms** — the reading carries twice
-  as much and every redraw after it is free, which is what the lag was.
-  Two deliberate departures from the mock, both written down in `docs/trade.md`:
-  no "warships on path" fact (the reading carries no path; a **blockade** at
-  either end stands in its place, which is the rule that actually takes the pay
-  back) and no *blockaded* refusal heading (a blockade never refuses a hire).
-  (eee)
+  the road state as its own column. The mock is the spec of record. **R1
+  built 2026-09-09** (schema 100): `buyRoute` validates as `startRoute`
+  does plus the purse, charges, spawns the caravan through `arriveOnTile`
+  and writes the route; `explainRoutePrice` = the Trader's unit-cost
+  lines × `goldPerHammer` × `rules.trade.routePriceMultiplier` (1.0);
+  `UnitDef.routeOnly` refuses the Trader in `buildError` and
+  `purchaseError` by marker; sea routes pay `rules.trade.seaYieldPercent`
+  50 as their own line before the amplifier; the bot's book carries one
+  route row bought through `buyRoute`; `readRoutes(state, seat)` on the
+  revision clock is the screen's reading (619 ms fresh on a 13-town
+  board, free every ask after); t100 routes running 0.88 → 1.00. ▢ a
+  route now needs a **slot** rather than a Trader row, so Currency (the
+  Market) gates it in practice — the user's call whether a tech should
+  be named. **R2 built 2026-09-09**: the tenth sheet — four gilt-edged
+  cut tabs, the purpose groups (an empty one never built), the Land | Sea
+  control re-reading a card, facts off `readRoutes` and the rules, Send
+  through `buyRoute`, the unit sheet's route verbs one link, a drawn
+  cart on the top bar's chip and a fourth dock button, `E` opens it;
+  redraw 33.5 → 0.29 ms. Two departures written down: no
+  warships-on-path fact (the reading carries no path for refused pairs;
+  a blockade at either end stands in), and no blockade heading under
+  Unavailable (a blockade never refuses a hire). (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
