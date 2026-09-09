@@ -646,7 +646,41 @@ directly to confirm rulings — user marginalia are rulings.
   arrives by growth, never by a command); acceptance is the same sweep,
   Σ happiness at t150 above 42 and ceiling seats at or under 4 of 16,
   towns not below 96 by more than three. **X8 flies beside it** (the rows
-  nobody reads: a register in the shape of the fold registry). (eee)
+  nobody reads: a register in the shape of the fold registry). **X8 and X5b
+  landed 2026-09-08** (5da55ce · 3e3b687): 49 building-row fields priced or
+  excused by name (the `unitStat` heal is a share of a piece, not points of
+  strength); the citizen's keep folded by four arms at the town's current
+  size, the expansion chain charging the new town's first citizen beside
+  its threshold — happiness at t100 back to +2.9. **X5b's finding**: the
+  split of X5 on the t100 probe shows the **wall half alone** costs the
+  mean seat 9 citizens, 34 food and 9 science with the town count falling
+  — palisades before granaries — because the `cityHp` line is priced as
+  points × the military weight × (1 + threat), and a point of hp is not a
+  point of strength. **Ruled, X5c flies**: the hp line is a **share of the
+  town's bar** (X8's `healsAdjacent` shape — hp ÷ the town's max hp with
+  the row, × the town's own strength line's worth), still × (1 + threat);
+  acceptance is the t100 probe — the wall half alone within noise of shut
+  on citizens/food/science, and the siege bench still fronting a wall at
+  threat 4. **X6 and X7 fly beside it** (`tileWants` bounded to the town's
+  own ring and its hypothetical hoisted; the march re-asked through
+  `unitOfferedForOrders`, at most once a turn). **RULED** (the user,
+  2026-09-09): *"science really only should be valued when its a gain in
+  yields (science per turn, and not lump science used to spend on a
+  technology) … we shouldn't be thinking about science spend with the
+  same value we're thinking about science gain."* A tech's beakers are
+  **time, never coin**: research always runs, so the cost of researching
+  A is only that B arrives later, and the chain already carries that as
+  its delay (beakers owed ÷ the science rate, discounting every payoff
+  behind it). The `explainLump` subtraction of the beakers at
+  `weights.science` is a second charge for the same thing and is the
+  reason most of the tree scores negative — and a negative chain is
+  mis-handled twice over: the incumbent's `switchMargin` (×1.1) makes a
+  negative plan *easier* to displace, and a chain's per-step share pushes
+  its own buildings down the queue. **Batch X1b** removes the beaker
+  lump (hammers keep theirs — they compete for a queue); science *gained*
+  keeps its weight as a yield. Acceptance: negative-scoring nodes fall to
+  what hammers alone account for; military re-aims stay under 45%;
+  technologies at t150 not below X1's; the t100 yields row. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
