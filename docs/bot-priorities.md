@@ -4763,3 +4763,41 @@ twenty turns. It does not.
   come to the same answer today because the table is a total order; a cheaper
   arm that only re-asked when the old destination is refused would be a different
   batch, and would miss "better ground opened".
+
+### The `chooseResearch` pin, diagnosed and re-aimed (2026-09-09)
+
+`test/sim/aiWants.test.ts`' *"changes its mind about the plan far less often"* —
+`chooseResearch` commands over forty turns of that file's duel, ceiling 16,
+measured 10 after batch 3 — fails on X7 alone (18) and on the four-batch gate
+(19). Batches X5c, X1b and X6 each pass it on their own worktrees, so the number
+is this batch's to explain.
+
+**It is trajectory divergence, not a wobble the batch created.** Four readings,
+and the last one is the decisive one:
+
+  · **The oscillation is older than the batch.** Seat 1 on that board flips
+    between the same two goals with X7 **shut** — t22 → t23 → t28 — and with it
+    on it runs two more cycles of that same pair, plus two genuinely *new* late
+    goals (t37, t38) that are not flip-backs at all.
+  · **The flip rate does not move.** Counting an A → B → A flip-back over ten
+    boards: **32 of 103 re-aims shut (31%) and 35 of 113 on (31%)**. A margin
+    that had stopped defending the incumbent would show up here first, and it
+    does not.
+  · **Ten boards, paired: +1.0 ± 1.2 re-aims** (means 10.3 → 11.3, per-board
+    deltas `+4 +7 +2 +1 −7 −1 +2 −3 +1 +4`). Seed 42 falls **15 → 8** and 4242
+    falls **13 → 10** while this pin's own seed rises 14 → 18. The pin reads one
+    board, and one board of a ten-board spread that wide is a coarse instrument.
+  · **The arm cannot perturb what the beeline reads.** `reaskTheMarch` sits
+    before `reaimBeeline` in `housekeeping`, so a re-issued march moves a piece
+    *before* `techGoalTable` sweeps the board (`surveyUpgradeSites`, and
+    `techChain`'s live reads). Moving the arm to the **other side** of
+    `reaimBeeline` and re-running the ten-board sweep gives **byte-identical
+    counts on every board**, which rules the mechanism out rather than arguing
+    about it. The arm was put back where it was: beside `wakeIdleSettler` and
+    `wakeTheCampaign`, the two siblings it generalises.
+
+Two things worth keeping in view. The pin had already drifted **10 → 14** on its
+own board without X7 in it, so most of the gap is not this batch's. And the
+ceiling is re-aimed to **19** — the four-batch gate's own reading, with no slack
+— rather than to a comfortable round number: the next thing that moves it is
+meant to be looked at.

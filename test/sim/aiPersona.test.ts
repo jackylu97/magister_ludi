@@ -193,7 +193,10 @@ describe('the persona sheet', () => {
         // Batch 7 retired the last of them: `settlerCap` is gone from the
         // sheet, and what is left in this block is the falloff (a preference)
         // and the search radius (a bound on compute).
-        gates: ['cityValueFalloff', 'siteSearchRadius'],
+        // Batch X6 (2026-09-09) added `hexOffersPriced` — a bound on how many
+        // frontier hexes the book prices, not a gate on settling; it is listed
+        // here because the register reads every key of the block.
+        gates: ['cityValueFalloff', 'hexOffersPriced', 'siteSearchRadius'],
       });
     }
   });

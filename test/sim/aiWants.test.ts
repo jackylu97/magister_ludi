@@ -637,9 +637,39 @@ describe('the chain in the book', () => {
     // an empire re-aiming its beeline most turns of the game. The margin is what
     // stops that, and this is the number pinned as a ceiling.
     //
-    // Measured 2026-09-05, this exact board: **31 before batch 3, 10 after.**
-    // The ceiling is set where a real regression would trip it and ordinary
-    // board-level movement would not.
+    // Measured 2026-09-05, this exact board: **31 before batch 3, 10 after**,
+    // and the ceiling was 16 — set where a real regression would trip it and
+    // ordinary board-level movement would not.
+    //
+    // **Re-aimed 2026-09-09 to 19** (batch X7, the march re-asked), and the
+    // reason is worth writing down because a raised ceiling always looks like a
+    // ceiling that gave up. This one board reads **14 on the tree X7 was built
+    // on**, 18 with X7 alone, and 19 with the four batches of that day together
+    // — so the pin had already drifted from 10 to 14 without X7 in it. What X7
+    // does is move the *board*: a settler that re-aims mid-walk founds somewhere
+    // else, and forty turns of a different game re-aim a different number of
+    // times.
+    //
+    // Diagnosed before it was re-aimed, because a wobble and a divergence look
+    // identical in one number (`docs/bot-priorities.md`, "Batch X7 as shipped"):
+    //
+    //   · **the oscillation is older than the batch.** Seat 1 flips between the
+    //     same two goals on this board with X7 *shut* (t22 → t23 → t28), and
+    //     with it on it runs two more cycles of that same pair;
+    //   · **the flip rate does not move.** Over ten boards, an A → B → A
+    //     flip-back is 31% of re-aims shut and 31% on. A margin that had stopped
+    //     holding would show here and does not;
+    //   · **ten boards, paired: +1.0 ± 1.2 re-aims** (means 10.3 → 11.3), and
+    //     the per-board deltas run **both ways** — seed 42 falls 15 → 8 and 4242
+    //     falls 13 → 10 while this seed rises 14 → 18;
+    //   · **the arm cannot perturb the read.** Moving `reaskTheMarch` to the
+    //     other side of `reaimBeeline` in `housekeeping` leaves all ten boards'
+    //     counts **byte-identical**, which is the experiment that rules out "the
+    //     re-asked march changes what the beeline reads mid-turn".
+    //
+    // So the ceiling is re-aimed rather than the batch reverted, and it is set
+    // at the four-batch gate's own reading with no slack in it: the next thing
+    // that moves this number is meant to be looked at.
     const game = createGame(CONFIG);
     let aims = 0;
     for (let turn = 0; turn < 40; turn++) {
@@ -650,7 +680,7 @@ describe('the chain in the book', () => {
         },
       });
     }
-    expect(aims).toBeLessThanOrEqual(16);
+    expect(aims).toBeLessThanOrEqual(19);
   });
 });
 
