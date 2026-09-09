@@ -207,7 +207,6 @@ const ANNOUNCING = new Set([
   'draft.ts#settleDraft',
   'discoveries.ts#payDiscovery',
   'diplomacy.ts#payLump',
-  'cities.ts#purchaseTileAt',
   'cities.ts#refundBeatenWonders',
   'cities.ts#payCompletionGrants',
   'cities.ts#payProject',
@@ -251,13 +250,17 @@ const ANNOUNCING = new Set([
   'religion.ts#sweep',
   'combat.ts#applyCombat',
   'commands.ts#applyStartRoute',
-  // Hiring a route charges the treasury and mints a piece (batch R1), and both
-  // are writes a tenant folds — `bankedGold` for the card evaluator's counts,
-  // and the garrison count for the piece.
-  'commands.ts#applyBuyRoute',
   'diplomacy.ts#expelFrom',
   'movement.ts#advanceAlongPath',
   'state.ts#captureUnit',
+  // **The one subtraction that spends a player's gold** (batch GP2): the coin
+  // out of the treasury, the almoner's ledger raised, and the banks announced,
+  // in one place. `purchaseTileAt` (`cities.ts`) and `applyBuyRoute`
+  // (`commands.ts`) were on this list until they were routed through it and now
+  // hold no bank write of their own — a seam that moves a bank through the one
+  // subtraction is announced by the subtraction, which is the whole point of
+  // having one.
+  'state.ts#spendGold',
   'state.ts#claimWonder',
   'state.ts#createCity',
   'state.ts#createUnit',

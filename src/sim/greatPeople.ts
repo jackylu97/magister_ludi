@@ -92,6 +92,7 @@ import {
   createUnit,
   playerById,
   removeUnit,
+  spendGold,
   unitById,
 } from './state';
 import { happinessOf } from './meters';
@@ -550,8 +551,15 @@ function chargeBank(
   currency: OfferCurrency,
   price: number,
 ): void {
-  if (currency === 'gold') player.gold -= price;
-  else player.faithPool -= price;
+  if (currency === 'gold') {
+    // Through the one seam, so a rung bought with coin joins the almoner's
+    // ledger (`spendGold`, `state.ts`) — it is a purchase, and the most
+    // deliberate one an empire makes. The faith arm keeps its own subtraction:
+    // the record counts one bank (see `Player.goldSpent`).
+    spendGold(state, player, price);
+    return;
+  }
+  player.faithPool -= price;
   // The banks are a line of the meters too — see `collectYields` (batch M3).
   bumpEconomy(state);
 }

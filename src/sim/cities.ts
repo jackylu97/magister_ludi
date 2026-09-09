@@ -144,6 +144,7 @@ import {
   hasEndedTurn,
   playerById,
   shrinkFollowers,
+  spendGold,
   tileOwnerField,
   wonderClaim,
 } from './state';
@@ -4646,9 +4647,9 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   if (!player) return;
   const price = tilePurchasePrice(state, player.id, city.id, { col: tile.col, row: tile.row });
   claimTile(state, city, tile);
-  player.gold -= price;
-  // The banks are a line of the meters too — see `collectYields` (batch M3).
-  bumpEconomy(state);
+  // Through the one seam, so the coin and the almoner's ledger move together —
+  // `spendGold` (`state.ts`) also announces the banks to the meters (batch M3).
+  spendGold(state, player, price);
   player.tilesPurchased += 1;
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.

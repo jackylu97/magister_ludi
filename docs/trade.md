@@ -20,7 +20,14 @@ History and the original proposal: `docs/design-history.md`.
 - **Never asked for orders.** `unitAwaitsOrders`/`unitOfferedForOrders` answer
   false for any `routeOnly` piece, routed or idle (R4).
 - The trader walks the road it lays; **a melee blow on a trading unit
-  PLUNDERS** (bounty to the attacker's nearest city) — never captures.
+  PLUNDERS** (bounty to the attacker's nearest city) — never captures. Coming
+  to rest on its hex plunders it the same way (`arriveOnTile`): one rule, two
+  sentences. An **unladen** trader is an ordinary civilian and is captured.
+- **One law suspends it** (`tradersUnplunderable`, batch GP2): a laden cart of
+  an empire holding it is not a target at all — `attackTargetAt` skips it, so
+  the tint, the forecast and the reducer refuse the blow as one, sword and shot
+  alike, and a winner arriving on its hex leaves it standing rather than taking
+  it. The rule is read at exactly those two seams.
 
 ## Hiring a route (ruled 2026-09-09, schema 100)
 

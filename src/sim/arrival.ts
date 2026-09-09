@@ -260,6 +260,19 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
      * worth killing is the cargo and not the profession.
      */
     if (trades(otherDef) && other.trade !== undefined) {
+      /**
+       * **Unless its own law protects it** — Pytheas' caravans, which cannot be
+       * taken (`tradersUnplunderable`).
+       *
+       * The rule's second sentence, said here because the plunder itself is said
+       * twice: `combat.ts` refuses the *blow*, and this refuses the *arrival* — a
+       * winner that kills an escort and steps onto the hex leaves the cart
+       * standing. `continue` before both branches, so the piece is neither
+       * plundered nor captured: falling through to the capture below would have
+       * handed the merchant over instead of the cargo, which is worse than
+       * either.
+       */
+      if (cardBehaviorRule(state, other.ownerId, 'tradersUnplunderable')) continue;
       const fromOwnerId = other.ownerId;
       removeUnit(state, other.id);
       report.plundered.push(

@@ -163,6 +163,7 @@ import {
   foldTile,
   yieldContextFor,
 } from '../../src/sim/yields/hex';
+import { startRouteAt } from '../../src/sim/trade';
 import {
   type City,
   type GameState,
@@ -170,6 +171,7 @@ import {
   createUnit,
   newGame,
   playerById,
+  spendGold,
   bumpRevision,
 } from '../../src/sim/state';
 import { anyCardDef } from '../../src/sim/statecraft';
@@ -2330,6 +2332,59 @@ describe('the engine shapes, priced', () => {
     undo();
     expect(alone).toBe(0);
     expect(beside).toBeGreaterThan(0);
+  });
+
+  /**
+   * **The four counts the great-person pass added** (batch GP2).
+   *
+   * Three of them need no arm at all — `explainCounted` is generic in the
+   * `CountKind` and asks the simulation's own `countOf`, which is the whole
+   * point of the ruling of 2026-09-04 — so what is pinned here is that they
+   * really are answered rather than falling to `score.nominalCount`. The
+   * fourth, a road's own length, is answered where a road is in hand and
+   * therefore does need one (`liveRouteHexes`).
+   */
+  it('prices the pass’ new counts off what the board actually counts', () => {
+    const spent: CardEffect[] = [
+      { kind: 'pays', where: 'empire', basis: 'count', count: 'goldSpent', to: 'science', amount: 1, per: 100 },
+    ];
+    const nothing = priced(spent);
+    const habit = priced(spent, (state, player) => {
+      player.gold = 900;
+      spendGold(state, player, 500);
+    });
+    expect(nothing).toBe(0);
+    expect(habit).toBeGreaterThan(0);
+
+    // The spare writ: an empire of one town has some, and one of nine has none.
+    const writ: CardEffect[] = [
+      { kind: 'pays', where: 'empire', basis: 'count', count: 'authoritySurplus', to: 'gold', amount: 10 },
+    ];
+    const roomy = priced(writ);
+    const overstretched = priced(writ, (state, _player, city) => {
+      for (let i = 0; i < 8; i++) {
+        state.cities.push({ ...city, id: 900 + i, name: `Town ${String(i)}` });
+      }
+      bumpRevision(state);
+    });
+    expect(roomy).toBeGreaterThan(0);
+    expect(overstretched).toBe(0);
+  });
+
+  it('prices a caravan paid by the mile off the roads it is actually running', () => {
+    const mile: CardEffect[] = [
+      { kind: 'pays', where: 'route', basis: 'count', count: 'routeLength', per: 2, gold: 1 },
+    ];
+    // No caravan on the board, so there are no miles to be paid for — the
+    // honest nought rather than a nominal stand-in.
+    expect(priced(mile)).toBe(0);
+    const running = priced(mile, (state, player, city) => {
+      const far = foundCityAt(state, 0, at(state.map, 12, 9));
+      const cart = createUnit(state, player.id, 'trader', city.col, city.row);
+      startRouteAt(state, cart, city, far, 'land');
+      bumpRevision(state);
+    });
+    expect(running).toBeGreaterThan(0);
   });
 
   it('prices the building share by the shelves the empire has raised', () => {

@@ -42,6 +42,7 @@ import {
   type BuildingId,
   type ProductionCategory,
   buildingDef,
+  buildingPaysVoice,
   isBuildingId,
   isWonder,
 } from '../buildingData';
@@ -342,6 +343,17 @@ let conditionDepth = 0;
  * is helping to compute. The cut is stated on the count and pinned by a fixture.
  */
 let rateDepth = 0;
+
+/**
+ * The recursion cut for `CountKind`'s `authoritySurplus` — `rateDepth`'s idiom
+ * one meter over.
+ *
+ * `explainAuthority` folds the cards that legislate capacity, and a card written
+ * on the writ it is itself widening would otherwise ask for the answer it is
+ * helping to compute. While the meter is being folded, the count answers nothing.
+ * The cut is stated on the count and pinned by a fixture.
+ */
+let meterDepth = 0;
 
 /** Which line of the empire's books each voice is read off. `empireYield`'s. */
 const RATE_OF_VOICE: Record<CityYieldKey, keyof EmpireRates> = {
@@ -2012,6 +2024,47 @@ export function countOf(
       }
       return total;
     }
+    case 'tradePartnerEmpires': {
+      // `foreignTradeRoutes`' sweep with the *partner* remembered instead of
+      // tallied: three roads to one neighbour are one court reached. An array,
+      // walked and searched — this is an outcome, and nothing in this game
+      // iterates a keyed collection for one.
+      const seats: number[] = [];
+      for (const unit of state.units) {
+        if (unit.ownerId !== playerId) continue;
+        const route = unit.trade;
+        if (route === undefined) continue;
+        if (state.turn >= route.expiresTurn) continue;
+        const partner = state.cities.find((entry) => entry.id === route.to);
+        if (partner === undefined || partner.ownerId === playerId) continue;
+        if (!seats.includes(partner.ownerId)) seats.push(partner.ownerId);
+      }
+      return seats.length;
+    }
+    case 'authoritySurplus': {
+      // **The meter's own fold**, so the sheet and the helpings agree by
+      // construction — and the cut, because a row paying `to: 'authority'` off
+      // this count would ask the writ for the figure it is helping to compute.
+      // `rateDepth`'s idiom one meter over; see the count.
+      if (meterDepth > 0) return 0;
+      meterDepth += 1;
+      try {
+        return Math.max(0, authorityReading(state, playerId));
+      } finally {
+        meterDepth -= 1;
+      }
+    }
+    case 'goldSpent':
+      // The almoner's ledger, read off the record rather than off the treasury:
+      // coin that has gone leaves nothing on the board to sweep. See
+      // `Player.goldSpent` for the seams that raise it.
+      return Math.max(0, playerById(state, playerId)?.goldSpent ?? 0);
+    case 'routeLength':
+      // **Answered only where a road is in hand.** The caravan's own fold asks
+      // this count with the two towns resolved (`routeYields.ts`); every other
+      // reader has no road to measure and gets the honest nought, exactly as a
+      // city-scoped count answers nought to a caller with no town.
+      return 0;
     case 'internalTradeRoutes': {
       // `foreignTradeRoutes`' mirror over the same sweep of the same board — the
       // partner resolved fresh every turn, so a town that changes hands moves
@@ -2733,29 +2786,32 @@ export function cardBuildingPercents(state: GameState, city: City): CardBuilding
 }
 
 /**
- * Which buildings a `buildingYieldPercent` reaches — the two selectors, folded.
+ * Which buildings a `buildingYieldPercent` reaches — the four selectors, folded.
  *
  * `category` is what a row is *for* (`BuildingDef.category`); `pays` is the voice
  * its row actually **pays**, which is what a card means by "your faith
  * buildings" — `CityScope`'s `hasBuildingYielding` asks the same question of a
- * town and answers it the same way. Science counts a per-citizen line as paying:
- * a Library whose whole beaker is per head is a science building in every
- * sentence a player would write.
+ * town and answers it the same way, through the one reading of the phrase
+ * (`buildingPaysVoice`, `buildingData.ts`). `building` names one row and
+ * `wonder` names the marvels, the two the great-person pass added: see the shape
+ * for why each earns a field rather than being said with a category.
  *
- * Naming neither reaches every building the town has raised, which is the honest
- * reading of a card that named no class rather than a guard.
+ * **Every selector a row names must hold** — one `&&` chain and no precedence, so
+ * "the temples" and "the wonders that pay culture" are the same rule read with
+ * different fields filled in. Naming none reaches every building the town has
+ * raised, which is the honest reading of a card that named no class rather than a
+ * guard.
  */
 export function buildingMatchesYieldPercent(
   id: BuildingId,
   effect: CardBuildingYieldPercentEffect,
 ): boolean {
-  const def = buildingDef(id);
-  if (effect.category !== undefined && def.category !== effect.category) return false;
-  const pays = effect.pays;
-  if (pays === undefined) return true;
-  if (pays === 'science') return (def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0;
-  const paid: number = pays === 'faith' ? (def.faith ?? 0) : def[pays];
-  return paid > 0;
+  if (effect.building !== undefined && effect.building !== id) return false;
+  // The class the data declares, never a name and never an eighth category —
+  // `CountKind`'s `wonders` asked of one row. Absent reaches the marvels too.
+  if (effect.wonder === true && !isWonder(id)) return false;
+  if (effect.category !== undefined && buildingDef(id).category !== effect.category) return false;
+  return effect.pays === undefined || buildingPaysVoice(id, effect.pays);
 }
 
 /** Does this scope name **this** building — `hasBuilding` on it, alone or inside an `all`? */
@@ -3496,6 +3552,30 @@ export function cardRulePercent(
   return list;
 }
 
+/**
+ * Does this empire's law put a **scoped** percentage on this rule — a rate that
+ * lands in some of its towns and not in others?
+ *
+ * The one question a realm-wide reader has to ask before it decides whether to
+ * hoist (`explainHappiness`'s demand factor, batch GP2). A scoped rate is a
+ * different number in each town, so a caller that folded it once would print one
+ * figure for a realm the law treats as two; a caller that walked the towns
+ * unconditionally would pay for a shape almost no game holds. This is how it
+ * finds out which it is, in one pass over a list it already has in hand.
+ *
+ * Asked of the **empire's** law alone, never of a town's rites: a rite hangs on
+ * one city and is therefore scoped by construction, and a reader that has decided
+ * to walk asks `cardRulePercent` with the town anyway. Nothing says
+ * `happinessDemand` on a rite today.
+ */
+export function cardRuleIsScoped(state: GameState, playerId: number, rule: CardRule): boolean {
+  for (const { effect } of effectsOfKind(state, playerId, 'rulePercent')) {
+    if (effect.rule !== rule) continue;
+    if (effect.scope !== undefined && effect.percent !== 0) return true;
+  }
+  return false;
+}
+
 /** The fold of any list of rule percentages: summed, applied once. */
 export function foldCardRulePercent(list: readonly CardRuleLine[]): number {
   let percent = 0;
@@ -3832,6 +3912,18 @@ export interface CombatSituation {
    * sum.
    */
   vsStrength?: number;
+  /**
+   * **Whose** the other side is — the seat `vsWiderEmpire` compares realms with.
+   *
+   * `vsType`'s sibling one question wider, and filled by the same rule from the
+   * same place: the defender's owner for the attacker's situation and the
+   * attacker's for the defender's, so a card is read for whichever empire holds
+   * it. Unlike `vsType` and `vsStrength` it is present against a **city** too —
+   * a town has no silhouette and no strength of that kind, but it certainly has
+   * an owner, and "the wider empire" is exactly the sentence a player storming a
+   * big neighbour's capital is making.
+   */
+  vsOwnerId?: number;
 }
 
 /** Does a combat condition hold for this situation? One evaluator. */
@@ -3927,6 +4019,15 @@ function combatConditionHolds(
         situation.vsStrength !== undefined &&
         situation.vsStrength > unitDef(situation.unit.type).combatStrength
       );
+    case 'vsWiderEmpire': {
+      // `strongerTarget` one scale out: the two **realms** compared, not the two
+      // pieces. Through `citiesOf`, the one town walk, so a town taken mid-war
+      // moves the line the turn it changes hands. The wild holds none and
+      // therefore never satisfies it — no clause needed.
+      const them = situation.vsOwnerId;
+      if (them === undefined || them === situation.unit.ownerId) return false;
+      return cityCount(state, them) > cityCount(state, situation.unit.ownerId);
+    }
     case 'beside':
       // The ring of six off this piece's own hex, through the sweep that already
       // answers "who is standing next to me" (`adjacentFriendlies`), narrowed by
@@ -5662,6 +5763,17 @@ export interface CardRouteLine {
   culture: number;
   /** The bag is paid once per luxury at either end. `CardPaysEffect`'s. */
   perEndpointLuxury: boolean;
+  /**
+   * The bag is paid once per this many **hexes of the road's own length**, or
+   * absent on a row that is not counted that way — Marco Polo's coin by the mile
+   * (`CountKind`'s `routeLength`, batch GP2).
+   *
+   * **Carried rather than resolved**, `perEndpointLuxury`'s bargain exactly: this
+   * module holds the law and the fold in `routeYields.ts` holds the two ends, and
+   * only something holding both can answer how far apart they are. So the row's
+   * `per` comes through as a number and the fold does the division.
+   */
+  perHexes?: number;
 }
 
 /**
@@ -5695,6 +5807,12 @@ export function cardRouteYieldLines(
       // in `routeYields.ts` holds both ends, and only the pair can answer "how
       // many luxuries are on this road". See `CardPaysEffect`.
       perEndpointLuxury: effect.perEndpointLuxury === true,
+      // The road's own length, carried the same way and for the same reason —
+      // `per` is how many hexes buy one helping, and the fold that holds both
+      // ends does the dividing. A row counted any other way carries nothing.
+      ...(effect.basis === 'count' && effect.count === 'routeLength'
+        ? { perHexes: effect.per === undefined || effect.per <= 0 ? 1 : effect.per }
+        : {}),
     };
     if (line.food === 0 && line.production === 0 && line.gold === 0) {
       if (line.science === 0 && line.culture === 0) continue;

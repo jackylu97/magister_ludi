@@ -306,12 +306,13 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
 | `cardYieldAmplifier` | | 2, 3, 16 | additive flat and a percentage, over the *card lines* of the fold it reads |
 | `pays` | route · flat | 6, 14 | additive (arrivals at 6, the caravans abroad at 14) |
+| `pays` | route · count | 6, 14 | additive, same two steps — the helpings multiply the **bag**, as `perEndpointLuxury` does; the count is the road's own length (`routeLength`) |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
 | `pays` | city · share | 10 | multiplicative within the step; lands as a flat |
 | `percentYields` | | 11 | multiplicative, at whichever stage the row names |
 | `productionBonus` | | 11 | multiplicative, city stage, production only |
 | `pays` | empire · flat | 16 | additive — the luxuries' signature, and no card row today |
-| `pays` | empire · count | 16 | additive |
+| `pays` | empire · count | 16, 11 | additive at 16; a helping's percentage (a row with `stage`) is gathered at 11, in every town, since the count is the realm's and reads the same in each |
 | `pays` | empire · rate | 16 | additive, off this turn's own rates |
 
 ### Kinds that move a voice but not through this sequence

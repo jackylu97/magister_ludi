@@ -272,6 +272,10 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'capital/count',
     'city/mirror',
     'route/flat',
+    // Batch GP2, Marco Polo: a caravan paid by the mile. The pair is the road's
+    // own two steps and the helpings multiply the **bag**, which is the one
+    // reading of a counted row that does not say its figure with `to`.
+    'route/count',
     'city/share',
     'empire/flat',
     'empire/count',

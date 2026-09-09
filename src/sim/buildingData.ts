@@ -93,6 +93,10 @@ import type { BeadGrantId } from './beadData';
 import type { TechId } from './techData';
 // Type-only for `TechId`'s reason, one table over: `statecraftData.ts` imports
 // `BuildingId` from here.
+// Type-only **both ways** — `resourceData.ts` names this file's categories in
+// the same breath — which is the documented exception to the cycle rule: nothing
+// is evaluated at load time, so neither module can come out empty.
+import type { CityYieldKey } from './resourceData';
 import type { CardEffect, CityScope, TileCondition, UnitFilter } from './statecraftData';
 // Type-only for `TechId`'s reason: `unitData.ts` imports nothing from here.
 import type { UnitTypeId } from './unitData';
@@ -1246,6 +1250,35 @@ export function isWonder(id: BuildingId): boolean {
 
 /** Every wonder, in the table's own order. The roster, derived from the flag. */
 export const WONDER_IDS: readonly BuildingId[] = BUILDING_IDS.filter(isWonder);
+
+/**
+ * **Does this row supply this voice at all** — "a science building", "a faith
+ * building", in the only reading the game has of that phrase.
+ *
+ * The seven `BuildingCategory` words say what a house is *for*, and that is not
+ * the same question: a Shrine categorised `faith` and a Cathedral categorised
+ * `culture` both pay faith, and a card that said "your faith buildings" and meant
+ * the category would have paid for one and not the other. So the phrase is read
+ * off what the row actually pays, and **science counts its per-citizen line** — a
+ * Library whose whole beaker is per head is a science building in every sentence
+ * a player would write.
+ *
+ * It lives in this leaf because two unrelated readers now ask it and a second
+ * copy would drift: `CardBuildingYieldPercentEffect.pays` (does this share reach
+ * this row) and — since the great-person pass — `faithBuysScienceBuildings`,
+ * which decides which bank sells it. A card that raises the science houses and a
+ * card that sells them cannot disagree about which houses those are.
+ *
+ * `CityScope`'s `hasBuildingYielding` asks a **town** the same phrase and is
+ * deliberately not folded in here: it reads the flat voices alone, so a Library
+ * whose whole beaker is per head does not satisfy it, and moving that row under
+ * this reading would change what every scoped card already pays.
+ */
+export function buildingPaysVoice(id: BuildingId, voice: CityYieldKey): boolean {
+  const def = buildingDef(id);
+  if (voice === 'science') return (def.science ?? 0) > 0 || (def.sciencePerPop ?? 0) > 0;
+  return (def[voice] ?? 0) > 0;
+}
 
 /**
  * Runtime guard. Production queues arrive from save files and (eventually)

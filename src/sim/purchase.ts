@@ -66,6 +66,7 @@ import {
   type UnitPurchaseBucket,
   cityById,
   playerById,
+  spendGold,
 } from './state';
 import {
   type ProductionCompletion,
@@ -83,10 +84,17 @@ import {
   settleProductionWindfall,
   spawnTileFor,
 } from './cities';
-import { type BuildingId, buildingDef, isBuildingId, isWonder } from './buildingData';
+import {
+  type BuildingId,
+  buildingDef,
+  buildingPaysVoice,
+  isBuildingId,
+  isWonder,
+} from './buildingData';
 import { buildingPurchaseDiscount } from './buildingEffects';
 import { RULES } from './rulesData';
 import {
+  cardActionRule,
   cardPurchaseRiders,
   cityBeliefUnlocksBuilding,
   payWindfallGrants,
@@ -489,7 +497,10 @@ export function routePrice(state: GameState, playerId: number): number {
  *   · **Units only.** The ruled text is "units may be purchased with faith in
  *     this city". A building bought with faith would make the Reliquary a
  *     second, quieter treasury, and the town that had one would build nothing
- *     with hammers again.
+ *     with hammers again. (The **law** may say otherwise, and one does —
+ *     `faithBuysScienceBuildings` is the clause below, and it is a rule of the
+ *     empire rather than a fact about a shelf, which is why the two do not
+ *     narrow each other.)
  *   · **Never a row that names its own bank.** This branch is only reached when
  *     `rosterBank` said nothing, so the augur is still sold out of faith and out
  *     of nothing else, everywhere. The marker widens the ordinary bank; it does
@@ -504,9 +515,32 @@ function faithBankOpen(
   item: PurchasableItem,
   currency: PurchaseCurrency,
 ): boolean {
-  if (currency !== 'faith' || item.kind !== 'unit') return false;
+  if (currency !== 'faith') return false;
   const city = cityById(state, cityId);
   if (!city) return false;
+  /**
+   * **A fifth narrowing, and the first that is a law rather than a shelf** —
+   * al-Khwārizmī's *"science buildings may be bought with faith"*
+   * (`faithBuysScienceBuildings`, batch GP2).
+   *
+   * It reaches **buildings** and the Reliquary's marker reaches units, so the
+   * two clauses are disjoint and neither had to learn the other's business: a
+   * town holding both sells its soldiers and its libraries out of faith, and the
+   * "units only" narrowing below is untouched — a law that names the buildings
+   * is exactly the card the Reliquary's third clause declined to be.
+   *
+   * Which buildings is `buildingPaysVoice`, the one reading of "a science
+   * building" (`buildingData.ts`), so this and a card that raises the science
+   * houses cannot disagree about which houses those are. The rate is the
+   * ordinary `faithPerHammer` — the empire's law widens which bank may pay and
+   * never what a thing costs — and a row naming its own bank has already been
+   * matched against the currency by the caller.
+   */
+  if (item.kind === 'building') {
+    if (!buildingPaysVoice(item.id, 'science')) return false;
+    return cardActionRule(state, city.ownerId, 'faithBuysScienceBuildings');
+  }
+  if (item.kind !== 'unit') return false;
   // **A fourth narrowing since the charters** (2026-09-04): the marker is a word
   // now, and the Almshouse's word is `'civilian'` — settlers, workers, caravans
   // and nothing that fights. Asked of `isCivilian`, the same predicate
@@ -923,15 +957,22 @@ export function purchaseItemAt(
   currency: PurchaseCurrency,
 ): RealisedItem {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency)!;
-  if (price.currency === 'faith') player.faithPool -= price.total;
-  else {
-    player.gold -= price.total;
-  // The banks are a line of the meters too — see `collectYields` (batch M3).
-  bumpEconomy(state);
+  if (price.currency === 'faith') {
+    player.faithPool -= price.total;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
+  } else {
     // **The almoner's ledger** — the coin itself, not one purchase (see
     // `TallyOccasion`'s `goldSpent`). Written where the money leaves, which is
     // the only place the *figure* is in hand, and only for gold: a card that
     // counted faith as well would be counting two banks under one word.
+    //
+    // **Twice, for two holders** (batch GP2): `spendGold` raises the *player's*
+    // own record, which a legacy can read from outside any chair, and the tally
+    // below is the same moment written into whichever slotted Order is watching
+    // for it. Two counters of one act, side by side, because a card in a chair
+    // and a name in the Reliquary cannot read each other's.
+    spendGold(state, player, price.total);
     recordScalingOccasion(state, player.id, 'goldSpent', price.total);
   }
   if (item.kind === 'unit' && unitDef(item.id).consecrates === true) {
@@ -1200,10 +1241,18 @@ export function contributeAt(
   currency: PurchaseCurrency,
 ): ProductionCompletion | null {
   const offer = explainContribution(state, player.id, city.id, currency)!;
-  if (currency === 'faith') player.faithPool -= offer.spend;
-  else player.gold -= offer.spend;
-  // The banks are a line of the meters too (batch M3, `slate.ts`).
-  bumpEconomy(state);
+  if (currency === 'faith') {
+    player.faithPool -= offer.spend;
+    // The banks are a line of the meters too (batch M3, `slate.ts`).
+    bumpEconomy(state);
+  } else {
+    // Coin out of the treasury for hammers is coin spent buying something, so it
+    // goes through the one seam and joins the almoner's ledger (`spendGold`).
+    // The faith arm does not, for `purchaseItemAt`'s reason: the record counts
+    // one bank, and a card that counted both would be counting two under one
+    // word.
+    spendGold(state, player, offer.spend);
+  }
   city.hammerBasket += offer.hammers;
   return settleProductionWindfall(state, city);
 }

@@ -167,6 +167,7 @@ import {
   hasEndedTurn,
   playerById,
   removeUnit,
+  spendGold,
   unitById,
   wakeUnit,
 } from './state';
@@ -3967,13 +3968,15 @@ function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResul
   // screen printed (`explainRoutePrice`), so the figure on the button is the
   // figure the treasury loses.
   const price = routePrice(state, actor.id);
-  actor.gold -= price;
-  // The banks are a line of the meters too (batch M3, `slate.ts`), and a piece
-  // appearing on the board is `createUnit`'s own announcement.
-  bumpEconomy(state);
   // **The almoner's ledger** — the coin itself, exactly as `purchaseItemAt`
   // records it, because this is coin leaving the treasury for a thing and a
-  // card that counts spending has no business asking which verb spent it.
+  // card that counts spending has no business asking which verb spent it. Both
+  // holders, side by side: `spendGold` raises the *player's* record (which a
+  // legacy reads from outside any chair) and announces the banks to the meters
+  // (batch M3, `slate.ts`); the tally is the same moment written into whichever
+  // slotted Order is watching for it. A piece appearing on the board is
+  // `createUnit`'s own announcement.
+  spendGold(state, actor, price);
   recordScalingOccasion(state, actor.id, 'goldSpent', price);
 
   const gates = getTileAt(state.map, from.col, from.row)!;

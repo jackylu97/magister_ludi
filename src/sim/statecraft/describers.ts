@@ -1839,12 +1839,27 @@ function describeEffect(
 /**
  * Which buildings a `buildingYieldPercent` names, in a player's words.
  *
- * The two selectors said the way the row means them: `category` is what a
- * building is *for* and `pays` is the voice it actually supplies — see
- * `buildingMatchesPercent`, which answers the same question for the arithmetic.
+ * The four selectors said the way the row means them: `building` names one row
+ * and is therefore the whole phrase (and a **keyword ref**, so the reader can go
+ * and read what a Temple is); `wonder` names the class; `category` is what a
+ * building is *for*; and `pays` is the voice it actually supplies — see
+ * `buildingMatchesYieldPercent`, which answers the same question for the
+ * arithmetic.
+ *
+ * The named row **short-circuits**, because the words would otherwise read "your
+ * faith Temples", which says the same thing twice and is worse in every register
+ * a card is printed in. A row naming a building alongside a class is asking for
+ * the intersection, and the intersection of "Temples" with anything is Temples or
+ * nothing at all — so the narrower phrase is the honest one and the selector the
+ * arithmetic still folds in cannot make it a lie.
  */
 function buildingClassWords(effect: CardBuildingYieldPercentEffect): string {
-  const kind = effect.category === undefined ? 'buildings' : `${effect.category} buildings`;
+  if (effect.building !== undefined) {
+    const def = buildingDef(effect.building);
+    return ref('building', effect.building, buildingPlural(def.name, 2));
+  }
+  const noun = effect.wonder === true ? 'wonders' : 'buildings';
+  const kind = effect.category === undefined ? noun : `${effect.category} ${noun}`;
   return effect.pays === undefined ? kind : `${kind} that supply ${effect.pays}`;
 }
 
@@ -2747,6 +2762,10 @@ const COMBAT_WORDS: Record<CombatCondition['test'], string> = {
   // are one table entry and two data rows — `onFeature`'s bargain.
   withinOfCity: 'within',
   strongerTarget: 'against a stronger unit',
+  // The two realms rather than the two pieces — `strongerTarget` one scale out.
+  // "More cities than you" and not "bigger": cities are what the count counts,
+  // and a player can look at the map and check it.
+  vsWiderEmpire: 'against an empire with more cities than you',
   // The `foreign` half is printed by `describeEffect`, so that "in cities that
   // follow your religion" and "in foreign cities that follow your religion" are
   // one table entry and two data rows — `onFeature`'s bargain.
@@ -2988,6 +3007,26 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     many: 'unimproved hexes worked here',
   },
   wonders: { one: 'wonder you hold', many: 'wonders you hold' },
+  // **Courts reached, not roads run** — the partner counted once however many
+  // caravans walk to it, which is the whole difference from `foreignTradeRoutes`.
+  tradePartnerEmpires: {
+    one: 'other empire you trade with',
+    many: 'other empires you trade with',
+  },
+  // "Spare" says the sentence the count makes: what the writ covers over and
+  // above what the cities spend. Never plural — it is a quantity of one thing.
+  authoritySurplus: { one: 'spare authority', many: 'spare authority' },
+  // The almoner's ledger. The same words as the *tally* of the same moment
+  // (`TALLY_WORDS`), because it is the same moment — what differs is who keeps
+  // the count, and a player should not have to learn two phrasings for it.
+  goldSpent: { one: 'gold you have spent buying', many: 'gold you have spent buying' },
+  // A road's own length. "Between the two cities" rather than "of the route",
+  // because that is what is measured (see `routeHexes`) and it is a distance a
+  // player can count off the map.
+  routeLength: {
+    one: 'hex between the two cities',
+    many: 'hexes between the two cities',
+  },
   revealedTiles: { one: 'hex you have revealed', many: 'hexes you have revealed' },
   roadHexes: { one: 'road hex you have laid', many: 'road hexes you have laid' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
@@ -3249,6 +3288,13 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // withholds is the point, not the price of admission.
   freePillage: 'pillaging costs your units no movement',
   noFortify: 'your units cannot fortify',
+  // Pytheas'. Said as what cannot be *done to* them, because that is the whole
+  // of the rule — the cart is no faster, no tougher and no safer from the
+  // weather; it simply cannot be taken.
+  tradersUnplunderable: 'your trade units cannot be attacked or plundered',
+  // al-Khwārizmī's second half. "Supply science" is the phrase the game reads
+  // the class by everywhere (`buildingPaysVoice`), so the clause says it too.
+  faithBuysScienceBuildings: 'you may buy buildings that supply science with faith',
   // The King's Road and Admiralty. Both say what a *player* does with them —
   // where the movement comes back, and which half of the crossing is free —
   // because "a shore step is free" is the name of a price and not a rule.

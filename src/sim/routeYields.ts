@@ -44,6 +44,7 @@ import { RULES } from './rulesData';
 import {
   type RouteMode,
   routeCities,
+  routeHexes,
   routeIsInternational,
   routeIsLive,
   routeMode,
@@ -81,6 +82,7 @@ export {
   type RouteMode,
   ROUTE_MODES,
   routeCities,
+  routeHexes,
   routeIsInternational,
   routeIsLive,
   routeMode,
@@ -384,17 +386,33 @@ function cardLines(
   // Golden Roads). Hoisted before the walk and only when a row asks for it, so
   // a game whose cards say nothing about luxuries pays for no set at all.
   let goods = -1;
+  // **And the road's own length**, hoisted the same way and only when a row asks
+  // for it: `routeHexes` is the one reading of how far apart two towns are (see
+  // it for why it is the distance and not the walked path), and a game whose
+  // cards say nothing about the miles measures none.
+  let hexes = -1;
   for (const paid of cardRouteYieldLines(state, from, to)) {
     let helpings = 1;
+    let note = paid.source;
     if (paid.perEndpointLuxury) {
       if (goods < 0) goods = endpointLuxuryCount(state, from, to);
       helpings = goods;
+      note = `${paid.source} · ${helpings} luxur${helpings === 1 ? 'y' : 'ies'}`;
       // A road between two towns holding no luxury at all carries the row and
       // pays nothing for it — the honest zero rather than an absent line.
       if (helpings === 0) continue;
+    } else if (paid.perHexes !== undefined) {
+      if (hexes < 0) hexes = routeHexes(state, from, to);
+      // `helpings`' own arithmetic one module over: floored, so a road two hexes
+      // short of the next helping is paid for the ones it has walked.
+      helpings = Math.floor(hexes / paid.perHexes);
+      note = `${paid.source} · ${hexes} hex${hexes === 1 ? '' : 'es'}`;
+      // A pair close enough to be under one helping carries the row and pays
+      // nothing for it, exactly as a road with no luxuries on it does.
+      if (helpings === 0) continue;
     }
     lines.push(
-      line(label(paid.perEndpointLuxury ? `${paid.source} · ${helpings} luxur${helpings === 1 ? 'y' : 'ies'}` : paid.source), {
+      line(label(note), {
         food: paid.food * helpings,
         production: paid.production * helpings,
         gold: paid.gold * helpings,

@@ -18,6 +18,7 @@
  * resolution it performs — it simply no longer owns the words.
  */
 
+import { offsetToAxial, wrappedDistance } from './map';
 import { type City, type GameState, type TradeRoute, type Unit, cityById } from './state';
 // The war register, and the only thing this leaf asks about diplomacy.
 // `wars.ts` imports the rules, the state and the deal terms and nothing else.
@@ -109,6 +110,34 @@ export function routeCities(
  */
 export function routeIsInternational(from: City, to: City): boolean {
   return from.ownerId !== to.ownerId;
+}
+
+/**
+ * **How long this road is, in hexes** — the one reading of a route's length
+ * (`CountKind`'s `routeLength`, Marco Polo's coin by the mile).
+ *
+ * The **distance between the two towns**, not the path a cart walks. A walked
+ * path shortens every time somebody paves a hex, lengthens when a border closes
+ * and needs an A* per caravan per turn to answer at all — so a card written on it
+ * would pay a different figure every turn for the same road, and the Trade
+ * screen's send preview could not promise what the route would earn. The
+ * distance is a fact about the pair, is answerable before a caravan exists, and
+ * is the same figure for a road running and a road being considered.
+ *
+ * `wrappedDistance`, so the seam of a wrapping map is not a wall — every other
+ * radius in this game is measured the same way.
+ *
+ * In this leaf beside the pair resolution because the fold that pays it
+ * (`routeYields.ts`) and the appraisal that prices it (`src/ai/value.ts`) both
+ * ask, and a second copy of "how far is Uruk from Lagash" is how a caravan and
+ * the bot start disagreeing about what a road is worth.
+ */
+export function routeHexes(state: GameState, from: City, to: City): number {
+  return wrappedDistance(
+    state.map,
+    offsetToAxial(from.col, from.row),
+    offsetToAxial(to.col, to.row),
+  );
 }
 
 /**

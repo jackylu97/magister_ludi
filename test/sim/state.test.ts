@@ -99,6 +99,10 @@ describe('newGame', () => {
       // twin one verb over, because a burnt-out camp leaves nothing on the
       // board to count.
       campsCleared: 0,
+      // The almoner's ledger, its third (batch GP2, Cosimo): coin that has left
+      // the treasury for a thing, which nothing on the board can be asked
+      // about. Present from turn one for `campsCleared`'s reason.
+      goldSpent: 0,
       eliminated: false,
       // Every seat carries the flag and every *real* seat carries it false; the
       // wild is appended separately and only when the config asks for it (see

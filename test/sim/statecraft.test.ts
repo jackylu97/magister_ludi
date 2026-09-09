@@ -488,6 +488,11 @@ describe('the card table', () => {
       'empire/rate',
       // The caravan — steps 6 and 14.
       'route/flat',
+      // `route/count` is **declared and not yet written** (batch GP2, Marco
+      // Polo): the arm is built, the doc's register carries the row, and the
+      // roster row that uses it lands with GP3. It is deliberately absent here —
+      // this list is *what a live row names*, so the "nothing else" sweep below
+      // is what tells the batch that writes it to add the line.
     ];
     for (const pair of expected) expect(pairs.has(pair), pair).toBe(true);
     // And nothing else: a pair no arm reads would pay nothing at all.
@@ -7141,6 +7146,11 @@ describe('the engine shapes', () => {
       { kind: 'cardYieldAmplifier', yield: 'faith', percent: 50, scope: { test: 'capital' } },
       { kind: 'buildingYieldPercent', pays: 'faith', percent: 100, appliedLast: true },
       { kind: 'buildingYieldPercent', category: 'gold', percent: 50, yield: 'gold' },
+      // Batch GP2's two selectors: one named row (Rūmī) and the marvels (Dürer).
+      // Their own block is `greatPeopleShapes.test.ts`; they are here because
+      // this is the register of what the describer has words for.
+      { kind: 'buildingYieldPercent', building: 'temple', percent: 100 },
+      { kind: 'buildingYieldPercent', wonder: true, percent: 50 },
       { kind: 'slotPosition', slot: 'economic', position: 1, factor: 2 },
       { kind: 'periodic', everyTurns: 10, pays: 'gold', amount: 25 },
       {

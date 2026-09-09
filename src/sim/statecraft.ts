@@ -113,6 +113,7 @@ export {
   cardRenownLines,
   cardRouteShareLines,
   cardRouteYieldLines,
+  cardRuleIsScoped,
   cardRulePercent,
   cardTierBoost,
   cardGrantsAbility,

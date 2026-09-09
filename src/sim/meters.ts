@@ -91,11 +91,12 @@ import {
   cardBuildingHappiness,
   cardHappiness,
   cardMeterRule,
+  cardRuleIsScoped,
   cardRulePercent,
   cardTierBoost,
   foldCardRulePercent,
 } from './statecraft';
-import { type GameState, playerById } from './state';
+import { type City, type GameState, playerById } from './state';
 import { eraNumeral, highestAge } from './techData';
 import { isCoastal } from './water';
 
@@ -185,15 +186,28 @@ export function happinessDemand(population: number): number {
  * than as 0.9 × 0.9. A rule has one stage and always will: there is nothing for a
  * second multiplication to be *about*.
  */
-function ruleFactor(state: GameState, playerId: number, rule: ResourceRule): number {
+function ruleFactor(
+  state: GameState,
+  playerId: number,
+  rule: ResourceRule,
+  city?: City,
+): number {
   // Both vocabularies, summed and applied once — additive inside the rule, the
   // reading Entry XVII settles for a stage and the only one under which a
   // luxury's −5% and a card's −15% read as −20% rather than as ×0.95×0.85.
+  //
+  // **The town is handed on where the caller holds one** (batch GP2, Epicurus'
+  // *"−15% happiness cost in cities with 10 or more citizens"*). A scope is a
+  // question about a *city*, so `cardRulePercent` skips a scoped row for every
+  // caller that passes none — which is what keeps the realm-wide reading
+  // byte-identical to the one it always gave. The luxuries' half is an empire
+  // fact and takes no town: sugar and honey are held by the realm.
   const percent =
     foldRulePercent(resourceRulePercent(state, playerId, rule)) +
-    foldCardRulePercent(cardRulePercent(state, playerId, rule));
+    foldCardRulePercent(cardRulePercent(state, playerId, rule, city));
   return 1 + percent / 100;
 }
+
 
 /**
  * Happiness, as the ordered list it is the fold of.
@@ -288,7 +302,21 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   // line to multiply since 2026-09-09, the crowding surcharge beside it having
   // left the game: "the happiness cost for population" and "what this town's
   // citizens ask for" are now the same sentence.
-  const demand = ruleFactor(state, playerId, 'happinessDemand');
+  /**
+   * **The realm's factor, and the towns' own where the law names some of them**
+   * (batch GP2, Epicurus).
+   *
+   * A `rulePercent` on `happinessDemand` may carry a `CityScope` — *"−15% in
+   * cities with ten or more citizens"* — and a scoped rate is a different number
+   * in each town, so the factor cannot be hoisted once for an empire whose law
+   * holds one. It still is for every empire whose law does not, which is almost
+   * all of them: `cardRuleIsScoped` asks the question once and the sweep pays for
+   * the shape only where the shape is in play. The unscoped reading is
+   * byte-identical to the one this line always gave, since `cardRulePercent`
+   * skips a scoped row for a caller holding no town.
+   */
+  const scopedDemand = cardRuleIsScoped(state, playerId, 'happinessDemand');
+  const realmDemand = ruleFactor(state, playerId, 'happinessDemand');
   // The Scattered Hearths' waiver: the first citizens of every town are simply
   // not counted. Applied to *who is charged* rather than to what each one asks
   // for — a discount on the rate is Toleration Edicts and is already `demand`
@@ -296,6 +324,9 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
   const free = Math.max(0, cardMeterRule(state, playerId, 'freeCitizens', 0));
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
+    const demand = scopedDemand
+      ? ruleFactor(state, playerId, 'happinessDemand', city)
+      : realmDemand;
     const charged = Math.max(0, city.population - free);
     // The one cost line a town writes, and the figure both reliefs below are a
     // share **of** — each of them a gain against the whole of it, never a

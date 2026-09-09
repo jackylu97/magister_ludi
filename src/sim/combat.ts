@@ -526,7 +526,9 @@ export function attackTargetAt(
   row: number,
   ownerId: number,
 ): AttackTarget | null {
-  const foreign = unitsOnTile(state, col, row).filter((unit) => unit.ownerId !== ownerId);
+  const foreign = unitsOnTile(state, col, row).filter(
+    (unit) => unit.ownerId !== ownerId && !tradeIsShielded(state, unit),
+  );
   const here = cityAt(state, col, row);
   const city = here && here.ownerId !== ownerId ? here : null;
 
@@ -542,6 +544,29 @@ export function attackTargetAt(
   const civilian = foreign[0];
   if (civilian) return { unit: civilian, city: null };
   return null;
+}
+
+/**
+ * **Is this piece a laden caravan of an empire whose law protects it?** —
+ * Pytheas' clause, and the one reading of it (`tradersUnplunderable`).
+ *
+ * Asked of the piece's own `trade` as well as of its type, exactly as the
+ * plunder clause in `planCombat` is: an **unladen** trader is an ordinary
+ * civilian and is captured like one. A protected cart is not something to
+ * attack, so it leaves the target list here rather than surviving a blow that
+ * resolves and does nothing — the tint, the forecast card and the reducer then
+ * refuse it as one, with the sentence a hex holding nothing gets. See the rule
+ * for why the refusal covers the shot as well as the sword, and for the arrival
+ * seam that says the same thing in `arriveOnTile`.
+ *
+ * A **second** clause of the same rule, deliberately not folded into
+ * `plundersUnit`: that one asks what the winner takes, and this asks whether
+ * there is a fight at all.
+ */
+function tradeIsShielded(state: GameState, unit: Unit): boolean {
+  if (unit.trade === undefined) return false;
+  if (!trades(unitDef(unit.type))) return false;
+  return cardBehaviorRule(state, unit.ownerId, 'tradersUnplunderable');
 }
 
 /**
@@ -1443,6 +1468,11 @@ function planCombat(
           ? undefined
           : unitDef(target.unit.type).combatStrength
         : unitDef(attacker.type).combatStrength,
+    // And **whose** it is — Spartacus' other half, "against a wider empire".
+    // Present against a city as well as against a piece, unlike the two fields
+    // above: walls have no silhouette and no base strength, but a town has an
+    // owner, and the realms are what this one compares.
+    vsOwnerId: side === 'attacker' ? defenderOwnerId : attacker.ownerId,
   });
   for (const line of cardCombatLines(state, situationFor(attacker, 'attacker'))) {
     bonuses.push({ source: line.source, side: 'attacker', amount: line.amount });

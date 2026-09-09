@@ -734,6 +734,23 @@ export type CombatCondition =
    */
   | { test: 'strongerTarget' }
   /**
+   * The other side's empire holds **more cities than yours** — Spartacus, who
+   * fought Rome and not a legionary.
+   *
+   * `strongerTarget`'s sibling one scale out, and the pair is the whole of what a
+   * comparison in this union may ask: that one compares the two *pieces*, this
+   * compares the two *realms*. Counted through `citiesOf`, the one town walk
+   * every evaluator takes, so a town captured mid-war moves the line the turn it
+   * changes hands — which is exactly the sentence the card makes ("the wider
+   * empire"), rather than a snapshot of who was bigger when the war opened.
+   *
+   * The **wild** holds no cities and therefore never satisfies it, which needs no
+   * clause: a realm of zero towns is not wider than a realm of one, and an empire
+   * that has lost its last city is not one either. A city as the target has an
+   * owner like any other piece, so storming a big neighbour's town counts.
+   */
+  | { test: 'vsWiderEmpire' }
+  /**
    * A piece of this empire's matching `class` is **standing next to** the one
    * this line is being asked for — The Siege Train's engines, which are worth
    * something to the spearmen walking beside them.
@@ -1514,7 +1531,80 @@ export type CountKind =
    * has to increment it, and until it does this count reads nought in every
    * empire — which is the honest answer for a thing that has not happened.
    */
-  | 'rerollsWhileSlotted';
+  | 'rerollsWhileSlotted'
+  /**
+   * **Other empires this seat has a live road to**, counted once each — Ibn
+   * Baṭṭūṭa, whose worth is the number of courts he reached and not the number of
+   * times he set out.
+   *
+   * `foreignTradeRoutes` counts *caravans*; this counts **partners**, and the two
+   * are a member each for `internalTradeRoutes`' reason exactly: three roads to
+   * one neighbour read differently on a card from three roads to three, and the
+   * whole of what a card about the wider world means is the second one. The sweep
+   * is `foreignTradeRoutes`' — the board's own caravans, the far end resolved
+   * fresh every turn — with the partner's *owner* remembered rather than tallied,
+   * so a rival that changes hands moves the count with it.
+   *
+   * An array of seat ids walked and searched, never a `Set`: this is an outcome,
+   * and nothing in this game iterates a keyed collection for one.
+   */
+  | 'tradePartnerEmpires'
+  /**
+   * **The writ this empire is not using** — capacity less what its cities spend,
+   * floored at nothing (Gracia Mendes Nasi, whose fortune was what the treasury
+   * did not need).
+   *
+   * `EmpireCondition`'s `authorityPositive` said as a *figure* rather than as a
+   * gate, and read off the same fold (`explainAuthority` through `authorityOf`),
+   * so the meter's own sheet and the card's helpings cannot disagree by a point.
+   * Floored at nothing because the sentence is "spare", and an empire in deficit
+   * has no surplus to be paid for — a card that paid for the shortfall would be a
+   * card that rewards over-reach.
+   *
+   * **It cannot feed itself**, and the cut is stated rather than hoped for: a row
+   * paying `to: 'authority'` off this count would ask the meter for the answer it
+   * is helping to compute, so while the writ is being folded this count answers
+   * nothing (`meterDepth`, `rateDepth`'s idiom one meter over).
+   */
+  | 'authoritySurplus'
+  /**
+   * **Every coin this empire has ever spent buying something** — Cosimo de'
+   * Medici, paid for the habit rather than for the purse.
+   *
+   * `bankedGold` counts what is *in* the treasury; this counts what has gone out
+   * of it, and the two are a member each because they read opposite ways: a realm
+   * that spends is poor by the first count and rich by this one, which is the
+   * whole of what the card is about.
+   *
+   * Read off `Player.goldSpent` — a **record**, `clearedCamps`' reason exactly:
+   * coin that has left the treasury leaves nothing on the board to sweep. It is
+   * written at the seams where a *player's own act* takes gold out for a thing
+   * (see that field), and nothing lowers it.
+   *
+   * Not `TallyOccasion`'s `goldSpent`, which is the same moment written down for a
+   * different holder: a tally belongs to a **card in a chair** and grows only
+   * while it sits there, and a legacy sits in no chair at all. Two records of one
+   * moment, each answering the question its own holder can ask.
+   */
+  | 'goldSpent'
+  /**
+   * **How long one road is, in hexes** — Marco Polo, paid by the mile.
+   *
+   * The one count in this union asked of a *route* rather than of an empire or a
+   * town, and it is answered only where a road is in hand: `where: 'route'`, in
+   * the caravan's own fold (`routeYields.ts`), which is the module that holds
+   * both ends. Every other reader answers nothing, exactly as a city-scoped count
+   * answers nothing to a caller with no town.
+   *
+   * **The distance between the two towns, not the path the cart walks**
+   * (`routeHexes`, `routes.ts`). A walked path shortens every time somebody paves
+   * a hex and lengthens when a border closes, so a card written on it would pay a
+   * different figure every turn for the same road and the send preview could not
+   * promise what the route would earn. The distance is a fact about the pair, is
+   * the figure the Trade screen can print before a caravan exists, and is the
+   * same for a route running and a route being considered.
+   */
+  | 'routeLength';
 
 /**
  * The moments a growing card can be counting. See `CountKind`'s `tally`.
@@ -1752,7 +1842,30 @@ export type ActionRuleId =
    * have opened, blocks End Turn the same way, and `chooseGreatPerson` answers
    * it. See `greatPeople.ts`.
    */
-  | 'buyScholarDraftWithFaith';
+  | 'buyScholarDraftWithFaith'
+  /**
+   * **A building that supplies science may be bought with faith**, in every town
+   * — al-Khwārizmī's second half (the great-person pass, batch GP2).
+   *
+   * A *verb* whose behaviour changes and therefore an `ActionRuleId`: the
+   * question it answers is "which bank sells this", which is `purchaseError`'s
+   * and `explainPurchaseCost`'s, and it is answered in the one place that
+   * question is answered (`faithBankOpen`, `purchase.ts`) beside the Reliquary's
+   * marker rather than instead of it. So a town holding both sells its soldiers
+   * *and* its libraries out of faith, and neither clause has heard of the other.
+   *
+   * **Which buildings** is the reading `CardBuildingYieldPercentEffect.pays`
+   * takes of the same word — a science building is a building whose row supplies
+   * science, flat or per citizen (`buildingPaysVoice`, `buildingData.ts`) — so a
+   * card that raises the science houses and a card that sells them cannot
+   * disagree about which houses those are.
+   *
+   * **The rate is `faithPerHammer`**, the rate a contribution and a Reliquary's
+   * unit already pay, which is the marker's own bargain: the empire's law widens
+   * *which bank may pay* and never what a thing costs. A row naming its own bank
+   * is untouched, for that marker's stated reason.
+   */
+  | 'faithBuysScienceBuildings';
 
 /**
  * Something about the world that stops being true — or starts.
@@ -1876,7 +1989,37 @@ export type BehaviorRuleId =
    * construction. It is the **landing** half alone — a step from water onto
    * land. Embarking still ends the turn, which is what keeps a sea a sea.
    */
-  | 'freeLanding';
+  | 'freeLanding'
+  /**
+   * **This empire's laden caravans cannot be taken** — Pytheas of Massalia, who
+   * sailed past everybody and came home (the great-person pass, batch GP2).
+   *
+   * A *fact about the world* and therefore a `BehaviorRuleId`: what changes is
+   * not a verb this empire uses but what everybody else's soldiers may do to its
+   * carts, which is `noHealAbroad`'s shape exactly (a rule read on the far side
+   * of somebody else's decision).
+   *
+   * **Read as target selection, not as a blow that lands for nothing.** A laden
+   * trader of a protected empire is simply not something to attack
+   * (`attackTargetAt`, `combat.ts`) — the one reading the tint, the forecast and
+   * the reducer all take, so the hex is not painted, the card is not offered and
+   * the command is refused with the sentence a hex holding nothing gets. The
+   * alternative — a blow that resolves and does nothing — would have spent the
+   * attacker's turn on a shrug and given a player no way to see why.
+   *
+   * **Melee and shot alike.** The ratified text is *"your trade units cannot be
+   * pillaged"*, and a caravan killed by an archer is as taken as one plundered by
+   * a spearman: the two seams differ in what the attacker walks away with, not
+   * in what the merchant loses. Stated here because it is the one place the
+   * reading could have gone the other way.
+   *
+   * **And the arrival seam with it** (`arriveOnTile`): a winner that kills an
+   * escort and steps onto the hex leaves the cart standing — neither plundered
+   * nor captured, which is the third thing that could have happened and would
+   * have been worse than either. Same rule, second sentence, exactly as the
+   * plunder clause itself is written in both places.
+   */
+  | 'tradersUnplunderable';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -2313,6 +2456,15 @@ export type PayTarget = CityYieldKey | 'happiness' | 'authority';
  * (`docs/yields.md`'s register): the hex at step 2, the town's flats, counts and
  * mirrors at 3, the caravan at 6 and 14, the town's share at 10, a count's
  * percentage at 11, and the empire's flats, counts and rate conversions at 16.
+ *
+ * **The caravan's count pays the bag** (batch GP2, the (route, count) pair).
+ * Every other count says its figure with `to` and `amount`, because every other
+ * count pays into a fold that carries one voice at a time; a route's line is a
+ * **bag** in `RouteYieldLine` and the road's own fold multiplies bags — which is
+ * what `perEndpointLuxury` has always done with a flat row. So a road counted by
+ * its length says `per` and its bag, and the helpings multiply the bag exactly as
+ * the luxuries at its two ends do. Unambiguous because the pair is fresh: no
+ * other (`where`, `basis`) reads the bag on a counted row.
  *
  * **Three fields serve two readings each**, and each pair is disjoint by
  * (`where`, `basis`) rather than by convention:
@@ -3684,6 +3836,40 @@ export interface CardBuildingYieldPercentEffect {
   category?: BuildingCategory;
   /** Which buildings, by the voice the row **pays**. Absent means any. */
   pays?: CityYieldKey;
+  /**
+   * **One named row, and nothing else** — Rūmī's *"double the yields of
+   * temples"* (the great-person pass, batch GP2).
+   *
+   * `UnitFilter.type`'s bargain one table over, and the last resort for the same
+   * reason: `category` and `pays` ask what a building *is*, so a clause written
+   * against either keeps meaning what it said when the table grows, and this one
+   * does not. It exists because a ratified text sometimes names one house — a
+   * scholar who taught in the temples means the temples — and the honest way to
+   * say that is the row's own id rather than a category that would quietly
+   * collect the cathedral beside it.
+   *
+   * Folded with the others: a row naming a building *and* a category reaches
+   * only what satisfies both, which is the selector's own rule and not a
+   * special case.
+   */
+  building?: BuildingId;
+  /**
+   * **Only the marvels** — Dürer's *"+50% yields from wonders"*.
+   *
+   * `CountKind`'s `wonders` asked of one building instead of of a realm, off the
+   * same declaration (`BuildingDef.wonder`, read by `isWonder`), so nothing here
+   * compares an id against a name. A class the data already declares, which is
+   * why it is a flag beside the two selectors rather than an eighth
+   * `BuildingCategory`: a wonder's category says what it *pays*, and the Oracle
+   * and the Colossus belong to different shelves and to one class.
+   *
+   * `true` narrows to wonders; **absent reaches everything**, wonders included,
+   * which is the reading a doubler naming no class has always had. There is no
+   * `false` half — a card that meant "your ordinary buildings and not the
+   * marvels" has never been written, and a negation the table does not ask for
+   * would be dead vocabulary.
+   */
+  wonder?: true;
   /** Which of the building's voices is raised. Absent means every one. */
   yield?: CityYieldKey | 'all';
   /** Taken over the building's total **including** the ordinary shares. */

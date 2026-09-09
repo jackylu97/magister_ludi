@@ -660,6 +660,19 @@ import {
  * A v103 log does not replay: the first great person of a v103 game is drawn
  * from a bag of eighty in one order and of seventy-eight in another, and the
  * offer's rolls diverge from there.
+ *
+ * v104 (with GP1): **the almoner's ledger** — `Player.goldSpent`, a whole
+ * number raised at the five seams where a player's own act takes gold out of
+ * the treasury for a thing (see the field). It rides the great-person pass'
+ * bump rather than asking for one of its own: **GP1** moves the roster — eight
+ * names retired, four added, five re-aged — and a changed roster changes the
+ * draw, so the version was already going up in the same batch. The field is the
+ * only state batch **GP2** adds; every other shape it builds is vocabulary, read
+ * off rows and off the board.
+ *
+ * A v103 log does not replay under it, for GP1's reason and not for this
+ * field's: a seat loaded from an older log simply starts its ledger at nought,
+ * which is the honest reading of a record nobody was keeping.
  */
 export const SCHEMA_VERSION = 104;
 
@@ -969,6 +982,37 @@ export interface Player {
    * finishing the job.
    */
   campsCleared: number;
+  /**
+   * **Every coin this empire has spent buying something** — the almoner's
+   * ledger, and `CountKind`'s `goldSpent` (Cosimo de' Medici, batch GP2).
+   *
+   * `tilesPurchased`' and `campsCleared`' third, and on the player for their
+   * reason exactly: it can never be derived from the board. A treasury says what
+   * is *in* it; nothing anywhere says what has gone out of it, and coin that has
+   * been spent leaves no wheat field and no scorched camp behind to count.
+   *
+   * **A player's own act, for a thing.** Written at the five seams where gold
+   * leaves the treasury because somebody chose to buy something — `purchaseItemAt`
+   * and `contributeAt` (`purchase.ts`), `purchaseTileAt` (`cities.ts`),
+   * `applyBuyRoute` (`commands.ts`) and the gold arm of `chargeBank`
+   * (`greatPeople.ts`) — all of them through `spendGold`, which is the one
+   * subtraction that raises it. Two `gold -=` are deliberately **not** among
+   * them: an army's retooling (`upgradeUnits`, `tech.ts`) is upkeep and nobody
+   * pressed a button for it, and a lump across the diplomacy table
+   * (`payLump`, `diplomacy.ts`) is a transfer between treasuries rather than a
+   * purchase — the coin is still in the world. Maintenance and arrears never
+   * touch the treasury field at all; they are lines of `explainEmpireGold`.
+   *
+   * Not `TallyOccasion`'s `goldSpent`, which writes the same moment down for a
+   * different holder: a tally belongs to a **card in a chair** and grows only
+   * while it sits there, so a legacy — which sits in no chair — could never read
+   * one. Two records of one moment, each answering the question its own holder
+   * can ask, and the two seams that keep both do it side by side.
+   *
+   * Nothing lowers it. A refund is not a thing, and an empire that sold its
+   * habit back would be an empire the card stopped paying.
+   */
+  goldSpent: number;
   /**
    * True once this player holds no units and no cities. They are out.
    *
@@ -3102,6 +3146,7 @@ export function newGame(config: GameConfig): GameState {
       unitsBuilt: {},
       tilesPurchased: 0,
       campsCleared: 0,
+      goldSpent: 0,
       eliminated: false,
       barbarian: false,
       // Fresh every time rather than a shared literal, for `techsResearched`'s
@@ -3257,6 +3302,7 @@ function seatBarbarians(state: GameState): void {
     unitsBuilt: {},
     tilesPurchased: 0,
     campsCleared: 0,
+    goldSpent: 0,
     eliminated: false,
     barbarian: true,
     // A chiefdom the wild will never leave. Present so that every reader may
@@ -3542,6 +3588,33 @@ export function wakeUnit(unit: Unit): boolean {
  * shape a fourth occasion should copy: the exception belongs to the occasion,
  * never to the change of hands.
  */
+/**
+ * **The one subtraction that spends a player's gold on something** — the coin
+ * out of the treasury and the almoner's ledger raised, together.
+ *
+ * A seam rather than five copies of two lines, for the reason `captureUnit`
+ * below is one: the pair is a *rule* ("what leaves the purse is written down"),
+ * and five places each remembering to write it down is five places one of them
+ * can forget. It is here in `state.ts` because the five callers live in four
+ * modules that do not import one another, and because the fields are this file's.
+ *
+ * `bumpEconomy` rides with it: the banks are a line of the meters (batch M3), so
+ * every seam that moves the treasury already announced it and now announces it
+ * in one place.
+ *
+ * **Only a purchase**, and the register of what that means is on
+ * `Player.goldSpent` — the two `gold -=` that stay outside this function are
+ * named there, with the reason each is not spending. A caller with a figure it
+ * does not want written down subtracts for itself and says why.
+ */
+export function spendGold(state: GameState, player: Player, amount: number): void {
+  player.gold -= amount;
+  // The ledger takes what actually left. A refund is not a thing and a negative
+  // price is not a purchase, so nothing here can lower the record.
+  if (amount > 0) player.goldSpent += amount;
+  bumpEconomy(state);
+}
+
 export function captureUnit(state: GameState, unit: Unit, ownerId: number): void {
   const before = unit.ownerId;
   unit.ownerId = ownerId;

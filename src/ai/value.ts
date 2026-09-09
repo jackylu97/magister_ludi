@@ -134,6 +134,10 @@ import { explainEmpireGold } from '../sim/empireGold';
 import { getTileAt } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
+// The pair resolution and a road's own length, off the leaf every fold reads
+// them from — so an appraisal and a caravan cannot disagree about which roads
+// are running or how far apart their two towns are.
+import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import { availableRites } from '../sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
@@ -2939,6 +2943,16 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     two marches, which is the plan's arithmetic and not a card's, and it
       //     is worth nothing at all to a seat that never raids. Named, and left
       //     at the stand-in rather than guessed at from a card's face.
+      //   · `tradersUnplunderable` (Pytheas, GP2) — insurance on a cart nobody
+      //     has attacked yet. What it is worth is the *chance* a caravan is
+      //     plundered times what a caravan carries, and this bot keeps no
+      //     estimate of the first: a seat at peace pays nothing for it and a
+      //     seat at war pays whatever the raiders would have taken. Named.
+      //   · `faithBuysScienceBuildings` (al-Khwārizmī, GP2) — a second bank for
+      //     one shelf. Its worth is the difference between two *plans* — what
+      //     the faith bank would otherwise have bought, against a library
+      //     arriving several turns sooner — which is `wants.ts`' arithmetic and
+      //     not a card's. Named, and a debt on the purchase arm rather than here.
       return effect.rule === 'borders'
         ? ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities
         : ctx.ai.score.unknownEffect;
@@ -4359,12 +4373,44 @@ export function explainForecastCount(
  * the count that pays the card and the count that prices it are one function, so
  * they cannot drift. See `explainCounted` for the empire-then-towns order.
  */
+/**
+ * **How many hexes of road this empire is running, all told** — the count
+ * `routeLength` is answered by, summed over the caravans actually on the board.
+ *
+ * Not a stand-in: `routeHexes` (`routes.ts`) is the simulation's own reading of
+ * how far apart two towns are, and it is the figure the caravan's fold pays by,
+ * so the appraisal and the payout cannot part company. Summed rather than
+ * averaged because the row pays **per road** — a realm running three long roads
+ * is worth three roads' worth of miles, and `explainCounted` then divides by the
+ * row's own `per` exactly as the fold does per caravan.
+ *
+ * A seat running nothing reads nought, which is the honest figure and the whole
+ * of what a card by the mile is worth to it.
+ */
+function liveRouteHexes(ctx: ValueContext): number {
+  let total = 0;
+  for (const unit of ctx.state.units) {
+    if (unit.ownerId !== ctx.playerId) continue;
+    if (!routeIsLive(ctx.state, unit)) continue;
+    const pair = routeCities(ctx.state, unit);
+    if (pair === null) continue;
+    total += routeHexes(ctx.state, pair.from, pair.to);
+  }
+  return total;
+}
+
 function realizedCount(
   effect: CardPaysEffect,
   ctx: ValueContext,
   card?: CardId,
 ): number | null {
   if (effect.count === 'tally' && card === undefined) return null;
+  // **A road's own length is answered where a road is in hand**, which is the
+  // fold and never `countOf` (see `CountKind`'s `routeLength`). Summed over the
+  // caravans this seat is running, off `routeHexes` — the very reading the fold
+  // pays by — so the feed prints the miles rather than a nought the count is
+  // obliged to give it.
+  if (effect.count === 'routeLength') return liveRouteHexes(ctx);
   // Ignored by every arm but `tally`, which is guarded above — `countOf`'s own
   // docblock says so, and a probe that satisfies the type is the pattern
   // `statecraft.ts` already uses for a count asked without a card.
@@ -4517,6 +4563,14 @@ function potentialTownsFor(
  * what it has always been read as.
  */
 function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
+  // **The caravan's count pays the bag** (batch GP2, the one (`where`, `basis`)
+  // pair whose helping is not said with `to`): a road's line is a bag in
+  // `RouteYieldLine` and the fold multiplies bags, which is what
+  // `perEndpointLuxury` has always done. Asked first, because `to` is absent on
+  // such a row and the stand-in below would otherwise swallow it.
+  if (pays.where === 'route' && (pays.basis ?? 'flat') === 'count') {
+    return valueOfYields(bagOf(pays), ctx);
+  }
   const to = pays.to;
   if (to === undefined) return ctx.ai.score.unknownEffect;
   // `stage` is the discriminant of the percentage payout — see `CardPaysEffect`.
