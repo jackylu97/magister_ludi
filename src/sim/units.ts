@@ -289,6 +289,24 @@ export function isRested(unit: Unit, state?: GameState): boolean {
  * again the state, so this reads `unit.trade !== undefined` rather than
  * anything about where the route currently points.
  *
+ * **A cart is the sixth, and it is a fact about the piece rather than about its
+ * orders** (the R4 ruling, 2026-09-09: *"never ask for orders on a trader
+ * unit"*). The fifth clause silenced a caravan while it was *carrying* a route
+ * and left the lapsed one talking: the wagon comes home, the route key is gone,
+ * and the first four clauses called it idle every turn for the rest of the game
+ * — a piece the player cannot usefully do anything to from a unit sheet, since
+ * every route verb lives on the Trade sheet now. So the whole class goes quiet:
+ * a `routeOnly` piece is never awaiting orders, routed or idle. What replaces
+ * the prompt is the Trade screen's own — `firstBlocker`'s `idleTrader`, which
+ * asks whether there is anywhere to send it rather than whether it is standing
+ * still.
+ *
+ * Asked of **`UnitDef.routeOnly`**, the marker that says a piece exists only
+ * because a route was hired (`unitData.ts`); nothing here names a trader. It
+ * sits beside the `trade` clause rather than replacing it, because the two
+ * answer different questions and a roster that one day held a cargo ship bought
+ * at a shipyard would want the fifth and not the sixth.
+ *
  * Lives in the sim so an AI (or a future second client) asks the same
  * question the interface does, rather than a UI-only rule the simulation
  * cannot see. `path` is absent rather than empty on an idle unit (`state.ts`
@@ -306,6 +324,8 @@ export function unitAwaitsOrders(unit: Unit): boolean {
   // stands waiting for its next aim — `trade`'s case one verb over.
   if (unit.autoExplore === true) return false;
   if (unit.trade !== undefined) return false;
+  // The whole class, routed or idle — see the docblock's sixth clause.
+  if (unitDef(unit.type).routeOnly === true) return false;
   return true;
 }
 

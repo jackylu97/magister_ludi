@@ -67,6 +67,8 @@ import {
   explainRouteYieldBetween,
   explainEmpireGold,
   foldRouteYield,
+  hasSendablePair,
+  idleTraders,
   roadsBuiltBy,
   routeArrived,
   routeIsInternational,
@@ -786,6 +788,97 @@ describe('buyRoute', () => {
  *   4. an **absent** mode resolves by the stated default — land where a land
  *      path exists, else sea.
  */
+/**
+ * **The cart that came home** — R4 (the user, 2026-09-09: *"this is a major bug:
+ * once a trade route completes, there's no way to re-send it"*).
+ *
+ * A bought cart is kept, not spent: the route lapses, the wagon stands where it
+ * stopped, and `startRoute` is the verb that puts it back on the road. That verb
+ * never went away — what it lacked was a surface — so what is pinned here is
+ * that the *rules* take a re-send, and take it on the same terms a hire is
+ * taken: the two share one pair gate (`routeStartable`), the wagon teleports to
+ * whichever origin the command names, and a foreign partner is a clause of the
+ * shared gate rather than of the purse.
+ */
+describe('a cart whose route has lapsed', () => {
+  /** A hired route, ended — one wagon of this seat's standing with no route on it. */
+  function lapsed(): ReturnType<typeof tradeWorld> & { cart: Unit } {
+    const world = tradeWorld();
+    expect(applyCommand(world.state, send(0, world.trader.id, world.home.id, world.partner.id)).ok)
+      .toBe(true);
+    expect(
+      applyCommand(world.state, { type: 'cancelRoute', playerId: 0, unitId: world.trader.id }).ok,
+    ).toBe(true);
+    expect(world.trader.trade).toBeUndefined();
+    bumpRevision(world.state);
+    return { ...world, cart: world.trader };
+  }
+
+  it('is a cart the reading counts and the slot ledger does not', () => {
+    const { state, cart } = lapsed();
+    expect(idleTraders(state, 0).map((unit) => unit.id)).toEqual([cart.id]);
+    // The slot came back with the route; the wagon did not go with it.
+    expect(usedRouteSlots(state, 0)).toBe(0);
+    expect(hasSendablePair(state, 0)).toBe(true);
+  });
+
+  it('goes out again on a new partner, teleporting to the origin the command names', () => {
+    const { state, home, partner, cart } = lapsed();
+    const third = foundCityAt(state, 0, at(state, 6, 7));
+    bumpRevision(state);
+    // Sent *from the third town*, which the cart is not standing in — where a
+    // caravan stands is asked nowhere at all.
+    expect(startRouteError(state, 0, cart.id, third.id, partner.id)).toBeNull();
+    const result = applyCommand(state, send(0, cart.id, third.id, partner.id));
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+    expect(cart.trade).toMatchObject({ from: third.id, to: partner.id });
+    expect(standsIn(cart, third)).toBe(true);
+    // And the old pair is free again, which is the whole of "re-sent".
+    expect(routeStartable(state, 0, home.id, partner.id)).toMatch(/trade routes are running/);
+  });
+
+  it('goes out again to a **foreign** partner, on the hire’s own terms', () => {
+    const { state, home, cart } = lapsed();
+    const theirs = foundCityAt(state, 1, at(state, 6, 4));
+    // At peace and met — the two clauses `routeStartable` asks about a foreign
+    // end, and the two `buyRoute` asks with them.
+    state.wars = [];
+    createUnit(state, 1, 'worker', 4, 4);
+    resetVisibility(state);
+    bumpRevision(state);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+    // One gate, two verbs: what the pair says to a hire it says to a re-send.
+    expect(routeStartable(state, 0, home.id, theirs.id)).toBeNull();
+    expect(startRouteError(state, 0, cart.id, home.id, theirs.id)).toBeNull();
+    const result = applyCommand(state, send(0, cart.id, home.id, theirs.id));
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
+    expect(cart.trade).toMatchObject({ from: home.id, to: theirs.id });
+    expect(routeIsInternational(home, theirs)).toBe(true);
+  });
+
+  it('is refused on the shared gate’s own sentence, byte-identical', () => {
+    const { state, home, cart } = lapsed();
+    const theirs = foundCityAt(state, 1, at(state, 6, 4));
+    bumpRevision(state);
+    // `bareState` seats the two at war, which is the pair clause, not the piece's.
+    const gated = routeStartable(state, 0, home.id, theirs.id);
+    expect(gated).toMatch(/at war with/);
+    const before = snapshotState(state);
+    const result = applyCommand(state, send(0, cart.id, home.id, theirs.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(gated);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('is nothing to send at all once the partner is running and the slot is spent', () => {
+    const { state, home, partner, cart } = lapsed();
+    // The one slot back on the road, and one town left to send to — itself.
+    expect(applyCommand(state, send(0, cart.id, home.id, partner.id)).ok).toBe(true);
+    expect(idleTraders(state, 0)).toEqual([]);
+    expect(hasSendablePair(state, 0)).toBe(false);
+  });
+});
+
 describe('land or sea', () => {
   it('offers both ways where both exist, and one where one does', () => {
     const both = seaWorld();

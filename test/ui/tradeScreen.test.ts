@@ -17,8 +17,9 @@
  *      a card is read off `readRoutes`' own reading rather than recomputed here.
  *   4. **The Land | Sea toggle re-reads the card** — the yields *and* the facts
  *      are the fold for the chosen mode, which is the direction of record.
- *   5. **Send dispatches `buyRoute` with the chosen mode**, all the way through
- *      `controls.buyRouteOf` to the reducer's own command shape.
+ *   5. **Send re-uses a cart before it hires one** (R4), and dispatches the
+ *      command it named with the chosen mode — `startRoute` through
+ *      `controls.startRouteFrom`, or `buyRoute` through `controls.buyRouteOf`.
  *   6. **Unavailable is grouped by the clause that refused it**, classified by
  *      re-asking the simulation rather than by reading its prose.
  *   7. **The sheet rebuilds only when the reading moved** — the performance
@@ -60,7 +61,7 @@ import { layRoad } from '../../src/sim/roads';
 import { openWar } from '../../src/sim/wars';
 import { applyCommand } from '../../src/sim/commands';
 import { NO_ROUTE_CAPACITY, routeFigures, tradeFigureRuns } from '../../src/ui/tradeLines';
-import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
+import { YIELD_GLYPH, type YieldKey, figure } from '../../src/ui/figures';
 import {
   type TradeContext,
   MODE_LABEL,
@@ -83,6 +84,8 @@ import {
   routeSortValue,
   rowPassesFilters,
   runningRoutes,
+  sendCommandFor,
+  sendLabel,
   tabCounts,
   tradeContext,
   tradeLedger,
@@ -498,18 +501,125 @@ describe('Send', () => {
     expect(buyCommandFor(poor, rowFor(poor, home, near), mode)).toBeNull();
   });
 
-  it('is a `buyRoute`, all the way from the button to the reducer', () => {
+  it('is one of two commands, all the way from the button to the reducer', () => {
     const sheet = source('tradeScreen.ts');
-    // The sheet's one write, and it names the mode the card is being read in.
+    // The hire, and it names the mode the card is being read in.
     expect(sheet).toContain(
       'options.buyRoute(command.fromCityId, command.toCityId, command.mode);',
     );
-    // Nothing on this sheet starts a route from a piece any more.
-    expect(sheet).not.toContain('startRoute');
-    // `main.ts` wires that option to `controls`, and `controls` sends the
-    // command — one funnel, so a route hired here is hired the way a peer's is.
+    // And R4's half: the cart this seat already owns, named.
+    expect(sheet).toContain(
+      'options.startRoute(command.unitId, command.fromCityId, command.toCityId, command.mode);',
+    );
+    // Both go out through one dispatch, so the choice is taken in one place.
+    expect(sheet.match(/dispatchSend\(command/g) ?? []).not.toHaveLength(0);
+    // `main.ts` wires both options to `controls`, and `controls` sends the
+    // commands — one funnel, so a route opened here is opened the way a peer's is.
     expect(source('main.ts')).toContain('controls.buyRouteOf(fromCityId, toCityId, mode);');
+    expect(source('main.ts')).toContain(
+      'controls.startRouteFrom(unitId, fromCityId, toCityId, mode);',
+    );
     expect(source('controls.ts')).toContain("type: 'buyRoute',");
+    expect(source('controls.ts')).toContain("type: 'startRoute',");
+  });
+
+  /**
+   * **A bought cart is kept, not spent** — R4 (the user, 2026-09-09: *"sending a
+   * trade route should first aim to re-use a route that's already been
+   * purchased"*).
+   *
+   * The pure half of the button, and the three cases the ruling names: a cart
+   * idles and the Send re-uses it; none does and the Send hires; the purse is
+   * short and the cart still goes, because the gold gate is the hire's alone.
+   */
+  describe('re-uses a cart before it buys one', () => {
+    /** `tradeWorld` with one wagon of this seat's standing about, unladen. */
+    function withIdleCart(): { state: GameState; home: City; near: City; cart: Unit } {
+      const { state, home, near } = tradeWorld();
+      const cart = createUnit(state, 0, 'trader', home.col, home.row);
+      bumpRevision(state);
+      return { state, home, near, cart };
+    }
+
+    it('sends the idle cart rather than hiring', () => {
+      const { state, home, near, cart } = withIdleCart();
+      const ctx = tradeContext(state, 0);
+      expect(ctx.idleCarts).toEqual([cart.id]);
+      const row = rowFor(ctx, home, near);
+      const mode = bestMode(row)!;
+      expect(sendCommandFor(ctx, row, mode)).toEqual({
+        kind: 'send',
+        unitId: cart.id,
+        fromCityId: home.id,
+        toCityId: near.id,
+        mode,
+      });
+      expect(sendLabel(sendCommandFor(ctx, row, mode), ctx.reading.price)).toBe('Send · idle cart');
+    });
+
+    it('hires when no cart stands idle, at the sheet’s own price', () => {
+      const { state, home, near } = tradeWorld();
+      const ctx = tradeContext(state, 0);
+      expect(ctx.idleCarts).toEqual([]);
+      const row = rowFor(ctx, home, near);
+      const mode = bestMode(row)!;
+      expect(sendCommandFor(ctx, row, mode)).toEqual({
+        kind: 'hire',
+        fromCityId: home.id,
+        toCityId: near.id,
+        mode,
+      });
+      expect(sendLabel(sendCommandFor(ctx, row, mode), ctx.reading.price)).toBe(
+        // `figure`, the specimen's own tabular reading, never a raw number.
+        `Hire · ${figure(ctx.reading.price)} gold`,
+      );
+    });
+
+    it('sends the cart even with an empty purse — the coin gate is the hire’s', () => {
+      const { state, home, near, cart } = withIdleCart();
+      state.players[0]!.gold = 0;
+      bumpRevision(state);
+      const ctx = tradeContext(state, 0);
+      const row = rowFor(ctx, home, near);
+      const mode = bestMode(row)!;
+      // The hire is refused on the purse and the send is not.
+      expect(buyCommandFor(ctx, row, mode)).toBeNull();
+      expect(sendCommandFor(ctx, row, mode)).toMatchObject({ kind: 'send', unitId: cart.id });
+    });
+
+    it('names the lowest id when several stand, deterministically', () => {
+      const { state, home, near, cart } = withIdleCart();
+      const second = createUnit(state, 0, 'trader', near.col, near.row);
+      bumpRevision(state);
+      const ctx = tradeContext(state, 0);
+      expect(second.id).toBeGreaterThan(cart.id);
+      expect(ctx.idleCarts).toEqual([cart.id, second.id]);
+      const row = rowFor(ctx, home, near);
+      expect(sendCommandFor(ctx, row, bestMode(row)!)).toMatchObject({ unitId: cart.id });
+    });
+
+    it('counts only the wagons with no route on them', () => {
+      const { state, home, near, cart } = withIdleCart();
+      const bought = applyCommand(state, {
+        type: 'buyRoute',
+        playerId: 0,
+        fromCityId: home.id,
+        toCityId: near.id,
+        mode: 'land',
+      });
+      expect(bought.ok, bought.ok ? '' : bought.error).toBe(true);
+      // The hired cart is laden and the idle one is not, so the count is one.
+      expect(tradeContext(state, 0).idleCarts).toEqual([cart.id]);
+    });
+
+    it('refuses a mode the gate did not offer, cart or no cart', () => {
+      const { state, home, near } = withIdleCart();
+      const ctx = tradeContext(state, 0);
+      const row = rowFor(ctx, home, near);
+      const mode = bestMode(row)!;
+      const missing = mode === 'land' ? 'sea' : 'land';
+      if (!row.modes.includes(missing)) expect(sendCommandFor(ctx, row, missing)).toBeNull();
+    });
   });
 
   it('hires a caravan the reducer mints in the origin’s gates', () => {

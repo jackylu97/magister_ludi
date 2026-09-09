@@ -720,9 +720,33 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
         run: onOpenTrade,
       });
     }
-    // A routed caravan's sheet is its route and the door beside it, and nothing
-    // else: the move verbs stay off for the reason stated above.
-    if (route) return actions;
+    // **A caravan's sheet is its route and the door beside it — routed or not**
+    // (R4, 2026-09-09: *"never ask for orders on a trader unit"*). The early
+    // return used to be about the *route*, so a cart whose route had lapsed fell
+    // through to the ordinary sheet and was offered the three civilian verbs
+    // below — all of them about positioning a piece that is not positioned by
+    // hand, on the one row of the roster whose every real verb is on another
+    // screen. It is about the piece now: `trades` is asked once, above, and the
+    // whole class takes the link.
+    //
+    // **Disband survives the cut**, and it is the one verb here that is about
+    // this wagon rather than about the empire's routes: a cart standing idle
+    // costs upkeep, and letting it go is the only thing the Trade sheet cannot
+    // do. A routed one still never reaches it — `disbandError` refuses a piece
+    // carrying a route, and the sheet has always matched that gate by returning
+    // before the row.
+    if (trades(unitDef(unit.type))) {
+      if (!route) {
+        const blocker = disbandBlocker();
+        actions.push({
+          label: 'Disband',
+          blocked: blocker === undefined ? 'No unit selected' : blocker,
+          hint: disbandHint(unit),
+          run: onDisband,
+        });
+      }
+      return actions;
+    }
     if (unitDef(unit.type).foundsCity) {
       // `undefined` means "no unit selected", which cannot happen while a unit
       // is being rendered — but it is a different value from `null` ("no

@@ -1165,6 +1165,16 @@ function answerBlocker(
       return wagerDecision(state, player);
     case 'idleUnit':
       return unitCommand(state, player, blocker.unitId, sitting);
+    // **The cart that came home** (R4, 2026-09-09), and it is the same arm the
+    // idle-unit blocker uses. A caravan stopped raising `idleUnit` when
+    // `unitAwaitsOrders` went quiet for the whole class, so without this the one
+    // wagon this bot already owns would stand in a town for ever while the want
+    // book refused to hire another beside it (`RouteOutlook.idle` — an idle cart
+    // takes the next slot, so a hired one would only wait behind it). The arm
+    // itself is unchanged: `unitCommand` routes a trader to `traderCommand`,
+    // which sends it on the best pair the rules will take or stands it down.
+    case 'idleTrader':
+      return unitCommand(state, player, blocker.unitId, sitting);
     case 'cityProduction':
       return cityCommand(state, player, blocker.cityId, sitting);
     case 'research':

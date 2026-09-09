@@ -65,9 +65,12 @@
  * left to spend" is a state that cannot exist. A clause reading `chargesLeft`
  * would therefore have been a clause that never changed an answer.
  *
- * The other three blockers are simple facts: an unanswered discovery offer, a
- * city of yours with an empty production queue, and a research pool aimed at
- * nothing while there is still something to aim it at.
+ * The other blockers are simple facts: an unanswered discovery offer, a city of
+ * yours with an empty production queue, a research pool aimed at nothing while
+ * there is still something to aim it at — and **a bought cart with nowhere it
+ * has been sent** (R4, 2026-09-09), which is the one prompt that names a screen
+ * rather than a hex. See `firstSendableIdleTrader` for why it is the cheap half
+ * of the trade gate and not `readRoutes`.
  *
  * The discovery blocker goes **first**, ahead of the idle unit. The order here is
  * the cost of forgetting, and forgetting a ruin is the dearest of the four: an
@@ -117,6 +120,7 @@ import { statecraftBlocker } from '../sim/statecraft';
 import { wagerBlocker } from '../sim/wagers';
 import { availableTechs } from '../sim/tech';
 import { type GameState, hasEndedTurn, playerById } from '../sim/state';
+import { hasSendablePair, idleTraders } from '../sim/trade';
 import { unitAwaitsOrders, unitOfferedForOrders } from '../sim/units';
 
 /**
@@ -129,6 +133,7 @@ import { unitAwaitsOrders, unitOfferedForOrders } from '../sim/units';
  */
 export type TurnBlocker =
   | { kind: 'idleUnit'; unitId: number }
+  | { kind: 'idleTrader'; unitId: number }
   | { kind: 'cityProduction'; cityId: number }
   | { kind: 'research' }
   | { kind: 'discovery' }
@@ -259,6 +264,26 @@ export function firstBlocker(
     if (unitAwaitsOrders(unit)) return { kind: 'idleUnit', unitId: unit.id };
   }
 
+  // **The cart that came home** (R4, 2026-09-09). It stands exactly where the
+  // idle-unit prompt used to raise it and says the thing that is actually to be
+  // done about it: a caravan is never asked for orders any more
+  // (`unitAwaitsOrders`' sixth clause), and the answer to a wagon standing in a
+  // town is not "move it somewhere" but "open the Trade sheet and send it".
+  //
+  // Two clauses, and the ruling wrote both: a cart of this seat's standing with
+  // no route on it, and somewhere to send one. "Somewhere" is
+  // `hasSendablePair` — a partner and a slot, deliberately not the range and the
+  // road, because this fold is asked once a *press* by the interface and once an
+  // *ask* by the bot's driver, and `readRoutes` is a hundred pathfinding
+  // searches. A cart with nothing to send blocks nothing at all.
+  //
+  // A **sleeping** cart is silent here for `unitAwaitsOrders`' own reason, one
+  // clause up: sleep is a fact about the piece, and it is also what makes this
+  // arm monotone for the bot — a seat with no legal pair stands its wagon down
+  // once and is not asked again.
+  const trader = firstSendableIdleTrader(state, playerId, exclusions);
+  if (trader !== null) return { kind: 'idleTrader', unitId: trader };
+
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     if (city.queue.length === 0) return { kind: 'cityProduction', cityId: city.id };
@@ -271,6 +296,33 @@ export function firstBlocker(
   }
 
   return null;
+}
+
+/**
+ * The id of the first cart this seat could send, or `null` — `firstBlocker`'s
+ * `idleTrader` arm, split out so the expensive half is asked **last**.
+ *
+ * The order of the three questions is the order of their cost, and it is the
+ * whole implementation decision: the wagons first (a walk of `state.units` and
+ * one `unitDef` lookup each), and only if one is standing does the empire get
+ * asked whether it has anywhere to send it (`hasSendablePair`, a walk of the
+ * towns). A seat with no caravan at all — which is most seats for most of a
+ * game — pays a units walk and nothing else.
+ */
+function firstSendableIdleTrader(
+  state: GameState,
+  playerId: number,
+  exclusions?: BlockerExclusions,
+): number | null {
+  let first: number | null = null;
+  for (const unit of idleTraders(state, playerId)) {
+    if (unit.sleeping === true) continue;
+    if (exclusions?.skippedUnitIds?.has(unit.id)) continue;
+    first = unit.id;
+    break;
+  }
+  if (first === null) return null;
+  return hasSendablePair(state, playerId) ? first : null;
 }
 
 /**

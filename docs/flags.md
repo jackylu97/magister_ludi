@@ -1388,7 +1388,27 @@ directly to confirm rulings — user marginalia are rulings.
   choice pinned pure (`buyCommandFor`-style helper returns the
   `startRoute` when a cart idles, the `buyRoute` when none does), the
   blocker's text and the predicate's `routeOnly` clause pinned in
-  `test/ui/turnBlockers.test.ts`/`test/sim/units.test.ts`. (eee)
+  `test/ui/turnBlockers.test.ts`/`test/sim/units.test.ts`. **R4 built
+  2026-09-09** (no schema): `idleTraders` (`trade.ts`) is the reading —
+  the seat's `routeOnly` pieces carrying no route, in `state.units`
+  order; `sendCommandFor` (`tradeScreen.ts`) is the one choice every
+  Send goes through (cards, All-routes rows, Running's Renew): the
+  first idle cart by `startRoute`, else `buyRoute` at the price, the
+  purse gating only the hire; the button reads "Send · idle cart" or
+  "Hire · N gold", the masthead counts idle carts. `unitAwaitsOrders`
+  takes a sixth clause (any `routeOnly` piece) and the wide predicate
+  inherits it; a cart's sheet is the trade link plus Disband while
+  idle. `firstBlocker` gains `idleTrader` — an awake cart and
+  `hasSendablePair` (slot + partner clauses of `routeStartable`, no
+  path/range/fog: it is asked once an ask by the bot's driver, where
+  `readRoutes` is a hundred searches) — reading **"Send an idle
+  trader"**, panning to the cart, opening the sheet, passable via the
+  skip set. The bot answers it with `unitCommand` (it never hired
+  beside an idle cart: `RouteOutlook.free` already subtracts them).
+  `startRoute`/`buyRoute` already shared `routeStartable`, so a re-send
+  abroad is legal exactly where a hire is (pinned). ▢ a seat whose only
+  partners are out of range or unseen can be prompted and find the
+  sheet offering nothing (the prompt is passable). (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a

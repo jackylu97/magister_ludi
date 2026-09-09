@@ -1545,6 +1545,9 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
  */
 const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   idleUnit: 'Unit needs orders',
+  // The R4 ruling's own words for the prompt that replaced "Unit needs orders"
+  // on a caravan: a cart is never told where to stand, it is sent.
+  idleTrader: 'Send an idle trader',
   cityProduction: 'Choose production',
   research: 'Choose research',
   discovery: 'A discovery awaits',
@@ -3235,6 +3238,9 @@ async function boot(initial: Game | null): Promise<void> {
     onToggleBeads: () => beads?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
+    // And End Turn's idle-cart blocker puts the trade sheet up, on the same
+    // terms (R4): it opens, it never toggles.
+    onOpenTrade: () => trade?.open(),
     onOfferDiscovery: showDiscoveryOffer,
     onToggleStatecraft: () => statecraft?.toggle(),
     // End Turn's Statecraft blocker puts the offer card up, because the offer is
@@ -3736,6 +3742,13 @@ async function boot(initial: Game | null): Promise<void> {
     getPlayerId: () => controls.localPlayerId(),
     buyRoute: (fromCityId, toCityId, mode) => {
       controls.buyRouteOf(fromCityId, toCityId, mode);
+      updatePanel(null, renderer.getHover());
+    },
+    // R4's half of the same button: the cart this seat already owns, sent by the
+    // verb that names one. `controls.startRouteFrom` is the by-id write the unit
+    // sheet used to reach, and it is unchanged.
+    startRoute: (unitId, fromCityId, toCityId, mode) => {
+      controls.startRouteFrom(unitId, fromCityId, toCityId, mode);
       updatePanel(null, renderer.getHover());
     },
     setAutoResend: (unitId, on) => {

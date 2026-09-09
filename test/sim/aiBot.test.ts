@@ -55,6 +55,8 @@ import { explainBuildingRow, meterWeight, yieldWeight } from '../../src/ai/value
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { happinessDemand } from '../../src/sim/meters';
 import { worthPerCoin } from '../../src/ai/wants';
+import { applyCommand } from '../../src/sim/commands';
+import { at, bareState } from './improvementHelpers';
 
 /**
  * The standing maintenance bill, as `goldReserveFor` reads it — the negative
@@ -300,6 +302,46 @@ describe('the scored build list', () => {
     // list: the reading it used (`explainCaravan`) is the want book's now.
     const source = code(AI_SOURCE[Object.keys(AI_SOURCE).find((path) => path.endsWith('/bot.ts'))!]!);
     expect(source).not.toContain('explainCaravan');
+  });
+
+  /**
+   * **The cart it already owns goes out before a coin does** — R4 (2026-09-09).
+   *
+   * The bot never bought a wagon beside an idle one (`RouteOutlook.free` is
+   * `slots − used − idle`, so `explainCaravan` refuses the hire while one
+   * waits), and it heard about the idle one through `firstBlocker`'s idle-unit
+   * arm. R4 silenced that arm for the whole caravan class, so the prompt this
+   * answers is the new `idleTrader` — and the arm behind it is the same
+   * `unitCommand` the old one used, which is why nothing about *where* the cart
+   * goes changed. Without the pair, a seat's first caravan would stand in its
+   * capital for the rest of the game while the want book refused to replace it.
+   */
+  it('answers the idle-cart blocker by sending the cart, not by hiring another', () => {
+    const state = bareState(16, 9);
+    const home = foundCityAt(state, 0, at(state, 3, 4));
+    const partner = foundCityAt(state, 0, at(state, 10, 4));
+    home.buildings.push('market');
+    // Nothing else outstanding: two towns building, and an empty purse so no
+    // want can outrank the blocker.
+    home.queue = [{ kind: 'unit', id: 'warrior' }];
+    partner.queue = [{ kind: 'unit', id: 'warrior' }];
+    const cart = createUnit(state, 0, 'trader', home.col, home.row);
+    seat(state, 0).gold = 0;
+    bumpRevision(state);
+
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleTrader', unitId: cart.id });
+    const decision = nextBotDecision(state, 0);
+    expect(decision?.command).toMatchObject({
+      type: 'startRoute',
+      playerId: 0,
+      unitId: cart.id,
+      fromCityId: home.id,
+      toCityId: partner.id,
+    });
+    // And the reducer takes it, which is this bot's whole claim about its own
+    // commands.
+    expect(applyCommand(state, decision!.command).ok).toBe(true);
+    expect(cart.trade).toMatchObject({ from: home.id, to: partner.id });
   });
 
   it('turns away from upkeep when the books are bleeding', () => {

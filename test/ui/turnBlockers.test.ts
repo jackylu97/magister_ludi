@@ -22,6 +22,7 @@ import {
 } from '../../src/sim/state';
 import { availableTechs } from '../../src/sim/tech';
 import { TECH_IDS } from '../../src/sim/techData';
+import { unitDef } from '../../src/sim/unitData';
 import { unitAwaitsOrders, unitOfferedForOrders } from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 import { firstBlocker, firstUnitOffer } from '../../src/ui/turnBlockers';
@@ -168,12 +169,27 @@ describe('unitAwaitsOrders', () => {
     expect(unitAwaitsOrders(unit)).toBe(false);
   });
 
-  it('calls the same unit idle the instant it stops carrying a route', () => {
+  it('still calls it nothing of the kind once the route lapses', () => {
+    // **R4 (2026-09-09)**: *"never ask for orders on a trader unit"*. The fifth
+    // clause silenced a caravan while it was carrying a route and left the
+    // lapsed one talking — a wagon standing in a town, flagged idle every turn,
+    // with no verb on its own sheet that would answer the prompt. The sixth
+    // clause is the whole class, and it is asked of the row's own marker.
     const state = flatState();
     const unit = createUnit(state, 0, 'trader', 3, 3);
     unit.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
     delete unit.trade;
-    expect(unitAwaitsOrders(unit)).toBe(true);
+    expect(unitDef(unit.type).routeOnly).toBe(true);
+    expect(unitAwaitsOrders(unit)).toBe(false);
+    expect(unitOfferedForOrders(unit)).toBe(false);
+  });
+
+  it('reads the marker rather than the piece’s route, so a marching cart is silent too', () => {
+    const state = flatState();
+    const unit = createUnit(state, 0, 'trader', 3, 3);
+    unit.path = [{ col: 4, row: 3 }];
+    expect(unitAwaitsOrders(unit)).toBe(false);
+    expect(unitOfferedForOrders(unit)).toBe(false);
   });
 });
 
@@ -366,12 +382,123 @@ describe('firstBlocker · idle units', () => {
     expect(firstBlocker(state, 0)).toBeNull();
   });
 
-  it('blocks on that same trader the instant it stops carrying a route', () => {
+  it('never blocks on a cart whose route has lapsed either — that is the trade blocker’s', () => {
+    // R4: the idle-unit arm has nothing to say about a caravan at all now. What
+    // a cart standing in a town raises is `idleTrader`, and only when there is
+    // somewhere to send it — see the suite below.
     const state = settled();
     const trader = createUnit(state, 0, 'trader', 3, 3);
     trader.trade = { from: 1, to: 2, expiresTurn: 20, outbound: false, autoResend: true };
     delete trader.trade;
-    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: trader.id });
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+});
+
+/**
+ * **The cart that came home** — R4 (the user, 2026-09-09: *"the new behavior
+ * should prompt you to 'send an idle trader'"*).
+ *
+ * A bought cart is kept, not spent: its route lapses, the wagon walks home, and
+ * the only thing to be done about it lives on the Trade sheet. So the prompt is
+ * not "this piece needs orders" (it takes none) but "you own a caravan and a
+ * route it could open", and it is raised on the empire's own two facts — a cart
+ * standing idle, and a partner with a slot to put one in.
+ *
+ * The two clauses are the ruling's own words for what does *not* block: *"an
+ * idle cart with nothing to send (no partner, no slot) blocks nothing"*.
+ */
+describe('firstBlocker · the idle cart', () => {
+  /** A seat with two towns, a market in the first, and no other business. */
+  function trading(): { state: GameState; home: City; far: City } {
+    const state = settled();
+    const home = plant(state, 0, 4, 4);
+    const far = plant(state, 0, 8, 4);
+    home.queue = [{ kind: 'unit', id: 'warrior' }];
+    far.queue = [{ kind: 'unit', id: 'warrior' }];
+    home.buildings = [...home.buildings, 'market'];
+    return { state, home, far };
+  }
+
+  it('raises the cart when a partner and a slot both stand', () => {
+    const { state } = trading();
+    const cart = createUnit(state, 0, 'trader', 4, 4);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleTrader', unitId: cart.id });
+  });
+
+  it('names the lowest id when several carts stand idle', () => {
+    const { state } = trading();
+    const first = createUnit(state, 0, 'trader', 4, 4);
+    const second = createUnit(state, 0, 'trader', 8, 4);
+    expect(second.id).toBeGreaterThan(first.id);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleTrader', unitId: first.id });
+  });
+
+  it('is silent while the cart is carrying a route', () => {
+    const { state, home, far } = trading();
+    const cart = createUnit(state, 0, 'trader', 4, 4);
+    cart.trade = { from: home.id, to: far.id, expiresTurn: 20, outbound: true, autoResend: false };
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('is silent with no slot to put a route in', () => {
+    const { state, home } = trading();
+    home.buildings = home.buildings.filter((id) => id !== 'market');
+    createUnit(state, 0, 'trader', 4, 4);
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('is silent with no partner at all', () => {
+    const state = settled();
+    const lone = plant(state, 0, 4, 4);
+    lone.queue = [{ kind: 'unit', id: 'warrior' }];
+    lone.buildings = [...lone.buildings, 'market'];
+    createUnit(state, 0, 'trader', 4, 4);
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('is silent when the only pair already carries a route each way', () => {
+    const { state, home, far } = trading();
+    // Two slots, both spoken for: the pair is running in both directions, so
+    // there is nothing left for a third cart to open.
+    home.buildings = [...home.buildings, 'market'];
+    const out = createUnit(state, 0, 'trader', 4, 4);
+    out.trade = { from: home.id, to: far.id, expiresTurn: 20, outbound: true, autoResend: false };
+    const back = createUnit(state, 0, 'trader', 8, 4);
+    back.trade = { from: far.id, to: home.id, expiresTurn: 20, outbound: true, autoResend: false };
+    createUnit(state, 0, 'trader', 4, 4);
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('is silent on a sleeping cart, exactly as the idle-unit arm is', () => {
+    const { state } = trading();
+    const cart = createUnit(state, 0, 'trader', 4, 4);
+    cart.sleeping = true;
+    expect(firstBlocker(state, 0)).toBeNull();
+  });
+
+  it('is passable — the skip set waves it off for the rest of the turn', () => {
+    // The ruling's own word ("passable the way an idle worker's is"), and it is
+    // the same mechanism: `controls.ts` writes the cart's id into the skip set
+    // when the prompt fires, so the very next press ends the turn.
+    const { state } = trading();
+    const cart = createUnit(state, 0, 'trader', 4, 4);
+    expect(firstBlocker(state, 0, { skippedUnitIds: new Set([cart.id]) })).toBeNull();
+  });
+
+  it('stands behind the idle unit and ahead of the empty queue', () => {
+    const { state, home } = trading();
+    const cart = createUnit(state, 0, 'trader', 4, 4);
+    const warrior = createUnit(state, 0, 'warrior', 5, 5);
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleUnit', unitId: warrior.id });
+    warrior.movesLeft = 0;
+    home.queue = [];
+    expect(firstBlocker(state, 0)).toEqual({ kind: 'idleTrader', unitId: cart.id });
+  });
+
+  it('is never offered to the camera — a cart is not a piece to be handed over', () => {
+    const { state } = trading();
+    createUnit(state, 0, 'trader', 4, 4);
+    expect(firstUnitOffer(state, 0)).toBeNull();
   });
 });
 

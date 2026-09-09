@@ -1539,6 +1539,14 @@ export interface GameControlsOptions {
    * research" by closing the only screen that can fix it.
    */
   onOpenTechTree?: () => void;
+  /**
+   * Opens the Trade sheet — `onOpenTechTree`'s twin, and it exists for that
+   * one's reason exactly. End Turn's `idleTrader` blocker (R4, 2026-09-09) is
+   * the *interface* putting the sheet in front of the player, not the player
+   * asking for it, so it may only open: a toggle there could answer "you have a
+   * cart standing idle" by closing the one screen that can send it.
+   */
+  onOpenTrade?: () => void;
   /** Opens or closes the Statecraft screen. The `C` key and the culture chip. */
   onToggleStatecraft?: () => void;
   /**
@@ -2330,6 +2338,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onToggleAbacus,
     onToggleBeads,
     onOpenTechTree,
+    onOpenTrade,
     onOfferDiscovery,
     onToggleStatecraft,
     onOfferStatecraft,
@@ -6804,6 +6813,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
             ? '☞ Your settlers await a home.'
             : '☞ A unit awaits your command.',
         );
+        return;
+      }
+      case 'idleTrader': {
+        // **The one blocker whose "there" is a screen and a hex at once.** The
+        // camera goes to the cart, because a player who has forgotten they own
+        // one should see it standing in its town; the sheet opens beside it,
+        // because every route verb lives there and there is nothing on the
+        // piece's own sheet to press.
+        const cart = unitById(state, blocker.unitId);
+        if (cart) panToCell({ col: cart.col, row: cart.row });
+        // **Passable, the way an idle worker's is** (the ruling's own word). The
+        // skip set is the same one Skip Turn writes, so the nag is spent by
+        // being answered once: this press says it and opens the sheet, and the
+        // very next press ends the turn. It costs nothing in the state — a save
+        // that remembered which carts one seat had clicked past would be a save
+        // that remembers an interface (module docblock, "Skipped units").
+        skippedUnitIds.add(blocker.unitId);
+        guide('☞ Send an idle trader.');
+        onOpenTrade?.();
         return;
       }
       case 'cityProduction': {

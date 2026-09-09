@@ -193,13 +193,20 @@ describe('an order given at zero movement', () => {
  * micromanagement of units") and the one that finished the job — 2026-09-09,
  * *"trade routes should be entirely sent/managed on the trade route screen"*.
  *
- * The claim is a *subtraction*, and it has got shorter twice. A caravan's sheet
- * now has **one** trade row and it is a **link**: no send mode to toggle into,
- * no clause about standing in a city, no Start route (a route is bought on the
- * sheet, not started from a piece), no Auto-resend and no All routes. It is not
- * even blocked — a door to a screen has nothing to be refused by, and the
+ * The claim is a *subtraction*, and it has got shorter three times. A caravan's
+ * sheet now has **one** trade row and it is a **link**: no send mode to toggle
+ * into, no clause about standing in a city, no Start route (a route is bought on
+ * the sheet, not started from a piece), no Auto-resend and no All routes. It is
+ * not even blocked — a door to a screen has nothing to be refused by, and the
  * refusal a player needs is on the sheet's own Send in the reducer's own words.
- * The ordinary civilian verbs below are neither hidden nor treated specially.
+ *
+ * **And R4 (2026-09-09) took the ordinary civilian verbs too**: *"never ask for
+ * orders on a trader unit"*. The arm returns on the *piece* rather than on the
+ * route now, so an idle cart is no longer offered Sleep, Skip Turn and Cancel
+ * Orders — three verbs about positioning a wagon nobody positions by hand. What
+ * is left beside the link is Disband, the one verb about this piece that the
+ * Trade sheet cannot do, and only while the cart is idle (`disbandError` refuses
+ * a laden one).
  *
  * Read off the source for this file's stated reason — there is no jsdom here,
  * and what distinguishes a correct sheet from a nearly-correct one is which
@@ -220,8 +227,10 @@ describe('an idle trader’s sheet', () => {
     expect(arm).not.toContain('Start route');
     expect(arm).not.toContain('Auto-resend');
     expect(arm).not.toContain('All routes');
-    // Exactly one row is pushed for a caravan, laden or not.
-    expect(arm.match(/actions\.push\(\{/g) ?? []).toHaveLength(1);
+    // Two rows are pushed for a caravan and no more: the link, and the Disband
+    // an idle one gets. A laden one takes the link alone.
+    expect(arm.match(/actions\.push\(\{/g) ?? []).toHaveLength(2);
+    expect(arm).toContain("label: 'Disband',");
   });
 
   it('opens the Trade sheet rather than arming the board', () => {
@@ -235,13 +244,16 @@ describe('an idle trader’s sheet', () => {
     expect(arm).not.toContain('startRouteBlocker()');
   });
 
-  it('falls through to the ordinary civilian verbs rather than returning', () => {
-    // A *routed* caravan's sheet is its route and the door, and returns after
-    // them; an idle one is a civilian that happens to have a screen to open, so
-    // Cancel Orders and Sleep are offered to it exactly as they are to a worker.
-    // The one return in this arm is the laden caravan's, and it is guarded.
-    expect(arm).toContain('if (route) return actions;');
+  it('returns on the piece, not on the route — no orders row on any cart', () => {
+    // R4: the whole class leaves the ordinary sheet, so Sleep, Skip Turn and
+    // Cancel Orders are never reached for a caravan, laden or idle. The guard is
+    // the row's own marker (`trades`), never a comparison against a type name.
+    expect(arm).toContain('if (trades(unitDef(unit.type))) {');
+    expect(arm).not.toContain('if (route) return actions;');
+    // One return, and it is the caravan's — the idle half of it pushes Disband
+    // on the way past.
     expect(arm.match(/return actions;/g) ?? []).toHaveLength(1);
+    expect(arm).toContain('if (!route) {');
   });
 });
 
@@ -466,12 +478,27 @@ describe('the Disband row', () => {
   );
 
   it('is the last row pushed, after every other verb', () => {
-    const disband = actions.indexOf("label: 'Disband'");
+    // `lastIndexOf`, because since R4 there are two of these rows and both are
+    // last on the sheet they belong to: the caravan's arm returns immediately
+    // after pushing its own, and this one closes the ordinary sheet.
+    const disband = actions.lastIndexOf("label: 'Disband'");
     expect(disband).toBeGreaterThan(0);
     // Nothing else is pushed after it — the next thing in the function is the
     // return.
     expect(actions.slice(disband)).not.toContain('actions.push(');
     expect(actions.slice(disband)).toContain('return actions;');
+  });
+
+  it('is the caravan sheet’s one verb too, and only while the cart is idle', () => {
+    // R4: a cart's sheet is the trade link and this, and a *laden* one never
+    // reaches the row at all — which is the gate `disbandError` keeps.
+    const cart = actions.slice(
+      actions.indexOf('if (trades(unitDef(unit.type))) {'),
+      actions.indexOf('if (unitDef(unit.type).foundsCity)'),
+    );
+    expect(cart).toContain('if (!route) {');
+    expect(cart).toContain("label: 'Disband',");
+    expect(cart).toContain('const blocker = disbandBlocker();');
   });
 
   it('is greyed with the gate’s own sentence, like every other verb', () => {

@@ -161,14 +161,20 @@ describe('a routed caravan’s sheet', () => {
     // with it**: the user's ruling of 2026-09-09 — *"trade routes should be
     // entirely sent/managed on the trade route screen"* — moved Auto-resend and
     // All routes onto the sheet too, so what is left on this piece is one door.
+    // **R4 turned the guard from the route to the piece** (2026-09-09, *"never
+    // ask for orders on a trader unit"*): the same subtraction now covers a cart
+    // whose route has lapsed, which used to fall through to the ordinary
+    // civilian verbs. Disband is the one row that survives, and only there.
     const block = panel.slice(panel.indexOf('const route = trades(unitDef(unit.type))'));
     const actions = block.slice(0, block.indexOf('if (unitDef(unit.type).foundsCity)'));
     expect(actions).toContain("label: 'Open the trade sheet',");
-    expect(actions).toMatch(/if \(route\) return actions;/);
+    expect(actions).toMatch(/if \(trades\(unitDef\(unit\.type\)\)\) \{/);
+    expect(actions).toMatch(/return actions;/);
     expect(actions).not.toContain('Auto-resend');
     expect(actions).not.toContain('Cancel Route');
     expect(actions).not.toContain('Cancel Orders');
     expect(actions).not.toContain('Sleep');
+    expect(actions).not.toContain('Skip Turn');
   });
 
   it('flips auto-renew from the sheet’s Running row, through the command and never the field', () => {

@@ -78,6 +78,7 @@ import {
   explainRouteSlots,
   explainRouteYield,
   foldRouteYield,
+  idleTraders,
   routeCities,
   routeIsInternational,
   routeIsLive,
@@ -293,6 +294,18 @@ export interface TradeContext {
   connected: ReadonlySet<number>;
   /** True while the empire has a route slot to spend. */
   slotFree: boolean;
+  /**
+   * **The carts already bought and standing with no route on them**, by id, in
+   * `state.units` order — lowest id first (R4, 2026-09-09).
+   *
+   * The purchased-and-waiting state the sheet had no word for: a route lapses,
+   * its wagon walks home, and until this batch the only thing the sheet would do
+   * with it was hire a second one beside it. It rides in the context for the
+   * reason everything else here does — one reading of the state per paint, handed
+   * down — and it is an array of ids rather than the pieces because the only two
+   * things asked of it are "is there one" and "which one does a Send name".
+   */
+  idleCarts: readonly number[];
 }
 
 export function tradeContext(state: GameState, seat: number): TradeContext {
@@ -309,6 +322,7 @@ export function tradeContext(state: GameState, seat: number): TradeContext {
     gold: playerById(state, seat)?.gold ?? 0,
     connected,
     slotFree: hasFreeRouteSlot(state, seat),
+    idleCarts: idleTraders(state, seat).map((unit) => unit.id),
   };
 }
 
@@ -926,6 +940,63 @@ export function buyCommandFor(
   return { fromCityId: row.from.id, toCityId: row.to.id, mode };
 }
 
+/**
+ * **What a Send dispatches** — the cart already bought, or the hire.
+ *
+ * The R4 ruling (2026-09-09, the user: *"sending a trade route should first aim
+ * to re-use a route that's already been purchased"*), as one pure answer. A
+ * bought cart is kept, not spent: when its route lapses it walks home and stands
+ * there, and a sheet whose only verb was `buyRoute` charged for a second wagon
+ * while the first waited in the gates.
+ *
+ * `startRoute` and `buyRoute` are held to **one pair gate** — `routeStartable`,
+ * *"the gate minus the piece"* — so a card the sheet drew as available is a card
+ * either verb takes, and the three clauses `startRouteError` adds are all about
+ * the wagon (it exists, it is yours, it is idle) and are exactly what
+ * `TradeContext.idleCarts` is a list of. That includes the foreign partner: the
+ * war and the met-ness are clauses of the shared gate, not of the purse, so a
+ * cart is re-sent abroad on the same terms a hire is.
+ *
+ * **The gold gate applies only to the hire**, which is the ruling's own sentence
+ * and the whole reason this is not a flag on `buyCommandFor`: an empire with an
+ * empty treasury and a cart in the gates can still open a route.
+ *
+ * The mode is named always, for `buyCommandFor`'s stated reason.
+ */
+export type SendCommand =
+  | { kind: 'send'; unitId: number; fromCityId: number; toCityId: number; mode: RouteMode }
+  | { kind: 'hire'; fromCityId: number; toCityId: number; mode: RouteMode };
+
+export function sendCommandFor(
+  ctx: TradeContext,
+  row: RouteReadingRow,
+  mode: RouteMode,
+): SendCommand | null {
+  if (!row.modes.includes(mode)) return null;
+  // The **first** idle cart, and `TradeContext.idleCarts` is `state.units` order,
+  // which is id order — so two clients looking at one board send the same wagon.
+  const cart = ctx.idleCarts[0];
+  if (cart !== undefined) {
+    return { kind: 'send', unitId: cart, fromCityId: row.from.id, toCityId: row.to.id, mode };
+  }
+  const hire = buyCommandFor(ctx, row, mode);
+  return hire === null ? null : { kind: 'hire', ...hire };
+}
+
+/**
+ * What the Send button reads, and what it says on hover — the two halves of the
+ * ruling's *"the button reads the difference"*.
+ *
+ * The price appears **only when it would be paid**, which is the point: a player
+ * pressing Send on a card while a cart stands idle is not spending anything, and
+ * a button quoting a hundred and twenty gold at them would be the sheet lying
+ * about the decision it is asking for.
+ */
+export function sendLabel(command: SendCommand | null, price: number): string {
+  if (command === null) return 'Send';
+  return command.kind === 'send' ? 'Send · idle cart' : `Hire · ${figure(price)} gold`;
+}
+
 /** What a mode's side of the toggle says. Plain words, the user's own. */
 export const MODE_LABEL: Readonly<Record<RouteMode, string>> = {
   land: 'Land',
@@ -1015,6 +1086,15 @@ export interface TradeScreenOptions {
    * minted in the origin's gates by the reducer with the route already on it.
    */
   buyRoute: (fromCityId: number, toCityId: number, mode: RouteMode) => void;
+  /**
+   * Sends a cart this seat already owns — `controls.startRouteFrom` (R4).
+   *
+   * Beside `buyRoute` rather than folded into it, because they are two commands
+   * held to two gates: this one names a wagon and is free, that one names none
+   * and charges the treasury. Which of the two a press dispatches is
+   * `sendCommandFor`'s answer and nothing this file decides twice.
+   */
+  startRoute: (unitId: number, fromCityId: number, toCityId: number, mode: RouteMode) => void;
   /** Flips a route's auto-renew flag. */
   setAutoResend: (unitId: number, on: boolean) => void;
   /** Ends a route now and frees the slot. */
@@ -1134,7 +1214,26 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     purse.append(document.createTextNode(' gold in the purse · '));
     purse.append(element('b', '', figure(idle)));
     purse.append(document.createTextNode(` of ${figure(ctx.reading.slots)} slots idle`));
+    // **The third figure, and it is the one R4 exists for**: the carts already
+    // bought and standing about. It rides the purse line rather than a line of
+    // its own because it belongs to the same sentence — what this empire has to
+    // spend on a route is a purse *and* a wagon, and the wagon is the cheaper
+    // half.
+    if (ctx.idleCarts.length > 0) {
+      purse.append(document.createTextNode(' · '));
+      purse.append(element('b', '', figure(ctx.idleCarts.length)));
+      purse.append(document.createTextNode(' carts idle'));
+    }
     head.append(purse);
+    // Said once more, plainly, under the masthead: the count alone is a number,
+    // and what a player needs to know is what the Send button will do with it.
+    if (ctx.idleCarts.length > 0) {
+      const note = element('p', 'trade-idle-carts');
+      note.append(document.createTextNode('Idle carts: '));
+      note.append(element('b', '', figure(ctx.idleCarts.length)));
+      note.append(document.createTextNode(' — a Send uses one before hiring'));
+      head.append(note);
+    }
     return head;
   }
 
@@ -1199,31 +1298,56 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     return group;
   }
 
-  /** Send, and the price under it. The one write this sheet makes. */
+  /**
+   * **The one write this sheet makes**, and since R4 it is one of two commands.
+   *
+   * Both go out through here so the decision is taken once: `sendCommandFor`
+   * says which, this dispatches it, and the camera goes to the origin either way
+   * — the wagon is teleported into those gates by `startRoute` exactly as a
+   * hired one is minted in them by `buyRoute`, so "watch the cart leave" is the
+   * same hex on both paths.
+   */
+  function dispatchSend(command: SendCommand, from: City): void {
+    if (command.kind === 'send') {
+      options.startRoute(command.unitId, command.fromCityId, command.toCityId, command.mode);
+    } else {
+      options.buyRoute(command.fromCityId, command.toCityId, command.mode);
+    }
+    close();
+    options.panTo({ col: from.col, row: from.row });
+  }
+
+  /** Send, and what it would cost under it. */
   function drawSend(ctx: TradeContext, row: RouteReadingRow, mode: RouteMode): HTMLElement {
     const foot = element('div', 'trade-card-foot');
-    const command = buyCommandFor(ctx, row, mode);
-    const send = button('trade-send', 'Send');
+    const command = sendCommandFor(ctx, row, mode);
+    const send = button('trade-send', sendLabel(command, ctx.reading.price));
     if (command === null) {
       send.disabled = true;
       send.title = ctx.gold < ctx.reading.price
         ? `The hire costs ${figure(ctx.reading.price)} gold`
         : 'This route cannot be sent by that way';
     } else {
-      send.title = `Hire a caravan from ${cityDisplayName(ctx.state, row.from)} for ${figure(ctx.reading.price)} gold`;
+      send.title =
+        command.kind === 'send'
+          ? `Send the cart standing idle, from ${cityDisplayName(ctx.state, row.from)} — no coin`
+          : `Hire a caravan from ${cityDisplayName(ctx.state, row.from)} for ${figure(ctx.reading.price)} gold`;
       send.addEventListener('click', () => {
-        options.buyRoute(command.fromCityId, command.toCityId, command.mode);
-        // The decision is made and what a player wants next is to watch the cart
-        // leave — and the caravan is minted in the origin's gates, so that is
-        // where the camera goes.
-        close();
-        options.panTo({ col: row.from.col, row: row.from.row });
+        dispatchSend(command, row.from);
       });
     }
     foot.append(send);
-    const price = element('span', 'trade-price', figure(ctx.reading.price));
-    price.append(element('small', '', 'gold'));
-    foot.append(price);
+    // The price stands beside the button only where the button would spend it;
+    // a card that would re-use a cart says so in the same slot instead.
+    if (command !== null && command.kind === 'send') {
+      const free = element('span', 'trade-price is-free', '—');
+      free.append(element('small', '', 'no coin'));
+      foot.append(free);
+    } else {
+      const price = element('span', 'trade-price', figure(ctx.reading.price));
+      price.append(element('small', '', 'gold'));
+      foot.append(price);
+    }
     return foot;
   }
 
@@ -1389,18 +1513,21 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         (row) => row.from.id === route.fromCityId && row.to.id === route.toCityId,
       );
       const mode2 = again === undefined ? null : chosenMode(again);
-      const renewable =
-        again !== undefined && mode2 !== null && buyCommandFor(ctx, again, mode2) !== null;
+      // Through the same choice the cards make (R4): a second cart on this pair
+      // is a cart standing idle before it is a coin out of the treasury.
+      const command2 =
+        again === undefined || mode2 === null ? null : sendCommandFor(ctx, again, mode2);
       const renew = button('trade-send', 'Renew');
-      renew.disabled = !renewable;
-      renew.title = renewable
-        ? `Hire a second caravan on this pair for ${figure(ctx.reading.price)} gold`
-        : 'There is no free slot for a second caravan on this pair';
-      if (renewable && again !== undefined && mode2 !== null) {
+      renew.disabled = command2 === null;
+      renew.title =
+        command2 === null
+          ? 'There is no free slot for a second caravan on this pair'
+          : command2.kind === 'send'
+            ? 'Send the cart standing idle on this pair — no coin'
+            : `Hire a second caravan on this pair for ${figure(ctx.reading.price)} gold`;
+      if (command2 !== null && again !== undefined) {
         renew.addEventListener('click', () => {
-          options.buyRoute(again.from.id, again.to.id, mode2);
-          close();
-          options.panTo({ col: again.from.col, row: again.from.row });
+          dispatchSend(command2, again.from);
         });
       }
       verbs.append(renew);
@@ -1544,16 +1671,14 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         );
         tr.append(element('td', 'is-num', figure(ctx.reading.price)));
         const verb = element('td', '');
-        const command = buyCommandFor(ctx, entry.row, entry.mode);
-        const send = button('trade-send', 'Send');
+        const command = sendCommandFor(ctx, entry.row, entry.mode);
+        const send = button('trade-send', sendLabel(command, ctx.reading.price));
         if (command === null) {
           send.disabled = true;
           send.title = `The hire costs ${figure(ctx.reading.price)} gold`;
         } else {
           send.addEventListener('click', () => {
-            options.buyRoute(command.fromCityId, command.toCityId, command.mode);
-            close();
-            options.panTo({ col: entry.row.from.col, row: entry.row.from.row });
+            dispatchSend(command, entry.row.from);
           });
         }
         verb.append(send);

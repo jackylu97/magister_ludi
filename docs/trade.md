@@ -16,7 +16,9 @@ History and the original proposal: `docs/design-history.md`.
 - **`Unit.trade` presence IS the route** — no route register. One route per
   city pair *per direction* (ruled 2026-09-03: A→B does not preclude B→A;
   at most two caravans join a pair, one each way); expiry is an absolute
-  turn.
+  turn. A cart whose route lapsed keeps standing: see R4 below.
+- **Never asked for orders.** `unitAwaitsOrders`/`unitOfferedForOrders` answer
+  false for any `routeOnly` piece, routed or idle (R4).
 - The trader walks the road it lays; **a melee blow on a trading unit
   PLUNDERS** (bounty to the attacker's nearest city) — never captures.
 
@@ -36,12 +38,61 @@ History and the original proposal: `docs/design-history.md`.
   cost (the cost standard, so it climbs the columns with the age), then
   `×goldPerHammer in gold`, then `rules.trade.routePriceMultiplier` (1). The
   UI, the bot and the reducer share the one reading.
-- `startRoute { unitId, fromCityId, toCityId, mode? }` **stays**, for a
-  caravan already standing: an old save, a route that lapsed and left its
-  wagon walking home, and the bot's re-send. Where the trader stands is not
-  asked — it teleports to the origin. `routeStartable` greys a row before any
-  wagon is chosen; `startRouteError` adds the piece-only clauses. Both take
-  the optional mode and answer for that mode alone.
+- `startRoute { unitId, fromCityId, toCityId, mode? }` **stays**, and since R4
+  it is the verb a Send reaches for first: a caravan already standing — an old
+  save, a route that lapsed and left its wagon at home, the bot's re-send.
+  Where the trader stands is not asked — it teleports to the origin.
+  `routeStartable` greys a row before any wagon is chosen; `startRouteError`
+  adds the piece-only clauses (yours, a trader, idle) and nothing about the
+  pair, so **a re-send is legal exactly where a hire is**, foreign partner
+  included. Both take the optional mode and answer for that mode alone.
+
+## A bought cart is kept, not spent (ruled 2026-09-09, R4)
+
+The user: *"once a trade route completes, there's no way to re-send it …
+sending a trade route should first aim to re-use a route that's already been
+purchased … never ask for orders on a trader unit"*. No schema change —
+nothing new is stored.
+
+- **The cart survives its route.** A lapsed route deletes `Unit.trade` and
+  leaves the wagon where it stopped; the slot comes back, the piece does not go
+  with it. `idleTraders(state, playerId)` (`trade.ts`) is the reading — this
+  seat's pieces whose row carries `UnitDef.routeOnly` and which carry no route,
+  in `state.units` order, which is id order.
+- **Send re-uses before it buys.** `sendCommandFor` (`tradeScreen.ts`, beside
+  `buyCommandFor`) is the pure choice every Send on the sheet goes through —
+  the cards, the All-routes rows and the Running tab's Renew alike: the first
+  idle cart if there is one (`startRoute`, free), else `buyRoute` at the price.
+  The **gold gate is the hire's alone**, so an empty purse still sends a cart.
+  The button reads the difference — "Send · idle cart" against "Hire · N gold"
+  — and the price stands beside it only where it would be paid.
+- **The waiting state is on the sheet.** The masthead's purse line carries the
+  count beside the slots, and an "Idle carts" line under it says what a Send
+  will do with them.
+- **A cart is never asked for orders.** `unitAwaitsOrders`' sixth clause is the
+  whole class — `routeOnly`, routed or idle — so `unitOfferedForOrders` and the
+  camera cycle go quiet with it. The unit sheet follows: a caravan's sheet is
+  the trade link, plus Disband while it is idle, and nothing else.
+- **End Turn prompts instead.** `firstBlocker`'s `idleTrader`
+  (`turnBlockers.ts`) — a cart of this seat's standing idle and awake, and
+  `hasSendablePair(state, playerId)` — says **"Send an idle trader"** and opens
+  the Trade sheet. It is **passable**: the press writes the cart into
+  `controls.ts`'s skip set, so the next press ends the turn. An idle cart with
+  nothing to send blocks nothing.
+- **`hasSendablePair` is the cheap half of the gate on purpose** — the slot
+  clause and the partner clause of `routeStartable`, no path and no range. The
+  blocker fold is asked once a press by the interface and once an *ask* by the
+  bot's driver, and `readRoutes` is a hundred pathfinding searches. It carries
+  no fog clause either, for R3's stated reason the other way round: it is a
+  rule the bot reads too, and the sheet's "unexplored partners are not offered"
+  is a screen reading. So a seat whose only partners are out of range, or
+  foreign towns it has met but never seen, can be prompted and find the sheet
+  offering nothing — the prompt is passable, and the departure is written down
+  here rather than paid for with a pathfind per press.
+- **The bot** hears the cart through the same blocker: `answerBlocker`'s
+  `idleTrader` arm is `unitCommand`, which is `traderCommand`, unchanged. It
+  never hired beside an idle cart in the first place — `RouteOutlook.free` is
+  `slots − used − idle`, so `explainCaravan` refuses the hire while one waits.
 - **`readRoutes(state, playerId)`** (`readings.ts`, the third verb) is the
   Trade screen's whole subject, memoised on the revision: every ordered pair
   with its available modes, the fold per mode, the price, the hexes a land
@@ -137,8 +188,11 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   parchment tokens — `--y-food` · `--y-prod` · `--y-gold` · `--y-sci` ·
   `--y-cul` · `--y-faith` — the same a tile's yields and a city panel's chips
   are set in; a lapsed route's row keeps its own faint ink over them.
-- **Every send and cancel lives here.** Send dispatches `buyRoute` through
-  `controls.buyRouteOf`; the unit sheet's row is a link ("Open the trade sheet");
+- **Every send and cancel lives here.** Send dispatches whichever command
+  `sendCommandFor` names — `startRoute` through `controls.startRouteFrom` for a
+  cart already owned, else `buyRoute` through `controls.buyRouteOf` (see
+  "A bought cart is kept, not spent" above); the unit sheet's row is a link
+  ("Open the trade sheet");
   the top bar's routes chip and a fourth HUD dock button both wear the drawn cart
   (`TRADE_MARK`, `src/art/dockMarks.ts` — a bale on two wheels, drawn rather than
   vendored, in the flair gallery's dock cabinet). `E` opens the sheet, beside

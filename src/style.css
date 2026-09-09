@@ -10543,6 +10543,24 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-weight: 500;
 }
 
+/* The carts bought and standing about (R4): the purse line's fact said once
+   more in words, so the Send button's behaviour is not something a player has to
+   discover by pressing it. Facts, compact, no flavour. */
+.trade-idle-carts {
+  margin: 3px 0 0;
+  font-family: var(--face-ui);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.trade-idle-carts b {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  font-weight: 500;
+}
+
 /* --- the index's cut tabs ------------------------------------------------
    Steps of parchment along the head of the page, each with an ink edge and a
    gilt inner edge; the open one is bound into the leaf (its bottom border is
@@ -10879,6 +10897,12 @@ button.trade-chip {
   margin-left: 4px;
   font-family: var(--face-ui);
   font-size: 11px;
+  color: var(--ink-soft);
+}
+
+/* A Send that re-uses a cart spends nothing, and the slot the price stands in
+   says so rather than quoting a figure the press would not pay (R4). */
+.trade-price.is-free {
   color: var(--ink-soft);
 }
 

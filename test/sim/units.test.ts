@@ -10,7 +10,13 @@ import {
   unitMaxHp,
   unitStampStrength,
 } from '../../src/sim/unitData';
-import { hasStackingRoom, stacksFreely, unitsOnTile } from '../../src/sim/units';
+import {
+  hasStackingRoom,
+  stacksFreely,
+  unitAwaitsOrders,
+  unitOfferedForOrders,
+  unitsOnTile,
+} from '../../src/sim/units';
 import { resetVisibility } from '../../src/sim/visibility';
 
 /** A blank two-player state on a flat grassland rectangle. */
@@ -1003,5 +1009,48 @@ describe('a piece’s maximum health', () => {
     expect('stamp' in unit).toBe(false);
     expect(JSON.stringify(unit).includes('stamp')).toBe(false);
     expect(unit.hp).toBe(unitMaxHp(unit));
+  });
+});
+
+/**
+ * **A cart is never asked for orders** — R4 (the user, 2026-09-09: *"never ask
+ * for orders on a trader unit"*), the sixth clause of `unitAwaitsOrders`.
+ *
+ * The fifth clause silenced a caravan while it was *carrying* a route and left
+ * the lapsed one talking: the wagon comes home, the route key is gone, and the
+ * first four clauses called it idle every turn for the rest of the game — a
+ * piece with nothing on its own sheet that would answer the prompt, since every
+ * route verb lives on the Trade sheet. The sixth is the whole class.
+ *
+ * It is asked of **`UnitDef.routeOnly`**, the row's own marker, and nothing here
+ * compares a type against a name; the wide predicate inherits it by
+ * construction, being the narrow one with the march set aside.
+ */
+describe('a caravan and the two order predicates', () => {
+  it('is neither awaiting orders nor offered, idle or routed', () => {
+    const state = flatState();
+    const cart = createUnit(state, 0, 'trader', 3, 3);
+    expect(unitDef(cart.type).routeOnly).toBe(true);
+    // Idle: full movement, no path, no route on it — the four clauses that used
+    // to call it idle all say yes, and the marker says no.
+    expect(cart.movesLeft).toBeGreaterThan(0);
+    expect(cart.path).toBeUndefined();
+    expect(cart.trade).toBeUndefined();
+    expect(unitAwaitsOrders(cart)).toBe(false);
+    expect(unitOfferedForOrders(cart)).toBe(false);
+
+    // Routed, which the fifth clause already covered: still false, by two
+    // clauses now rather than one.
+    cart.trade = { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false };
+    expect(unitAwaitsOrders(cart)).toBe(false);
+    expect(unitOfferedForOrders(cart)).toBe(false);
+  });
+
+  it('leaves every other civilian exactly where it was', () => {
+    const state = flatState();
+    const worker = createUnit(state, 0, 'worker', 4, 4);
+    expect(unitDef(worker.type).routeOnly).toBeUndefined();
+    expect(unitAwaitsOrders(worker)).toBe(true);
+    expect(unitOfferedForOrders(worker)).toBe(true);
   });
 });

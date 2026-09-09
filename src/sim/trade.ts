@@ -214,6 +214,82 @@ export function tradersOf(state: GameState, playerId: number): Unit[] {
 }
 
 /**
+ * **Every cart of this empire's standing with no route on it** — the wagons a
+ * Send re-uses before it hires one (the R4 ruling, 2026-09-09: *"sending a trade
+ * route should first aim to re-use a route that's already been purchased"*).
+ *
+ * `tradersOf`'s mirror, and the pair is the point: that one is the laden wagons
+ * (the slots actually spent), this one is the bought-and-waiting. A route that
+ * lapses leaves its cart on the board — the piece is kept, not spent — so an
+ * empire that has ever hired a route very likely has one of these standing in a
+ * town, and hiring a second while it waits is a coin paid for nothing.
+ *
+ * Asked of **`UnitDef.routeOnly`** rather than of `trades`, which is the ruling's
+ * own word and the honest marker for the question: `trades` answers "may this
+ * piece carry a route" and would one day take a cargo ship bought at a shipyard;
+ * `routeOnly` answers "this piece exists *because* a route was hired", and that
+ * is exactly the wagon the sheet is looking for. Nothing here names a trader.
+ *
+ * `state.units` order, which is id order (`createUnit` appends and ids only
+ * climb) — so "the first idle cart" is the lowest id, the same answer on every
+ * client and in every replay.
+ */
+export function idleTraders(state: GameState, playerId: number): Unit[] {
+  const list: Unit[] = [];
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (unitDef(unit.type).routeOnly !== true) continue;
+    if (unit.trade !== undefined) continue;
+    list.push(unit);
+  }
+  return list;
+}
+
+/**
+ * **Is there anywhere at all to send a cart** — the cheap half of the gate, and
+ * the ruling's own definition of "nothing to send".
+ *
+ * R4 asks End Turn to prompt a seat that has an idle cart *and* a route it could
+ * open, and says the other case out loud: *"an idle cart with nothing to send
+ * (no partner, no slot) blocks nothing"*. Those two words are this function —
+ * the slot clause and the partner clause of `routeStartable`, and **not** the
+ * path or the range, which are A* twice a pair.
+ *
+ * That cut is deliberate and it is about cost, not about laziness. `firstBlocker`
+ * is asked by the interface once a press and by the bot's driver once an *ask*,
+ * dozens of times a turn on a state whose revision moves under it — so the
+ * memoised `readRoutes` (619ms fresh on a thirteen-town board) may not be asked
+ * from there at all. What is left is a walk of the towns with no pathfinding in
+ * it, and it errs the only way a nag may err: toward prompting for a partner
+ * that turns out to be out of range, where the sheet then says so in the gate's
+ * own sentence.
+ */
+export function hasSendablePair(state: GameState, playerId: number): boolean {
+  if (usedRouteSlots(state, playerId) >= routeSlots(state, playerId)) return false;
+  // The routes already running, keyed by the ordered pair — the gate's third
+  // clause, taken once rather than per pair (a caravan runs A→B; B→A is its own
+  // route, ruled 2026-09-03).
+  const running = new Set<string>();
+  for (const other of tradersOf(state, playerId)) {
+    if (routeIsLive(state, other)) running.add(`${other.trade!.from}:${other.trade!.to}`);
+  }
+  for (const from of state.cities) {
+    if (from.ownerId !== playerId) continue;
+    for (const to of state.cities) {
+      if (to.id === from.id) continue;
+      if (to.ownerId !== playerId) {
+        const them = playerById(state, to.ownerId);
+        if (them === undefined || them.barbarian === true) continue;
+        if (atWar(state, playerId, to.ownerId)) continue;
+        if (!hasMetSeat(state, playerId, to.ownerId)) continue;
+      }
+      if (!running.has(`${from.id}:${to.id}`)) return true;
+    }
+  }
+  return false;
+}
+
+/**
  * The city this caravan is walking toward on the leg it is on now.
  *
  * `null` when the route has stopped describing the board, which is the shuttle's
