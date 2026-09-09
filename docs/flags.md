@@ -1344,7 +1344,38 @@ directly to confirm rulings — user marginalia are rulings.
   members now unread by any row (`sightedCities`, `bankedGold`,
   `strongerTarget`). ▢ the Compendium lists retired great people (and
   the 47 retired Orders) while it hides retired buildings — one ruling
-  for all three. (eee)
+  for all three. t100 (8 seeds), B7 → GP1: cities 5.9 → 6.3 · citizens
+  42.2 → 42.8 · buildings 32.2 → 33.1 · food 121 → 129 · prod 88.8 →
+  87.7 · gold 44.6 → 50.7 · sci 106.7 → 99.5 · cul 73.4 → 75.6 · faith
+  20.3 → 21.5 · treasury 322 → 305 · techs 23.7 → 23.4 · happiness +9.9
+  → +11.4 — all inside a seed's noise, as a hundred turns holds at most
+  one great person a seat. **GP2 built 2026-09-09** (no bump of its own;
+  `Player.goldSpent` rides 104): three of the seven were smaller than
+  ruled and one already worked — `buildingYieldPercent` existed with
+  `category`/`pays` and gained `building?` and `wonder?: true` (one
+  labelled line per card summing the matching buildings, the shipped
+  convention); Maimonides' count already sums a town count across the
+  realm (`isCityScopedCount`), pinned; `happinessDemand` is a
+  `rulePercent` whose `scope` already existed, so the change is
+  `explainHappiness` folding the factor per town under `cardRuleIsScoped`
+  (the unscoped path byte-identical); `UnitFilter.category: 'trader'`
+  existed. New: `vsWiderEmpire`; `tradersUnplunderable` read as **target
+  selection** (`attackTargetAt` skips a protected laden cart — tint,
+  forecast and reducer refuse as one, shot and sword alike — and
+  `arriveOnTile` leaves it standing); `faithBuysScienceBuildings` at
+  `faithBankOpen`'s building clause (`buildingPaysVoice`, a
+  `buildingData.ts` leaf); counts `tradePartnerEmpires` (a live
+  empire/count/percent pair, in the register), `authoritySurplus`,
+  `goldSpent` (one `spendGold` in `state.ts`, five seams:
+  `purchaseItemAt`, `contributeAt`, `purchaseTileAt`, `applyBuyRoute`,
+  `chargeBank`'s gold arm; a diplomacy lump and the retool excluded, the
+  reason on the field), `routeLength` on the route arm — **the distance
+  between the two towns** (`routeHexes`), not the walked path, so the
+  send preview can promise what a route earns. The bot prices the four
+  counts through `explainCounted` for free, the by-mile row through one
+  new arm, and names the two rules in `score.unknownEffect`'s list. GP3
+  wires the rows (the first live `route/count` pair joins
+  `statecraft.test.ts`'s pair sweep). (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
