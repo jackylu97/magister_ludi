@@ -672,6 +672,32 @@ age-progression line in any masthead (the clock's mechanics are not shown
 to the player — the countdown lives on the top bar's age card only); no
 "flavour" label on the census taker's name.
 
+## 11. Queued to build (the user, 2026-09-09: "let's queue up implementing the wager")
+
+- **No "claimed by" line.** A wager is a bar any number of seats may meet; a
+  seat that has met it shows the mark on its own row and nothing names a
+  first claimant (the user: "the wager can be won by multiple players").
+  The claim-on-met rule still holds per seat — a seat's beads are minted the
+  turn its bar is first met.
+- **The Horde (§9) is held** — not in this queue.
+- **The census (§10) is in**, taken every **13–17 turns**, the exact interval
+  drawn uniformly from `state.rng` at each census (`rules.census.min` 13,
+  `rules.census.max` 17); the leader's Triumph inside the sheet, +5 renown.
+- **The open ▢ of §7 take their (rec) defaults** so the batches can fly:
+  progress = the mean age of each empire's highest technology, floored; the
+  deal guarantees three different lines; a standing wager is claimed the
+  turn it is first met; the malice takes the last chair of its flavour,
+  lasts until the next wager is judged, stacks to two, survives adoption;
+  reckonings retire. Any of these is one line to change.
+- **Batches, in order**: **G1** the world clock and the countdown (schema;
+  retires the first-seat rule; the top bar's age card carries the
+  countdown) → **G2** the deal, the choice, the judgement, `data/wagers.json`
+  from §3b's 24 with the seven *bot baseline* bars measured on the bench
+  first, the Abacus reworked as the wager screen and the Æra III/IV
+  conditions draw retired (the mock is the spec) → **G3** the malice deck
+  (`data/malices.json`, the twelve of §4) → **C1** the census → **W2** the
+  bots' wager want. G1 flies after R1 lands (both touch the reducer).
+
 ## 8. Engine notes (the orchestrator's, not decisions)
 
 Schema. New state: `GameState.worldAge` (derived, not stored — the mean is a
