@@ -117,7 +117,6 @@ import {
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import {
-  type CityYields,
   bestExpansionTile,
   borderGrowth,
   cityTile,
@@ -193,6 +192,11 @@ import {
 import { buildingUpkeep } from '../sim/upkeep';
 import { round } from './decision';
 import { citizenKeepTerm, keepDoor } from './citizen';
+// **The town folds, one leaf down** (batch X1d). The chains price a building
+// step per copy off the very same grid, and a chain may not stand on the book
+// that stands on it — so the reading both books were already sharing moved to
+// the leaf all three can reach. See `townFolds.ts`.
+import { type TownFolds, townFolds } from './townFolds';
 import { foundedReligionOf, hasFoundedReligion } from './ground';
 
 /**
@@ -364,55 +368,6 @@ export function wantBook(
     gold: purchasingPlan(state, player, ctx, inputs, folds),
     faith: faithPlan(state, player, ctx, inputs, folds),
     culture: draftPlan(state, player, ctx, inputs),
-  };
-}
-
-/**
- * **What every town of this empire makes, and would make with one more shelf** —
- * the reading both books stand on, folded once per sitting.
- *
- * Two things are hoisted here and they are hoisted for different reasons. The
- * *standing* fold is a fact about the town that every row of every book compares
- * against, so it is taken once a town (`purchasingPlan`'s own bargain since batch
- * 1, moved up one level). The *hypothetical* fold is a fact about a pair — this
- * town, that row — and it is memoised rather than pre-computed, because a book
- * asks for a handful of the pairs and computing the whole grid would be forty
- * town folds to choose one purchase.
- *
- * The empire's half of the percentages (`readEmpirePercents`) is the same reading
- * for every town, so it is taken once for the whole sitting and handed to every
- * quote — batch E2's bargain kept at the level the two books share rather than
- * once per book.
- *
- * A `Map` keyed by the pair, and nothing iterates it: the memo answers lookups
- * and never decides an outcome, which is what hard rule 2 asks of a Map.
- */
-interface TownFolds {
-  /** This empire's towns, in founding order. Both books walk this array. */
-  towns: readonly City[];
-  /** What the town at this index makes today. */
-  standing: (index: number) => CityYields;
-  /** What it would make with one more of this row standing in it. */
-  with: (index: number, id: BuildingId) => CityYields;
-}
-
-function townFolds(state: GameState, player: Player): TownFolds {
-  const towns = ownedCities(state, player.id);
-  const empire = readEmpirePercents(state, player.id);
-  const bases = towns.map((city) => foldCity(state, city, [], null, readCity(state, city)));
-  const hypothetical = new Map<string, CityYields>();
-  return {
-    towns,
-    standing: (index) => bases[index]!,
-    with: (index, id) => {
-      const key = `${index}:${id}`;
-      const found = hypothetical.get(key);
-      if (found !== undefined) return found;
-      const city = towns[index]!;
-      const fold = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
-      hypothetical.set(key, fold);
-      return fold;
-    },
   };
 }
 

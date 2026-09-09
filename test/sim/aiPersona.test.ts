@@ -49,7 +49,7 @@ import { buildImprovementPlan } from '../../src/ai/plan';
 import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
-import { createUnit, playerById, realPlayers } from '../../src/sim/state';
+import { bumpRevision, createUnit, playerById, realPlayers } from '../../src/sim/state';
 import { openEveryWar } from './warHelpers';
 
 // Re-aimed from seed 20260831 on 2026-09-03, when the default map became a
@@ -472,39 +472,57 @@ describe('the improvement plan', () => {
 });
 
 describe('wonder patience', () => {
-  it('is patient about the rows there is only one of, and about nothing else', () => {
-    // Read off the rows' own markers, never against a name. A row that is a
-    // wonder, is once per empire, ends the game or pays a bead is patient; every
-    // ordinary building is not.
+  /**
+   * **Re-aimed 2026-09-09, batch X1d** (`docs/flags.md` item (ggg), the user's
+   * reading off one game): patience used to catch every wonder and every
+   * `oncePerEmpire` row, and that is why the seed-1 capital raised two wonders
+   * between t14 and t54 and reached a Granary at t65 — a nineteen-turn wonder was
+   * being scored as a ten-turn one against a four-turn Granary. **RULED**:
+   * *"patience only for a row that pays a bead or ends the game; an ordinary
+   * wonder is amortised over its real turns and its payoff discounted at its real
+   * delay like every other step."*
+   */
+  it('is patient about the rows that pay a bead or end the game, and nothing else', () => {
+    // Read off the rows' own markers, never against a name.
     const offenders: string[] = [];
     for (const id of BUILDING_IDS) {
       const def = buildingDef(id);
       const rare =
-        def.wonder === true ||
-        def.oncePerEmpire === true ||
-        def.endsTheGame === true ||
-        (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
+        def.endsTheGame === true || (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
       if (isPatientRow({ kind: 'building', id }) !== rare) offenders.push(id);
     }
     expect(offenders).toEqual([]);
+    // An ordinary wonder is **not** patient any more, and there is at least one
+    // on the table to say so — the claim would be vacuous otherwise.
+    const plain = BUILDING_IDS.filter(
+      (id) =>
+        buildingDef(id).wonder === true &&
+        buildingDef(id).endsTheGame !== true &&
+        !(buildingDef(id).onComplete ?? []).some((grant) => grant.grant === 'bead'),
+    );
+    expect(plain.length).toBeGreaterThan(0);
+    for (const id of plain) expect(isPatientRow({ kind: 'building', id })).toBe(false);
     // A unit and a conversion are never patient: there are as many spearmen as
     // an empire cares to raise, and a project never finishes at all.
     expect(isPatientRow({ kind: 'unit', id: 'warrior' })).toBe(false);
   });
 
-  it('never amortises a patient row over more than the patience', () => {
-    // The invariant, over a played game: whatever a wonder's real build time is,
-    // the divisor the bot scored it with is capped.
+  it('never amortises a bead row over more than the patience', () => {
+    // The invariant, over a played game: whatever a bead row's real build time
+    // is, the divisor the bot scored it with is capped — and an ordinary wonder's
+    // is not, which is the other half of the ruling and is asserted beside it.
     const game = grownGame(20);
-    const wonders = new Set(
-      BUILDING_IDS.filter((id) => buildingDef(id).wonder === true).map((id) => buildingDef(id).name),
+    const patient = new Set(
+      BUILDING_IDS.filter((id) => isPatientRow({ kind: 'building', id })).map(
+        (id) => buildingDef(id).name,
+      ),
     );
     const offenders: string[] = [];
     for (const city of game.state.cities) {
       if (city.ownerId !== 0) continue;
       const decision = buildDecisionFor(game, 0, city.id);
       for (const candidate of decision?.candidates ?? []) {
-        if (!wonders.has(candidate.label)) continue;
+        if (!patient.has(candidate.label)) continue;
         const divisor = candidate.terms.find((term) => term.op === 'div');
         if (divisor !== undefined && divisor.value > AI.score.patienceTurns) {
           offenders.push(`${candidate.label}: ÷ ${divisor.value}`);
@@ -512,6 +530,37 @@ describe('wonder patience', () => {
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it('discounts every row it queues for the turns the town spends raising it', () => {
+    // The ruling's second half (batch X1d). `push` used only to *divide* by the
+    // build turns — an amortisation, "how much of this town's time does this
+    // eat" — and never multiplied by `delayTerm`, "how late does it start
+    // paying", which every other payoff in the bot carries. Both are charged now,
+    // each once, and the discount is a printed term rather than a number folded
+    // away where nobody can see it.
+    const game = grownGame(20);
+    let seen = 0;
+    for (const city of game.state.cities) {
+      if (city.ownerId !== 0) continue;
+      // The town is asked with an empty queue, so the production blocker fires
+      // whatever the driven game left at its front — the claim is about the
+      // table's terms, not about whether this town happened to be deciding.
+      city.queue = [];
+      bumpRevision(game.state);
+      const decision = buildDecisionFor(game, 0, city.id);
+      for (const candidate of decision?.candidates ?? []) {
+        if (candidate.rejected !== undefined) continue;
+        const wait = candidate.terms.find((term) =>
+          /the town has still to raise it, some [\d.]+ turns against a \d+-turn horizon/.test(term.label),
+        );
+        expect(wait).toBeDefined();
+        expect(wait!.op).toBe('mul');
+        expect(foldTerms(candidate.terms)).toBe(candidate.score);
+        seen += 1;
+      }
+    }
+    expect(seen).toBeGreaterThan(5);
   });
 });
 

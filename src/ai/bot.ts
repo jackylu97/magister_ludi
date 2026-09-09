@@ -143,7 +143,6 @@ import {
   explainWorkerCraving,
   rankPlanFor,
   rankWorkSites,
-  surveyUpgradeSites,
 } from './plan';
 import {
   NO_ROUTES,
@@ -340,6 +339,10 @@ import { hasFreshWater, isCoastal } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
+// **The what-if grid** (batch X1d) — the standing and hypothetical folds of every
+// town of one empire, at the board's own revision, shared by this arm, the chains
+// and both banks. See `townFolds.ts`.
+import { townFolds, townIndexOf } from './townFolds';
 
 /**
  * The tuning surface, re-exported so every existing reader keeps its import
@@ -3211,7 +3214,6 @@ function techGoalTable(
   // plan's bargain for the third time: the renewal riders below need to know how
   // much of this empire's ground a farm's second point of food would land on,
   // and the answer is a fact about the board that fifty candidate nodes share.
-  const sites = surveyUpgradeSites(state, player);
   const margin = Math.max(1, ai.priorities.switchMargin);
   const incumbent = incumbentGoal(player);
   const candidates: BotCandidate[] = [];
@@ -3230,7 +3232,7 @@ function techGoalTable(
       );
       continue;
     }
-    const chain = techChain(state, player, ctx, id, sites);
+    const chain = techChain(state, player, ctx, id);
     const terms: ValueTerm[] = [...chain.terms];
     if (id === incumbent && margin !== 1) {
       terms.push({
@@ -4154,10 +4156,6 @@ function buildCandidates(
   puppet: boolean,
 ): BuildCandidate[] {
   const candidates: BuildCandidate[] = [];
-  // The empire's half of every town's percentages, taken **once** for the whole
-  // sweep rather than once per candidate — `explainCity`'s own documented bargain,
-  // and the difference between one meter sweep and forty.
-  const empire = empirePercents(state, player.id);
   // **The town as it stands**, taken once and then lent twice: to the baseline
   // every candidate's delta is measured from, and to `push`'s schedule estimate.
   // `turnsToBuild` used to be asked with no quote at all, so every row of the
@@ -4166,13 +4164,25 @@ function buildCandidates(
   // whose only moving part is the item at the front of the queue. Same figure,
   // one reading (batch 9).
   const standing = readCity(state, city);
-  const base = foldCity(state, city, [], null, standing);
+  // **The what-if grid, shared with the chains and both banks** (batch X1d).
+  // This arm asked `explainCity` per row per town and the chains now ask the very
+  // same pairs — a Library in this town is one question, and it was being folded
+  // once here, once by the engine that owes it and once by whichever bank could
+  // buy it. `townFolds` is that question asked once for the board's own revision
+  // (`townFolds.ts`); the arithmetic is unchanged by construction, because this is
+  // the call the grid itself makes.
+  const folds = townFolds(state, player);
+  const seat = townIndexOf(folds, city);
+  const base = seat < 0 ? foldCity(state, city, [], null, standing) : folds.standing(seat);
 
   for (const id of BUILDING_IDS) {
     if (!canQueueBuilding(state, player, city, id)) continue;
     if (puppet && buildingDef(id).wonder === true) continue;
     if (buildingDef(id).endsTheGame === true && !isOpusTown(state, player, city)) continue;
-    const after = foldCity(state, city, [id], null, explainCity(state, city, [id], empire));
+    const after =
+      seat < 0
+        ? foldCity(state, city, [id], null, explainCity(state, city, [id], empirePercents(state, player.id)))
+        : folds.with(seat, id);
     const delta = yieldDelta(after, base);
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(delta, ctx)),
@@ -4259,14 +4269,48 @@ function push(
   // came to lose to an eighty-point worker over six, every time, for ever.
   const patient = isPatientRow(item);
   const effort = patient ? Math.min(capped, Math.max(1, ai.score.patienceTurns)) : capped;
+  /**
+   * **The wait, which this arm never charged** (batch X1d, the user's ruling of
+   * 2026-09-09 on `docs/flags.md` item (ggg): *"an ordinary wonder is amortised
+   * over its real turns and its payoff discounted at its real delay like every
+   * other step"*).
+   *
+   * The division below is an **amortisation** and was standing in for a
+   * discount it is not: `÷ turns` asks *how much of this town's time does this
+   * eat*, and every other payoff in this bot is additionally multiplied by
+   * `delayTerm` — *how late does it start paying*. A ten-turn row and a
+   * one-turn row that pay the same per turn of effort are not the same
+   * proposition, and until this batch the queue said they were. That is half of
+   * why the capital of the read-off game (seed 1) spent t14–t54 on two wonders:
+   * patience shortened the divisor, and nothing anywhere charged the forty turns
+   * the town's people spent waiting for the first yield.
+   *
+   * A **project** is the one row it is not applied to, and for the reason a
+   * project is not a step of anything: it never finishes (`settleProduction`
+   * returns before the splice) and its payout is *what one turn of the
+   * conversion pays*, banked from the first turn. There is no landing to be late
+   * for.
+   *
+   * `chain.ts`' expansion chain says the raising is charged by this division and
+   * discounts only the walk; that stands — the walk is discounted there and the
+   * raising is discounted here, each once.
+   *
+   * **A patient row is patient in both halves.** Patience is one sentence —
+   * *read this row's wait as at most `score.patienceTurns`* — and reading it as
+   * ten turns in the divisor while discounting it at thirty-two in the multiplier
+   * would be the sentence said and then unsaid. So the wait a bead row is
+   * discounted at is `effort`, which is the very number the divisor uses.
+   */
+  const wait = delayTerm(patient ? effort : turns, ctx, 'the town has still to raise it');
   const terms: ValueTerm[] = [
     ...valueTerms,
+    wait,
     nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
     {
       label:
         `÷ ${effort} turn${effort === 1 ? '' : 's'} of build effort` +
         (patient && effort < capped
-          ? ` (patience: there is only one of it, so ${capped} turns is read as ${effort})`
+          ? ` (patience: it pays a bead, so ${capped} turns is read as ${effort})`
           : turns > effort
             ? ` (${turns} turns, capped at the ${horizon}-turn horizon)`
             : ''),
@@ -4274,7 +4318,7 @@ function push(
       op: 'div',
     },
   ];
-  into.push({ item, upkeep, score: (value - costOfUpkeep(upkeep, ctx)) / effort, terms });
+  into.push({ item, upkeep, score: (value * wait.value - costOfUpkeep(upkeep, ctx)) / effort, terms });
 }
 
 /**
@@ -4751,22 +4795,31 @@ function sciencePerPopOf(city: City): number {
 /**
  * Is this a row the empire should be **patient** about?
  *
- * A row there is only one of — `oncePerEmpire`, or a wonder, which is once per
- * *world* — or one that carries a bead or the curtain. Read off the row's own
- * markers, never against a name, which is the discipline `src/sim/` keeps and a
- * reader of the same tables has no business breaking.
+ * A row that pays a **glass bead** or **ends the game**, and nothing else. Read
+ * off the row's own markers, never against a name, which is the discipline
+ * `src/sim/` keeps and a reader of the same tables has no business breaking.
  *
  * The reason it exists: the amortiser divides by `turnsToBuild`, and a capstone
  * takes thirty-two turns where a worker takes six — so a hundred-and-nine-point
  * wonder scored 3.4 against an eighty-point worker's 13.3 and *never started*,
- * however much the vector said a bead was worth. Patience says: for the things
- * there is only one of, read the wait as at most `score.patienceTurns`.
+ * however much the vector said a bead was worth. Patience says: for those rows,
+ * read the wait as at most `score.patienceTurns`.
+ *
+ * **And for those rows only, since batch X1d.** It used to catch every
+ * `oncePerEmpire` row and every wonder, which is what the user read off one game
+ * (seed 1, `docs/flags.md` item (ggg)): the capital raised two wonders between
+ * t14 and t54 and reached a Granary at t65 and a Library at t81, because a
+ * nineteen-turn wonder was being scored as a ten-turn one against a four-turn
+ * Granary. The rule was written for the endgame capstones and it was applying to
+ * the whole of the wonder table. **RULED** (the user, 2026-09-09): *"patience
+ * only for a row that pays a bead or ends the game; an ordinary wonder is
+ * amortised over its real turns and its payoff discounted at its real delay like
+ * every other step."* Both halves are in `push`, and the second half is the wait
+ * that arm never charged at all — see its own note.
  */
 export function isPatientRow(item: QueueItem): boolean {
   if (item.kind !== 'building') return false;
   const def = buildingDef(item.id);
-  if (def.wonder === true) return true;
-  if (def.oncePerEmpire === true) return true;
   if (def.endsTheGame === true) return true;
   return (def.onComplete ?? []).some((grant) => grant.grant === 'bead');
 }

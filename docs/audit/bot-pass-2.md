@@ -510,6 +510,26 @@ to what is written above:
   from eight towns to two. The chain prices a *node*; the town's arm prices the
   next spear. Charging the shortfall once, in the premium, is the half that plays.
 
+## X1d-chain as built (2026-09-09) — two mechanics this matrix never had a row for
+
+The matrix asked *which mechanics does the bot ignore*, and it missed two that are
+not mechanics at all but **readings** — the two the user named on 2026-09-09
+(`docs/flags.md` item (ggg)). Both were in `chain.ts` and both are closed; the
+mechanism, the eight-seed t100 row and the two measured non-deliveries are in
+`docs/bot-priorities.md`, "Batch X1d-chain as shipped".
+
+| Reading | Verdict | The proof | Cost of the gap |
+|---|---|---|---|
+| **What a building step pays** | knew · **priced flat** → **prices per copy** (X1d) | `techChain` folded the row's flat bag (`def.food…def.faith`) × `townsWanting`, raised at `ValueContext.medianProduction`. A Library's `sciencePerPop` never entered any chain, nor a Lighthouse's fish, nor a percentage, nor anything a slotted card adds | **large, and invisible**: every town was quoted one number for one row. A size-13 capital's Library and a size-2 hamlet's were the same promise at the same build time. Closed by pricing **one copy per town**, each through that town's own `foldCity` hypothetical (`townFolds.ts`, the grid the two banks already shared) at its own `turnsToBuild` — measured **+2.25 buildings** a seat at t100 |
+| **What a goal's road hands over** | knew the beakers · **ignored the gifts** → **walks the road** (X1d) | `techChain` priced `techDef(goal).unlocks` alone; the road's intermediate nodes contributed beakers and delay and nothing else | a three-node beeline was worth its destination and nothing it walked through. Closed by walking `researchExpansion(goal)` node by node, each node's gifts landing at its own cumulative beakers ÷ the science rate, folded once a sitting and reused by every goal whose road passes it (`nodeGifts`). **Measured cost as well as gain**: it buys the buildings and costs ~4 science and ~0.8 techs a seat at t100 against the same batch with the road off — written down in `bot-priorities.md` rather than tuned away |
+
+A third finding, not in the matrix because it is not `chain.ts`': **`push` never
+charged a row for the turns its town spends raising it.** It divided by the build
+turns — an amortisation — and every other payoff in the bot is *also* multiplied by
+`delayTerm`. With `score.patienceTurns` shortening the divisor for every wonder on
+top of that, a nineteen-turn wonder was scored as a ten-turn one against a four-turn
+Granary, which is what the user read off seed 1. Both halves are fixed.
+
 ## What this audit does not claim
 
 The gaps are not the priority system failing — it is doing exactly what its five

@@ -339,8 +339,16 @@ describe('a hundred turns of arithmetic', () => {
       // are named and required, and `deal` and `disband` are admitted but not
       // demanded — their arms are pinned where they are provoked. Nothing
       // outside the register may appear.
+      //
+      // **`war` joined the incidental list, 2026-09-09 (batch X1d)**: the
+      // seventh move, and the first by a third kind. The chains price a building
+      // step per town now and walk the whole road behind a goal, which moves what
+      // every seat builds and therefore where its pieces stand — and on this seed
+      // the two seats meet under arms inside the hundred turns. The war arm is
+      // unchanged and pinned deliberately in `aiWar.test.ts`; this list records
+      // what a board happens to reach, which is what it has always done.
       const always = ['build', 'draft', 'endTurn', 'focus', 'purchase', 'research', 'unitOrder'];
-      const incidental = ['deal', 'disband'];
+      const incidental = ['deal', 'disband', 'war'];
       for (const kind of always) expect([...kinds], kind).toContain(kind);
       for (const kind of kinds) expect([...always, ...incidental], kind).toContain(kind);
       for (const step of walked.steps) {

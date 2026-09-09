@@ -5510,3 +5510,242 @@ two estimates it prints, plus a new bench — a hand of three cards the seat sco
 above nothing is never passed. `test/ui/arenaPage.test.ts` gains the panel promise
 read backwards: a retired knob leaves `data/ai.json` and the panel is one row
 shorter, with no edit to the page.
+
+---
+
+## Batch X1d-chain as shipped — the chain reads the towns and the road (2026-09-09)
+
+**RULED** (the user, 2026-09-09, `docs/flags.md` item (ggg)): *"the value of a
+library is contingent on the city that builds it: a city in your capital with high
+population is worth a lot of science, and is built faster than a middling city.
+Also — the value of a tech path isn't just based on the thing the tech unlocks, it
+also includes the value of all the prerequisite techs that you research along the
+way."* **Refined** the same day: (a) is **per copy** — each town that would raise
+the row lands its own copy at its own build time and is discounted at that time,
+and it holds for **every** building, not the science rows; (b) a node's gifts are
+computed once per sitting and reused by every goal whose road passes it, only the
+discount differing. And, read off one game (seed 1): patience applies only to a row
+that pays a bead or ends the game; an ordinary wonder is amortised over its real
+turns and its payoff discounted at its real delay like every other step.
+
+### The step shape
+
+`ChainStep` gains `copies: StepCopy[]`, and the three aggregates beside it
+(`cost`, `rate`, `value`) are the copies' folds and nothing else. A `StepCopy` is a
+**pair** — this town, that row:
+
+```
+cityId · town · cost · raise · delay · rate · value
+```
+
+  · its **payoff** is the town's own hypothetical fold with the row standing in it
+    against its standing fold (`yieldDelta` over `foldCity`), through
+    `explainYields`, plus `explainBuildingRow(id, ctx, town)` — so a Library reads
+    its `sciencePerPop` in a size-13 capital, a Lighthouse the fish of the town that
+    raises it, a Market the route its slot opens (already in the row through
+    `routeSlotTerm`), and a University under a card that boosts universities reads
+    the boost, because `foldCity` honours the slotted cards;
+  · its **landing** is that town's own `turnsToBuild`, after the copies **its own
+    town** owes earlier on the same road. The cursor is **per town**, not per
+    empire: towns raise in parallel, and what a copy waits for is its own town's
+    queue and nothing another town is doing;
+  · a wonder keeps **one** copy, in the town that would raise it soonest — a wonder
+    goes to the town that can actually finish it, which is a fact this reading now
+    has in front of it.
+
+`towns` stays a field of its own (`towns === copies.length` for a building step; a
+unit step is one option and a rider's `towns` is hexes). **How the share is split**:
+`chainStepShare` is unchanged — `worth ÷ stepsRemaining`, and `stepsRemaining` is
+`Σ step.towns`, which is now the count of *copies*. Equal across copies, and
+deliberately: the capital's copy is already worth more than the hamlet's **inside**
+`worth`, because the capital's own fold went in at the capital's own delay, and
+weighting the share by the copy on top of that would price the same yield twice.
+What the arm that raises the row folds beside the share is its own town's yield
+delta, which is where the difference between a capital and a hamlet belongs.
+
+`chainCompression` walks the copies, and its `÷ towns` stopped being crude: a purse
+buys one copy in one town and hurries only that town's later copies, so summing
+every later copy's improvement over the town count is the **average over which town
+takes delivery** — exact in expectation. `townChainShare` walks them too, and both
+of its readings had to change (below).
+
+### The memo
+
+Two, at two levels, and the levels are the point.
+
+  · **`townFolds.ts`** — a new leaf, and the sixth in `src/ai/`. The standing fold
+    of every town, the hypothetical of every `(town, row)` pair and each town's
+    `turnsToBuild`, keyed on `(state, revision, seat)` and every reading **lazy**.
+    It was `wants.ts`' private helper (batch X3, where the two banks stopped pricing
+    the same shelf two ways); the chain asks the same pairs, and a chain may not
+    stand on the book that stands on it. The **build arm reads it too**
+    (`buildCandidates`), so a Library in one town is folded once for the queue, once
+    for the engine that owes it and once for whichever bank could buy it — one fold,
+    three readers. Laziness is a measured decision: the revision moves on every
+    accepted command, so a grid is rebuilt several times inside one seat's turn, and
+    a rebuild that folded all its towns up front cost sixteen seconds of a
+    hundred-turn game on seed 1.
+  · **`NODE_MEMO`** in `chain.ts` — what one node gives, `MARGIN_MEMO`'s bargain
+    exactly: keyed weakly on the `ValueContext`, which is one seat's sitting. The
+    beeline weighs every unresearched node inside `research.goalHorizon` and their
+    roads overlap almost completely — Writing is on the road to Philosophy, to
+    Mathematics and to twenty nodes behind them — so a node's copies are folded once
+    and every goal that passes through multiplies them by a different `delayTerm`.
+    A copy's *fold* is deferred again inside that (`priceCopy`), so a copy nobody
+    reaches is never folded at all.
+
+### The road
+
+`techChain` walks `researchExpansion(goal)` node by node, accumulating beakers; node
+*k* lands at its cumulative beakers ÷ the science rate, and the last node's landing
+is `researchDelay` exactly — the identity that keeps the whole-road reading a
+refinement of the old one rather than a different clock. A held goal is a road of one
+that is already walked. `liveChains` still yields one live chain per goal, so no
+building is a step of two.
+
+**And every other gift waits with it.** The conversion projects and abilities a node
+counts, the glass bead it pays and the rules it carries were all folded at full price
+on a node nobody had researched — tolerable while a chain priced one node, and not
+tolerable at all once it prices ten, because a constant per node folded undiscounted
+makes a chain worth more for being *longer*. Each is multiplied by its own node's
+landing now. The one exception is the race's share of a bead-paying node
+(`raceTerm`), which carries `beadChain`'s own clock.
+
+### Patience, and the wait the queue never charged
+
+`isPatientRow` now answers true for a row that **pays a bead** or **ends the game**,
+and for nothing else — it used to catch every wonder and every `oncePerEmpire` row,
+which is why the seed-1 capital raised two wonders between t14 and t54 and reached a
+Granary at t65.
+
+**`push` only divided.** Checked and written down: the build arm scored a candidate
+`value ÷ turns of build effort` and never multiplied by `delayTerm`, so nothing
+anywhere charged a town for the turns its people spend waiting for the first yield.
+The two are different questions — an amortisation is *how much of this town's time
+does this eat*, a discount is *how late does it start paying* — and every other
+payoff in this bot carries both. It carries both now, each once (`chain.ts`'
+expansion chain still discounts only the walk; the raising is discounted here).
+A **patient row is patient in both halves**: the wait a bead row is discounted at is
+`effort`, the same number the divisor uses, because reading it as ten turns in one
+place and thirty-two in the other would be the sentence said and then unsaid.
+A **project** takes the same discount as everything else — exempting it was measured
+and is the batch's one rejected variant (below).
+
+### The t100 probe — eight seeds, standard, sixteen seats
+
+Seeds 1/2/3/42/101/999/31337/20260101, two balanced seats, wild on,
+`createBotStepper(...).playTurn()` to t100, mean over the sixteen seats, ±1 SE.
+
+| | cities | citizens | buildings | food | prod | gold | sci | culture | faith | treasury | techs | happiness |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| `main` | 4.88 ±0.41 | 34.00 ±2.99 | 13.00 ±1.51 | 112.76 ±10.11 | 49.73 ±5.28 | 17.41 ±5.80 | 43.64 ±5.07 | 42.29 ±6.26 | 21.00 ±3.84 | 333.91 ±53.53 | 21.31 ±0.98 | −0.37 ±1.27 |
+| **X1d-chain** | 5.31 ±0.34 | 32.13 ±2.46 | **15.25 ±2.20** | 91.98 ±7.80 | 55.63 ±4.14 | 26.84 ±8.88 | 41.86 ±6.04 | 51.26 ±7.09 | 11.94 ±2.34 | 281.62 ±42.36 | 21.19 ±0.64 | 1.95 ±2.22 |
+
+**The acceptance is half met and the half that is not is reported rather than
+tuned.** Buildings are up 17% and cities are inside noise, which is what the ruling
+predicted: the towns raise more shelves because the shelves are finally priced by
+what those towns would make of them. **Science and technologies are flat** — 41.86
+against 43.64 and 21.19 against 21.31, both inside one combined SE — where the
+acceptance asked for both up.
+
+The attribution is measured, on the same eight seeds with the road walk alone turned
+off (everything else of the batch in):
+
+| | cities | buildings | sci | techs |
+|---|---|---|---|---|
+| the copies alone (no road) | 5.69 ±0.36 | 13.19 ±1.28 | **43.28 ±3.74** | **22.00 ±0.50** |
+| the copies **and** the road | 5.31 ±0.34 | **15.25 ±2.20** | 41.86 ±6.04 | 21.19 ±0.64 |
+
+So the road buys the buildings and costs about four science and eight tenths of a
+technology a seat. It is shipped because it is the ruling; the trade is written here
+because a later batch should know which half paid for which.
+
+**ms/turn.** Measured back to back on the same machine under the same load, with the
+batch's own added work switched off and on: **123.4 → 146.0, +18.3%**, inside the
+budget the brief set. The absolute figures are not comparable with the 62.8 ms/turn
+`main` reading taken early in the session on an idle machine — two other agents' test
+suites were running by the time these were taken, and every later reading is inflated
+by roughly a factor of two. What the paired reading measures is the thing that
+matters: the per-town folds and the road cost the bot **18%** of its turn, and the
+two memos are what keep it there.
+
+### The one-game readout, re-read (seed 1, standard, the capital's completions)
+
+The user's reading on `main`: two wonders (t14–33, t37–54), then a Granary at t65 and
+a Library at t81. On this batch, Aldermarch's first shelves:
+
+| turn | row |
+|---|---|
+| 47 | Library |
+| 50 | Monument |
+| 57 | Amphitheater |
+| 58 | Palisade |
+| 69 | Chart the Stars *(a bead row — patient, deliberately)* |
+| — | no ordinary wonder inside 120 turns |
+
+The Library moved from t81 to t47 and the two opening wonders are gone. The capital
+still spends its first forty turns on pieces, which is the worker/settler side and
+X1d-ground's.
+
+### The variants measured and not shipped
+
+  · **exempting a conversion project from the build wait.** A project pays from the
+    first turn, so "no landing to be late for" is the honest sentence — but exempting
+    it while every building and unit takes the discount tilts the whole queue toward
+    conversions, and a project-headed town never re-decides (the known edge in
+    `settleProduction`). Measured: `project:scholarship` topped every town's table on
+    the diagnostic board, and the eight-seed row read buildings 12.9 and science 37.8
+    against 15.3 and 41.9 with the discount applied uniformly. Uniform it is.
+  · **cutting a node or a copy whose landing is past the horizon.** Free in
+    arithmetic (`delayDiscount`'s floor is zero) and worth a third of the batch's
+    added cost, but it changes `stepsRemaining` — a step nobody could reach still
+    dilutes every other step's share — and the eight-seed row read buildings 12.4
+    against 15.3. Not shipped; the copies are folded lazily instead, which buys the
+    same skip wherever nobody reads the copy.
+  · **`townChainShare` at the mean copy.** Kept as the mean, the "one more town to
+    raise it" term took t100 from 4.9 towns to **7.9**, with a fifth off its science
+    and half its buildings per town — every engine telling every empire to found
+    another town at the capital's rate of return. It reads the **least** copy's rate
+    now (a town that does not exist yet is the smallest town this empire will have),
+    discounted at the turn **that town's own queue** would reach the row: a new town
+    raises its engines one after another and stops paying at the horizon, which is
+    what every other cursor in the module already does.
+
+### Pins re-aimed
+
+  · `aiBot.test.ts` "is there to be read" — fifteen modules; `townFolds.ts` is the
+    sixth leaf.
+  · `aiPersona.test.ts` "wonder patience" — both cases re-aimed to bead-and-curtain
+    rows, with an ordinary wonder asserted **not** patient beside them, and a third
+    case added: every scored candidate carries the printed build wait and still folds
+    to its own score.
+  · `aiAppraisal.test.ts` "prices a node that carries its own rules" — the rules term
+    is the reader's appraisal times the node's landing now, so the claim is made
+    about the reader's own value inside it.
+  · `aiAppraisal.test.ts` "discounts the beeline's per-town building gift" — re-aimed
+    from the flat-bag term to a **copy**, with the copy's own town looked up by the
+    name it printed and its delay checked against that town's `turnsToBuild`.
+  · `aiAppraisal.test.ts` "charges the road's beakers as a delay" — a step of an
+    intermediate node lands before the goal does, so the claim is that no step starts
+    before the **first** node lands and `chain.delay ≥ chain.researchDelay`.
+  · `aiAppraisal.test.ts` "makes the option a node hands over wait" — the wait is the
+    unit's **own** node's landing; the pin names the piece the goal unlocks and
+    checks the node's name in the label.
+  · `aiAppraisal.test.ts` "holds the plan against a challenger inside the margin" —
+    the held set was swept again (every one- and two-node set on the bench; six
+    straddle) and is now Agriculture with Mining. **The two score-boundary
+    assertions were dropped and why is written in the case**: installing a plan
+    re-scores the table, because the incumbent chain is the whole road now, so a
+    comparison against the opening's printed scores is a comparison of two different
+    boards. The behaviour is claimed; the margin's arithmetic is pinned exactly by
+    the case below it.
+  · `aiDecision.slow.test.ts` — `war` joins `deal` and `disband` on the incidental
+    list. The seventh move of that list and the first by a third kind: what every
+    seat builds moved, so where its pieces stand moved with it.
+
+Three new cases, all in `aiAppraisal.test.ts`: a size-12 capital and a size-2 hamlet
+price the same row at different rates and different landings, off the same board; a
+two-node road prices both nodes' gifts in the right order and drops the first once it
+is held; and a long wonder in a town of four ranks under a four-turn shelf, with its
+divisor its real turns and its payoff discounted for them, while the Opus keeps its
+patience.

@@ -65,6 +65,7 @@ import {
   explainCard,
   explainCitizen,
   explainSite,
+  isPatientRow,
   nextBotDecision,
   valueContext,
 } from '../../src/ai/bot';
@@ -116,9 +117,12 @@ import {
   foundCityAt,
   purchasableTiles,
   refreshCityDerived,
+  turnsToBuild,
   unitProductionCost,
 } from '../../src/sim/cities';
 import {
+  empirePercents,
+  explainCity,
   foldCity,
 } from '../../src/sim/yields/town';
 import {
@@ -176,7 +180,7 @@ import {
   type TallyOccasion,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { buildError, researchExpansion } from '../../src/sim/tech';
+import { buildError, gatingTech, researchExpansion } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
@@ -203,12 +207,6 @@ function discountFor(delay: number): number {
   return Math.max(0, (HORIZON - delay) / HORIZON);
 }
 
-/**
- * The improvement rider's own delay, and the one estimate the bot states as a
- * constant: `workers.planRadius` turns of walking, plus the turn that lays the
- * spade.
- */
-const SPADE_DISCOUNT = discountFor(aiJson.workers.planRadius + 1);
 
 /** What a middling town of this seat makes — the build delays' denominator. */
 function medianProduction(state: GameState, playerId: number): number {
@@ -673,13 +671,10 @@ describe('a further scout', () => {
 
 describe('the beeline’s tech riders', () => {
   /**
-   * **These four read `renewalSteps` (`chain.ts`), which is still counting
-   * ground with `surveyUpgradeSites`.** X1d-ground replaced that reading for the
-   * plan and for the town (`renewalFoldFor` — section 18 below pins it), and the
-   * beeline inherits it the moment `renewalSteps` is pointed at the same fold.
-   * The two claims here — proportional to the *ground counted*, standing and
-   * buildable apart — are claims about the count, so they retire with it: what
-   * replaces them is section 18's "prices a renewal as the fold it would move".
+   * **`renewalSteps` (`chain.ts`) reads `renewalFoldFor` now** (X1d-ground,
+   * landed with X1d-chain): the two count claims that used to open this block
+   * retired with the survey; section 18 pins the fold. What stays here is the
+   * bench and the two claims about a node's *rules*.
    */
   /**
    * A town whose ring is `wet` hexes of farmable river bank and the rest dry,
@@ -722,63 +717,26 @@ describe('the beeline’s tech riders', () => {
     return candidate(decision!, name);
   }
 
-  it('prices Irrigation by the river bank that would actually collect it', () => {
-    // Re-aimed 2026-09-04 (the potential weight): the rider is two terms now,
-    // and on a board where nothing is ploughed the whole of it is the buildable
-    // half — the same proportionality, read off the promise's own line.
-    const bank = /Farm renewal — on \d+ hexes? that can drink this empire could put one on/;
-    const dry = findTerm(techRow(riverside(0), 'Irrigation').terms, bank);
-    const damp = findTerm(techRow(riverside(2), 'Irrigation').terms, bank);
-    const wet = findTerm(techRow(riverside(5), 'Irrigation').terms, bank);
-    // A term on every board, so a reader can tell "worth nothing here" from "a
-    // family this appraisal has never heard of".
-    for (const term of [dry, damp, wet]) expect(term).not.toBeNull();
-    expect(dry!.value).toBe(0);
-    expect(damp!.value).toBeGreaterThan(0);
-    // Proportional: the count is the multiplier, and the rider's bag is the
-    // same on every hex.
-    expect(wet!.value).toBeCloseTo(damp!.value * 2.5, 10);
-    expect(labelsOf([wet!])).toMatch(/on 5 hexes that can drink/);
-  });
-
-  it('counts the farms already standing apart from the ground that could take one', () => {
-    // Re-aimed 2026-09-05 (the delay discount; the flat potential weight before
-    // it). Six river-bank hexes; two of them already ploughed. Both halves still
-    // collect the day the node lands, but they are no longer worth the same: the
-    // two standing farms are a fact and the four bare banks are a promise a walk
-    // away, folded `2 + d × 4` against the bare board's `0 + d × 6`, `d` being
-    // the walk's own discount.
-    const ploughed = riverside(6);
-    for (const [col, row] of [
-      [4, 5],
-      [6, 5],
-    ] as const) {
-      at(ploughed.map, col, row).improvement = 'farm';
-    }
-    const walk = SPADE_DISCOUNT;
-    const rows = techRow(ploughed, 'Irrigation').terms;
-    const standing = findTerm(rows, /Farm renewal — on \d+ hexes? that can drink already carrying one/);
-    const buildable = findTerm(rows, /Farm renewal — on \d+ hexes? that can drink this empire could put one on/);
-    expect(labelsOf([standing!])).toMatch(/on 2 hexes that can drink already carrying one/);
-    expect(labelsOf([buildable!])).toMatch(/on 4 hexes that can drink this empire could put one on/);
-    // The rider's bag per hex, read off the standing line, prices both.
-    const each = standing!.value / 2;
-    expect(buildable!.value).toBeCloseTo(each * 4 * walk, 10);
-    // And the ploughed board is worth strictly more than the bare one: two
-    // farms in the ground beat two farms somebody has still to walk out and lay.
-    const bare = findTerm(
-      techRow(riverside(6), 'Irrigation').terms,
-      /Farm renewal — on \d+ hexes? that can drink this empire could put one on/,
-    );
-    expect(standing!.value + buildable!.value).toBeGreaterThan(bare!.value);
-    expect(bare!.value).toBeCloseTo(each * 6 * walk, 10);
-  });
+  // The two count claims that stood here ("prices Irrigation by the river bank
+  // that would actually collect it", "counts the farms already standing apart
+  // from the ground that could take one") retired 2026-09-09 with the survey
+  // they read: `renewalSteps` prices the fold now — section 18's "prices a
+  // renewal as the fold it would move" is the claim that replaced them.
 
   it('prices a node that carries its own rules through the card reader', () => {
+    // **Re-aimed 2026-09-09, batch X1d.** Every gift a node hands over now waits
+    // for the node — the projects, the abilities, the bead and the rules with
+    // them (see `chain.ts`' docblock: a constant per node folded at full price
+    // made a chain worth more for being *longer* once the whole road was walked).
+    // So the printed term is the reader's own appraisal multiplied by the node's
+    // landing, and on this bench that landing is past the horizon: the claim is
+    // that the rules *reach* the fold, which is the reader's own value inside.
     const row = techRow(riverside(3), 'Epic Poetry');
     const rules = findTerm(row.terms, /the rules the node itself carries/);
     expect(rules).not.toBeNull();
-    expect(rules!.value).not.toBe(0);
+    const read = rules!.parts === undefined ? null : foldTerms(rules!.parts.slice(0, 1));
+    expect(read).not.toBeNull();
+    expect(read).not.toBe(0);
     expect(foldTerms(row.terms)).toBe(row.score);
   });
 
@@ -1015,26 +973,30 @@ describe('the delay discount', () => {
   }
 
   it('discounts the beeline’s per-town building gift by the whole chain’s wait', () => {
-    // **Re-aimed 2026-09-05** (batch 3 of `docs/bot-priorities.md` — the tech
-    // chain). The wait a building gift is discounted for used to be one row's
-    // own build; it is now the *chain's*: the beakers still owed over the
-    // science rate, and then every step queued ahead of this one. So the pin is
-    // the relation — the delay is at least the row's own raising — plus the
-    // arithmetic, which is still exactly `(H − delay)/H` read off the very turns
-    // the term prints.
+    // **Re-aimed 2026-09-05** (batch 3 — the tech chain) and again **2026-09-09**
+    // (batch X1d — the copies). The gift is no longer one flat bag times a town
+    // count: it is one **copy per town that would raise it**, each priced by that
+    // town's own hypothetical fold and each discounted at that town's own landing
+    // (`StepCopy`, `chain.ts`). So the pin is the same relation said of a copy —
+    // the delay is at least the row's own raising, in the town that would raise
+    // it — plus the arithmetic, which is still exactly `(H − delay)/H` read off
+    // the very turns the term prints.
     const { state } = towns(2);
     const decision = decisionOfType(state, 0, 'chooseResearch');
     expect(decision).not.toBeNull();
-    const row = decision!.candidates.find(
-      (entry) => findTerm(entry.terms, /its flat yields, in every town/) !== null,
-    );
+    const step = /^(.+) — in \d+ towns? that would raise it$/;
+    const row = decision!.candidates.find((entry) => findTerm(entry.terms, step) !== null);
     expect(row).toBeDefined();
-    const flats = findTerm(row!.terms, /its flat yields, in every town/)!;
-    // The discount is a term of its own, beside the town count it discounts —
-    // not a number folded into the value where nobody can see it — and it prints
-    // the turns it was read off. Matched on the horizon clause, which is
-    // `delayTerm`'s and nothing else's.
-    const discount = flats.parts!.find((term) => /against a \d+-turn horizon/.test(term.label));
+    const gift = findTerm(row!.terms, step)!;
+    // One term per copy, and each names the town it stands in.
+    expect(gift.parts!.length).toBeGreaterThan(0);
+    const copy = gift.parts![0]!;
+    expect(copy.label).toMatch(/ at /);
+    // The discount is a term of its own inside the copy — not a number folded
+    // into the value where nobody can see it — and it prints the turns it was
+    // read off. Matched on the horizon clause, which is `delayTerm`'s and
+    // nothing else's.
+    const discount = copy.parts!.find((term) => /against a \d+-turn horizon/.test(term.label));
     expect(discount).toBeDefined();
     expect(discount!.op).toBe('mul');
     expect(discount!.label).toMatch(/to raise it/);
@@ -1042,13 +1004,17 @@ describe('the delay discount', () => {
       /some ([\d.]+) turns against a (\d+)-turn horizon/.exec(discount!.label)![1],
     );
     expect(discount!.value).toBeCloseTo(discountFor(printed), 2);
-    // At least the row's own raising: the chain charges that and the research
-    // wait besides.
+    // At least the row's own raising in *that* town: the chain charges that and
+    // the research wait besides. The town is named in the copy's own label.
+    const named = state.cities.find((town) => copy.label.endsWith(` at ${town.name}`))!;
+    expect(named).toBeDefined();
+    const id = rowNamed(gift.label);
     expect(printed).toBeGreaterThanOrEqual(
-      raisingTurns(buildingProductionCost(rowNamed(flats.label), state, 0), state, 0),
+      turnsToBuild(state, named, { kind: 'building', id }, named.queue.length)!,
     );
     // And the term is still its own arithmetic, as is the candidate holding it.
-    expect(foldTerms(flats.parts!)).toBeCloseTo(flats.value, 10);
+    expect(foldTerms(copy.parts!)).toBeCloseTo(copy.value, 10);
+    expect(foldTerms(gift.parts!)).toBeCloseTo(gift.value, 10);
     expect(foldTerms(row!.terms)).toBe(row!.score);
   });
 
@@ -1065,48 +1031,10 @@ describe('the delay discount', () => {
     expect(delayTerm(0, ctx, 'it is already here').value).toBe(1);
   });
 
-  it('folds a node’s renewal as standing + the walk’s discount × buildable', () => {
-    // Five river-bank hexes, two of them already ploughed: 2 standing and 3
-    // buildable. The standing farms wait for the node alone — a wait the
-    // candidate's beaker denominator already charges — and the bare banks wait
-    // for the node *and* a spade, which is the whole of the split.
-    const state = bench(1);
-    const city = foundCityAt(state, 0, at(state.map, 5, 5));
-    const bank: [number, number][] = [
-      [4, 5],
-      [6, 5],
-      [5, 4],
-      [5, 6],
-      [4, 4],
-    ];
-    for (const [col, row] of bank) own(state, city, col, row).freshwater = true;
-    for (const [col, row] of bank.slice(0, 2)) at(state.map, col, row).improvement = 'farm';
-    const player = seat(state, 0);
-    for (const goal of ['agriculture', 'irrigation'] as const) {
-      for (const step of researchExpansion(state, 0, goal)) {
-        if (step === goal && goal !== 'agriculture') continue;
-        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
-        bumpRevision(state);
-      }
-    }
-    const decision = decisionOfType(state, 0, 'chooseResearch');
-    expect(decision).not.toBeNull();
-    const row = candidate(decision!, 'Irrigation');
-    const standing = findTerm(row.terms, /already carrying one/)!;
-    const buildable = findTerm(row.terms, /could put one on/)!;
-    expect(labelsOf([standing])).toMatch(/on 2 hexes that can drink already carrying one/);
-    expect(labelsOf([buildable])).toMatch(/on 3 hexes that can drink this empire could put one on/);
-    const each = standing.value / 2;
-    expect(each).toBeGreaterThan(0);
-    expect(buildable.value).toBeCloseTo(each * 3 * SPADE_DISCOUNT, 10);
-    expect(standing.value + buildable.value).toBeCloseTo(each * (2 + SPADE_DISCOUNT * 3), 10);
-    // The walk is printed, crude estimate and all: the plan radius plus the turn
-    // that lays the spade.
-    expect(labelsOf([buildable])).toMatch(
-      new RegExp(`the spades have still to get there, some ${aiJson.workers.planRadius + 1} turns`),
-    );
-    expect(foldTerms(row.terms)).toBe(row.score);
-  });
+  // "folds a node's renewal as standing + the walk's discount × buildable" —
+  // retired 2026-09-09 with the survey it read (X1d-ground's ruling: a renewal
+  // is the town's fold with the technology held, over the hexes citizens work;
+  // section 18's "prices a renewal as the fold it would move" is the claim now).
 
   it('prices a counted card by what the empire counts, plus what raising the rest is worth', () => {
     // Six towns, two of which have already raised the row the card counts. The
@@ -1421,9 +1349,17 @@ describe('the tech chain', () => {
     expect(chain.remainingBeakers).toBeGreaterThan(0);
 
     // **The delay still reads them** — the road's beakers over the empire's own
-    // science rate, and no step of the chain starts paying before it.
+    // science rate — and it is the landing of the road's **last** node, which is
+    // the goal. **Re-aimed 2026-09-09, batch X1d**: the chain now walks the whole
+    // road, so a step of an intermediate node lands at *that* node's cumulative
+    // beakers and starts paying before the goal does. What still holds is the
+    // shape of the wait: no step starts before the first node lands, and the
+    // chain's own `delay` — when the last of it would start paying — is at least
+    // the whole road's.
     expect(chain.researchDelay).toBe(chain.remainingBeakers / Math.max(1, ctx.scienceRate));
-    expect(chain.steps.every((step) => step.delay >= chain.researchDelay)).toBe(true);
+    const first = techDef(chain.road[0]!).cost / Math.max(1, ctx.scienceRate);
+    expect(chain.steps.every((step) => step.delay >= first)).toBe(true);
+    expect(chain.delay).toBeGreaterThanOrEqual(chain.researchDelay);
 
     // **And the fold does not.** The line is still printed — a reader of the feed
     // wants to see what the road owes — beside the number that was multiplied.
@@ -1456,15 +1392,25 @@ describe('the tech chain', () => {
    * `docs/bot-priorities.md`. The option waits for the node like everything else.
    */
   it('makes the option a node hands over wait for the road it is behind', () => {
+    // **Re-aimed 2026-09-09, batch X1d**: the wait a unit step carries is its own
+    // node's landing rather than the whole road's, because the road is walked now
+    // and every node on it hands something over. The goal's own option still
+    // waits for the whole road — the goal is the road's last node — so the pin is
+    // made about the piece the *goal* unlocks, found by name off the tree rather
+    // than by taking whichever unit step came first.
     const { state, player } = chained(3);
     const ctx = valueContext(state, player);
     const chain = techChain(state, player, ctx, 'fletching');
     expect(chain.held).toBe(false);
-    const step = chain.steps.find((one) => one.kind === 'unit')!;
-    const wait = findTerm(step.terms, /the node has still to land/);
+    const offered = techDef('fletching').unlocks.units ?? [];
+    expect(offered.length).toBeGreaterThan(0);
+    const step = chain.steps.find((one) => one.kind === 'unit' && one.id === offered[0])!;
+    expect(step).toBeDefined();
+    const wait = findTerm(step.terms, /node has still to land/);
     expect(wait).not.toBeNull();
     expect(wait!.op).toBe('mul');
     expect(wait!.value).toBe(delayTerm(chain.researchDelay, ctx, 'x').value);
+    expect(wait!.label).toContain(techDef('fletching').name);
     expect(foldTerms(step.terms)).toBe(step.value);
 
     // A node this empire already holds hands over its option now, so there is no
@@ -1473,7 +1419,7 @@ describe('the tech chain', () => {
     const walked = techChain(held, holder, valueContext(held, holder), 'fletching');
     expect(walked.held).toBe(true);
     const now = walked.steps.find((one) => one.kind === 'unit')!;
-    expect(findTerm(now.terms, /the node has still to land/)).toBeNull();
+    expect(findTerm(now.terms, /node has still to land/)).toBeNull();
   });
 
   /**
@@ -1777,17 +1723,28 @@ describe('the tech chain', () => {
     // **batch P1**.
     //
     // **Re-aimed twice on 2026-09-08, batches X1 and X2 landing together**
-    // (`docs/audit/bot-pass-2.md`). X1 charged a unit step the levy's hammers,
-    // which took the Bronze Panoply–Divination near-tie out (28 against 128);
-    // X2 evaluated every clause's scope, which took the Currency chain's
-    // scope-blind windfall out. Neither alone left a pair straddling the
-    // margin on the old held sets, so the sweep was run again over every one-
-    // and two-node held set on this bench with both in: three still produce
-    // one, and the fixture is the first of them — Currency at 143.2 with Epic
-    // Poetry inside the margin at 133.1 and Wayfinding far outside. The claim
-    // is unchanged; only the board that makes it happen is.
-    const { state, player } = chained(3, 'sailing');
-    for (const tech of ['mathematics'] as const) {
+    // (`docs/audit/bot-pass-2.md`), and **again on 2026-09-09, batch X1d**: the
+    // chain walks the whole road now, so a goal's worth includes every node
+    // behind it and every table on every held set re-ranked. The sweep was run
+    // once more over every one- and two-node held set on this bench (six produce
+    // a straddling pair) and the fixture is Agriculture with Mining held —
+    // Sailing leads at 840, The Wheel holds the plan at 647 and Stonecraft
+    // yields at 676 despite the higher score, because installing a plan re-scores
+    // the table it is being compared against.
+    //
+    // **And that re-scoring is why the boundary is no longer asserted off the
+    // no-incumbent scores.** It used to be: a challenger held iff its printed
+    // score times the margin beat the leader's. With the road walked, installing
+    // a plan changes `liveChains` — the incumbent chain is the whole road now —
+    // so the table the incumbent is compared against is not the table the
+    // opening printed, and a comparison across the two is a comparison of two
+    // different boards. What is claimed here is the *behaviour*: some challenger
+    // holds the plan and some other does not, and the leader installed has
+    // nothing to defend against. The margin's arithmetic — that it is a term of
+    // the incumbent's own fold, at exactly `priorities.switchMargin` — is pinned
+    // exactly by the case below this one.
+    const { state, player } = chained(3, 'agriculture');
+    for (const tech of ['mining'] as const) {
       for (const step of researchExpansion(state, 0, tech)) {
         if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
         bumpRevision(state);
@@ -1814,11 +1771,7 @@ describe('the tech chain', () => {
     }
     expect(held).not.toBeNull();
     expect(yielded).not.toBeNull();
-    // The boundary itself, read off the scores the table printed with no
-    // incumbent: what held was inside the margin of the leader, what yielded was
-    // outside it. That is the whole of `priorities.switchMargin`.
-    expect(held!.score * margin).toBeGreaterThanOrEqual(winner.score);
-    expect(yielded!.score * margin).toBeLessThan(winner.score);
+    expect(margin).toBeGreaterThan(1);
     // And with the leader itself installed there is nothing to defend against.
     const free = techNamed(winner.label);
     expect(
@@ -1855,6 +1808,191 @@ describe('the tech chain', () => {
     // And the score is still the fold of the terms, margin included.
     expect(foldTerms(row.terms)).toBe(row.score);
     expect(foldTerms(row.terms.slice(0, -1)) * term.value).toBeCloseTo(row.score, 10);
+  });
+
+  // --- batch X1d: the copies, and the whole road ------------------------------
+
+  /**
+   * **The library is worth what the town that raises it makes of it** — the
+   * user's ruling of 2026-09-09 (`docs/flags.md` item (ggg)): *"the value of a
+   * library is contingent on the city that builds it: a city in your capital with
+   * high population is worth a lot of science, and is built faster than a middling
+   * city."*
+   *
+   * The bench is the ruling read literally: one board, two towns, one of size
+   * twelve and one of size two, both lacking the row. The claim is that the two
+   * copies print *different* numbers and that the big town's is the bigger one —
+   * and it is made about the fold rather than about a figure, because a Library's
+   * `sciencePerPop` is a data row and the point is that the chain now reads it
+   * through `foldCity` instead of through the row's flat bag.
+   */
+  function libraryRow(): { id: BuildingId; tech: TechId } {
+    for (const id of BUILDING_IDS) {
+      const def = buildingDef(id);
+      if (def.sciencePerPop <= 0) continue;
+      const tech = gatingTech('building', id);
+      if (tech === null) continue;
+      return { id, tech };
+    }
+    throw new Error('no per-population science row in the table');
+  }
+
+  it('prices a row per copy — the big town’s fold and the hamlet’s, not one bag', () => {
+    const { id, tech } = libraryRow();
+    const { state, player, cities } = chained(2, tech);
+    cities[0]!.population = 12;
+    cities[1]!.population = 2;
+    for (const city of cities) refreshCityDerived(state, city);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const chain = techChain(state, player, ctx, tech);
+    const step = chain.steps.find((one) => one.kind === 'building' && one.id === id)!;
+    expect(step).toBeDefined();
+    // One copy per town that would raise it, each naming its town.
+    expect(step.copies.length).toBe(2);
+    expect(step.towns).toBe(step.copies.length);
+    const big = step.copies.find((copy) => copy.cityId === cities[0]!.id)!;
+    const small = step.copies.find((copy) => copy.cityId === cities[1]!.id)!;
+    expect(big.rate).toBeGreaterThan(small.rate);
+    // **The real fold, not the flat bag.** The capital's copy pays at least what
+    // the town would actually make with the row standing in it — the simulation's
+    // own hypothetical, which is the whole of the ruling.
+    const empire = empirePercents(state, player.id);
+    const gain =
+      foldCity(state, cities[0]!, [id], null, explainCity(state, cities[0]!, [id], empire)).science -
+      foldCity(state, cities[0]!, [], null, explainCity(state, cities[0]!, [], empire)).science;
+    expect(gain).toBeGreaterThan(buildingDef(id).science);
+    // And the capital raises it sooner than the hamlet, on its own production.
+    expect(big.delay).toBeLessThan(small.delay);
+    expect(big.delay).toBeCloseTo(
+      chain.researchDelay + turnsToBuild(state, cities[0]!, { kind: 'building', id }, cities[0]!.queue.length)!,
+      6,
+    );
+    // The step's aggregates are the copies' folds and nothing else.
+    expect(step.value).toBeCloseTo(big.value + small.value, 10);
+    expect(step.rate).toBeCloseTo(big.rate + small.rate, 10);
+    expect(foldTerms(chain.terms)).toBe(chain.worth);
+  });
+
+  /**
+   * **A goal's chain is the whole road** — the ruling's other half: *"the value
+   * of a tech path isn't just based on the thing the tech unlocks, it also
+   * includes the value of all the prerequisite techs that you research along the
+   * way."*
+   */
+  function twoNodeRoad(state: GameState): { goal: TechId; road: TechId[] } | null {
+    for (const id of TECH_IDS) {
+      const road = researchExpansion(state, 0, id);
+      if (road.length !== 2) continue;
+      const first = techDef(road[0]!).unlocks.buildings ?? [];
+      const last = techDef(road[1]!).unlocks.buildings ?? [];
+      if (first.length === 0 || last.length === 0) continue;
+      return { goal: id, road };
+    }
+    return null;
+  }
+
+  /**
+   * **Wonder patience, and the wait the queue never charged** — the third of
+   * batch X1d's rulings, read off one game by the user on 2026-09-09
+   * (`docs/flags.md` item (ggg)): the seed-1 capital raised two wonders between
+   * t14 and t54 and reached a Granary at t65 and a Library at t81.
+   *
+   * Two causes, one bench. `score.patienceTurns` amortised **every** row there
+   * was one of over at most ten turns, so a nineteen-turn wonder was scored as a
+   * ten-turn one; and `push` only ever *divided* by the build turns, so nothing
+   * anywhere charged the town for the turns its people spend waiting. Both are
+   * fixed and both are asserted here, against a four-turn Granary in a town of
+   * four — which is exactly the comparison the user's game lost.
+   */
+  it('ranks a long wonder under a short granary in a small town', () => {
+    const { state, player, cities } = chained(1);
+    // Past `military.scoutEarlyTurns`, so the opening book (`openingScout`) does
+    // not answer the town before anything is weighed.
+    state.turn = 50;
+    const town = cities[0]!;
+    town.population = 4;
+    // Every technology, so the wonder table is legal and the comparison is about
+    // the arithmetic rather than about a gate.
+    for (const id of TECH_IDS) {
+      if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
+    }
+    refreshCityDerived(state, town);
+    bumpRevision(state);
+    const decision = decisionOfType(state, 0, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    const scored = decision!.candidates.filter((row) => row.rejected === undefined);
+    const turnsOf = (row: BotCandidate): number => {
+      const divisor = row.terms.find((term) => term.op === 'div');
+      return divisor === undefined ? 0 : divisor.value;
+    };
+    // The longest wonder this town could raise, and the cheapest ordinary shelf
+    // beside it — both found by what the table printed, never by a name.
+    const wonders = scored.filter((row) => {
+      const id = BUILDING_IDS.find((one) => buildingDef(one).name === row.label);
+      return id !== undefined && buildingDef(id).wonder === true && !isPatientRow({ kind: 'building', id });
+    });
+    expect(wonders.length).toBeGreaterThan(0);
+    const long = wonders.sort((a, b) => turnsOf(b) - turnsOf(a))[0]!;
+    const quick = scored
+      .filter((row) => {
+        const id = BUILDING_IDS.find((one) => buildingDef(one).name === row.label);
+        return id !== undefined && buildingDef(id).wonder !== true && turnsOf(row) <= 6;
+      })
+      .sort((a, b) => turnsOf(a) - turnsOf(b))[0]!;
+    expect(quick).toBeDefined();
+    expect(turnsOf(long)).toBeGreaterThanOrEqual(15);
+    expect(turnsOf(quick)).toBeLessThanOrEqual(6);
+    // **The divisor is the wonder's real turns**, not the patience — that is the
+    // first half of the ruling, and it is what the label says too.
+    expect(turnsOf(long)).toBeGreaterThan(aiJson.score.patienceTurns);
+    expect(long.terms.find((term) => term.op === 'div')!.label).not.toMatch(/patience/);
+    // **And it is discounted for those turns**, which is the second half.
+    const wait = long.terms.find((term) => /the town has still to raise it/.test(term.label))!;
+    expect(wait).toBeDefined();
+    expect(wait.op).toBe('mul');
+    expect(wait.value).toBeLessThan(1);
+    // The comparison the user's game lost.
+    expect(long.score).toBeLessThan(quick.score);
+    expect(foldTerms(long.terms)).toBe(long.score);
+
+    // **The Opus keeps its patience.** The row that ends the game is read at the
+    // patience whatever its real turns are, which is the clause the rule was
+    // written for and the one half of it that did not change.
+    const opus = BUILDING_IDS.find((id) => buildingDef(id).endsTheGame === true)!;
+    expect(isPatientRow({ kind: 'building', id: opus })).toBe(true);
+  });
+
+  it('prices both nodes of a two-node road, and drops the first once it is held', () => {
+    const { state, player } = chained(2);
+    const found = twoNodeRoad(state);
+    expect(found).not.toBeNull();
+    const { goal, road } = found!;
+    const ctx = valueContext(state, player);
+    const chain = techChain(state, player, ctx, goal);
+    expect(chain.road).toEqual(road);
+    // A step for a row of the **first** node as well as the last — the road hands
+    // both over, and the chain says so.
+    const early = techDef(road[0]!).unlocks.buildings!;
+    const late = techDef(road[1]!).unlocks.buildings!;
+    expect(chain.steps.some((step) => early.includes(step.id as BuildingId))).toBe(true);
+    expect(chain.steps.some((step) => late.includes(step.id as BuildingId))).toBe(true);
+    // And the first node's gifts land **before** the last node's: its beakers are
+    // the road's first instalment, not the whole of it.
+    const first = chain.steps.find((step) => early.includes(step.id as BuildingId))!;
+    const second = chain.steps.find((step) => late.includes(step.id as BuildingId))!;
+    expect(first.delay).toBeLessThan(second.delay);
+    expect(foldTerms(chain.terms)).toBe(chain.worth);
+
+    // **A held first node drops out.** The empire that already has it owes the
+    // road only its tail, so the chain prices the tail alone — and nothing of the
+    // first node's is a step of it any more except what its rows still owe, which
+    // is a chain of its own (`liveChains`' second family).
+    const { state: after, player: holder } = chained(2, road[0]!);
+    const walked = techChain(after, holder, valueContext(after, holder), goal);
+    expect(walked.road).toEqual([road[1]!]);
+    expect(walked.steps.some((step) => early.includes(step.id as BuildingId))).toBe(false);
+    expect(walked.remainingBeakers).toBeLessThan(chain.remainingBeakers);
   });
 });
 

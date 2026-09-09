@@ -83,7 +83,6 @@ import {
 
 import { assignableTiles, hasResource, tileOwnerPlayerId, yieldScore } from '../sim/cities';
 import {
-  IMPROVEMENT_IDS,
   type ImprovementId,
   improvementDef,
   isImprovementId,
@@ -102,7 +101,6 @@ import { researchPlan } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from '../sim/terrainData';
 import { type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
-import { hasFreshWater } from '../sim/water';
 import { type TileYieldContext, cityContext, foldTile } from '../sim/yields/hex';
 import { round } from './decision';
 
@@ -568,106 +566,6 @@ function memoOf(ctx: ValueContext): PlanMemo {
 }
 
 // --- what a renewal would land on -------------------------------------------
-
-/**
- * **Superseded by `renewalFoldFor`** and kept only until the beeline's own
- * reader (`renewalSteps` in `chain.ts`) is pointed at it. It counts ground
- * nobody works, which is the ruling of 2026-09-09 against it; nothing in this
- * module reads it any more.
- *
- * **How much ground a tech's renewal would actually pay on**, per improvement
- * row: hexes already carrying the improvement, plus hexes this empire could lay
- * it on today. Both halves, because both will collect the day the node lands —
- * a farm standing on a river bank and a river bank that will have a farm on it
- * are the same promise a few worker-turns apart.
- *
- * The tally is **four numbers, not one**: standing and buildable, each with the
- * part of it that can drink — which is the one condition an `ImprovementUpgrade`
- * may carry besides its tech (`requiresFreshwater`). Standing and buildable are
- * apart because they are a fact and a promise and the bot prices those
- * differently (`delayDiscount`, batch 2); the freshwater halves are
- * apart for the older reason. **A third condition on that record must be counted
- * here too** — this survey is the register of what the rider appraisal knows how
- * to bound, and a condition it cannot see would be priced as if it were not
- * there.
- *
- * The **bound** is `groundInReach`, the same ground the improvement plan reads:
- * every hex within `REACH` of one of this empire's town centres, deduped. That
- * is not a sample — `improvementErrorAt` refuses unowned ground outright, so
- * every hex a spade could legally reach today is inside it — but it does mean a
- * border that grows past the ring tomorrow is not counted today, which is the
- * honest reading of "could build on" for an empire that has not claimed it yet.
- *
- * **One sweep, read by every candidate node.** `explainTechGifts` is asked of
- * fifty nodes a turn and its docblock warns about exactly this: a sweep per row
- * would be fifty empire walks. This is one walk of the same ground the plan
- * already walks, hoisted by `techGoalTable` and handed down.
- */
-export interface UpgradeTally {
-  /**
-   * Hexes of this empire's **already carrying** the improvement. The realized
-   * half: they collect the renewal the turn the node lands, with no spade.
-   */
-  standing: number;
-  /**
-   * Hexes this empire's spade could lay the improvement on today. The
-   * **potential** half, discounted by the reader for the walk that has still to
-   * happen (`delayDiscount`) — a river bank that will have a farm on it is the
-   * same promise a few worker-turns away, and those worker-turns are exactly
-   * what the discount is.
-   */
-  buildable: number;
-  /** The part of `standing` that can drink. See `requiresFreshwater`. */
-  standingFresh: number;
-  /** The part of `buildable` that can drink. */
-  buildableFresh: number;
-}
-
-export interface UpgradeSites {
-  /** By improvement, the hexes a renewal on that row would pay. */
-  byImprovement: Map<ImprovementId, UpgradeTally>;
-}
-
-/** The empty tally, for a row nothing was counted for. */
-export function noUpgradeSites(): UpgradeTally {
-  return { standing: 0, buildable: 0, standingFresh: 0, buildableFresh: 0 };
-}
-
-export function surveyUpgradeSites(state: GameState, player: Player): UpgradeSites {
-  const byImprovement = new Map<ImprovementId, UpgradeTally>();
-  const rows = IMPROVEMENT_IDS.filter(
-    (id): id is ImprovementId => (improvementDef(id).upgrades ?? []).length > 0,
-  );
-  if (rows.length === 0) return { byImprovement };
-  for (const row of rows) byImprovement.set(row, noUpgradeSites());
-  for (const tile of groundInReach(state, player)) {
-    for (const row of rows) {
-      // Already standing here (and ours — a neighbour's farm collects for the
-      // neighbour), or ground this empire's spade would be allowed to lay it on.
-      // `improvementErrorAt` is the same gate the plan and the worker are held
-      // to, technology included: a renewal on a row this empire cannot build yet
-      // is a promise it cannot keep, and is counted at nothing until it can.
-      const standing =
-        tile.improvement === row && tileOwnerPlayerId(state, tile.col, tile.row) === player.id;
-      if (!standing && improvementErrorAt(state, player.id, tile, row) !== null) continue;
-      const tally = byImprovement.get(row)!;
-      const fresh = hasFreshWater(tile);
-      // **The two halves are counted apart** (the potential weight, 2026-09-04):
-      // a farm standing on a river bank is a fact and a river bank that could
-      // take one is a promise, and the reader is the one that decides what a
-      // promise is worth. Counting them together — which is what `hexes` did —
-      // priced every promise at par.
-      if (standing) {
-        tally.standing += 1;
-        if (fresh) tally.standingFresh += 1;
-      } else {
-        tally.buildable += 1;
-        if (fresh) tally.buildableFresh += 1;
-      }
-    }
-  }
-  return { byImprovement };
-}
 
 /** A tile yield delta as a bag the appraisal weights. The keys are the voices. */
 function bagOfTileYield(delta: TileYield): YieldBag {

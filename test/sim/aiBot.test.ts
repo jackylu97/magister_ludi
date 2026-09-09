@@ -938,6 +938,11 @@ describe('the bot module', () => {
     // carries it. It is a module of its own because both loops fill it and the
     // policy reads it, and a memory either loop kept privately would be a fifth
     // piece of per-seat state for the byte-for-byte pin to keep in step.
+    //
+    // Fifteen since X1d (2026-09-09): `townFolds.ts` is the sixth leaf, and it is
+    // `ground.ts`' bargain a third time — the standing and hypothetical folds of
+    // every town of one empire, asked by the build arm, by both banks and now by
+    // the chains, which is three modules two of which already stand on the third.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -952,6 +957,7 @@ describe('the bot module', () => {
       'plan.ts',
       'routes.ts',
       'stepper.ts',
+      'townFolds.ts',
       'value.ts',
       'wants.ts',
     ]);

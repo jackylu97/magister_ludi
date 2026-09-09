@@ -98,15 +98,35 @@
  * the brief rules out. So the table stands in, it is written down here, and the
  * one `explainLump` call below remains the only line that would change.
  *
- * **Where the delay is crude, and why it is written down as crude.** Steps are
- * assumed to be raised one after another by a middling town
- * (`ValueContext.medianProduction`, batch 2), so the cursor walks the building
- * steps in roster order and each one waits for the ones before it. Towns build in
- * *parallel*, so a step's build time is one town's rather than every town's, and
- * only its hammers multiply by the towns. A unit unlock advances no cursor at
- * all: it is an option the empire may take the turn the node lands, never an
- * obligation, and it starts paying the turn the node lands — **and waits for the
- * road until then**, which is X1b's second half below.
+ * **The road, and the towns on it** (batch X1d, the user's ruling of 2026-09-09,
+ * `docs/flags.md` item (ggg)). Two of this module's crudenesses were the same
+ * crudeness twice, and both are gone.
+ *
+ * The first was a *goal* priced by `techDef(goal).unlocks` alone: the road's
+ * intermediate nodes contributed beakers and delay and no gifts at all, so a
+ * three-node beeline was worth its destination and nothing it walked through.
+ * *"The value of a tech path isn't just based on the thing the tech unlocks, it
+ * also includes the value of all the prerequisite techs that you research along
+ * the way."* So `techChain` walks the whole of `researchExpansion(goal)`,
+ * accumulating beakers as it goes; **every node's gifts are steps**, landing at
+ * that node's own cumulative beakers over the science rate. A deep goal is worth
+ * what the road hands over. The road's nodes overlap between goals almost
+ * entirely, so a node's gifts are folded **once a sitting** and reused by every
+ * goal that passes it, only the discount differing (`nodeGifts`).
+ *
+ * The second was a *step* priced as the row's flat bag times a town count, raised
+ * one after another by a middling town. *"The value of a library is contingent on
+ * the city that builds it."* So a building step is now a list of **copies**, one
+ * per town that would raise it (`StepCopy`, and `buildingCopies` for the ruling
+ * in full): each copy priced by that town's own hypothetical fold, each landing
+ * at that town's own `turnsToBuild`, each discounted at its own landing, and each
+ * queued behind the copies **its own town** owes earlier on the same road. Towns
+ * raise in parallel, so the cursor is per town rather than per empire.
+ *
+ * A unit unlock advances no cursor at all: it is an option the empire may take
+ * the turn its node lands, never an obligation, and it starts paying the turn the
+ * node lands — **and waits for the road until then**, which is X1b's second half
+ * below.
  *
  * **Why a unit step used to be free, and why it is not** (batch X1,
  * `docs/audit/bot-pass-2.md`). "An option, never an obligation" was the argument
@@ -144,13 +164,14 @@
  * do, and the two halves shipped together (the measurement of each alone is in
  * `docs/bot-priorities.md`, "Batch X1b as shipped").
  *
- * Three gifts still do not wait and are written down rather than swept: the
- * conversion projects and abilities a node counts, the glass bead a node pays,
- * and the rules the node itself carries. The first two are flat constants off
- * the sheet, the third is the race's own share (which carries `beadChain`'s
- * delay already), and the fourth would want `explainEffects` to take a discount
- * it has no parameter for. None of them moved a board on this bench; a pass that
- * gives them the road's discount is a pass, not a line.
+ * **And every other gift waits with it since X1d.** The conversion projects and
+ * abilities a node counts, the glass bead it pays and the rules it carries were
+ * all folded at full price on a node nobody had researched — tolerable while a
+ * chain priced one node, and not tolerable at all once it prices ten, because a
+ * constant per node folded undiscounted makes a chain worth more for being
+ * *longer*. Each is multiplied by its own node's landing now. The one exception
+ * is the race's share of a bead-paying node (`raceTerm`), which carries
+ * `beadChain`'s own clock and would otherwise be discounted twice.
  *
  * **Three chains live here now**, in the order the batches added them: the tech
  * chain above, the **expansion** chain (batch 4 — the next town, its settler, its
@@ -165,12 +186,10 @@
 import { type LevyReading, isFieldSoldier, levyReading } from './campaign';
 import { citizenKeepTerm, keepDoor } from './citizen';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
-import { type UpgradeSites, noUpgradeSites } from './plan';
+import { renewalFoldFor } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
 import {
   type ValueContext,
-  type YieldBag,
-  bagOfTileYield,
   buildTurns,
   delayDiscount,
   delayTerm,
@@ -180,24 +199,67 @@ import {
   explainMeterCall,
   explainSoldier,
   explainYields,
-  valueOfYields,
+  yieldDelta,
 } from './value';
+// **The town folds** (batch X1d) — the standing and hypothetical folds of every
+// town, shared with the build arm and both banks. A leaf, so the chain may stand
+// on it: `wants.ts` stands on this file.
+import { type TownFolds, townFolds } from './townFolds';
 
 import { BEAD_RULES } from '../sim/beadData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { buildingProductionCost, unitProductionCost } from '../sim/cities';
-import { IMPROVEMENT_IDS, improvementDef } from '../sim/improvementData';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { type ProjectId, projectDef } from '../sim/projectData';
-import { type GameState, type Player, realPlayers } from '../sim/state';
+import { type City, type GameState, type Player, realPlayers } from '../sim/state';
 import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
-import { readTileYield } from '../sim/terrainData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
 import { round } from './decision';
 
 /** What a step of a chain is: a row a town raises, a piece, or ground worked. */
 export type ChainStepKind = 'building' | 'unit' | 'rider';
+
+/**
+ * **One copy of a step, in the town that would raise it** — batch X1d, and the
+ * user's ruling of 2026-09-09 (`docs/flags.md` item (ggg)): *"the value of a
+ * library is contingent on the city that builds it: a city in your capital with
+ * high population is worth a lot of science, and is built faster than a middling
+ * city."*
+ *
+ * Until this batch a building step was **one** number: the row's flat bag (a
+ * Library's `science: 2`) times the count of towns that lacked it, raised at a
+ * middling town's production. Three things were wrong with that and the ruling
+ * names two of them. The flat bag is not what a row pays — a Library's
+ * `sciencePerPop` never entered it at all, nor a Lighthouse's fish, nor the
+ * percentages, nor anything a slotted card adds — and a size-13 capital and a
+ * size-2 hamlet were quoted the same figure at the same build time.
+ *
+ * A copy answers all three, because a copy is a *pair*: this town, that row. Its
+ * payoff is the town's own hypothetical fold with the row standing in it, against
+ * the town's standing fold (`townFolds`, the grid the two banks were already
+ * sharing), plus what the row gives beyond a yield in that town
+ * (`explainBuildingRow`). Its landing is that town's own `turnsToBuild`, after the
+ * copies this same town owes earlier on the same road. And because the fold is
+ * `foldCity`'s, it honours everything the simulation honours — the citizens
+ * standing on the hexes, the two stages of percentages, the luxuries, and the
+ * cards this empire has slotted. A University under a card that boosts
+ * universities reads the boost, with no rule written anywhere in the bot.
+ */
+export interface StepCopy {
+  /** The town that would raise it. */
+  cityId: number;
+  /** Its name, for the label the feed prints. */
+  town: string;
+  /** Hammers this town still owes for it. */
+  cost: number;
+  /** What one turn of it would pay **in this town**, undiscounted. */
+  rate: number;
+  /** Turns until this copy starts paying: its node's landing, then its own builds. */
+  delay: number;
+  /** `rate` at `delay` — this copy's folded contribution to the chain's worth. */
+  value: number;
+}
 
 /**
  * One thing that has still to happen before the goal has paid for itself.
@@ -216,13 +278,25 @@ export interface ChainStep {
   name: string;
   /** How many towns (or hexes) still owe this step. Never zero — see above. */
   towns: number;
+  /**
+   * **The copies this step is made of**, one per town that would raise the row
+   * (batch X1d) — `towns === copies.length` for a building step exactly.
+   *
+   * A unit step and a renewal rider carry a single copy apiece, and for a
+   * different reason each: a node hands over an *option*, which is one thing that
+   * may happen wherever the empire likes, and a rider is ground rather than a
+   * raising. Their `towns` is therefore not their copy count (a rider's is hexes),
+   * which is why the two fields are separate rather than one derived from the
+   * other. The three aggregates below are the copies' folds and nothing else.
+   */
+  copies: StepCopy[];
   /** Hammers the empire still owes for it, across those towns. Zero for a rider. */
   cost: number;
   /** What one turn of it would pay, **undiscounted**. The compression's lever. */
   rate: number;
-  /** Turns until it starts paying: the beakers, then the builds ahead of it. */
+  /** Turns until it starts paying — the **first** copy's landing. */
   delay: number;
-  /** Its folded contribution to the chain's worth — `rate` at its own delay. */
+  /** Its folded contribution to the chain's worth — every copy at its own delay. */
   value: number;
   terms: ValueTerm[];
 }
@@ -359,7 +433,21 @@ export function chainStepFor(
   return null;
 }
 
-/** What one step of a chain is worth to whoever takes it — touch point (b). */
+/**
+ * **What one step of a chain is worth to whoever takes it** — touch point (b).
+ *
+ * `worth ÷ stepsRemaining`, and `stepsRemaining` is the count of **raisings**
+ * (`Σ step.towns`), which since batch X1d is the count of *copies*: a Library
+ * three towns lack is three things that still have to happen, and the town that
+ * raises one of them has done a third of that step. So a copy's share is the
+ * chain's worth over every copy the chain still owes — **equal across copies**,
+ * even though the copies' own payoffs differ, and deliberately so. The capital's
+ * copy is already worth more than the hamlet's *inside* `worth`, because the
+ * capital's own fold went in at the capital's own delay; weighting the share by
+ * the copy on top of that would price the same beakers twice. What the arm that
+ * raises the row folds beside this term is the town's own yield delta, which is
+ * where the difference between a capital and a hamlet belongs.
+ */
 export function chainStepShare(chain: TechChain): number {
   return chain.worth / Math.max(1, chain.stepsRemaining);
 }
@@ -380,18 +468,29 @@ export function techChain(
   player: Player,
   ctx: ValueContext,
   goal: TechId,
-  sites?: UpgradeSites,
 ): TechChain {
   const ai = ctx.ai;
   const { road, beakers: remainingBeakers, delay: researchDelay } = researchRoad(state, player, ctx, goal);
   const held = road.length === 0;
+  // **The whole road, node by node** (batch X1d(b)). A held goal is a road of
+  // one that is already walked; anything else is every node `researchExpansion`
+  // laid down, in its own depth order, and each of them hands something over.
+  const nodes = held ? [goal] : road;
+  const rate = Math.max(1, ctx.scienceRate);
 
-  const unlocks = techDef(goal).unlocks;
   const steps: ChainStep[] = [];
   const giftTerms: ValueTerm[] = [];
-  // The build cursor: a town raises the chain's rows one after another, so each
-  // building step waits for the ones before it. Only buildings advance it.
-  let cursor = researchDelay;
+  // **The town folds, once for the sitting** (`townFolds.ts`): the standing fold
+  // of every town and the hypothetical of every (town, row) pair this chain
+  // touches, shared with the build arm and both banks.
+  const folds = townFolds(state, player);
+  // **A build cursor per town, not one for the empire.** Towns raise in
+  // *parallel* — the capital and a hamlet both start the turn the node lands —
+  // so what a copy waits for is the copies **its own town** owes earlier on this
+  // same road, and nothing a different town is doing. The old single cursor was
+  // one middling town raising the whole chain end to end, which both over-stated
+  // the wait for the first row and under-stated the hammers behind the last.
+  const cursors = new Array<number>(folds.towns.length).fill(0);
 
   // **The levy, once for the whole chain** (batch X1). Every unit step reads it
   // and it is a walk of the roster and the town list, so it is hoisted the way
@@ -400,140 +499,133 @@ export function techChain(
   // wants. See `unitStepCost` for what it buys.
   const levy = levyReading(ctx);
 
-  for (const unit of unlocks.units ?? []) {
-    const def = unitDef(unit);
-    const bare = unitTerm(unit, ctx, levy);
-    // **The option waits for the node** (batch X1b's second half). It advances no
-    // cursor — nothing queues behind a piece nobody has decided to raise — but it
-    // is still a payoff on the far side of the road, and a promise is worth less
-    // the longer it takes. The building flats beside it have been discounted
-    // since batch 3; this was the one gift folded at full price on a node nobody
-    // had researched, and with the beaker lump gone it was the *only* thing left
-    // that could have priced a military node's distance. A chain whose road is
-    // walked prints no wait, because there is none.
-    const wait = held ? null : delayTerm(researchDelay, ctx, 'the node has still to land');
-    const term: ValueTerm =
-      wait === null ? bare : { label: bare.label, value: bare.value * wait.value, parts: [bare, wait] };
-    const owed = unitStepShortfall(def, levy);
-    giftTerms.push(term);
-    steps.push({
-      kind: 'unit',
-      id: unit,
-      name: def.name,
-      // **One raising, and the hammers of as many as the levy is short.** The
-      // asymmetry is deliberate and is the whole of batch X1. A node hands the
-      // empire an *option*, so it is one thing that still has to happen and it
-      // is priced as one piece — a chain that counted the shortfall as five
-      // raisings would dilute every building step's share by an army nobody has
-      // decided to raise. But the option is not free: an empire three spears
-      // short of its levy that takes this node will raise three spears, and
-      // those hammers are as real as a library's. So `cost` is the levy's and
-      // `towns` is the option's, and the subtraction below charges the chain for
-      // the army it is actually proposing.
-      towns: 1,
-      cost: owed * unitProductionCost(ctx.state, ctx.playerId, unit),
-      rate: term.value,
-      delay: researchDelay,
-      value: term.value,
-      terms: [term],
-    });
-  }
+  let owedSoFar = 0;
+  for (const node of nodes) {
+    if (!held) owedSoFar += techDef(node).cost;
+    // **Where this node lands**: the beakers owed for the road *through* it over
+    // the empire's own science rate. The last node's landing is `researchDelay`
+    // exactly, which is the identity that keeps the whole-road reading a
+    // refinement of the old one rather than a different clock.
+    const landing = held ? 0 : owedSoFar / rate;
+    const gifts = nodeGifts(ctx, node, levy, folds);
+    const why = held
+      ? 'the towns have still to raise it'
+      : `the ${techDef(node).name} node has to land and the towns to raise it`;
 
-  for (const building of unlocks.buildings ?? []) {
-    const def = buildingDef(building);
-    const towns = townsWanting(state, player, building);
-    // **Realised steps drop out by construction.** Every town holds it (or the
-    // world's one copy of the wonder is claimed), so there is nothing left of
-    // this step to owe, to wait for or to pay — and the chain says so by having
-    // no such step at all.
-    if (towns === 0) continue;
-    const bag: YieldBag = {
-      food: def.food,
-      production: def.production,
-      gold: def.gold,
-      science: def.science,
-      culture: def.culture,
-      faith: def.faith ?? 0,
-    };
-    // One town's build, not every town's: towns raise in parallel, and only the
-    // hammers owed multiply by how many of them are still owing. The folded
-    // price (the size and the tree's column) asked of **this empire** (H11's
-    // per-empire line on a `oncePerEmpire` row), never the row's size alone.
-    const raise = buildTurns(buildingProductionCost(building, ctx.state, ctx.playerId), ctx);
-    cursor += raise;
-    const delay = cursor;
-    const why = held ? 'the towns have still to raise it' : 'the node has to land and the towns to raise it';
-    const perTown = valueOfYields(bag, ctx);
-    const flats = explainYields(bag, ctx).terms;
-    flats.push({
-      label: `× ${towns} town${towns === 1 ? '' : 's'} that would raise it`,
-      value: towns,
-      op: 'mul',
-    });
-    const flatDiscount = delayTerm(delay, ctx, why);
-    flats.push(flatDiscount);
-    const flatTerm: ValueTerm = {
-      label: `${def.name} — its flat yields, in every town that would raise it`,
-      value: perTown * towns * flatDiscount.value,
-      parts: flats,
-    };
-    // **The row's own gifts wait too.** The beeline used to discount the flats
-    // and hand over the row's happiness, walls and renown at full price on a
-    // node nobody had researched; the whole step waits, so the whole step is
-    // discounted, and the multiplication prints beside what it multiplies.
-    const row = explainBuildingRow(building, ctx);
-    const rowDiscount = delayTerm(delay, ctx, why);
-    const rowTerm: ValueTerm = {
-      label: `${def.name} — what its row gives`,
-      value: row.total * rowDiscount.value,
-      parts: [...row.terms, rowDiscount],
-    };
-    giftTerms.push(flatTerm, rowTerm);
-    steps.push({
-      kind: 'building',
-      id: building,
-      name: def.name,
-      towns,
-      cost: buildingProductionCost(building, ctx.state, ctx.playerId) * towns,
-      rate: perTown * towns + row.total,
-      delay,
-      value: flatTerm.value + rowTerm.value,
-      terms: [flatTerm, rowTerm],
-    });
-  }
+    for (const unit of gifts.units) {
+      // **The option waits for its node** (batch X1b's second half, and X1d's
+      // road). It advances no cursor — nothing queues behind a piece nobody has
+      // decided to raise — but it is still a payoff on the far side of the road,
+      // and a promise is worth less the longer it takes.
+      const wait = held ? null : delayTerm(landing, ctx, `the ${techDef(node).name} node has still to land`);
+      const term: ValueTerm =
+        wait === null
+          ? unit.bare
+          : { label: unit.bare.label, value: unit.bare.value * wait.value, parts: [unit.bare, wait] };
+      giftTerms.push(term);
+      steps.push({
+        kind: 'unit',
+        id: unit.id,
+        name: unit.name,
+        // **One raising, and the hammers of as many as the levy is short.** The
+        // asymmetry is deliberate and is the whole of batch X1. A node hands the
+        // empire an *option*, so it is one thing that still has to happen and it
+        // is priced as one piece — a chain that counted the shortfall as five
+        // raisings would dilute every building step's share by an army nobody has
+        // decided to raise. But the option is not free: an empire three spears
+        // short of its levy that takes this node will raise three spears, and
+        // those hammers are as real as a library's.
+        towns: 1,
+        copies: [
+          { cityId: -1, town: 'wherever the empire likes', cost: unit.cost, rate: term.value, delay: landing, value: term.value },
+        ],
+        cost: unit.cost,
+        rate: term.value,
+        delay: landing,
+        value: term.value,
+        terms: [term],
+      });
+    }
 
-  const projects = (unlocks.projects ?? []).length;
-  const abilities = (unlocks.abilities ?? []).length;
-  giftTerms.push({
-    label: `${projects} conversion project${projects === 1 ? '' : 's'}`,
-    value: projects * ai.research.projectValue,
-  });
-  giftTerms.push({
-    label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
-    value: abilities * ai.research.abilityValue,
-  });
-  // **A node that pays a bead** (`TechDef.paysBead`) — the research half of the
-  // win-condition templates (batch 5). Nothing in the bot priced this clause
-  // before: a node that hands over a glass bead was worth exactly its unlocks,
-  // and the one node that carries it is the node that opens the great work for
-  // the world. It is worth `weights.bead` like every other bead, or — while the
-  // race is live — the race chain's own share of what closing it is worth, which
-  // is the same door a building step of the race walks through (`raceTerm`).
-  if (techDef(goal).paysBead !== undefined) {
-    giftTerms.push(
-      raceTerm(ctx, { kind: 'tech', id: goal }) ?? {
-        label: 'a glass bead when the node lands',
-        value: ai.weights.bead,
-      },
-    );
-  }
-  for (const rider of renewalSteps(goal, ctx, researchDelay, sites)) {
-    for (const term of rider.terms) giftTerms.push(term);
-    steps.push(rider);
-  }
-  const effects = techDef(goal).effects ?? [];
-  if (effects.length > 0) {
-    giftTerms.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
+    for (const row of gifts.buildings) {
+      // **Realised steps drop out by construction.** Every town holds it (or the
+      // world's one copy of the wonder is claimed, or no town of this empire
+      // makes a hammer), so there is nothing left of this step to owe, to wait
+      // for or to pay — and the chain says so by having no such step at all.
+      if (row.copies.length === 0) continue;
+      const copies: StepCopy[] = [];
+      const copyTerms: ValueTerm[] = [];
+      let cost = 0;
+      let rateSum = 0;
+      let value = 0;
+      let first = Number.POSITIVE_INFINITY;
+      for (const copy of row.copies) {
+        // Its own town's queue, and its own town's rate. The copy starts when the
+        // node lands or when this town's earlier copies are up, whichever is
+        // later, and it starts paying `raise` turns after that.
+        const start = Math.max(cursors[copy.index]!, landing);
+        const delay = start + copy.raise;
+        cursors[copy.index] = delay;
+        const priced = priceCopy(ctx, row.id, copy);
+        const discount = delayTerm(delay, ctx, why);
+        const term: ValueTerm = {
+          label: `${row.name} at ${copy.town}`,
+          value: priced.rate * discount.value,
+          parts: [...priced.terms, discount],
+        };
+        copyTerms.push(term);
+        copies.push({
+          cityId: copy.cityId,
+          town: copy.town,
+          cost: copy.cost,
+          rate: priced.rate,
+          delay,
+          value: term.value,
+        });
+        cost += copy.cost;
+        rateSum += priced.rate;
+        value += term.value;
+        if (delay < first) first = delay;
+      }
+      const stepTerm: ValueTerm = {
+        label: `${row.name} — in ${copies.length} town${copies.length === 1 ? '' : 's'} that would raise it`,
+        value,
+        parts: copyTerms,
+      };
+      giftTerms.push(stepTerm);
+      steps.push({
+        kind: 'building',
+        id: row.id,
+        name: row.name,
+        towns: copies.length,
+        copies,
+        cost,
+        rate: rateSum,
+        delay: first,
+        value,
+        terms: [stepTerm],
+      });
+    }
+
+    // **The flat gifts wait for their node too** (batch X1d). Before the road was
+    // walked there was one node and its projects, abilities, bead and rules were
+    // folded at full price; now there are ten of them down a long road, and a
+    // constant per node folded undiscounted would make a chain worth more for
+    // being longer. So each is multiplied by its own node's landing, and only the
+    // race's own share is left alone — it carries `beadChain`'s clock already.
+    const stand = held ? null : delayTerm(landing, ctx, `the ${techDef(node).name} node has still to land`);
+    for (const flat of gifts.flat) {
+      giftTerms.push(
+        stand === null
+          ? flat
+          : { label: flat.label, value: flat.value * stand.value, parts: [flat, stand] },
+      );
+    }
+    for (const flat of gifts.undiscounted) giftTerms.push(flat);
+    for (const rider of renewalSteps(node, ctx, landing)) {
+      for (const term of rider.terms) giftTerms.push(term);
+      steps.push(rider);
+    }
   }
 
   const gifts = appraise(giftTerms);
@@ -543,7 +635,9 @@ export function techChain(
   for (const step of steps) {
     hammers += step.cost;
     raisings += Math.max(1, step.towns);
-    if (step.delay > last) last = step.delay;
+    for (const copy of step.copies) {
+      if (copy.delay > last) last = copy.delay;
+    }
   }
   const terms: ValueTerm[] = [nest('what the goal unlocks, step by step', gifts)];
   if (!held) {
@@ -598,11 +692,16 @@ export function techChain(
  * the compressed delays and at the standing ones — the chain's own arithmetic,
  * read off the chain object rather than recomputed.
  *
- * **Divided by the step's towns**, and written down as crude: a purse buys *one*
- * copy of a row a step owes in several towns, so it hurries one town's share of
- * the work. There is no model of which town is on which turn of which row in this
- * bot, and a purchase that claimed to hurry the whole empire would be the
- * every-town optimism this module exists to correct.
+ * **Divided by the step's towns**, and since batch X1d that division is *exact
+ * in expectation* rather than the crude stand-in it was written as. A purse buys
+ * one copy of a row several towns owe, and it hurries only the copies **that
+ * town** still has to raise — which is a thing the chain now knows, because a
+ * building step is a list of copies each on its own town's cursor. Summing every
+ * later copy's improvement and dividing by the towns is the average over which
+ * town takes delivery, and the caller (`bridgeTerm`, `wants.ts`) does not say
+ * which one that is. The one crudeness left is `raise` itself: the middling
+ * town's turns over one copy's stones, because a bridge is priced before the
+ * town is chosen.
  */
 export function chainCompression(
   chain: TechChain,
@@ -617,12 +716,14 @@ export function chainCompression(
   for (const other of chain.steps) {
     if (other === step) reached = true;
     if (!reached || other.kind !== 'building') continue;
-    const sooner = delayDiscount(other.delay - raise, ctx) - delayDiscount(other.delay, ctx);
-    if (sooner <= 0) continue;
-    terms.push({
-      label: `${other.name} pays ${round(raise)} turns sooner`,
-      value: (other.rate * sooner) / share,
-    });
+    for (const copy of other.copies) {
+      const sooner = delayDiscount(copy.delay - raise, ctx) - delayDiscount(copy.delay, ctx);
+      if (sooner <= 0) continue;
+      terms.push({
+        label: `${other.name} at ${copy.town} pays ${round(raise)} turns sooner`,
+        value: (copy.rate * sooner) / share,
+      });
+    }
   }
   return appraise(terms);
 }
@@ -659,6 +760,244 @@ export function researchRoad(
   let beakers = 0;
   for (const step of road) beakers += techDef(step).cost;
   return { road, beakers, delay: beakers / Math.max(1, ctx.scienceRate) };
+}
+
+// --- a node's gifts, once for the sitting -------------------------------------
+
+/**
+ * One town's copy of a row a node unlocks, **before** any discount — and
+ * **before the fold**, which is the whole of why it is a mutable record.
+ *
+ * `raise` is read off the town's standing quote and costs nothing beyond a
+ * division; the *payoff* is a hypothetical `explainCity` over the town's worked
+ * hexes, which is the dearest question this module asks. Most copies never need
+ * it: a road of six nodes and eight towns is forty-eight copies, and the ones
+ * whose landing is past `priorities.horizonTurns` fold to nought whatever they
+ * would have paid. So the fold is asked on first use and remembered on the record
+ * (`priceCopy`), and a copy nobody reaches is never folded at all.
+ */
+interface NodeCopy {
+  /** Its place in `TownFolds.towns` — the cursor's index. */
+  index: number;
+  cityId: number;
+  town: string;
+  cost: number;
+  /** Turns this town would take over it, its own production (`turnsToBuild`). */
+  raise: number;
+  /** The town, so the fold can be asked late. */
+  city: City;
+  folds: TownFolds;
+  /** What one turn of it would pay in this town, and the folds behind it. */
+  priced: { rate: number; terms: ValueTerm[] } | null;
+}
+
+/** The copy's payoff, folded on first ask and remembered. See `NodeCopy`. */
+function priceCopy(ctx: ValueContext, id: BuildingId, copy: NodeCopy): { rate: number; terms: ValueTerm[] } {
+  if (copy.priced !== null) return copy.priced;
+  const delta = yieldDelta(copy.folds.with(copy.index, id), copy.folds.standing(copy.index));
+  const yields = explainYields(delta, ctx);
+  const row = explainBuildingRow(id, ctx, copy.city);
+  const priced = {
+    rate: yields.total + row.total,
+    terms: [
+      nest('what this town would actually make with it', yields),
+      nest('what its row gives beyond a yield', row),
+    ],
+  };
+  copy.priced = priced;
+  return priced;
+}
+
+interface NodeBuilding {
+  id: BuildingId;
+  name: string;
+  copies: NodeCopy[];
+}
+
+interface NodeUnit {
+  id: UnitTypeId;
+  name: string;
+  /** `unitTerm`'s own appraisal, undiscounted. */
+  bare: ValueTerm;
+  /** The levy shortfall's hammers. See `unitStepShortfall`. */
+  cost: number;
+}
+
+/**
+ * **Everything one node hands over, before anybody says when it lands.**
+ *
+ * `flat` waits for the node like everything else; `undiscounted` is the one term
+ * that carries its own clock (the race's share of a bead-paying node).
+ */
+interface NodeGifts {
+  units: NodeUnit[];
+  buildings: NodeBuilding[];
+  flat: ValueTerm[];
+  undiscounted: ValueTerm[];
+}
+
+/**
+ * **What a node gives, computed once a sitting and reused by every goal whose
+ * road passes it** — the user's refinement of 2026-09-09 (`docs/flags.md` item
+ * (ggg)): *"a node's gifts are computed once per sitting and reused by every goal
+ * whose road passes it, only the discount differing."*
+ *
+ * That sentence is the whole reason the road can be walked at all. The beeline
+ * weighs every unresearched node inside `research.goalHorizon`, and the roads of
+ * fifty goals overlap almost completely — Writing is on the road to Philosophy,
+ * to Mathematics and to twenty nodes behind them. Priced per goal, one node's
+ * towns would be folded twenty times over. Priced here, each node's copies are
+ * folded once and every goal that passes through multiplies them by a different
+ * `delayTerm`.
+ *
+ * `MARGIN_MEMO`'s bargain exactly (`value.ts`), and its lifetime for its reason:
+ * keyed weakly on the `ValueContext`, which is one seat's sitting, and every
+ * reading below is a function of that context and the board it was opened on. A
+ * new context is a new opinion about a new board and gets a fresh table. The
+ * (town, row) folds underneath are keyed one level down — on the board's own
+ * revision (`townFolds.ts`) — so two contexts of one sitting share them.
+ */
+const NODE_MEMO = new WeakMap<ValueContext, Map<TechId, NodeGifts>>();
+
+function nodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds: TownFolds): NodeGifts {
+  let held = NODE_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<TechId, NodeGifts>();
+    NODE_MEMO.set(ctx, held);
+  }
+  const found = held.get(node);
+  if (found !== undefined) return found;
+  const fresh = readNodeGifts(ctx, node, levy, folds);
+  held.set(node, fresh);
+  return fresh;
+}
+
+function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds: TownFolds): NodeGifts {
+  const ai = ctx.ai;
+  const def = techDef(node);
+  const unlocks = def.unlocks;
+  const units: NodeUnit[] = [];
+  for (const unit of unlocks.units ?? []) {
+    const row = unitDef(unit);
+    units.push({
+      id: unit,
+      name: row.name,
+      bare: unitTerm(unit, ctx, levy),
+      cost: unitStepShortfall(row, levy) * unitProductionCost(ctx.state, ctx.playerId, unit),
+    });
+  }
+  const buildings: NodeBuilding[] = [];
+  for (const building of unlocks.buildings ?? []) {
+    buildings.push({
+      id: building,
+      name: buildingDef(building).name,
+      copies: buildingCopies(ctx, building, folds),
+    });
+  }
+  const projects = (unlocks.projects ?? []).length;
+  const abilities = (unlocks.abilities ?? []).length;
+  const flat: ValueTerm[] = [
+    {
+      label: `${projects} conversion project${projects === 1 ? '' : 's'}`,
+      value: projects * ai.research.projectValue,
+    },
+    {
+      label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
+      value: abilities * ai.research.abilityValue,
+    },
+  ];
+  const undiscounted: ValueTerm[] = [];
+  // **A node that pays a bead** (`TechDef.paysBead`) — the research half of the
+  // win-condition templates (batch 5). Nothing in the bot priced this clause
+  // before: a node that hands over a glass bead was worth exactly its unlocks,
+  // and the one node that carries it is the node that opens the great work for
+  // the world. It is worth `weights.bead` like every other bead, or — while the
+  // race is live — the race chain's own share of what closing it is worth, which
+  // is the same door a building step of the race walks through (`raceTerm`). The
+  // race's share carries `beadChain`'s clock, so it is the one gift the road's
+  // discount is not applied to a second time.
+  if (def.paysBead !== undefined) {
+    const race = raceTerm(ctx, { kind: 'tech', id: node });
+    if (race === null) flat.push({ label: 'a glass bead when the node lands', value: ai.weights.bead });
+    else undiscounted.push(race);
+  }
+  const effects = def.effects ?? [];
+  if (effects.length > 0) {
+    flat.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
+  }
+  return { units, buildings, flat, undiscounted };
+}
+
+/**
+ * **One copy per town that would raise the row**, each priced by that town's own
+ * folds — batch X1d, and the correction the spec asked for said twice over.
+ *
+ * The first half is the old `townsWanting`: every town of the empire that does
+ * not hold the row, and **one** for a wonder, because there is only ever one of
+ * those and pricing it per town was the purest of the every-town optimisms. A
+ * wonder somebody has already claimed is owed by nobody at all, and the one copy
+ * it does own stands in the town that would raise it **soonest** — a wonder goes
+ * to the town that can actually finish it, which is a fact this reading now has
+ * because every town's build time is in front of it.
+ *
+ * The second half is the ruling: the copy's payoff is not the row's flat bag but
+ * the town's own hypothetical fold with the row standing in it, less the town's
+ * standing fold, plus what the row gives beyond a yield *in that town*. That is
+ * the very pair of questions the purchasing plan and the faith book ask of a
+ * shelf they are about to buy, asked here of a shelf the empire is about to
+ * research, through the same grid (`townFolds`). A Library in a size-13 capital
+ * reads its `sciencePerPop`; a Lighthouse reads the fish of the town that raises
+ * it; a Market reads the route its slot opens, because `explainBuildingRow`
+ * already prices a slot by the best unrun pair.
+ *
+ * **`buildError` is deliberately not asked** and still is not: a chain is about a
+ * node that has not landed yet, and the simulation's gate would refuse every row
+ * of it for want of the technology. The gate belongs to the arm that raises the
+ * row; what belongs here is the towns the row is still missing from. A town that
+ * makes no hammers at all drops out instead — `turnsToBuild` answers `null`, and
+ * a town that would never finish it does not owe it.
+ *
+ * **Uncapped since batch 7.** `score.cityCap` clipped this at six towns so that
+ * "in every town" could not run away with a wide empire, and the acceptance says
+ * it was not what was holding the bot together: a chain owed by ten towns *is*
+ * ten raisings, `stepsRemaining` divides the worth by exactly that number, and
+ * each town then folds one share of it.
+ */
+function buildingCopies(ctx: ValueContext, id: BuildingId, folds: TownFolds): NodeCopy[] {
+  const def = buildingDef(id);
+  const state = ctx.state;
+  if (def.wonder === true) {
+    for (const claim of state.wonders) {
+      if (claim.building === id) return [];
+    }
+  }
+  // The folded price (the size and the tree's column) asked of **this empire**
+  // (H11's per-empire line on a `oncePerEmpire` row), never the row's size alone.
+  // It is a fact about the realm, so every copy owes the same stones.
+  const price = buildingProductionCost(id, state, ctx.playerId);
+  const copies: NodeCopy[] = [];
+  for (let index = 0; index < folds.towns.length; index++) {
+    const city = folds.towns[index]!;
+    if (city.buildings.includes(id)) continue;
+    const raise = folds.turns(index, id);
+    if (raise === null) continue;
+    copies.push({
+      index,
+      cityId: city.id,
+      town: city.name,
+      cost: price,
+      raise,
+      city,
+      folds,
+      priced: null,
+    });
+  }
+  if (def.wonder !== true || copies.length <= 1) return copies;
+  let best = 0;
+  for (let index = 1; index < copies.length; index++) {
+    if (copies[index]!.raise < copies[best]!.raise) best = index;
+  }
+  return [copies[best]!];
 }
 
 // --- the pieces of a chain ---------------------------------------------------
@@ -770,43 +1109,6 @@ function unitTerm(unit: UnitTypeId, ctx: ValueContext, levy: LevyReading): Value
   return { label: `${def.name} — a civilian`, value: ai.weights.worker };
 }
 
-/**
- * **How many towns still owe this row** — the correction the spec asked for.
- *
- * Every town of the empire that does not hold it, and **one** for a wonder,
- * because there is only ever one of those and pricing it per town was the purest
- * of the every-town optimisms. A wonder somebody has already claimed is owed by
- * nobody at all.
- *
- * **Uncapped since batch 7.** `score.cityCap` clipped this at six towns so that
- * "in every town" could not run away with a wide empire, and the acceptance says
- * it was not what was holding the bot together: a chain owed by ten towns *is*
- * ten raisings, `stepsRemaining` divides the worth by exactly that number, and
- * each town then folds one share of it. The cap was shortening the numerator and
- * the denominator by different amounts.
- *
- * `buildError` is deliberately *not* asked: a chain is about a node that has not
- * landed yet, and the simulation's gate would refuse every row of it for want of
- * the technology. The gate belongs to the arm that raises the row; what belongs
- * here is the count of towns the row is still missing from.
- */
-function townsWanting(state: GameState, player: Player, id: BuildingId): number {
-  const def = buildingDef(id);
-  let lacking = 0;
-  for (const city of state.cities) {
-    if (city.ownerId !== player.id) continue;
-    if (city.buildings.includes(id)) continue;
-    lacking += 1;
-  }
-  if (def.wonder === true) {
-    for (const claim of state.wonders) {
-      if (claim.building === id) return 0;
-    }
-    return lacking === 0 ? 0 : 1;
-  }
-  return lacking;
-}
-
 /** Could any town of this empire raise this row today? The simulation's gate. */
 function someTownCouldRaise(state: GameState, player: Player, id: BuildingId): boolean {
   for (const city of state.cities) {
@@ -834,58 +1136,32 @@ function someTownCouldRaise(state: GameState, player: Player, id: BuildingId): b
  * worth nothing to an empire with no river bank" is a reading a spectator should
  * be able to watch the bot make.
  */
-function renewalSteps(
-  goal: TechId,
-  ctx: ValueContext,
-  researchDelay: number,
-  sites?: UpgradeSites,
-): ChainStep[] {
-  if (sites === undefined) return [];
-  const walk = ctx.ai.workers.planRadius + 1;
-  const spade = (): ValueTerm => delayTerm(walk, ctx, 'the spades have still to get there');
-  const steps: ChainStep[] = [];
-  for (const improvement of IMPROVEMENT_IDS) {
-    const def = improvementDef(improvement);
-    for (const upgrade of def.upgrades ?? []) {
-      if (upgrade.tech !== goal) continue;
-      const tally = sites.byImprovement.get(improvement) ?? noUpgradeSites();
-      const drinks = upgrade.requiresFreshwater === true;
-      const standing = drinks ? tally.standingFresh : tally.standing;
-      const buildable = drinks ? tally.buildableFresh : tally.buildable;
-      const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
-      const where = drinks ? ' that can drink' : '';
-      const standingTerm: ValueTerm = {
-        label: `${def.name} renewal — on ${standing} hex${standing === 1 ? '' : 'es'}${where} already carrying one`,
-        value: each.total * standing,
-        parts: [
-          ...each.terms,
-          { label: `× ${standing} hex${standing === 1 ? '' : 'es'}`, value: standing, op: 'mul' },
-        ],
-      };
-      const buildableTerm: ValueTerm = {
-        label: `${def.name} renewal — on ${buildable} hex${buildable === 1 ? '' : 'es'}${where} this empire could put one on`,
-        value: each.total * buildable * spade().value,
-        parts: [
-          ...each.terms,
-          { label: `× ${buildable} hex${buildable === 1 ? '' : 'es'}`, value: buildable, op: 'mul' },
-          spade(),
-        ],
-      };
-      const value = standingTerm.value + buildableTerm.value;
-      steps.push({
-        kind: 'rider',
-        id: improvement,
-        name: `${def.name} renewal`,
-        towns: standing + buildable,
-        cost: 0,
-        rate: value,
-        delay: researchDelay,
-        value,
-        terms: [standingTerm, buildableTerm],
-      });
-    }
-  }
-  return steps;
+function renewalSteps(goal: TechId, ctx: ValueContext, researchDelay: number): ChainStep[] {
+  // **The renewal is a fold now** (batch X1d-ground, the user's ruling of
+  // 2026-09-09: "why isn't that using the already existing logic for pricing
+  // bonuses?"): what the node adds to the ground this empire's citizens
+  // actually stand on — each town's own fold with the technology held against
+  // its standing fold, memoised per node on the sitting (`renewalFoldFor`,
+  // `plan.ts`) — which also prices the seam the node reveals on a worked hex.
+  // The survey it replaces counted every hex a town could ever farm.
+  const fold = renewalFoldFor(ctx, goal);
+  if (fold.towns.length === 0) return [];
+  const value = fold.total;
+  return [
+    {
+      kind: 'rider',
+      id: goal,
+      name: `${techDef(goal).name} on the ground this empire works`,
+      towns: fold.towns.length,
+      // Ground, not a raising: one copy, in no town, at the node's own landing.
+      copies: [{ cityId: -1, town: 'the ground', cost: 0, rate: value, delay: researchDelay, value }],
+      cost: 0,
+      rate: value,
+      delay: researchDelay,
+      value,
+      terms: fold.terms,
+    },
+  ];
 }
 
 // --- the expansion chain ------------------------------------------------------
@@ -1120,6 +1396,7 @@ export function expansionChain(
       id: settler.id,
       name: def.name,
       towns: 1,
+      copies: [{ cityId: -1, town: 'wherever the empire likes', cost: price, rate: payoff, delay, value: payoff }],
       cost: price,
       rate: payoff,
       delay,
@@ -1141,6 +1418,7 @@ export function expansionChain(
       id: ESCORT_STEP,
       name: 'an escort',
       towns: 1,
+      copies: [{ cityId: -1, town: 'wherever the empire likes', cost: 0, rate: payoff, delay, value: 0 }],
       cost: 0,
       rate: payoff,
       delay,
@@ -1186,25 +1464,71 @@ export function expansionChain(
  * as a negative — the chain is about what a town *would do*, and a town that
  * would decline to raise the row simply does not raise it.
  *
+ * **Two things changed here in batch X1d**, and the eight-seed probe is why both
+ * had to. A copy is now a town's own fold rather than a row's flat bag, so the
+ * numbers this term sums are three to ten times what they were, and summing every
+ * step of every chain at full price told every empire on the board to found a
+ * seventh town: t100 went from 4.9 towns to 7.9, with a fifth off its science and
+ * half its buildings per town.
+ *
+ * So: the copy read is the **least** of them (`leastCopyRate`) — a town that does
+ * not exist yet is the smallest town this empire will have, not the average of the
+ * ones it grew — and every row is discounted at the turn **this town's own queue**
+ * would reach it. A town raises its engines one after another; the sum used to
+ * behave as though a new town raised thirty rows the turn it was founded, and now
+ * it behaves as though it raised them in order and stopped paying at the horizon,
+ * which is what every other cursor in this module already does.
+ *
  * Nothing here walks the board: the chains are already built and hanging on the
  * context, so this is a fold over a list the decision has already paid for.
  */
 export function townChainShare(ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
+  // **The new town's own queue.** It cannot raise every engine's every row at
+  // once: it raises them one after another, so the cursor walks the steps in the
+  // chains' own order and each row is discounted at the turn *this* town would
+  // finish it. Past the horizon the sum stops paying, which is the whole of what
+  // keeps it finite — see the docblock.
+  let cursor = 0;
   for (const chain of ctx.chains) {
     for (const step of chain.steps) {
       if (step.kind !== 'building') continue;
-      const share = step.value / Math.max(1, step.towns);
       const stones = explainLump({ production: stepUnitCost(step) }, ctx).total;
+      cursor += buildTurns(stepUnitCost(step), ctx);
+      const discount = delayDiscount(cursor, ctx);
+      if (discount <= 0) continue;
+      const share = leastCopyRate(step) * discount;
       if (share - stones <= 0) continue;
       terms.push({
         label:
-          `${step.name} — one more town to raise it for the ${techDef(chain.goal).name} engine`,
+          `${step.name} — one more town to raise it for the ${techDef(chain.goal).name} engine, ` +
+          `${round(cursor)} turns into that town's own queue`,
         value: share - stones,
       });
     }
   }
   return appraise(terms);
+}
+
+/**
+ * **The worst copy's rate**, which is what a town this empire does not have yet
+ * is worth priced by (batch X1d), and **undiscounted**, because the town that
+ * would raise it does not exist and so has a wait of its own.
+ *
+ * Before the copies it was the step's whole value over its town count — the mean
+ * — and that reading was fine while every town was quoted the row's flat bag,
+ * because then every copy *was* the mean. It stopped being fine the moment a copy
+ * was the town's own fold: the mean of a size-13 capital's Library and a size-2
+ * hamlet's is not what a town that does not exist yet would make of one. A new
+ * town is founded at a single citizen on unimproved ground, so the honest reading
+ * of it among the copies the chain holds is the **least** of them.
+ */
+function leastCopyRate(step: ChainStep): number {
+  let least = Number.POSITIVE_INFINITY;
+  for (const copy of step.copies) {
+    if (copy.rate < least) least = copy.rate;
+  }
+  return Number.isFinite(least) ? least : step.rate / Math.max(1, step.towns);
 }
 
 /**
