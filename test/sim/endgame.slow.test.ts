@@ -236,6 +236,16 @@ describe('the finish line in a played game', () => {
     // a treasury that is under water the whole way. The finding the pin above
     // records is unchanged in kind — a capital alone still needs three times
     // what the five-town empire does — and the horizon stays 4200.
+    //
+    // **Re-measured 2026-09-09, batch B4** (`docs/flags.md` item (hhh) clause 1:
+    // the closing age "~50% more expensive"). Æra IV's four columns are ×1.5 —
+    // the age from 19900 beakers to 29850, the tree from 27401 to 37351 — and
+    // this seat now opens the Opus on **t2667**, against t2169 before the
+    // ruling. A tenth of the whole chart added at the *end* of it costs the
+    // lone capital roughly a quarter of its remaining game, for the reason the
+    // paragraph above gives: it pays for the closing age out of the thinnest
+    // science economy the suite plays. The horizon stays 4200 and keeps its
+    // headroom.
     console.info(`[pacing] the one-city seat opens the Magnum Opus on t${opened}`);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 

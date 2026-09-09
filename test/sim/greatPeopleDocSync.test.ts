@@ -1,15 +1,16 @@
 import { describe, expect, it } from 'vitest';
 
 import { GREAT_PERSON_IDS, ROSTER_AGES, greatPersonDef } from '../../src/sim/greatPeopleData';
+import { RULES } from '../../src/sim/rulesData';
 
 /**
  * The doc↔data sync test, `statecraftDocSync.test.ts`'s twin one table over (the
  * user's workflow ruling, 2026-09-03): a doc table that mirrors data carries a
- * sync test. `docs/great-people.md` became the **nerf worksheet** the day the
- * great-people pass opened ("unfortunately i think we need to nerf great
- * people"), and a worksheet is only worth editing if it shows every row there
- * is: a name that fell out of the doc is a name nobody balances, and a name that
- * fell out of the data is a nerf written against a ghost.
+ * sync test. `docs/great-people.md` is the system's **reference** — the roster
+ * generated from the rows, with a blank *Notes* column for a balance pass — and
+ * a reference is only worth marking up if it shows every row there is: a name
+ * that fell out of the doc is a name nobody balances, and a name that fell out of
+ * the data is a note written against a ghost.
  *
  * So both directions are read, per age: every roster row appears in its own
  * age's table by name, and every name in an age's table names a roster row of
@@ -18,9 +19,15 @@ import { GREAT_PERSON_IDS, ROSTER_AGES, greatPersonDef } from '../../src/sim/gre
  * data, so an Æra VI would fail here until its heading is written rather than
  * being quietly skipped.
  *
+ * The **figures** are read the same way (batch B4, 2026-09-09): the doc's table
+ * of figures carries every `rules.greatPeople` knob and the two `rules.renown`
+ * rungs at the value the rules charge, so a ladder retuned in the data and not in
+ * the doc fails here rather than being discovered by a user reading last week's
+ * numbers. It is the same claim as the roster's, one table down.
+ *
  * There is no retired concept on this table (a great person is consumed, never
  * withdrawn from a pool), so nothing is excluded: a row with an empty `legacy`
- * is still a name that can be drawn, and it is still on the worksheet — the
+ * is still a name that can be drawn, and it is still on the reference — the
  * describer prints its deferred half struck through, which is exactly the row
  * the user most wants to see.
  */
@@ -58,6 +65,29 @@ describe('the great-people doc mirrors the roster', () => {
     return names;
   }
 
+  /**
+   * The doc's table of figures, read as name → the figure printed beside it.
+   *
+   * The section is "## The figures" and it ends at the next `## `; the name cell
+   * wears backticks (`` `merchantGold` ``), which are markdown rather than part
+   * of the name, so they come off.
+   */
+  function docFigures(): Map<string, string> {
+    const heading = '## The figures';
+    const start = DOC.indexOf(heading);
+    expect(start, heading).toBeGreaterThanOrEqual(0);
+    const end = DOC.indexOf('\n## ', start + heading.length);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+    const rows = new Map<string, string>();
+    for (const line of section.split('\n')) {
+      const cells = line.split('|').map((cell: string) => cell.trim());
+      if (cells.length < 4 || cells[0] !== '' || cells[1] === '') continue;
+      if (cells[1] === 'Figure' || /^-+$/.test(cells[1])) continue;
+      rows.set(cells[1]!.replace(/`/g, ''), cells[2]!);
+    }
+    return rows;
+  }
+
   it('gives every roster age a table', () => {
     // Derived from the data rather than restated: the day a sixth age is added
     // to the roster, this fails until somebody writes its heading — which is the
@@ -75,10 +105,10 @@ describe('the great-people doc mirrors the roster', () => {
       );
       const doc = docNames(heading);
       // Data → doc: a name added (or moved between ages) in the data must be
-      // written into the worksheet's table, or the user is balancing rows they
+      // written into the reference's table, or the user is balancing rows they
       // cannot see.
       for (const name of live) expect([...doc], `${heading} is missing "${name}"`).toContain(name);
-      // Doc → data: a row in the worksheet that names no roster row of this age
+      // Doc → data: a row in the reference that names no roster row of this age
       // is a ghost — either it was cut from the data (delete the row here too),
       // it moved age (move the row), or its name drifted (ids are forever, names
       // follow the data).
@@ -88,6 +118,35 @@ describe('the great-people doc mirrors the roster', () => {
           true,
         );
       }
+    }
+  });
+
+  it('prints every figure the rules charge, at the value they charge', () => {
+    const figures = docFigures();
+    // Data → doc, both blocks: every `rules.greatPeople` knob and both rungs of
+    // `rules.renown`. A knob added to the rules is a row here the day it exists,
+    // and a knob retuned is a row that has to be retuned with it — which is the
+    // whole reason this table is in the doc rather than a sentence about it.
+    for (const [key, value] of Object.entries(RULES.greatPeople)) {
+      expect(figures.has(key), `the figures table is missing "${key}"`).toBe(true);
+      expect(figures.get(key), `the figures table prices "${key}"`).toBe(String(value));
+    }
+    for (const rung of ['first', 'step'] as const) {
+      const key = `renown.${rung}`;
+      expect(figures.has(key), `the figures table is missing "${key}"`).toBe(true);
+      expect(figures.get(key), `the figures table prices "${key}"`).toBe(
+        String(RULES.renown[rung]),
+      );
+    }
+    // Doc → data: a figure in the table that names no rule is a ghost — a knob
+    // that was cut, or a name that drifted.
+    const live = new Set([
+      ...Object.keys(RULES.greatPeople),
+      'renown.first',
+      'renown.step',
+    ]);
+    for (const key of figures.keys()) {
+      expect(live.has(key), `the figures table row "${key}" names no rule`).toBe(true);
     }
   });
 });

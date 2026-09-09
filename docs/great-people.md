@@ -1,255 +1,304 @@
-# Great People — reference and nerf worksheet
+# Great People — reference
 
-Shipped system (Entry XXXII + later passes). Sources of truth:
+The as-built great-people system, current state. Sources of truth:
 `data/greatPeople.json` (the roster — names, families, ages, tiers, legacies),
-`data/rules.json` (`greatPeople`, `renown` — every act, work and ladder number),
-`data/triumphs.json` (the triumph table), `src/sim/renown.ts` /
-`greatPeople.ts` / `triumphs.ts`, `statecraft.ts` (the one effect evaluator — a
-legacy is a card that walks). History: `docs/design-history.md`.
+`data/rules.json` (`greatPeople` and `renown` — every act, work and ladder
+figure), `data/improvements.json` (the works), `data/triumphs.json` (the triumph
+table), and `src/sim/renown.ts` / `greatPeople.ts` / `triumphs.ts` with
+`statecraft/evaluator.ts` (the one effect evaluator — a legacy is a card that
+walks). History lives in `docs/design-history.md` and git.
 
-**This file is a worksheet** (user ruling, 2026-09-03: the great-people nerf
-pass). The roster tables below mirror the data row for row, and the *Nerf
-notes* column is the user's to write in — a number, a strike-through, a
-sentence. Nothing here is folded into the data until the user says ready.
-`test/sim/greatPeopleDocSync.test.ts` keeps the two sides honest: every live
-row appears in its age's table, and every table row names a live row.
-
-The *Legacy* column is the game's own printed words (`describeCard`, the one
-describer every screen prints from), regenerated 2026-09-03 — never hand-written
-prose about a number. A deferred half prints "— not built yet"; a revocation
-prints as its own clause.
+**The tables below are generated from the rows** — names, tiers, acts, works and
+legacies alike; the *Legacy* column is the game's own printed words
+(`describeCard`, the describer every screen prints from), never hand-written
+prose about a number. The **Notes** column is blank and is the user's to write
+in for a balance pass: a figure, a strike-through, a sentence. Nothing written
+there is folded into the data until the user says ready.
+`test/sim/greatPeopleDocSync.test.ts` keeps the two sides honest: every live row
+appears in its age's table, every table row names a live row, and every figure in
+the table of figures carries the value the rules charge.
 
 ## The machinery
 
-- **Renown** is one empire pool, banked in ONE place
-  (`settleRenownWindfall`); `explainRenown` is its rule-5 fold. Sources:
-  building trickles (a `renown` column on rows, tagged by family), wonder
-  lumps + trickles, Triumphs, cards, lapis (family-less by construction).
-- **Threshold** escalates like the settler ladder: `first + step × recruited`
-  — **40**, then **+25** each time (`rules.renown`). Filling it opens a
-  1-of-3 offer.
-- **The draw** is weighted (base 1000 + the pool's family feed shares),
-  never restricted; an empty family falls through. A short age pool
-  **spills**: `[age, previous…, next…]` — "the forgotten", "ahead of their
-  time". The offer shrinks before it fails.
-- **Names are world-shared**, consumed on pick, resolved by log order.
-  `chooseGreatPerson` is the reducer's one refusal that mutates (redraw on a
-  taken name). A spent roster banks renown rather than blocking.
-- **Purchases** (`OFFER_PURCHASES`): recruit with gold
-  (`offerPriceGold` **300**, The Commonwealth) or faith
-  (`offerPriceFaith` **150**, The Magisterium); The Academy's **scholar
-  draft** (`scholarDraftFaith` **1000**🕯, scholar-only, no renown moved).
-  All through the one draw path.
-- **Where a player meets them** (batch H3, 2026-09-07): a rail of calls at the
-  foot of the **Reliquary** — the renown chip's own door — one control per
-  purchase the empire's law opens (`reliquaryCalls`). Priced by
-  `greatPersonOfferPrice`, banked by `greatPersonOfferBank`, greyed with
-  `greatPersonPurchaseError`'s own sentence, and drawn at all only when
-  `greatPersonPurchaseOpen` says the law names it. An accepted call closes the
-  sheet and deals the tarot offer, which is the one draft path.
+**Renown** is one empire pool, banked in exactly one place
+(`settleRenownWindfall`) and explained as one rule-5 list (`explainRenown`). It
+arrives from building trickles (a `renown` column on the row, tagged with the
+family it feeds), from wonders as both a lump and a trickle, from Triumphs, from
+card and legacy clauses, from a town's specialists under the guild rules, and
+from luxuries — the last of these family-less by construction, so it grows the
+pool without weighting the draw. A new source joins that one fold; there is never
+a second bank.
+
+**The ladder** is the settler ladder's shape one currency over:
+`renownThreshold(player) = first + step × greatPeopleRecruited`, escalating by
+*recruits* rather than by turns, so a wide empire's faster trickle buys the same
+names sooner and then pays more for each one rather than earning them at a faster
+rate. Filling the threshold spends it (the overflow carries) and opens an offer
+of names — `rules.offers.greatPerson` wide, widened again by any rider. The two
+figures are `rules.renown`, and they are the knob the whole rate turns on: the
+user's ruling of 2026-09-09 (item (hhh) clause 2, "great people need to be gained
+at roughly 1/3rd the rate they appear now") multiplies both by three — the same
+shape, every rung three times as dear. What that buys in *arrivals* is measured
+below, and it is not a third: see *The rate, measured*.
+
+**The draw** is weighted and never restricted. Every name of the age is in the
+bag; each family's weight is a base thousand plus that family's share of what the
+empire's renown actually came from, so an empire that built libraries meets more
+scholars without ever being refused a general. Names are world-shared and
+consumed on the pick, resolved by log order — `chooseGreatPerson` is the
+reducer's one refusal that mutates, redrawing when another empire has already
+taken the name. A roster spent to the last name banks the renown rather than
+blocking the recruitment.
+
+**The spill** keeps a short age pool honest: the draw walks
+`[the empire's age, the ages before it, the ages after it]`, so an early empire
+meets "the forgotten" of an age it has passed and a late one meets a name ahead
+of its time. An offer shrinks before it fails, and it fails only when the world
+has no unclaimed name at all.
+
+**Purchases** are three clauses on cards, one register (`OFFER_PURCHASES`), one
+command (`purchaseGreatPersonOffer`) and one draft path. Two of them buy a *rung*
+of the ladder — The Commonwealth's gold price and The Magisterium's faith price
+pour renown to the threshold through the ordinary windfall, so the pool is spent
+and the next recruitment is dearer. The third, The Academy's scholar draft, buys
+the *hand*: it charges faith, deals a scholars-only offer on the spot, and leaves
+the ladder exactly where it stood. All three are drawn as a rail of calls at the
+foot of the Reliquary (`src/ui/reliquaryScreen.ts`, the only surface that
+constructs the command), priced by `greatPersonOfferPrice`, greyed with
+`greatPersonPurchaseError`'s own sentence, and drawn at all only where the
+empire's law names them.
+
+## The rate, measured
+
+Two bot games — standard map, two balanced seats, the wild in the fog, played to
+turn 150 — before and after the ladder ×3, counting the great people each seat
+had recruited. Bot figures are a *scale* rather than a baseline (the user,
+2026-09-09: the bot is not a yardstick), and they are here so the ruling's "a
+third as often" can be read as a number rather than as an intention.
+
+Each cell is the two seats of seed 1, then the two seats of seed 20260903.
+
+| Ladder | Recruited by t100 | by t150 |
+|---|---|---|
+| first 40 · step 25 (before) | 6 · 7 · 5 · 6 — mean 6.0 | 11 · 16 · 10 · 11 — mean 12.0 |
+| first 120 · step 75 (after) | 3 · 4 · 3 · 2 — mean 3.0 | 6 · 8 · 6 · 4 — mean 6.0 |
+
+**Finding: three times the rungs is half the arrivals, not a third.** The ladder
+is a *sum* of rungs, so what an empire must bank to reach its Nth person grows
+with the square of N; tripling both rungs therefore divides the count a given
+renown buys by roughly the square root of three, not by three. The measurement
+agrees — the mean halves at both horizons, and no seat lands outside two fifths
+to three fifths of what it recruited before. Reaching a true third at the same
+renown means tripling the *step* again (the quadratic term is the one that binds
+— of the order of first 360 · step 225), which is a further ruling rather than
+this one's arithmetic; the figures above are what the ruling as written buys.
 
 ## The person — one charge, two verbs
 
-Arrives as an agent with **one charge** (`units.json: greatPerson`,
-`charges: 1`, `greatWork` marker + `Unit.person`, in the piece fingerprint).
-Either verb spends the charge and the piece, and either verb leaves the
-legacy.
+A recruited person arrives as an agent with **one charge** (`units.json`'s
+`greatPerson` row: `charges: 1`, the `greatWork` marker, `Unit.person` naming who
+it is and riding the piece fingerprint). Either verb spends the charge and the
+piece, and either verb leaves the legacy.
 
-| Family | Act (spend now) | Work (plant forever) |
-|---|---|---|
-| Scholar | `actGainTurns` **8** turns of the empire's own science, into the study | **Academy** — +3🔬 |
-| Artist | `actGainTurns` **8** turns of the empire's own culture, into the draft basket · `artistHappiness` **+2** happiness in that city for `artistTurns` **10** turns | **Landmark** — +3🎵 |
-| Engineer | `engineerHammers` **40** × the empire's age number, as hammers in that city (a wonder wants two) | **Manufactory** — +3⚙ |
-| Merchant | `merchantGold` **60** × the empire's age number, as gold | **Customs House** — +3💰 |
-| General | heals every unit within `generalRadius` **2** and grants them `generalCombat` **+3** combat for `generalTurns` **5** turns | **Citadel** — +2⚙, **+8** defence, claims its ring (`citadelClaimRadius` **1**) |
-
-- **Two acts are quoted in turns of your own empire** (nerf pass, 2026-09-03):
-  the scholar's beakers and the artist's culture are `actGainTurns` × what the
-  empire is banking in that voice **right now**, read through `actGainOf`
-  (`greatPeople.ts`) off the one seam that answers it — `foldEmpireRates`
-  (`cities.ts`), the same fold `collectYields` banks and the top bar prints. It
-  is the *base* rate, before any `rateConversion` pays anything.
-- **Every flat act figure ages with the tree**: ×(1 + `actPerTech` **0.05** ×
-  technologies researched), composed once before anything banks
-  (`agedActFactor`). The two rate-quoted arms are deliberately un-aged — a
-  figure read off the empire's own books already grows with everything it
-  builds, and ageing it twice would compound.
-- `AmplifierTarget greatPersonAct` (Leonardo, **+100%**) folds into the same
-  figure before banking. It reaches what an act *pays*, never a duration or a
-  radius.
-- A **great general standing beside your units** is a separate, standing aura:
-  `generalAuraStrength` **+3** within `generalAuraRange` **2**, a labelled
-  strength line in `planCombat`.
-- Works are improvement rows (`greatPerson: family`); a work stands anywhere
-  but water/mountain and **opens the seam it covers** ("Iron · academy").
+- The **act** pays now, through the bucket it belongs to (an Entry XVIII.5
+  printed figure: composed once, immune to city percentages and staging).
+- The **work** plants an improvement for good (`greatPerson: family` on the
+  improvement row). It stands anywhere but water and mountain, and it **opens the
+  seam it covers** — an academy on iron gives the empire the iron.
+- Two acts are quoted in *turns of the empire's own rate* — the scholar's
+  beakers and the artist's culture, read through `foldEmpireRates`, the same fold
+  the top bar prints. They are deliberately un-aged, because a figure read off
+  the empire's own books already grows with everything it builds.
+- Every **flat** act figure ages with the tree instead: ×(1 + `actPerTech` ×
+  technologies researched), composed once in `agedActFactor` before anything
+  banks. Leonardo's amplifier (`greatPersonAct`) folds into the same figure, and
+  reaches what an act *pays* — never a duration or a radius.
+- A great general standing beside an army is a **separate, standing** aura
+  (`generalAuraStrength` within `generalAuraRange`), a labelled strength line in
+  `planCombat` — not the act above it.
 
 ## Legacies
 
-- Every person leaves a **legacy** on the empire when spent (either verb):
-  ordinary card effects, `liveEffects`' sixth source, read only by
-  `statecraft.ts`. Tiers per the Doctrine philosophy: ● game-defining with a
-  malice · ◆ generic strong · ○ situational, no malice.
-- **Revocation is marking, never deleting**: `LegacyRecord.revoked`,
-  `revokeLegacies` the only writer; `GreatPersonDef.revokedWhen` names the
-  occasion — `happinessNegative` (Hypatia), `ageAdvanced` (Boudica), both swept
-  in `reviewLegacies`. History (`greatPeopleEarned`, the roll) never shrinks.
-  `enemyEntersCapital` is still hooked at `arriveOnTile` and **no row names it**
-  since the nerf pass struck Archimedes' clause — open for a ruling: give it
-  back to a row, or take the occasion and its hook out together.
-- **No roster row is deferred any more** (batch E4a, 2026-09-07). The three that
-  were — Dinocrates, Yi Sun-sin and Mimar Sinan's cathedral half — were built on
-  shapes that already existed plus one field: a `windfallRider` may now ask
-  whether the thing finished was a *wonder* (`wonder: true`, `vsBarbarians`'
-  fourth sibling), which is what Dinocrates' ten turns of hammers waited on.
-  Yi Sun-sin's line is a `combatLine` and not a `unitStat`: a point of strength
-  is a flat line on the ledger, and that shape's stats are movement, sight,
-  mending, charges, range and a percentage.
-- **Where a legacy is read by the player**: the **Reliquary**
-  (`src/ui/reliquaryScreen.ts`), the seventh parchment sheet, opened from the
-  renown chip in the top bar. One tarot face at a time over a drawn stack,
-  newest first, `‹ ›` and the arrow keys to walk it; each card carries the
-  legacy in `describeCard`'s own words as its headline, its current per-turn
-  figure from `explainCardImpact` written at rest, and the deed as a footnote. A
-  revoked record stays in the pile, greyed under a vermilion band, its figure
-  back to the flourish. Nothing on the screen is stored.
-- **Spending a person plays a ceremony** (`src/ui/greatPersonCeremony.ts`),
-  raised on the accepted `greatPersonAct` / `greatPersonWork` command: the card
-  rises, the **legacy** counts its figure, the deed appears beneath as a small
-  line quoting the preview's own number, and the card descends into the renown
-  chip. Presentation only — the reducer is untouched. The great-person **draft**
-  carries no stamp at all: a legacy pays nothing until the person is spent.
+- Every person leaves a **legacy** on the empire when spent, by either verb:
+  ordinary card effects, `liveEffects`' sixth source, read only by the one
+  evaluator. Tiers follow the Doctrine philosophy — ● game-defining with a
+  malice, ◆ generic strong, ○ situational with no malice — and are bookkeeping:
+  nothing in the simulation switches on a tier.
+- **Revocation is marking, never deleting** (`LegacyRecord.revoked`,
+  `revokeLegacies` the only writer). `GreatPersonDef.revokedWhen` names the
+  occasion — `happinessNegative` (Hypatia) and `ageAdvanced` (Boudica), both
+  swept in `reviewLegacies`. The roll of who was earned never shrinks.
+  `enemyEntersCapital` is hooked at `arriveOnTile` and **no row names it**: give
+  it back to a row or take the occasion and its hook out together — open, and the
+  one open ruling on this system.
+- No roster row is deferred: every legacy in the tables below is built and
+  printing.
+- A player reads a legacy in the **Reliquary** (the renown chip's own sheet): one
+  tarot face at a time over a drawn stack, newest first, each carrying the
+  legacy in `describeCard`'s words, its current per-turn figure from
+  `explainCardImpact`, and the deed as a footnote. A revoked record stays in the
+  pile, greyed under a vermilion band.
+- Spending a person plays a ceremony (`src/ui/greatPersonCeremony.ts`) on the
+  accepted command — presentation only. The **draft** carries no stamp at all: a
+  legacy pays nothing until the person is spent.
 
 ## Triumphs
 
-- `Player.triumphs` is append-only and turn-stamped; read by diffing
-  (`triumphMarks` / `triumphsSince` / `triumphsAwarded`), never passed as
-  parameters.
-- `triumphs.ts` owns the only trigger switch: **announced occasions**
-  (hooked at the events that already report) vs **standing counts** (swept
-  in the `renown` phase). Scopes: once · per age · contested
-  (`state.contested` keys `(id, age)`, first by log order).
-- The table is data (`data/triumphs.json`); the Academy-of-Deeds doubling
-  folds into the printed figure in `awardTriumph` before banking.
+- `Player.triumphs` is append-only and turn-stamped, read by diffing
+  (`triumphMarks` / `triumphsSince` / `triumphsAwarded`), never passed as a
+  parameter.
+- `triumphs.ts` owns the only trigger switch: **announced occasions** (hooked at
+  the events that already report) against **standing counts** (swept in the
+  `renown` phase). Scopes are once, per age, and contested — `state.contested`
+  keys `(id, age)`, first by log order.
+- The table is data (`data/triumphs.json`); the Academy of Deeds' doubling folds
+  into the printed figure in `awardTriumph` before anything banks.
 
-## Extension rules
+## The figures
 
-- A new legacy is a JSON row; a new SHAPE is a design decision (the
-  vocabulary grew for this system: counts, combat conditions, scopes — see
-  `statecraftData.ts`'s unions). Never bend; defer with prose.
-- A new triumph is a row + one arm in the trigger switch.
-- A new renown source joins `explainRenown`'s fold, never a second bank.
-- A new name is a row here **and** a row in its age's table below — the sync
-  test fails otherwise.
+Every tuned number this system reads, with what it does. The *Notes* column is
+blank for the balance pass.
+
+| Figure | Value | What it does | Notes |
+|---|---|---|---|
+| `actPerTech` | 0.05 | Every flat act figure grows by this share for each technology the empire has researched. |  |
+| `actGainTurns` | 8 | How many turns of the empire’s own science or culture a rate-quoted act pays. |  |
+| `engineerHammers` | 40 | Hammers an engineer’s act pays into the town it stands in, multiplied by the age. |  |
+| `merchantGold` | 60 | Gold a merchant’s act pays into the treasury, multiplied by the age. |  |
+| `artistHappiness` | 2 | Happiness an artist’s act hangs on the town it stands in. |  |
+| `artistTurns` | 10 | How many turns that happiness lasts. |  |
+| `generalRadius` | 2 | How far a general’s act reaches, in hexes. |  |
+| `generalCombat` | 3 | Strength that act hangs on every friendly piece in reach. |  |
+| `generalTurns` | 5 | How many turns that strength lasts. |  |
+| `generalAuraRange` | 2 | How far a great general’s standing aura reaches while the piece is alive. |  |
+| `generalAuraStrength` | 3 | Strength every friendly soldier inside that aura fights with. |  |
+| `citadelClaimRadius` | 1 | How far a citadel claims ground around itself, in hexes. |  |
+| `offerPriceGold` | 1000 | What The Commonwealth charges in gold to fill the threshold early. |  |
+| `offerPriceFaith` | 750 | The same out of the faith bank — The Magisterium’s price. |  |
+| `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
+| `renown.first` | 120 | What the first great person costs in renown. |  |
+| `renown.step` | 75 | What each person already recruited adds to the next one’s price. |  |
 
 ## The roster
 
-80 names, four ages, five families. Tier is the row's own `tier` and is
-bookkeeping only — nothing in the simulation switches on it.
+80 names across four ages and five families. Tier is the row's own and is
+bookkeeping only. The act and the work are the family's, printed on every row so
+a name can be judged whole.
 
 ### Æra II — The Age of Heroes
 
-20 names — one row per name in the data's own order.
+20 names — one row per name, in the data's own order.
 
-| Person | Family | Tier | Legacy, as built | Nerf notes |
-|---|---|---|---|---|
-| Imhotep | Scholar | ◆ strong | +5% production toward wonders |  |
-| Ahmes | Scholar | ○ situational | +2 science in every city on fresh water |  |
-| Kidinnu | Scholar | ● defining | +15% science in your capital |  |
-| Ptahhotep | Scholar | ○ situational | +1 authority capacity per 2 Libraries |  |
-| Enheduanna | Artist | ◆ strong | +1 culture in every city with a Shrine |  |
-| Homer | Artist | ● defining | losing a unit grants +20 culture |  |
-| Sin-lēqi-unninni | Artist | ◆ strong | +30% production toward Amphitheaters |  |
-| Ilimilku | Artist | ○ situational | +1 culture in every coastal city |  |
-| Senenmut | Engineer | ◆ strong | +10% production toward buildings |  |
-| Hemiunu | Engineer | ● defining | +10% production toward wonders · -2 happiness in every city while it is building a wonder |  |
-| Amenhotep son of Hapu | Engineer | ○ situational | +15% production toward wonders, in your capital |  |
-| Bezalel | Engineer | ○ situational | +1 production in every city with a Temple |  |
-| Ea-nāṣir | Merchant | ● defining | -1 production, +3 gold on every hex with a Mine |  |
-| Kushim | Merchant | ◆ strong | +1 gold in every city with a Granary |  |
-| Aššur-idī | Merchant | ○ situational | +1 gold in every city but your capital |  |
-| Lamassī | Merchant | ○ situational | +1 gold on every hex with a Pasture |  |
-| Ahmose son of Ebana | General | ◆ strong | +10% combat strength for melee units |  |
-| Piyamaradu | General | ● defining | +3 combat strength outside your territory · -2 authority capacity |  |
-| Sinuhe | General | ○ situational | all units: +5 healing per turn |  |
-| Deborah | General | ○ situational | +4 combat strength within 2 hexes of one of your cities |  |
+| Person | Family | Tier | Act | Work | Legacy | Notes |
+|---|---|---|---|---|---|---|
+| Imhotep | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +5% production toward wonders |  |
+| Ahmes | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science in every city on fresh water |  |
+| Kidinnu | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +15% science in your capital |  |
+| Ptahhotep | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 authority capacity per 2 Libraries |  |
+| Enheduanna | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture in every city with a Shrine |  |
+| Homer | Artist | ● defining | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | losing a unit grants +20 culture |  |
+| Sin-lēqi-unninni | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +30% production toward Amphitheaters |  |
+| Ilimilku | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture in every coastal city |  |
+| Senenmut | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +10% production toward buildings |  |
+| Hemiunu | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +10% production toward wonders · -2 happiness in every city while it is building a wonder |  |
+| Amenhotep son of Hapu | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% production toward wonders, in your capital |  |
+| Bezalel | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production in every city with a Temple |  |
+| Ea-nāṣir | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | -1 production, +3 gold on every hex with a Mine |  |
+| Kushim | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold in every city with a Granary |  |
+| Aššur-idī | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold in every city but your capital |  |
+| Lamassī | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold on every hex with a Pasture |  |
+| Ahmose son of Ebana | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +10% combat strength for melee units |  |
+| Piyamaradu | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength outside your territory · -2 authority capacity |  |
+| Sinuhe | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | all units: +5 healing per turn |  |
+| Deborah | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength within 2 hexes of one of your cities |  |
 
 ### Æra III — The Age of Empire
 
-21 names — one row per name in the data's own order.
+21 names — one row per name, in the data's own order.
 
-| Person | Family | Tier | Legacy, as built | Nerf notes |
-|---|---|---|---|---|
-| Archimedes | Scholar | ● defining | +10% production toward siege units · +2 combat strength for siege units against cities |  |
-| Hypatia | Scholar | ● defining | +10% science in every city · lost the first turn your happiness goes negative |  |
-| Zhang Heng | Scholar | ◆ strong | +1 science in every city with a Library |  |
-| Eratosthenes | Scholar | ○ situational | +1 science per 60 hexes you have revealed |  |
-| Sappho | Artist | ◆ strong | +3 culture in your capital · +1 happiness |  |
-| Qu Yuan | Artist | ● defining | +10% culture in every city · -5 happiness in your capital |  |
-| Sima Qian | Artist | ○ situational | +1 culture per age that has closed |  |
-| Phidias | Artist | ○ situational | +3 culture per wonder you hold |  |
-| Li Bing | Engineer | ○ situational | +1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct |  |
-| Dinocrates | Engineer | ◆ strong | completing a wonder grants +3 production in every city for 10 turns |  |
-| Vitruvius | Engineer | ◆ strong | +1 production in every city with an Aqueduct |  |
-| Eupalinos | Engineer | ○ situational | +1 food on every improved hex beside a mountain |  |
-| Zhang Qian | Merchant | ◆ strong | +2 gold per 60 hexes you have revealed |  |
-| Nanaivandak | Merchant | ◆ strong | each connected city pays +2 gold |  |
-| Hippalus | Merchant | ○ situational | +1 gold on every hex with a Fishing Boat |  |
-| Crassus | Merchant | ● defining | all units and buildings cost −20% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
-| Pytheas | Merchant | ○ situational | every coastal city: +1 city sight · scout units: +1 sight |  |
-| Hannibal | General | ● defining | +5 combat strength outside your territory · -4 combat strength inside your territory |  |
-| Han Xin | General | ◆ strong | +2 combat strength beside fresh water · +2 combat strength on the coast |  |
-| Boudica | General | ○ situational | +4 combat strength inside your territory · lost when the age it was earned in closes |  |
-| Spartacus | General | ○ situational | +3 combat strength against a stronger unit |  |
+| Person | Family | Tier | Act | Work | Legacy | Notes |
+|---|---|---|---|---|---|---|
+| Archimedes | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +10% production toward siege units · +2 combat strength for siege units against cities |  |
+| Hypatia | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +10% science in every city · lost the first turn your happiness goes negative |  |
+| Zhang Heng | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science in every city with a Library |  |
+| Eratosthenes | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science per 60 hexes you have revealed |  |
+| Sappho | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture in your capital · +1 happiness |  |
+| Qu Yuan | Artist | ● defining | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +10% culture in every city · -5 happiness in your capital |  |
+| Sima Qian | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture in every city per age that has closed |  |
+| Phidias | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture per wonder you hold |  |
+| Li Bing | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production on every hex with a Farm beside fresh water, in every city with an Aqueduct |  |
+| Dinocrates | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | completing a wonder costs your empire +3 production in every city for 10 turns |  |
+| Vitruvius | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production in every city with an Aqueduct |  |
+| Eupalinos | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 food on every improved hex beside a mountain |  |
+| Zhang Qian | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold per 60 hexes you have revealed |  |
+| Nanaivandak | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | each connected city pays +2 gold |  |
+| Hippalus | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold on every hex with a Fishing Boat |  |
+| Crassus | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | all units and buildings cost −20% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
+| Pytheas | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | every coastal city: +1 city sight · scout units: +1 sight |  |
+| Hannibal | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength outside your territory · -4 combat strength inside your territory |  |
+| Han Xin | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +2 combat strength beside fresh water · +2 combat strength on the coast |  |
+| Boudica | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength inside your territory · lost when the age it was earned in closes |  |
+| Spartacus | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against a stronger unit |  |
 
 ### Æra IV — The Age of Cathedrals
 
-19 names — one row per name in the data's own order.
+19 names — one row per name, in the data's own order.
 
-| Person | Family | Tier | Legacy, as built | Nerf notes |
-|---|---|---|---|---|
-| al-Khwārizmī | Scholar | ◆ strong | +2 science in every city with an University |  |
-| Shen Kuo | Scholar | ○ situational | +2 science per improved strategic resource |  |
-| Ibn Sīnā | Scholar | ◆ strong | +1 happiness in every city |  |
-| Āryabhaṭa | Scholar | ○ situational | +1 faith per building here that supplies science |  |
-| Murasaki Shikibu | Artist | ◆ strong | +2 culture per melee unit in the field |  |
-| Snorri Sturluson | Artist | ● defining | losing a unit grants +15 culture · losing a unit grants +15 faith · -2 authority capacity |  |
-| Rūmī | Artist | ○ situational | +2 culture in every city with a Temple |  |
-| Sei Shōnagon | Artist | ○ situational | +1 culture per unique luxury |  |
-| al-Jazarī | Engineer | ◆ strong | +2 production in every city with a Workshop |  |
-| Su Song | Engineer | ○ situational | +1 science in every city with a Workshop |  |
-| Villard de Honnecourt | Engineer | ◆ strong | +15% production toward wonders |  |
-| Benjamin of Tudela | Merchant | ◆ strong | +1 gold per city you hold |  |
-| Ibn Baṭṭūṭa | Merchant | ○ situational | +1 gold per foreign city you have sighted |  |
-| Marco Polo | Merchant | ○ situational | +3 gold per trade route to another empire |  |
-| Francesco Datini | Merchant | ◆ strong | +2 gold in every city with a Bank |  |
-| Subutai | General | ● defining | mounted units: +1 movement · +25% combat strength for mounted units |  |
-| Tomoe Gozen | General | ◆ strong | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
-| Jan Žižka | General | ○ situational | +5 combat strength while fortified |  |
-| El Cid | General | ○ situational | +3 combat strength in a city you captured |  |
+| Person | Family | Tier | Act | Work | Legacy | Notes |
+|---|---|---|---|---|---|---|
+| al-Khwārizmī | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science in every city with a University |  |
+| Shen Kuo | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science per improved strategic resource |  |
+| Ibn Sīnā | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 happiness in every city |  |
+| Āryabhaṭa | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 faith in every city per building there that supplies science |  |
+| Murasaki Shikibu | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 culture per melee unit in the field |  |
+| Snorri Sturluson | Artist | ● defining | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | losing a unit grants +15 culture · losing a unit grants +15 faith · -2 authority capacity |  |
+| Rūmī | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 culture in every city with a Temple |  |
+| Sei Shōnagon | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture per unique luxury |  |
+| al-Jazarī | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +2 production in every city with a Workshop |  |
+| Su Song | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 science in every city with a Workshop |  |
+| Villard de Honnecourt | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% production toward wonders |  |
+| Benjamin of Tudela | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per city you hold |  |
+| Ibn Baṭṭūṭa | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per foreign city you have sighted |  |
+| Marco Polo | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +3 gold per trade route to another empire |  |
+| Francesco Datini | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold in every city with a Bank |  |
+| Subutai | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | mounted units: +1 movement · +25% combat strength for mounted units |  |
+| Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
+| Jan Žižka | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength while fortified |  |
+| El Cid | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength in a city you captured |  |
 
 ### Æra V — The Magister
 
-20 names — one row per name in the data's own order.
+20 names — one row per name, in the data's own order.
 
-| Person | Family | Tier | Legacy, as built | Nerf notes |
-|---|---|---|---|---|
-| Paracelsus | Scholar | ● defining | +25% science in every city · -1 happiness in every city |  |
-| Tycho Brahe | Scholar | ○ situational | +1 science on every hill hex beside a mountain |  |
-| John Dee | Scholar | ◆ strong | +1 card in every offer of every kind |  |
-| Copernicus | Scholar | ◆ strong | +2 science in every city |  |
-| Christine de Pizan | Artist | ◆ strong | +3 culture in your capital · +1 authority capacity |  |
-| Dürer | Artist | ○ situational | +2 culture per wonder you hold |  |
-| Bashō | Artist | ○ situational | +1 culture on every forest hex |  |
-| Sor Juana | Artist | ○ situational | +2 culture in every city with an University |  |
-| Leonardo | Engineer | ● defining | +30% production toward wonders · a great person's act pays +100% more |  |
-| Taqī al-Dīn | Engineer | ◆ strong | +15% science in your capital · +15% science in every capital city beside a mountain |  |
-| Mimar Sinan | Engineer | ○ situational | +1 culture in every city with a Temple · +30% production toward Temples · +30% production toward Cathedrals |  |
-| Vaucanson | Engineer | ○ situational | newly created worker units gain +1 charge |  |
-| Jakob Fugger | Merchant | ● defining | +30% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −20% to buy |  |
-| Zheng He | Merchant | ◆ strong | +3 gold in every coastal city · all units: +2 movement while embarked |  |
-| Gracia Mendes Nasi | Merchant | ◆ strong | new cities start 1 population larger |  |
-| Cosimo de' Medici | Merchant | ○ situational | +1 culture per 50 gold in the treasury (at most +6 culture) |  |
-| Gustavus Adolphus | General | ◆ strong | +15% combat strength for ranged units · siege units: +1 movement |  |
-| Nzinga of Ndongo | General | ○ situational | +5 combat strength in forest · +5 combat strength in jungle |  |
-| Yi Sun-sin | General | ○ situational | naval units +5 combat strength |  |
-| Lautaro | General | ○ situational | +3 combat strength against mounted units |  |
+| Person | Family | Tier | Act | Work | Legacy | Notes |
+|---|---|---|---|---|---|---|
+| Paracelsus | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +25% science in every city · -1 happiness in every city |  |
+| Tycho Brahe | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science on every hill hex beside a mountain |  |
+| John Dee | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 card in every offer of every kind |  |
+| Copernicus | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +2 science in every city |  |
+| Christine de Pizan | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture in your capital · +1 authority capacity |  |
+| Dürer | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 culture per wonder you hold |  |
+| Bashō | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +1 culture on every forest hex |  |
+| Sor Juana | Artist | ○ situational | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +2 culture in every city with a University |  |
+| Leonardo | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +30% production toward wonders · a great person's act pays +100% |  |
+| Taqī al-Dīn | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% science in your capital · +15% science in every capital city beside a mountain |  |
+| Mimar Sinan | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 culture in every city with a Temple · +30% production toward Temples · +30% production toward Cathedrals |  |
+| Vaucanson | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | newly created worker units gain +1 charge |  |
+| Jakob Fugger | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | +30% gold in every city · -1 authority capacity per 3 cities you hold · all units and buildings cost −20% to buy |  |
+| Zheng He | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +3 gold in every coastal city · all units: +2 movement while embarked |  |
+| Gracia Mendes Nasi | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | new cities start 1 citizen larger |  |
+| Cosimo de' Medici | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 culture per 50 gold in the treasury (at most +6 culture) |  |
+| Gustavus Adolphus | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for ranged units · siege units: +1 movement |  |
+| Nzinga of Ndongo | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength in forest · +5 combat strength in jungle |  |
+| Yi Sun-sin | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength for ships |  |
+| Lautaro | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against mounted units |  |
+
+## Extension rules
+
+- A new legacy is a JSON row; a new **shape** is a design decision. Never bend a
+  clause into a near-fit — defer it with prose, in the data's own player-plain
+  words.
+- A new triumph is a row plus one arm in the trigger switch.
+- A new renown source joins `explainRenown`'s fold, never a second bank.
+- A new name is a row in `data/greatPeople.json` **and** a row in its age's table
+  above — the sync test fails otherwise.

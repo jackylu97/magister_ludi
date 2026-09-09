@@ -147,6 +147,44 @@
  * whole chart rather than part of it buys. Measured, like every figure above it;
  * `tech.slow.test.ts`'s pin works the two causes apart.
  *
+ * Æra IV ×1.5 (the user, 2026-09-09)
+ * ----------------------------------
+ * "Science costs for age 4 need to be scaled up significantly, does it follow
+ * the exponential curve currently? if so it needs to be tuned up so that age 4
+ * is ~50% more expensive" (`docs/flags.md` item (hhh), clause 1).
+ *
+ * **The question first: it is not an exponential.** A geometric ladder grows by
+ * one constant ratio, and this one does not — the *ratio* itself decays (`r(n)
+ * = 1 + 1.3 × 0.72 ^ max(0, n − 3)`), so the chart opens at 2.3× a step and
+ * closes at about 1.09×. That is a **taper**: an exponential opening that flattens
+ * into something nearly linear at the end. And the last seven columns are not
+ * even the taper's — they are authored above it by the ruling of 2026-09-03 and
+ * scaled with the anchor since. So Æra IV's own step was, before this ruling,
+ * **1100 → 1300 → 1500 → 1700**: a *flat* +200 a column, 1.18× then 1.15× then
+ * 1.13×, the flattest stretch of the whole chart. A closing age that costs a
+ * fifth more a column than the one before it is what "not expensive enough"
+ * looked like arithmetically.
+ *
+ * The ruling scales the four Æra IV columns by 3/2 — **1650 · 1950 · 2250 ·
+ * 2550** — and touches nothing before them. Æra I–III are byte-identical, so
+ * the opening a player learns the game on and the middle they earn their empire
+ * in are exactly where the last ruling left them; this is a statement about the
+ * *closing* age alone. Each figure is already `friendly`-rounded (a multiple of
+ * fifty above a thousand), so the rounding rule changes nothing and the ×1.5 is
+ * exact — which also means the step *inside* the age keeps its shape: a flat
+ * lift a column (+200 becomes +300) at the same 1.18/1.15/1.13, the whole age
+ * raised rather than re-curved. Steepening the step inside Æra IV is a
+ * different ruling and would be four different numbers.
+ *
+ * The four ages now cost **266 / 1295 / 5940 / 29850** — 37351 for the whole
+ * tree, of which 37346 is payable. Æra IV is four fifths of the chart, against
+ * roughly three quarters before; the Æra III → IV step at the seam widens from
+ * 2.1× to 3.1×, which is the "significantly" the ruling asks for read as the
+ * one place a player feels it. Measured on the leanest harness the suite plays
+ * — the one-city seat of `endgame.slow.test.ts` — the Magnum Opus opens on
+ * **t2667** against t2169 before the ruling: a tenth added to the whole chart at
+ * the *end* of it costs a lone capital about a quarter of its remaining game.
+ *
  * Everything below this paragraph is the history of the tables this replaced;
  * it is kept because it is the record of what the science economy was measured
  * to bear, and the taper was tuned against exactly that.

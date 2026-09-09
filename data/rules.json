@@ -322,8 +322,8 @@
     "max": 5
   },
   "renown": {
-    "first": 40,
-    "step": 25
+    "first": 120,
+    "step": 75
   },
   "greatPeople": {
     "actPerTech": 0.05,

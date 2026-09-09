@@ -193,6 +193,17 @@ describe('the ledger', () => {
 // --- the ladder -------------------------------------------------------------
 
 describe('the ladder', () => {
+  // **The figures moved on 2026-09-09 and nothing in this block did** (the user,
+  // `docs/flags.md` item (hhh) clause 2: "great people need to be gained at
+  // roughly 1/3rd the rate they appear now"). `rules.renown` went from first 40 ·
+  // step 25 to **first 120 · step 75** — both rungs ×3, the same shape three
+  // times as dear — and every assertion here reads `LADDER` rather than a number,
+  // which is why a retune of this size costs the pins nothing. What is on trial
+  // is the *arithmetic* (`first + step × recruited`, the overflow, the plan),
+  // never the tuning; the tuning is `data/rules.json`'s and the measured rate is
+  // `docs/great-people.md`'s — where the finding is that arrivals **halve**
+  // rather than third, because what an empire banks to reach its Nth person is a
+  // sum of rungs and therefore quadratic in N.
   it('is first + step per name already recruited', () => {
     const g = game();
     const player = g.state.players[0]!;

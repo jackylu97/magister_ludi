@@ -19,22 +19,32 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   (`src/sim/tech.ts` docblock has it; the root's 5 is never paid).
   Adding a tech = placement: prereqs pick the column, the column prices it
   (`src/sim/techData.ts` placement docblock).
+- **The ladder is a taper, not an exponential**: the *ratio* between columns
+  decays (2.3× at the opening, about 1.09× at the close), so an exponential
+  opening flattens toward linear at the end. Only columns 2–5 are the formula's
+  own; the last seven are authored.
 - **The late columns are authored above the taper** (user ruling 2026-09-03:
   the scaling of Æra I–II stands, Æra IV–V is extremely expensive). Columns 2–5
-  are the formula's figures; columns 6–8 lift a little and columns 9–12 lift to
-  1100/1300/1500/1700. A late column is a ruling, not a value of the decay
-  constant — retuning one edits the rows and the pin in
-  `test/sim/tech.test.ts`.
+  are the formula's figures; columns 6–8 lift a little and columns 9–12 lift
+  hard. A late column is a ruling, not a value of the decay constant — retuning
+  one edits the rows and the pin in `test/sim/tech.test.ts`.
 - **The first paid column is authored below it** (user ruling 2026-09-06, item
   x — "the first column of technologies slightly cheaper"): column 1 is 10, not
   the formula's 13. The four nodes are Fletching, Husbandry, Mining, Pottery.
 - **And the ladder is re-anchored on that 10** (user ruling 2026-09-08, item
   (vv), reading A): the taper is re-run from cost(1) = 10 for columns 2–5
   (23 · 53 · 105 · 175) and the authored late columns are scaled by the same
-  10/13 (310 · 415 · 525; 1100 · 1300 · 1500 · 1700). No column moved a node and
-  no prereq changed — a column is still a price, and this is the price it
-  carries. Reading B (the formula's columns alone) is kept in the ruling for the
+  10/13 (310 · 415 · 525 for Æra III; Æra IV's four scaled again by the next
+  ruling). No column moved a node and no prereq changed — a column is still a
+  price. Reading B (the formula's columns alone) is kept in the ruling for the
   retune.
+- **And Æra IV alone is scaled by half again** (user ruling 2026-09-09, item
+  (hhh) clause 1 — the closing age "~50% more expensive"): columns 9–12 become
+  1650 · 1950 · 2250 · 2550, every figure already a multiple of fifty so the
+  rounding rule changes nothing. Columns 0–8 are untouched to the beaker, and
+  the step *inside* the age keeps its shape (a flat lift a column, the whole age
+  raised rather than re-curved). The Æra III → IV step at the seam widens from
+  2.1× to 3.1×.
 - **The chart is the user's drawing**: lanes (`row`) and column nudges
   (`columnShift`) are authored data; the annealer only advises on new nodes;
   crossings pinned exactly, false chains zero (`test/ui/techChart.test.ts`).
@@ -74,12 +84,14 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 
 Regenerated from the rows — never hand-maintained. Costs come off the column
 table (`src/sim/tech.ts`, "a column is a price"): one figure per chart column,
-5 · 10 · 23 · 53 · 105 · 175 · 310 · 415 · 525 · 1100 · 1300 · 1500 · 1700.
+5 · 10 · 23 · 53 · 105 · 175 · 310 · 415 · 525 · 1650 · 1950 · 2250 · 2550.
 Columns 2–5 are the tapered ladder's own figures, re-run from column 1's
 authored 10 by the ruling of 2026-09-08; columns 6–12 are authored above it by
-the ruling of 2026-09-03, scaled by the same 10/13 (see the standing
-determinations). The four ages cost 266 / 1295 / 5940 / 19900🔬 — 27401 for the
-whole tree, 27396 of it payable (the root's 5 is nobody's price).
+the ruling of 2026-09-03, scaled by the same 10/13, and columns 9–12 scaled
+again by 3/2 by the ruling of 2026-09-09 (see the standing determinations). The
+four ages cost 266 / 1295 / 5940 / 29850🔬 — 37351 for the whole tree, 37346 of
+it payable (the root's 5 is nobody's price). `test/sim/techDocSync.test.ts`
+keeps this table's costs and node names honest against the rows.
 Wonders in **bold**; ‡ = a row **one to a realm** (`oncePerEmpire` — the five
 uniques of the fewer-things cut, and the three national rows that always wore
 it); ◇ = a row that is granted and never built; † = a deferred half on the row
@@ -192,25 +204,25 @@ What the effect rows say (player prose from the data):
 - **Horology** — The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once.
 - **Theology** — The enhancing beliefs open here: a faith may now be deepened as well as spread.
 
-### Æra IV — The Age of Cathedrals (15 nodes, 1100–1700🔬)
+### Æra IV — The Age of Cathedrals (15 nodes, 1650–2550🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 1100 | Guildhalls | — | Courthouse | — |
-| Geomancy | 1100 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
-| Machinery | 1100 | Horology, Engineering | Crossbowman | — | — |
-| Paper Money | 1100 | Shipwrights, Guildhalls | — | Bazaar, Bourse | — |
-| Scholarship | 1100 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
-| Castellany † | 1300 | Divine Right | Pikeman | Castle | — |
-| Natural Philosophy | 1300 | Scholarship | Trebuchet | **Machu Picchu** | — |
-| Steel | 1300 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
-| The Golden Roads | 1300 | Paper Money | — | — | — |
-| Militant Orders | 1500 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
-| Movable Type | 1500 | Steel, The Golden Roads | — | Printing House | — |
-| The Astrolabe | 1500 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
-| The Counting Houses | 1500 | The Golden Roads, Castellany | — | Bank | — |
-| The Holy Office | 1500 | Scholarship | Inquisitor | **Notre-Dame** | — |
-| Alchemy | 1700 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
+| Divine Right | 1650 | Guildhalls | — | Courthouse | — |
+| Geomancy | 1650 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
+| Machinery | 1650 | Horology, Engineering | Crossbowman | — | — |
+| Paper Money | 1650 | Shipwrights, Guildhalls | — | Bazaar, Bourse | — |
+| Scholarship | 1650 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
+| Castellany † | 1950 | Divine Right | Pikeman | Castle | — |
+| Natural Philosophy | 1950 | Scholarship | Trebuchet | **Machu Picchu** | — |
+| Steel | 1950 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
+| The Golden Roads | 1950 | Paper Money | — | — | — |
+| Militant Orders | 2250 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
+| Movable Type | 2250 | Steel, The Golden Roads | — | Printing House | — |
+| The Astrolabe | 2250 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
+| The Counting Houses | 2250 | The Golden Roads, Castellany | — | Bank | — |
+| The Holy Office | 2250 | Scholarship | Inquisitor | **Notre-Dame** | — |
+| Alchemy | 2550 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
 
 What the effect rows say (player prose from the data):
 

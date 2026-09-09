@@ -402,7 +402,24 @@ describe('tech data integrity', () => {
     // payable) and the ages are 266 / 1295 / 5940 / 19900. Reading B — the
     // early columns alone, the late ones left where they were — is kept in the
     // ruling for the retune.
-    const COLUMN_COSTS = [5, 10, 23, 53, 105, 175, 310, 415, 525, 1100, 1300, 1500, 1700];
+    //
+    // **And the closing age is scaled again, by half as much again** (the user,
+    // 2026-09-09, `docs/flags.md` item (hhh) clause 1: "science costs for age 4
+    // need to be scaled up significantly ... so that age 4 is ~50% more
+    // expensive"). Columns 9-12 — the whole of Æra IV — take 3/2 of the figures
+    // they carried: 1100/1300/1500/1700 -> **1650/1950/2250/2550**. Every one is
+    // already a multiple of fifty, so `friendly` rounds nothing and the ×1.5 is
+    // exact. Columns 0-8 are untouched to the beaker: this is a ruling about the
+    // *closing* age, not a re-anchoring, and Æra I-III stay exactly where the
+    // 2026-09-08 pass left them. The tree is 37351 beakers (37346 payable) and
+    // the ages are 266 / 1295 / 5940 / 29850 — Æra IV is four fifths of the
+    // chart, and the step at the Æra III -> IV seam widens from 2.1x to 3.1x.
+    // The ladder is a *taper*, not an exponential (the ruling asked): the ratio
+    // itself decays, 2.3x at the opening to about 1.09x at the end, and these
+    // last seven columns are authored above it rather than produced by it —
+    // which is why retuning one is editing this list and the rows, never a
+    // constant.
+    const COLUMN_COSTS = [5, 10, 23, 53, 105, 175, 310, 415, 525, 1650, 1950, 2250, 2550];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -414,7 +431,7 @@ describe('tech data integrity', () => {
       1: [5, 53],
       2: [105, 175],
       3: [310, 525],
-      4: [1100, 1700],
+      4: [1650, 2550],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);

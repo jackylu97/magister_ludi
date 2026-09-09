@@ -525,7 +525,7 @@
       "glyph": "🧾",
       "age": 4,
       "row": 7,
-      "cost": 1100,
+      "cost": 1650,
       "prereqs": [
         "shipwrights",
         "artisanry"
@@ -703,7 +703,7 @@
       "glyph": "⚖",
       "age": 4,
       "row": 5,
-      "cost": 1100,
+      "cost": 1650,
       "prereqs": [
         "artisanry"
       ],
@@ -776,7 +776,7 @@
       "glyph": "🎓",
       "age": 4,
       "row": 0,
-      "cost": 1100,
+      "cost": 1650,
       "prereqs": [
         "theology"
       ],
@@ -861,7 +861,7 @@
       "glyph": "🪨",
       "age": 4,
       "row": 1,
-      "cost": 1100,
+      "cost": 1650,
       "prereqs": [
         "colonialCharters",
         "horology"
@@ -927,7 +927,7 @@
       "glyph": "🏦",
       "age": 4,
       "row": 7,
-      "cost": 1500,
+      "cost": 2250,
       "prereqs": [
         "theSilkRoad",
         "feudalism"
@@ -944,7 +944,7 @@
       "glyph": "🔧",
       "age": 4,
       "row": 2,
-      "cost": 1100,
+      "cost": 1650,
       "prereqs": [
         "horology",
         "engineering"
@@ -972,7 +972,7 @@
       "glyph": "🌐",
       "age": 4,
       "row": 1,
-      "cost": 1500,
+      "cost": 2250,
       "prereqs": [
         "physics"
       ],
@@ -996,7 +996,7 @@
       "glyph": "🧵",
       "age": 4,
       "row": 7,
-      "cost": 1300,
+      "cost": 1950,
       "prereqs": [
         "paperMoney"
       ],
@@ -1021,7 +1021,7 @@
       "glyph": "🏰",
       "age": 4,
       "row": 5,
-      "cost": 1300,
+      "cost": 1950,
       "prereqs": [
         "theQadisCourt"
       ],
@@ -1054,7 +1054,7 @@
       "glyph": "🕊",
       "age": 4,
       "row": 0,
-      "cost": 1500,
+      "cost": 2250,
       "prereqs": [
         "education"
       ],
@@ -1075,7 +1075,7 @@
       "glyph": "🗡",
       "age": 4,
       "row": 2,
-      "cost": 1300,
+      "cost": 1950,
       "prereqs": [
         "machinery"
       ],
@@ -1105,7 +1105,7 @@
       "glyph": "⚗",
       "age": 4,
       "row": 3,
-      "cost": 1700,
+      "cost": 2550,
       "prereqs": [
         "militantOrders",
         "movableType",
@@ -1131,7 +1131,7 @@
       "glyph": "🔠",
       "age": 4,
       "row": 5,
-      "cost": 1500,
+      "cost": 2250,
       "prereqs": [
         "steel",
         "theSilkRoad"
@@ -1167,7 +1167,7 @@
       "glyph": "☄",
       "age": 4,
       "row": 1,
-      "cost": 1300,
+      "cost": 1950,
       "prereqs": [
         "education"
       ],
@@ -1186,7 +1186,7 @@
       "glyph": "🐴",
       "age": 4,
       "row": 2,
-      "cost": 1500,
+      "cost": 2250,
       "prereqs": [
         "steel"
       ],
