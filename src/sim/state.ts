@@ -562,8 +562,22 @@ import {
  * log does not replay: every capital researches and drafts a little sooner
  * from the first turn, the first technology lands on a different turn, and an
  * empire's third town no longer pays an overrun the old law charged.
+ *
+ * v100: **a route is hired with gold, and the sea pays more** (batch R1; the
+ * user, 2026-09-09, `docs/flags.md` item (iii): "Instead of building traders,
+ * lets have trade routes be purchasable with gold directly in the interface of
+ * the trade screen"; and "sea routes should pay +50%"). A new command,
+ * `buyRoute`, charges the treasury `routePrice` — the Trader row's own
+ * converted production cost, `rules.trade.routePriceMultiplier` over it —
+ * mints the caravan in the origin's gates and writes the route on it, gated by
+ * the whole of `routeStartable` plus the purse. The Trader row leaves the build
+ * queue and the purchase book with it (`UnitDef.routeOnly`), and a route run by
+ * sea pays `rules.trade.seaYieldPercent` more as a line of its own fold. A v99
+ * log does not replay: the caravan a seat used to queue is now a coin it
+ * spends, every bot seat's purse and build order move with it, and a sea route
+ * already running banks half again from the turn this lands.
  */
-export const SCHEMA_VERSION = 99;
+export const SCHEMA_VERSION = 100;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

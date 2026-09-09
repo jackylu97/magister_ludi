@@ -41,7 +41,13 @@ import {
 // and `trade.ts` themselves.
 import { endpointLuxuryCount, resourceRouteYields } from './resourceEffects';
 import { RULES } from './rulesData';
-import { routeCities, routeIsInternational, routeIsLive } from './routes';
+import {
+  type RouteMode,
+  routeCities,
+  routeIsInternational,
+  routeIsLive,
+  routeMode,
+} from './routes';
 import type { City, GameState, Unit } from './state';
 import { cardAmplifier, cardRouteShareLines, cardRouteYieldLines } from './statecraft';
 
@@ -71,7 +77,14 @@ const PRODUCTION_CATEGORIES: readonly BuildingCategory[] = ['production', 'milit
  * (`routes.ts` — a star re-export comes out empty in a cycle). One import site
  * for a route, exactly as `trade.ts` re-exports these onward for the screens.
  */
-export { routeCities, routeIsInternational, routeIsLive } from './routes';
+export {
+  type RouteMode,
+  ROUTE_MODES,
+  routeCities,
+  routeIsInternational,
+  routeIsLive,
+  routeMode,
+} from './routes';
 
 // --- what a route pays ------------------------------------------------------
 
@@ -165,7 +178,10 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
   if (!routeIsLive(state, unit)) return [];
   const pair = routeCities(state, unit);
   if (!pair) return [];
-  return explainRouteYieldBetween(state, pair.from, pair.to);
+  // **The mode is read off the piece's own route** (batch R1), never guessed:
+  // a caravan carrying `sea` is paid the sea premium and one carrying nothing
+  // is not, which is `routeMode`'s whole job one file down.
+  return explainRouteYieldBetween(state, pair.from, pair.to, routeMode(unit.trade!));
 }
 
 /**
@@ -194,11 +210,22 @@ export function explainRouteYield(state: GameState, unit: Unit): RouteYieldLine[
  * paid out of its own shelves either — it is being paid for the market. What
  * the *sender* takes is a fold of its own, `explainRouteSenderYieldBetween`,
  * because it lands in a different empire's books.
+ *
+ * **The mode is asked for since batch R1**, because a sea route pays
+ * `rules.trade.seaYieldPercent` more (the user's ruling of 2026-09-09) and that
+ * is a line of this list like any other. It is **optional and defaults to
+ * land**, which is the mode that pays no premium: a caller that has not chosen
+ * yet — a preview of a pair, a sweep pricing every pair in order to sort them —
+ * is told the conservative figure rather than one it has not earned, and every
+ * caller that *knows* the mode names it. `explainRouteYield` reads it off the
+ * caravan's own route, so a route already running is never priced as anything
+ * but what it is.
  */
 export function explainRouteYieldBetween(
   state: GameState,
   from: City,
   to: City,
+  mode: RouteMode = 'land',
 ): RouteYieldLine[] {
   const lines: RouteYieldLine[] = [];
   // Printed on the *destination's* sheet ("Caravan from Uruk · 3 buildings"),
@@ -209,6 +236,10 @@ export function explainRouteYieldBetween(
   if (routeIsInternational(from, to)) {
     const host = Math.floor(ABROAD.hostGold);
     if (host !== 0) lines.push(line(label('a foreign market'), { gold: host }));
+    // The host's coin is a fact about the market, not about the crossing, so
+    // the sea premium is deliberately **not** taken of it: the ruling raises
+    // what a sea route *pays the seat that sent it*, and that fold is
+    // `explainRouteSenderYieldBetween`'s.
     return blockaded(state, from, to, lines);
   }
 
@@ -273,8 +304,61 @@ export function explainRouteYieldBetween(
   // yields" could not see.
   cardLines(state, from, to, lines, label);
   shares(state, from, to, lines, label);
+  bySea(mode, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
+}
+
+/**
+ * **What the crossing is worth** — `rules.trade.seaYieldPercent` on a route run
+ * by sea, and nothing at all on one run by land (the user's ruling of
+ * 2026-09-09: *"sea routes should pay +50%"*).
+ *
+ * A line of the list rather than a multiplication of the totals, which is rule 5
+ * for a caravan exactly as `amplify` is: the sheet says the goods came over the
+ * water, and the Ledger, the Trade screen and the bot all see the same figure
+ * because there is only the one.
+ *
+ * **Why the mode was worth nothing before.** `RouteMode` changed three things
+ * and no number — which path is surveyed, whether a road is laid, and how
+ * exposed the route is to a hull in a harbour mouth — and every one of the
+ * three is *against* the sea: a land cart leaves a road behind that pays its
+ * empire for ever, and a sea lane leaves nothing and can be shut by one
+ * warship. So a sea route was strictly the worse choice wherever both were
+ * legal, and the mode was only ever a choice on paper.
+ *
+ * Placed **after** the flats, the cards' lines and their shares, and **before**
+ * the amplifier, which is this fold's stated grammar (put yields on a thing,
+ * then multiply the thing): the premium takes the whole cart as the cards have
+ * loaded it, and a law that doubles trade route yields then doubles the premium
+ * with everything else it doubles. The blockade below still takes the lot back,
+ * which is the honest reading of a shut harbour — the premium is *for* the
+ * crossing, and there is no crossing.
+ *
+ * Exact rather than floored, `amplify`'s own bargain since batch X: half again
+ * on a one-gold caravan is half a gold rather than nothing at all, and the
+ * town's own fold floors once at the end where Entry XVII floors.
+ */
+function bySea(
+  mode: RouteMode,
+  lines: RouteYieldLine[],
+  label: (note: string) => string,
+): void {
+  if (mode !== 'sea') return;
+  const percent = TRADE.seaYieldPercent;
+  if (percent === 0) return;
+  const total = foldRouteYield(lines);
+  const extra = {
+    food: (total.food * percent) / 100,
+    production: (total.production * percent) / 100,
+    gold: (total.gold * percent) / 100,
+    science: (total.science * percent) / 100,
+    culture: (total.culture * percent) / 100,
+  };
+  if (extra.food === 0 && extra.production === 0 && extra.gold === 0) {
+    if (extra.science === 0 && extra.culture === 0) return;
+  }
+  lines.push(line(label(`by sea ${percent > 0 ? '+' : ''}${percent}%`), extra));
 }
 
 /**
@@ -497,6 +581,7 @@ export function explainRouteSenderYieldBetween(
   state: GameState,
   from: City,
   to: City,
+  mode: RouteMode = 'land',
 ): RouteYieldLine[] {
   if (!routeIsInternational(from, to)) return [];
   const lines: RouteYieldLine[] = [];
@@ -523,6 +608,11 @@ export function explainRouteSenderYieldBetween(
   // seat that sent the goods and this is that seat's book.
   cardLines(state, from, to, lines, label);
   shares(state, from, to, lines, label);
+  // **The crossing pays here too**, and here is where it matters most: an
+  // international route's whole worth to the seat that sent it is this fold,
+  // and the ruling is about what a sea route pays, not about whose town it
+  // ends in.
+  bySea(mode, lines, label);
   amplify(state, from, lines, label);
   return blockaded(state, from, to, lines);
 }
@@ -532,7 +622,7 @@ export function explainRouteSenderYield(state: GameState, unit: Unit): RouteYiel
   if (!routeIsLive(state, unit)) return [];
   const pair = routeCities(state, unit);
   if (!pair) return [];
-  return explainRouteSenderYieldBetween(state, pair.from, pair.to);
+  return explainRouteSenderYieldBetween(state, pair.from, pair.to, routeMode(unit.trade!));
 }
 
 /**

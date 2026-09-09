@@ -478,9 +478,17 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text: 'Use it once for its family’s immediate effect, or have it build its family’s special improvement. Either way the unit is used up.',
     });
   }
+  if (def.routeOnly === true) {
+    out.push({
+      text: 'This is not built and not bought in a city. You hire a route on the Trade screen and pay for it with gold; the caravan appears in the origin city already carrying it.',
+    });
+  }
   if (def.trades === true) {
     out.push({
-      text: 'Select it and choose Start route. Pick any available route in the Trade screen; the trader moves to the origin city and begins. It builds road on every hex it walks over.',
+      text: 'It walks between the two cities of the route it carries, and builds road on every hex it walks over. A route sent by sea lays no road, and pays more for the crossing.',
+    });
+    out.push({
+      text: 'One already on the board with no route left to run can be sent again: select it and choose Start route, then pick a pair in the Trade screen.',
     });
   }
   if (def.ignoresTerrainCost === true) {
@@ -596,7 +604,12 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
   // renown, and a unit whose roster row names its own bank exclusively (the
   // augur's faith) is bought or not at all — a hammer figure beside either would
   // be the card promising a queue row the reducer will not take.
-  const unbuildable = def.greatWork === true || def.purchase?.exclusive === true;
+  // A third since batch R1: a caravan is hired with the route it carries
+  // (`UnitDef.routeOnly`), so a hammer figure beside it would be a price no
+  // city can ever pay. What the hire costs is on the Trade screen, where the
+  // route is.
+  const unbuildable =
+    def.greatWork === true || def.purchase?.exclusive === true || def.routeOnly === true;
   // `unitRosterCost` is the simulation's own answer to "what does the roster
   // charge, before anything an empire does to the price" — the size line and the
   // column line of `explainUnitCost`, with the ladder and the empire's law left

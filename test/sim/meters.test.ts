@@ -963,7 +963,7 @@ describe('a captured city, end to end', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(99);
+    expect(SCHEMA_VERSION).toBe(100);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

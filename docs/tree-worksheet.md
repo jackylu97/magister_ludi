@@ -89,7 +89,7 @@ node · pruned first, shelf holds the rest · costs in Entry LIV's bands (I 8–
 - founding (passive) — a religion, from your pantheon.
 
 ### Currency ← The Wheel + Letters · 195 ★ (the trade door)
-- Trader (unit) — cost 28 · runs one route.
+- Trader (unit) — hired with a route, never built (`routeOnly`, ruled 2026-09-09); the row's hammers are what `routePrice` converts.
 - Market (building) — cost 59 · +3💰.
 - The Mausoleum (wonder) — +1💰 per building here · +1💰 on Quarry hexes · +2 authority capacity.
 - *(Bazaar moved to Æra III — see Paper Money.)*

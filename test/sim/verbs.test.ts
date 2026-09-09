@@ -162,7 +162,14 @@ describe('the three verbs', () => {
     const memos = exportedFunctions(readings!.text)
       .map((entry) => entry.name)
       .filter((name) => /^read[A-Z]/.test(name));
-    expect(memos.sort()).toEqual(['readCity', 'readEmpire', 'readEmpirePercents']);
+    expect(memos.sort()).toEqual([
+      'readCity',
+      'readEmpire',
+      'readEmpirePercents',
+      // The Trade screen's whole subject, once per revision (batch R1): every
+      // pair a caravan could join, gated, priced and paid.
+      'readRoutes',
+    ]);
   });
 
   it('makes every `explain…` return a list', () => {

@@ -43,9 +43,12 @@ import {
   bankOf,
   contributeError,
   explainPurchaseCost,
+  explainRoutePrice,
   isPurchaseOnly,
   purchaseError,
   purchaseVerb,
+  readPurchasableItem,
+  routePrice,
 } from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
 import {
@@ -66,6 +69,8 @@ const SETTLER: PurchasableItem = { kind: 'unit', id: 'settler' };
 const WORKER: PurchasableItem = { kind: 'unit', id: 'worker' };
 const GRANARY: PurchasableItem = { kind: 'building', id: 'granary' };
 const AUGUR: PurchasableItem = { kind: 'unit', id: 'augur' };
+/** The caravan — neither built nor bought since batch R1 (`UnitDef.routeOnly`). */
+const TRADER: PurchasableItem = { kind: 'unit', id: 'trader' };
 /**
  * The row that stands for "bought, never built" since the augur was withdrawn
  * (2026-09-06). Same shape, same bank, same exclusivity — and one that is still
@@ -150,6 +155,36 @@ describe('a thing that is bought is not a thing that is built', () => {
     expect(purchaseError(g.state, 0, city.id, AUGUR, 'faith')).toBe(
       'A Augur is no longer called',
     );
+  });
+
+  /**
+   * **The caravan is neither** (batch R1, the ruling of 2026-09-09). It leaves
+   * both doors at once — `UnitDef.routeOnly` — and the treasury sells a *route*
+   * instead, which is the subject below.
+   */
+  it('refuses the caravan at both doors, in one voice', () => {
+    const g = game();
+    // Currency is what unlocks the row, so the refusal below is the marker's
+    // and never the tree's.
+    learn(g.state, 0, 'currency');
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.gold = 5_000;
+    expect(unitDef('trader').routeOnly).toBe(true);
+    expect(buildError(g.state, 0, 'unit', 'trader')).toContain('hired on the trade sheet');
+    expect(purchaseError(g.state, 0, city.id, TRADER, 'gold')).toContain(
+      'hired on the trade sheet',
+    );
+    // And the queue refuses it with the reducer's own sentence, byte-identical.
+    const before = snapshotState(g.state);
+    const result = applyCommand(g.state, {
+      type: 'setCityProduction',
+      playerId: 0,
+      cityId: city.id,
+      queue: [{ kind: 'unit', id: 'trader' }],
+    } as Command);
+    expect(result.ok).toBe(false);
+    expect(result.ok === false && result.error).toBe(buildError(g.state, 0, 'unit', 'trader'));
+    expect(snapshotState(g.state)).toEqual(before);
   });
 
   it('offers it in the bank it is actually sold in, with a verb off its row', () => {
@@ -896,6 +931,87 @@ describe('a building that names its own bank', () => {
   });
 });
 
+/**
+ * **A route is a subject this bank prices** (batch R1) — the third thing the
+ * treasury sells, beside a unit and a building, and the only one that is not a
+ * row on a shelf.
+ *
+ * Three claims: the price is the caravan's own converted cost with the ruling's
+ * knob over it, the fold of printed lines *is* the price (rule 5), and the
+ * refusal a purse cannot reach carries the same sentence every other purchase
+ * is refused with — which is the sentence the bot's want book reads back to
+ * decide a row is merely unaffordable.
+ */
+describe('a route, priced by the purchase book', () => {
+  const ROUTE = { kind: 'route' } as const;
+
+  it('is the Trader row’s cost, converted and multiplied, and the fold of its lines', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const lines = explainRoutePrice(g.state, 0)!;
+    expect(lines).not.toBeNull();
+    const hammers = unitProductionCost(g.state, 0, 'trader');
+    const converted = Math.floor(hammers * RULES.production.goldPerHammer);
+    expect(routePrice(g.state, 0)).toBe(
+      Math.floor(converted * RULES.trade.routePriceMultiplier),
+    );
+    // The fold of the printed list, and never a total taken beside it.
+    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(routePrice(g.state, 0));
+    // The wagon's own hammers are the lines it is built out of, so a re-costed
+    // roster and a new age move the price with no figure typed anywhere.
+    expect(lines[0]!.amount).toBeGreaterThan(0);
+    expect(lines.some((line) => line.source.includes('in gold'))).toBe(true);
+
+    const price = explainPurchaseCost(g.state, 0, city.id, ROUTE, 'gold');
+    expect(price?.currency).toBe('gold');
+    expect(price?.total).toBe(routePrice(g.state, 0));
+  });
+
+  it('is sold out of the treasury and out of no other bank', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.faithPool = 10_000;
+    expect(explainPurchaseCost(g.state, 0, city.id, ROUTE, 'faith')).toBeNull();
+    expect(purchaseError(g.state, 0, city.id, ROUTE, 'faith')).toContain('bought with gold');
+  });
+
+  it('refuses a purse that cannot reach it, in the money clause’s own words', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 0;
+    bumpRevision(g.state);
+    expect(purchaseError(g.state, 0, city.id, ROUTE, 'gold')).toBe(
+      `A trade route costs ${routePrice(g.state, 0)} gold; ${player.name} has 0`,
+    );
+    player.gold = 10_000;
+    bumpRevision(g.state);
+    expect(purchaseError(g.state, 0, city.id, ROUTE, 'gold')).toBeNull();
+  });
+
+  it('is never read off a client’s purchaseItem', () => {
+    // A route needs the *pair*, and `purchaseItem` names a town and a thing —
+    // so the reader refuses the shape and the only door is `buyRoute`.
+    expect(readPurchasableItem({ kind: 'route' })).toBeNull();
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.gold = 10_000;
+    const before = snapshotState(g.state);
+    // Through `unknown`, because `PurchaseItemCommand.item` will not even
+    // *type* as a route — which is the claim said twice, once by the compiler
+    // and once by the reducer.
+    const result = applyCommand(g.state, {
+      type: 'purchaseItem',
+      playerId: 0,
+      cityId: city.id,
+      item: { kind: 'route' },
+      currency: 'gold',
+    } as unknown as Command);
+    expect(result.ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+});
+
 describe('the schema witness', () => {
   it('carries the version that says a puppet buys nothing', () => {
     // v58: two clauses, one in `purchaseError` and one in `tilePurchaseError`.
@@ -911,6 +1027,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(99);
+    expect(SCHEMA_VERSION).toBe(100);
   });
 });

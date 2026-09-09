@@ -34,6 +34,8 @@ import {
   claimTile,
   controlledHoldings,
   emptyCityYields,
+  foundCityAt,
+  foundingErrorAt,
 } from '../../src/sim/cities';
 import { meterEffects } from '../../src/sim/meters';
 import { economyStamp, setSlatePhase, setSlateShadow, slateShadow } from '../../src/sim/slate';
@@ -46,9 +48,17 @@ import {
   foldCityFlats,
 } from '../../src/sim/yields/town';
 import { LEDGER_CLASSES } from '../../src/sim/ledgerClass';
-import { readCity, readEmpire, readEmpirePercents } from '../../src/sim/readings';
+import { readCity, readEmpire, readEmpirePercents, readRoutes } from '../../src/sim/readings';
+import { routePrice } from '../../src/sim/purchase';
+import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
+import {
+  routeModesAvailable,
+  routeSlots,
+  routeStartable,
+  usedRouteSlots,
+} from '../../src/sim/trade';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
-import { bumpRevision, newGame } from '../../src/sim/state';
+import { type City, type GameState, bumpRevision, newGame, playerById } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
 import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
 import { found, game } from './statecraftHelpers';
@@ -186,6 +196,114 @@ describe('the revision is the subscription', () => {
     });
     expect(state.revision).toBe(0);
     expect(JSON.parse(snapshotState(state)).revision).toBe(0);
+  });
+});
+
+/**
+ * **The routes on offer, remembered** — batch R1 (`docs/flags.md` item (iii),
+ * the user's *"please look into the performance of the trade screen, it gets
+ * quite laggy"*).
+ *
+ * The screen's cost was the gate, not the drawing: `routeStartable` runs A* per
+ * mode and `pathTurns` over what it finds, and every open re-asked it for every
+ * ordered pair. `readRoutes` is the third verb over the lot — the gate, the two
+ * yield folds, the price and the post's reach — memoised on the revision.
+ *
+ * Three claims, and each is a way this could be wrong while every figure still
+ * added up: it is the *simulation's* gate rather than a second one; it is a
+ * cache rather than a rule (a fresh object with the same answer once the world
+ * moves, and never a byte of the snapshot); and it is actually cheaper.
+ */
+describe('the routes on offer are remembered on the revision', () => {
+  /** Two towns of one seat, a market, a purse — a board with a route to hire. */
+  function trading(): { state: GameState; home: City; partner: City } {
+    const { state } = game(19);
+    const home = found(state, 0)!;
+    // The nearest hex the simulation's own gate will take a second town on, so
+    // the pair is a pair the reading is allowed to have an opinion about.
+    const site = state.map.tiles.find(
+      (tile) => foundingErrorAt(state, 0, tile) === null,
+    );
+    expect(site).toBeDefined();
+    const partner = foundCityAt(state, 0, site!);
+    home.buildings.push('market');
+    playerById(state, 0)!.gold = 5_000;
+    bumpRevision(state);
+    return { state, home, partner };
+  }
+
+  it('hands the same reading back until the world moves', () => {
+    const { state } = trading();
+    const held = readRoutes(state, 0);
+    expect(readRoutes(state, 0)).toBe(held);
+    bumpRevision(state);
+    const fresh = readRoutes(state, 0);
+    expect(fresh).not.toBe(held);
+    // A cache, never a rule: the same answer in a new object.
+    expect(fresh.rows.length).toBe(held.rows.length);
+    expect(fresh.price).toBe(held.price);
+  });
+
+  it('never reaches the snapshot', () => {
+    const { state } = trading();
+    const clean = snapshotState(state);
+    void readRoutes(state, 0);
+    expect(snapshotState(state)).toBe(clean);
+  });
+
+  it('is the simulation’s own gate, price and folds', () => {
+    const { state, home, partner } = trading();
+    const reading = readRoutes(state, 0);
+    expect(reading.price).toBe(routePrice(state, 0));
+    expect(reading.slots).toBe(routeSlots(state, 0));
+    expect(reading.used).toBe(usedRouteSlots(state, 0));
+
+    const row = reading.rows.find((entry) => entry.from.id === home.id && entry.to.id === partner.id);
+    expect(row).toBeDefined();
+    expect(row!.modes).toEqual(routeModesAvailable(state, 0, home.id, partner.id));
+    expect(row!.available).toBe(row!.modes.length > 0);
+    for (const paid of row!.pays) {
+      // Rule 5 twice over: the lines are `routeYields.ts`' own, and the total is
+      // the fold of them and never a sum taken beside it.
+      expect(paid.lines).toEqual(explainRouteYieldBetween(state, home, partner, paid.mode));
+      expect(paid.total).toEqual(foldRouteYield(paid.lines));
+    }
+    // A refused pair carries the gate's own sentence and no pay at all.
+    const refused = reading.rows.find((entry) => !entry.available);
+    if (refused) {
+      expect(refused.pays).toEqual([]);
+      expect(refused.refusal).toBe(
+        routeStartable(state, 0, refused.from.id, refused.to.id, 'land'),
+      );
+    }
+  });
+
+  it('counts the hexes a land cart would pave, the origin’s own excepted', () => {
+    const { state, home, partner } = trading();
+    const row = readRoutes(state, 0).rows.find(
+      (entry) => entry.from.id === home.id && entry.to.id === partner.id,
+    )!;
+    if (row.modes.includes('land')) {
+      expect(row.roadHexes).not.toBeNull();
+      expect(row.roadHexes!).toBeGreaterThan(0);
+      // Every hex of the leg but the gates it starts in, and never more.
+      expect(row.turns).not.toBeNull();
+    }
+  });
+
+  it('is cheaper on the second ask than on the first', () => {
+    // The batch's own measurement, as an assertion rather than a note: a walk
+    // that costs a few hundred pathfinding searches must not be paid twice in
+    // one revision. A ratio rather than a millisecond figure, so the pin is
+    // about the memo and not about this machine.
+    const { state } = trading();
+    const first = performance.now();
+    void readRoutes(state, 0);
+    const walked = performance.now() - first;
+    const second = performance.now();
+    for (let ask = 0; ask < 50; ask += 1) void readRoutes(state, 0);
+    const hits = performance.now() - second;
+    expect(hits).toBeLessThan(walked);
   });
 });
 

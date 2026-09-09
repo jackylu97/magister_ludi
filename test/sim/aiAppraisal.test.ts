@@ -405,24 +405,42 @@ describe('the route scorer', () => {
     expect(applyCommand(state, decision!.command).ok).toBe(true);
   });
 
+  /**
+   * **The verb moved with batch R1 and the claim did not.** A route is hired
+   * with gold now, so the shelves are answered by the *treasury* before the
+   * idle wagon is ever ordered — and what the treasury names is the home pair,
+   * off the very shelves this fixture moved. The mirror is unchanged: the same
+   * three towns and the same neighbour, with only the origin's shelves
+   * different, and the answer different with them.
+   *
+   * (The harbour among `SHELVES` is what opens the second slot the hire needs;
+   * a bare origin has one slot, the idle wagon is already waiting for it, and
+   * `explainCaravan` refuses to want a second route at all — which is why the
+   * mirror's other half never reaches this verb.)
+   */
   it('keeps it at home when the origin’s shelves out-pay the crossing', () => {
-    const { state, second, abroad } = threeTowns(SHELVES);
-    const decision = decisionOfType(state, 0, 'startRoute');
-    expect(decision).not.toBeNull();
-    // The same three towns, the same neighbour, the same rules — only the
-    // shelves moved, and the answer moved with them. That is greed rather than
-    // a preference for or against a border.
-    expect(decision!.command).toMatchObject({ type: 'startRoute', toCityId: second.id });
-    expect((decision!.command as { toCityId: number }).toCityId).not.toBe(abroad.id);
-    // And the crossing was weighed rather than skipped: it is on the table,
-    // scored, and beaten.
-    const chosen = decision!.candidates.find((row) => row.chosen)!;
-    const crossings = decision!.candidates.filter(
+    const { state, home, second, abroad } = threeTowns(SHELVES);
+    const hired = decisionOfType(state, 0, 'buyRoute');
+    expect(hired).not.toBeNull();
+    expect(hired!.command).toMatchObject({
+      type: 'buyRoute',
+      fromCityId: home.id,
+      toCityId: second.id,
+    });
+    expect((hired!.command as { toCityId: number }).toCityId).not.toBe(abroad.id);
+    expect(applyCommand(state, hired!.command).ok).toBe(true);
+
+    // And the crossing was weighed rather than skipped: the wagon still
+    // standing idle is put on the table against every pair, and goes abroad
+    // only because the richer pair has just been spent.
+    const sent = decisionOfType(state, 0, 'startRoute');
+    expect(sent).not.toBeNull();
+    const crossings = sent!.candidates.filter(
       (row) => row.rejected === undefined && row.label.includes('(Bors)'),
     );
     expect(crossings.length).toBeGreaterThan(0);
-    for (const row of crossings) expect(row.score).toBeLessThan(chosen.score);
-    expect(applyCommand(state, decision!.command).ok).toBe(true);
+    const taken = sent!.candidates.find((row) => row.rejected !== undefined)!;
+    expect(taken.rejected).toMatch(/already runs/);
   });
 
   it('takes the best-scoring pair it weighed, and every term folds to its score', () => {

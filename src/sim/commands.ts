@@ -144,9 +144,11 @@ import {
   type PurchasableItem,
   contributeAt,
   contributeError,
+  isRouteItem,
   purchaseError,
   purchaseItemAt,
   readPurchasableItem,
+  routePrice,
 } from './purchase';
 import type { RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
@@ -176,6 +178,7 @@ import {
   governmentChoiceError,
   orderChoiceError,
   orderSkipError,
+  recordScalingOccasion,
   settleDoctrineChoice,
   settleOrderChoice,
   settleOrderSkip,
@@ -200,6 +203,7 @@ import {
   type RouteMode,
   endRoute,
   routeModeFor,
+  routeStartable,
   startRouteAt,
   startRouteError,
 } from './trade';
@@ -237,7 +241,7 @@ import { type DealEndReport, type DealTerms, proposalById } from './deals';
 import type { CampBounty } from './camps';
 import { type GuildReport, dismissSpecialistAt, dismissSpecialistError } from './guilds';
 import { type SpecialistFamily, isSpecialistFamily } from './greatPeopleData';
-import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, caravanTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom, sleepError } from './units';
 import { recomputeVisibility } from './visibility';
 
@@ -1366,6 +1370,47 @@ export interface StartRouteCommand extends PlayerCommand {
   mode?: RouteMode;
 }
 
+/**
+ * **Hires a route** — the coin, the caravan and the route, in one command
+ * (schema 100; the user's ruling of 2026-09-09, `docs/flags.md` item (iii):
+ * *"Instead of building traders, lets have trade routes be purchasable with
+ * gold directly in the interface of the trade screen … having traders be gated
+ * by gold does make the decision making more interesting."*).
+ *
+ * It names **no unit**, and that is the whole difference from `startRoute`:
+ * there is no wagon yet. The treasury pays `routePrice`, a caravan is minted in
+ * the origin's gates, and the route is written on it — so the piece and the
+ * route are born in one act and a slot can never be spent on an empty wagon.
+ *
+ * **`startRoute` stays**, and is not deprecated by this. A caravan already
+ * standing is a real thing: it is what a save from before this schema replays
+ * into, it is what a route that has lapsed leaves walking home, and it is what
+ * the bot re-sends through the teleport rather than paying twice for. The two
+ * verbs answer two different questions — *hire one* and *send this one* — and
+ * they share every rule that is about the pair of towns.
+ *
+ * **The gate is `routeStartable` plus the purse**, and neither half is
+ * re-implemented here: the pair, the slot, the range, the mode, the blockade
+ * and the war are `trade.ts`'s five clauses asked exactly as `startRoute` asks
+ * them, and the coin is `purchaseError`'s money clause said in the words every
+ * other refused purchase is refused in. Everything is validated before a field
+ * is written, so a refusal leaves the state byte-identical. Turn-gated like
+ * every other order.
+ */
+export interface BuyRouteCommand extends PlayerCommand {
+  type: 'buyRoute';
+  /** The origin. Must be a city of `playerId`'s; the caravan is minted in it. */
+  fromCityId: number;
+  /** The partner — another town of this empire's, or a foreign one at peace. */
+  toCityId: number;
+  /**
+   * Which way the caravan goes, exactly as `StartRouteCommand.mode` means it —
+   * optional for the same reason, and resolved by the same documented default
+   * (land where a land path exists, else sea).
+   */
+  mode?: RouteMode;
+}
+
 export interface SetAutoResendCommand extends PlayerCommand {
   type: 'setAutoResend';
   unitId: number;
@@ -1617,6 +1662,7 @@ export type Command =
   | GreatPersonActCommand
   | GreatPersonWorkCommand
   | StartRouteCommand
+  | BuyRouteCommand
   | SetAutoResendCommand
   | CancelRouteCommand
   | DisbandUnitCommand
@@ -3247,6 +3293,16 @@ function applyPurchaseItem(state: GameState, command: PurchaseItemCommand): Comm
     return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot buy anything`);
   }
 
+  // **A route is not a thing this verb can name** (batch R1). The treasury does
+  // price one — `purchaseError` answers for the route subject, because
+  // `buyRoute` is held to that very clause — but this command carries a town and
+  // an item and no *pair* at all, so a route arriving here is a malformed
+  // command rather than an unaffordable one. Refused by shape, before the gate,
+  // and the sentence sends the client to the verb that takes it.
+  if (isRouteItem(command.item)) {
+    return fail('A trade route is hired on the trade sheet, not bought here');
+  }
+
   const problem = purchaseError(
     state,
     actor.id,
@@ -3745,6 +3801,112 @@ function applyStartRoute(state: GameState, command: StartRouteCommand): CommandR
   const arrival = arriveOnTile(state, unit, gates);
   // The piece moved, so what its owner can see moved with it — one recompute per
   // order, exactly as `applyMoveUnit` does it.
+  recomputeVisibility(state, actor.id);
+
+  startRouteAt(state, unit, from, to, mode);
+  return ok(isEmptyArrival(arrival) ? undefined : [arrival]);
+}
+
+/**
+ * Hires a trade route. See `BuyRouteCommand`, and `trade.ts` for the rules.
+ *
+ * `applyStartRoute` with the wagon **bought instead of found**, and written to
+ * read as that one does line for line, because it is the same act with one
+ * question answered differently: where the caravan came from.
+ *
+ * Four questions and then five writes, and nothing below the questions runs
+ * until every one is answered — a refusal leaves the state byte-identical like
+ * every other handler:
+ *
+ *   1. the seat is acting (`resolveActor`, `hasEndedTurn`);
+ *   2. the **pair** — `routeStartable`, the whole of what `startRoute` asks
+ *      about two towns, asked here identically: the origin is yours, the
+ *      partner is another town at peace and met, there is a free slot, no
+ *      caravan already runs this way, a path exists in the mode asked for, and
+ *      the partner is in range. Nothing is re-implemented; what
+ *      `startRouteError` adds on top of it is about a *piece*, and there is no
+ *      piece yet;
+ *   3. the **purse** — `purchaseError`, which is one clause for a route (see
+ *      its own docblock) and is asked through the gate every other purchase in
+ *      the game goes through, so a greyed row on the Trade screen and a refused
+ *      command carry one sentence;
+ *   4. the world has a caravan row at all, which `routeStartable` has already
+ *      said in its own words — the lookup here is the reducer refusing to write
+ *      a piece it cannot name.
+ *
+ * Then: the coin, the piece, the seam, the sight, the route. The **teleport is
+ * a mint** rather than a move, and it still owes `arriveOnTile` everything a
+ * march owes it (CLAUDE.md's rule): a caravan minted in its own town's gates
+ * claims the ruins under it and burns nothing, and the seam is where any of
+ * that would ever be decided. The route is written **after** the arrival, for
+ * `applyStartRoute`'s stated reason exactly — `layRoadUnder` asks for a caravan
+ * *carrying* a route, and a caravan's own origin hex is never paved.
+ *
+ * The caravan does not march here either: `startRouteAt` sets the path and the
+ * pipeline walks it.
+ */
+function applyBuyRoute(state: GameState, command: BuyRouteCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot hire a route`);
+  }
+
+  const problem = routeStartable(
+    state,
+    actor.id,
+    command.fromCityId,
+    command.toCityId,
+    command.mode,
+  );
+  if (problem) return fail(problem);
+
+  // **The purse, in the words every other purchase is refused in.** The town it
+  // is asked of is the origin, which `routeStartable` has just established is
+  // this seat's; nothing about the *town* is being asked, only about the
+  // treasury behind it.
+  const unaffordable = purchaseError(
+    state,
+    actor.id,
+    command.fromCityId,
+    { kind: 'route' },
+    'gold',
+  );
+  if (unaffordable) return fail(unaffordable);
+
+  const type = caravanTypeId();
+  if (type === null) return fail('This world has no caravans');
+
+  const from = cityById(state, command.fromCityId)!;
+  const to = cityById(state, command.toCityId)!;
+  // Which way it goes, settled once and read *before* the piece exists: the
+  // survey behind it is a fact about the two towns.
+  const mode: RouteMode = routeModeFor(
+    state,
+    actor.id,
+    command.fromCityId,
+    command.toCityId,
+    command.mode,
+  );
+
+  // The price is asked once and charged once — the fold of the very lines the
+  // screen printed (`explainRoutePrice`), so the figure on the button is the
+  // figure the treasury loses.
+  const price = routePrice(state, actor.id);
+  actor.gold -= price;
+  // The banks are a line of the meters too (batch M3, `slate.ts`), and a piece
+  // appearing on the board is `createUnit`'s own announcement.
+  bumpEconomy(state);
+  // **The almoner's ledger** — the coin itself, exactly as `purchaseItemAt`
+  // records it, because this is coin leaving the treasury for a thing and a
+  // card that counts spending has no business asking which verb spent it.
+  recordScalingOccasion(state, actor.id, 'goldSpent', price);
+
+  const gates = getTileAt(state.map, from.col, from.row)!;
+  const unit = createUnit(state, actor.id, type, gates.col, gates.row);
+  const arrival = arriveOnTile(state, unit, gates);
+  // The piece is new, so what its owner can see changed with it — one recompute
+  // per order, exactly as `applyStartRoute` does it.
   recomputeVisibility(state, actor.id);
 
   startRouteAt(state, unit, from, to, mode);
@@ -4253,6 +4415,10 @@ function orderedUnitId(command: Command): number | undefined {
     case 'declinePeace':
     case 'annexCity':
     case 'razeCity':
+    // **Hiring a route names no piece either** — the caravan does not exist
+    // until the handler mints it, and a piece born this turn is awake by
+    // construction. It is the one trade verb that is not an order to a wagon.
+    case 'buyRoute':
     // And neither is a bargain: the four deal verbs name an *empire* or a
     // paper, and a treaty is not an order to a warrior.
     case 'proposeDeal':
@@ -4358,6 +4524,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   greatPersonAct: 'economy',
   greatPersonWork: 'economy',
   startRoute: 'economy',
+  buyRoute: 'economy',
   setAutoResend: 'economy',
   cancelRoute: 'economy',
   disbandUnit: 'economy',
@@ -4594,6 +4761,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyGreatPersonWork(state, command);
     case 'startRoute':
       return applyStartRoute(state, command);
+    case 'buyRoute':
+      return applyBuyRoute(state, command);
     case 'setAutoResend':
       return applySetAutoResend(state, command);
     case 'cancelRoute':

@@ -44,9 +44,9 @@ import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
-import { researchExpansion } from '../../src/sim/tech';
+import { buildError, researchExpansion } from '../../src/sim/tech';
 import { anyCardDef } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
@@ -272,6 +272,34 @@ describe('the scored build list', () => {
     // simulation's and the score only reorders what they allow.
     const result = nextBotCommand(game.state, 0);
     expect(result === null || typeof result.type === 'string').toBe(true);
+  });
+
+  /**
+   * **The caravan is not a candidate any more** (batch R1, the ruling of
+   * 2026-09-09): it is refused by `buildError`, so no town of any seat can put
+   * one in a queue and the arm that used to price it is gone. Read off the
+   * roster's marker rather than a name, and asserted of the *simulation's* gate
+   * as well as of the bot, because the bot's whole claim is that it never
+   * proposes a row the reducer refuses.
+   */
+  it('never queues a caravan, in any town, at any age', () => {
+    const game = grownGame();
+    const routeOnly = UNIT_TYPE_IDS.filter((id) => unitDef(id).routeOnly === true);
+    expect(routeOnly.length).toBeGreaterThan(0);
+    for (const city of game.state.cities) {
+      const player = seat(game.state, city.ownerId);
+      if (player.barbarian) continue;
+      for (const id of routeOnly) {
+        expect(buildError(game.state, player.id, 'unit', id, city)).not.toBeNull();
+      }
+      const chosen = chooseProduction(game.state, player, city);
+      if (chosen === null) continue;
+      expect(chosen.kind === 'unit' && routeOnly.includes(chosen.id as never)).toBe(false);
+    }
+    // And the bot's own source no longer carries a caravan arm in the build
+    // list: the reading it used (`explainCaravan`) is the want book's now.
+    const source = code(AI_SOURCE[Object.keys(AI_SOURCE).find((path) => path.endsWith('/bot.ts'))!]!);
+    expect(source).not.toContain('explainCaravan');
   });
 
   it('turns away from upkeep when the books are bleeding', () => {

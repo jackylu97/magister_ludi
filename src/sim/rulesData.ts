@@ -483,6 +483,39 @@ export interface TradeRules {
    */
   postRange: number;
   /**
+   * What a **route** costs to hire, as a share of the caravan it puts on the
+   * road (the user's ruling of 2026-09-09, `docs/flags.md` item (iii)).
+   *
+   * A route is bought with gold now (`buyRoute`) and the Trader row has left
+   * both the build queue and the purchase book, so the price is the caravan's
+   * own converted cost — `goldPerHammer × the Trader row's production cost`,
+   * the cost standard, which is what makes a route dearer age by age with no
+   * second table to retune — and this is the one knob over it.
+   *
+   * 1 means "exactly what a caravan would have cost to buy", which is the
+   * ruling's recommendation and the honest starting point: nothing about the
+   * price changed, only what a player is buying with it. Read in one place,
+   * `explainRoutePrice` (`purchase.ts`), as a line of the list the price is the
+   * fold of.
+   */
+  routePriceMultiplier: number;
+  /**
+   * What a route run **by sea** pays over one run by land, as a percentage
+   * (the user's ruling of 2026-09-09: *"sea routes should pay +50%"*).
+   *
+   * `RouteMode` used to change three things and no figure — the path, the road
+   * laid, and the blockade a hull can impose — so a sea lane was strictly worse
+   * than a road: it leaves nothing behind and it can be shut by one warship.
+   * This is the compensation, and it is a knob rather than a rule because the
+   * ruling names a number: at 0 the two modes pay alike again.
+   *
+   * Read in one place, `explainRouteYieldBetween`'s fold (`routeYields.ts`), as
+   * a labelled line of its own so the sheet says where the extra came from —
+   * rule 5, and the reason the Ledger, the Trade screen and the bot all see it
+   * without being told.
+   */
+  seaYieldPercent: number;
+  /**
    * What killing somebody's laden caravan pays the killer's nearest owned city
    * (`settleTraderPlunder` in `trade.ts`).
    *

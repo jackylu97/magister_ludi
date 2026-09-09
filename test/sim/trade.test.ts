@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   foundCityAt,
   growthThreshold,
+  unitProductionCost,
 } from '../../src/sim/cities';
 import {
   explainCity,
@@ -32,7 +33,12 @@ import {
   stepCost,
   zocField,
 } from '../../src/sim/pathfind';
-import { explainPurchaseCost, purchaseError } from '../../src/sim/purchase';
+import {
+  explainPurchaseCost,
+  explainRoutePrice,
+  purchaseError,
+  routePrice,
+} from '../../src/sim/purchase';
 import { RULES } from '../../src/sim/rulesData';
 import { TECH_IDS, techDef } from '../../src/sim/techData';
 import {
@@ -44,6 +50,7 @@ import {
   claimWonder,
   createUnit,
   playerById,
+  removeUnit,
   unitById,
   bumpRevision,
 } from '../../src/sim/state';
@@ -78,7 +85,7 @@ import { resetVisibility } from '../../src/sim/visibility';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { layRoad } from '../../src/sim/roads';
 import { pillageAt } from '../../src/sim/improvements';
-import { buildError } from '../../src/sim/tech';
+import { buildError, isUnlocked } from '../../src/sim/tech';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { isCivilian, trades, unitDef } from '../../src/sim/unitData';
 import { at, bareState } from './improvementHelpers';
@@ -236,17 +243,28 @@ describe('the trader', () => {
     expect(trades(unitDef('worker'))).toBe(false);
   });
 
-  it('is built and bought like a worker, out of the treasury', () => {
+  /**
+   * **Neither built nor bought** (batch R1, the ruling of 2026-09-09). The row
+   * carries `routeOnly` and the two doors a thing is acquired through say so in
+   * one voice; the price the treasury *does* charge is a route's, and that is
+   * `explainRoutePrice`'s test one file over.
+   */
+  it('is neither built nor bought — it is hired with a route', () => {
     const { state, home } = tradeWorld();
-    // Currency is what unlocks it, and `bareState` holds every technology.
-    expect(buildError(state, 0, 'unit', 'trader', home)).toBeNull();
-    // No `purchase` row on the roster, so it is sold by the treasury at the
-    // flat conversion — the rule that keeps faith away from everything but the
-    // rows that name it (Entry XXIX).
-    const price = explainPurchaseCost(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'gold');
-    expect(price?.currency).toBe('gold');
-    expect(price?.total).toBeGreaterThan(0);
-    expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'faith')).not.toBeNull();
+    // Currency is what unlocks it, and `bareState` holds every technology — so
+    // the refusal below is the marker's and never the tree's.
+    expect(unitDef('trader').routeOnly).toBe(true);
+    expect(isUnlocked(state, 0, 'unit', 'trader')).toBe(true);
+    expect(buildError(state, 0, 'unit', 'trader', home)).toContain('trade sheet');
+    for (const bank of ['gold', 'faith'] as const) {
+      expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, bank)).not.toBeNull();
+    }
+    expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'gold')).toContain(
+      'trade sheet',
+    );
+    // The two sentences are the same rule said twice, which is what keeps a
+    // greyed row and a refused command from drifting apart.
+    expect(buildError(state, 0, 'unit', 'trader', home)).toContain('hired on the trade sheet');
   });
 
   it('is named by no rule in the simulation — except as a stacking category', () => {
@@ -572,6 +590,186 @@ describe('startRoute', () => {
   });
 });
 
+// --- hiring a route ---------------------------------------------------------
+
+/**
+ * **buyRoute** — the coin, the caravan and the route in one command (batch R1;
+ * the user's ruling of 2026-09-09, `docs/flags.md` item (iii)).
+ *
+ * Four separable claims, and they fail for different reasons:
+ *
+ *   1. the **gate** is `routeStartable`'s, clause for clause — a pair
+ *      `startRoute` would refuse is a pair this refuses in the same sentence;
+ *   2. plus **the purse**, in `purchaseError`'s own words;
+ *   3. an acceptance **charges** the treasury `routePrice` and mints the
+ *      caravan carrying the route, in the origin's gates;
+ *   4. a refusal leaves the state **byte-identical**, like every other handler.
+ */
+describe('buyRoute', () => {
+  /** A world with a market, no caravan on the board, and a purse. */
+  function hireWorld(gold = 10_000): ReturnType<typeof tradeWorld> {
+    const world = tradeWorld();
+    removeUnit(world.state, world.trader.id);
+    playerById(world.state, 0)!.gold = gold;
+    bumpRevision(world.state);
+    return world;
+  }
+
+  function hire(
+    playerId: number,
+    fromCityId: number,
+    toCityId: number,
+    mode?: RouteMode,
+  ): Command {
+    return {
+      type: 'buyRoute',
+      playerId,
+      fromCityId,
+      toCityId,
+      ...(mode === undefined ? {} : { mode }),
+    };
+  }
+
+  it('prices a route off the Trader row, converted and multiplied', () => {
+    const { state } = hireWorld();
+    const lines = explainRoutePrice(state, 0)!;
+    expect(lines).not.toBeNull();
+    // Rule 5: the fold of the printed lines *is* the price, and `routePrice`
+    // is that fold and nothing beside it.
+    expect(lines.reduce((sum, line) => sum + line.amount, 0)).toBe(routePrice(state, 0));
+    // The wagon's own hammers, converted at the treasury's rate. Read off the
+    // simulation rather than typed, so a re-costed roster moves both halves.
+    const hammers = unitProductionCost(state, 0, 'trader');
+    const converted = Math.floor(hammers * RULES.production.goldPerHammer);
+    expect(routePrice(state, 0)).toBe(Math.floor(converted * TRADE.routePriceMultiplier));
+    // And the same figure the purchase book quotes for the route subject, which
+    // is the one gate the screen, the bot and the reducer share.
+    const price = explainPurchaseCost(state, 0, 1, { kind: 'route' }, 'gold');
+    expect(price?.currency).toBe('gold');
+    expect(price?.total).toBe(routePrice(state, 0));
+    // It is not for sale in the other bank at any price.
+    expect(explainPurchaseCost(state, 0, 1, { kind: 'route' }, 'faith')).toBeNull();
+  });
+
+  it('charges the treasury and mints the caravan carrying the route', () => {
+    const { state, home, partner } = hireWorld();
+    const price = routePrice(state, 0);
+    const purse = playerById(state, 0)!.gold;
+    const before = state.units.length;
+
+    expect(applyCommand(state, hire(0, home.id, partner.id))).toEqual({ ok: true });
+
+    expect(playerById(state, 0)!.gold).toBe(purse - price);
+    expect(state.units.length).toBe(before + 1);
+    const caravan = state.units[state.units.length - 1]!;
+    expect(trades(unitDef(caravan.type))).toBe(true);
+    expect(caravan.ownerId).toBe(0);
+    // In the origin's gates, carrying the route, under the order that walks it.
+    expect([caravan.col, caravan.row]).toEqual([home.col, home.row]);
+    expect(caravan.trade).toEqual({
+      from: home.id,
+      to: partner.id,
+      expiresTurn: state.turn + TRADE.routeTurns,
+      outbound: true,
+      autoResend: false,
+    });
+    expect(caravan.path?.[caravan.path.length - 1]).toEqual({ col: partner.col, row: partner.row });
+    // Both ends carry a post for ever, exactly as `startRoute` leaves them.
+    expect(home.tradingPost).toBe(true);
+    expect(partner.tradingPost).toBe(true);
+    // And the slot is spent: a second hire is refused by the gate's own clause.
+    expect(usedRouteSlots(state, 0)).toBe(1);
+  });
+
+  it('names the mode, and takes the sea where the sea is what there is', () => {
+    const world = seaWorld(false);
+    removeUnit(world.state, world.trader.id);
+    playerById(world.state, 0)!.gold = 10_000;
+    bumpRevision(world.state);
+    expect(
+      applyCommand(world.state, hire(0, world.home.id, world.partner.id, 'sea')),
+    ).toEqual({ ok: true });
+    const caravan = world.state.units[world.state.units.length - 1]!;
+    expect(caravan.trade?.sea).toBe(true);
+  });
+
+  it('refuses without the coin, in the reducer’s own sentence', () => {
+    const { state, home, partner } = hireWorld(0);
+    const price = routePrice(state, 0);
+    const refusal = purchaseError(state, 0, home.id, { kind: 'route' }, 'gold');
+    expect(refusal).toBe(`A trade route costs ${price} gold; ${playerById(state, 0)!.name} has 0`);
+
+    const before = snapshotState(state);
+    const result = applyCommand(state, hire(0, home.id, partner.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(refusal);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  /**
+   * The gate is `routeStartable`'s and nothing is re-implemented — so every
+   * sentence here is a sentence `startRoute` refuses a *piece* with, minus the
+   * three clauses only a piece can answer.
+   */
+  it('refuses every illegal hire and leaves the state byte-identical', () => {
+    const { state, home, partner } = hireWorld();
+    const theirs = foundCityAt(state, 1, at(state, 3, 8));
+
+    const refusals: { why: string; command: Command; match: RegExp }[] = [
+      {
+        why: 'a foreign partner, at war',
+        command: hire(0, home.id, theirs.id),
+        match: /at war with/,
+      },
+      {
+        why: 'a foreign origin',
+        command: hire(0, theirs.id, partner.id),
+        match: /belongs to another empire/,
+      },
+      { why: 'no such destination', command: hire(0, home.id, 9999), match: /No city with id/ },
+      { why: 'no such origin', command: hire(0, 9999, partner.id), match: /No city with id/ },
+      { why: 'one city twice', command: hire(0, home.id, home.id), match: /two different cities/ },
+      {
+        why: 'a mode with no path',
+        command: hire(0, home.id, partner.id, 'sea'),
+        match: /No sea lane/,
+      },
+    ];
+
+    for (const { why, command, match } of refusals) {
+      const before = snapshotState(state);
+      const result = applyCommand(state, command);
+      expect(result.ok, why).toBe(false);
+      if (!result.ok) expect(result.error, why).toMatch(match);
+      expect(snapshotState(state), why).toBe(before);
+    }
+  });
+
+  it('refuses a second route once every slot is running, exactly as startRoute does', () => {
+    const { state, home, partner } = hireWorld();
+    expect(applyCommand(state, hire(0, home.id, partner.id)).ok).toBe(true);
+    const third = foundCityAt(state, 0, at(state, 6, 7));
+    bumpRevision(state);
+    const gated = routeStartable(state, 0, home.id, third.id);
+    expect(gated).toMatch(/trade routes are running/);
+    const before = snapshotState(state);
+    const result = applyCommand(state, hire(0, home.id, third.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toBe(gated);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('refuses a seat that has ended its turn', () => {
+    const { state, home, partner } = hireWorld();
+    state.turnEnded[0] = true;
+    const before = snapshotState(state);
+    const result = applyCommand(state, hire(0, home.id, partner.id));
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.error).toMatch(/ended turn/);
+    expect(snapshotState(state)).toBe(before);
+  });
+});
+
 // --- land or sea ------------------------------------------------------------
 
 /**
@@ -743,6 +941,59 @@ describe('land or sea', () => {
     // Nothing at all when the pair is refused whichever way it is asked.
     const dry = tradeWorld();
     expect(bestRouteMode(dry.state, 0, dry.trader.id, dry.home.id, 9999)).toBeNull();
+  });
+
+  /**
+   * **The crossing pays** — `rules.trade.seaYieldPercent` (the user's ruling of
+   * 2026-09-09: *"sea routes should pay +50%"*), as a labelled line of the fold
+   * rather than a multiplication of the totals.
+   */
+  it('pays a sea route more than the same pair by land, on a line of its own', () => {
+    const { state, home, partner } = seaWorld();
+    // Shelves and people, so there is something for the premium to be a share of.
+    home.buildings.push('granary', 'library', 'monument', 'workshop', 'barracks');
+    home.population = 6;
+    partner.population = 6;
+    bumpRevision(state);
+
+    const byLand = explainRouteYieldBetween(state, home, partner, 'land');
+    const bySea = explainRouteYieldBetween(state, home, partner, 'sea');
+    // The land fold is untouched: no line, and byte-identical to the reading a
+    // caller that names no mode at all gets.
+    expect(byLand).toEqual(explainRouteYieldBetween(state, home, partner));
+    expect(byLand.some((line) => /by sea/.test(line.source))).toBe(false);
+
+    const premium = bySea.filter((line) => /by sea/.test(line.source));
+    expect(premium).toHaveLength(1);
+    expect(premium[0]!.source).toContain(`+${TRADE.seaYieldPercent}%`);
+    // Rule 5: the total is the fold of the list, and the premium is the share of
+    // everything above it.
+    const land = foldRouteYield(byLand);
+    const sea = foldRouteYield(bySea);
+    for (const voice of ['food', 'production', 'gold', 'science', 'culture'] as const) {
+      expect(sea[voice], voice).toBeCloseTo(land[voice] * (1 + TRADE.seaYieldPercent / 100), 6);
+    }
+    expect(sea.gold).toBeGreaterThan(land.gold);
+  });
+
+  it('reads the mode off the caravan’s own route, never a guess', () => {
+    const island = seaWorld(false);
+    island.home.buildings.push('granary', 'library');
+    island.home.population = 6;
+    island.partner.population = 6;
+    bumpRevision(island.state);
+    expect(
+      applyCommand(island.state, send(0, island.trader.id, island.home.id, island.partner.id, 'sea'))
+        .ok,
+    ).toBe(true);
+    expect(island.trader.trade?.sea).toBe(true);
+    // The caravan's own fold carries the premium; the pair read as land does not.
+    expect(explainRouteYield(island.state, island.trader)).toEqual(
+      explainRouteYieldBetween(island.state, island.home, island.partner, 'sea'),
+    );
+    expect(
+      explainRouteYield(island.state, island.trader).some((line) => /by sea/.test(line.source)),
+    ).toBe(true);
   });
 
   it('never paves water, whoever asks — the one writer refuses it', () => {
@@ -1685,7 +1936,7 @@ describe('trade in the log', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(99);
+    expect(SCHEMA_VERSION).toBe(100);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {

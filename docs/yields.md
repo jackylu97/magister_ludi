@@ -177,7 +177,7 @@ which is the only place in the simulation a yield meets a percentage.
 | 3 | **The cards' city lines** — `explainCardCityYields` | the law reaching this town | additive | — |
 | 4 | **The luxuries' city lines** — `cityResourceYields` | the empire's improved seams | additive | — |
 | 5 | **The specialists** — `citySpecialistYields` | the town's guilds (a substitution for a hex left, never a bonus) | additive | — |
-| 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith | additive | — |
+| 6 | **The routes arriving** — `cityRouteYields` | each caravan's *origin* buildings; five voices, never faith; a route run **by sea** carries `rules.trade.seaYieldPercent` as a line of its own fold, after the cards' shares and before their amplifiers | additive | — |
 | 7 | **The palace** — `explainPalaceYield` | the seat of government — its coin, and since 2026-09-08 a beaker and a note; empty in every town but one | additive | — |
 | 8 | **The buildings** — `explainCityBuildings` | `city.buildings` in build order, plus each row's per-citizen science | additive | — |
 | 9 | **The cards' building shares** — `explainCardBuildingYields` | the block above, **plus what the law put on each building by name** (`cardLinesOnBuilding`) | multiplicative *within the step*, lands as a flat | — |
@@ -224,7 +224,7 @@ stage over their fold, then the banks.
 | # | Step | Reads | Add / mult | Stage |
 |---|---|---|---|---|
 | 13 | **The luxuries' empire signatures** — `empireResourceYields` | the empire's holdings | additive | — |
-| 14 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire | additive | — |
+| 14 | **The caravans abroad** — `senderRouteYields` | routes this seat sent to another empire; the sea premium rides this fold too | additive | — |
 | 15 | **The treasury's ledger** — `explainEmpireGold` | connections, maintenance, the levy's surcharge, the charter's rebate, the treaties; every line declares itself **income** or **bill** (`TradeGoldKind`) | additive | — |
 | 16 | **The cards' empire payouts** — `explainEmpireCardYields` | the empire-scale card lines; **last**, because a rate conversion reads the rates 13–15 produced | additive | — |
 | 17 | **The empire stage** — `stageEmpireFold`, one reconciliation line a voice | the additive fold of 13–16 **minus the bills** | multiplicative | empire |

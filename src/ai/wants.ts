@@ -144,6 +144,7 @@ import type { GameMap, Tile } from '../sim/map';
 import type { TileYield } from '../sim/terrainData';
 import {
   type PurchasableItem,
+  type PurchaseSubject,
   bankOf,
   explainPurchaseCost,
   purchasableName,
@@ -191,6 +192,11 @@ import {
 import { buildingUpkeep } from '../sim/upkeep';
 import { round } from './decision';
 import { citizenKeepTerm } from './citizen';
+// **The trade standing, and what a route is worth** (batch 8, re-aimed by R1).
+// A runtime import and not a cycle: `value.ts` reads `RouteOutlook` type-only,
+// so nothing here is evaluated before the module that answers it.
+import { explainCaravan } from './routes';
+import type { RouteMode } from '../sim/trade';
 // **The town folds, one leaf down** (batch X1d). The chains price a building
 // step per copy off the very same grid, and a chain may not stand on the book
 // that stands on it — so the reading both books were already sharing moved to
@@ -265,6 +271,19 @@ export interface Want {
    * what the ruling asks — a rite is now a thing the bank buys.
    */
   rite?: { cityId: number; rite: RiteId };
+  /**
+   * **The route this empire could hire this turn** — batch R1, the ruling of
+   * 2026-09-09 that took the caravan out of the build queue.
+   *
+   * A fourth field beside `buy`, `ground` and `rite` for their stated reason: a
+   * route is a different verb (`buyRoute`) held to a different gate
+   * (`routeStartable` plus the purse), and a shape that hid four commands
+   * behind one key would be the spend arm branching on the absence of a field.
+   * It is priced in gold like a purchase and ranked against every other gold
+   * row by worth per coin, which is exactly what the ruling asks — a caravan is
+   * now a thing the treasury buys instead of a thing a town's hammers make.
+   */
+  route?: { fromCityId: number; toCityId: number; mode: RouteMode };
   /** True when the bank cannot pay the price today. Saving rows come of these. */
   outOfReach: boolean;
   /**
@@ -457,10 +476,70 @@ export function purchasingPlan(
   // would pay the town that bought it. See `tileWants`.
   for (const city of towns) wants.push(...tileWants(state, ctx, city));
 
+  // **The route the treasury could hire** (batch R1). The caravan left the
+  // build queue with the ruling of 2026-09-09, so the thing that used to be a
+  // row in a town's basket is a row in this book — priced by the simulation
+  // (`routePrice`, through `reachOf` like every other purchase) and worth
+  // exactly what the build arm used to say a caravan was worth.
+  const route = routeWant(state, player, ctx);
+  if (route !== null) wants.push(route);
+
   const reserve = wageReserveRow(ctx, inputs.wageReserve);
   if (reserve !== null) wants.push(reserve);
   for (const row of savingRows(wants, ctx, bankOf(player, 'gold'), inputs.goldRate)) wants.push(row);
   return wants;
+}
+
+/**
+ * **The route this empire would hire, as a want** — batch R1, and the arm that
+ * replaces the caravan the build queue used to raise.
+ *
+ * **One row, not one per pair**, and that is a claim about cost rather than a
+ * simplification. What a route *pays* is cheap to ask (two folds of
+ * `routeYields.ts`) and what a route is *legal* is dear (`routeStartable` runs
+ * A* for each mode), so `routeOutlook` already prices every ordered pair, sorts
+ * them by pay, and asks the gate down that order until one passes or
+ * `search.routeGateProbes` asks have been paid for. The pair it comes back with
+ * *is* the best route this empire could hire today — one row for it is one row
+ * for the decision, and a row per pair would be a want book that costs a
+ * hundred pathfinding searches to build.
+ *
+ * The worth is `explainCaravan`'s, unchanged and deliberately so: what a route
+ * is worth did not move when the way you get one did, and the build arm, the
+ * chain and this row all still read the one appraisal.
+ *
+ * The price is the simulation's, through `reachOf` like every other purchase —
+ * so a route the treasury cannot reach comes back as a saving row and pulls
+ * coins toward itself exactly as an unaffordable granary does, rather than
+ * vanishing out of the book.
+ *
+ * The origin town is where the price is *asked*, never who pays: the treasury
+ * pays, which is `purchaseError`'s route clause one file over.
+ */
+function routeWant(state: GameState, player: Player, ctx: ValueContext): Want | null {
+  const offer = ctx.routes.open;
+  if (offer === null) return null;
+  const worth = explainCaravan(ctx);
+  if (worth === null) return null;
+  const reach = reachOf(state, player, offer.from, { kind: 'route' }, 'gold');
+  if (reach === null) return null;
+  const folded = appraise([
+    nest(`the route it would open — ${offer.from.name} → ${offer.to.name} by ${offer.mode}`, worth),
+  ]);
+  return {
+    label: `a route ${offer.from.name} → ${offer.to.name} by ${offer.mode}`,
+    currency: 'gold',
+    price: reach.price,
+    worth: folded.total,
+    delay: 0,
+    terms: folded.terms,
+    outOfReach: reach.outOfReach,
+    ...(reach.outOfReach
+      ? {}
+      : {
+          route: { fromCityId: offer.from.id, toCityId: offer.to.id, mode: offer.mode },
+        }),
+  };
 }
 
 /**
@@ -2180,7 +2259,7 @@ function reachOf(
   state: GameState,
   player: Player,
   city: City,
-  item: PurchasableItem,
+  item: PurchaseSubject,
   currency: BankCurrency,
 ): { price: number; outOfReach: boolean } | null {
   const price = explainPurchaseCost(state, player.id, city.id, item, currency);
@@ -2194,7 +2273,7 @@ function reachOf(
 /** `purchaseError`'s money clause, said back to it. See `reachOf`. */
 function outOfReachFor(
   player: Player,
-  item: PurchasableItem,
+  item: PurchaseSubject,
   currency: BankCurrency,
   price: number,
   refusal: string,

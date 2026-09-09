@@ -251,6 +251,10 @@ const ANNOUNCING = new Set([
   'religion.ts#sweep',
   'combat.ts#applyCombat',
   'commands.ts#applyStartRoute',
+  // Hiring a route charges the treasury and mints a piece (batch R1), and both
+  // are writes a tenant folds — `bankedGold` for the card evaluator's counts,
+  // and the garrison count for the piece.
+  'commands.ts#applyBuyRoute',
   'diplomacy.ts#expelFrom',
   'movement.ts#advanceAlongPath',
   'state.ts#captureUnit',

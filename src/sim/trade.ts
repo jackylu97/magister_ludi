@@ -148,7 +148,6 @@ import { RULES } from './rulesData';
 import {
   type City,
   type GameState,
-  type TradeRoute,
   type Unit,
   cityById,
   playerById,
@@ -171,6 +170,10 @@ import { fullMovement } from './units';
 // file imports what it still uses and **re-exports the rest**, so a screen that
 // reads a route and the ledger together still has one import site for trade.
 import { routeCities, routeIsLive } from './routeYields';
+// The mode's own three names, from the leaf that owns them (see the re-export
+// below): a `export … from` binds nothing locally, and every gate in this file
+// is written in terms of a mode.
+import { type RouteMode, ROUTE_MODES } from './routes';
 import { bumpEconomy } from './slate';
 
 export {
@@ -461,34 +464,33 @@ function caravanProbe(playerId: number, type: UnitTypeId, from: City): Unit {
   };
 }
 
+/**
+ * The probe above, with the roster row looked up for you — `null` on a world
+ * with no caravan at all.
+ *
+ * Exported for `readRoutes` (`readings.ts`, batch R1), which surveys the same
+ * march the gate surveys and must survey it with the *same* piece, or its road
+ * count and its turn count would describe some other wagon. Every other caller
+ * of a probe is inside this file.
+ */
+export function caravanProbeFor(playerId: number, from: City): Unit | null {
+  const type = caravanTypeId();
+  return type === null ? null : caravanProbe(playerId, type, from);
+}
+
 // --- land or sea ------------------------------------------------------------
 
 /**
- * Which way a route runs. See the module docblock's last section.
+ * Which way a route runs, and the two readings of it — **re-exported by name**
+ * from the leaf that owns them since batch R1 (`routes.ts`; a star re-export
+ * comes out empty in a cycle).
  *
- * Two arms and no third: a route is entirely a land route or entirely a sea
- * route, so "mixed" is not a mode that was left out — it is the thing the
- * ruling abolished.
+ * They moved down for the pair resolution's reason exactly: `routeYields.ts`
+ * reads the mode now, because a sea route pays `rules.trade.seaYieldPercent`
+ * more as a line of its own fold, and that file may not import this one. One
+ * import site for a route is still `trade.ts`.
  */
-export type RouteMode = 'land' | 'sea';
-
-/**
- * Both modes, in **the order every choice is resolved in** — an array, never a
- * set, because the order is an outcome (see the default in `surveyRoute`, and
- * `routeModesAvailable`, whose result the interface draws left to right).
- */
-export const ROUTE_MODES: readonly RouteMode[] = ['land', 'sea'];
-
-/**
- * Which way this route runs, read off the route itself.
- *
- * `TradeRoute.sea` is presence-is-state and its absent half is land, so this is
- * the one place the two vocabularies meet and nothing else compares the field
- * against a boolean.
- */
-export function routeMode(route: TradeRoute): RouteMode {
-  return route.sea === true ? 'sea' : 'land';
-}
+export { type RouteMode, ROUTE_MODES, routeMode } from './routes';
 
 /**
  * The movement profile a caravan surveys and walks **one mode's** route with.

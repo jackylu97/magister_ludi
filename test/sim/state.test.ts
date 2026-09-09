@@ -736,7 +736,7 @@ describe('the research queue field', () => {
     // v92 log replays only where none of those rows was ever held; where one
     // was, a piece walks further or a citizen turns and everything priced
     // against it moves. (93 is batch B1's and 94 batch B1b's, landed beside it.)
-    expect(SCHEMA_VERSION).toBe(99);
+    expect(SCHEMA_VERSION).toBe(100);
   });
 });
 

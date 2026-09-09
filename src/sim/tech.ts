@@ -787,6 +787,15 @@ export function buildError(
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).greatWork === true) {
     return `${itemName(kind, id)}s are neither built nor bought — they are called`;
   }
+  // And a caravan is **hired with the route it carries** (ruled 2026-09-09,
+  // `docs/flags.md` item (iii)): the Trade screen sells a pair of towns, the
+  // coin buys the wagon and the route together, and a queue row that produced a
+  // wagon with nowhere to go would be a route slot spent on nothing. Refused
+  // here and in `purchaseError`, beside its four siblings and for their reason
+  // exactly. Asked of `UnitDef.routeOnly`, so nothing here names a trader.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).routeOnly === true) {
+    return `${itemName(kind, id)}s are not built — a caravan is hired on the trade sheet`;
+  }
   // And some rows are **in the data ahead of the age that opens them**: the Æra
   // V hulls shipped with the rest of the naval line so the twelve could be
   // balanced against each other, and no technology names them yet. Refused here

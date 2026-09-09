@@ -96,7 +96,7 @@ import {
 } from './statecraft';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
-import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, caravanTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
 import { bumpEconomy } from './slate';
 
 /** The banks a thing may be priced in. */
@@ -149,6 +149,40 @@ export type PurchasableItem =
   | { kind: 'unit'; id: UnitTypeId }
   | { kind: 'building'; id: BuildingId };
 
+/**
+ * A **route**, as a thing this bank prices — batch R1, the user's ruling of
+ * 2026-09-09 (`docs/flags.md` item (iii)).
+ *
+ * It carries no id and names no pair, and both are deliberate: *which* two
+ * towns a caravan joins changes what the route **pays** and never what it
+ * **costs**. The price is the wagon's — `goldPerHammer × the Trader row's
+ * production cost × rules.trade.routePriceMultiplier` — so it is a fact about
+ * the empire's age, which is exactly `routePrice(state, playerId)`'s signature
+ * and the reason the Trade screen can print one figure over a hundred rows.
+ *
+ * `readPurchasableItem` deliberately does **not** read it: a route is bought by
+ * `buyRoute`, which names the two towns and is held to the whole of
+ * `routeStartable` besides, and `purchaseItem` names no pair at all. So this
+ * subject reaches `explainPurchaseCost` and `purchaseError` from the reducer's
+ * own handler and from the want book, and never off a client's JSON.
+ */
+export interface PurchasableRoute {
+  kind: 'route';
+}
+
+/**
+ * Everything the two gates below can be asked about — a thing the queue could
+ * also have made, or a route.
+ *
+ * A wider type than `PurchasableItem` rather than a wider `PurchasableItem`,
+ * because `purchaseItemAt` and `realiseItem` deliver a *thing* and a route is
+ * not one: it is a command of its own with a completion of its own
+ * (`applyBuyRoute`, which spawns the caravan and writes `Unit.trade`). Keeping
+ * the narrow type is what stops the delivery routine growing an arm it can
+ * never reach.
+ */
+export type PurchaseSubject = PurchasableItem | PurchasableRoute;
+
 /** What a purchase costs, and out of which bank. */
 export interface PurchasePrice {
   currency: PurchaseCurrency;
@@ -159,7 +193,8 @@ export interface PurchasePrice {
 }
 
 /** The display name of a thing for sale. */
-export function purchasableName(item: PurchasableItem): string {
+export function purchasableName(item: PurchaseSubject): string {
+  if (item.kind === 'route') return 'A trade route';
   return item.kind === 'unit' ? unitDef(item.id).name : buildingDef(item.id).name;
 }
 
@@ -230,7 +265,11 @@ function purchasesMade(player: Player, type: UnitTypeId): number {
  * *not* share is a price — a unit's spec carries its own figure and a building's
  * carries none, which is the branch below.
  */
-function rosterBank(item: PurchasableItem): PurchaseCurrency | undefined {
+function rosterBank(item: PurchaseSubject): PurchaseCurrency | undefined {
+  // A route names no bank of its own — it is bought out of the treasury like
+  // everything the roster leaves alone, and `explainRoutePrice` is where its
+  // own conversion happens.
+  if (item.kind === 'route') return undefined;
   return item.kind === 'unit'
     ? unitDef(item.id).purchase?.currency
     : buildingDef(item.id).purchase?.currency;
@@ -282,10 +321,19 @@ export function explainPurchaseCost(
   state: GameState,
   playerId: number,
   cityId: number,
-  item: PurchasableItem,
+  item: PurchaseSubject,
   currency: PurchaseCurrency,
 ): PurchasePrice | null {
   if (!cityById(state, cityId)) return null;
+  // **A route, before anything the roster has to say** (batch R1). It is the
+  // one subject here that is not a row on a shelf: no bank names it, no
+  // building's congregation opens it and no rider rides on it, so it takes its
+  // own lines and returns.
+  if (item.kind === 'route') {
+    if (currency !== 'gold') return null;
+    const lines = explainRoutePrice(state, playerId);
+    return lines === null ? null : { currency: 'gold', lines, total: foldUnitCost(lines) };
+  }
   const bank = rosterBank(item);
   // **A row that names its own bank is sold out of that bank and no other** —
   // asked once here, for both tables, before either shape is priced. A building
@@ -360,6 +408,71 @@ export function explainPurchaseCost(
   // of that was the deferred sentence on both rows.
   applyRiders(state, playerId, cityId, item, currency, lines);
   return { currency, lines, total: foldUnitCost(lines) };
+}
+
+/**
+ * **What a trade route costs to hire**, as the ordered list the price is the
+ * fold of — or `null` on a world whose roster holds no caravan at all.
+ *
+ * The ruling of 2026-09-09 (`docs/flags.md` item (iii)) and the whole of it:
+ * *"the price is the caravan's own purchase price — `goldPerHammer × the Trader
+ * row's production cost` (the cost standard, so it climbs the columns with the
+ * age) — one knob `rules.trade.routePriceMultiplier` over it."*
+ *
+ * So it is **the caravan's own purchase price, said as lines**: every line of
+ * `explainUnitCost` for the row that `trades`, then the treasury's conversion,
+ * then the ruling's knob — each carrying the *difference* it makes to the
+ * running figure, exactly as the conversion beside it does, so the fold is the
+ * price however the rounding falls. A player who wonders why a route costs what
+ * it costs is shown the wagon it puts on the road, in the money of its own age.
+ *
+ * **The row is found by its marker, never by name** (`trades`, through
+ * `caravanTypeId`): a world whose caravan is a cargo ship prices its routes off
+ * that row with nothing here changed.
+ *
+ * It takes **no pair of towns**, and that is the design rather than a
+ * simplification: which two towns a route joins decides what it *pays*
+ * (`routeYields.ts`) and never what it *costs*. One figure over every row of
+ * the Trade screen, one figure the bot ranks against, one figure the reducer
+ * charges.
+ *
+ * The knob's line is omitted when it changes nothing, so a world at the ruled
+ * 1 prints exactly the caravan's converted cost and no line that says "× 1".
+ */
+export function explainRoutePrice(state: GameState, playerId: number): UnitCostLine[] | null {
+  const type = caravanTypeId();
+  if (type === null) return null;
+  const hammers = explainUnitCost(state, playerId, type);
+  const cost = foldUnitCost(hammers);
+  const lines = [...hammers];
+  const rate = RULES.production.goldPerHammer;
+  // The conversion carries the difference, `explainPurchaseCost`'s own rule one
+  // function up — floored once, at the end, for Entry XVII's reason.
+  const converted = Math.floor(cost * rate);
+  lines.push({ source: `×${rate} in gold`, amount: converted - cost });
+  const multiplier = RULES.trade.routePriceMultiplier;
+  if (multiplier !== 1) {
+    lines.push({
+      source: `×${multiplier} to hire the route`,
+      amount: Math.floor(converted * multiplier) - converted,
+    });
+  }
+  return lines;
+}
+
+/**
+ * **The** price of a route to this empire today — the fold of
+ * `explainRoutePrice`, and the one reading the Trade screen, the bot and the
+ * reducer share.
+ *
+ * `0` where the world has no caravan row, which is a board on which
+ * `routeStartable` already refuses every pair ("This world has no caravans") —
+ * so the figure is never the reason a route is refused, and no caller has to
+ * carry a null it could do nothing with.
+ */
+export function routePrice(state: GameState, playerId: number): number {
+  const lines = explainRoutePrice(state, playerId);
+  return lines === null ? 0 : foldUnitCost(lines);
 }
 
 /**
@@ -494,6 +607,20 @@ export function readPurchasableItem(raw: unknown): PurchasableItem | null {
 }
 
 /**
+ * Is this the route subject? `readPurchasableItem`'s neighbour, and the reason
+ * it is a separate reading rather than a third arm of it.
+ *
+ * A route may never arrive off a client's `purchaseItem`: that command names a
+ * town and a thing, and a route needs the *pair* — plus the whole of
+ * `routeStartable`, which is `buyRoute`'s gate and not this one. So
+ * `readPurchasableItem` refuses the shape, this says what the shape *was*, and
+ * `applyPurchaseItem` sends the client to the verb that takes it.
+ */
+export function isRouteItem(raw: unknown): boolean {
+  return typeof raw === 'object' && raw !== null && (raw as { kind?: unknown }).kind === 'route';
+}
+
+/**
  * Why this player cannot buy this thing in this city, or `null` when they can.
  *
  * **The** gate: the `purchaseItem` command refuses with this sentence, the
@@ -535,6 +662,30 @@ export function purchaseError(
   const city = cityById(state, cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== playerId) return `${city.name} does not belong to ${player.name}`;
+  // **A route is the purse and nothing else** (batch R1). It is asked here so
+  // that one gate answers "may this empire pay for this" whatever is being
+  // paid for — the money clause below is the very sentence the want book reads
+  // back to decide a row is merely unaffordable (`outOfReachFor`, `wants.ts`)
+  // — and it returns before every clause about a *town*, because everything a
+  // route can be refused for that is not the coin is `routeStartable`'s and
+  // `applyBuyRoute` asks that first. The town is named only so the price has a
+  // place to be asked; the treasury that pays is the empire's, which is why a
+  // puppet origin is no more refused here than it is by `startRoute`.
+  if (isRouteItem(item)) {
+    if (currency !== 'gold') {
+      return `${purchasableName({ kind: 'route' })} is bought with gold, not ${String(currency)}`;
+    }
+    const price = explainPurchaseCost(state, playerId, cityId, { kind: 'route' }, 'gold');
+    if (!price) return `${purchasableName({ kind: 'route' })} is not for sale in gold`;
+    const purse = bankOf(player, 'gold');
+    if (purse < price.total) {
+      return (
+        `${purchasableName({ kind: 'route' })} costs ${price.total} gold; ` +
+        `${player.name} has ${Math.floor(purse)}`
+      );
+    }
+    return null;
+  }
   // **A puppet spends nothing** (ruled 2026-09-03, Civ V's rule; schema 58).
   // Asked before the item is even read, because it is not about what is for
   // sale: a town taken by force and not yet taken *in* has no purse of its own
@@ -596,6 +747,13 @@ export function purchaseError(
   // nothing else. `buildError`'s matching sentence, one table over.
   if (bought.kind === 'unit' && unitDef(bought.id).retired === true) {
     return `A ${name} is no longer called`;
+  }
+  // **And a caravan comes with its route or not at all** (ruled 2026-09-09).
+  // The treasury would otherwise sell a wagon at the very price the route
+  // costs, with nowhere for it to go and a slot spent on it the moment it took
+  // one — see `UnitDef.routeOnly`. `buildError`'s matching sentence.
+  if (bought.kind === 'unit' && unitDef(bought.id).routeOnly === true) {
+    return `A ${name} is not bought — a caravan is hired on the trade sheet`;
   }
 
   const bank = rosterBank(bought);

@@ -58,6 +58,8 @@ import {
   yieldWeight,
 } from '../../src/ai/value';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
+import { purchaseError, routePrice } from '../../src/sim/purchase';
+import { routeStartable } from '../../src/sim/trade';
 import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch, restoreState, snapshotState } from '../../src/sim/game';
 import type { City } from '../../src/sim/state';
@@ -1680,6 +1682,60 @@ describe('batch 8 — the caravan and the route it would run', () => {
     bumpRevision(state);
     const richer = explainCaravan(valueContext(state, player))!;
     expect(richer.total).toBeGreaterThan(before);
+  });
+
+  /**
+   * **The route is a want now** (batch R1, the ruling of 2026-09-09). The
+   * caravan left the build queue, so what used to be a row in a town's basket
+   * is a row in the gold book — the simulation's own price, `explainCaravan`'s
+   * own worth, and `buyRoute` as the verb it fires.
+   */
+  it('carries the route as a row of the gold plan, priced by the simulation', () => {
+    const state = benchState(2);
+    const player = seat(state, 0);
+    const town = state.cities[0]!;
+    town.buildings.push(MARKET);
+    player.gold = 5_000;
+    bumpRevision(state);
+    refreshCityDerived(state, town);
+
+    const ctx = valueContext(state, player);
+    const offer = ctx.routes.open!;
+    expect(offer).not.toBeNull();
+    const row = ctx.wants.gold.find((want) => want.route !== undefined);
+    expect(row, 'the gold plan carries no route row').toBeDefined();
+    expect(row!.currency).toBe('gold');
+    // The simulation's price, and never the bot's arithmetic.
+    expect(row!.price).toBe(routePrice(state, player.id));
+    // `explainCaravan`'s worth, and the fold is the computation.
+    expect(row!.worth).toBe(explainCaravan(ctx)!.total);
+    expect(foldTerms(row!.terms)).toBe(row!.worth);
+    // Delivery is instant, exactly as a purchase's is.
+    expect(row!.delay).toBe(0);
+    // And it names the pair and the mode the gate accepted.
+    expect(row!.route).toEqual({
+      fromCityId: offer.from.id,
+      toCityId: offer.to.id,
+      mode: offer.mode,
+    });
+    // A verb the reducer takes: both halves of the gate pass on this board.
+    expect(routeStartable(state, player.id, offer.from.id, offer.to.id, offer.mode)).toBeNull();
+    expect(purchaseError(state, player.id, offer.from.id, { kind: 'route' }, 'gold')).toBeNull();
+  });
+
+  it('holds the route row back, rather than dropping it, when the purse is short', () => {
+    const state = benchState(2);
+    const player = seat(state, 0);
+    state.cities[0]!.buildings.push(MARKET);
+    player.gold = 0;
+    bumpRevision(state);
+    refreshCityDerived(state, state.cities[0]!);
+    const row = valueContext(state, player).wants.gold.find((want) => want.route !== undefined
+      || (want.outOfReach && want.label.startsWith('a route ')));
+    expect(row, 'the route left the book instead of holding').toBeDefined();
+    expect(row!.outOfReach).toBe(true);
+    // A hold row carries no verb: it is an opinion about coins.
+    expect(row!.route).toBeUndefined();
   });
 
   it('refuses a caravan where there is no route for one, and names the rule that refused', () => {

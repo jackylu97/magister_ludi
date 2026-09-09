@@ -542,6 +542,34 @@ export interface UnitDef {
    * answer two questions — the same split `greatWork` and `Unit.person` make.
    */
   trades?: boolean;
+  /**
+   * True when this row is **neither built nor bought** — it arrives only
+   * because a route was hired (`buyRoute`), and the route's own price is what
+   * pays for it.
+   *
+   * The user's ruling of 2026-09-09 (`docs/flags.md` item (iii)): *"Instead of
+   * building traders, lets have trade routes be purchasable with gold directly
+   * in the interface of the trade screen … having traders be gated by gold does
+   * make the decision making more interesting."* A caravan that could also be
+   * queued for hammers would make the coin price a suggestion — the augur's
+   * `purchase.exclusive` argument said the other way round — and a caravan
+   * bought out of the purchase book would be a wagon with no route on it, which
+   * is a slot spent on nothing.
+   *
+   * The **smallest honest marker**, beside `awaitsTech`, `retired`,
+   * `purchase.exclusive` and `greatWork`: presence is the rule, nothing in
+   * `src/sim/` compares a type against `"trader"`, and it is refused in exactly
+   * the two places a thing is acquired (`buildError`, `purchaseError`). It says
+   * nothing about `isUnlocked` — the row is still the empire's the day Currency
+   * lands, which is what lets `caravanTypeId`'s probe survey a route and what
+   * lets the price climb the columns with the age.
+   *
+   * It is deliberately **not** folded into `trades`. That marker answers "may
+   * this piece carry a route"; this one answers "how does one come to exist",
+   * and a roster that one day held a cargo ship bought at a shipyard would want
+   * the first and not the second.
+   */
+  routeOnly?: boolean;
   /** What one costs to buy outright, or absent. See `UnitPurchaseSpec`. */
   purchase?: UnitPurchaseSpec;
   /**

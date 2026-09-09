@@ -838,33 +838,40 @@ describe('never hand-written prose about a number', () => {
   });
 
   /**
-   * The verb, in one wording everywhere (the user's ruling, 2026-08-28).
+   * The verb, in one wording everywhere (the user's ruling, 2026-08-28; re-aimed
+   * by the ruling of 2026-09-09).
    *
-   * Four surfaces say how a route is opened — the trader's own entry, the Trade
+   * Four surfaces say how a route is opened — the caravan's own entry, the Trade
    * concept, the trade shelf's lead paragraph and the help card in
-   * `index.html` — and before this pass three of them described a mode on the
-   * board that no longer exists. Pinned on the two nouns the gesture *is*
-   * ("Start route", the Trade screen) rather than on whole sentences, so the
-   * prose may be improved and the mechanism may not silently drift back.
+   * `index.html` — and each time the gesture has changed, some of them have been
+   * left describing a mode on the board that no longer exists. Since batch R1 a
+   * route is **hired with gold on the Trade screen** and the caravan comes with
+   * it; `Start route` survives only for a wagon already standing. Pinned on the
+   * nouns the gesture *is* rather than on whole sentences, so the prose may be
+   * improved and the mechanism may not silently drift back.
    */
   it('describes the one way a route is opened, in the same words on every shelf', () => {
     const written = everyEntry()
       .filter((entry) => entry.written === true)
       .map((entry) => entry.clauses.map((clause) => clause.text).join(' '));
     const concept = written.find((prose) => prose.includes('Once you have researched Currency'))!;
-    expect(concept).toContain('Select a trader and choose Start route');
-    expect(concept).toContain('the trader moves to the origin city and begins');
+    expect(concept).toContain('hire trade routes with gold on the Trade screen');
+    expect(concept).toContain('a caravan appears in the origin city');
 
-    // The trader's own roster entry, generated off `UnitDef.trades`.
+    // The caravan's own roster entry, generated off `UnitDef.routeOnly` and
+    // `UnitDef.trades`.
     const trader = everyEntry().find((entry) => entry.id === 'unit:trader')!;
     const roster = trader.clauses.map((clause) => clause.text).join(' ');
-    expect(roster).toContain('Start route');
+    expect(roster).toContain('not built and not bought');
     expect(roster).toContain('Trade screen');
+    // And the wagon already standing still has its verb.
+    expect(roster).toContain('Start route');
 
-    // And nothing anywhere still describes the deleted mode.
+    // And nothing anywhere still describes a deleted mode.
     for (const prose of written) {
       expect(prose).not.toContain('Send Caravan');
       expect(prose).not.toContain('send it from one of your cities');
+      expect(prose).not.toContain('you can build a trader');
     }
   });
 

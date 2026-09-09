@@ -156,6 +156,28 @@ import {
   emptyCityYields,
   type CityYields,
 } from './cities';
+import { getTileAt } from './map';
+import { type Cell, pathTurns } from './pathfind';
+import { routePrice } from './purchase';
+import { RULES } from './rulesData';
+import {
+  type RouteYieldLine,
+  explainRouteSenderYieldBetween,
+  explainRouteYieldBetween,
+  foldRouteYield,
+  routeIsInternational,
+} from './routeYields';
+import {
+  type RouteMode,
+  caravanProbeFor,
+  routeLegPath,
+  routeModesAvailable,
+  routeRange,
+  routeSlots,
+  routeStartable,
+  usedRouteSlots,
+} from './trade';
+import { fullMovement } from './units';
 import {
   empirePercents,
   explainCity,
@@ -287,6 +309,258 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
   return slateMemo(state, 'revision', 'empires', String(playerId), () =>
     empireReading(state, playerId),
   );
+}
+
+// --- the routes on offer ----------------------------------------------------
+
+/**
+ * What one **mode** of one pair would pay this empire, per turn — the labelled
+ * list and its fold, from the simulation's own folds.
+ *
+ * Two folds and not one, because a route ending abroad pays the *sender* out of
+ * a different table (`explainRouteSenderYieldBetween`) and pays the host a coin
+ * that lands in somebody else's books. `abroad` says which of the two this is,
+ * so a screen never has to ask the question a second way.
+ */
+export interface RouteModeReading {
+  mode: RouteMode;
+  /** True when the fold below is the sender's — the partner is another empire's. */
+  abroad: boolean;
+  /** Rule 5: the labelled list, with the sea premium among the lines. */
+  lines: readonly RouteYieldLine[];
+  /** The fold of it — `foldRouteYield`, and never a sum taken beside it. */
+  total: ReturnType<typeof foldRouteYield>;
+}
+
+/** One ordered pair of towns, read whole. See `readRoutes`. */
+export interface RouteReadingRow {
+  from: City;
+  to: City;
+  /**
+   * The modes the gate would accept **today**, in `ROUTE_MODES` order — the
+   * whole of `routeStartable` asked of each, so a mode listed here is a mode
+   * `buyRoute` takes.
+   */
+  modes: readonly RouteMode[];
+  /** `modes.length > 0`. The Trade screen's Available-or-not. */
+  available: boolean;
+  /**
+   * Why not, in `routeStartable`'s **own sentence** — the land mode's, which is
+   * the one a player meets first — or `null` when the pair is available.
+   */
+  refusal: string | null;
+  /** What each available mode would pay, in `modes` order. */
+  pays: readonly RouteModeReading[];
+  /**
+   * How many hexes of the land leg a cart would **pave** — hexes with no road on
+   * them today, the origin's own excepted (a caravan starts there and a road is
+   * worn by arriving somewhere).
+   *
+   * `null` when no land leg exists at all — a sea-only pair and a cart that
+   * lays nothing — and on a pair the gate refused, which is not surveyed.
+   */
+  roadHexes: number | null;
+  /**
+   * Turns of a caravan's own march between the two, on the leg the survey found
+   * — `pathTurns` on a full purse, exactly as the range clause measures it.
+   *
+   * `null` on a pair the gate refused: the survey is A* and a route nobody may
+   * send has no march to price. See the note in `routesReading`.
+   */
+  turns: number | null;
+  /**
+   * The towns a **trading post at the partner** would bring into range — town
+   * ids, in `state.cities` order.
+   *
+   * The sim's own rule and nothing beside it (`routeRange`): the base is
+   * `rules.trade.rangeTurns` and each post among two endpoints adds
+   * `rules.trade.postRangeTurns`, so a partner that has never been an end of a
+   * route is a partner whose *first* route buys every later one three more
+   * turns of reach. Empty when the partner already carries a post.
+   *
+   * Measured off the turn counts this very reading took, treating the march as
+   * symmetric — the one stated approximation here, and a cheap one: a caravan's
+   * step price differs by direction only where a zone of control tolls one way,
+   * and the alternative is a second A* per pair per partner.
+   */
+  postReach: readonly number[];
+}
+
+/** Every pair this empire could send a caravan between, priced. See `readRoutes`. */
+export interface RoutesReading {
+  playerId: number;
+  /** `routeSlots` — the fold of markets and card riders. */
+  slots: number;
+  /** `usedRouteSlots` — caravans carrying a route, lapsed ones included. */
+  used: number;
+  /** What one route costs to hire today — `routePrice`, one figure for them all. */
+  price: number;
+  /**
+   * Every ordered pair of a town of this empire's and a town anywhere, in
+   * `state.cities` order twice over — founding order, a fact about the state
+   * rather than about the sweep.
+   */
+  rows: readonly RouteReadingRow[];
+}
+
+/**
+ * **Every route this empire could send, read once per revision** — the Trade
+ * screen's whole subject, and the fix for the lag the user reported
+ * (2026-09-09, `docs/flags.md` item (iii): *"please look into the performance
+ * of the trade screen, it gets quite laggy"*).
+ *
+ * The screen's cost was never the drawing. Every open re-priced every ordered
+ * pair from scratch: `routeModesAvailable` is `routeStartable` asked twice, and
+ * `routeStartable` runs A* for each mode and then `pathTurns` over the path it
+ * found — so a late board of a dozen towns paid a few hundred pathfinding
+ * searches every time the sheet was opened, and again on every redraw within it.
+ *
+ * The third verb is the whole answer (CLAUDE.md rule 5's `readX`): this is
+ * `explain` + `fold` for every pair at once, memoised on the slate, so the
+ * hundredth ask in one revision costs a `Map` lookup. A screen that redraws its
+ * filters, its tabs and its sort orders off one reading pays for the walk once
+ * per accepted command instead of once per render.
+ *
+ * **On the revision, not the economy clock**, and for `readCity`'s reason said
+ * about a different piece: what a caravan pays is cut when either end is
+ * blockaded (`cityBlockaded`), which is a reading of where a hull is standing —
+ * and the *gate* below is worse than that, since a pair's legality reads the
+ * traders already out, the war register and the ground a march would cross. One
+ * enemy ship moved changes this reading with nothing else on the board
+ * different.
+ *
+ * Everything in a row is the simulation's own: the gate is `routeStartable`,
+ * the pay is `routeYields.ts`'s two folds with the sea premium among their
+ * lines, the price is `routePrice`, the range is `routeRange`. Nothing here
+ * re-implements a rule; it remembers the answers.
+ */
+export function readRoutes(state: GameState, playerId: number): RoutesReading {
+  return slateMemo(state, 'revision', 'routes', String(playerId), () =>
+    routesReading(state, playerId),
+  );
+}
+
+/** A row still being written. `postReach` is filled by a second pass. */
+type DraftRouteRow = Omit<RouteReadingRow, 'postReach'> & { postReach: number[] };
+
+function routesReading(state: GameState, playerId: number): RoutesReading {
+  const rows: DraftRouteRow[] = [];
+  // The turn counts this sweep measures, keyed on the unordered pair, so the
+  // post-reach pass below can ask "how far is that town from this one" without
+  // a second search. See `RouteReadingRow.postReach` for the symmetry it leans
+  // on and why it is cheap.
+  const turnsBetween = new Map<string, number>();
+
+  for (const from of state.cities) {
+    if (from.ownerId !== playerId) continue;
+    const probe = caravanProbeFor(playerId, from);
+    for (const to of state.cities) {
+      if (to.id === from.id) continue;
+      const modes = routeModesAvailable(state, playerId, from.id, to.id);
+      const pays: RouteModeReading[] = [];
+      const abroad = routeIsInternational(from, to);
+      for (const mode of modes) {
+        const lines = abroad
+          ? explainRouteSenderYieldBetween(state, from, to, mode)
+          : explainRouteYieldBetween(state, from, to, mode);
+        pays.push({ mode, abroad, lines, total: foldRouteYield(lines) });
+      }
+      // **One extra survey, and only for a pair the gate took.** The land leg
+      // is what a cart paves and what the range was measured on, and the sea
+      // leg is the fallback for a pair with no land at all — but both are A*,
+      // and a pair the gate has already refused has no cart to measure. That
+      // keeps the reading's cost proportional to the routes actually **on
+      // offer** rather than to the square of the board, which matters most in
+      // exactly the state a player is in most of the game: `routeStartable`
+      // refuses on the slot clause *before* it searches, so on a board with
+      // every route running this whole reading costs 1.6ms against the 318ms
+      // an unconditional survey cost (measured, a played thirteen-town map,
+      // 72 pairs).
+      //
+      // The consequence is stated rather than hidden: an unavailable row
+      // carries no `turns` and no `roadHexes`, and it does not contribute to
+      // the post-reach pass. That is honest — a post's reach is about routes
+      // this seat could run — and the row still carries the gate's own sentence,
+      // which is what the Unavailable tab prints.
+      const walk = (mode: RouteMode): Cell[] | null =>
+        probe === null ? null : routeLegPath(state, probe, from, to, mode);
+      const land = modes.includes('land') ? walk('land') : null;
+      const walked = land ?? (modes.includes('sea') ? walk('sea') : null);
+      const turns =
+        probe === null || walked === null
+          ? null
+          : (() => {
+              const full = fullMovement(probe, state);
+              return pathTurns(state, probe, walked, { left: full, refill: full });
+            })();
+      if (turns !== null) turnsBetween.set(pairKey(from.id, to.id), turns);
+      rows.push({
+        from,
+        to,
+        modes,
+        available: modes.length > 0,
+        // The land mode's sentence: it is the one a player meets first, and a
+        // pair with no land at all is told about the sea by it anyway (the gate
+        // words its refusal after the mode it was asked about).
+        refusal: modes.length > 0 ? null : routeStartable(state, playerId, from.id, to.id, 'land'),
+        pays,
+        roadHexes: land === null ? null : unpavedHexes(state, land),
+        turns,
+        postReach: [],
+      });
+    }
+  }
+
+  // **The post's reach, in one pass over what the sweep already measured.** A
+  // route sets a trading post at *both* ends for ever (`startRouteAt`), so the
+  // thing worth telling a player about a pair is which towns the partner's new
+  // post pulls into range — the reason `rules.trade.postRangeTurns` exists at
+  // all, and the fact the user's mock prints beside a card.
+  const extra = RULES.trade.postRangeTurns;
+  for (const row of rows) {
+    if (row.to.tradingPost === true || extra <= 0) continue;
+    const reached: number[] = [];
+    for (const other of state.cities) {
+      if (other.id === row.to.id || other.id === row.from.id) continue;
+      const turns = turnsBetween.get(pairKey(row.to.id, other.id));
+      if (turns === undefined) continue;
+      const range = routeRange(row.to, other);
+      if (turns > range && turns <= range + extra) reached.push(other.id);
+    }
+    row.postReach = reached;
+  }
+
+  return {
+    playerId,
+    slots: routeSlots(state, playerId),
+    used: usedRouteSlots(state, playerId),
+    price: routePrice(state, playerId),
+    rows,
+  };
+}
+
+/** The unordered pair, as a key. Ids, never objects — the map is read by lookup. */
+function pairKey(a: number, b: number): string {
+  return a < b ? `${a}:${b}` : `${b}:${a}`;
+}
+
+/**
+ * How many hexes of this leg carry no road yet — what a land cart would pave.
+ *
+ * The **first** cell is skipped: it is the origin's own gates, and a road is
+ * worn by *arriving* somewhere (`layRoadUnder`, and the same reason
+ * `applyStartRoute` writes the route after the arrival). Presence of `Tile.road`
+ * is the whole question — the builder's seat on it is `explainEmpireGold`'s
+ * business, not a cart's.
+ */
+function unpavedHexes(state: GameState, path: readonly { col: number; row: number }[]): number {
+  let count = 0;
+  for (let at = 1; at < path.length; at += 1) {
+    const step = path[at]!;
+    const tile = getTileAt(state.map, step.col, step.row);
+    if (tile && tile.road === undefined) count += 1;
+  }
+  return count;
 }
 
 function empireReading(state: GameState, playerId: number): EmpireReading {

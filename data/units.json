@@ -70,6 +70,7 @@
       "combatStrength": 0,
       "size": "engine",
       "trades": true,
+      "routeOnly": true,
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,

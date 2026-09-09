@@ -69,6 +69,8 @@
     "buildingsPerProduction": 2,
     "connectionPerPop": 2,
     "roadsPerMaintenance": 4,
+    "routePriceMultiplier": 1,
+    "seaYieldPercent": 50,
     "pillageBounty": {
       "gold": 30,
       "food": 10,

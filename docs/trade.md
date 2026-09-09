@@ -8,18 +8,56 @@ History and the original proposal: `docs/design-history.md`.
 
 ## The trader
 
-- Own stacking-free `UnitCategory`; unlocked at Currency; civilian.
+- Own stacking-free `UnitCategory`; the row is opened at Currency; civilian.
+- **Neither built nor bought** (ruled 2026-09-09, schema 100). The row
+  carries `UnitDef.routeOnly` and both doors refuse it in one voice —
+  `buildError` and `purchaseError`, "…are not built — a caravan is hired on
+  the trade sheet". A caravan exists only because a route was hired.
 - **`Unit.trade` presence IS the route** — no route register. One route per
   city pair *per direction* (ruled 2026-09-03: A→B does not preclude B→A;
   at most two caravans join a pair, one each way); expiry is an absolute
   turn.
-- `startRoute { unitId, fromCityId, toCityId, mode? }`: where the trader
-  stands is not asked — it teleports to the origin through `arriveOnTile`
-  (the one arrival seam) and walks the route. `routeStartable` greys the
-  Trade screen's rows; `startRouteError` adds the piece-only clauses. Both
-  take the optional mode and answer for that mode alone.
 - The trader walks the road it lays; **a melee blow on a trading unit
   PLUNDERS** (bounty to the attacker's nearest city) — never captures.
+
+## Hiring a route (ruled 2026-09-09, schema 100)
+
+- `buyRoute { fromCityId, toCityId, mode? }` charges the treasury, mints the
+  caravan in the origin's gates through `arriveOnTile` (the one arrival
+  seam), writes `Unit.trade` on it and sets it walking. It names **no unit**.
+- **The gate is `routeStartable` plus the purse**, and neither half is
+  re-implemented: the pair, the slot, the direction, the mode, the range, the
+  war and the met-ness are `trade.ts`'s five clauses; the coin is
+  `purchaseError`'s money clause for the **route subject**
+  (`PurchasableRoute`, `purchase.ts`), which is the sentence every other
+  refused purchase carries.
+- **The price** is one figure for every pair — `routePrice(state, playerId)`,
+  the fold of `explainRoutePrice`: every line of the Trader row's production
+  cost (the cost standard, so it climbs the columns with the age), then
+  `×goldPerHammer in gold`, then `rules.trade.routePriceMultiplier` (1). The
+  UI, the bot and the reducer share the one reading.
+- `startRoute { unitId, fromCityId, toCityId, mode? }` **stays**, for a
+  caravan already standing: an old save, a route that lapsed and left its
+  wagon walking home, and the bot's re-send. Where the trader stands is not
+  asked — it teleports to the origin. `routeStartable` greys a row before any
+  wagon is chosen; `startRouteError` adds the piece-only clauses. Both take
+  the optional mode and answer for that mode alone.
+- **`readRoutes(state, playerId)`** (`readings.ts`, the third verb) is the
+  Trade screen's whole subject, memoised on the revision: every ordered pair
+  with its available modes, the fold per mode, the price, the hexes a land
+  cart would pave, the turn count, the gate's own refusal, and the towns a
+  trading post at the partner would bring into range. The screen's lag was
+  re-pricing every pair through `routeStartable`/`findPath` on **every open and
+  every redraw**.
+- **Measured** (a played thirteen-town board, 72 ordered pairs): the screen's
+  own walk costs **342ms** with a route slot free and **0.9ms** with none —
+  `routeStartable` refuses on the slot clause *before* it searches, so a
+  capacity-bound board was never the slow case. `readRoutes` costs **619ms**
+  fresh with a slot free (it carries more than the screen walked: the fold per
+  mode, the paving count, the turn count, the post's reach) and **1.6ms** when
+  every route is running; every ask after it in the same revision is
+  **0.0004ms**. So the ranking, the filters, the tabs and the sort orders the
+  mock asks for are free to redraw.
 
 ## Land or sea
 
@@ -77,6 +115,14 @@ History and the original proposal: `docs/design-history.md`.
   and `.destination` are ordinary `CityScope`s asked of the two ends: the
   Caravanserai is a hub (`origin`), the Printing House a terminus
   (`destination`).
+- **A sea route pays `rules.trade.seaYieldPercent` more** (50; ruled
+  2026-09-09) — a labelled line of the same fold, taken after the flats, the
+  cards' lines and their shares and **before** the percent amplifiers, so a
+  law that doubles trade route yields doubles the premium too. It rides the
+  sender's fold abroad on the same argument, and the blockade below still
+  takes the lot back. The mode is read off `Unit.trade` for a running route
+  (`routeMode`) and named by the caller for a preview; an absent mode is
+  **land**, the mode that pays no premium.
 - Route slots: fold over building `routeSlots` (+ card riders);
   `explainRouteSlots` is the list.
 

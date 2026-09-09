@@ -5,11 +5,13 @@
  * Two questions the bot used to answer with one flat number
  * (`weights.trader × goldPressure`, batch 7's surviving guess):
  *
- *   · *what is a caravan worth to build or to buy?* — the pay of **the best
- *     route no caravan of this empire is running**, which is the thing a caravan
- *     is actually for. An empire whose towns are all joined already, or whose
- *     every market slot is spoken for, wants no more wagons whatever the
- *     treasury says;
+ *   · *what is a route worth to hire?* — the pay of **the best route no caravan
+ *     of this empire is running**, which is the thing the coin is actually for.
+ *     An empire whose towns are all joined already, or whose every market slot
+ *     is spoken for, wants no more wagons whatever the treasury says. Since
+ *     batch R1 a caravan is never built: the route is bought (`buyRoute`) and
+ *     the wagon comes with it, so this reading is the want book's rather than
+ *     the build arm's;
  *   · *what is a market worth beyond its shelves?* — while every route this
  *     empire may run **is** running, a row that carries `routeSlots` opens one
  *     more, and what it opens is worth exactly what that unserved pair would
@@ -49,7 +51,7 @@
  * pays its empire gold every turn for ever through `explainEmpireGold`'s
  * connections line. That is a standing income the flat weight was partly
  * standing in for, and an offer's `pay` carries it as a term of its own
- * (`roadTerm`). Without it the honest price stopped this bot building caravans
+ * (`roadTerm`). Without it the honest price stopped this bot sending caravans
  * at all; see the batch's measurement.
  *
  * Hoisted once per sitting onto `ValueContext.routes` (the batch-6 bargain): a
@@ -58,7 +60,7 @@
  */
 
 import { type Appraisal, type ValueTerm, appraise, nest } from './decision';
-import { type ValueContext, type YieldBag, buildTurns, explainYields } from './value';
+import { type ValueContext, type YieldBag, explainYields } from './value';
 
 import { BUILDING_IDS, buildingDef } from '../sim/buildingData';
 import { connectedCities } from '../sim/roads';
@@ -71,8 +73,7 @@ import {
 import { type City, type GameState, type Player, capitalCityOf } from '../sim/state';
 import { type RouteMode, routeModesAvailable, routeSlots, usedRouteSlots } from '../sim/trade';
 import { RULES } from '../sim/rulesData';
-import { unitProductionCost } from '../sim/cities';
-import { type UnitTypeId, caravanTypeId, trades, unitDef } from '../sim/unitData';
+import { trades, unitDef } from '../sim/unitData';
 
 const TRADE = RULES.trade;
 
@@ -120,8 +121,15 @@ export interface RouteOutlook {
    */
   next: RouteOffer | null;
   /**
-   * Turns before a wagon could carry the route a new slot opens: nothing when
-   * one is already idle in hand, and the caravan's own build otherwise.
+   * Turns before a wagon could carry the route a new slot opens.
+   *
+   * **Zero since batch R1**, and it is a fact rather than a stub: a caravan is
+   * no longer built at all — the route is bought (`buyRoute`) and the wagon is
+   * minted in the origin's gates on the turn the coin leaves — so a slot that
+   * opens is a slot an empire with the price in hand can fill this turn. The
+   * field stays because `routeSlotTerm` (`value.ts`) discounts a market's
+   * route by it, and "nothing to wait for" is an honest number to discount by;
+   * the day a route takes a turn to arrive, this is where that lands.
    */
   caravanDelay: number;
 }
@@ -163,12 +171,20 @@ export function explainRoutePay(
   from: City,
   to: City,
   ctx: ValueContext,
+  /**
+   * Which way it would run, when that is settled — a sea route pays
+   * `rules.trade.seaYieldPercent` more (batch R1), and that premium is a line
+   * of the fold below. Absent while the sweep is still *sorting* pairs, where
+   * no mode has been chosen and the conservative land reading is the honest
+   * one; `firstLegal` re-prices with the mode the gate actually accepted.
+   */
+  mode?: RouteMode,
 ): Appraisal {
   const abroad = routeIsInternational(from, to);
   const paid = foldRouteYield(
     abroad
-      ? explainRouteSenderYieldBetween(state, from, to)
-      : explainRouteYieldBetween(state, from, to),
+      ? explainRouteSenderYieldBetween(state, from, to, mode)
+      : explainRouteYieldBetween(state, from, to, mode),
   );
   const bag: YieldBag = {
     food: paid.food,
@@ -213,7 +229,11 @@ export function routeOutlook(state: GameState, player: Player, ctx: ValueContext
     bound,
     open: null,
     next: null,
-    caravanDelay: idle > 0 ? 0 : caravanBuildTurns(ctx),
+    // **Nothing to wait for** (batch R1): a route is hired and its wagon minted
+    // in the same command, so a slot that opens can be filled the turn the coin
+    // is there. An idle wagon standing about is quicker still, and both are
+    // nought — see `RouteOutlook.caravanDelay`.
+    caravanDelay: 0,
   };
 
   const pairs = pricedPairs(state, player, ctx);
@@ -281,8 +301,14 @@ function firstLegal(
     const modes = routeModesAvailable(state, playerId, pair.from.id, pair.to.id);
     const mode = modes[0];
     if (mode === undefined) continue;
+    // **Re-priced with the mode the gate accepted** (batch R1). The sort above
+    // ran on the land reading, which is the mode that pays no sea premium; a
+    // pair that turns out to be a sea lane pays `seaYieldPercent` more and the
+    // offer must say so, or the want book ranks a route by a figure the
+    // simulation would not bank.
+    const paid = mode === 'land' ? pair.pay : explainRoutePay(state, pair.from, pair.to, ctx, mode);
     const road = roadTerm(pair.to, mode, ctx, roads);
-    const pay = road === null ? pair.pay : appraise([nest('what it pays', pair.pay), road]);
+    const pay = road === null ? paid : appraise([nest('what it pays', paid), road]);
     return { from: pair.from, to: pair.to, mode, pay };
   }
   return null;
@@ -368,25 +394,21 @@ function withSpareSlot(state: GameState, playerId: number): GameState | null {
   return { ...state, cities };
 }
 
-/** How long a middling town of this empire would take to raise a caravan. */
-function caravanBuildTurns(ctx: ValueContext): number {
-  const id: UnitTypeId | null = caravanTypeId();
-  if (id === null) return 0;
-  // The folded price — the size line, the column line and the ladder — never
-  // the row's own size alone.
-  return buildTurns(unitProductionCost(ctx.state, ctx.playerId, id), ctx);
-}
-
 /**
- * **What a caravan is worth**, or `null` when this empire has no route for one —
- * the build arm's and the purchasing plan's one reading (batch 8).
+ * **What a route is worth**, or `null` when this empire has none to hire — the
+ * want book's route row and the chain's one reading (batch 8, re-aimed by R1).
  *
- * The flat `weights.trader` guess is gone: a wagon is worth the pay of the best
- * route nobody is running, which is the thing it will actually do. `null` rather
- * than nought where there is no such route, because that is a *rule* and not a
- * price — a lone town has nowhere to send a route, an empire whose every slot is
- * spoken for has no room for another wagon, and a wagon already standing idle
- * will take the next slot before a new one does.
+ * The flat `weights.trader` guess is gone: a route is worth the pay of the best
+ * pair nobody is running, which is the thing the coin will actually do. `null`
+ * rather than nought where there is no such route, because that is a *rule* and
+ * not a price — a lone town has nowhere to send a route, an empire whose every
+ * slot is spoken for has no room for another wagon, and a wagon already standing
+ * idle will take the next slot before a hired one does.
+ *
+ * **It was the build arm's reading and is now the treasury's** (batch R1). The
+ * caravan left the queue with the ruling of 2026-09-09, so the row that reads
+ * this is `routeWant` in the want book; nothing about the *number* changed with
+ * the door it comes through, which is why this function did not move.
  */
 export function explainCaravan(ctx: ValueContext): Appraisal | null {
   const routes = ctx.routes;
@@ -408,13 +430,18 @@ export function explainCaravan(ctx: ValueContext): Appraisal | null {
   return appraise(terms);
 }
 
-/** Why a caravan is refused, in the words the feed prints. See `explainCaravan`. */
+/**
+ * Why a route is refused, in the words the feed prints. See `explainCaravan`.
+ *
+ * Read by the chain, for the node that opens trade — a technology that unlocks
+ * caravans in an empire with nowhere to send one unlocks nothing, and says so.
+ */
 export function caravanRefusal(ctx: ValueContext): string {
   const routes = ctx.routes;
   if (routes.slots <= 0) return 'This empire has no trade route to run — build a market first.';
   if (routes.free <= 0) {
     return routes.idle > 0
-      ? 'A caravan already stands idle waiting for a slot; a second would wait beside it.'
+      ? 'A caravan already stands idle waiting for a slot; a hired one would wait beside it.'
       : `All ${routes.slots} of this empire's trade routes are running.`;
   }
   return 'No pair of towns will take another route from this empire.';

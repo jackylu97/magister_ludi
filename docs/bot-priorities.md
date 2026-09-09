@@ -6517,3 +6517,69 @@ for a want the bank already covers, and prints itself in the faith line; the
 incumbent's margin term is a **division** on a plan below nought and the score
 rises for it; and a chain's building copy carries no hammer anywhere in its terms
 while its delay still reads the build.
+
+
+## Batch R1 as shipped — the caravan leaves the queue (2026-09-09)
+
+The user's ruling of 2026-09-09 (`docs/flags.md` item (iii)) took the Trader
+row out of the build queue and the purchase book: a **route** is hired with
+gold (`buyRoute`) and the wagon comes with it. What that changed in the bot is
+one door, not one number.
+
+- **The build arm's caravan candidate is gone.** `buildError` refuses a
+  `routeOnly` row, so `unitBuildable` never offers one and the arm could only
+  have priced a candidate that cannot exist. `unitRoleValue`'s trader clause
+  and `frontRowWorth`'s were both removed; `test/sim/aiBot.test.ts` pins that
+  no town of any seat ever queues one and that `bot.ts` no longer imports
+  `explainCaravan`.
+- **The route is a want.** `wants.ts` carries a fourth verb field
+  (`Want.route`) beside `buy`, `ground` and `rite`, and `purchasingPlan` adds
+  **one** row — the best pair `routeOutlook` already gated (`ctx.routes.open`),
+  priced by `routePrice` through `reachOf` like every other purchase and worth
+  exactly `explainCaravan`'s appraisal. One row rather than one per pair
+  because the *pay* is cheap and the *gate* is A\*: the outlook already spends
+  `search.routeGateProbes` finding the best legal pair, and a row per pair
+  would be a want book costing a hundred pathfinding searches to build. A purse
+  that cannot reach it holds, through `savingRows`, exactly as an unaffordable
+  granary does.
+- **`bankSpend` fires it** through `routeDecision`, gated by
+  `routeStartable` then `purchaseError` in the reducer's own order, so a row
+  the live board has since struck is marked refused in place and the bank goes
+  to the next best want.
+- **`caravanDelay` is nought.** A route and its wagon arrive in one command, so
+  the discount `routeSlotTerm` applied to a market's opened route ("a caravan
+  has still to be raised") has nothing left to discount. `caravanBuildTurns` is
+  deleted rather than left returning zero.
+- **The mode is priced.** A sea route pays `rules.trade.seaYieldPercent` more,
+  so `explainRoutePay` takes the mode; `pricedPairs` still sorts on the
+  conservative land reading (no mode is chosen yet) and `firstLegal` re-prices
+  the pair the gate accepted. `traderCommand` names the mode it will send in.
+- **The feed says the verbs.** `greatPersonCommand` printed "act now" and
+  "plant its work"; it prints the family's own words now (`familyVerb`,
+  `greatPeopleData.ts` — the unmarked reading, because the decision feed does
+  not resolve a keyword ref), which closes U4's last surface.
+
+**Measured, t100** (eight seeds 1/2/3/42/101/999/31337/20260101, standard, two
+balanced seats, barbarians, mean of 16 seats, ±1 SE):
+
+| | before | after |
+|---|---|---|
+| cities | 6.25 ±0.48 | 6.19 ±0.52 |
+| citizens | 45.19 ±4.31 | 44.25 ±4.69 |
+| buildings | 33.50 ±1.70 | 32.44 ±1.53 |
+| food/turn | 135.96 ±13.32 | 137.66 ±17.27 |
+| production/turn | 90.74 ±8.11 | 82.35 ±5.12 |
+| gold/turn | 56.79 ±11.74 | **64.52 ±14.55** |
+| science/turn | 111.48 ±9.73 | 111.81 ±16.59 |
+| culture/turn | 85.80 ±8.10 | 82.53 ±9.95 |
+| faith/turn | 21.20 ±3.90 | 19.29 ±3.36 |
+| treasury | 410.27 ±60.53 | 402.13 ±60.40 |
+| techs | 26.19 ±0.90 | 26.13 ±0.97 |
+| happiness | 5.56 ±2.41 | 6.33 ±2.71 |
+| **routes running** | 0.88 ±0.24 | **1.00 ±0.29** |
+
+Routes running per seat **up** and gold per turn up; every other row inside one
+standard error. Production is the one row that moved by about a standard error,
+and it moved *down*, which is not the direction the change predicts — a town
+that no longer spends hammers on a wagon should make more — so it reads as
+noise plus one fewer shelf rather than a finding.

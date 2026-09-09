@@ -18,10 +18,47 @@
  * resolution it performs — it simply no longer owns the words.
  */
 
-import { type City, type GameState, type Unit, cityById } from './state';
+import { type City, type GameState, type TradeRoute, type Unit, cityById } from './state';
 // The war register, and the only thing this leaf asks about diplomacy.
 // `wars.ts` imports the rules, the state and the deal terms and nothing else.
 import { atWar } from './wars';
+
+// --- which way a route runs -------------------------------------------------
+
+/**
+ * Which way a route runs. See `trade.ts`'s last docblock section.
+ *
+ * Two arms and no third: a route is entirely a land route or entirely a sea
+ * route, so "mixed" is not a mode that was left out — it is the thing the
+ * ruling of 2026-09-03 abolished.
+ *
+ * **It lives in the leaf** (batch R1) for the same reason the pair resolution
+ * does: `routeYields.ts` has to read the mode now — a sea route pays
+ * `rules.trade.seaYieldPercent` more, as a line of its own fold — and
+ * `trade.ts` imports `cities.ts`, which is the far side of the cycle
+ * `routeYields.ts` exists to stay clear of. `trade.ts` re-exports all three
+ * names **by name** (never `export *`), so every caller still has one import
+ * site for a route.
+ */
+export type RouteMode = 'land' | 'sea';
+
+/**
+ * Both modes, in **the order every choice is resolved in** — an array, never a
+ * set, because the order is an outcome (see the default in `surveyRoute`, and
+ * `routeModesAvailable`, whose result the interface draws left to right).
+ */
+export const ROUTE_MODES: readonly RouteMode[] = ['land', 'sea'];
+
+/**
+ * Which way this route runs, read off the route itself.
+ *
+ * `TradeRoute.sea` is presence-is-state and its absent half is land, so this is
+ * the one place the two vocabularies meet and nothing else compares the field
+ * against a boolean.
+ */
+export function routeMode(route: TradeRoute): RouteMode {
+  return route.sea === true ? 'sea' : 'land';
+}
 
 /**
  * The two cities a caravan's route joins, or `null` when the route no longer

@@ -145,13 +145,7 @@ import {
   rankWorkSites,
   reachableGroundOn,
 } from './plan';
-import {
-  NO_ROUTES,
-  caravanRefusal,
-  explainCaravan,
-  explainRoutePay,
-  routeOutlook,
-} from './routes';
+import { NO_ROUTES, explainRoutePay, routeOutlook } from './routes';
 import {
   type ValueContext,
   type YieldBag,
@@ -192,7 +186,12 @@ import {
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 import { discoveryDef } from '../sim/discoveryData';
-import { type Family, type GreatPersonId, greatPersonDef } from '../sim/greatPeopleData';
+import {
+  type Family,
+  type GreatPersonId,
+  familyVerb,
+  greatPersonDef,
+} from '../sim/greatPeopleData';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef } from '../sim/projectData';
 import {
@@ -320,6 +319,7 @@ import {
   type RouteMode,
   bestRouteMode,
   routeIsInternational,
+  routeStartable,
   startRouteError,
 } from '../sim/trade';
 import {
@@ -3422,7 +3422,14 @@ function bankSpend(
       candidates.push(wantCandidate(want, currency, false));
       continue;
     }
-    if (want.buy === undefined && want.ground === undefined && want.rite === undefined) continue;
+    if (
+      want.buy === undefined &&
+      want.ground === undefined &&
+      want.rite === undefined &&
+      want.route === undefined
+    ) {
+      continue;
+    }
     // **The treasury is read live, never off the book** (batch 6). The book was
     // priced when the seat sat down and a purchase since then has spent from it,
     // so the cover is asked of `bankOf` at the moment the question is put.
@@ -3480,6 +3487,23 @@ function bankSpend(
         continue;
       }
       return riteDecision(state, player, best.want, bar, candidates);
+    }
+    // **A route is the fourth verb the treasury fires** (batch R1). Its gate is
+    // two sentences and both are the simulation's — `routeStartable` for the
+    // pair and `purchaseError` for the purse, in that order, which is the order
+    // `applyBuyRoute` asks them in so a struck row carries the reducer's own
+    // words. It can no more share `purchaseDecision` than the hex can: the
+    // command names two *towns* and no item at all.
+    const route = best.want.route;
+    if (route !== undefined) {
+      const refusal =
+        routeStartable(state, player.id, route.fromCityId, route.toCityId, route.mode) ??
+        purchaseError(state, player.id, route.fromCityId, { kind: 'route' }, 'gold');
+      if (refusal !== null) {
+        best.candidate.rejected = refusal;
+        continue;
+      }
+      return routeDecision(state, player, best.want, bar, candidates);
     }
     const bought = best.want.buy!;
     const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
@@ -3562,6 +3586,50 @@ function riteDecision(
         : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
     candidates,
     focus: { col: city.col, row: city.row },
+  };
+}
+
+/**
+ * **A route, hired** — the route want's half of `bankSpend` (batch R1).
+ *
+ * Its own function rather than a branch inside `purchaseDecision` for
+ * `tileDecision`'s reason exactly: this is a different verb held to a different
+ * gate, and the two only meet in the ranking that chose between them. The
+ * caravan the command mints is not named here at all — it does not exist until
+ * the reducer writes it, which is the whole difference from the `startRoute`
+ * this bot still sends a wagon already standing on (`traderCommand`).
+ */
+function routeDecision(
+  state: GameState,
+  player: Player,
+  best: Want,
+  bar: Want | null,
+  candidates: BotCandidate[],
+): BotDecision {
+  const route = best.route!;
+  const from = cityById(state, route.fromCityId)!;
+  const to = cityById(state, route.toCityId)!;
+  for (const candidate of candidates) {
+    if (candidate.label === best.label && candidate.rejected === undefined) candidate.chosen = true;
+  }
+  return {
+    kind: 'purchase',
+    command: {
+      type: 'buyRoute',
+      playerId: player.id,
+      fromCityId: route.fromCityId,
+      toCityId: route.toCityId,
+      mode: route.mode,
+    },
+    subject: from.name,
+    summary:
+      `Hires a caravan for ${from.name} → ${to.name} by ${route.mode} at ${best.price} gold — ` +
+      `${round1(worthPerCoin(best))} a coin, ` +
+      (bar === null
+        ? 'and this empire has nothing it would rather hold for.'
+        : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
+    candidates,
+    focus: { col: to.col, row: to.row },
   };
 }
 
@@ -3796,13 +3864,9 @@ function frontRowWorth(
   const def = unitDef(item.id);
   if (isCombatant(def)) return appraise([nest('what this piece is worth', explainSoldier(item.id, ctx))]);
   if (def.foundsCity === true) return appraise([{ label: 'one more town', value: ctx.ai.weights.city }]);
-  if (trades(def)) {
-    // **The route it would run** (batch 8), the same reading the build arm uses —
-    // and nothing at all where there is no route left for it, which is honest
-    // about a basket half-filled with a wagon this empire has no work for.
-    const caravan = explainCaravan(ctx);
-    return caravan ?? appraise([{ label: caravanRefusal(ctx), value: 0 }]);
-  }
+  // A caravan can no longer be at the front of a basket at all (batch R1): the
+  // row is refused by `buildError`, so nothing ever queues one and this arm has
+  // no caravan clause to keep.
   return appraise([{ label: 'a civilian', value: ctx.ai.weights.worker }]);
 }
 
@@ -4455,22 +4519,13 @@ function unitRoleValue(
     };
   }
 
-  if (trades(def)) {
-    // **A caravan is worth the route it would run** (batch 8), and the flat
-    // `weights.trader × goldPressure` guess is retired with the knob. Every
-    // quota went before it — `tradersPerCity` in batch 4, `traderCap` in batch 7
-    // — on the promise that route pay would be priced, and this is that promise
-    // kept: the best pair no caravan of this empire is running, through the
-    // simulation's own fold, or **nothing at all** where there is no such pair.
-    //
-    // The refusal is a *rule* rather than a cap and there are three of them now,
-    // all derived: a lone town has nowhere to send a route, an empire whose every
-    // slot is running has no room for another wagon, and a wagon already standing
-    // idle will take the next slot before a new one does. See `explainCaravan`.
-    const caravan = explainCaravan(ctx);
-    if (caravan === null) return null;
-    return { value: caravan.total, terms: caravan.terms };
-  }
+  // **There is no caravan row here any more** (batch R1, the ruling of
+  // 2026-09-09). A caravan is hired with the route it carries and never queued,
+  // so `buildError` refuses the row outright and `unitBuildable` never offers it
+  // — an arm here could only ever price a candidate that cannot exist. What a
+  // route is worth is unchanged and unmoved (`explainCaravan`): it is read by the
+  // chain, which still values the node that opens trade, and by the want book's
+  // route row, which is where the decision went.
 
   // **The opening's scouts, and the glut after them** (ruled 2026-09-04). The
   // first scout is the opening book's (`openingScout`); this is the *weight*
@@ -6907,9 +6962,21 @@ function greatPersonCommand(
   const ctx = seatContext(state, player, sitting);
   const tried: BotCandidate[] = [];
 
+  // **The family's own verbs, not "act" and "work"** (batch R1, the U4 ruling of
+  // 2026-09-09 finishing its last surface): a scholar *Writes a Treatise* or
+  // *Founds an Academy*, and the words come from the family's data row through
+  // the one reading every other surface takes (`familyVerb`,
+  // `greatPeopleData.ts`). The **unmarked** reading rather than
+  // `describeFamilyVerb`, because the decision feed prints plain text and does
+  // not resolve a keyword ref; a family this piece has no row for — which is no
+  // piece the reducer will ever hand this arm — falls back to the plain word.
+  const family = familyOf(unit);
+  const actWords = family === null ? 'act now' : familyVerb(family, 'act');
+  const workWords = family === null ? 'plant its work' : familyVerb(family, 'work');
+
   const actRefusal = greatPersonActError(state, player.id, unit.id);
   const act = actRefusal === null ? explainAct(state, player, unit, ctx) : null;
-  if (act === null) tried.push(refused('act now', actRefusal ?? 'this piece has no boon to spend'));
+  if (act === null) tried.push(refused(actWords, actRefusal ?? 'this piece has no boon to spend'));
 
   const work = workOf(unit);
   const sites =
@@ -6920,18 +6987,18 @@ function greatPersonCommand(
   // that cannot be taken off the board, while a work planted on a border hex can
   // be pillaged the turn after.
   if (act !== null && (best === null || act.total >= best.score)) {
-    tried.push({ label: 'act now', score: act.total, chosen: true, terms: act.terms });
+    tried.push({ label: actWords, score: act.total, chosen: true, terms: act.terms });
     if (best !== null) tried.push({ label: best.entry.label, score: best.score, chosen: false, terms: best.terms });
     return {
       command: { type: 'greatPersonAct', playerId: player.id, unitId: unit.id },
       summary:
-        `Spends itself now for ${round1(act.total)} a turn's worth of one-time boon` +
-        (best === null ? '.' : `, against ${round1(best.score)} for planting its work.`),
+        `${actWords} — ${round1(act.total)} a turn's worth of one-time boon` +
+        (best === null ? '.' : `, against ${round1(best.score)} for ${workWords}.`),
       candidates: tried,
     };
   }
 
-  if (act !== null) tried.push({ label: 'act now', score: act.total, chosen: false, terms: act.terms });
+  if (act !== null) tried.push({ label: actWords, score: act.total, chosen: false, terms: act.terms });
 
   let probes = 0;
   for (const site of sites) {
@@ -6946,7 +7013,8 @@ function greatPersonCommand(
       return {
         command: { type: 'greatPersonWork', playerId: player.id, unitId: unit.id },
         summary:
-          `Plants its work where it stands — ${round1(site.score)} a turn on this hex, the best ground in reach.`,
+          `${workWords} where it stands — ${round1(site.score)} a turn on this hex, ` +
+          'the best ground in reach.',
         candidates: tried,
       };
     }
@@ -6969,13 +7037,13 @@ function greatPersonCommand(
         target: { col: site.entry.col, row: site.entry.row },
       },
       summary:
-        `Walks ${site.distance} hexes to (${site.entry.col},${site.entry.row}) to plant its work — ` +
-        `${round1(site.score)} a turn after the walk.`,
+        `Walks ${site.distance} hexes to (${site.entry.col},${site.entry.row}) for ` +
+        `${workWords} — ${round1(site.score)} a turn after the walk.`,
       candidates: tried,
       focus: { col: site.entry.col, row: site.entry.row },
     };
   }
-  return standDown(state, unit, 'Nothing to act on and nowhere its work would pay.');
+  return standDown(state, unit, `Neither ${actWords} nor ${workWords} is worth it here.`);
 }
 
 /**
@@ -7315,7 +7383,10 @@ function traderCommand(
         tried.push(refused(label, refusal ?? 'No route a caravan could take.'));
         continue;
       }
-      const pay = explainRoutePay(state, from, to, ctx);
+      // Priced in the mode it would actually run in (batch R1): a sea leg pays
+      // `seaYieldPercent` more, and a table that ranked every pair by the land
+      // reading would send the wagon the wrong way.
+      const pay = explainRoutePay(state, from, to, ctx, mode);
       const at = tried.length;
       tried.push({ label: `${label} by ${mode}`, score: pay.total, chosen: false, terms: pay.terms });
       if (best === null || pay.total > best.score) best = { from, to, mode, score: pay.total, at };
