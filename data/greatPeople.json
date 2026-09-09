@@ -43,7 +43,7 @@
         {
           "kind": "productionBonus",
           "category": "wonder",
-          "percent": 5
+          "percent": 10
         }
       ]
     },
@@ -83,26 +83,6 @@
         }
       ]
     },
-    "ptahhotep": {
-      "name": "Ptahhotep",
-      "family": "scholar",
-      "age": 2,
-      "tier": "situational",
-      "epigram": "Great is the law; enduring.",
-      "kernel": "The Maxims, the oldest book of advice.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "authority",
-          "amount": 1,
-          "count": "buildingsOfKind",
-          "per": 2,
-          "building": "library"
-        }
-      ]
-    },
     "enheduanna": {
       "name": "Enheduanna",
       "family": "artist",
@@ -131,11 +111,48 @@
       "kernel": "The bard.",
       "legacy": [
         {
-          "kind": "windfallRider",
-          "occasion": "death",
-          "grant": {
-            "yield": "culture",
-            "amount": 20
+          "kind": "pays",
+          "where": "hex",
+          "science": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "academy"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "culture": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "landmark"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "manufactory"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "gold": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "customsHouse"
+          }
+        },
+        {
+          "kind": "pays",
+          "where": "hex",
+          "production": 2,
+          "on": {
+            "test": "improvement",
+            "improvement": "citadel"
           }
         }
       ]
@@ -168,6 +185,7 @@
           "kind": "pays",
           "where": "city",
           "culture": 1,
+          "production": 1,
           "scope": {
             "test": "coastal"
           }
@@ -179,6 +197,7 @@
       "family": "engineer",
       "age": 2,
       "tier": "strong",
+      "retired": true,
       "epigram": "Every terrace of it was his.",
       "kernel": "Hatshepsut's architect.",
       "legacy": [
@@ -186,30 +205,6 @@
           "kind": "productionBonus",
           "category": "building",
           "percent": 10
-        }
-      ]
-    },
-    "hemiunu": {
-      "name": "Hemiunu",
-      "family": "engineer",
-      "age": 2,
-      "tier": "defining",
-      "epigram": "Two million stones, and his name on none.",
-      "kernel": "The Great Pyramid's overseer.",
-      "legacy": [
-        {
-          "kind": "productionBonus",
-          "category": "wonder",
-          "percent": 10
-        },
-        {
-          "kind": "happiness",
-          "amount": -2,
-          "per": "city",
-          "scope": {
-            "test": "queueHolds",
-            "category": "wonder"
-          }
         }
       ]
     },
@@ -275,6 +270,7 @@
       "family": "merchant",
       "age": 2,
       "tier": "strong",
+      "retired": true,
       "epigram": "29,086 measures barley, 37 months.",
       "kernel": "The first named person in writing — an accountant.",
       "legacy": [
@@ -294,6 +290,7 @@
       "family": "merchant",
       "age": 2,
       "tier": "situational",
+      "retired": true,
       "epigram": "Send the tin by the next donkeys.",
       "kernel": "Old Assyrian trader of the Kanesh letters.",
       "legacy": [
@@ -400,6 +397,96 @@
         }
       ]
     },
+    "sappho": {
+      "name": "Sappho",
+      "family": "artist",
+      "age": 2,
+      "tier": "strong",
+      "epigram": "Someone will remember us.",
+      "kernel": "The fragment.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "culture": 3,
+          "scope": {
+            "test": "capital"
+          }
+        },
+        {
+          "kind": "happiness",
+          "amount": 1
+        }
+      ]
+    },
+    "epicurus": {
+      "name": "Epicurus",
+      "family": "scholar",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The garden asks little and gives back the day.",
+      "kernel": "Athenian of the Garden; pleasure read as the absence of pain.",
+      "legacy": [],
+      "deferred": [
+        "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet."
+      ]
+    },
+    "aristotle": {
+      "name": "Aristotle",
+      "family": "scholar",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "He asked what a thing was for, and wrote the answer down.",
+      "kernel": "Founder of the Lyceum; logic, physics, politics, the first library of everything.",
+      "legacy": [],
+      "deferred": [
+        "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet."
+      ]
+    },
+    "hemiunu": {
+      "name": "Hemiunu",
+      "family": "engineer",
+      "age": 3,
+      "tier": "defining",
+      "epigram": "Two million stones, and his name on none.",
+      "kernel": "The Great Pyramid's overseer.",
+      "legacy": [
+        {
+          "kind": "productionBonus",
+          "category": "wonder",
+          "percent": 10
+        },
+        {
+          "kind": "happiness",
+          "amount": -2,
+          "per": "city",
+          "scope": {
+            "test": "queueHolds",
+            "category": "wonder"
+          }
+        }
+      ]
+    },
+    "ptahhotep": {
+      "name": "Ptahhotep",
+      "family": "scholar",
+      "age": 3,
+      "tier": "situational",
+      "epigram": "Great is the law; enduring.",
+      "kernel": "The Maxims, the oldest book of advice.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "authority",
+          "amount": 1,
+          "count": "buildingsOfKind",
+          "per": 2,
+          "building": "library"
+        }
+      ]
+    },
     "archimedes": {
       "name": "Archimedes",
       "family": "scholar",
@@ -409,20 +496,20 @@
       "kernel": "Syracuse.",
       "legacy": [
         {
-          "kind": "productionBonus",
-          "category": "unit",
-          "percent": 10,
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
           "class": {
             "modelClass": "siege"
           }
         },
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 3,
           "when": {
-            "test": "vsCity"
+            "test": "always"
           },
-          "side": "attack",
+          "side": "both",
           "class": {
             "modelClass": "siege"
           }
@@ -480,29 +567,7 @@
           "to": "science",
           "amount": 1,
           "count": "revealedTiles",
-          "per": 60
-        }
-      ]
-    },
-    "sappho": {
-      "name": "Sappho",
-      "family": "artist",
-      "age": 3,
-      "tier": "strong",
-      "epigram": "Someone will remember us.",
-      "kernel": "The fragment.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "culture": 3,
-          "scope": {
-            "test": "capital"
-          }
-        },
-        {
-          "kind": "happiness",
-          "amount": 1
+          "per": 80
         }
       ]
     },
@@ -535,6 +600,7 @@
       "family": "artist",
       "age": 3,
       "tier": "situational",
+      "retired": true,
       "epigram": "He finished the Records rather than die.",
       "kernel": "The Grand Historian.",
       "legacy": [
@@ -633,13 +699,24 @@
       "kernel": "The ten books.",
       "legacy": [
         {
-          "kind": "pays",
-          "where": "city",
-          "production": 1,
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
           "scope": {
             "test": "hasBuilding",
             "building": "aqueduct"
-          }
+          },
+          "building": "aqueduct"
+        },
+        {
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city",
+          "scope": {
+            "test": "hasBuilding",
+            "building": "granary"
+          },
+          "building": "granary"
         }
       ]
     },
@@ -684,7 +761,7 @@
           "to": "gold",
           "amount": 2,
           "count": "revealedTiles",
-          "per": 60
+          "per": 80
         }
       ]
     },
@@ -734,7 +811,7 @@
           "kind": "purchaseRider",
           "class": {},
           "on": "all",
-          "percent": -20
+          "percent": -30
         },
         {
           "kind": "windfallRider",
@@ -762,21 +839,16 @@
       "kernel": "Massalia to Thule.",
       "legacy": [
         {
-          "kind": "cityStat",
-          "stat": "sight",
-          "amount": 1,
-          "scope": {
-            "test": "coastal"
-          }
-        },
-        {
           "kind": "unitStat",
           "stat": "sight",
           "amount": 1,
           "class": {
-            "modelClass": "scout"
+            "category": "trader"
           }
         }
+      ],
+      "deferred": [
+        "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet."
       ]
     },
     "hannibal": {
@@ -810,6 +882,7 @@
       "family": "general",
       "age": 3,
       "tier": "strong",
+      "retired": true,
       "epigram": "Backs to the river, they could not lose.",
       "kernel": "Jingxing.",
       "legacy": [
@@ -828,6 +901,22 @@
             "test": "coastal"
           },
           "side": "both"
+        }
+      ]
+    },
+    "gaiusMarius": {
+      "name": "Gaius Marius",
+      "family": "general",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "The road is the army, and the army carries the road.",
+      "kernel": "Consul seven times; the legions that shouldered their own kit.",
+      "legacy": [
+        {
+          "kind": "unitStat",
+          "stat": "movement",
+          "amount": 1,
+          "where": "ownTerritory"
         }
       ]
     },
@@ -857,14 +946,23 @@
       "tier": "situational",
       "epigram": "He left the school with kitchen knives.",
       "kernel": "Vesuvius.",
+      "legacy": [],
+      "deferred": [
+        "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet."
+      ]
+    },
+    "ibnSina": {
+      "name": "Ibn Sīnā",
+      "family": "scholar",
+      "age": 3,
+      "tier": "strong",
+      "epigram": "Medicine is not hard; the hard part is the patient.",
+      "kernel": "The Canon of Medicine.",
       "legacy": [
         {
-          "kind": "combatLine",
-          "amount": 3,
-          "side": "attack",
-          "when": {
-            "test": "strongerTarget"
-          }
+          "kind": "happiness",
+          "amount": 1,
+          "per": "city"
         }
       ]
     },
@@ -877,12 +975,64 @@
       "kernel": "al-jabr.",
       "legacy": [
         {
-          "kind": "pays",
-          "where": "city",
-          "science": 2,
+          "kind": "percentYields",
+          "yield": "faith",
+          "percent": 10,
           "scope": {
             "test": "hasBuilding",
             "building": "university"
+          }
+        }
+      ],
+      "deferred": [
+        "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet."
+      ]
+    },
+    "maimonides": {
+      "name": "Maimonides",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Teach the perplexed, and the perplexity is already half gone.",
+      "kernel": "Physician to a sultan's court, and the Guide for the Perplexed.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "scienceBuildings"
+        }
+      ]
+    },
+    "rogerBacon": {
+      "name": "Roger Bacon",
+      "family": "scholar",
+      "age": 4,
+      "tier": "strong",
+      "epigram": "Try it first, and argue about it after.",
+      "kernel": "Franciscan friar of Oxford; optics, the calendar, and a plea for experiment.",
+      "legacy": [
+        {
+          "kind": "windfallRider",
+          "occasion": "tech",
+          "grant": {
+            "timed": {
+              "turns": 3,
+              "effects": [
+                {
+                  "kind": "percentYields",
+                  "yield": "food",
+                  "percent": 30
+                },
+                {
+                  "kind": "percentYields",
+                  "yield": "production",
+                  "percent": 30
+                }
+              ]
+            }
           }
         }
       ]
@@ -892,6 +1042,7 @@
       "family": "scholar",
       "age": 4,
       "tier": "situational",
+      "retired": true,
       "epigram": "The needle points south, and a little east.",
       "kernel": "The Dream Pool Essays.",
       "legacy": [
@@ -902,21 +1053,6 @@
           "to": "science",
           "amount": 2,
           "count": "improvedStrategicResources"
-        }
-      ]
-    },
-    "ibnSina": {
-      "name": "Ibn Sīnā",
-      "family": "scholar",
-      "age": 4,
-      "tier": "strong",
-      "epigram": "Medicine is not hard; the hard part is the patient.",
-      "kernel": "The Canon of Medicine.",
-      "legacy": [
-        {
-          "kind": "happiness",
-          "amount": 1,
-          "per": "city"
         }
       ]
     },
@@ -933,7 +1069,7 @@
           "where": "city",
           "basis": "count",
           "to": "faith",
-          "amount": 1,
+          "amount": 2,
           "count": "scienceBuildings"
         }
       ]
@@ -951,7 +1087,7 @@
           "where": "empire",
           "basis": "count",
           "to": "culture",
-          "amount": 2,
+          "amount": 10,
           "count": "unitsInField",
           "class": {
             "modelClass": "melee"
@@ -964,6 +1100,7 @@
       "family": "artist",
       "age": 4,
       "tier": "defining",
+      "retired": true,
       "epigram": "He told the kings' lives and lost his own.",
       "kernel": "The Edda, the Heimskringla.",
       "legacy": [
@@ -996,16 +1133,9 @@
       "tier": "situational",
       "epigram": "Out beyond ideas of wrongdoing…",
       "kernel": "The Masnavi.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "culture": 2,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
-        }
+      "legacy": [],
+      "deferred": [
+        "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet."
       ]
     },
     "seiShonagon": {
@@ -1018,11 +1148,13 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "empire",
+          "where": "city",
           "basis": "count",
           "to": "culture",
-          "amount": 1,
-          "count": "uniqueLuxuries"
+          "percent": 5,
+          "stage": "city",
+          "count": "uniqueLuxuries",
+          "within": "city"
         }
       ]
     },
@@ -1033,16 +1165,9 @@
       "tier": "strong",
       "epigram": "It poured the wine and bowed.",
       "kernel": "The automata.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "production": 2,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "workshop"
-          }
-        }
+      "legacy": [],
+      "deferred": [
+        "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet."
       ]
     },
     "suSong": {
@@ -1055,8 +1180,13 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "city",
+          "where": "hex",
           "science": 1,
+          "production": 1,
+          "on": {
+            "test": "improvement",
+            "improvement": "mine"
+          },
           "scope": {
             "test": "hasBuilding",
             "building": "workshop"
@@ -1089,11 +1219,12 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "gold",
-          "amount": 1,
-          "count": "cities"
+          "where": "hex",
+          "gold": 2,
+          "culture": 1,
+          "on": {
+            "test": "greatWork"
+          }
         }
       ]
     },
@@ -1104,15 +1235,9 @@
       "tier": "situational",
       "epigram": "Thirty years, and I never took the same road twice.",
       "kernel": "The Rihla.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "gold",
-          "amount": 1,
-          "count": "sightedCities"
-        }
+      "legacy": [],
+      "deferred": [
+        "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet."
       ]
     },
     "marcoPolo": {
@@ -1122,15 +1247,9 @@
       "tier": "situational",
       "epigram": "I have not told the half.",
       "kernel": "The Travels.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "gold",
-          "amount": 3,
-          "count": "foreignTradeRoutes"
-        }
+      "legacy": [],
+      "deferred": [
+        "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet."
       ]
     },
     "francescoDatini": {
@@ -1143,8 +1262,11 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "city",
+          "where": "hex",
           "gold": 2,
+          "on": {
+            "test": "hasResource"
+          },
           "scope": {
             "test": "hasBuilding",
             "building": "bank"
@@ -1240,6 +1362,38 @@
         }
       ]
     },
+    "mimarSinan": {
+      "name": "Mimar Sinan",
+      "family": "engineer",
+      "age": 4,
+      "tier": "situational",
+      "epigram": "An apprentice's mosque, a journeyman's, a master's.",
+      "kernel": "The Süleymaniye.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "production": 2,
+          "culture": 2,
+          "scope": {
+            "test": "hasBuilding",
+            "building": "temple"
+          }
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "temple"
+        },
+        {
+          "kind": "productionBonus",
+          "category": "building",
+          "percent": 30,
+          "building": "cathedral"
+        }
+      ]
+    },
     "paracelsus": {
       "name": "Paracelsus",
       "family": "scholar",
@@ -1272,7 +1426,7 @@
         {
           "kind": "pays",
           "where": "hex",
-          "science": 1,
+          "science": 2,
           "on": {
             "test": "all",
             "of": [
@@ -1355,6 +1509,9 @@
           "amount": 2,
           "count": "wonders"
         }
+      ],
+      "deferred": [
+        "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet."
       ]
     },
     "basho": {
@@ -1370,8 +1527,11 @@
           "where": "hex",
           "culture": 1,
           "on": {
-            "test": "feature",
-            "feature": "forest"
+            "test": "anyFeature",
+            "features": [
+              "forest",
+              "jungle"
+            ]
           }
         }
       ]
@@ -1386,8 +1546,12 @@
       "legacy": [
         {
           "kind": "pays",
-          "where": "city",
-          "culture": 2,
+          "where": "hex",
+          "science": 1,
+          "culture": 1,
+          "on": {
+            "test": "hasResource"
+          },
           "scope": {
             "test": "hasBuilding",
             "building": "university"
@@ -1449,37 +1613,6 @@
         }
       ]
     },
-    "mimarSinan": {
-      "name": "Mimar Sinan",
-      "family": "engineer",
-      "age": 5,
-      "tier": "situational",
-      "epigram": "An apprentice's mosque, a journeyman's, a master's.",
-      "kernel": "The Süleymaniye.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "city",
-          "culture": 1,
-          "scope": {
-            "test": "hasBuilding",
-            "building": "temple"
-          }
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 30,
-          "building": "temple"
-        },
-        {
-          "kind": "productionBonus",
-          "category": "building",
-          "percent": 30,
-          "building": "cathedral"
-        }
-      ]
-    },
     "vaucanson": {
       "name": "Vaucanson",
       "family": "engineer",
@@ -1534,6 +1667,7 @@
       "family": "merchant",
       "age": 5,
       "tier": "strong",
+      "retired": true,
       "epigram": "Seven voyages, and then the ships were burned.",
       "kernel": "The treasure fleet.",
       "legacy": [
@@ -1553,6 +1687,26 @@
         }
       ]
     },
+    "willemBeukelszoon": {
+      "name": "Willem Beukelszoon",
+      "family": "merchant",
+      "age": 5,
+      "tier": "strong",
+      "epigram": "One clean cut, and the sea keeps until spring.",
+      "kernel": "The Zeeland fisherman said to have taught the herring its barrel.",
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "hex",
+          "percent": 100,
+          "basePercent": 100,
+          "on": {
+            "test": "improvement",
+            "improvement": "fishingBoats"
+          }
+        }
+      ]
+    },
     "graciaMendesNasi": {
       "name": "Gracia Mendes Nasi",
       "family": "merchant",
@@ -1562,9 +1716,12 @@
       "kernel": "The House of Mendes.",
       "legacy": [
         {
-          "kind": "foundingRider",
-          "population": 1
+          "kind": "authority",
+          "amount": 8
         }
+      ],
+      "deferred": [
+        "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet."
       ]
     },
     "cosimoDeMedici": {
@@ -1574,17 +1731,9 @@
       "tier": "situational",
       "epigram": "Patron of everything, prince of nothing.",
       "kernel": "The bank that bought a Renaissance.",
-      "legacy": [
-        {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "culture",
-          "amount": 1,
-          "count": "bankedGold",
-          "per": 50,
-          "max": 6
-        }
+      "legacy": [],
+      "deferred": [
+        "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet."
       ]
     },
     "gustavusAdolphus": {

@@ -767,7 +767,7 @@ describe('the research queue field', () => {
     // 103 is batch B7's (2026-09-09, item (kkk)): crowding removed — a town's
     // demand is linear in its citizens, so a v102 log's happiness differs from
     // the turn its first town passes the old threshold.
-    expect(SCHEMA_VERSION).toBe(103);
+    expect(SCHEMA_VERSION).toBe(104);
   });
 });
 

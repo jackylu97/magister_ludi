@@ -57,6 +57,7 @@ import {
 import {
   GREAT_PERSON_IDS,
   type GreatPersonId,
+  LIVE_GREAT_PERSON_IDS,
   greatPersonDef,
   rosterOfAge,
 } from '../../src/sim/greatPeopleData';
@@ -78,6 +79,9 @@ import { arriveOnTile } from '../../src/sim/arrival';
 import { authorityOf, happinessOf, tierPercent } from '../../src/sim/meters';
 import { revokeLegacies } from '../../src/sim/greatPeople';
 import { unitDef } from '../../src/sim/unitData';
+import { fullMovement } from '../../src/sim/units';
+import { pruneTimedEffects } from '../../src/sim/religion';
+import { settleResearch } from '../../src/sim/tech';
 import {
   cardAmplifier,
   cardAmplifierFlat,
@@ -106,12 +110,17 @@ function call(state: GameState, playerId: number, id: GreatPersonId): Unit {
   return createUnit(state, playerId, 'greatPerson', city.col, city.row, id);
 }
 
-/** One name of each family, for the verb suites. */
+/**
+ * One name of each family, for the verb suites — **all five live** (batch GP1):
+ * the engineer and the merchant were Senenmut and Kushim until the pass of
+ * 2026-09-09 retired both, and a fixture standing on a name no board can deal is
+ * a fixture that describes something a player never meets.
+ */
 const SAMPLE = {
   scholar: 'ahmes',
   artist: 'ilimilku',
-  engineer: 'senenmut',
-  merchant: 'kushim',
+  engineer: 'bezalel',
+  merchant: 'lamassi',
   general: 'sinuhe',
 } as const;
 
@@ -119,16 +128,56 @@ const SAMPLE = {
 
 describe('the roster', () => {
   it('is the doc as it reads, four families deep per age', () => {
-    // Eighty since the nerf pass of 2026-09-03 struck Li Jie off the roster
-    // (the user's `[remove]` in the worksheet's Nerf notes column). A name is
-    // deleted rather than marked because there is no retired concept on this
-    // table — a great person is *consumed*, never withdrawn from a pool.
-    expect(GREAT_PERSON_IDS.length).toBe(80);
+    // **Eighty-six rows, seventy-eight of them dealt** (batch GP1, 2026-09-09,
+    // `docs/flags.md` (lll)). The table gained a retired concept it did not have
+    // before, and it gained it for the one reason a great-person row can never
+    // simply be deleted: a `LegacyRecord` in a save names the person by id, so
+    // the eight names the pass cut keep their rows and leave every draw. The two
+    // lists are therefore two questions — `GREAT_PERSON_IDS` is the table and
+    // `LIVE_GREAT_PERSON_IDS` is what the game deals — and this pins both.
+    expect(GREAT_PERSON_IDS.length).toBe(86);
+    expect(LIVE_GREAT_PERSON_IDS.length).toBe(78);
+    expect(GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).retired === true)).toHaveLength(8);
     for (const age of [2, 3, 4, 5]) {
-      // Deep enough that a draw never spills in ordinary play; Æra IV is the
-      // short one at nineteen and every other age still holds twenty or more.
-      expect(rosterOfAge(age).length, String(age)).toBeGreaterThanOrEqual(19);
+      // Deep enough that a draw never spills in ordinary play; Æra II is the
+      // short one at sixteen since the pass moved two of its engineers forward.
+      expect(rosterOfAge(age).length, String(age)).toBeGreaterThanOrEqual(16);
+      // And nothing withdrawn is ever in the bag an offer is dealt from.
+      expect(rosterOfAge(age).some((id) => greatPersonDef(id).retired === true)).toBe(false);
     }
+  });
+
+  /**
+   * **A retired name is never dealt** — the marker's whole claim, asked of the
+   * dice rather than of the filter that implements it.
+   *
+   * Two hundred offers off a live board, every one of them read for a withdrawn
+   * row. A single-seat sweep would have proved only that `rosterOfAge` filters;
+   * this proves the *draw* does, which is the sentence the ruling actually
+   * makes — the weighting, the walk and the spill all take their bag from that
+   * one function and a second bag added anywhere would show up here.
+   */
+  it('never deals a withdrawn name, over two hundred draws', () => {
+    const g = game(4242);
+    const player = g.state.players[0]!;
+    const retired = new Set(
+      GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).retired === true),
+    );
+    expect(retired.size).toBe(8);
+    let dealt = 0;
+    for (let i = 0; i < 200; i += 1) {
+      // The whole table, every age: the seat is walked up the tree so the draw
+      // spills over all four bags rather than sitting in Æra II's.
+      if (i === 60) player.techsResearched.push('siegecraft');
+      if (i === 120) player.techsResearched.push('theology');
+      bumpRevision(g.state);
+      const offer = drawGreatPersonOffer(g.state, player);
+      for (const id of offer.options) {
+        expect(retired.has(id), `${id} is withdrawn and was dealt`).toBe(false);
+        dealt += 1;
+      }
+    }
+    expect(dealt).toBeGreaterThan(200);
   });
 
   it('maps an empire’s era onto a roster age, and never off the table', () => {
@@ -799,23 +848,31 @@ describe('the legacies this pass built', () => {
     expect(empire(g.state, 0).culture).toBe(6);
   });
 
-  it('Eratosthenes measures the world in sixties, off the seat’s own grid', () => {
+  it('Eratosthenes measures the world in eighties, off the seat’s own grid', () => {
     // Retuned per 20 → per 50 (user, 2026-09-02) → per 60 (the nerf pass of
-    // 2026-09-03): the map layers pass made revealed ground much easier to come
-    // by, so the pension pays slower again.
+    // 2026-09-03) → per 80 (batch GP1, 2026-09-09): the great people are three
+    // times rarer since B5, so the pension is worth waiting for rather than
+    // worth taking early.
     const g = game(107);
     found(g.state, 0);
     bear(g.state, 0, 'eratosthenes');
     const grid = g.state.visibility[0]!;
     grid.fill(0);
-    for (let i = 0; i < 130; i++) grid[i] = 1;
-    // Two helpings of sixty; the ten over pay nothing until they are sixty.
+    for (let i = 0; i < 170; i++) grid[i] = 1;
+    // Two helpings of eighty; the ten over pay nothing until they are eighty.
     expect(empire(g.state, 0).science).toBe(2);
     // The other seat's grid is the other seat's.
     expect(empire(g.state, 1).science).toBe(0);
   });
 
-  it('Ibn Baṭṭūṭa remembers foreign towns and never his own', () => {
+  /**
+   * **Ibn Baṭṭūṭa's Rihla is deferred** (batch GP1): the user's re-cut asks for
+   * culture per *empire your roads reach*, which is a count the vocabulary does
+   * not have (batch GP2's `tradePartnerEmpires`). The row is kept and says so,
+   * which is the table's rule — never bend a clause into a near-fit — and this
+   * pins that the deferral is honest: nothing at all is paid until it is built.
+   */
+  it('Ibn Baṭṭūṭa leaves nothing behind until his count exists', () => {
     const g = game(109);
     found(g.state, 0);
     bear(g.state, 0, 'ibnBattuta');
@@ -824,7 +881,9 @@ describe('the legacies this pass built', () => {
       { cityId: 2, col: 2, row: 2, name: 'Kish', ownerId: 1 },
       { cityId: 3, col: 3, row: 3, name: 'Lagash', ownerId: 1 },
     ];
-    expect(empire(g.state, 0).gold).toBe(2);
+    expect(greatPersonDef('ibnBattuta').legacy).toEqual([]);
+    expect(greatPersonDef('ibnBattuta').deferred?.length).toBe(1);
+    expect(empire(g.state, 0).gold).toBe(0);
   });
 
   it('Sima Qian pays every town, once per age behind it', () => {
@@ -853,7 +912,8 @@ describe('the legacies this pass built', () => {
     createUnit(g.state, 0, 'worker', city.col, city.row);
     // The other seat's army is the other seat's.
     createUnit(g.state, 1, 'warrior', city.col, city.row);
-    expect(empire(g.state, 0).culture).toBe(before + 4);
+    // Ten a soldier since batch GP1 (it was two).
+    expect(empire(g.state, 0).culture).toBe(before + 20);
   });
 
   it('Shen Kuo is paid for the strategic seams the empire has opened', () => {
@@ -976,9 +1036,9 @@ describe('the legacies this pass built', () => {
     tile.hills = false;
     tile.mountainAdjacent = true;
     expect(science()).toBe(bare);
-    // Both, and the sky opens.
+    // Both, and the sky opens. Two since batch GP1 (it was one).
     tile.hills = true;
-    expect(science()).toBe(bare + 1);
+    expect(science()).toBe(bare + 2);
   });
 
   it('Aššur-idī pays the colonies and never the capital', () => {
@@ -1058,13 +1118,12 @@ describe('the legacies this pass built', () => {
       describeCard(id).map((clause) => stripRefs(clause.text));
     expect(printed('ptahhotep')).toEqual(['+1 authority capacity per 2 Libraries']);
     expect(printed('phidias')).toEqual(['+3 culture per wonder you hold']);
-    expect(printed('eratosthenes')).toEqual(['+1 science per 60 hexes you have revealed']);
-    expect(printed('ibnBattuta')).toEqual(['+1 gold per foreign city you have sighted']);
+    expect(printed('eratosthenes')).toEqual(['+1 science per 80 hexes you have revealed']);
     // Batch L1 (§1b): a legacy is the realm's, and the line is paid town by town.
     expect(printed('simaQian')).toEqual([
       '+1 culture in every city per age that has closed',
     ]);
-    expect(printed('murasakiShikibu')).toEqual(['+2 culture per melee unit in the field']);
+    expect(printed('murasakiShikibu')).toEqual(['+10 culture per melee unit in the field']);
     expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
     expect(printed('nzingaOfNdongo')).toEqual([
       '+5 combat strength in forest',
@@ -1080,12 +1139,13 @@ describe('the legacies this pass built', () => {
     expect(printed('amenhotepSonOfHapu')).toEqual([
       '+15% production toward wonders, in your capital',
     ]);
-    // Archimedes lost his revocation with the nerf pass of 2026-09-03, and
-    // gained the hammers behind the engines: a `productionBonus` narrowed by a
-    // `UnitFilter`, beside the strength line the same filter narrows.
+    // Archimedes lost his revocation with the nerf pass of 2026-09-03; batch
+    // GP1 took the hammers off the engines and gave him the engines themselves —
+    // a `unitStat` and a `combatLine`, both narrowed by the same `UnitFilter`,
+    // and the strength line pays in every fight rather than only at walls.
     expect(printed('archimedes')).toEqual([
-      '+10% production toward siege units',
-      '+2 combat strength for siege units against cities',
+      'siege units: +1 movement',
+      '+3 combat strength for siege units',
     ]);
     // **The revocation prints, and it is not struck through** (2026-08-28): it
     // is a promise the game *does* make now, so it reads as an ordinary clause
@@ -1101,7 +1161,7 @@ describe('the legacies this pass built', () => {
       'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([
-      '+1 science on every hill hex beside a mountain',
+      '+2 science on every hill hex beside a mountain',
     ]);
     // The two composites the nerf pass wrote, both `all` over `TileCondition`,
     // and the one `tileYield` that carries a negative voice.
@@ -1115,7 +1175,7 @@ describe('the legacies this pass built', () => {
     // A city-scoped count paid in the town it counts in — and, since batch L1
     // (§1b), a legacy that says how many towns those are.
     expect(printed('aryabhata')).toEqual([
-      '+1 faith in every city per building there that supplies science',
+      '+2 faith in every city per building there that supplies science',
     ]);
     // The malice re-read per town rather than once for the realm.
     expect(printed('hemiunu')).toEqual([
@@ -1124,17 +1184,168 @@ describe('the legacies this pass built', () => {
     ]);
     // The building half is built now, so the row says both and one of its two
     // deferred sentences is gone (the timed unhappiness is the one that stays).
-    expect(printed('crassus')[0]).toBe('all units and buildings cost −20% to buy');
+    // Thirty off since batch GP1 (it was twenty).
+    expect(printed('crassus')[0]).toBe('all units and buildings cost −30% to buy');
     // The timed half is built now too, so both of Crassus' clauses are real and
     // nothing on his row is deferred.
     expect(printed('crassus')).toEqual([
-      'all units and buildings cost −20% to buy',
+      'all units and buildings cost −30% to buy',
       'buying anything costs your empire -1 happiness for 10 turns',
     ]);
     expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
     // And the other side of a fight, which `combatLine` could not say until
     // `vsClass` existed.
     expect(printed('lautaro')).toEqual(['+3 combat strength against mounted units']);
+  });
+
+  // --- batch GP1 ------------------------------------------------------------
+
+  /**
+   * **The rewrites of 2026-09-09** (`docs/flags.md` (lll)), each asked of the
+   * board rather than of the row.
+   *
+   * The pass moved a great many figures, which a doc sync would catch, and it
+   * moved a handful of legacies onto *different shapes* — which nothing catches
+   * but a fight, a hex or a stamp. These are those: one pin per rewrite whose
+   * mark is a mechanism and not a number.
+   */
+  it('Homer pays every great person’s work in its own voice', () => {
+    const g = game(1009);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'homer');
+    const tile = getTileAt(g.state.map, city.col + 1, city.row)!;
+    claimTile(g.state, city, tile);
+    const voice = (key: 'science' | 'culture' | 'production' | 'gold'): number => {
+      let sum = 0;
+      for (const entry of explainTileYield(tile, yieldContextFor(g.state, 0))) {
+        if (entry.kind === 'add') sum += entry[key];
+        else sum = entry[key];
+      }
+      return sum;
+    };
+    const bare = { science: voice('science'), culture: voice('culture') };
+    // The academy's own voice, and nothing else's — five rows, one per work,
+    // and each pays the voice its family reads.
+    tile.improvement = 'academy';
+    expect(voice('science') - bare.science).toBe(2 + 3);
+    expect(voice('culture') - bare.culture).toBe(0);
+    // And a landmark on the same ground pays songs instead.
+    tile.improvement = 'landmark';
+    expect(voice('culture') - bare.culture).toBe(2 + 3);
+    expect(voice('science') - bare.science).toBe(0);
+  });
+
+  it('Vitruvius hangs his happiness on the aqueduct and the granary', () => {
+    const g = game(1013);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'vitruvius');
+    const before = happinessOf(g.state, 0);
+    // **The line stands on a building**, so it is folded onto the row it names
+    // (`buildingHappiness`) rather than onto the realm — a town with neither
+    // gains nothing at all.
+    expect(happinessOf(g.state, 0)).toBe(before);
+    city.buildings.push('granary');
+    bumpRevision(g.state);
+    expect(happinessOf(g.state, 0)).toBe(before + 1);
+    city.buildings.push('aqueduct');
+    bumpRevision(g.state);
+    expect(happinessOf(g.state, 0)).toBe(before + 2);
+  });
+
+  it('Archimedes moves the engines and fights beside them, both ways', () => {
+    const g = game(1019);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'archimedes');
+    const engine = createUnit(g.state, 0, 'catapult', city.col, city.row);
+    const foot = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const here = getTileAt(g.state.map, city.col, city.row);
+    expect(fullMovement(engine, g.state)).toBe(unitDef('catapult').movement + 1);
+    expect(fullMovement(foot, g.state)).toBe(unitDef('warrior').movement);
+    // A flat line on one ledger, in every fight and in either posture — where
+    // the old row only paid the attacker and only at walls.
+    expect(fight(g.state, engine, here, 'attack')).toBe(3);
+    expect(fight(g.state, engine, here, 'defend')).toBe(3);
+    expect(fight(g.state, foot, here, 'attack')).toBe(0);
+  });
+
+  it('Gaius Marius pays the march only where it began at home', () => {
+    const g = game(1021);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'gaiusMarius');
+    const unit = createUnit(g.state, 0, 'warrior', city.col, city.row);
+    const base = unitDef('warrior').movement;
+    // The allowance is read off the hex the piece stands on, which is what
+    // `resetMovement` asks at the top of a turn.
+    expect(fullMovement(unit, g.state)).toBe(base + 1);
+    const away = getTileAt(g.state.map, city.col + 9, city.row)!;
+    unit.col = away.col;
+    unit.row = away.row;
+    expect(tileOwnerPlayerId(g.state, unit.col, unit.row)).not.toBe(0);
+    expect(fullMovement(unit, g.state)).toBe(base);
+  });
+
+  it('Beukelszoon doubles a fishing boat, ground and works alike', () => {
+    const g = game(1031);
+    const city = found(g.state, 0);
+    const tile = g.state.map.tiles.find(
+      (t) => isWaterTerrain(t.terrain) && tileOwnerPlayerId(g.state, t.col, t.row) === undefined,
+    );
+    const water = tile ?? getTileAt(g.state.map, city.col + 1, city.row)!;
+    water.terrain = 'coast';
+    water.feature = 'none';
+    claimTile(g.state, city, water);
+    water.improvement = 'fishingBoats';
+    const food = (): number => {
+      let sum = 0;
+      for (const entry of explainTileYield(water, yieldContextFor(g.state, 0))) {
+        if (entry.kind === 'add') sum += entry.food;
+        else sum = entry.food;
+      }
+      return sum;
+    };
+    const plain = food();
+    expect(plain).toBeGreaterThan(0);
+    bear(g.state, 0, 'willemBeukelszoon');
+    // Both halves of the hex: `basePercent` reaches the ground under it and
+    // `percent` reaches the works on it, so the whole tile pays twice.
+    expect(food()).toBe(plain * 2);
+  });
+
+  it('Maimonides counts the science buildings of the whole realm', () => {
+    const g = game(1033);
+    const city = found(g.state, 0);
+    bear(g.state, 0, 'maimonides');
+    const before = happinessOf(g.state, 0);
+    city.buildings.push('library');
+    bumpRevision(g.state);
+    expect(happinessOf(g.state, 0)).toBe(before + 1);
+    const colony = foundCityAt(g.state, 0, getTileAt(g.state.map, city.col + 4, city.row)!)!;
+    const withColony = happinessOf(g.state, 0);
+    colony.buildings.push('library');
+    bumpRevision(g.state);
+    // A city-scoped count, summed across the empire's towns by `cardHappiness`.
+    expect(happinessOf(g.state, 0)).toBe(withColony + 1);
+  });
+
+  it('Roger Bacon stamps three turns on the empire, by absolute expiry', () => {
+    const g = game(1039);
+    found(g.state, 0);
+    bear(g.state, 0, 'rogerBacon');
+    const player = g.state.players[0]!;
+    expect(player.timed ?? []).toHaveLength(0);
+    // A technology finished is the occasion, wherever the beakers came from.
+    player.researching = 'irrigation';
+    player.sciencePool = 100000;
+    expect(settleResearch(g.state, player)).not.toBeNull();
+    // One stamp per effect — a `TimedEffect` carries exactly one.
+    const stamped = player.timed ?? [];
+    expect(stamped).toHaveLength(2);
+    // **A comparison, never a countdown**: the stamp is an absolute turn, and
+    // the broom is what removes it when the board walks past it.
+    for (const held of stamped) expect(held.expiresTurn).toBe(g.state.turn + 3);
+    g.state.turn = stamped[0]!.expiresTurn;
+    pruneTimedEffects(g.state);
+    expect(player.timed ?? []).toHaveLength(0);
   });
 });
 
@@ -1349,18 +1560,23 @@ describe('the one-row shapes, built generically', () => {
     expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 9, city.row), 'attack')).toBe(0);
   });
 
-  it('Spartacus is worth something only against a stronger piece', () => {
+  /**
+   * **Spartacus is deferred** (batch GP1): the user's re-cut asks for a line
+   * against *an empire holding more cities than you*, which is a fight the
+   * combat conditions cannot describe (batch GP2's `vsWiderEmpire`). The row is
+   * kept and says so rather than being left on the nearest-fitting condition it
+   * used to carry, and this pins that it now costs the board nothing.
+   */
+  it('Spartacus leaves nothing behind until his fight can be described', () => {
     const g = game(213);
     found(g.state, 0);
     bear(g.state, 0, 'spartacus');
     const unit = g.state.units.find((u) => u.ownerId === 0)!;
     const here = getTileAt(g.state.map, unit.col, unit.row);
     const mine = unitDef(unit.type).combatStrength;
-    expect(fight(g.state, unit, here, 'attack', mine + 5)).toBe(3);
-    expect(fight(g.state, unit, here, 'attack', mine)).toBe(0);
-    // A city has no such strength, so the line never pays against walls — and
-    // the clause only pays the attacker, which is what "when attacking" says.
-    expect(fight(g.state, unit, here, 'attack', undefined)).toBe(0);
+    expect(greatPersonDef('spartacus').legacy).toEqual([]);
+    expect(greatPersonDef('spartacus').deferred?.length).toBe(1);
+    expect(fight(g.state, unit, here, 'attack', mine + 5)).toBe(0);
     expect(fight(g.state, unit, here, 'defend', mine + 5)).toBe(0);
   });
 
@@ -1569,16 +1785,21 @@ describe('the one-row shapes, built generically', () => {
     expect(spend(doubled)).toBe(spend(plain) * 2);
   });
 
-  it('Marco Polo counts only the routes that leave the realm', () => {
+  /**
+   * **Marco Polo is deferred** (batch GP1): the user's re-cut pays by *how far
+   * the caravan walks*, which nothing reads off a route (batch GP2's
+   * `routeLength`). Kept, said out loud, and paying nothing meanwhile.
+   */
+  it('Marco Polo leaves nothing behind until a road can be measured', () => {
     const g = game(233);
     const mine = found(g.state, 0);
     const theirs = found(g.state, 1);
     bear(g.state, 0, 'marcoPolo');
     const trader = createUnit(g.state, 0, 'trader', mine.col, mine.row);
-    trader.trade = { from: mine.id, to: mine.id, expiresTurn: 99, outbound: true, autoResend: false };
-    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(0);
     trader.trade = { from: mine.id, to: theirs.id, expiresTurn: 99, outbound: true, autoResend: false };
-    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(3);
+    expect(greatPersonDef('marcoPolo').legacy).toEqual([]);
+    expect(greatPersonDef('marcoPolo').deferred?.length).toBe(1);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(0);
   });
 
   it('Crassus hangs his bill on the empire, and the broom takes it away', () => {

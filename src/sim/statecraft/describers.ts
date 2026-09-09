@@ -1209,7 +1209,7 @@ function describeEffect(
         // that is filed under the temple. See `CardHappinessEffect.building`.
         text:
           effect.building !== undefined
-            ? `${buildingName(effect.building)}s supply ${signed(effect.amount)} happiness`
+            ? `${buildingPluralName(effect.building)} supply ${signed(effect.amount)} happiness`
             : `${signed(effect.amount)} happiness` +
               (effect.per === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)}` : ''),
       });
@@ -1385,10 +1385,26 @@ function describeEffect(
         // gift with no `amount` on it at all — and a clause read off nothing
         // defaults to the bill's sentence, so the row would have printed
         // "capturing a city costs your empire +5% production".
+        //
+        // **And a bag is read the same way as either** (batch GP1, 2026-09-09).
+        // A `pays` row says its figure in the yield bag itself — Dinocrates'
+        // "+3 production in every city" is `{ where: 'city', production: 3 }`,
+        // with no `amount` and no `percent` anywhere on it — so a test that
+        // knew only those two fields read the gift off nothing and printed
+        // "completing a wonder costs your empire +3 production", which is the
+        // exact double negative this comment already forbids one field over.
+        // Three readings of "is this a gift", because the vocabulary has three
+        // ways to write a figure and a shape added to it says so in one of them.
+        const positiveBag = (nested: CardEffect): boolean =>
+          VOICES.some((voice) => {
+            const paid = (nested as Partial<Record<CityYieldKey, number>>)[voice];
+            return typeof paid === 'number' && paid > 0;
+          });
         const pays = grant.timed.effects.some(
           (nested) =>
             ('amount' in nested && typeof nested.amount === 'number' && nested.amount > 0) ||
-            ('percent' in nested && typeof nested.percent === 'number' && nested.percent > 0),
+            ('percent' in nested && typeof nested.percent === 'number' && nested.percent > 0) ||
+            positiveBag(nested),
         );
         out.push({
           text:
@@ -2434,6 +2450,26 @@ function buildingWords(id: BuildingId): string {
 /** A building's bare name, marked. `buildingWords` without the article. */
 function buildingName(id: BuildingId): string {
   return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
+}
+
+/**
+ * **More than one of them**, marked — "Granaries", "Temples".
+ *
+ * `buildingWords`' article rule from the other end, and here for its reason: the
+ * grammar rides *inside* the mark (`ref`'s own docblock says so out loud), so a
+ * clause that speaks of a shelf of buildings says the plural where it is
+ * composed rather than gluing an `s` onto a link and printing "Granarys" — which
+ * is what Vitruvius' aqueducts and granaries printed before batch GP1.
+ *
+ * The plural itself is the **roster's own** (`buildingPlural`, `buildingData.ts`),
+ * never a second rule here: the ledger already counts "Monuments ×3" with it,
+ * and two spellings of one building's plural is exactly the drift that pluraliser
+ * exists to prevent. Wonders never reach this arm — there is one of each — but
+ * the mark follows `buildingName`'s own shelf split either way.
+ */
+function buildingPluralName(id: BuildingId): string {
+  const name = buildingDef(id).name;
+  return ref(isWonder(id) ? 'wonder' : 'building', id, buildingPlural(name, 2));
 }
 
 /**

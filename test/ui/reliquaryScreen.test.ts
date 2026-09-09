@@ -189,13 +189,16 @@ describe('the legacy is the headline', () => {
     expect(legacyIsSilent([])).toBe(true);
     expect(legacyIsSilent([{ text: 'x', deferred: true }])).toBe(true);
     expect(legacyIsSilent([{ text: 'x' }])).toBe(false);
-    // **No roster row is silent any more** (batch E4a, 2026-09-07): the two this
-    // was written for — Dinocrates and Yi Sun-sin — were built, so the rule is
-    // pinned on the shape alone and the sweep asserts the roster has nobody left
-    // for the ceremony to promote. A row that arrives empty tomorrow is caught
-    // by this, which is the honest reading of a rule about a *kind* of card.
+    // **A silent row says why it is silent.** Every roster row was built between
+    // batch E4a (2026-09-07) and the great-person pass of 2026-09-09, which
+    // wrote a handful of legacies in shapes the vocabulary does not have — so
+    // the rule the promotion exists for is live again. The claim the sweep makes
+    // is the table's own discipline rather than a count: a row that leaves
+    // nothing behind carries a `deferred` sentence saying what is missing, and a
+    // row that quietly does nothing is the one thing this table may never hold.
     for (const id of GREAT_PERSON_IDS) {
-      expect(greatPersonDef(id).legacy.length, id).toBeGreaterThan(0);
+      const def = greatPersonDef(id);
+      expect(def.legacy.length + (def.deferred ?? []).length, id).toBeGreaterThan(0);
     }
   });
 

@@ -642,8 +642,26 @@ import {
  * paying less for it from the turn this lands, which moves the happiness tier
  * it sits on, which moves every yield the tier scales, which moves growth,
  * research and the turn a bot seat decides it can afford one more town.
+ *
+ * v104: **the great-person pass** (batch GP1; the user, 2026-09-09,
+ * `docs/flags.md` item (lll): "i massively buffed the great people, since
+ * they're now much more rare"). The roster is re-cut against the doc's own
+ * *Legacy* column: eight names are **retired** (`GreatPersonDef.retired`, the
+ * row kept so a save holding that legacy still loads and out of every draw),
+ * six are new — Gaius Marius, Willem Beukelszoon, Epicurus, Aristotle,
+ * Maimonides, Roger Bacon — five move age, and a couple of dozen legacies are
+ * retuned or rewritten in the existing effect vocabulary. Nothing on the state
+ * shape moves: this is a data bump, and it is a bump because a **draw** is
+ * state. `rosterOfAge` is the bag every offer is dealt from and it no longer
+ * holds the retired rows, so every recruitment in a game deals a different hand
+ * — and the rows were reordered into the doc's reading order besides, which
+ * moves the weighted walk's own indices.
+ *
+ * A v103 log does not replay: the first great person of a v103 game is drawn
+ * from a bag of eighty in one order and of seventy-eight in another, and the
+ * offer's rolls diverge from there.
  */
-export const SCHEMA_VERSION = 103;
+export const SCHEMA_VERSION = 104;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

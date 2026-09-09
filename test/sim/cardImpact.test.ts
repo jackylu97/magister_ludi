@@ -404,10 +404,20 @@ describe('a card that pays on an occasion', () => {
   /** A legacy is the same reading one table over — Homer pays for the dead. */
   it('reads a great person\'s legacy in the same two forms', () => {
     const { state } = bench();
-    const homer = explainCardImpact(state, 0, { kind: 'legacy', id: 'homer' });
-    expect(homer.filter((line) => line.kind === 'occasion')).toHaveLength(1);
-    expect(homer[0]!.occasion).toBe('losing a unit');
-    expect(hasPerTurnImpact(homer)).toBe(false);
+    // **Snorri Sturluson, and he is a retired row** (batch GP1, 2026-09-09):
+    // the pass rewrote Homer's verse as five lines on the great person's works
+    // and withdrew Snorri's from the draw, and no *live* roster row hands over a
+    // yield on an occasion any more. A retired row is exactly as good a subject
+    // here as a live one — a save holds the legacy, the Reliquary prints it, and
+    // the reading being pinned is the shape's rather than the name's — which is
+    // the whole reason the marker keeps the row instead of deleting it.
+    const skald = explainCardImpact(state, 0, { kind: 'legacy', id: 'snorriSturluson' });
+    const occasions = skald.filter((line) => line.kind === 'occasion');
+    // Two, because the row pays two voices on the one moment and the reader
+    // keeps a line per voice rather than folding two currencies into one figure.
+    expect(occasions).toHaveLength(2);
+    for (const line of occasions) expect(line.occasion).toBe('losing a unit');
+    expect(hasPerTurnImpact(occasions)).toBe(false);
 
     const ahmes = explainCardImpact(state, 0, { kind: 'legacy', id: 'ahmes' });
     // A freshwater town or not, Ahmes is an ordinary standing line: whatever he

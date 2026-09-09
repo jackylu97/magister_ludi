@@ -1249,6 +1249,102 @@ directly to confirm rulings — user marginalia are rulings.
   faith 20.2 → 20.3 · treasury 342 → 322 · techs 23.9 → 23.7 ·
   happiness +7.1 → +9.9. The headroom goes into the tier and out as
   science and gold; the bot spends it rather than banking it. (eee)
+- (lll) **The great-person pass — RULED** (the user, 2026-09-09: *"i
+  massively buffed the great people, since they're now much more rare.
+  Please fold in my changes in the doc and queue these up for
+  implementation."*). **The doc is the spec of record**: the *Legacy*
+  column of `docs/great-people.md` as the user left it in the main tree
+  (uncommitted at the time of ruling; the row-by-row diff against HEAD
+  is the list below). The sync test reads names and figures only, so
+  the legacy column is checked by hand here and by the describer after.
+  **Removed (8)** — `retired: true`, the row kept for saves, out of
+  every draw: Senenmut, Kushim, Aššur-idī, Sima Qian, Han Xin, Shen Kuo,
+  Snorri Sturluson, Zheng He. **Renamed (2)** — the user wrote RENAME /
+  NEW NAME; proposed names, ▢ the user's to change: the Æra III General
+  ("units +1 movement if they start their turn in friendly territory")
+  → **Gaius Marius**; the Æra V Merchant ("double the yields of your
+  fishing boat tiles") → **Willem Beukelszoon**. **New rows (4)**, family
+  and tier proposed (all Scholars, placed where the user wrote them;
+  ▢ names/tiers the user's): Æra III **Epicurus** ◆ "−15% happiness
+  cost in cities with 10+ population"; Æra III **Aristotle** ● "+50%
+  yields from science buildings"; Æra IV **Maimonides** ◆ "+1 happiness
+  from science buildings"; Æra IV **Roger Bacon** ◆ "+30% food and
+  production for 3 turns on completing a technology". **Age moves (5)**:
+  Sappho III→II, Hemiunu II→III, Ptahhotep II→III, Ibn Sīnā IV→III,
+  Mimar Sinan V→IV. **Retunes in the existing vocabulary** (batch
+  **GP1**, data only): Imhotep wonders 5→10%; Eratosthenes per 60→80
+  hexes; Zhang Qian per 60→80; Crassus buy −20→−30%; Murasaki 2→10
+  culture per melee unit; Tycho 1→2; Āryabhaṭa 1→2 faith per science
+  building; Ilimilku +1 production beside the culture; Bashō forest
+  **and jungle**; Su Song +1🔬+1⚙ on mines in a workshop town (hex pays,
+  owner scope); Francesco Datini +2 gold on every resource hex in a bank
+  town; Sor Juana +1🎵+1🔬 on every resource hex in a university town;
+  Mimar Sinan temples +2🎵+2⚙ (city pays, hasBuilding) plus its two
+  production bonuses; Vitruvius aqueducts and granaries +1 happiness
+  (two `happiness` rows with `building`); Archimedes siege +1 movement
+  (`unitStat`) and +3 strength always (`combatLine`); Homer the five
+  works each +2 of its own voice (hex pays × 5: academy 🔬, landmark 🎵,
+  manufactory ⚙, customs house 💰, citadel ⚙ — the assumption, ▢);
+  Benjamin of Tudela +2💰+1🎵 on every great work (a `greatWork` tile
+  test, one row); the new Beukelszoon row = fishing-boat hexes +100% of
+  works and ground; Roger Bacon = `windfallRider` on `tech` with a
+  3-turn timed +30% food/production; al-Khwārizmī's first half +10%
+  faith in university towns; Gracia's first half +8 authority; Dinocrates
+  is a wording fix (the data already *gives* +3 — the describer said
+  "costs"). **New shapes** (batch **GP2**, design decisions the marks
+  authorise; each a row in the register, the evaluator's one switch, a
+  describer, a bot fold, `docs/yields.md` where a yield lands):
+  (a) **`buildingYields`** — a percent on a building's *own* bag, by
+  `building` | `category` | `yielding: voice` | `wonder: true`, folded
+  at the building line before any stage: Rūmī temples ×2, Aristotle
+  science buildings +50%, al-Jazarī production-base buildings ×2, Dürer
+  wonders +50%; (b) `CombatCondition` **`vsWiderEmpire`** (the target's
+  owner holds more cities than you): Spartacus; (c) a `rule` flag
+  **`tradersUnplunderable`** (a blow on a trading unit neither plunders
+  nor harms it — ▢ "cannot be pillaged" read as the plunder seam) and
+  `unitStat` sight on the trader class: Pytheas; (d) a `rule` flag
+  **`faithBuysScienceBuildings`** read where the faith bank opens:
+  al-Khwārizmī's second half; (e) count kinds **`tradePartnerEmpires`**
+  (Ibn Baṭṭūṭa, empire-wide +5% culture per — a new (empire, count,
+  percent) pair in the register), **`authoritySurplus`** (Gracia's +1
+  happiness and +10 gold per spare point), **`goldSpent`** (Cosimo, per
+  100 — a new verb-written fact `Player.goldSpent`, raised at every gold
+  purchase seam: items, tiles, routes, offers), **`routeLength`** on the
+  route arm (Marco Polo, +1 gold per 2 hexes of the route's own path);
+  (f) `meterRule` **with a city scope** (Epicurus, `populationAtLeast`
+  10, the town's own demand ×0.85); (g) `happiness` per science
+  building (Maimonides — `pays where:'empire' basis:'count'
+  to:'happiness' count:'scienceBuildings'` if the count reads
+  empire-wide, else a new arm). Rows needing a GP2 shape are **deferred
+  and annotated** by GP1 (the describer strikes the half through) and
+  filled by **GP3** once both land. Schema bumps with GP1 (the roster
+  changes the draw) and the `goldSpent` field rides GP2. The doc is
+  regenerated from the data at the end of GP3 and must reproduce the
+  user's legacy column word for word where the vocabulary allows.
+  **GP1 built 2026-09-09, schema 104**: 86 rows (78 live + 8
+  `retired`, `GreatPersonDef.retired`; `rosterOfAge`/`ROSTER_AGES` read
+  live rows only, the sync test excludes retired and checks the per-age
+  tallies); every GP1 mark landed in the existing vocabulary — no new
+  kind, count, condition, rule or (where, basis) pair (Benjamin is one
+  `greatWork` tile row; Bashō `anyFeature`; Datini/Sor Juana
+  `hasResource`; Pytheas' sight half via `category: 'trader'`;
+  Maimonides works as a city-scoped count summed across the realm;
+  Beukelszoon `percent` + `basePercent` 100 doubles the hex, pinned).
+  Two fence excursions: `settleResearch` dropped a `tech` rider whose
+  only payout was `timed` (Roger Bacon would never have fired —
+  widened to mirror `purchase.ts`' guard); the describer's timed-grant
+  clause read a `pays` bag as a bill ("costs" → "grants", Dinocrates
+  only) and pluralised `Granarys` (now `buildingPlural`, fixing Feast
+  Days too). 51 of 78 legacy lines byte-identical to the user's, 27
+  differ in phrasing only, 12 halves struck through for GP2. ▢ the
+  describer prints `unitStat ownTerritory` as "inside your territory"
+  (Marius' "if they start their turn in" is what the sim does — the
+  allowance is set at reset from the hex the piece stands on; the path
+  preview's later turns can over-promise a point). ▢ three vocabulary
+  members now unread by any row (`sightedCities`, `bankedGold`,
+  `strongerTarget`). ▢ the Compendium lists retired great people (and
+  the 47 retired Orders) while it hides retired buildings — one ruling
+  for all three. (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { GREAT_PERSON_IDS, ROSTER_AGES, greatPersonDef } from '../../src/sim/greatPeopleData';
+import {
+  GREAT_PERSON_IDS,
+  LIVE_GREAT_PERSON_IDS,
+  ROSTER_AGES,
+  greatPersonDef,
+} from '../../src/sim/greatPeopleData';
 import { RULES } from '../../src/sim/rulesData';
 
 /**
@@ -26,9 +31,13 @@ import { RULES } from '../../src/sim/rulesData';
  * rather than being discovered by a user reading last week's numbers. It is the
  * same claim as the roster's, one table down.
  *
- * There is no retired concept on this table (a great person is consumed, never
- * withdrawn from a pool), so nothing is excluded: a row with an empty `legacy`
- * is still a name that can be drawn, and it is still on the reference — the
+ * **Retired rows are excluded**, `statecraftDocSync`'s own rule (batch GP1,
+ * 2026-09-09): a great person is consumed rather than withdrawn from a pool, so
+ * the table had no such concept until the pass of that day cut eight names — and
+ * a row that can never be dealt is a row nobody balances. The rows stay in the
+ * data (a save names a legacy by id) and leave the reference, which is
+ * `LIVE_GREAT_PERSON_IDS`' whole reason for existing. A row with an empty
+ * `legacy` is *not* excluded: it is still a name that can be drawn, and the
  * describer prints its deferred half struck through, which is exactly the row
  * the user most wants to see.
  */
@@ -101,7 +110,7 @@ describe('the great-people doc mirrors the roster', () => {
   it('lists every name of every age, and nothing else', () => {
     for (const age of ROSTER_AGES) {
       const heading = AGE_HEADINGS[age]!;
-      const live = GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age).map(
+      const live = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age).map(
         (id) => greatPersonDef(id).name,
       );
       const doc = docNames(heading);
@@ -118,6 +127,46 @@ describe('the great-people doc mirrors the roster', () => {
         expect(liveSet.has(name), `${heading} row "${name}" names no roster row of this age`).toBe(
           true,
         );
+      }
+    }
+  });
+
+  /**
+   * **The tally under each heading is the table's own length.**
+   *
+   * The line reads "24 names — one row per name, in the data's own order", and
+   * it is the first thing a reader trusts and the first thing a pass forgets:
+   * the great-person pass of 2026-09-09 moved five rows between ages and retired
+   * eight, and every one of the four sentences was wrong the moment it did. Read
+   * off the live roster rather than off the rows the table happens to hold, so a
+   * row dropped from a table fails the test above and the count fails here.
+   */
+  it('counts the names under each heading', () => {
+    for (const age of ROSTER_AGES) {
+      const heading = AGE_HEADINGS[age]!;
+      const start = DOC.indexOf(heading);
+      const end = DOC.indexOf('\n### ', start + heading.length);
+      const section = DOC.slice(start, end === -1 ? undefined : end);
+      const said = /(\d+) names — one row per name/.exec(section);
+      expect(said, `${heading} does not say how many names it holds`).not.toBeNull();
+      const live = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age).length;
+      expect(Number(said![1]), `${heading} miscounts its names`).toBe(live);
+    }
+  });
+
+  /**
+   * **A withdrawn name is not on the reference.** The doc→data direction above
+   * already refuses one (a retired row is not in `live`), and this says the rule
+   * out loud from the other end so the reason is legible: the tables are what
+   * the game *deals*, and a row nobody can be dealt is a row nobody balances.
+   */
+  it('leaves every retired row out of the tables', () => {
+    const withdrawn = GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).retired === true);
+    expect(withdrawn.length).toBeGreaterThan(0);
+    for (const id of withdrawn) {
+      const name = greatPersonDef(id).name;
+      for (const age of ROSTER_AGES) {
+        expect([...docNames(AGE_HEADINGS[age]!)], name).not.toContain(name);
       }
     }
   });

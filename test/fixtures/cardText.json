@@ -2410,7 +2410,7 @@
     "text": "+1 happiness in every city that follows the religion"
    },
    {
-    "raw": "[[building:temple|Temple]]s supply +1 happiness",
+    "raw": "[[building:temple|Temples]] supply +1 happiness",
     "text": "Temples supply +1 happiness"
    }
   ],
@@ -3330,8 +3330,8 @@
  "greatPerson": {
   "imhotep": [
    {
-    "raw": "+5% production toward wonders",
-    "text": "+5% production toward wonders"
+    "raw": "+10% production toward wonders",
+    "text": "+10% production toward wonders"
    }
   ],
   "ahmes": [
@@ -3346,12 +3346,6 @@
     "text": "+15% science in your capital"
    }
   ],
-  "ptahhotep": [
-   {
-    "raw": "+1 authority capacity per 2 [[building:library|Libraries]]",
-    "text": "+1 authority capacity per 2 Libraries"
-   }
-  ],
   "enheduanna": [
    {
     "raw": "+1 culture in every city with a [[building:shrine|Shrine]]",
@@ -3360,8 +3354,8 @@
   ],
   "homer": [
    {
-    "raw": "losing a unit grants +20 culture",
-    "text": "losing a unit grants +20 culture"
+    "raw": "+2 on every hex carrying a great person's work — science on an [[improvement:academy|Academy]], culture on a [[improvement:landmark|Landmark]], production on a [[improvement:manufactory|Manufactory]], gold on a [[improvement:customsHouse|Customs House]] and production on a [[improvement:citadel|Citadel]]",
+    "text": "+2 on every hex carrying a great person's work — science on an Academy, culture on a Landmark, production on a Manufactory, gold on a Customs House and production on a Citadel"
    }
   ],
   "sinLeqiUnninni": [
@@ -3372,24 +3366,14 @@
   ],
   "ilimilku": [
    {
-    "raw": "+1 culture in every coastal city",
-    "text": "+1 culture in every coastal city"
+    "raw": "+1 production, +1 culture in every coastal city",
+    "text": "+1 production, +1 culture in every coastal city"
    }
   ],
   "senenmut": [
    {
     "raw": "+10% production toward buildings",
     "text": "+10% production toward buildings"
-   }
-  ],
-  "hemiunu": [
-   {
-    "raw": "+10% production toward wonders",
-    "text": "+10% production toward wonders"
-   },
-   {
-    "raw": "-2 happiness in every city while it is building a wonder",
-    "text": "-2 happiness in every city while it is building a wonder"
    }
   ],
   "amenhotepSonOfHapu": [
@@ -3456,14 +3440,54 @@
     "text": "+4 combat strength within 2 hexes of one of your cities"
    }
   ],
-  "archimedes": [
+  "sappho": [
    {
-    "raw": "+10% production toward siege units",
-    "text": "+10% production toward siege units"
+    "raw": "+3 culture in your capital",
+    "text": "+3 culture in your capital"
    },
    {
-    "raw": "+2 combat strength for siege units against cities",
-    "text": "+2 combat strength for siege units against cities"
+    "raw": "+1 happiness",
+    "text": "+1 happiness"
+   }
+  ],
+  "epicurus": [
+   {
+    "raw": "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet. — not built yet",
+    "text": "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "aristotle": [
+   {
+    "raw": "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "text": "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "hemiunu": [
+   {
+    "raw": "+10% production toward wonders",
+    "text": "+10% production toward wonders"
+   },
+   {
+    "raw": "-2 happiness in every city while it is building a wonder",
+    "text": "-2 happiness in every city while it is building a wonder"
+   }
+  ],
+  "ptahhotep": [
+   {
+    "raw": "+1 authority capacity per 2 [[building:library|Libraries]]",
+    "text": "+1 authority capacity per 2 Libraries"
+   }
+  ],
+  "archimedes": [
+   {
+    "raw": "siege units: +1 movement",
+    "text": "siege units: +1 movement"
+   },
+   {
+    "raw": "+3 combat strength for siege units",
+    "text": "+3 combat strength for siege units"
    }
   ],
   "hypatia": [
@@ -3484,18 +3508,8 @@
   ],
   "eratosthenes": [
    {
-    "raw": "+1 science per 60 hexes you have revealed",
-    "text": "+1 science per 60 hexes you have revealed"
-   }
-  ],
-  "sappho": [
-   {
-    "raw": "+3 culture in your capital",
-    "text": "+3 culture in your capital"
-   },
-   {
-    "raw": "+1 happiness",
-    "text": "+1 happiness"
+    "raw": "+1 science per 80 hexes you have revealed",
+    "text": "+1 science per 80 hexes you have revealed"
    }
   ],
   "quYuan": [
@@ -3528,14 +3542,18 @@
   ],
   "heroOfAlexandria": [
    {
-    "raw": "completing a wonder costs your empire +3 production in every city for 10 turns",
-    "text": "completing a wonder costs your empire +3 production in every city for 10 turns"
+    "raw": "completing a wonder grants +3 production in every city for 10 turns",
+    "text": "completing a wonder grants +3 production in every city for 10 turns"
    }
   ],
   "vitruvius": [
    {
-    "raw": "+1 production in every city with an [[building:aqueduct|Aqueduct]]",
-    "text": "+1 production in every city with an Aqueduct"
+    "raw": "[[building:aqueduct|Aqueducts]] supply +1 happiness",
+    "text": "Aqueducts supply +1 happiness"
+   },
+   {
+    "raw": "[[building:granary|Granaries]] supply +1 happiness",
+    "text": "Granaries supply +1 happiness"
    }
   ],
   "eupalinos": [
@@ -3546,8 +3564,8 @@
   ],
   "zhangQian": [
    {
-    "raw": "+2 gold per 60 hexes you have revealed",
-    "text": "+2 gold per 60 hexes you have revealed"
+    "raw": "+2 gold per 80 hexes you have revealed",
+    "text": "+2 gold per 80 hexes you have revealed"
    }
   ],
   "nanaivandak": [
@@ -3564,8 +3582,8 @@
   ],
   "crassus": [
    {
-    "raw": "all units and buildings cost −20% to buy",
-    "text": "all units and buildings cost −20% to buy"
+    "raw": "all units and buildings cost −30% to buy",
+    "text": "all units and buildings cost −30% to buy"
    },
    {
     "raw": "buying anything costs your empire -1 happiness for 10 turns",
@@ -3574,12 +3592,13 @@
   ],
   "pytheas": [
    {
-    "raw": "every coastal city: +1 city sight",
-    "text": "every coastal city: +1 city sight"
+    "raw": "trader units: +1 sight",
+    "text": "trader units: +1 sight"
    },
    {
-    "raw": "scout units: +1 sight",
-    "text": "scout units: +1 sight"
+    "raw": "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet. — not built yet",
+    "text": "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet. — not built yet",
+    "deferred": true
    }
   ],
   "hannibal": [
@@ -3602,6 +3621,12 @@
     "text": "+2 combat strength on the coast"
    }
   ],
+  "gaiusMarius": [
+   {
+    "raw": "all units: +1 movement inside your territory",
+    "text": "all units: +1 movement inside your territory"
+   }
+  ],
   "boudica": [
    {
     "raw": "+4 combat strength inside your territory",
@@ -3614,20 +3639,9 @@
   ],
   "spartacus": [
    {
-    "raw": "+3 combat strength against a stronger unit",
-    "text": "+3 combat strength against a stronger unit"
-   }
-  ],
-  "alKhwarizmi": [
-   {
-    "raw": "+2 science in every city with a [[building:university|University]]",
-    "text": "+2 science in every city with a University"
-   }
-  ],
-  "shenKuo": [
-   {
-    "raw": "+2 science per improved strategic resource",
-    "text": "+2 science per improved strategic resource"
+    "raw": "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet. — not built yet",
+    "text": "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet. — not built yet",
+    "deferred": true
    }
   ],
   "ibnSina": [
@@ -3636,16 +3650,45 @@
     "text": "+1 happiness in every city"
    }
   ],
+  "alKhwarizmi": [
+   {
+    "raw": "+10% faith in every city with a [[building:university|University]]",
+    "text": "+10% faith in every city with a University"
+   },
+   {
+    "raw": "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet. — not built yet",
+    "text": "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "maimonides": [
+   {
+    "raw": "+1 happiness per building in your cities that supplies science",
+    "text": "+1 happiness per building in your cities that supplies science"
+   }
+  ],
+  "rogerBacon": [
+   {
+    "raw": "completing a technology grants +30% food in every city; +30% production in every city for 3 turns",
+    "text": "completing a technology grants +30% food in every city; +30% production in every city for 3 turns"
+   }
+  ],
+  "shenKuo": [
+   {
+    "raw": "+2 science per improved strategic resource",
+    "text": "+2 science per improved strategic resource"
+   }
+  ],
   "aryabhata": [
    {
-    "raw": "+1 faith in every city per building there that supplies science",
-    "text": "+1 faith in every city per building there that supplies science"
+    "raw": "+2 faith in every city per building there that supplies science",
+    "text": "+2 faith in every city per building there that supplies science"
    }
   ],
   "murasakiShikibu": [
    {
-    "raw": "+2 culture per melee unit in the field",
-    "text": "+2 culture per melee unit in the field"
+    "raw": "+10 culture per melee unit in the field",
+    "text": "+10 culture per melee unit in the field"
    }
   ],
   "snorriSturluson": [
@@ -3664,26 +3707,28 @@
   ],
   "rumi": [
    {
-    "raw": "+2 culture in every city with a [[building:temple|Temple]]",
-    "text": "+2 culture in every city with a Temple"
+    "raw": "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "text": "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "deferred": true
    }
   ],
   "seiShonagon": [
    {
-    "raw": "+1 culture per unique luxury",
-    "text": "+1 culture per unique luxury"
+    "raw": "+5% culture in every city per unique luxury there",
+    "text": "+5% culture in every city per unique luxury there"
    }
   ],
   "alJazari": [
    {
-    "raw": "+2 production in every city with a [[building:workshop|Workshop]]",
-    "text": "+2 production in every city with a Workshop"
+    "raw": "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "text": "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "deferred": true
    }
   ],
   "suSong": [
    {
-    "raw": "+1 science in every city with a [[building:workshop|Workshop]]",
-    "text": "+1 science in every city with a Workshop"
+    "raw": "+1 production, +1 science on every hex with a [[improvement:mine|Mine]], in every city with a [[building:workshop|Workshop]]",
+    "text": "+1 production, +1 science on every hex with a Mine, in every city with a Workshop"
    }
   ],
   "villardDeHonnecourt": [
@@ -3694,26 +3739,28 @@
   ],
   "benjaminOfTudela": [
    {
-    "raw": "+1 gold per city you hold",
-    "text": "+1 gold per city you hold"
+    "raw": "+2 gold, +1 culture on every hex carrying a great person's work",
+    "text": "+2 gold, +1 culture on every hex carrying a great person's work"
    }
   ],
   "ibnBattuta": [
    {
-    "raw": "+1 gold per foreign city you have sighted",
-    "text": "+1 gold per foreign city you have sighted"
+    "raw": "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet. — not built yet",
+    "text": "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet. — not built yet",
+    "deferred": true
    }
   ],
   "marcoPolo": [
    {
-    "raw": "+3 gold per trade route to another empire",
-    "text": "+3 gold per trade route to another empire"
+    "raw": "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet. — not built yet",
+    "text": "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet. — not built yet",
+    "deferred": true
    }
   ],
   "francescoDatini": [
    {
-    "raw": "+2 gold in every city with a [[building:bank|Bank]]",
-    "text": "+2 gold in every city with a Bank"
+    "raw": "+2 gold on every hex carrying a resource, in every city with a [[building:bank|Bank]]",
+    "text": "+2 gold on every hex carrying a resource, in every city with a Bank"
    }
   ],
   "subutai": [
@@ -3748,6 +3795,20 @@
     "text": "+3 combat strength in a city you captured"
    }
   ],
+  "mimarSinan": [
+   {
+    "raw": "+2 production, +2 culture in every city with a [[building:temple|Temple]]",
+    "text": "+2 production, +2 culture in every city with a Temple"
+   },
+   {
+    "raw": "+30% production toward [[building:temple|Temples]]",
+    "text": "+30% production toward Temples"
+   },
+   {
+    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
+    "text": "+30% production toward Cathedrals"
+   }
+  ],
   "paracelsus": [
    {
     "raw": "+25% science in every city",
@@ -3760,8 +3821,8 @@
   ],
   "tychoBrahe": [
    {
-    "raw": "+1 science on every hill hex beside a mountain",
-    "text": "+1 science on every hill hex beside a mountain"
+    "raw": "+2 science on every hill hex beside a mountain",
+    "text": "+2 science on every hill hex beside a mountain"
    }
   ],
   "johnDee": [
@@ -3790,18 +3851,23 @@
    {
     "raw": "+2 culture per wonder you hold",
     "text": "+2 culture per wonder you hold"
+   },
+   {
+    "raw": "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "text": "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
+    "deferred": true
    }
   ],
   "basho": [
    {
-    "raw": "+1 culture on every forest hex",
-    "text": "+1 culture on every forest hex"
+    "raw": "+1 culture on every forest or jungle hex",
+    "text": "+1 culture on every forest or jungle hex"
    }
   ],
   "sorJuana": [
    {
-    "raw": "+2 culture in every city with a [[building:university|University]]",
-    "text": "+2 culture in every city with a University"
+    "raw": "+1 science, +1 culture on every hex carrying a resource, in every city with a [[building:university|University]]",
+    "text": "+1 science, +1 culture on every hex carrying a resource, in every city with a University"
    }
   ],
   "leonardo": [
@@ -3822,20 +3888,6 @@
    {
     "raw": "+15% science in every capital city beside a mountain",
     "text": "+15% science in every capital city beside a mountain"
-   }
-  ],
-  "mimarSinan": [
-   {
-    "raw": "+1 culture in every city with a [[building:temple|Temple]]",
-    "text": "+1 culture in every city with a Temple"
-   },
-   {
-    "raw": "+30% production toward [[building:temple|Temples]]",
-    "text": "+30% production toward Temples"
-   },
-   {
-    "raw": "+30% production toward [[building:cathedral|Cathedrals]]",
-    "text": "+30% production toward Cathedrals"
    }
   ],
   "vaucanson": [
@@ -3868,16 +3920,32 @@
     "text": "all units: +2 movement while embarked"
    }
   ],
+  "willemBeukelszoon": [
+   {
+    "raw": "the works on every hex with a [[improvement:fishingBoats|Fishing Boat]] pay +100%",
+    "text": "the works on every hex with a Fishing Boat pay +100%"
+   },
+   {
+    "raw": "the ground of every hex with a [[improvement:fishingBoats|Fishing Boat]] pays double",
+    "text": "the ground of every hex with a Fishing Boat pays double"
+   }
+  ],
   "graciaMendesNasi": [
    {
-    "raw": "new cities start 1 citizen larger",
-    "text": "new cities start 1 citizen larger"
+    "raw": "+8 authority capacity",
+    "text": "+8 authority capacity"
+   },
+   {
+    "raw": "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet. — not built yet",
+    "text": "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet. — not built yet",
+    "deferred": true
    }
   ],
   "cosimoDeMedici": [
    {
-    "raw": "+1 culture per 50 gold in the treasury (at most +6 culture)",
-    "text": "+1 culture per 50 gold in the treasury (at most +6 culture)"
+    "raw": "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet. — not built yet",
+    "text": "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet. — not built yet",
+    "deferred": true
    }
   ],
   "gustavusAdolphus": [

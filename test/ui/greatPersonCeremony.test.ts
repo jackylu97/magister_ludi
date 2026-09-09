@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest';
 import { CEREMONY_TIMING, deedLine } from '../../src/ui/greatPersonCeremony';
 import { greatPersonFace, legacyIsSilent } from '../../src/ui/greatPersonFace';
 import { type GameState, newGame } from '../../src/sim/state';
-import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
+import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 
 const SOURCE = {
   ...(import.meta.glob('../../src/ui/*.ts', {
@@ -157,15 +157,21 @@ describe('the inversion', () => {
     expect(CEREMONY).toContain(
       'saidAtMs: promoted ? CEREMONY_TIMING.stampMs : CEREMONY_TIMING.deedMs,',
     );
-    // **The two roster rows this was written for were built** (batch E4a,
-    // 2026-09-07), so the rule is pinned on the shape rather than on a name:
-    // a face with nothing but a deferred clause is promoted, and today no
-    // roster row is one. The day one arrives, this catches it.
+    // **The rule is pinned on the shape rather than on a name**: a face with
+    // nothing but a deferred clause is promoted. The two rows this was written
+    // for were built in batch E4a (2026-09-07) and the roster held none at all
+    // for two days; the great-person pass of 2026-09-09 (batch GP1) wrote a
+    // handful of legacies the vocabulary cannot say yet, so the promotion is
+    // live again — and the register is the **data's** own answer, so a row
+    // filled in by batch GP3 leaves this list by being built rather than by
+    // being deleted from it.
     const state = twoSeats();
     expect(legacyIsSilent([{ text: 'not built', deferred: true }])).toBe(true);
     expect(legacyIsSilent([])).toBe(true);
     for (const id of GREAT_PERSON_IDS) {
-      expect(legacyIsSilent(greatPersonFace(state, 0, id).legacy), id).toBe(false);
+      const def = greatPersonDef(id);
+      const wordless = def.legacy.length === 0;
+      expect(legacyIsSilent(greatPersonFace(state, 0, id).legacy), id).toBe(wordless);
     }
     // …and a person whose legacy is real is not promoted.
     expect(legacyIsSilent(greatPersonFace(state, 0, 'imhotep').legacy)).toBe(false);

@@ -1550,8 +1550,21 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // a technology finished by star tablets pays the same verse as one finished by
   // a turn's beakers — and the culture it pays settles its own bucket at once,
   // which can hand the empire a draft on the turn it learnt something.
+  //
+  // **The guard reads every half of the payout, not only the coin** (batch GP1,
+  // 2026-09-09). Roger Bacon hangs three turns of grain and hammers on a
+  // technology and hands over no yield at all, so a test for `grants` alone read
+  // the whole rider as empty and dropped a legacy on the floor. It is
+  // `purchase.ts`' own widened guard — the one Crassus' timed bill earned at its
+  // own seam — said here for its reason exactly: a rider is a *payout*, and
+  // asking whether one of its five lists is full is asking the wrong question.
   const rider = windfallPayout(state, player.id, 'tech');
-  if (rider.grants.length > 0) {
+  if (
+    rider.grants.length > 0 ||
+    rider.units.length > 0 ||
+    rider.timed.length > 0 ||
+    rider.healAll
+  ) {
     payWindfallGrants(state, player, rider);
     settleCultureWindfall(state, player);
   }

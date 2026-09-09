@@ -224,6 +224,25 @@ export interface GreatPersonDef {
   /** The roster age this name belongs to. See the docblock. */
   age: number;
   tier: GreatPersonTier;
+  /**
+   * **Withdrawn from the roster, and the row kept** — `OrderDef.retired`'s word
+   * one table over, and its bargain exactly.
+   *
+   * The great-person pass of 2026-09-09 (`docs/flags.md` (lll)) cut eight names
+   * out of the roster. Deleting them would have been the one thing this table
+   * may not do: a `LegacyRecord` in a save names a person by id, and a save that
+   * holds a legacy nobody can look up is a save that does not load. So the row
+   * stays — with its name, its family, its epigram and whatever it left behind,
+   * which is what the Reliquary and the Compendium go on printing — and the
+   * *draw* is what forgets it (`rosterOfAge`, the bag every offer is taken
+   * from). A retired name is therefore unreachable on a new board and intact on
+   * an old one, which is the whole of what the marker means.
+   *
+   * The doc's tables are the live roster and nothing else
+   * (`greatPeopleDocSync.test.ts`), for `statecraftDocSync`'s reason: a
+   * reference is for balancing what the game deals.
+   */
+  retired?: boolean;
   /** One line, in the voice of the tech tree's aphorisms. Never a rule. */
   epigram: string;
   /** Why this person is remembered at all. Flavour; the wunderkammer's register. */
@@ -315,14 +334,33 @@ export function familyVerb(family: Family, verb: FamilyVerbKind): string {
   return familyDef(family).verbs[verb];
 }
 
-/** The roster ages the table actually holds, ascending. Derived, never restated. */
+/**
+ * Every id the roster still **deals**, in file order — `GREAT_PERSON_IDS` minus
+ * the withdrawn rows. See `GreatPersonDef.retired`.
+ *
+ * The list every question about the *game* asks; `GREAT_PERSON_IDS` stays the
+ * list every question about the *table* asks (a save's lookup, the Compendium's
+ * shelf, the piece's fingerprint index), which is the same split
+ * `data/units.json`'s retired augur keeps.
+ */
+export const LIVE_GREAT_PERSON_IDS: readonly GreatPersonId[] = GREAT_PERSON_IDS.filter(
+  (id) => greatPersonDef(id).retired !== true,
+);
+
+/** The roster ages the table actually deals, ascending. Derived, never restated. */
 export const ROSTER_AGES: readonly number[] = [
-  ...new Set(GREAT_PERSON_IDS.map((id) => greatPersonDef(id).age)),
+  ...new Set(LIVE_GREAT_PERSON_IDS.map((id) => greatPersonDef(id).age)),
 ].sort((a, b) => a - b);
 
-/** Every name of one roster age, in file order. The bag a draw is taken from. */
+/**
+ * Every name of one roster age, in file order. **The bag a draw is taken from**,
+ * so a withdrawn row is not in it — the marker's whole reading (see
+ * `GreatPersonDef.retired`), taken here rather than at each of the pool's,
+ * weighting's and offer's own walks, because a name that can be dealt and a name
+ * that cannot is one question with one answer.
+ */
 export function rosterOfAge(age: number): GreatPersonId[] {
-  return GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age);
+  return LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).age === age);
 }
 
 /**
