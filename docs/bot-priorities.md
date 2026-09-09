@@ -3556,4 +3556,261 @@ one factor the wall line uses is the `1 + ctx.threat` already beside it.
   the bar like a point of the ledger.
 - **`requiresSite`, `crowdingRelief`, `tileYields` and the rest of X8's list** are
   still unread by `explainBuildingRow`; this batch added the one row X8's own
-  entry names first and left the other eight alone.
+  entry names first and left the other eight alone. *(Closed the same day by
+  batch X8, below — and two of the eight turned out to be read already.)*
+
+## Batch X8 as shipped — the rows nobody reads (2026-09-08)
+
+`docs/audit/bot-pass-2.md`'s queue row X8 and Part 2 row 6: *"nine fields of
+`BuildingDef` with zero hits in `src/ai/` … a register test in the shape of
+`test/sim/statecraft.test.ts`' fold registry: every non-yield field of
+`BuildingDef` is either folded or names its reason in the source."*
+
+The batch is that register, and the honest half of it is worth saying first:
+**of the nine fields the audit named, five wanted a line, two were already being
+paid** — by the caller's own `foldCity` hypothetical, which reaches the ground —
+**and two are gaps with a batch behind them** (`waters` wants a price for the
+growth channel; `faithPurchases` wants a book that can be asked about a bank a
+town has not opened). So the deliverable is not nine new terms. It is a register
+in which every one of the row's **forty-nine** fields is either folded here or
+says, in the source, why it is not — fourteen folded, thirty-five excused — and a
+source test that fails the day `BuildingDef` grows a field that is neither.
+
+### The register
+
+`BUILDING_ROW_FOLDED` and `BUILDING_ROW_SILENT` (`src/ai/value.ts`) are the
+record; this table mirrors them. The register test
+(`test/sim/aiAppraisal.test.ts`, "every field of a building row is accounted
+for") reads the field names out of `src/sim/buildingData.ts`'s own interface
+declaration, so a field added to the row and to neither register fails core.
+
+| field | | the line, or the reason |
+|---|---|---|
+| `happiness` | **folded** | contentment supplied, at the meter’s live price |
+| `authorityCapacity` | **folded** | writ supplied, at the meter’s live price |
+| `cityStat` | **folded** | town strength, at the military weight and the threat |
+| `cityHp` | **folded** | town hit points, the same rate and the same threat (batch X5) |
+| `crowdingRelief` | **folded** | a share of a town’s crowding forgiven, at the happiness price |
+| `unitUpkeepRebate` | **folded** | a coin off the keep of every piece the levy is still short |
+| `purchaseDiscount` | **folded** | a percent off the coin this town turns over, at the gold price |
+| `healsAdjacent` | **folded** | a share of a piece mended a turn, at the wall line’s rate |
+| `ritePays` | **folded** | what a rite said here pays, at the register’s own rite cadence |
+| `renown` | **folded** | the trickle and the completion, at the renown weight |
+| `onComplete` | **folded** | the bead, the piece, the technology — a grant apiece |
+| `endsTheGame` | **folded** | the curtain, at the victory weight |
+| `routeSlots` | **folded** | the pair a slot would open, while every slot is spoken for |
+| `effects` | **folded** | its written effects, through the card evaluator |
+| `name` | silent | the words; the candidate is printed under it and it is worth nothing |
+| `article` | silent | grammar |
+| `note` | silent | player prose about the row, never a number |
+| `deferred` | silent | the half of the row that is not built; there is nothing to price |
+| `placeholder` | silent | a stand-in row’s own confession, read by the data tests |
+| `category` | silent | a label the caravan reads — what it pays a route is priced in `routeYields.ts`, folded by `routeOutlook` |
+| `size` | silent | the price, not the worth: `explainBuildingCost`, which every caller charges as cost and turns |
+| `column` | silent | the price again — the column a row with no node is priced at |
+| `food` | silent | the caller’s `foldCity` hypothetical pays it, staged and percentaged |
+| `production` | silent | the caller’s `foldCity` hypothetical pays it, and `hammerTerm` prices the compression |
+| `gold` | silent | the caller’s `foldCity` hypothetical pays it |
+| `science` | silent | the caller’s `foldCity` hypothetical pays it |
+| `culture` | silent | the caller’s `foldCity` hypothetical pays it |
+| `faith` | silent | the caller’s `foldCity` hypothetical pays it |
+| `sciencePerPop` | silent | the caller’s `foldCity` hypothetical pays it, floored per building as the sim floors it |
+| `tileYields` | silent | the caller’s hypothetical reaches the ground: `cityContext` hands the candidate to `buildingTileLines`, so the harbour’s water is already in the yield delta |
+| `irrigates` | silent | the same hypothetical: `cityContext` asks `buildingsIrrigate` of the town plus this row, so the farms it waters are in the yield delta |
+| `waters` | silent | the dry-settle penalty is a percentage on the **growth surplus**, and this appraisal prices no growth channel at all (batch X5’s finding (c), queued for a ruling) |
+| `productionBonus` | silent | a row that *grants* a percentage — the audit’s Part 2 row 3, which wants the town’s own base and is its own batch |
+| `faithPurchases` | silent | it opens a bank; what the bank would buy is the faith book’s reading (`faithPlan`), and the book cannot be asked of a town that does not hold the row yet |
+| `purchase` | silent | which bank sells the row — a price, asked through `explainPurchaseCost` by the books that spend |
+| `purchaseOnly` | silent | a way to acquire, not a worth: the queue is refused and the purchase arm admits it |
+| `grantedOnly` | silent | nothing builds or buys it; the rules refuse the candidate |
+| `placed` | silent | an act leaves it standing; there is no candidate to appraise |
+| `retired` | silent | off the buildable set — `buildError` refuses it before the fold |
+| `awaitsTech` | silent | not yet in the world — `buildError` refuses it before the fold |
+| `unlockedByCard` | silent | availability, asked by `isUnlocked` before the fold |
+| `worldUnlockTech` | silent | availability, asked by `isUnlocked` before the fold |
+| `followingOnly` | silent | availability, asked of the congregation by `purchaseError` before the fold |
+| `requiresBuilding` | silent | the chain’s one link, refused by `buildError` in the parent’s own name |
+| `requiresSite` | silent | a refusal rather than a worth — `siteRefusal` prints the simulation’s own sentence for the thirteen sited rows |
+| `oncePerEmpire` | silent | one per realm: a refusal, and a line on the *price* (`docs/production-costs.md`), never a worth |
+| `wonder` | silent | one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above |
+| `consecrated` | silent | the patron roll — uniform over the consecrations, and this bot has no reading of a patron |
+| `acceptsContributions` | silent | a way to pay a basket; the bot has no contribution arm to price it for |
+
+Three shapes of silence, and the middle one is the batch's own finding:
+
+- **paid elsewhere.** The six flat yields, `sciencePerPop`, `tileYields` and
+  `irrigates`. Every caller of `explainBuildingRow` that matters hands the row to
+  `foldCity` as a `hypothetical` first, and that hypothetical reaches the *ground*
+  — `cityContext` hands the candidate to `buildingTileLines` and asks
+  `buildingsIrrigate` of the town plus this row. So a harbour's water lines and a
+  cistern's irrigated farms are already in the yield delta the caller folds
+  beside this appraisal, and a term here would pay twice for one shelf. The audit
+  called `tileYields` "the biggest" of the nine; it was the one already read.
+- **not a worth at all.** The words, the two fields that are the *price*
+  (`size` and `column`, which `explainBuildingCost` reads and every caller
+  charges as cost and turns), and the markers that say who may raise the row and
+  out of which bank. Every one of those is asked by the rules before a candidate
+  exists (`canQueueBuilding` → `buildError`), so a term for one would be a term
+  about a row that is not in the list.
+- **no reading yet, named.** `waters` (the growth channel has no price in this
+  appraisal at all — X5's finding (c), queued for a ruling), `productionBonus`
+  (the audit's own Part 2 row 3, which wants the town's base and is its own
+  batch) and `faithPurchases` (it opens a bank, and the faith book cannot be
+  asked what it would buy in a town that does not hold the row yet).
+
+### The five lines
+
+Each is read through `buildingEffects.ts` — the one place a building's non-yield
+facts are read — asked of `{ buildings: [id] }`, a town holding this row and
+nothing else. The bot touches no `BuildingDef` field the simulation reads for
+itself. Four of the five readers had their parameter widened from `City` to
+*anything holding a list of buildings*, which is `buildingCityHp`'s X5 precedent
+and cost no caller a character; the fifth (`buildingUnitUpkeepRebate`) is **new**
+— the Throne's rebate had no reader at all, `realiseItem` walking
+`buildingDef(held).unitUpkeepRebate` inline.
+
+| row | the line |
+|---|---|
+| **Assize Court** `crowdingRelief` | `15% × crowding(pop) × meterWeight(happiness)`. The crowding is the simulation's own curve asked twice and subtracted — `happinessDemand(pop) − pop × happinessDemand(1)` — which is X5's marginal charge read one question over, and nothing restates `METERS.happiness`. It is **nothing in a hamlet**: crowding starts at ten citizens, so the row is worth nothing in a town of four and something in a capital of twelve, which is the field's own docblock in the appraisal's words |
+| **Imperial Throne** `unitUpkeepRebate` | `1 gold × (levy shortfall ÷ towns) × the gold price`, through `explainUpkeepCost` — the same rate the payroll is charged at. What the rebate is *on* is the pieces the levy is still short (`levyReading`, the reading the chain and the town already share since X1), in this town's share of the raising |
+| **Assay House** `purchaseDiscount` | `5% × (coin a turn ÷ towns) × the gold price`. The turnover is the reading the occasion register already takes for a purchase, and the line is **treasury only**, which is the row's own ratified words: `explainPurchaseCost` asks a building's discount for gold and never for faith |
+| **Keep** `healsAdjacent` | `min(heal, bar) ÷ bar × weights.military × combatScale × (1 + threat)` — a **share of a piece**, not points of strength: a mend cannot exceed the bar it fills, so five a turn is a twentieth of a piece back on its feet. The threat factor is the wall line's own, so a garrison nobody is shooting at is a garrison at full health |
+| **Chapel** `ritePays` | `5 culture × (the rite cadence ÷ towns) × the culture price`. The cadence is `occasionRate('rite')`, the register's own — a town keeps one rite for its blessing's length — and it is **nothing for a realm taught no rite**. The rite's own blessing belongs to the want book (`explainRite`, `wants.ts`) and is deliberately not counted twice: this line is the *rider*, and the two surfaces own different halves |
+
+The three that are facts about **one town** — the crowding, the discount, the
+rebate — are priced at this empire's tempo shared among its towns, because the
+fold's callers hand it no town. They may: `explainBuildingRow` takes an optional
+`city` (`hammerPrice`'s bargain exactly), and with one in hand the crowding line
+is that town's own size rather than the middling one's. **No caller passes one
+yet** — see "What bot.ts still owes" below.
+
+### `requiresSite`, refused out loud
+
+Thirteen live rows want a harbour, a desert, a mountain beside the town.
+`canQueueBuilding` drops every one of them out of the candidate list without a
+word, which is the one silent absence in a bot where every other refusal is a
+printed one (`BotCandidate.rejected`). `siteRefusal(ctx, city, id)` (`value.ts`)
+is the reading: `null` for a row with no site, a row the town holds, a row the
+town may actually raise, and — deliberately — a row whose site *is* satisfied and
+which is refused for some other reason (that is somebody else's sentence, and a
+build list printing forty of them a town is a feed nobody reads). Otherwise it is
+`buildError`'s own words, which name the site rather than the flag.
+
+### The `unitStat` accident
+
+`docs/audit/bot-pass-2.md` Part 2 row 8: the arm multiplied `amount` by the
+military weight whatever `stat` said, so Field Hospitals' `heal: 100` scored as
+**a hundred points of strength** — the strongest single clause in the game, by
+arithmetic rather than by design. Forty rows across five tables carry a
+`unitStat`. The dispatch is three questions, not six:
+
+- **`combatPercent`** is a percentage *of* a piece, priced against what this file
+  already means by a piece (`weights.military × score.combatScale`, the same
+  number `unlocksUnit` and the completion grant read): 25% is a quarter of one;
+- **`heal`** is hit points a resting piece gets back, capped by the bar it fills
+  (`unitMaxHp` off the roster): a hundred is one piece back on its feet, fifty is
+  half of one;
+- **`movement` · `sight` · `range` · `charges`** are points of a piece's own
+  quality and stay at the rate this arm has always read them at. The day one of
+  them earns a reading of its own it takes a case there.
+
+### The sweep
+
+The bench the priority batches use — seeds 1/2/3/42/101/999/31337/20260101, duel,
+two balanced seats, wild on, **sixteen seats**, 150 turns, driven by `driveBots`
+— with each half of the door shut and open, so the batch is attributed rather
+than asserted. Shelves are every building standing at t150 counted by its row's
+own `BuildingCategory`; the rates are `foldEmpireRates` summed over the sixteen
+seats.
+
+| | towns | military | culture | food | science | gold | faith | production | **shelves** |
+|---|---|---|---|---|---|---|---|---|---|
+| **before** (both shut) | 109 | 237 | 90 | 21 | 10 | 29 | 11 | 8 | 406 |
+| **rows only** | 109 | 237 | 90 | 21 | 10 | 29 | 11 | 8 | 406 |
+| **`unitStat` only** | 110 | 235 | 101 | 22 | 10 | 29 | 11 | 8 | 416 |
+| **after** (both open) | 111 | 235 | **102** | 22 | 9 | 29 | 11 | 8 | **416** |
+
+| | Σ science/turn | Σ culture/turn | Σ gold/turn | Σ faith/turn |
+|---|---|---|---|---|
+| **before** | 451.8 | 592.5 | 589.9 | 155.9 |
+| **rows only** | 451.8 | 592.5 | 589.9 | 155.9 |
+| **`unitStat` only** | 454.1 | 623.3 | 584.0 | 173.9 |
+| **after** | 452.7 | **629.3** | 582.5 | **169.9** |
+
+**No regression on any row, and the attribution is unambiguous.**
+
+- **The five charter lines alone move nothing at all** — the *rows only* row is
+  the before row to the decimal, on all sixteen seats. Four of the five fields
+  are on `unlockedByCard` charters (Assize Court, Assay House, Keep, Chapel), so
+  a seat that is never dealt the charter never sees one; the fifth, the Imperial
+  Throne, is a tech row and is reached on some boards but never changed a
+  decision on an undiverged one. This is X3's finding said a second time: **a row
+  priced correctly on a bench that never deals it moves nothing**, and that is a
+  fact about the bench rather than about the arithmetic. The five lines are
+  pinned on arranged boards in `aiAppraisal.test.ts` instead, which is where a
+  claim about *one decision* belongs (`aiWar.test.ts`' own bargain).
+- **The `unitStat` correction is the whole of the movement**, and it moves in the
+  direction the audit predicted: **two fewer military shelves and eleven more
+  culture ones**, ten more shelves overall, with **+5.2% culture a turn** and
+  **+11.5% faith**. Taking a hundred points of imaginary strength off Field
+  Hospitals and the three other `heal` rows — and re-reading the six
+  `combatPercent` rows, which were scoring their percent as points of strength —
+  is a seat that drafts and
+  builds slightly less war and slightly more everything else. Science is +0.5%,
+  gold −1.0% — a seventh of a coin a seat a turn, inside a sixteen-seat sum's own
+  spread.
+- **The two halves together are not the sum of the two halves**, and that is
+  ordinary: the boards diverge inside the first ten turns, so the combined run
+  finds one more town and one more culture shelf than the `unitStat` half alone.
+  That extra culture shelf is the Throne on a board that reached it — which is
+  the only glimpse this bench gives of the five lines playing at all.
+
+### Knobs added
+
+**None.** Every figure is an existing weight or an existing register read through
+an existing fold: `meterWeight(happiness)`, `voiceWeight(gold)` through
+`explainUpkeepCost`, `voiceWeight(culture)` through `explainYields`,
+`weights.military × score.combatScale`, `occasionRate('rite')`, `levyReading`,
+and the `1 + ctx.threat` already beside the wall.
+
+### The door
+
+`rowDoor = { rows: true, unitStat: true }` (`value.ts`) — `signDoor`'s and
+`scopeDoor`'s twin, for the acceptance measurement and nothing else. Two halves
+because the batch is two arithmetics: `rows` is the five charter lines, `unitStat`
+is the dispatch. Not a knob — not in `data/ai.json`, no persona reads it, no
+surface offers it, both halves ship open.
+
+### What bot.ts still owes (one line each, outside this batch's fence)
+
+- **`buildCandidates` (`bot.ts`) should hand the town in**:
+  `explainBuildingRow(id, ctx, city)`, and the same in `purchasingPlan`'s and
+  `faithPlan`'s building loops (`wants.ts`). It sharpens exactly one line — the
+  crowding a court forgives is then the *asking* town's size rather than the
+  empire's middling one — and changes nothing else.
+- **`buildCandidates` should print the site refusal**: for a row
+  `canQueueBuilding` rejects, `siteRefusal(ctx, city, id)` is a sentence, and a
+  candidate carrying `rejected` is the shape the feed already has. Until it does,
+  the reading exists and nothing calls it.
+- **`realiseItem` (`cities.ts:3343`) should stamp through
+  `buildingUnitUpkeepRebate`** rather than walking `buildingDef(held).unitUpkeepRebate`
+  itself, so the payroll has one reader like every other non-yield fact.
+
+### Known gaps, written down rather than fixed
+
+- **Four of the five rows are charters**, and the sweep says so out loud: the
+  five lines alone leave the sixteen seats byte-identical. The arithmetic is
+  pinned on arranged boards, and what would actually exercise it is a bench that
+  deals the charters — which is a bench nobody has built and is worth one, for
+  X3's rows as much as for these.
+- **The town-share crudeness.** A town that would buy twice what its neighbour
+  buys is read as buying the average, on all three town-local lines. The fix is
+  the caller's, above, and it is a line rather than a design.
+- **`waters` is still unread** and stays unread until the growth channel has a
+  price: the dry-settle penalty is a percentage on the growth *surplus*, and X5's
+  finding (c) left that channel deliberately uncharged pending a ruling. It is the
+  one field of the audit's nine that this batch neither folds nor pays elsewhere.
+- **A mend is small.** Homer's `heal: 5` reads a twentieth of a piece where it
+  used to read five spearmen. That is the correction, but the reading has no
+  *cadence* in it — a card that mends every turn of a long war is worth more than
+  one turn's share, and pricing that wants an occasion the register does not have.

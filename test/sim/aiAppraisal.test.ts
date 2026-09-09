@@ -70,18 +70,24 @@ import {
 } from '../../src/ai/decision';
 import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
 import {
+  BUILDING_ROW_FOLDED,
+  BUILDING_ROW_SILENT,
   delayTerm,
   explainBuildingRow,
   explainCounted,
   explainEffects,
   hasFoldReadEngine,
   meterWeight,
+  rowDoor,
   scopeDoor,
   scoreEffects,
   signDoor,
+  siteRefusal,
   townsAdmitting,
+  voiceWeight,
   workedHexesAdmitting,
 } from '../../src/ai/value';
+import { levyReading } from '../../src/ai/campaign';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
@@ -98,8 +104,17 @@ import {
   explainEmpireCardYields,
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
-import { buildingCityHp, foldBuildingCityStat } from '../../src/sim/buildingEffects';
-import { happinessDemand } from '../../src/sim/meters';
+import {
+  buildingAdjacentHeal,
+  buildingCityHp,
+  buildingCrowdingRelief,
+  buildingPurchaseDiscount,
+  buildingRitePay,
+  buildingUnitUpkeepRebate,
+  foldBuildingCityStat,
+} from '../../src/sim/buildingEffects';
+import { explainHappiness, happinessDemand } from '../../src/sim/meters';
+import { LIVE_RITE_IDS, riteDef } from '../../src/sim/religionData';
 import { unitUpkeepTotal } from '../../src/sim/upkeep';
 import { applyCommand } from '../../src/sim/commands';
 import { improvementDef } from '../../src/sim/improvementData';
@@ -123,7 +138,7 @@ import {
   type TallyOccasion,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { researchExpansion } from '../../src/sim/tech';
+import { buildError, researchExpansion } from '../../src/sim/tech';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
@@ -2869,5 +2884,345 @@ describe('the two missing signs (batch X5)', () => {
     // `scopeDoor`'s sentence one batch over: the switch exists for the batch's own
     // acceptance measurement, it is not a knob, and neither half ships shut.
     expect(signDoor).toEqual({ citizen: true, wall: true });
+  });
+});
+
+// --- batch X8: the rows nobody reads ----------------------------------------
+
+/**
+ * A bench realm for the X8 blocks: towns of a stated size on the grassland
+ * board, `realm`'s shape one section up (each block keeps its own so a change to
+ * one bench cannot quietly re-aim another's claims).
+ */
+function x8Realm(
+  towns: number,
+  population: number,
+): { state: GameState; player: Player; cities: City[] } {
+  const state = bench(2);
+  const cities: City[] = [];
+  for (let index = 0; index < towns; index++) {
+    cities.push(foundCityAt(state, 0, at(state.map, 3 + index * 5, 5)));
+  }
+  recomputeAllVisibility(state);
+  for (const city of cities) {
+    city.population = population;
+    refreshCityDerived(state, city);
+  }
+  bumpRevision(state);
+  return { state, player: seat(state, 0), cities };
+}
+
+/**
+ * **Batch X8 — the rows nobody reads** (`docs/audit/bot-pass-2.md` Part 2 row 6
+ * and queue row X8).
+ *
+ * Nine fields of `BuildingDef` had zero hits in `src/ai/`: the crowding a court
+ * forgives, the coin an assay house saves, the wages a throne rebates, what a
+ * keep mends, what a chapel pays the augurs, the lines a harbour pays on water,
+ * the fields a cistern waters, the thirst an aqueduct ends, and the ground a
+ * wonder wants under it. Four of them turned out to be paid already — by the
+ * caller's own `foldCity` hypothetical — and the register below is how that is
+ * *written down* rather than rediscovered: every field of the interface is
+ * either folded by `explainBuildingRow` or names its reason in the source, and
+ * this fails the day one is neither.
+ */
+describe('every field of a building row is accounted for', () => {
+  /** The interface itself, read as text — the register's one source of truth. */
+  const BUILDING_SOURCE = Object.values(
+    import.meta.glob('../../src/sim/buildingData.ts', {
+      eager: true,
+      query: '?raw',
+      import: 'default',
+    }) as Record<string, string>,
+  )[0]!;
+
+  /** The field names of `BuildingDef`, off its own declaration. */
+  function declaredFields(): string[] {
+    const start = BUILDING_SOURCE.indexOf('export interface BuildingDef {');
+    expect(start).toBeGreaterThan(0);
+    const end = BUILDING_SOURCE.indexOf('\n}\n', start);
+    const names: string[] = [];
+    for (const line of BUILDING_SOURCE.slice(start, end).split('\n')) {
+      const match = /^ {2}([A-Za-z_][A-Za-z0-9_]*)\??:/.exec(line);
+      if (match) names.push(match[1]!);
+    }
+    return names;
+  }
+
+  it('reads the interface itself, and every field is folded or excused', () => {
+    const fields = declaredFields();
+    // A sanity floor: if the parse stops finding fields the register below would
+    // pass by saying nothing, which is the one way a source-reading test lies.
+    expect(fields.length).toBeGreaterThan(40);
+    expect(fields).toContain('crowdingRelief');
+    expect(fields).toContain('requiresSite');
+    for (const field of fields) {
+      const folded = BUILDING_ROW_FOLDED[field];
+      const silent = BUILDING_ROW_SILENT[field];
+      // One of the two, never both and never neither — a field in both registers
+      // is a field two people disagreed about, and one in neither is a promise
+      // the data makes that the appraisal cannot see.
+      expect({ field, accounted: (folded ?? silent) !== undefined }).toEqual({
+        field,
+        accounted: true,
+      });
+      expect({ field, both: folded !== undefined && silent !== undefined }).toEqual({
+        field,
+        both: false,
+      });
+      expect(folded ?? silent, field).toBeTruthy();
+    }
+    // And nothing else: a register naming a field the row does not carry is a
+    // reason for something nobody can write down any more.
+    for (const named of [
+      ...Object.keys(BUILDING_ROW_FOLDED),
+      ...Object.keys(BUILDING_ROW_SILENT),
+    ]) {
+      expect(fields.includes(named), named).toBe(true);
+    }
+  });
+
+  it('folds every field it says it folds, off a row that carries one', () => {
+    // The register is a claim about the *fold*, so each folded field is asked of
+    // a live row that actually carries it — a register that named a line nobody
+    // prints would be the fold registry's own dead-shape failure one table over.
+    const { state, player, cities } = x8Realm(2, 12);
+    player.techsResearched.push('divination');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    for (const field of Object.keys(BUILDING_ROW_FOLDED)) {
+      const row = BUILDING_IDS.find(
+        (id) => (buildingDef(id) as unknown as Record<string, unknown>)[field] !== undefined,
+      );
+      expect(row, field).toBeDefined();
+      const printed = explainBuildingRow(row!, ctx, cities[0]);
+      expect(printed.total, field).toBe(foldTerms(printed.terms));
+    }
+  });
+});
+
+describe('the five charter lines (batch X8)', () => {
+  it('forgives a share of the crowding a town of that size carries', () => {
+    // The Assize Court's fifteen percent, of a cost a hamlet does not pay at
+    // all: `METERS.happiness` charges crowding from ten citizens up, so the same
+    // row is worth nothing in a town of four and something in a town of twelve.
+    const { state, player, cities } = x8Realm(2, 12);
+    const ctx = valueContext(state, player);
+    const relief = buildingCrowdingRelief({ buildings: ['assizeCourt'] });
+    expect(relief).toBe(15);
+    const line = findTerm(explainBuildingRow('assizeCourt', ctx, cities[0]).terms, /crowding/);
+    expect(line).not.toBeNull();
+    // The simulation's own curve, asked twice and subtracted — the crowding half
+    // of a town's demand, never re-derived here.
+    const crowding = happinessDemand(12) - 12 * happinessDemand(1);
+    expect(crowding).toBeGreaterThan(0);
+    // And it is the meter's *own* figure: the line `explainHappiness` charges
+    // this town for being crowded, which is what the relief is a share of. If a
+    // retune of the curve ever parts the two, this is where it says so.
+    const charged = explainHappiness(state, player.id).find(
+      (entry) => entry.source === `${cities[0]!.name} crowding`,
+    );
+    expect(charged).toBeDefined();
+    expect(-charged!.value).toBeCloseTo(crowding, 9);
+    expect(line!.value).toBeCloseTo(((crowding * relief) / 100) * meterWeight(ctx, 'happiness'), 9);
+
+    const hamlet = x8Realm(2, 4);
+    const quiet = valueContext(hamlet.state, hamlet.player);
+    expect(
+      findTerm(explainBuildingRow('assizeCourt', quiet, hamlet.cities[0]).terms, /crowding/),
+    ).toBeNull();
+  });
+
+  it('prices the throne’s rebate on the pieces the levy is still short', () => {
+    const { state, player, cities } = x8Realm(3, 6);
+    const ctx = valueContext(state, player);
+    const rebate = foldBuildingCityStat(
+      buildingUnitUpkeepRebate({ buildings: ['imperialThrone'] }),
+    );
+    expect(rebate).toBe(1);
+    const short = levyReading(ctx).shortfall;
+    expect(short).toBeGreaterThan(0);
+    const line = findTerm(
+      explainBuildingRow('imperialThrone', ctx, cities[0]).terms,
+      /off the keep/,
+    );
+    expect(line).not.toBeNull();
+    // This town's share of the raising, at the rate the payroll is charged at.
+    expect(line!.value).toBeCloseTo((rebate * short * voiceWeight(ctx, 'gold')) / 3, 9);
+  });
+
+  it('prices the assay house at the coin the town turns over', () => {
+    const { state, player, cities } = x8Realm(2, 6);
+    const ctx = valueContext(state, player);
+    const discount = foldBuildingCityStat(buildingPurchaseDiscount({ buildings: ['assayHouse'] }));
+    expect(discount).toBe(-5);
+    const turnover = Math.max(0, foldEmpireRates(state, player.id).goldPerTurn ?? 0) / 2;
+    expect(turnover).toBeGreaterThan(0);
+    const line = findTerm(
+      explainBuildingRow('assayHouse', ctx, cities[0]).terms,
+      /off what this town buys/,
+    );
+    expect(line).not.toBeNull();
+    expect(line!.value).toBeCloseTo((5 / 100) * turnover * voiceWeight(ctx, 'gold'), 9);
+  });
+
+  it('prices the keep’s mending as a share of a piece, and by the threat', () => {
+    const { state, player, cities } = x8Realm(1, 6);
+    const quiet = valueContext(state, player);
+    const heal = foldBuildingCityStat(buildingAdjacentHeal({ buildings: ['keep'] }));
+    expect(heal).toBe(5);
+    const quietLine = findTerm(explainBuildingRow('keep', quiet, cities[0]).terms, /mended a turn/)!;
+    expect(quietLine).not.toBeNull();
+    // Five points of a hundred-point bar is a twentieth of a piece — not five
+    // spearmen, which is what a strength reading would have said.
+    expect(quietLine.value).toBeCloseTo(
+      (5 / 100) * aiJson.weights.military * aiJson.score.combatScale,
+      9,
+    );
+    for (const [col, row] of [
+      [cities[0]!.col + 2, cities[0]!.row],
+      [cities[0]!.col + 2, cities[0]!.row + 1],
+    ] as const) {
+      createUnit(state, 1, 'warrior', col, row);
+    }
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const besieged = valueContext(state, player);
+    expect(besieged.threat).toBeGreaterThan(0);
+    const loudLine = findTerm(
+      explainBuildingRow('keep', besieged, cities[0]).terms,
+      /mended a turn/,
+    )!;
+    expect(loudLine.value).toBeCloseTo(quietLine.value * (1 + besieged.threat), 9);
+  });
+
+  it('prices the chapel at what a rite said here pays, at the register’s cadence', () => {
+    const { state, player, cities } = x8Realm(2, 6);
+    // A realm taught no rite says none, and the line says nothing — the cadence
+    // is the occasion register's, and it is bounded by the rites the empire
+    // actually knows.
+    const untaught = valueContext(state, player);
+    expect(
+      findTerm(explainBuildingRow('chapel', untaught, cities[0]).terms, /every rite/),
+    ).toBeNull();
+    player.techsResearched.push('divination');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const pays = buildingRitePay({ buildings: ['chapel'] });
+    expect(pays).toBe(5);
+    const line = findTerm(explainBuildingRow('chapel', ctx, cities[0]).terms, /every rite/);
+    expect(line).not.toBeNull();
+    // One town's share of the empire's own rite tempo, at the culture price.
+    const rate = 1 / (riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
+    expect(line!.value).toBeCloseTo(pays * rate * voiceWeight(ctx, 'culture'), 6);
+  });
+
+  it('says nothing at all about a shelf that carries none of them', () => {
+    const { state, player, cities } = x8Realm(2, 12);
+    const ctx = valueContext(state, player);
+    const granary = explainBuildingRow('granary', ctx, cities[0]);
+    for (const match of [
+      /crowding/,
+      /off the keep/,
+      /off what this town buys/,
+      /mended a turn/,
+      /every rite/,
+    ]) {
+      expect(findTerm(granary.terms, match)).toBeNull();
+    }
+    expect(granary.total).toBe(foldTerms(granary.terms));
+  });
+
+  it('reads none of the five off the row itself, anywhere in the bot', () => {
+    // The `.cityHp` register one batch over, widened to the five: each of these
+    // has a reader in `buildingEffects.ts` and the simulation plays by that
+    // reader, so a `def.ritePays` in here would be a second opinion about what a
+    // chapel pays. `requiresSite` is deliberately not on the list — it has no
+    // reader of its own, and `siteRefusal` asks `cityScopeAdmits` about it the
+    // way `buildError` does. Comment lines are skipped, as the register above
+    // this one skips them and for its reason.
+    for (const [path, source] of Object.entries(AI_SOURCES)) {
+      const code = source
+        .split('\n')
+        .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+        .join('\n');
+      for (const field of [
+        'crowdingRelief',
+        'healsAdjacent',
+        'purchaseDiscount',
+        'ritePays',
+        'unitUpkeepRebate',
+      ]) {
+        expect(code, `${path} · ${field}`).not.toMatch(new RegExp(`\\.${field}`));
+      }
+    }
+  });
+
+  it('leaves the door open in the shipped bot, both halves', () => {
+    expect(rowDoor).toEqual({ rows: true, unitStat: true });
+  });
+});
+
+describe('the site, refused out loud (batch X8)', () => {
+  it('gives the simulation’s own sentence for a row the town has no ground for', () => {
+    // Thirteen live rows carry a `requiresSite`, and `canQueueBuilding` dropped
+    // every one of them out of the candidate list without a word. The refusal is
+    // `buildError`'s, and it names the site rather than the flag.
+    const sited = BUILDING_IDS.filter((id) => buildingDef(id).requiresSite !== undefined);
+    expect(sited.length).toBe(13);
+    const { state, player, cities } = x8Realm(1, 6);
+    player.techsResearched.push('sailing');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    // The bench is grassland to the edges, so no town of it is coastal.
+    const refusal = siteRefusal(ctx, cities[0]!, 'harbour');
+    expect(refusal).not.toBeNull();
+    expect(refusal).toBe(buildError(state, player.id, 'building', 'harbour', cities[0]!));
+    // A row with no site at all is not this reading's business.
+    expect(siteRefusal(ctx, cities[0]!, 'granary')).toBeNull();
+    // And once the ground admits it, the refusal is somebody else's sentence.
+    at(state.map, cities[0]!.col + 1, cities[0]!.row).terrain = 'coast';
+    bumpRevision(state);
+    expect(siteRefusal(valueContext(state, player), cities[0]!, 'harbour')).toBeNull();
+  });
+});
+
+describe('a unitStat is read by which stat it is (batch X8)', () => {
+  it('prices a heal as a share of a piece and a percent as a percent of one', () => {
+    const { state, player } = x8Realm(2, 6);
+    const ctx = valueContext(state, player);
+    const piece = aiJson.weights.military * aiJson.score.combatScale;
+    // Field Hospitals' whole mend — one piece back on its feet a turn, where the
+    // arm used to read it as a hundred points of strength.
+    const full: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 100 }];
+    expect(scoreEffects(full, ctx)).toBeCloseTo(piece * (1 + ctx.threat), 9);
+    const half: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 50 }];
+    expect(scoreEffects(half, ctx)).toBeCloseTo(0.5 * piece * (1 + ctx.threat), 9);
+    // A percentage of a piece is priced against what this file already means by
+    // a piece, so twenty-five percent is a quarter of one.
+    const percent: CardEffect[] = [{ kind: 'unitStat', stat: 'combatPercent', amount: 25 }];
+    expect(scoreEffects(percent, ctx)).toBeCloseTo(0.25 * piece * (1 + ctx.threat), 9);
+    // The four points of a piece's own quality are untouched: the reading this
+    // arm has always taken.
+    const reach: CardEffect[] = [{ kind: 'unitStat', stat: 'movement', amount: 1 }];
+    expect(scoreEffects(reach, ctx)).toBeCloseTo(aiJson.weights.military * (1 + ctx.threat), 9);
+  });
+
+  it('was the arithmetic accident the audit named, and the door proves it', () => {
+    const { state, player } = x8Realm(2, 6);
+    const ctx = valueContext(state, player);
+    const full: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 100 }];
+    rowDoor.unitStat = false;
+    try {
+      // A hundred points of strength — the strongest line in the game, by
+      // arithmetic rather than by design.
+      expect(scoreEffects(full, ctx)).toBeCloseTo(
+        100 * aiJson.weights.military * (1 + ctx.threat),
+        9,
+      );
+    } finally {
+      rowDoor.unitStat = true;
+    }
+    expect(scoreEffects(full, ctx)).toBeLessThan(100 * aiJson.weights.military);
   });
 });

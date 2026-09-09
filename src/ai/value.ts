@@ -81,7 +81,28 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
 import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { buildingCityHp, foldBuildingCityStat } from '../sim/buildingEffects';
+// **The one place a building's non-yield facts are read** (CLAUDE.md), and batch
+// X8 reads five more of them through it: the crowding a court forgives, the coin
+// an assay house takes off a price, the wages a throne rebates, what a keep
+// mends, what a chapel pays the augurs — beside the walls' hit points X5 already
+// folds. Every one of them is asked of `{ buildings: [id] }`, a town holding this
+// row and nothing else, so the appraisal never touches a `BuildingDef` field the
+// simulation reads for itself.
+import {
+  buildingAdjacentHeal,
+  buildingCityHp,
+  buildingCrowdingRelief,
+  buildingPurchaseDiscount,
+  buildingRitePay,
+  buildingUnitUpkeepRebate,
+  foldBuildingCityStat,
+} from '../sim/buildingEffects';
+// **The levy, as the chain and the town both read it** (batch X1) — the pieces
+// this empire is still short, which is what an upkeep rebate on the next piece
+// raised here is a rebate *on*. The import is safe in this direction: that
+// module names this one's context as a **type** and nothing else, so it is a
+// leaf and this is not a cycle.
+import { levyReading } from './campaign';
 // The town's and the empire's published readings, remembered on
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
@@ -147,7 +168,13 @@ import { type City, type GameState, citiesOf } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
-import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
+import {
+  UNIT_TYPE_IDS,
+  type UnitTypeId,
+  isCombatant,
+  unitDef,
+  unitMaxHp,
+} from '../sim/unitData';
 import { unitUpkeepTotal } from '../sim/upkeep';
 import { isExploredBy } from '../sim/visibility';
 import { round } from './decision';
@@ -973,8 +1000,25 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  * Nothing here compares a building against a name: every clause is a marker on
  * the row, which is the discipline `src/sim/` keeps and a reader of the same
  * tables has no business breaking.
+ *
+ * **Every field of the row is accounted for** (batch X8): it is either folded
+ * here or it names its reason in `BUILDING_ROW_SILENT` below, and a source
+ * register (`aiAppraisal.test.ts`) fails the day `BuildingDef` grows a field that
+ * is neither. The audit's own list — `crowdingRelief`, `unitUpkeepRebate`,
+ * `purchaseDiscount`, `healsAdjacent`, `ritePays` — joins the fold here; the
+ * `tileYields` and `irrigates` beside them are *silent on purpose*, because the
+ * caller's own `foldCity` hypothetical already pays them (see the register).
+ *
+ * `city` is the town that would raise it, and it sharpens the one term that is a
+ * function of a town's **size** — the crowding a court forgives. `hammerPrice`'s
+ * bargain exactly: absent, the fold prices the empire's middling town, which is
+ * the honest fallback for a caller that does not say who is asking.
  */
-export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal {
+export function explainBuildingRow(
+  id: BuildingId,
+  ctx: ValueContext,
+  city?: City,
+): Appraisal {
   const def = buildingDef(id);
   const terms: ValueTerm[] = [];
   if (def.happiness !== undefined) {
@@ -1026,6 +1070,13 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
       value: hp * ctx.ai.weights.military * (1 + ctx.threat),
     });
   }
+  // **The five rows nobody read** (batch X8, `docs/audit/bot-pass-2.md` Part 2
+  // row 6): nine fields with zero hits in `src/ai/`, of which four are already
+  // paid by the caller's own yield delta (see `BUILDING_ROW_SILENT`) and these
+  // five are what a row *does* that no yield can say. Each is read through
+  // `buildingEffects.ts` — asked of a town holding this row and nothing else —
+  // and priced through a rate this file already carries.
+  for (const term of rowCharterTerms(id, ctx, city)) terms.push(term);
   if (def.renown !== undefined) {
     terms.push({
       label: `${signed(def.renown.perTurn)} renown a turn × ${ctx.ai.weights.renown}`,
@@ -1051,6 +1102,333 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
   if (route !== null) terms.push(route);
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
   return appraise(terms);
+}
+
+/**
+ * **The five charter lines** — what a row does that is neither a yield nor a
+ * wall, folded here so `explainBuildingRow` stays the one list.
+ *
+ * Each is the audit's own sentence, priced through a rate this file already
+ * carries and read through `buildingEffects.ts`, which is the one place a
+ * building's non-yield facts are read. None of them adds a knob.
+ *
+ * The three that are facts about **one town** — the crowding forgiven, the coin
+ * an assay house saves, the wages a throne rebates — are priced at *this
+ * empire's own tempo shared among its towns*, because the fold's callers hand it
+ * no town (they may: see `city`). That is `medianProduction`'s stated crudeness
+ * said once more, and it is deliberately not a guess dressed as a fact: a town
+ * that would buy twice as much as its neighbour is read as buying the average.
+ */
+function rowCharterTerms(
+  id: BuildingId,
+  ctx: ValueContext,
+  city: City | undefined,
+): ValueTerm[] {
+  if (!rowDoor.rows) return [];
+  // A town holding this row and nothing else — every clause below is the
+  // simulation's own reading of it, never a `BuildingDef` field read twice.
+  const held = { buildings: [id] };
+  const terms: ValueTerm[] = [];
+  const townShare = 1 / Math.max(1, ctx.cities);
+
+  // **The justices sit** — a share of one town's crowding forgiven, at the
+  // meter's live price. The relief is a percentage *of a cost that a small town
+  // does not pay at all* (`METERS.happiness.crowdingFrom`), which is the row's
+  // own docblock in the appraisal's words: a court is worth nothing in a hamlet
+  // and worth its fifteen percent in a capital of twelve. The percent is the
+  // simulation's own reading of the row, and the crowding is the simulation's
+  // own curve asked twice — never re-derived here.
+  const relief = buildingCrowdingRelief(held);
+  if (relief > 0) {
+    const size = townPopulation(ctx, city);
+    const forgiven = (crowdingDemandOf(size) * relief) / 100;
+    if (forgiven > 0) {
+      terms.push({
+        label:
+          `${relief}% of the crowding a town of ${round(size)} carries — ` +
+          `${round(forgiven)} contentment × ${meterWords(ctx, 'happiness')}`,
+        value: forgiven * meterWeight(ctx, 'happiness'),
+      });
+    }
+  }
+
+  // **The throne pays the wages** — a coin off the keep of every piece raised in
+  // this town, for that piece's whole life (`Unit.upkeepRebate`, stamped at the
+  // raising). What it is a rebate *on* is the levy's own shortfall — the pieces
+  // this empire has still to raise, the reading the chain and the town already
+  // share (`levyReading`, batch X1) — in this town's share of the raising.
+  const rebate = foldBuildingCityStat(buildingUnitUpkeepRebate(held));
+  if (rebate > 0) {
+    const pieces = levyReading(ctx).shortfall * townShare;
+    if (pieces > 0) {
+      terms.push(
+        nest(
+          `${round(rebate)} off the keep of each of the ${round(pieces)} pieces this town has still to raise`,
+          explainUpkeepCost(rebate * pieces, ctx),
+        ),
+      );
+    }
+  }
+
+  // **The assayers weigh the coin** — a signed percent off everything this town
+  // buys, and *out of the treasury only*, which is the row's own ratified words
+  // (`explainPurchaseCost` asks it for gold and never for faith). What it saves
+  // is a share of what the purse turns over, which is the reading the occasion
+  // register already takes for a purchase: the empire's coin a turn.
+  const discount = foldBuildingCityStat(buildingPurchaseDiscount(held));
+  if (discount < 0) {
+    const turnover = Math.max(0, ratesOf(ctx).goldPerTurn ?? 0) * townShare;
+    const saved = (-discount / 100) * turnover;
+    if (saved > 0) {
+      terms.push(
+        nest(
+          `${-discount}% off what this town buys — ${round(turnover)} coin a turn passes through it`,
+          explainUpkeepCost(saved, ctx),
+        ),
+      );
+    }
+  }
+
+  // **The keep mends** — hit points put back on friendly pieces resting in or
+  // beside the town, every turn. Priced as a share of a piece rather than as
+  // points of strength (the audit's own defect, said of `unitStat`'s heal one
+  // arm over): a mend cannot exceed the bar it is filling, so a hundred a turn
+  // is *one piece back on its feet*, not a hundred spearmen. Scaled by the wall
+  // line's own `1 + ctx.threat`, because a garrison nobody is shooting at is a
+  // garrison at full health.
+  const heal = foldBuildingCityStat(buildingAdjacentHeal(held));
+  if (heal > 0) {
+    const share = Math.min(1, heal / pieceBar());
+    terms.push({
+      label:
+        `${round(heal)} mended a turn beside it — ${round(share)} of a piece × ` +
+        `${ctx.ai.weights.military} × ${ctx.ai.score.combatScale} × ${1 + ctx.threat} threat`,
+      value: share * ctx.ai.weights.military * ctx.ai.score.combatScale * (1 + ctx.threat),
+    });
+  }
+
+  // **The chapel keeps the feast** — what a rite performed in this town pays its
+  // empire, once every time one is said. The cadence is the occasion register's
+  // own rite rate (a town keeps one rite for its blessing's length), taken per
+  // town so that the row is worth what it pays *here*; the rite's own blessing
+  // is the want book's (`explainRite`, `wants.ts`) and is deliberately not
+  // counted twice.
+  const rite = buildingRitePay(held);
+  if (rite > 0) {
+    const rate = occasionRate('rite', ctx) * townShare;
+    if (rate > 0) {
+      terms.push(
+        nest(
+          `${round(rite)} culture every rite said here, about ${round(rate)} of a rite a turn`,
+          explainYields({ culture: rite * rate }, ctx),
+        ),
+      );
+    }
+  }
+  return terms;
+}
+
+/**
+ * **What the crowding half of a town's demand costs**, off the simulation's own
+ * curve and nothing else.
+ *
+ * `happinessDemand` asked twice and subtracted, which is `explainCitizen`'s
+ * marginal charge (batch X5) read one question over: the whole demand at this
+ * size, less the same citizens' flat share (`happinessDemand(1)` is the linear
+ * half by construction, the crowding threshold being above one). Nothing here
+ * restates `METERS.happiness` — a retune of the curve moves this fold with it.
+ *
+ * The honest fix the day the curve gains a second shape is an exported
+ * `crowdingDemand` beside `happinessDemand`; this asks the reading that exists.
+ */
+function crowdingDemandOf(population: number): number {
+  return Math.max(0, happinessDemand(population) - population * happinessDemand(1));
+}
+
+/**
+ * **The size of a middling town of this empire** — the population half of
+ * `medianProduction`, and taken the same way, for the same reason: a fold asked
+ * of a row rather than of a town has to answer for *some* town, and the middle
+ * one is the answer that does not flatter the capital.
+ */
+function townPopulation(ctx: ValueContext, city: City | undefined): number {
+  if (city !== undefined) return city.population;
+  const sizes: number[] = [];
+  for (const town of citiesOf(ctx.state, ctx.playerId)) sizes.push(town.population);
+  if (sizes.length === 0) return 1;
+  sizes.sort((a, b) => a - b);
+  const middle = Math.floor(sizes.length / 2);
+  return sizes.length % 2 === 1 ? sizes[middle]! : (sizes[middle - 1]! + sizes[middle]!) / 2;
+}
+
+/**
+ * **The bar one piece carries** — the roster's own maximum, through the
+ * simulation's `unitMaxHp` rather than off `UnitDef.maxHp`, so a piece's health
+ * has one reading in this bot as it has one in the game.
+ *
+ * The first fighting row of the table, which is every fighting row today: the
+ * question this answers is *"what share of a piece does a mend put back"*, and
+ * the roster states one bar for all of them. A table that one day states two
+ * would want the empire's own pieces asked instead, and this is where that would
+ * be argued rather than quietly indexed past.
+ */
+function pieceBar(): number {
+  const type = UNIT_TYPE_IDS.find((id) => isCombatant(unitDef(id)));
+  return type === undefined ? 1 : unitMaxHp({ type });
+}
+
+/**
+ * **Why a town cannot raise a row it is standing on the wrong ground for** — the
+ * simulation's own sentence, for the rows that carry a `requiresSite`.
+ *
+ * `docs/audit/bot-pass-2.md`'s "knows, does not price": thirteen live rows want a
+ * harbour, a desert, a mountain beside the town, and `canQueueBuilding` drops
+ * every one of them out of the candidate list without a word — a **silent
+ * absence** where every other refusal in this bot is a printed one (`rejected`,
+ * `decision.ts`). The refusal is `buildError`'s, never a paraphrase, and it names
+ * the site the way a player is told ("The Colossus wants a harbour").
+ *
+ * `null` for a row this is not about: one with no site at all, one the town holds
+ * already, one the town may actually raise, and — deliberately — one whose site
+ * *is* satisfied and which is refused for some other reason. Those last are
+ * somebody else's sentence, and a build list that printed forty of them a town
+ * would be a feed nobody can read.
+ *
+ * It lives here rather than in the arm because it is a *reading*, and because the
+ * arm that would print it (`buildCandidates`, `bot.ts`) is one line away from it.
+ */
+export function siteRefusal(
+  ctx: ValueContext,
+  city: City,
+  id: BuildingId,
+): string | null {
+  const site = buildingDef(id).requiresSite;
+  if (site === undefined) return null;
+  if (city.buildings.includes(id)) return null;
+  if (cityScopeAdmits(ctx.state, city, site)) return null;
+  return buildError(ctx.state, ctx.playerId, 'building', id, city);
+}
+
+/**
+ * **Every field of `BuildingDef` this fold folds**, and the line each becomes.
+ *
+ * `test/sim/statecraft.test.ts`' fold registry one table over, and it is here for
+ * that register's reason exactly: a field of the row that no reader reads is a
+ * promise the data makes and the bot cannot see, and until batch X8 there were
+ * nine of them. The register test reads the interface's own field names out of
+ * `src/sim/buildingData.ts` and fails the day one is neither folded here nor
+ * excused in `BUILDING_ROW_SILENT` — so a designer adding a field to a building
+ * row is *told*, once, that the appraisal has an opinion to form about it.
+ *
+ * The value is the words, not a number: what the fold prints for that field.
+ */
+export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
+  happiness: 'contentment supplied, at the meter’s live price',
+  authorityCapacity: 'writ supplied, at the meter’s live price',
+  cityStat: 'town strength, at the military weight and the threat',
+  cityHp: 'town hit points, the same rate and the same threat (batch X5)',
+  crowdingRelief: 'a share of a town’s crowding forgiven, at the happiness price',
+  unitUpkeepRebate: 'a coin off the keep of every piece the levy is still short',
+  purchaseDiscount: 'a percent off the coin this town turns over, at the gold price',
+  healsAdjacent: 'a share of a piece mended a turn, at the wall line’s rate',
+  ritePays: 'what a rite said here pays, at the register’s own rite cadence',
+  renown: 'the trickle and the completion, at the renown weight',
+  onComplete: 'the bead, the piece, the technology — a grant apiece',
+  endsTheGame: 'the curtain, at the victory weight',
+  routeSlots: 'the pair a slot would open, while every slot is spoken for',
+  effects: 'its written effects, through the card evaluator',
+};
+
+/**
+ * **Every field of `BuildingDef` this fold deliberately does not fold**, and the
+ * one-line reason for each.
+ *
+ * Three kinds of reason, and the register is worth reading for the shape of them:
+ *
+ *   · **paid elsewhere** — the flat yields, the tile lines, the cistern's water
+ *     for the fields. The caller hands the row to `foldCity` as a `hypothetical`
+ *     and gets Entry XVII's own arithmetic back, tile lines and all; folding them
+ *     here as well would pay twice for one shelf;
+ *   · **not a worth at all** — the words, the two fields that are the *price*,
+ *     and the markers that say who may raise the row and out of which bank.
+ *     Every one of those is asked by the *rules*
+ *     before the row ever reaches this fold (`canQueueBuilding` → `buildError`),
+ *     so a term for one would be a term about a candidate that does not exist;
+ *   · **no reading yet**, named — the growth channel, the percentage a row
+ *     grants, the bank a row opens. Each is a written-down gap with a batch
+ *     behind it, and each says which.
+ */
+export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
+  name: 'the words; the candidate is printed under it and it is worth nothing',
+  article: 'grammar',
+  note: 'player prose about the row, never a number',
+  deferred: 'the half of the row that is not built; there is nothing to price',
+  placeholder: 'a stand-in row’s own confession, read by the data tests',
+  category: 'a label the caravan reads — what it pays a route is priced in `routeYields.ts`, folded by `routeOutlook`',
+  size: 'the price, not the worth: `explainBuildingCost`, which every caller charges as cost and turns',
+  column: 'the price again — the column a row with no node is priced at',
+  food: 'the caller’s `foldCity` hypothetical pays it, staged and percentaged',
+  production: 'the caller’s `foldCity` hypothetical pays it, and `hammerTerm` prices the compression',
+  gold: 'the caller’s `foldCity` hypothetical pays it',
+  science: 'the caller’s `foldCity` hypothetical pays it',
+  culture: 'the caller’s `foldCity` hypothetical pays it',
+  faith: 'the caller’s `foldCity` hypothetical pays it',
+  sciencePerPop: 'the caller’s `foldCity` hypothetical pays it, floored per building as the sim floors it',
+  tileYields: 'the caller’s hypothetical reaches the ground: `cityContext` hands the candidate to `buildingTileLines`, so the harbour’s water is already in the yield delta',
+  irrigates: 'the same hypothetical: `cityContext` asks `buildingsIrrigate` of the town plus this row, so the farms it waters are in the yield delta',
+  waters: 'the dry-settle penalty is a percentage on the **growth surplus**, and this appraisal prices no growth channel at all (batch X5’s finding (c), queued for a ruling)',
+  productionBonus: 'a row that *grants* a percentage — the audit’s Part 2 row 3, which wants the town’s own base and is its own batch',
+  faithPurchases: 'it opens a bank; what the bank would buy is the faith book’s reading (`faithPlan`), and the book cannot be asked of a town that does not hold the row yet',
+  purchase: 'which bank sells the row — a price, asked through `explainPurchaseCost` by the books that spend',
+  purchaseOnly: 'a way to acquire, not a worth: the queue is refused and the purchase arm admits it',
+  grantedOnly: 'nothing builds or buys it; the rules refuse the candidate',
+  placed: 'an act leaves it standing; there is no candidate to appraise',
+  retired: 'off the buildable set — `buildError` refuses it before the fold',
+  awaitsTech: 'not yet in the world — `buildError` refuses it before the fold',
+  unlockedByCard: 'availability, asked by `isUnlocked` before the fold',
+  worldUnlockTech: 'availability, asked by `isUnlocked` before the fold',
+  followingOnly: 'availability, asked of the congregation by `purchaseError` before the fold',
+  requiresBuilding: 'the chain’s one link, refused by `buildError` in the parent’s own name',
+  requiresSite: 'a refusal rather than a worth — `siteRefusal` prints the simulation’s own sentence for the thirteen sited rows',
+  oncePerEmpire: 'one per realm: a refusal, and a line on the *price* (`docs/production-costs.md`), never a worth',
+  wonder: 'one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above',
+  consecrated: 'the patron roll — uniform over the consecrations, and this bot has no reading of a patron',
+  acceptsContributions: 'a way to pay a basket; the bot has no contribution arm to price it for',
+};
+
+/**
+ * **The rows nobody read, switchable** — `signDoor`'s twin for batch X8, and it
+ * is here for that door's stated reason: the acceptance bench plays the same
+ * eight seeds with each half shut and open, and a knockout that could not tell
+ * the two halves apart would attribute neither.
+ *
+ * `rows` is the five charter lines in `explainBuildingRow`; `unitStat` is the
+ * `stat` dispatch one fold over (a heal is not a hundred points of strength).
+ * Not a knob: not in `data/ai.json`, no persona reads it, no surface offers it,
+ * and both halves ship open.
+ */
+export const rowDoor = { rows: true, unitStat: true };
+
+/**
+ * **What one point of a `unitStat` is worth to one piece**, by which stat it is
+ * — the `stat` half of batch X8 (`docs/audit/bot-pass-2.md` Part 2 row 8).
+ *
+ * The threat multiple is the caller's, so the three arms below are about the
+ * *stat* alone and nothing here has to remember what a quiet world is. A
+ * `combatScale`'s worth of military weight is what this file already means by
+ * "a piece" (`unlocksUnit`, the completion grant), so the two readings that need
+ * one ask the same number.
+ */
+function unitStatPoints(
+  stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent',
+  amount: number,
+  ctx: ValueContext,
+): number {
+  const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
+  if (!rowDoor.unitStat) return amount * ctx.ai.weights.military;
+  if (stat === 'combatPercent') return (amount / 100) * piece;
+  if (stat === 'heal') return (Math.min(Math.abs(amount), pieceBar()) / pieceBar()) * Math.sign(amount) * piece;
+  return amount * ctx.ai.weights.military;
 }
 
 /**
@@ -1703,11 +2081,25 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'combatLine':
       return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'unitStat':
-      // One piece's worth of strength, and — since batch X2 — nothing at all
-      // when the towns the clause names do not exist: a stat handed to the
-      // pieces of coastal towns is worth nothing to a realm with none.
+      // One piece's worth, and — since batch X2 — nothing at all when the towns
+      // the clause names do not exist: a stat handed to the pieces of coastal
+      // towns is worth nothing to a realm with none.
       if (townsAdmitting(ctx, effect.scope) === 0) return 0;
-      return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
+      // **And it reads which stat it is** (batch X8, the audit's Part 2 row 8).
+      // The arm multiplied `amount` by the military weight whatever the stat
+      // said, so Field Hospitals' `heal: 100` scored as a hundred points of
+      // strength — the strongest card in the game by arithmetic accident. The
+      // six stats are three questions:
+      //
+      //   · **combatPercent** is a percentage *of* a piece, so it is priced
+      //     against what this file already calls a piece (`combatScale`);
+      //   · **heal** is hit points a resting piece gets back, capped by the bar
+      //     it fills (`pieceBar`) — a full mend is one piece back on its feet,
+      //     and half a bar is half of one;
+      //   · **movement · sight · range · charges** are points of a piece's own
+      //     quality, and stay at the rate this arm has always read them at. The
+      //     day one of them wants a reading of its own it takes a case here.
+      return unitStatPoints(effect.stat, effect.amount, ctx) * (1 + ctx.threat);
     case 'renown':
       return effect.amount * ctx.ai.weights.renown;
     case 'upkeepRebate':

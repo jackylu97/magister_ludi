@@ -4,8 +4,9 @@
  * town, the hit points it adds to that town's walls, (Entry XXVII) what it pays
  * on the **ground** that town works, and — since the charters, 2026-09-04 — the
  * crowding it forgives, the discount it puts on the town's purchases, what it
- * mends on friendly pieces beside it, and what it pays for a rite performed
- * here.
+ * mends on friendly pieces beside it, what it pays for a rite performed here,
+ * and — since batch X8 gave the last of them a reader — what it takes off the
+ * keep of every piece the town raises.
  *
  * `resourceEffects.ts`'s bargain one scale down, and for the same reason. A
  * building's flat yields are folded where yields are folded (`foldCity`), and
@@ -249,8 +250,16 @@ export function cityKeepsRelics(city: City): boolean {
  * they belong to the one place a heal is decided (`healUnits`, `turn.ts`). This
  * module has no map and wants none — a ring walk in here would be a second
  * opinion about adjacency beside `isMountainAdjacent`'s.
+ *
+ * Asked of *anything holding a list of buildings*, which is `buildingCityHp`'s
+ * bargain and for its reason exactly (batch X8): an appraisal prices a row the
+ * town does not hold yet, and one that could not ask this of a single row would
+ * have to read `BuildingDef.healsAdjacent` itself — a second opinion about the
+ * Keep beside `healUnits`'. A `City` satisfies the shape, so no caller moved.
  */
-export function buildingAdjacentHeal(city: City): BuildingCityStatLine[] {
+export function buildingAdjacentHeal(city: {
+  buildings: readonly BuildingId[];
+}): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -270,8 +279,13 @@ export function buildingAdjacentHeal(city: City): BuildingCityStatLine[] {
  * with them and applied **once** (Entry XVII at the scale of a price tag), and
  * the label on that line names every source that made it. A number here would
  * have printed a cheaper settler with nothing to point at.
+ *
+ * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
+ * widening (batch X8) — the appraisal prices the Assay House before it stands.
  */
-export function buildingPurchaseDiscount(city: City): BuildingCityStatLine[] {
+export function buildingPurchaseDiscount(city: {
+  buildings: readonly BuildingId[];
+}): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -293,8 +307,11 @@ export function buildingPurchaseDiscount(city: City): BuildingCityStatLine[] {
  * discount rather than two multiplications. The percent is clamped to a share of
  * the cost — a relief may forgive crowding and may not pay a town for being
  * large.
+ *
+ * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
+ * widening (batch X8): the appraisal asks what a court *would* forgive.
  */
-export function buildingCrowdingRelief(city: City): number {
+export function buildingCrowdingRelief(city: { buildings: readonly BuildingId[] }): number {
   let percent = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
@@ -311,14 +328,44 @@ export function buildingCrowdingRelief(city: City): number {
  * `buildingHappiness`': the consumer is an occasion, not a meter. What a player
  * reads is the rite's own report, one line naming the town — so the reason is
  * printed by the thing being paid rather than by a breakdown beside it.
+ *
+ * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
+ * widening (batch X8): the appraisal asks what a Chapel *would* pay the augurs.
  */
-export function buildingRitePay(city: City): number {
+export function buildingRitePay(city: { buildings: readonly BuildingId[] }): number {
   let total = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
     total += buildingDef(id).ritePays ?? 0;
   }
   return total;
+}
+
+/**
+ * What **this city's own** buildings take off the keep of every piece it raises
+ * — the Imperial Throne's one gold (`docs/history/tech-gifts.md` §7).
+ *
+ * The one thing this file says that is read at a *moment* rather than every
+ * turn: `realiseItem` stamps the sum onto the piece (`Unit.upkeepRebate`) the
+ * turn it is raised, because "where was this raised" is a fact that leaves the
+ * board when the piece marches. A list like its neighbours, so a ledger can name
+ * the shelf that made a legion cheap.
+ *
+ * Asked of a list of buildings, `buildingCityHp`'s widening (batch X8): the
+ * appraisal prices the Throne before it stands, and the alternative was the bot
+ * reading `BuildingDef.unitUpkeepRebate` — a second opinion about the payroll.
+ */
+export function buildingUnitUpkeepRebate(city: {
+  buildings: readonly BuildingId[];
+}): BuildingCityStatLine[] {
+  const list: BuildingCityStatLine[] = [];
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const amount = buildingDef(id).unitUpkeepRebate ?? 0;
+    if (amount === 0) continue;
+    list.push({ source: buildingDef(id).name, amount });
+  }
+  return list;
 }
 
 /** The fold of a building city-stat list. The only sum of one. */
