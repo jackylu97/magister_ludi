@@ -1040,7 +1040,20 @@ directly to confirm rulings — user marginalia are rulings.
   should have their unit icon display on top of the banner"* (Civ 5/6's
   pattern): the garrison's badge above the banner, seat-tinted, the
   layer rebuilt off the units fingerprint, a new visual asset in the
-  flair gallery in the same pass. **V2 (heraldry)** — (7) *"the
+  flair gallery in the same pass. **U4 built 2026-09-09**: the five
+  families' verbs as data (a scholar Writes a Treatise / Founds an
+  Academy; an artist Holds a Festival / Raises a Landmark; an engineer
+  Rushes the Works / Raises a Manufactory; a merchant Strikes a Bargain /
+  Builds a Customs House; a general Rallies the Army / Raises a Citadel),
+  the capture sheet on the modal shell, a yoke on a puppet's banner, the
+  garrison badge with a count boss and its own fingerprint, a new
+  register that every seat-filtered layer rebuilds at all four doors. Two
+  sim asks written down for the next reducer batch: `cityCosts` is
+  private to `meters.ts` (the annex figure reads the rules row rather
+  than a meter line) and a capture has no `CommandResult` channel (the
+  sheet infers it as the toast does) — a `captures?:` field. The
+  spectate feed's great-person summary (`greatPersonCommand`, `bot.ts`)
+  still says act/work — R1's fence. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if
@@ -1117,7 +1130,33 @@ directly to confirm rulings — user marginalia are rulings.
   collapsible groups and the slot tally; a *Running* tab; the
   *Unavailable* tab by reason. Mocked on invented figures at
   https://claude.ai/code/artifact/d5391716-5bfa-4fee-ac26-e3a8cd479f91
-  (the spec of record for R2's layout once the user marks it). (eee)
+  (the spec of record for R2's layout once the user marks it). **Marked
+  2026-09-09** ("very close"): bordered compact cards, the index tabs
+  along the head styled as a ledger's cut tabs (a gilt hairline under
+  the ink rule, a gilt inner edge on each tab, a hedera on the open one),
+  facts only (hexes paved "(land)", the connection and its pay, what the
+  host keeps, the fed town's size and next citizen, warships on the path,
+  the trading post and the towns it brings into reach), no walk/sail
+  turns, no "from" buildings, no turn in the masthead, a Land | Sea
+  toggle on every route where both are possible. **Directions for R2**:
+  the toggle **re-reads** the route — the yields and the facts are the
+  fold for the chosen mode (a sea cart lays no road, a land cart's
+  paving counts); an **empty purpose section does not appear at all**;
+  ▢ **sea routes pay no more than land today** — `RouteMode` changes the
+  path, the road laid and the blockade exposure only, and the rules carry
+  no sea multiplier; if the user wants "+50% by sea" it is one knob
+  (`rules.trade.seaYieldPercent`, rec 0 → 50) read in `routeYields`'
+  fold and printed as its own line. **RULED** (the user, 2026-09-09):
+  "sea routes should pay +50%" — `rules.trade.seaYieldPercent` 50, read
+  in `routeYields`' fold as its own line, R1's. **Final marks
+  (2026-09-09, "begin the implementation")**: no gilt hairline *under*
+  the tab rule (the ink rule alone); keep the gilt inner edge on the tabs
+  and the gilt accents elsewhere — the user: "that fits the theme of
+  'trade routes are for gold/economy'" — so gilt is the trade screen's
+  one accent; the **mode column** in the Running and All-routes tables
+  is not prose ("land, road laid") but the same Land | Sea control the
+  cards carry, or a single chip where only one mode is possible, with
+  the road state as its own column. The mock is the spec of record. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
