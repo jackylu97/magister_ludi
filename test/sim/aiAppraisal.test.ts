@@ -87,6 +87,7 @@ import {
   buildingProductionCost,
   foundCityAt,
   refreshCityDerived,
+  unitProductionCost,
 } from '../../src/sim/cities';
 import {
   foldCity,
@@ -1358,6 +1359,80 @@ describe('the tech chain', () => {
     expect(after.worth).toBeGreaterThan(before.worth);
   });
 
+  /**
+   * **Batch X1 — the unit step pays for itself** (`docs/audit/bot-pass-2.md`,
+   * finding 1). A unit step used to cost `cost: 0` hammers by construction while
+   * every building step subtracted its own through `explainLump`, so a node
+   * whose gift was a spearman was a pure positive and a node whose gift was a
+   * library was a positive minus a big number — 62–64% of every node weighed on
+   * the audit's bench scored negative and 61–63% of every re-aim was military.
+   *
+   * Two claims, and they are the two halves of the change: the hammers a unit
+   * step owes are the levy's own shortfall, and the threat premium is charged
+   * against that same shortfall rather than at every sight of a column.
+   */
+  it('charges a unit step the hammers of the pieces the levy is short', () => {
+    // Three towns and no soldiers: `military.armyPerCity` apiece is the whole of
+    // the levy on a quiet one-seat board (no column at a gate, nothing charted),
+    // and Fletching's only step is the archer it unlocks.
+    const { state, player } = chained(3);
+    const chain = techChain(state, player, valueContext(state, player), 'fletching');
+    const step = chain.steps.find((one) => one.kind === 'unit');
+    expect(step).toBeDefined();
+    const price = unitProductionCost(state, 0, 'archer');
+    const wanted = 3 * aiJson.military.armyPerCity;
+    expect(step!.cost).toBe(wanted * price);
+    // It is one *raising* and several pieces' hammers, deliberately: a node
+    // hands over an option, so it is one thing that still has to happen, while
+    // the empire that takes it raises as many as the levy is short.
+    expect(step!.towns).toBe(1);
+    expect(chain.hammers).toBe(step!.cost);
+    expect(labelsOf(chain.terms)).toMatch(/hammers its steps still owe/);
+    expect(foldTerms(chain.terms)).toBe(chain.worth);
+
+    // And a piece already standing is a piece the step no longer owes for —
+    // the same sunk-cost story a raised building tells one test above.
+    createUnit(state, 0, 'warrior', 4, 8);
+    createUnit(state, 0, 'warrior', 5, 8);
+    recomputeAllVisibility(state);
+    const after = techChain(state, seat(state, 0), valueContext(state, seat(state, 0)), 'fletching');
+    expect(after.steps.find((one) => one.kind === 'unit')!.cost).toBe((wanted - 2) * price);
+  });
+
+  it('gives a seat with no levy shortfall no military premium', () => {
+    // One town with a rival's column beside it, so `ctx.threat` is real and the
+    // swing is live. The claim is that the swing is about the *emergency* rather
+    // than about the sighting: an empire that already holds every soldier its
+    // levy asks for is not in one, and pays no premium.
+    const state = bench(2);
+    state.turn = 50;
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    city.population = 4;
+    refreshCityDerived(state, city);
+    createUnit(state, 1, 'warrior', 6, 5);
+    recomputeAllVisibility(state);
+    const hungry = valueContext(state, seat(state, 0));
+    expect(hungry.threat).toBeGreaterThan(0);
+    const short = techChain(state, seat(state, 0), hungry, 'fletching').steps.find(
+      (one) => one.kind === 'unit',
+    )!;
+    expect(labelsOf(short.terms)).toMatch(/a column is near a town, and this empire is/);
+
+    // Now fill the levy. The column has not moved and the sighting has not
+    // changed; only the shortfall has.
+    for (let index = 0; index < 6; index++) createUnit(state, 0, 'warrior', 3 + index, 9);
+    recomputeAllVisibility(state);
+    const filled = valueContext(state, seat(state, 0));
+    expect(filled.threat).toBe(hungry.threat);
+    const full = techChain(state, seat(state, 0), filled, 'fletching').steps.find(
+      (one) => one.kind === 'unit',
+    )!;
+    expect(labelsOf(full.terms)).not.toMatch(/a column is near a town/);
+    expect(full.cost).toBe(0);
+    expect(full.value).toBeLessThan(short.value);
+    expect(foldTerms(full.terms)).toBe(full.value);
+  });
+
   it('makes a held technology’s unbuilt rows a live chain — the university fix', () => {
     // The end of the loop the beeline used to leave open: an empire could bank
     // the whole "in every town" promise in the appraisal that chose the node and
@@ -1418,19 +1493,30 @@ describe('the tech chain', () => {
     // printed `× switchMargin` term on it, and whether it survives is exactly
     // whether the leader beat it by that much.
     //
-    // The seat is handed **Sailing** before the table is taken, and that is the
-    // fixture rather than an aside: on a blank bench Sailing outscores the tree
-    // two to one, so it is held to get it out of the way, and what the claim
-    // needs beyond that is a near-tie at the top with a clear third behind it.
-    // The held set has moved with the balance — four over two passes, two on
-    // batch P1, and **one on batch X2**, which is the re-aim this comment
-    // records. Evaluating a clause's scope took the Currency chain's own
-    // scope-blind windfall out of the table, and with Currency no longer running
-    // away it does not need holding: the near-tie is Bronze Panoply against
-    // Bronzeworking (within the margin, which keeps the plan) with Divination a
-    // clear step behind it (outside, which does not). No claim moved; the board
-    // the claim is made on did.
-    const { state } = chained(3, 'sailing');
+    // The seat is handed Sailing **and Mathematics** before the table is taken,
+    // and that is the fixture rather than an aside: on a blank bench Sailing
+    // outscores the tree two to one, and with only it held Currency runs away in
+    // turn (the 2026-09-05 retune widened every natural race past the margin).
+    // The held set grew to four over two balance passes and came back to two on
+    // **batch P1**.
+    //
+    // **Re-aimed twice on 2026-09-08, batches X1 and X2 landing together**
+    // (`docs/audit/bot-pass-2.md`). X1 charged a unit step the levy's hammers,
+    // which took the Bronze Panoply–Divination near-tie out (28 against 128);
+    // X2 evaluated every clause's scope, which took the Currency chain's
+    // scope-blind windfall out. Neither alone left a pair straddling the
+    // margin on the old held sets, so the sweep was run again over every one-
+    // and two-node held set on this bench with both in: three still produce
+    // one, and the fixture is the first of them — Currency at 143.2 with Epic
+    // Poetry inside the margin at 133.1 and Wayfinding far outside. The claim
+    // is unchanged; only the board that makes it happen is.
+    const { state, player } = chained(3, 'sailing');
+    for (const tech of ['mathematics'] as const) {
+      for (const step of researchExpansion(state, 0, tech)) {
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+        bumpRevision(state);
+      }
+    }
     const opening = decisionOfType(state, 0, 'chooseResearch');
     expect(opening).not.toBeNull();
     const scored = opening!.candidates.filter((row) => row.rejected === undefined);

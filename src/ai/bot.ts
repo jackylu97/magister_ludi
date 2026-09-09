@@ -113,11 +113,13 @@ import {
 export { explainNextTown };
 import {
   approachHexes,
+  atWarWithAnybody,
   campaignTarget,
   fieldSoldiersOf,
   garrisonAt,
   isFieldSoldier,
   isSiegePiece,
+  levyReading,
   marchClaims,
   marchIsStalled,
   musterHex,
@@ -929,54 +931,12 @@ function sightedThreat(state: GameState, player: Player): { camps: number; hosti
 }
 
 /**
- * How many soldiers, over and above the standing levy, what this seat has
- * sighted **and what it has undertaken** are asking for — and the sentence a
- * reader of the feed sees.
- *
- * Two lines that are two different sentences:
- *
- *   · **what it has seen** — camps charted and hostiles in sight, through this
- *     seat's own fog. Capped by `threat.sightedArmyCap` so a scout that lit up
- *     half a continent cannot talk an empire into a garrison it will go bankrupt
- *     paying (the Entry LIX finding, one system over);
- *   · **the campaign** (§13.5, the war economy) — while a war is on, the seat
- *     wants `war.strikeForce` soldiers *over* the garrisons the levy already
- *     asks for, because that is precisely the force the declaration was allowed
- *     on and the number the muster waits for. One figure for all three readings
- *     rather than a `campaignArmy` of its own, deliberately: what it takes to
- *     start a war, what it takes to press one and what the levy builds for one
- *     must not be tunable into disagreeing. It sits **outside** the sighted cap
- *     because it is not a fog reading at all — a war is a thing this empire
- *     signed, not a thing it glimpsed.
- *
- * Floored at nothing, which is the quiet world.
+ * The **levy** — how many soldiers this empire wants standing, how many it
+ * holds, and how many it is short — moved whole into `campaign.ts` by batch X1
+ * of `docs/audit/bot-pass-2.md` (`levyReading`, and `sightedArmyWanted` with
+ * it). The chain asks it too now, and `chain.ts` may not import this file; the
+ * leaf's own docblock carries the three sentences and the argument.
  */
-function sightedArmyWanted(ctx: ValueContext): { extra: number; note: string } {
-  const ai = ctx.ai;
-  const raw =
-    ctx.sighted.camps * ai.threat.armyPerSightedCamp +
-    ctx.sighted.hostiles * ai.threat.armyPerSightedHostile;
-  const sighted = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw));
-  const player = playerById(ctx.state, ctx.playerId);
-  const fighting = player !== undefined && atWarWithAnybody(ctx.state, player);
-  const campaign = fighting ? Math.max(0, ai.war.strikeForce) : 0;
-  return {
-    extra: sighted + campaign,
-    note:
-      `${ctx.sighted.camps} camp${ctx.sighted.camps === 1 ? '' : 's'} charted and ` +
-      `${ctx.sighted.hostiles} hostile piece${ctx.sighted.hostiles === 1 ? '' : 's'} in sight` +
-      (fighting ? `, and a war on wants a strike force of ${campaign} besides` : ''),
-  };
-}
-
-/** Is this seat at war with any real empire? The wild does not count. */
-function atWarWithAnybody(state: GameState, player: Player): boolean {
-  for (const other of realPlayers(state)) {
-    if (other.id === player.id || other.eliminated) continue;
-    if (atWar(state, player.id, other.id)) return true;
-  }
-  return false;
-}
 
 /**
  * The nearest town of this empire within `threat.radius` of a hex, or `null`.
@@ -1758,7 +1718,7 @@ function wakeIdleSettler(
  * sweep is paid only by seats that are fighting.
  */
 function wakeTheCampaign(state: GameState, player: Player): BotDecision | null {
-  if (!atWarWithAnybody(state, player)) return null;
+  if (!atWarWithAnybody(state, player.id)) return null;
   for (const unit of state.units) {
     if (unit.ownerId !== player.id) continue;
     // **The two ways a soldier stops asking**, and neither of them is a decision
@@ -4221,13 +4181,15 @@ function unitRoleValue(
     // empire this size keeps, the emergency of a column at the gate
     // (`ctx.threat`), and the appetite that comes of having *charted* the wild —
     // camps in the hills and enemies in sight, read through this seat's own fog
-    // (`sightedThreat`). The third is new; the second is untouched.
-    const sighted = sightedArmyWanted(ctx);
-    const wanted =
-      countCities(state, player.id) * ai.military.armyPerCity +
-      ctx.threat * ai.threat.extraArmyPerThreat +
-      sighted.extra;
-    const held = countSoldiers(state, player.id);
+    // (`sightedThreat`).
+    //
+    // **The reading moved into `campaign.ts` in batch X1** and nothing about it
+    // changed: the tech chain has to charge a unit step the hammers of the
+    // spears this levy is short, and a chain that computed its own "wanted"
+    // would be a bot that aims at a soldier its towns would then decline to
+    // build. One reading, two callers, and the leaf is under both.
+    const levy = levyReading(ctx);
+    const { wanted, held } = levy;
     // **The loose sanity cap** (batch 4, dated 2026-09-05). The hard `held >=
     // wanted` refusal became the craving below, and a soft comparison has no
     // ceiling of its own — a board that talked this empire into forty spears
@@ -4262,13 +4224,13 @@ function unitRoleValue(
     // the piece has to beat a granary on the strength of the emergency alone; and
     // past it the charge keeps growing, so an army nobody needs prices itself out
     // one piece at a time instead of stopping dead at a count.
-    const surplus = wanted <= 0 ? 1 : held / wanted;
+    const surplus = levy.standing;
     const terms: ValueTerm[] = [
       nest('what this soldier is worth', soldier),
       {
         label:
           `this empire wants ${round1(wanted)} soldier${wanted === 1 ? '' : 's'} and holds ` +
-          `${held} — ${round1(surplus * 100)}% of a levy already standing (${sighted.note})`,
+          `${held} — ${round1(surplus * 100)}% of a levy already standing (${levy.note})`,
         value: -soldier.total * surplus,
       },
       explainMixCraving(state, player, id, ctx),

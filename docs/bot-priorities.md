@@ -3009,3 +3009,122 @@ is still the fold of its own terms.
   to `data/ai.json` and the arena's sheet that belongs in its own pass (H2's "two
   knobs retired" precedent). **No knob was added by this batch** — `scopeDoor` is
   a source-level switch, not tuning surface, so the arena panel is untouched.
+
+---
+
+## Batch X1 as shipped — the unit step pays for itself (2026-09-08)
+
+`docs/audit/bot-pass-2.md`, finding 1 and change 1. The audit measured that a
+unit step of `techChain` cost **`cost: 0`** hammers by construction while every
+building step subtracted `buildingProductionCost × townsWanting` through
+`explainLump` — and that `unitTerm` multiplied a soldier by
+`threat.techMilitaryFactor` (3) whenever any hostile column stood near any town,
+which the wild's standing fifty pieces make close to permanent. Batches P1 and S1
+made the hammer and the beaker sides of that subtraction dearer and left the unit
+side untouched, so a node whose gift was a spearman was a pure positive and a node
+whose gift was a library was a positive minus a big number.
+
+### The mechanism
+
+- **The levy moved into a leaf.** `levyReading(ctx)` (`src/ai/campaign.ts`, with
+  `sightedArmyWanted` and `atWarWithAnybody` moved whole beside it) answers
+  *wanted · held · shortfall · standing · note* — the three sentences
+  `unitRoleValue` has folded since batch 4, in the same words. `chain.ts` and
+  `bot.ts` both read it, which is the point: the chain and the town now agree
+  about how many spears an empire wants, so the beeline cannot aim at a soldier
+  the town would decline to build. It lives in `campaign.ts` for the file's own
+  stated reason — `chain.ts` is imported *by* `bot.ts`, so a reading kept there
+  could not be asked by the chain without a cycle. `ValueContext` arrives as a
+  type, so the leaf stays a leaf.
+- **A unit step takes hammers.** `cost = unitProductionCost × levy.shortfall`,
+  for a **field soldier** only (`isFieldSoldier`): a settler's hammers are the
+  expansion chain's, a caravan's are the route's, a prophet is one charge.
+- **`towns` stays 1, deliberately.** A node hands over an *option*, so it is one
+  thing that still has to happen and `stepsRemaining` is unmoved — a shortfall
+  counted as five raisings would dilute every building step's share by an army
+  nobody has decided to raise. The hammers are the levy's; the raising is the
+  option's. `stepUnitCost` is asked of building steps only, and now says so.
+- **The premium is charged against the shortfall.**
+  `factor = ctx.threat > 0 ? max(1, threat.techMilitaryFactor × shortfall ÷ wanted) : 1`
+  — the whole of the factor where none of the levy is standing, proportionally
+  less as it fills, floored at one because a column at the gate may never make a
+  node worth *less* than in peacetime. **A seat that wants no more soldiers gets
+  no military premium.** No knob was added: the same `techMilitaryFactor`, read
+  against the same levy the town reads.
+
+### Before/after, on the audit's own bench
+
+Two duel games, two balanced seats, wild on, seeds 20260903 and 4242, 150 turns,
+driven a decision at a time through `createBotStepper` (a throwaway `zz*` probe,
+deleted). The before column reproduces the audit's own figures exactly.
+
+| | 20260903 before | 20260903 after | 4242 before | 4242 after |
+|---|---|---|---|---|
+| re-aims | 24 | 33 | 18 | 41 |
+| nodes weighed | 412 | 934 | 312 | 862 |
+| **scoring negative** | 254 (**61.7%**) | 730 (**78.2%**) | 201 (**64.4%**) | 624 (**72.4%**) |
+| **military re-aims** | 15 (**62.5%**) | 18 (**40.0%**) | 12 (**66.7%**) | 18 (**43.9%**) |
+| technologies at t150 | 13 · 19 (**32**) | 27 · 27 (**54**) | 14 · 22 (**36**) | 23 · 17 (**40**) |
+| treasury at t150 | 315 · 404 | 198 · 153 | 666 · 392 | 384 · 352 |
+| towns at t150 | 5 · 7 | 3 · 6 | 5 · 8 | 9 · 9 |
+
+**Two of the four acceptance figures are met on both benches** — military re-aims
+below 45% (63% → 40%, 67% → 44%) and technologies at t150 up (32 → 54, 36 → 40).
+No seat went bankrupt on either board; every treasury is comfortably positive and
+the thinnest reading, 153, is well over `solvency.arrearsTreasury`.
+
+### The negative share, and why the target was unreachable from the unit side
+
+The acceptance asked for negative-scoring nodes below half, and the share went
+**up**. That is not the change failing; it is the metric measuring something the
+unit step does not own, and the audit's own before-numbers say so once they are
+split by kind:
+
+| | 20260903 before | 4242 before |
+|---|---|---|
+| military nodes negative | 22/82 (27%) | 16/62 (26%) |
+| **everything else negative** | **232/330 (70%)** | **185/250 (74%)** |
+
+Even zeroing every military negative leaves 232/412 = **56%** and 185/312 =
+**59%**, both above half, before a line of this batch was written. What makes a
+node negative is the beaker-and-hammer debt of a road up to `research.goalHorizon`
+nodes long, subtracted at `weights.production`/`weights.science` over
+`score.lumpTurns` — the *building* side of the same subtraction, which is P1's
+and S1's standard rather than the unit step's asymmetry.
+
+The share also rises with an empire's own progress, which the same run shows
+directly: on seed 20260903 the negative share ran 65% at t0–50, 73% at t50–100
+and 94% at t100–150 — a seat holding 27 technologies is weighing what is left of
+the tree, and what is left is Æra III and IV nodes with long roads. The batch
+that took the same seat from 13 technologies to 27 therefore *raises* this number
+by succeeding. **The honest reading is that the share of negative nodes is a
+reading of the building side's price standard, not of the unit side, and it wants
+its own measurement** — the ratio of a node's gifts to its debt at a fixed depth,
+say — before anything is tuned against it.
+
+### The one thing measured and rejected
+
+`unitRoleValue`'s levy **surplus charge** (`− soldier × standing`) was folded into
+`unitTerm` whole, as the audit's "the unit term folds no levy surplus charge"
+suggests. Folded *beside* the interpolated premium it prices a soldier at nothing
+the moment the levy is full, the beeline stops asking for military nodes almost
+entirely (military re-aims 30% and 32%) and the boards get worse rather than
+better: on seed 4242 a seat fell from eight towns to **two** while the wild walked
+in, and on 20260903 both seats lost a town. The chain is deciding what a *node* is
+worth, not what the next spear is worth, and the town's own arm is still the thing
+that decides whether the spear gets built. Charging the shortfall once — in the
+premium the town's arm does not have — is the half that plays better. Written down
+here so the next pass does not re-derive it.
+
+### The pins
+
+`test/sim/aiAppraisal.test.ts` gains two cases in the tech-chain section: a unit
+step's `cost` is `unitProductionCost × levy shortfall` with `towns` still 1 and
+the chain's hammers naming it, falling by one piece's price for each soldier
+raised; and a seat with a column beside its town but its levy full prints **no**
+`×` premium term at all and owes no hammers, where the same board with no
+soldiers prints both. The margin-boundary pin was re-aimed (Currency → The Wheel
+as the second held node) — the near-tie it needs used to be Bronze Panoply against
+Divination, and that was a tie only because a unit step cost nothing; a sweep of
+every one- and two-node held set on the same bench found the three that still
+produce one. `aiDecision.slow.test.ts` still replays byte-identical to itself.

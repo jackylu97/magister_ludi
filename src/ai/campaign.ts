@@ -34,11 +34,13 @@
  */
 
 import { type AiConfig } from './aiConfig';
+import type { ValueContext } from './value';
 
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type Cell, type MoveProfile, canStopOn, findPath, moveProfile } from '../sim/pathfind';
-import type { City, GameState, Player, Unit } from '../sim/state';
+import { type City, type GameState, type Player, type Unit, realPlayers } from '../sim/state';
 import { type UnitDef, isCombatant, isExplorer, isRanged, unitDef } from '../sim/unitData';
+import { atWar } from '../sim/wars';
 
 /**
  * **A piece of the field army** — what the levy counts, what the mix is a mix
@@ -145,6 +147,108 @@ export function strikeForce(state: GameState, player: Player, ai: AiConfig): Str
     if (siege === null && isSiegePiece(unitDef(unit.type))) siege = unit;
   }
   return { soldiers, owed, spare: Math.max(0, soldiers.length - owed), siege };
+}
+
+/**
+ * **The levy: how many soldiers this empire wants standing, how many it holds,
+ * and how many of them it is short.**
+ *
+ * Three sentences, and they were `unitRoleValue`'s (`bot.ts`) until batch X1 of
+ * `docs/audit/bot-pass-2.md`: the standing army an empire this size keeps
+ * (`military.armyPerCity` a town), the emergency of a column at the gate
+ * (`ctx.threat × threat.extraArmyPerThreat`), and the appetite that comes of
+ * having charted the wild and of a war this seat has signed
+ * (`sightedArmyWanted`, below).
+ *
+ * **Why it lives here.** It is now asked by two callers that must not import
+ * each other: the town's own build arm (`unitRoleValue`, `bot.ts`), which
+ * charges a soldier the levy it already has, and the **tech chain**
+ * (`chain.ts`), which charges a unit step the hammers of the spears the levy is
+ * actually short. `chain.ts` is imported *by* `bot.ts`, so a reading kept there
+ * could not be asked by the chain without a cycle — the module docblock's own
+ * argument, made a second time. And the point of sharing it is not tidiness: the
+ * chain and the town have to agree about how many spears an empire wants, or the
+ * beeline aims at a soldier the town would then decline to build.
+ *
+ * `ValueContext` arrives as a **type**, which is what keeps this a leaf: the
+ * import is erased, so nothing here runs before `value.ts` does.
+ */
+export interface LevyReading {
+  /** Soldiers this empire wants standing, by the three sentences above. */
+  wanted: number;
+  /** Field soldiers it actually holds — `isFieldSoldier`'s count. */
+  held: number;
+  /** `wanted − held`, floored at nothing: the pieces the levy is short. */
+  shortfall: number;
+  /** `held ÷ wanted` — the share of the levy already standing. */
+  standing: number;
+  /** What the sighted half is asking for, in the words the feed prints. */
+  note: string;
+}
+
+export function levyReading(ctx: ValueContext): LevyReading {
+  const ai = ctx.ai;
+  let towns = 0;
+  for (const city of ctx.state.cities) if (city.ownerId === ctx.playerId) towns += 1;
+  const sighted = sightedArmyWanted(ctx);
+  const wanted = towns * ai.military.armyPerCity + ctx.threat * ai.threat.extraArmyPerThreat + sighted.extra;
+  const held = fieldSoldiersOf(ctx.state, ctx.playerId).length;
+  return {
+    wanted,
+    held,
+    shortfall: Math.max(0, wanted - held),
+    standing: wanted <= 0 ? 1 : held / wanted,
+    note: sighted.note,
+  };
+}
+
+/**
+ * How many soldiers, over and above the standing levy, what this seat has
+ * sighted **and what it has undertaken** are asking for — and the sentence a
+ * reader of the feed sees.
+ *
+ * Two lines that are two different sentences:
+ *
+ *   · **what it has seen** — camps charted and hostiles in sight, through this
+ *     seat's own fog. Capped by `threat.sightedArmyCap` so a scout that lit up
+ *     half a continent cannot talk an empire into a garrison it will go bankrupt
+ *     paying (the Entry LIX finding, one system over);
+ *   · **the campaign** (§13.5, the war economy) — while a war is on, the seat
+ *     wants `war.strikeForce` soldiers *over* the garrisons the levy already
+ *     asks for, because that is precisely the force the declaration was allowed
+ *     on and the number the muster waits for. One figure for all three readings
+ *     rather than a `campaignArmy` of its own, deliberately: what it takes to
+ *     start a war, what it takes to press one and what the levy builds for one
+ *     must not be tunable into disagreeing. It sits **outside** the sighted cap
+ *     because it is not a fog reading at all — a war is a thing this empire
+ *     signed, not a thing it glimpsed.
+ *
+ * Floored at nothing, which is the quiet world.
+ */
+function sightedArmyWanted(ctx: ValueContext): { extra: number; note: string } {
+  const ai = ctx.ai;
+  const raw =
+    ctx.sighted.camps * ai.threat.armyPerSightedCamp +
+    ctx.sighted.hostiles * ai.threat.armyPerSightedHostile;
+  const sighted = Math.max(0, Math.min(ai.threat.sightedArmyCap, raw));
+  const fighting = atWarWithAnybody(ctx.state, ctx.playerId);
+  const campaign = fighting ? Math.max(0, ai.war.strikeForce) : 0;
+  return {
+    extra: sighted + campaign,
+    note:
+      `${ctx.sighted.camps} camp${ctx.sighted.camps === 1 ? '' : 's'} charted and ` +
+      `${ctx.sighted.hostiles} hostile piece${ctx.sighted.hostiles === 1 ? '' : 's'} in sight` +
+      (fighting ? `, and a war on wants a strike force of ${campaign} besides` : ''),
+  };
+}
+
+/** Is this seat at war with any real empire? The wild does not count. */
+export function atWarWithAnybody(state: GameState, playerId: number): boolean {
+  for (const other of realPlayers(state)) {
+    if (other.id === playerId || other.eliminated) continue;
+    if (atWar(state, playerId, other.id)) return true;
+  }
+  return false;
 }
 
 /**

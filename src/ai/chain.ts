@@ -71,7 +71,23 @@
  * *parallel*, so a step's build time is one town's rather than every town's, and
  * only its hammers multiply by the towns. A unit unlock advances no cursor at
  * all: it is an option the empire may take the turn the node lands, never an
- * obligation, and it is priced exactly as the beeline always priced it.
+ * obligation, and it starts paying the turn the node lands.
+ *
+ * **Why a unit step used to be free, and why it is not** (batch X1,
+ * `docs/audit/bot-pass-2.md`). "An option, never an obligation" was the argument
+ * for `cost: 0`, and as far as the *cursor* goes it still holds — nothing waits
+ * on a piece nobody has decided to raise. But it was also used to excuse the
+ * hammers, and there the argument does not hold: an empire three spears short of
+ * its levy that researches Bronze Panoply raises three spears, and those hammers
+ * are as real as a library's. Batches P1 and S1 then made the hammer and the
+ * beaker sides of this subtraction dearer and left the unit side untouched, so a
+ * node whose gift was a spearman was a pure positive while a node whose gift was
+ * a library was a positive minus a big number — measured, **62–64% of every node
+ * weighed scored negative and 61–63% of every re-aim was military**. So a unit
+ * step now takes its hammers the way a building step does, at the count the levy
+ * itself asks for (`levyReading`, `campaign.ts`, shared with the town's own
+ * build arm), and `unitTerm`'s threat premium is charged against that same
+ * shortfall rather than unconditionally.
  *
  * **Three chains live here now**, in the order the batches added them: the tech
  * chain above, the **expansion** chain (batch 4 — the next town, its settler, its
@@ -83,6 +99,7 @@
  * happen. Each has its own docblock; this one covers the first.
  */
 
+import { type LevyReading, isFieldSoldier, levyReading } from './campaign';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import { type UpgradeSites, noUpgradeSites } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
@@ -99,7 +116,6 @@ import {
   explainMeterCall,
   explainSoldier,
   explainYields,
-  valueOfSoldier,
   valueOfYields,
 } from './value';
 
@@ -313,19 +329,34 @@ export function techChain(
   // building step waits for the ones before it. Only buildings advance it.
   let cursor = researchDelay;
 
+  // **The levy, once for the whole chain** (batch X1). Every unit step reads it
+  // and it is a walk of the roster and the town list, so it is hoisted the way
+  // the sites survey is — and it is `campaign.ts`' reading rather than a second
+  // one, so the chain and the town agree about how many spears this empire
+  // wants. See `unitStepCost` for what it buys.
+  const levy = levyReading(ctx);
+
   for (const unit of unlocks.units ?? []) {
     const def = unitDef(unit);
-    const term = unitTerm(unit, ctx);
+    const term = unitTerm(unit, ctx, levy);
+    const owed = unitStepShortfall(def, levy);
     giftTerms.push(term);
     steps.push({
       kind: 'unit',
       id: unit,
       name: def.name,
+      // **One raising, and the hammers of as many as the levy is short.** The
+      // asymmetry is deliberate and is the whole of batch X1. A node hands the
+      // empire an *option*, so it is one thing that still has to happen and it
+      // is priced as one piece — a chain that counted the shortfall as five
+      // raisings would dilute every building step's share by an army nobody has
+      // decided to raise. But the option is not free: an empire three spears
+      // short of its levy that takes this node will raise three spears, and
+      // those hammers are as real as a library's. So `cost` is the levy's and
+      // `towns` is the option's, and the subtraction below charges the chain for
+      // the army it is actually proposing.
       towns: 1,
-      // A piece is an option, never an obligation: the chain charges no hammers
-      // for one and waits no turns on one. What it costs is decided by the town
-      // that decides to raise it, in the arm that decides.
-      cost: 0,
+      cost: owed * unitProductionCost(ctx.state, ctx.playerId, unit),
       rate: term.value,
       delay: researchDelay,
       value: term.value,
@@ -514,7 +545,15 @@ export function chainCompression(
   return appraise(terms);
 }
 
-/** The hammers one copy of a step costs — the whole owed, over the towns owing. */
+/**
+ * The hammers one copy of a step costs — the whole owed, over the towns owing.
+ *
+ * Asked of a **building** step only (`chainCompression` and `townChainShare`,
+ * both of which filter on the kind), and that is worth saying out loud since
+ * batch X1: a unit step's `towns` is the one option the node hands over while
+ * its `cost` is the whole levy shortfall's hammers, so the division would answer
+ * "three spears" rather than "one spear" for a step nobody is buying a copy of.
+ */
 export function stepUnitCost(step: ChainStep): number {
   return step.cost / Math.max(1, step.towns);
 }
@@ -543,26 +582,87 @@ export function researchRoad(
 // --- the pieces of a chain ---------------------------------------------------
 
 /**
- * What a unit unlock is worth — the beeline's own four clauses, unchanged: a
- * soldier at the threat swing, a settler as one more town, a caravan, a prophet
- * at the appetite, and everything else as a civilian.
+ * **How many of this row the levy is actually short** — the count the unit
+ * step's hammers multiply by (batch X1).
+ *
+ * Only a *field soldier* is levied. A settler's hammers are the expansion
+ * chain's and are already charged there; a caravan's are the route's
+ * (`explainCaravan` prices the pair, not the wagon); a prophet is one charge and
+ * a civilian is one errand. Charging any of them the levy's shortfall would be
+ * charging the same empire for a spear it is short *because* it unlocked a
+ * plough. So the shortfall is the soldiers' and everything else stays the free
+ * option it always was — which is the sentence the old `cost: 0` was right
+ * about and wrong to apply to the whole list.
+ */
+function unitStepShortfall(def: ReturnType<typeof unitDef>, levy: LevyReading): number {
+  return isFieldSoldier(def) ? levy.shortfall : 0;
+}
+
+/**
+ * What a unit unlock is worth — the beeline's own four clauses: a soldier at the
+ * threat swing, a settler as one more town, a caravan, a prophet at the
+ * appetite, and everything else as a civilian.
  *
  * Dispatched on the *row's* markers and never on a name, which is the discipline
  * `src/sim/` keeps and a reader of the same tables has no business breaking.
+ *
+ * **The threat swing is against the levy's shortfall now** (batch X1). It used
+ * to be an unconditional `× threat.techMilitaryFactor` whenever any hostile
+ * column stood near any town — and the wild's standing fifty pieces mean that is
+ * close to permanent, so the premium was close to permanent too, and 61–63% of
+ * every re-aim on the audit's bench went to a military node. What the factor is
+ * *for* is the emergency of a town that cannot answer the column at its gate,
+ * and an empire already holding the levy it wants is not in that emergency: it
+ * has the spears, and what it lacks is a library. So the factor is charged
+ * **against the share of the levy that is missing** — the whole of
+ * `threat.techMilitaryFactor` where none of the levy is standing, proportionally
+ * less as it fills, and floored at one, because a column at the gate may never
+ * make a node worth *less* than it is in peacetime. A seat that wants no more
+ * soldiers gets no military premium at all, which is the ruling in one line.
+ *
+ * Nothing was added to `data/ai.json`: this is the same knob, read against the
+ * same levy the town's own build arm reads. The floor is what keeps the two
+ * readings of the shortfall from disagreeing in sign — the hammers below charge
+ * for the pieces that are missing, and this multiplies for the same ones.
+ *
+ * The two arithmetics were both measured on the audit's bench and the one that
+ * plays better is here: `max(1, factor × short)` took the military share of
+ * re-aims to 40% and 44% (from 63% and 67%) with technologies at t150 up on both
+ * boards, where the gentler `1 + (factor − 1) × short` left the second bench at
+ * 57%.
  */
-function unitTerm(unit: UnitTypeId, ctx: ValueContext): ValueTerm {
+function unitTerm(unit: UnitTypeId, ctx: ValueContext, levy: LevyReading): ValueTerm {
   const ai = ctx.ai;
   const def = unitDef(unit);
   if (isCombatant(def) && !isExplorer(def)) {
+    const soldier = explainSoldier(unit, ctx);
     // The threat swing (design addendum 1): a spear is worth several libraries
-    // while there is a column beside the capital, and one library when there is
-    // not.
-    const factor = ctx.threat > 0 ? Math.max(1, ai.threat.techMilitaryFactor) : 1;
-    const soldier = explainSoldier(unit, ctx).terms;
+    // while there is a column beside the capital *and this empire is short of
+    // the levy to answer it*, and one library otherwise.
+    const short = Math.min(1, levy.wanted <= 0 ? 0 : levy.shortfall / levy.wanted);
+    const full = Math.max(1, ai.threat.techMilitaryFactor);
+    const factor = ctx.threat > 0 ? Math.max(1, full * short) : 1;
+    const parts = [...soldier.terms];
     if (factor !== 1) {
-      soldier.push({ label: `× ${factor} (a column is near a town)`, value: factor, op: 'mul' });
+      parts.push({
+        label:
+          `× ${round(factor)} (a column is near a town, and this empire is ` +
+          `${round(levy.shortfall)} of ${round(levy.wanted)} soldiers short)`,
+        value: factor,
+        op: 'mul',
+      });
     }
-    return { label: def.name, value: valueOfSoldier(unit, ctx) * factor, parts: soldier };
+    // **The surplus charge is the premium's own interpolation, and not a second
+    // subtraction.** `unitRoleValue`'s levy charge (`−soldier × standing`) was
+    // tried here whole and measured: folded *beside* the interpolated premium it
+    // prices a soldier at nothing the moment the levy is full, the beeline stops
+    // asking for military nodes at all, and on the audit's second bench a seat
+    // fell from eight towns to two while the wild walked in (measured 2026-09-08,
+    // both benches). Charging the shortfall once — in the premium the town's own
+    // arm does not have — is the honest half of it: the chain is deciding what a
+    // *node* is worth, not what the next spear is worth, and the town's arm is
+    // still the thing that decides whether the spear gets built.
+    return { label: def.name, value: foldTerms(parts), parts };
   }
   if (def.foundsCity) return { label: `${def.name} — one more town`, value: ai.weights.city };
   if (trades(def)) {

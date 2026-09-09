@@ -380,7 +380,7 @@ unless it says so.
 
 | | Batch | Scope | Acceptance |
 |---|---|---|---|
-| **X1** | **The unit step pays for itself** | `techChain`'s unit steps take a hammer cost and the levy's surplus; `unitTerm` loses its unconditional ×3 or keeps it only against the levy's shortfall | negative-scoring nodes below 50% of those weighed; military re-aims below 45%; technologies at t150 up on both benches; no new bankruptcies |
+| **X1** | ~~**The unit step pays for itself**~~ **BUILT 2026-09-08** | `techChain`'s unit steps take a hammer cost and the levy's surplus; `unitTerm` loses its unconditional ×3 or keeps it only against the levy's shortfall | **military re-aims 63% → 40% and 67% → 44%** (both below 45%); **technologies at t150 32 → 54 and 36 → 40** (up on both benches); no bankruptcy on either board. **The negative share went 62% → 78% and 64% → 72% and the target was unreachable from the unit side** — see below |
 | **X2** ✅ | **The scope, evaluated** — **built 2026-09-08** (`docs/bot-priorities.md`, "Batch X2 as shipped") | `townsAdmitting(ctx, scope)` over `cityScopeAdmits` and `workedHexesAdmitting(ctx, effect)` over `tileConditionHolds`, both memoised per `ValueContext` on the row's own object; **eighteen arms** re-counted; `routeEndsHere` and `terrainBeside` closed | **met.** A coastal clause reads **0 towns and scores exactly 0** in a landlocked realm and 1 with one hex of water; Petra's `terrainBeside` reads 0 → 1 on one desert hex; the Bank's `routeEndsHere` reads 0 → 1 on one live caravan. **Six of six boards moved**, both halves (towns · hexes) moving all six alone, and **five of the six first diverge on a Statecraft draft** — three of them now *pass* an offer they used to take; the sixth swaps the Great Lighthouse for a scout. Cost on one identical board: **+1% at t75 and +2.8% at t150** on the minimum, inside the median's own spread |
 | **X3** | **The faith book prices the piece** | `faithPlan`'s building loop gains the `foldCity` delta; `faithRowTerms` dispatches on markers; `ownsAny` becomes a count against a want rather than a bar | faith below its ceiling in at least half the seats at t120, or a bank spent; a Templar's fold names its strength; a faith house's fold names its yields |
 | **X4** | **The paper remembers** | a refusal memory keyed on the paper across turns; `counterTerms` called by `swapDecision` when a straight swap is refused; the first paper the bot writes that is not 1:1 | `proposeDeal` down by an order of magnitude on seed 4242; deals struck > 0 on a board where a swap is mutually profitable |
@@ -391,6 +391,35 @@ unless it says so.
 | **X9** | **The great person, bought and fed** | `OFFER_PURCHASES` joins the two books as three rows priced by `explainGreatPerson`'s own reading; `explainGreatPerson` folds the family feed | a seat holding 500💰+ at t150 spends it; the offer rows appear in the feed |
 | **X10** | **The wonder, chased** | `requiresSite` read as a *site* the expansion chain could satisfy; a wonder of the age as a chain with `weights.bead`/`victory` and an honest delay | a seat beelines a wonder it can reach and founds toward one it cannot |
 | **X11** | **The wager want** (blocked on G1–G3) | a fourth chain in `chain.ts`; the count-deed reading answered once in a leaf for both the Wager and `racePays` | the chain lights when the age turns; a seat's queue changes on a wager it can meet |
+
+## X1 as built (2026-09-08) — and the one number this pass got wrong
+
+The mechanism, the full before/after table and the variant that was measured and
+rejected are in `docs/bot-priorities.md`, "Batch X1 as shipped". Two corrections
+to what is written above:
+
+- **Finding 1's arithmetic is right and its acceptance was not.** The levy's
+  shortfall now prices the unit step's hammers (`levyReading`, moved into
+  `campaign.ts` so the chain and the town read one levy) and the ×3 is charged
+  against that same shortfall, and the military beeline broke as predicted: 63%
+  and 67% of re-aims down to **40%** and **44%**, technologies at t150 up on both
+  benches (32 → 54, 36 → 40). But *"a pass that leaves the negative share above
+  half has not fixed it"* was a claim about the wrong side of the subtraction.
+  Split by kind, this audit's own before-bench reads **military nodes 27% and 26%
+  negative · everything else 70% and 74%**, so zeroing every military negative
+  leaves 56% and 59% — above half before a line was written. The negative share
+  is a reading of the **building** side's price standard (P1's hammers and S1's
+  beakers over a road up to `research.goalHorizon` long), and it also *rises* with
+  an empire's own progress: on the same after-run it ran 65% at t0–50 and 94% at
+  t100–150, because a seat holding 27 technologies is weighing what is left of the
+  tree. It wants a depth-normalised measurement of its own before anything is
+  tuned against it.
+- **The levy surplus charge belongs to the town, not to the chain.** Finding 1's
+  second consequence — *"the unit term folds no levy surplus charge"* — was built
+  and measured: folded whole into `unitTerm` beside the premium it prices a
+  soldier at nothing the moment the levy is full, and a seat on seed 4242 fell
+  from eight towns to two. The chain prices a *node*; the town's arm prices the
+  next spear. Charging the shortfall once, in the premium, is the half that plays.
 
 ## What this audit does not claim
 
