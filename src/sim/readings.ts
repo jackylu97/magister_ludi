@@ -178,6 +178,7 @@ import {
   usedRouteSlots,
 } from './trade';
 import { fullMovement } from './units';
+import { isExploredBy } from './visibility';
 import {
   empirePercents,
   explainCity,
@@ -433,6 +434,22 @@ export interface RoutesReading {
  * the pay is `routeYields.ts`'s two folds with the sea premium among their
  * lines, the price is `routePrice`, the range is `routeRange`. Nothing here
  * re-implements a rule; it remembers the answers.
+ *
+ * **A town the seat has never found is not in the reading** (batch R3, the
+ * user's second mark of 2026-09-09: *"the unavailable routes tab should not
+ * display routes to cities that haven't been discovered by the player (city
+ * center needs to be revealed)"*). The clause is `isExploredBy` on the
+ * partner's own centre hex — the seat's **chart**, not its sight, so a town
+ * seen once and now under fog stays a partner a player may reason about, which
+ * is the same rule the board's remembered towns are drawn by.
+ *
+ * It sits here rather than on the screen because this is *the seat's* reading:
+ * `readRoutes` takes a seat and answers for that seat, and a row filtered out
+ * on one surface would still be counted on the tab beside it. The reading is
+ * therefore the seat's knowledge, and the bot's omniscience is the bot's — the
+ * bot never asks this verb (its trade arm sweeps `routeModesAvailable` over the
+ * true board, `src/ai/routes.ts`), so nothing it decides is narrowed by a fog
+ * rule written for a sheet.
  */
 export function readRoutes(state: GameState, playerId: number): RoutesReading {
   return slateMemo(state, 'revision', 'routes', String(playerId), () =>
@@ -456,6 +473,11 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
     const probe = caravanProbeFor(playerId, from);
     for (const to of state.cities) {
       if (to.id === from.id) continue;
+      // The discovery clause (batch R3, see the docblock): a partner whose
+      // centre hex is not on this seat's chart is no row at all — not offered,
+      // not refused, not counted. A town of this seat's own is always on it,
+      // and asking anyway is one array read rather than a special case.
+      if (!isExploredBy(state, playerId, to.col, to.row)) continue;
       const modes = routeModesAvailable(state, playerId, from.id, to.id);
       const pays: RouteModeReading[] = [];
       const abroad = routeIsInternational(from, to);

@@ -42,7 +42,8 @@ import {
   usedRouteSlots,
 } from '../sim/trade';
 import { cityDisplayName } from './cityDisplay';
-import { YIELD_GLYPH, signedFigure } from './figures';
+import { type YieldKey, METER_GLYPH, YIELD_GLYPH, signedFigure } from './figures';
+import { splitYieldText } from './yieldMark';
 
 /** How long a fresh route runs, as the reducer will write it. */
 export function routeTurns(): number {
@@ -81,6 +82,57 @@ export function routeFigures(fold: {
     (key) => `${signedFigure(fold[key] ?? 0)}${YIELD_GLYPH[key]}`,
   );
   return parts.length === 0 ? 'nothing yet' : parts.join(' ');
+}
+
+/**
+ * One voice's worth of a composed figure — `+3🌾` — and the voice it is in.
+ *
+ * `key` is `null` for a run that names no voice: "nothing yet", or any words a
+ * figure is written among. Such a run still goes through the mark printer, so a
+ * glyph inside it is drawn rather than typed; it simply takes no colour.
+ */
+export interface TradeFigureRun {
+  key: YieldKey | null;
+  text: string;
+}
+
+/**
+ * A composed route figure cut into **one run per voice**, so the trade sheet can
+ * print each in its own ink (batch R3, the user: *"colorize the yields in the
+ * trade screen"* — the mark and the number alike).
+ *
+ * A string in and a list out, rather than a second composer beside
+ * `routeFigures`: every surface on that sheet already holds the figure as a
+ * *string* — a card's `figures`, a running route's, the ledger's line — and
+ * handing four of them a parts list would have meant four interfaces changing
+ * to say a thing the string already says. `splitYieldText` is the same walk the
+ * printer takes, so the cut is made where the marks are and nowhere else, and a
+ * voice this file never heard of colours itself the day it is composed in.
+ *
+ * The **mark closes its run**, which is what makes the colour cover both halves:
+ * `+3🌾` is one span, and the drawn mark inside it is `currentColor`-masked
+ * (`yieldMark.ts`), so the figure's ink is the mark's ink by construction rather
+ * than by two rules agreeing. The separator between runs is left to the caller —
+ * it belongs to neither voice, and a leading space inside a coloured span is a
+ * space in the wrong colour.
+ */
+export function tradeFigureRuns(text: string): TradeFigureRun[] {
+  const runs: TradeFigureRun[] = [];
+  let plain = '';
+  for (const part of splitYieldText(text)) {
+    if (part.kind === 'mark') {
+      runs.push({ key: part.key, text: `${plain.trimStart()}${YIELD_GLYPH[part.key]}` });
+      plain = '';
+      continue;
+    }
+    // A meter glyph is not a voice and takes no colour, so it rides the plain
+    // run — where the printer still draws it, since `setYieldText` knows both
+    // tables. A trade figure has never carried one; this is the honest fallback
+    // rather than a dropped character.
+    plain += part.kind === 'text' ? part.text : METER_GLYPH[part.key];
+  }
+  if (plain.trim() !== '') runs.push({ key: null, text: plain.trimStart() });
+  return runs;
 }
 
 /** "2 of 3 routes" — what the empire is running against what it may. */

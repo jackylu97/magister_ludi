@@ -50,6 +50,7 @@ import {
 import { LEDGER_CLASSES } from '../../src/sim/ledgerClass';
 import { readCity, readEmpire, readEmpirePercents, readRoutes } from '../../src/sim/readings';
 import { routePrice } from '../../src/sim/purchase';
+import { EXPLORED, HIDDEN, isExploredBy, isVisibleTo } from '../../src/sim/visibility';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import {
   routeModesAvailable,
@@ -289,6 +290,46 @@ describe('the routes on offer are remembered on the revision', () => {
       // Every hex of the leg but the gates it starts in, and never more.
       expect(row.turns).not.toBeNull();
     }
+  });
+
+  /**
+   * **The discovery clause** (batch R3, the user 2026-09-09: *"the unavailable
+   * routes tab should not display routes to cities that haven't been discovered
+   * by the player (city center needs to be revealed)"*).
+   *
+   * A reading that takes a seat answers for that seat, so the clause belongs
+   * here rather than on the sheet — a row left out of one pane and counted on
+   * the tab beside it is exactly the disagreement `readRoutes` exists to end.
+   * Two things are pinned: it is the **chart** and not the sight (a town seen
+   * once and now under fog stays a partner), and the memo is untouched by it.
+   */
+  it('leaves out a partner whose centre this seat has never found', () => {
+    const { state, home, partner } = trading();
+    const theirs = found(state, 1)!;
+    const centre = tileIndex(state.map, theirs.col, theirs.row);
+    const mine = [home.id, partner.id];
+    state.visibility[0]![centre] = HIDDEN;
+    bumpRevision(state);
+
+    const unfound = readRoutes(state, 0);
+    expect(unfound.rows.some((row) => row.to.id === theirs.id)).toBe(false);
+    // Not a reading that went blank: this seat's own two towns still pair up.
+    expect(unfound.rows.every((row) => mine.includes(row.from.id))).toBe(true);
+    expect(unfound.rows.length).toBe(2);
+    // And the clause did not cost the memo: still one walk per revision.
+    expect(readRoutes(state, 0)).toBe(unfound);
+
+    // A scout goes past their gates. One row per origin appears — nothing else
+    // about the board moved.
+    state.visibility[0]![centre] = EXPLORED;
+    bumpRevision(state);
+    const seen = readRoutes(state, 0);
+    expect(seen.rows.filter((row) => row.to.id === theirs.id).length).toBe(mine.length);
+    expect(seen.rows.length).toBe(unfound.rows.length + mine.length);
+    // The **chart**, not the sight: the hex is remembered rather than watched,
+    // and a remembered town is a town a player may reason about.
+    expect(isVisibleTo(state, 0, theirs.col, theirs.row)).toBe(false);
+    expect(isExploredBy(state, 0, theirs.col, theirs.row)).toBe(true);
   });
 
   it('is cheaper on the second ask than on the first', () => {

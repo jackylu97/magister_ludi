@@ -1020,7 +1020,20 @@ directly to confirm rulings — user marginalia are rulings.
   order of **first 360 · step 225**: ▢ the user's call whether half is
   enough or the step goes again; `docs/great-people.md` regenerated as
   the reference (the offer prices had drifted: doc 300/150 vs data
-  1000/750, fixed). **RULED** (the user, 2026-09-09): *"the first great
+  1000/750, fixed). **RULED** (the user, 2026-09-09: "can I edit the
+  technology costs: it should be something like 5 10 23 53 105 195 380
+  680 1060 1850 2800 4900 8000 (exponential scaling)"): the ladder is
+  the user's thirteen figures, column for column, root to last — Æra III
+  and IV steepen (175/310/415/525 → 195/380/680/1060; 1650…2550 →
+  1850/2800/4900/8000); batch **B6** writes them into every row's `cost`
+  by column, the doc's ladder and per-age tables, `COLUMN_COSTS` and the
+  bands, the pacing notes re-measured. Then: *"could you fit a curve that
+  fits roughly the shape, starting at 5 and ending around 8000?"* — the
+  fit is log-quadratic through both ends, least-squares to the thirteen:
+  `ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²` (the ratio decays 2.2 →
+  1.55), friendly-rounded: **5 · 11 · 24 · 50 · 100 · 190 · 360 · 650 ·
+  1150 · 1960 · 3250 · 5150 · 8000** — these are B6's figures, the
+  formula written beside the table. **RULED** (the user, 2026-09-09): *"the first great
   person at 75 renown, and have the costs scale in line with how our
   culture costs are scaled. Aim for ~1/3rd of the previous amount of
   great people at the end of age 3."* **Batch B5**: the renown ladder
@@ -1254,7 +1267,23 @@ directly to confirm rulings — user marginalia are rulings.
   redraw 33.5 → 0.29 ms. Two departures written down: no
   warships-on-path fact (the reading carries no path for refused pairs;
   a blockade at either end stands in), and no blockade heading under
-  Unavailable (a blockade never refuses a hire). (eee)
+  Unavailable (a blockade never refuses a hire). **R3** (the user,
+  2026-09-09): (1) *"colorize the yields in the trade screen"* — the
+  figures on every card and table take their voice's colour (the
+  specimen's `--y-food/--y-prod/--y-gold/--y-sci/--y-cul` and faith),
+  the mark and the number alike, as the mock drew them; (2) *"the
+  unavailable routes tab should not display routes to cities that
+  haven't been discovered by the player (city center needs to be
+  revealed)"* — `readRoutes` rows to a partner whose centre hex the
+  seat has not explored (`isExploredBy`, the seat's own chart; the bot's
+  omniscience is the bot's, not the sheet's) are not offered at all, on
+  any tab, and the counts follow. **R3 built 2026-09-09**: `tradeFigureRuns`
+  cuts a figure at the marks and `setTradeFigures` prints each run in its
+  voice's token (`--y-food` … `--y-faith`, the mark inheriting through
+  `currentColor`), on the card and both tables; `readRoutes` skips a
+  partner whose centre the seat has not explored (`isExploredBy`, the
+  chart not the sight — a remembered town stays a partner); the bot never
+  reads `readRoutes`. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a

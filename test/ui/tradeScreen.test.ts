@@ -52,11 +52,15 @@ import {
   usedRouteSlots,
 } from '../../src/sim/trade';
 import { readCity, readRoutes } from '../../src/sim/readings';
+import { tileIndex } from '../../src/sim/map';
+import { hasMetSeat } from '../../src/sim/diplomacy';
+import { EXPLORED, HIDDEN, isExploredBy } from '../../src/sim/visibility';
 import { RULES } from '../../src/sim/rulesData';
 import { layRoad } from '../../src/sim/roads';
 import { openWar } from '../../src/sim/wars';
 import { applyCommand } from '../../src/sim/commands';
-import { NO_ROUTE_CAPACITY, routeFigures } from '../../src/ui/tradeLines';
+import { NO_ROUTE_CAPACITY, routeFigures, tradeFigureRuns } from '../../src/ui/tradeLines';
+import { YIELD_GLYPH, type YieldKey } from '../../src/ui/figures';
 import {
   type TradeContext,
   MODE_LABEL,
@@ -87,6 +91,7 @@ import { at, bareState } from '../sim/improvementHelpers';
 
 const SOURCES = import.meta.glob(
   [
+    '../../src/style.css',
     '../../src/ui/tradeScreen.ts',
     '../../src/ui/topBar.ts',
     '../../src/ui/unitPanel.ts',
@@ -142,6 +147,18 @@ function foreignTradeWorld(met = true): { state: GameState; home: City; theirs: 
   // **Met**, by the clause that needs no paper: a piece of theirs standing where
   // this seat can see it. A worker, so no picket prices the caravan's march.
   if (met) createUnit(state, 1, 'worker', 3, 3);
+  // **And found** (batch R3): since the discovery clause, a partner whose centre
+  // hex is not on this seat's chart is no row at all, and `bareState` explores
+  // only what a seat's own pieces stand near. A scout has been past their gates
+  // — written straight onto the chart, the idiom every fog test uses, so the
+  // arrangement adds no piece to a board these tests price caravans on.
+  //
+  // Only in the met branch, and necessarily: a rival's *centre* is a rival's
+  // owned hex, and an owned hex on your chart is the fourth clause of
+  // `hasMetSeat` answering yes. The unmet world is an unfound one too.
+  if (met) {
+    state.visibility[0]![tileIndex(state.map, theirs.col, theirs.row)] = EXPLORED;
+  }
   return { state, home, theirs };
 }
 
@@ -792,5 +809,164 @@ describe('the running half and the treasury’s ledger', () => {
     const title = routeLedgerTitle(card.lines);
     for (const line of card.lines) expect(title).toContain(line.source);
     expect(routeLedgerTitle([])).toBe('This route pays nothing yet');
+  });
+});
+
+// --- 8. R3: every figure in its voice's ink ---------------------------------
+
+/**
+ * The user, 2026-09-09 (`docs/flags.md` item (iii), the R3 paragraph):
+ * *"colorize the yields in the trade screen"* — the figures on every card and
+ * table take their voice's colour, **the mark and the number alike**.
+ *
+ * No jsdom here, so what is defended is the three halves that can be quietly
+ * wrong without the sheet looking broken: the **cut** (a composed figure is one
+ * run per voice, and the mark closes its run so one colour covers both halves),
+ * the **rule** (each of the six classes carries the specimen's own token), and
+ * the **wiring** (every figure on the sheet goes through the coloured printer,
+ * so a table cannot quietly keep printing in plain ink).
+ */
+const VOICE_TOKEN: Readonly<Record<YieldKey, string>> = {
+  food: '--y-food',
+  production: '--y-prod',
+  gold: '--y-gold',
+  science: '--y-sci',
+  culture: '--y-cul',
+  faith: '--y-faith',
+};
+
+describe('a yield figure in its own voice', () => {
+  it('cuts a composed figure into one run per voice, the mark inside the run', () => {
+    const runs = tradeFigureRuns(
+      `+3${YIELD_GLYPH.food} +2${YIELD_GLYPH.production} +1${YIELD_GLYPH.gold}`,
+    );
+    expect(runs.map((run) => run.key)).toEqual(['food', 'production', 'gold']);
+    // The mark closes the run, which is what makes one `color` cover the number
+    // and the drawing at once — the mark is `currentColor`-masked.
+    expect(runs.map((run) => run.text)).toEqual([
+      `+3${YIELD_GLYPH.food}`,
+      `+2${YIELD_GLYPH.production}`,
+      `+1${YIELD_GLYPH.gold}`,
+    ]);
+    // Nothing is lost or moved: the runs rejoined are the figure that went in.
+    expect(runs.map((run) => run.text).join(' ')).toBe(
+      `+3${YIELD_GLYPH.food} +2${YIELD_GLYPH.production} +1${YIELD_GLYPH.gold}`,
+    );
+  });
+
+  it('names all six voices, and colours none of the words between them', () => {
+    for (const key of Object.keys(VOICE_TOKEN) as YieldKey[]) {
+      const runs = tradeFigureRuns(`+1${YIELD_GLYPH[key]}`);
+      expect(runs).toHaveLength(1);
+      expect(runs[0]!.key).toBe(key);
+      expect(runs[0]!.text).toBe(`+1${YIELD_GLYPH[key]}`);
+    }
+    // A route worth nothing says so in words, and words take no voice's ink.
+    expect(tradeFigureRuns('nothing yet')).toEqual([{ key: null, text: 'nothing yet' }]);
+  });
+
+  it('gives each voice its own class, set in the specimen’s own token', () => {
+    const css = source('style.css');
+    for (const [key, token] of Object.entries(VOICE_TOKEN) as [YieldKey, string][]) {
+      // The parchment token, not the lit one: this sheet is a book.
+      expect(css).toContain(`.trade-yield.is-${key} {\n  color: var(${token});\n}`);
+    }
+    // And a number on this sheet is tabular mono wherever the run stands.
+    expect(css).toMatch(/\.trade-yield \{[^}]*font-variant-numeric: tabular-nums;/);
+  });
+
+  it('prints every card and every table through the coloured printer', () => {
+    const text = source('tradeScreen.ts');
+    expect(text).toContain('function setTradeFigures(node: HTMLElement, text: string): void {');
+    // The card, the Running table and the All-routes table — the three places a
+    // route's pay is printed, and none of them writes plain text any more.
+    expect(text).toContain("figuresNode('trade-yields', card.figures)");
+    expect(text).toContain('setTradeFigures(node, text)');
+    expect(text).toContain('setTradeFigures(pays, route.figures)');
+    expect(text).toContain('setTradeFigures(pays, card.figures)');
+    expect(text).not.toContain('setYieldText(pays,');
+    // One class per voice, composed from the run's own key rather than typed.
+    expect(text).toContain('`trade-yield is-${run.key}`');
+  });
+
+  it('carries a real card’s own figures, voice by voice', () => {
+    const { state, home, near } = tradeWorld();
+    home.buildings.push('granary', 'library', 'barracks');
+    home.population = 12;
+    near.population = 8;
+    bumpRevision(state);
+    const ctx = tradeContext(state, 0);
+    const row = rowFor(ctx, home, near);
+    const card = routeCard(ctx, row, bestMode(row)!);
+    const runs = tradeFigureRuns(card.figures);
+    expect(runs.length).toBeGreaterThan(0);
+    for (const run of runs) {
+      // Every run of a paying card names a voice, and its text ends in that
+      // voice's mark — the figure and the drawing in one coloured span.
+      expect(run.key).not.toBeNull();
+      expect(run.text.endsWith(YIELD_GLYPH[run.key!])).toBe(true);
+    }
+    expect(runs.map((run) => run.text).join(' ')).toBe(card.figures);
+  });
+});
+
+// --- 9. R3: a partner nobody has found -------------------------------------
+
+/**
+ * The user's second mark of 2026-09-09: *"the unavailable routes tab should not
+ * display routes to cities that haven't been discovered by the player (city
+ * center needs to be revealed)"*.
+ *
+ * The clause sits in `readRoutes` and not on the sheet, so the claim to defend
+ * is **on no tab and in no count** — a row filtered on one pane and counted on
+ * the cut tab beside it would be the exact failure the one reading exists to
+ * prevent.
+ */
+describe('a partner whose centre is not on the chart', () => {
+  it('is on no tab and in no count, and appears the turn it is found', () => {
+    const { state, home, theirs } = foreignTradeWorld();
+    home.population = 10;
+    theirs.population = 8;
+    // Forget the gates — the scout never went. The empires are still **met**
+    // (their worker stands where this seat can see it), so nothing but the
+    // discovery clause can be what takes the row away.
+    state.visibility[0]![tileIndex(state.map, theirs.col, theirs.row)] = HIDDEN;
+    bumpRevision(state);
+    expect(isExploredBy(state, 0, theirs.col, theirs.row)).toBe(false);
+    expect(hasMetSeat(state, 0, 1)).toBe(true);
+
+    const unfound = tradeContext(state, 0);
+    // Not in the reading at all — which is what makes the four tabs agree.
+    expect(unfound.reading.rows.some((row) => row.to.id === theirs.id)).toBe(false);
+    expect(unfound.rows.some((row) => row.to.id === theirs.id)).toBe(false);
+    const groups = recommendedGroups(unfound);
+    for (const group of groups) {
+      for (const entry of group.rows) expect(entry.row.to.id).not.toBe(theirs.id);
+    }
+    for (const group of refusalGroups(unfound)) {
+      for (const entry of group.rows) expect(entry.row.to.id).not.toBe(theirs.id);
+    }
+    const shut = tabCounts(unfound, groups);
+    expect(shut.all + shut.unavailable).toBe(unfound.rows.length);
+
+    // A scout goes past their gates and the pair is a decision again.
+    state.visibility[0]![tileIndex(state.map, theirs.col, theirs.row)] = EXPLORED;
+    bumpRevision(state);
+    const found = tradeContext(state, 0);
+    expect(found.rows.some((row) => row.to.id === theirs.id)).toBe(true);
+    expect(found.rows.length).toBe(unfound.rows.length + 1);
+    const counts = tabCounts(found, recommendedGroups(found));
+    expect(counts.all + counts.unavailable).toBe(found.rows.length);
+    expect(counts.all + counts.unavailable).toBe(shut.all + shut.unavailable + 1);
+  });
+
+  it('keeps a seat’s own towns, which are always on its chart', () => {
+    const { state, home, near, far } = tradeWorld();
+    const ctx = tradeContext(state, 0);
+    for (const town of [home, near, far]) {
+      expect(isExploredBy(state, 0, town.col, town.row)).toBe(true);
+    }
+    expect(ctx.rows.some((row) => row.to.id === near.id)).toBe(true);
+    expect(ctx.rows.some((row) => row.to.id === far.id)).toBe(true);
   });
 });

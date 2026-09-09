@@ -94,7 +94,7 @@ import { RULES } from '../sim/rulesData';
 import { type City, type GameState, playerById } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
-import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures } from './tradeLines';
+import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures, tradeFigureRuns } from './tradeLines';
 import { setYieldText } from './yieldMark';
 import { createModalShell } from './modalShell';
 import { element } from './dom';
@@ -1030,10 +1030,40 @@ function button(className: string, label: string): HTMLButtonElement {
   return node;
 }
 
-/** A figure in mono, the yield marks drawn rather than typed. */
+/**
+ * A composed figure written into an element **with every voice in its own ink**
+ * — the whole of R3's first half (the user, 2026-09-09: *"colorize the yields
+ * in the trade screen"*).
+ *
+ * One run per voice (`tradeFigureRuns`), each in a `.trade-yield.is-⟨voice⟩`
+ * span, and the class carries the colour for the number *and* the mark at once:
+ * a drawn mark is `currentColor`-masked, so it takes the ink of whatever span it
+ * sits in. There is no second rule for the glyph, and there cannot be one to
+ * disagree with.
+ *
+ * The separator between runs is a plain space **outside** the spans, so nothing
+ * coloured has a space hanging off its front — and on the cards, where
+ * `.trade-yields` is a flex row, a whitespace-only run is not a flex item at all
+ * and the `gap` does the spacing it always did.
+ *
+ * The class stays on every run, voiced or not, so "nothing yet" is set in the
+ * same mono as a figure rather than falling back to the copy face.
+ */
+function setTradeFigures(node: HTMLElement, text: string): void {
+  const fragment = document.createDocumentFragment();
+  tradeFigureRuns(text).forEach((run, index) => {
+    if (index > 0) fragment.append(document.createTextNode(' '));
+    const span = element('span', run.key === null ? 'trade-yield' : `trade-yield is-${run.key}`);
+    setYieldText(span, run.text);
+    fragment.append(span);
+  });
+  node.replaceChildren(fragment);
+}
+
+/** A figure in mono, each voice in its own ink. See `setTradeFigures`. */
 function figuresNode(className: string, text: string): HTMLElement {
   const node = element('span', className);
-  setYieldText(node, text);
+  setTradeFigures(node, text);
   return node;
 }
 
@@ -1337,7 +1367,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       tr.append(mode);
       tr.append(element('td', 'is-num', route.mode === 'sea' ? '—' : 'laying'));
       const pays = element('td', 'is-num');
-      setYieldText(pays, route.figures);
+      setTradeFigures(pays, route.figures);
       tr.append(pays);
       tr.append(element('td', 'is-num', figure(route.turnsLeft)));
 
@@ -1496,7 +1526,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         mode.append(drawModeControl(entry.row, entry.mode));
         tr.append(mode);
         const pays = element('td', 'is-num');
-        setYieldText(pays, card.figures);
+        setTradeFigures(pays, card.figures);
         tr.append(pays);
         // The road is its own column (the user's final mark), and it is a
         // figure: what a land cart would still have to pave, or nothing at all

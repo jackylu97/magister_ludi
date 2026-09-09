@@ -10719,6 +10719,54 @@ body:has(.city-mode:not([hidden])) #hud-context {
   font-size: 12.5px;
 }
 
+/* --- a figure in its voice's ink (batch R3) ------------------------------
+   The user, 2026-09-09: *"colorize the yields in the trade screen"* — every
+   yield figure on every card and table of this sheet takes its voice's colour,
+   **the mark and the number alike**, as the mock drew them.
+
+   One span per voice, written by `setTradeFigures` (`tradeScreen.ts`), and the
+   colour is set once on it: the drawn mark inside is a `currentColor`-masked
+   element (`yieldMark.ts`), so it takes the figure's ink by construction and
+   there is no second rule to disagree with. The six tokens are the specimen's
+   own — the same ones a tile's yields and a city panel's chips are set in — and
+   the parchment values rather than the lit ones, because this sheet is a book.
+
+   The face is restated here rather than left to the container: a run sits in a
+   flex row on a card and in a `td.is-num` in the two tables, and a number on
+   this sheet is tabular mono wherever it stands. */
+.trade-yield {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trade-yield.is-food {
+  color: var(--y-food);
+}
+.trade-yield.is-production {
+  color: var(--y-prod);
+}
+.trade-yield.is-gold {
+  color: var(--y-gold);
+}
+.trade-yield.is-science {
+  color: var(--y-sci);
+}
+.trade-yield.is-culture {
+  color: var(--y-cul);
+}
+.trade-yield.is-faith {
+  color: var(--y-faith);
+}
+
+/* A lapsed route is faint everywhere but here: its figures would otherwise be
+   the one thing on a greyed row still shouting in six colours. The row's own
+   ink wins, restated at the same specificity plus one so the cascade is not a
+   question of source order. */
+.trade-table tr.is-lapsed td .trade-yield.trade-yield {
+  color: inherit;
+}
+
 .trade-chip {
   padding: 4px 7px 3px;
   border: 1px solid var(--rule);

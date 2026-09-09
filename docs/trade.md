@@ -58,8 +58,17 @@ History and the original proposal: `docs/design-history.md`.
   every route is running; every ask after it in the same revision is
   **0.0004ms**. So the ranking, the filters, the tabs and the sort orders the
   mock asks for are free to redraw.
+- **A town the seat has never found is not in the reading** (batch R3): the
+  clause is `isExploredBy` on the partner's own **centre hex** — the seat's
+  chart, not its sight, so a town seen once and now under fog stays a partner.
+  It sits in the reading rather than on a surface because `readRoutes` takes a
+  seat and answers for that seat: a row dropped on one pane and counted on the
+  tab beside it is the disagreement the one reading exists to end. The bot never
+  asks this verb — its trade arm sweeps `routeModesAvailable` over the true
+  board (`src/ai/routes.ts`) — so no bot decision is narrowed by a fog rule
+  written for a sheet.
 
-## The sheet (batch R2)
+## The sheet (batches R2, R3)
 
 `src/ui/tradeScreen.ts`, the tenth on `modalShell.ts`. **A masthead, four cut
 tabs, one leaf.** Gilt is its one accent and it lives on the inner edge of a tab
@@ -117,6 +126,17 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   reading does not survey a pair the gate refused. Each row prints the gate's own
   sentence in the wanting voice; the slot group says `NO_ROUTE_CAPACITY` once
   over the group instead of forty times down it.
+- **Every figure is in its voice's ink** (batch R3, the user: *"colorize the
+  yields in the trade screen"*). A composed figure is cut into **one run per
+  voice** by `tradeFigureRuns` (`tradeLines.ts`, the cut made where
+  `splitYieldText` finds the marks, so no surface needs a second composer beside
+  the string it already holds), and `setTradeFigures` writes each run into a
+  `.trade-yield.is-⟨voice⟩` span. **The mark closes its run**, and a drawn mark
+  is `currentColor`-masked, so the number and the drawing take one ink by
+  construction rather than by two rules agreeing. The six are the specimen's
+  parchment tokens — `--y-food` · `--y-prod` · `--y-gold` · `--y-sci` ·
+  `--y-cul` · `--y-faith` — the same a tile's yields and a city panel's chips
+  are set in; a lapsed route's row keeps its own faint ink over them.
 - **Every send and cancel lives here.** Send dispatches `buyRoute` through
   `controls.buyRouteOf`; the unit sheet's row is a link ("Open the trade sheet");
   the top bar's routes chip and a fourth HUD dock button both wear the drawn cart
