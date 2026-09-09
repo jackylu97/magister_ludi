@@ -720,7 +720,166 @@ directly to confirm rulings — user marginalia are rulings.
   (whole game and X2's identical-state method) plus the t100 probe's own
   ms/turn column; the five attribution doors (`scopeDoor`, `signDoor`,
   `keepDoor`, `hexDoor`, `rowDoor`) come out in a cleanup pass after M1.
-  (eee)
+  **Batch T1, the test suite's speed** (the user, 2026-09-09: "improve the
+  speed of the testing suite … how much of it is actually necessary?"):
+  the push-gate is 13 minutes and 12 of them are one file, the 200-turn
+  bot arena (`aiBot.slow.test.ts`); the core tier is ~100 s. **RULED**
+  (the user, 2026-09-09): "we shouldn't be using the bot to measure
+  anything, it isn't a good baseline" and **"axe the pacing claims"** —
+  every slow-tier assertion whose subject is the game's pacing read
+  through the bot (a decided game or a live race by turn T, N cities by
+  turn T) is deleted, listed in `docs/audit/test-suite-speed.md`; what
+  stays is the bot-regression guards (solvency, no compounding deficit,
+  driver/stepper byte-for-byte, log replay) at the shortest horizon that
+  still catches the historic failure, the rules claims, and the arranged
+  war boards. **RULED** (the user,
+  2026-09-09: *"the value of a library is contingent on the city that
+  builds it: a city in your capital with high population is worth a lot
+  of science, and is built faster than a middling city. Also — the value
+  of a tech path isn't just based on the thing the tech unlocks, it also
+  includes the value of all the prerequisite techs that you research
+  along the way."*) Both confirmed in `chain.ts` as it stands: a building
+  step's payoff is the row's **flat** bag (a Library's `science: 2`; its
+  `sciencePerPop: 0.5` and every percentage never enter) × the towns that
+  would raise it, built at the **middling** town's production; and a
+  goal's chain prices only `techDef(goal).unlocks` — the road's
+  intermediate nodes contribute beakers and delay and no gifts. **Batch
+  X1d, after X1c lands**: (a) a building step's payoff is the sum over
+  the towns that would raise it of each town's own hypothetical fold
+  (`townFolds`, X3's per-sitting `(town, row)` memo, shared with the build
+  arm and the book), and its delay is the **first** town's build time
+  (towns raise in parallel; the capital raises first); (b) a goal's chain
+  is the whole road — every node on `researchExpansion(goal)` contributes
+  its unlocks as steps at the delay its own beakers land at (cumulative
+  along the road) — so a deep goal is worth what the road hands over,
+  each gift discounted at its landing. Acceptance: the t100 probe
+  (science, techs, buildings up; cities within noise), the negative-node
+  share, and a bench where a pop-12 capital prices a Library at its real
+  fold and a two-node road prices both nodes' gifts. **Refined** (the
+  user, 2026-09-09): (a) is **per copy** — each town that would raise the
+  row lands its own copy at its own build time and that copy's payoff is
+  discounted at that time (neither the first town nor the middling one),
+  and it holds for **every** building, not the science rows: a Lighthouse
+  prices the fish of the town that raises it, a Market prices the route
+  its slot opens (`routeSlotTerm` already prices a slot by the best
+  unrun pair, so the step inherits it through the row); (b) a node's
+  gifts are computed once per sitting and reused by every goal whose road
+  passes it, only the discount differing. **The worker's craving**
+  (`workers.planTopN` × `planFalloff`, the decay over the ranked entries)
+  is questioned: *"the value of a worker should be the yields of the top
+  improvable tiles based on the number of workers it has."* (rec) the
+  craving for one more worker = the plan's **unclaimed** entries that
+  worker would lay, taken in rank order for as many as its **charges**
+  buy (`UnitDef.charges` ÷ each row's `chargeCost` — a Worker's three) and
+  as fit inside the horizon, each discounted at the turn it lands (the tile pays
+  only once improved — that delay is real; a decay over rank is not), the
+  entries existing workers will reach — each one's **remaining** charges'
+  worth of them, `Unit.chargesLeft` — removed first; `planFalloff`
+  retires (the user, 2026-09-09: "taking into account the # of worker
+  charges a worker has" — yes). Part of X1d, `plan.ts` and the worker arm in `bot.ts`.
+  **Read off one game** (seed 1, standard, 2026-09-09, the user: "why is
+  the bot so much worse than a human"): the capital built two wonders
+  (t14–33, t37–54) before a Granary (t65, size 10) or a Library (t81, size
+  13), the second town spent its first 29 turns on the Oracle, one settler
+  left the capital between t14 and t62, fourteen research re-aims by t64,
+  seven draft hands passed. Two causes found in the source: (1) **wonder
+  patience** — `score.patienceTurns` (10) amortises every one-of-a-kind
+  row over at most ten turns, so a 19-turn wonder is scored as a 10-turn
+  one against a 4-turn Granary; the rule was written for the endgame
+  capstones (a 109-point Opus over 32 turns) and applies to every wonder.
+  (rec) patience only for a row that pays a bead or ends the game; an
+  ordinary wonder is amortised over its real turns and its payoff
+  discounted at its real delay like every other step. (2) **the worker's
+  plan prices every owned-or-adjacent hex as if worked** — a size-2 town
+  with eight farmable hexes reads eight entries and craves workers (the
+  tech gate is already honest: `improvementErrorAt` refuses a row the
+  seat cannot build); the user: "workers shouldn't really be built so
+  early." (rec) an entry counts only on a hex a citizen works or the
+  town's next few citizens would work (the town's own tile ranking,
+  `pop + 2`), folded into X1d's worker rule. (The Granary carries no
+  upkeep — `buildingUpkeep` charges only a renown-bearing row; the
+  orchestrator misread it in chat.) **Two more places count ground
+  nobody works** (the user, 2026-09-09: "values where we're overestimating
+  the number of tiles a city could work"), (rec) both X1d's: (3) the
+  **settle site** — `explainSite` (`bot.ts`) sums every hex inside
+  `site.ringRadius` × `ringFalloff`, so a site with eighteen middling
+  hexes outscores one with four rich ones; the honest reading ranks the
+  ring's hexes and counts the top N a town would work inside the horizon
+  (its growth curve — roughly the citizens it reaches by the horizon,
+  read off `growthThreshold`), each discounted at the turn that citizen
+  arrives; it also reads `explainTileYield(near)` context-less (the
+  omniscient reading), which mis-prices reveal-gated resources — read
+  through the seat's own ctx; (4) the **renewal survey** —
+  `surveyUpgradeSites` (`plan.ts`) counts every farm standing or
+  buildable in reach when pricing a renewal tech (Irrigation), so a rider
+  is worth every hex a town could ever farm. **RULED** (the user,
+  2026-09-09: "why isn't that using the already existing logic for
+  pricing bonuses? All the other bonuses are priced as if they took
+  effect immediately"): a renewal is priced exactly as a building is — the
+  town's own **hypothetical fold with the tech held** (`TileYieldContext.
+  techs` is the seat's list plus the candidate; `foldCity`/`explainCity`
+  over the worked tiles), the delta against the standing fold, memoised
+  per `(town, tech)` in the sitting the way `townFolds` memoises `(town,
+  row)`; this prices the renewal AND the resource the tech reveals on the
+  tiles a citizen actually works, and `surveyUpgradeSites` retires with
+  `plannedRiderTerms` re-pointed at the same fold. The unworked-ground
+  count for the *worker's* plan (2) still needs its own rule, because a
+  farm not yet laid is not in any fold. Gated already and left alone: the hex purchase (`tileWants`, X5b
+  and X6 skip a hex nobody would work), X2's hex-scoped pays (worked
+  hexes), the rites (worked), the citizen's ground (`growthTerm`, the
+  next tile). **The pass, mis-folded** (the user, 2026-09-09: "#3
+  sounds like we're valuing orders incorrectly?" — yes): `skipCandidate`
+  (`bot.ts`) prices a pass as *the best of the next hand dealt with one
+  more pass of pity*, discounted by the meter's refill, and compares that
+  against the card on the table. But the next hand comes either way;
+  what a pass buys is only the **difference** the pity makes —
+  `expectedBestOrder(pool, size, skips + 1) − expectedBestOrder(pool,
+  size, skips)` — and what it costs is the whole card forgone. Folded as
+  it is, a pass is credited with the entire next hand, so the bot passed
+  seven hands in 120 turns where a person passes none. **RULED** (the user, 2026-09-09: "queue that up"; X1d) the
+  pass's term is the pity's marginal gain, discounted; the card's worth
+  stands against it; a pass then wins only when every card on the table
+  is worth less than one rung of pity. The pity itself is the game's rule
+  (`skipPity`, schema 63: each banked skip raises the uncommon and rare
+  weights of the next deal, zeroed by a pick). **Potential** (the user,
+  2026-09-09: "does the bot ever price the potential of a card? +1 science
+  on libraries is good even if you don't have libraries built yet … does
+  the bot price card effects when evaluating chains? … a human will take a
+  suboptimal coastal spot over a slightly better inland spot if they
+  suspect fishing boats later"). Read off the source: (1) a card scoped to
+  a building (`buildingYieldPercent`, the `hasBuilding` scopes) walks the
+  buildings **held** — a "+10% on libraries" card is worth nought to an
+  empire with no library, one town under the wonder idiom; (2) today's
+  chain reads a row's flats and `explainBuildingRow`, neither of which
+  sees a slotted card — X1d's per-town hypothetical fold (`foldCity`
+  honours live card effects) closes this without a further rule; (3) the
+  site reads its ring as it stands plus a flat `site.coastBonus` prior —
+  no potential. **Batch X1e, after X1d — potential, read off the register
+  of intent, never a search**: a card's building-scoped effect counts the
+  buildings held **plus the building steps of the live chains** (the
+  libraries this empire is about to raise), each discounted at its step's
+  delay; a site's ring hexes are priced at the best improvement each could
+  take under the technologies **reachable inside the horizon** (the tree,
+  not only the plan — a human "suspects"), discounted at the turn that
+  tech would land, so a coast with four fish reads its boats before
+  Sailing is chosen and `site.coastBonus` retires; the same reading
+  replaces `plannedRiderTerms` in the worker plan. Still greedy: no
+  lookahead over decisions, only payoffs the board can already name. **X1c, T1, M1 landed
+  2026-09-09** (b488434 · 3cc96fe · 0a2cbf3): science's chain-derivative
+  price (t100 science 36.6 → 43.6, techs 19.9 → 21.3, cities and
+  buildings inside two SE); the suite 861 → 362 s with the pacing claims
+  axed and five retirements; the slate — `controlledHoldings` and
+  `meterEffects` memoised beneath the verb, byte-identical, whole-game
+  ms/turn −24/−32%, the sim's core tier 150 → 110 s. **The price band
+  ceiling** swept on the t100 probe (3× today · 6× · 10× · 10× with the
+  floor at 0.25): faith doubles (16.5 → 32) and gold rises by half at 10×,
+  science +2, production −8, cities −0.4 — the user's "small improvement";
+  re-measured on X1c before choosing. **X1d flies next as two agents**
+  on disjoint files: X1d-chain (`chain.ts`: per-copy town folds, the
+  whole road, patience only for a bead or the curtain) and X1d-ground
+  (`plan.ts` + the worker/site/pass arms in `bot.ts`: the worker's
+  charges and worked hexes, the site's top-N, the renewal as a fold, the
+  pass's marginal pity). (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
