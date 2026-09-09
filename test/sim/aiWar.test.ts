@@ -75,7 +75,8 @@ import {
 import { buildingDef } from '../../src/sim/buildingData';
 import { isVisibleTo, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 import { unitDef } from '../../src/sim/unitData';
-import { previewCombat } from '../../src/sim/combat';
+import { cityBaseStrength, cityMaxHp, previewCombat } from '../../src/sim/combat';
+import { buildingCityHp, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { wrappedDistance, tileHex } from '../../src/sim/map';
 import { slotLayout } from '../../src/sim/statecraftData';
 import { closeWar, openWar, setPeaceOffer } from '../../src/sim/wars';
@@ -1257,11 +1258,17 @@ describe('the campaign', () => {
     expect(row!.score).toBeGreaterThan(peaceRow!.score);
   });
 
-  // --- (e) the wall's other half (batch X5) ---------------------------------
+  // --- (e) the wall's other half (batch X5, re-aimed X5c) --------------------
 
   /**
    * The frontier read from the **other** end: the column is theirs and it is
    * standing at our gate, which is the board a wall is actually for.
+   *
+   * **Batch X5c** re-priced the hit-point line as a share of the town's bar
+   * rather than as points of strength (`docs/flags.md` item (ggg)), so this
+   * bench's claim moved with it: the wall's rank *rises* here, and no longer
+   * fronts the queue. The figures are on the first test, which is where the
+   * ruling asked for them.
    *
    * Three towns rather than one, so the expansion chain's falloff has done its
    * work and a settler is not the obvious answer to a siege — otherwise the
@@ -1306,14 +1313,29 @@ describe('the campaign', () => {
     return decision === null || decision.command.type !== 'setCityProduction' ? null : decision;
   }
 
-  it('puts the wall at the front of a besieged town’s queue, and it is the hit points that do it', () => {
-    // **X5's acceptance, arranged.** The same board and the same decision, asked
-    // with the hit-point line shut and open: shut, the town raises another
-    // warrior and the Palisade sits fifth; open, the Palisade fronts the queue.
-    // Measured on this bench (threat 4, the happiness price at its ceiling):
-    // **Palisade 4.81 → 19.23** a turn of build effort, against a Warrior that
-    // reads 17.80 → 16.52 (the wall's own worth is a step of a live chain, so the
-    // hammer premium moves with it).
+  it('raises the wall in a besieged town’s queue, and it is the hit points that do it', () => {
+    // **X5's acceptance, arranged — and X5c's, which is the honest half of it.**
+    // The same board and the same decision, asked with the hit-point line shut
+    // and open, on a bench at threat 4 with the happiness price at its ceiling.
+    //
+    // X5 put the Palisade at the **front** of the queue here, and paid for it
+    // everywhere else: the wall half alone cost the mean seat nine citizens,
+    // thirty-four food and nine science on the t100 probe, because a point of
+    // hit points was priced as a point of strength. Measured on this bench, the
+    // three readings of the Palisade's turn of build effort are
+    //
+    //   · **shut** 4.81 — fifth of nine, the town raises a Warrior (17.80);
+    //   · **X5's points** 19.23 — first of nine, ahead of a Warrior at 16.52;
+    //   · **X5c's share** 5.81 — **fourth** of nine, the town still raises a
+    //     Warrior (17.30).
+    //
+    // So the rank rose one place rather than four, and this test says so: the
+    // ruling's acceptance is *"a threatened town must still front a wall-chain
+    // row at threat 4, or the test says by how much the wall's rank rose"*, and
+    // it is the second arm. The raw line behind it fell 375 → 26.09 — a wall's
+    // fifteen hit points on a bar of a hundred and fifteen is an eighth again of
+    // however long this town lasts, not five soldiers standing on it, and this
+    // town's whole defence is worth 40 (a strength of 8 at the military weight).
     signDoor.wall = false;
     try {
       const { state } = besiegedTown();
@@ -1325,7 +1347,7 @@ describe('the campaign', () => {
         expect(applyCommand(state, decision.command).ok).toBe(true);
       }
       const ctx = valueContext(state, seat(state, 0));
-      expect(ctx.threat).toBeGreaterThan(0);
+      expect(ctx.threat).toBe(4);
 
       const shut = tableAt(state)!;
       const shutWall = shut.candidates.find((row) => row.label === buildingDef('palisade').name)!;
@@ -1335,13 +1357,30 @@ describe('the campaign', () => {
       signDoor.wall = true;
       const open = tableAt(state)!;
       const openWall = open.candidates.find((row) => row.label === buildingDef('palisade').name)!;
-      expect(open.candidates.find((row) => row.chosen)!.label).toBe(buildingDef('palisade').name);
       expect(termLabels(openWall.terms)).toMatch(/town hit points/);
       expect(openWall.score).toBeGreaterThan(shutWall.score);
-      // The wall's whole raw line, before the amortiser: the row's hit points at
-      // the strength line's own rate, times the threat this seat reads.
-      expect(findTerm(openWall.terms, /town hit points/)!.value).toBe(
-        (buildingDef('palisade').cityHp ?? 0) * aiConfigFor(undefined).weights.military * (1 + ctx.threat),
+      // By how much the rank rose — the ruling's own second arm, read off the
+      // table rather than asserted as a place, so the claim survives a row
+      // joining the list.
+      const rankOf = (table: BotDecision): number =>
+        table.candidates
+          .filter((row) => row.rejected === undefined)
+          .sort((a, b) => b.score - a.score)
+          .findIndex((row) => row.label === buildingDef('palisade').name);
+      expect(rankOf(open)).toBeLessThan(rankOf(shut));
+      // The wall's whole raw line, before the amortiser: the row's hit points as
+      // a share of the bar this town would carry holding it, times what this
+      // town's defence is worth at the strength line's own rate, times the threat
+      // this seat reads. Both halves are the simulation's own readings.
+      const town = state.cities.find((city) => city.ownerId === 0 && city.population === 5)!;
+      const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
+      const bar = cityMaxHp({ ...town, buildings: [...town.buildings, 'palisade'] });
+      expect(findTerm(openWall.terms, /town hit points/)!.value).toBeCloseTo(
+        (hp / bar) *
+          cityBaseStrength(state, town) *
+          aiConfigFor(undefined).weights.military *
+          (1 + ctx.threat),
+        10,
       );
       for (const row of open.candidates) {
         if (row.rejected !== undefined) continue;
@@ -1354,8 +1393,8 @@ describe('the campaign', () => {
 
   it('says nothing about hit points in a town nobody is walking at', () => {
     // The other half: the line is a `1 + threat` multiple like the strength line
-    // beside it, so at peace it is the row's hit points at the quiet price — and
-    // the wall does not front a queue merely for existing.
+    // beside it, so at peace it is the share at the quiet price — and the wall
+    // does not front a queue merely for existing.
     const { state } = besiegedTown();
     closeWar(state, 0, 1);
     state.units = state.units.filter((unit) => unit.ownerId === 0);
@@ -1363,9 +1402,13 @@ describe('the campaign', () => {
     bumpRevision(state);
     const ctx = valueContext(state, seat(state, 0));
     expect(ctx.threat).toBe(0);
-    const row = explainBuildingRow('palisade', ctx);
-    expect(findTerm(row.terms, /town hit points/)!.value).toBe(
-      (buildingDef('palisade').cityHp ?? 0) * aiConfigFor(undefined).weights.military,
+    const town = state.cities.find((city) => city.ownerId === 0 && city.population === 5)!;
+    const row = explainBuildingRow('palisade', ctx, town);
+    const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
+    const bar = cityMaxHp({ ...town, buildings: [...town.buildings, 'palisade'] });
+    expect(findTerm(row.terms, /town hit points/)!.value).toBeCloseTo(
+      (hp / bar) * cityBaseStrength(state, town) * aiConfigFor(undefined).weights.military,
+      10,
     );
   });
 });

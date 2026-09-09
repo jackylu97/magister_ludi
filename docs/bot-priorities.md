@@ -4017,8 +4017,9 @@ module register in `aiBot.test.ts` grows to fifteen files with the reason.
   is unambiguous: X5's `cityHp` line costs 9.2 citizens, 34 bushels and 8.6
   beakers a seat on its own, and no charge in this batch touches it. Re-aiming
   that fold — a point of the hit-point bar is not a point of the strength ledger,
-  which X5's own known gaps already say — is **X8's** ground, and it is the single
-  change that would put the t100 row back over X4's.
+  which X5's own known gaps already say — became **X5c's** ground (built 2026-09-09,
+  "Batch X5c as shipped" below), and it is the single change that put the t100 row
+  back.
 - **The settler's arm still reads the keep as a discount.** The chain's line now
   answers it with the town it founds, and the two very nearly cancel for a small
   town by construction (a founding town of six is charged its crowded marginal
@@ -4043,3 +4044,148 @@ module register in `aiBot.test.ts` grows to fifteen files with the reason.
   and X5's fold mixed them the same way. The ruling asked for "the same line", so
   the same line is what all four arms fold; an exchange rate between the two is a
   design decision the whole appraisal would have to make at once.
+
+## Batch X5c as shipped — the wall priced as a share (2026-09-09)
+
+X5b's finding, ruled on the flags board the next day (item (ggg)): *"the hp line
+is a **share of the town's bar** (X8's `healsAdjacent` shape — hp ÷ the town's max
+hp with the row, × the town's own strength line's worth), still × (1 + threat)."*
+One term, one file, and the whole of the batch.
+
+### What X5 priced, and why it was the wrong unit
+
+X5 folded a building's `cityHp` beside its `cityStat` at the **same rate**:
+
+```
+  points × weights.military × (1 + ctx.threat)
+```
+
+which reads a Palisade's fifteen hit points as three soldiers' worth of strength
+and the Walls of Uruk's fifty as ten. The two quantities do not share a unit.
+Strength is the number a town rolls into every exchange it is ever in, and a
+point of it is the point a soldier carries — that is what `weights.military`
+prices. Hit points are the **bar** an attacker has to empty: they buy time and
+nothing else, they are worth nothing at all except in proportion to what they are
+protecting, and a fifteen-point course of stone on a bar of a hundred is an
+eighth again of however long the town lasts rather than three spearmen standing
+on it. X5 was reading a fifth of a bar as three pieces, and the t100 bench sent
+the bill — the wall half **alone** cost the mean seat nine citizens, thirty-four
+bushels and nine beakers, palisades going up before granaries.
+
+### The line, in one place
+
+`explainBuildingRow` (`src/ai/value.ts`), and nothing else moved:
+
+```
+  hp    = foldBuildingCityStat(buildingCityHp({ buildings: [id] }))
+  bar   = cityMaxHp({ …town, buildings: [ …town.buildings, id ] })
+  worth = cityBaseStrength(state, town) × weights.military
+  line  = hp / bar × worth × (1 + ctx.threat)
+```
+
+Every quantity in it is a reading that already existed. `buildingCityHp` is the
+one place a building's non-yield facts are read and the very list `cityMaxHp`
+folds; `cityMaxHp` and `cityBaseStrength` are the simulation's own two answers
+about a town's depth and its defence; `weights.military` is the rate the strength
+line one clause up already pays, and `1 + ctx.threat` is the same existing factor
+both halves of a wall are scaled by, so the two still move together. **No new
+knob** — the batch adds no field to `data/ai.json` and no arm to the fold.
+
+Three things fall out of the shape that X5's could not say:
+
+- a wall is worth **strictly less** than the whole of what defending the town is
+  worth, because a share of a thing is less than the thing;
+- the **second** course of stone is worth less than the first, because the bar it
+  is a share of has grown — a diminishing wall chain read off `cityMaxHp` rather
+  than declared anywhere;
+- a wall in a town worth defending is worth more than the same wall in a hamlet,
+  because `cityBaseStrength` counts the citizens standing behind it.
+
+The bar is asked **with the row** (`hp / (base + hp)`, not `hp / base`), which is
+the ruling's own words and is what gives the second sentence above. The town is
+the one that would raise it; for a caller that names none — the chain's — it is
+this empire's middling town, `hammerPrice`'s bargain and `townPopulation`'s said
+once more, through a `middlingTown` beside it that answers with the town rather
+than its size (the line needs two readings of **one** town, and taking them apart
+would be answering about two). An empire with no towns at all reads nothing here:
+there is no bar to be a share of.
+
+On W1's siege bench (threat 4) the raw line falls **375 → 26.09**: fifteen hit
+points on a bar of a hundred and fifteen is 0.130 of the bar, and that town's
+whole defence is worth 40 (a strength of 8 at the military weight).
+
+### The measurement — the orchestrator's t100 probe, three ways
+
+Eight seeds (1 · 2 · 3 · 42 · 101 · 999 · 31337 · 20260101), standard map, two
+balanced seats, barbarians on, `createBotStepper(…).playTurn()` to turn 100;
+the mean over the sixteen seats. Rates are `foldEmpireRates`, contentment
+`happinessOf`.
+
+| the `cityHp` line | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| **shut** (`signDoor.wall = false`) | 5.31 | 35.56 | 118.13 | 50.86 | 18.93 | 36.25 | 42.90 | 19.50 | 241.59 | 19.75 | +3.67 |
+| **X5's points** | 5.88 | 32.38 | 99.06 | 50.18 | 19.85 | 30.91 | 46.44 | 15.31 | 232.86 | 18.44 | +3.75 |
+| **X5c's share** | 5.25 | 35.19 | 116.88 | 52.11 | 18.56 | 38.13 | 42.23 | 23.94 | 249.51 | 19.75 | −0.89 |
+
+**Met, on the three columns the ruling named.** Against shut, the share costs
+**0.37 citizens (−1.0%)**, **1.25 food (−1.1%)** and **gains 1.88 science
+(+5.2%)**, where X5's points cost 3.18 citizens (−8.9%), 19.07 food (−16.1%) and
+5.34 science (−14.7%) — the share is between a tenth and a fifteenth of the
+points' bill on every one of them, which is noise on this bench. The technology
+count is **identical** to shut (19.75) where the points lost 1.3 of it, the town
+count comes back down (5.88 → 5.25, shut 5.31 — the points' extra town was a
+walled one), and production, treasury and faith all read a little **above** shut.
+
+### Known gaps, written down rather than fixed
+
+- **Contentment at t100 reads −0.89 against shut's +3.67, and it is not a cost of
+  this change.** The three arms are **non-monotone** on that column — shut +3.67,
+  the points +3.75, the share −0.89 — while the share's own value sits *between*
+  the other two everywhere it is read, so a systematic story cannot be told about
+  it. Paired by seat the difference is −4.6 with a spread of 7.1 across sixteen
+  seats whose own readings run from −14.8 to +11.4 (t ≈ 2.6): a real divergence of
+  trajectories on a chaotic bench rather than a price the wall is charging.
+  Recorded, and watched: the column to re-read is X5b's t150 sweep, which is where
+  the happiness ruling's own acceptance lives.
+- **A threatened town no longer fronts a wall — it moves the wall up one place.**
+  The ruling allowed for it in as many words (*"or the test says by how much the
+  wall's rank rose"*), and `aiWar.test.ts` says it: on the siege bench the
+  Palisade's turn of build effort reads **4.81 shut · 19.23 points · 5.81 share**,
+  which is **fifth of nine · first · fourth**, against a Warrior at 17.80 · 16.52 ·
+  17.30. So the town still raises the Warrior. Whether that is right is a question
+  about `weights.military` and the levy rather than about this line: the Palisade's
+  *strength* half already reads 125 on that board against the town's whole defence
+  at 200, and the piece it is losing to is the same piece that strength is priced
+  in. If a besieged town ought to wall first, the change is to the threat's own
+  factor and it is one number, not a shape.
+- **The share is a share of the town's *current* defence.** `cityBaseStrength`
+  counts the best piece the roster can raise and the citizens present, so a wall
+  raised in a town about to double is under-read, and one raised in a town about
+  to be taken is over-read. The delay discount is not applied here — the row's own
+  build turns are already the caller's — and applying it would want the same
+  argument made about `cityStat` beside it, which is out of this batch's fence.
+
+### Pins re-aimed
+
+- **`aiAppraisal.test.ts` §16, "folds every wall row's hit points, through the
+  simulation's own reading"** → *"…as a share of the town's own bar"*. All seven
+  `cityHp` rows still fold and the register still names `cityHp`; the claim is now
+  the arithmetic written out off `cityMaxHp` and `cityBaseStrength` in the test
+  itself, plus the sentence the share can say and the points could not — a wall is
+  worth strictly less than the whole of what the town's defence is worth.
+- **`aiAppraisal.test.ts` §16, the threat pin** — unchanged in claim (the line is
+  a `1 + threat` multiple of itself) and re-aimed in figure, with the town named
+  on both readings so the threat is the only thing that moved between them.
+- **Two cases added** in §16: the townless caller reads the **middling** town (two
+  towns of different sizes, the walled one is not the one the fold picks), and a
+  town that already has walls reads the next course as worth **less** than a bare
+  town does — the diminishing chain.
+- **`aiWar.test.ts` (e), "puts the wall at the front of a besieged town's queue"**
+  → *"raises the wall in a besieged town's queue"*. The rank is read off the
+  candidate table and compared against the shut reading rather than asserted as a
+  place, so a new row joining the list does not fail it; the three figures are in
+  the comment.
+
+The register test that forbids `.cityHp` anywhere in `src/ai/` is untouched and
+still passes: the fold reads the row through `buildingCityHp` and the bar through
+`cityMaxHp`, and never `BuildingDef.cityHp` itself.

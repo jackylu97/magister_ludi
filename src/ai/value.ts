@@ -113,6 +113,10 @@ import {
   emptyCityYields,
   tileOwnerField,
 } from '../sim/cities';
+// Batch X5c: a wall's hit points are read as a share of the bar the simulation
+// itself keeps, and priced against the strength that same simulation says the
+// town fights with — `cityMaxHp` and `cityBaseStrength`, never a hand-read row.
+import { cityBaseStrength, cityMaxHp } from '../sim/combat';
 import {
   foldCity,
   queueCategory,
@@ -1057,17 +1061,49 @@ export function explainBuildingRow(
   // of a town holding this row and nothing else — never `def.cityHp`, which
   // would be a second opinion about the walls beside the simulation's own.
   //
-  // Priced at the rate the strength line above uses and scaled by the **same**
-  // existing factor, `1 + ctx.threat`: a wall nobody is besieging is worth its
-  // hit points at the quiet price, and every hostile piece standing near a town
-  // of this empire is another multiple of it. One factor, no new knob, and the
-  // two halves of one wall therefore move together — an empire with a column at
-  // its gate wants the whole row more, not half of it more.
+  // **A point of hit points is not a point of strength** (batch X5c, the flags
+  // board's item (ggg)). X5 priced this line at the strength line's own rate —
+  // `points × weights.military × (1 + threat)` — and the t100 bench sent the
+  // bill: the wall half *alone* cost the mean seat nine citizens, thirty-four
+  // food and nine science, palisades going up before granaries. The two
+  // quantities do not share a unit. Strength is the number a town rolls into
+  // every exchange it is ever in, and a point of it is the point a soldier
+  // carries; hit points are the *bar* an attacker has to empty, they only ever
+  // buy time, and a palisade's twenty of them beside a base of a hundred is not
+  // twenty soldiers standing on the wall — it is a fifth again of however long
+  // the town already lasts.
+  //
+  // So the line is a **share of the town's bar** — `healsAdjacent`'s shape one
+  // fold over (batch X8: a mend is a share of a piece, never points of strength,
+  // because it cannot exceed the bar it fills). The share is the row's hit
+  // points over `cityMaxHp` asked of *this town holding the row*, which is the
+  // simulation's own fold and moves as the town's other walls go up — the second
+  // palisade in a town is worth less of the bar than the first was, which is
+  // exactly what a diminishing wall chain should read. What the share is a share
+  // *of* is what the town's own defence is worth at the rate the strength line
+  // above already uses: `cityBaseStrength × weights.military`. A wall that adds
+  // a fifth to the bar is worth a fifth of what defending this town is worth.
+  //
+  // Still scaled by the **same** existing factor, `1 + ctx.threat`, so the two
+  // halves of one wall move together — an empire with a column at its gate wants
+  // the whole row more, not half of it more. No new knob: the rate, the bar and
+  // the strength are all readings that already exist.
+  //
+  // The town is the one that would raise it, or — for a caller that names none,
+  // the chain's — this empire's middling town, `hammerPrice`'s bargain and
+  // `townPopulation`'s, said once more. An empire with no towns at all reads
+  // nothing here: there is no bar to be a share of, and no defence to be worth a
+  // share of it.
   const hp = signDoor.wall ? foldBuildingCityStat(buildingCityHp({ buildings: [id] })) : 0;
-  if (hp !== 0) {
+  const walled = hp === 0 ? undefined : middlingTown(ctx, city);
+  if (hp !== 0 && walled !== undefined) {
+    const share = hp / Math.max(1, cityMaxHp(townHolding(walled, id)));
+    const defence = cityBaseStrength(ctx.state, walled) * ctx.ai.weights.military;
     terms.push({
-      label: `${signed(hp)} town hit points × ${ctx.ai.weights.military} × ${1 + ctx.threat} threat`,
-      value: hp * ctx.ai.weights.military * (1 + ctx.threat),
+      label:
+        `${signed(hp)} town hit points — ${round(share)} of the town’s bar × ` +
+        `${round(defence)} what its defence is worth × ${1 + ctx.threat} threat`,
+      value: share * defence * (1 + ctx.threat),
     });
   }
   // **The five rows nobody read** (batch X8, `docs/audit/bot-pass-2.md` Part 2
@@ -1262,6 +1298,38 @@ function townPopulation(ctx: ValueContext, city: City | undefined): number {
 }
 
 /**
+ * **The middling town itself**, where a fold needs the town and not its size.
+ *
+ * `townPopulation`'s question asked of the whole object, for the wall line
+ * (batch X5c), which wants two readings of one town — the bar it would carry
+ * with the row and the strength it fights with — and would be answering about
+ * two different towns if it took them apart. The caller's own town when it named
+ * one; otherwise the empire's median by population, ties broken by the town's id
+ * so a sweep of the same board always reads the same town.
+ *
+ * `undefined` for an empire with no towns: a fold about walls has nothing to say
+ * about a realm that has nothing to wall.
+ */
+function middlingTown(ctx: ValueContext, city: City | undefined): City | undefined {
+  if (city !== undefined) return city;
+  const towns = citiesOf(ctx.state, ctx.playerId).slice();
+  if (towns.length === 0) return undefined;
+  towns.sort((a, b) => a.population - b.population || a.id - b.id);
+  return towns[Math.floor(towns.length / 2)];
+}
+
+/**
+ * **This town, as it would be holding the row** — the hypothetical the wall line
+ * asks `cityMaxHp` about, and nothing more than that: the same town with one
+ * building added, so a town that already holds the row is handed back unchanged
+ * rather than counted twice.
+ */
+function townHolding(city: City, id: BuildingId): City {
+  if (city.buildings.includes(id)) return city;
+  return { ...city, buildings: [...city.buildings, id] };
+}
+
+/**
  * **The bar one piece carries** — the roster's own maximum, through the
  * simulation's `unitMaxHp` rather than off `UnitDef.maxHp`, so a piece's health
  * has one reading in this bot as it has one in the game.
@@ -1326,7 +1394,7 @@ export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
   happiness: 'contentment supplied, at the meter’s live price',
   authorityCapacity: 'writ supplied, at the meter’s live price',
   cityStat: 'town strength, at the military weight and the threat',
-  cityHp: 'town hit points, the same rate and the same threat (batch X5)',
+  cityHp: 'a share of the town’s bar, worth that share of its defence (batch X5c)',
   crowdingRelief: 'a share of a town’s crowding forgiven, at the happiness price',
   unitUpkeepRebate: 'a coin off the keep of every piece the levy is still short',
   purchaseDiscount: 'a percent off the coin this town turns over, at the gold price',

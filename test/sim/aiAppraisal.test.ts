@@ -116,6 +116,7 @@ import {
   buildingUnitUpkeepRebate,
   foldBuildingCityStat,
 } from '../../src/sim/buildingEffects';
+import { cityBaseStrength, cityMaxHp } from '../../src/sim/combat';
 import { explainHappiness, happinessDemand } from '../../src/sim/meters';
 import { LIVE_RITE_IDS, riteDef } from '../../src/sim/religionData';
 import { unitUpkeepTotal } from '../../src/sim/upkeep';
@@ -2734,6 +2735,20 @@ describe('the scope, evaluated (batch X2)', () => {
  *     rows of the wall chain were appraised at half of what they do and the three
  *     that carry no strength at all at nothing.
  *
+ * **Re-aimed 2026-09-09 (batch X5c)** on the second half. X5 priced the hit
+ * points at the *strength* line's rate — points × the military weight × the
+ * threat — and the t100 bench found the wall half alone costing the mean seat
+ * nine citizens, thirty-four food and nine science: palisades before granaries,
+ * because a point of hit points was being read as a soldier. The line is a
+ * **share of the town's bar** now (`docs/flags.md` item (ggg), "Ruled, X5c
+ * flies"): the row's hit points over `cityMaxHp` asked of this town holding the
+ * row, times what `cityBaseStrength` says this town's defence is worth at the
+ * same rate as before, still times `1 + threat`. The claims below are the
+ * arithmetic written out off the simulation's own two readings, plus the two
+ * sentences the share can say and the points could not — that a wall is worth
+ * strictly less than the whole of a town's defence, and that the second course
+ * of stone is worth less of the bar than the first.
+ *
  * Both are asked of the folds that hold them rather than of a played game, and
  * both are asked against the **door** (`signDoor`) rather than against a
  * remembered number, which is `scopeDoor`'s bargain one batch over: the claim is
@@ -2841,37 +2856,100 @@ describe('the two missing signs (batch X5)', () => {
 
   const WALL_ROWS = BUILDING_IDS.filter((id) => (buildingDef(id).cityHp ?? 0) !== 0);
 
-  it('folds every wall row’s hit points, through the simulation’s own reading', () => {
+  /**
+   * **The line X5c re-aimed**, written out here off the simulation's own two
+   * readings rather than imported from the fold, so a change to the arithmetic
+   * fails this pin instead of moving with it: the row's hit points as a share of
+   * the bar this town would carry *holding the row*, times what this town's own
+   * defence is worth at the strength line's rate, times the threat.
+   */
+  function shareLine(state: GameState, town: City, id: BuildingId, threat: number): number {
+    const hp = foldBuildingCityStat(buildingCityHp({ buildings: [id] }));
+    const holding = town.buildings.includes(id)
+      ? town
+      : { ...town, buildings: [...town.buildings, id] };
+    const share = hp / cityMaxHp(holding);
+    return share * cityBaseStrength(state, town) * aiJson.weights.military * threat;
+  }
+
+  it('folds every wall row’s hit points as a share of the town’s own bar', () => {
     // Seven rows carry `cityHp` — the whole wall chain, three of them (the Walls
     // of Uruk, the Great Wall and the Keep) carrying no strength at all, which is
-    // why they read *nothing* from this fold before the batch.
+    // why they read *nothing* from this fold before X5.
     expect(WALL_ROWS.length).toBe(7);
     expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(3);
-    const { state, player } = realm(2);
+    const { state, player, cities } = realm(2);
     const ctx = valueContext(state, player);
+    const town = cities[1]!;
     for (const id of WALL_ROWS) {
-      const row = explainBuildingRow(id, ctx);
+      const row = explainBuildingRow(id, ctx, town);
       const line = findTerm(row.terms, /town hit points/);
       expect(line, id).not.toBeNull();
-      // The list `cityMaxHp` folds, asked of a town holding this row alone — the
-      // bot never reads `BuildingDef.cityHp` itself.
-      const hp = foldBuildingCityStat(buildingCityHp({ buildings: [id] }));
-      expect(line!.value).toBe(hp * aiJson.weights.military * (1 + ctx.threat));
+      // **X5c**: the list `cityMaxHp` folds, asked of a town holding this row
+      // alone, over the bar `cityMaxHp` folds for this town *with* the row —
+      // both the simulation's, and the bot never reads `BuildingDef.cityHp`.
+      expect(line!.value).toBeCloseTo(shareLine(state, town, id, 1 + ctx.threat), 10);
+      expect(line!.value).toBeGreaterThan(0);
+      // And the share is a share: a wall is worth strictly less than the whole
+      // of what the town's defence is worth, which is the sentence X5 could not
+      // say — a Palisade used to read twenty soldiers standing on the wall.
+      expect(line!.value).toBeLessThan(
+        cityBaseStrength(state, town) * aiJson.weights.military * (1 + ctx.threat),
+      );
       expect(row.total).toBe(foldTerms(row.terms));
     }
     // And a shelf that is not a wall says nothing about hit points.
-    expect(findTerm(explainBuildingRow('granary', ctx).terms, /town hit points/)).toBeNull();
+    expect(findTerm(explainBuildingRow('granary', ctx, town).terms, /town hit points/)).toBeNull();
+  });
+
+  it('reads the middling town when the caller names none, as the other lines do', () => {
+    // `hammerPrice`'s bargain, and `townPopulation`'s: a fold asked of a row
+    // rather than of a town answers for the empire's middle one. Two towns of a
+    // size, so the claim is about *which* town the fold picked and not about a
+    // tie — the larger one is walled, and the townless reading is the smaller.
+    const { state, player, cities } = realm(2);
+    cities[0]!.population = 3;
+    cities[1]!.population = 9;
+    for (const city of cities) refreshCityDerived(state, city);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const townless = findTerm(explainBuildingRow('palisade', ctx).terms, /town hit points/)!;
+    const median = cities.slice().sort((a, b) => a.population - b.population)[1]!;
+    expect(median).toBe(cities[1]);
+    expect(townless.value).toBeCloseTo(shareLine(state, median, 'palisade', 1 + ctx.threat), 10);
+  });
+
+  it('is worth less to a town that already has walls, because the bar is bigger', () => {
+    // The share moves with the bar the simulation keeps, so the second course of
+    // stone is worth less of it than the first — a diminishing chain read off
+    // `cityMaxHp` rather than declared. X5's points arithmetic could not say
+    // this: it read the same figure in a bare town and in a fortress.
+    const { state, player, cities } = realm(2);
+    const bare = cities[0]!;
+    const walled = cities[1]!;
+    walled.buildings.push('palisade');
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    expect(cityMaxHp(walled)).toBeGreaterThan(cityMaxHp(bare));
+    const onBare = findTerm(explainBuildingRow('stoneWalls', ctx, bare).terms, /town hit points/)!;
+    const onWalled = findTerm(
+      explainBuildingRow('stoneWalls', ctx, walled).terms,
+      /town hit points/,
+    )!;
+    expect(onWalled.value).toBeLessThan(onBare.value);
   });
 
   it('is worth more to an empire with a column at its gate, by the threat it already reads', () => {
     // The same existing factor the strength line uses — `1 + ctx.threat` — so the
-    // two halves of one wall move together rather than apart.
+    // two halves of one wall move together rather than apart. The town is named
+    // on both readings, so the only thing that moved between them is the threat.
     const { state, player, cities } = realm(1);
+    const town = cities[0]!;
     const quiet = valueContext(state, player);
     expect(quiet.threat).toBe(0);
     for (const [col, row] of [
-      [cities[0]!.col + 2, cities[0]!.row],
-      [cities[0]!.col + 2, cities[0]!.row + 1],
+      [town.col + 2, town.row],
+      [town.col + 2, town.row + 1],
     ] as const) {
       createUnit(state, 1, 'warrior', col, row);
     }
@@ -2879,11 +2957,13 @@ describe('the two missing signs (batch X5)', () => {
     bumpRevision(state);
     const besieged = valueContext(state, player);
     expect(besieged.threat).toBeGreaterThan(0);
-    const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
-    const quietLine = findTerm(explainBuildingRow('palisade', quiet).terms, /town hit points/)!;
-    const loudLine = findTerm(explainBuildingRow('palisade', besieged).terms, /town hit points/)!;
-    expect(quietLine.value).toBe(hp * aiJson.weights.military);
-    expect(loudLine.value).toBe(quietLine.value * (1 + besieged.threat));
+    const quietLine = findTerm(explainBuildingRow('palisade', quiet, town).terms, /town hit points/)!;
+    const loudLine = findTerm(
+      explainBuildingRow('palisade', besieged, town).terms,
+      /town hit points/,
+    )!;
+    expect(quietLine.value).toBeCloseTo(shareLine(state, town, 'palisade', 1), 10);
+    expect(loudLine.value).toBeCloseTo(quietLine.value * (1 + besieged.threat), 10);
   });
 
   it('reads no building’s hit points anywhere but through buildingEffects', () => {
