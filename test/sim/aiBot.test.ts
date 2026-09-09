@@ -20,10 +20,12 @@ import {
   AI,
   bestTechGoal,
   chooseProduction,
+  explainCitizen,
   nextBotCommand,
   scoreCard,
   valueContext,
 } from '../../src/ai/bot';
+import { foldTerms } from '../../src/ai/decision';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
 import {
@@ -41,7 +43,9 @@ import { anyCardDef } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { explainEmpireGold } from '../../src/sim/empireGold';
-import { yieldWeight } from '../../src/ai/value';
+import { explainBuildingRow, meterWeight, signDoor, yieldWeight } from '../../src/ai/value';
+import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
+import { happinessDemand } from '../../src/sim/meters';
 import { worthPerCoin } from '../../src/ai/wants';
 
 /**
@@ -662,6 +666,51 @@ const AI_SOURCE = import.meta.glob('../../src/ai/*.ts', {
 function code(text: string): string {
   return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
+
+describe('the two missing signs, on a played board (batch X5)', () => {
+  it('charges every town’s next citizen the contentment it demands', () => {
+    // The arithmetic is pinned in `aiAppraisal.test.ts`; what this asks is that
+    // the line is *there* on every town of a board the bot actually played, and
+    // that the fold still folds. A charge that only appears on an arranged bench
+    // is a charge the played game never pays.
+    const game = grownGame(20);
+    const player = seat(game.state, 0);
+    const ctx = valueContext(game.state, player);
+    const towns = game.state.cities.filter((city) => city.ownerId === player.id);
+    expect(towns.length).toBeGreaterThan(0);
+    for (const city of towns) {
+      const citizen = explainCitizen(game.state, city, ctx);
+      const line = citizen.terms.find((term) =>
+        term.label.includes('the contentment one more citizen demands'),
+      );
+      expect(line, city.name).not.toBeUndefined();
+      expect(line!.value).toBe(
+        -(happinessDemand(city.population + 1) - happinessDemand(city.population)) *
+          meterWeight(ctx, 'happiness'),
+      );
+      expect(citizen.total).toBe(foldTerms(citizen.terms));
+    }
+  });
+
+  it('leaves the wall chain worth more than it was, and every other row exactly where it was', () => {
+    // The wall half's own contract, said about the whole table rather than about
+    // one row: the seven `cityHp` rows rise, and nothing else in
+    // `data/buildings.json` moves by a point.
+    const game = grownGame(20);
+    const ctx = valueContext(game.state, seat(game.state, 0));
+    const open = new Map(BUILDING_IDS.map((id) => [id, explainBuildingRow(id, ctx).total]));
+    signDoor.wall = false;
+    try {
+      for (const id of BUILDING_IDS) {
+        const shut = explainBuildingRow(id, ctx).total;
+        if ((buildingDef(id).cityHp ?? 0) === 0) expect(open.get(id), id).toBe(shut);
+        else expect(open.get(id), id).toBeGreaterThan(shut);
+      }
+    } finally {
+      signDoor.wall = true;
+    }
+  });
+});
 
 describe('the bot module', () => {
   it('is there to be read', () => {

@@ -3385,3 +3385,175 @@ arena panel with no edit to the page — the panel walks the sheet — which
   memory close it, which is what this batch does. The measured consequence is
   that the bot's swap arm strikes nothing on a generated duel map, and *why the
   two empires never both hold a duplicate* is a mapgen-and-expansion question.
+
+---
+
+---
+
+## Batch X5 as shipped — the two missing signs (2026-09-08)
+
+`docs/audit/bot-pass-2.md`'s change 5 and queue row X5, and the ruling on the
+flags board (item (ggg), 2026-09-08): *"`explainCitizen` charges `happinessDemand`
+at the live happiness price as a signed line; `explainBuildingRow` folds `cityHp`
+beside `cityStat` through the sim's own `buildingEffects` reading."* Two terms,
+two files, and the audit's own sentence about why they are one batch: they are
+the two places the appraisal was missing a **sign** rather than a refinement.
+
+### The two lines, and their arithmetic
+
+**1 — the citizen's keep** (`explainCitizen`, `bot.ts`). The fold read three
+lines, all of them gains — the ground a new citizen would work, the science it
+makes by existing, and a small town's premium — in empires whose happiness price
+sat at the band's ceiling. It now carries a fourth, negative:
+
+```
+  −( happinessDemand(pop + 1) − happinessDemand(pop) ) × meterWeight(ctx, 'happiness')
+```
+
+The **marginal** demand, not the town's whole demand: two calls to the
+simulation's own curve, subtracted, so the linear half is charged flat and the
+crowding tail is charged where it actually bites (a town of six is charged 1.0, a
+town of twelve 1.83). The price is the one the context already carries — the same
+`PricedMeter` a building's `happiness` line is paid at — so a seat whose
+contentment is at the ceiling charges a citizen 36 and a seat at the table's own
+figure charges it 12. Nothing re-derives `METERS.happiness`.
+
+**2 — the wall's hit points** (`explainBuildingRow`, `value.ts`). `cityStat` is
+the strength a town *fights* with; `cityHp` is the bar a besieger has to empty.
+The fold read the first and not the second, so the seven rows of the wall chain
+(palisade · stoneWalls · wallsOfUruk · greatWall · castle · bastion · keep) were
+appraised at half of what they do, and the three that carry no strength at all —
+the Walls of Uruk, the Great Wall and the Keep — at nothing:
+
+```
+  foldBuildingCityStat(buildingCityHp({ buildings: [id] })) × weights.military × (1 + ctx.threat)
+```
+
+Read through `buildingCityHp` — the one place a building's non-yield facts are
+read, and the very list `cityMaxHp` folds — asked of a town holding this row and
+nothing else. The bot never touches `BuildingDef.cityHp`, and a register test
+(`aiAppraisal.test.ts`) fails the day it does; `buildingCityHp`'s parameter was
+widened from `City` to *anything holding a list of buildings*, which is
+`buildingsIrrigate`'s and `buildingTileLines`' own bargain with the what-if a
+build list prices a row with. **One factor, no new knob**: the threat multiple is
+the same `1 + ctx.threat` the strength line beside it uses, so a wall nobody is
+besieging is worth its hit points at the quiet price and the two halves of one
+wall move together rather than apart.
+
+Both halves ride a **door** — `signDoor = { citizen: true, wall: true }`
+(`value.ts`) — for the acceptance measurement and nothing else, exactly as
+`scopeDoor` does: not in `data/ai.json`, no persona reads it, no surface offers
+it, both halves shipped open.
+
+### The wall half, on W1's siege bench
+
+The arranged board of `test/sim/aiWar.test.ts`: a three-town seat at war, its
+front town at population 5 with a hostile column of four inside `threat.radius`
+(`ctx.threat` 4), the happiness price at its ceiling, Stonecraft held. The same
+board walked to the same production decision and asked with the line shut and
+open — scores are per turn of build effort:
+
+| row | wall line shut | wall line open |
+|---|---|---|
+| **Palisade** | 4.81 (fifth) | **19.23 (front)** |
+| Warrior | **17.80 (front)** | 16.52 |
+| Scout | 8.29 | 8.29 |
+| Settler | 7.00 | 7.00 |
+| The Pyramids | 5.46 | 5.46 |
+| Worker | 4.26 | 4.26 |
+
+**A threatened town fronts a wall where before it fronted another warrior.** The
+raw line is `15 × 5 × 5 = 375` before the amortiser. The Warrior's own fall
+(17.80 → 16.52) is not a second change: a wall is a step of a live building
+chain, so a dearer wall raises `hammerPrice` and every row's hammer term moves
+with it. Pinned in `aiWar.test.ts`, "puts the wall at the front of a besieged
+town's queue".
+
+### The citizen half, on the eight-seed sweep
+
+The wider bench the priority batches used — seeds 1/2/3/42/101/999/31337/20260101,
+duel, two balanced seats, wild on, **sixteen seats**, 150 turns, driven by
+`driveBots`. Each half switched off and on independently, so the batch is
+attributed rather than asserted. Happiness is `happinessOf` per seat; "ceiling" is
+seats whose `prices.happiness` is at `weights.happiness × priceBandHigh` (36).
+
+| | towns | `setCitizenFocus` | ceiling @t150 | Σ happiness t100 | Σ happiness t150 |
+|---|---|---|---|---|---|
+| **before** (both shut) | 96 | 421 | 4/16 | 18 | 42 |
+| citizen only | 98 | 408 | 5/16 | 71 | **60** |
+| wall only | 102 | 402 | 6/16 | 31 | **67** |
+| **after** (both open) | **109** | 373 | **9/16** | 15 | **28** |
+
+**The acceptance is not met, and the reason is a finding rather than a defect in
+the arithmetic.** Each half *alone* leaves the sixteen seats happier at t150 (42 →
+60 and 42 → 67), and the citizen half alone raises happiness on **8 of the 16
+seats**, against 5 that fall and 3 that do not move — a majority of the seats that
+moved at all, and half of the bench. Together they found **thirteen more
+towns**, and thirteen more towns is thirteen more sets of citizens asking for
+their keep — so the combined board reads five more seats at the price ceiling and
+a lower sum. Two readings underneath it, both worth writing down:
+
+- **The charge makes a settler *cheaper*, not dearer.** `explainCitizen` has
+  exactly one caller in the bot — the settler's arm, which folds it as *"the
+  citizen it costs this town"*, subtracted. A citizen that costs contentment is a
+  citizen a town gives up more cheaply, so the sign that was missing from the
+  fold arrives in that arm as **more expansion**, which is the opposite of the
+  direction the acceptance was written expecting. The audit's touch point (c)
+  names "the settler, the focus arm, the growth term, the tile purchase" as arms
+  that read a citizen as pure gain; the source says otherwise. `growthTerm`
+  (the focus arm) and `tileWants` (the hex purchase) deliberately price **the
+  ground** rather than this fold — `growthTerm`'s docblock says why in so many
+  words: `explainCitizen` asks the town's *live* placement, so its answer moves
+  the moment this arm's own command moves the citizens, and an appraisal that
+  changes because it was acted on flips a town back and forth all turn (measured:
+  three thousand six hundred focus commands in a seventy-five-turn duel). So
+  neither inherits the charge, and neither re-adds it. **The growth channel is
+  still uncharged**, and it is the channel whose sign would have slowed growth in
+  a crowded empire. See "Known gaps" below.
+- **The sixteen-seat sums are noisy at this width.** Individual seats at t150 run
+  from −13 to +43 across the four conditions, and games diverge inside the first
+  ten turns, so a sum that moves from 28 to 67 across four conditions is mostly
+  trajectory rather than term. What the sweep establishes honestly is the *town*
+  count (96 → 109, monotone across both halves) and the focus count (421 → 373);
+  the happiness column is recorded because the acceptance asked for it, not
+  because sixteen seats can settle it.
+
+### Knobs added
+
+**None.** Every figure is an existing weight (`weights.military`,
+`weights.happiness` through `meterWeight`) read through an existing fold, and the
+one factor the wall line uses is the `1 + ctx.threat` already beside it.
+
+### Pins re-aimed
+
+- **`aiPersona.test.ts`, "prices a citizen off the next tile, the science it
+  makes, and a small town's premium"** — the tall persona used to value a citizen
+  above a balanced one (its `growth.smallCityPremium` is 16 against 5). It now
+  reads 24.1 against 24.7, because tall also prices *contentment* higher
+  (`weights.happiness` 16 against 12) and therefore charges the keep more. The two
+  halves of tall's opinion pull against each other, and on that board they very
+  nearly cancel. The claim the 2026-09-03 ruling actually made is about the
+  premium, so the premium is what is now asserted — with the charge shut, tall
+  still values a citizen above balanced; with it open, the charge is asserted to
+  be *larger* for tall, which is the mechanism said out loud rather than a number
+  pinned.
+
+### Known gaps, written down rather than fixed
+
+- **The growth channel is still uncharged.** Charging `growthTerm`'s citizen (and
+  `tileWants`' "the ground it would work") the same marginal demand is the change
+  that would slow growth in a crowded empire and move the happiness column in the
+  direction the acceptance expected. It is **not** in the ruling — item (ggg)
+  names `explainCitizen` and `explainBuildingRow` and nothing else — and it is a
+  design decision rather than an arithmetic fix, because `growthTerm`'s reading is
+  deliberately the *stable ground* one. Queued for a user ruling.
+- **The wall's hit points are priced in strength points.** A point of the bar and
+  a point of the ledger are not the same unit, and the simulation states no
+  row-level exchange rate between them a fold with no board could ask
+  (`cityBaseStrength` is a board fact). The reading is the coarse one the ruling
+  asked for; what was missing was the sign, and the Walls of Uruk reading 250 in a
+  quiet world (50 hit points × 5) is the honest consequence of pricing a point of
+  the bar like a point of the ledger.
+- **`requiresSite`, `crowdingRelief`, `tileYields` and the rest of X8's list** are
+  still unread by `explainBuildingRow`; this batch added the one row X8's own
+  entry names first and left the other eight alone.

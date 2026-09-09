@@ -134,8 +134,15 @@ export function buildingCityStat(
  *
  * A list rather than a number, like everything else in this file, so a city
  * sheet can print "200 base · Palisade +25" instead of a bare 225.
+ *
+ * Asked of *anything holding a list of buildings*, which is `buildingsIrrigate`'s
+ * bargain and for the same reason: a build list prices a row the town does not
+ * hold yet, and an appraisal that could not ask this of one row alone would have
+ * to read `BuildingDef.cityHp` itself — a second opinion about the walls beside
+ * `cityMaxHp`'s. A `City` satisfies the shape, so every existing caller is
+ * unchanged.
  */
-export function buildingCityHp(city: City): BuildingCityStatLine[] {
+export function buildingCityHp(city: { buildings: readonly BuildingId[] }): BuildingCityStatLine[] {
   const list: BuildingCityStatLine[] = [];
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;

@@ -81,6 +81,7 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
 import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { buildingCityHp, foldBuildingCityStat } from '../sim/buildingEffects';
 // The town's and the empire's published readings, remembered on
 // `state.revision` — the bot subscribes to the same source of truth the panel,
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
@@ -1000,6 +1001,31 @@ export function explainBuildingRow(id: BuildingId, ctx: ValueContext): Appraisal
       value: def.cityStat.amount * ctx.ai.weights.military * (1 + ctx.threat),
     });
   }
+  // **The other half of a wall** (batch X5, `docs/audit/bot-pass-2.md` Part 2
+  // row 2 and change 5). `cityStat` is the strength a town *fights* with and
+  // `cityHp` is the bar a besieger has to empty, and this fold read one and not
+  // the other — so the seven rows of the wall chain were appraised at half of
+  // what they do, and the three that carry no strength at all (the Walls of
+  // Uruk, the Great Wall, the Keep) at nothing.
+  //
+  // Read through `buildingCityHp`, the one place a building's non-yield facts
+  // are read (`buildingEffects.ts`) and the very list `cityMaxHp` folds, asked
+  // of a town holding this row and nothing else — never `def.cityHp`, which
+  // would be a second opinion about the walls beside the simulation's own.
+  //
+  // Priced at the rate the strength line above uses and scaled by the **same**
+  // existing factor, `1 + ctx.threat`: a wall nobody is besieging is worth its
+  // hit points at the quiet price, and every hostile piece standing near a town
+  // of this empire is another multiple of it. One factor, no new knob, and the
+  // two halves of one wall therefore move together — an empire with a column at
+  // its gate wants the whole row more, not half of it more.
+  const hp = signDoor.wall ? foldBuildingCityStat(buildingCityHp({ buildings: [id] })) : 0;
+  if (hp !== 0) {
+    terms.push({
+      label: `${signed(hp)} town hit points × ${ctx.ai.weights.military} × ${1 + ctx.threat} threat`,
+      value: hp * ctx.ai.weights.military * (1 + ctx.threat),
+    });
+  }
   if (def.renown !== undefined) {
     terms.push({
       label: `${signed(def.renown.perTurn)} renown a turn × ${ctx.ai.weights.renown}`,
@@ -1101,6 +1127,27 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
  * the realm's whole town count, and `score.nominalTiles`.
  */
 export const scopeDoor = { towns: true, hexes: true };
+
+/**
+ * **The two missing signs, switchable** — `scopeDoor`'s twin for batch X5
+ * (`docs/audit/bot-pass-2.md`, change 5).
+ *
+ * `citizen` is the contentment a new citizen demands, charged in `explainCitizen`
+ * (`bot.ts`); `wall` is the hit points a row adds to its town, folded beside its
+ * strength in `explainBuildingRow` below. Two halves rather than one switch for
+ * the reason `scopeDoor` has two: the batch is two arithmetics in two files, and
+ * a knockout that could not tell them apart would attribute neither — the
+ * acceptance bench plays the same eight seeds with each half shut and open.
+ *
+ * It is **not** a knob, by exactly `scopeDoor`'s sentence: it is not in
+ * `data/ai.json`, no persona reads it, no surface offers it, and both halves are
+ * left open. Shut, each arm reads precisely what it read before this batch — a
+ * citizen as pure gain, a wall as its strength alone.
+ *
+ * It lives here rather than in `bot.ts` because a door is not a policy and
+ * `bot.ts` already imports this module; the reverse edge does not exist.
+ */
+export const signDoor = { citizen: true, wall: true };
 
 /**
  * **What one sitting has already worked out about a scope.**

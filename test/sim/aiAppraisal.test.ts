@@ -60,7 +60,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { bestTechGoal, explainCard, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { bestTechGoal, explainCard, explainCitizen, nextBotDecision, valueContext } from '../../src/ai/bot';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
 import {
   type BotCandidate,
@@ -75,8 +75,10 @@ import {
   explainCounted,
   explainEffects,
   hasFoldReadEngine,
+  meterWeight,
   scopeDoor,
   scoreEffects,
+  signDoor,
   townsAdmitting,
   workedHexesAdmitting,
 } from '../../src/ai/value';
@@ -96,6 +98,7 @@ import {
   explainEmpireCardYields,
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
+import { buildingCityHp, foldBuildingCityStat } from '../../src/sim/buildingEffects';
 import { happinessDemand } from '../../src/sim/meters';
 import { unitUpkeepTotal } from '../../src/sim/upkeep';
 import { applyCommand } from '../../src/sim/commands';
@@ -2697,5 +2700,174 @@ describe('the scope, evaluated (batch X2)', () => {
       valueContext(state, player),
     );
     expect(hexes.terms[0]!.label).toMatch(/on 0 worked hexes/);
+  });
+});
+
+// --- 16. the two missing signs (batch X5) -----------------------------------
+
+/**
+ * **The two places the appraisal was missing a sign rather than a refinement**
+ * (`docs/audit/bot-pass-2.md`, Part 2 rows 2 and 4, change 5, queue row X5).
+ *
+ *   · a citizen was read as pure gain — the ground, the science and a small
+ *     town's premium — in empires whose happiness price was riding the band's
+ *     ceiling. It now carries the contentment it demands, negative;
+ *   · a wall was read at its strength and not at its hit points, so the seven
+ *     rows of the wall chain were appraised at half of what they do and the three
+ *     that carry no strength at all at nothing.
+ *
+ * Both are asked of the folds that hold them rather than of a played game, and
+ * both are asked against the **door** (`signDoor`) rather than against a
+ * remembered number, which is `scopeDoor`'s bargain one batch over: the claim is
+ * *what the term changed*, and a claim written as a constant would move with the
+ * weight table instead of failing when the arithmetic does.
+ */
+describe('the two missing signs (batch X5)', () => {
+  function realm(towns: number, population = 4): { state: GameState; player: Player; cities: City[] } {
+    const state = bench(1);
+    const cities: City[] = [];
+    for (let index = 0; index < towns; index++) {
+      cities.push(foundCityAt(state, 0, at(state.map, 3 + index * 5, 5)));
+    }
+    recomputeAllVisibility(state);
+    for (const city of cities) {
+      city.population = population;
+      refreshCityDerived(state, city);
+    }
+    bumpRevision(state);
+    return { state, player: seat(state, 0), cities };
+  }
+
+  const DEMANDED = /the contentment one more citizen demands/;
+
+  it('charges the citizen exactly the marginal demand, at the meter’s live price', () => {
+    const { state, player, cities } = realm(2, 6);
+    const ctx = valueContext(state, player);
+    const citizen = explainCitizen(state, cities[0]!, ctx);
+    const line = findTerm(citizen.terms, DEMANDED);
+    expect(line).not.toBeNull();
+    // The simulation's own curve, asked twice and subtracted — never re-derived
+    // here, which is what makes a retune of `METERS.happiness` move this fold.
+    const marginal = happinessDemand(7) - happinessDemand(6);
+    expect(marginal).toBeGreaterThan(0);
+    expect(line!.value).toBe(-marginal * meterWeight(ctx, 'happiness'));
+    expect(line!.value).toBeLessThan(0);
+    // And it is the only negative line in a fold whose other three are gains.
+    expect(citizen.terms.filter((term) => term.value < 0)).toHaveLength(1);
+    expect(citizen.total).toBe(foldTerms(citizen.terms));
+  });
+
+  it('charges the crowded town more than the small one, because the curve says so', () => {
+    // `happinessDemand` is linear plus a crowding tail, so the *marginal* demand
+    // is flat under `crowdingFrom` and climbs above it. The charge is the
+    // curve's, so it climbs with it.
+    const small = realm(1, 2);
+    const large = realm(1, 12);
+    const little = findTerm(
+      explainCitizen(small.state, small.cities[0]!, valueContext(small.state, small.player)).terms,
+      DEMANDED,
+    );
+    const big = findTerm(
+      explainCitizen(large.state, large.cities[0]!, valueContext(large.state, large.player)).terms,
+      DEMANDED,
+    );
+    expect(big!.value).toBeLessThan(little!.value);
+  });
+
+  it('is inherited by the settler’s arm, once, and re-added by nobody', () => {
+    // `explainCitizen` has exactly one caller in the bot — the settler's, which
+    // subtracts it as "the citizen it costs this town". The claim is the whole of
+    // the audit's touch point (c): the charge reaches the arm, and it reaches it
+    // *once*.
+    const { state, player, cities } = realm(2, 6);
+    for (const city of cities) city.buildings.push('granary');
+    bumpRevision(state);
+    const decision = decisionOfType(state, player.id, 'setCityProduction');
+    expect(decision).not.toBeNull();
+    const settler = decision!.candidates.find((row) => row.label === 'Settler');
+    expect(settler).not.toBeUndefined();
+    const printed = labelsOf(settler!.terms).match(new RegExp(DEMANDED.source, 'g')) ?? [];
+    expect(printed).toHaveLength(1);
+    expect(foldTerms(settler!.terms)).toBe(settler!.score);
+    // The door proves the sign: a citizen that costs contentment is a citizen
+    // the town gives up more cheaply, so the settler is worth more with it.
+    signDoor.citizen = false;
+    try {
+      const shut = decisionOfType(state, player.id, 'setCityProduction');
+      const before = shut!.candidates.find((row) => row.label === 'Settler')!;
+      expect(labelsOf(before.terms)).not.toMatch(DEMANDED);
+      expect(settler!.score).toBeGreaterThan(before.score);
+    } finally {
+      signDoor.citizen = true;
+    }
+  });
+
+  const WALL_ROWS = BUILDING_IDS.filter((id) => (buildingDef(id).cityHp ?? 0) !== 0);
+
+  it('folds every wall row’s hit points, through the simulation’s own reading', () => {
+    // Seven rows carry `cityHp` — the whole wall chain, three of them (the Walls
+    // of Uruk, the Great Wall and the Keep) carrying no strength at all, which is
+    // why they read *nothing* from this fold before the batch.
+    expect(WALL_ROWS.length).toBe(7);
+    expect(WALL_ROWS.filter((id) => buildingDef(id).cityStat === undefined)).toHaveLength(3);
+    const { state, player } = realm(2);
+    const ctx = valueContext(state, player);
+    for (const id of WALL_ROWS) {
+      const row = explainBuildingRow(id, ctx);
+      const line = findTerm(row.terms, /town hit points/);
+      expect(line, id).not.toBeNull();
+      // The list `cityMaxHp` folds, asked of a town holding this row alone — the
+      // bot never reads `BuildingDef.cityHp` itself.
+      const hp = foldBuildingCityStat(buildingCityHp({ buildings: [id] }));
+      expect(line!.value).toBe(hp * aiJson.weights.military * (1 + ctx.threat));
+      expect(row.total).toBe(foldTerms(row.terms));
+    }
+    // And a shelf that is not a wall says nothing about hit points.
+    expect(findTerm(explainBuildingRow('granary', ctx).terms, /town hit points/)).toBeNull();
+  });
+
+  it('is worth more to an empire with a column at its gate, by the threat it already reads', () => {
+    // The same existing factor the strength line uses — `1 + ctx.threat` — so the
+    // two halves of one wall move together rather than apart.
+    const { state, player, cities } = realm(1);
+    const quiet = valueContext(state, player);
+    expect(quiet.threat).toBe(0);
+    for (const [col, row] of [
+      [cities[0]!.col + 2, cities[0]!.row],
+      [cities[0]!.col + 2, cities[0]!.row + 1],
+    ] as const) {
+      createUnit(state, 1, 'warrior', col, row);
+    }
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const besieged = valueContext(state, player);
+    expect(besieged.threat).toBeGreaterThan(0);
+    const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
+    const quietLine = findTerm(explainBuildingRow('palisade', quiet).terms, /town hit points/)!;
+    const loudLine = findTerm(explainBuildingRow('palisade', besieged).terms, /town hit points/)!;
+    expect(quietLine.value).toBe(hp * aiJson.weights.military);
+    expect(loudLine.value).toBe(quietLine.value * (1 + besieged.threat));
+  });
+
+  it('reads no building’s hit points anywhere but through buildingEffects', () => {
+    // A source-reading register, `hasFoldReadEngine`'s discipline: the day
+    // somebody writes `def.cityHp` into the appraisal there are two opinions about
+    // the walls, and `cityMaxHp` is the only one the game plays by. Comment
+    // lines are skipped: the docblock beside the fold *names* the reach it
+    // refuses, and a register that could not tell prose from code would forbid
+    // saying so.
+    for (const [path, source] of Object.entries(AI_SOURCES)) {
+      const code = source
+        .split('\n')
+        .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
+        .join('\n');
+      expect(code, path).not.toMatch(/\.cityHp/);
+    }
+  });
+
+  it('leaves the door open in the shipped bot, both halves', () => {
+    // `scopeDoor`'s sentence one batch over: the switch exists for the batch's own
+    // acceptance measurement, it is not a knob, and neither half ships shut.
+    expect(signDoor).toEqual({ citizen: true, wall: true });
   });
 });

@@ -43,6 +43,7 @@ import {
   withAiTuning,
 } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
+import { signDoor } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { buildImprovementPlan } from '../../src/ai/plan';
 import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
@@ -377,21 +378,48 @@ describe('the settler’s two new halves', () => {
     // **The user's ruling, 2026-09-03.** Three lines, and the premium is the one
     // that moves with the persona — `growth.smallCityPremium` is tall's whole
     // opinion about what a citizen is for.
+    //
+    // **Re-aimed 2026-09-08 (batch X5)**, and the re-aim is a finding rather
+    // than a green light. The fold grew a fourth line — the contentment one more
+    // citizen demands, charged at the seat's live happiness price — and a *tall*
+    // seat prices that meter higher than a balanced one does (`weights.happiness`
+    // 16 against 12). So the two halves of tall's opinion now pull against each
+    // other, and on this board they very nearly cancel: tall pays more for the
+    // premium and charges more for the keep. The claim the ruling actually made
+    // is about the premium, so the premium is what is asserted — with the charge
+    // shut, tall still values a citizen above balanced, exactly as it always
+    // did; with it open, the charge is what closes the gap, and that is said out
+    // loud rather than pinned as a number.
     const game = grownGame(12);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
 
-    player.persona = DEFAULT_PERSONA;
-    const balanced = explainCitizen(game.state, city, valueContext(game.state, player));
-    expect(foldTerms(balanced.terms)).toBe(balanced.total);
+    const citizenFor = (persona: string) => {
+      player.persona = persona;
+      const appraisal = explainCitizen(game.state, city, valueContext(game.state, player));
+      expect(foldTerms(appraisal.terms)).toBe(appraisal.total);
+      return appraisal;
+    };
+
+    const balanced = citizenFor(DEFAULT_PERSONA);
     expect(balanced.total).toBeGreaterThan(0);
     // The science stream is always there — every citizen pays the standing
     // per-pop rate — so the term is never absent.
     expect(balanced.terms.some((term) => term.label.includes('science it makes'))).toBe(true);
+    // And the fourth line is there, negative, in both seats.
+    const demanded = (appraisal: { terms: readonly { label: string; value: number }[] }) =>
+      appraisal.terms.find((term) => term.label.includes('contentment one more citizen demands'));
+    expect(demanded(balanced)!.value).toBeLessThan(0);
 
-    player.persona = 'tall';
-    const tall = explainCitizen(game.state, city, valueContext(game.state, player));
-    expect(tall.total).toBeGreaterThan(balanced.total);
+    const tall = citizenFor('tall');
+    expect(demanded(tall)!.value).toBeLessThan(demanded(balanced)!.value);
+    // The ruling's own claim, asked of the gains it was made about.
+    signDoor.citizen = false;
+    try {
+      expect(citizenFor('tall').total).toBeGreaterThan(citizenFor(DEFAULT_PERSONA).total);
+    } finally {
+      signDoor.citizen = true;
+    }
   });
 });
 

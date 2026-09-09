@@ -169,6 +169,9 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
+  meterWeight,
+  meterWords,
+  signDoor,
   newResourceTerms,
   realmResources,
   townProduction,
@@ -256,7 +259,7 @@ import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } f
 import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
 import type { TileYield } from '../sim/terrainData';
-import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
+import { explainFoundingCost, foldMeter, foundingCostLines, happinessDemand } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
@@ -4377,7 +4380,7 @@ function explainMixCraving(
  * produce, alongside a premium (citizens compound over time), so cities with
  * fewer than some X citizens weight citizens more heavily."*
  *
- * Three lines, and each is somebody else's number:
+ * Four lines, and each is somebody else's number:
  *
  *   · **the ground it would work.** The best hex this town could assign a
  *     citizen to that nobody is standing on — `assignableTiles` and `yieldScore`
@@ -4390,9 +4393,29 @@ function explainMixCraving(
  *   · **the premium**, for a town under `growth.smallCityPop`: citizens
  *     compound, so the second citizen of a hamlet is worth more than the ninth
  *     of a metropolis.
+ *   · **the contentment it demands** — the one line that is *negative*, and the
+ *     missing sign this fold shipped without (`docs/audit/bot-pass-2.md`, Part 2
+ *     row 4 and change 5). A citizen is not free: it asks the empire's happiness
+ *     meter for its keep, and in an empire whose happiness price is riding the
+ *     band's ceiling that keep is the most expensive thing about it. The
+ *     magnitude is the **marginal** demand — what `happinessDemand` asks of a
+ *     town of `pop + 1` less what it asks of this one, so the crowding half of
+ *     the curve is charged where it bites and nowhere else — at the live price
+ *     `meterWeight` already carries. The curve is never re-derived here: two
+ *     calls to the simulation's own function, subtracted.
  *
  * It replaces the flat `weights.citizen`, which was one number for a starving
  * hamlet on tundra and a metropolis beside three wheat fields.
+ *
+ * **Who inherits it.** One arm folds this appraisal — the settler's
+ * (`unitRoleValue`, `the citizen it costs this town`) — and it inherits the
+ * charge by construction: a citizen that costs contentment is a citizen a town
+ * gives up more cheaply, which is the sign the settler was missing too. The
+ * focus arm's `growthTerm` and the hex purchase's `tileWants` deliberately read
+ * the *ground* rather than this fold (their own docblocks say why: an appraisal
+ * that moves the moment it is acted on flips a town back and forth all turn),
+ * so neither inherits and neither re-adds the charge — the demand is charged
+ * once, where a citizen is actually being weighed against something else.
  */
 export function explainCitizen(state: GameState, city: City, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
@@ -4414,6 +4437,19 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
     terms.push({
       label: `a small town's premium — ${city.population} citizens, under the ${smallCityPop} this seat calls small`,
       value: smallCityPremium,
+    });
+  }
+  // The keep it asks for, at what a point of contentment is worth to this seat
+  // right now. Negative, and it is the whole of the point: every other line here
+  // is a gain.
+  const demand = signDoor.citizen
+    ? happinessDemand(city.population + 1) - happinessDemand(city.population)
+    : 0;
+  if (demand > 0) {
+    terms.push({
+      label:
+        `the contentment one more citizen demands — ${round1(demand)} × ${meterWords(ctx, 'happiness')}`,
+      value: -demand * meterWeight(ctx, 'happiness'),
     });
   }
   return appraise(terms);

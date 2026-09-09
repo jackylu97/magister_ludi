@@ -54,6 +54,7 @@ import {
   explainWarScore,
 } from '../../src/ai/diplomacy';
 import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
+import { explainBuildingRow, signDoor } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { hasResource, foundCityAt, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -1058,6 +1059,16 @@ describe('the campaign', () => {
     return null;
   }
 
+  /** The first term anywhere in a tree whose label matches. Depth-first. */
+  function findTerm(terms: readonly ValueTerm[], match: RegExp): ValueTerm | null {
+    for (const term of terms) {
+      if (match.test(term.label)) return term;
+      const inside = term.parts === undefined ? null : findTerm(term.parts, match);
+      if (inside !== null) return inside;
+    }
+    return null;
+  }
+
   /** Every label of a term tree, flattened. */
   function termLabels(terms: readonly ValueTerm[]): string {
     return terms
@@ -1244,5 +1255,117 @@ describe('the campaign', () => {
     expect(termLabels(peaceRow!.terms)).not.toMatch(/a war on wants a strike force/);
     // A war on wants more army, so the same soldier is charged less of a surplus.
     expect(row!.score).toBeGreaterThan(peaceRow!.score);
+  });
+
+  // --- (e) the wall's other half (batch X5) ---------------------------------
+
+  /**
+   * The frontier read from the **other** end: the column is theirs and it is
+   * standing at our gate, which is the board a wall is actually for.
+   *
+   * Three towns rather than one, so the expansion chain's falloff has done its
+   * work and a settler is not the obvious answer to a siege — otherwise the
+   * front of the queue is a question about `weights.city` rather than about the
+   * walls. The technologies are handed over rather than researched: which turn a
+   * seat reaches Stonecraft is `tech.test.ts`' subject, not this one's.
+   */
+  function besiegedTown(): { state: GameState; ours: City } {
+    const state = bench(2);
+    state.turn = 50;
+    const us = seat(state, 0);
+    us.gold = 120;
+    for (const tech of ['earthenware', 'stonecraft'] as const) {
+      if (!us.techsResearched.includes(tech)) us.techsResearched.push(tech);
+    }
+    const ours = foundCityAt(state, 0, at(state.map, 4, 5));
+    ours.population = 5;
+    foundCityAt(state, 0, at(state.map, 1, 1));
+    foundCityAt(state, 0, at(state.map, 1, 9));
+    foundCityAt(state, 1, at(state.map, 12, 5));
+    const garrison = createUnit(state, 0, 'warrior', ours.col, ours.row);
+    garrison.fortifiedTurns = 0;
+    // Their column, inside `threat.radius` of our town — the whole of what
+    // `ValueContext.threat` reads.
+    for (const [col, row] of [
+      [6, 5],
+      [6, 4],
+      [6, 6],
+      [7, 5],
+    ] as const) {
+      createUnit(state, 1, 'warrior', col, row);
+    }
+    openWar(state, 0, 1);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, ours };
+  }
+
+  /** The town's own production table, walked to under one fixed condition. */
+  function tableAt(state: GameState): BotDecision | null {
+    const decision = nextBotDecision(state, 0);
+    return decision === null || decision.command.type !== 'setCityProduction' ? null : decision;
+  }
+
+  it('puts the wall at the front of a besieged town’s queue, and it is the hit points that do it', () => {
+    // **X5's acceptance, arranged.** The same board and the same decision, asked
+    // with the hit-point line shut and open: shut, the town raises another
+    // warrior and the Palisade sits fifth; open, the Palisade fronts the queue.
+    // Measured on this bench (threat 4, the happiness price at its ceiling):
+    // **Palisade 4.81 → 19.23** a turn of build effort, against a Warrior that
+    // reads 17.80 → 16.52 (the wall's own worth is a step of a live chain, so the
+    // hammer premium moves with it).
+    signDoor.wall = false;
+    try {
+      const { state } = besiegedTown();
+      // Walk to the decision with the door shut, so both readings are asked of
+      // one board rather than of two boards that diverged on the way here.
+      for (let guard = 0; guard < 14; guard++) {
+        const decision = nextBotDecision(state, 0);
+        if (decision === null || decision.command.type === 'setCityProduction') break;
+        expect(applyCommand(state, decision.command).ok).toBe(true);
+      }
+      const ctx = valueContext(state, seat(state, 0));
+      expect(ctx.threat).toBeGreaterThan(0);
+
+      const shut = tableAt(state)!;
+      const shutWall = shut.candidates.find((row) => row.label === buildingDef('palisade').name)!;
+      expect(shut.candidates.find((row) => row.chosen)!.label).not.toBe(buildingDef('palisade').name);
+      expect(termLabels(shutWall.terms)).not.toMatch(/town hit points/);
+
+      signDoor.wall = true;
+      const open = tableAt(state)!;
+      const openWall = open.candidates.find((row) => row.label === buildingDef('palisade').name)!;
+      expect(open.candidates.find((row) => row.chosen)!.label).toBe(buildingDef('palisade').name);
+      expect(termLabels(openWall.terms)).toMatch(/town hit points/);
+      expect(openWall.score).toBeGreaterThan(shutWall.score);
+      // The wall's whole raw line, before the amortiser: the row's hit points at
+      // the strength line's own rate, times the threat this seat reads.
+      expect(findTerm(openWall.terms, /town hit points/)!.value).toBe(
+        (buildingDef('palisade').cityHp ?? 0) * aiConfigFor(undefined).weights.military * (1 + ctx.threat),
+      );
+      for (const row of open.candidates) {
+        if (row.rejected !== undefined) continue;
+        expect(foldTerms(row.terms)).toBe(row.score);
+      }
+    } finally {
+      signDoor.wall = true;
+    }
+  });
+
+  it('says nothing about hit points in a town nobody is walking at', () => {
+    // The other half: the line is a `1 + threat` multiple like the strength line
+    // beside it, so at peace it is the row's hit points at the quiet price — and
+    // the wall does not front a queue merely for existing.
+    const { state } = besiegedTown();
+    closeWar(state, 0, 1);
+    state.units = state.units.filter((unit) => unit.ownerId === 0);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    const ctx = valueContext(state, seat(state, 0));
+    expect(ctx.threat).toBe(0);
+    const row = explainBuildingRow('palisade', ctx);
+    expect(findTerm(row.terms, /town hit points/)!.value).toBe(
+      (buildingDef('palisade').cityHp ?? 0) * aiConfigFor(undefined).weights.military,
+    );
   });
 });
