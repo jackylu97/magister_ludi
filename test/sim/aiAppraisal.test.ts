@@ -61,7 +61,9 @@
 import { describe, expect, it } from 'vitest';
 
 import { bestTechGoal, explainCard, explainCitizen, nextBotDecision, valueContext } from '../../src/ai/bot';
+import { withAiTuning } from '../../src/ai/aiConfig';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
+import { citizenKeepTerm, keepDoor } from '../../src/ai/citizen';
 import {
   type BotCandidate,
   type BotDecision,
@@ -94,6 +96,7 @@ import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildi
 import {
   buildingProductionCost,
   foundCityAt,
+  purchasableTiles,
   refreshCityDerived,
   unitProductionCost,
 } from '../../src/sim/cities';
@@ -2789,11 +2792,20 @@ describe('the two missing signs (batch X5)', () => {
     expect(big!.value).toBeLessThan(little!.value);
   });
 
-  it('is inherited by the settler’s arm, once, and re-added by nobody', () => {
+  it('is inherited by the settler’s arm, and answered there by the town it founds', () => {
     // `explainCitizen` has exactly one caller in the bot — the settler's, which
     // subtracts it as "the citizen it costs this town". The claim is the whole of
-    // the audit's touch point (c): the charge reaches the arm, and it reaches it
-    // *once*.
+    // the audit's touch point (c): the charge reaches the arm.
+    //
+    // **Re-aimed 2026-09-08 (batch X5b)**, and the re-aim is the batch. The line
+    // used to be printed on this candidate exactly *once* — the relief, and
+    // nothing answering it — which is why the settler came out cheaper and the
+    // sweep found thirteen more towns. It is printed **twice** now, and the two
+    // are different citizens: the one this town gives up (subtracted through
+    // `explainCitizen`, a relief) and the one the town it founds would create
+    // (charged on the expansion chain, `citizen.ts`' same line asked of a town of
+    // nought). The claim is that both are there, once each, and that the fold
+    // still folds.
     const { state, player, cities } = realm(2, 6);
     for (const city of cities) city.buildings.push('granary');
     bumpRevision(state);
@@ -2802,18 +2814,28 @@ describe('the two missing signs (batch X5)', () => {
     const settler = decision!.candidates.find((row) => row.label === 'Settler');
     expect(settler).not.toBeUndefined();
     const printed = labelsOf(settler!.terms).match(new RegExp(DEMANDED.source, 'g')) ?? [];
-    expect(printed).toHaveLength(1);
+    expect(printed).toHaveLength(2);
+    expect(labelsOf(settler!.terms)).toMatch(/the citizen it costs this town/);
+    expect(labelsOf(settler!.terms)).toMatch(/what the town it founds would ask the empire for/);
     expect(foldTerms(settler!.terms)).toBe(settler!.score);
-    // The door proves the sign: a citizen that costs contentment is a citizen
-    // the town gives up more cheaply, so the settler is worth more with it.
-    signDoor.citizen = false;
+    // The door proves the sign of the relief half: a citizen that costs
+    // contentment is a citizen the town gives up more cheaply, so the settler is
+    // worth more with it — asked with the chain's answering charge held out, so
+    // the two halves are read apart.
+    keepDoor.town = false;
     try {
-      const shut = decisionOfType(state, player.id, 'setCityProduction');
-      const before = shut!.candidates.find((row) => row.label === 'Settler')!;
-      expect(labelsOf(before.terms)).not.toMatch(DEMANDED);
-      expect(settler!.score).toBeGreaterThan(before.score);
+      const open = decisionOfType(state, player.id, 'setCityProduction')!.candidates.find(
+        (row) => row.label === 'Settler',
+      )!;
+      signDoor.citizen = false;
+      const shut = decisionOfType(state, player.id, 'setCityProduction')!.candidates.find(
+        (row) => row.label === 'Settler',
+      )!;
+      expect(labelsOf(shut.terms)).not.toMatch(DEMANDED);
+      expect(open.score).toBeGreaterThan(shut.score);
     } finally {
       signDoor.citizen = true;
+      keepDoor.town = true;
     }
   });
 
@@ -3224,5 +3246,239 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
       rowDoor.unitStat = true;
     }
     expect(scoreEffects(full, ctx)).toBeLessThan(100 * aiJson.weights.military);
+  });
+});
+
+// --- 17. the growth channel charged (batch X5b) ------------------------------
+
+/**
+ * **The keep, in the two arms that add a citizen rather than give one away**
+ * (`docs/flags.md` item (ggg), 2026-09-08: *"both charge the marginal keep of
+ * the citizen they would add — `happinessDemand(pop + 1) − happinessDemand(pop)`
+ * at the live price, the same line — read at the town's current population so a
+ * focus order does not move its own appraisal"*).
+ *
+ * X5 charged the keep in `explainCitizen`, whose one caller **subtracts** it, so
+ * the missing sign arrived as more expansion and the growth channel stayed
+ * uncharged (`docs/bot-priorities.md`, "Batch X5 as shipped"). X5b puts the same
+ * line in the two arms that were reading a citizen as pure ground: the focus
+ * arm's `growthTerm` and the hex purchase's `tileWants`. All three fold **one**
+ * helper — `citizenKeepTerm` (`citizen.ts`) — which is what the third case below
+ * is about.
+ *
+ * The bench is arranged for one reason: the focus arm's cheap half has to clear
+ * its own gate before the growth clock is asked at all (`foldOf(terms) <= 0`
+ * returns early), and on the shipped weight table a bushel outweighs a hammer,
+ * so a town with nothing waiting on its hammers never reaches the term. The
+ * sheet installed here is the arena's own dial (`withAiTuning`) turned to a
+ * board where all three arms speak at once; every figure asserted is read back
+ * off the context the arm itself used, never off a remembered number.
+ */
+describe('the growth channel charged (batch X5b)', () => {
+  const KEEP = /the contentment one more citizen demands/;
+
+  /**
+   * A town of four on wheat fields and hills, with one hex on offer richer than
+   * the poorest it works.
+   *
+   *   · the two sheets disagree about the fields and the hills, so the focus
+   *     arm's delta is real and its growth clock ticks under one and stalls
+   *     under the other;
+   *   · the balanced ordering leaves a citizen on a hill, so the hex on offer
+   *     (a hill with stone) is ground a citizen would actually move to;
+   *   · the town is at `production` already, so the arm answers *something* —
+   *     the lean starves this town, so the answer is the balanced ordering and
+   *     the table is printed either way.
+   */
+  function keepBench(): { state: GameState; player: Player; city: City } {
+    const state = bench(2, { width: 20, height: 12 });
+    for (const tile of state.map.tiles) {
+      if (tile.col % 2 === 0) tile.hills = true;
+      else tile.resource = 'wheat' as never;
+    }
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    recomputeAllVisibility(state);
+    city.population = 4;
+    city.focus = 'production';
+    const player = seat(state, 0);
+    player.gold = 2000;
+    // The one hex on offer worth moving to: a hill with stone on it, which the
+    // simulation's own scorer ranks above the bare hill the town works.
+    const offer = purchasableTiles(state, city).find((row) => row.error === null)!;
+    const tile = at(state.map, offer.col, offer.row);
+    tile.hills = true;
+    tile.resource = 'stone' as never;
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    return { state, player, city };
+  }
+
+  /** The sheet that makes all three arms speak on one board. See the docblock. */
+  const SHEET = { weights: { food: [1, 1, 1, 1], happiness: 2 } } as never;
+
+  /** The focus decision this bench's town raises, with the state left as it was. */
+  function focusDecision(state: GameState): BotDecision {
+    const decision = decisionOfType(state, 0, 'setCitizenFocus');
+    expect(decision).not.toBeNull();
+    return decision!;
+  }
+
+  function leanTerms(decision: BotDecision): ValueTerm[] {
+    return candidate(decision, 'work the hammers').terms;
+  }
+
+  it('charges the focus arm’s next citizen the marginal demand, at the live price', () => {
+    withAiTuning(SHEET, () => {
+      const { state, player, city } = keepBench();
+      const decision = focusDecision(state);
+      const ctx = valueContext(state, player);
+      const growth = findTerm(leanTerms(decision), /the next citizen arrives in/);
+      expect(growth).not.toBeNull();
+      const keep = findTerm(growth!.parts ?? [], KEEP);
+      expect(keep).not.toBeNull();
+      // The simulation's own curve, asked twice and subtracted, at the price the
+      // context carries — never a number this test remembers.
+      const marginal = happinessDemand(city.population + 1) - happinessDemand(city.population);
+      expect(marginal).toBeGreaterThan(0);
+      expect(keep!.value).toBe(-marginal * meterWeight(ctx, 'happiness'));
+      expect(keep!.value).toBeLessThan(0);
+      // And the ground beside it is still the ground: the citizen's worth is the
+      // fold of the two, and the term is that worth times the horizon's share.
+      const worth = findTerm(growth!.parts ?? [], /what the next citizen is worth/)!;
+      expect(foldTerms(worth.parts!)).toBe(worth.value);
+      expect(foldTerms(growth!.parts!)).toBe(growth!.value);
+      const lean = candidate(decision, 'work the hammers');
+      expect(foldTerms(lean.terms)).toBe(lean.score);
+    });
+  });
+
+  it('charges the hex purchase the same line, for the citizen that would work it', () => {
+    withAiTuning(SHEET, () => {
+      const { state, player, city } = keepBench();
+      const ctx = valueContext(state, player);
+      const want = ctx.wants.gold.find((row) => row.label.startsWith('the hex at'));
+      expect(want).not.toBeUndefined();
+      const keep = findTerm(want!.terms, KEEP);
+      expect(keep).not.toBeNull();
+      const marginal = happinessDemand(city.population + 1) - happinessDemand(city.population);
+      expect(keep!.value).toBe(-marginal * meterWeight(ctx, 'happiness'));
+      // A want's worth is the fold of its printed terms, this line included.
+      expect(foldTerms(want!.terms)).toBe(want!.worth);
+      // Shut, the same hex is worth strictly more — the line is a charge, and
+      // nothing else moved with it.
+      keepDoor.hex = false;
+      try {
+        const shut = valueContext(state, player).wants.gold.find((row) =>
+          row.label.startsWith('the hex at'),
+        )!;
+        expect(labelsOf(shut.terms)).not.toMatch(KEEP);
+        expect(shut.worth).toBeGreaterThan(want!.worth);
+      } finally {
+        keepDoor.hex = true;
+      }
+    });
+  });
+
+  it('gives the three arms one figure for one town', () => {
+    // The whole reason the line is a helper rather than three copies: the
+    // settler's arm, the focus arm and the hex purchase are three questions
+    // about one town's next citizen, and they may not come to three answers.
+    withAiTuning(SHEET, () => {
+      const { state, player, city } = keepBench();
+      const decision = focusDecision(state);
+      const ctx = valueContext(state, player);
+      const growth = findTerm(leanTerms(decision), /the next citizen arrives in/)!;
+      const inGrowth = findTerm(growth.parts ?? [], KEEP)!;
+      const inHex = findTerm(
+        ctx.wants.gold.find((row) => row.label.startsWith('the hex at'))!.terms,
+        KEEP,
+      )!;
+      const inCitizen = findTerm(explainCitizen(state, city, ctx).terms, KEEP)!;
+      const helper = citizenKeepTerm(ctx, city.population)!;
+      expect(inGrowth.value).toBe(helper.value);
+      expect(inHex.value).toBe(helper.value);
+      expect(inCitizen.value).toBe(helper.value);
+      expect(inGrowth.label).toBe(helper.label);
+      expect(inHex.label).toBe(helper.label);
+      expect(inCitizen.label).toBe(helper.label);
+    });
+  });
+
+  it('is a figure no focus order can move', () => {
+    // The ruling's own clause, and the anti-oscillation argument `growthTerm`
+    // has always stood on: the keep is read at the town's **current**
+    // population, a citizen arrives by growth and never by a command, so the
+    // arm's own order cannot move the appraisal that produced it.
+    withAiTuning(SHEET, () => {
+      const { state, player, city } = keepBench();
+      const decision = focusDecision(state);
+      const before = findTerm(leanTerms(decision), KEEP)!;
+      const population = city.population;
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+      expect(city.population).toBe(population);
+      const after = citizenKeepTerm(valueContext(state, player), city.population)!;
+      expect(after.value).toBe(before.value);
+      expect(after.label).toBe(before.label);
+    });
+  });
+
+  it('turns the focus arm around in an empire that cannot afford the citizen', () => {
+    // The batch's point, said as a comparison rather than as a constant. Where
+    // the ground pays more than the keep, delaying growth **costs** and the term
+    // is negative; where a seat's contentment is dear enough that the next
+    // citizen is worth less than nothing, delaying growth **pays** and the same
+    // term comes out positive. One line, one sign change, and the crowded empire
+    // leans on its hammers where the contented one goes back to the fields.
+    const cheap = withAiTuning(SHEET, () => {
+      const { state } = keepBench();
+      return findTerm(leanTerms(focusDecision(state)), /the next citizen arrives in/)!.value;
+    });
+    const dear = withAiTuning({ weights: { food: [1, 1, 1, 1], happiness: 60 } } as never, () => {
+      const { state } = keepBench();
+      return findTerm(leanTerms(focusDecision(state)), /the next citizen arrives in/)!.value;
+    });
+    expect(cheap).toBeLessThan(0);
+    expect(dear).toBeGreaterThan(0);
+  });
+
+  it('charges the expansion chain for the town it would found, at the live price', () => {
+    // The fourth arm, and the one that answers the settler's relief: a founding
+    // creates a citizen, and that citizen asks the empire for its keep whether
+    // or not the meter is already underwater. The clause beside it — *what
+    // founding there would over-spend* — is a threshold and stays one; this is
+    // the demand, and the two are different questions (`chain.ts` says so).
+    const state = bench(2, { width: 20, height: 12 });
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    recomputeAllVisibility(state);
+    city.population = 4;
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const player = seat(state, 0);
+    const ctx = valueContext(state, player);
+    const chain = ctx.expansion;
+    expect(chain).not.toBeNull();
+    const line = findTerm(chain!.terms, KEEP);
+    expect(line).not.toBeNull();
+    // A town of nought: the citizen it is founded with, the simulation's own
+    // curve, at the price the context carries.
+    expect(line!.value).toBe(-(happinessDemand(1) - happinessDemand(0)) * meterWeight(ctx, 'happiness'));
+    expect(line!.value).toBe(citizenKeepTerm(ctx, 0)!.value);
+    expect(foldTerms(chain!.terms)).toBe(chain!.worth);
+    // Shut, the chain is worth strictly more and says nothing about contentment
+    // it can still pay for — the door's whole job.
+    keepDoor.town = false;
+    try {
+      const shut = valueContext(state, player).expansion!;
+      expect(labelsOf(shut.terms)).not.toMatch(KEEP);
+      expect(shut.worth).toBeGreaterThan(chain!.worth);
+    } finally {
+      keepDoor.town = true;
+    }
+  });
+
+  it('leaves the door open in the shipped bot, all three halves', () => {
+    // `signDoor`'s sentence one batch on: the switch is the acceptance bench's,
+    // it is not a knob, and no half ships shut.
+    expect(keepDoor).toEqual({ growth: true, hex: true, town: true });
   });
 });

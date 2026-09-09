@@ -736,6 +736,15 @@ describe('the bot module', () => {
     // `driver.ts` is the loop with `stepper.ts` that same loop unrolled one
     // decision at a time.
     //
+    // Fifteen since X5b (2026-09-08): `citizen.ts` is the sixth leaf and the
+    // smallest — one function and one door, what a citizen asks the empire for
+    // its keep. It is a module rather than a helper beside one of its callers
+    // because **four** arms fold that line (the settler's, the focus arm's, the
+    // hex purchase's and the expansion chain's), and two of them are in files
+    // that already stand on one another: `wants.ts` imports `chain.ts`, so a
+    // line both fold can live in neither. The leaf bargain `ground.ts` and
+    // `routes.ts` make, one arithmetic over.
+    //
     // Fourteen since X4 (2026-09-08): `dealMemory.ts` is the fifth leaf and the
     // one module here that *remembers* anything — what a rival sent back, hung
     // off the live state in a `WeakMap` so that no schema, no save and no rule
@@ -747,6 +756,7 @@ describe('the bot module', () => {
       'bot.ts',
       'campaign.ts',
       'chain.ts',
+      'citizen.ts',
       'dealMemory.ts',
       'decision.ts',
       'diplomacy.ts',

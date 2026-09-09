@@ -3814,3 +3814,232 @@ surface offers it, both halves ship open.
   used to read five spearmen. That is the correction, but the reading has no
   *cadence* in it — a card that mends every turn of a long war is worth more than
   one turn's share, and pricing that wants an occasion the register does not have.
+
+---
+
+  entry names first and left the other eight alone.
+
+## Batch X5b as shipped — the growth channel charged (2026-09-08)
+
+X5's finding, ruled on the flags board the same day (item (ggg)): *"both charge
+the marginal keep of the citizen they would add — `happinessDemand(pop + 1) −
+happinessDemand(pop)` at the live price, the same line — read at the town's
+current population so a focus order does not move its own appraisal (a citizen
+arrives by growth, never by a command)."* Two arms, one line, one helper.
+
+### The line, and the leaf it lives in
+
+`citizenKeepTerm(ctx, population)` (**`src/ai/citizen.ts`**, the bot's sixth leaf)
+is the whole of the arithmetic: the simulation's own curve asked twice and
+subtracted, at the price `meterWeight` already carries, returned as one negative
+`ValueTerm`. **Four** arms fold it and none of them re-derives it:
+
+  · **`explainCitizen`** (`bot.ts`) — where X5 put the charge, unchanged in value
+    and now reading the shared helper. Its one caller is the settler's arm, which
+    **subtracts** it: the citizen the founding town gives up;
+  · **`growthTerm`** (the focus arm, `bot.ts`) — the next citizen's worth is no
+    longer the ground alone but `the ground it would work + the keep`, folded and
+    then multiplied by the horizon's share, so the printed term is
+    `nest(the next citizen arrives in N turns instead of M, [worth, × share])`;
+  · **`tileWants`** (the hex purchase, `wants.ts`) — beside the ground the hex
+    pays over the poorest the town works, and **only where a citizen would
+    actually work it**: a hex nobody would move to is charged nothing, because
+    what that offer is worth is its seam, and a seam is owned rather than worked;
+  · **`expansionChain`** (`chain.ts`) — the citizen the town it founds would
+    *create*, asked of a town of **nought**. This is the half that answers the
+    settler's relief, and it is the second measurement's half rather than the
+    ruling's first sentence: see below.
+
+The helper takes a **population**, never a town, and that is the ruling said in a
+signature: the arms disagree about *which* citizen they are talking about and
+must agree about the figure, and the figure is a fact about the town's current
+size and the seat's live price — neither of which any command a seat can send
+will move. `growthTerm`'s anti-oscillation argument therefore stands untouched
+with one more line under it, and `test/sim/aiAppraisal.test.ts` asserts it
+directly: the arm's own focus order leaves the keep exactly where it was.
+
+It is a **module** rather than a helper beside one of its callers because
+`wants.ts` already stands on `chain.ts`, so a line both fold can live in neither
+— CLAUDE.md's own sentence about a helper two modules need, and the bargain
+`ground.ts`, `routes.ts` and `dealMemory.ts` make. `test/sim/aiBot.test.ts`'s
+module register carries the fifteenth file and says why.
+
+### The new town's demand — the second measurement's half
+
+The orchestrator's turn-100 bench split X4 from X5 cleanly and found what the
+sixteen-seat happiness column could only hint at: after X5 the **mean seat had
+lost a fifth of its citizens, its food and its science** (citizens 39.0 → 31.7,
+food 125.4 → 96.3, science 39.3 → 27.1) and its contentment had gone under (+2.5
+→ −1.2) while its town count *rose* (5.9 → 6.1). One arm explains all of it —
+the settler's, subtracting a keep nothing answered.
+
+So the fourth fold is in `expansionChain`, and it is a **demand beside a
+threshold** rather than a replacement for one. The clause that was already there
+— *what founding there would over-spend, with no source in sight to supply it* —
+fires only when a founding would push a meter past what the empire holds, and an
+empire with any cushion at all was charged nothing by it. The new line charges
+the town's own first citizen **always**, at the live price, through the same
+helper. The two are different questions: *would this founding put the meter
+underwater* (a stock) and *what does the town it founds ask for every turn after*
+(a flow). They overlap by the founding's own point in an empire already
+underwater, which is the small end of a charge that is mostly the deficit itself;
+`short.happiness` is untouched, which matters because `meterPrices` reads it to
+price the meter every other arm pays at.
+
+The authority half has no such line and that is not an omission: writ has no
+per-citizen demand to mirror — `explainAuthority` is a fold of capacities less
+what each *town* costs — and the town's own cost is what the threshold clause
+already prices.
+
+### The turn-100 bench — the acceptance the second measurement set
+
+The orchestrator's shape: the same eight seeds, **standard** map, two balanced
+seats, wild on, driven to t100, and every figure the **mean of the sixteen
+seats**. Yields are the town-fold's own rates (`readEmpire().totals`), gold is
+printed gross with the net rate beside it, treasury is the bank, happiness is
+`happinessOf`, and "X4" is this tree with **every** X5 and X5b sign shut — the
+board 6bea7db played.
+
+| | citizens | food | gold (net) | science | culture | faith | treasury | happiness | cities |
+|---|---|---|---|---|---|---|---|---|---|
+| **X4** (all signs shut) | **39.7** | **129.0** | 49.1 (27.0) | **46.7** | 53.8 | 24.2 | 293.4 | +1.0 | 5.9 |
+| X5, citizen half alone | 36.0 | 119.0 | 32.3 (20.4) | 42.3 | 49.2 | 20.1 | 231.0 | −0.2 | 5.6 |
+| X5, **wall half alone** | **30.5** | **94.6** | 31.0 (20.1) | 38.1 | 45.9 | 16.3 | 218.3 | +0.7 | 5.4 |
+| X5 as shipped (both) | 32.0 | 100.2 | 30.2 (19.3) | 35.2 | 55.8 | 18.3 | 202.3 | **−0.7** | 6.2 |
+| X5b growth + hex | 32.6 | 103.7 | 29.5 (20.8) | 38.0 | 56.2 | 18.0 | 254.7 | +2.1 | 5.8 |
+| **X5b whole** | 32.5 | 100.8 | 28.6 (18.6) | 35.5 | 50.2 | 15.5 | 213.8 | **+2.9** | 5.9 |
+
+**Contentment is repaired and the town count is held; the citizens, the food and
+the science are not.** Against the row the acceptance named (X4's): happiness
+**+2.9 ✓** (the target was +2.5, and X5 had it at −0.7); cities **5.9 ✓** (the
+floor was 5.6); citizens 32.5 ✗ (39), food 100.8 ✗ (125), science 35.5 ✗ (39).
+X5b's three charges move the *meter* they are about — the whole of the swing from
+−0.7 to +2.9 is theirs, and the town-demand half is two thirds of it (+2.1 →
++2.9 is the chain's line alone) — and they leave the fifth of the empire X5 cost
+almost exactly where X5 left it (32.0 → 32.5, 100.2 → 100.8, 35.2 → 35.5).
+
+**Which arm still moves it wrong, measured rather than argued: X5's *wall* half,
+and none of X5b's.** The two halves of X5 were split on this bench (rows two and
+three). The **citizen** half — the one X5b was written to answer — costs 3.7
+citizens, 10 bushels and 4.4 beakers, and X5b's charges hand back what a
+correction of that size can: the settler is dearer again by the town it founds,
+and the meter comes back up. The **wall** half costs **9.2 citizens, 34 bushels
+and 8.6 beakers on its own**, with the town count *falling* (5.9 → 5.4) — which
+is what it looks like when hammers stop going into granaries, workers and
+settlers and start going into palisades. `explainBuildingRow` folds `cityHp` at
+`weights.military × (1 + threat)`; X5's own known gaps record that the Walls of
+Uruk read 250 in a quiet world by that arithmetic; and nothing in X5b prices a
+wall. The queue's row is the arm to re-aim, and it is X8's ground rather than
+this batch's.
+
+### The eight-seed sweep at t150
+
+X5's own bench, unchanged: seeds 1/2/3/42/101/999/31337/20260101, duel, two
+balanced seats, wild on, **sixteen seats**, 150 turns, `driveBots`. "Before" is
+X5 as shipped (`keepDoor` shut — the citizen's keep in the settler's arm, the
+growth channel uncharged); the halves are switched independently.
+
+| | towns | `setCitizenFocus` | ceiling @t150 | Σ happiness t100 | Σ happiness t150 | science/turn | culture/turn |
+|---|---|---|---|---|---|---|---|
+| **before** (X5 as shipped) | 109 | 373 | 9/16 | 18 | 28 | 490 | 748 |
+| growth + hex | 117 | 430 | 6/16 | 30 | 52 | 422 | 963 |
+| **after** (all three) | **118** | 412 | **7/16** | 21 | **86** | 359 | 843 |
+
+*(The two growth-channel halves measured apart, before the chain's line existed:
+growth only 113 towns · 465 focus orders · 5/16 · Σ 59; hex only 106 · 357 · 5/16 ·
+Σ **105**.)*
+
+**Two of the three acceptance clauses are met.** Against the *pre-X5* baseline —
+which is what the ruling's numbers were written against (towns 96, Σ happiness 42,
+4 of 16 at the ceiling):
+
+  · **Σ happiness at t150 above 42** — **met**, and by a distance: 86, against 28
+    for the board this batch started from;
+  · **towns not below 96 by more than three** — **met** by a wide margin, 118;
+  · **ceiling seats at or under 4 of 16** — **not met**, 7. It is two seats better
+    than the board this batch started from (9) and three worse than the board X5
+    started from (4).
+
+**What the arms did, rather than a tune.** Each charge does what it was asked to
+do inside its own fold — the focus arm leans on the hammers in towns whose next
+citizen costs more than its ground pays (the term changes *sign*, pinned in
+`aiAppraisal.test.ts`), the hex arm stops buying ground for a citizen the empire
+cannot keep, and the chain charges a founding for the town it founds. The sums
+follow: contentment triples at t150 and the ceiling column comes down two seats.
+What none of them unwinds is the **town count**, which keeps climbing (96 → 109 →
+118), and the ceiling column is a function of it — more towns are more sets of
+citizens asking for their keep. The settler *is* dearer than it was, by exactly
+the town it founds; it is dearer against a payoff (`weights.city` after the
+falloff) large enough that one citizen's keep does not turn it round.
+
+Two smaller readings, recorded because a regression should be visible:
+**science/turn falls 490 → 359** and **culture/turn rises 748 → 843**. Both follow
+the towns and the focus orders — a seat leaning on its hammers works fewer of the
+hexes its libraries are priced against — and neither was an acceptance figure; the
+t100 bench above says the same thing about science with the arm actually
+responsible named. The sixteen-seat sums remain as noisy as X5 recorded them: the
+halves bracket the whole in every column, which is trajectory rather than term.
+
+### Knobs added
+
+**None.** Every figure is an existing weight read through an existing fold:
+`happinessDemand` is the simulation's, `meterWeight`/`meterWords` are the price
+the context already carries, the multiplication by the horizon's share is the one
+`growthTerm` always did, and the expansion chain's new line is the same helper at
+a population of nought. `keepDoor` (`citizen.ts`) is `signDoor`'s twin — the
+acceptance bench's switch, not in `data/ai.json`, read by no persona, offered by
+no surface, all three halves shipped open and pinned open.
+
+### Pins re-aimed
+
+**One**, and it is the batch said out loud:
+
+- **`aiAppraisal.test.ts`, "is inherited by the settler's arm, once, and re-added
+  by nobody"** — now *"…and answered there by the town it founds"*. The keep used
+  to be printed on the settler's candidate exactly **once**, the relief with
+  nothing answering it, which is why the settler came out cheaper and X5's sweep
+  found thirteen more towns. It is printed **twice** now and they are different
+  citizens: the one the founding town gives up (subtracted, through
+  `explainCitizen`) and the one the new town would create (charged, through the
+  expansion chain). The pin asserts both, once each, and that the candidate still
+  folds from its own terms — with the chain's half held out by its door so the
+  original claim about the relief's *sign* is still asked exactly as X5 asked it.
+
+Everything else passes as written, the focus arm's idempotence pins included —
+which is the claim the ruling was most exposed on. Added: **seven** cases in
+`aiAppraisal.test.ts` (§17), one in `aiWants.test.ts` (the played board's growth
+terms all carry the ground and the keep, and every nested fold holds), and the
+module register in `aiBot.test.ts` grows to fifteen files with the reason.
+
+### Known gaps, written down rather than fixed
+
+- **The wall is what still costs the empire its citizens.** The t100 split above
+  is unambiguous: X5's `cityHp` line costs 9.2 citizens, 34 bushels and 8.6
+  beakers a seat on its own, and no charge in this batch touches it. Re-aiming
+  that fold — a point of the hit-point bar is not a point of the strength ledger,
+  which X5's own known gaps already say — is **X8's** ground, and it is the single
+  change that would put the t100 row back over X4's.
+- **The settler's arm still reads the keep as a discount.** The chain's line now
+  answers it with the town it founds, and the two very nearly cancel for a small
+  town by construction (a founding town of six is charged its crowded marginal
+  citizen and credited a new town's first one). What that leaves is the *payoff*:
+  `weights.city` after the falloff is large enough that one citizen's keep does
+  not turn a founding round, which is why the town count still climbs. Whether a
+  founding should be charged the whole new town rather than its first citizen is a
+  ruling's question, not a batch's.
+- **The hex arm charges the keep only where a citizen would work the hex.** A hex
+  bought for its seam alone — the first silk, the first iron — is charged nothing,
+  because nobody stands on it. That is the honest reading of the two halves
+  `tileWants` has always had, and it means an empire at the happiness ceiling still
+  buys seams. Stated, not fixed.
+- **The keep is the raw curve, not the card-factored demand.** `explainFoundingCost`
+  multiplies by `ruleFactor(…, 'happinessDemand')` and reads `freeCitizens`; the
+  four arms fold `happinessDemand` alone, exactly as X5 shipped it. A seat under
+  Toleration Edicts is therefore charged a little more than the meter will ask.
+  One line in the helper would close it; it is a change to X5's figure as well as
+  this batch's, so it is written down rather than slipped in.
+- **A stock is still being added to a rate.** The keep is a *stock* (what a point
+  of contentment is worth) and the ground is a *rate* (what a hex pays a turn),
+  and X5's fold mixed them the same way. The ruling asked for "the same line", so
+  the same line is what all four arms fold; an exchange rate between the two is a
+  design decision the whole appraisal would have to make at once.

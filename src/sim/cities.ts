@@ -190,7 +190,7 @@ import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
 import { borderFactor, borderPercent, bordersFrozen, growthPercent, meterEffects } from './meters';
 import { foldRulePercent, resourceRulePercent } from './resourceEffects';
-import { cityIsWatered } from './buildingEffects';
+import { buildingUnitUpkeepRebate, cityIsWatered } from './buildingEffects';
 // A leaf, like `roads.ts` and `routeYields.ts`, and imported for the same
 // reason: `guilds.ts` needs these answers too and must be free to import this
 // file. See `specialists.ts`.
@@ -3335,12 +3335,15 @@ export function realiseItem(
   // (`BuildingDef.unitUpkeepRebate`) sends every piece it raises out cheaper to
   // hold, for the rest of that piece's life. Read off the town's own buildings
   // here and never again, because "where was this raised" is a fact that leaves
-  // the board the moment the piece marches. A free piece is skipped rather than
+  // the board the moment the piece marches — and read through
+  // `buildingUnitUpkeepRebate` (`buildingEffects.ts`), the one reader of the
+  // field, so the payroll and the bot's appraisal of the Throne cannot disagree
+  // about what a town forgives (batch X8). A free piece is skipped rather than
   // stamped: it already costs nothing, and a rebate on nothing is a figure in a
   // ledger with no line to sit under. See `Unit.upkeepRebate`.
   if (!options.free) {
     let rebate = 0;
-    for (const held of city.buildings) rebate += buildingDef(held).unitUpkeepRebate ?? 0;
+    for (const line of buildingUnitUpkeepRebate(city)) rebate += line.amount;
     if (rebate > 0) unit.upkeepRebate = rebate;
   }
   // **The mirror, stamped where the piece is made** (batch B2, `UnitDef.mirrors`).

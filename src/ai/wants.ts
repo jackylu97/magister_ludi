@@ -187,6 +187,7 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
 import { round } from './decision';
+import { citizenKeepTerm, keepDoor } from './citizen';
 import { foundedReligionOf, hasFoundedReligion } from './ground';
 
 /**
@@ -459,7 +460,7 @@ export function purchasingPlan(
       const delta = yieldDelta(folds.with(index, id), folds.standing(index));
       const terms: ValueTerm[] = [
         nest('what this town would actually make with it', explainYields(delta, ctx)),
-        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
+        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx, city)),
         nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
       ];
       const bridge = bridgeTerm(ctx, city, id);
@@ -531,6 +532,24 @@ export function purchasingPlan(
  *     cannot disagree about which silk is the first silk, and neither of them
  *     asks whether the seam is *worked* — a copy owned and unimproved is a copy.
  *
+ * **The citizen who would stand there** (batch X5b, the ruling on the flags
+ * board, item (ggg)). A hex bought is a hex meant to be *worked*, and the
+ * ground it pays was the whole of what this arm charged for it: the citizen
+ * standing on it asks the empire for its keep, and in an empire whose happiness
+ * price is at the band's ceiling that keep is the most expensive thing about a
+ * fourth-ring hill. So where a citizen of this town would work the hex, the
+ * marginal demand goes on the same list, negative, through the one helper the
+ * focus arm and `explainCitizen` fold too (`citizenKeepTerm`, `citizen.ts`) — read at
+ * the town's **current** population, which is what makes the three arms agree
+ * about the figure and what keeps the charge out of reach of any command. A hex
+ * no citizen would move to is charged nothing, because nobody stands on it: what
+ * that offer is worth is its seam alone, and a seam is owned rather than worked.
+ *
+ * It sits *inside* the hex's own appraisal rather than beside the claim, so the
+ * `soonShare` multiple below scales the keep exactly as it scales the ground —
+ * a hex the borders would have claimed anyway is a coin spent on *sooner*, and
+ * the citizen arrives sooner with it.
+ *
  * The stated crudeness: the delta is not re-asked of the whole town
  * (`assignCitizens` may shuffle three citizens rather than one), and the seam's
  * *signature* is not priced at all — a luxury's effect list is
@@ -555,6 +574,10 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
     const score = yieldScore(yields);
     if (poorest === null || score < poorest.score) poorest = { score, yields };
   }
+  // The keep of the citizen who would stand on bought ground, hoisted for the
+  // same reason: it is a fact about the town's size and the seat's price, so it
+  // is one figure for every offer this loop prices (batch X5b).
+  const keep = keepDoor.hex ? citizenKeepTerm(ctx, city.population) : null;
   // **The one hex a coin buys nothing but time on** — the hex this town's own
   // culture is about to claim for nothing (`bestExpansionTile`, the simulation's
   // own chooser). Buying *that* one gains its yield for the turns until the
@@ -594,6 +617,8 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
           explainYields(bag, ctx),
         ),
       );
+      // …and what that citizen asks the empire for its keep.
+      if (keep !== null) terms.push(keep);
     } else {
       terms.push({
         label: `no citizen of ${city.name} would move to (${offer.col},${offer.row}) today`,
@@ -810,7 +835,7 @@ export function faithPlan(
       const delta = yieldDelta(folds.with(index, id), folds.standing(index));
       const terms: ValueTerm[] = [
         nest('what this town would actually make with it', explainYields(delta, ctx)),
-        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
+        nest('what its row gives beyond a yield', explainBuildingRow(id, ctx, city)),
         nest('its standing maintenance', explainUpkeepCost(upkeep, ctx), 'sub'),
       ];
       // The bridge and the race are the gold row's other two terms, and they are

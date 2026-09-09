@@ -1372,6 +1372,30 @@ describe('the focus arm', () => {
     }
   });
 
+  it('charges the growth it delays the keep of the citizen it delays (batch X5b)', () => {
+    // The arithmetic is pinned on an arranged bench in `aiAppraisal.test.ts`;
+    // what this asks is that the line is *there* on a board the bot actually
+    // played — a charge that only appears on an arranged bench is a charge no
+    // game ever pays. Every growth term found carries the ground and the keep,
+    // and the citizen's worth is the fold of the two.
+    const steps = focusSteps(FOCUS_TURNS);
+    const growths = steps
+      .flatMap((step) => step.decision.candidates)
+      .flatMap((candidate) => candidate.terms)
+      .filter((term) => term.label.includes('the next citizen arrives in'));
+    expect(growths.length).toBeGreaterThan(0);
+    for (const growth of growths) {
+      const printed = JSON.stringify(growth);
+      expect(printed).toContain('the ground it would work');
+      expect(printed).toContain('the contentment one more citizen demands');
+      const worth = growth.parts!.find((part) => part.label.includes('what the next citizen is worth'))!;
+      const keep = worth.parts!.find((part) => part.label.includes('contentment'))!;
+      expect(keep.value).toBeLessThan(0);
+      expect(foldTerms(worth.parts!)).toBe(worth.value);
+      expect(foldTerms(growth.parts!)).toBe(growth.value);
+    }
+  });
+
   it('never points a puppet — the town that chooses for itself', () => {
     // `citizenFocusError` is the whole gate, and it refuses a puppet outright.
     const state = benchState(2);

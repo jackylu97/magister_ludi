@@ -100,6 +100,7 @@
  */
 
 import { type LevyReading, isFieldSoldier, levyReading } from './campaign';
+import { citizenKeepTerm, keepDoor } from './citizen';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import { type UpgradeSites, noUpgradeSites } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
@@ -869,7 +870,14 @@ export interface SiteProbe {
  * behaviour `settlerAuthorityFloor` was refusing its way toward.
  *
  * Happiness is charged by the same clause and for the same reason: a town founded
- * into a deficit stifles the growth of every town that already stands.
+ * into a deficit stifles the growth of every town that already stands. **And by a
+ * second line since batch X5b**, because that clause is a threshold and an empire
+ * with a cushion was charged nothing at all for the citizen it was about to
+ * create — while `explainCitizen`'s keep, subtracted by the settler's own arm,
+ * priced the citizen the old town gives up whatever the cushion said. The new
+ * town's first citizen is now charged as a demand too, at the live price, through
+ * the one line every arm that weighs a citizen folds (`citizenKeepTerm`,
+ * `citizen.ts`).
  *
  * **The two crudenesses, written down.** The walk is the *nearest legal* site's
  * distance over the settler's movement allowance — no terrain, no roads, no
@@ -976,6 +984,38 @@ export function expansionChain(
         'sub',
       ),
     );
+  }
+  /**
+   * **The contentment the new town would demand** (batch X5b, the ruling on the
+   * flags board item (ggg) and the measurement under it).
+   *
+   * The clause above is a **threshold**: it fires when a founding would push a
+   * meter past what the empire holds, and an empire with any cushion at all is
+   * charged nothing by it. Beside X5's charge that left an asymmetry with a
+   * direction — `explainCitizen` charges the citizen a settler costs *whatever*
+   * the cushion says, and the settler's arm **subtracts** it, so the old town's
+   * relief was priced and the new town's demand was not. Measured at t100 across
+   * eight seeds: the mean seat lost a fifth of its citizens, its food and its
+   * science, and its contentment went under.
+   *
+   * So the demand is charged as a demand as well, always, at the live price, and
+   * through the very line the other three arms fold (`citizenKeepTerm`,
+   * `citizen.ts`) — asked of a town of **nought**, which is what a town about to
+   * be founded has. The two readings are different questions and both are worth
+   * asking: *would this founding put the meter underwater* (a stock, above), and
+   * *what does the town it founds ask the empire for every turn after* (a flow,
+   * here). They overlap by the founding's own point in an empire that is already
+   * underwater, which is the small end of a charge that is mostly the deficit
+   * itself.
+   *
+   * The authority half has no line here and that is not an omission: writ has no
+   * per-citizen demand to mirror — `explainAuthority` is a fold of capacities
+   * less what each *town* costs — and the town's own cost is what the clause
+   * above already prices.
+   */
+  const newTown = keepDoor.town ? citizenKeepTerm(ctx, 0) : null;
+  if (newTown !== null) {
+    terms.push(nest('and what the town it founds would ask the empire for', appraise([newTown])));
   }
   if (hammers > 0) {
     // **Printed, and folded at nothing** — the other half of the walk-versus-

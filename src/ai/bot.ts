@@ -169,8 +169,6 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
-  meterWeight,
-  meterWords,
   signDoor,
   newResourceTerms,
   realmResources,
@@ -180,6 +178,7 @@ import {
   yieldDelta,
   yieldWeight,
 } from './value';
+import { citizenKeepTerm, keepDoor } from './citizen';
 import {
   NO_WANTS,
   type BankCurrency,
@@ -259,7 +258,7 @@ import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } f
 import type { ResourceId } from '../sim/resourceData';
 import { RULES, type CitizenFocus } from '../sim/rulesData';
 import type { TileYield } from '../sim/terrainData';
-import { explainFoundingCost, foldMeter, foundingCostLines, happinessDemand } from '../sim/meters';
+import { explainFoundingCost, foldMeter, foundingCostLines } from '../sim/meters';
 import { findPath } from '../sim/pathfind';
 import { PROJECT_IDS } from '../sim/projectData';
 import {
@@ -1555,6 +1554,25 @@ function focusTable(
  * A town that cannot grow at all under a sheet waits the whole horizon, which is
  * `delayDiscount`'s nothing — so a focus that would stall a town's growth
  * outright is charged the whole of the next citizen, which is right.
+ *
+ * **What the next citizen is worth, since X5b**: the ground it would work
+ * *less what it asks the empire for its keep* — `citizenKeepTerm` (`citizen.ts`),
+ * the one line `explainCitizen` and the hex purchase fold too, so the three arms
+ * cannot come to three answers about one town's next citizen. That is the whole
+ * of the batch here, and it is what makes this term able to change **sign**: in
+ * an empire whose happiness price is riding the band's ceiling, a citizen whose
+ * hex pays less than its keep is a citizen worth *less than nothing*, and a
+ * focus that puts it off is a focus that pays. A crowded seat leans on the
+ * hammers where a contented one would not, which is the direction the ruling
+ * asked for.
+ *
+ * **And it still cannot be moved by acting on it.** The keep is read at the
+ * town's **current** population — a citizen arrives by growth, never by a
+ * command — and the ground is the balanced ordering's next hex, so both halves
+ * of the citizen's worth are facts about the board rather than about the sheet
+ * the town happens to be standing on. `setCitizenFocus` moves neither, which is
+ * the anti-oscillation argument below, unchanged and now carrying one more
+ * line.
  */
 function growthTerm(
   state: GameState,
@@ -1575,11 +1593,24 @@ function growthTerm(
   // back and forth all turn. Measured before it was written down: three thousand
   // six hundred focus commands in a seventy-five-turn duel.
   if (nextHex === undefined) return null;
-  const citizen = valueOfYields(
+  const ground = valueOfYields(
     bagOfTileYield(foldTile(nextHex, tileContextAt(state, city.ownerId, nextHex))),
     ctx,
   );
-  if (citizen <= 0) return null;
+  // The keep, at the town's current population — the ruling's own line, and the
+  // half of the citizen's worth that is not a fact about where its people stand.
+  const keep = keepDoor.growth ? citizenKeepTerm(ctx, city.population) : null;
+  const worth = appraise([
+    {
+      label: `the ground it would work — (${nextHex.col},${nextHex.row})`,
+      value: ground,
+    },
+    ...(keep === null ? [] : [keep]),
+  ]);
+  // Nothing to charge either way: a citizen worth exactly nothing is a citizen
+  // whose arrival the horizon cannot price. (Shut, this is the old `citizen <= 0`
+  // guard exactly — a hex pays nothing negative.)
+  if (worth.total === 0) return null;
   const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
   const upkeep = foodUpkeep(city);
@@ -1589,12 +1620,18 @@ function growthTerm(
   };
   const sooner = delayDiscount(turnsAt(leanBag), ctx) - delayDiscount(turnsAt(plainBag), ctx);
   if (sooner === 0) return null;
-  return {
-    label:
-      `the next citizen arrives in ${turnsAt(leanBag)} turns instead of ${turnsAt(plainBag)}, ` +
+  return nest(
+    `the next citizen arrives in ${turnsAt(leanBag)} turns instead of ${turnsAt(plainBag)}, ` +
       `against a ${horizon}-turn horizon`,
-    value: citizen * sooner,
-  };
+    appraise([
+      nest('what the next citizen is worth to this town', worth),
+      {
+        label: `× ${round1(sooner)} — what those turns are worth against the horizon`,
+        value: sooner,
+        op: 'mul',
+      },
+    ]),
+  );
 }
 
 /**
@@ -3473,7 +3510,7 @@ function frontRowWorth(
     const after = foldCity(state, city, [item.id], null, explainCity(state, city, [item.id], empire));
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(yieldDelta(after, base), ctx)),
-      nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx)),
+      nest('what its row gives beyond a yield', explainBuildingRow(item.id, ctx, city)),
     ];
     // **The coin that hurries the great work** (batch 5). The Opus is the one row
     // in the game that `acceptsContributions`, so this is where a purse joins the
@@ -3924,7 +3961,7 @@ function buildCandidates(
     const delta = yieldDelta(after, base);
     const terms: ValueTerm[] = [
       nest('what this town would actually make with it', explainYields(delta, ctx)),
-      nest('what its row gives beyond a yield', explainBuildingRow(id, ctx)),
+      nest('what its row gives beyond a yield', explainBuildingRow(id, ctx, city)),
     ];
     // **The hammer premium** (batch 6): a row that raises what this town *makes*
     // shortens every engine the town is still raising, and that compression is
@@ -4402,20 +4439,28 @@ function explainMixCraving(
  *     town of `pop + 1` less what it asks of this one, so the crowding half of
  *     the curve is charged where it bites and nowhere else — at the live price
  *     `meterWeight` already carries. The curve is never re-derived here: two
- *     calls to the simulation's own function, subtracted.
+ *     calls to the simulation's own function, subtracted, in `citizenKeepTerm`
+ *     (`citizen.ts`).
  *
  * It replaces the flat `weights.citizen`, which was one number for a starving
  * hamlet on tundra and a metropolis beside three wheat fields.
  *
- * **Who inherits it.** One arm folds this appraisal — the settler's
- * (`unitRoleValue`, `the citizen it costs this town`) — and it inherits the
- * charge by construction: a citizen that costs contentment is a citizen a town
- * gives up more cheaply, which is the sign the settler was missing too. The
- * focus arm's `growthTerm` and the hex purchase's `tileWants` deliberately read
- * the *ground* rather than this fold (their own docblocks say why: an appraisal
- * that moves the moment it is acted on flips a town back and forth all turn),
- * so neither inherits and neither re-adds the charge — the demand is charged
- * once, where a citizen is actually being weighed against something else.
+ * **Who charges the keep, and where** (X5b re-wrote this paragraph; X5 shipped
+ * with the charge in this fold alone, and the measurement said why that was not
+ * enough). This fold has one caller — the settler's arm (`unitRoleValue`, *"the
+ * citizen it costs this town"*), which **subtracts** it, so the sign arrives
+ * there as *more* expansion: a citizen that costs contentment is a citizen a
+ * town gives up more cheaply. That is right, and it is only one of the three
+ * places a citizen is weighed. The other two — the focus arm's `growthTerm` and
+ * the hex purchase's `tileWants` — still read the **ground** rather than this
+ * appraisal, for the reason their docblocks give (this fold asks the town's
+ * *live* placement, so its answer moves the moment the focus arm's own command
+ * moves the citizens, and an appraisal that changes because it was acted on
+ * flips a town back and forth all turn). What they now share with it is the one
+ * line that is *not* a fact about placement: `citizenKeepTerm`, asked at the
+ * town's current population, which no command of a seat can move. Three arms,
+ * one arithmetic for the keep, and the demand still charged once per arm rather
+ * than twice in any of them.
  */
 export function explainCitizen(state: GameState, city: City, ctx: ValueContext): Appraisal {
   const terms: ValueTerm[] = [];
@@ -4441,17 +4486,11 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
   }
   // The keep it asks for, at what a point of contentment is worth to this seat
   // right now. Negative, and it is the whole of the point: every other line here
-  // is a gain.
-  const demand = signDoor.citizen
-    ? happinessDemand(city.population + 1) - happinessDemand(city.population)
-    : 0;
-  if (demand > 0) {
-    terms.push({
-      label:
-        `the contentment one more citizen demands — ${round1(demand)} × ${meterWords(ctx, 'happiness')}`,
-      value: -demand * meterWeight(ctx, 'happiness'),
-    });
-  }
+  // is a gain. Since X5b the line is `citizenKeepTerm`'s (`citizen.ts`) — one
+  // arithmetic, folded here, by the focus arm, by the hex purchase and by the
+  // expansion chain, so no two arms come to two answers about one citizen.
+  const keep = signDoor.citizen ? citizenKeepTerm(ctx, city.population) : null;
+  if (keep !== null) terms.push(keep);
   return appraise(terms);
 }
 
