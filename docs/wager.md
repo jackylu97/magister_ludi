@@ -637,7 +637,36 @@ What to rank (rec, one row each, the user's list): technologies held;
 science, culture, food, production, gold and faith a turn; drafts taken;
 followers of each faith; cities and citizens; army strength; beads. The
 great person's name on the census is flavour and stays labelled so.
-▢ the user's call on (a) vs (b), and the cadence.
+**RULED** (the user, 2026-09-09): *"in my head I was imagining the
+notification would be a full modal, and only take place every 15 turns or so
+(could be randomized intervals around 15) … I don't know if it would be as
+impactful hidden away in a menu."* So: the census is a **full-screen sheet**
+on `modalShell.ts`, taken every **15 ± 3 turns** (the interval drawn from
+`state.rng` at each census so a seed is a calendar; `rules.census.every`
+15, `rules.census.jitter` 3), each census ranking **one** stat from the list
+above in rotation (the rotation from the rng too, no stat twice running),
+every real seat's figure beside its name, the local seat's row lifted, the
+great person's name on the masthead as flavour; the sheet is an End Turn
+blocker like a draft (dismissed, never chosen). The last census stays
+readable on the Abacus (the world's bead ledger — the closest thing the
+game has to a world ledger today; `ledgerScreen.ts` is the local seat's own
+yields) so a player who dismissed it can look again. Bots read the true
+board already and need nothing from it. **The census pays** (the user,
+2026-09-09): the seat that leads the ranked stat takes a **Triumph worth +5
+renown** — and for the interface's sake there is **no second sheet**: the
+Triumph is shown *inside* the census sheet, on the leader's own row, never
+as a separate triumph card on top of it (the user: "let's not show both a
+triumph modal for winning the census and the census modal"). The user may
+rework how Triumphs work later; this stands for now. **The wager's own
+surface**: the Abacus is reworked into the wager screen — the age's
+countdown, the three dealt cards, every seat's standing against each bar
+ranked and refreshed each turn, the bead rods beneath — and the old Æra
+III/IV **conditions draw menu** (the deed sheet's draw of reckonings and
+quests) is **retired** when it lands. Batch **C1**, after G2 (it shares the
+standings reading). Mock of both:
+https://claude.ai/code/artifact/afd3cee0-0ff3-4388-a6c7-3fc3bf9665d0 — the four
+sheets (the deal, the Abacus mid-age, the census, the census won) are the
+spec of record for G2 and C1 once the user marks them.
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 
