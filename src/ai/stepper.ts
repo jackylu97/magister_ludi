@@ -33,6 +33,7 @@
 
 import { aiConfigFor } from './aiConfig';
 import { type BotSitting, botSitting, nextBotDecision } from './bot';
+import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
 import type { CommandResult } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
@@ -165,7 +166,13 @@ export function createBotStepper(game: Game, options: StepperOptions = {}): BotS
     const seat = run;
     const decision = pending(seat);
     const turn = game.state.turn;
+    // **The paper remembers** (X4), and it is `driveSeat`'s line unrolled: read
+    // while the paper is still on the table, banked once the reducer has taken
+    // the answer. The memory hangs off the state both loops drive, so the two
+    // play one game the way the byte-for-byte pin says they do.
+    const refusal = pendingDealRefusal(game.state, decision.command);
     const result = dispatch(game, decision.command);
+    if (result.ok && refusal !== null) rememberDealRefusal(game.state, refusal);
     const turnResolved = game.state.turn > turn;
 
     const ai = aiConfigFor(playerById(game.state, seat.playerId)?.persona, seat.playerId);

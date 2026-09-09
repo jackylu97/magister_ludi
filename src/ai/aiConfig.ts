@@ -525,6 +525,27 @@ export interface AiConfig {
      * for what it gives, and offers a tenth less for what it takes.
      */
     counterMarkup: number;
+    /**
+     * **How long a paper the rival sent back stays sent back** (batch X4, the
+     * ruling of 2026-09-08 — its own recommendation was twenty).
+     *
+     * The memory lives on the harness rather than in the state
+     * (`src/ai/dealMemory.ts`), keyed on the paper's own JSON and on a
+     * fingerprint of what the rival holds that the paper asks after — so the
+     * ordinary way a refusal is forgotten is that **the board that priced it
+     * moved**: a rival who strikes a second vein of the seam we asked for is a
+     * rival worth asking again, that turn, whatever this number says.
+     *
+     * This is the other way, and it is a *lapse* rather than a countdown: an
+     * absolute turn is stamped on the refusal and the reading compares it
+     * against `state.turn`, the discipline `TimedEffect` keeps one system over.
+     * It exists because a rival's reasons live in more than its holdings — a war
+     * ended, a wonder raised, a happiness crisis passed — and none of that is in
+     * a fingerprint of a paper. Small numbers put the loop back (the seat writes
+     * the same two papers every few turns); large ones make a seat that asked
+     * once at turn 20 silent for the rest of the age.
+     */
+    refusalMemoryTurns: number;
   };
   /**
    * **The value vector**: what one per-turn point of each voice is worth, per

@@ -62,6 +62,7 @@
 
 import { type AiConfig } from './aiConfig';
 import { campaignRoad, strikeForce } from './campaign';
+import { readDealRefusal } from './dealMemory';
 import {
   type Appraisal,
   type BotCandidate,
@@ -1244,12 +1245,39 @@ function nearestTownInReach(
 
 /**
  * One 1:1 luxury swap put to a peer — a kind this empire holds **twice** for a
- * kind it holds **none** of (the ruled rule, section 7).
+ * kind it holds **none** of (the ruled rule, section 7) — and, where that swap
+ * has already been sent back, the same swap **with coin on it** (batch X4).
  *
- * Small on purpose: this is the whole of what a v1 bot proposes. The throttle is
- * the reducer's own — `bargainSeatError` refuses a second standing proposal from
- * one seat to the same seat — so there is no register here and no memory to keep,
- * which is what lets a stateless policy offer a bargain at all.
+ * Small on purpose: this is still the whole of what the bot proposes, and the
+ * shape of the paper is unchanged. What changed is that the arm is no longer
+ * *only* a reading of the board. The reducer's throttle (`bargainSeatError`
+ * refuses a second standing proposal to the same seat) bounds a paper to one at
+ * a time and bounds nothing across turns, so a swap the rival declined on turn
+ * 41 was written again on turn 42 and every turn after it — the audit measured
+ * one paper sent 37 times for no deal (`docs/audit/bot-pass-2.md`, finding 2).
+ *
+ * So the arm asks the harness's memory (`dealMemory.ts`) before it writes, and
+ * there are exactly three answers:
+ *
+ *   · **nothing remembered** — write the swap, as it always did;
+ *   · **this swap was sent back** — write it once more with coin on this seat's
+ *     side, filled by `counterTerms` to the rival's own bar. The seat is
+ *     answering its own refusal with the function the sheet already uses to
+ *     answer a player's ("what would make this work?"), which is the audit's
+ *     change 4: *a bot that can sweeten a refused swap with coin has a
+ *     diplomacy; a bot that re-sends the same paper 37 times has a loop*;
+ *   · **the sweetened one was sent back too** — say nothing to that seat about
+ *     that swap until the board that priced it moves or the memory lapses. Both
+ *     papers this seat knows how to write have been answered.
+ *
+ * One clause keeps the second answer from being ink for its own sake: a paper
+ * that asks for a seam the rival holds **one** copy of is refused by a hard
+ * clause and not by a price (`asksOurLastCopy`, read here from the other side of
+ * the table exactly as `counterTerms` reads it), and no amount of coin moves a
+ * hard clause. That reading assumes the rival keeps this seat's own policy,
+ * which is the same assumption `counterTerms` makes when it prices a rival's bar
+ * off `ctx.ai` — the bot has no other sheet to read, and a person on the other
+ * side of the table is under no such rule and is asked the plain swap anyway.
  *
  * Seats in roster order and resources in the table's own order, so which of two
  * equally good swaps is offered is a fact the replay reproduces.
@@ -1273,25 +1301,116 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
         const give: DealTerms = { luxuries: [offered] };
         const take: DealTerms = { luxuries: [wanted] };
         const label = `${resourceDef(offered).name} for the ${enemy.name}' ${resourceDef(wanted).name.toLowerCase()}`;
-        const refusal = proposeDealError(state, player.id, enemy.id, give, take);
-        if (refusal !== null) {
-          rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
+        const written = writeSwap(state, player, enemy, give, take, ctx);
+        if (written.rejected !== undefined) {
+          rows.push({ label, score: 0, chosen: false, terms: [], rejected: written.rejected });
           continue;
         }
-        const paper = explainPaper(state, player, take, give, ctx).appraisal;
+        const paper = written.appraisal;
         rows.push({ label, score: paper.total, chosen: true, terms: paper.terms });
         return {
           kind: 'deal',
-          command: { type: 'proposeDeal', playerId: player.id, targetId: enemy.id, give, take },
+          command: {
+            type: 'proposeDeal',
+            playerId: player.id,
+            targetId: enemy.id,
+            give: written.give,
+            take: written.take,
+          },
           subject: enemy.name,
           summary:
             `Offers the ${enemy.name} a swap: ${resourceDef(offered).name.toLowerCase()} it holds twice for ` +
-            `${resourceDef(wanted).name.toLowerCase()} it holds none of.`,
+            `${resourceDef(wanted).name.toLowerCase()} it holds none of` +
+            (written.sweetener === null ? '.' : ` — ${written.sweetener}.`),
           candidates: rows,
         };
       }
     }
   }
   return null;
+}
+
+/** A swap as it will be written this turn, or the sentence for why it is not. */
+interface WrittenSwap {
+  give: DealTerms;
+  take: DealTerms;
+  appraisal: Appraisal;
+  /** The coin line's own words, when this is the second attempt. `null` for a plain swap. */
+  sweetener: string | null;
+  /** Set instead of the rest: the rules' refusal, or the memory's. */
+  rejected?: string;
+}
+
+/**
+ * The paper this seat would put to that seat about this swap — plain, sweetened,
+ * or not at all.
+ *
+ * `swapDecision`'s body, split out because the three answers of the memory are
+ * one question about one pair and the loop above is three nested walks: a
+ * decision this shape is easier to read as *what do we write* beside *what could
+ * we write about*.
+ *
+ * The memory's turn is printed in the sweetened paper's own terms — a `ValueTerm`
+ * worth nothing, because the coin it names is already priced two lines above it
+ * by `explainSide` and a figure counted twice is a score that does not fold.
+ */
+function writeSwap(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  give: DealTerms,
+  take: DealTerms,
+  ctx: ValueContext,
+): WrittenSwap {
+  const memory = readDealRefusal(
+    state,
+    player.id,
+    enemy.id,
+    give,
+    take,
+    ctx.ai.war.refusalMemoryTurns,
+  );
+  const plain: WrittenSwap = { give, take, appraisal: appraise([]), sweetener: null };
+  if (memory.sweetenedTurn !== null) {
+    return {
+      ...plain,
+      rejected:
+        `sweetened and sent back on turn ${memory.sweetenedTurn}; not written again ` +
+        `while the ${enemy.name}' holdings stand where they did`,
+    };
+  }
+  let written = plain;
+  if (memory.refusedTurn !== null) {
+    const lastCopy = asksOurLastCopy(state, enemy, take);
+    if (lastCopy !== null) {
+      return {
+        ...plain,
+        rejected:
+          `sent back on turn ${memory.refusedTurn}, and it asks for the only ` +
+          `${resourceDef(lastCopy).name.toLowerCase()} they hold, which coin does not buy`,
+      };
+    }
+    const counter = counterTerms(state, enemy.id, player.id, give, take, ctx);
+    const coin = (counter?.give.gold ?? 0) - (give.gold ?? 0);
+    const tribute = (counter?.give.goldPerTurn ?? 0) - (give.goldPerTurn ?? 0);
+    if (counter === null || coin + tribute <= 0) {
+      return {
+        ...plain,
+        rejected: `sent back on turn ${memory.refusedTurn}, and this empire has nothing to sweeten it with`,
+      };
+    }
+    const words =
+      `the straight swap was refused on turn ${memory.refusedTurn}; sweetened by ${coin} gold` +
+      (tribute > 0 ? ` and ${tribute} coin a turn` : '');
+    written = { give: counter.give, take: counter.take, appraisal: appraise([]), sweetener: words };
+  }
+  const refusal = proposeDealError(state, player.id, enemy.id, written.give, written.take);
+  if (refusal !== null) return { ...written, rejected: refusal };
+  const read = explainPaper(state, player, written.take, written.give, ctx).appraisal;
+  const lines =
+    written.sweetener === null
+      ? read.terms
+      : [...read.terms, { label: written.sweetener, value: 0 }];
+  return { ...written, appraisal: appraise(lines) };
 }
 

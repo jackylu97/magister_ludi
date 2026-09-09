@@ -686,11 +686,19 @@ describe('the bot module', () => {
     // march both ask and which therefore cannot live in either — and
     // `driver.ts` is the loop with `stepper.ts` that same loop unrolled one
     // decision at a time.
+    //
+    // Fourteen since X4 (2026-09-08): `dealMemory.ts` is the fifth leaf and the
+    // one module here that *remembers* anything — what a rival sent back, hung
+    // off the live state in a `WeakMap` so that no schema, no save and no rule
+    // carries it. It is a module of its own because both loops fill it and the
+    // policy reads it, and a memory either loop kept privately would be a fifth
+    // piece of per-seat state for the byte-for-byte pin to keep in step.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
       'campaign.ts',
       'chain.ts',
+      'dealMemory.ts',
       'decision.ts',
       'diplomacy.ts',
       'driver.ts',

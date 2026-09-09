@@ -130,6 +130,21 @@ describe('the configuration panel is generated, not listed', () => {
     expect(walked.length).toBeGreaterThan(100);
   });
 
+  it('carries a knob the day the bot grows one, with no edit to the page', () => {
+    // The batch-by-batch half of the promise above, asserted about a knob that
+    // was added *after* the page was written: X4's refusal memory. Nothing in
+    // `arena.html` or `src/arenaPage/` names it — it is on the panel because the
+    // panel walks `data/ai.json`, which is the whole design.
+    const knob = knobs.find((row) => knobKey(row.path) === 'war.refusalMemoryTurns');
+    expect(knob).toBeDefined();
+    expect(knob!.kind).toBe('number');
+    expect(knob!.value).toBe(AI.war.refusalMemoryTurns);
+    for (const module of ['panel.ts', 'knobs.ts', 'main.ts', 'run.ts']) {
+      expect(source(module), module).not.toContain('refusalMemoryTurns');
+    }
+    expect(html).not.toContain('refusalMemoryTurns');
+  });
+
   it('groups by the sheet’s own top-level blocks, in the file’s order', () => {
     const blocks = blocksOf(knobs).map((block) => block.name);
     expect(blocks).toEqual(Object.keys(AI));

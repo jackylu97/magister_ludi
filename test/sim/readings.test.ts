@@ -308,6 +308,20 @@ describe('nobody rebuilds the town’s list', () => {
     // reading at all. Every other one carries a revision beside it.
     for (const [path, text] of Object.entries(SOURCE)) {
       if (!text.includes('new WeakMap<GameState')) continue;
+      if (path.endsWith('/dealMemory.ts')) {
+        // **The one exception, since X4, and it is not a memo.** It remembers
+        // something that *happened* — a paper a rival sent back — rather than a
+        // reading derived from the board, so a revision would erase it on the
+        // next command and the loop it closes would open again. What keeps a
+        // stale entry from answering is the memo discipline read one layer up:
+        // its own fingerprint of what the rival holds, and an absolute turn.
+        expect(`${path} says what it keys on`).toBe(
+          /fingerprint/.test(text) && /turn/.test(text)
+            ? `${path} says what it keys on`
+            : `${path} says nothing about what it keys on`,
+        );
+        continue;
+      }
       expect(`${path} keys on the revision`).toBe(
         /revision/.test(text) ? `${path} keys on the revision` : `${path} keys on something else`,
       );

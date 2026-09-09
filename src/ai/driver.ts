@@ -51,6 +51,7 @@
 
 import { aiConfigFor } from './aiConfig';
 import { botSitting, nextBotCommand, valueContext } from './bot';
+import { pendingDealRefusal, rememberDealRefusal } from './dealMemory';
 import type { BotDecision } from './decision';
 import { answerPeaceOffer, answerProposal } from './diplomacy';
 import type { Command, CommandResult } from '../sim/commands';
@@ -183,8 +184,13 @@ export function answerAudience(game: Game, options: AudienceOptions): BotDecisio
   }
   if (decision === null) return null;
 
+  // The same seam as the sitting's, for the same reason: a paper this seat sends
+  // back at the table is a paper it has answered, and the arm that writes papers
+  // reads one memory wherever the answer was given.
+  const refusal = pendingDealRefusal(state, decision.command);
   const result = dispatch(game, decision.command);
   if (result.ok) {
+    if (refusal !== null) rememberDealRefusal(state, refusal);
     options.report?.(decision.command, result);
     return decision;
   }
@@ -248,8 +254,14 @@ export function driveSeat(game: Game, playerId: number, options: DriveOptions = 
         // seat is stuck.
         break;
       }
+      // **The paper remembers** (X4). Read while the paper is still on the
+      // table — the decline takes the row off the register — and banked only if
+      // the reducer took the answer. The stepper does exactly this at its own
+      // dispatch, which is what keeps the two loops one game.
+      const refusal = pendingDealRefusal(game.state, command);
       const result = dispatch(game, command);
       if (result.ok) {
+        if (refusal !== null) rememberDealRefusal(game.state, refusal);
         report.accepted += 1;
         options.report?.(command, result);
         continue;

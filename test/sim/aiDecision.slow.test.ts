@@ -423,6 +423,12 @@ describe('a hundred turns of arithmetic', () => {
       // Asked twice on one board, the policy answers the same thing — the
       // contract `aiBot.test.ts` makes about commands, made here about the whole
       // decision including its candidate table.
+      //
+      // Since X4 the deal arm also reads the harness's refusal memory
+      // (`dealMemory.ts`), which is a fact about *this game in play* rather than
+      // about the board: a replayed state is a new object and carries none, so
+      // the claim asked here is unchanged and is the honest one — two questions
+      // to one seat about one board get one answer.
       const once = nextBotDecision(state, 0);
       const twice = nextBotDecision(state, 0);
       expect(JSON.stringify(twice)).toBe(JSON.stringify(once));

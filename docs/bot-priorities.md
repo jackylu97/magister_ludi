@@ -3244,3 +3244,144 @@ was worth nothing and every point of the bank was held against a rite.
 - **Nothing was done about why the rows never open.** The audit's seats reach
   t150 without a religion; that is a research- and belief-side question, not a
   book one.
+
+## Batch X4 as shipped — the paper remembers (2026-09-08)
+
+`docs/audit/bot-pass-2.md`'s finding 2 and change 4, and the ruling on the flags
+board ((ggg), 2026-09-08). The audit measured **92 `proposeDeal` and 91
+`declineDeal` on seed 4242 — 15% of a seat's whole command budget — four distinct
+papers, one sent 37 times, and zero deals struck.** The mechanism was not a bad
+price: `swapDecision` is a pure reading of the board, a `declineDeal` changes no
+tile and no purse, so a paper the rival sent back on turn 41 was written again on
+turn 42 and every turn after it. The stepper's `refusedCommands` memo is the
+*rules'* refusals and is per seat-turn; nothing anywhere outlived the turn.
+
+### The mechanism, in three parts
+
+**1 — a memory, and it is the harness's** (`src/ai/dealMemory.ts`, the fifth leaf
+of `src/ai/`). A refusal is not a fact about the world: no rule reads it, nothing
+in a save can see it, and a peer replaying the log must reach the same board
+without it. So there is **no schema**. The store is a `WeakMap` on the live
+`GameState` — the identity of *a game in play* — which is the one object both
+loops that drive seats already hold and the one the policy is already handed, so
+nothing is plumbed through a signature and the two loops cannot drift. Both fill
+it at their own dispatch, in two lines each: `pendingDealRefusal` reads the paper
+while it is still on the register (the decline takes the row off it) and
+`rememberDealRefusal` banks it once the reducer has taken the answer. There are
+**four** seams and they are every place in the product a paper is answered:
+`driveSeat`, `createBotStepper`'s `step` and `answerAudience` for a bot's answer,
+and **`answerDealOf` (`src/ui/controls.ts`) for a person's** — the Deal panel's
+Refuse button. That fourth one is the loop as a player actually meets it, which
+is the report this batch came from; no other module under `src/ui/` sends a
+`declineDeal`, and `test/ui/dealMemory.test.ts` pins that by sweeping the sources
+as well as pinning the order of the two lines inside the verb.
+
+**2 — keyed on the paper and on what the rival holds.** A record carries the
+paper's own JSON (both sides, normalised, lists sorted) *and* a fingerprint of
+what the refusing empire holds **that the paper asks after**: the net
+`resourceCopies` of every seam named on either side, whether the coin the paper
+asks *of them* is in their purse at all (as *enough* or *short*, never as a
+figure — a treasury that drifts three coin a turn would expire the memory every
+turn), and who holds a town the paper names. When that fingerprint moves, the
+board that priced the refusal has moved and the refusal says nothing about the
+new one — a rival who strikes a second vein of the seam we asked for is a rival
+worth asking again, that turn. The lapse is the other way out:
+`ai.war.refusalMemoryTurns` (**20**, the ruling's own recommendation), an
+absolute stamp compared against `state.turn` — nothing ticks, the discipline
+`TimedEffect` keeps one system over.
+
+**3 — the counter, used offensively.** `counterTerms` has existed since D1 and
+was called only when a human pressed a button. `swapDecision` now calls it on its
+*own* refusal: a straight swap the rival sent back is written once more with coin
+on this seat's side, filled to the rival's own bar by the function that already
+fills a player's — `explainPaper` from the rival's side, plus `war.counterMarkup`
+over even, capped by `dealSideError`. The paper carries a `ValueTerm` worth
+nothing that says so — *"the straight swap was refused on turn 41; sweetened by
+12 gold"* — worth nothing because the coin it names is priced two lines above it
+by `explainSide`, and a figure counted twice is a score that does not fold. A
+sweetened paper sent back **closes the pair** until the fingerprint moves or the
+turns lapse: both papers this seat knows how to write have been answered.
+
+One clause keeps the second attempt from being ink for its own sake. A paper that
+asks for a seam the rival holds **one** copy of is refused by a hard clause and
+not by a price (`asksOurLastCopy`), and no amount of coin moves a hard clause —
+so the memory closes that pair on the *first* refusal and prints the reason
+(*"sent back on turn 41, and it asks for the only silk they hold, which coin does
+not buy"*) in the candidate table the spectate feed already shows. It is the
+bot's own clause read from the other side of the table, which is the same
+assumption `counterTerms` has always made when it prices a rival's bar off
+`ctx.ai`; a person is under no such rule and is asked the plain swap regardless.
+
+### The measurement
+
+The audit's own bench, reproduced: two duels, two balanced seats, wild on, seeds
+20260903 and 4242, 150 turns, stepped a decision at a time through
+`createBotStepper`. **The before column is today's `main`, not the audit's own
+tree** — X1, X2 and X3 landed in between and moved both boards, and with them the
+loop: the audit measured 92 papers on 4242 and *none* on 20260903, where today's
+tree measures 14 and 77. The loop is board-dependent, exactly as the finding
+said; what it is not is rare.
+
+| | 4242 before | 4242 after | 20260903 before | 20260903 after |
+|---|---|---|---|---|
+| `proposeDeal` | 14 | **2** | 77 | **8** |
+| `declineDeal` | 14 | **2** | 77 | **8** |
+| deals struck | 0 | 0 | 0 | 0 |
+| distinct papers | 1 | 2 | 1 | 2 |
+| most-repeated paper | 14× | 1× | 77× | 4× |
+| commands, whole game | 955 | 931 | 1,167 | 1,029 |
+| (audit's own tree) | 92 · 91 · 0 | | 0 · 0 · 0 | |
+
+The command count falls by **exactly** the papers that stopped being written (24
+and 138), which is the finding's sharpest reading: a proposal and its decline
+leave the board identical, so the loop was not crowding anything out — it was
+pure overhead, and the seats play the same game without it. On 20260903 that is
+**12% of every command the game emitted**.
+
+**Zero deals on both boards, and the reason is upstream of this batch.** Measured
+holdings at t150: seat 1 holds `whales×1` (4242) and `silk×1, gold×1`
+(20260903) — *every* paper the arm can write on these boards asks for a kind the
+rival holds one copy of, which its own hard clause refuses. So the counter never
+fires here: each pair closes on the first refusal with the printed reason, and
+the second paper on each seed is the *next* swap the seat had never got round to
+asking about (`gold` for whales; amber for gold). A board where a swap is
+mutually profitable is arranged in `test/sim/aiDiplomacy.test.ts` — two
+duplicates each of a kind the other lacks — and there the paper is written,
+answered and **signed**, with the seams lent both ways.
+
+### Knobs added
+
+**One**, and the ruling named it: `war.refusalMemoryTurns` (20). It is on the
+arena panel with no edit to the page — the panel walks the sheet — which
+`test/ui/arenaPage.test.ts` now asserts about this knob by name from the outside.
+
+### Known gaps, written down rather than fixed
+
+- **The peace arm has the same loop, and it is not closed.** A person who sends a
+  bot's peace envoy home (`declinePeace`) takes the offer off the table, and
+  `peaceDecision` sues again next turn for as long as the warscore sits under
+  `war.sueFloor`. The memory cannot key it as it stands: a peace paper has **no
+  row in the proposals register** — it rides on the war (`wars.ts`) — so there is
+  no id and no `give`/`take` to hash, and `pendingDealRefusal` answers `null` for
+  anything that is not a `declineDeal`. Closing it means either a paper for the
+  peace offer or a second key shaped like a war; both are design decisions rather
+  than arithmetic, so this is written down rather than guessed at.
+  `declinePeaceFrom` names the reason in its neighbour's docblock.
+- **A save loaded mid-game forgets.** Ruled, and accepted: `loadGame` replays
+  into a new state object, the `WeakMap` finds nothing, and the seat writes its
+  paper once more before the memory closes again. One re-send is the price of
+  keeping this out of the save file.
+- **The counter is unreachable bot-against-bot.** Two seats sharing one sheet can
+  only ever refuse a 1:1 swap on the last-copy clause — a rival holding two
+  copies signs the straight swap at even, which is `answerProposal`'s bar. So the
+  sweetened paper is a thing the bot writes to a **person**, which is why it is
+  pinned on an arranged board from both sides: `test/sim/aiDiplomacy.test.ts` for
+  the arithmetic and `test/ui/dealMemory.test.ts` for the case the player is in —
+  offer, Refuse, the same swap with coin on it, Refuse, silence.
+- **The arm still asks for a seam the rival cannot give.** `swapDecision` requires
+  a duplicate on its *own* side and does not ask whether the other side has one.
+  Gating on it would silence the bot against a human who might well sell their
+  only silk for coin; the honest fix is to let the paper be written and let the
+  memory close it, which is what this batch does. The measured consequence is
+  that the bot's swap arm strikes nothing on a generated duel map, and *why the
+  two empires never both hold a duplicate* is a mapgen-and-expansion question.

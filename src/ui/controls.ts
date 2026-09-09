@@ -328,6 +328,10 @@ import type { DealTerms } from '../sim/deals';
 // and issued as a logged command by whichever client drives the seat — for a
 // person's seat, that client is this file. See `autoPickPuppets`.
 import { puppetProduction } from '../ai/bot';
+// **The second thing this interface owes an appraisal**, and it owes it in the
+// other direction: a paper *this* seat sends back is the fact that stops a bot
+// writing it again next turn (batch X4). See `answerDealOf`.
+import { pendingDealRefusal, rememberDealRefusal } from '../ai/dealMemory';
 import type { DealExecution } from '../sim/diplomacy';
 import {
   type CellRef,
@@ -3761,6 +3765,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * the reducer's own split (`acceptDeal`/`declineDeal`), and the panel draws
    * them as two faces of one paper. A signature is the one that moves
    * something, and `reportDiplomacy` says what it moved.
+   *
+   * **And a refusal is remembered** (batch X4). A bot is a pure function of the
+   * board, so a swap this seat sends back is a swap it is offered again next
+   * turn, and the turn after — the audit measured one paper sent 37 times
+   * between two bots, and the user's own report is the same loop seen from this
+   * chair. The memory that closes it is the harness's rather than the state's
+   * (`src/ai/dealMemory.ts`, no schema), and it is filled at every seam a paper
+   * is answered through: `driveSeat`, the stepper and `answerAudience` for a
+   * bot's answer, and **this function** for a person's — the two lines are the
+   * same two lines, in the same order. Read *before* the dispatch because the
+   * decline takes the row off the register, and banked only once the reducer has
+   * taken the answer.
+   *
+   * `declinePeaceFrom` carries no such line, and deliberately: a peace offer has
+   * no row in the proposals register to key a memory on — it rides on the war —
+   * so `pendingDealRefusal` answers `null` for anything that is not a
+   * `declineDeal`. That the bot re-sues after a refused peace is a real loop of
+   * its own and is written down as a gap in `docs/bot-priorities.md`.
    */
   function answerDealOf(dealId: number, accept: boolean): void {
     const { state } = getGame();
@@ -3768,15 +3790,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reject(`You have ended turn ${state.turn}`);
       return;
     }
-    const result = commit({
+    const command: Command = {
       type: accept ? 'acceptDeal' : 'declineDeal',
       playerId: localPlayerId,
       dealId,
-    });
+    };
+    const refusal = pendingDealRefusal(state, command);
+    const result = commit(command);
     if (!result.ok) {
       reject(result.error);
       return;
     }
+    if (refusal !== null) rememberDealRefusal(state, refusal);
     if (!accept) announce('You have refused their offer.');
     // The board's rims may have changed — a right of way opens a border, a
     // ceded town moves a flag — and the layers that draw them key off the
