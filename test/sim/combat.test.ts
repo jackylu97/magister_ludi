@@ -1983,8 +1983,13 @@ describe('a war replays exactly', () => {
     // lines down is what says so out loud.
     //
     // Re-aimed from seed 1 on 2026-09-03: the default map became a pangaea, so
-    // seed 1's opening pair now stand on ground that ends the grind early.
-    const { game, ids } = warGame('warrior', 'warrior', 2);
+    // seed 1's opening pair now stand on ground that ends the grind early. And
+    // re-aimed from seed 2 to seed 3 on 2026-09-09 (schema 102): retiring the
+    // reckonings takes four cards out of each age's deck, so the shuffle at
+    // `newGame` spends fewer rolls and the opening pair stand somewhere else
+    // again. The fixture is a *seed that produces the clamp*, not a claim about
+    // any particular number.
+    const { game, ids } = warGame('warrior', 'warrior', 3);
 
     let mutualKill: { attacker: number; hp: number } | null = null;
     const swing = (playerId: number, attackerId: number, defenderId: number): void => {

@@ -281,6 +281,10 @@ const EXCUSED = new Map<string, string>([
     'writes the turn report, not the board — `runBeads`’ excuse one phase up: the close’s own awards land through `awardBead`, and the clock’s state (`GameState.ageClose`) is an absolute stamp no tenant folds a yield from',
   ],
   [
+    'wagers.ts#runWagers',
+    'writes the turn report, not the board — `runBeads`’ excuse one phase up: a kept wager’s beads land through `awardBead`, which announces, and everything else this phase writes (`Player.wagerTotals`, `Player.wager`, `WagerDeal.claimed`) is a running total or an absolute stamp no tenant folds a yield from',
+  ],
+  [
     'turn.ts#runEndOfTurn',
     'writes the turn report, not the board — the bead diff, already announced by `awardBead`',
   ],
@@ -468,7 +472,18 @@ describe('the register of announced writes', () => {
       .filter((row) => row.file !== 'readings.ts')
       .filter((row) => /from '\.{1,2}\/(\.\.\/)?readings'/.test(row.text))
       .map((row) => row.file);
-    expect(importers).toEqual(['cardImpact.ts']);
+    // Three since batch G2, and the other two keep the argument rather than
+    // bending it. `ledgerFold.ts` is the Ledger's class fold lifted out of the
+    // screen (`docs/wager.md` §8): it is a *reading* above the pipeline that
+    // nothing in `src/sim` imports back except the one phase below it, and it
+    // writes nothing at all. `wagers.ts` asks it once a turn from the `wagers`
+    // phase — the one place in the simulation a `read…` is asked from inside a
+    // phase — and does so **at rest**: the reading is taken before the phase's
+    // own writes, and what the phase writes (a running total, a stake, a claim)
+    // is folded by no tenant, which is exactly the excuse its row in `EXCUSED`
+    // gives. A yield read here can never be stale, because nothing here moves a
+    // yield.
+    expect(importers).toEqual(['cardImpact.ts', 'ledgerFold.ts', 'wagers.ts']);
 
     // And it is a leaf of the simulation: no module in `src/sim` reaches it, so
     // no handler and no phase can ask a `read…` verb through it.

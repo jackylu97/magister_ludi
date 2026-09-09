@@ -345,6 +345,19 @@ interface BeadDefBase {
    * the Compendium can print it greyed, exactly as a deferred Triumph is.
    */
   dormant?: string;
+  /**
+   * **Withdrawn by design** — the row is not waiting on anything, it has been
+   * replaced (`BuildingDef.retired`'s own word, and `OrderDef.retired`'s).
+   *
+   * `dormant` says *not yet*; this says *no longer*, and the difference is worth
+   * a field because the two read differently on a card and the Compendium wants
+   * to say which. Both leave every pool and neither can ever be awarded.
+   *
+   * The eight **reckonings** carry it since batch G2 (`docs/wager.md` §5): the
+   * wager is the age's snapshot now, taken for everybody rather than paying the
+   * leader alone. Their bodies stay for saves and for the Compendium's record.
+   */
+  retired?: boolean;
 }
 
 /** A first in the world, always in play. */
@@ -572,6 +585,10 @@ export function anyBeadDef(
 export function beadIsDormant(id: BeadCardId): boolean {
   const { kind, def } = anyBeadDef(id);
   if (def.dormant !== undefined) return true;
+  // **Withdrawn is unreachable too**, and it goes through this one predicate
+  // rather than growing a second guard at every seam: `awardBead` refuses it,
+  // `clearSpentCards` never has to sweep it, and the deal never turns it over.
+  if (def.retired === true) return true;
   if (kind !== 'endeavour') return false;
   return prerequisiteUnreachable((def as BeadEndeavourDef).prerequisite);
 }
@@ -646,8 +663,16 @@ export function drawAgeReckonings(rng: Rng): BeadReckoningId[] {
   const drawn: BeadReckoningId[] = [];
   for (const family of BEAD_FAMILIES) {
     const pool = reckoningsOfFamily(family);
+    // **An empty pool still costs its roll**, which is the docblock's own rule
+    // read one step further — and since batch G2 it is the *only* case, because
+    // every reckoning is retired (`docs/wager.md` §5). A draw that skipped the
+    // roll would have moved every generator-fed decision in the game downstream
+    // of `newGame` on the day the rows were withdrawn: every bead deck, every
+    // Order draft, every offer. Retiring a card is a rules decision; re-seeding
+    // the world is not, and the two are kept apart by one wasted number.
+    const at = nextInt(rng, 0, Math.max(1, pool.length));
     if (pool.length === 0) continue;
-    drawn.push(pool[nextInt(rng, 0, pool.length)]!);
+    drawn.push(pool[at]!);
   }
   return drawn;
 }
@@ -796,10 +821,13 @@ export function beadDataProblems(): string[] {
   for (const age of BEAD_DECK_AGES) {
     if (beadDeckFor(age).length === 0) problems.push(`age ${age}'s deck holds no live card`);
   }
-  // And a family with no live reckoning is an age that can only ever deal three:
-  // the draw is one row per family, so an empty pool is a rod nobody can score
-  // at a reckoning at all.
-  for (const family of BEAD_FAMILIES) {
+  // The reckonings' own check stood here and is **retired with them** (batch G2,
+  // `docs/wager.md` §5): every row carries `retired: true`, so every family's
+  // pool is empty by design and a lint that said so would fail the build on the
+  // ruling itself. What replaced the measure is the wager, which is measured by
+  // `wagerDataProblems` (`wagerData.ts`) — including the check this one was: that
+  // every wagering age has enough *lines* to deal three different ones from.
+  for (const family of [] as BeadFamily[]) {
     if (reckoningsOfFamily(family).length === 0) {
       problems.push(`no live reckoning measures the ${family} family`);
     }

@@ -66,6 +66,7 @@ import type { EarnedBead } from '../sim/state';
 import { BEAD_FAMILY_MARK, abacusRodSlots, beadHoverText } from './beadsScreen';
 import { figure } from './figures';
 import { element } from './dom';
+import { type WagerBoard, wagerFigure, wagerTrackFraction } from './wagerSheet';
 
 /**
  * The simulation's four bead families, in the look file's four scoring-family
@@ -132,6 +133,20 @@ export interface AbacusScreenOptions {
   onOpen?: () => void;
   /** Opens the Bead Race's table. A rod is the door to the cards behind it. */
   onOpenBeads?: () => void;
+  /**
+   * **The age's three bars, with every seat's standing against each** — the
+   * wager band this screen grew in batch G2 (`docs/wager.md` §11; the mock of
+   * 2026-09-09 is the spec).
+   *
+   * A closure rather than a state handle, for `rows`' reason exactly: this
+   * screen knows about names, figures and inks and has never known about the
+   * simulation, and the reading it wants (`wagerBoards`) is a pure fold
+   * somebody else already publishes.
+   *
+   * Answering an empty list is a world with no wager on the table — the whole of
+   * Æra I — and the band simply is not drawn.
+   */
+  wagers?: () => readonly WagerBoard[];
 }
 
 /** Two DOM labels per rod: the name at the earned end, the tally at the waiting end. */
@@ -245,6 +260,76 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
   // --- the register --------------------------------------------------------
 
   /**
+   * **The three bars of the age, and every seat's standing against each** — the
+   * wager band (`docs/wager.md` §3b's ruling of 2026-09-09: *progress is public,
+   * the pick is private*).
+   *
+   * One column per dealt card. Under each, every real seat ranked highest first,
+   * with a track scaled to the bar, the figure it has reached, and a **mark on
+   * the row of any seat that has cleared it** — a wager is a bar rather than a
+   * race, so any number of rows may wear it and **no line names a first
+   * claimant** (§11).
+   *
+   * The **stake is marked on the local seat's own card and nowhere else**, which
+   * is the secrecy rule kept by construction rather than by discipline: a
+   * rival's stake is not in `WagerBoard` at all, so this drawing could not leak
+   * one if it tried.
+   *
+   * There is no countdown here and no line about how an age turns over: the
+   * clock's mechanics are not shown to the player, and the age card on the top
+   * bar is the one place the deadline is written (§11's mark on the mock).
+   */
+  function drawWagerBand(): HTMLElement | null {
+    const boards = options.wagers?.() ?? [];
+    if (boards.length === 0) return null;
+    const band = element('section', 'abacus-wagers');
+    band.append(element('p', 'eyebrow', 'the age asks'));
+    const grid = element('div', 'abacus-wager-grid');
+    for (const board of boards) {
+      const column = element('article', 'abacus-wager');
+      const mark = BEAD_FAMILY_MARK[board.face.family];
+      column.style.setProperty('--wager-ink', `var(${mark.ink})`);
+      if (board.face.staked) column.classList.add('is-staked');
+      column.append(element('p', 'eyebrow abacus-wager-eyebrow', board.face.eyebrow));
+      const name = element('h4', 'abacus-wager-name');
+      name.append(element('span', undefined, board.face.name));
+      // The one thing on this band that is about *you*: your own chair at the
+      // table, on your own card. Nothing marks anybody else's.
+      if (board.face.staked) name.append(element('span', 'abacus-wager-stake', 'your stake'));
+      column.append(name);
+      column.append(element('p', 'abacus-wager-note', board.face.note));
+
+      const bar = element('p', 'abacus-wager-bar');
+      bar.append(element('span', 'abacus-wager-figure', figure(board.face.bar)));
+      bar.append(element('span', 'abacus-wager-label', board.face.clauses ?? 'the bar'));
+      column.append(bar);
+
+      const list = element('ul', 'abacus-wager-rows');
+      for (const row of board.rows) {
+        const line = element('li', 'abacus-wager-row');
+        if (row.met) line.classList.add('is-met');
+        line.append(element('span', 'abacus-wager-seat', row.name));
+        const track = element('span', 'abacus-wager-track');
+        const fill = element('span', 'abacus-wager-fill');
+        fill.style.width = `${Math.round(wagerTrackFraction(row.at, board.face.bar) * 100)}%`;
+        track.append(fill);
+        line.append(track);
+        line.append(
+          element('span', 'abacus-wager-at', wagerFigure(row.at, board.face.bar)),
+        );
+        // A kept bar wears its mark on the seat's own row, which is the whole of
+        // what "who has met it" means when everybody may.
+        line.append(element('span', 'abacus-wager-mark', row.met ? '✓' : ''));
+        list.append(line);
+      }
+      column.append(list);
+      grid.append(column);
+    }
+    band.append(grid);
+    return band;
+  }
+
+  /**
    * The rods in DOM: one row per seat, `threshold` slots long, the golden one
    * last.
    *
@@ -255,6 +340,14 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
   function drawRegister(table: readonly AbacusRow[]): void {
     register.replaceChildren();
     const threshold = BEAD_RULES.threshold;
+
+    // **The wager band, above the rods** (batch G2). The order on the sheet is
+    // the order of the question: what the age is asking, then where everybody
+    // stands on it, then the score it all adds up to. The bead rods stay exactly
+    // as they were beneath it — this screen gained a band, it did not become a
+    // different screen.
+    const band = drawWagerBand();
+    if (band) register.append(band);
 
     const caption = document.createElement('p');
     caption.className = 'abacus-caption';
@@ -414,10 +507,16 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     open: () => setOpen(true),
     close: () => setOpen(false),
     toggle: () => setOpen(!open),
-    // Not applied here: a rebuild is only ever worth paying for on the way in,
-    // and a screen nobody has opened has no rods to re-string.
+    // **Two halves, and only one of them is lazy.** The 3D frame is marked
+    // stale and re-strung on the way in — a rebuild is only ever worth paying
+    // for then, and a screen nobody has opened has no rods to re-string. The
+    // register underneath is *repainted now* when the screen is up, which is how
+    // the sheet flips on a wager kept: a claim is announced the turn its bar is
+    // first met (`docs/wager.md` §3b), and a standings board that waited for the
+    // next open would be showing the age before the one it is in.
     refresh: () => {
       builtFor = null;
+      if (open) drawRegister(rows());
     },
     dispose: () => {
       setOpen(false);

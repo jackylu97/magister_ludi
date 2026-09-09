@@ -51,6 +51,10 @@ describe('the three verbs', () => {
         '../../src/sim/statecraft.ts',
         '../../src/sim/readings.ts',
         '../../src/sim/cardImpact.ts',
+        // The Ledger's class fold, lifted out of the screen by batch G2 so the
+        // wager deck may ask what the sheet prints. It holds an `explain…` and
+        // two `fold…`s and is governed the day it exists.
+        '../../src/sim/ledgerFold.ts',
         '../../src/sim/modifiers.ts',
         '../../src/ui/ledgerScreen.ts',
         '../../src/ui/topBar.ts',

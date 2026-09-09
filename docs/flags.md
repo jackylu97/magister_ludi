@@ -593,7 +593,29 @@ directly to confirm rulings — user marginalia are rulings.
   progress as the mean age, the choice window, the deck scaling off the
   world, what a malice is, reckonings retiring. Awaiting marginalia; the
   batches are G1 clock → G2 deal → G3 malice → W2 bots. The Abacus
-  world-clock ruling folds into its §1. (ggg) **The bot's second pass**
+  world-clock ruling folds into its §1. **G1 built 2026-09-09 (schema
+  101); G2 built 2026-09-09 (schema 102)**: `data/wagers.json` (24 rows,
+  two deferred — The Harvest and The Arsenal want folds the sequence
+  does not print), `WagerCount` the closed reading vocabulary (29
+  members, every one a fold the Ledger already prints — the Ledger's
+  band-1 fold lifted into `src/sim/ledgerFold.ts` so a rule reads no
+  screen), the `wagers` phase between `worldClock` and `beads` (totals →
+  claims → judgement → deal; three cards from three lines by
+  `state.rng`, never in Æra I; the deal writes every seat's opening
+  figures, so "this age" is a subtraction, nothing ticks), `chooseWager
+  {index}`, the fifth End Turn blocker with the phase's default filling
+  an empty chair, beads through `awardBead` (2 stake / 1 other) and a
+  `wagerClaimed` occasion, an unclaimed stake leaving `pendingMalice`
+  for G3; the deal sheet (`wagerSheet.ts`, eleventh on modalShell), the
+  Abacus reworked with the three cards and every seat's track (no
+  "claimed by"), the reckonings' automatic banner retired (`retired:
+  true` on eight bead rows; the deeds still reachable by their three
+  doors). Bars measured on the bench, Æra IV extrapolated; The War
+  Chest knowingly easy. `Player.renownEarned`/`unitsKilled`/`unitsLost`,
+  `City.capturedOn` are new verb-written facts. The bot stakes index 0
+  until W2. ▢ owed: the Compendium does not yet walk `data/wagers.json`
+  (take with G3's malices). t100 (8 seeds): beads 5.8, wagers kept 0.8
+  a seat. (ggg) **The bot's second pass**
   (the user, 2026-09-08: "do a pass on the bot considering all the changes
   we've made … squeeze as much performance as possible out of the bots …
   variables that are missing from its evaluation"): the audit is
@@ -1180,6 +1202,35 @@ directly to confirm rulings — user marginalia are rulings.
   alpha test never touches it, and keeps 32% of its colour at the 20 px
   level; `medallionGeometry`/`paintMedallion` exported so the fit and
   the minification are measured, the gallery painting through them.
+- (kkk) **Crowding removed — RULED** (the user, 2026-09-09: *"i think
+  there's enough authority in the game, but not enough ways to get
+  happiness in the tech tree. I think i need to buff some of the
+  happiness orders too. Sit tight, i'm going to make a great person
+  pass + an orders pass. Could we ease up on the crowding? Maybe for
+  ease of balance and player expectations, lets remove crowding
+  unhappiness altogether."*). The ruling: **the crowding term is gone,
+  mechanism and all** — not weight zero (that was 2026-08-29's state,
+  `docs/design-notes.md`'s "disabled, mechanism kept", and the playtest
+  notes turned it back on; a curve nobody can see is a curve somebody
+  will turn on again). A town's demand is `demandPerPop × citizens`
+  and nothing else: the `crowdingWeight`/`crowdingFrom`/
+  `crowdingExponent` rules leave `data/rules.json` and `MeterRules`,
+  `crowdingDemand` and the "crowding" cost line leave `explainHappiness`
+  and the founding projection, the puppet's gain line relieves the
+  citizens alone, `meterBreakdown`/`cityDisplay`/`figures`' crowding
+  prose goes with it, and the bot's `crowdingDemandOf` and its fold of
+  the court are retired. **The Assize Court** carried the one
+  `crowdingRelief` (15%) — the marker is retired (a marker read nowhere
+  fails the register) and the court keeps a happiness effect of the
+  same shape, **a share of its own town's citizen demand forgiven**
+  (`demandRelief: 15`, folded as the same "the justices sit" gain line
+  against the town's citizen cost, read through `buildingEffects.ts`
+  and priced by the bot as that share at the happiness price); ▢ the
+  figure is the user's to retune in the orders pass — 15% of the whole
+  citizen line is more than 15% of a surcharge was, deliberately, since
+  the court's reason to exist is happiness. The great-person and orders
+  passes are the **user's own**, not agents' — sit tight. Batch **B7**.
+  Schema bumps (a replay's happiness meter changes). (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

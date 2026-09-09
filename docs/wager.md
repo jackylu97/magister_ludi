@@ -63,6 +63,17 @@ is the register.
 
 ## 2. The deal — three targets, five turns in
 
+**BUILT — batch G2, schema 102** (2026-09-09). The whole of this section is
+code: `data/wagers.json` (the deck), `src/sim/wagerData.ts` (the rows and the
+one reading vocabulary), `src/sim/wagers.ts` (the deal, the standing, the claim,
+the judgement), the `wagers` phase in `END_OF_TURN_PHASES` between `worldClock`
+and `beads`, `chooseWager` in the reducer, the `'wager'` End Turn blocker, the
+`wagerClaimed` occasion, and two screens — `src/ui/wagerSheet.ts` (the deal
+sheet, the eleventh on `modalShell.ts`) and the Abacus reworked as the wager
+screen (`src/ui/abacusScreen.ts`). `test/sim/wagers.test.ts` and
+`test/sim/wagerDocSync.test.ts` are the register.
+
+
 - **The deal turn** (the user, 2026-09-08: *"a five turn delay only for age 1
   (so the player has some semblance of a game plan) before committing to a
   wager, or even starting it in age 2 and skipping age 1 altogether"*): ▢ mark
@@ -319,37 +330,65 @@ line it is dealt under in the third. Bars marked *bot baseline* are to be
 measured on the bot bench before the figure is set; the user: "use the bot
 for a baseline here".
 
-| Wager | Fam | Line | Reads | II · III · IV |
-|---|---|---|---|---|
-| The Capital of the World | C | 🌱 Green Belt | capital holds N citizens, M buildings, a wonder | 10·5·1 — 16·11·2 — 25·16·3 |
-| The Worked Land | E | 🌱 Green Belt | total yields from the capital's tiles | *bot baseline* |
-| The Harvest | E | 🌾 Ploughshare | food paid by farms a turn | 20 · 60 · 140 |
-| Bread and Iron | D | 🌾 Ploughshare | food surplus a turn and army strength | 12·150 — 25·480 — 40·1 000 |
-| The Caravanserai | E | 🐫 Long Caravan | total yields from trade routes | 50 · 100 · 400 |
-| The King's Roads | E | 🐫 Long Caravan | gold from city connections, total | *bot baseline* |
-| The Solvent Realm | E | 🐫 Long Caravan | total gold accumulated | 500 · 2 000 · 8 000 |
-| The War Chest | E | 🐫 Long Caravan | treasury and army, no debt | 300·150 — 1 000·480 — 2 500·1 000 |
-| The Academies | S | ✶ Star Chart | total science accumulated | *bot baseline* |
-| The Observatory | S | ✶ Star Chart | science a turn per citizen | 1.5 · 2.5 · 4 |
-| The Tithe | C | ☽ Cloister | total yields from religion (Æra III+) | — · 125 · 800 |
-| The Wonder of the Age | C | 🏛 Marble Court | wonders of this age raised by you | 3 · 3 · 3 |
-| The Marvels' Pay | C | 🏛 Marble Court | what your wonders pay, accumulated | 60 · 250 · 1 000 |
-| The Patronage | C | 🏛 Marble Court | yields from great people — works standing, boons paid, legacies — accumulated | *bot baseline* |
-| The Renowned | C | 🏛 Marble Court | total banked renown | 80 · 250 · 1 000 |
-| The Chronicle | C | 🏛 Marble Court | total culture banked | *bot baseline* |
-| The Deck | S | 📜 Charter | what your government yields, total | 150 · 500 · 1 500 |
-| The Marcher Lords | E | 📜 Charter | C cities, none unhappy, authority in surplus | 5 — 9 — 18 |
-| The Builders | E | 📜 Charter | what your buildings pay a turn | 17 · 70 · 200 |
-| The Six Voices | — | 📜 Charter | every voice summed, **accumulated over the age** (with authority and happiness) | 1 000 · 5 000 · 25 000 |
-| The Contented Realm | E | 📜 Charter | surplus happiness, accumulated a turn over the age | *bot baseline* |
-| The Arsenal | D | ⚒ Forge Levy | hammers put into units this age | 150 · 600 · 1 800 |
-| The Field of Glory | D | 🎖 Banner | kills minus losses this age | +3 · +6 · +10 |
-| The Taken Town | D | 🎖 Banner | cities captured this age, still held | 1 · 3 · 5 |
+**BUILT.** The table below is `data/wagers.json` and is **sync-tested** against
+it (`test/sim/wagerDocSync.test.ts`): a row edited in one place and not the other
+fails core. The *Reads* column is the row's member of `WagerCount` — the closed
+reading vocabulary of `src/sim/wagerData.ts`, every member of which is a fold the
+Ledger already prints — and a clause row's figures are one group per clause.
 
-By family: D 5 · C 7 · S 3 · E 8 (The Six Voices unfamilied). By line:
-eight lines carry cards (☽ Cloister one, The Tithe); 🏹 Wild Hunt, 🧭
-Wayfarers and 🕯 Procession carry none, ⛰ Highlands on the backburner, so the
-deal's guarantee is **three different lines** over the eight.
+| Wager | Fam | Line | Reads | Kind | II · III · IV |
+|---|---|---|---|---|---|
+| The Capital of the World | C | 🌱 Green Belt | `clauses: capitalCitizens, capitalBuildings, capitalWonders` | standing | 10·16·25 — 5·11·16 — 1·2·3 |
+| The Worked Land | E | 🌱 Green Belt | `capitalTileYields` | flow | 4500 · 9000 · 11000 |
+| The Harvest *(deferred)* | E | 🌾 Ploughshare | `farmFood` | standing | 20 · 60 · 140 |
+| Bread and Iron | D | 🌾 Ploughshare | `clauses: foodSurplus, armyStrength` | standing | 60·150·265 — 150·480·1000 |
+| The Caravanserai | E | 🐫 Long Caravan | `tradeYields` | flow | 50 · 2500 · 3000 |
+| The King's Roads | E | 🐫 Long Caravan | `connectionGold` | flow | 40 · 900 · 1100 |
+| The Solvent Realm | E | 🐫 Long Caravan | `gold` | flow | 1600 · 8500 · 10000 |
+| The War Chest | E | 🐫 Long Caravan | `clauses: treasury, armyStrength` | standing | 300·1000·2500 — 150·480·1000 |
+| The Academies | S | ✶ Star Chart | `science` | flow | 4000 · 16000 · 20000 |
+| The Observatory | S | ✶ Star Chart | `sciencePerCitizen` | standing | 3 · 4 · 5 |
+| The Tithe | C | ☽ Cloister | `religionYields` | flow | 0 · 6400 · 8000 *(Æra III+)* |
+| The Wonder of the Age | C | 🏛 Marble Court | `wondersOfThisAge` | standing | 3 · 3 · 3 |
+| The Marvels' Pay | C | 🏛 Marble Court | `wonderYields` | flow | 900 · 4500 · 5500 |
+| The Patronage | C | 🏛 Marble Court | `peopleYields` | flow | 650 · 2900 · 3500 |
+| The Renowned | C | 🏛 Marble Court | `renown` | flow | 1000 · 5000 · 6000 |
+| The Chronicle | C | 🏛 Marble Court | `culture` | flow | 3700 · 14500 · 18000 |
+| The Deck | S | 📜 Charter | `deckYields` | flow | 2800 · 11000 · 13000 |
+| The Marcher Lords | E | 📜 Charter | `clauses: cities, happiness, authority` | standing | 5·9·18 — 0·0·0 — 0·0·0 |
+| The Builders | E | 📜 Charter | `buildingYields` | standing | 120 · 240 · 300 |
+| The Six Voices | E | 📜 Charter | `allVoices` | flow | 25000 · 85000 · 100000 |
+| The Contented Realm | E | 📜 Charter | `happinessSurplus` | flow | 650 · 700 · 900 |
+| The Arsenal *(deferred)* | D | ⚒ Forge Levy | `unitHammers` | flow | 150 · 600 · 1800 |
+| The Field of Glory | D | 🎖 Banner | `killsMinusLosses` | flow | 3 · 6 · 10 |
+| The Taken Town | D | 🎖 Banner | `capturedThisAge` | standing | 1 · 3 · 5 |
+
+Two rows are **deferred and annotated** rather than bent into a near-fit, which
+is the vocabulary's own convention: **The Harvest** wants the food a *farm* pays
+told apart from the food the ground under it pays, and **The Arsenal** wants the
+hammers a town put behind a *soldier* told apart from its other work. Neither
+line exists in `docs/yields.md`'s sequence today; both rows keep their bodies, so
+shipping either is deleting a `deferred`. A deferred row leaves every pool.
+
+Two figures in the table are the deck's own shape rather than a bar: **The
+Marcher Lords**' second and third clauses ask for nought — contentment and
+authority *at or above nothing* — which is what "none unhappy, authority in
+surplus" means as a number; and **The Tithe**'s Æra II figure is nought because
+the row is not dealt before Æra III (`fromAge`).
+
+One departure from the worksheet: **every card names a family**. §3b left The Six
+Voices unfamilied, and the beads a kept wager mints are ordinary repeatable grant
+rows that have to land on a rod — so the row is economic, and a fifth rod for one
+card was not worth minting.
+
+**As built**, by family: D 4 · C 7 · S 3 · E 10 (The Six Voices is economic — see
+above; the two deferred rows are one E and one D). By line, nine carry a row and
+**eight can be dealt from in Æra II** (☽ Cloister's one card is Æra III and up,
+⛒ Forge Levy's one row is deferred): 🏹 Wild Hunt, 🧭 Wayfarers, 🕯
+Procession and ⚓ The Tide carry none, ⛰ Highlands is on the backburner. So the
+deal's guarantee — **three different lines** — has seven to eight bags to draw
+from in every wagering age, which `wagerDataProblems` checks and
+`test/sim/wagers.test.ts` pins.
 
 **Cut — 19**, each with the row that covers it.
 
@@ -375,8 +414,18 @@ deal's guarantee is **three different lines** over the eight.
 over the age*; The Fortified Frontier is cut; The Academies stays, as *total
 science accumulated*; The Missionary stays cut. The user's note on the
 competency table — a dev-flagged **statistics sheet** printing every wager
-reading for the local seat each turn — is batch G2's ruling; *"yields also
-include authority and happiness"* defines the total-yields readings.
+reading for the local seat each turn — is **not built in G2**: the Abacus's
+standings band shows every seat's figure against each of the three dealt bars
+every turn, which is the same reading a statistics sheet would have printed and
+is on a surface the player already has. A dev-flagged sheet over the *whole*
+vocabulary (every reading, dealt or not) is worth building beside batch C1's
+census, which ranks any reading across the board — flagged there rather than
+here. *"Yields also include authority and happiness"* is **deferred and
+annotated**: the total-yields readings (`tradeYields`, `buildingYields`,
+`deckYields`, `religionYields`, `peopleYields`, `wonderYields`,
+`capitalTileYields`) sum the Ledger's six voices for one class, and the Ledger
+has no authority or happiness column to add — the two meters are read by
+`happiness`/`authority` and `happinessSurplus` as readings of their own.
 
 **Progress is public, the pick is private — RULED** (the user, 2026-09-09:
 *"I want the wagers each player has chosen to be private, but the wager
@@ -395,11 +444,73 @@ The bars are cut **difficult** (the user: "we should make the wagers
 difficult to make games more engaging"), and the pressure comes from the
 ranking, not from the deck.
 
-### 3a. The scaling — a first cut off measured play
+### 3a. The scaling — the bars, and the bench they were cut on
 
-**Measured 2026-09-08**: two bot duels (seeds 4242 and 20260903, two balanced
-seats, barbarians on) sampled every ten turns for 220 turns, 88 samples. The
-mean empire, by the age its own tree stands in:
+**How the built figures were cut — measured 2026-09-09** (the bench the brief
+named: the bot driver, seeds **1** and **20260903**, `standard`, two balanced
+seats — Crimson and Teal — barbarians on, the stepper, 240 turns each, four
+readings a seat an age). Every reading in the vocabulary was sampled **at each
+age's close, in that age's own window** — a flow as `now − the deal's stamp`, a
+standing as the board — and the bar is `1.5 × the mean`, floored to a friendly
+figure. Both seeds reached Æra IV and neither closed it inside 240 turns, so the
+Æra IV column is an **extrapolation** and says so.
+
+Ages on these boards: Æra I closed about turn 60 and Æra II about turn 100 on
+both seeds, Æra III between 190 and 210, and Æra IV was still running at 240.
+
+| Reading | mean Æra I | mean Æra II | mean Æra III | bar II · III · IV |
+|---|---|---|---|---|
+| `capitalTileYields` (The Worked Land) | 1 601 | 3 075 | 6 068 | 4 500 · 9 000 · 11 000 |
+| `tradeYields` (The Caravanserai) | 0 | 2.5 | 1 710 | 50 · 2 500 · 3 000 |
+| `connectionGold` (The King's Roads) | 0 | 0 | 581 | 40 · 900 · 1 100 |
+| `gold` (The Solvent Realm) | 292 | 1 071 | 5 782 | 1 600 · 8 500 · 10 000 |
+| `science` (The Academies) | 666 | 2 721 | 10 726 | 4 000 · 16 000 · 20 000 |
+| `sciencePerCitizen` (The Observatory) | 1.2 | 1.9 | 2.6 | 3 · 4 · 5 |
+| `religionYields` (The Tithe) | 131 | 626 | 4 274 | — · 6 400 · 8 000 |
+| `wonderYields` (The Marvels' Pay) | 118 | 624 | 3 141 | 900 · 4 500 · 5 500 |
+| `peopleYields` (The Patronage) | 92 | 427 | 1 961 | 650 · 2 900 · 3 500 |
+| `renown` (The Renowned) | 248 | 685 | 3 390 | 1 000 · 5 000 · 6 000 |
+| `culture` (The Chronicle) | 642 | 2 483 | 9 731 | 3 700 · 14 500 · 18 000 |
+| `deckYields` (The Deck) | 496 | 1 857 | 7 318 | 2 800 · 11 000 · 13 000 |
+| `buildingYields` (The Builders, a turn) | 24.5 | 78 | 159 | 120 · 240 · 300 |
+| `allVoices` (The Six Voices) | 5 589 | 16 521 | 56 695 | 25 000 · 85 000 · 100 000 |
+| `happinessSurplus` (The Contented Realm) | 203 | 449 | 440 | 650 · 700 · 900 |
+| clauses held: The Capital of the World | 3.0 | 2.8 | 1.5 | *(unchanged — the user's figures)* |
+| clauses held: Bread and Iron | 2.0 | 2.0 | 1.5 | food raised to 60 · 150 · 265 |
+| clauses held: The War Chest | 2.0 | 1.8 | 0.8 | *(unchanged — see below)* |
+| clauses held: The Marcher Lords | 2.8 | 2.5 | 2.0 | *(unchanged — 1.5× the §3a means)* |
+| `wondersOfThisAge` (The Wonder of the Age) | 0 | 0 | 0 | 3 · 3 · 3 *(the user's: "must be difficult")* |
+| `capturedThisAge` (The Taken Town) | 0 | 0 | 0 | 1 · 3 · 5 *(the user's)* |
+| `killsMinusLosses` (The Field of Glory) | −5.0 | −5.5 | −17.8 | 3 · 6 · 10 *(the user's)* |
+
+**Æra IV**, in every row above, is an extrapolation and not a measurement: the
+per-turn rates roughly double from Æra III to Æra IV (the 2026-09-08 table below)
+while the window roughly halves (`rules.wager.lastAgeTurns` is 40 against Æra
+III's ninety), so an Æra IV *total* is close to an Æra III total and the column
+is cut a fifth above it rather than three times it. It wants a bench that runs to
+the Opus before it is trusted.
+
+**Five readings are a floor rather than a derivation**, and each says why:
+
+- **The Caravanserai** and **The King's Roads** in Æra II — the bots barely trade
+  and connect nothing, exactly as the 2026-09-08 note says, so 1.5× their mean is
+  a bar a realm clears by accident. A human yardstick is owed.
+- **The Wonder of the Age**, **The Taken Town** and **The Field of Glory** — the
+  bots raise no wonder of the current age, take no town, and lose more pieces to
+  the wild than they kill of rivals (a barbarian's fall raises nobody's kill
+  count, by design). All three keep the user's own figures.
+- **The War Chest**'s treasury clause is left at the worksheet's 300 · 1 000 ·
+  2 500 even though both bot seats held both clauses at the Æra II close: the
+  treasury *standing* was not sampled, and guessing a bar is worse than keeping a
+  figure the user wrote. It is the one row this pass knowingly leaves easy.
+
+Two readings could not be sampled at all and are **deferred** rather than barred
+(§3b): The Harvest and The Arsenal.
+
+**The 2026-09-08 measurement** — two bot duels (seeds 4242 and 20260903, two
+balanced seats, barbarians on) sampled every ten turns for 220 turns, 88 samples
+— stands beside the table above as the *per-turn* picture the clause rows and the
+Æra IV extrapolation are cut off:
 
 | Æra | samples | cities | citizens | largest city | buildings in one city | luxuries | army | wonders | routes | food/t | prod/t | gold/t | sci/t | culture/t | faith/t |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -408,43 +519,35 @@ mean empire, by the age its own tree stands in:
 | III | 44 | 6.2 | 34 | 11.1 | 7.4 | 2.9 | 320 | 3.5 | 2.0 | 100 | 93 | 47 | 28 | 36 | 8.5 |
 | IV | 8 | 11.8 | 69 | 17.5 | 10.9 | 4.9 | 679 | 5.6 | 4.0 | 177 | 276 | 106 | 79 | 165 | 39 |
 
-Ages on these boards: Æra I ends about turn 60, Æra II about turn 100, Æra
-III between turns 190 and 210, and Æra IV runs to the Opus — so an Æra II
-wager has forty turns, an Æra III one ninety, which is why the sizing turns
-below differ by age. **Two caveats**: these are *bots* on a *duel* map — a
-human plays wider and taller than a balanced bot, and a six-seat standard
-map's mean will differ — and the mean is what (b) scales off *at the deal*,
-so a stronger world lifts its own bars. The table is a first cut for the
-arena, not a ruling.
+**The turn-100 bench, with the wager in** (`docs/bot-priorities.md`'s own shape:
+the eight seeds 1/2/3/42/101/999/31337/20260101, standard, two balanced seats,
+wild on, driven to t100, every figure the mean of the sixteen seats, ± one
+standard error):
 
-**How the fixed figures were cut** (the scaling is fixed per age — §3, ruled —
-so this is the *derivation* of the journeyman figures, not a rule the game
-runs): a standing bar is `ceil(1.5 × the measured mean standing)`; a flow bar
-is `friendly(1.5 × the mean per turn × 30 · 60 · 40 sizing turns)`; the two
-per-turn wagers (The Academies, The Chroniclers) are `ceil(1.5 × the mean
-rate at the age's close)`. What the table would ask this world:
+| citizens | food | gold | science | culture | faith | treasury | happiness | cities | beads | wagers kept |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 42.8 ± 2.9 | 135.3 ± 11.4 | 61.6 ± 12.3 | 96.8 ± 10.0 | 88.1 ± 11.1 | 17.2 ± 3.5 | 452 ± 120 | +1.8 ± 2.9 | 6.6 ± 0.4 | **5.8 ± 1.0** | **0.8 ± 0.2** |
 
-| Wager | Æra II | Æra III | Æra IV | note |
-|---|---|---|---|---|
-| The Counting House (gold banked) | 300 | 4 200 | 6 400 | — |
-| The Academies (science a turn at the close) | 16 | 42 | 120 | — |
-| The Chroniclers (culture a turn at the close) | 10 | 54 | 250 | — |
-| The Congregation (faith banked) | 120 | 770 | 2 300 | — |
-| The Metropolis (largest city) | 11 | 17 | 26 | 8 · 12 · 18 |
-| The Many Hearths (cities) | 5 | 9 | 18 | 4 · 6 · 10 |
-| The Caravans (what your routes pay a turn) | 8 | 30 | 60 | *routes' pay needs a measurement; first cut* |
-| The Standing Army (strength) | 150 | 480 | 1 000 | 100 · 300 · 600 |
-| The Marvels (wonders held) | 2 | 5 | 8 | 2 · 3 · 5 |
-| The Roads (cities joined to the capital) | 2 | 4 | 8 | 2 · 3 · 5 |
-| The Conqueror (cities captured this age) | 1 | 1 | 2 | 1 · 1 · 1 |
-| The Faithful (following cities) | 3 | 5 | 8 | 2 · 4 · 6 |
-| The Laureates (great people this age) | — | — | — | *needs a measurement* |
+The two columns the batch is answerable for are the last two: **beads are on the
+rods at t100** and the average seat has kept **four wagers in five** by then —
+Æra II closes around turn 100 on these boards, so a seat has had one table and
+has cleared roughly one bar of the three on it. That is the shape the design
+asks for: a bar that is difficult, not a bar nobody meets. Nothing else in the
+row is a *comparison* against the build before it, and it deliberately is not
+claimed as one — schema 102 re-seeds every game (the reckoning draw), so a
+seed-for-seed diff against `main` is not a thing this bench can produce; the
+gate clone is where that comparison belongs.
 
-The Laureates and the routes' pay want a probe before their figures are
-trusted; every figure above is a first cut for the arena. ▢ Whether a flow wager counts from the
-**deal** or from the **age's opening** — one and the same now that the deal
-is the age's first turn (§2); a flow's stamp is `Player.wagerBanked` from
-that turn.
+**The caveat both tables share**: these are *bots* on two maps. A human plays
+wider and taller than a balanced bot and a six-seat standard map's mean will
+differ, so every figure in the deck is a first cut for the arena rather than a
+ruling. `data/wagers.json` is one table and re-tuning it is one edit.
+
+**A flow counts from the deal**, which settles the open ▢ that stood here: the
+deal *is* the age's first turn (§2), so the deal and the age's opening are one
+and the same. The stamp is `WagerDeal.opening` — every seat's lifetime figure,
+written down once when the cards are dealt — and a standing is `now − that`, so
+nothing ticks and nothing resets.
 
 ## 4. The malice
 
@@ -499,17 +602,38 @@ that every malice's effect kind is one the evaluator reads.
 
 ## 5. What it replaces, what stays
 
-- **Reckonings retire** (rec): the wager *is* the age's snapshot, taken for
-  everyone rather than paying the leader. Their eight rows keep their bodies
-  (`retired: true`) for saves.
+- **Reckonings retire** — **BUILT** (batch G2): the wager *is* the age's
+  snapshot, taken for everyone rather than paying the leader. All eight rows of
+  `data/beads.json` carry `retired: true`, which is a new field on `BeadDefBase`
+  beside `dormant` (*not yet* against *no longer*) read by the one predicate
+  every seam already asks, `beadIsDormant`. They keep their bodies for saves and
+  for the Compendium's record, they leave every pool, and `drawAgeReckonings`
+  therefore draws nothing — which is half of why a v101 log does not replay.
 - **Feats, quests, endeavours stay as the deeds** — the world firsts and the
   races are a different pleasure from a bar you set yourself, and the user's
   arithmetic counts them.
 - **The bead Orders** (the four last-age deed cards) stay.
-- ▢ The age-opening **deed sheet** becomes the **wager sheet**: the three
-  cards face up, the countdown, every seat's declared choice, and the
-  standing of each wager against each seat (rec — the Abacus's flip modal
-  stays for the award).
+- The age-opening **deed sheet** is **retired** (batch G2) and the wager's own
+  two surfaces replace it. The deed sheet's *tables* were never the thing that
+  went: the banner was an index over cards the sheet already drew, so every feat,
+  quest, endeavour and measure is still printed by the Beads screen and still
+  reachable all game by its three ordinary doors — **the bead chip in the top
+  bar, any rod on the Abacus, and `V`**. What went is the automatic raising, and
+  what raises itself on the age now is the **deal sheet**.
+  - the **deal sheet** (`src/ui/wagerSheet.ts`, the eleventh on `modalShell.ts`):
+    three cards, each with its thread and family, what it reads in plain words,
+    the bar as one large figure, and a Stake button. No "you stand at" line
+    (every seat is at nought on the deal turn, by construction) and no
+    age-mechanics line in the masthead — both are the user's marks on the mock.
+    It is raised by the End Turn blocker for the local seat and by nothing else.
+  - the **Abacus** (`src/ui/abacusScreen.ts`), reworked as the wager screen and
+    keeping its measured stage: a band above the bead rods with the age's three
+    cards, every real seat's standing against each bar **ranked**, a track scaled
+    to the bar, the figure, a mark on the row of any seat that has met it, and
+    the local seat's stake marked on **its own card only**. No "claimed by" line
+    (§11) and no countdown — the top bar's age card is where a deadline lives.
+    It flips on a kept wager the way it takes a bead: `refresh()` repaints the
+    register when the screen is up.
 
 ## 6. Bots
 
@@ -527,15 +651,16 @@ that every malice's effect kind is one the evaluator reads.
 2. ~~§2 Æra V~~ — **ruled**: Æra V, when added, has no wager; Æra IV keeps
    its own.
 3. ~~§2 the choice window and public choices~~ — **ruled**: same turn, secret.
-4. ~~§3 scaling~~ — **ruled**: fixed per age; difficulty deferred to the
-   bot. Open: the family guarantee (rec yes); **which of the fifteen compound
-   wagers to keep** (§3), and their first-cut figures; whether every standing
-   wager is claimed the moment it is met (rec yes, from the Missionary
-   note).
+4. ~~§3 scaling~~ — **ruled and built**: fixed per age; difficulty deferred to
+   the bot. The three that were open are settled and in code — the deal
+   guarantees three different **lines** (which is the family guarantee and more,
+   since three lines are at least two families); §3b's keep list is the deck; and
+   **every** wager, standing or flow, is claimed the moment its bar is met.
 5. §4 the malice's chair (rec: the last chair of its flavour, displacing the
    Order there), its term (rec: until the next wager is judged), stacking (rec:
    two).
-6. §5 reckonings retire (rec yes).
+6. ~~§5 reckonings retire~~ — **ruled yes and built** (batch G2): all eight rows
+   carry `retired: true`.
 7. §9 the Horde: the count per seat (rec yes); the grace (rec 15 turns).
 
 ## 9. The Horde — an escalating check at every age
@@ -713,14 +838,50 @@ to the player — the countdown lives on the top bar's age card only); no
 - **Batches, in order**: ~~**G1** the world clock and the countdown~~ —
   **landed 2026-09-09, schema 101** (the first-seat rule retired, the top bar's
   age card carries the countdown, `ageClosed` in the occasion union) →
-  **G2** the deal, the choice, the judgement, `data/wagers.json`
-  from §3b's 24 with the seven *bot baseline* bars measured on the bench
-  first, the Abacus reworked as the wager screen and the Æra III/IV
-  conditions draw retired (the mock is the spec) → **G3** the malice deck
+  ~~**G2** the deal, the choice, the judgement~~ — **landed 2026-09-09, schema
+  102**: `data/wagers.json` (24 rows, two deferred), `src/sim/wagerData.ts` and
+  `src/sim/wagers.ts`, the `wagers` phase, `chooseWager` and its blocker, the
+  `wagerClaimed` occasion, the reckonings retired, the deal sheet and the Abacus
+  reworked as the wager screen. Every bar the bench could measure was measured
+  (§3a) rather than only the seven that were marked, because the worksheet's
+  first-cut figures for the accumulated readings were cut against *per-turn*
+  means and stood an order of magnitude under the board → **G3** the malice deck
   (`data/malices.json`, the twelve of §4) → **C1** the census → **W2** the
   bots' wager want. G1 flies after R1 lands (both touch the reducer).
 
 ## 8. Engine notes (the orchestrator's, not decisions)
+
+**G2 is built (schema 102).** What the batch actually laid down, against the
+sketch below:
+
+- `GameState.wagers: WagerDeal[]` — append-only, one row an age, carrying the
+  three cards, the turn they were dealt, **every seat's opening figures** and
+  every claim. The opening is the half this sketch did not have and the flow
+  rule needs: "this age" is `now − the stamp`, never a counter that resets.
+- `Player.wager: {age, index}` (the stake, an index into the world's three),
+  `Player.wagerTotals` (the lifetime totals a flow subtracts against),
+  `Player.pendingMalices` (the judgement's mark, G3's input) and
+  `Player.malices` (declared, written by nothing until G3).
+- Three readings that had no home and now do: `Player.renownEarned` (the purse
+  is spent, the total is not), `Player.unitsKilled`/`unitsLost` (the exchange,
+  written at the two seams a piece leaves the board), and `City.capturedOn`
+  (*when*, beside `captured`'s *whether*).
+- The deal and the judgement are a **phase of their own** (`wagers`, between
+  `worldClock` and `beads`) rather than a beat of `renown`: a claim mints beads
+  and the deed sweep in the next phase reads the rod they land on.
+- `src/sim/ledgerFold.ts` — the Ledger's class fold, **lifted out of
+  `src/ui/ledgerScreen.ts`** so a wager may ask what the sheet prints. Half the
+  deck reads a Ledger class as a number, and a rule that reads a screen is not a
+  rule. Nothing about the arithmetic moved; the sheet re-exports every name.
+- The beads a kept wager pays are four **repeatable grant rows** in
+  `data/beads.json`, one per rod — so nothing new was needed to pay one.
+
+**Owed, and flagged here rather than done quietly**: `data/wagers.json` is not
+yet walked by the **Compendium**. Every other data table in the game has a shelf,
+and the deck should have one — the rows carry a plain `note` written for it — but
+it is a section of its own on a 2 300-line screen and it did not fit this batch.
+`data/malices.json` will want the same shelf, so the two are one small pass, best
+taken with G3.
 
 Schema. New state — **G1's half is built**: `worldAge`/`currentWorldAge` are
 derived, not stored (`src/sim/worldClock.ts`), and `GameState.ageClose?: {age,

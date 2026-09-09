@@ -34,6 +34,7 @@ import {
   beadIsDormant,
   beadQuestDef,
   beadReckoningDef,
+  reckoningsOfFamily,
   isBeadReckoningId,
 } from '../../src/sim/beadData';
 import {
@@ -242,7 +243,7 @@ describe('the bead catalogue', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(101);
+    expect(SCHEMA_VERSION).toBe(102);
   });
 
   it('puts the beads phase directly after the world clock, itself after renown', () => {
@@ -251,7 +252,10 @@ describe('the bead catalogue', () => {
     // a board whose age has just settled. See `runWorldClock`.
     const names = END_OF_TURN_PHASES.map((phase) => phase.name);
     expect(names.indexOf('worldClock')).toBe(names.indexOf('renown') + 1);
-    expect(names.indexOf('beads')).toBe(names.indexOf('worldClock') + 1);
+    // Batch G2 put the `wagers` phase between them: a claim mints beads and the
+    // deed sweep below reads the rod they land on.
+    expect(names.indexOf('wagers')).toBe(names.indexOf('worldClock') + 1);
+    expect(names.indexOf('beads')).toBe(names.indexOf('wagers') + 1);
   });
 });
 
@@ -431,56 +435,42 @@ describe("the world's clock", () => {
   });
 });
 
-// --- 3b. reckonings ---------------------------------------------------------
+// --- 3b. reckonings, retired -----------------------------------------------
 
 describe('a reckoning', () => {
-  it('is four cards of the age deck, one per family, drawn from the pool', () => {
+  it('is retired: every row carries the mark and leaves every pool', () => {
+    // Batch G2 (`docs/wager.md` §5): the wager is the age's snapshot now, taken
+    // for everybody rather than paying the leader alone. The eight rows keep
+    // their bodies for saves and for the Compendium's record; `retired: true` is
+    // read by the one predicate every seam already asks.
+    for (const id of BEAD_RECKONING_IDS) {
+      expect(beadReckoningDef(id).retired, id).toBe(true);
+      expect(beadIsDormant(id), id).toBe(true);
+    }
+    for (const family of BEAD_FAMILIES) {
+      expect(reckoningsOfFamily(family), family).toEqual([]);
+    }
+  });
+
+  it('is never dealt into any age’s deck', () => {
     const state = newGame(config({ seed: 55 }));
     for (const age of BEAD_DECK_AGES) {
       const drawn = (state.beads.decks[String(age)] ?? []).filter((id) => isBeadReckoningId(id));
-      expect(drawn, `age ${age}`).toHaveLength(BEAD_FAMILIES.length);
-      const families = drawn.map((id) => beadReckoningDef(id as never).family);
-      expect(new Set(families).size, `age ${age}`).toBe(BEAD_FAMILIES.length);
+      expect(drawn, `age ${age}`).toEqual([]);
     }
-    // The pool, not a fixed set: a different seed measures different things.
-    const other = newGame(config({ seed: 56 }));
-    const pick = (one: GameState): string[] =>
-      (one.beads.decks['3'] ?? []).filter((id) => isBeadReckoningId(id)).sort();
-    expect(pick(state)).not.toEqual(pick(other));
-    // And it is a function of the seed alone.
-    expect(pick(newGame(config({ seed: 55 })))).toEqual(pick(state));
   });
 
-  it('is taken at the next age opening, once, and pays nobody on a tie', () => {
+  it('measures nobody, even with its card put on the table by hand', () => {
+    // A retired row is refused a rung above the measuring, in `awardBead`, so
+    // the rule is not deleted with the piece: the arm stays, unreachable, and a
+    // hand-edited save cannot pay one out either.
     const state = flatState();
     plant(state, 0, 4, 4);
+    plant(state, 0, 6, 8);
     plant(state, 1, 9, 4);
     worldIn(state, 3);
     state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: true }];
-
-    // Two seats, one city each: The Most Cities is a tie and pays nobody.
     expect(takeReckonings(state, 3)).toHaveLength(0);
-
-    // Break the tie: now it is taken, once, and stamped with the closing age.
-    plant(state, 0, 6, 8);
-    const taken = takeReckonings(state, 3);
-    expect(taken).toHaveLength(1);
-    expect(taken[0]!.playerId).toBe(0);
-    const claims = state.beads.claimed.filter((claim) => claim.id === 'theMostCities');
-    expect(claims).toHaveLength(1);
-    expect(claims[0]!.age).toBe(3);
-    // And never twice.
-    expect(takeReckonings(state, 3)).toHaveLength(0);
-  });
-
-  it('measures nobody while its card is still face down', () => {
-    const state = flatState();
-    plant(state, 0, 4, 4);
-    plant(state, 0, 6, 8);
-    worldIn(state, 3);
-    state.beads.hands['3'] = [{ id: 'theMostCities', faceUp: false }];
-    expect(takeReckonings(state, 3)).toHaveLength(0);
-    // A card nobody was ever shown is a card the world never answered.
     expect(state.players[0]!.beads).toHaveLength(0);
   });
 

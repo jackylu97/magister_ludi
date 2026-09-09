@@ -13630,3 +13630,217 @@ body.compendium-page {
 .capture-blocked {
   margin: 0;
 }
+
+/* ================= the Wager ==========================================
+   The deal sheet's three cards, and the standings band the Abacus grew
+   (`docs/wager.md` §2/§11; the mock of 2026-09-09 is the spec of record).
+
+   Two surfaces, one language: a card carries its thread's ink on a hairline
+   rule down its left edge, its bar is one large tabular figure, and a staked
+   card wears the ink as a filled corner. Every figure on both is mono and
+   tabular, because every figure in this interface is.
+   ====================================================================== */
+
+.wager-lead {
+  margin: 0 0 4px;
+}
+
+.wager-headline {
+  font-family: var(--face-display);
+  font-size: 26px;
+  margin: 2px 0 6px;
+}
+
+.wager-lead-text {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+}
+
+.wager-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+
+.wager-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--parchment);
+  border: var(--border) solid var(--ink);
+  border-left: 5px solid var(--wager-ink, var(--ink));
+  box-shadow: var(--shadow-sm);
+}
+
+.wager-card.is-staked {
+  outline: 2px solid var(--wager-ink, var(--ink));
+  outline-offset: 3px;
+}
+
+.wager-name {
+  font-family: var(--face-display);
+  font-size: 19px;
+  margin: 0;
+}
+
+.wager-note {
+  margin: 0;
+  color: var(--ink-soft);
+  flex: 1 1 auto;
+}
+
+.wager-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 4px 0 0;
+}
+
+.wager-bar-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 34px;
+  line-height: 1;
+  color: var(--wager-ink, var(--ink));
+}
+
+.wager-bar-label {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  color: var(--ink-faint);
+}
+
+.wager-stake {
+  align-self: flex-start;
+  font-family: var(--face-ui);
+  padding: 5px 12px;
+  border: var(--border) solid var(--ink);
+  background: var(--wager-ink, var(--ink));
+  color: var(--parchment);
+  cursor: pointer;
+}
+
+.wager-stake:disabled {
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.wager-empty {
+  color: var(--ink-faint);
+}
+
+/* --- the Abacus's band ------------------------------------------------- */
+
+.abacus-wagers {
+  margin: 0 0 14px;
+}
+
+.abacus-wager-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.abacus-wager {
+  padding: 10px 12px;
+  background: var(--parchment);
+  border: var(--border) solid var(--ink);
+  border-left: 5px solid var(--wager-ink, var(--ink));
+}
+
+.abacus-wager.is-staked {
+  outline: 2px solid var(--wager-ink, var(--ink));
+  outline-offset: 2px;
+}
+
+.abacus-wager-name {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--face-display);
+  font-size: 16px;
+  margin: 0 0 2px;
+}
+
+.abacus-wager-stake {
+  font-family: var(--face-ui);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--wager-ink, var(--ink));
+}
+
+.abacus-wager-note {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.abacus-wager-bar {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin: 0 0 6px;
+}
+
+.abacus-wager-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--wager-ink, var(--ink));
+}
+
+.abacus-wager-label {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.abacus-wager-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.abacus-wager-row {
+  display: grid;
+  grid-template-columns: minmax(56px, 1fr) 2fr auto 14px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.abacus-wager-row.is-met .abacus-wager-seat {
+  font-weight: 600;
+}
+
+.abacus-wager-track {
+  display: block;
+  height: 6px;
+  background: var(--table);
+  border: 1px solid var(--rule);
+}
+
+.abacus-wager-fill {
+  display: block;
+  height: 100%;
+  background: var(--wager-ink, var(--ink));
+}
+
+.abacus-wager-at,
+.abacus-wager-mark {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.abacus-wager-mark {
+  color: var(--wager-ink, var(--ink));
+}

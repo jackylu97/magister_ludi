@@ -363,6 +363,12 @@ export function settleRenownWindfall(
   for (const grant of grants) {
     if (grant.amount === 0) continue;
     player.renownPool += grant.amount;
+    // **The lifetime total beside the purse** (`Player.renownEarned`, batch G2).
+    // The pool is spent when a name is called, so it can never answer "what has
+    // this realm been worth this age" — which is the question The Renowned asks.
+    // Raised here because this is the one place renown is added at all, and
+    // never lowered: a wager's flow over it is a subtraction against a stamp.
+    player.renownEarned += grant.amount;
     if (grant.family !== null) {
       player.renownByFamily[grant.family] = (player.renownByFamily[grant.family] ?? 0) + grant.amount;
     }

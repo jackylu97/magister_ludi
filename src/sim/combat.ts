@@ -2118,6 +2118,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           outcome.killed.push(snapshotFallen(defender));
           removeUnit(state, defender.id);
           defenderDied = true;
+          // **The exchange, written down** (`docs/wager.md` §3b, The Field of
+          // Glory). Two lifetime counts and one rule: a kill counts only against
+          // another *empire* — the wild is not a rival, and a card that paid for
+          // burning camps would be a different card — while a loss counts
+          // whatever took the piece. The capture arm above deliberately writes
+          // neither: nothing died.
+          tallyFall(state, attacker.ownerId, fallenOwner);
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
           // a battle is one event that two laws have something to say about.
@@ -2144,6 +2151,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     const defenderOwner = target.city ? target.city.ownerId : target.unit?.ownerId;
     removeUnit(state, attacker.id);
     outcome.attackerSurvived = false;
+    // The same ledger read the other way round: the counter-attack's owner made
+    // the kill, and a city that broke a charge is nobody's seat, so a hex with
+    // no defending empire records the loss alone.
+    tallyFall(state, defenderOwner ?? null, fallenOwner);
     payBattleRiders(state, fallenOwner, 'death', tile);
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
@@ -2494,7 +2505,39 @@ function captureCity(state: GameState, city: City, ownerId: number): void {
   // hands rather than at `awardOccasion`.
   const captor = playerById(state, ownerId);
   if (captor) captor.citiesCaptured += 1;
+  // **When** it was taken, beside **whether** (`City.capturedOn`, batch G2). The
+  // stamp is written here rather than in `handOverCity` because that seam also
+  // carries a town handed over at a treaty table, and The Taken Town asks for a
+  // town taken *by force* — a wager that counted a bargained city would be a war
+  // card anybody could buy.
+  city.capturedOn = state.turn;
   if (wasCapital && loser !== ownerId) awardBeadOccasion(state, ownerId, 'capitalCaptured');
+}
+
+/**
+ * **The exchange ledger** — one piece has fallen, so one empire has a kill and
+ * one has a loss (`Player.unitsKilled` / `Player.unitsLost`, batch G2).
+ *
+ * Two counts and two rules, and both of them are what make The Field of Glory a
+ * card about *choosing your ground* rather than a body count:
+ *
+ *   · a **kill is only a rival's**. The wild musters against the median seat all
+ *     game long and its raiders are free targets; a wager that paid for them
+ *     would be cleared by a garrison and a fog map. So a barbarian's fall raises
+ *     nobody's kill count.
+ *   · a **loss is any loss**. A column lost to raiders is still a column lost,
+ *     and the whole point of the card is that a war of attrition fails it.
+ *
+ * The wild keeps its own counters like every other seat and reads them nowhere:
+ * it has no Abacus and stakes no wager.
+ */
+function tallyFall(state: GameState, killerId: number | null, fallenId: number): void {
+  const fallen = playerById(state, fallenId);
+  if (fallen) fallen.unitsLost += 1;
+  if (killerId === null || killerId === fallenId) return;
+  if (fallen?.barbarian === true) return;
+  const killer = playerById(state, killerId);
+  if (killer) killer.unitsKilled += 1;
 }
 
 /**

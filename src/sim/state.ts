@@ -596,8 +596,36 @@ import {
  * and off a different reading, so a hand turns face up on a different turn, a
  * reckoning is taken on a different board, and the per-age counters the opening
  * resets are zeroed somewhere else entirely.
+ *
+ * v102: **the wager** (batch G2, `docs/wager.md` §2/§3/§5; the user,
+ * 2026-09-08: "5 turns into each new age, players are shown three targets drawn
+ * from a deck… Each player chooses one of the wagers"). Every age from the
+ * second deals the whole world **three bars** out of `data/wagers.json`,
+ * guaranteed to come from three different theme lines; every seat stakes one in
+ * secret (`chooseWager`, an End Turn blocker on the deal turn, the phase's own
+ * default for a chair nobody sat in); a card is claimed the turn a seat first
+ * meets it and mints beads then — two for the card that seat staked, one for
+ * either of the others — through four new repeatable grant rows, one per rod;
+ * and at the age's close a seat whose own card is still unclaimed takes a
+ * `pendingMalice`, which batch G3 turns into a card in a chair. New state:
+ * `GameState.wagers` (append-only, one row per age, with every seat's opening
+ * figures and every claim), `Player.wager`, `Player.wagerTotals`,
+ * `Player.pendingMalices`, `Player.malices`, `Player.renownEarned`,
+ * `Player.unitsKilled`/`unitsLost`, and `City.capturedOn`. A new `wagers` phase
+ * runs between `worldClock` and `beads`, and a new announced occasion
+ * (`wagerClaimed`) joins the union. The eight **reckonings** are retired
+ * (`retired: true`): the wager is the age's snapshot now and it is taken for
+ * everybody rather than paying the leader alone.
+ *
+ * A v101 log does not replay, for two reasons. The deal takes two rolls of
+ * `state.rng` an age (a line, then a card inside it). And retiring the
+ * reckonings takes four cards out of each age's deck, so the shuffle at
+ * `newGame` spends fewer rolls and every draw in the game starts from a
+ * different place — `drawAgeReckonings` still spends a roll a family over its
+ * now-empty pools, deliberately, so that at least *that* much is unmoved and a
+ * later reckoning-shaped row costs nothing to add back.
  */
-export const SCHEMA_VERSION = 101;
+export const SCHEMA_VERSION = 102;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1180,6 +1208,100 @@ export interface Player {
   routeYieldsThisAge: number;
   /** Great people called during the current age. `routeYieldsThisAge`' twin. */
   greatPeopleThisAge: number;
+  /**
+   * **All the renown this empire has ever earned**, spent or not
+   * (`docs/wager.md` §3b, The Renowned).
+   *
+   * `renownPool` is a *purse* — it goes down when a name is called — so it can
+   * never answer "how much has this realm been worth this age". This is the
+   * lifetime total beside it, raised in the one place renown is granted
+   * (`settleRenownWindfall`, `renown.ts`) and never lowered, which is what makes
+   * a wager's flow over it one subtraction against a stamp rather than a counter
+   * anybody has to reset.
+   */
+  renownEarned: number;
+  /**
+   * Rivals' pieces this empire has killed, and its own that have fallen.
+   *
+   * Two lifetime counts, written at the two seams in `applyCombat` where a piece
+   * leaves the board, and never anywhere else: a capture is not a kill (the wild
+   * that converts a defender takes no entry), and the wild's own losses are not
+   * a rival's — The Field of Glory asks for the *exchange* against other
+   * empires, which is what makes it a card about choosing your ground rather
+   * than about farming camps.
+   */
+  unitsKilled: number;
+  unitsLost: number;
+  /**
+   * **What this seat staked**, and in which age (`docs/wager.md` §2).
+   *
+   * An index into `WagerDeal.dealt`, never an id, because the three cards are
+   * the world's and a seat picks a *chair* at the table. Absent means this seat
+   * has not answered the deal on the table — which is what the End Turn blocker
+   * reads and what the `wagers` phase's default fills in for a seat that cannot.
+   *
+   * The pick is on the state and the **secrecy is a UI gate**, exactly as
+   * `localPlayerId` is: a replay must carry every seat's stake, and a sheet
+   * simply declines to print a rival's.
+   */
+  wager?: PlayerWager;
+  /**
+   * The lifetime totals a **flow** wager subtracts against, one per accumulator
+   * (`WAGER_ACCUMULATORS`, `wagerData.ts`).
+   *
+   * Raised once a turn in the `wagers` phase by whatever that turn's reading
+   * was, so each entry only ever moves one way and the deal can simply write
+   * down where a seat stood. Nothing here ever resets: "this age" is
+   * `now − opening`, the `TimedEffect` discipline one system over.
+   *
+   * Iterated through `WAGER_ACCUMULATORS`, never through its own keys (hard
+   * rule 2).
+   */
+  wagerTotals: Record<string, number>;
+  /**
+   * Wagers this seat staked and did not keep — **the mark the malice deck reads**
+   * (`docs/wager.md` §4, batch G3).
+   *
+   * The judgement is complete without the deck: at the age's close a seat whose
+   * staked card is still unclaimed takes an entry here, append-only and
+   * age-stamped. G3 turns each entry into a card drawn from `data/malices.json`
+   * and seated in a chair; until it lands, the penalty is recorded and nothing
+   * is paid, which is the honest half of a batch boundary.
+   */
+  pendingMalices: PendingMalice[];
+  /**
+   * The malices seated in this realm's chairs, each until the age it names.
+   *
+   * Empty in this build and written by nothing — **batch G3** owns the deck, the
+   * draw and the chair rule (§4). It is declared here because the judgement that
+   * fills it is built and a save written by this batch must already have a shape
+   * for what the next one puts in it.
+   */
+  malices: HeldMalice[];
+}
+
+/** One seat's stake on the table. See `Player.wager`. */
+export interface PlayerWager {
+  /** The age the deal belongs to — a stake never carries over. */
+  age: number;
+  /** Which of the three dealt cards, 0-2. */
+  index: number;
+}
+
+/** A wager staked and missed, waiting for G3's deck. See `Player.pendingMalices`. */
+export interface PendingMalice {
+  /** The age whose judgement wrote it. */
+  age: number;
+  /** The card that was staked and not kept — `WagerId`, kept as a string here. */
+  wager: string;
+}
+
+/** A malice seated in a chair. Written by nothing until batch G3. */
+export interface HeldMalice {
+  /** The row in `data/malices.json`. */
+  id: string;
+  /** The age it leaves at the judgement of. Absolute, never a countdown. */
+  untilAge: number;
 }
 
 /**
@@ -1246,6 +1368,73 @@ export interface BeadCard {
  */
 export interface AgeClose {
   age: number;
+  turn: number;
+}
+
+/**
+ * **One age's table** — the three cards the world was dealt, what each seat
+ * stood at when they were dealt, and who has since kept one (`docs/wager.md`
+ * §2/§3b, batch G2).
+ *
+ * The row is written once, at the deal, and only ever *appended to* after that.
+ * That is what makes the whole system replay: the draw is one call on
+ * `state.rng` at a known moment, the openings are a snapshot taken in
+ * `realPlayers` order, and every claim is pushed in sweep order with the turn it
+ * happened on.
+ */
+export interface WagerDeal {
+  /** The age these cards belong to — Æra II, III or IV. */
+  age: number;
+  /** The three cards, in the order they were drawn. `WagerId`s, kept as strings. */
+  dealt: string[];
+  /**
+   * The absolute turn they were dealt on — the turn the age opened.
+   *
+   * It is the deal's own clock and it is read three ways: a flow's window opens
+   * here, "captured this age" counts from here, and the seat that has not
+   * answered by the end of the *following* turn is dealt its first card by the
+   * phase's default.
+   */
+  dealtOn: number;
+  /**
+   * Where every real seat stood on each of the three cards at the deal.
+   *
+   * A **flow** wager is `now − opening`, so a bar staked in Æra III does not
+   * quietly credit an empire for what it banked in Æra II. Standing wagers
+   * ignore it entirely — the board now is the board now. In `realPlayers` order.
+   */
+  opening: WagerOpening[];
+  /**
+   * Every seat that has cleared one of the three, appended the turn it first
+   * did (§3b, claim-on-met): the beads are minted then, not at the close, so a
+   * bar met and then lost to a war still paid.
+   *
+   * A pair `(playerId, index)` appears at most once. Any number of seats may
+   * clear the same card — a wager is a bar, not a race — which is why nothing
+   * here names a first claimant (§11: no "claimed by" line).
+   */
+  claimed: WagerClaim[];
+  /**
+   * The absolute turn the age's judgement was taken, or absent while it is still
+   * running. Presence-is-state, and the one thing that stops a judgement being
+   * taken twice on an age the Opus and the backstop both close.
+   */
+  judgedOn?: number;
+}
+
+/** One seat's three figures at the deal. See `WagerDeal.opening`. */
+export interface WagerOpening {
+  playerId: number;
+  /** One per dealt card, in `WagerDeal.dealt` order. */
+  at: number[];
+}
+
+/** One seat clearing one of the three. See `WagerDeal.claimed`. */
+export interface WagerClaim {
+  playerId: number;
+  /** Which of the three, 0-2. */
+  index: number;
+  /** The absolute turn the bar was first met. */
   turn: number;
 }
 
@@ -1838,6 +2027,17 @@ export interface City {
    * its owner actually founded.
    */
   captured: boolean;
+  /**
+   * The absolute turn this town last changed hands by force, or absent for a
+   * town nobody has taken (`docs/wager.md` §3b, The Taken Town).
+   *
+   * `captured` is sticky and says *whether ever*; this says *when last*, which
+   * is the only reading that can answer "taken this age and still held" without
+   * a per-age counter to reset. Written where the flag is (`captureCity`), an
+   * absolute stamp compared and never ticked, and kept on a town retaken by its
+   * founder for `captured`'s own reason — the fact happened.
+   */
+  capturedOn?: number;
   /**
    * True while this town is a **puppet** — taken by force and not yet annexed
    * (`docs/war-diplomacy.md`, 9b; Civ V's rule).
@@ -2668,6 +2868,22 @@ export interface GameState {
    */
   ageClose?: AgeClose;
   /**
+   * **The wagers the world has been dealt**, one entry per age, append-only
+   * (`docs/wager.md` §2, §8; batch G2).
+   *
+   * `Player.triumphs`' discipline at the scale of the board: nothing is ever
+   * rewritten and nothing is ever removed, so the history of every age's table
+   * is readable after the fact and a replay reaches the same list by the same
+   * route. Absent — an empty array, or the field missing from a save written
+   * before this batch — is the honest reading of a world that has not closed its
+   * first age yet, which is exactly when the first deal happens.
+   *
+   * Every seat's stake lives on the seat (`Player.wager`) and every claim on the
+   * deal (`WagerDeal.claimed`); the secrecy of a stake is a *screen's* rule and
+   * not a rule of the state, for the reason `localPlayerId` is.
+   */
+  wagers: WagerDeal[];
+  /**
    * The winner, once there is one; `null` while the game is live.
    *
    * **One field, two ways to reach it** (Entry VI.3): the last empire standing
@@ -2880,6 +3096,15 @@ export function newGame(config: GameConfig): GameState {
       scholarshipScience: 0,
       routeYieldsThisAge: 0,
       greatPeopleThisAge: 0,
+      renownEarned: 0,
+      unitsKilled: 0,
+      unitsLost: 0,
+      // Fresh every time rather than a shared literal, for `techsResearched`'s
+      // reason: a realm's own running totals must not be written into every
+      // seat's books at once.
+      wagerTotals: {},
+      pendingMalices: [],
+      malices: [],
     })),
     turnEnded: normalized.players.map(() => false),
     map,
@@ -2912,6 +3137,9 @@ export function newGame(config: GameConfig): GameState {
     // order it comes off — Entry II's fairness, and the reason no generator ever
     // draws a bead card on sight (see `beads.ts`).
     beads: newBeadTable(rng),
+    // Append-only, and empty until the first age closes: a world in its first
+    // age has been dealt nothing (`docs/wager.md` §2 — no wager in Æra I).
+    wagers: [],
     winnerId: null,
   };
   placeStartingUnits(state);
@@ -3021,6 +3249,15 @@ function seatBarbarians(state: GameState): void {
     scholarshipScience: 0,
     routeYieldsThisAge: 0,
     greatPeopleThisAge: 0,
+    renownEarned: 0,
+    unitsKilled: 0,
+    unitsLost: 0,
+    // Present so every reader may index a seat without asking which kind it is,
+    // and filled by nothing: the `wagers` phase skips the wild the way the
+    // `beads` phase does. The wild is dealt no card and stakes nothing.
+    wagerTotals: {},
+    pendingMalices: [],
+    malices: [],
   };
   state.players.push(player);
   state.turnEnded.push(true);

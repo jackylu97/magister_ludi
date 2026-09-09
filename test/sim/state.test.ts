@@ -136,6 +136,18 @@ describe('newGame', () => {
       scholarshipScience: 0,
       routeYieldsThisAge: 0,
       greatPeopleThisAge: 0,
+      // The wager's, present from turn one for `beads`' reason exactly (batch
+      // G2): a lifetime renown total beside the purse that is spent, the
+      // exchange ledger a war writes into, an empty bag of running totals, and
+      // two empty lists — the marks a missed wager leaves and the malices batch
+      // G3's deck will seat. The stake itself (`Player.wager`) is absent until
+      // the world deals a table, exactly as `pendingDiscovery` is.
+      renownEarned: 0,
+      unitsKilled: 0,
+      unitsLost: 0,
+      wagerTotals: {},
+      pendingMalices: [],
+      malices: [],
     };
     expect(state.players).toEqual([
       { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
@@ -469,6 +481,10 @@ describe('end-of-turn pipeline', () => {
       // beat one of `runBeads` — and directly before the tables that read it,
       // which is the whole of its position. See `runWorldClock`.
       'worldClock',
+      // The age's own bars, between the clock and the deed table (batch G2):
+      // every question the wager asks is about the age, and a claim mints beads
+      // the sweep directly below reads. See `runWagers` (`docs/wager.md` §2).
+      'wagers',
       // The Bead Race's own beat, directly after the clock so the turn's
       // standing Triumphs, this turn's recruitments and the world's age are all
       // on the register before a deed is swept. See `runBeads` (Entry VI).
@@ -742,7 +758,13 @@ describe('the research queue field', () => {
     // v92 log replays only where none of those rows was ever held; where one
     // was, a piece walks further or a citizen turns and everything priced
     // against it moves. (93 is batch B1's and 94 batch B1b's, landed beside it.)
-    expect(SCHEMA_VERSION).toBe(101);
+    // 102 is batch G2's (2026-09-09, `docs/wager.md` §2/§3/§5): the wager —
+    // three bars dealt to the whole world when an age opens, a secret stake, a
+    // claim the turn a bar is first met and a malice at the close — plus the
+    // eight reckonings retired with it. A v101 log does not replay: the
+    // reckoning draw consumes no rolls now, so every generator-fed decision
+    // after it comes out of a different state.
+    expect(SCHEMA_VERSION).toBe(102);
   });
 });
 

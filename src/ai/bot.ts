@@ -337,6 +337,8 @@ import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
 import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
+import { wagerBlocker } from '../sim/wagers';
+import { type WagerId, wagerDef } from '../sim/wagerData';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
 // **The what-if grid** (batch X1d) — the standing and hypothetical folds of every
@@ -1159,6 +1161,8 @@ function answerBlocker(
       return beliefDecision(state, player, sitting);
     case 'greatPerson':
       return greatPersonDecision(state, player, sitting);
+    case 'wager':
+      return wagerDecision(state, player);
     case 'idleUnit':
       return unitCommand(state, player, blocker.unitId, sitting);
     case 'cityProduction':
@@ -1174,6 +1178,31 @@ function answerBlocker(
       return null;
     }
   }
+}
+
+/**
+ * **Stakes the first card on the table** (`docs/wager.md` §2, §6).
+ *
+ * A placeholder with a date on it: batch **W2** gives the bot a wager want —
+ * the bar as its stock, priced by the appraisal it already runs on everything
+ * else — and this arm becomes that call. Until then it answers the blocker the
+ * way the `wagers` phase' own default would, so a bot seat is never held at the
+ * table and never quietly different from an absent hot-seat player.
+ *
+ * Index nought rather than a roll, deliberately: a bot that picked at random
+ * would make the arena's per-seat averages noisier for no gain, and a
+ * deterministic answer keeps a replay across the deal byte-identical.
+ */
+function wagerDecision(state: GameState, player: Player): BotDecision | null {
+  const deal = wagerBlocker(state, player.id);
+  if (deal === null) return null;
+  return {
+    kind: 'draft',
+    command: { type: 'chooseWager', playerId: player.id, index: 0 },
+    subject: player.name,
+    summary: 'Stakes the first wager on the table — this bot does not appraise a bar yet.',
+    candidates: unweighed(deal.dealt.map((id) => wagerDef(id as WagerId).name)),
+  };
 }
 
 /**

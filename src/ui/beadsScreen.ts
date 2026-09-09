@@ -55,7 +55,6 @@ import {
   endeavourPrerequisiteMet,
 } from '../sim/beads';
 import {
-  type BeadCard,
   type EarnedBead,
   type GameState,
   playerById,
@@ -259,90 +258,28 @@ export function deckLine(remaining: number): string {
   return `${figure(remaining)} still in the deck`;
 }
 
-// --- the age opening --------------------------------------------------------
+// --- the age opening -------------------------------------------------------
 
-/**
- * The banner the screen wears when an age has just opened, in plain words.
+/*
+ * The age-opening banner and its two pure builders stood here until batch G2 and
+ * are **retired** (`docs/wager.md` §5/§11).
  *
- * **A world moment, shown to everybody at once** (the ruling): the clock is one
- * clock, so the turn the first seat in the world reaches a new age every seat's
- * table turns face up together and every seat is told. Nothing here is about
- * who got there first — that empire has already been announced its feat.
+ * They were the age-opening draw: this sheet raised itself the turn an age
+ * turned over, wearing a banner that grouped the new table into races and
+ * measures. What replaced it is the **wager's deal sheet** — three bars the age
+ * sets for everybody, which is what an age asks now — and two full-screen sheets
+ * on one turn is one sheet too many.
  *
- * No numbers in the prose (hard rule 7); the Æra is a name, not a count, and
- * the counting is done by the cards below.
+ * Nothing the banner listed was lost with it. The whole table is still drawn by
+ * `drawAge` for every deck age, the feats by `drawFeats` and the measures taken
+ * by `drawReckonings`, and all of it is reachable all game by the table's three
+ * ordinary doors: the bead chip in the top bar, any rod on the Abacus, and `V`.
+ * The **measures themselves** are retired too, one system over — `data/beads.json`'s
+ * eight reckonings carry `retired: true` since this batch, because the wager is
+ * the age's snapshot now and it is taken for everybody rather than paying the
+ * leader alone.
  */
-export interface BeadAgeBanner {
-  eyebrow: string;
-  /** "Æra III opens". */
-  headline: string;
-  /** What the table now is, in a first-time player's terms. */
-  lead: string;
-}
 
-export function ageOpeningBanner(age: number): BeadAgeBanner {
-  return {
-    eyebrow: 'the age opens',
-    headline: `${deckEraWord(age)} opens`,
-    lead:
-      'Every card below is face up for every empire. A race is taken by the first ' +
-      'across the line and nobody else; a measure is taken when the age closes, by ' +
-      'whoever stands highest, and a tie pays nobody.',
-  };
-}
-
-/** One row of the opening list: a card, named and said in its own words. */
-export interface BeadAgeRow {
-  id: BeadCardId;
-  name: string;
-  family: BeadFamily;
-  /** The row's own player-facing sentence (`def.text`). */
-  text: string;
-}
-
-/** One plain-headed group of the opening list. Empty groups are left out. */
-export interface BeadAgeGroup {
-  title: string;
-  rows: BeadAgeRow[];
-}
-
-/**
- * The age's prizes, grouped: **the races first, then what the age's close
- * measures.**
- *
- * Pure — a hand in, groups out — because the ordering and the grouping are the
- * two things about this list that can be quietly wrong, and this suite has no
- * jsdom. Face-down cards are left out on purpose: a card nobody has been shown
- * is not a prize that has been announced, and the same list read again later
- * off a hand that has since been dealt into simply says more.
- *
- * The order inside a group is the hand's own, which is the deal's order, which
- * is the seed's — so two players reading the same game read the same list.
- */
-export function ageOpeningGroups(hand: readonly BeadCard[]): BeadAgeGroup[] {
-  const races: BeadAgeRow[] = [];
-  const measures: BeadAgeRow[] = [];
-  for (const card of hand) {
-    if (!card.faceUp) continue;
-    const { kind, def } = anyBeadDef(card.id);
-    const row: BeadAgeRow = {
-      id: card.id,
-      name: def.name,
-      family: def.family,
-      text: def.text,
-    };
-    if (kind === 'reckoning') measures.push(row);
-    else races.push(row);
-  }
-  const groups: BeadAgeGroup[] = [];
-  if (races.length > 0) {
-    groups.push({ title: 'Races — the first empire across the line takes it', rows: races });
-  }
-  if (measures.length > 0) {
-    groups.push({ title: 'Measures — taken when the age closes', rows: measures });
-  }
-  return groups;
-}
 
 // --- the rods ---------------------------------------------------------------
 
@@ -439,8 +376,14 @@ export interface BeadsScreen {
    * **reopenable** for nothing: `V` brings the table back all game.
    *
    * The banner belongs to the raising and is dropped when the screen closes.
+   *
+   * **Retired, batch G2** (`docs/wager.md` §5/§11): the sheet no longer raises
+   * itself on the age — the wager's deal sheet does, because the three bars are
+   * what an age now asks of everybody, and two full-screen sheets on one turn is
+   * one sheet too many. Everything it printed is still here and still reachable
+   * all game by the table's three ordinary doors: the bead chip in the top bar,
+   * any rod on the Abacus, and `V`. The banner is the only thing that went.
    */
-  announceAge(age: BeadAge): void;
   /** The state changed. Redraws if the screen is up; cheap enough to call always. */
   refresh(): void;
   dispose(): void;
@@ -453,8 +396,7 @@ export interface BeadsScreenOptions {
   /**
    * The control the table is reached from, for the `aria-expanded` mirror and
    * the focus return. Not a door: the doors are `main.ts`'s (`onToggleBeads`
-   * from the bar's chip, a rod on the Abacus, `V`) and the simulation's
-   * (`announceAge`), like every other sheet's.
+   * from the bar's chip, a rod on the Abacus, `V`), like every other sheet's.
    */
   trigger?: HTMLElement;
   getState: () => GameState;
@@ -495,7 +437,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
    * table. View state and nothing else — it is dropped the moment the screen
    * closes, so a player who comes back to the table by `V` gets the table.
    */
-  let banner: BeadAge | null = null;
 
   /** Who took this card, or null. Read off the world's register. */
   function claimOf(state: GameState, id: BeadCardId): BeadClaimView | null {
@@ -761,42 +702,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     return column;
   }
 
-  /**
-   * The age-opening banner: what happened, then the age's prizes under plain
-   * headers, races first.
-   *
-   * An **index**, not a second set of cards: the full faces are drawn a few
-   * inches below by `drawAge`, and printing them twice would be two places a
-   * card's words could disagree. What this adds is the grouping — a race and a
-   * measure are won in entirely different ways, and the table does not say so.
-   */
-  function drawBanner(state: GameState, age: BeadAge): HTMLElement {
-    const words = ageOpeningBanner(age);
-    const box = element('section', 'bead-banner gilt-frame');
-    box.append(element('p', 'eyebrow bead-banner-eyebrow', words.eyebrow));
-    box.append(element('h3', 'bead-banner-title', words.headline));
-    box.append(element('p', 'bead-banner-lead', words.lead));
-
-    for (const group of ageOpeningGroups(state.beads.hands[String(age)] ?? [])) {
-      box.append(element('h4', 'bead-banner-group', group.title));
-      const list = element('ul', 'bead-banner-list');
-      for (const row of group.rows) {
-        const item = element('li', 'bead-banner-row');
-        item.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[row.family].ink})`);
-        item.append(familyMarkNode(row.family));
-        const words2 = element('div', 'bead-banner-words');
-        words2.append(element('span', 'bead-banner-name', row.name));
-        const deed = element('span', 'bead-banner-deed');
-        setDescriptorText(deed, row.text, { linked: false });
-        words2.append(deed);
-        item.append(words2);
-        list.append(item);
-      }
-      box.append(list);
-    }
-    return box;
-  }
-
   function render(): void {
     const state = getState();
     const seat = getPlayerId();
@@ -805,7 +710,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     body.append(drawRods(state, seat));
 
     const pane = element('div', 'bead-pane');
-    if (banner !== null) pane.append(drawBanner(state, banner));
     for (const age of BEAD_DECK_AGES) pane.append(drawAge(state, seat, age));
     pane.append(drawFeats(state));
     const reckonings = drawReckonings(state);
@@ -818,10 +722,8 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
    * ×, Escape and a press on the ground all arrive at one `close`, the keyboard
    * goes to the × and comes back to the bar, and the disposer is the game's.
    *
-   * What this table hangs on it is the **banner**, and it is dropped on the way
-   * out rather than set on the way in: a screen already standing when an age
-   * opens keeps the banner `announceAge` has just put on it, and a table
-   * reopened by `V` afterwards is the table.
+   * Nothing per-visit is hung on it any more: the age-opening banner it used to
+   * carry is retired with the raising that put it there (batch G2).
    */
   const shell = createModalShell({
     overlay,
@@ -830,9 +732,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     trigger,
     onOpen: () => options.onOpen?.(),
     draw: render,
-    onClose: () => {
-      banner = null;
-    },
   });
 
   return {
@@ -842,13 +741,6 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     open: shell.open,
     close: shell.close,
     toggle: shell.toggle,
-    announceAge: (age: BeadAge) => {
-      banner = age;
-      // Already up — the player was reading the table when the age turned over.
-      // `open` on a standing sheet repaints it rather than closing and reopening
-      // it under them, which is the shell's rule and this screen's need.
-      shell.open();
-    },
     refresh: shell.refresh,
     dispose: shell.dispose,
   };

@@ -208,6 +208,7 @@ import {
   startRouteError,
 } from './trade';
 import { type BeadAward, beadMarks, beadsSince } from './beads';
+import { chooseWagerAt, chooseWagerError } from './wagers';
 import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
@@ -831,6 +832,31 @@ export interface ChooseOrderCommand extends PlayerCommand {
   type: 'chooseOrder';
   /** Which option, by position in `OrderOffer.options`. */
   optionIndex: number;
+}
+
+/**
+ * **Stakes one of the three wagers the age dealt** (`docs/wager.md` §2, batch
+ * G2).
+ *
+ * An **index rather than an id**, for `chooseOrder`'s reason exactly and one
+ * more of its own: the three cards are the *world's* — the same three for every
+ * seat — so a stake is a chair at the table rather than a card in a hand, and a
+ * log that named the card would be a log that could disagree with the deal it
+ * answers. The deal is on the state (`GameState.wagers`) and both halves are in
+ * the log, so a replay deals the same three and stakes the same one.
+ *
+ * There is **no way back**: the pick is written once and never rewritten, which
+ * is what makes a secret stake worth keeping secret. The whole of the gate is
+ * `chooseWagerError`, so the sheet offers exactly what the reducer takes.
+ *
+ * Turn-gated like every other act, and not a trap for `chooseDiscovery`'s
+ * reason: the End Turn blocker will not let a seat hand over the deal turn with
+ * an empty chair.
+ */
+export interface ChooseWagerCommand extends PlayerCommand {
+  type: 'chooseWager';
+  /** Which of the three, by position in `WagerDeal.dealt`. */
+  index: number;
 }
 
 /**
@@ -1638,6 +1664,7 @@ export type Command =
   | PurchaseTileCommand
   | ChooseDiscoveryCommand
   | ChooseOrderCommand
+  | ChooseWagerCommand
   | SkipOrderOfferCommand
   | RerollOfferCommand
   | SlotOrderCommand
@@ -1723,6 +1750,25 @@ export type CommandResult =
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
       beadAgeOpened?: BeadAge;
+      /**
+       * **The age dealt its wagers**, said once, on the resolution that dealt
+       * them (`docs/wager.md` §2, batch G2).
+       *
+       * `beadAgeOpened`'s twin one system over and here for its argument
+       * exactly: a deal happens on one turn and leaves nothing on the board
+       * saying *when* — `state.wagers` simply has the row afterwards. It is what
+       * raises the deal sheet, so an interface that had to diff its own copy of
+       * last turn's list would raise a sheet a decade late on a reload.
+       */
+      wagerDealt?: number;
+      /**
+       * Every wager kept during the resolution, in sweep order.
+       *
+       * `beads`' kind of news and a list for the same reason a wager is a bar
+       * rather than a race: any number of seats may clear any of the three on
+       * one turn. The Abacus flips on these the way it flips on a bead.
+       */
+      wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
       /**
        * **The Magnum Opus is open to the world**, said once, on the command that
        * opened it (design ledger Entry LVIII).
@@ -2044,6 +2090,13 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   // *transition*, which is what every field on this shape is.
   if (result.ok && report.beadAgeOpened !== undefined) {
     result.beadAgeOpened = report.beadAgeOpened;
+  }
+  // The age's own table, on the one turn in a game that deals one, and every
+  // bar kept on the way through — both for `beadAgeOpened`'s reason: a moment
+  // later there is nothing on the board that says either happened *now*.
+  if (result.ok && report.wagerDealt !== undefined) result.wagerDealt = report.wagerDealt;
+  if (result.ok && report.wagerClaims !== undefined) {
+    result.wagerClaims = [...report.wagerClaims];
   }
   // Every war the resolution ended, with the columns each peace walked home.
   // Set beside the helper for `beads`' stated reason exactly.
@@ -3084,6 +3137,27 @@ function applyChooseOrder(state: GameState, command: ChooseOrderCommand): Comman
   if (problem) return fail(problem);
 
   settleOrderChoice(actor, command.optionIndex);
+  return ok();
+}
+
+/**
+ * Stakes a wager. See `ChooseWagerCommand`.
+ *
+ * `applyChooseOrder`'s shape, refusal for refusal: the seat's two questions
+ * here, everything about the *table* delegated whole to `chooseWagerError`, and
+ * not one byte moves until both have been answered.
+ */
+function applyChooseWager(state: GameState, command: ChooseWagerCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot stake a wager`);
+  }
+
+  const problem = chooseWagerError(state, actor.id, command.index);
+  if (problem) return fail(problem);
+
+  chooseWagerAt(state, actor.id, command.index);
   return ok();
 }
 
@@ -4383,6 +4457,8 @@ function orderedUnitId(command: Command): number | undefined {
     // empire's law, and a card is not an order to a warrior. Rerolling a hand
     // is the same kind of act one currency over.
     case 'chooseOrder':
+    // Staking a wager names a card on the world's table, not a piece.
+    case 'chooseWager':
     case 'skipOrderOffer':
     case 'rerollOffer':
     case 'slotOrder':
@@ -4500,6 +4576,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   purchaseTile: 'economy',
   chooseDiscovery: 'economy',
   chooseOrder: 'economy',
+  chooseWager: 'economy',
   skipOrderOffer: 'economy',
   rerollOffer: 'economy',
   slotOrder: 'economy',
@@ -4713,6 +4790,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseDiscovery(state, command);
     case 'chooseOrder':
       return applyChooseOrder(state, command);
+    case 'chooseWager':
+      return applyChooseWager(state, command);
     case 'skipOrderOffer':
       return applySkipOrderOffer(state, command);
     case 'rerollOffer':

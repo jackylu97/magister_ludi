@@ -965,6 +965,42 @@
       </div>
     </div>
 
+    <!-- ================= the Wager's deal sheet ==================
+         The three bars the age has just set, and the one this seat stakes. The
+         eleventh sheet on `modalShell.ts` (`docs/wager.md` §2, batch G2). It is
+         raised by the End Turn blocker on the one turn an age deals, and by
+         nothing else: the table is answered in one window, so there is no bar
+         control and no hotkey.
+
+         There is deliberately no countdown and no line about how an age turns
+         over in this masthead — the clock's mechanics are not shown to the
+         player, and the top bar's age card is the one place the deadline lives.
+         ============================================================ -->
+    <div
+      id="wager-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The wager"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the magister&rsquo;s wager</p>
+            <h2 class="statecraft-title">Three <em>Bars</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            stake one &mdash; nobody is told which &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="wager-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="wager-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
     <!-- ================= the Diplomacy screen ==================
          Every empire in the world, where this seat stands with each, and the
          two verbs that change it: declare, and offer peace. The third door on

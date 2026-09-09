@@ -294,8 +294,12 @@ describe('the clock as a register', () => {
     const clock = names.indexOf('worldClock');
     expect(clock).toBeGreaterThan(-1);
     // The position is the rule: every phase that reads the world's age runs
-    // after it, and the loudest of them is the very next one.
-    expect(names[clock + 1]).toBe('beads');
+    // after it. Batch G2 put the `wagers` phase directly behind it and the deed
+    // tables directly behind that — a deal and a judgement are the loudest
+    // readers of the clock there are, and a claim mints beads the sweep below
+    // them reads on the same turn.
+    expect(names[clock + 1]).toBe('wagers');
+    expect(names[clock + 2]).toBe('beads');
     expect(names.indexOf('renown')).toBeLessThan(clock);
   });
 
@@ -327,6 +331,6 @@ describe('the clock as a register', () => {
   });
 
   it('pins the schema this batch moved', () => {
-    expect(SCHEMA_VERSION).toBe(101);
+    expect(SCHEMA_VERSION).toBe(102);
   });
 });

@@ -114,6 +114,7 @@ import { greatPersonBlocker } from '../sim/greatPeople';
 import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
+import { wagerBlocker } from '../sim/wagers';
 import { availableTechs } from '../sim/tech';
 import { type GameState, hasEndedTurn, playerById } from '../sim/state';
 import { unitAwaitsOrders, unitOfferedForOrders } from '../sim/units';
@@ -133,7 +134,8 @@ export type TurnBlocker =
   | { kind: 'discovery' }
   | { kind: 'statecraft'; what: 'order' | 'doctrine' }
   | { kind: 'religion' }
-  | { kind: 'greatPerson' };
+  | { kind: 'greatPerson' }
+  | { kind: 'wager' };
 
 /**
  * Which Statecraft draft this empire owes an answer to, or `null`.
@@ -235,6 +237,21 @@ export function firstBlocker(
   // An **empty** offer never reaches here: `greatPersonBlocker` answers `null`
   // for one, because a spent roster is not a decision.
   if (greatPersonBlocker(player) !== null) return { kind: 'greatPerson' };
+
+  // **The fifth offer, and the shortest-lived of them** (`docs/wager.md` §2).
+  // The three wagers are dealt to the whole world on the turn an age opens and
+  // every seat answers in that one window, so this blocks on the deal turn and
+  // never after it — the `wagers` phase fills an empty chair with the first card
+  // at the end of the following turn, which is what a hot-seat game with an
+  // absent player needs and what a human must never be quietly given instead of
+  // being asked.
+  //
+  // It goes below the four offers for their own stated reason: all five can be
+  // outstanding at once and something has to be last, and a bar the whole world
+  // was dealt does not go stale while a discovery, a draft, a god and a name are
+  // answered. The rule itself is `wagerBlocker` in the simulation, where the bot
+  // reads it.
+  if (wagerBlocker(state, playerId) !== null) return { kind: 'wager' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

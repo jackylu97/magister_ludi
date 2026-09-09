@@ -761,7 +761,10 @@ describe('nobody rebuilds the town’s list', () => {
     // The five surfaces §3a names, each reading `readings.ts` rather than
     // walking the layers itself.
     for (const [file, what] of [
-      ['ledgerScreen.ts', 'readEmpire'],
+      // The Ledger's fold moved into the simulation with batch G2 (`ledgerFold.ts`,
+      // so the wager deck may ask what the sheet prints); the sheet subscribes
+      // through it, which is the same subscription one file further out.
+      ['ledgerFold.ts', 'readEmpire'],
       ['cityPanel.ts', 'readCity'],
       ['topBar.ts', 'readEmpire'],
       ['cardImpact.ts', 'readCity'],

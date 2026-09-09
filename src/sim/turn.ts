@@ -141,6 +141,7 @@ import { type DealEndReport, pruneDeals } from './deals';
 import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads, runWorldClock } from './beads';
+import { runWagers } from './wagers';
 import type { BeadAge } from './beadData';
 import { runRenown, settleRenownWindfall } from './renown';
 import { advanceResearch } from './tech';
@@ -391,6 +392,24 @@ export interface TurnReport {
    * it is the interface's business.
    */
   beadAgeOpened?: BeadAge;
+  /**
+   * The age a wager deal opened for during the resolution, or absent.
+   *
+   * `beadAgeOpened`'s twin and news for its reason: a deal happens once, on one
+   * turn, and by the time the resolution returns `state.wagers` simply *has* the
+   * row — nothing on the board says it arrived this turn rather than eight turns
+   * ago. It is what raises the deal sheet.
+   */
+  wagerDealt?: number;
+  /**
+   * Every wager kept during the resolution, in sweep order — who, which card,
+   * which chair, and how many beads it paid.
+   *
+   * A **list** rather than a flag, because any number of seats may clear any of
+   * the three on one turn (a wager is a bar, not a race) and the Abacus flips on
+   * each of them the way it flips on a bead.
+   */
+  wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
   /**
    * Every war that ended during the resolution, in `state.wars` order, with the
    * truce it bought and the armies it sent home (`PeaceOutcome`).
@@ -643,6 +662,24 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // the Bead Race's private business — the wager, the Horde and the top bar
     // all read it. See `runWorldClock`.
     run: runWorldClock,
+  },
+  {
+    name: 'wagers',
+    // **The age's own bars** (batch G2, `docs/wager.md` §2): the deal, the
+    // running totals, the claims and the judgement.
+    //
+    // Its position is the usual rules decision and it is two sentences.
+    // **Directly after `worldClock`**, because every question this phase asks is
+    // about the age and the clock is what decides that an age closed on this
+    // turn — a deal taken above it would be dealing the age that is ending.
+    // **Directly before `beads`**, because a wager kept mints beads and the deed
+    // sweep in the very next phase reads the rod they land on; a claim settled
+    // below the sweep would be a bead that arrives a turn late on every screen
+    // that counts one.
+    //
+    // It skips the wild for `runBeads`' reason: the wild is dealt no card and
+    // stakes nothing. See `runWagers`.
+    run: runWagers,
   },
   {
     name: 'beads',

@@ -1570,6 +1570,14 @@ export interface GameControlsOptions {
    */
   onOfferGreatPerson?: () => void;
   /**
+   * Raises the wager's deal sheet — `main.ts`'s `wagerSheet.open()`.
+   *
+   * The fifth of the five, for `onOfferStatecraft`'s reason exactly: the button
+   * takes the player to the thing they forgot, and three bars' "there" is a
+   * sheet rather than a hex.
+   */
+  onOfferWager?: () => void;
+  /**
    * **A great person was spent** — the ceremony's cue (`greatPersonCeremony.ts`).
    *
    * Fired from `spendGreatPerson` *after* the result has been checked, so a
@@ -2328,6 +2336,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onStatecraftPause,
     onOfferReligion,
     onOfferGreatPerson,
+    onOfferWager,
     onGreatPersonSpent,
     onCityCaptured,
     onTriumphs,
@@ -6848,6 +6857,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // recruitment's own announcement, once there is somebody to look at.
         guide('☞ A great person awaits your call.');
         onOfferGreatPerson?.();
+        return;
+      }
+      case 'wager': {
+        // No camera for the fifth either: the three bars are the *world's* and
+        // the chair is the empire's. It is the shortest-lived of the five —
+        // the table is answered on the turn it is dealt (`docs/wager.md` §2) —
+        // which is why the sentence names the age rather than the card.
+        guide('☞ The age has set its bars — stake one.');
+        onOfferWager?.();
         return;
       }
     }

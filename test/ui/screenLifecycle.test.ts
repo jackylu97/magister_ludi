@@ -61,6 +61,7 @@ describe('the game-screen disposal register', () => {
       'statecraft?.dispose()',
       'religion?.dispose()',
       'trade?.dispose()',
+      'wagerSheet?.dispose()',
       'abacus?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);

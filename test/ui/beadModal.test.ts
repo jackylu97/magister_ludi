@@ -4,9 +4,9 @@
  *
  * The Bead Race is the game's one victory condition (design ledger Entry VI)
  * and until this pass a bead was a toast — the same volume as a caravan coming
- * home. The sheet (`beadModal.ts`) is the Triumph sheet one system over, and
- * the age opening is the Beads table wearing a banner (`beadsScreen.ts`'s
- * `announceAge`) rather than a second list of the same rows.
+ * home. The sheet (`beadModal.ts`) is the Triumph sheet one system over; the age
+ * opening was the Beads table wearing a banner until batch G2 and is the
+ * **wager's deal sheet** now (`docs/wager.md` §5/§11).
  *
  * Five of the promises cannot be kept by any one module alone, and every one of
  * them fails *silently*:
@@ -33,9 +33,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { type BeadNews, beadAwardFace, beadRodsFor } from '../../src/ui/beadModal';
-import { ageOpeningBanner, ageOpeningGroups } from '../../src/ui/beadsScreen';
 import { BEAD_RULES } from '../../src/sim/beadData';
-import type { BeadCard, EarnedBead } from '../../src/sim/state';
+import type { EarnedBead } from '../../src/sim/state';
 
 const SOURCES = import.meta.glob(
   [
@@ -182,52 +181,25 @@ describe('beadRodsFor', () => {
   });
 });
 
-describe('the age-opening list', () => {
-  function card(id: string, faceUp = true): BeadCard {
-    return { id, faceUp } as BeadCard;
-  }
+describe('the age-opening list, retired', () => {
+  const screen = source('beadsScreen.ts');
 
-  it('groups the races first and the age’s measures after them', () => {
-    const groups = ageOpeningGroups([
-      card('theMostCities'),
-      card('theRoadBuilder'),
-      card('censusOfTheWorld'),
-    ]);
-    expect(groups).toHaveLength(2);
-    expect(groups[0]!.title.toLowerCase()).toContain('race');
-    expect(groups[0]!.rows.map((row) => row.id)).toEqual(['theRoadBuilder', 'censusOfTheWorld']);
-    expect(groups[1]!.title.toLowerCase()).toContain('measure');
-    expect(groups[1]!.rows.map((row) => row.id)).toEqual(['theMostCities']);
+  it('no longer raises itself on the age', () => {
+    // Batch G2 (`docs/wager.md` §5/§11): what an age asks of everybody is the
+    // three bars it sets, so the **wager's deal sheet** is the age's sheet now
+    // and two full-screen sheets on one turn is one too many. The banner, its
+    // two pure builders and the raising that put it there all went together.
+    expect(screen).not.toContain('announceAge');
+    expect(screen).not.toContain('drawBanner');
+    expect(screen).not.toContain('ageOpeningGroups');
   });
 
-  it('says each row in its own player-facing words', () => {
-    const [races] = ageOpeningGroups([card('theRoadBuilder')]);
-    const row = races!.rows[0]!;
-    expect(row.name).toBe('The Road-Builder');
-    expect(row.text.length).toBeGreaterThan(0);
-    expect(row.family).toBe('economic');
-  });
-
-  it('leaves out a card nobody has been shown', () => {
-    // Face down is not a prize that has been announced. At the opening every
-    // card of the age is face up, so this is about a later reading.
-    const groups = ageOpeningGroups([card('theRoadBuilder', false), card('theFounder')]);
-    expect(groups).toHaveLength(1);
-    expect(groups[0]!.rows.map((row) => row.id)).toEqual(['theFounder']);
-  });
-
-  it('leaves out a group with nothing in it', () => {
-    expect(ageOpeningGroups([])).toEqual([]);
-    expect(ageOpeningGroups([card('theRoadBuilder')])).toHaveLength(1);
-  });
-
-  it('names the age and puts no number in the prose', () => {
-    // Hard rule 7: an Æra is a name, not a count, and the counting is done by
-    // the cards themselves.
-    const banner = ageOpeningBanner(3);
-    expect(banner.headline).toContain('Æra III');
-    expect(banner.lead).not.toMatch(/\d/);
-    expect(banner.headline).not.toMatch(/\d/);
+  it('leaves every table it printed reachable', () => {
+    // Nothing was lost with the banner — it was an index over cards the sheet
+    // already draws — and the table keeps its three ordinary doors.
+    expect(screen).toContain('function drawAge(');
+    expect(screen).toContain('function drawFeats(');
+    expect(screen).toContain('function drawReckonings(');
   });
 });
 
@@ -390,7 +362,10 @@ describe('the queue above the sheets', () => {
     const body = pump.slice(0, pump.indexOf('\n  }\n'));
     expect(body).toContain('if (newsBlocked()) return;');
     const awards = body.indexOf('beadSheet.show(news)');
-    const table = body.indexOf('beads.announceAge(age)');
+    // The second surface is the **wager's deal sheet** since batch G2: what an
+    // age asks of everybody is the three bars it sets, and the deed table is one
+    // press away all game.
+    const table = body.indexOf('wagerSheet.open()');
     expect(awards).toBeGreaterThan(-1);
     expect(awards).toBeLessThan(table);
   });
@@ -438,36 +413,3 @@ describe('the queue above the sheets', () => {
   });
 });
 
-describe('the Beads screen wearing the banner', () => {
-  const screen = source('beadsScreen.ts');
-
-  it('is the table itself, not a second list', () => {
-    // The lighter path, and the reason it is the right one: the screen already
-    // draws every card of the age, every feat and every rod, so a second
-    // surface would be a second place a card's words could go stale — and the
-    // announcement is **reopenable** for nothing, because `V` brings it back.
-    expect(screen).toContain('announceAge(age: BeadAge)');
-    expect(screen).toContain('drawBanner');
-    expect(screen).toContain('ageOpeningGroups(');
-  });
-
-  it('keeps the banner for the raising and drops it on close', () => {
-    // A table reopened by `V` is the table. Dropped on close rather than on
-    // open, so a screen already standing when the age turns over keeps it —
-    // which since batch H5 is the shell's `onClose` hook (`modalShell.ts`),
-    // the one place every door of this screen arrives at.
-    const shell = screen.slice(screen.indexOf('const shell = createModalShell('));
-    const body = shell.slice(0, shell.indexOf('\n  });'));
-    expect(body).toContain('onClose: () => {\n      banner = null;\n    },');
-  });
-
-  it('re-renders in place when the screen is already up', () => {
-    // Closing and reopening it under a player who is reading it is the failure.
-    // The shell's `open` repaints a sheet that is already showing and steals
-    // nothing back, so the announcement is one call either way.
-    const announce = screen.slice(screen.indexOf('announceAge: (age: BeadAge)'));
-    const body = announce.slice(0, announce.indexOf('refresh:'));
-    expect(body).toContain('shell.open();');
-    expect(body).not.toContain('close');
-  });
-});

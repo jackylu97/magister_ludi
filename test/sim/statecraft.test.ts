@@ -1397,7 +1397,7 @@ describe('determinism', () => {
     // from its second turn on. 76 since batch E landed the tree's own gifts the
     // same day: ten nodes hand over something else, a third conversion project
     // joined the queue's vocabulary, and a road step is an empire fact.
-    expect(SCHEMA_VERSION).toBe(101);
+    expect(SCHEMA_VERSION).toBe(102);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2044,10 +2044,14 @@ describe('the draw is weighted by rarity', () => {
       const [drawn] = drawWeighted(g.state, bag, 1, weight);
       if (drawn === 'campFollowers') rares += 1;
     }
-    // Thirteen of a hundred and thirty, on seed 5, exactly — a number this
-    // build produces and the next one must reproduce. Change the seed or the
-    // weights and this moves; it is the pin, not a statistical claim.
-    expect(rares).toBe(13);
+    // Twelve of a hundred and thirty, on seed 5, exactly — a number this build
+    // produces and the next one must reproduce. Change the seed or the weights
+    // and this moves; it is the pin, not a statistical claim. It was thirteen
+    // until schema 102 (batch G2): retiring the eight reckonings takes four
+    // cards out of each age's deck, and a shuffle of a shorter deck spends fewer
+    // rolls, so every draw in the game after `newGame` starts from a different
+    // place. The *frequency* is unchanged — it is the same weighted bag.
+    expect(rares).toBe(12);
   });
 
   it('deals nothing but the weighted card when everything else weighs nothing', () => {

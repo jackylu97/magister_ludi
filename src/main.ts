@@ -196,6 +196,8 @@ import { type Compendium, createCompendium } from './ui/compendium';
 import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
+import { type WagerSheet, createWagerSheet, wagerBoards } from './ui/wagerSheet';
+import { wagerBlocker } from './sim/wagers';
 import { type UnitPanel, createUnitPanel, disbandPrompt } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
@@ -370,6 +372,10 @@ const religionBodyEl = requireElement<HTMLElement>('religion-body');
    Routes row. */
 const tradeOverlayEl = requireElement<HTMLElement>('trade-overlay');
 const tradeBodyEl = requireElement<HTMLElement>('trade-body');
+/* The wager's deal sheet — raised by the End Turn blocker on the one turn an
+   age deals its bars, and by nothing else (`docs/wager.md` §2). */
+const wagerOverlayEl = requireElement<HTMLElement>('wager-overlay');
+const wagerBodyEl = requireElement<HTMLElement>('wager-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
 const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
 /* The Compendium: the bar's book button, the overlay, and the body the same
@@ -730,6 +736,7 @@ let religion: ReligionScreen | null = null;
 /* Trade's screen, built in `boot` for `religion`'s reason: it asks whose seat
    this is, and `closePopovers` is declared before there is one. */
 let trade: TradeScreen | null = null;
+let wagerSheet: WagerSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
 
@@ -903,6 +910,7 @@ function closePopovers(): boolean {
     (statecraft?.isOpen ?? false) ||
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
+    (wagerSheet?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
     (ledger?.isOpen ?? false) ||
@@ -1543,6 +1551,7 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   statecraft: 'A card awaits',
   religion: 'A god awaits',
   greatPerson: 'A great person awaits',
+  wager: 'A wager awaits',
 };
 
 const PAUSE_LABELS: Record<StatecraftPause, string> = {
@@ -3035,6 +3044,7 @@ async function boot(initial: Game | null): Promise<void> {
       // up — each handles its own Escape — and neither has any business letting
       // `H`, `T` or End Turn through from underneath.
       (trade?.isOpen ?? false) ||
+      (wagerSheet?.isOpen ?? false) ||
       // The Reliquary owns its own Escape and its own arrow keys while it is up
       // — the pile is what ‹ › mean there — so the board must not see either
       // from underneath, and neither should `H`, `T` or End Turn.
@@ -3119,10 +3129,18 @@ async function boot(initial: Game | null): Promise<void> {
       beadSheet.show(news);
       return;
     }
-    if (pendingBeadAge !== null && beads) {
-      const age = pendingBeadAge;
+    // **The age's own sheet is the wager's now** (batch G2, `docs/wager.md`
+    // §5/§11). It used to be the Bead Race's table wearing a banner; what an age
+    // asks of everybody is the three bars it sets, and the deed table is still
+    // one press away all game (the bead chip, an Abacus rod, `V`).
+    //
+    // Raised only for a seat that still owes the table an answer, which is
+    // `firstBlocker`'s own reading: a hot-seat player who has already staked
+    // does not want the sheet again on their way past.
+    if (pendingBeadAge !== null && wagerSheet) {
       pendingBeadAge = null;
-      beads.announceAge(age);
+      const seat = controls.localPlayerId();
+      if (wagerBlocker(game.state, seat) !== null) wagerSheet.open();
     }
   }
 
@@ -3212,6 +3230,8 @@ async function boot(initial: Game | null): Promise<void> {
     inputBlocked: isInputBlocked,
     onToggleTechTree: () => techTree?.toggle(),
     onToggleAbacus: () => abacus?.toggle(),
+    // The fifth blocker's "there": three bars on a sheet, not a hex.
+    onOfferWager: () => wagerSheet?.open(),
     onToggleBeads: () => beads?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
@@ -3307,11 +3327,12 @@ async function boot(initial: Game | null): Promise<void> {
       pumpBeadNews();
     },
     /**
-     * The age opened: the Beads table, raised with its banner, to every seat.
+     * The age opened: the wager's deal sheet, to every seat that still owes the
+     * table an answer (batch G2).
      *
-     * The age is all that is carried — the hand is on the state, and the screen
-     * reads it when it draws. Queued behind any award sheet, which is what
-     * `pumpBeadNews` is for.
+     * The age is all that is carried — the three cards are on the state, and the
+     * sheet reads them when it draws. Queued behind any award sheet, which is
+     * what `pumpBeadNews` is for.
      */
     onBeadAgeOpened: (age) => {
       pendingBeadAge = age;
@@ -3744,6 +3765,49 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => trade?.dispose());
 
   /**
+   * **The wager's deal sheet** — the eleventh sheet on the shell.
+   *
+   * Raised by the End Turn blocker on the one turn an age deals its bars and by
+   * nothing else (`docs/wager.md` §2): the table is answered in one window, so a
+   * bar control or a hotkey would be a door onto a decision that is already made.
+   * The stake goes straight through `dispatch`, and the result is *checked* for
+   * the Order draft's reason exactly — a seat that Shift-ended its turn with the
+   * sheet up is refused, and a refusal nobody says out loud is a button that
+   * silently does nothing.
+   */
+  wagerSheet = createWagerSheet({
+    overlay: wagerOverlayEl,
+    body: wagerBodyEl,
+    closeButton: requireElement('wager-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    stake: (index) => {
+      const seat = controls.localPlayerId();
+      const result = dispatch(game, { type: 'chooseWager', playerId: seat, index });
+      if (!result.ok) controls.guide(`☞ ${result.error}`);
+      controls.refresh();
+      abacus?.refresh();
+      return result.ok;
+    },
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      compendium.close();
+    },
+  });
+
+  gameDisposers.push(() => wagerSheet?.dispose());
+
+  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -3780,6 +3844,10 @@ async function boot(initial: Game | null): Promise<void> {
       abacus?.close();
       beads?.open();
     },
+    // **The age's three bars**, ranked across the table (batch G2). A closure
+    // over the live state, for `rows`' reason: the screen knows names, figures
+    // and inks, and the fold is somebody else's.
+    wagers: () => wagerBoards(game.state, controls.localPlayerId()),
   });
 
   // The Abacus disposes more than listeners — it holds a WebGL context of its

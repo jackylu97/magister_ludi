@@ -103,7 +103,24 @@ export type Occasion =
    * Announced from the sweep rather than from a verb, which is the other thing
    * that makes it unlike its thirteen neighbours: nobody *does* it.
    */
-  | 'ageClosed';
+  | 'ageClosed'
+  /**
+   * **A wager was kept** — one seat cleared one of the three bars the age dealt
+   * (batch G2, `docs/wager.md` §3b). `runWagers`.
+   *
+   * The claim-on-met rule is what makes this a *moment* at all: a wager is
+   * claimed the turn its bar is first met rather than at the age's close, so
+   * there is an instant to announce and a player can watch the bead land. Its
+   * neighbour `ageClosed` is a fact about the world; this one is about an empire
+   * again, like the thirteen above it.
+   *
+   * The **beads the wager pays** are not this: they are ordinary repeatable
+   * grant rows minted beside the announcement (`payWagerBeads`). This word is
+   * here so a deed or a Triumph may one day name the moment, and so the Abacus
+   * has something to flip on — which is the same argument that put `ageClosed`
+   * in the shared vocabulary rather than in one module's private signal.
+   */
+  | 'wagerClaimed';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -122,4 +139,5 @@ export const OCCASIONS: readonly Occasion[] = [
   'greatPersonRecruited',
   'navalUnitBuilt',
   'ageClosed',
+  'wagerClaimed',
 ];

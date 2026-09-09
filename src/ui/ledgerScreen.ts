@@ -106,29 +106,30 @@
  * calls that fail loudly or not at all.
  */
 
-import type { CityReading } from '../sim/yields/town';
-import {
-  emptyCityYields,
-  type CityYields,
-} from '../sim/cities';
-import {
-  productionModifiers,
-  type CityYieldLine,
-  type CityYieldPercent,
-  type ProductionModifier,
-} from '../sim/yields/town';
-import {
-  type EmpireYieldLine,
-} from '../sim/yields/empire';
-import { readEmpire } from '../sim/readings';
 import {
   type LedgerClass,
   LEDGER_CLASSES,
   classifyCard,
 } from '../sim/ledgerClass';
-import { isWonder } from '../sim/buildingData';
+import {
+  type LedgerBag,
+  type LedgerVoice,
+  type PercentWeight,
+  EMPIRE_GOLD_CLASS,
+  classifyEmpireGold,
+  classifyEmpireLine,
+  classifyPercent,
+  emptyLedgerBag,
+  explainLedger,
+  flatsByClass,
+  foldLedgerBag,
+  ledgerBagOfCity,
+  percentWeights,
+  shareGain,
+  shareOut,
+} from '../sim/ledgerFold';
 import { highestAge } from '../sim/techData';
-import { type City, type GameState, playerById } from '../sim/state';
+import { type GameState, playerById } from '../sim/state';
 import { type YieldKey, YIELD_GLYPH, YIELD_NAME, figure, signedFigure } from './figures';
 import { yieldMarkNode } from './yieldMark';
 import {
@@ -170,395 +171,36 @@ export const LEDGER_CLASS_NAME: Record<LedgerClass, string> = {
   other: 'other',
 };
 
-/** A bag of six voices per class — the shape band 1 is folded into. */
-export type LedgerBag = Record<LedgerClass, CityYields>;
-
-export function emptyLedgerBag(): LedgerBag {
-  return {
-    tiles: emptyCityYields(),
-    buildings: emptyCityYields(),
-    deck: emptyCityYields(),
-    religion: emptyCityYields(),
-    people: emptyCityYields(),
-    trade: emptyCityYields(),
-    wonders: emptyCityYields(),
-    other: emptyCityYields(),
-  };
-}
-
 /**
- * The four standing lines of `explainEmpireGold`, keyed by the head of the label
- * — everything before the ` · count` tail, which is the only handle
- * `TradeGoldLine` offers (`empireTradeLines` in `topBar.ts` keys on the same
- * thing for its hover detail, and `test/ui/tradePanels.test.ts` pins that pair
- * the same way this file's test pins this one).
+ * **The fold itself lives in the simulation now** (batch G2, `src/sim/ledgerFold.ts`).
  *
- * A connection and the roads it runs on are **trade**; a garrison's wages are
- * nobody's building and nobody's ground, so the army is **other**; an
- * institution's bill is charged back against the **buildings** whose lines pay
- * for it, which is the reading that makes a building's slice its *net* worth
- * rather than its gross.
+ * Half the wager deck is a Ledger class read as a number — what your caravans
+ * paid this age, what the buildings of your realm pay in one turn — and
+ * `docs/wager.md` §3 rules that a wager may only ask readings the Ledger already
+ * prints. A rule that reads a screen is not a rule, so the classification and the
+ * two shares came down into `src/sim/` and this sheet kept the drawing.
  *
- * A luxury's share of the connection gold (spices' Æra III) is a fifth line with
- * a resource's own label and no fixed head, so it falls through to **the land**
- * — which is where a seam's coin belongs and is why the fallback is that rather
- * than "other".
+ * Every name it used to publish is re-exported here by name, so nothing that
+ * reads the Ledger had to learn a new address and every figure is unchanged by
+ * construction — this file no longer computes any of them.
  */
-export const EMPIRE_GOLD_CLASS: Record<string, LedgerClass> = {
-  'City connections': 'trade',
-  'Road maintenance': 'trade',
-  'Unit maintenance': 'other',
-  'Building maintenance': 'buildings',
+export {
+  type LedgerBag,
+  type LedgerVoice,
+  type PercentWeight,
+  EMPIRE_GOLD_CLASS,
+  classifyEmpireGold,
+  classifyEmpireLine,
+  classifyPercent,
+  emptyLedgerBag,
+  explainLedger,
+  flatsByClass,
+  foldLedgerBag,
+  ledgerBagOfCity,
+  percentWeights,
+  shareGain,
+  shareOut,
 };
-
-export function classifyEmpireGold(source: string): LedgerClass {
-  const head = source.split(' · ')[0] ?? '';
-  return EMPIRE_GOLD_CLASS[head] ?? 'tiles';
-}
-
-/**
- * Which class one **empire-scale** line belongs to — the same question the town
- * half answers four ways, asked once off the line's own `origin` (batch H19).
- *
- * A luxury's empire signature is the land's, a caravan abroad is trade's, the
- * treasury's ledger splits by the head of its label (`classifyEmpireGold`), and
- * a card's empire payout goes to the card.
- *
- * **The empire stage is `other`**, and that is the town half's own answer
- * arrived at by a shorter road: the only percentages standing at the empire's
- * scale are the two meter tiers and the arrears, `classifyPercent` files both
- * under `other` (the empire leaning on every town at once is not a thing a
- * player built), and so `shareGain` over these weights would hand the whole
- * figure to `other` in any case. Said as a classification rather than run
- * through the sharer because a share of one class is that class.
- */
-export function classifyEmpireLine(line: EmpireYieldLine): LedgerClass {
-  switch (line.origin) {
-    case 'resource':
-      return 'tiles';
-    case 'route':
-      return 'trade';
-    case 'gold':
-      return classifyEmpireGold(line.source);
-    case 'card':
-      return line.card === undefined ? 'other' : classifyCard(line.card);
-    case 'stage':
-      return 'other';
-  }
-}
-
-/**
- * Which class **supplied a percentage**, off the line's own markers.
- *
- * The four handles a percentage can carry, in precedence, and the precedence is
- * the specific-before-general one every classifier in this file keeps:
- *
- *   · `card` → `classifyCard`. This is the arm that carries the ruling: an
- *     Order's or a Doctrine's percentage is the **deck's**, a belief's is
- *     religion's, a legacy's is a great person's — and a *building's own*
- *     `percentYields` clause (a Forum's tenth of science, an Observatory's,
- *     Machu Picchu's quarter of gold) reaches this list as a card too, because
- *     `cityBuildingEffects` is one of `liveEffects`' sources. So the stones are
- *     split by `isWonder` inside `classifyCard`, exactly as their flat lines
- *     are, and no arm here has to know a building from a wonder.
- *   · `building` → the stones, split by `isWonder`. Only a `ProductionModifier`
- *     carries it: a barracks' hammers behind a unit are a percentage on
- *     production that never passes through the card evaluator at all.
- *   · `resource` → **the land**. A seam's signature is the ground's, which is
- *     where its flat yield already goes.
- *   · nothing → **other**, and that is two named cases rather than a shrug: a
- *     **meter tier** (the empire's mood is not a thing a player built) and the
- *     **arrears** penalty on a treasury under water. Both are the empire leaning
- *     on every town at once, and `other` is the class that means exactly that.
- */
-export function classifyPercent(line: CityYieldPercent | ProductionModifier): LedgerClass {
-  if (line.card !== undefined) return classifyCard(line.card);
-  if ('building' in line && line.building !== undefined) {
-    return isWonder(line.building) ? 'wonders' : 'buildings';
-  }
-  if (line.resource !== undefined) return 'tiles';
-  return 'other';
-}
-
-/** One percentage standing on one voice of one town, and who put it there. */
-export interface PercentWeight {
-  into: LedgerClass;
-  /** Signed whole percent, exactly as the line carries it. */
-  percent: number;
-}
-
-/**
- * **Every percentage standing on one voice of one town**, classified — the
- * weights the multiplied gain is shared over.
- *
- * Two lists, because Entry XVII's staging is fed from two places and this has to
- * be the same set of lines `foldCity` actually multiplied by:
- *
- *   · `quote.percents` — `cityYieldPercents`' whole list, both stages at once.
- *     The stage decides *when* a line applies and this asks only *who supplied
- *     it*, so a city-stage Forum and an empire-stage happiness tier are two
- *     weights in one basket. Sharing proportionally across a pair of
- *     multiplications is an approximation either way (a point of city stage and
- *     a point of empire stage are not worth the same); the alternative is
- *     shading two stages' credit differently on a bar four pixels tall.
- *   · `productionModifiers` for **production alone** — the barracks, the marble
- *     and the cards' hammers behind whatever the town has at the front of its
- *     queue. `foldCityStages` folds these into the production city stage, so a
- *     reading that left them out would hand a barracks town's whole gain to
- *     `other`. `city.queue[0]` is asked because that is what `explainLedger`
- *     banks at, and the two must be the same build or the weights price a
- *     different bonus than the figure did.
- *
- * The one line this does **not** mirror is `foldCityStages`' authority exemption
- * (The Great Warring Tribes takes a meter's production malus off the table while
- * a town builds a unit). It is a negative line that classifies to `other`, and
- * the arrears beside it classify to `other` too, so mirroring the rule here
- * would move a figure from `other` to `other` — and a second copy of a card's
- * one-off is exactly what this tree refuses to keep.
- */
-export function percentWeights(
-  state: GameState,
-  city: City,
-  quote: CityReading,
-  key: YieldKey,
-): PercentWeight[] {
-  const weights: PercentWeight[] = [];
-  for (const line of quote.percents) {
-    if (line.yield !== key || line.percent === 0) continue;
-    weights.push({ into: classifyPercent(line), percent: line.percent });
-  }
-  if (key === 'production') {
-    for (const line of productionModifiers(state, city, city.queue[0])) {
-      if (line.percent === 0) continue;
-      weights.push({ into: classifyPercent(line), percent: line.percent });
-    }
-  }
-  return weights;
-}
-
-/**
- * **The gain, shared by who supplied the percentages** — the ruling of
- * 2026-09-07, in one function (`docs/flags.md`, jj).
- *
- * `gain` is `banked − Σ flats`: what Entry XVII's two multiplications added to a
- * town's basket, plus the single flooring at the end of them. It is shared over
- * the percentages that were standing on that voice, each weighted by its
- * magnitude — a +25% card next to a +10% Forum takes five parts of seven.
- *
- * **The same-sign rule**, and it is the honest one of the three that were on the
- * table:
- *
- *   · *signed weights* (a −25% arrears counting as −25) is arithmetically the
- *     prettiest and is unusable on a bar: the shares are `gain × w / Σw`, so a
- *     +100% card beside a −99% penalty divides by one and draws the deck a
- *     hundred times the gain, with a compensating negative slice beside it. A
- *     stacked bar whose parts are each many times the whole is not a reading.
- *   · *magnitudes, signs ignored* credits a **penalty with a share of a gain** —
- *     arrears would appear to be earning the empire science, which is the
- *     opposite of what it is doing.
- *   · **same sign** is what ships: a gain is shared among the percentages that
- *     pushed the town up, a loss among the ones that pushed it down, each in
- *     proportion to its magnitude. Nobody is credited with moving a town the way
- *     it did not move, every share carries the sign of the total it is part of,
- *     and the arithmetic is bounded — a share can never exceed the gain.
- *
- * A gain with **no same-signed weight at all** is the guard, and it hands the
- * whole figure to `other`: a town that banked more than its flats with nothing
- * multiplying it should not happen, and if it does, "nobody here earned this" is
- * the true sentence rather than a slice invented for somebody.
- */
-export function shareGain(
-  gain: number,
-  weights: readonly PercentWeight[],
-): Record<LedgerClass, number> {
-  const shares = {} as Record<LedgerClass, number>;
-  for (const cls of LEDGER_CLASSES) shares[cls] = 0;
-  if (gain === 0) return shares;
-  const counts = (weight: PercentWeight): boolean =>
-    gain > 0 ? weight.percent > 0 : weight.percent < 0;
-  let sum = 0;
-  for (const weight of weights) if (counts(weight)) sum += Math.abs(weight.percent);
-  if (sum === 0) {
-    shares.other = gain;
-    return shares;
-  }
-  for (const weight of weights) {
-    if (!counts(weight)) continue;
-    shares[weight.into] += (gain * Math.abs(weight.percent)) / sum;
-  }
-  return shares;
-}
-
-/**
- * A town's banked figure, handed out as the whole numbers a bar can draw.
- *
- * The **parts sum to the total exactly** however the rounding falls:
- * `explainUnitUpkeepRebate`'s running-difference discipline, which is the house
- * rule wherever a floored figure has to be shown as its parts. `weights` is what
- * each class is *owed* — its flats plus its share of the gain — so the division
- * here is a rounding rather than an apportionment, and the last slot carries
- * whatever the rounding left over.
- *
- * A weightless basket that somehow banked something hands the whole figure to
- * the last slot, which callers make `other` — a number with no earner is exactly
- * what that class is for.
- */
-export function shareOut(total: number, weights: readonly number[]): number[] {
-  const shares = weights.map(() => 0);
-  if (shares.length === 0) return shares;
-  let sum = 0;
-  for (const weight of weights) sum += weight;
-  const last = shares.length - 1;
-  if (sum === 0) {
-    shares[last] = total;
-    return shares;
-  }
-  let paid = 0;
-  for (let at = 0; at < last; at += 1) {
-    const share = Math.round((total * weights[at]!) / sum);
-    shares[at] = share;
-    paid += share;
-  }
-  shares[last] = total - paid;
-  return shares;
-}
-
-function add(bag: LedgerBag, into: LedgerClass, line: Partial<CityYields>): void {
-  const bucket = bag[into];
-  for (const key of VOICES) bucket[key] += line[key] ?? 0;
-}
-
-/**
- * **One town's flats, classified** — and, since batch E2, no walk at all.
- *
- * `explainCity` returns the labelled list its flats are the fold of
- * (`CityYieldLine`), and every line carries the class its source belongs to —
- * decided in the simulation, once, by the id and never by the label
- * (`classifyCard`, `ledgerClass.ts`). So the sheet's oldest and largest piece of
- * machinery is now a `switch`-less loop over somebody else's list.
- *
- * What it replaces was a **mirror**: eleven lists walked a second time on this
- * side in the order `explainCity` folded them, guarded by a test pinning the two
- * folds equal, and wrong in a different way every few days —
- * `explainCardBuildingYields` missing for as long as the bench had no such card, two
- * per-citizen terms floored for as long as no town had an odd population, every
- * worked hex filed whole under the land until the late Order pools made that
- * matter (`docs/flags.md`, ruling jj). Four surfaces each kept one of these;
- * this was the biggest. `docs/audit/evaluations.md` §3a is the finding and E2
- * is the fix.
- *
- * The three readings that used to live in the mirror are now facts about the
- * line and are stated where the line is made: a **worked hex** is split by the
- * card each of its own contributions names, with the ground keeping the fold
- * minus exactly those; the **centre** stays whole and stays the land's, because
- * its inheritance is an excess rather than a sum of lines and there is no honest
- * share of it to hand anybody; and a town's own two terms — a citizen's beaker
- * and the culture a settlement makes by being one — are `other`, because they
- * belong to no tile, no building and no card.
- */
-export function flatsByClass(lines: readonly CityYieldLine[]): LedgerBag {
-  const bag = emptyLedgerBag();
-  for (const line of lines) add(bag, line.class, line);
-  return bag;
-}
-
-/** The six voices a bag adds up to. The only sum of one. */
-export function foldLedgerBag(bag: LedgerBag): CityYields {
-  const total = emptyCityYields();
-  for (const cls of LEDGER_CLASSES) {
-    for (const key of VOICES) total[key] += bag[cls][key];
-  }
-  return total;
-}
-
-/** One voice's row on band 1: what it made, and who made it. */
-export interface LedgerVoice {
-  key: YieldKey;
-  /** `readEmpire`' own figure for this voice — the number on the chip. */
-  total: number;
-  byClass: Record<LedgerClass, number>;
-}
-
-/**
- * The whole of band 1: the six voices, each split eight ways.
- *
- * Assembled in `readEmpire`' order and out of `readEmpire`' own summands — every
- * town's `foldCity`, then the empire's own list (`explainEmpireLines`: the
- * luxury signatures, the outbound foreign routes, the treasury's ledger, the
- * empire-scale card lines, and the empire stage over the fold of them) — so the
- * six totals here are that function's six totals and the test pins it. The pin is against the **bank** as well now: the
- * two surfaces agreeing with each other is what let them both miss the foreign
- * routes for three days.
- *
- * The **staging** is where the classes have to be put back together (Entry
- * XVII): a town's percentages multiply its whole basket at once, so what each
- * class is owed is **its flats plus its share of the gain** — the flats by who
- * paid them (`flatsByClass` over the town's own list), the gain by who supplied
- * the percentages (`percentWeights` + `shareGain`, the ruling of 2026-09-07) —
- * and `shareOut` rounds the eight figures to whole numbers that still add to the
- * bank.
- *
- * Until that ruling the whole banked figure was shared over the flats alone,
- * which credited a percentage to whoever had put the base under it and left a
- * card that pays nothing but a percentage out of "your cards" entirely. The
- * module docblock has the user's words for it.
- *
- * The empire lines are banked after every city has collected, and since batch
- * H19 they take the empire stage themselves: the additive lines fold first and
- * the meters multiply that fold once (`explainEmpireLines`). The stage arrives
- * as its own line and lands in **other**, which is where `classifyPercent` puts
- * a meter tier and the arrears one scale down — see `classifyEmpireLine`.
- */
-export function explainLedger(state: GameState, playerId: number): LedgerVoice[] {
-  const bag = emptyLedgerBag();
-  // **The empire's own reading, subscribed to rather than rebuilt** (batch E2):
-  // every town's published list and total, the empire's lines and the meters,
-  // taken once for this revision and shared with the top bar, the panel, the
-  // ghost-diff and the bot. This sheet's whole job is now the *classification*
-  // of a list somebody else folded, plus the two shares below.
-  const reading = readEmpire(state, playerId);
-
-  for (const { city, reading: town, total: banked } of reading.towns) {
-    const flats = flatsByClass(town.lines);
-    for (const key of VOICES) {
-      let paid = 0;
-      for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
-      // What the two stages added over the flats — negative under arrears, or
-      // under a meter tier the empire has fallen through. Exact, because the
-      // classes are the town's own lines and `foldCity` floors once.
-      const gain = shareGain(banked[key] - paid, percentWeights(state, city, town, key));
-      // `other` last, so that a basket with nothing in it hands its figure to
-      // the class that means "nobody here earned this".
-      const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
-      const shares = shareOut(banked[key], owed);
-      LEDGER_CLASSES.forEach((cls, at) => {
-        bag[cls][key] += shares[at]!;
-      });
-    }
-  }
-
-  // **The empire's own lines**, off the one list the resolution banks the fold
-  // of (`explainEmpireLines`, batch H19) and classified by where each came from
-  // rather than by four separate walks of four folds — a luxury's signature into
-  // the land, a caravan abroad into trade (the class a route's line lands in
-  // when its destination is at home, said again for the half
-  // of the same money that has no town to be banked in), the treasury's ledger
-  // by the head of its label, a card's payout by the card, and the empire stage
-  // into **other**.
-  for (const line of reading.lines) {
-    add(bag, classifyEmpireLine(line), line);
-  }
-
-  return VOICES.map((key) => {
-    const byClass = {} as Record<LedgerClass, number>;
-    let total = 0;
-    for (const cls of LEDGER_CLASSES) {
-      byClass[cls] = bag[cls][key];
-      total += bag[cls][key];
-    }
-    return { key, total, byClass };
-  });
-}
 
 /**
  * "your deck makes 41 of your 96 science" — the caption under a bar, in the
