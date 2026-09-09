@@ -23,7 +23,6 @@ import { foundCityAt, realiseItem } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { claimDiscoveryAt } from '../../src/sim/discoveries';
 import { type Tile, getTileAt, tileIndex, tileNeighbors } from '../../src/sim/map';
-import { RULES } from '../../src/sim/rulesData';
 import { isWaterTerrain, terrainDef } from '../../src/sim/terrainData';
 import { type GameState, bumpRevision, createUnit } from '../../src/sim/state';
 import { adoptGovernmentAt } from '../../src/sim/statecraft';
@@ -46,6 +45,7 @@ import {
   triumphsAwarded,
   triumphsSince,
 } from '../../src/sim/triumphs';
+import { renownThreshold } from '../../src/sim/renown';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { game, found, keepTheRites } from './statecraftHelpers';
 
@@ -251,7 +251,7 @@ describe('what a triumph pays', () => {
     found(g.state, 0);
     keepTheRites(g.state);
     const player = g.state.players[0]!;
-    player.renownPool = RULES.renown.first - triumphDef('cityOfMarvels').pays;
+    player.renownPool = renownThreshold(player) - triumphDef('cityOfMarvels').pays;
     awardTriumph(g.state, 0, 'cityOfMarvels');
     expect(player.greatPersonOffer).toBeDefined();
   });

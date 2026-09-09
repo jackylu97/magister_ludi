@@ -29,17 +29,30 @@ from luxuries — the last of these family-less by construction, so it grows the
 pool without weighting the draw. A new source joins that one fold; there is never
 a second bank.
 
-**The ladder** is the settler ladder's shape one currency over:
-`renownThreshold(player) = first + step × greatPeopleRecruited`, escalating by
-*recruits* rather than by turns, so a wide empire's faster trickle buys the same
-names sooner and then pays more for each one rather than earning them at a faster
-rate. Filling the threshold spends it (the overflow carries) and opens an offer
-of names — `rules.offers.greatPerson` wide, widened again by any rider. The two
-figures are `rules.renown`, and they are the knob the whole rate turns on: the
-user's ruling of 2026-09-09 (item (hhh) clause 2, "great people need to be gained
-at roughly 1/3rd the rate they appear now") multiplies both by three — the same
-shape, every rung three times as dear. What that buys in *arrivals* is measured
-below, and it is not a third: see *The rate, measured*.
+**The ladder** is the **draft ladder's arithmetic**, one currency over (the
+user's ruling of 2026-09-09, batch B5: *"the first great person at 75 renown, and
+have the costs scale in line with how our culture costs are scaled"*):
+
+`renownThreshold(player) = floor(base + linear × n + n^exponent)`, `n` = great
+people already recruited — `draftCost`'s line and `faithRungCost`'s, so the
+culture pool, the faith bank and the renown pool all escalate the same way and a
+player learns the shape once. It escalates by *recruits* rather than by turns, so
+a wide empire's faster trickle buys the same names sooner and then pays more for
+each one rather than earning them at a faster rate. Filling the threshold spends
+it (the overflow carries) and opens an offer of names —
+`rules.offers.greatPerson` wide, widened again by any rider.
+
+The three figures are `rules.renown` — **base 75 · linear 225 · exponent 2.8** —
+and they are the knob the whole rate turns on. The **first eight rungs**, and
+what an empire must have banked in total to stand on each:
+
+| Person | 1st | 2nd | 3rd | 4th | 5th | 6th | 7th | 8th |
+|---|---|---|---|---|---|---|---|---|
+| Threshold | 75 | 301 | 531 | 771 | 1023 | 1290 | 1575 | 1882 |
+| Banked in all | 75 | 376 | 907 | 1678 | 2701 | 3991 | 5566 | 7448 |
+
+Why the linear term is three times the base where culture's is half of it is B4's
+finding, and the arithmetic is in *The rate, measured*.
 
 **The draw** is weighted and never restricted. Every name of the age is in the
 bag; each family's weight is a base thousand plus that family's share of what the
@@ -70,28 +83,50 @@ empire's law names them.
 
 ## The rate, measured
 
-Two bot games — standard map, two balanced seats, the wild in the fog, played to
-turn 150 — before and after the ladder ×3, counting the great people each seat
-had recruited. Bot figures are a *scale* rather than a baseline (the user,
-2026-09-09: the bot is not a yardstick), and they are here so the ruling's "a
-third as often" can be read as a number rather than as an intention.
+Two bot games — standard map, two balanced seats (Crimson and Teal), the wild in
+the fog, driven by `createBotStepper` — played until every seat had left Æra III
+and on to turn 150, counting the great people each seat had recruited and the
+renown it had banked all told (the pool plus every rung it had already paid). Bot
+figures are a *scale* rather than a baseline (the user, 2026-09-09: the bot is
+not a yardstick), and they are here so a ruling about a rate can be read as a
+number rather than as an intention. Each cell is the two seats of seed 1, then
+the two seats of seed 20260903.
 
-Each cell is the two seats of seed 1, then the two seats of seed 20260903.
+**What the old ladder bought.** Under the pre-B4 ladder — `first 40 · step 25`,
+the shape every figure below is solved against — the four seats left Æra III on
+turn 116 · 123 · 129 · 127, having banked **1359 · 2323 · 1963 · 1827** renown
+(mean 1868) and recruited **9 · 12 · 11 · 10** people (mean 10.5).
 
-| Ladder | Recruited by t100 | by t150 |
-|---|---|---|
-| first 40 · step 25 (before) | 6 · 7 · 5 · 6 — mean 6.0 | 11 · 16 · 10 · 11 — mean 12.0 |
-| first 120 · step 75 (after) | 3 · 4 · 3 · 2 — mean 3.0 | 6 · 8 · 6 · 4 — mean 6.0 |
+**The solve.** A linear ladder's cumulative cost is Σ(first + step·i), which at
+40 · 25 is 12.5N² + 27.5N — quadratic in N, which is B4's finding written as
+algebra: the number of people a bank of renown buys goes as the square root of
+that bank over the ladder's *linear* term, so tripling the rungs bought half the
+arrivals rather than a third. Thirding the count at the same bank therefore
+multiplies the linear term by **nine**: 25 × 9 = **225**, which is B4's own
+prediction reached by arithmetic rather than by another sweep. With the ruled
+`base` of 75 and culture's own `exponent` of 2.8, the rungs sum to 75 · 376 · 907
+· 1678 · 2701 · 3991 · 5566 · 7448, so the four measured banks buy **3 · 4 · 4 ·
+4** people against a target of 3 · 4 · 4 · 3 (each seat's own count ÷ 3,
+rounded) — the fourth seat is one rounding over, on a bank of 1827 against a
+fourth rung reached at 1678. The base pays for the first rung alone and the
+exponent is worth 1 · 7 · 22 · 49 renown on rungs two to five — a tail rather
+than a term, which is why the linear does the work at the scale a game reaches.
 
-**Finding: three times the rungs is half the arrivals, not a third.** The ladder
-is a *sum* of rungs, so what an empire must bank to reach its Nth person grows
-with the square of N; tripling both rungs therefore divides the count a given
-renown buys by roughly the square root of three, not by three. The measurement
-agrees — the mean halves at both horizons, and no seat lands outside two fifths
-to three fifths of what it recruited before. Reaching a true third at the same
-renown means tripling the *step* again (the quadratic term is the one that binds
-— of the order of first 360 · step 225), which is a further ruling rather than
-this one's arithmetic; the figures above are what the ruling as written buys.
+**Confirmation** — the same two games replayed under `base 75 · linear 225 ·
+exponent 2.8`. (Play diverges once the arrivals do, so the Æra III doors fall on
+turn 115 · 123 · 127 · 129 rather than the old ladder's 116 · 123 · 129 · 127.)
+
+| Ladder | Recruited, end of Æra III | by t100 | by t150 |
+|---|---|---|---|
+| first 40 · step 25 (the pre-B4 ladder) | 9 · 12 · 11 · 10 — mean 10.5 | 6 · 7 · 7 · 6 — mean 6.5 | 15 · 18 · 14 · 15 — mean 15.5 |
+| base 75 · linear 225 · exponent 2.8 (now) | 3 · 4 · 4 · 4 — mean 3.75 | 2 · 3 · 3 · 2 — mean 2.5 | 5 · 6 · 5 · 4 — mean 5.0 |
+
+**Finding: the ruling lands.** The mean is 0.36 of the old ladder's at the Æra
+III door, 0.38 at turn 100 and 0.32 at turn 150 — a third as often, where B4's ×3
+on both rungs managed only a half. The count keeps climbing after the door
+because renown income does: a seat that had banked 650–980 by turn 100 has banked
+three to four times that by turn 150, which is what puts the fifth and sixth
+names inside a long game rather than out of reach.
 
 ## The person — one charge, two verbs
 
@@ -176,8 +211,9 @@ blank for the balance pass.
 | `offerPriceGold` | 1000 | What The Commonwealth charges in gold to fill the threshold early. |  |
 | `offerPriceFaith` | 750 | The same out of the faith bank — The Magisterium’s price. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
-| `renown.first` | 120 | What the first great person costs in renown. |  |
-| `renown.step` | 75 | What each person already recruited adds to the next one’s price. |  |
+| `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |
+| `renown.linear` | 225 | What each person already recruited adds to the next one’s price, straight. |  |
+| `renown.exponent` | 2.8 | The power the recruit count is raised to and added on top — culture’s own. |  |
 
 ## The roster
 

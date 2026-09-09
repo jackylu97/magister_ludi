@@ -39,6 +39,10 @@ import { plainTechs } from './techHelpers';
 
 const LADDER = RULES.renown;
 
+/** The `n`-th rung of the ladder, computed the way `draftCost` computes its own. */
+const rung = (n: number): number =>
+  Math.floor(LADDER.base + LADDER.linear * n + n ** LADDER.exponent);
+
 /** A city of this seat with the named buildings standing in it. */
 function town(state: GameState, playerId: number, ...buildings: string[]) {
   const city = state.cities.find((c) => c.ownerId === playerId) ?? found(state, playerId);
@@ -193,37 +197,46 @@ describe('the ledger', () => {
 // --- the ladder -------------------------------------------------------------
 
 describe('the ladder', () => {
-  // **The figures moved on 2026-09-09 and nothing in this block did** (the user,
-  // `docs/flags.md` item (hhh) clause 2: "great people need to be gained at
-  // roughly 1/3rd the rate they appear now"). `rules.renown` went from first 40 ·
-  // step 25 to **first 120 · step 75** — both rungs ×3, the same shape three
-  // times as dear — and every assertion here reads `LADDER` rather than a number,
-  // which is why a retune of this size costs the pins nothing. What is on trial
-  // is the *arithmetic* (`first + step × recruited`, the overflow, the plan),
-  // never the tuning; the tuning is `data/rules.json`'s and the measured rate is
-  // `docs/great-people.md`'s — where the finding is that arrivals **halve**
-  // rather than third, because what an empire banks to reach its Nth person is a
-  // sum of rungs and therefore quadratic in N.
-  it('is first + step per name already recruited', () => {
+  // **The shape moved on 2026-09-09 and nothing in this block did** (the user,
+  // batch B5: "the first great person at 75 renown, and have the costs scale in
+  // line with how our culture costs are scaled"). The ladder was `first + step ×
+  // recruited` — 40 · 25, then B4's 120 · 75 — and it is now the **draft
+  // ladder's arithmetic**, `base + linear·n + n^exponent` floored, at 75 · 225 ·
+  // 2.8. Every assertion here reads `LADDER` and computes the curve the way
+  // `draftCost` does, which is why a retune of this size costs the pins nothing:
+  // what is on trial is the *arithmetic* (the rung, the overflow, the plan),
+  // never the tuning. The tuning is `data/rules.json`'s and the measured rate is
+  // `docs/great-people.md`'s — where B4's finding is written down, that arrivals
+  // fall with the **square root** of the rungs because what an empire banks to
+  // reach its Nth person is a sum of rungs and therefore quadratic in N, which
+  // is why the linear term is nine times the ladder's original step.
+  it('is the draft ladder’s curve, read off the names already recruited', () => {
     const g = game();
     const player = g.state.players[0]!;
-    expect(renownThreshold(player)).toBe(LADDER.first);
+    // The first rung is the base exactly — nothing else can contribute at zero.
+    expect(renownThreshold(player)).toBe(LADDER.base);
     player.greatPeopleRecruited = 1;
-    expect(renownThreshold(player)).toBe(LADDER.first + LADDER.step);
+    expect(renownThreshold(player)).toBe(rung(1));
     player.greatPeopleRecruited = 4;
-    expect(renownThreshold(player)).toBe(LADDER.first + LADDER.step * 4);
+    expect(renownThreshold(player)).toBe(rung(4));
+    // And it is floored, exactly once, like every other threshold in the game:
+    // a fractional exponent makes a fractional rung, and a pool of whole numbers
+    // wants a whole price.
+    expect(Number.isInteger(renownThreshold(player))).toBe(true);
+    // Monotone, and dearer every rung — the claim the whole rate rests on.
+    for (let n = 1; n < 8; n++) expect(rung(n)).toBeGreaterThan(rung(n - 1));
   });
 
   it('plans a fill and keeps the overflow', () => {
     const g = game();
     const player = g.state.players[0]!;
-    player.renownPool = LADDER.first + 7;
-    expect(planRecruitment(player)).toEqual({ cost: LADDER.first, overflow: 7 });
-    expect(planRecruitment(player, LADDER.first - 1)).toBeNull();
+    player.renownPool = LADDER.base + 7;
+    expect(planRecruitment(player)).toEqual({ cost: LADDER.base, overflow: 7 });
+    expect(planRecruitment(player, LADDER.base - 1)).toBeNull();
     expect(recruitmentSettledBy(player, 0)).toBe('a great person');
     player.renownPool = 0;
-    expect(recruitmentSettledBy(player, LADDER.first)).toBe('a great person');
-    expect(recruitmentSettledBy(player, LADDER.first - 1)).toBeNull();
+    expect(recruitmentSettledBy(player, LADDER.base)).toBe('a great person');
+    expect(recruitmentSettledBy(player, LADDER.base - 1)).toBeNull();
   });
 });
 
@@ -254,7 +267,7 @@ describe('settleRenownWindfall', () => {
     keepTheRites(g.state);
     const player = g.state.players[0]!;
     const offer = settleRenownWindfall(g.state, player, [
-      { family: 'scholar', amount: LADDER.first + 9 },
+      { family: 'scholar', amount: LADDER.base + 9 },
     ]);
     expect(offer).not.toBeNull();
     expect(offer!.options).toHaveLength(RULES.offers.greatPerson);
@@ -272,7 +285,7 @@ describe('settleRenownWindfall', () => {
     // still the base — what is on trial is that the *generator asks*.
     expect(offerSize(g.state, 0, 'greatPerson')).toBe(RULES.offers.greatPerson);
     const offer = settleRenownWindfall(g.state, g.state.players[0]!, [
-      { family: null, amount: LADDER.first },
+      { family: null, amount: LADDER.base },
     ]);
     expect(offer!.options).toHaveLength(offerSize(g.state, 0, 'greatPerson'));
   });
@@ -282,10 +295,13 @@ describe('settleRenownWindfall', () => {
     found(g.state, 0);
     keepTheRites(g.state);
     const player = g.state.players[0]!;
-    // Enough for three recruitments in one lump.
-    settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first * 4 }]);
+    // Enough for three recruitments in one lump — the first three rungs and a
+    // little over, so what is on trial is that the second and third are *not*
+    // dealt while the first offer stands.
+    const lump = rung(0) + rung(1) + rung(2) + 5;
+    settleRenownWindfall(g.state, player, [{ family: null, amount: lump }]);
     expect(player.greatPersonOffer!.options.length).toBeGreaterThan(0);
-    expect(player.renownPool).toBe(LADDER.first * 3);
+    expect(player.renownPool).toBe(lump - rung(0));
     // And a second payment while the offer stands changes nothing but the pool.
     const before = player.greatPersonOffer;
     settleRenownWindfall(g.state, player, [{ family: null, amount: 50 }]);
@@ -300,10 +316,10 @@ describe('settleRenownWindfall', () => {
     const g = game();
     found(g.state, 0);
     const player = g.state.players[0]!;
-    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first * 2 }])).toBe(
+    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.base * 2 }])).toBe(
       null,
     );
-    expect(player.renownPool).toBe(LADDER.first * 2);
+    expect(player.renownPool).toBe(LADDER.base * 2);
     expect(player.greatPersonOffer).toBeUndefined();
     expect(greatPersonBlocker(player)).toBeNull();
 
@@ -312,7 +328,7 @@ describe('settleRenownWindfall', () => {
     keepTheRites(g.state);
     const offer = settleRenownWindfall(g.state, player, []);
     expect(offer).not.toBeNull();
-    expect(player.renownPool).toBe(LADDER.first);
+    expect(player.renownPool).toBe(LADDER.base);
   });
 
   /**
@@ -327,7 +343,7 @@ describe('settleRenownWindfall', () => {
     found(g.state, 0);
     const player = g.state.players[0]!;
     const gate = ABILITY_TECH.get('ancestorRites')!;
-    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first }])).toBe(
+    expect(settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.base }])).toBe(
       null,
     );
 
@@ -344,9 +360,9 @@ describe('settleRenownWindfall', () => {
     found(g.state, 0);
     const player = g.state.players[0]!;
     g.state.recruited.push(...GREAT_PERSON_IDS);
-    settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first * 2 }]);
+    settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.base * 2 }]);
     // Nothing deducted, nothing offered, and the turn may still be ended.
-    expect(player.renownPool).toBe(LADDER.first * 2);
+    expect(player.renownPool).toBe(LADDER.base * 2);
     expect(player.greatPersonOffer).toBeUndefined();
     expect(greatPersonBlocker(player)).toBeNull();
   });
@@ -357,7 +373,7 @@ describe('settleRenownWindfall', () => {
     keepTheRites(g.state);
     const player = g.state.players[0]!;
     expect(greatPersonBlocker(player)).toBeNull();
-    settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.first }]);
+    settleRenownWindfall(g.state, player, [{ family: null, amount: LADDER.base }]);
     expect(greatPersonBlocker(player)).toBe('a great person is waiting to be chosen');
   });
 });

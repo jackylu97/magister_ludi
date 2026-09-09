@@ -65,7 +65,7 @@ import { resourceDef } from '../../src/sim/resourceData';
 import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { RULES } from '../../src/sim/rulesData';
-import { settleRenownWindfall } from '../../src/sim/renown';
+import { renownThreshold, settleRenownWindfall } from '../../src/sim/renown';
 import {
   type GameState,
   type Unit,
@@ -235,7 +235,7 @@ describe('chooseGreatPerson', () => {
     const city = found(g.state, 0);
     keepTheRites(g.state);
     settleRenownWindfall(g.state, g.state.players[0]!, [
-      { family: null, amount: RULES.renown.first },
+      { family: null, amount: renownThreshold(g.state.players[0]!) },
     ]);
     const offer = g.state.players[0]!.greatPersonOffer!;
     const taken = offer.options[1]!;
@@ -268,7 +268,7 @@ describe('chooseGreatPerson', () => {
     keepTheRites(g.state);
     for (const id of [0, 1]) {
       settleRenownWindfall(g.state, g.state.players[id]!, [
-        { family: null, amount: RULES.renown.first },
+        { family: null, amount: renownThreshold(g.state.players[id]!) },
       ]);
     }
     // Force the contention: both seats are holding the same name.
@@ -295,7 +295,7 @@ describe('chooseGreatPerson', () => {
     const g = game();
     found(g.state, 0);
     settleRenownWindfall(g.state, g.state.players[0]!, [
-      { family: null, amount: RULES.renown.first },
+      { family: null, amount: renownThreshold(g.state.players[0]!) },
     ]);
     const before = snapshotState(g.state);
     expect(applyCommand(g.state, { type: 'chooseGreatPerson', playerId: 0, optionIndex: 9 }).ok)
@@ -1272,7 +1272,7 @@ describe('great people in the log', () => {
       state.players[0]!.researching = 'mining';
       keepTheRites(state);
       settleRenownWindfall(state, state.players[0]!, [
-        { family: 'scholar', amount: RULES.renown.first },
+        { family: 'scholar', amount: renownThreshold(state.players[0]!) },
       ]);
     };
 

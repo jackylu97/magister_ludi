@@ -19,11 +19,12 @@ import { RULES } from '../../src/sim/rulesData';
  * data, so an Æra VI would fail here until its heading is written rather than
  * being quietly skipped.
  *
- * The **figures** are read the same way (batch B4, 2026-09-09): the doc's table
- * of figures carries every `rules.greatPeople` knob and the two `rules.renown`
- * rungs at the value the rules charge, so a ladder retuned in the data and not in
- * the doc fails here rather than being discovered by a user reading last week's
- * numbers. It is the same claim as the roster's, one table down.
+ * The **figures** are read the same way (batch B4, 2026-09-09, widened by B5):
+ * the doc's table of figures carries every `rules.greatPeople` knob and all three
+ * terms of the `rules.renown` curve — `base`, `linear`, `exponent` — at the value
+ * the rules charge, so a ladder retuned in the data and not in the doc fails here
+ * rather than being discovered by a user reading last week's numbers. It is the
+ * same claim as the roster's, one table down.
  *
  * There is no retired concept on this table (a great person is consumed, never
  * withdrawn from a pool), so nothing is excluded: a row with an empty `legacy`
@@ -131,7 +132,7 @@ describe('the great-people doc mirrors the roster', () => {
       expect(figures.has(key), `the figures table is missing "${key}"`).toBe(true);
       expect(figures.get(key), `the figures table prices "${key}"`).toBe(String(value));
     }
-    for (const rung of ['first', 'step'] as const) {
+    for (const rung of ['base', 'linear', 'exponent'] as const) {
       const key = `renown.${rung}`;
       expect(figures.has(key), `the figures table is missing "${key}"`).toBe(true);
       expect(figures.get(key), `the figures table prices "${key}"`).toBe(
@@ -142,8 +143,9 @@ describe('the great-people doc mirrors the roster', () => {
     // that was cut, or a name that drifted.
     const live = new Set([
       ...Object.keys(RULES.greatPeople),
-      'renown.first',
-      'renown.step',
+      'renown.base',
+      'renown.linear',
+      'renown.exponent',
     ]);
     for (const key of figures.keys()) {
       expect(live.has(key), `the figures table row "${key}" names no rule`).toBe(true);

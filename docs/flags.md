@@ -1029,7 +1029,13 @@ directly to confirm rulings — user marginalia are rulings.
   with `base 75`; `linear` and `exponent` chosen so that the renown a
   seat banks by the turn it leaves Æra III (measured on the bot bench
   under the ORIGINAL 40 · 25 ladder) buys **one third** of the persons it
-  bought then; the doc's ladder table and sync test follow. **U4 (UI)** — (3) *"rename the great people actions
+  bought then; the doc's ladder table and sync test follow. **B5 built 2026-09-09**:
+  `rules.renown = { base 75, linear 225, exponent 2.8 }` — a linear
+  ladder's cumulative cost is `12.5N² + 27.5N`, so a third of the people
+  is ×9 on the linear term (B4's predicted 225 reached by arithmetic);
+  rungs 75 · 301 · 531 · 771 · 1023 · 1290 · 1575 · 1882; measured on the
+  same two games: persons at the Æra III door 10.5 → 3.75 a seat (×0.36),
+  t100 6.5 → 2.5, t150 15.5 → 5.0. **U4 (UI)** — (3) *"rename the great people actions
   act/work because they're not informative enough"*: the two buttons
   print the family's own verbs (a scholar *Writes a treatise* / *Founds
   an academy*; the words from the family's data row, through the

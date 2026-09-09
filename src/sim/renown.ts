@@ -280,14 +280,24 @@ export function renownPerTurn(state: GameState, playerId: number): number {
 /**
  * What this empire's next great person costs.
  *
- * The settler ladder's shape one currency over: `first + step × recruited`, read
- * off a counter on the player because a recruited person is *consumed* by its
- * act or its work and the board therefore cannot be counted (see
- * `Player.greatPeopleRecruited`).
+ * **The draft ladder's arithmetic** (the user's ruling of 2026-09-09, batch B5):
+ * `base + linear·n + n^exponent`, floored — `draftCost`'s line for line and
+ * `faithRungCost`'s, because "how close am I to the next great person" and "how
+ * close am I to the next draft" are one idea a player learns once, and three
+ * pools that disagreed about how a threshold is shaped would be three systems to
+ * retune. Floored for the reason those two are: a pool of whole numbers wants a
+ * whole threshold, or a fraction banked forever decides a recruitment nobody can
+ * account for.
+ *
+ * `n` is read off a counter on the player rather than off the board, because a
+ * recruited person is *consumed* by its act or its work and therefore cannot be
+ * counted (see `Player.greatPeopleRecruited`). Escalating by recruits rather
+ * than by turns is what keeps a wide empire's faster trickle from becoming a
+ * faster *rate*; why the linear term is three times the base is `RenownRules`.
  */
 export function renownThreshold(player: Player): number {
   const taken = Math.max(0, Math.floor(player.greatPeopleRecruited));
-  return Math.floor(RENOWN.first + RENOWN.step * taken);
+  return Math.floor(RENOWN.base + RENOWN.linear * taken + taken ** RENOWN.exponent);
 }
 
 /** What a fill would do, without doing it. `planDraft`'s twin one bucket over. */

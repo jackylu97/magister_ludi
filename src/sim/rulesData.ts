@@ -1417,18 +1417,32 @@ export interface UpkeepRules {
 /**
  * The renown ladder — the fifth Entry XVIII bucket (`docs/great-people.md`).
  *
- * Two numbers, and they are the settler ladder's shape one currency over: the
- * first great person costs `first`, and every one an empire has already
- * recruited puts `step` on the price. Escalating by *recruits* rather than by
- * turns is what keeps a wide empire's faster trickle from becoming a faster
- * *rate* of great people — it buys the same names sooner and then pays more for
- * each, exactly as it does for settlers and for augurs.
+ * **The draft ladder's arithmetic, one currency over** (the user, 2026-09-09:
+ * "the first great person at 75 renown, and have the costs scale in line with
+ * how our culture costs are scaled"): `base + linear·n + n^exponent`, floored,
+ * with `n` the number already recruited — `draftCost`'s shape and
+ * `faithRungCost`'s, so a player who has learnt how one pool escalates has learnt
+ * all three. Escalating by *recruits* rather than by turns is what keeps a wide
+ * empire's faster trickle from becoming a faster *rate* of great people: it buys
+ * the same names sooner and then pays more for each.
+ *
+ * **Why the linear term is so much larger than the base**, where culture's is
+ * half of it: B4's finding (`docs/flags.md` item (hhh)). What an empire must bank
+ * to reach its Nth person is a *sum* of rungs and therefore quadratic in N, so
+ * the count a given pile of renown buys goes as one over the square root of the
+ * linear term — B4 multiplied both rungs of the old ladder by three and got half
+ * the arrivals, not a third. A true third is **nine** times the old step (25 × 9
+ * = 225), which is this figure; the ruled `base` of 75 then makes the first rung
+ * cheap and the exponent adds the tail back. The rungs and the measurement that
+ * confirmed them are `docs/great-people.md`.
  */
 export interface RenownRules {
-  /** What the first great person costs. */
-  first: number;
-  /** What each one already recruited adds to the next one's price. */
-  step: number;
+  /** What the first great person costs — the ladder's floor. */
+  base: number;
+  /** What each one already recruited adds, straight. */
+  linear: number;
+  /** The power the recruit count is raised to and added on top. */
+  exponent: number;
 }
 
 /**

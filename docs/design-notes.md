@@ -153,10 +153,13 @@ thirds and are maintenance-free only when decreed.
 
 Called, never built: renown accrues (one seam, `settleRenownWindfall`;
 `explainRenown` is its fold), offers draw weighted by family feed, spills
-across ages; a spent roster banks. The ladder is `rules.renown` — first 120,
-+75 a recruit, both rungs ×3 on 2026-09-09 (item (hhh) clause 2). Measured: the
-arrivals **halve** rather than third, because the ladder's cumulative cost is
-quadratic in the count — the finding is in the reference. Works open the seams they cover; legacies
+across ages; a spent roster banks. The ladder is the **draft ladder's curve**,
+`rules.renown` — `floor(75 + 225n + n^2.8)`: 75 · 301 · 531 · 771 · 1023 …
+(B5, 2026-09-09). Its cumulative cost is quadratic in the count, so arrivals
+fall with the *square root* of the rungs — a third as many needs nine times the
+old step (25 × 9), which is what the linear term is; measured at 3–4 great
+people a seat by the end of Æra III against 9–12 before (×0.36 there, ×0.32 by
+t150). Works open the seams they cover; legacies
 are live effects, revoked by marking. The Academy sells a scholar-only draft
 for 1000🕯 (no renown moved). Triumphs are append-only, turn-stamped, diffed.
 The reference is `docs/great-people.md` (generated roster, every figure).
