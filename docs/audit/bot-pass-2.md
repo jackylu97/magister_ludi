@@ -59,13 +59,13 @@ mechanic is invisible to every fold in the bot.
 | **`landfall`** (Admiralty) | prices | `value.ts:1593-1608`, recursive, scaled `turns ÷ nominalCount` | none |
 | **The King's Road rule** | **ignores** | `cityRestoresMovement` is a `BehaviorRuleId`; the `rule` arm prices everything but `borders` at `unknownEffect` (`value.ts:1646`) | small — but note `rulePercent: 'roadStepCost'` (Machinery) **is** priced (`value.ts:2056`), so the two halves of one idea read differently |
 | **Blitz's kill-and-move** | **ignores** | `rule: 'moveAfterKill'` and its partner `noFortify` both hit the same fallthrough | small in points, wrong in sign: the card's **price** (`noFortify`) also scores +2 |
-| **The Bank's `routeEndsHere`** | **ignores** | it is a `CityScope` test, and **no scope is evaluated anywhere in `value.ts`** | see the scope finding in Part 2 |
+| **The Bank's `routeEndsHere`** | ~~ignores~~ · **prices** (X2) | it is a `CityScope` test, and no scope was evaluated anywhere in `value.ts` — `townsAdmitting` now asks `cityScopeAdmits` | closed by batch X2 |
 | **The Cistern's `irrigates`** | **ignores** | `BuildingDef.irrigates`, zero hits in `src/ai/` | small (1 row), but it is the row's entire reason to exist |
 | **The Stable's site** | **ignores** | `BuildingDef.requiresSite`, above | small |
 | **The Bourse's rate conversion** | prices | `pays basis:'rate'` → `rateSourceValue` (`value.ts:1264`) | none |
 | **The Crusade's pressure lump** | **ignores** | `windfallRider.grant.pressure` → `unknownEffect` (`value.ts:2007`); the sibling `kind:'pressure'` likewise (`:1551`) | H2's written-down gap, unchanged: **the tide has no reading in this currency** |
 | **The Levée's stamped muster** | **ignores** the stamp | `periodicMuster` reads `every` and drops `.stamp` (`value.ts:1586`) | small |
-| **`terrainBeside`** | **ignores** | a `CityScope` test (schema 91, Petra) | small |
+| **`terrainBeside`** | ~~ignores~~ · **prices** (X2) | a `CityScope` test (schema 91, Petra), answered by `townsAdmitting` like every other | closed by batch X2 |
 
 ## The three findings underneath the matrix
 
@@ -168,7 +168,7 @@ the `ValueTerm` list, not a design.
 
 | # | The reading the sim exposes | Where it should join | Live rows / how often | Judgement |
 |---|---|---|---|---|
-| **1** | **A `CityScope` — any of the 32 tests** (`statecraftData.ts:249-580`, evaluated by `cityScopeAdmits`) | `scorePays` / `explainEffects`' scoped arms (`value.ts:1220-1325`) | **222 of 731 effect-shaped rows in the data carry a scope, an `on`, a `within`, an `origin` or a `destination`** — 30% | **The largest single hole in the appraisal.** Every scoped clause is priced as if it paid in every town. The Bank's `routeEndsHere`, Petra's `terrainBeside`, a coastal line, a hasBuilding line — all counted `× ctx.cities`. The bargain is `foldCity`'s own and it was cheap when the deck was small; at 222 rows it is not |
+| **1** ✅ | **A `CityScope` — any of the 32 tests** (`statecraftData.ts:249-580`, evaluated by `cityScopeAdmits`) | `scorePays` / `explainEffects`' scoped arms (`value.ts:1220-1325`) | **222 of 731 effect-shaped rows in the data carry a scope, an `on`, a `within`, an `origin` or a `destination`** — 30% | **The largest single hole in the appraisal, and now closed** (batch X2). Every scoped clause was priced as if it paid in every town. `townsAdmitting` asks `cityScopeAdmits` over `citiesOf` and `workedHexesAdmitting` asks `tileConditionHolds` over the worked ground, both memoised per `ValueContext` on the row's own object; the route's `origin`/`destination` stay unread and say so |
 | **2** | **`BuildingDef.cityHp`** (`buildingEffects.ts:138`, folded by `cityMaxHp`) | `explainBuildingRow` (`value.ts:965-1017`), beside the `cityStat` term | **7 live rows — palisade, stoneWalls, wallsOfUruk, greatWall, castle, bastion, keep**: the entire wall chain | **The bot under-reads every defensive building by exactly the half of a wall that decides a siege.** `cityStat.defense` is a term in the damage curve; `cityHp` is the bar the besieger has to empty, and the bot reads one and not the other. It buys walls anyway (measured: *Palisade at Greyharbour 379.2 for 208*, *Stone Walls 336 for 468*) — they would rank higher still, and the ranking against a granary is where it matters |
 | **3** | **The town's percent stages on a row that *grants* a percent** — `BuildingDef.productionBonus` and every `percentYields`/`productionBonus` card clause | `explainBuildingRow`; `productionOf`/`scoreEffect` (`value.ts:1181-1185`, `:1341`, `:1350`) | **4 building rows (barracks, stable, shipyard, forge) + 45 `percentYields` + 33 `productionBonus` card rows** | The row's own **flat** yields are staged correctly — the gold building loop hands a hypothetical to `foldCity` and gets Entry XVII's two multiplications for free. A row that grants a *percentage* is priced against `nominalRate` (`unknownEffect × nominalCount` = 6) in **every** town, so a +10% forge is worth the same in a hamlet and in a capital making 30⚙. The town's own base is one `standing` reading away in `buildCandidates` and is not used |
 | **4** | **The happiness a new citizen demands, and the tier it would tip** (`happinessDemand`, `crowdingDemand`, `happinessTierBoost`) | `explainCitizen` (`bot.ts:4431-4454`) | every settler candidate, every focus decision, every growth term — hundreds a game | `explainCitizen` folds three lines — the ground, `sciencePerPop`, a small-town premium — and **charges nothing for the contentment the citizen costs**. The meter's price is already in the context (`meterWeight`), the demand is one sim call, and the expansion chain charges the *founding*'s happiness while the *growth*'s is free. Measured relevance: happiness rode **21.93 and 36.00** (ceiling ×3 = 36) in two of the four seats at t120 |
@@ -184,11 +184,13 @@ the `ValueTerm` list, not a design.
 
 ### Three that matter most
 
-**(a) The scope, 222 rows.** Nothing else in the appraisal is wrong on 30% of the
-data. It is also the one whose fix is bounded: `cityScopeAdmits` is a pure reading
-the bot may take, and *"how many of my towns does this clause actually land in"* is
-one walk of `citiesOf` per scoped clause, memoisable on the `ValueContext` exactly
-as `MARGIN_MEMO` is.
+**(a) The scope, 222 rows** — **built, 2026-09-08 (batch X2).** Nothing else in the
+appraisal was wrong on 30% of the data. It was also the one whose fix was bounded:
+`cityScopeAdmits` is a pure reading the bot may take, and *"how many of my towns
+does this clause actually land in"* is one walk of `citiesOf` per scoped clause,
+memoised on the `ValueContext` exactly as `MARGIN_MEMO` is. Shipped as
+`townsAdmitting` plus a harder second half for the hex ground
+(`workedHexesAdmitting`); the figures are in `docs/bot-priorities.md`.
 
 **(b) `cityHp`, 7 rows.** The wall chain is the empire's whole answer to a siege and
 the bot reads half of each row. One term in `explainBuildingRow`.
@@ -311,7 +313,8 @@ re-run: the share of weighed nodes scoring negative, the share of re-aims that a
 military nodes, and technologies held at t150. A pass that leaves the negative share
 above half has not fixed it.
 
-**2 — Evaluate a `CityScope`.** 222 of 731 effect rows carry a scope, an `on`, a
+**2 — Evaluate a `CityScope`.** ✅ **Built 2026-09-08 as batch X2** — see
+`docs/bot-priorities.md`, "Batch X2 as shipped". 222 of 731 effect rows carry a scope, an `on`, a
 `within`, an `origin` or a `destination`, and `value.ts` evaluates none of them —
 every scoped clause is multiplied by the empire's whole town count. The mechanism is
 one function, `townsAdmitting(ctx, scope)`, calling the simulation's own
@@ -378,7 +381,7 @@ unless it says so.
 | | Batch | Scope | Acceptance |
 |---|---|---|---|
 | **X1** | **The unit step pays for itself** | `techChain`'s unit steps take a hammer cost and the levy's surplus; `unitTerm` loses its unconditional ×3 or keeps it only against the levy's shortfall | negative-scoring nodes below 50% of those weighed; military re-aims below 45%; technologies at t150 up on both benches; no new bankruptcies |
-| **X2** | **The scope, evaluated** | `townsAdmitting(ctx, scope)` over `cityScopeAdmits`, memoised per context; replaces `× ctx.cities` in six arms; closes `routeEndsHere` and `terrainBeside` | a coastal clause reads 0 in a landlocked empire; six-game off/on with the boards that move attributed by arm; no measurable cost (the memo is the same bargain F2 struck) |
+| **X2** ✅ | **The scope, evaluated** — **built 2026-09-08** (`docs/bot-priorities.md`, "Batch X2 as shipped") | `townsAdmitting(ctx, scope)` over `cityScopeAdmits` and `workedHexesAdmitting(ctx, effect)` over `tileConditionHolds`, both memoised per `ValueContext` on the row's own object; **eighteen arms** re-counted; `routeEndsHere` and `terrainBeside` closed | **met.** A coastal clause reads **0 towns and scores exactly 0** in a landlocked realm and 1 with one hex of water; Petra's `terrainBeside` reads 0 → 1 on one desert hex; the Bank's `routeEndsHere` reads 0 → 1 on one live caravan. **Six of six boards moved**, both halves (towns · hexes) moving all six alone, and **five of the six first diverge on a Statecraft draft** — three of them now *pass* an offer they used to take; the sixth swaps the Great Lighthouse for a scout. Cost on one identical board: **+1% at t75 and +2.8% at t150** on the minimum, inside the median's own spread |
 | **X3** | **The faith book prices the piece** | `faithPlan`'s building loop gains the `foldCity` delta; `faithRowTerms` dispatches on markers; `ownsAny` becomes a count against a want rather than a bar | faith below its ceiling in at least half the seats at t120, or a bank spent; a Templar's fold names its strength; a faith house's fold names its yields |
 | **X4** | **The paper remembers** | a refusal memory keyed on the paper across turns; `counterTerms` called by `swapDecision` when a straight swap is refused; the first paper the bot writes that is not 1:1 | `proposeDeal` down by an order of magnitude on seed 4242; deals struck > 0 on a board where a swap is mutually profitable |
 | **X5** | **The two missing signs** | `explainCitizen` charges `happinessDemand`; `explainBuildingRow` folds `cityHp` beside `cityStat` | the citizen half on the eight-seed sweep (towns, focus orders, happiness at t100/t150); the wall half on W1's siege bench |

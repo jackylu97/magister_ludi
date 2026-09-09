@@ -73,8 +73,12 @@ import {
   delayTerm,
   explainBuildingRow,
   explainCounted,
+  explainEffects,
   hasFoldReadEngine,
+  scopeDoor,
   scoreEffects,
+  townsAdmitting,
+  workedHexesAdmitting,
 } from '../../src/ai/value';
 import aiJson from '../../data/ai.json';
 
@@ -1414,23 +1418,19 @@ describe('the tech chain', () => {
     // printed `× switchMargin` term on it, and whether it survives is exactly
     // whether the leader beat it by that much.
     //
-    // The seat is handed Sailing **and Currency** before the table is taken, and
-    // that is the fixture rather than an aside: on a blank bench Sailing
-    // outscores the tree two to one, and with only it held Currency runs away in
-    // turn (the 2026-09-05 retune widened every natural race past the margin).
-    // The held set grew to four over two balance passes and came back to two on
-    // **batch P1**: with one standard pricing every row, the Divination and
-    // Bronze Panoply chains cost what they pay and neither runs away, so the
-    // near-tie the claim needs is back at the top of the table — Bronze Panoply
-    // and Divination within a quarter of a point of each other, which keeps the
-    // plan, and Husbandry and Fletching at half their score, which do not.
-    const { state, player } = chained(3, 'sailing');
-    for (const tech of ['currency'] as const) {
-      for (const step of researchExpansion(state, 0, tech)) {
-        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
-        bumpRevision(state);
-      }
-    }
+    // The seat is handed **Sailing** before the table is taken, and that is the
+    // fixture rather than an aside: on a blank bench Sailing outscores the tree
+    // two to one, so it is held to get it out of the way, and what the claim
+    // needs beyond that is a near-tie at the top with a clear third behind it.
+    // The held set has moved with the balance — four over two passes, two on
+    // batch P1, and **one on batch X2**, which is the re-aim this comment
+    // records. Evaluating a clause's scope took the Currency chain's own
+    // scope-blind windfall out of the table, and with Currency no longer running
+    // away it does not need holding: the near-tie is Bronze Panoply against
+    // Bronzeworking (within the margin, which keeps the plan) with Divination a
+    // clear step behind it (outside, which does not). No claim moved; the board
+    // the claim is made on did.
+    const { state } = chained(3, 'sailing');
     const opening = decisionOfType(state, 0, 'chooseResearch');
     expect(opening).not.toBeNull();
     const scored = opening!.candidates.filter((row) => row.rejected === undefined);
@@ -2410,5 +2410,206 @@ describe('the whole deck, priced (batch H2)', () => {
     expect(source.slice(source.indexOf('function marginRates('))).toContain(
       'explainEmpireCardYields',
     );
+  });
+});
+
+/**
+ * **The scope, evaluated** — batch X2 of `docs/audit/bot-pass-2.md`.
+ *
+ * 222 of 731 effect-shaped rows in the data carry a `scope`, an `on`, a `within`,
+ * an `origin` or a `destination`, and until this batch the appraisal read none of
+ * them: a coastal line was priced `× ctx.cities` in a realm with no coast, the
+ * Bank's `routeEndsHere` was priced in every town, and a hex clause was priced at
+ * a flat three hexes whatever the ground under it was.
+ *
+ * The three claims below are the queue row's acceptance, and each is asked of
+ * **one board arranged twice** — the same empire with and without the fact the
+ * scope names — because a single reading proves nothing about a predicate: what
+ * has to hold is that the number *moves with the board*.
+ *
+ * Everything is asked of `townsAdmitting` and `workedHexesAdmitting`, which are
+ * the bot's only two readings of a scope, and both of them are `cityScopeAdmits`
+ * and `tileConditionHolds` — the simulation's own. Nothing here reimplements a
+ * test, and nothing here names a card by hand: the two data rows the audit
+ * called out (Petra, the Bank) are read out of `data/buildings.json` through
+ * `buildingDef`.
+ */
+describe('the scope, evaluated (batch X2)', () => {
+  function realm(towns: number): { state: GameState; player: Player; cities: City[] } {
+    const state = bench(1);
+    const cities: City[] = [];
+    for (let index = 0; index < towns; index++) {
+      cities.push(foundCityAt(state, 0, at(state.map, 3 + index * 5, 5)));
+    }
+    recomputeAllVisibility(state);
+    for (const city of cities) {
+      city.population = 4;
+      refreshCityDerived(state, city);
+    }
+    return { state, player: seat(state, 0), cities };
+  }
+
+  it('reads a coastal clause at nothing in a landlocked empire, and at the coast it has', () => {
+    // **The acceptance's first row.** The bench is grassland to the edges, so no
+    // town of it is coastal and the clause lands nowhere; one hex of water beside
+    // one town is the whole of the difference, and the count follows it.
+    const { state, player, cities } = realm(4);
+    const coastal = { test: 'coastal' } as const;
+    expect(valueContext(state, player).cities).toBe(4);
+    expect(townsAdmitting(valueContext(state, player), coastal)).toBe(0);
+    // And the clause priced through it is worth nothing at all — not a quarter of
+    // something, not a nominal: nothing, because it pays in no town.
+    const line: CardEffect[] = [{ kind: 'pays', where: 'city', gold: 2, scope: coastal }];
+    expect(scoreEffects(line, valueContext(state, player))).toBe(0);
+
+    at(state.map, cities[1]!.col + 1, cities[1]!.row).terrain = 'coast';
+    bumpRevision(state);
+    expect(townsAdmitting(valueContext(state, player), coastal)).toBe(1);
+    expect(scoreEffects(line, valueContext(state, player))).toBeGreaterThan(0);
+    // A quarter of the realm, and the unscoped twin still reads all four — the
+    // batch narrows what a scope says and moves nothing that says nothing.
+    const bare: CardEffect[] = [{ kind: 'pays', where: 'city', gold: 2 }];
+    expect(scoreEffects(bare, valueContext(state, player))).toBe(
+      scoreEffects(line, valueContext(state, player)) * 4,
+    );
+  });
+
+  it('reads Petra’s own site test off the ground beside the town', () => {
+    // **The acceptance's second row**, and the scope is the wonder's own — read
+    // out of the data row rather than typed here, so a designer who re-sites
+    // Petra re-aims this claim with it.
+    const site = buildingDef('petra').requiresSite;
+    expect(site).toBeDefined();
+    expect(site!.test).toBe('terrainBeside');
+    const { state, player, cities } = realm(1);
+    expect(townsAdmitting(valueContext(state, player), site!)).toBe(0);
+    at(state.map, cities[0]!.col + 1, cities[0]!.row).terrain = 'desert';
+    bumpRevision(state);
+    expect(townsAdmitting(valueContext(state, player), site!)).toBe(1);
+  });
+
+  it('reads the Bank’s share in the towns a caravan actually ends at', () => {
+    // **The acceptance's third row.** `routeEndsHere` is a `CityScope` test and
+    // `Unit.trade` **is** the route — there is no register — so the arrangement
+    // is a caravan with a live leg and nothing else, and the count is the towns
+    // it comes to.
+    const bank = buildingDef('bank');
+    const scoped = (bank.effects ?? []).find(
+      (effect) => (effect as { scope?: { test: string } }).scope?.test === 'routeEndsHere',
+    );
+    expect(scoped).toBeDefined();
+    const scope = (scoped as { scope: NonNullable<Parameters<typeof townsAdmitting>[1]> }).scope;
+
+    const { state, player, cities } = realm(3);
+    expect(townsAdmitting(valueContext(state, player), scope)).toBe(0);
+    // The Bank's twenty percent, priced through the scope: nothing while no road
+    // ends anywhere, and never the realm's whole count.
+    expect(scoreEffects([scoped as CardEffect], valueContext(state, player))).toBe(0);
+
+    const trader = createUnit(state, player.id, 'trader', cities[0]!.col, cities[0]!.row);
+    trader.trade = {
+      from: cities[0]!.id,
+      to: cities[2]!.id,
+      expiresTurn: state.turn + 30,
+      outbound: true,
+      autoResend: false,
+    };
+    bumpRevision(state);
+    expect(townsAdmitting(valueContext(state, player), scope)).toBe(1);
+    expect(scoreEffects([scoped as CardEffect], valueContext(state, player))).toBeGreaterThan(0);
+  });
+
+  it('counts a hex clause over the worked ground it lands on, town by town', () => {
+    // The harder half. A hex line is paid by `foldCity` on the tiles a citizen is
+    // **sitting on**, so that is what is counted — and the count moves with the
+    // ground: a condition no worked hex satisfies is worth nothing, and one every
+    // worked hex satisfies is worth all of them.
+    const { state, player } = realm(2);
+    const ctx = valueContext(state, player);
+    const worked = state.cities.reduce((sum, city) => sum + city.workedTiles.length, 0);
+    expect(worked).toBeGreaterThan(0);
+    const anywhere: CardPaysEffect = { kind: 'pays', where: 'hex', gold: 1 };
+    expect(workedHexesAdmitting(ctx, anywhere)).toBe(worked);
+    // Grassland to the horizon: no hex has a seam in it, so the Rite of Plenty's
+    // shape reads nought rather than the flat three it used to.
+    const seams: CardPaysEffect = {
+      kind: 'pays',
+      where: 'hex',
+      gold: 1,
+      on: { test: 'hasResource' },
+    };
+    expect(workedHexesAdmitting(ctx, seams)).toBe(0);
+    expect(scoreEffects([seams], ctx)).toBe(0);
+  });
+
+  it('remembers a scope for the life of one sitting, and re-reads it for the next', () => {
+    // The memo is `MARGIN_MEMO`'s bargain: keyed weakly on the context, which is
+    // one seat's book for one decision. Two askings inside one context are one
+    // walk; a fresh context after the board moves is a fresh answer, which is
+    // what stops the bot appraising against a coast it lost.
+    const { state, player, cities } = realm(2);
+    const held = valueContext(state, player);
+    const coastal = { test: 'coastal' } as const;
+    expect(townsAdmitting(held, coastal)).toBe(0);
+    at(state.map, cities[0]!.col + 1, cities[0]!.row).terrain = 'coast';
+    bumpRevision(state);
+    // The old sitting keeps the answer it was built with — deliberately.
+    expect(townsAdmitting(held, coastal)).toBe(0);
+    expect(townsAdmitting(valueContext(state, player), coastal)).toBe(1);
+  });
+
+  it('reads a wonder’s own “in the town that raises me” as one town, never as none', () => {
+    // Twenty-one of the twenty-six `hasBuilding` scopes on building rows name
+    // **their own row** — the idiom every wonder uses to say "in the town that
+    // raises me". Read literally, no town admits one on the turn the bot is
+    // deciding whether to build it, and Petra's desert would price at nothing for
+    // ever. So a `hasBuilding` scope no town admits reads one town: the town that
+    // would raise it. Every other scope is a fact about the board and reads what
+    // the board says.
+    const { state, player } = realm(3);
+    const ctx = valueContext(state, player);
+    expect(townsAdmitting(ctx, { test: 'hasBuilding', building: 'petra' })).toBe(1);
+    expect(townsAdmitting(ctx, { test: 'coastal' })).toBe(0);
+    // And a shelf the empire has really raised is counted, not floored.
+    for (const city of state.cities) city.buildings.push('granary');
+    bumpRevision(state);
+    expect(townsAdmitting(valueContext(state, player), { test: 'hasBuilding', building: 'granary' })).toBe(3);
+  });
+
+  it('leaves an unscoped clause exactly where it was', () => {
+    // The other half of every acceptance in this file: a row that names no scope
+    // is priced by the same arithmetic it always was. The door is the proof —
+    // the same board, the same effects, the same number with the reading off.
+    const { state, player } = realm(3);
+    const rows: CardEffect[] = [
+      { kind: 'pays', where: 'city', gold: 2 },
+      { kind: 'percentYields', yield: 'science', percent: 20 },
+      { kind: 'happiness', amount: 1, per: 'city' },
+    ];
+    const open = scoreEffects(rows, valueContext(state, player));
+    scopeDoor.towns = false;
+    scopeDoor.hexes = false;
+    try {
+      expect(scoreEffects(rows, valueContext(state, player))).toBe(open);
+    } finally {
+      scopeDoor.towns = true;
+      scopeDoor.hexes = true;
+    }
+  });
+
+  it('says the count in the label, so a nought in the feed can be accounted for', () => {
+    // Rule 5's discipline one system over: every changed line is still a
+    // `ValueTerm` and its label carries the reading that made it what it is.
+    const { state, player } = realm(4);
+    const appraisal = explainEffects(
+      [{ kind: 'pays', where: 'city', gold: 2, scope: { test: 'coastal' } }],
+      valueContext(state, player),
+    );
+    expect(appraisal.terms[0]!.label).toMatch(/in 0 of 4 towns/);
+    const hexes = explainEffects(
+      [{ kind: 'pays', where: 'hex', gold: 1, on: { test: 'hasResource' } }],
+      valueContext(state, player),
+    );
+    expect(hexes.terms[0]!.label).toMatch(/on 0 worked hexes/);
   });
 });

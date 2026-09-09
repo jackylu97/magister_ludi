@@ -2799,3 +2799,213 @@ why — and the bench is arranged rather than played, so it makes no replay clai
   operational plan would give the force a frontage rather than a point.
 - **Nothing sequences a capture.** The push takes walls down; taking the town is
   still whatever `favourableBlow` happens to do next.
+
+---
+
+## Batch X2 as shipped — the scope, evaluated (2026-09-08)
+
+`docs/audit/bot-pass-2.md`'s largest single finding, and the one it called
+bounded: **222 of 731 effect-shaped rows in the data carry a `scope`, an `on`, a
+`within`, an `origin` or a `destination` — 30% — and `value.ts` evaluated none of
+them.** Every scoped clause was priced `× ctx.cities`, so a coastal line was
+worth as much to a landlocked realm as to a maritime one, the Bank's
+`routeEndsHere` was paid in every town whether a caravan came to it or not, and
+every `where: 'hex'` line was priced at a flat three hexes (`score.nominalTiles`)
+whatever the ground under it was.
+
+### The two readings, and the memo that pays for them
+
+**`townsAdmitting(ctx, scope)`** — how many of this empire's towns a `CityScope`
+admits, asked of `cityScopeAdmits` over `citiesOf`: the very predicate the
+evaluator pays the clause by, with this seat as the `viewerId` so the religion
+scopes (`follows`) answer from the right chair. Nothing in the bot reimplements a
+test, and a scope added to `CityScope` tomorrow is answered here the day it is
+answered there. A `capital` scope reads one — because the evaluator says so, not
+because the bot knows what a capital is.
+
+**`workedHexesAdmitting(ctx, effect)`** — the harder half. A hex clause is paid by
+`foldCity` on the tiles a citizen is **sitting on**, so the count is the empire's
+worked hexes the `on` condition admits, inside the towns the `scope` admits.
+Worked and deliberately not owned: ground inside the borders that nobody works
+pays nobody anything, and an owned-hex count would tell the bot that a
+one-citizen town on thirty tiles of desert is being paid thirty times over. It
+under-reads a town about to grow, which is the right direction for a rate the bot
+is deciding to *buy*, and the growth is priced by the growth channel rather than
+twice here.
+
+Both are memoised on `SCOPE_MEMO`, `MARGIN_MEMO`'s bargain exactly: a `WeakMap`
+keyed on the `ValueContext` — one seat's book for one decision — and inside it a
+`Map` keyed on **the scope object itself**, because a `CityScope` in a data row is
+parsed once at load and every appraisal of that row hands back the same object.
+The hex half keys on the *effect*, since that count is a function of the pair
+(`on`, `scope`) and the row is the one object naming both. It has to be a memo
+rather than a plain walk: `frontier` sweeps the map and `holding` asks
+`openedResource` — the walk that is 17.4% of the bot's runtime — and a draft plan
+appraises the same pool a dozen times in one sitting.
+
+**Two stated cuts**, both in the source with the reason beside them:
+
+- **The wonder idiom.** 21 of the 26 `hasBuilding` scopes on building rows name
+  **their own row** — how every wonder says *"in the town that raises me"*. Read
+  literally, no town admits one on the turn the bot is deciding whether to build
+  it, and Petra's desert would price at nothing for ever. So a `hasBuilding`
+  scope no town admits reads **one town** — the town that would raise it — and
+  never `× cities`. It is the one scope in the union that is a *plan* rather than
+  a fact about the board: a coast cannot be built and a granary can.
+- **The condition that reads the fold.** `on: { test: 'yields' }` — the Rite of
+  the Harvest's *"every hex that feeds it"* — answers no unless the caller hands
+  in what the hex already pays. Counting it without one would price four live
+  rows at nought, a worse lie than the flat three they had. So the thunk is
+  handed in and it is the town's own reading (`cityContext` + `foldTile`, the
+  pair `explainCity` folds a worked hex through), built once per town and **only**
+  for the rows `tileConditionReadsFold` says are asking.
+
+### The arms changed
+
+| Arm | Was | Is |
+|---|---|---|
+| `scorePays` flat `where: 'city'` | `× ctx.cities` | `× townsAdmitting(scope)` |
+| `scorePays` flat `where: 'capital'` | paid once, scope unread | `× capitalAdmits(scope)` — one town, or none |
+| `scorePays` flat `where: 'hex'` | `× score.nominalTiles` (3) | `× workedHexesAdmitting` |
+| `scorePays` `basis: 'share'` | the whole empire rate | `× scopeShare` — the conversion is floored per town, so two towns of five convert two fifths |
+| `scorePays` `basis: 'mirror'` | every town's shelves | the sweep skips a town the scope refuses (exact — it has a town in hand) |
+| `scorePayout` (the `count` and `rate` payout) | `where: 'city' ? cities : 1` | `townsAdmitting` / `capitalAdmits` |
+| `percentYields` | `× ctx.cities` | `× townsAdmitting(scope)` — 36 scoped rows, the Bank among them |
+| `productionBonus` | `× ctx.cities` | `× townsAdmitting(scope)` — 8 scoped rows |
+| `happiness` (`per: 'city'`) | `× ctx.cities` | `× townsAdmitting(scope)` — 17 scoped rows |
+| `cityStat` | one town's wall, scope unread | one town's wall, **nought when no town admits** (the size stays, so this arm and `explainBuildingRow`'s field arm still agree) |
+| `unitStat` · `cardYieldAmplifier` | scope unread | the same nought-gate |
+| `buildingYieldPercent` | every town's shelves | the sweep skips a town the scope refuses |
+| `cityRenownPercent` | the mean over **every** town | the mean over the towns the scope admits — nought when none do |
+| `scoreRulePercent` | the whole empire rate | `× scopeShare` — 3 scoped rows; every reading under it is an empire-wide rate |
+| `scoreMeterRule`'s `capturedCityCost` · `coastalCityCost` · `hillCityCost` | `× ctx.cities`, the kind assumed | `× townsAdmitting` of `captured` · `coastal` · `onHills` — the three kinds the union already tests |
+| `productionOf` (the hammer premium) | `× cities` · `× nominalTiles` | the same counts, so the premium and the arm beside it cannot disagree about the ground |
+| `amplifiedLines` | `× cities` · `× nominalTiles` | the same counts, so an amplifier and the card it amplifies agree about the deck |
+| `explainEffects`' label | the bare kind | the kind plus *"in 2 of 5 towns"* / *"on 14 worked hexes"* |
+
+**Left alone, and why.** `authority` and `rule: 'borders'` carry no `scope` field
+at all — the shapes never took one. The route's `origin` and `destination` narrow
+which *caravans* carry a line, and what a caravan pays is `routes.ts`' fold
+rather than this file's count (the audit's own matrix already prices the route
+scopes at "none").
+
+### Acceptance — the benches
+
+In `test/sim/aiAppraisal.test.ts`, "the scope, evaluated (batch X2)". Each is
+**one board arranged twice**, because a single reading proves nothing about a
+predicate: what has to hold is that the number moves with the board. Neither of
+the two data rows the audit named is typed into the test — Petra's site and the
+Bank's clause are read out of `data/buildings.json` through `buildingDef`.
+
+| Bench | Reading |
+|---|---|
+| a coastal clause in a landlocked realm of four towns | **0** towns, and the clause scores **exactly 0** — not a quarter, not a nominal. One hex of water beside one town → **1**, and the unscoped twin still reads all four |
+| Petra's `terrainBeside` | **0** with grassland beside the centre, **1** with one desert hex — the wonder's own `requiresSite`, read off the row |
+| the Bank's `routeEndsHere` in a realm of three | **0** while no caravan runs, and the clause scores 0; a live `Unit.trade` ending at one town → **1** |
+| a hex clause | counts every worked hex of every town; `on: hasResource` on grassland reads **0**, where it used to read 3 |
+| the memo | two askings in one sitting are one walk; a fresh sitting after the board moves re-reads it |
+| the wonder idiom | `hasBuilding: petra` reads 1 in a realm holding none; `hasBuilding: granary` reads 3 in a realm of three that hold one |
+| an unscoped clause | byte-identical with the door shut — the batch narrows what a scope says and moves nothing that says nothing |
+| the label | `in 0 of 4 towns` · `on 0 worked hexes` |
+
+### Off and on — six boards, both halves knocked out
+
+Duel, two balanced seats, wild on, 150 turns, driven a decision at a time through
+`createBotStepper`; `scopeDoor` is a source-level switch with **two halves**
+(`towns` and `hexes`), each falling back to exactly the figure the arm used
+before this batch. Not a knob: it is not in `data/ai.json`, no persona reads it,
+the arena cannot see it, and both halves ship open.
+
+| seed | shut → open | towns-half alone | hexes-half alone | first divergence |
+|---|---|---|---|---|
+| 20260903 | **moved** | MOVES | MOVES | #33 `draft` — `chooseOrder` 1 → `skipOrderOffer` |
+| 4242 | **moved** | MOVES | MOVES | #219 `draft` — `chooseOrder` 2 → `skipOrderOffer` |
+| 1 | **moved** | MOVES | MOVES | #162 `draft` — `chooseDoctrine` 0 → 2 |
+| 5 | **moved** | MOVES | MOVES | #152 `draft` — `chooseOrder` 1 → `skipOrderOffer` |
+| 11 | **moved** | MOVES | MOVES | #27 `draft` — `chooseOrder` 1 → 0 |
+| 777 | **moved** | MOVES | MOVES | #166 `build` — Great Lighthouse → a scout |
+
+**All six moved, both halves move all six on their own, and five of the six first
+diverge on a Statecraft draft** — H2's shape exactly, and for H2's reason: the
+draft is the one arm that appraises *whole cards*, so a re-priced clause shows up
+there first and everywhere else downstream. Three of the six now **pass** an offer
+they used to take, which is the finding said as a decision: the hand the seat used
+to take was a hand of scoped clauses it was pricing in every town.
+
+The sixth is a build, and it is the most legible line in the table: with the door
+shut the seat put the **Great Lighthouse** at the front of a queue, and with it
+open it built a scout instead. The Lighthouse pays on coastal hexes.
+
+### Cost — measured on one identical board
+
+A whole-game ms/turn comparison would measure two different games (the
+trajectories diverge by design), so the clock was taken the honest way: one board
+played to a fixed turn, then `nextBotDecision` asked of **that same state** in
+alternating blocks with the door open and shut, ten pairs of decisions a block,
+eight blocks each way.
+
+| board | door open | door shut |
+|---|---|---|
+| t75, 6 towns | min **143.65** · median 148.65 | min 142.29 · median 145.50 |
+| t150, 8 towns | min **214.65** · median 272.60 | min 208.75 · median 264.63 |
+
+**Under 3% on the minimum and inside the run-to-run spread on the median** — the
+memo is the same bargain F2 struck, and the walks behind it are asked once per
+sitting per row. For the record, the whole-game figures on seed 20260903 (two
+different games, so a trajectory reading and not a clock): **81.0 ms/turn shut,
+65.3 ms/turn open**.
+
+### Pins re-aimed
+
+Two, both fixtures rather than claims, and both re-aimed with the reason in the
+test's own comment.
+
+- **`aiAppraisal.test.ts`, "holds the plan against a challenger inside the
+  margin"** — the held set came back from two technologies to **one**. The claim
+  needs a near-tie at the top of the research table with a clear third behind it;
+  evaluating a clause's scope took the Currency chain's scope-blind windfall out
+  of the table, so Currency no longer runs away and no longer needs holding. The
+  near-tie is now Bronze Panoply against Bronzeworking (inside the margin, which
+  keeps the plan) with Divination a step behind (outside, which does not). The
+  set has moved with the balance before: four over two passes, two on P1, one now.
+- **`aiWants.test.ts`, "prices a rite as a want of its own"** — reads the **best**
+  rite of the book rather than the first of it. That bench's ground is hills to
+  the horizon and a hill feeds nobody, so the Rite of the Harvest — *"every hex
+  this city works that feeds it"* — lands on no hex at all there and is correctly
+  worth nought. That is the batch working rather than failing; the claim is about
+  the *shape* of a rite want, so it is asked of the rite this board actually pays.
+
+`aiDecision.slow.test.ts` is byte-identical to itself (the stepper and the driver
+still reach the same board and the same log), and every score in every decision
+is still the fold of its own terms.
+
+### Known gaps, written down rather than fixed
+
+- **A route's `origin`/`destination` is still unevaluated.** Both narrow which
+  caravans carry a line, and what a caravan pays is `routes.ts`' fold; pricing
+  them here would be a second reading of a road. Named in `scorePays`' docblock.
+- **A `hasBuilding` scope inside an `all`/`any` composite gets the wonder floor
+  through the whole composite**, because `scopePromisesABuilding` recurses. A
+  composite of *coast and a granary* therefore reads one town in a landlocked
+  realm rather than none. Twenty-three composites live in the data and none is
+  that shape today.
+- **The centre hex is not counted.** `workedHexesAdmitting` walks
+  `city.workedTiles`, and a town's own centre is folded by `explainCentreYield`
+  beside them. A hex clause landing on a centre is therefore under-read by one
+  hex per town.
+- **`cityStat`, `unitStat` and `cardYieldAmplifier` take a nought-gate rather
+  than a count.** Multiplying them by the towns would put `scoreEffect` and
+  `explainBuildingRow`'s field arm at odds about what a wall is worth, which is
+  H2's own measured mistake. The sign is fixed here; the size is X5's question.
+- **Seed 5 opens a much larger game** (17 towns and 5,192 commands against 11 and
+  981), and at 584 ms/turn it is the slowest board in the sweep by five times.
+  Nothing in this batch loops — the census is 3,836 `moveUnit` for a large army —
+  but it is the audit's superlinear-in-towns finding standing on one board, and
+  X6's bound is what would answer it.
+- **`score.nominalTiles` is now read by the shut door and nothing else.** It was
+  the flat "three hexes" stand-in and the ground is counted instead, so the knob
+  no longer moves a shipped decision. It is **kept rather than retired**: it is
+  the honest fallback the knockout falls back *to*, and retiring it is a change
+  to `data/ai.json` and the arena's sheet that belongs in its own pass (H2's "two
+  knobs retired" precedent). **No knob was added by this batch** — `scopeDoor` is
+  a source-level switch, not tuning surface, so the arena panel is untouched.

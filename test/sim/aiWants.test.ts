@@ -589,13 +589,25 @@ describe('the chain in the book', () => {
     // in the bank that pays for it, ranked against every other faith row by
     // worth per coin. That is the ruled shape ("a per-city purchase-shaped
     // want") and it is what lets a rite lose to a prophet honestly.
+    //
+    // **The row read is the best of the book and no longer the first of it**
+    // (batch X2's re-aim). This bench's ground is hills to the horizon, and a
+    // hill feeds nobody — so the Rite of the Harvest, whose whole text is *"every
+    // hex this city works that feeds it"*, lands on **no hex at all here** and is
+    // correctly worth nought. That is the batch's reading working rather than
+    // failing: before it, a hex clause was priced at a flat three hexes whatever
+    // the ground was. The claim under test is about the *shape* of a rite want —
+    // its town, its price and its blessing over ten turns — so it is asked of
+    // whichever rite this board actually pays, which here is Omen Reading.
     const { state, player } = chained(1, 'divination');
     player.pantheon.beliefs = [BELIEF_IDS[0] as never];
     player.faithPool = 500;
     for (const city of state.cities) city.buildings.push('chapel');
     bumpRevision(state);
     const ctx = valueContext(state, player);
-    const rite = ctx.wants.faith.find((want) => want.rite !== undefined);
+    const rites = ctx.wants.faith.filter((want) => want.rite !== undefined);
+    expect(rites.length).toBeGreaterThan(0);
+    const rite = rites.reduce((best, row) => (row.worth > best.worth ? row : best));
     expect(rite).toBeDefined();
     // The price is the simulation's own, and the act is a command the reducer
     // would take.

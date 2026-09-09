@@ -95,12 +95,17 @@ import {
   foldCity,
   queueCategory,
 } from '../sim/yields/town';
+// Batch X2: the one condition that asks what a hex already *pays* has to be
+// handed the hex's own fold, and the fold is the town's — see
+// `workedHexesAdmitting`.
+import { cityContext, foldTile } from '../sim/yields/hex';
 import {
   explainEmpireCardYields,
   foldEmpireRates,
   stageEmpireFold,
 } from '../sim/yields/empire';
 import { explainEmpireGold } from '../sim/empireGold';
+import { getTileAt } from '../sim/map';
 import { authorityOf, happinessDemand, happinessOf } from '../sim/meters';
 import { renownPerTurn } from '../sim/renown';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
@@ -111,17 +116,21 @@ import {
   type PlayerStatecraft,
   type EmpireRates,
   buildingMatchesYieldPercent,
+  cityScopeAdmits,
   countOf,
   orderAtSlotPosition,
   periodicProbe,
   slotTypesOf,
   statecraftOf,
+  tileConditionHolds,
+  tileConditionReadsFold,
 } from '../sim/statecraft';
 import {
   type CardPaysEffect,
   type CardEffect,
   type CardId,
   type CardPeriodicEffect,
+  type CityScope,
   type OrderId,
   type RateSource,
   type WindfallOccasion,
@@ -131,7 +140,9 @@ import {
   orderFitsSlot,
 } from '../sim/statecraftData';
 import { type ProjectId, projectDef } from '../sim/projectData';
-import type { City, GameState } from '../sim/state';
+// `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
+// X2's scope reading is asked over it, so the import is no longer type-only.
+import { type City, type GameState, citiesOf } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
@@ -1065,6 +1076,245 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
   return explainSoldier(id, ctx).total;
 }
 
+// --- the scope, evaluated (batch X2) ----------------------------------------
+
+/**
+ * **The door batch X2 opens, and the only switch that closes it again.**
+ *
+ * `docs/audit/bot-pass-2.md`'s largest single finding: 222 of 731 effect-shaped
+ * rows in the data carry a `scope`, an `on`, a `within`, an `origin` or a
+ * `destination`, and until this batch every one of them was priced `× cities` —
+ * a coastal line was worth as much to a landlocked realm as to a maritime one.
+ *
+ * The switch exists for the acceptance measurement and nothing else: the batch's
+ * own bench plays the same seeds with it shut and open and attributes the boards
+ * that move to the half that moved them (`docs/bot-priorities.md`, "Batch X2").
+ * It is **not** a knob — it is not in `data/ai.json`, no persona reads it, no
+ * surface offers it, and both halves are left open. A tuner who wanted a dial
+ * here would be tuning whether the bot may read the rules, which is not a taste.
+ *
+ * **Two halves rather than one switch**, because the batch is two readings and a
+ * knockout that could not tell them apart would attribute nothing: `towns` is
+ * `townsAdmitting` — which of this realm's towns a `CityScope` admits — and
+ * `hexes` is `workedHexesAdmitting`, the ground a `where: 'hex'` line lands on.
+ * Shut, each falls back to exactly the figure the arm used before this batch:
+ * the realm's whole town count, and `score.nominalTiles`.
+ */
+export const scopeDoor = { towns: true, hexes: true };
+
+/**
+ * **What one sitting has already worked out about a scope.**
+ *
+ * `MARGIN_MEMO`'s bargain exactly (see it): keyed weakly on the `ValueContext`,
+ * which is one seat's book for one decision, and inside that on **the scope
+ * object itself** — a `CityScope` in a data row is parsed once at load and every
+ * appraisal of that row hands the same object back, so identity is the row's own
+ * name for the question and nothing has to be hashed.
+ *
+ * It has to be a memo rather than a plain walk because the questions are not
+ * cheap: `frontier` sweeps the map, `holding` asks `openedResource` — the walk
+ * that is 17% of the bot's runtime one system over — and a draft plan appraises
+ * the same pool of rows a dozen times in one sitting.
+ *
+ * The `where: 'hex'` half keys on **the effect** rather than on its `on`, because
+ * that count is a function of the pair (`on`, `scope`) and the row carrying them
+ * is the one object that names both. The two keyspaces cannot collide: a
+ * `CardEffect` is never a `CityScope`.
+ */
+const SCOPE_MEMO = new WeakMap<ValueContext, Map<object, number>>();
+
+function scopeMemo(ctx: ValueContext): Map<object, number> {
+  let held = SCOPE_MEMO.get(ctx);
+  if (held === undefined) {
+    held = new Map<object, number>();
+    SCOPE_MEMO.set(ctx, held);
+  }
+  return held;
+}
+
+/**
+ * **Does this scope name a shelf this empire could go and raise?**
+ *
+ * The one scope in the union that is a *plan* rather than a fact about the
+ * board. Every other test — the coast, a river, a mountain, a capture — is
+ * something the map or the history decided and no amount of hammers changes it;
+ * `hasBuilding` is something a town does on purpose, and it is also the idiom
+ * **every wonder in the data uses to say "in the town that raises me"** (21 of
+ * the 26 `hasBuilding` scopes on building rows name their own row). Read
+ * literally, a wonder's own clause would admit no town on the turn the bot is
+ * deciding whether to build it, and the appraisal would price Petra's desert at
+ * nothing for ever.
+ *
+ * So a `hasBuilding` scope no town admits reads **one town** — the town that
+ * would raise it — and never `× cities`, which is the under-read this batch is
+ * for. Recursive, because a composite may hold one.
+ */
+function scopePromisesABuilding(scope?: CityScope): boolean {
+  if (scope === undefined) return false;
+  if (scope.test === 'hasBuilding' || scope.test === 'hasBuildingYielding') return true;
+  if (scope.test === 'all' || scope.test === 'any') return scope.of.some(scopePromisesABuilding);
+  return false;
+}
+
+/**
+ * **How many of this empire's towns a scope actually admits** — batch X2's one
+ * function, and the replacement for every bare `× ctx.cities` on a scoped clause.
+ *
+ * The answer is the simulation's own: `cityScopeAdmits` over `citiesOf`, which
+ * is the very predicate the evaluator pays the clause by, so the bot cannot
+ * disagree with the rules about which towns a line lands in. Nothing here
+ * reimplements a test, and a scope added to `CityScope` tomorrow is answered
+ * here the day it is answered there.
+ *
+ * `viewerId` is this seat, which is what the religion scopes (`follows`) want:
+ * *"a town that keeps my faith"*, asked from my chair.
+ *
+ * A `capital` scope reads one (or nought in a realm with no capital) because
+ * the evaluator says so, not because this function knows what a capital is.
+ *
+ * An absent scope is every town, which is what absence means.
+ */
+export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
+  if (scope === undefined) return ctx.cities;
+  if (!scopeDoor.towns) return ctx.cities;
+  const memo = scopeMemo(ctx);
+  const held = memo.get(scope);
+  if (held !== undefined) return held;
+  let towns = 0;
+  for (const city of citiesOf(ctx.state, ctx.playerId)) {
+    if (cityScopeAdmits(ctx.state, city, scope, ctx.playerId)) towns += 1;
+  }
+  // The wonder idiom, and the one promise a realm can keep — see above.
+  if (towns === 0 && scopePromisesABuilding(scope)) towns = Math.min(1, ctx.cities);
+  memo.set(scope, towns);
+  return towns;
+}
+
+/**
+ * The capital, admitted or not — a `where: 'capital'` line pays **one town**,
+ * and a scope on it can still shut it.
+ *
+ * Unmemoised on purpose: it is one lookup and one predicate, and a memo keyed on
+ * a scope that may be absent would need a key this function does not have.
+ */
+function capitalAdmits(ctx: ValueContext, scope?: CityScope): number {
+  const seat = capitalCityOf(ctx.state, ctx.playerId);
+  if (seat === null || seat === undefined) return 0;
+  if (!scopeDoor.towns || scope === undefined) return 1;
+  return cityScopeAdmits(ctx.state, seat, scope, ctx.playerId) ? 1 : 0;
+}
+
+/**
+ * **How many hexes a `where: 'hex'` line actually pays on** — the harder half,
+ * and `score.nominalTiles`' replacement.
+ *
+ * Counted over the empire's **worked** hexes and deliberately not over its owned
+ * ones. That is the honest reading rather than the convenient one: a hex clause
+ * lands in a town's books through `foldCity`, which folds `explainTileYield` for
+ * the tiles a citizen is *sitting on*, and ground inside the borders that nobody
+ * works pays nobody anything. An owned-hex count would tell this bot that a
+ * one-citizen town on a desert of thirty tiles is being paid thirty times over.
+ * It under-reads a town that is about to grow — which is the right direction for
+ * a rate the bot is deciding to *buy*, and the growth is priced by the growth
+ * channel rather than twice here.
+ *
+ * The condition is `tileConditionHolds`, the evaluator's own. **The one
+ * condition that reads the fold gets the fold** (`yields` — the Rite of the
+ * Harvest's *"every hex that feeds it"*): asked without a `paid` thunk it
+ * answers no, so counting it that way would price four live rows at nought,
+ * which is a worse lie than the flat three they were priced at before. So the
+ * thunk is handed in, and it is the town's own reading — `cityContext` plus
+ * `foldTile`, the very pair `explainCity` folds a worked hex through. The
+ * context is built once per town and only for the rows that ask, which is what
+ * keeps the walk cheap: `tileConditionReadsFold` is the evaluator's own answer
+ * to whether anybody is asking.
+ *
+ * `scope` at `where: 'hex'` is whose **ground** it is (the shape's own docblock),
+ * so it filters the towns and the condition filters their hexes. When the scope
+ * is the wonder idiom and no town holds the row yet, the reading is one middling
+ * town's worth of that ground — the row is a promise about the town that raises
+ * it, and this empire's own average is the only town it can be asked about.
+ */
+export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect): number {
+  if (!scopeDoor.hexes) return ctx.ai.score.nominalTiles;
+  const memo = scopeMemo(ctx);
+  const held = memo.get(effect);
+  if (held !== undefined) return held;
+  const towns = citiesOf(ctx.state, ctx.playerId);
+  const reads = tileConditionReadsFold(effect.on);
+  let admitted = 0;
+  let onAdmitted = 0;
+  let everywhere = 0;
+  for (const city of towns) {
+    const ground = reads ? cityContext(ctx.state, city) : undefined;
+    let mine = 0;
+    for (const cell of city.workedTiles) {
+      const tile = getTileAt(ctx.state.map, cell.col, cell.row);
+      if (tile === undefined) continue;
+      const holds =
+        effect.on === undefined ||
+        tileConditionHolds(tile, effect.on, reads ? () => foldTile(tile, ground) : undefined);
+      if (holds) mine += 1;
+    }
+    everywhere += mine;
+    // The **towns** half of the door owns the scope even here: the ground is this
+    // function's reading and which towns' ground it is belongs to the other half,
+    // so a knockout can tell the two apart.
+    if (
+      !scopeDoor.towns ||
+      effect.scope === undefined ||
+      cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)
+    ) {
+      admitted += 1;
+      onAdmitted += mine;
+    }
+  }
+  let count = onAdmitted;
+  if (admitted === 0) {
+    count =
+      towns.length === 0 || !scopePromisesABuilding(effect.scope)
+        ? 0
+        : everywhere / towns.length;
+  }
+  memo.set(effect, count);
+  return count;
+}
+
+/**
+ * **The share of this empire a scope reaches**, between nought and one — for the
+ * two arms whose figure is an empire-wide rate rather than a per-town line.
+ *
+ * A `basis: 'share'` conversion is floored per town by the evaluator and this
+ * appraisal reads it off the empire's books; a scope narrowing it to two towns
+ * of five therefore takes two fifths of that rate, which is the honest middle
+ * between walking every town's fold again and ignoring the scope altogether.
+ */
+function scopeShare(ctx: ValueContext, scope?: CityScope): number {
+  if (scope === undefined || !scopeDoor.towns || ctx.cities <= 0) return 1;
+  return townsAdmitting(ctx, scope) / ctx.cities;
+}
+
+/**
+ * **What a term's label says about the ground it landed on** — "in 2 of 5 towns".
+ *
+ * Every changed line in this batch is still a `ValueTerm`, and a reader of the
+ * spectator's feed has to be able to see *why* a coastal line read nothing. The
+ * note is the count and never the test's name: the scope's own words are the
+ * describers' business (`statecraft/describers.ts`) and a number is what this
+ * file deals in.
+ */
+function scopeNote(effect: CardEffect, ctx: ValueContext): string {
+  const scope = scopeDoor.towns ? (effect as { scope?: CityScope }).scope : undefined;
+  const hexes =
+    scopeDoor.hexes && effect.kind === 'pays' && effect.where === 'hex'
+      ? workedHexesAdmitting(ctx, effect)
+      : null;
+  const parts: string[] = [];
+  if (scope !== undefined) parts.push(`in ${townsAdmitting(ctx, scope)} of ${ctx.cities} towns`);
+  if (hexes !== null) parts.push(`on ${round(hexes)} worked hexes`);
+  return parts.length === 0 ? '' : ` — ${parts.join(', ')}`;
+}
+
 // --- cards ------------------------------------------------------------------
 
 /**
@@ -1112,11 +1362,14 @@ export function explainEffects(
       // pair (batch E5), so a term labelled by the bare `kind` would print
       // "pays" eight times over in the spectator's feed. `paysWord` writes the
       // dimensions back into the word — no figure moves.
-      terms.push(nest(paysWord(effect), explainCounted(effect, ctx, card)));
+      terms.push(nest(paysWord(effect) + scopeNote(effect, ctx), explainCounted(effect, ctx, card)));
       continue;
     }
     terms.push({
-      label: effect.kind === 'pays' ? paysWord(effect) : effect.kind,
+      // **The ground the clause landed on is in the label** (batch X2): a term
+      // reading nought because two towns of five admit it has to say so, or the
+      // feed prints a zero nobody can account for.
+      label: (effect.kind === 'pays' ? paysWord(effect) : effect.kind) + scopeNote(effect, ctx),
       value: scoreEffect(effect, ctx),
     });
     // **The hammer premium** (batch 6): a card that pays production shortens
@@ -1173,16 +1426,21 @@ function productionOf(effect: CardEffect, ctx: ValueContext): number {
     case 'pays': {
       if ((effect.basis ?? 'flat') !== 'flat') return 0;
       const hammers = bagOf(effect).production ?? 0;
-      if (effect.where === 'city' || effect.where === 'capital') return hammers * ctx.cities;
-      if (effect.where === 'hex') return hammers * ctx.ai.score.nominalTiles;
+      // **The same grounds `scorePays` counts** (batch X2), and it has to be the
+      // same or the compression premium would be claimed on hammers the arm
+      // beside it does not believe in. The capital was `× cities` here and one
+      // town there; it is one town in both now, which is what the field says.
+      if (effect.where === 'city') return hammers * townsAdmitting(ctx, effect.scope);
+      if (effect.where === 'capital') return hammers * capitalAdmits(ctx, effect.scope);
+      if (effect.where === 'hex') return hammers * workedHexesAdmitting(ctx, effect);
       if (effect.where === 'empire') return hammers;
       return 0;
     }
     case 'productionBonus':
-      return (effect.percent / 100) * nominal * ctx.cities;
+      return (effect.percent / 100) * nominal * townsAdmitting(ctx, effect.scope);
     case 'percentYields':
       if (effect.yield !== 'production' && effect.yield !== 'all') return 0;
-      return (effect.percent / 100) * nominal * ctx.cities;
+      return (effect.percent / 100) * nominal * townsAdmitting(ctx, effect.scope);
     default:
       return 0;
   }
@@ -1217,10 +1475,13 @@ const ROUTE_VOICES = 5;
  * case body because five bases is more than a `switch` arm should hold, and the
  * dispatch reads as a walk of the two dimensions.
  *
- * The house bargain the old arms struck is kept whole: **a scope is not
- * evaluated** — a line narrowed to the coast is still counted in every town,
- * which is `foldCity`'s own reading of a scope it cannot resolve — and the
- * capped city count stands in for "how many towns is this really".
+ * **The house bargain the old arms struck is gone** (batch X2). A line narrowed
+ * to the coast used to be counted in every town, which made a coastal clause
+ * worth as much to a landlocked realm as to a maritime one; the town count is
+ * now `townsAdmitting` and the hex count `workedHexesAdmitting`, both asked of
+ * the simulation's own predicates. The one ground still unevaluated is the
+ * road's — `origin` and `destination` narrow which *caravans* carry a line, and
+ * what a caravan pays is `routes.ts`' fold rather than this file's count.
  */
 function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
   const basis = effect.basis ?? 'flat';
@@ -1235,21 +1496,32 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
   if (basis === 'share') {
     // A share of the town's own fold of `from`, paid as `to` — the same
     // arithmetic the evaluator does (`cardYieldConversions`), read off the
-    // empire's books rather than off one town's.
+    // empire's books rather than off one town's. **The scope takes its share of
+    // those books** (batch X2): the conversion is floored per town, so a clause
+    // two towns of five admit converts about two fifths of the empire's rate.
     if (effect.from === undefined) return 0;
     const from = ratesOf(ctx)[rateKeyOf(effect.from)] ?? 0;
     if (from <= 0) return 0;
-    return voiceWeight(ctx, effect.to as Voice) * ((effect.percent ?? 0) / 100) * from;
+    return (
+      voiceWeight(ctx, effect.to as Voice) *
+      ((effect.percent ?? 0) / 100) *
+      from *
+      scopeShare(ctx, effect.scope)
+    );
   }
 
   if (basis === 'mirror') {
     // What the buildings of one category pay in `from`, paid again as `to`.
     // The simulation's own reading, off the rows this empire has raised — the
-    // `buildingYieldPercent` arm's sweep with the share fixed at one.
+    // `buildingYieldPercent` arm's sweep with the share fixed at one. **The
+    // scope is asked of each town** (batch X2) rather than of none: the sweep
+    // already has a town in hand, so the honest filter is exact here and not a
+    // share of anything.
     if (effect.from === undefined) return 0;
     let sum = 0;
     for (const city of ctx.state.cities) {
       if (city.ownerId !== ctx.playerId) continue;
+      if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
       for (const id of city.buildings) {
         const def = buildingDef(id);
         if (def.category !== effect.category) continue;
@@ -1278,10 +1550,12 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     // A `CardYieldBag` on the row, plus an optional percentage on whatever the
     // hex's improvement already pays; the bag is the legible half and the
     // percentage is priced against the nominal yield like every other rate.
+    // **How many hexes** was `score.nominalTiles` — one flat guess, three — and
+    // is now the ground the clause actually lands on (batch X2).
     return (
       (valueOfYields(bagOf(effect), ctx) +
         ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *
-      ctx.ai.score.nominalTiles
+      workedHexesAdmitting(ctx, effect)
     );
   }
 
@@ -1317,11 +1591,13 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
   }
 
   // The empire once, the capital once (it *is* one town — `scorePayout`'s
-  // reading of the same field), and the town in every town the scope admits.
-  if (effect.where === 'empire' || effect.where === 'capital') {
-    return valueOfYields(bagOf(effect), ctx);
+  // reading of the same field), and the town in every town the scope admits —
+  // which since batch X2 is a count and no longer a figure of speech.
+  if (effect.where === 'empire') return valueOfYields(bagOf(effect), ctx);
+  if (effect.where === 'capital') {
+    return valueOfYields(bagOf(effect), ctx) * capitalAdmits(ctx, effect.scope);
   }
-  return valueOfYields(bagOf(effect), ctx) * ctx.cities;
+  return valueOfYields(bagOf(effect), ctx) * townsAdmitting(ctx, effect.scope);
 }
 
 function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
@@ -1338,29 +1614,52 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     // dimensions rather than by eight names for them — every figure unchanged.
     case 'pays':
       return scorePays(effect, ctx);
+    // **The town count is the scope's** (batch X2): the Bank's twenty percent is
+    // paid in the towns a caravan ends at (`routeEndsHere`), not in all of them,
+    // and `townsAdmitting` is the simulation's own answer to which those are.
     case 'percentYields': {
       const percent = effect.percent / 100;
+      const towns = townsAdmitting(ctx, effect.scope);
       if (effect.yield === 'all') {
         let sum = 0;
         for (const voice of VOICES) sum += voiceWeight(ctx, voice) * percent * nominal;
-        return sum * ctx.cities;
+        return sum * towns;
       }
-      return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * ctx.cities;
+      return voiceWeight(ctx, effect.yield as Voice) * percent * nominal * towns;
     }
     case 'productionBonus':
-      return voiceWeight(ctx, 'production') * (effect.percent / 100) * nominal * ctx.cities;
+      return (
+        voiceWeight(ctx, 'production') *
+        (effect.percent / 100) *
+        nominal *
+        townsAdmitting(ctx, effect.scope)
+      );
     // The three constraint arms read the **live** meter price (batch 4), so a
     // card that supplies writ is worth more to an empire whose next town is
     // blocked on writ than to one with capacity to spare.
     case 'happiness':
-      return effect.amount * meterWeight(ctx, 'happiness') * (effect.per === 'city' ? ctx.cities : 1);
+      // `per: 'city'` in the towns the scope admits (batch X2) — seventeen live
+      // rows carry one, and a contentment written for the coast is worth
+      // nothing at all inland.
+      return (
+        effect.amount *
+        meterWeight(ctx, 'happiness') *
+        (effect.per === 'city' ? townsAdmitting(ctx, effect.scope) : 1)
+      );
     case 'authority':
+      // No `scope` on this shape — the field is `happiness`' and this one's row
+      // never took it. Left at the realm's own count, which is what "per city"
+      // says when nothing narrows it.
       return effect.amount * meterWeight(ctx, 'authority') * (effect.per === 'city' ? ctx.cities : 1);
     case 'happinessTierBoost':
       return effect.points * meterWeight(ctx, 'happiness');
     case 'combatLine':
       return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'unitStat':
+      // One piece's worth of strength, and — since batch X2 — nothing at all
+      // when the towns the clause names do not exist: a stat handed to the
+      // pieces of coastal towns is worth nothing to a realm with none.
+      if (townsAdmitting(ctx, effect.scope) === 0) return 0;
       return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     case 'renown':
       return effect.amount * ctx.ai.weights.renown;
@@ -1380,6 +1679,10 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
     case 'cardYieldAmplifier': {
       const each = (effect.amount ?? 0) + ((effect.percent ?? 0) / 100) * nominal;
       if (each === 0) return 0;
+      // The amplifier's **own** scope, beside the amplified lines' (batch X2):
+      // an engine that runs only in the towns of a kind this realm has none of
+      // multiplies nothing. One live row carries one.
+      if (townsAdmitting(ctx, effect.scope) === 0) return 0;
       let sum = 0;
       for (const voice of VOICES) {
         if (effect.yield !== 'all' && effect.yield !== voice) continue;
@@ -1391,9 +1694,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // A share of what the matching shelves already pay, read off the rows the
       // empire has actually raised — the simulation's own selector
       // (`buildingMatchesYieldPercent`) asked rather than a second copy of it.
+      // The scope is asked of each town in the same sweep (batch X2) — exact
+      // here rather than a share, because the walk already has a town in hand.
       let sum = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
+        if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
         for (const id of city.buildings) {
           if (!buildingMatchesYieldPercent(id, effect)) continue;
           const def = buildingDef(id);
@@ -1438,15 +1744,19 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       return gain;
     }
     case 'cityRenownPercent': {
-      // A share of what a **middling** town of this empire earns, because the
-      // shape is city-scoped and the scope is not evaluated here — the same
-      // bargain `foldCity`' arm strikes with a scope it cannot read.
+      // A share of what a **middling** town of this empire earns — the single-
+      // town reading, kept. Batch X2 changes which towns are middled: the mean
+      // is taken over the towns the scope admits, so a clause no town admits
+      // reads nothing instead of reading the realm's average.
       let total = 0;
+      let towns = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
+        if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
+        towns += 1;
         for (const id of city.buildings) total += buildingDef(id).renown?.perTurn ?? 0;
       }
-      const mean = ctx.cities === 0 ? 0 : total / ctx.cities;
+      const mean = towns === 0 ? 0 : total / towns;
       return mean * (effect.percent / 100) * ctx.ai.weights.renown;
     }
     case 'offerRider':
@@ -1506,10 +1816,17 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // `effects` entry are worth the same thing. It is deliberately **not**
       // multiplied by the towns: the field's own arm does not, and a card's
       // defence in every town is therefore under-read by the town count, which is
-      // the same bargain every scope-blind arm here strikes and is the price of
-      // the two readings agreeing. Sight is not a fighting line and has no reading
-      // in this currency — a hex seen is worth what is standing on it.
+      // the price of the two readings agreeing. Sight is not a fighting line and
+      // has no reading in this currency — a hex seen is worth what is standing
+      // on it.
+      //
+      // **What batch X2 changes here is the sign and not the size**: the single-
+      // town reading stands, because multiplying it by the towns would put this
+      // arm and `explainBuildingRow`'s field arm at odds — but a wall clause no
+      // town admits is worth nothing rather than one town's wall. Five live rows
+      // carry a scope.
       if (effect.stat === 'sight') return ctx.ai.score.unknownEffect;
+      if (townsAdmitting(ctx, effect.scope) === 0) return 0;
       return effect.amount * ctx.ai.weights.military * (1 + ctx.threat);
     }
     case 'conditionRule':
@@ -2050,6 +2367,18 @@ function scoreRulePercent(
   effect: Extract<CardEffect, { kind: 'rulePercent' }>,
   ctx: ValueContext,
 ): number {
+  // **The scope takes its share of the realm's books** (batch X2). Every reading
+  // below is an empire-wide rate — the payroll, the food, the demand — and a
+  // rewrite three towns of eight admit rewrites about three eighths of it. Three
+  // live rows carry a scope; a rewrite no town admits is rewriting nothing.
+  const admits = scopeShare(ctx, effect.scope);
+  return admits === 0 ? 0 : admits * ruleRewriteValue(effect, ctx);
+}
+
+function ruleRewriteValue(
+  effect: Extract<CardEffect, { kind: 'rulePercent' }>,
+  ctx: ValueContext,
+): number {
   const share = effect.percent / 100;
   const rule = effect.rule;
   switch (rule) {
@@ -2225,10 +2554,22 @@ function scoreUnlockedBuilding(id: BuildingId, ctx: ValueContext): number {
  * worth more to an empire whose next town is blocked on writ).
  *
  * `value` replaces the constant and `delta` shifts it, exactly as the shape
- * says; a rule that names a cost this empire is not paying (a coastal town in a
- * landlocked realm) is read as the towns it *could* land in, capped at the
- * realm, which is the same bargain `foldCity`' arm strikes with a scope.
+ * says. A rule that names a cost this empire is not paying — a coastal town's
+ * writ in a landlocked realm — used to be read as the towns it *could* land in,
+ * capped at the realm; since batch X2 it is read as the towns of that kind,
+ * because the kinds the three rules name are three tests the scope union
+ * already carries and `townsAdmitting` will answer them.
  */
+const METER_RULE_SCOPES: Record<'capturedCityCost' | 'coastalCityCost' | 'hillCityCost', CityScope> =
+  {
+    // Frozen at module scope for the memo's sake and not merely for tidiness: the
+    // memo is keyed on the scope **object**, so a fresh literal per call would
+    // remember nothing and ask the board again every time.
+    capturedCityCost: { test: 'captured' },
+    coastalCityCost: { test: 'coastal' },
+    hillCityCost: { test: 'onHills' },
+  };
+
 function scoreMeterRule(
   effect: Extract<CardEffect, { kind: 'meterRule' }>,
   ctx: ValueContext,
@@ -2251,11 +2592,17 @@ function scoreMeterRule(
             ? authority.coastalCity
             : authority.foundedCity;
       const after = effect.value ?? standing + (effect.delta ?? 0);
-      // Writ handed back per town of the kind. The towns are not counted by kind
-      // — a captured town and a coastal one are facts about a board this arm
-      // does not walk — so the realm's own count stands in, which is the same
-      // bargain every scope-blind arm in this file strikes.
-      return (standing - after) * ctx.cities * meterWeight(ctx, 'authority');
+      // Writ handed back **per town of the kind**, and since batch X2 the kind is
+      // counted rather than assumed. Each of the three rules names a fact the
+      // scope union already has a test for, so the count is `townsAdmitting`'s
+      // and this arm still knows nothing about what a coast is. A realm with no
+      // captured town is handed back no writ for captured towns, which is what
+      // the rule says and the opposite of what this arm used to say.
+      return (
+        (standing - after) *
+        townsAdmitting(ctx, METER_RULE_SCOPES[rule]) *
+        meterWeight(ctx, 'authority')
+      );
     }
     case 'borderFreezeExempt':
       // Borders that keep growing through a writ deficit. What that is worth is
@@ -2402,9 +2749,12 @@ function slottedOrderEffects(ctx: ValueContext): CardEffect[] {
  * that makes the additive engine worth anything at all.
  *
  * Read off the deck the seat is holding, in the shapes the evaluator actually
- * pays per line: a per-town line is one per town, an empire line is one, a hex
- * line is `score.nominalTiles` of them — the same stand-in `scoreEffect`'s
- * hex `pays` arm uses, so a card's own hexes and an amplifier's agree.
+ * pays per line: a per-town line is one per town **the line's own scope admits**,
+ * an empire line is one, a hex line is one per worked hex it lands on — the same
+ * counts `scoreEffect`'s `pays` arm uses since batch X2, so a card's own ground
+ * and an amplifier's reading of it agree. They have to: an amplifier priced off
+ * a line count the amplified card does not believe in is two files disagreeing
+ * about the same deck.
  */
 function amplifiedLines(ctx: ValueContext, voice: Voice): number {
   let lines = 0;
@@ -2412,13 +2762,14 @@ function amplifiedLines(ctx: ValueContext, voice: Voice): number {
     if (effect.kind !== 'pays') continue;
     if ((effect.basis ?? 'flat') === 'flat') {
       if ((bagOf(effect)[voice] ?? 0) <= 0) continue;
-      if (effect.where === 'city') lines += ctx.cities;
-      else if (effect.where === 'empire' || effect.where === 'capital') lines += 1;
-      else if (effect.where === 'hex') lines += ctx.ai.score.nominalTiles;
+      if (effect.where === 'city') lines += townsAdmitting(ctx, effect.scope);
+      else if (effect.where === 'empire') lines += 1;
+      else if (effect.where === 'capital') lines += capitalAdmits(ctx, effect.scope);
+      else if (effect.where === 'hex') lines += workedHexesAdmitting(ctx, effect);
     } else if (effect.basis === 'count') {
       if (effect.stage !== undefined || effect.to !== voice) continue;
       if ((effect.amount ?? 0) <= 0) continue;
-      lines += effect.where === 'city' ? ctx.cities : 1;
+      lines += effect.where === 'city' ? townsAdmitting(ctx, effect.scope) : 1;
     }
   }
   return lines;
@@ -3176,10 +3527,10 @@ function potentialTownsFor(
  * a line priced once was an under-price by the whole of the empire's city count
  * on five live rows — Imperium, the Assembly Hall's two, the Smithy's and Sima
  * Qian's. The multiplier is `ValueContext.cities`, which is the count every
- * other city-scoped arm in this file uses and is uncapped since batch 7. The
- * scope is not evaluated, exactly as `foldCity`' own arm does not evaluate
- * one: a line narrowed to the coast is still counted in every town, which is the
- * standing bargain of this file rather than a new omission.
+ * other city-scoped arm in this file uses and is uncapped since batch 7. **The
+ * scope is evaluated** since batch X2 — the count is `townsAdmitting`, the
+ * simulation's own answer to which towns a line lands in, and a count narrowed
+ * to the coast no longer pays a landlocked realm.
  *
  * `'capital'` pays once, which is what it says; `'empire'` pays once, which is
  * what it has always been read as.
@@ -3196,7 +3547,9 @@ function scorePayout(pays: CardPaysEffect, ctx: ValueContext): number {
   if (to === 'authority') return amount * meterWeight(ctx, 'authority');
   const bag: YieldBag = {};
   bag[to as Voice] = amount;
-  return valueOfYields(bag, ctx) * (pays.where === 'city' ? ctx.cities : 1);
+  if (pays.where === 'city') return valueOfYields(bag, ctx) * townsAdmitting(ctx, pays.scope);
+  if (pays.where === 'capital') return valueOfYields(bag, ctx) * capitalAdmits(ctx, pays.scope);
+  return valueOfYields(bag, ctx);
 }
 
 /**
