@@ -4329,13 +4329,6 @@ async function boot(initial: Game | null): Promise<void> {
     // its ground does — the label floats above the board, so the board's own
     // hover picking never sees it.
     onHoverCity: (cityId) => controls.setHoveredCity(cityId),
-    // And a press on the icon at a banner's hoist picks up what is standing in
-    // the town, by the same path a press on that piece's own tag takes: the
-    // banner covers the hex, so this *is* how a garrison is reached now that its
-    // roundel is drawn on the plate rather than over the sculpt.
-    onSelectGarrison: (col, row) => {
-      controls.selectUnitAt(col, row);
-    },
   });
 
   /**

@@ -342,8 +342,9 @@ export class CityStrip {
       // The knob is written into the fixture's own state rather than passed to
       // the layer, because the layer reads it off a `City` — the strip's whole
       // bargain is that it draws the shipping thing. (The **garrison** left this
-      // canvas on 2026-09-09: its badge is set into the DOM plate now, and the
-      // stall that shows it is the banner's own, below.)
+      // canvas on 2026-09-09 and never came back: U7 settled it as geometry —
+      // the banner hangs clear above the flagpole and every piece keeps its own
+      // roundel — so the stall that shows it is the banner's own, below.)
       if (city) {
         if (this.puppet) city.puppet = true;
         else delete city.puppet;

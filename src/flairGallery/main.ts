@@ -207,9 +207,11 @@ refreshCityCaptions();
   // **The yoke the flag grew on 2026-09-09** (`docs/flags.md` (hhh) 5). Drawn
   // by the shipping layer off the fixture's own state, so what is on the canvas
   // is what is on the board — which is the only reason a slider under it is
-  // worth anything. Its sibling ruling, (hhh) 6, no longer has a knob here: the
-  // garrison badge is set into the **DOM plate** now (U5), so it is judged on
-  // the banner's own stall rather than over a sculpt it was invisible behind.
+  // worth anything. Its sibling ruling, (hhh) 6, has no knob here and never
+  // will: U7 settled it as **geometry** — the banner hangs above the flagpole
+  // and every piece keeps its own roundel — so what there is to judge is the
+  // plate against the pieces under it, which is the flourishes' own stall (a
+  // real board with a real banner over it) rather than a sculpt on this strip.
   checkbox(knobs, 'puppet', false, (on) => strip.setPuppet(on));
   slider(
     knobs,

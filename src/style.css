@@ -2977,9 +2977,13 @@ kbd {
   color: var(--parchment);
   line-height: 1.35;
   white-space: nowrap;
-  /* The banner is anchored at the city's tile centre and floats above it; the
-     margin is what lifts it clear of the banner pole in the 3D scene. */
-  margin-top: -46px;
+  /* No lift of its own (U7). The plate used to be dragged up off its tile by a
+     fixed −46px, which is a pixel count standing in for a world height: it read
+     right at one zoom and wrong at every other, and it is what put the plate on
+     top of the pieces' own roundels. The rise is a **world** point now — the
+     banner is projected `BANNER_RISE` above the tile's top face
+     (`cityBanners.ts`, "Where the plate hangs") — so the foot of the pill sits
+     where the camera says it sits, at every zoom. */
   box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.4);
 }
 
@@ -3119,101 +3123,6 @@ kbd {
   -webkit-mask-size: contain;
   mask-size: contain;
   opacity: 0.85;
-}
-
-/* The garrison slot at the pill's **hoist** (`cityBanners.ts`, "The garrison
-   slot"): U6, and the whole of the change is where it is and how big. The board's
-   own badge restated in HTML: a disc of parchment, the piece's mark in ink on it,
-   and a rim in the *piece's* seat colour — which is why the ink is a custom
-   property written per repaint rather than the banner's own `--banner-color`.
-   Parchment ground and not seat-fill, because the mark has to read on it for all
-   twelve tinctures, and an ink mark on parchment is the one pairing that does.
-
-   **The size badge's own box**, 26px, and not a fifth smaller than it: the plate
-   opens with two discs of one diameter — how big the town is, and what is
-   standing in it — and at twenty pixels the second one read as a garnish on the
-   first. It costs the pill no height: the size box is already the tallest thing
-   in the row. */
-.city-banner-garrison {
-  position: relative;
-  flex: 0 0 auto;
-  display: inline-grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  border: 2px solid var(--garrison-color, var(--banner-color));
-  border-radius: 999px;
-  background: var(--parchment);
-  /* A reading, until the rule below makes it a control. The pill's own cursor
-     is a pointer on your own towns, and an icon that inherited it would promise
-     a press it does not answer. */
-  cursor: default;
-}
-
-/* Your own piece, and only then, is the icon a **control**: pressing it selects
-   what is standing there (`cityBanners.ts`, "The garrison slot"). The pointer is
-   claimed on the disc itself rather than left to the pill, because a rival's
-   banner takes no pointer at all and a garrison of yours in one still has to be
-   reachable. */
-.city-banner-garrison.is-own {
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.city-banner-garrison.is-own:hover {
-  box-shadow: 0 0 0 1.5px var(--parchment);
-}
-
-/* A **mask** rather than an image, so the mark takes the ink above and dims with
-   the card — the yoke's trick, and the reason a badge is data rather than a
-   picture pasted on a pill. The document is the same file the badge atlas
-   rasterises for this piece's own roundel on the board. */
-.city-banner-garrison-mark {
-  width: 17px;
-  height: 17px;
-  background-color: var(--ink);
-  -webkit-mask-image: var(--garrison-mark);
-  mask-image: var(--garrison-mark);
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: contain;
-  mask-size: contain;
-}
-
-/* How many are in, bossing the roundel's corner — the board's own arrangement,
-   and absent entirely at one, because a numeral that always said "1" would be
-   furniture on every held town on the map. Tabular mono, like every figure on
-   this surface. */
-.city-banner-garrison-count {
-  position: absolute;
-  right: -5px;
-  bottom: -4px;
-  display: grid;
-  place-items: center;
-  min-width: 13px;
-  height: 13px;
-  padding: 0 2px;
-  border: 1.5px solid var(--ink);
-  border-radius: 999px;
-  background: var(--parchment);
-  color: var(--ink);
-  font-family: var(--face-num);
-  font-size: 9px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-/* A held town's wound starts past **both** discs, which is U6's half of moving
-   the icon to the hoist: the standing inset clears the size roundel, and this
-   one clears the garrison beside it — 26px of disc plus the row's 7px gap. U5
-   moved the *right* inset instead, because the slot was at the fly; the channel
-   runs to the cap again now. Without this the bar would cut across the piece's
-   own tincture, which is the thing the left inset exists to prevent. */
-.city-banner.is-held .city-banner-health {
-  left: 66px;
 }
 
 .city-banner-production {

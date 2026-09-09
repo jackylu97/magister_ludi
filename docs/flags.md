@@ -1087,7 +1087,45 @@ directly to confirm rulings — user marginalia are rulings.
   for your own piece (`selectOnTile`, the board badge's own path); the
   piece's roundel is not built while its banner carries it, the sculpt
   and hit bar staying; the 3D layer, its wiring and its view3d keys are
-  gone. **V2 (heraldry)** — (7) *"the
+  gone. **(6) once more, U7** (the user, 2026-09-09: "it makes it look
+  like the unit is part of the city … Civ 6's approach, with the icon
+  just appearing over the tile of the city, vertically below the banner
+  in screenspace … it needs to scale with multiple units in the city"):
+  read off the code — the banner projects the hex's tile-top point and
+  hangs its plate above it (`translate(-50%, -100%)`), and a piece's
+  roundel floats above its sculpt at that same hex centre, so the plate
+  covers the roundel; the fix is geometry, not a second icon: the banner
+  anchors at the **pole's top** (`tileTopY + CITY.poleHeight`, the flag's
+  own height) so the plate sits above the flag and the pieces' own
+  roundels stand on the tile beneath it, fanned as the pieces layer
+  already fans a stack; U6's roundel suppression and U5/U6's plate slot
+  are **removed** — one icon in one place, the piece's own. **U7 built
+  2026-09-09**: `projectCell(col, row, rise = 0)` gained a world-Y rise
+  (the ground point is the default, so the badge hit test, the price
+  plates and the damage figures are untouched) and `reposition` passes
+  `BANNER_RISE` — **2.445**, and the pole's top was not enough: the rise
+  is `max(poleHeight 1.15, the tallest roster row's furniture 2.345) +
+  city.bannerClearance 0.1`, derived in `bannerRise` (`ui/cityBanners.ts`)
+  rather than dialled, because what the plate must clear is the pieces and
+  not the flag. The furniture figure is the tallest visual on the roster
+  (the standee's 1.16, over the horseman's 1.12) plus a hurt piece's hit
+  bar (`hpBarY` 1.73 — the user's acceptance: a wounded garrison shows its
+  bar on the tile), plus the two conversions the fixed camera forces — a
+  billboard's own height is not foreshortened (`÷cos 57°`) while a rise up
+  Y is, and a stack's fan climbs the screen by `stackSpread · tan 57°`
+  (0.524), which is the "scales with several units" half. Screen: the
+  plate's foot lands 88px above the tile centre at the opening zoom, ~24px
+  clear of the centre piece's bar. Removed with it: the plate's garrison
+  slot and every part of it (`garrisonSlot`/`strongestGarrison`/
+  `garrisonBadgeUri`/`buildGarrison`/`paintGarrison`/`garrisonSelectable`,
+  the `is-held` and `.city-banner-garrison` rules, `onSelectGarrison` and
+  `controls.selectUnitAt`), U6's `banneredTownCells` and both its gates in
+  the pieces layer, and the pill's old `margin-top: -46px` — a world
+  height written in pixels, right at exactly one zoom, and the thing that
+  put the plate on the roundels in the first place. The flair gallery's
+  garrison stall is replaced by one that mounts the **real** renderer and
+  the **real** banner overlay over a real town, with knobs for the stack
+  (0–3 pieces) and the wound. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if

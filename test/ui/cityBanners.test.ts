@@ -6,7 +6,9 @@
  * hit-point bar landed beside it, the wound on the banner's foot: the town that
  * carries none because it is whole, the one that carries none because it is
  * only remembered, and the walls that are a longer bar rather than a second
- * segment.
+ * segment. Since U7, the one thing about this plate that is not a fact about a
+ * town at all: **where it hangs** — a world rise over the flagpole, clear of
+ * every roundel and hit bar the pieces on that hex float.
  *
  * Pure and state-in, list-out (see `cityBanners.ts`'s "The open city has no
  * banner"), so this is asserted without a renderer, a `container`, or any DOM
@@ -23,22 +25,25 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { cityMaxHp } from '../../src/sim/combat';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
-import { unitDef } from '../../src/sim/unitData';
+import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { UNIT_TYPE_IDS } from '../../src/sim/unitData';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
-import { badgeClassFor } from '../../src/render3d/board3d';
+import { badgeCenterY, hpBarY } from '../../src/render3d/badges3d';
+import { pieceHeightFor } from '../../src/render3d/board3d';
+import { VIEW3D } from '../../src/render3d/lookData';
+import { SPRITE_HEIGHT } from '../../src/render3d/pieces';
 import {
+  BANNER_RISE,
   RING,
+  bannerRise,
   cityGrowthRing,
   cityHealthBar,
-  garrisonBadgeUri,
-  garrisonSelectable,
   growthRing,
   healthBar,
-  strongestGarrison,
+  tallestPieceRise,
   visibleCityBanners,
 } from '../../src/ui/cityBanners';
-import { braceBody, uiSource } from './sourceHelpers';
+import { uiSource } from './sourceHelpers';
 
 /** A blank grassland board, two seats, nothing on it yet. */
 function boardState(): GameState {
@@ -650,253 +655,177 @@ describe('a puppet says so beside its name', () => {
   });
 });
 
-// --- the garrison slot ------------------------------------------------------
+// --- where the plate hangs --------------------------------------------------
 
 /**
- * **The badge came into the plate** (U5, 2026-09-09). U4 hung it over the 3D
- * flagpole and the user could not see it, for a reason no amount of dialling
- * would have fixed: this banner is HTML positioned over the canvas, it covers
- * the town's own hex, and a mark at the pole's height is behind it. So the 3D
- * layer was retired and the slot is on the pill.
+ * U7, and the end of the garrison slot (the user, 2026-09-09, `docs/flags.md`
+ * (hhh) 6, "once more, U7": *"it makes it look like the unit is part of the
+ * city … the icon just appearing over the tile of the city, vertically below the
+ * banner in screenspace … it needs to scale with multiple units in the city"*).
  *
- * The bench the user asked for is here in full — a scout, a worker and a warrior
- * standing in the capital in turn, then all three at once — because the point of
- * the ruling is that it works for **civilians**: a town held by one worker is a
- * town nobody is holding, and that is the reading a badge drawn only for
- * soldiers would silently withhold.
+ * U5's and U6's benches are **gone** with the thing they pinned — a slot on the
+ * plate carrying the strongest piece's badge, its count, its seat ink and its
+ * press. There is one icon in one place again, and it is the piece's own, on the
+ * tile, where the board has always drawn it (`test/render/badges3d.test.ts`
+ * holds that half). What is pinned here is the geometry that made room for it:
+ * the plate is anchored above the flagpole *and* above everything a piece
+ * floats, so nothing it has to sit clear of can reach it.
+ *
+ * The arithmetic is asked rather than restated — `bannerRise` is one expression
+ * over the look table — because a second copy of it here would agree with the
+ * shipping one until somebody dialled a sculpt class.
  */
-describe('what is standing in the town', () => {
-  /** The town, and `count` pieces of `type` on its hex, for one seat. */
-  function held(type: Parameters<typeof createUnit>[2], count = 1, seat = 0): GameState {
-    const state = boardState();
-    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    for (let i = 0; i < count; i += 1) createUnit(state, seat, type, city.col, city.row);
-    return state;
+describe('where the plate hangs', () => {
+  const CITY = VIEW3D.city;
+  const BADGE = VIEW3D.badges;
+  const HP = VIEW3D.hpBar;
+  const PIECES = VIEW3D.pieces;
+  /** The camera's fixed elevation, which is what foreshortens a world rise. */
+  const ELEVATION = (VIEW3D.camera.elevation * Math.PI) / 180;
+
+  /** The tallest visual any roster row stands at, standees included. */
+  function tallest(): number {
+    let visual = SPRITE_HEIGHT;
+    for (const type of UNIT_TYPE_IDS) visual = Math.max(visual, pieceHeightFor(type));
+    return visual;
   }
 
-  function slot(state: GameState) {
-    return visibleCityBanners(state, 0, null)[0]!.garrison;
-  }
-
-  it('draws nothing over a town with an empty hex', () => {
-    const state = boardState();
-    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    expect(slot(state)).toBeNull();
+  it('clears the flagpole the town flies its own colours from', () => {
+    expect(bannerRise()).toBeGreaterThan(CITY.poleHeight);
+    // And by the dialled gap at the very least — the pole is one of the two
+    // things the rise takes a maximum over.
+    expect(bannerRise()).toBeGreaterThanOrEqual(CITY.poleHeight + CITY.bannerClearance);
+    expect(CITY.bannerClearance).toBeGreaterThan(0);
   });
 
   /**
-   * The three the user named, one at a time. The badge is asked of
-   * `badgeClassFor` rather than written out here: the mapping under test is the
-   * board's own sentence about what a piece is, and a list in this file would be
-   * a second copy of it that could quietly disagree with the piece's roundel.
+   * The reading the whole pass exists for: the tallest row's **roundel** must be
+   * under the plate's foot, and in *screen* space rather than in world Y — a
+   * badge is a billboard, so its whole diameter shows however far the camera
+   * leans, while a rise up the Y axis is foreshortened by the elevation's
+   * cosine. Comparing the two raw would quietly pass with the disc's top
+   * poking through the pill.
    */
-  for (const type of ['scout', 'worker', 'warrior'] as const) {
-    it(`shows a ${type}'s own badge on the plate`, () => {
-      const facts = slot(held(type));
-      expect(facts).not.toBeNull();
-      expect(facts!.badge).toBe(badgeClassFor(type));
-      expect(facts!.count).toBe(1);
-      expect(facts!.label).toBe(`Standing here: ${unitDef(type).name}`);
-    });
-  }
-
-  /** A civilian's strength of nothing still wins an empty field. */
-  it('gives the slot to a settler, a caravan and a great person too', () => {
-    for (const type of ['settler', 'trader', 'greatPerson'] as const) {
-      expect(unitDef(type).combatStrength).toBe(0);
-      expect(slot(held(type))!.badge).toBe(badgeClassFor(type));
-    }
-  });
-
-  it('names the strongest when all three stand together, and counts them', () => {
-    const state = boardState();
-    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    createUnit(state, 0, 'scout', city.col, city.row);
-    createUnit(state, 0, 'worker', city.col, city.row);
-    createUnit(state, 0, 'warrior', city.col, city.row);
-
-    const facts = slot(state)!;
-    expect(facts.badge).toBe(badgeClassFor('warrior'));
-    expect(facts.count).toBe(3);
-    expect(facts.label).toBe(`Standing here: ${unitDef('warrior').name} and 2 more`);
-  });
-
-  it('draws nothing for a piece merely standing beside the town', () => {
-    const state = boardState();
-    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    createUnit(state, 0, 'warrior', city.col + 1, city.row);
-    expect(slot(state)).toBeNull();
+  it('clears the tallest roster row’s roundel, measured on the screen', () => {
+    const facing = 1 / Math.cos(ELEVATION);
+    const badgeTop = badgeCenterY(tallest()) + (BADGE.diameter / 2) * facing;
+    expect(bannerRise()).toBeGreaterThan(badgeTop);
   });
 
   /**
-   * Whose the **piece** is, which is not always whose the town is — the whole
-   * reason to draw one, and the case a rim in the town's own ink could never
-   * say: a rival's garrison in a rival's town comes out in the rival's colour.
+   * And its **hit bar**, which rides above the roundel on a hurt piece
+   * (`hpBarY`). The user's acceptance for this pass says so in as many words: a
+   * wounded piece standing in a city has to show its bar exactly as it does on
+   * any other hex, and a bar behind the plate is not shown.
    */
-  it('takes the piece’s seat ink, not the town’s', () => {
-    const state = boardState();
-    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    const rival = foundCityAt(state, 1, getTileAt(state.map, 5, 4)!);
-    createUnit(state, 1, 'warrior', rival.col, rival.row);
-
-    const facts = visibleCityBanners(state, 0, null).find((b) => b.cityId === rival.id)!;
-    expect(facts.mine).toBe(false);
-    expect(facts.garrison).not.toBeNull();
-    expect(facts.garrison!.ownerId).toBe(1);
-    expect(facts.garrison!.ink).toBe(state.players[1]!.color);
-    expect(facts.garrison!.ink).not.toBe(state.players[0]!.color);
+  it('clears the bar a hurt piece carries above that roundel', () => {
+    const facing = 1 / Math.cos(ELEVATION);
+    const barTop = hpBarY(tallest()) + (HP.height / 2) * facing;
+    expect(bannerRise()).toBeGreaterThan(barTop);
+    // The bar is the taller of the two on the shipping numbers, which is why it
+    // is measured at all — but the rise takes the maximum rather than assuming
+    // it, so this assertion is a reading and not a rule.
+    expect(barTop).toBeGreaterThan(badgeCenterY(tallest()) + (BADGE.diameter / 2) * facing);
   });
 
   /**
-   * An army is not something a chart remembers. This rides the **watched** gate
-   * and nothing else — not `mine`, which is the ring's and the queue's gate — so
-   * a remembered town carries no slot however lately it was garrisoned.
+   * A stack does not fan straight down the screen: `placePiece` spreads pieces
+   * round the tile centre, and the half of that circle *away* from the camera
+   * climbs. A rise that cleared only the piece at the centre would be reached by
+   * the second piece in a town — which is the "scale with multiple units" half
+   * of the ruling, in geometry.
    */
-  it('draws nothing on a town the seat only remembers', () => {
-    const state = boardState();
-    foundCityAt(state, 0, getTileAt(state.map, 2, 2)!);
-    const far = foundCityAt(state, 1, getTileAt(state.map, 13, 8)!);
-    createUnit(state, 1, 'warrior', far.col, far.row);
-    const tile = getTileAt(state.map, far.col, far.row)!;
-    state.visibility[0]![tileIndex(state.map, tile.col, tile.row)] = EXPLORED;
-    state.citySightings[0] = [
-      { cityId: far.id, col: far.col, row: far.row, name: far.name, ownerId: far.ownerId },
-    ];
-
-    const remembered = visibleCityBanners(state, 0, null).find((b) => b.cityId === far.id)!;
-    expect(remembered.stale).toBe(true);
-    expect(remembered.garrison).toBeNull();
+  it('clears a stack’s fan, not only the piece at the tile centre', () => {
+    const facing = 1 / Math.cos(ELEVATION);
+    const climb = PIECES.stackSpread * Math.tan(ELEVATION);
+    expect(climb).toBeGreaterThan(0);
+    expect(bannerRise()).toBeGreaterThan(hpBarY(tallest()) + (HP.height / 2) * facing + climb);
   });
 
-  it('breaks a tie by the order the pieces are iterated in, never by a sort', () => {
-    const state = boardState();
-    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    const first = createUnit(state, 0, 'warrior', city.col, city.row);
-    createUnit(state, 0, 'warrior', city.col, city.row);
-    expect(strongestGarrison(state.units)?.id).toBe(first.id);
-    // And the order they were founded in makes no difference to which is
-    // strongest when they are not equal.
-    const scout = createUnit(state, 0, 'scout', city.col, city.row);
-    expect(strongestGarrison([scout, first])?.id).toBe(first.id);
-    expect(strongestGarrison([first, scout])?.id).toBe(first.id);
-  });
-});
-
-/**
- * The badge's artwork, which is the half of this that is not a fact about the
- * simulation: the plate must wear **the same drawing** the piece's own roundel
- * wears on the board, or the two say different things about one piece.
- */
-describe('the badge on the plate is the badge on the board', () => {
-  it('names the atlas’s own file for the drawn-from-file half', () => {
-    // The file table is `BADGE_ICON_FILES`, asked rather than copied — the URL
-    // is resolved against the document exactly as `loadIcon`'s `image.src` is.
-    expect(garrisonBadgeUri(badgeClassFor('warrior'))).toBe('sprites/icons/warrior.svg');
-    expect(garrisonBadgeUri(badgeClassFor('scout'))).toBe('sprites/icons/scout.svg');
-    expect(garrisonBadgeUri(badgeClassFor('worker'))).toBe('sprites/icons/worker.svg');
+  /** One taste number, and it is the whole of the slack. */
+  it('is the two clearances and the one dialled gap, and nothing else', () => {
+    expect(bannerRise()).toBeCloseTo(
+      Math.max(CITY.poleHeight, tallestPieceRise()) + CITY.bannerClearance,
+      12,
+    );
+    // Resolved once for the page: `reposition` runs per drawn frame and must not
+    // walk the roster to place a label.
+    expect(BANNER_RISE).toBe(bannerRise());
   });
 
   /**
-   * A ship in a coastal town is a real garrison (`pathfind.ts`: a coastal city's
-   * hex is the one dry hex a hull may stand on), and the eighteen composed naval
-   * cells have no file — the rig is drawn. They are composed here from the same
-   * two mark tables the atlas composes, hull under canton.
+   * The two seams that carry the rise onto the glass.
+   *
+   * Read off the source because neither can be driven here: `projectCell` lives
+   * on `Renderer3D`, which needs a WebGL context, and `reposition` needs a
+   * renderer to ask. What could go wrong is precise — the rise being dropped on
+   * the way through, or the *ground* point quietly moving with it — so both are
+   * named.
    */
-  it('composes a ship’s mark, hull under canton, for the drawn half', () => {
-    const galley = garrisonBadgeUri(badgeClassFor('galley'));
-    expect(galley.startsWith('data:image/svg+xml,')).toBe(true);
-    const doc = decodeURIComponent(galley.slice('data:image/svg+xml,'.length));
-    // Three documents: the outer one, the hull at full box, and the canton in
-    // the fly corner — both halves printed by `markSvg` rather than by a
-    // transform written here.
-    expect(doc.match(/<svg /gu)!.length).toBe(3);
-    expect(doc).toContain('viewBox="0 0 24 24"');
-    // And two different rigs are two different drawings, which is the property
-    // that makes the composition worth doing at all.
-    expect(galley).not.toBe(garrisonBadgeUri(badgeClassFor('trireme')));
-    expect(galley).not.toBe(garrisonBadgeUri(badgeClassFor('frigate')));
-  });
-});
-
-/**
- * The two halves of "the plate repaints when the stack changes and not
- * otherwise", plus the half of the slot that is not TypeScript.
- */
-describe('the garrison’s fingerprint, its ink and its stall', () => {
-  it('folds the stack into the signature the banner is rewritten on', () => {
-    const text = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
-    const line = text.split('\n').find((row) => row.includes('const signature = '));
-    expect(line).toBeDefined();
-    expect(line!).toMatch(/\$\{stack\}/);
-    // The term is what the *slot* draws — a badge, a rim ink and a count — and
-    // nothing else about `state.units`: a scout crossing empty ground on the far
-    // side of the map must not repaint every banner in the world.
-    expect(text).toMatch(/const stack = [^\n]*badge[^\n]*ownerId[^\n]*count/);
-    // Painted inside the gate, beside the bar, rather than on every refresh.
-    expect(text).toMatch(/paintGarrison\(banner\.garrison, facts\.garrison\)/);
-  });
-
-  /** One walk over the pieces per refresh, never one walk per town. */
-  it('hoists the piece walk once for the whole sweep', () => {
-    const body = braceBody(uiSource('cityBanners.ts'), 'export function visibleCityBanners');
-    expect(body).toContain('garrisonsByCell(state)');
-    expect(body.match(/garrisonsByCell\(/gu)!.length).toBe(1);
-  });
-
-  it('prints the mark as a mask on parchment, rimmed in the piece’s seat', () => {
-    const css = uiSource('style.css');
-    const rule = (selector: string): string => {
-      const at = css.indexOf(`\n${selector} {`);
-      expect(at, selector).toBeGreaterThan(0);
-      const open = css.indexOf('{', at);
-      return css.slice(open + 1, css.indexOf('}', open));
-    };
-    // A mask, so the drawing takes the plate's ink and dims with the card —
-    // the yoke's trick, one slot over.
-    expect(rule('.city-banner-garrison-mark')).toContain('mask-image: var(--garrison-mark)');
-    // Parchment ground and an ink mark: the one pairing that reads for all
-    // twelve tinctures. The rim is the *piece's* ink, so it is a property of
-    // its own rather than the banner's `--banner-color`.
-    const disc = rule('.city-banner-garrison');
-    expect(disc).toMatch(/background:\s*var\(--parchment\)/);
-    expect(disc).toContain('var(--garrison-color');
-    // And the wound starts past **both** discs, or the channel runs under the
-    // piece's own tincture. U6 moved the icon to the hoist, so the inset that
-    // moves is the *left* one — U5's right-hand override is gone and the bar
-    // runs to the cap again.
-    const held = rule('.city-banner.is-held .city-banner-health');
-    const inset = /left:\s*(\d+)px/.exec(held);
-    expect(inset).not.toBeNull();
-    // Past the size badge's own inset, by at least the second disc's width.
-    const bare = /left:\s*(\d+)px/.exec(rule('.city-banner-health'))!;
-    const roundel = /width:\s*(\d+)px/.exec(rule('.city-banner-garrison'))!;
-    expect(Number(inset![1])).toBeGreaterThanOrEqual(Number(bare[1]) + Number(roundel[1]));
-    expect(held).not.toMatch(/right:/);
-  });
-
-  /**
-   * The 3D tag is **gone**, not hidden: the plate covers the hex it was drawn
-   * over, and two badges for one fact is the chip the growth ruling refused.
-   */
-  it('leaves one badge in one place — the 3D layer is retired', () => {
-    const RENDERER = Object.values(
+  it('is passed to projectCell, which lifts the point and leaves the ground alone', () => {
+    const banners = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(banners).toMatch(/renderer\.projectCell\(banner\.col, banner\.row, BANNER_RISE\)/);
+    const renderer = Object.values(
       import.meta.glob('../../src/render3d/renderer3d.ts', {
         query: '?raw',
         import: 'default',
         eager: true,
       }) as Record<string, string>,
     )[0]!;
-    expect(RENDERER).not.toContain('Garrison');
-    expect(RENDERER).not.toContain('garrison');
+    // The default is the tile's own top face, so every other caller — the badge
+    // hit test, the price plates, the damage figures — is untouched.
+    expect(renderer).toMatch(/projectCell\(col: number, row: number, rise = 0\)/);
+    expect(renderer).toMatch(/y: tileTopY\(tile\) \+ rise/);
   });
 
   /**
-   * The cabinet's bargain (`flairGallery/main.ts`, "Nothing is reproduced"): the
-   * page may lay the plate out and give it a ground; it may not own a second
-   * copy of what a badge, a rim or a count means. The knob drives real pieces on
-   * a real town, so the mapping on show is `badgeClassFor`'s.
+   * The pixel lift the plate used to be dragged up by is **gone**.
+   *
+   * `margin-top: -46px` was a world height written as a screen distance: right
+   * at one zoom and wrong at every other, and it is what put the plate on top of
+   * the roundels it now hangs above. A margin here would silently undo the rise.
    */
-  it('shows the shipping slot on flair.html rather than a drawing of one', () => {
+  it('lifts itself by no margin of its own', () => {
+    const css = uiSource('style.css');
+    const at = css.indexOf('\n.city-banner {');
+    expect(at).toBeGreaterThan(0);
+    const rule = css.slice(at, css.indexOf('}', at));
+    expect(rule).not.toMatch(/margin-top:\s*-/);
+  });
+
+  /**
+   * And the plate carries no piece's icon at all any more: the slot, its count,
+   * its rim ink and its press left with U6, and so did the wiring that let it
+   * select (`main.ts`'s `onSelectGarrison`, `controls.selectUnitAt`). One icon
+   * in one place, and the place is the tile.
+   */
+  it('leaves the piece’s icon on the piece — the plate carries none', () => {
+    const banners = uiSource('cityBanners.ts');
+    expect(banners).not.toMatch(/buildGarrison|paintGarrison|garrisonSlot|onSelectGarrison/);
+    expect(uiSource('main.ts')).not.toContain('onSelectGarrison');
+    expect(uiSource('controls.ts')).not.toContain('selectUnitAt');
+    const css = uiSource('style.css');
+    expect(css).not.toContain('city-banner-garrison');
+    expect(css).not.toContain('.city-banner.is-held');
+    // The 3D tag U4 hung over the flagpole stays retired too — it was never the
+    // fix, and it would now be a second badge beside the piece's own.
+    const renderer = Object.values(
+      import.meta.glob('../../src/render3d/renderer3d.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    expect(renderer).not.toMatch(/garrison/i);
+  });
+
+  /**
+   * The cabinet's bargain (`flairGallery/main.ts`, "Nothing is reproduced"), and
+   * this stall is the strongest form of it: the arrangement U7 rules on is a
+   * *relation between two projections*, so the page mounts the shipping renderer
+   * and the shipping banner overlay and lets them place themselves.
+   */
+  it('shows the arrangement on flair.html, driven by the real layers', () => {
     const gallery = Object.values(
       import.meta.glob('../../src/flairGallery/flourishes.ts', {
         query: '?raw',
@@ -904,170 +833,21 @@ describe('the garrison’s fingerprint, its ink and its stall', () => {
         eager: true,
       }) as Record<string, string>,
     )[0]!;
-    const stall = gallery.slice(gallery.indexOf('function cityGarrisonStall'));
-    const body = stall.slice(0, stall.indexOf('\n}\n'));
-    for (const called of ['buildGarrison', 'paintGarrison', 'garrisonSlot', 'createUnit']) {
+    const at = gallery.indexOf('function bannerAnchorStall');
+    expect(at).toBeGreaterThan(0);
+    const body = gallery.slice(at, gallery.indexOf('\n}\n', at));
+    for (const called of ['Renderer3D', 'createCityBanners', 'createUnit', 'foundCityAt']) {
       expect(body, called).toMatch(new RegExp(`\\b${called}\\b`));
     }
-    // No mapping of its own: a badge class named here would be the page
-    // repainting the thing it exists to inspect.
-    expect(body).not.toMatch(/badgeClassFor/);
-    expect(body).not.toMatch(/sprites\/icons/);
-  });
-});
-
-/**
- * U6: the icon at the hoist, and the press that picks the piece up.
- *
- * The user, 2026-09-09 (`docs/flags.md` (hhh) 6, the paragraph after U5's): the
- * slot at the pill's fly was too subtle to spot, and Civ V's arrangement is the
- * one wanted — the icon at the **top left**, distinct, clickable, and the piece's
- * own flag not drawn while it stands in the town.
- *
- * Three things are pinned here and each is a way the arrangement could quietly
- * come apart: *where* it sits (before the name, or it is not at the hoist),
- * *how big* it is (the size badge's own box, or it reads as a garnish on the
- * figure beside it), and *who may press it* (the local seat's own piece, and
- * nobody else's — the `mine` rule this card has always kept for its buttons,
- * read off the piece rather than off the town).
- *
- * The press is held still as the pure predicate the handler is armed from plus
- * the seams it is wired through, rather than dispatched: this suite mounts no
- * DOM (`sourceHelpers.ts`'s docblock).
- */
-describe('the garrison icon at the hoist', () => {
-  /** A watched town of the local seat's, with one piece of `seat`'s standing in it. */
-  function garrisonState(seat: number): GameState {
-    const state = boardState();
-    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
-    createUnit(state, seat, 'warrior', city.col, city.row);
-    return state;
-  }
-
-  function slotOf(state: GameState) {
-    return visibleCityBanners(state, 0, null)[0]!.garrison;
-  }
-
-  /** One rule's declarations, by selector. */
-  function cssRule(selector: string): string {
-    const css = uiSource('style.css');
-    const at = css.indexOf(`\n${selector} {`);
-    expect(at, selector).toBeGreaterThan(0);
-    const open = css.indexOf('{', at);
-    return css.slice(open + 1, css.indexOf('}', open));
-  }
-
-  it('appends the slot between the size badge and the name', () => {
-    const line = uiSource('cityBanners.ts')
-      .split('\n')
-      .find((row) => row.includes('root.append(size'));
-    expect(line).toBeDefined();
-    const order = ['size', 'garrison.root', 'name', 'production', 'health.root'].map((part) =>
-      line!.indexOf(part),
-    );
-    for (const at of order) expect(at).toBeGreaterThan(0);
-    // Strictly increasing: the reading order of the plate is the DOM's.
-    expect(order).toEqual([...order].sort((a, b) => a - b));
-  });
-
-  /**
-   * The size badge's own box, and the mark inside it grown to match.
-   *
-   * Read as a *relation* rather than as two numbers, because what matters is
-   * that they agree: the plate opens with two discs a player reads as a pair,
-   * and a disc a fifth smaller than the figure beside it is the garnish the user
-   * could not find.
-   */
-  it('gives the roundel the size badge’s own diameter', () => {
-    const box = /width:\s*(\d+)px/.exec(cssRule('.city-banner-size'))!;
-    const disc = cssRule('.city-banner-garrison');
-    expect(/width:\s*(\d+)px/.exec(disc)![1]).toBe(box[1]);
-    expect(/height:\s*(\d+)px/.exec(disc)![1]).toBe(box[1]);
-    // And the mark rides inside the rim rather than filling it to the edge.
-    const mark = Number(/width:\s*(\d+)px/.exec(cssRule('.city-banner-garrison-mark'))![1]);
-    expect(mark).toBeLessThan(Number(box[1]));
-    expect(mark).toBeGreaterThan(Number(box[1]) / 2);
-  });
-
-  it('is a control for your own piece and a reading for everybody else’s', () => {
-    const mine = slotOf(garrisonState(0));
-    expect(mine).not.toBeNull();
-    expect(garrisonSelectable(mine, 0, false)).toBe(true);
-    // A rival's piece standing in a town this seat is watching: it shows, and it
-    // does nothing. Read off the *piece*, never off the town.
-    const theirs = slotOf(garrisonState(1));
-    expect(theirs).not.toBeNull();
-    expect(theirs!.ownerId).toBe(1);
-    expect(garrisonSelectable(theirs, 0, false)).toBe(false);
-    // Nothing in there, and a memory of a town: neither is a button.
-    expect(garrisonSelectable(null, 0, false)).toBe(false);
-    expect(garrisonSelectable(mine, 0, true)).toBe(false);
-  });
-
-  it('arms the press from that predicate, and never past the icon', () => {
-    const text = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
-    // Armed per refresh from the pure rule above — not from `facts.mine`, which
-    // is whose the *town* is.
-    expect(text).toMatch(/const own = garrisonSelectable\(facts\.garrison, seat, facts\.stale\)/);
-    expect(text).toMatch(/banner\.garrison\.root\.classList\.toggle\('is-own', own\)/);
-    // The tile, not a unit id: every way of aiming at a piece cycles a stack in
-    // the one order (`selectOnTile`).
-    expect(text).toMatch(/onSelectGarrison\?\.\(facts\.col, facts\.row\)/);
-    // And the press stops at the icon, or picking a piece up would also open the
-    // city screen the pill under it is a button for.
-    expect(text).toMatch(/event\.stopPropagation\(\)/);
-    // Cleared, never left armed, when the piece is not yours.
-    expect(text).toMatch(/banner\.garrison\.root\.onclick = own\s*\n?\s*\?/);
-  });
-
-  it('claims the pointer on the disc, and says so with the cursor', () => {
-    // The pill takes the pointer away on everybody else's banner, so a garrison
-    // of yours in a rival's town still has to be reachable.
-    const own = cssRule('.city-banner-garrison.is-own');
-    expect(own).toMatch(/pointer-events:\s*auto/);
-    expect(own).toMatch(/cursor:\s*pointer/);
-    // And the bare slot promises nothing: the pill's own cursor is a pointer on
-    // your towns, and an icon that inherited it would offer a press it refuses.
-    expect(cssRule('.city-banner-garrison')).toMatch(/cursor:\s*default/);
-  });
-
-  /**
-   * The press takes the board badge's own path.
-   *
-   * Two seams, and the second is the point: `main.ts` hands the banner
-   * `controls.selectUnitAt`, and that is `selectOnTile` itself — the very
-   * function a click on a piece's own tag calls. A dispatcher of its own here
-   * would be a second cycling order for one stack.
-   */
-  it('dispatches the same select a click on the piece’s own tag does', () => {
-    const main = uiSource('main.ts');
-    expect(main).toMatch(/onSelectGarrison:\s*\(col, row\)/);
-    expect(main).toMatch(/controls\.selectUnitAt\(col, row\)/);
-    const controls = uiSource('controls.ts');
-    expect(controls).toMatch(/selectUnitAt: selectOnTile,/);
-    // The badge click's own row, unchanged: both go through `selectOnTile`.
-    expect(controls).toMatch(/badged && selectOnTile\(badged\.col, badged\.row\)/);
-  });
-
-  /**
-   * And the other half of "the banner's icon *is* the unit": a piece standing in
-   * a watched town wears no roundel of its own. The rule lives with the layer
-   * that draws the tag and is pinned there (`test/render/badges3d.test.ts`, "the
-   * piece whose badge the banner is carrying"); what is held here is that the
-   * two gates are **one** gate — the banner's watched one — so a remembered town
-   * can never leave a piece with no tag and a plate carrying nothing.
-   */
-  it('hides the piece’s own roundel on the same gate the slot is drawn on', () => {
-    const layer = Object.values(
-      import.meta.glob('../../src/render3d/pieces.ts', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      }) as Record<string, string>,
-    )[0]!;
-    const body = braceBody(layer, 'export function banneredTownCells');
-    expect(body).toContain('isVisibleTo(state, seat, city.col, city.row)');
-    // No seat, no banners: the galleries' omniscient board hides no tags.
-    expect(body).toMatch(/if \(seat === null\) return cells/);
+    // The stack knob is what makes it a bench for "several units in the city",
+    // and the wound knob for the bar over a hurt one.
+    expect(body).toMatch(/ROSTER/);
+    expect(body).toMatch(/unitMaxHp/);
+    // No placement of its own: a rise or a projection written here would be the
+    // page repainting the very thing it exists to inspect. It mounts the two
+    // layers, and where they land is theirs to decide.
+    expect(body.replace(/'[^']*'/g, '')).not.toMatch(/BANNER_RISE|projectCell|margin-top/);
+    // And the retired stall is gone with the slot it showed.
+    expect(gallery).not.toContain('cityGarrisonStall');
   });
 });

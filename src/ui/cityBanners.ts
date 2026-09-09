@@ -131,87 +131,39 @@
  * `rememberedFacts`), and hit points twenty turns stale would be the worst
  * number on this surface to quote as current.
  *
- * The garrison slot
- * -----------------
- * The user, 2026-09-09 (`docs/flags.md`, (hhh) 6): *"units stationed in a city
- * should have their unit icon display on top of the banner"* — Civ 5 and 6's
- * pattern, and the one thing a player wants to know about a town across the
- * table is **whether anything is holding it**.
+ * Where the plate hangs
+ * ---------------------
+ * The user's ruling of 2026-09-09 (`docs/flags.md`, (hhh) 6, "once more, U7"):
+ * *"the icon just appearing over the tile of the city, vertically below the
+ * banner in screenspace … it needs to scale with multiple units in the city"* —
+ * Civ 6's arrangement, and the end of three passes at putting a garrison mark
+ * **on** this plate.
  *
- * U4 built that as a drawn mark floating over the 3D flagpole
- * (`render3d/garrison3d.ts`) and the user could not see it, for a reason that is
- * structural rather than a matter of dialling: *this* plate is HTML positioned
- * over the canvas, it covers the town's own hex, and a badge hung at the pole's
- * height is behind it. The piece's own sculpt is behind it too. So the badge
- * came **into the plate**, the 3D layer was retired, and there is one badge in
- * one place — which is what Civ draws, and for this reason.
+ * The three that failed are worth the paragraph, because the fix is geometry and
+ * every one of them was a drawing. U4 hung a mark over the 3D flagpole and the
+ * plate covered it. U5 set a roundel at the pill's fly and the user could not
+ * find it. U6 moved that roundel to the hoist, at the size badge's diameter, and
+ * hid the piece's own tag while the plate carried one — *"it makes it look like
+ * the unit is part of the city"*. All three were answers to the same accident:
+ * the plate is anchored at the hex's own **ground point** and hung above it with
+ * `translate(-50%, -100%)`, and a piece's roundel floats at that same hex centre
+ * a little over its sculpt — so the plate sat exactly on top of the tag.
  *
- * U5 set it at the pill's **fly**, after the queue, at a disc of twenty pixels,
- * and the user could still not spot it (2026-09-09, `docs/flags.md` (hhh) 6
- * again): the fly is the end of a pill whose length is the town's name, so the
- * one mark on the plate that answers "is anything holding this" sat wherever the
- * name happened to stop, at two thirds the size of the figure beside it. U6 puts
- * it where Civ V has always had it — **the hoist**, immediately after the size
- * roundel and before the name, on the size badge's own box — so the plate opens
- * with two discs of the same diameter: how big the town is, and what is standing
- * in it. The wound on the foot follows: its *left* inset clears both now, where
- * U5 had moved the right one to clear the fly.
+ * So the plate moved up instead. `reposition` projects a point `BANNER_RISE`
+ * above the tile's top face rather than the face itself (`projectCell`'s `rise`),
+ * which puts the plate's foot above the flagpole **and** above everything the
+ * board can stand on that hex. Both are world points through one camera, so the
+ * arrangement holds at every zoom and from every pan with no second rule: the
+ * pieces keep their own roundels, their own hit bars and their own fan, and the
+ * plate floats over the lot of them. That fan is the "scales with several units"
+ * the ruling asks for — `placePiece` already spreads a stack round the tile
+ * centre (`pieces.stackSpread`), and a stack of three reads as three tags under
+ * one banner rather than one tag with a numeral on it.
  *
- * Three consequences, and all three are the same idea — **the banner's icon is
- * the piece**:
- *
- *   it is a control  a press on your own piece's icon selects that piece, by the
- *                    tile it stands on and not by the badge that was struck
- *                    (`selectOnTile` in `controls.ts`, the board badge's own
- *                    path, so the pill and the tag cycle a stack the same way).
- *                    A rival's icon is not a control: it shows, it does nothing,
- *                    and the cursor says so — which is the `mine` rule this
- *                    banner has always kept for its buttons.
- *   the piece's own roundel goes  while the banner is carrying it. The *sculpt*
- *                    stays — the piece is still standing on the map — but its
- *                    floating tag would be a second copy of this one, hidden
- *                    behind this very plate, which is the whole of U5's
- *                    complaint. The rule lives with the layer that draws the tag
- *                    (`render3d/pieces.ts`, `banneredTownCells`) and follows
- *                    this gate exactly: a remembered town shows no garrison, so
- *                    a piece on one keeps its roundel.
- *   one badge, one place  the U4 ruling, now true in both directions.
- *
- * What it says, and what it deliberately does not:
- *
- *   one badge      the **strongest** piece standing on the town's own hex
- *                  (`strongestGarrison`) — highest `combatStrength`, ties by the
- *                  order `state.units` is iterated, which is the determinism
- *                  rule read at the surface. A civilian's zero still qualifies:
- *                  the question is *what is in there*, and a worker alone in a
- *                  town is the answer a player most needs, because it is the one
- *                  that means nobody is holding it. A scout, a settler, a
- *                  caravan and a great person all take the slot.
- *   a count        a small numeral bossing the roundel once more than one is in.
- *                  A stack of roundels on a pill is a wall of paper.
- *   the piece's ink, not the town's — a captured town whose captor has walked in
- *                  wears the captor's colour, and that is the whole reason to
- *                  draw one. Read off the *unit*, so a rival's garrison in a
- *                  rival's town shows in the rival's ink.
- *
- * Strongest rather than "the defender `planCombat` would pick", deliberately:
- * the real defender is a whole ledger (terrain, fortification, walls, auras) and
- * a badge that quietly disagreed with the combat forecast would be worse than
- * one that plainly answers a simpler question.
- *
- * It rides the **watched** gate and nothing else — not `mine`. An army is not
- * something a chart remembers, so a remembered town's plate carries no slot at
- * all (`rememberedFacts`), exactly as the size figure and the wound are absent
- * there; and a rival's garrison on ground this seat is looking at is a fact
- * about a thing it can see, which is the size figure's rule rather than the
- * ring's.
- *
- * The mark is the badge the piece's own roundel wears — `badgeClassFor`, the
- * board's one sentence about what a piece is — printed here as a **mask** in the
- * banner's ink on a parchment disc rimmed in the seat's colour, which is the
- * board's badge exactly (paper, ink, seat rim) and the yoke's trick beside it.
- * One drawing, two printers: `garrisonBadgeUri` names the same file the atlas
- * rasterises, and composes the same two marks for a ship that the atlas composes.
+ * What the rise is made of is `bannerRise`, and the one taste number in it is
+ * `city.bannerClearance`. Everything else is measured off the things it has to
+ * clear, because a hand-dialled height would be a number quietly wrong the day a
+ * sculpt class grew.
  *
  * Three states, since fog of war
  * ------------------------------
@@ -262,21 +214,15 @@ import {
 } from '../sim/cities';
 import { cityBeatenDown, cityMaxHp } from '../sim/combat';
 import type { Game } from '../sim/game';
-import { tileIndex } from '../sim/map';
-import type { City, GameState, Unit } from '../sim/state';
-import { unitDef } from '../sim/unitData';
+import type { City, GameState } from '../sim/state';
+import { UNIT_TYPE_IDS } from '../sim/unitData';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import { cityMarkDataUri } from '../art/cityMarks';
-import {
-  NAVAL_CANTON_MARKS,
-  NAVAL_HULLS,
-  NAVAL_MARK_BOX,
-  NAVAL_MARK_STROKE,
-} from '../art/navalMarks';
-import { markSvg } from '../art/resourceMarks';
-import { type BadgeClass, BADGE_ICON_FILES, BADGE_MARK_PAIRS } from '../render3d/badges3d';
-import { badgeClassFor } from '../render3d/board3d';
+import { badgeCenterY, hpBarY } from '../render3d/badges3d';
+import { pieceHeightFor } from '../render3d/board3d';
+import { VIEW3D } from '../render3d/lookData';
+import { SPRITE_HEIGHT } from '../render3d/pieces';
 import type { MapView } from './mapView';
 
 export interface CityBannersOptions {
@@ -304,19 +250,6 @@ export interface CityBannersOptions {
    * its name rather than on its ground.
    */
   onHoverCity?: (cityId: number | null) => void;
-  /**
-   * The player pressed the garrison icon on a banner: select what is standing
-   * on that town's hex.
-   *
-   * The **tile** rather than the unit, deliberately, and it is the board badge's
-   * own rule read one surface over (`selectOnTile` in `controls.ts`): a stack is
-   * cycled by repeated presses on the hex it stands on, so a plate that named a
-   * unit id would hand the player a different cycling order than the tag over
-   * the same pieces does.
-   *
-   * Only ever called for the local seat's own piece — see `garrisonSelectable`.
-   */
-  onSelectGarrison?: (col: number, row: number) => void;
 }
 
 export interface CityBanners {
@@ -352,8 +285,6 @@ interface Banner {
    * fourth lifecycle in a file that has three.
    */
   yoke: HTMLElement;
-  /** The roundel at the pill's fly. See "The garrison slot". */
-  garrison: GarrisonParts;
   /** The channel on the banner's foot. See "The wound on the foot". */
   health: HealthParts;
   production: HTMLElement;
@@ -391,15 +322,6 @@ interface BannerFacts {
    * is the size figure's kind of fact, not the food ledger's.
    */
   health: HealthBar | null;
-  /**
-   * What is standing on the town's own hex, or `null` for a town nothing is in
-   * — and for a remembered one, which keeps no armies. See "The garrison slot".
-   *
-   * Beside the health bar rather than behind the `mine` gate: a garrison on
-   * ground this seat is watching is a fact about a thing it can see, and the
-   * board already draws the piece itself over every visible hex whoever owns it.
-   */
-  garrison: GarrisonSlot | null;
   production: string;
   /**
    * True while this is **your** town and it is held as a puppet (`City.puppet`).
@@ -587,179 +509,6 @@ export function cityHealthBar(city: City): HealthBar | null {
   return healthBar(city.hp, cityMaxHp(city), cityBeatenDown(city));
 }
 
-// --- the garrison slot ------------------------------------------------------
-
-/** What a banner says about what is standing in a town. See "The garrison slot". */
-export interface GarrisonSlot {
-  /** The badge cell the strongest piece wears — `badgeClassFor`'s answer. */
-  badge: BadgeClass;
-  /** Whose the *piece* is, which is not always whose the town is. */
-  ownerId: number;
-  /** How many are in. One draws no numeral. */
-  count: number;
-  /** The seat ink the roundel is rimmed in — the piece's owner's. */
-  ink: string;
-  /** What is in there, in plain words, for the tooltip and the screen reader. */
-  label: string;
-}
-
-/**
- * Every unit standing on a town's own hex, by the tile that town stands on.
- *
- * One walk over the pieces rather than one walk per city, for `tileOwnerField`'s
- * reason a layer down: a map-wide question asked once per town is quadratic on
- * the boards this interface is meant to survive. Hoisted once per `refresh` and
- * handed to `watchedFacts`, exactly as a sweep hoists a field.
- */
-export function garrisonsByCell(state: GameState): Map<number, Unit[]> {
-  const towns = new Set<number>();
-  for (const city of state.cities) towns.add(tileIndex(state.map, city.col, city.row));
-  const out = new Map<number, Unit[]>();
-  for (const unit of state.units) {
-    const cell = tileIndex(state.map, unit.col, unit.row);
-    if (!towns.has(cell)) continue;
-    const list = out.get(cell);
-    if (list) list.push(unit);
-    else out.set(cell, [unit]);
-  }
-  return out;
-}
-
-/**
- * Which piece the badge names: the strongest thing standing there.
- *
- * `state.units` order is the tie-break, which is the determinism rule read at
- * the surface — an array, never a map, and never a sort that could reorder two
- * equal rows differently on two clients. A civilian's strength of nothing still
- * wins an empty field, and that is the case this slot exists for: a town held by
- * one worker is a town nobody is holding.
- */
-export function strongestGarrison(garrison: readonly Unit[]): Unit | null {
-  let best: Unit | null = null;
-  let bestStrength = -1;
-  for (const unit of garrison) {
-    const strength = unitDef(unit.type).combatStrength;
-    if (strength <= bestStrength) continue;
-    bestStrength = strength;
-    best = unit;
-  }
-  return best;
-}
-
-/**
- * The badge's artwork as something the DOM can wear: a URL for the half of the
- * set that is a file, a `data:` document for the half that is drawn.
- *
- * `BADGE_ICON_FILES` is asked rather than a second table written here — it is
- * the same file the atlas rasterises for the piece's own roundel, so the mark on
- * the plate and the mark on the board cannot drift. Relative, and resolved
- * against the document exactly as `loadIcon`'s `image.src` is.
- *
- * The eighteen composed naval cells have no file, and the rig is the half of a
- * ship's badge that says which line it is in — so they are composed here from
- * the same two mark tables the atlas composes, hull under canton. The
- * arrangement is restated rather than shared because the atlas prints a roundel
- * of paper at a hundred-odd pixels and this is an alpha mask at thirteen; the
- * two constants below are that restatement and the only numbers this file owns
- * about a drawing.
- */
-const CANTON_SCALE = 0.42;
-const CANTON_CENTRE = 0.72;
-
-const badgeUriCache = new Map<BadgeClass, string>();
-
-export function garrisonBadgeUri(badge: BadgeClass): string {
-  const cached = badgeUriCache.get(badge);
-  if (cached !== undefined) return cached;
-  const file = (BADGE_ICON_FILES as Record<string, string | undefined>)[badge];
-  const uri = file ?? navalBadgeUri(badge);
-  badgeUriCache.set(badge, uri);
-  return uri;
-}
-
-/**
- * A ship's mark as one document: the hull at full box, the canton at
- * `CANTON_SCALE` in the fly corner.
- *
- * Nested `<svg>` rather than a hand-built transform, so both halves come out of
- * `markSvg` — the one printer of a `MarkPath` list — and this file never learns
- * what a dash or a cap is. The canton is stroked heavier for the atlas's own
- * reason: a mark that kept the set's weight through a two-and-a-half-times
- * reduction comes out a hairline and disappears at this size.
- */
-function navalBadgeUri(badge: BadgeClass): string {
-  const pair = BADGE_MARK_PAIRS.get(badge as never);
-  const box = NAVAL_MARK_BOX;
-  const canton = pair
-    ? NAVAL_CANTON_MARKS[pair.canton]
-    : NAVAL_CANTON_MARKS.chevrons;
-  const size = box * CANTON_SCALE;
-  const at = box * CANTON_CENTRE - size / 2;
-  const place = (doc: string, x: number, y: number, span: number): string =>
-    doc.replace('<svg ', `<svg x="${x}" y="${y}" width="${span}" height="${span}" `);
-  const parts = pair
-    ? place(markSvg(NAVAL_HULLS[pair.rig].paths, box, NAVAL_MARK_STROKE), 0, 0, box) +
-      place(markSvg(canton.paths, box, NAVAL_MARK_STROKE * 1.8), at, at, size)
-    : place(markSvg(canton.paths, box, NAVAL_MARK_STROKE), 0, 0, box);
-  const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${box} ${box}">${parts}</svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-/**
- * One town's slot, read off the pieces standing on its hex.
- *
- * The list is passed in rather than looked up, so the map-wide walk happens once
- * per refresh (see `garrisonsByCell`) and this stays a function of a stack.
- */
-export function garrisonSlot(
-  state: GameState,
-  garrison: readonly Unit[],
-): GarrisonSlot | null {
-  const held = strongestGarrison(garrison);
-  if (!held) return null;
-  const name = unitDef(held.type).name;
-  const others = garrison.length - 1;
-  return {
-    badge: badgeClassFor(held.type),
-    ownerId: held.ownerId,
-    count: garrison.length,
-    // The seat's own ink, read from the *piece's* owner. Falls back to the
-    // banner's own default rather than to nothing: a colourless rim is a badge
-    // that reads as a hole, and a hand-edited save with a dangling owner is the
-    // only way here.
-    ink: state.players[held.ownerId]?.color ?? '#9fb0c2',
-    label:
-      others > 0
-        ? `Standing here: ${name} and ${others} more`
-        : `Standing here: ${name}`,
-  };
-}
-
-/**
- * Whether this slot is a **control** for this seat, or only a reading.
- *
- * Three clauses, and each is a rule this card already keeps somewhere else:
- * there is something in there at all; the plate is live rather than a memory (a
- * banner drawn from `citySightings` is never a button — there is nothing to
- * select on ground nobody is watching, and the piece may have marched off twenty
- * turns ago); and the piece is **this seat's own**, read off the *unit* rather
- * than off the town, because a captured town garrisoned by its captor wears the
- * captor's icon and a player may only command their own pieces.
- *
- * Pure and exported for the reason `healthBar` and `growthRing` are: what a
- * press does is the part of this that can be quietly wrong on every banner at
- * once, and the suite that pins it cannot mount a DOM.
- */
-export function garrisonSelectable(
-  slot: GarrisonSlot | null,
-  seat: number,
-  stale: boolean,
-): boolean {
-  if (slot === null || stale) return false;
-  return slot.ownerId === seat;
-}
-
 /**
  * What a live, watched city's banner says.
  *
@@ -767,12 +516,7 @@ export function garrisonSelectable(
  * city panel and the simulation use, so a banner can never promise a turn
  * count the panel disagrees with.
  */
-function watchedFacts(
-  state: GameState,
-  city: City,
-  mine: boolean,
-  garrison: readonly Unit[],
-): BannerFacts {
+function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts {
   const facts: BannerFacts = {
     cityId: city.id,
     col: city.col,
@@ -786,9 +530,6 @@ function watchedFacts(
     // the board already draws the same bar over every hurt piece it can see
     // whoever owns it. See "The wound on the foot".
     health: cityHealthBar(city),
-    // On this side of the gate for the wound's reason exactly — see "The
-    // garrison slot".
-    garrison: garrisonSlot(state, garrison),
     production: '',
     puppet: mine && city.puppet === true,
     mine,
@@ -845,10 +586,6 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     // twenty-turn-old assault would be the interface reporting a siege that may
     // already have been lifted or lost.
     health: null,
-    // Nor what was in it. An army is not something a chart remembers, and a
-    // twenty-turn-old garrison quoted as current is the worst reading on this
-    // surface — it is the one a player would march at.
-    garrison: null,
     production: '',
     // A memory keeps a name and a flag and nothing else — see the docblock. Who
     // governs a town this seat has not looked at in twenty turns is exactly the
@@ -878,22 +615,12 @@ export function visibleCityBanners(
 ): BannerFacts[] {
   const facts: BannerFacts[] = [];
   const shown = new Set<number>();
-  // Hoisted once for the whole sweep, never asked per town — see
-  // `garrisonsByCell`.
-  const garrisons = garrisonsByCell(state);
 
   for (const city of state.cities) {
     if (!isVisibleTo(state, seat, city.col, city.row)) continue;
     shown.add(city.id);
     if (city.id === hiddenCityId) continue;
-    facts.push(
-      watchedFacts(
-        state,
-        city,
-        city.ownerId === seat,
-        garrisons.get(tileIndex(state.map, city.col, city.row)) ?? [],
-      ),
-    );
+    facts.push(watchedFacts(state, city, city.ownerId === seat));
   }
   for (const sighting of state.citySightings[seat] ?? []) {
     if (shown.has(sighting.cityId)) continue;
@@ -1026,80 +753,74 @@ export function paintHealthBar(parts: HealthParts, bar: HealthBar | null): void 
   parts.root.setAttribute('aria-label', bar.label);
 }
 
-/** The roundel and the numeral bossing it, kept so a repaint is three writes. */
-export interface GarrisonParts {
-  root: HTMLElement;
-  mark: HTMLElement;
-  count: HTMLElement;
+// --- where the plate hangs --------------------------------------------------
+
+const CITY_LOOK = VIEW3D.city;
+const BADGE_LOOK = VIEW3D.badges;
+const HP_LOOK = VIEW3D.hpBar;
+const PIECE_LOOK = VIEW3D.pieces;
+
+/** The camera's fixed elevation in radians — the one angle this arithmetic needs. */
+const ELEVATION = (VIEW3D.camera.elevation * Math.PI) / 180;
+
+/**
+ * The rise that clears everything the board can stand on a town's hex: the top
+ * of the tallest piece's furniture, expressed as a height **up the world Y axis
+ * at the tile's own centre**, which is the one unit `projectCell` takes.
+ *
+ * Two conversions do the work, and both fall out of the camera's fixed
+ * elevation. A rise up Y is foreshortened by its cosine on the way to the
+ * screen, and the things a piece floats are not:
+ *
+ *   a **billboard** (a badge disc, a hit bar) turns to face the camera, so its
+ *   whole height shows — `h` of it is worth `h / cos(elevation)` of rise.
+ *   a **ground step** (the stack fan) climbs the screen by `sin(elevation)` of
+ *   its length, so a fan of `spread` is worth `spread · tan(elevation)` of rise.
+ *
+ * Measured over `UNIT_TYPE_IDS` rather than over the sculpt classes, so the
+ * answer is the tallest row the *roster* actually has, and against `SPRITE_HEIGHT`
+ * beside it because a standee is what `unitVisualHeight` returns in sprite style.
+ * Both of the things a piece floats are measured, not just the roundel: a hurt
+ * piece carries a hit bar above its badge (`hpBarY`), and the user's acceptance
+ * for this pass says so in as many words — a wounded garrison must show its bar
+ * on the tile, which it cannot do from behind the plate.
+ */
+export function tallestPieceRise(): number {
+  let visual = SPRITE_HEIGHT;
+  for (const type of UNIT_TYPE_IDS) visual = Math.max(visual, pieceHeightFor(type));
+  const facing = 1 / Math.cos(ELEVATION);
+  const badgeTop = badgeCenterY(visual) + (BADGE_LOOK.diameter / 2) * facing;
+  const barTop = hpBarY(visual) + (HP_LOOK.height / 2) * facing;
+  return Math.max(badgeTop, barTop) + PIECE_LOOK.stackSpread * Math.tan(ELEVATION);
 }
 
 /**
- * The slot as elements: a rimmed disc with a masked mark in it and a numeral in
- * its corner, built once per banner and never rebuilt — the ring's discipline
- * and the bar's before it.
+ * How far above the tile's top face the banner's foot is anchored, in world
+ * units. See "Where the plate hangs".
  *
- * Exported with its painter for the health bar's reason, which is the cabinet's
- * standing bargain (`flairGallery/main.ts`, "Nothing is reproduced"): the
- * gallery may lay this out and give it a ground, and it may not own a second
- * copy of what a badge or a count means.
+ * `Math.max` of the two things it must clear — the flagpole the town flies its
+ * own colours from, and the tallest piece that could stand on the hex — plus the
+ * one dialled gap. Derived rather than written down because a rise typed into
+ * the look table would be a number silently wrong the day a sculpt class or a
+ * badge grew, and what would go wrong is the exact complaint this pass exists to
+ * fix: a roundel hidden behind the plate.
  */
-export function buildGarrison(): GarrisonParts {
-  const root = document.createElement('span');
-  root.className = 'city-banner-garrison';
-  const mark = document.createElement('span');
-  mark.className = 'city-banner-garrison-mark';
-  const count = document.createElement('span');
-  count.className = 'city-banner-garrison-count';
-  root.append(mark, count);
-  return { root, mark, count };
+export function bannerRise(): number {
+  return Math.max(CITY_LOOK.poleHeight, tallestPieceRise()) + CITY_LOOK.bannerClearance;
 }
 
 /**
- * Paints one slot, or takes it away.
+ * The rise, resolved once for the page.
  *
- * `display` and not the `hidden` attribute, for the size box's reason: the
- * stylesheet gives this element a `display` of its own and an author rule
- * outranks `[hidden]`.
- *
- * The mark is a **mask** rather than an `<img>`, which is the yoke's trick and
- * is what lets the drawing take the plate's own ink and dim with the card. The
- * rim is the piece's seat ink through a custom property, so the one element
- * serves every seat and the wild.
+ * Nothing in it can change while a game is running — the look table is loaded
+ * data and the roster is fixed — so `reposition`, which runs per drawn frame,
+ * reads a constant rather than walking the roster sixty times a second.
  */
-export function paintGarrison(parts: GarrisonParts, slot: GarrisonSlot | null): void {
-  parts.root.style.display = slot === null ? 'none' : '';
-  if (slot === null) {
-    parts.root.removeAttribute('title');
-    parts.root.removeAttribute('role');
-    parts.root.removeAttribute('aria-label');
-    return;
-  }
-  parts.root.style.setProperty('--garrison-color', slot.ink);
-  parts.mark.style.setProperty('--garrison-mark', `url("${garrisonBadgeUri(slot.badge)}")`);
-  // A stack's numeral, clamped to a digit for the board's own reason: nothing
-  // stacks past nine, and a boss on a badge is not the place to find out
-  // otherwise.
-  parts.count.textContent = `${Math.min(9, slot.count)}`;
-  parts.count.style.display = slot.count > 1 ? '' : 'none';
-  // The drawing is a glance and the words are one hover away — the ring's
-  // bargain. `role="img"` is what makes a label on a span reliably the element's
-  // accessible *name* rather than a hint some readers drop.
-  parts.root.title = slot.label;
-  parts.root.setAttribute('role', 'img');
-  parts.root.setAttribute('aria-label', slot.label);
-}
+export const BANNER_RISE = bannerRise();
 
 export function createCityBanners(options: CityBannersOptions): CityBanners {
-  const {
-    container,
-    renderer,
-    getGame,
-    localPlayerId,
-    onOpenCity,
-    openCity,
-    onHoverCity,
-    onSelectGarrison,
-  } = options;
+  const { container, renderer, getGame, localPlayerId, onOpenCity, openCity, onHoverCity } =
+    options;
   const banners = new Map<number, Banner>();
 
   function build(cityId: number): Banner {
@@ -1129,17 +850,12 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     size.append(ring.svg, pop);
     const production = document.createElement('span');
     production.className = 'city-banner-production';
-    // At the **hoist**, between the size roundel and the name (U6): the two
-    // discs that open the plate are how big the town is and what is standing in
-    // it, at one diameter, in the corner the eye lands on. See "The garrison
-    // slot" for what the fly cost.
-    const garrison = buildGarrison();
     // Last in the DOM and first on the eye: the channel is positioned on the
     // pill's foot rather than laid out in its row, so the order here is the
     // reading order — name, queue, and then the wound underneath both.
     const health = buildHealthBar();
 
-    root.append(size, garrison.root, name, yoke, production, health.root);
+    root.append(size, name, yoke, production, health.root);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -1160,7 +876,6 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       pop,
       ring,
       yoke,
-      garrison,
       health,
       production,
       signature: '',
@@ -1187,9 +902,6 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     const { state } = getGame();
     const seen = new Set<number>();
-    // Whose screen this is, read once for the sweep: the ring, the queue and now
-    // the icon's press all turn on it, and it can change under a banner.
-    const seat = localPlayerId();
 
     for (const facts of visibleBanners()) {
       seen.add(facts.cityId);
@@ -1207,11 +919,6 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // colour, so the styling of "remembered" is one rule in the stylesheet and
       // applies to the name, the flag rim and the whole card at once.
       banner.root.classList.toggle('is-stale', facts.stale);
-      // A garrisoned pill is a wider pill, and the wound on its foot has to stop
-      // short of the roundel exactly as it stops short of the size badge at the
-      // hoist. A class rather than a written inset, so the geometry stays in the
-      // stylesheet where the rest of the pill's geometry is.
-      banner.root.classList.toggle('is-held', facts.garrison !== null);
       banner.root.style.setProperty('--banner-color', player?.color ?? '#9fb0c2');
 
       // The alarm ink is a class and is toggled outside the signature gate,
@@ -1241,15 +948,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // scratched, and the banner is not in that layer at all.
       const hurt = facts.health;
       const wound = hurt === null ? '' : `${hurt.filled.toFixed(4)}/${hurt.label}`;
-      // **The garrison is a signature term too**, and it is the whole of "the
-      // plate repaints when the stack changes and not otherwise": what the slot
-      // draws is a badge, a rim ink and a count, so all three are in and nothing
-      // else about the pieces is. A scout crossing empty ground on the far side
-      // of the map moves `signUnits` and must not move this — which is why the
-      // term is the *slot* rather than anything about `state.units`.
-      const held = facts.garrison;
-      const stack = held === null ? '' : `${held.badge}/${held.ownerId}/${held.count}`;
-      const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${wound}|${stack}|${
+      const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${wound}|${
         facts.name
       }|${facts.production}|${facts.stale ? 1 : 0}|${facts.puppet ? 1 : 0}`;
       if (signature !== banner.signature) {
@@ -1284,7 +983,6 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         paintArc(banner.ring.ahead, growth?.ahead ?? 0, growth?.filled ?? 0);
         banner.ring.svg.style.display = growth === null ? 'none' : '';
         paintHealthBar(banner.health, facts.health);
-        paintGarrison(banner.garrison, facts.garrison);
         banner.name.textContent = facts.name;
         banner.production.textContent = facts.production;
         banner.production.hidden = facts.production === '';
@@ -1295,21 +993,6 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // never a button either — there is no panel to open on a memory.
       banner.root.onclick =
         facts.mine && !facts.stale ? () => onOpenCity(facts.cityId) : null;
-
-      // And the icon at the hoist, on the same beat and for the same reason —
-      // the piece in a town changes far more often than the town does. The class
-      // is what gives the disc the pointer back (the pill takes it away on
-      // everybody else's banner) and what says so with the cursor; the handler
-      // stops the press reaching the pill under it, or selecting a piece would
-      // also open the city screen it is standing in.
-      const own = garrisonSelectable(facts.garrison, seat, facts.stale);
-      banner.garrison.root.classList.toggle('is-own', own);
-      banner.garrison.root.onclick = own
-        ? (event: MouseEvent) => {
-            event.stopPropagation();
-            onSelectGarrison?.(facts.col, facts.row);
-          }
-        : null;
     }
 
     for (const [id, banner] of [...banners]) {
@@ -1320,11 +1003,18 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     reposition();
   }
 
-  /** Moves every banner to where its city is on screen. Runs per drawn frame. */
+  /**
+   * Moves every banner to where its city is on screen. Runs per drawn frame.
+   *
+   * The point is `BANNER_RISE` above the tile's top face rather than the face
+   * itself, which is the whole of U7: the plate hangs from a world point over
+   * the flagpole, so the pieces standing on the hex keep their own roundels
+   * underneath it at every zoom. See "Where the plate hangs".
+   */
   function reposition(): void {
     if (!renderer.projectCell) return;
     for (const banner of banners.values()) {
-      const point = renderer.projectCell(banner.col, banner.row);
+      const point = renderer.projectCell(banner.col, banner.row, BANNER_RISE);
       if (!point || !point.onScreen) {
         banner.root.style.display = 'none';
         continue;

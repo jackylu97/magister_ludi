@@ -751,12 +751,15 @@ body {
    The plate's stall, one label over: the banner is only ever seen floating over
    the diorama, so it gets the same flat swatch of the board's sage.
 
-   The banner is `position: absolute` in the game and lifted 46px clear of its
-   town by a negative margin, because `projectCell` anchors it at the tile
-   centre every frame. Nothing anchors it here, so both are undone and it
-   returns to the flow. That placement pair is the only thing this page says
-   about the class — the pill, the roundel and the bar on its foot are the
-   game's own rules, painted by the game's own functions. */
+   The banner is `position: absolute` in the game, because `projectCell` anchors
+   it over its town every frame. Nothing anchors it in *this* stall, so it is
+   returned to the flow — the one override, and the only thing this page says
+   about the class. The pill and the bar on its foot are the game's own rules,
+   painted by the game's own functions.
+
+   The stall below it is the opposite arrangement and needs no override at all:
+   there the real renderer is on a canvas and the real banner floats over it,
+   absolutely positioned by the real projection. */
 .banner-ground {
   display: flex;
   flex-wrap: wrap;
@@ -776,7 +779,37 @@ body {
 
 .banner-slot .city-banner {
   position: static;
-  margin-top: 0;
+}
+
+/* --- the banner over its town ----------------------------------------------
+   U7's stall: the shipping renderer on a canvas, with the shipping banner
+   overlay above it. The stage is the positioning context both halves share —
+   the canvas fills it, and the overlay covers the canvas exactly as
+   `#banners` covers the viewport in the game, so `projectCell`'s viewport
+   pixels land where they land in the game.
+
+   The overlay claims no pointer: a drag on the stage has to reach the canvas
+   and pan the board. The pills inside it take their own back (`.city-banner`'s
+   own rule in the game's stylesheet), which is the same arrangement the game
+   has. */
+.banner-stage {
+  position: relative;
+  overflow: hidden;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+.banner-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 1.5;
+}
+
+.banner-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .banner-caption {

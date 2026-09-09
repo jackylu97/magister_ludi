@@ -498,6 +498,17 @@ export interface CitySpec {
   flagHeight: number;
   /** How far below the top of the pole the flag hangs. */
   flagDrop: number;
+  /**
+   * The gap the DOM banner keeps above everything standing on the town's hex,
+   * in world units (the user's ruling of 2026-09-09, U7).
+   *
+   * The plate is anchored at a world point and hung above it, and what it must
+   * clear is not the flag but the *pieces*: this is the slack on top of the
+   * tallest roster row's furniture, and the whole of the rise is computed from
+   * it in `ui/cityBanners.ts` (`bannerRise`). A taste number — how far above the
+   * town the label floats — and the only one in that arithmetic.
+   */
+  bannerClearance: number;
 }
 
 /**

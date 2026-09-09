@@ -435,8 +435,13 @@ export interface MapView {
    * This is what lets DOM elements — the city banners — be positioned over the
    * board. Only the 3D renderer implements it, so the banner overlay simply
    * does not appear under the frozen 2D renderers.
+   *
+   * `rise` lifts the projected point along world Y, and the default of nothing
+   * is the tile's own top face. The city banner is the one caller that passes
+   * anything (it hangs above the flagpole, clear of the pieces standing on the
+   * hex — `cityBanners.ts`, "Where the plate hangs").
    */
-  projectCell?(col: number, row: number): ScreenPoint | null;
+  projectCell?(col: number, row: number, rise?: number): ScreenPoint | null;
 
   /**
    * Optional: a callback run after every frame the renderer actually draws.

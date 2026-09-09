@@ -2162,16 +2162,6 @@ export interface GameControls {
 
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
-  /**
-   * Selects on a hex the way a click on its ground does: the topmost of your own
-   * pieces standing there, cycling on repeat. `false` if you have none there.
-   *
-   * Exposed for the surfaces that float *above* the board and so never reach its
-   * own click handling — the city banner's garrison icon (`cityBanners.ts`, "The
-   * garrison slot"). The **tile** and not a unit id, so every way of aiming at a
-   * piece cycles a stack in the one order.
-   */
-  selectUnitAt(col: number, row: number): boolean;
   /** Whether move mode is armed — the next left click is an order, not a pick. */
   isMoveMode(): boolean;
   /** Arms or disarms move mode. The `M` key; a no-op with nothing selected. */
@@ -7490,18 +7480,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     reportCommand,
     selectedUnit,
-    /**
-     * Select what is standing on a hex — the board badge's own path, handed out
-     * so a surface that floats *above* the board can take it.
-     *
-     * `selectOnTile` and not a unit id: a stack is cycled by repeated presses on
-     * its tile (see that function's docblock), and the city banner's garrison
-     * icon is the third way to aim at a piece after its ground and its tag. All
-     * three must cycle in one order, and only the local seat's pieces answer at
-     * all — which `ownUnitsAt` already decides, so a press on somebody else's
-     * garrison returns `false` and changes nothing.
-     */
-    selectUnitAt: selectOnTile,
     isMoveMode: () => moveMode,
     isBuyMode: () => buyMode,
     localPlayerId: () => localPlayerId,

@@ -368,7 +368,8 @@
     "poleColor": "ink",
     "flagWidth": 0.46,
     "flagHeight": 0.26,
-    "flagDrop": 0.14
+    "flagDrop": 0.14,
+    "bannerClearance": 0.1
   },
   "rivers": {
     "color": "brook",

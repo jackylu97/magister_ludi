@@ -26,12 +26,9 @@
 import { EPIGRAPHS } from '../ui/frontispiece';
 import {
   type HealthParts,
-  buildGarrison,
   buildHealthBar,
   cityHealthBar,
-  garrisonSelectable,
-  garrisonSlot,
-  paintGarrison,
+  createCityBanners,
   paintHealthBar,
 } from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
@@ -39,14 +36,16 @@ import { printerDeviceMarkUrl } from '../ui/deviceMarks';
 import { AXIS_MARK } from '../ui/religionScreen';
 import { drawPantheonWheel, pantheonWheelLayout } from '../ui/pantheonWheel';
 import { YIELD_GLYPH, setYieldText } from '../ui/yieldMark';
+import { Renderer3D } from '../render3d/renderer3d';
 import { foundCityAt } from '../sim/cities';
 import { cityMaxHp } from '../sim/combat';
+import { createGame } from '../sim/game';
 import { createMap, getTileAt } from '../sim/map';
 import { createUnit, newGame } from '../sim/state';
 import { resetVisibility } from '../sim/visibility';
 import { type BeliefId, BELIEF_IDS, beliefDef } from '../sim/religionData';
-import { type UnitTypeId } from '../sim/unitData';
-import { block, button, checkbox, controls, element, select, slider } from './sheet';
+import { type UnitTypeId, unitMaxHp } from '../sim/unitData';
+import { block, button, checkbox, controls, element, slider } from './sheet';
 
 /** One stall: a caption, and a surface with a single flourish on it. */
 function stall(into: HTMLElement, title: string, extraClass?: string): HTMLElement {
@@ -70,7 +69,7 @@ export function drawFlourishes(into: HTMLElement): void {
   giltFrameStall(into);
   pricePlateStall(into);
   cityBannerStall(into);
-  cityGarrisonStall(into);
+  bannerAnchorStall(into);
   inscriptionStall(into);
   ledgerStall(into);
 }
@@ -236,129 +235,142 @@ function cityBannerStall(into: HTMLElement): void {
 }
 
 /**
- * The garrison slot on the same pill: what is standing in the town, at its fly.
+ * The banner over a real board, with real pieces standing under it.
  *
- * The badge came **into the plate** on 2026-09-09 (U5, `docs/flags.md` (hhh) 6)
- * after the user could not find the 3D tag U4 hung over the flagpole — the plate
- * covers the town's hex, so a mark at the pole's height is behind it. It earns a
- * stall of its own for the wound's second reason: in a game the slot is only
- * ever the one thing that happens to be standing in a town, and the question it
- * has to answer — *can I tell a scout from a worker from a warrior at seventeen
- * pixels, and whose is it* — is a question about the marks side by side.
+ * The stall U7 needed and the three passes before it did not have: the whole
+ * ruling (the user, 2026-09-09, `docs/flags.md` (hhh) 6, "once more, U7") is
+ * about **where the plate sits in screen space relative to the pieces on its own
+ * hex**, and that is a question no pill laid out on a swatch of green can
+ * answer. So this one drives the shipping renderer: a real `Game` on a flat
+ * table, `Renderer3D` on a canvas of its own, and `createCityBanners` over it
+ * through the very `projectCell` the game positions banners with. What is on
+ * this canvas is the board.
  *
- * U6 moved it to the **hoist** and grew it to the size badge's own box, the user
- * having found it too subtle at the fly, and this stall shows that arrangement:
- * the two discs first, at one diameter, then the name. On the board the piece
- * standing there now wears no roundel of its own — one badge, one place, in both
- * directions (`render3d/pieces.ts`, "The one piece that wears no badge").
+ * What it is here to show, and what the knobs are for:
  *
- * Real pieces on a real town (`createUnit` on a `foundCityAt` town) and the
- * shipping derivation (`garrisonSlot`, `strongestGarrison`) rather than a
- * hand-made slot: the badge, the rim ink and the numeral are the three things
- * this page must not own a second copy of. The knob picks a roster row, so the
- * mapping under test is `badgeClassFor`'s and not a list written here.
+ *   the rise      the plate hangs from a world point above the flagpole
+ *                 (`BANNER_RISE`), so the pieces' own roundels stand on the
+ *                 tile beneath it. Zoom the board and the pair keeps its
+ *                 arrangement, which is the property a margin in pixels could
+ *                 never have — and is why the old one was wrong.
+ *   the stack     one piece, then two, then three. `placePiece` fans them round
+ *                 the tile centre, so three tags read as three, which is the
+ *                 "it needs to scale with multiple units" half of the ruling.
+ *   the wound     a hurt piece carries its hit bar above its roundel, and that
+ *                 bar has to clear the plate too. The knob halves the stack's
+ *                 hit points; a whole piece draws no bar at all, which is the
+ *                 board's own rule (`hpBarFill`) and not this page's.
  */
-function cityGarrisonStall(into: HTMLElement): void {
+function bannerAnchorStall(into: HTMLElement): void {
   const root = block(
     into,
-    'The city banner’s garrison',
-    'A roundel at the pill’s hoist, beside the size badge and on its box, carrying the badge of whatever is standing on the town’s hex — the same mark that piece wears on the board, masked in the plate’s ink on a disc of parchment rimmed in the piece’s own seat colour, so a captured town garrisoned by its captor is plainly somebody else’s. The strongest piece takes the slot and a numeral bosses the corner once more than one is in; a civilian’s nothing still wins an empty field, because a town held by one worker is a town nobody is holding. Press your own piece’s icon to pick that piece up; the piece itself wears no roundel on the board while the plate is carrying one.',
+    'The banner over its town',
+    'The plate is anchored at a world point above the town’s flagpole and hung from it, so everything standing on the hex — each piece’s roundel, and the hit bar over a hurt one — reads underneath it at every zoom. Take the zoom knob to the ends and the arrangement holds: it is two world points through one camera, never a margin in pixels. A stack fans out around the tile centre, which is how several pieces in one town stay countable.',
   );
   const grid = stallGrid(root);
-  const cell = stall(grid, 'held, and by whom');
-  const ground = element('div', 'banner-ground');
+  const cell = stall(grid, 'the plate, and what is under it');
+  const stage = element('div', 'banner-stage');
+  const canvas = element('canvas', 'banner-canvas');
+  // The banners are DOM over the canvas, exactly as they are in the game: a
+  // layer covering the viewport, pointer-transparent except on the pills.
+  const overlay = element('div', 'banner-overlay');
+  stage.append(canvas, overlay);
+  cell.append(stage);
 
-  const state = newGame({
-    seed: 11,
+  const game = createGame({
+    seed: 5,
     sizeName: 'duel',
     players: [
       { name: 'Seat 1', color: '#b3402f', isHuman: true },
       { name: 'Seat 2', color: '#2f6fb3', isHuman: true },
     ],
   });
-  state.map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+  const state = game.state;
+  state.map = createMap({ width: 9, height: 7, terrain: 'grassland' });
   state.units.length = 0;
   state.cities.length = 0;
   state.camps.length = 0;
   state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  // The grids are sized to the map they were made for, and the table above is
+  // not that map — `cityStage.ts` does the same, for the same reason.
   resetVisibility(state);
-  const town = foundCityAt(state, 0, getTileAt(state.map, 3, 3)!);
+  const town = foundCityAt(state, 0, getTileAt(state.map, 4, 3)!);
 
-  const slot = buildGarrison();
-  const banner = element('div', 'city-banner is-mine is-held');
-  banner.style.setProperty('--banner-color', '#b3402f');
-  const size = element('span', 'city-banner-size');
-  size.append(element('span', 'city-banner-pop', '5'));
-  // The hoist arrangement (U6): the two discs open the plate, at one diameter,
-  // and the name follows them. The order here *is* the order in the game —
-  // `cityBanners.ts` appends the same six children in the same sequence.
-  banner.append(
-    size,
-    slot.root,
-    element('span', 'city-banner-name', 'Lagash'),
-    element('span', 'city-banner-production', 'Warrior · 4t'),
-  );
-  const holder = element('div', 'banner-slot');
-  holder.append(banner, element('span', 'banner-caption', 'the plate'));
-  ground.append(holder);
-  cell.append(ground);
+  /** The knobs' whole state: how many pieces are in, and whether they are hurt. */
+  let standing = 2;
+  let wounded = false;
+  /** The stack, in the order it fills: a soldier, a civilian, then a caravan. */
+  const ROSTER: UnitTypeId[] = ['warrior', 'worker', 'trader'];
 
-  /** The knobs' whole state: a roster row, a count, and whose the pieces are. */
-  let type: UnitTypeId = 'warrior';
-  let count = 1;
-  let seat = 0;
+  const renderer = new Renderer3D(canvas);
+  // The local seat's own eyes, which is the gate the banner's `watched` rule
+  // reads and the gate this layer draws pieces through.
+  renderer.setFogSeat(0);
 
-  const repaint = (): void => {
+  const banners = createCityBanners({
+    container: overlay,
+    renderer,
+    getGame: () => game,
+    localPlayerId: () => 0,
+    // A stall has no city screen to open and no board hover to light, so both
+    // seams are stubs — the pill is here to be looked at, not pressed.
+    onOpenCity: () => {},
+    openCity: () => null,
+  });
+
+  const restock = (): void => {
     state.units.length = 0;
-    for (let i = 0; i < count; i += 1) createUnit(state, seat, type, town.col, town.row);
-    const held = garrisonSlot(state, state.units);
-    paintGarrison(slot, held);
-    // Whether the icon is a control, from the shipping predicate rather than
-    // from `seat === 0` written here: the page shows the cursor the game shows,
-    // and it does not own a second copy of who may press what.
-    slot.root.classList.toggle('is-own', garrisonSelectable(held, 0, false));
-    banner.classList.toggle('is-held', state.units.length > 0);
+    for (let i = 0; i < standing; i += 1) {
+      const unit = createUnit(state, 0, ROSTER[i]!, town.col, town.row);
+      // Halved through the sim's own maximum: a bar is drawn iff a piece is hurt
+      // (`hpBarFill`), and this page must not invent a fraction of its own.
+      if (wounded) unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 2));
+    }
+    renderer.setGameState(state);
+    banners.refresh();
   };
-  repaint();
+
+  // One frame-listener slot, and on this page one thing wants the beat.
+  renderer.setFrameListener(() => banners.reposition());
+  restock();
+  // The board's own opening camera, pointed at the town — the same framing a new
+  // game boots at, so what this stall shows is the zoom the plate is judged at.
+  renderer.focusOpening({ col: town.col, row: town.row });
+  // The canvas is sized by CSS inside a grid, so its box can settle *after* the
+  // renderer was built — a window listener alone would leave the board at one
+  // pixel until somebody dragged the window. An observer on the element itself
+  // catches both, and the banners follow because a resize draws a frame.
+  new ResizeObserver(() => renderer.resize()).observe(canvas);
 
   const knobs = controls(root);
-  select(
+  slider(
     knobs,
     'standing here',
-    [
-      ['none', 'nothing'],
-      ['scout', 'a scout'],
-      ['worker', 'a worker'],
-      ['settler', 'a settler'],
-      ['trader', 'a caravan'],
-      ['greatPerson', 'a great person'],
-      ['warrior', 'a warrior'],
-      ['knight', 'a knight'],
-      ['galley', 'a galley'],
-    ],
-    'warrior',
-    (value) => {
-      // "Nothing" is the count at zero rather than a type of its own: the
-      // absence this stall has to show is the absence the game draws, which is
-      // `garrisonSlot` answering `null` to an empty hex.
-      if (value === 'none') count = 0;
-      else {
-        if (count === 0) count = 1;
-        type = value as UnitTypeId;
-      }
-      repaint();
+    { min: 0, max: 3, step: 1, value: standing },
+    (v) => (v === 0 ? 'empty' : `${v} in`),
+    (v) => {
+      standing = v;
+      restock();
     },
   );
-  slider(knobs, 'how many', { min: 0, max: 5, step: 1, value: 1 }, (v) => (v === 0 ? 'empty' : `${v} in`), (v) => {
-    count = v;
-    repaint();
+  checkbox(knobs, 'hurt', false, (on) => {
+    wounded = on;
+    restock();
   });
-  // Whose the *piece* is, which is not always whose the town is — the one thing
-  // a rim in the town's colour could never say.
-  checkbox(knobs, 'somebody else’s', false, (on) => {
-    seat = on ? 1 : 0;
-    repaint();
-  });
+  // The knob the whole stall is for. `zoomBy` is relative and the board's own,
+  // so the slider carries the factor it last applied rather than a frustum of
+  // its own — the camera stays the only thing that knows how close it is.
+  let zoom = 1;
+  slider(
+    knobs,
+    'zoom',
+    { min: 0.5, max: 2.2, step: 0.05, value: zoom },
+    (v) => `${v.toFixed(2)}×`,
+    (v) => {
+      renderer.zoomBy(v / zoom, canvas.clientWidth / 2, canvas.clientHeight / 2);
+      zoom = v;
+    },
+  );
 }
 
 /**

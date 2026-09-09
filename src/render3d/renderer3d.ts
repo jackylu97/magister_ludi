@@ -1217,8 +1217,17 @@ export class Renderer3D implements MapView {
    * anchored at its city's *centre* but is wider and taller than the point, so
    * culling exactly at the viewport edge would pop one out while half of it was
    * still visible.
+   *
+   * `rise` lifts the point along **world Y** before it is projected, and the
+   * default of nothing is the tile's own top face — which is what the badge hit
+   * test, the price plates and the damage figures all want. The city banner is
+   * the one caller that passes anything: it hangs its plate above the flagpole
+   * so the pieces' own roundels stand on the tile beneath it (the user, U7 —
+   * `ui/cityBanners.ts`, "Where the plate hangs"). A rise rather than a second
+   * projector because it is the same question about a different point, and the
+   * wrap resolution above is the part that must not be copied.
    */
-  projectCell(col: number, row: number): ScreenPoint | null {
+  projectCell(col: number, row: number, rise = 0): ScreenPoint | null {
     if (!this.map) return null;
     const tile = getTileAt(this.map, col, row);
     if (!tile) return null;
@@ -1229,7 +1238,7 @@ export class Renderer3D implements MapView {
     let delta = (((centre.x - reference) % period) + period) % period;
     if (delta > period / 2) delta -= period;
 
-    const point = this.projectPoint({ x: reference + delta, y: tileTopY(tile), z: centre.z });
+    const point = this.projectPoint({ x: reference + delta, y: tileTopY(tile) + rise, z: centre.z });
     return {
       x: point.x,
       y: point.y,
