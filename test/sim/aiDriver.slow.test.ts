@@ -49,7 +49,12 @@ describe('the march is re-asked on a played board (X7)', () => {
           commands += 1;
           if (!step.decision.summary.startsWith('Re-asks a piece already under orders')) continue;
           reissues += 1;
-          const unitId = (step.decision.command as { unitId?: number }).unitId;
+          // A settler's answer is `foundCity`, whose piece is `settlerUnitId`; every
+          // other re-asked order names its `unitId`. Two settlers re-asked in one
+          // seat-turn used to share the key "undefined" and read as one piece
+          // asked twice (2026-09-09, the X1d landing).
+          const order = step.decision.command as { unitId?: number; settlerUnitId?: number };
+          const unitId = order.unitId ?? order.settlerUnitId;
           const key = `${step.turn}/${step.playerId}/${String(unitId)}`;
           asked.set(key, (asked.get(key) ?? 0) + 1);
         }
