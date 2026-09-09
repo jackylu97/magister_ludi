@@ -593,15 +593,7 @@ directly to confirm rulings — user marginalia are rulings.
   progress as the mean age, the choice window, the deck scaling off the
   world, what a malice is, reckonings retiring. Awaiting marginalia; the
   batches are G1 clock → G2 deal → G3 malice → W2 bots. The Abacus
-  world-clock ruling folds into its §1 — and is **SETTLED** by **G1**
-  (landed 2026-09-09, schema 101): the world's age is the **mean** of every
-  living real seat's highest technology, floored, given
-  `rules.wager.countdown` (10) turns' notice before it closes; the bead
-  tables that opened "on the world's clock" open on that clock now. The
-  first-seat rule (`BeadTable.worldAge`) is retired, `GameState.ageClose` is
-  the one absolute stamp, `ageClosed` joins the occasion union and the top
-  bar carries an age card with the countdown. `worldTechReached` is *not*
-  the clock and stays first-seat: the Opus door does not move. (ggg) **The bot's second pass**
+  world-clock ruling folds into its §1. (ggg) **The bot's second pass**
   (the user, 2026-09-08: "do a pass on the bot considering all the changes
   we've made … squeeze as much performance as possible out of the bots …
   variables that are missing from its evaluation"): the audit is
@@ -1076,7 +1068,18 @@ directly to confirm rulings — user marginalia are rulings.
   than a meter line) and a capture has no `CommandResult` channel (the
   sheet infers it as the toast does) — a `captures?:` field. The
   spectate feed's great-person summary (`greatPersonCommand`, `bot.ts`)
-  still says act/work — R1's fence. **V2 (heraldry)** — (7) *"the
+  still says act/work — R1's fence. **(6) rebuilt again as U6** (the user,
+  2026-09-09: "I don't like that placement … too subtle to spot … double
+  check how Civ 5 handles it"): Civ V's city bar carries the **garrisoned
+  unit's icon at the top left**, distinct and clickable (selecting the
+  unit), and the unit's own flag is not drawn while it stands in the
+  city — the banner's icon *is* the unit. Ruled the same: the garrison
+  icon moves to the **hoist** (the left, beside the size badge), the
+  size of the size badge, in the piece's seat ink with its badge mark,
+  clickable to select the piece (the unit panel opens); and the piece's
+  own roundel in the scene is **hidden** while it stands on a city hex
+  whose banner shows it (the sculpt stays), so one icon is drawn in one
+  place. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if
