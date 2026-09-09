@@ -1068,18 +1068,39 @@ directly to confirm rulings — user marginalia are rulings.
   than a meter line) and a capture has no `CommandResult` channel (the
   sheet infers it as the toast does) — a `captures?:` field. The
   spectate feed's great-person summary (`greatPersonCommand`, `bot.ts`)
-  still says act/work — R1's fence. **(6) rebuilt again as U6** (the user,
-  2026-09-09: "I don't like that placement … too subtle to spot … double
-  check how Civ 5 handles it"): Civ V's city bar carries the **garrisoned
-  unit's icon at the top left**, distinct and clickable (selecting the
-  unit), and the unit's own flag is not drawn while it stands in the
-  city — the banner's icon *is* the unit. Ruled the same: the garrison
-  icon moves to the **hoist** (the left, beside the size badge), the
-  size of the size badge, in the piece's seat ink with its badge mark,
-  clickable to select the piece (the unit panel opens); and the piece's
-  own roundel in the scene is **hidden** while it stands on a city hex
-  whose banner shows it (the sculpt stays), so one icon is drawn in one
-  place. **V2 (heraldry)** — (7) *"the
+  still says act/work — R1's fence. **(6) rebuilt as U5 and again as U6,
+  2026-09-09.** U4 hung the badge as a drawn 3D mark over the flagpole
+  and the user could not see it (*"I can't see it with the opening
+  scout"*), for a structural reason: the banner is a **DOM plate over the
+  canvas** covering the town's own hex, so a mark at the pole's height is
+  behind it exactly as the piece's own sculpt is. **U5** set the badge
+  *into the plate* — the strongest piece's own badge file (civilians
+  included; a ship's mark composed from the atlas's own two tables)
+  masked in the plate's ink on a disc of parchment rimmed in the
+  **piece's** seat colour, a numeral bossing the corner past one, on the
+  banner's watched gate (nothing on a remembered town) and in the plate's
+  own signature; `render3d/garrison3d.ts` retired with its wiring and its
+  `view3d.json` keys, the flair gallery's tag sliders replaced by a
+  garrison stall on the banner itself. **U6** answered the user's second
+  look — the fly was still too subtle to spot, and Civ V's arrangement is
+  the one wanted (the icon at the **top left**, distinct and clickable,
+  and the unit's own flag not drawn while it stands in the town): the
+  roundel moved to the **hoist**, between the size badge and the name, on
+  the size badge's own 26px box, so the plate opens with two discs of one
+  diameter — how big the town is, and what is standing in it; the wound's
+  *left* inset clears both and U5's right-hand override is gone. It is a
+  **control**: a press on your own piece's icon selects that piece
+  through `selectOnTile` (`controls.selectUnitAt`), the board badge's own
+  path, so the plate and the tag cycle a stack in one order — a rival's
+  icon shows, does nothing, and says so with the cursor. And the piece's
+  own floating roundel is **off** while the banner carries it
+  (`banneredTownCells`, `render3d/pieces.ts`), filtered at build rather
+  than bitted on the handle — the three bits in `instances.ts` are the
+  *board's*, which is built once per game, while this layer is rebuilt on
+  every move and every fog step — on the banner's own watched gate, so a
+  remembered town's piece keeps its tag; the **sculpt stays**, and the
+  badge's click target goes with the badge. One badge, one place, in both
+  directions. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if

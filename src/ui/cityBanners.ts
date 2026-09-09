@@ -146,6 +146,37 @@
  * came **into the plate**, the 3D layer was retired, and there is one badge in
  * one place — which is what Civ draws, and for this reason.
  *
+ * U5 set it at the pill's **fly**, after the queue, at a disc of twenty pixels,
+ * and the user could still not spot it (2026-09-09, `docs/flags.md` (hhh) 6
+ * again): the fly is the end of a pill whose length is the town's name, so the
+ * one mark on the plate that answers "is anything holding this" sat wherever the
+ * name happened to stop, at two thirds the size of the figure beside it. U6 puts
+ * it where Civ V has always had it — **the hoist**, immediately after the size
+ * roundel and before the name, on the size badge's own box — so the plate opens
+ * with two discs of the same diameter: how big the town is, and what is standing
+ * in it. The wound on the foot follows: its *left* inset clears both now, where
+ * U5 had moved the right one to clear the fly.
+ *
+ * Three consequences, and all three are the same idea — **the banner's icon is
+ * the piece**:
+ *
+ *   it is a control  a press on your own piece's icon selects that piece, by the
+ *                    tile it stands on and not by the badge that was struck
+ *                    (`selectOnTile` in `controls.ts`, the board badge's own
+ *                    path, so the pill and the tag cycle a stack the same way).
+ *                    A rival's icon is not a control: it shows, it does nothing,
+ *                    and the cursor says so — which is the `mine` rule this
+ *                    banner has always kept for its buttons.
+ *   the piece's own roundel goes  while the banner is carrying it. The *sculpt*
+ *                    stays — the piece is still standing on the map — but its
+ *                    floating tag would be a second copy of this one, hidden
+ *                    behind this very plate, which is the whole of U5's
+ *                    complaint. The rule lives with the layer that draws the tag
+ *                    (`render3d/pieces.ts`, `banneredTownCells`) and follows
+ *                    this gate exactly: a remembered town shows no garrison, so
+ *                    a piece on one keeps its roundel.
+ *   one badge, one place  the U4 ruling, now true in both directions.
+ *
  * What it says, and what it deliberately does not:
  *
  *   one badge      the **strongest** piece standing on the town's own hex
@@ -273,6 +304,19 @@ export interface CityBannersOptions {
    * its name rather than on its ground.
    */
   onHoverCity?: (cityId: number | null) => void;
+  /**
+   * The player pressed the garrison icon on a banner: select what is standing
+   * on that town's hex.
+   *
+   * The **tile** rather than the unit, deliberately, and it is the board badge's
+   * own rule read one surface over (`selectOnTile` in `controls.ts`): a stack is
+   * cycled by repeated presses on the hex it stands on, so a plate that named a
+   * unit id would hand the player a different cycling order than the tag over
+   * the same pieces does.
+   *
+   * Only ever called for the local seat's own piece — see `garrisonSelectable`.
+   */
+  onSelectGarrison?: (col: number, row: number) => void;
 }
 
 export interface CityBanners {
@@ -693,6 +737,30 @@ export function garrisonSlot(
 }
 
 /**
+ * Whether this slot is a **control** for this seat, or only a reading.
+ *
+ * Three clauses, and each is a rule this card already keeps somewhere else:
+ * there is something in there at all; the plate is live rather than a memory (a
+ * banner drawn from `citySightings` is never a button — there is nothing to
+ * select on ground nobody is watching, and the piece may have marched off twenty
+ * turns ago); and the piece is **this seat's own**, read off the *unit* rather
+ * than off the town, because a captured town garrisoned by its captor wears the
+ * captor's icon and a player may only command their own pieces.
+ *
+ * Pure and exported for the reason `healthBar` and `growthRing` are: what a
+ * press does is the part of this that can be quietly wrong on every banner at
+ * once, and the suite that pins it cannot mount a DOM.
+ */
+export function garrisonSelectable(
+  slot: GarrisonSlot | null,
+  seat: number,
+  stale: boolean,
+): boolean {
+  if (slot === null || stale) return false;
+  return slot.ownerId === seat;
+}
+
+/**
  * What a live, watched city's banner says.
  *
  * Production and its turn estimate are computed from the same functions the
@@ -1022,8 +1090,16 @@ export function paintGarrison(parts: GarrisonParts, slot: GarrisonSlot | null): 
 }
 
 export function createCityBanners(options: CityBannersOptions): CityBanners {
-  const { container, renderer, getGame, localPlayerId, onOpenCity, openCity, onHoverCity } =
-    options;
+  const {
+    container,
+    renderer,
+    getGame,
+    localPlayerId,
+    onOpenCity,
+    openCity,
+    onHoverCity,
+    onSelectGarrison,
+  } = options;
   const banners = new Map<number, Banner>();
 
   function build(cityId: number): Banner {
@@ -1053,17 +1129,17 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     size.append(ring.svg, pop);
     const production = document.createElement('span');
     production.className = 'city-banner-production';
-    // At the fly, after the queue: the reading order is whose town, what it is
-    // called, what it is doing, and then who is standing in it — and the fly is
-    // where Civ puts it, which is a convention worth keeping rather than
-    // re-litigating.
+    // At the **hoist**, between the size roundel and the name (U6): the two
+    // discs that open the plate are how big the town is and what is standing in
+    // it, at one diameter, in the corner the eye lands on. See "The garrison
+    // slot" for what the fly cost.
     const garrison = buildGarrison();
     // Last in the DOM and first on the eye: the channel is positioned on the
     // pill's foot rather than laid out in its row, so the order here is the
     // reading order — name, queue, and then the wound underneath both.
     const health = buildHealthBar();
 
-    root.append(size, name, yoke, production, garrison.root, health.root);
+    root.append(size, garrison.root, name, yoke, production, health.root);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -1111,6 +1187,9 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     const { state } = getGame();
     const seen = new Set<number>();
+    // Whose screen this is, read once for the sweep: the ring, the queue and now
+    // the icon's press all turn on it, and it can change under a banner.
+    const seat = localPlayerId();
 
     for (const facts of visibleBanners()) {
       seen.add(facts.cityId);
@@ -1216,6 +1295,21 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // never a button either — there is no panel to open on a memory.
       banner.root.onclick =
         facts.mine && !facts.stale ? () => onOpenCity(facts.cityId) : null;
+
+      // And the icon at the hoist, on the same beat and for the same reason —
+      // the piece in a town changes far more often than the town does. The class
+      // is what gives the disc the pointer back (the pill takes it away on
+      // everybody else's banner) and what says so with the cursor; the handler
+      // stops the press reaching the pill under it, or selecting a piece would
+      // also open the city screen it is standing in.
+      const own = garrisonSelectable(facts.garrison, seat, facts.stale);
+      banner.garrison.root.classList.toggle('is-own', own);
+      banner.garrison.root.onclick = own
+        ? (event: MouseEvent) => {
+            event.stopPropagation();
+            onSelectGarrison?.(facts.col, facts.row);
+          }
+        : null;
     }
 
     for (const [id, banner] of [...banners]) {

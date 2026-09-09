@@ -29,6 +29,7 @@ import {
   buildGarrison,
   buildHealthBar,
   cityHealthBar,
+  garrisonSelectable,
   garrisonSlot,
   paintGarrison,
   paintHealthBar,
@@ -242,8 +243,14 @@ function cityBannerStall(into: HTMLElement): void {
  * covers the town's hex, so a mark at the pole's height is behind it. It earns a
  * stall of its own for the wound's second reason: in a game the slot is only
  * ever the one thing that happens to be standing in a town, and the question it
- * has to answer — *can I tell a scout from a worker from a warrior at thirteen
+ * has to answer — *can I tell a scout from a worker from a warrior at seventeen
  * pixels, and whose is it* — is a question about the marks side by side.
+ *
+ * U6 moved it to the **hoist** and grew it to the size badge's own box, the user
+ * having found it too subtle at the fly, and this stall shows that arrangement:
+ * the two discs first, at one diameter, then the name. On the board the piece
+ * standing there now wears no roundel of its own — one badge, one place, in both
+ * directions (`render3d/pieces.ts`, "The one piece that wears no badge").
  *
  * Real pieces on a real town (`createUnit` on a `foundCityAt` town) and the
  * shipping derivation (`garrisonSlot`, `strongestGarrison`) rather than a
@@ -255,7 +262,7 @@ function cityGarrisonStall(into: HTMLElement): void {
   const root = block(
     into,
     'The city banner’s garrison',
-    'A roundel at the pill’s fly carrying the badge of whatever is standing on the town’s hex — the same mark that piece wears on the board, masked in the plate’s ink on a disc of parchment rimmed in the piece’s own seat colour, so a captured town garrisoned by its captor is plainly somebody else’s. The strongest piece takes the slot and a numeral bosses the corner once more than one is in; a civilian’s nothing still wins an empty field, because a town held by one worker is a town nobody is holding.',
+    'A roundel at the pill’s hoist, beside the size badge and on its box, carrying the badge of whatever is standing on the town’s hex — the same mark that piece wears on the board, masked in the plate’s ink on a disc of parchment rimmed in the piece’s own seat colour, so a captured town garrisoned by its captor is plainly somebody else’s. The strongest piece takes the slot and a numeral bosses the corner once more than one is in; a civilian’s nothing still wins an empty field, because a town held by one worker is a town nobody is holding. Press your own piece’s icon to pick that piece up; the piece itself wears no roundel on the board while the plate is carrying one.',
   );
   const grid = stallGrid(root);
   const cell = stall(grid, 'held, and by whom');
@@ -282,11 +289,14 @@ function cityGarrisonStall(into: HTMLElement): void {
   banner.style.setProperty('--banner-color', '#b3402f');
   const size = element('span', 'city-banner-size');
   size.append(element('span', 'city-banner-pop', '5'));
+  // The hoist arrangement (U6): the two discs open the plate, at one diameter,
+  // and the name follows them. The order here *is* the order in the game —
+  // `cityBanners.ts` appends the same six children in the same sequence.
   banner.append(
     size,
+    slot.root,
     element('span', 'city-banner-name', 'Lagash'),
     element('span', 'city-banner-production', 'Warrior · 4t'),
-    slot.root,
   );
   const holder = element('div', 'banner-slot');
   holder.append(banner, element('span', 'banner-caption', 'the plate'));
@@ -301,7 +311,12 @@ function cityGarrisonStall(into: HTMLElement): void {
   const repaint = (): void => {
     state.units.length = 0;
     for (let i = 0; i < count; i += 1) createUnit(state, seat, type, town.col, town.row);
-    paintGarrison(slot, garrisonSlot(state, state.units));
+    const held = garrisonSlot(state, state.units);
+    paintGarrison(slot, held);
+    // Whether the icon is a control, from the shipping predicate rather than
+    // from `seat === 0` written here: the page shows the cursor the game shows,
+    // and it does not own a second copy of who may press what.
+    slot.root.classList.toggle('is-own', garrisonSelectable(held, 0, false));
     banner.classList.toggle('is-held', state.units.length > 0);
   };
   repaint();

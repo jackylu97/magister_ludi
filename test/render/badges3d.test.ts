@@ -31,17 +31,20 @@ import {
   badgeClassFor,
   modelClassFor,
   pieceHeightFor,
+  unitSculpt,
 } from '../../src/render3d/board3d';
+import type { FogLevels } from '../../src/render3d/fog3d';
 import { atlasQuad, discRing } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
-import { UnitLayer, badgeAnchors } from '../../src/render3d/pieces';
+import { UnitLayer, badgeAnchors, banneredTownCells, signUnits } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
-import { createMap } from '../../src/sim/map';
-import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
+import { foundCityAt } from '../../src/sim/cities';
+import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { type GameState, barbarianPlayer, createUnit, newGame } from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from '../../src/sim/unitData';
-import { resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 
 /**
  * The floating unit badges.
@@ -1149,6 +1152,180 @@ describe('badges in the units layer', () => {
       expect(badgeHitRadius()).toBeGreaterThanOrEqual(BADGE.diameter / 2);
       expect(BADGE.hitboxScale).toBeGreaterThanOrEqual(1);
     });
+  });
+});
+
+/**
+ * The piece whose badge the banner is carrying (U6, `docs/flags.md` (hhh) 6).
+ *
+ * A unit standing in a town whose banner this seat can see wears **no roundel**:
+ * the city banner is a DOM plate over that very hex and is drawing the badge
+ * itself now (`ui/cityBanners.ts`, "The garrison slot"), so a tag here would be
+ * a second copy of it, hidden behind the thing that replaced it.
+ *
+ * What could go wrong, and is therefore held still: the *sculpt* going with the
+ * tag (the piece is still standing there); the tag never coming back when the
+ * piece steps off; and the gate drifting from the banner's own, which would take
+ * the roundel off a piece on a **remembered** town — whose plate carries no
+ * garrison at all, so nothing would be naming it anywhere.
+ */
+describe('the piece whose badge the banner is carrying', () => {
+  /** Two seats, a flat board, nothing on it. */
+  function board(): GameState {
+    const game = newGame({
+      seed: 7,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#d4502e', isHuman: true },
+        { name: 'B', color: '#2f6fb3', isHuman: true },
+      ],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = [];
+    return game;
+  }
+
+  function draw(game: GameState, levels: FogLevels, seat: number | null) {
+    const geometry = new BoardGeometry();
+    const layer = new UnitLayer();
+    layer.build(
+      game,
+      geometry,
+      new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000),
+      new Quaternion(),
+      false,
+      null,
+      fakeBadges(),
+      null,
+      levels,
+      null,
+      seat,
+    );
+    const meshes = layer.group.children.filter(
+      (c): c is InstancedMesh => c instanceof InstancedMesh,
+    );
+    return {
+      geometry,
+      layer,
+      discs: meshes.filter((m) => BADGE_CELLS.some((id) => geometry.badgeIcons[id] === m.geometry)),
+      rims: meshes.filter((m) => m.geometry === geometry.badgeRim),
+      sculpts: meshes.filter(
+        (m) => m.geometry === geometry.pieces[unitSculpt(game.units[0]!)].geometry,
+      ),
+    };
+  }
+
+  it('draws the sculpt and not the roundel for a piece in a watched town', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    createUnit(game, 0, 'warrior', town.col, town.row);
+    const drawn = draw(game, game.visibility[0]!, 0);
+    // The tag is gone — both halves of it, disc and rim, because half a badge is
+    // a ring of seat colour round nothing.
+    expect(drawn.discs).toHaveLength(0);
+    expect(drawn.rims).toHaveLength(0);
+    // And the piece is still standing there. `MESHES_PER_PIECE_BUCKET` is the
+    // sculpt's own three (body, outline shell, x-ray ghost).
+    expect(drawn.sculpts.length).toBeGreaterThan(0);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
+  });
+
+  /**
+   * And it comes back the way it went — no restore call, no fourth bit on the
+   * handle: the piece's `col`/`row` are in `signUnits`, so a step off the hex
+   * moves the fingerprint, the renderer rebuilds this layer, and the badge is
+   * simply added again.
+   */
+  it('gives the roundel back the moment the piece steps off the hex', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    const unit = createUnit(game, 0, 'warrior', town.col, town.row);
+    const inside = signUnits(game);
+    unit.col = town.col + 1;
+    // The step is a fingerprint change, which is what tells the renderer to
+    // rebuild at all — the rule above is worth nothing without this.
+    expect(signUnits(game)).not.toBe(inside);
+    const drawn = draw(game, game.visibility[0]!, 0);
+    expect(drawn.discs).toHaveLength(1);
+    expect(drawn.rims).toHaveLength(1);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
+  });
+
+  /**
+   * The gate is the banner's, clause for clause: **watched**, never merely
+   * explored. A remembered town's plate carries no garrison (an army is not
+   * something a chart remembers), so a piece drawn on one keeps the tag naming
+   * it — otherwise it would be named nowhere at all.
+   */
+  it('leaves the roundel on a piece standing in a town the seat only remembers', () => {
+    const game = board();
+    const town = foundCityAt(game, 1, getTileAt(game.map, 4, 4)!);
+    createUnit(game, 1, 'warrior', town.col, town.row);
+    // Seat 0 has seen that ground and is not watching it. Drawn with no fog
+    // grid, which is the one way a piece on unwatched ground reaches this layer.
+    game.visibility[0]![tileIndex(game.map, town.col, town.row)] = EXPLORED;
+    const drawn = draw(game, null, 0);
+    expect(drawn.discs).toHaveLength(1);
+    expect(drawn.rims).toHaveLength(1);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
+  });
+
+  /** No seat, no banners: the galleries' omniscient board hides nothing. */
+  it('hides no tag on a board with no seat looking at it', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    createUnit(game, 0, 'warrior', town.col, town.row);
+    expect(banneredTownCells(game, null).size).toBe(0);
+    const drawn = draw(game, null, null);
+    expect(drawn.discs).toHaveLength(1);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
+  });
+
+  /**
+   * The click target follows the drawing. A badge nobody can see is not
+   * something to aim at — `pickUnitBadge`'s own rule while the atlas is still
+   * loading — and the tile contract answers a press on that hex instead.
+   */
+  it('takes the badge’s click target away with the badge', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    const unit = createUnit(game, 0, 'warrior', town.col, town.row);
+    expect(badgeAnchors(game, 0, () => 1)).toHaveLength(0);
+    unit.col = town.col + 1;
+    // Three anchors, one per wrap copy, exactly as the layer emits three.
+    expect(badgeAnchors(game, 0, () => 1)).toHaveLength(3);
+  });
+
+  /**
+   * And **not** a fourth reason on the instance handle.
+   *
+   * The three bits in `instances.ts` (fog-hidden, suppressed, veiled) exist
+   * because the *board* is built once per game and can only be patched. This
+   * layer is rebuilt whenever any unit moves and whenever the fog does, and it
+   * already filters at build for exactly this kind of question — a unit out of
+   * sight is skipped, never bitted. A bit here would be board machinery on a
+   * layer that has none.
+   */
+  it('filters at build rather than growing a fourth bit on the handle', () => {
+    const sources = import.meta.glob('../../src/render3d/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const instances = Object.entries(sources).find(([path]) => path.endsWith('/instances.ts'))![1];
+    expect(instances).not.toMatch(/banner/i);
+    const pieces = Object.entries(sources).find(([path]) => path.endsWith('/pieces.ts'))![1];
+    // Hoisted once for the build, beside the hostile seats — never asked per
+    // piece.
+    expect(pieces).toMatch(/const bannered = banneredTownCells\(state, seat\)/);
+    expect(pieces).toMatch(/if \(badges && !held\)/);
   });
 });
 
