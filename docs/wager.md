@@ -197,20 +197,23 @@ reaches it, `worldTechReached`).
   empire by age; the bars are 1.5× that, or a floor where the bots are a poor
   yardstick — noted):
 
+[ i'm just going to guess at numbers, let's playtest these. Could you add a statistics dashboard when implementing these that appears in the menu, with a flag so that it only appears when i'm playtesting locally? ]
+
+[definitions: yields also include authority and happiness, when calculating 'total yields' ]
   | Wager | Family | The one number | What it takes to move it | mean II · III · IV | bar II · III · IV |
   |---|---|---|---|---|---|
-  | **The Caravanserai** | E | what your trade routes pay a turn, all voices | cities to run routes between, markets for the slots, buildings and luxuries at both ends, roads and safe roads | 0 · 5 · 7 *(bots barely trade — a human yardstick is owed)* | 6 · 20 · 40 |
-  | **The Renowned** | C | renown a turn | specialist buildings across every family, wonders, great persons' works, the Orders that feed them | 7 · 24 · 48 | 10 · 36 · 72 |
-  | **The Deck** | S | what your slotted Orders pay a turn (the Ledger's "your cards") | a government tier bought with culture, drafts taken well, Orders that multiply each other | 3 · 10 · 31 | 5 · 15 · 47 |
+  | **The Caravanserai** | E | total yields from trade routes | cities to run routes between, markets for the slots, buildings and luxuries at both ends, roads and safe roads | 0 · 5 · 7 *(bots barely trade — a human yardstick is owed)* | 50 · 100 · 400 |
+  | **The Renowned** | C | total banked renown | specialist buildings across every family, wonders, great persons' works, the Orders that feed them | 80 250 1000 
+  | **The Deck** | S | what your government yields, total | a government tier bought with culture, drafts taken well, Orders that multiply each other | 150 · 500 · 1500
   | **The Builders** | E | what your buildings pay a turn (the Ledger's buildings class) | many cities, each built up, the shares that multiply them | 11 · 47 · 136 | 17 · 70 · 200 |
-  | **The Solvent Realm** | E | gold a turn **after** every bill (maintenance of units, roads and buildings, tributes) | markets and routes and connections against a levy kept in proportion — the check a warmonger and a builder each fail from one side | −5 · +5 · +13 *(bots run in the red; the bar is a floor)* | +5 · +20 · +50 |
-  | **The Six Voices** | — | food, production, gold, science, culture and faith a turn, summed | width and height at once; nothing neglected | 95 · 312 · 841 | 140 · 470 · 1 260 |
-  | **The Lettered** | S | specialists at work | buildings with seats and the food surplus to fill them | 1 · 6 · 12 | 2 · 8 · 18 |
-  | **The Contented Trade** | E | happiness paid by luxuries | improved luxury tiles, the reveal technologies, workers with charges, lends from rivals, the Grand Bazaar | 8 · 27 · 69 | 12 · 40 · 100 |
-  | **The Marvels' Pay** | C | what your wonders pay a turn | wonders raised in their age, in towns that keep them | 5 · 33 · 68 | 7 · 50 · 100 |
-  | **The Tithe** | C | what your religion pays a turn (the Ledger's religion class) | a pantheon and a faith founded, beliefs that pay, temples in following towns | 0 · 6 · 34 | — · 9 · 50 |
-  | **The Worked Land** | E | citizens working an **improved** hex | growth, workers, charges, the technologies that open each improvement | *not measured* | — |
-  | **The King's Roads** | E | gold from city connections (the ledger's own line) | a wide realm joined to its capital by road, kept paved | *not measured* | — |
+  | **The Solvent Realm** | E | total gold accumulated | markets and routes and connections against a levy kept in proportion — the check a warmonger and a builder each fail from one side | −5 · +5 · +13 *(bots run in the red; the bar is a floor)* | 500 2000 8000 |
+  | **The Six Voices** | — | food, production, gold, science, culture and faith a turn, summed | width and height at once; nothing neglected | 95 · 312 · 841 | 1000 · 5000 · 25000 | 
+  | **The Lettered** | S | specialists at work | buildings with seats and the food surplus to fill them | 1 · 6 · 12 | 2 · 8 · 18 | [remove, specialists are too low agency for a victory condition]
+  | **The Contented Trade** | E | happiness paid by luxuries | improved luxury tiles, the reveal technologies, workers with charges, lends from rivals, the Grand Bazaar | 8 · 27 · 69 | 12 · 40 · 100 | [remove, too map dependent]
+  | **The Marvels' Pay** | C | what your wonders pay, accumulated | wonders raised in their age, in towns that keep them | 5 · 33 · 68 | 60 250 1000 | 
+  | **The Tithe** | C | what your religion pays a turn (the Ledger's religion class) | a pantheon and a faith founded, beliefs that pay, temples in following towns | 0 · 6 · 34 | — · 125 · 800 | [age 3 and up only]
+  | **The Worked Land** | E | total yields from tiles in your capital [this is the tile-maxxing strategy]
+  | **The King's Roads** | E | gold from city connections, total | a wide realm joined to its capital by road, kept paved | *not measured* | — |
 
   These sit beside the compound wagers above rather than replacing them: a
   compound wager names the arenas, a competency check hides them inside one
@@ -232,20 +235,20 @@ reaches it, `worldTechReached`).
 
   | Line | Wager | The one number | The skills it takes | bar II · III · IV |
   |---|---|---|---|---|
-  | 🌱 The Green Belt | **The Great City** | citizens in your largest city, **every one working** (no idle citizen) | fresh water, a granary and an aqueduct, farms improved, the happiness to keep growing, the luxuries behind it | 12 · 18 · 26 |
+  | 🌱 The Green Belt | **The Great City** | citizens in your largest city | fresh water, a granary and an aqueduct, farms improved, the happiness to keep growing, the luxuries behind it | 12 · 21 · 30 |
   | 🌾 The Ploughshare | **The Harvest** | food paid by **farms** a turn, across the realm | farms built and worked, the river and the Cistern, Harvest Blessing and the farm Orders, citizens placed on them | 20 · 60 · 140 |
-  | ⛰ The Highlands | **The Quarrymen** | production paid by **hills and mines** a turn | hill towns founded, mines dug, veins surfaced, Mountain Hold and The Deep Delving, citizens on the slopes | 15 · 50 · 120 |
-  | 🐫 The Long Caravan | **The Bazaar** | happiness paid by luxuries **plus** gold paid by luxuries, a turn | improved luxury tiles, the reveal technologies, workers, lends from rivals, the Grand Bazaar, Salt Tithes | 10 · 35 · 90 |
-  | ⚓ The Tide | **The Admiralty** | what your trade routes pay a turn, **from coastal cities** | harbours and lighthouses, fishing boats worked, routes sent by sea, the Tide Orders | 4 · 15 · 30 |
-  | ✶ The Star Chart | **The Observatory** | science a turn **per citizen** — the efficiency, not the mass | libraries and universities in every town, scholars seated, the science Orders, the Star Chart's shares; a wide realm of unschooled towns fails it | 1.5 · 2.5 · 4 |
-  | ☽ The Cloister | **The Scriptorium** | science paid by **faith buildings** a turn (Cathedrals of the Sky, The Curia, The Scriptoria, the consecrated Cathedral) | a religion founded and kept, temples and cathedrals raised, the beliefs and Orders that make faith pay learning | 4 · 15 · 40 |
-  | 🕯 The Procession | **The Tide of Faith** | cities in the world that **converted to your faith this age** (a flow of the tide, not a standing count) | a holy site placed well, pressure buildings, the road and the caravan clauses, lumps and proclamations timed | 3 · 5 · 8 |
-  | 🏛 The Marble Court | **The Patronage** | renown a turn **plus** the works standing (each work counted as five) | specialist buildings across families, wonders, great people called and placed, the court Orders | 15 · 50 · 100 |
-  | 📜 The Charter | **The Founders** | cities founded this age **with authority never negative** at the age's close — a count that resets to nought the turn the writ overruns | settlers timed to the writ, monuments and charters raised ahead of the towns, the Charter Orders, the palace's six spent well | 2 · 3 · 4 |
-  | ⚒ The Forge Levy | **The Arsenal** | hammers put into **units** this age, across the realm | wide production, barracks and forges, the levy Orders, an army actually raised rather than a treasury hoarded | 150 · 600 · 1 800 |
-  | 🎖 The Banner | **The Field of Glory** | rival units killed this age **minus** units lost — the exchange, not the body count | choosing the ground, ranged before melee, generals, the war Orders, the campaign pressed and then stopped | +3 · +6 · +10 |
-  | 🏹 The Wild Hunt | **The Warden** | barbarian camps cleared this age **plus** raiders killed, weighted (a camp three, a raider one) | scouting the fog, a standing levy, the hunt Orders, the Horde's surge answered within its grace | 6 · 12 · 20 |
-  | 🧭 The Wayfarers | **The Cartographers** | veins **surfaced** this age plus rivals' capitals **sighted** (each five) | explorers kept ranging, Prospecting, the map read and the world met | 3 · 6 · 9 |
+  | ⛰ The Highlands | **The Quarrymen** | production paid by **hills and mines** a turn | hill towns founded, mines dug, veins surfaced, Mountain Hold and The Deep Delving, citizens on the slopes | 15 · 50 · 120 | [remove, not enough mines +production abilities in the game, keep on the backburner]
+  | 🐫 The Long Caravan | **The Bazaar** | happiness paid by luxuries **plus** gold paid by luxuries, a turn | improved luxury tiles, the reveal technologies, workers, lends from rivals, the Grand Bazaar, Salt Tithes | 10 · 35 · 90 | [remove]
+  | ⚓ The Tide | **The Admiralty** | what your trade routes pay a turn, **from coastal cities** | harbours and lighthouses, fishing boats worked, routes sent by sea, the Tide Orders | 4 · 15 · 30 | [remove]
+  | ✶ The Star Chart | **The Observatory** | science a turn **per citizen** — the efficiency, not the mass | libraries and universities in every town, scholars seated, the science Orders, the Star Chart's shares; a wide realm of unschooled towns fails it | 1.5 · 2.5 · 4 | [this is great]
+  | ☽ The Cloister | **The Scriptorium** | science paid by **faith buildings** a turn (Cathedrals of the Sky, The Curia, The Scriptoria, the consecrated Cathedral) | a religion founded and kept, temples and cathedrals raised, the beliefs and Orders that make faith pay learning | 4 · 15 · 40 | [great]
+  | 🕯 The Procession | **The Tide of Faith** | cities in the world that **converted to your faith this age** (a flow of the tide, not a standing count) | a holy site placed well, pressure buildings, the road and the caravan clauses, lumps and proclamations timed | 3 · 5 · 8 | [remove]
+  | 🏛 The Marble Court | **The Patronage** | renown a turn **plus** the works standing (each work counted as five) | specialist buildings across families, wonders, great people called and placed, the court Orders | 15 · 50 · 100 | [great]
+  | 📜 The Charter | **The Founders** | cities founded this age **with authority never negative** at the age's close — a count that resets to nought the turn the writ overruns | settlers timed to the writ, monuments and charters raised ahead of the towns, the Charter Orders, the palace's six spent well | 2 · 4 | [remove: with authority never negative, only age 2 and age 3, settling new cities disadvantageous in age 4]
+  | ⚒ The Forge Levy | **The Arsenal** | hammers put into **units** this age, across the realm | wide production, barracks and forges, the levy Orders, an army actually raised rather than a treasury hoarded | 150 · 600 · 1 800 | [great]
+  | 🎖 The Banner | **The Field of Glory** | rival units killed this age **minus** units lost — the exchange, not the body count | choosing the ground, ranged before melee, generals, the war Orders, the campaign pressed and then stopped | +3 · +6 · +10 | [great]
+  | 🏹 The Wild Hunt | **The Warden** | barbarian camps cleared this age **plus** raiders killed, weighted (a camp three, a raider one) | scouting the fog, a standing levy, the hunt Orders, the Horde's surge answered within its grace | 6 · 12 · 20 | [remove]
+  | 🧭 The Wayfarers | **The Cartographers** | veins **surfaced** this age plus rivals' capitals **sighted** (each five) | explorers kept ranging, Prospecting, the map read and the world met | 3 · 6 · 9 | [remove, we removed veins]
   | 🜍 The Athanor | **The Great Work** | *(the last age's own — the Opus is its check; no wager)* | — | — |
 
   What makes these skill checks rather than meters: **The Observatory** is a
@@ -273,6 +276,87 @@ reaches it, `worldTechReached`).
   the deal to the close (`Player.wagerBanked`, absolute stamps, nothing
   ticks); a wager over a *standing* ("12 citizens in one city") reads the
   board at the close.
+
+### 3b. The consolidation — a proposed cut/keep list (2026-09-08)
+
+After the user's marks the pool stands at **41** cards (12 generic, 3
+survivors, 9 compound, 10 competency, 7 theme). A game deals nine (three
+ages × three), so a pool of ~24 gives a different hand every game without
+diluting the ones that matter. The cut principle: **one reading, one card**
+— where a generic row and a competency or theme row read the same number,
+the one with the skill framing stays; where the user has ruled a mechanic
+out (religious spread, luxury deals, specialists), every row leaning on it
+goes. ▢ Mark each row; (rec) stands unless overruled.
+
+**Keep — 25.** Family in the second column (D · C · S · E), the line it is
+dealt under in the third (the deal guarantee reads lines).
+
+| Wager | Fam | Line | Reads | II · III · IV |
+|---|---|---|---|---|
+| The Capital of the World | C | 🌱 Green Belt | capital holds N citizens, M buildings, a wonder | 10·5·1 — 16·11·2 — 25·16·3 |
+| The Worked Land | E | 🌱 Green Belt | total yields from the capital's tiles | *to measure* |
+| The Harvest | E | 🌾 Ploughshare | food paid by farms a turn | 20 · 60 · 140 |
+| Bread and Iron | D | 🌾 Ploughshare | food surplus a turn and army strength | 12·150 — 25·480 — 40·1 000 |
+| The Caravanserai | E | 🐫 Long Caravan | total yields from trade routes | 50 · 100 · 400 |
+| The King's Roads | E | 🐫 Long Caravan | gold from city connections, total | *to measure* |
+| The Solvent Realm | E | 🐫 Long Caravan | total gold accumulated | 500 · 2 000 · 8 000 |
+| The War Chest | E | 🐫 Long Caravan | treasury and army, no debt | 300·150 — 1 000·480 — 2 500·1 000 |
+| The Academies | S | ✶ Star Chart | science a turn at the close | 16 · 42 · 120 |
+| The Observatory | S | ✶ Star Chart | science a turn per citizen | 1.5 · 2.5 · 4 |
+| The Schooled Realm | S | ✶ Star Chart | every city a science building, C cities, S science | 4·16 — 7·42 — 12·120 |
+| The Scriptorium | S | ☽ Cloister | science paid by faith buildings a turn | 4 · 15 · 40 |
+| The Tithe | C | ☽ Cloister | what your religion pays a turn (Æra III+) | — · 125 · 800 |
+| The Wonder of the Age | C | 🏛 Marble Court | wonders of this age raised by you | 3 · 3 · 3 |
+| The Marvels' Pay | C | 🏛 Marble Court | what your wonders pay, accumulated | 60 · 250 · 1 000 |
+| The Patronage | C | 🏛 Marble Court | renown a turn plus works standing (×5) | 15 · 50 · 100 |
+| The Renowned | C | 🏛 Marble Court | total banked renown | 80 · 250 · 1 000 |
+| The Deck | S | 📜 Charter | what your government yields, total | 150 · 500 · 1 500 |
+| The Marcher Lords | E | 📜 Charter | C cities, none unhappy, authority in surplus | 5 — 9 — 18 |
+| The Builders | E | 📜 Charter | what your buildings pay a turn | 17 · 70 · 200 |
+| The Six Voices | — | 📜 Charter | every voice summed (with authority and happiness) | 1 000 · 5 000 · 25 000 |
+| The Arsenal | D | ⚒ Forge Levy | hammers put into units this age | 150 · 600 · 1 800 |
+| The Fortified Frontier | D | ⚒ Forge Levy | every city walled and garrisoned, none pillaged this age | *binary* |
+| The Field of Glory | D | 🎖 Banner | kills minus losses this age | +3 · +6 · +10 |
+| The Taken Town | D | 🎖 Banner | cities captured this age, still held | 1 · 3 · 5 |
+
+By family: D 6 · C 7 · S 5 · E 8 (The Six Voices unfamilied). By line:
+nine lines carry cards; 🏹 Wild Hunt, 🧭 Wayfarers, 🕯 Procession and
+⛰ Highlands carry none (their checks were cut), so the guarantee becomes
+**three different lines** over these nine, which every deal can meet.
+
+**Cut — 16**, each with the row that covers it.
+
+| Cut | Why |
+|---|---|
+| The Metropolis · The Great City | one reading (largest city's citizens), twice; The Capital of the World asks the same growth *and* the buildings and the wonder behind it |
+| The Many Hearths | The Marcher Lords is the same count with the writ and the happiness that make it a skill |
+| The Caravans | identical to The Caravanserai |
+| The Standing Army | a subset of Bread and Iron, The War Chest and The Arsenal |
+| The Conqueror | identical to The Taken Town |
+| The Laureates | The Patronage and The Renowned read the renown that calls them |
+| The Roads | The King's Roads is the same road network read as the gold it pays |
+| The Counting House | The Solvent Realm and The War Chest read the treasury |
+| The Chroniclers | culture a turn is what The Deck's total government pay is made of; The Six Voices carries the breadth |
+| The Congregation | faith banked; The Tithe reads what faith buys, and the user reads religion as bonuses, not a target |
+| The Faithful · The Missionary | following cities, home and abroad — the spread mechanic the user cut The Pilgrim Empire and The Tide of Faith for (▢ The Missionary carried the user's own figures 3·4·5; cut for consistency, rec) |
+| The Faith and the Sword | needs a following city *and* a battle inside it — contingent on rivals' geography and on the spread the user ruled tedious |
+| Hammer and Word | a wonder and a great person at 1·1 — both already asked by The Wonder of the Age and The Patronage, at a harder bar |
+| The Renowned Court | The Patronage, which the user marked great, is the same two readings |
+
+**Open on this list.** ▢ The Six Voices: the bars 1 000 · 5 000 · 25 000
+read as *accumulated over the age* (the mean per turn is 95 · 312 · 841,
+so a per-turn bar would sit near 150 · 500 · 1 300) — which? ▢ The
+Fortified Frontier has no figure by design; keep as the one binary card,
+or cut. ▢ The Academies is the one plain meter kept, so the S family is
+not three cards deep; cut it if the Star Chart line is better served by
+The Observatory alone. ▢ The user's note on the competency table — *"add
+a statistics dashboard when implementing these that appears in the menu,
+with a flag so that it only appears when i'm playtesting locally"* — is
+batch G2's, read here as a ruling: a dev-flagged sheet printing every
+wager reading for the local seat each turn, so the bars are tuned off a
+human game; and *"yields also include authority and happiness"* defines
+the total-yields readings (The Six Voices, The Worked Land, The
+Caravanserai).
 
 ### 3a. The scaling — a first cut off measured play
 
