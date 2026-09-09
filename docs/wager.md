@@ -288,43 +288,49 @@ the one with the skill framing stays; where the user has ruled a mechanic
 out (religious spread, luxury deals, specialists), every row leaning on it
 goes. ▢ Mark each row; (rec) stands unless overruled.
 
-**Keep — 25.** Family in the second column (D · C · S · E), the line it is
-dealt under in the third (the deal guarantee reads lines).
+**Keep — 24** (the user's marks of 2026-09-09 folded in: The Schooled Realm,
+The Scriptorium and The Fortified Frontier cut; The Academies now *total
+science accumulated*; The Tithe *total yields from religion*; The Patronage
+*yields from great people*; two added — *Total culture banked* and *Total
+surplus happiness, accumulated*; The Six Voices' basis is **accumulated**;
+The Missionary stays cut). Family in the second column (D · C · S · E), the
+line it is dealt under in the third. Bars marked *bot baseline* are to be
+measured on the bot bench before the figure is set; the user: "use the bot
+for a baseline here".
 
 | Wager | Fam | Line | Reads | II · III · IV |
 |---|---|---|---|---|
 | The Capital of the World | C | 🌱 Green Belt | capital holds N citizens, M buildings, a wonder | 10·5·1 — 16·11·2 — 25·16·3 |
-| The Worked Land | E | 🌱 Green Belt | total yields from the capital's tiles | *to measure* |
+| The Worked Land | E | 🌱 Green Belt | total yields from the capital's tiles | *bot baseline* |
 | The Harvest | E | 🌾 Ploughshare | food paid by farms a turn | 20 · 60 · 140 |
 | Bread and Iron | D | 🌾 Ploughshare | food surplus a turn and army strength | 12·150 — 25·480 — 40·1 000 |
 | The Caravanserai | E | 🐫 Long Caravan | total yields from trade routes | 50 · 100 · 400 |
-| The King's Roads | E | 🐫 Long Caravan | gold from city connections, total | *to measure* |
+| The King's Roads | E | 🐫 Long Caravan | gold from city connections, total | *bot baseline* |
 | The Solvent Realm | E | 🐫 Long Caravan | total gold accumulated | 500 · 2 000 · 8 000 |
 | The War Chest | E | 🐫 Long Caravan | treasury and army, no debt | 300·150 — 1 000·480 — 2 500·1 000 |
-| The Academies | S | ✶ Star Chart | science a turn at the close | 16 · 42 · 120 |
+| The Academies | S | ✶ Star Chart | total science accumulated | *bot baseline* |
 | The Observatory | S | ✶ Star Chart | science a turn per citizen | 1.5 · 2.5 · 4 |
-| The Schooled Realm | S | ✶ Star Chart | every city a science building, C cities, S science | 4·16 — 7·42 — 12·120 |
-| The Scriptorium | S | ☽ Cloister | science paid by faith buildings a turn | 4 · 15 · 40 |
-| The Tithe | C | ☽ Cloister | what your religion pays a turn (Æra III+) | — · 125 · 800 |
+| The Tithe | C | ☽ Cloister | total yields from religion (Æra III+) | — · 125 · 800 |
 | The Wonder of the Age | C | 🏛 Marble Court | wonders of this age raised by you | 3 · 3 · 3 |
 | The Marvels' Pay | C | 🏛 Marble Court | what your wonders pay, accumulated | 60 · 250 · 1 000 |
-| The Patronage | C | 🏛 Marble Court | renown a turn plus works standing (×5) | 15 · 50 · 100 |
+| The Patronage | C | 🏛 Marble Court | yields from great people — works standing, boons paid, legacies — accumulated | *bot baseline* |
 | The Renowned | C | 🏛 Marble Court | total banked renown | 80 · 250 · 1 000 |
+| The Chronicle | C | 🏛 Marble Court | total culture banked | *bot baseline* |
 | The Deck | S | 📜 Charter | what your government yields, total | 150 · 500 · 1 500 |
 | The Marcher Lords | E | 📜 Charter | C cities, none unhappy, authority in surplus | 5 — 9 — 18 |
 | The Builders | E | 📜 Charter | what your buildings pay a turn | 17 · 70 · 200 |
-| The Six Voices | — | 📜 Charter | every voice summed (with authority and happiness) | 1 000 · 5 000 · 25 000 |
+| The Six Voices | — | 📜 Charter | every voice summed, **accumulated over the age** (with authority and happiness) | 1 000 · 5 000 · 25 000 |
+| The Contented Realm | E | 📜 Charter | surplus happiness, accumulated a turn over the age | *bot baseline* |
 | The Arsenal | D | ⚒ Forge Levy | hammers put into units this age | 150 · 600 · 1 800 |
-| The Fortified Frontier | D | ⚒ Forge Levy | every city walled and garrisoned, none pillaged this age | *binary* |
 | The Field of Glory | D | 🎖 Banner | kills minus losses this age | +3 · +6 · +10 |
 | The Taken Town | D | 🎖 Banner | cities captured this age, still held | 1 · 3 · 5 |
 
-By family: D 6 · C 7 · S 5 · E 8 (The Six Voices unfamilied). By line:
-nine lines carry cards; 🏹 Wild Hunt, 🧭 Wayfarers, 🕯 Procession and
-⛰ Highlands carry none (their checks were cut), so the guarantee becomes
-**three different lines** over these nine, which every deal can meet.
+By family: D 5 · C 7 · S 3 · E 8 (The Six Voices unfamilied). By line:
+eight lines carry cards (☽ Cloister one, The Tithe); 🏹 Wild Hunt, 🧭
+Wayfarers and 🕯 Procession carry none, ⛰ Highlands on the backburner, so the
+deal's guarantee is **three different lines** over the eight.
 
-**Cut — 16**, each with the row that covers it.
+**Cut — 19**, each with the row that covers it.
 
 | Cut | Why |
 |---|---|
@@ -342,21 +348,31 @@ nine lines carry cards; 🏹 Wild Hunt, 🧭 Wayfarers, 🕯 Procession and
 | The Faith and the Sword | needs a following city *and* a battle inside it — contingent on rivals' geography and on the spread the user ruled tedious |
 | Hammer and Word | a wonder and a great person at 1·1 — both already asked by The Wonder of the Age and The Patronage, at a harder bar |
 | The Renowned Court | The Patronage, which the user marked great, is the same two readings |
+| The Schooled Realm · The Scriptorium · The Fortified Frontier | the user's marks of 2026-09-09 — cut |
 
-**Open on this list.** ▢ The Six Voices: the bars 1 000 · 5 000 · 25 000
-read as *accumulated over the age* (the mean per turn is 95 · 312 · 841,
-so a per-turn bar would sit near 150 · 500 · 1 300) — which? ▢ The
-Fortified Frontier has no figure by design; keep as the one binary card,
-or cut. ▢ The Academies is the one plain meter kept, so the S family is
-not three cards deep; cut it if the Star Chart line is better served by
-The Observatory alone. ▢ The user's note on the competency table — *"add
-a statistics dashboard when implementing these that appears in the menu,
-with a flag so that it only appears when i'm playtesting locally"* — is
-batch G2's, read here as a ruling: a dev-flagged sheet printing every
-wager reading for the local seat each turn, so the bars are tuned off a
-human game; and *"yields also include authority and happiness"* defines
-the total-yields readings (The Six Voices, The Worked Land, The
-Caravanserai).
+**The four marks, resolved (2026-09-09).** The Six Voices is *accumulated
+over the age*; The Fortified Frontier is cut; The Academies stays, as *total
+science accumulated*; The Missionary stays cut. The user's note on the
+competency table — a dev-flagged **statistics sheet** printing every wager
+reading for the local seat each turn — is batch G2's ruling; *"yields also
+include authority and happiness"* defines the total-yields readings.
+
+**Progress is public, the pick is private — RULED** (the user, 2026-09-09:
+*"I want the wagers each player has chosen to be private, but the wager
+progress public. So the wager options are the same for every player, and
+every turn progress is updated so you see where you stand compared to the
+other players … there isn't as much stakes if you don't know how the other
+players are doing"*): the wager sheet shows, for each of the three dealt
+cards, **every seat's standing against the bar, ranked, updated every
+turn** — the figure each seat has reached, who leads, who has claimed it —
+while *which* card each seat staked on stays that seat's own until the
+judgement. The standings are the same reading the bars are judged by
+(`countOf` and the meters), so a rival's row is exact, not an estimate; the
+sheet is the one surface that shows another empire's figure, which is the
+"select visibility into their empire's progress/yields" the user asked for.
+The bars are cut **difficult** (the user: "we should make the wagers
+difficult to make games more engaging"), and the pressure comes from the
+ranking, not from the deck.
 
 ### 3a. The scaling — a first cut off measured play
 
@@ -587,6 +603,41 @@ rewarded for meeting it — and punishment comes from the opposite three.
 Batch **H1** after G1 (it reads the same countdown). Knobs in
 `rules.horde`; the arena panel walks `data/ai.json` only, so the surge's
 measured effect on bot seats is read off the arena's per-seat averages.
+
+## 10. The census — a periodic world ranking (proposed, not ruled)
+
+The user, 2026-09-09: *"every few turns, a notification is shown of every
+player's yield of a major stat (i.e. Hipparchus has published his census of
+the world's science, with each player ranked by their science yield). We
+could surface stats like total technologies, culture/science/food/production/
+gold per turn, total statecraft drafts, number of followers of each religion,
+etc."* — offered with less confidence than the wager rulings above.
+
+The orchestrator's view: **worth building, as the wager sheet's sibling
+rather than a stream of toasts.** It is the same principle the user just
+ruled for the wagers — stakes come from seeing where the others stand — and
+it costs almost nothing, because every reading it would rank is a fold the
+Ledger already prints for the local seat. Three shapes to choose between:
+
+- (a) **A toast every N turns** naming one stat and the ranking. Cheap and
+  loud; the risk is notification fatigue, and a toast that names a rival's
+  exact science every ten turns is a lot of visibility given away for free
+  against a rival who is not looking.
+- (b) **A census page** — a tab on the Abacus (the world ledger): every stat
+  ranked, refreshed on a cadence (rec every ten turns, `rules.census.every`),
+  with ONE toast when the census is taken ("Hipparchus has taken the census of
+  Æra II — you stand third in science, first in culture"). The page is the
+  reference; the toast is the summons. (rec)
+- (c) **The census as a wager reading**: the ranking itself is what some
+  wagers ask — "lead the world in science at the close" — which turns a
+  bar into a race the user has so far avoided ("a wager is a bar, not a
+  race"). Not recommended for the deck; fine as a Triumph.
+
+What to rank (rec, one row each, the user's list): technologies held;
+science, culture, food, production, gold and faith a turn; drafts taken;
+followers of each faith; cities and citizens; army strength; beads. The
+great person's name on the census is flavour and stays labelled so.
+▢ the user's call on (a) vs (b), and the cadence.
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 

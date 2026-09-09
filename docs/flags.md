@@ -1020,7 +1020,16 @@ directly to confirm rulings — user marginalia are rulings.
   order of **first 360 · step 225**: ▢ the user's call whether half is
   enough or the step goes again; `docs/great-people.md` regenerated as
   the reference (the offer prices had drifted: doc 300/150 vs data
-  1000/750, fixed). **U4 (UI)** — (3) *"rename the great people actions
+  1000/750, fixed). **RULED** (the user, 2026-09-09): *"the first great
+  person at 75 renown, and have the costs scale in line with how our
+  culture costs are scaled. Aim for ~1/3rd of the previous amount of
+  great people at the end of age 3."* **Batch B5**: the renown ladder
+  takes the draft ladder's shape — `base + linear·n + n^exponent`
+  (`draftCost`, `statecraft/draft.ts`: culture's is 12 + 6n + n^2.8) —
+  with `base 75`; `linear` and `exponent` chosen so that the renown a
+  seat banks by the turn it leaves Æra III (measured on the bot bench
+  under the ORIGINAL 40 · 25 ladder) buys **one third** of the persons it
+  bought then; the doc's ladder table and sync test follow. **U4 (UI)** — (3) *"rename the great people actions
   act/work because they're not informative enough"*: the two buttons
   print the family's own verbs (a scholar *Writes a treatise* / *Founds
   an academy*; the words from the family's data row, through the
