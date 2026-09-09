@@ -108,6 +108,21 @@ describe('the table in a played game', () => {
     // t244, against t308 on 2026-09-06. The age opens sooner because the two
     // ages in front of it are cheaper, which is the whole of the change; the
     // horizon (400) still has room in it.
+    //
+    // **Re-measured 2026-09-09, batch B6** (`docs/flags.md` item (hhh): the
+    // whole ladder re-fitted as one curve from 5 to 8000): **t220**, against
+    // **t211** on the ladder it replaced — both measured in the same pass, on
+    // the same tree, so the nine turns are this ruling's and nothing else's.
+    // (The t244 above is not the comparison: it predates batch G1's world
+    // clock, which moved this reading by its own ten-turn countdown.)
+    //
+    // Nine turns is the *right* size for what moved. This seat reaches built
+    // age 3 off the whole of Æra I and Æra II plus one Æra III node, and the
+    // re-fit barely touched those — 266 → 269 and 1295 → 1350, a beaker or two
+    // a rung — with the first Æra III node going 310 → 360. What the curve made
+    // dear is the far end of the chart, which this measurement never reaches:
+    // the age table opens on the opening of the game, and the opening is the
+    // half of the curve that did not move. The horizon (400) still has room.
     console.info(`[pacing] the scripted seat opens the Æra III table on t${opened}`);
     // **Re-measured 2026-09-09, batch G1** (the world clock is the mean with a
     // ten-turn countdown): this lone seat reaches built age 2 on t82 and built

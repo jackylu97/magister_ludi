@@ -68,6 +68,69 @@
  * right as a schedule. The table itself lives in `tech.test.ts`'s
  * `COLUMN_COSTS`, which is the witness that the data still agrees with it.
  *
+ * One fitted curve, 5 to 8000 (the user, 2026-09-09)
+ * --------------------------------------------------
+ * *"Could you fit a curve that fits roughly the shape, starting at 5 and ending
+ * around 8000?"* (`docs/flags.md` item (hhh)). The ladder this replaces was four
+ * rulings deep — a taper for the middle of it, an authored figure at each end,
+ * the late seven scaled twice — and what the ruling asks for is the whole of it
+ * re-fitted as **one curve through both endpoints**:
+ *
+ *     ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²
+ *
+ * `n` is the chart column and the root is 0. It is a **log-quadratic**, fitted
+ * least-squares to the user's own thirteen figures and pinned at cost(0) = 5 and
+ * cost(12) = 8000, which means the *ratio* between two columns is itself a
+ * decaying exponential — `e^(0.8084 − 0.01613·(2n + 1))`, 2.2× at the opening
+ * and 1.55× at the close. So the shape the chart has always had survives the
+ * re-fit (an exponential opening flattening toward the end); what changes is
+ * that one line of arithmetic now produces the whole table instead of a formula
+ * plus seven exceptions to it.
+ *
+ * `friendly` rounds the fit — to the nearest **1** below thirty, the nearest
+ * **5** below three hundred, the nearest **10** below two thousand and the
+ * nearest **50** above it — and the thirteen columns are
+ *
+ *     5 · 11 · 24 · 50 · 100 · 190 · 360 · 650 · 1150 · 1960 · 3250 · 5150 · 8000
+ *
+ * **Every column is the curve's**, and that is what the ruling buys back: there
+ * is no authored figure left anywhere in the table and no column priced by a
+ * different argument from its neighbours. Retuning the chart is re-fitting two
+ * constants and re-rounding rather than editing seven rows and a pin — which is
+ * why the formula and its rounding rule are written here and beside the table in
+ * `docs/tech-tree.md`, so the next edit re-fits instead of retyping.
+ *
+ * The four ages now cost **269 / 1350 / 10440 / 56550** — 68609 for the whole
+ * tree, of which 68604 is payable (column 0's nominal 5 is nobody's price). Æra
+ * IV is more than four fifths of the chart, so the 2026-09-03 ruling that the
+ * closing age is the game survives the re-fit intact. What does not survive is
+ * the **cliff** the two scaling passes built at the Æra III → IV seam: it comes
+ * down from 3.1× to 1.70×, the same size of step as every other column, so the
+ * last age is dear because it sits at the far end of a curve rather than
+ * because a multiplier was laid on top of it. Æra III is the age that moves
+ * most (5940 → 10440, ×1.76), which is the arithmetic of the ask rather than a
+ * second opinion about the middle game: a chart that climbs from 5 to 8000 in
+ * twelve steps cannot be as flat through its middle as one that climbed to 2550.
+ *
+ * Measured, as every figure in this docblock is. On the leanest harness the
+ * suite plays — the one-city seat of `endgame.slow.test.ts` — the Magnum Opus
+ * opens on **t4833** against t2667 before the re-fit, and the scripted seat of
+ * `beads.slow.test.ts` opens the Æra III table on t220 against t211: nine turns
+ * at the front of the game, two thousand at the back, which is the shape of the
+ * ruling read off the two ends of the suite.
+ *
+ * On the bot bench at t100 (eight seeds, sixteen seats) **technologies held is
+ * the one reading that moves past a standard error**: 23.9 against 25.6, a fall
+ * of 1.7 nodes a seat at two pooled SE. Cities, citizens, buildings and every
+ * per-turn voice are inside one SE of where they were, which is the honest
+ * reading of a ruling that left Æra I and Æra II within a beaker a rung: a
+ * hundred turns is the opening and the opening did not move. What moved is what
+ * a hundred turns *buys*, and even that only by the sixth column onward.
+ *
+ * Everything below this paragraph is the history of the tables this replaced; it
+ * is kept because it is the record of what the science economy was measured to
+ * bear, and every ladder above was tuned against exactly that.
+ *
  * The late columns are authored above the taper (the user, 2026-09-03)
  * -------------------------------------------------------------------
  * "Technologies should keep the same scaling they had in age 1-2. Technologies
@@ -185,16 +248,18 @@
  * **t2667** against t2169 before the ruling: a tenth added to the whole chart at
  * the *end* of it costs a lone capital about a quarter of its remaining game.
  *
- * Everything below this paragraph is the history of the tables this replaced;
- * it is kept because it is the record of what the science economy was measured
- * to bear, and the taper was tuned against exactly that.
+ * (Superseded the same day by the fitted curve above, which re-prices every
+ * column rather than four of them.)
  *
  *     cost(1) = 13
  *     cost(n) = friendly(cost(n - 1) × r(n))
  *     r(n)    = 1 + 1.3 × 0.72 ^ max(0, n - 3)
  *
- * `friendly` rounds to the nearest 1 below a hundred, the nearest 5 below a
- * thousand and the nearest 50 above. The first two steps are flat at 2.3×,
+ * `friendly` **as this table used it** rounds to the nearest 1 below a hundred,
+ * the nearest 5 below a thousand and the nearest 50 above; the fitted curve at
+ * the top of this docblock rounds on its own four bands, which are stated
+ * there. Two rules, two tables, and nothing reads either at runtime — the
+ * columns are figures in a list. The first two steps are flat at 2.3×,
  * which is the user's own anchor (13 → 30 → 69, "and on and on"), and the ratio
  * then decays geometrically toward 1, reaching 1.09 by the last column. **Tree
  * revision 4 (2026-09-02) shortened the chart from fourteen columns to twelve**,

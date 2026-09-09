@@ -19,32 +19,24 @@ history (proposals, re-cuts, the five-age plan) lives in git and
   (`src/sim/tech.ts` docblock has it; the root's 5 is never paid).
   Adding a tech = placement: prereqs pick the column, the column prices it
   (`src/sim/techData.ts` placement docblock).
-- **The ladder is a taper, not an exponential**: the *ratio* between columns
-  decays (2.3× at the opening, about 1.09× at the close), so an exponential
-  opening flattens toward linear at the end. Only columns 2–5 are the formula's
-  own; the last seven are authored.
-- **The late columns are authored above the taper** (user ruling 2026-09-03:
-  the scaling of Æra I–II stands, Æra IV–V is extremely expensive). Columns 2–5
-  are the formula's figures; columns 6–8 lift a little and columns 9–12 lift
-  hard. A late column is a ruling, not a value of the decay constant — retuning
-  one edits the rows and the pin in `test/sim/tech.test.ts`.
-- **The first paid column is authored below it** (user ruling 2026-09-06, item
-  x — "the first column of technologies slightly cheaper"): column 1 is 10, not
-  the formula's 13. The four nodes are Fletching, Husbandry, Mining, Pottery.
-- **And the ladder is re-anchored on that 10** (user ruling 2026-09-08, item
-  (vv), reading A): the taper is re-run from cost(1) = 10 for columns 2–5
-  (23 · 53 · 105 · 175) and the authored late columns are scaled by the same
-  10/13 (310 · 415 · 525 for Æra III; Æra IV's four scaled again by the next
-  ruling). No column moved a node and no prereq changed — a column is still a
-  price. Reading B (the formula's columns alone) is kept in the ruling for the
-  retune.
-- **And Æra IV alone is scaled by half again** (user ruling 2026-09-09, item
-  (hhh) clause 1 — the closing age "~50% more expensive"): columns 9–12 become
-  1650 · 1950 · 2250 · 2550, every figure already a multiple of fifty so the
-  rounding rule changes nothing. Columns 0–8 are untouched to the beaker, and
-  the step *inside* the age keeps its shape (a flat lift a column, the whole age
-  raised rather than re-curved). The Æra III → IV step at the seam widens from
-  2.1× to 3.1×.
+- **The ladder is one fitted curve, 5 to 8000** (user ruling 2026-09-09, item
+  (hhh) — "fit a curve that fits roughly the shape, starting at 5 and ending
+  around 8000"). A log-quadratic in the chart column `n` (the root is 0), fitted
+  least-squares to the user's own thirteen figures and pinned at both endpoints:
+
+      ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²
+      friendly:   nearest 1 below 30 · nearest 5 below 300 ·
+                  nearest 10 below 2000 · nearest 50 above
+
+  **Every column is the curve's** — no authored figure is left in the table, and
+  no column is priced by a different argument from its neighbours. Retuning the
+  chart is re-fitting the two constants and re-rounding, never editing a row.
+- **It is still a taper, not an exponential**: the *ratio* between columns is
+  itself a decaying exponential (`e^(0.8084 − 0.01613·(2n+1))`) — 2.2× at the
+  opening, 1.55× at the close — so an exponential opening flattens toward the
+  end. The Æra III → IV seam is 1.70×, the same size of step as every other
+  column: the closing age is dear because it sits at the far end of the curve,
+  not because a multiplier was laid on it.
 - **The chart is the user's drawing**: lanes (`row`) and column nudges
   (`columnShift`) are authored data; the annealer only advises on new nodes;
   crossings pinned exactly, false chains zero (`test/ui/techChart.test.ts`).
@@ -84,14 +76,15 @@ history (proposals, re-cuts, the five-age plan) lives in git and
 
 Regenerated from the rows — never hand-maintained. Costs come off the column
 table (`src/sim/tech.ts`, "a column is a price"): one figure per chart column,
-5 · 10 · 23 · 53 · 105 · 175 · 310 · 415 · 525 · 1650 · 1950 · 2250 · 2550.
-Columns 2–5 are the tapered ladder's own figures, re-run from column 1's
-authored 10 by the ruling of 2026-09-08; columns 6–12 are authored above it by
-the ruling of 2026-09-03, scaled by the same 10/13, and columns 9–12 scaled
-again by 3/2 by the ruling of 2026-09-09 (see the standing determinations). The
-four ages cost 266 / 1295 / 5940 / 29850🔬 — 37351 for the whole tree, 37346 of
-it payable (the root's 5 is nobody's price). `test/sim/techDocSync.test.ts`
-keeps this table's costs and node names honest against the rows.
+5 · 11 · 24 · 50 · 100 · 190 · 360 · 650 · 1150 · 1960 · 3250 · 5150 · 8000.
+Every one of the thirteen is the fitted curve of the ruling of 2026-09-09,
+rounded — `ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²` over the chart column `n`
+(the root is 0), `friendly` to the nearest 1 below 30, 5 below 300, 10 below
+2000 and 50 above (see the standing determinations; re-fit the two constants
+rather than retyping a figure). The four ages cost 269 / 1350 / 10440 / 56550🔬
+— 68609 for the whole tree, 68604 of it payable (the root's 5 is nobody's
+price). `test/sim/techDocSync.test.ts` keeps this table's costs and node names
+honest against the rows.
 Wonders in **bold**; ‡ = a row **one to a realm** (`oncePerEmpire` — the five
 uniques of the fewer-things cut, and the three national rows that always wore
 it); ◇ = a row that is granted and never built; † = a deferred half on the row
@@ -127,40 +120,40 @@ town): Palisade → Stone Walls → Castle · Monument → Amphitheater · Marke
 Bazaar and Bank · Harbour → Shipyard · Library → University → Observatory ·
 Workshop → Forge · Shrine → Temple.
 
-### Æra I — The Age of Omens (12 nodes, 5–53🔬)
+### Æra I — The Age of Omens (12 nodes, 5–50🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Agriculture | 5 | — | Settler, Warrior, Scout, Worker | — | — |
-| Fletching | 10 | Agriculture | Archer | — | — |
-| Husbandry | 10 | Agriculture | — | **The Temple of Artemis** | reveals **Horses** |
-| Mining | 10 | Agriculture | — | — | Clear Forest |
-| Pottery | 10 | Agriculture | — | Granary | — |
-| Bronzeworking | 23 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
-| Calendar | 23 | Fletching | — | **The Hanging Gardens**, *tithes* (project) | — |
-| Divination | 23 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
-| Sailing | 23 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | Embark |
-| Stonecraft | 23 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | Consecration of the Bounds |
-| The Wheel | 53 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | Stable | — |
-| Writing | 53 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | Open Borders |
+| Fletching | 11 | Agriculture | Archer | — | — |
+| Husbandry | 11 | Agriculture | — | **The Temple of Artemis** | reveals **Horses** |
+| Mining | 11 | Agriculture | — | — | Clear Forest |
+| Pottery | 11 | Agriculture | — | Granary | — |
+| Bronzeworking | 24 | Mining | Spearman | Barracks, **The Walls of Uruk** | Clear Jungle · Blessing of Arms |
+| Calendar | 24 | Fletching | — | **The Hanging Gardens**, *tithes* (project) | — |
+| Divination | 24 | Husbandry | — | Shrine, **The Oracle** | Rite of the Harvest · Omen Reading |
+| Sailing | 24 | Pottery | Trireme | Lighthouse, **The Great Lighthouse** | Embark |
+| Stonecraft | 24 | Pottery | — | Monument, Palisade, **Stonehenge**, **The Pyramids** | Consecration of the Bounds |
+| The Wheel | 50 | Bronzeworking, Stonecraft | War Chariot *(needs improved Horses)*, Chariot Archer *(needs improved Horses)* | Stable | — |
+| Writing | 50 | Divination, Calendar | — | Library, **The Great Ziggurat**, *scholarship* (project) | Open Borders |
 
 What the effect rows say (player prose from the data):
 
 - **Divination** — A shrine is where a people first listen, and the first of your gods arrives of its own accord once the realm's faith runs deep enough.
 
-### Æra II — The Age of Heroes (9 nodes, 105–175🔬)
+### Æra II — The Age of Heroes (9 nodes, 100–190🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 105 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
-| Chronology | 105 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎵 |
-| Currency | 105 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
-| Epic Poetry † | 105 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
-| Code of Laws † | 175 | Chronology | — | Imperial Throne ‡, *pageants* (project) | — |
-| Irrigation | 175 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 (fresh water) |
-| Siegecraft | 175 | Bronze Panoply | Bowman | Stone Walls | Siege |
-| The High Temple | 175 | Epic Poetry | Prophet | Temple, High Temple ‡ | — |
-| Wayfinding | 175 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
+| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
+| Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎵 |
+| Currency | 100 | The Wheel | Trader | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
+| Epic Poetry † | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
+| Code of Laws † | 190 | Chronology | — | Imperial Throne ‡, *pageants* (project) | — |
+| Irrigation | 190 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 (fresh water) |
+| Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls | Siege |
+| The High Temple | 190 | Epic Poetry | Prophet | Temple, High Temple ‡ | — |
+| Wayfinding | 190 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
 
 What the effect rows say (player prose from the data):
 
@@ -171,24 +164,24 @@ What the effect rows say (player prose from the data):
 - **Code of Laws** † The King List, which would pay a city for the years since it was founded, waits until a city remembers its own founding turn.
 - **Irrigation** — A farm standing beside fresh water feeds its city better than it did.
 
-### Æra III — The Age of Empire (14 nodes, 310–525🔬)
+### Æra III — The Age of Empire (14 nodes, 360–1150🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Iron Working | 310 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
-| Raised Fields | 310 | Wayfinding | — | — | — |
-| Rhetoric | 310 | The High Temple | — | Forum ‡, **The Great Library** | — |
-| State Workforce | 310 | Currency | — | — | — |
-| Mathematics | 415 | Iron Working | Catapult, Composite Bowman | **Petra**, Caravanserai ‡ | — |
-| Satrapies † | 415 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
-| Shipwrights | 415 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
-| The Civil Service | 415 | Code of Laws | — | — | — |
-| The Saddle | 415 | Iron Working | Horseman *(needs improved Horses)*, Horse Archer *(needs improved Horses)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
-| Daughter Cities † | 525 | The Civil Service | — | Town Charter ◇ | — |
-| Engineering | 525 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
-| Guildhalls | 525 | Satrapies | — | Workshop | — |
-| Horology | 525 | Mathematics | — | **The Water Clock of Su Song** | — |
-| Theology | 525 | Rhetoric | Apostle | Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
+| Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
+| Raised Fields | 360 | Wayfinding | — | — | — |
+| Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
+| State Workforce | 360 | Currency | — | — | — |
+| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra**, Caravanserai ‡ | — |
+| Satrapies † | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
+| Shipwrights | 650 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
+| The Civil Service | 650 | Code of Laws | — | — | — |
+| The Saddle | 650 | Iron Working | Horseman *(needs improved Horses)*, Horse Archer *(needs improved Horses)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
+| Daughter Cities † | 1150 | The Civil Service | — | Town Charter ◇ | — |
+| Engineering | 1150 | The Saddle | — | Aqueduct, Watermill, **The Circus Maximus** | — |
+| Guildhalls | 1150 | Satrapies | — | Workshop | — |
+| Horology | 1150 | Mathematics | — | **The Water Clock of Su Song** | — |
+| Theology | 1150 | Rhetoric | Apostle | Cathedral, **Chichen Itza**, **Hagia Sophia**, **Angkor Wat**, **The Great Mosque of Djenné** | — |
 
 What the effect rows say (player prose from the data):
 
@@ -204,25 +197,25 @@ What the effect rows say (player prose from the data):
 - **Horology** — The hours are kept. On a regular beat every workshop and forge in your realm reports what its craft has taught it, and the beakers arrive all at once.
 - **Theology** — The enhancing beliefs open here: a faith may now be deepened as well as spread.
 
-### Æra IV — The Age of Cathedrals (15 nodes, 1650–2550🔬)
+### Æra IV — The Age of Cathedrals (15 nodes, 1960–8000🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Divine Right | 1650 | Guildhalls | — | Courthouse | — |
-| Geomancy | 1650 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
-| Machinery | 1650 | Horology, Engineering | Crossbowman | — | — |
-| Paper Money | 1650 | Shipwrights, Guildhalls | — | Bazaar, Bourse | — |
-| Scholarship | 1650 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
-| Castellany † | 1950 | Divine Right | Pikeman | Castle | — |
-| Natural Philosophy | 1950 | Scholarship | Trebuchet | **Machu Picchu** | — |
-| Steel | 1950 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
-| The Golden Roads | 1950 | Paper Money | — | — | — |
-| Militant Orders | 2250 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
-| Movable Type | 2250 | Steel, The Golden Roads | — | Printing House | — |
-| The Astrolabe | 2250 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
-| The Counting Houses | 2250 | The Golden Roads, Castellany | — | Bank | — |
-| The Holy Office | 2250 | Scholarship | Inquisitor | **Notre-Dame** | — |
-| Alchemy | 2550 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
+| Divine Right | 1960 | Guildhalls | — | Courthouse | — |
+| Geomancy | 1960 | Daughter Cities, Horology | — | — | renewals: Mine +1⚙ |
+| Machinery | 1960 | Horology, Engineering | Crossbowman | — | — |
+| Paper Money | 1960 | Shipwrights, Guildhalls | — | Bazaar, Bourse | — |
+| Scholarship | 1960 | Theology | — | University, **The House of Wisdom**, The Turning Heavens ‡ | — |
+| Castellany † | 3250 | Divine Right | Pikeman | Castle | — |
+| Natural Philosophy | 3250 | Scholarship | Trebuchet | **Machu Picchu** | — |
+| Steel | 3250 | Machinery | Longswordsman *(needs improved Iron)* | Forge | — |
+| The Golden Roads | 3250 | Paper Money | — | — | — |
+| Militant Orders | 5150 | Steel | Knight *(needs improved Horses)* | **The Alhambra** | — |
+| Movable Type | 5150 | Steel, The Golden Roads | — | Printing House | — |
+| The Astrolabe | 5150 | Natural Philosophy | Caravel, Carrack, Gun Galley | Observatory | Open Ocean |
+| The Counting Houses | 5150 | The Golden Roads, Castellany | — | Bank | — |
+| The Holy Office | 5150 | Scholarship | Inquisitor | **Notre-Dame** | — |
+| Alchemy | 8000 | Militant Orders, Movable Type, The Counting Houses, The Astrolabe, The Holy Office | The Fire Lance *(needs improved Niter)* | The Alchemical Society, The Alchemical Codex ‡ | reveals **Niter** · pays a **bead** to every completer |
 
 What the effect rows say (player prose from the data):
 

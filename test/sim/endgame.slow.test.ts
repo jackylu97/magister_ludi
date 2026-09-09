@@ -161,7 +161,7 @@ function playToTheFinish(maxTurns: number): Played {
 
 describe('the finish line in a played game', () => {
   it('opens, is paid for, and settles the race', () => {
-    const { game, opened, finished } = playToTheFinish(4200);
+    const { game, opened, finished } = playToTheFinish(6500);
     const player = game.state.players[0]!;
 
     // **It arrives inside a game.** A gate that is correct and unreachable is
@@ -246,6 +246,21 @@ describe('the finish line in a played game', () => {
     // paragraph above gives: it pays for the closing age out of the thinnest
     // science economy the suite plays. The horizon stays 4200 and keeps its
     // headroom.
+    //
+    // **Re-measured 2026-09-09, batch B6** (`docs/flags.md` item (hhh): the
+    // whole ladder re-fitted as one curve from 5 to 8000 — no authored column
+    // left in it). The tree goes from 37351 beakers to 68609 and Æra IV from
+    // 29850 to 56550, and this seat now opens the Opus on **t4833**, against
+    // t2667 before the re-fit. The horizon grows 4200 → **6500** with it, for
+    // the reason every re-aim above gives: a harness that stops before the
+    // chart runs out measures nothing at all. It is still a few seconds of the
+    // slow tier — a one-city turn is cheap — and the pin's own claim is
+    // unchanged in kind: what is asserted is the machinery (the chart runs out,
+    // the row appears, the beads land, the race settles), and the turn is a
+    // pacing *finding* rather than a band. The finding it reports is the one
+    // this file has reported since 2026-09-06, only louder: a lone capital
+    // needs several times what a five-town empire does, and a chart that nearly
+    // doubled is paid for out of the thinnest science economy the suite plays.
     console.info(`[pacing] the one-city seat opens the Magnum Opus on t${opened}`);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 

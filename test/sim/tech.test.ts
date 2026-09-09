@@ -419,7 +419,35 @@ describe('tech data integrity', () => {
     // last seven columns are authored above it rather than produced by it —
     // which is why retuning one is editing this list and the rows, never a
     // constant.
-    const COLUMN_COSTS = [5, 10, 23, 53, 105, 175, 310, 415, 525, 1650, 1950, 2250, 2550];
+    //
+    // **And the same day, the whole table is re-fitted as one curve** (the
+    // user, 2026-09-09, `docs/flags.md` item (hhh): "could you fit a curve that
+    // fits roughly the shape, starting at 5 and ending around 8000?"). Every
+    // paragraph above this one is now history: the ladder had grown four
+    // rulings deep — a taper through the middle, an authored figure at each end
+    // of it, the late seven scaled twice — and what replaces it is a single
+    // **log-quadratic** through both endpoints, fitted least-squares to the
+    // user's own thirteen figures:
+    //
+    //     ln cost(n) = ln 5 + 0.8084*n - 0.01613*n^2
+    //
+    // `n` is the chart column and the root is 0, so the *ratio* between two
+    // columns is itself a decaying exponential — e^(0.8084 - 0.01613*(2n+1)),
+    // 2.2x at the opening and 1.55x at the close. The shape survives the re-fit;
+    // what it costs is retyping. `friendly` rounds the fit to the nearest 1
+    // below thirty, 5 below three hundred, 10 below two thousand and 50 above.
+    //
+    // **No authored figure is left in the list.** That is the point of the
+    // ruling and the reason this comment is the last one that will need
+    // rewriting: retuning the chart is re-fitting the two constants and
+    // re-rounding, never editing seven rows and a pin. The tree is 68609
+    // beakers (68604 payable) and the ages are 269 / 1350 / 10440 / 56550 —
+    // Æra IV is more than four fifths of the chart, so the 2026-09-03 ruling about the
+    // closing age survives; the *cliff* at the Æra III -> IV seam does not, and
+    // comes down from 3.1x to 1.70x, the same size of step as every other
+    // column. Æra III moves most (5940 -> 10440), which is the arithmetic of a
+    // chart that has to climb from 5 to 8000 in twelve steps.
+    const COLUMN_COSTS = [5, 11, 24, 50, 100, 190, 360, 650, 1150, 1960, 3250, 5150, 8000];
     expect(COLUMN_COSTS).toHaveLength(techColumnCount());
     for (const id of TECH_IDS) {
       expect(techDef(id).cost, id).toBe(COLUMN_COSTS[techColumn(id)]);
@@ -428,10 +456,10 @@ describe('tech data integrity', () => {
     // and is why `techChart.test.ts` no longer pins a list of nodes a
     // dependency drags out of cost order: there cannot be one.
     const bands: Record<number, [number, number]> = {
-      1: [5, 53],
-      2: [105, 175],
-      3: [310, 525],
-      4: [1650, 2550],
+      1: [5, 50],
+      2: [100, 190],
+      3: [360, 1150],
+      4: [1960, 8000],
     };
     for (const id of TECH_IDS) {
       const def = techDef(id);
@@ -1802,19 +1830,27 @@ describe('the shape of the tree', () => {
     // where they were 5 / 10 / 30 / 69: the second rung stands, and the two
     // above it come down by the same tenth-of-thirteen the first one did. The
     // age costs 266 beakers where it cost 333, 261 of them payable.
+    //
+    // **And on 2026-09-09 the whole table became one fitted curve** (item
+    // (hhh): "fit a curve … starting at 5 and ending around 8000"). The age's
+    // four columns are 5 / 11 / 24 / 50 where they were 5 / 10 / 23 / 53 — a
+    // beaker either way on each rung, because the opening is where the old
+    // ladder and the new curve nearly agree and the ruling is really about the
+    // far end of the chart. The age costs 269 beakers, 264 of them payable, and
+    // the shape a first empire learns the game on is untouched in kind.
     expect(Object.fromEntries(ageOne.map((id) => [id, techDef(id).cost]))).toEqual({
       agriculture: 5,
-      husbandry: 10,
-      fletching: 10,
-      mining: 10,
-      earthenware: 10,
-      sailing: 23,
-      bronzeWorking: 23,
-      stonecraft: 23,
-      divination: 23,
-      calendar: 23,
-      letters: 53,
-      theWheel: 53,
+      husbandry: 11,
+      fletching: 11,
+      mining: 11,
+      earthenware: 11,
+      sailing: 24,
+      bronzeWorking: 24,
+      stonecraft: 24,
+      divination: 24,
+      calendar: 24,
+      letters: 50,
+      theWheel: 50,
     });
     // Four lines off the root, each one node long, and then the two gates. The
     // war line reads Fletching → Calendar, the sky line Husbandry → Divination,

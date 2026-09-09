@@ -1033,7 +1033,22 @@ directly to confirm rulings — user marginalia are rulings.
   `ln cost(n) = ln 5 + 0.8084·n − 0.01613·n²` (the ratio decays 2.2 →
   1.55), friendly-rounded: **5 · 11 · 24 · 50 · 100 · 190 · 360 · 650 ·
   1150 · 1960 · 3250 · 5150 · 8000** — these are B6's figures, the
-  formula written beside the table. **RULED** (the user, 2026-09-09): *"the first great
+  formula written beside the table. **B6 built 2026-09-09**: every row's
+  `cost` rewritten by column through `techColumn` (49 lines, nothing
+  else); the formula and its rounding (nearest 1 below 30, 5 below 300,
+  10 below 2000, 50 above) written in `tech.ts`' docblock,
+  `docs/tech-tree.md` and `docs/design-notes.md` so a retune re-fits two
+  constants. Ages 266/1295/5940/29850 → **269/1350/10440/56550**, tree
+  37351 → **68609**; the Æra III → IV seam falls from 3.1× to 1.70× (no
+  cliff; the close is dear because it ends a curve); Æra III moves most
+  (×1.76). t100 probe, 8 seeds: techs 25.6 → **23.9** (−1.7, 2 SE — the
+  one column that moved), cities 6.4 → 6.1, citizens 45.5 → 42.4, every
+  per-turn voice inside one SE. `endgame.slow`'s lone capital opens the
+  Opus on t4833 (was t2667; horizon 6500); `beads.slow` Æra III at t220
+  (was t211). ▢ whether ~4800 turns for a one-city Opus is the pacing
+  wanted — the harness's finding since 2026-09-06, louder now.
+  `src/sim/state.ts:404`'s "27401 beakers" line is stale (G2's fence;
+  fix when G2 lands). **RULED** (the user, 2026-09-09): *"the first great
   person at 75 renown, and have the costs scale in line with how our
   culture costs are scaled. Aim for ~1/3rd of the previous amount of
   great people at the end of age 3."* **Batch B5**: the renown ladder

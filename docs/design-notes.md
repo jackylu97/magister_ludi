@@ -59,18 +59,18 @@ the gate is a real barrier, not a formality.
 ## The technology tree (revision 4.2, schema 54)
 
 - 50 nodes, 13 columns, ages 12/9/14/15. **A column IS a price**: one table —
-  5·10·23·53·105·175·310·415·525·1650·1950·2250·2550. Tree 37351 (37346 of it
-  payable — the root's 5 is nobody's price); ages 266/1295/5940/29850. Columns
-  2–5 are the taper's own figures, anchored at the authored **cost(1)=10**
-  (cost(n)=friendly(cost(n−1)×(1+1.3×0.72^max(0,n−3)))); columns 6–12 are
-  **authored above it** by ruling (2026-09-03: Æra I–II keep their scaling,
-  Æra IV–V is extremely expensive), scaled by the same 10/13 when the ladder was
-  re-anchored (2026-09-08, item (vv), reading A) and Æra IV's four scaled again
-  by 3/2 (2026-09-09, item (hhh) clause 1 — the closing age half again dearer,
-  Æra I–III untouched). The ladder is a taper, not an exponential: the ratio
-  itself decays, 2.3× at the opening to ~1.09× at the close. A late column is a
-  ruling, not a taper value; the table's witness is `test/sim/tech.test.ts` and
-  the doc's is `test/sim/techDocSync.test.ts`.
+  5·11·24·50·100·190·360·650·1150·1960·3250·5150·8000. Tree 68609 (68604 of it
+  payable — the root's 5 is nobody's price); ages 269/1350/10440/56550. Every
+  column is **one fitted curve** (2026-09-09, item (hhh) — "fit a curve …
+  starting at 5 and ending around 8000"): a log-quadratic in the chart column,
+  ln cost(n) = ln 5 + 0.8084n − 0.01613n², least-squares to the user's thirteen
+  and pinned at both endpoints, `friendly`-rounded (nearest 1 below 30, 5 below
+  300, 10 below 2000, 50 above). Still a taper, not an exponential: the ratio is
+  itself a decaying exponential, 2.2× at the opening to 1.55× at the close, and
+  the Æra III→IV seam (1.70×) is the same size of step as every other column. No
+  authored figure is left in the table — retuning is re-fitting two constants,
+  never editing a row; the table's witness is `test/sim/tech.test.ts` and the
+  doc's is `test/sim/techDocSync.test.ts`.
 - **The chart is the user's drawing**: lanes AND columns are authored
   (`row`, `columnShift`); the drawn layout is data, pinned exactly (the
   annealer only advises on new nodes). The packed-column layout renders it
