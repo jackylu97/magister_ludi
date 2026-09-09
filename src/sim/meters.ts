@@ -24,9 +24,13 @@
  * Happiness = supply − demand
  * ---------------------------
  *   supply   the palace, plus a flat sum per *unique* improved luxury
- *   demand   per city, `pop + w·max(0, pop − softPop) ^ p` — superlinear inside
- *            a city and never in empire-total pop, which is Entry I's second
- *            commitment and the whole reason this taxes tall rather than wide.
+ *   demand   per city, `demandPerPop · charged citizens` — linear, and the whole
+ *            of what a town asks for. It carried a superlinear surcharge above a
+ *            threshold (Entry I's second commitment, the tall tax) until
+ *            2026-09-09, when the user removed crowding unhappiness altogether
+ *            (`docs/flags.md` item (kkk)): what a town costs is now a figure a
+ *            player can count off the board, and the vertical limiter is the
+ *            citizens themselves against the happiness there is to feed them.
  *
  * Authority = capacity − used
  * ---------------------------
@@ -59,7 +63,7 @@
  */
 
 import { BUILDING_IDS, buildingDef, buildingPlural } from './buildingData';
-import { buildingCrowdingRelief, buildingHappiness } from './buildingEffects';
+import { buildingDemandRelief, buildingHappiness } from './buildingEffects';
 import { improvementDef } from './improvementData';
 import {
   type ResourceHolding,
@@ -153,21 +157,20 @@ export function meterStanding(entries: MeterContribution[]): MeterStanding {
 
 // --- happiness --------------------------------------------------------------
 
-/** What one city of this size demands. See the module docblock for the curve. */
-export function happinessDemand(population: number): number {
-  const rules = METERS.happiness;
-  const over = Math.max(0, population - rules.crowdingFrom);
-  return rules.demandPerPop * population + rules.crowdingWeight * over ** rules.crowdingExponent;
-}
-
 /**
- * The crowding half of a city's demand on its own, so the breakdown can say it
- * out loud. Zero for every city under the threshold, which is most of them.
+ * What one city of this size demands: `demandPerPop` a citizen, and nothing
+ * else.
+ *
+ * **Linear since 2026-09-09** (the user, `docs/flags.md` item (kkk): "lets
+ * remove crowding unhappiness altogether"). The surcharge a town over a
+ * threshold used to pay on top of its citizens is gone with its three rules, and
+ * gone rather than zeroed: a shape the data can switch back on is a shape every
+ * reader still has to reason about, and this one had been switched off and on
+ * twice inside a fortnight. A town's appetite is now the one fact a player can
+ * count on the board.
  */
-function crowdingDemand(population: number): number {
-  const rules = METERS.happiness;
-  const over = Math.max(0, population - rules.crowdingFrom);
-  return rules.crowdingWeight * over ** rules.crowdingExponent;
+export function happinessDemand(population: number): number {
+  return METERS.happiness.demandPerPop * population;
 }
 
 /**
@@ -200,10 +203,11 @@ function ruleFactor(state: GameState, playerId: number, rule: ResourceRule): num
  * in `state.cities` order, which is founding order, so the list a player reads
  * this turn is the list they read last turn with one more line on it.
  *
- * A crowded city gets a second line of its own. "Ur · 11 citizens −11" and "Ur
- * crowding −2.7" are two different facts — one is the size of the town and the
- * other is the price of that size — and a player who wants to know why one city
- * costs more than another needs to see them apart.
+ * A town is **one cost line** — "Ur · 11 citizens −11" — and since 2026-09-09
+ * that is the whole of what a town asks for. The second line a big town used to
+ * carry beside it, the surcharge for being crowded, left the game with its rule
+ * (`docs/flags.md` item (kkk)); what forgives part of the line is still written
+ * beside it as a gain, never as a quieter cost.
  */
 export function explainHappiness(state: GameState, playerId: number): MeterContribution[] {
   const rules = METERS.happiness;
@@ -280,19 +284,23 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
     list.push({ source: line.source, part: 'gain', value: line.amount });
   }
 
-  // What a citizen costs, less whatever sugar and honey take off it. The factor
-  // multiplies *both* demand lines, because "the happiness cost for population"
-  // is the whole of what a town asks for and not only its linear half.
+  // What a citizen costs, less whatever sugar and honey take off it. One demand
+  // line to multiply since 2026-09-09, the crowding surcharge beside it having
+  // left the game: "the happiness cost for population" and "what this town's
+  // citizens ask for" are now the same sentence.
   const demand = ruleFactor(state, playerId, 'happinessDemand');
   // The Scattered Hearths' waiver: the first citizens of every town are simply
   // not counted. Applied to *who is charged* rather than to what each one asks
   // for — a discount on the rate is Toleration Edicts and is already `demand`
-  // above — and read outside the factor for that reason. Crowding is untouched:
-  // it is a fact about the size of the town, not about its households.
+  // above — and read outside the factor for that reason.
   const free = Math.max(0, cardMeterRule(state, playerId, 'freeCitizens', 0));
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     const charged = Math.max(0, city.population - free);
+    // The one cost line a town writes, and the figure both reliefs below are a
+    // share **of** — each of them a gain against the whole of it, never a
+    // smaller number printed here.
+    const citizens = rules.demandPerPop * charged * demand;
     list.push({
       // The label says *how many are being charged* when that is not everybody,
       // because a line reading "Ur · 5 citizens" beside a cost for two is a
@@ -302,29 +310,31 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
           ? `${city.name} · ${city.population} citizens`
           : `${city.name} · ${charged} of ${city.population} citizens`,
       part: 'cost',
-      value: -rules.demandPerPop * charged * demand,
+      value: -citizens,
     });
-    const crowding = crowdingDemand(city.population) * demand;
-    if (crowding > 0) {
-      list.push({ source: `${city.name} crowding`, part: 'cost', value: -crowding });
-    }
     /**
      * **The justices sit** (the charters, 2026-09-04): a building may forgive a
-     * share of its own town's crowding.
+     * share of what its own town's citizens demand.
      *
-     * Written as a **gain line** against the full crowding cost, which is the
+     * Written as a **gain line** against the full citizen cost, which is the
      * puppet's discipline four lines down and hard rule 5: a player charged less
      * is entitled to see the discount and which town it came from, and a
      * quieter cost line above would have printed a smaller number with nothing
-     * to point at. It relieves the *crowding* alone — the per-citizen demand is
-     * what households ask for and the cost of governing is the price of holding
-     * a town at all, and a court that discounted either would be discounting
-     * the wrong thing.
+     * to point at. It relieves the *citizens* alone — the cost of governing is
+     * the price of holding a town at all, and a court that discounted that
+     * would be discounting the wrong thing.
+     *
+     * It forgave the town's *crowding* until the crowding term left the game
+     * (2026-09-09, `docs/flags.md` item (kkk)). The line is the same line and
+     * the fold is the same fold, one cost line over; a share of everything a
+     * town's citizens ask for is deliberately worth more than a share of a
+     * surcharge only a big town paid, since happiness is the court's reason to
+     * exist.
      *
      * Through the one evaluator that reads a building's non-yield fields, so
      * this meter has still never heard of an assize court.
      */
-    const relief = (crowding * buildingCrowdingRelief(city)) / 100;
+    const relief = (citizens * buildingDemandRelief(city)) / 100;
     if (relief > 0) {
       list.push({ source: `${city.name} · the justices sit`, part: 'gain', value: relief });
     }
@@ -339,14 +349,24 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
      * cost lines priced off a different factor — would print a smaller number
      * with no explanation anywhere for why it was smaller.
      *
-     * It relieves the citizens *and* the crowding, because both are what the
-     * town's own population asks for; the cost of governing is untouched, for
-     * the same reason the demand factor does not touch it — that is the price
-     * of holding one more town at all, and a puppet is still a town you hold.
+     * It relieves the **citizens**, which since 2026-09-09 is the whole of what
+     * the town's own population asks for (it relieved the crowding beside them
+     * while there was a crowding line to relieve); the cost of governing is
+     * untouched, for the same reason the demand factor does not touch it — that
+     * is the price of holding one more town at all, and a puppet is still a town
+     * you hold.
+     *
+     * **Off the full citizen line, not off what the court left of it** — which
+     * is the arithmetic this pair has always had: both reliefs were gains
+     * against the whole of the cost line each named, and a puppet with a court
+     * banked both shares of the same figure rather than one of the other's
+     * remainder. Two independent gains read the way the ledger prints them, and
+     * the alternative (a share of a remainder) would make one line's value
+     * depend on the order the other happened to be pushed in.
      */
     if (city.puppet === true) {
       const share = Math.max(0, Math.min(100, WAR.puppetHappinessPercent)) / 100;
-      const relief = (rules.demandPerPop * charged * demand + crowding) * (1 - share);
+      const relief = citizens * (1 - share);
       if (relief > 0) {
         list.push({ source: `${city.name} · puppet`, part: 'gain', value: relief });
       }
@@ -684,13 +704,10 @@ export interface FoundingCost extends MeterContribution {
  * can lie, and this one gets Thalassocracy's harbour and the Manifest of the
  * Steppe's surcharge right without knowing either card's name.
  *
- * Three things are deliberately **not** in the list:
+ * Two things are deliberately **not** in the list (there were three until
+ * 2026-09-09, when the crowding surcharge a founding never carried anyway left
+ * the game with its rules — `docs/flags.md` item (kkk)):
  *
- *   crowding      a town is founded at one citizen and `crowdingFrom` is far
- *                 above that, so the crowding term is zero at size one. It is
- *                 computed rather than assumed anyway — a retune that dropped
- *                 the threshold to one would put the line in the list by itself
- *                 rather than make this docblock wrong.
  *   the palace    a first city hands its founder a palace, on both meters. That
  *                 is a fact about founding *at all*, identical on every hex, and
  *                 this list exists to be compared between hexes — a constant on
@@ -712,10 +729,10 @@ export function explainFoundingCost(
 
   list.push({ meter: 'authority', ...prospectAuthorityCost(state, playerId, site) });
 
-  // The happiness half, in `explainHappiness`'s own order: what the citizen
-  // asks for, then the crowding that size would carry — both through the same
-  // readers the meter uses, so a card that discounts a citizen lands here the
-  // way it lands on the meter.
+  // The happiness half: what the one citizen a town is founded with asks for,
+  // through the same readers the meter uses, so a card that discounts a citizen
+  // lands here the way it lands on the meter. One line since 2026-09-09 — the
+  // crowding a size would have carried is not a rule any more.
   const name = nextCityName(state, playerId);
   const demand = ruleFactor(state, playerId, 'happinessDemand');
   list.push({
@@ -724,10 +741,6 @@ export function explainFoundingCost(
     part: 'cost',
     value: -rules.demandPerPop * demand,
   });
-  const crowding = crowdingDemand(1) * demand;
-  if (crowding > 0) {
-    list.push({ meter: 'happiness', source: `${name} crowding`, part: 'cost', value: -crowding });
-  }
   return list;
 }
 

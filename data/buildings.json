@@ -2393,8 +2393,8 @@
       "sciencePerPop": 0,
       "unlockedByCard": true,
       "authorityCapacity": 1,
-      "crowdingRelief": 15,
-      "note": "A crowded town asks less of you while the justices sit."
+      "demandRelief": 15,
+      "note": "A town asks less of you while the justices sit."
     },
     "relic": {
       "name": "Relic",

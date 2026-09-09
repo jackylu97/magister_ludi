@@ -82,7 +82,7 @@ import type { RouteOutlook } from './routes';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
 // **The one place a building's non-yield facts are read** (CLAUDE.md), and batch
-// X8 reads five more of them through it: the crowding a court forgives, the coin
+// X8 reads five more of them through it: the demand a court forgives, the coin
 // an assay house takes off a price, the wages a throne rebates, what a keep
 // mends, what a chapel pays the augurs — beside the walls' hit points X5 already
 // folds. Every one of them is asked of `{ buildings: [id] }`, a town holding this
@@ -91,7 +91,7 @@ import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData'
 import {
   buildingAdjacentHeal,
   buildingCityHp,
-  buildingCrowdingRelief,
+  buildingDemandRelief,
   buildingPurchaseDiscount,
   buildingRitePay,
   buildingUnitUpkeepRebate,
@@ -1309,13 +1309,13 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  * **Every field of the row is accounted for** (batch X8): it is either folded
  * here or it names its reason in `BUILDING_ROW_SILENT` below, and a source
  * register (`aiAppraisal.test.ts`) fails the day `BuildingDef` grows a field that
- * is neither. The audit's own list — `crowdingRelief`, `unitUpkeepRebate`,
+ * is neither. The audit's own list — `demandRelief`, `unitUpkeepRebate`,
  * `purchaseDiscount`, `healsAdjacent`, `ritePays` — joins the fold here; the
  * `tileYields` and `irrigates` beside them are *silent on purpose*, because the
  * caller's own `foldCity` hypothetical already pays them (see the register).
  *
  * `city` is the town that would raise it, and it sharpens the one term that is a
- * function of a town's **size** — the crowding a court forgives. `hammerPrice`'s
+ * function of a town's **size** — the demand a court forgives. `hammerPrice`'s
  * bargain exactly: absent, the fold prices the empire's middling town, which is
  * the honest fallback for a caller that does not say who is asking.
  */
@@ -1473,7 +1473,7 @@ export function explainBuildingRow(
  * carries and read through `buildingEffects.ts`, which is the one place a
  * building's non-yield facts are read. None of them adds a knob.
  *
- * The three that are facts about **one town** — the crowding forgiven, the coin
+ * The three that are facts about **one town** — the demand forgiven, the coin
  * an assay house saves, the wages a throne rebates — are priced at *this
  * empire's own tempo shared among its towns*, because the fold's callers hand it
  * no town (they may: see `city`). That is `medianProduction`'s stated crudeness
@@ -1491,21 +1491,25 @@ function rowCharterTerms(
   const terms: ValueTerm[] = [];
   const townShare = 1 / Math.max(1, ctx.cities);
 
-  // **The justices sit** — a share of one town's crowding forgiven, at the
-  // meter's live price. The relief is a percentage *of a cost that a small town
-  // does not pay at all* (`METERS.happiness.crowdingFrom`), which is the row's
-  // own docblock in the appraisal's words: a court is worth nothing in a hamlet
-  // and worth its fifteen percent in a capital of twelve. The percent is the
-  // simulation's own reading of the row, and the crowding is the simulation's
-  // own curve asked twice — never re-derived here.
-  const relief = buildingCrowdingRelief(held);
+  // **The justices sit** — a share of one town's own citizen demand forgiven, at
+  // the meter's live price. It is a percentage *of a cost that scales with the
+  // town*, which is the row's own docblock in the appraisal's words: a court is
+  // worth a little in a hamlet and worth its fifteen percent of twelve in a
+  // capital of twelve, which is the shape a flat happiness line could not have.
+  // The percent is the simulation's own reading of the row and the demand is the
+  // simulation's own reading of the town — neither is re-derived here.
+  //
+  // It was a share of the *crowding* until 2026-09-09, when that term left the
+  // game (`docs/flags.md` item (kkk)); the term follows the cost line the row
+  // now discounts, and is worth more for it.
+  const relief = buildingDemandRelief(held);
   if (relief > 0) {
     const size = townPopulation(ctx, city);
-    const forgiven = (crowdingDemandOf(size) * relief) / 100;
+    const forgiven = (happinessDemand(size) * relief) / 100;
     if (forgiven > 0) {
       terms.push({
         label:
-          `${relief}% of the crowding a town of ${round(size)} carries — ` +
+          `${relief}% of what a town of ${round(size)} asks for — ` +
           `${round(forgiven)} contentment × ${meterWords(ctx, 'happiness')}`,
         value: forgiven * meterWeight(ctx, 'happiness'),
       });
@@ -1586,23 +1590,6 @@ function rowCharterTerms(
     }
   }
   return terms;
-}
-
-/**
- * **What the crowding half of a town's demand costs**, off the simulation's own
- * curve and nothing else.
- *
- * `happinessDemand` asked twice and subtracted, which is `explainCitizen`'s
- * marginal charge (batch X5) read one question over: the whole demand at this
- * size, less the same citizens' flat share (`happinessDemand(1)` is the linear
- * half by construction, the crowding threshold being above one). Nothing here
- * restates `METERS.happiness` — a retune of the curve moves this fold with it.
- *
- * The honest fix the day the curve gains a second shape is an exported
- * `crowdingDemand` beside `happinessDemand`; this asks the reading that exists.
- */
-function crowdingDemandOf(population: number): number {
-  return Math.max(0, happinessDemand(population) - population * happinessDemand(1));
 }
 
 /**
@@ -1719,7 +1706,7 @@ export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
   authorityCapacity: 'writ supplied, at the meter’s live price',
   cityStat: 'town strength, at the military weight and the threat',
   cityHp: 'a share of the town’s bar, worth that share of its defence (batch X5c)',
-  crowdingRelief: 'a share of a town’s crowding forgiven, at the happiness price',
+  demandRelief: 'a share of a town’s citizen demand forgiven, at the happiness price',
   unitUpkeepRebate: 'a coin off the keep of every piece the levy is still short',
   purchaseDiscount: 'a percent off the coin this town turns over, at the gold price',
   healsAdjacent: 'a share of a piece mended a turn, at the wall line’s rate',

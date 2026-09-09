@@ -306,8 +306,9 @@ age 3: +2 food on production buildings
 
 ### Sugar — jungle on grassland/plains, or desert floodplain
 `+2🪙` on tile · **+2 happiness** ·
-Æra III: **−5% happiness demanded per citizen**, which multiplies both the
-linear demand and the crowding term.
+Æra III: **−5% happiness demanded per citizen**, which multiplies the whole of
+what a town asks for (its demand is linear in its citizens — crowding was
+removed 2026-09-09, `docs/flags.md` item (kkk)).
 
 ### Olives — grassland hills
 `+2🌾 +1🪙` on tile · **+2🌾 in your capital** · 

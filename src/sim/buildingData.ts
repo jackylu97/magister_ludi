@@ -55,7 +55,7 @@
  *
  * The charters added four more of the same kind (2026-09-04), and each is read
  * in exactly one place through `buildingEffects.ts` like the three above it:
- * `crowdingRelief` in `explainHappiness` (`meters.ts`), `purchaseDiscount` in
+ * `demandRelief` in `explainHappiness` (`meters.ts`), `purchaseDiscount` in
  * `explainPurchaseCost` (`purchase.ts`), `healsAdjacent` in `healUnits`
  * (`turn.ts`), `ritePays` in `performRiteAt` (`religion.ts`). Every one of them
  * is a number the caller interprets; not one of them is a branch anybody has to
@@ -662,26 +662,33 @@ export interface BuildingDef {
    */
   happiness?: number;
   /**
-   * **What share of its town's crowding this building forgives**, as a whole
-   * percent — the Assize Court's fifteen. Absent means a town that is as
-   * crowded as its size says.
+   * **What share of its town's citizen demand this building forgives**, as a
+   * whole percent — the Assize Court's fifteen. Absent means a town that asks
+   * for everything its citizens ask for.
    *
    * `happiness`' sibling and deliberately not the same field: happiness supplied
    * is a *gain* a town pays its empire, and this is a *discount on one named
-   * cost line* — the crowding a big town charges on top of its per-citizen
-   * demand (`crowdingDemand`, `meters.ts`). A court that simply paid two points
-   * of contentment would be worth the same in a hamlet and in a capital of
-   * twelve, which is the opposite of what the row says.
+   * cost line* — what this town's own citizens demand (`demandPerPop × charged
+   * citizens`, `meters.ts`). A court that simply paid two points of contentment
+   * would be worth the same in a hamlet and in a capital of twelve, which is the
+   * opposite of what the row says: a share of the citizens scales with the town.
+   *
+   * It was `crowdingRelief` — a share of the *surcharge* a big town paid on top
+   * of its citizens — until the crowding term left the game (the user,
+   * 2026-09-09, `docs/flags.md` item (kkk)). A marker read nowhere fails the
+   * register, so the field follows the cost line it discounts rather than
+   * lingering as a promise the meter no longer keeps; the figure carries over
+   * untouched and is the user's to retune, a share of the whole citizen line
+   * being deliberately more than a share of a surcharge was.
    *
    * Read in exactly one place, `explainHappiness` (`meters.ts`), through
-   * `buildingCrowdingRelief` (`buildingEffects.ts`), and folded as a **gain
-   * line** against the full crowding cost rather than as a quieter cost line —
+   * `buildingDemandRelief` (`buildingEffects.ts`), and folded as a **gain
+   * line** against the full citizen cost rather than as a quieter cost line —
    * the puppet's discipline three lines down, and hard rule 5: a player being
    * charged less is entitled to see the discount and which town it came from.
-   * It relieves the crowding only; the per-citizen demand and the cost of
-   * governing are untouched.
+   * It relieves the citizens only; the cost of governing is untouched.
    */
-  crowdingRelief?: number;
+  demandRelief?: number;
   /**
    * A stat of **the city itself** — what it is worth to storm, and how far it
    * sees. Absent means none.

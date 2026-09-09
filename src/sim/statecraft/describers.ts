@@ -802,8 +802,8 @@ function buildingRowClauses(id: BuildingId): CardClause[] {
       text: `every unit raised in this city costs ${def.unitUpkeepRebate} less gold a turn to keep, for as long as it lives`,
     });
   }
-  if (def.crowdingRelief !== undefined && def.crowdingRelief !== 0) {
-    out.push({ text: `a crowded city asks ${def.crowdingRelief}% less of you` });
+  if (def.demandRelief !== undefined && def.demandRelief !== 0) {
+    out.push({ text: `this city’s citizens ask ${def.demandRelief}% less of you` });
   }
   if (def.purchaseDiscount !== undefined && def.purchaseDiscount !== 0) {
     // "costs less", never "−5% cost": the sign belongs to the price, exactly as

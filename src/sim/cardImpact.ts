@@ -689,8 +689,8 @@ function meterTotal(state: GameState, playerId: number, meter: MeterId): number 
  * A meter movement, **at the precision a meter is read at**: one tenth, which is
  * `signedFigure`'s rule on the top bar's own chips.
  *
- * Not fastidiousness. Happiness folds a list carrying fractional terms — the
- * crowding curve, a demand line multiplied by a `meterRule` factor — so the
+ * Not fastidiousness. Happiness folds a list carrying fractional terms — a
+ * demand line multiplied by a `meterRule` factor, a court's share of one — so the
  * difference between two folds is subject to IEEE addition, and Festival Days'
  * four contentment arrives here as `3.9999999999999996`. Rounded at the reading
  * rather than at the printer because a card's stamp is not the only thing that

@@ -1187,7 +1187,8 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     const line = element('li', 'meter-line');
     line.append(element('span', 'meter-line-source', source));
     // A meter's ledger, so `signedMeterFigure` and not the yields' printer —
-    // see `figures.ts`. The crowding term is a tenth and stays one.
+    // see `figures.ts`. A line a percentage has been taken off is a tenth and
+    // stays one.
     const amount = signed ? signedMeterFigure(value) : meterFigure(value);
     line.append(
       element('span', value < 0 ? 'meter-line-value is-cost' : 'meter-line-value', amount),

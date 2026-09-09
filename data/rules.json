@@ -234,10 +234,7 @@
     "happiness": {
       "palace": 6,
       "perUniqueLuxury": 4,
-      "demandPerPop": 1,
-      "crowdingWeight": 0.3,
-      "crowdingFrom": 10,
-      "crowdingExponent": 1.6
+      "demandPerPop": 1
     },
     "authority": {
       "palaceCapacity": 6,

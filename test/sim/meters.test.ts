@@ -186,89 +186,76 @@ describe('the breakdown is the number', () => {
     expect(capitalCityOf(state, 0)).toBeUndefined();
   });
 
-  it('charges a crowded town on its own line, and nothing under the threshold', () => {
-    // Crowding was switched off by data on 2026-09-01 (Entry LVI) and switched
-    // back ON by the 9/3 playtest ruling. The line is a *second* fact about a
-    // town — "Ur · 15 citizens" is how big it is, "Ur crowding" is what that
-    // size costs — so it is asserted as its own entry rather than folded into
-    // the citizens' line.
+  it('charges a town for its citizens and for nothing else, at any size', () => {
+    // **Crowding is removed** (the user, 2026-09-09, `docs/flags.md` item
+    // (kkk): "lets remove crowding unhappiness altogether") — mechanism and
+    // all, not turned down to nothing. It had been switched off by data on
+    // 2026-09-01 (Entry LVI) and back on by the 9/3 playtest ruling, which is
+    // the argument for removing the shape rather than the weight: a curve
+    // nobody can see is a curve somebody turns on again. So the pin is that a
+    // town of *any* size writes one cost line, worth its citizens.
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     const city = state.cities[0]!;
 
-    // A town at the threshold pays nothing: `over` is zero and a surcharge of
-    // nothing is not a line (see `explainHappiness`).
-    city.population = HAPPY.crowdingFrom;
-    expect(explainHappiness(state, 0).some((entry) => entry.source.includes('crowding'))).toBe(
-      false,
-    );
-
-    // One citizen past it, and the line appears, worth exactly the curve.
-    city.population = HAPPY.crowdingFrom + 3;
-    const crowding = lineFor(explainHappiness(state, 0), 'crowding');
-    expect(crowding).toBeDefined();
-    expect(-crowding!).toBeCloseTo(HAPPY.crowdingWeight * 3 ** HAPPY.crowdingExponent, 10);
+    for (const population of [1, 10, 11, 15, 20, 30]) {
+      city.population = population;
+      const list = explainHappiness(state, 0);
+      expect(list.some((entry) => entry.source.toLowerCase().includes('crowding'))).toBe(false);
+      expect(lineFor(list, 'citizens')).toBe(-HAPPY.demandPerPop * population);
+    }
   });
 });
 
 /**
- * **The crowding curve, printed** (user ruling, 2026-09-03: "turn crowding back
- * on, the effect should be noticeable at 15 pop, something to overcome at 20
- * pop, and almost debilitating (but playable) at 30 pop").
+ * **What a big town asks for, printed** — the table the 9/3 crowding ruling was
+ * tuned against, kept as the record of the *shape* that replaced it.
  *
- * The three bands are the ruling and the table is the eyeball: the test prints
- * what one town of each size asks for on top of its citizens, so the numbers
- * the design was tuned against are readable in the run rather than only in a
- * report. Read off `explainHappiness`'s own line — the surface a player sees —
- * so a retune of the demand factor or of the line's shape moves the table with
- * it, and never off a second copy of the arithmetic (rule 5).
+ * A town's demand is linear in its citizens since 2026-09-09 and there is no
+ * second term to eyeball, so what the print is for now is the sentence a player
+ * is promised: a metropolis of thirty asks for thirty, and the empire either has
+ * it or does not. Read off `explainHappiness`'s own line — the surface a player
+ * sees — so a retune of the demand factor or of the line's shape moves the table
+ * with it, and never off a second copy of the arithmetic (rule 5).
  */
-describe('what crowding costs a big town', () => {
-  /** The crowding line of a lone city of this size, as a positive magnitude. */
-  function crowdingAt(population: number): number {
+describe('what a big town costs', () => {
+  /** The citizen line of a lone city of this size, as a positive magnitude. */
+  function demandAt(population: number): number {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
     state.cities[0]!.population = population;
-    return -(lineFor(explainHappiness(state, 0), 'crowding') ?? 0);
+    return -(lineFor(explainHappiness(state, 0), 'citizens') ?? 0);
   }
 
-  it('prints the table the 9/3 ruling was tuned against', () => {
+  it('prints what each size asks for, and it is linear the whole way', () => {
     const rows = [10, 15, 20, 25, 30].map((pop) => ({
       pop,
-      crowding: Number(crowdingAt(pop).toFixed(2)),
+      demand: Number(demandAt(pop).toFixed(2)),
     }));
-    console.log(
-      `crowding: from ${HAPPY.crowdingFrom} · weight ${HAPPY.crowdingWeight} · exponent ${HAPPY.crowdingExponent}`,
-    );
+    console.log(`demand: ${HAPPY.demandPerPop} a citizen · no crowding term (2026-09-09)`);
     for (const row of rows) {
-      console.log(`  pop ${String(row.pop).padStart(2)} → crowding demand ${row.crowding}`);
+      console.log(`  pop ${String(row.pop).padStart(2)} → happiness demand ${row.demand}`);
     }
-    // Every row is the same curve the meter charges, so the print cannot drift
-    // from the assertions below.
     for (const row of rows) {
-      const over = Math.max(0, row.pop - HAPPY.crowdingFrom);
-      expect(row.crowding).toBeCloseTo(
-        Number((HAPPY.crowdingWeight * over ** HAPPY.crowdingExponent).toFixed(2)),
-        6,
-      );
+      expect(row.demand).toBeCloseTo(HAPPY.demandPerPop * row.pop, 6);
     }
+    // The whole of the ruling, said as an arithmetic fact: every step up costs
+    // exactly the same, so nothing about a town's size compounds against it.
+    expect(demandAt(30) - demandAt(25)).toBeCloseTo(demandAt(25) - demandAt(20), 9);
   });
 
-  it('lands the three ruled bands: noticeable, then something to overcome, then near-debilitating', () => {
-    // Noticeable — a point or two of the empire's contentment, felt but not
-    // decisive.
-    expect(crowdingAt(15)).toBeGreaterThanOrEqual(3);
-    expect(crowdingAt(15)).toBeLessThanOrEqual(5);
-    // Something to overcome — a luxury or two of happiness, spent on one town.
-    expect(crowdingAt(20)).toBeGreaterThanOrEqual(10);
-    expect(crowdingAt(20)).toBeLessThanOrEqual(15);
-    // Almost debilitating, and still playable: a metropolis is a project.
-    expect(crowdingAt(30)).toBeGreaterThanOrEqual(35);
-    expect(crowdingAt(30)).toBeLessThanOrEqual(45);
-    // And it climbs the whole way: the curve is superlinear inside one city,
-    // which is Entry I's second commitment and the reason this taxes tall.
-    expect(crowdingAt(25)).toBeGreaterThan(crowdingAt(20));
-    expect(crowdingAt(30) - crowdingAt(25)).toBeGreaterThan(crowdingAt(25) - crowdingAt(20));
+  it('leaves no line on the ledger that is not the palace or a town’s citizens', () => {
+    const state = flatState();
+    foundCityAt(state, 0, at(state.map, 4, 4));
+    state.cities[0]!.population = 30;
+    const list = explainHappiness(state, 0);
+    // A lone town with no luxuries, no cards and no buildings: two lines, and
+    // the fold of them is the meter.
+    expect(list.map((entry) => entry.source)).toEqual([
+      'Palace',
+      `${state.cities[0]!.name} · 30 citizens`,
+    ]);
+    expect(happinessOf(state, 0)).toBe(HAPPY.palace - HAPPY.demandPerPop * 30);
   });
 
   it('starts the palace at the happiness the 9/3 ruling names', () => {
@@ -963,7 +950,10 @@ describe('a captured city, end to end', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(102);
+    // 103 since batch B7 (2026-09-09): crowding is removed — a town's demand is
+    // linear in its citizens, so a v102 log's every empire pays a different
+    // happiness from the turn its first town passes the old threshold.
+    expect(SCHEMA_VERSION).toBe(103);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));
@@ -1025,8 +1015,8 @@ describe('what founding a city here would cost', () => {
 
     const lines = explainFoundingCost(state, 0, at(state.map, 10, 4));
     expect(foldMeter(foundingCostLines(lines, 'authority'))).toBe(-WRIT.foundedCity);
-    // A town is founded at one citizen, and `crowdingFrom` is far above one — so
-    // the happiness half is a single line and there is no crowding in it.
+    // A town is founded at one citizen, and one citizen is the whole of what a
+    // town asks for — so the happiness half is a single line.
     expect(foldMeter(foundingCostLines(lines, 'happiness'))).toBe(-HAPPY.demandPerPop);
     expect(foundingCostLines(lines, 'happiness')).toHaveLength(1);
     expect(lines.every((line) => line.part === 'cost')).toBe(true);
@@ -1076,7 +1066,7 @@ describe('what founding a city here would cost', () => {
     );
     expect(legislated).toBeGreaterThan(printed);
 
-    // The happiness half is the citizen and the crowding, and nothing else.
+    // The happiness half is the citizen, and nothing else.
     // `cityHappinessDemand` — a flat surcharge on governing one more town, and
     // the only card rule that ever put a third line here — was withdrawn in
     // batch B2 (the user, 2026-09-08: *"Don't keep the useless rule"*); the

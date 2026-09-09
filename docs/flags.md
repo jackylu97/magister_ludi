@@ -1230,7 +1230,25 @@ directly to confirm rulings — user marginalia are rulings.
   citizen line is more than 15% of a surcharge was, deliberately, since
   the court's reason to exist is happiness. The great-person and orders
   passes are the **user's own**, not agents' — sit tight. Batch **B7**.
-  Schema bumps (a replay's happiness meter changes). (eee)
+  Schema bumps (a replay's happiness meter changes). **B7 built
+  2026-09-09, schema 103**: the three rules left `data/rules.json` and
+  `HappinessRules`; `happinessDemand` is one multiplication,
+  `crowdingDemand` deleted, one cost line per town in `explainHappiness`
+  and the founding preview; the Assize Court carries `demandRelief: 15`
+  (`buildingDemandRelief`), folded as the same "the justices sit" gain
+  line against the full citizen cost — the court's and the puppet's
+  reliefs are both gains off the full line, never off each other's
+  remainder (the old pair's arithmetic, now said in the docblock); the
+  bot prices the court as relief × demand(size) × the happiness
+  weight (worth something in a hamlet now, where the surcharge share
+  was nothing below ten); the describer says the citizens ask less, the
+  Compendium's crowding clause is gone; `cardText.json` moved one line
+  (the Justices' Charter). t100 (8 seeds), B6 → B7: cities 6.1 → 5.9 ·
+  citizens 42.4 → 42.2 · buildings 32.1 → 32.2 · food 126 → 121 · prod
+  88.6 → 88.8 · gold 40.0 → 44.6 · sci 95.9 → 106.7 · cul 73.0 → 73.4 ·
+  faith 20.2 → 20.3 · treasury 342 → 322 · techs 23.9 → 23.7 ·
+  happiness +7.1 → +9.9. The headroom goes into the tier and out as
+  science and gold; the bot spends it rather than banking it. (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

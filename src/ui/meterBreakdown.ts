@@ -27,10 +27,10 @@
  * ("Uruk · coastal −1"), so it needs nothing here. Happiness needed one thing,
  * and it is the second fold below — see `foldCityHappiness`.
  *
- * The crowding line stays its own line at either meter. A town's size and the
- * *surcharge* for being over the crowding threshold are two different facts
- * about the same place (`explainHappiness` says so), and a player deciding
- * whether to grow one more citizen is reading exactly that split.
+ * A town writes one demand line, and since 2026-09-09 that is all it writes: the
+ * crowding surcharge this note used to keep on a line of its own left the game
+ * with its rule (`docs/flags.md` item (kkk)). What a player deciding whether to
+ * grow one more citizen reads is the citizens themselves.
  */
 
 import type { MeterContribution, MeterId, MeterPart } from '../sim/meters';

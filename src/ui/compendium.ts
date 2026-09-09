@@ -843,7 +843,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   //
   // It carries what this page used to add for itself — the wall a town builds
   // (`cityStat`), and the ground an ungated tile line pays — along with the eight
-  // row fields (a Keep's mending, a Chapel's rite, an Assize Court's crowding)
+  // row fields (a Keep's mending, a Chapel's rite, an Assize Court's relief)
   // that reached a reader only as prose in the row's own `note`.
   const clauses: CompendiumClause[] = describeBuildingRow(id).map((entry) => ({
     text: entry.text,
@@ -1637,17 +1637,10 @@ function meterEntries(): CompendiumEntry[] {
         {
           text: `Every citizen in every city demands ${figure(happiness.demandPerPop)}.`,
         },
-        // The crowding surcharge is spoken for iff the ledger is charging it:
-        // the weight went to 0 on 2026-09-01 (Entry LVI) and back on with the
-        // 9/3 playtest ruling, and the sentence follows the number both ways,
-        // so the book never describes a rule the ledger is not charging.
-        ...(happiness.crowdingWeight > 0
-          ? [
-              {
-                text: `A city larger than ${figure(happiness.crowdingFrom)} citizens demands more on top of that, for crowding: ${figure(happiness.crowdingWeight)} × (size − ${figure(happiness.crowdingFrom)}), raised to the power of ${figure(happiness.crowdingExponent)}.`,
-              },
-            ]
-          : []),
+        // A big city used to demand a surcharge on top of that, for crowding.
+        // The rule is gone (2026-09-09, `docs/flags.md` item (kkk)) and so is
+        // the sentence: what a town asks for is what its citizens ask for, and
+        // the book prints one rule where the ledger charges one line.
         {
           text: `However far the steps above go, the bonus or penalty never passes ${percentFigure(RULES.meters.tierClamp)}.`,
         },

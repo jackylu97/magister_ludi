@@ -22,7 +22,8 @@
  *
  * The two **meters** are deliberately outside all of this: happiness and
  * authority are ledgers compared against tier rungs rather than yields that are
- * spent, they carry a genuinely fractional crowding term, and their *ledgers*
+ * spent, they carry genuinely fractional lines (a card's percentage off what a
+ * citizen demands, a court's share of a town's demand), and their *ledgers*
  * print through `meterFigure` / `signedMeterFigure`, which keep the tenth. That
  * split is the third claim below, so nobody "tidies" the two pairs back into one.
  *

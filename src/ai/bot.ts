@@ -4843,8 +4843,8 @@ function explainMixCraving(
  *     meter for its keep, and in an empire whose happiness price is riding the
  *     band's ceiling that keep is the most expensive thing about it. The
  *     magnitude is the **marginal** demand — what `happinessDemand` asks of a
- *     town of `pop + 1` less what it asks of this one, so the crowding half of
- *     the curve is charged where it bites and nowhere else — at the live price
+ *     town of `pop + 1` less what it asks of this one, so whatever shape the
+ *     curve has is charged where it bites and nowhere else — at the live price
  *     `meterWeight` already carries. The curve is never re-derived here: two
  *     calls to the simulation's own function, subtracted, in `citizenKeepTerm`
  *     (`citizen.ts`).

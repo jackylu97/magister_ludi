@@ -1704,11 +1704,10 @@ export type MeterRuleId =
    *
    * `delta` shifts the count, which is zero in every game nothing says
    * otherwise. Read in `explainHappiness`'s demand line and nowhere else: the
-   * town's linear demand is charged on `max(0, population − free)` citizens
-   * instead of on all of them, **outside** the `happinessDemand` factor and
-   * before crowding — a waiver is a fact about *who is counted*, where
-   * Toleration Edicts is a discount on what each one asks for, and crowding is a
-   * fact about the size of the town rather than about its people.
+   * town's demand is charged on `max(0, population − free)` citizens
+   * instead of on all of them, and **outside** the `happinessDemand` factor —
+   * a waiver is a fact about *who is counted*, where Toleration Edicts is a
+   * discount on what each one asks for.
    */
   | 'freeCitizens'
   /** Borders keep growing while the writ is in deficit. */

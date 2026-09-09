@@ -40,12 +40,13 @@ export function cityDisplayName(
  *
  * `explainHappiness` / `explainAuthority` (`src/sim/meters.ts`) build each
  * ledger line's `source` as the city's name with a sim-owned suffix bolted on
- * (" · N citizens", " crowding", " · capital", " · coastal", " · captured") —
- * text this UI layer decorates, never re-derives. A prefix match against the
- * capital's own name, guarded to a following space or an exact match so a
- * name that happens to prefix another (`Ur` inside `Uruk`) can never
- * mismatch, finds the one line — or two, for a crowded capital — built from
- * that name and stars it in place; every other line is returned untouched.
+ * (" · N citizens", " · the justices sit", " · capital", " · coastal",
+ * " · captured") — text this UI layer decorates, never re-derives. A prefix
+ * match against the capital's own name, guarded to a following space or an
+ * exact match so a name that happens to prefix another (`Ur` inside `Uruk`)
+ * can never mismatch, finds every line built from that name — a capital writes
+ * more than one — and stars each in place; every other line is returned
+ * untouched.
  */
 export function starCapitalSource(state: GameState, playerId: number, source: string): string {
   const capital = capitalCityOf(state, playerId);

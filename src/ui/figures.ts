@@ -195,8 +195,9 @@ export function turnsLabel(turns: number | null): string {
  * printed clause and the chip above it round the same way.
  *
  * A true minus sign, never a hyphen. The two **meters** keep their tenth and
- * have their own printer below (`signedMeterFigure`) — a happiness curve's
- * crowding term is not a yield, and the rung it is closing on is worth seeing.
+ * have their own printer below (`signedMeterFigure`) — a ledger whose lines are
+ * scaled by a card's percentage is not a yield, and the rung it is closing on is
+ * worth seeing.
  */
 export function signedFigure(value: number): string {
   const rounded = roundYield(value);
@@ -231,7 +232,9 @@ export function netFigure(value: number): string {
  *
  * `signedFigure`'s old body, split off rather than deleted when batch X made
  * every yield print whole. Happiness and authority are not yields: they are
- * ledgers whose lines include a crowding term of `0.6 · 3 ^ 1.4`, they are
+ * ledgers whose lines are genuinely fractional — a `meterRule` card takes a
+ * percentage off what a citizen demands, and a court forgives a share of what a
+ * town's citizens ask for — they are
  * compared against tier *rungs* rather than spent, and the tenth-of-a-point
  * below a rung is what a player closing on one is playing around. Nobody needs
  * the fourteenth decimal place, hence the tenth.

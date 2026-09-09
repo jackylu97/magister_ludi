@@ -168,7 +168,7 @@ describe('the persona sheet', () => {
      *     carrier batch 4 gave it that it did not have before: `weights.happiness`
      *     at sixteen against the balanced twelve, which is what the expansion
      *     chain charges a town founded into a deficit. Tall's *"only settle
-     *     excellent ground"* is now *"tall minds the crowding more"*, which is
+     *     excellent ground"* is now *"tall minds the appetite more"*, which is
      *     the same sentence said as a price.
      *   · **warmonger** — a raised city weight and the balanced falloff: it takes
      *     towns, it does not court them.

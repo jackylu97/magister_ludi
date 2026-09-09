@@ -772,7 +772,7 @@ function cityCount(state: GameState, playerId: number, coastalOnly: boolean): nu
  *
  * A line with a `per` is multiplied by the cities that qualify, which is the
  * whole of "+1 happiness per city": a wide empire gets more out of one amber
- * road than a tall one, and the crowding curve is what argues back.
+ * road than a tall one, and the writ a wide empire spends is what argues back.
  */
 export function resourceHappiness(state: GameState, playerId: number): ResourceHappinessLine[] {
   const list: ResourceHappinessLine[] = [];

@@ -46,7 +46,7 @@ function flatState(): GameState {
   return state;
 }
 
-/** An empire of three towns, one of them the capital and one of them crowded. */
+/** An empire of three towns, one of them the capital and one of them large. */
 function empire(): GameState {
   const state = flatState();
   for (const [col, row] of [
@@ -56,8 +56,8 @@ function empire(): GameState {
   ] as const) {
     foundCityAt(state, 0, getTileAt(state.map, col, row)!);
   }
-  // A town past the crowding threshold, so the fixture carries the surcharge
-  // line the grouping has to leave alone (the weight came back on 2026-09-03).
+  // One town grown past the founding size, so the fixture's demand lines are
+  // not all the same figure and a fold that netted the wrong town would show.
   state.cities[1]!.population = 11;
   return state;
 }
@@ -207,17 +207,21 @@ describe('a town’s own buildings net into that town’s demand line', () => {
     expect(meterStanding(folded).total).toBe(meterStanding(raw).total);
   });
 
-  it('leaves a crowding line alone, because it is a different fact', () => {
-    // The surcharge is disabled by data (Entry LVI), so the sim never emits
-    // this line today — the fold's promise is pinned against a hand-made entry,
-    // because the promise must survive the day the weight comes back.
+  it('leaves a town’s other cost line alone, because it is a different fact', () => {
+    // The fold merges a town's own **gain** lines into its demand line and
+    // touches nothing else. A second cost line naming the same town — the
+    // crowding surcharge, while the game had one; whatever the next one is —
+    // stays where it was written, because a town's size and a second charge on
+    // that town are two facts and the section prints both. Pinned against a
+    // hand-made entry, since the sim emits only the one cost line per town.
     const state = empire();
     const raw = [
       ...explainHappiness(state, 0),
-      { source: `${state.cities[1]!.name} crowding`, part: 'cost' as const, value: -3 },
+      { source: `${state.cities[1]!.name} · the assizes fine it`, part: 'cost' as const, value: -3 },
     ];
     const folded = foldCityHappiness(raw, towns(state, 0));
-    expect(folded.some((entry) => entry.source.endsWith('crowding'))).toBe(true);
+    expect(folded.some((entry) => entry.source.endsWith('the assizes fine it'))).toBe(true);
+    expect(foldMeter(folded)).toBe(foldMeter(raw));
   });
 
   it('nets each town into its own line when one name is a prefix of another', () => {

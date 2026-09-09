@@ -14,7 +14,7 @@
  *   2. **The building half is eleven different rules**, each landing in a
  *      different ledger: the hit points in `cityMaxHp`, the heal in
  *      `buildingAdjacentHeal`, the discount in `explainPurchaseCost`, the
- *      crowding in `explainHappiness`, the faith bank in `purchaseError`, the
+ *      demand relief in `explainHappiness`, the faith bank in `purchaseError`, the
  *      rite's culture in `performRiteAt`. One test each, carried to the ledger
  *      it touches — `statecraft.test.ts`' one-card-per-hook-family discipline at
  *      the scale of a building.
@@ -40,7 +40,7 @@ import {
 } from '../../src/sim/buildingData';
 import {
   buildingAdjacentHeal,
-  buildingCrowdingRelief,
+  buildingDemandRelief,
   buildingPurchaseDiscount,
   buildingRitePay,
   cityIsWatered,
@@ -521,28 +521,28 @@ describe('what each charter building does', () => {
     expect(explainCardPercentYields(state, other)).toHaveLength(0);
   });
 
-  it('Assize Court — forgives a share of its own town’s crowding, as a gain line', () => {
+  it('Assize Court — forgives a share of its own town’s citizen demand, as a gain line', () => {
+    // It forgave the town's *crowding* until 2026-09-09, when that term left
+    // the game (`docs/flags.md` item (kkk)); the marker moved to the cost line
+    // that remains, and the court's line is the same "the justices sit" gain.
     const state = bench();
     const city = capitalOf(state);
     city.population = 20;
     refreshCityDerived(state, city);
-    const crowded = explainHappiness(state, 0).find(
-      (line) => line.source === `${city.name} crowding`,
-    )!;
-    expect(crowded.value).toBeLessThan(0);
+    const demandLine = (): { part: string; value: number } =>
+      explainHappiness(state, 0).find((line) => line.source.startsWith(`${city.name} · 20`))!;
+    const charged = demandLine();
+    expect(charged.value).toBeLessThan(0);
     raise(state, city, 'assizeCourt');
-    expect(buildingCrowdingRelief(city)).toBe(15);
+    expect(buildingDemandRelief(city)).toBe(15);
     const relief = explainHappiness(state, 0).find((line) =>
       line.source.includes('the justices sit'),
     )!;
     // A gain against the full cost, so the ledger still prints what the town
     // asked for beside what the court took off it.
     expect(relief.part).toBe('gain');
-    expect(relief.value).toBeCloseTo(-crowded.value * 0.15, 6);
-    // The crowding line itself is untouched — nothing is quietly made smaller.
-    const after = explainHappiness(state, 0).find(
-      (line) => line.source === `${city.name} crowding`,
-    )!;
-    expect(after.value).toBe(crowded.value);
+    expect(relief.value).toBeCloseTo(-charged.value * 0.15, 6);
+    // The citizens' line itself is untouched — nothing is quietly made smaller.
+    expect(demandLine().value).toBe(charged.value);
   });
 });

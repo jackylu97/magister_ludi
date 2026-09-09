@@ -764,7 +764,10 @@ describe('the research queue field', () => {
     // eight reckonings retired with it. A v101 log does not replay: the
     // reckoning draw consumes no rolls now, so every generator-fed decision
     // after it comes out of a different state.
-    expect(SCHEMA_VERSION).toBe(102);
+    // 103 is batch B7's (2026-09-09, item (kkk)): crowding removed — a town's
+    // demand is linear in its citizens, so a v102 log's happiness differs from
+    // the turn its first town passes the old threshold.
+    expect(SCHEMA_VERSION).toBe(103);
   });
 });
 

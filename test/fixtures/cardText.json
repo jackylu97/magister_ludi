@@ -1668,8 +1668,8 @@
   ],
   "justicesCharter": [
    {
-    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — +1 authority capacity; a crowded city asks 15% less of you",
-    "text": "unlocks the Assize Court — +1 authority capacity; a crowded city asks 15% less of you"
+    "raw": "unlocks the [[building:assizeCourt|Assize Court]] — +1 authority capacity; this city’s citizens ask 15% less of you",
+    "text": "unlocks the Assize Court — +1 authority capacity; this city’s citizens ask 15% less of you"
    }
   ],
   "theBannerCall": [

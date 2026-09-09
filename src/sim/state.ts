@@ -401,7 +401,8 @@ import {
  * 10/13 (400 · 540 · 680 → 310 · 415 · 525; 1450 · 1700 · 1950 · 2200 →
  * 1100 · 1300 · 1500 · 1700). No node's column moved and no prerequisite was
  * touched — a column is still a price, and this is the price the column now
- * carries. The tree is 27401 beakers where it was 35698.
+ * carries. The tree came to 27401 beakers where it had been 35698 (batch B6 has
+ * since re-cut it again; it is 68609 today).
  *
  * A v90 log does not replay. Every technology after the first lands on a
  * different turn, and a tree that arrives early takes every unlock, every
@@ -624,8 +625,25 @@ import {
  * different place — `drawAgeReckonings` still spends a roll a family over its
  * now-empty pools, deliberately, so that at least *that* much is unmoved and a
  * later reckoning-shaped row costs nothing to add back.
+ *
+ * v103: **crowding is removed, and the justices forgive the citizens** (batch
+ * B7; the user, 2026-09-09, `docs/flags.md` item (kkk): "lets remove crowding
+ * unhappiness altogether"). A town's happiness demand is `demandPerPop ×
+ * charged citizens` and nothing else: the surcharge a town over a threshold
+ * paid on top of its citizens is gone with its three rules
+ * (`meters.happiness.crowdingWeight`/`crowdingFrom`/`crowdingExponent`), gone
+ * from `explainHappiness`, from the founding preview, and from the puppet's
+ * gain line — which now relieves the citizens alone. The Assize Court carried
+ * the one `crowdingRelief`; the marker is retired for `demandRelief`, the same
+ * fifteen read one cost line over, and the court's "the justices sit" line is
+ * now a share of everything its town's citizens ask for.
+ *
+ * A v102 log does not replay. Every empire holding a town of eleven or more is
+ * paying less for it from the turn this lands, which moves the happiness tier
+ * it sits on, which moves every yield the tier scales, which moves growth,
+ * research and the turn a bot seat decides it can afford one more town.
  */
-export const SCHEMA_VERSION = 102;
+export const SCHEMA_VERSION = 103;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

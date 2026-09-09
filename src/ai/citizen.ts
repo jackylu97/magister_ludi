@@ -35,8 +35,10 @@ import { happinessDemand } from '../sim/meters';
  * than a case the table has today.
  *
  * The magnitude is the **marginal** demand: the simulation's own curve asked
- * twice and subtracted, never re-derived, so the linear half is charged flat and
- * the crowding tail is charged only where it actually bites. The price is the
+ * twice and subtracted, never re-derived — flat today, since a town's demand is
+ * linear in its citizens (2026-09-09, `docs/flags.md` item (kkk)), and still
+ * asked twice so the day the curve bends again this bends with it. The price is
+ * the
  * one the context already carries — `meterWeight`'s, the very `PricedMeter` a
  * building's `happiness` line is paid at — so a seat riding the band's ceiling
  * charges a citizen three times what a seat at the table's own figure does.

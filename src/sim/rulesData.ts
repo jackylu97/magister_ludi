@@ -1125,17 +1125,21 @@ export interface HappinessRules {
    * Unique, so two improved silk seams are one silk (design ledger XIV.D.3).
    */
   perUniqueLuxury: number;
-  /** Demand each population point makes. */
-  demandPerPop: number;
   /**
-   * Crowding: a city of population `n` demands
-   * `demandPerPop · n + crowdingWeight · max(0, n − crowdingFrom) ^ crowdingExponent`.
-   * Superlinear *within* a city and never in empire-total pop — Entry I's second
-   * commitment, which is what keeps happiness a vertical limiter.
+   * Demand each population point makes, and **the whole of what a town asks
+   * for** (the user, 2026-09-09, `docs/flags.md` item (kkk): "lets remove
+   * crowding unhappiness altogether"). A city of population `n` demands
+   * `demandPerPop · n`, linear and nothing else.
+   *
+   * The superlinear term this rule used to lead — a surcharge on the citizens
+   * above a threshold, Entry I's second commitment and the game's vertical
+   * limiter — is **gone, mechanism and all**, rather than turned down to
+   * nothing: a curve nobody can see is a curve somebody turns back on, which is
+   * exactly what happened to it twice. What limits a tall town now is what the
+   * player can see limiting it — the citizens themselves, and the happiness the
+   * empire has to feed them with.
    */
-  crowdingWeight: number;
-  crowdingFrom: number;
-  crowdingExponent: number;
+  demandPerPop: number;
 }
 
 export interface AuthorityRules {

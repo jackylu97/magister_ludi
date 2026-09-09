@@ -3418,9 +3418,11 @@ sat at the band's ceiling. It now carries a fourth, negative:
 ```
 
 The **marginal** demand, not the town's whole demand: two calls to the
-simulation's own curve, subtracted, so the linear half is charged flat and the
-crowding tail is charged where it actually bites (a town of six is charged 1.0, a
-town of twelve 1.83). The price is the one the context already carries — the same
+simulation's own curve, subtracted, so whatever shape the curve has is charged
+where it actually bites. It is **flat today** — a town's demand is linear in its
+citizens since 2026-09-09 (`docs/flags.md` item (kkk) removed crowding), so every
+size is charged 1.0; it was 1.0 at six and 1.83 at twelve while the tail existed,
+and the fold is written to move with the curve either way. The price is the one the context already carries — the same
 `PricedMeter` a building's `happiness` line is paid at — so a seat whose
 contentment is at the ceiling charges a citizen 36 and a seat at the table's own
 figure charges it 12. Nothing re-derives `METERS.happiness`.
@@ -3564,7 +3566,7 @@ one factor the wall line uses is the `1 + ctx.threat` already beside it.
   asked for; what was missing was the sign, and the Walls of Uruk reading 250 in a
   quiet world (50 hit points × 5) is the honest consequence of pricing a point of
   the bar like a point of the ledger.
-- **`requiresSite`, `crowdingRelief`, `tileYields` and the rest of X8's list** are
+- **`requiresSite`, `crowdingRelief` (now `demandRelief`), `tileYields` and the rest of X8's list** are
   still unread by `explainBuildingRow`; this batch added the one row X8's own
   entry names first and left the other eight alone. *(Closed the same day by
   batch X8, below — and two of the eight turned out to be read already.)*
@@ -3600,7 +3602,7 @@ declaration, so a field added to the row and to neither register fails core.
 | `authorityCapacity` | **folded** | writ supplied, at the meter’s live price |
 | `cityStat` | **folded** | town strength, at the military weight and the threat |
 | `cityHp` | **folded** | town hit points, the same rate and the same threat (batch X5) |
-| `crowdingRelief` | **folded** | a share of a town’s crowding forgiven, at the happiness price |
+| `demandRelief` | **folded** | a share of a town’s citizen demand forgiven, at the happiness price |
 | `unitUpkeepRebate` | **folded** | a coin off the keep of every piece the levy is still short |
 | `purchaseDiscount` | **folded** | a percent off the coin this town turns over, at the gold price |
 | `healsAdjacent` | **folded** | a share of a piece mended a turn, at the wall line’s rate |
@@ -3681,17 +3683,17 @@ and cost no caller a character; the fifth (`buildingUnitUpkeepRebate`) is **new*
 
 | row | the line |
 |---|---|
-| **Assize Court** `crowdingRelief` | `15% × crowding(pop) × meterWeight(happiness)`. The crowding is the simulation's own curve asked twice and subtracted — `happinessDemand(pop) − pop × happinessDemand(1)` — which is X5's marginal charge read one question over, and nothing restates `METERS.happiness`. It is **nothing in a hamlet**: crowding starts at ten citizens, so the row is worth nothing in a town of four and something in a capital of twelve, which is the field's own docblock in the appraisal's words |
+| **Assize Court** `demandRelief` | `15% × happinessDemand(pop) × meterWeight(happiness)`. The demand is the simulation's own reading of the town, never restated here. It is **a share of a cost that scales with the town**: worth something in a hamlet and three times as much in a capital of twelve, which is the shape a flat happiness line could not have had. It was a share of the *crowding* until 2026-09-09, when that term left the game (`docs/flags.md` item (kkk)) and the marker followed the cost line that remains |
 | **Imperial Throne** `unitUpkeepRebate` | `1 gold × (levy shortfall ÷ towns) × the gold price`, through `explainUpkeepCost` — the same rate the payroll is charged at. What the rebate is *on* is the pieces the levy is still short (`levyReading`, the reading the chain and the town already share since X1), in this town's share of the raising |
 | **Assay House** `purchaseDiscount` | `5% × (coin a turn ÷ towns) × the gold price`. The turnover is the reading the occasion register already takes for a purchase, and the line is **treasury only**, which is the row's own ratified words: `explainPurchaseCost` asks a building's discount for gold and never for faith |
 | **Keep** `healsAdjacent` | `min(heal, bar) ÷ bar × weights.military × combatScale × (1 + threat)` — a **share of a piece**, not points of strength: a mend cannot exceed the bar it fills, so five a turn is a twentieth of a piece back on its feet. The threat factor is the wall line's own, so a garrison nobody is shooting at is a garrison at full health |
 | **Chapel** `ritePays` | `5 culture × (the rite cadence ÷ towns) × the culture price`. The cadence is `occasionRate('rite')`, the register's own — a town keeps one rite for its blessing's length — and it is **nothing for a realm taught no rite**. The rite's own blessing belongs to the want book (`explainRite`, `wants.ts`) and is deliberately not counted twice: this line is the *rider*, and the two surfaces own different halves |
 
-The three that are facts about **one town** — the crowding, the discount, the
-rebate — are priced at this empire's tempo shared among its towns, because the
-fold's callers hand it no town. They may: `explainBuildingRow` takes an optional
-`city` (`hammerPrice`'s bargain exactly), and with one in hand the crowding line
-is that town's own size rather than the middling one's. **No caller passes one
+The three that are facts about **one town** — the demand forgiven, the discount,
+the rebate — are priced at this empire's tempo shared among its towns, because
+the fold's callers hand it no town. They may: `explainBuildingRow` takes an
+optional `city` (`hammerPrice`'s bargain exactly), and with one in hand the
+court's line is that town's own size rather than the middling one's. **No caller passes one
 yet** — see "What bot.ts still owes" below.
 
 ### `requiresSite`, refused out loud
@@ -3799,7 +3801,7 @@ file. The measurement below stands as the record of what the batch moved.)*
 - **`buildCandidates` (`bot.ts`) should hand the town in**:
   `explainBuildingRow(id, ctx, city)`, and the same in `purchasingPlan`'s and
   `faithPlan`'s building loops (`wants.ts`). It sharpens exactly one line — the
-  crowding a court forgives is then the *asking* town's size rather than the
+  demand a court forgives is then the *asking* town's size rather than the
   empire's middling one — and changes nothing else.
 - **`buildCandidates` should print the site refusal**: for a row
   `canQueueBuilding` rejects, `siteRefusal(ctx, city, id)` is a sentence, and a

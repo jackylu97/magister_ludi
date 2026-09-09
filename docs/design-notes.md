@@ -51,7 +51,8 @@ the gate is a real barrier, not a formality.
   building upkeep). Building upkeep = the age of the unlocking tech.
 - **Purchases stamp per class** (v50): one military-gold, one civilian-gold,
   one faith purchase per city per turn; buildings uncounted.
-- Crowding is disabled (weight 0, mechanism kept) — the user wants big cities.
+- Crowding is removed (2026-09-09, (kkk)); a town's demand is linear in its
+  citizens. The Assize Court forgives a share of that demand (`demandRelief`).
 - Happiness/authority are meters with tier effects; the bulk of both supplies
   is Order-gated by ruling (Entry LIV); the per-city-happiness luxury class
   was the real oversupply and is flattened (schema 48).

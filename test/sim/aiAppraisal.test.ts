@@ -134,7 +134,7 @@ import {
 import {
   buildingAdjacentHeal,
   buildingCityHp,
-  buildingCrowdingRelief,
+  buildingDemandRelief,
   buildingPurchaseDiscount,
   buildingRitePay,
   buildingUnitUpkeepRebate,
@@ -3290,20 +3290,27 @@ describe('the two missing signs (batch X5)', () => {
     expect(citizen.total).toBe(foldTerms(citizen.terms));
   });
 
-  it('charges the crowded town more than the small one, because the curve says so', () => {
-    // `happinessDemand` is linear plus a crowding tail, so the *marginal* demand
-    // is flat under `crowdingFrom` and climbs above it. The charge is the
-    // curve's, so it climbs with it.
+  it('charges the big town more than the small one — by the price, not by the curve', () => {
+    // `happinessDemand` is **linear** since 2026-09-09 (`docs/flags.md` item
+    // (kkk) — the crowding tail that used to bend it is gone), so the *marginal*
+    // demand is the same figure at two citizens and at twelve. What still makes
+    // the big town's citizen the dearer one is the empire's own price: a realm
+    // feeding twelve is nearer the unhappy rungs than a realm feeding two, and
+    // `meterWeight` is what carries that. The fold reads both from the
+    // simulation and re-derives neither.
     const small = realm(1, 2);
     const large = realm(1, 12);
-    const little = findTerm(
-      explainCitizen(small.state, small.cities[0]!, valueContext(small.state, small.player)).terms,
-      DEMANDED,
+    const smallCtx = valueContext(small.state, small.player);
+    const largeCtx = valueContext(large.state, large.player);
+    const little = findTerm(explainCitizen(small.state, small.cities[0]!, smallCtx).terms, DEMANDED);
+    const big = findTerm(explainCitizen(large.state, large.cities[0]!, largeCtx).terms, DEMANDED);
+    // The curve says the same thing about both towns…
+    expect(happinessDemand(13) - happinessDemand(12)).toBeCloseTo(
+      happinessDemand(3) - happinessDemand(2),
+      12,
     );
-    const big = findTerm(
-      explainCitizen(large.state, large.cities[0]!, valueContext(large.state, large.player)).terms,
-      DEMANDED,
-    );
+    // …and the meter does not.
+    expect(meterWeight(largeCtx, 'happiness')).toBeGreaterThan(meterWeight(smallCtx, 'happiness'));
     expect(big!.value).toBeLessThan(little!.value);
   });
 
@@ -3502,7 +3509,7 @@ function x8Realm(
  * **Batch X8 — the rows nobody reads** (`docs/audit/bot-pass-2.md` Part 2 row 6
  * and queue row X8).
  *
- * Nine fields of `BuildingDef` had zero hits in `src/ai/`: the crowding a court
+ * Nine fields of `BuildingDef` had zero hits in `src/ai/`: the demand a court
  * forgives, the coin an assay house saves, the wages a throne rebates, what a
  * keep mends, what a chapel pays the augurs, the lines a harbour pays on water,
  * the fields a cistern waters, the thirst an aqueduct ends, and the ground a
@@ -3540,7 +3547,7 @@ describe('every field of a building row is accounted for', () => {
     // A sanity floor: if the parse stops finding fields the register below would
     // pass by saying nothing, which is the one way a source-reading test lies.
     expect(fields.length).toBeGreaterThan(40);
-    expect(fields).toContain('crowdingRelief');
+    expect(fields).toContain('demandRelief');
     expect(fields).toContain('requiresSite');
     for (const field of fields) {
       const folded = BUILDING_ROW_FOLDED[field];
@@ -3588,35 +3595,39 @@ describe('every field of a building row is accounted for', () => {
 });
 
 describe('the five charter lines (batch X8)', () => {
-  it('forgives a share of the crowding a town of that size carries', () => {
-    // The Assize Court's fifteen percent, of a cost a hamlet does not pay at
-    // all: `METERS.happiness` charges crowding from ten citizens up, so the same
-    // row is worth nothing in a town of four and something in a town of twelve.
+  it('forgives a share of what a town of that size asks for', () => {
+    // The Assize Court's fifteen percent, of a cost that **scales with the
+    // town**: since the crowding term left the game (2026-09-09, `docs/flags.md`
+    // item (kkk)) the relief is a share of the citizens themselves, so the row
+    // is worth something in a hamlet and three times as much in a town of
+    // twelve. That shape is the point — a flat happiness line could not have it.
     const { state, player, cities } = x8Realm(2, 12);
     const ctx = valueContext(state, player);
-    const relief = buildingCrowdingRelief({ buildings: ['assizeCourt'] });
+    const relief = buildingDemandRelief({ buildings: ['assizeCourt'] });
     expect(relief).toBe(15);
-    const line = findTerm(explainBuildingRow('assizeCourt', ctx, cities[0]).terms, /crowding/);
+    const line = findTerm(explainBuildingRow('assizeCourt', ctx, cities[0]).terms, /asks for/);
     expect(line).not.toBeNull();
-    // The simulation's own curve, asked twice and subtracted — the crowding half
-    // of a town's demand, never re-derived here.
-    const crowding = happinessDemand(12) - 12 * happinessDemand(1);
-    expect(crowding).toBeGreaterThan(0);
+    // The simulation's own reading of the town, never re-derived here.
+    const demand = happinessDemand(12);
+    expect(demand).toBeGreaterThan(0);
     // And it is the meter's *own* figure: the line `explainHappiness` charges
-    // this town for being crowded, which is what the relief is a share of. If a
-    // retune of the curve ever parts the two, this is where it says so.
-    const charged = explainHappiness(state, player.id).find(
-      (entry) => entry.source === `${cities[0]!.name} crowding`,
+    // this town for its citizens, which is what the relief is a share of. If a
+    // retune of the demand ever parts the two, this is where it says so.
+    const charged = explainHappiness(state, player.id).find((entry) =>
+      entry.source.startsWith(`${cities[0]!.name} · 12`),
     );
     expect(charged).toBeDefined();
-    expect(-charged!.value).toBeCloseTo(crowding, 9);
-    expect(line!.value).toBeCloseTo(((crowding * relief) / 100) * meterWeight(ctx, 'happiness'), 9);
+    expect(-charged!.value).toBeCloseTo(demand, 9);
+    expect(line!.value).toBeCloseTo(((demand * relief) / 100) * meterWeight(ctx, 'happiness'), 9);
 
-    const hamlet = x8Realm(2, 4);
-    const quiet = valueContext(hamlet.state, hamlet.player);
-    expect(
-      findTerm(explainBuildingRow('assizeCourt', quiet, hamlet.cities[0]).terms, /crowding/),
-    ).toBeNull();
+    // A hamlet is paid for too, and paid *less* — the term follows the size,
+    // asked of the same empire at the same price so nothing but the size moves.
+    const small = findTerm(
+      explainBuildingRow('assizeCourt', ctx, { ...cities[0]!, population: 4 }).terms,
+      /asks for/,
+    );
+    expect(small).not.toBeNull();
+    expect(small!.value).toBeCloseTo(line!.value / 3, 9);
   });
 
   it('prices the throne’s rebate on the pieces the levy is still short', () => {
@@ -3708,7 +3719,7 @@ describe('the five charter lines (batch X8)', () => {
     const ctx = valueContext(state, player);
     const granary = explainBuildingRow('granary', ctx, cities[0]);
     for (const match of [
-      /crowding/,
+      /asks for/,
       /off the keep/,
       /off what this town buys/,
       /mended a turn/,
@@ -3733,7 +3744,7 @@ describe('the five charter lines (batch X8)', () => {
         .filter((line) => !/^\s*(\/\/|\*|\/\*)/.test(line))
         .join('\n');
       for (const field of [
-        'crowdingRelief',
+        'demandRelief',
         'healsAdjacent',
         'purchaseDiscount',
         'ritePays',

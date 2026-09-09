@@ -3,7 +3,7 @@
  * not a flat city yield: the happiness it supplies, the stat it adds to its own
  * town, the hit points it adds to that town's walls, (Entry XXVII) what it pays
  * on the **ground** that town works, and — since the charters, 2026-09-04 — the
- * crowding it forgives, the discount it puts on the town's purchases, what it
+ * demand it forgives, the discount it puts on the town's purchases, what it
  * mends on friendly pieces beside it, what it pays for a rite performed here,
  * and — since batch X8 gave the last of them a reader — what it takes off the
  * keep of every piece the town raises.
@@ -297,25 +297,28 @@ export function buildingPurchaseDiscount(city: {
 }
 
 /**
- * What share of **this city's** crowding its own buildings forgive, as one whole
- * percent — the Assize Court's fifteen.
+ * What share of **this city's own citizen demand** its buildings forgive, as one
+ * whole percent — the Assize Court's fifteen.
  *
  * The one answer in this file that is summed here rather than by its consumer,
- * and the reason is the meter's own shape: `explainHappiness` prints crowding as
- * a single cost line per town, so the relief it prints is a single gain line per
- * town, and two courts in one city (which no rule allows) would still be one
+ * and the reason is the meter's own shape: `explainHappiness` prints a town's
+ * citizens as a single cost line, so the relief it prints is a single gain line
+ * per town, and two courts in one city (which no rule allows) would still be one
  * discount rather than two multiplications. The percent is clamped to a share of
- * the cost — a relief may forgive crowding and may not pay a town for being
- * large.
+ * the cost — a relief may forgive a demand and may not pay a town for having
+ * citizens.
+ *
+ * It forgave the *crowding* until that term left the game (2026-09-09,
+ * `docs/flags.md` item (kkk)); the reading is the same shape one cost line over.
  *
  * Asked of a list of buildings rather than of the town, `buildingCityHp`'s
  * widening (batch X8): the appraisal asks what a court *would* forgive.
  */
-export function buildingCrowdingRelief(city: { buildings: readonly BuildingId[] }): number {
+export function buildingDemandRelief(city: { buildings: readonly BuildingId[] }): number {
   let percent = 0;
   for (const id of BUILDING_IDS) {
     if (!city.buildings.includes(id)) continue;
-    percent += buildingDef(id).crowdingRelief ?? 0;
+    percent += buildingDef(id).demandRelief ?? 0;
   }
   return Math.max(0, Math.min(100, percent));
 }
