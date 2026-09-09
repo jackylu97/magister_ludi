@@ -729,17 +729,22 @@ describe('where the plate hangs', () => {
   });
 
   /**
-   * A stack does not fan straight down the screen: `placePiece` spreads pieces
-   * round the tile centre, and the half of that circle *away* from the camera
-   * climbs. A rise that cleared only the piece at the centre would be reached by
-   * the second piece in a town — which is the "scale with multiple units" half
-   * of the ruling, in geometry.
+   * A stack's fan is deliberately **not** cleared (the user, 2026-09-09: the
+   * plate "seems to be adjusted higher in height than it used to, now it feels
+   * awkward"). `placePiece` steps a stack's second and third pieces sideways as
+   * much as up, and clearing their climb too lifted the plate to 2.45 world
+   * units — nearly double the pole — for a rare case that reads fine with a
+   * roundel tucked into the plate's corner. So the rise clears the tallest
+   * single piece's bar and stops there: above that bar, below that bar plus the
+   * fan's climb. The pin holds both halves so the fan cannot creep back in.
    */
-  it('clears a stack’s fan, not only the piece at the tile centre', () => {
+  it('clears the tallest single piece and not a stack’s fan', () => {
     const facing = 1 / Math.cos(ELEVATION);
     const climb = PIECES.stackSpread * Math.tan(ELEVATION);
+    const barTop = hpBarY(tallest()) + (HP.height / 2) * facing;
     expect(climb).toBeGreaterThan(0);
-    expect(bannerRise()).toBeGreaterThan(hpBarY(tallest()) + (HP.height / 2) * facing + climb);
+    expect(bannerRise()).toBeGreaterThan(barTop);
+    expect(bannerRise()).toBeLessThan(barTop + climb);
   });
 
   /** One taste number, and it is the whole of the slack. */

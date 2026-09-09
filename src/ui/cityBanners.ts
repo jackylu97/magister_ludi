@@ -758,7 +758,6 @@ export function paintHealthBar(parts: HealthParts, bar: HealthBar | null): void 
 const CITY_LOOK = VIEW3D.city;
 const BADGE_LOOK = VIEW3D.badges;
 const HP_LOOK = VIEW3D.hpBar;
-const PIECE_LOOK = VIEW3D.pieces;
 
 /** The camera's fixed elevation in radians — the one angle this arithmetic needs. */
 const ELEVATION = (VIEW3D.camera.elevation * Math.PI) / 180;
@@ -774,8 +773,14 @@ const ELEVATION = (VIEW3D.camera.elevation * Math.PI) / 180;
  *
  *   a **billboard** (a badge disc, a hit bar) turns to face the camera, so its
  *   whole height shows — `h` of it is worth `h / cos(elevation)` of rise.
- *   a **ground step** (the stack fan) climbs the screen by `sin(elevation)` of
- *   its length, so a fan of `spread` is worth `spread · tan(elevation)` of rise.
+ *
+ * **The stack's fan is not in it** (the user, 2026-09-09: the plate "seems to be
+ * adjusted higher in height than it used to, now it feels awkward"). A stack's
+ * second and third pieces step sideways as much as up (`placePiece`), and
+ * clearing their climb too lifted the plate to 2.45 — nearly double the pole —
+ * for a case that is rare and reads fine with a roundel tucked into the
+ * plate's corner. The rise clears the tallest *single* piece's bar, which is
+ * every unit that stands in a town alone, and nothing more.
  *
  * Measured over `UNIT_TYPE_IDS` rather than over the sculpt classes, so the
  * answer is the tallest row the *roster* actually has, and against `SPRITE_HEIGHT`
@@ -791,7 +796,7 @@ export function tallestPieceRise(): number {
   const facing = 1 / Math.cos(ELEVATION);
   const badgeTop = badgeCenterY(visual) + (BADGE_LOOK.diameter / 2) * facing;
   const barTop = hpBarY(visual) + (HP_LOOK.height / 2) * facing;
-  return Math.max(badgeTop, barTop) + PIECE_LOOK.stackSpread * Math.tan(ELEVATION);
+  return Math.max(badgeTop, barTop);
 }
 
 /**
