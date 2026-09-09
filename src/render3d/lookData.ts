@@ -1610,18 +1610,25 @@ export interface IconSpec {
    */
   chargeScale: number;
   /**
-   * The turn medallion's **decorative border**, inked into the cell: the weight
-   * of the outer rule, and the course of beads set inside it.
+   * The turn counter's **edge and its one gilt line**, inked into the cell.
    *
-   * All four are fractions of the atlas cell, so the mark is drawn the same
-   * whatever `atlasCell` is dialled to — the rule's width, the number of beads,
-   * a bead's radius, and the numeral's own size, which is its own knob because
-   * this disc has a border eating into it where a plain numeral cell does not.
-   * See `drawMedallionCell`.
+   * `medallionRimWidth` and `medallionGiltWidth` are fractions of the atlas
+   * cell and `medallionNumeralScale` is the numeral's own size in the same
+   * units, so the mark is drawn the same whatever `atlasCell` is dialled to.
+   * `medallionGiltRadius` is the odd one out: a fraction of the *paper's own
+   * radius*, because the gilt line's job is to sit at a fixed proportion of the
+   * counter's face however wide the paper is drawn, and a cell fraction would
+   * slide it off the disc the moment `paperOverlap` moved.
+   *
+   * The numeral keeps a knob of its own because this disc has a border eating
+   * into it where a plain numeral cell does not — see `drawMedallionCell`,
+   * which has the arithmetic and the reason the gilt is drawn wider than the
+   * ink it sits inside.
    */
   medallionRimWidth: number;
-  medallionBeads: number;
-  medallionBeadRadius: number;
+  medallionGiltRadius: number;
+  medallionGiltWidth: number;
+  medallionGiltColor: number;
   medallionNumeralScale: number;
   /** How a resource roundel's paper and rim differ by `ResourceKind`. */
   resourceKinds: Record<ResourceKind, MarkerPaperStyle>;
@@ -2466,9 +2473,12 @@ export const VIEW3D: View3DData = {
     inscriptionPad: viewJson.icons.inscriptionPad,
     chargeScale: viewJson.icons.chargeScale,
     medallionRimWidth: viewJson.icons.medallionRimWidth,
-    // At least none, and whole: a fractional bead is half a dot on the ring.
-    medallionBeads: Math.max(0, Math.round(viewJson.icons.medallionBeads)),
-    medallionBeadRadius: viewJson.icons.medallionBeadRadius,
+    // Clamped to the paper: a gilt line dialled past the disc's own edge would
+    // be a ring of nothing, and one dialled negative would be a ring drawn
+    // inside out.
+    medallionGiltRadius: Math.max(0, Math.min(1, viewJson.icons.medallionGiltRadius)),
+    medallionGiltWidth: viewJson.icons.medallionGiltWidth,
+    medallionGiltColor: named(viewJson.icons.medallionGiltColor, 'icons.medallionGiltColor'),
     medallionNumeralScale: viewJson.icons.medallionNumeralScale,
     resourceKinds: parseMarkerPaperStyles(viewJson.icons.resourceKinds),
     sitePaper: parseMarkerPaperStyle(viewJson.icons.sitePaper, 'icons.sitePaper'),

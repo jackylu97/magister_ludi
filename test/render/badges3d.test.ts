@@ -7,6 +7,7 @@ import {
   BADGE_MARK_PAIRS,
   FILE_BADGE_CELLS,
   type FileBadgeClass,
+  MEDALLION_TURNS,
   NAVAL_CLASS_CANTON,
   navalBadgeId,
   BADGE_LINES,
@@ -22,6 +23,9 @@ import {
   cssHex,
   fitInscription,
   hpBarY,
+  medallionGeometry,
+  medallionIdFor,
+  medallionLabel,
   paperRadiusFraction,
   rimInnerFraction,
 } from '../../src/render3d/badges3d';
@@ -1431,5 +1435,212 @@ describe('the inscription fit step', () => {
   it('inscriptionPad is a fraction of the cell, not a pixel count', () => {
     expect(ICONS.inscriptionPad).toBeGreaterThan(0);
     expect(ICONS.inscriptionPad).toBeLessThan(0.5);
+  });
+});
+
+/**
+ * **The turn counter** — batch V3, `docs/flags.md` (jjj).
+ *
+ * The mark on the hex each turn of a march ends on used to be drawn as a medal:
+ * a heavy ink rule with a course of beads inside it. The ruling retired it —
+ * *a medal is a reward, not an order* — and put a flat bone gaming counter in
+ * its place: one gilt hairline inside a light ink edge, the numeral in mono,
+ * nothing else. What is held still here is everything about that drawing that
+ * can be held still without a canvas, which in this project's tests is
+ * everything that matters: the *arithmetic* of the rings, through
+ * `medallionGeometry`, which is the helper the painter itself builds from.
+ *
+ * Two of these are legibility rather than layout. A two-figure label has to
+ * clear the gilt line, and the gilt line has to still be there after the atlas
+ * has been halved a few times — the failure the old docblock feared and named
+ * wrongly. See the sums under each.
+ */
+describe('the turn counter', () => {
+  const ICONS = VIEW3D.icons;
+  const CELL = ICONS.atlasCell;
+  const rings = medallionGeometry(CELL);
+
+  /**
+   * The painter's own source, sliced out of the module.
+   *
+   * A drawing cannot be sampled here, so what is read instead is the list of
+   * things it puts down — which is exactly the assertion the beads used to fail
+   * silently: a course quietly left in beside the gilt would look like a busier
+   * counter and nothing would say so.
+   */
+  const source = (() => {
+    const files = import.meta.glob('../../src/render3d/badges3d.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    return Object.values(files)[0] ?? '';
+  })();
+  const painter = (() => {
+    const start = source.indexOf('export function paintMedallion(');
+    const end = source.indexOf('\n}\n', start);
+    return source.slice(start, end);
+  })();
+
+  it('puts down paper, one ink edge, one gilt line and the numeral — and no beads', () => {
+    expect(painter.length).toBeGreaterThan(0);
+    // The three rings, each once. `arc` is how a ring is drawn; three of them
+    // is the whole counter, and a fourth would be a decoration the ruling took
+    // out coming back in by another door.
+    expect(painter.match(/context\.arc\(/g)).toHaveLength(3);
+    expect(painter).toContain('ICONS.paperColor');
+    expect(painter).toContain('ICONS.inkColor');
+    expect(painter).toContain('ICONS.medallionGiltColor');
+    expect(painter).toContain('medallionLabel(id)');
+    // The course is gone from the painter, from the look data and from the
+    // sheet — a bead knob left behind in `view3d.json` is a number nobody reads
+    // and the next reader has to prove that about.
+    expect(painter.toLowerCase()).not.toContain('bead');
+    expect(source.toLowerCase()).not.toContain('medallionbead');
+    expect(ICONS).not.toHaveProperty('medallionBeads');
+    expect(ICONS).not.toHaveProperty('medallionBeadRadius');
+  });
+
+  it('is bone paper out to the same edge every other disc in the atlas draws to', () => {
+    // The palette's bone and the atlas's paper are the same colour, so the
+    // ruling's "flat bone counter" needs no exception written for it.
+    expect(ICONS.paperColor).toBe(VIEW3D.palette.bone);
+    expect(rings.outer).toBeCloseTo(paperRadiusFraction() * CELL, 10);
+  });
+
+  it('walks the ink edge inside the paper, at a lighter weight than the badge’s own rim', () => {
+    // Half a stroke falls outside the path it is drawn on: the edge is walked
+    // in by half its width so no ink lands past the paper.
+    expect(rings.edgeRadius + rings.edgeWidth / 2).toBeCloseTo(rings.outer, 10);
+    expect(rings.edgeWidth).toBeCloseTo(ICONS.medallionRimWidth * CELL, 10);
+    // A hairline-and-a-half. The badge roundel's rim is the heaviest edge in
+    // this language and the counter is deliberately under it: the edge makes
+    // the disc an object, it is not what makes it decorated.
+    expect(ICONS.medallionRimWidth).toBeLessThan(VIEW3D.badges.rimWidth);
+  });
+
+  it('scores one gilt line at the keyed radius, clear of both the edge and the field', () => {
+    expect(ICONS.medallionGiltColor).toBe(VIEW3D.palette.gilt);
+    expect(rings.giltRadius).toBeCloseTo(ICONS.medallionGiltRadius * rings.outer, 10);
+    expect(rings.giltWidth).toBeCloseTo(ICONS.medallionGiltWidth * CELL, 10);
+    // Bare paper on both sides of it, or it is not a line scored into a face —
+    // it is a thick edge, or a ring through a number.
+    expect(rings.giltRadius + rings.giltWidth / 2).toBeLessThan(
+      rings.edgeRadius - rings.edgeWidth / 2,
+    );
+    expect(rings.fieldRadius).toBeCloseTo(rings.giltRadius - rings.giltWidth / 2, 10);
+    // Drawn wider than the ink it sits inside, which reads as an error and is
+    // not: gilt on bone carries about a third of ink-on-bone's contrast, so at
+    // equal width it would read at half the weight.
+    expect(rings.giltWidth).toBeGreaterThan(rings.edgeWidth);
+  });
+
+  /**
+   * The numeral's re-fit.
+   *
+   * The label is a mono face set at `medallionNumeralScale` of the cell, and
+   * the widest one the set can print is `'9+'` — `medallionIdFor` caps at
+   * `MEDALLION_TURNS`, so every other label is a single figure. The bound used
+   * here is the *advance box*, which is the guaranteed one: two cells of
+   * `MONO_ADVANCE` em each, `MONO_CAP` em tall, and the corner of that box is
+   * the farthest the ink can possibly reach. The real ink reaches less, because
+   * the `+` is a short glyph in the right-hand cell — so a label that clears
+   * this clears the drawing by more.
+   */
+  const MONO_ADVANCE = 0.6;
+  const MONO_CAP = 0.7;
+  function labelCorner(size: number, figures: number): number {
+    const halfWidth = (figures * MONO_ADVANCE * size) / 2;
+    const halfHeight = (MONO_CAP * size) / 2;
+    return Math.hypot(halfWidth, halfHeight);
+  }
+
+  it('sets the widest label inside the gilt line, with the field to spare', () => {
+    // Two figures is the whole of the variety: the set stops at the ceiling and
+    // prints it with a plus, and nothing else is ever wider than one digit.
+    expect(medallionLabel(medallionIdFor(MEDALLION_TURNS + 1))).toHaveLength(2);
+    expect(medallionLabel(medallionIdFor(MEDALLION_TURNS))).toHaveLength(1);
+
+    expect(rings.numeralSize).toBe(Math.round(ICONS.medallionNumeralScale * CELL));
+    expect(labelCorner(rings.numeralSize, 2)).toBeLessThan(rings.fieldRadius);
+    // A single figure is not the constraint and never was; it is asserted so a
+    // dial that broke it would say which of the two it broke.
+    expect(labelCorner(rings.numeralSize, 1)).toBeLessThan(rings.fieldRadius);
+    // And the ceiling the re-fit was measured against: the counter's field is
+    // only very slightly wider than the bead course's was, so the digit takes a
+    // notch and not a size. A scale of 0.50 puts the corner outside the gilt.
+    const ceiling = rings.fieldRadius / labelCorner(CELL, 2);
+    expect(ICONS.medallionNumeralScale).toBeLessThan(ceiling);
+    expect(ceiling).toBeLessThan(0.5);
+  });
+
+  /**
+   * **The gilt line and the mip chain.**
+   *
+   * `TileIcons` builds its texture with `generateMipmaps`, so the atlas exists
+   * as a chain of box-halvings: a texel at level L is `2 ** L` cell pixels
+   * across. The board draws a counter at roughly twenty pixels at the zoom the
+   * mock is judged at, which samples levels 2 and 3.
+   *
+   * The failure to rule out is *not* the alpha test. The gilt sits a long way
+   * inside the paper's edge, every pixel under it is opaque bone, and the first
+   * assertion below keeps a whole coarse texel of paper outside it so no mip
+   * average can pull transparency in — the ring's pixels are opaque at every
+   * level, which is what "non-transparent ring pixels at twenty" means here.
+   * What a thin line actually loses is colour: it stops being a line and
+   * becomes a tint. That is measurable, and the floor is the second assertion.
+   */
+  const COARSE_LEVEL = 3;
+  function texel(level: number): number {
+    return 2 ** level;
+  }
+  /**
+   * The share of the best-covered texel a band of this width is guaranteed to
+   * fill, whatever it is aligned against: a band straddling a texel boundary
+   * evenly leaves half its width in each, and that is the worst it can do.
+   */
+  function worstCoverage(width: number, level: number): number {
+    return Math.min(1, width / texel(level) / 2);
+  }
+
+  it('keeps the gilt line opaque and covering a texel at the twenty-pixel size', () => {
+    // Roughly twenty pixels on screen is level log2(128/20) ≈ 2.7 — between the
+    // two the assertions below use, and never coarser than the coarser.
+    expect(Math.log2(CELL / 20)).toBeGreaterThan(2);
+    expect(Math.log2(CELL / 20)).toBeLessThan(COARSE_LEVEL);
+    // A whole coarse texel of bone outside the gilt: no averaging reaches the
+    // disc's own soft edge, so nothing under the ring is ever tested for alpha.
+    expect(rings.giltRadius + rings.giltWidth / 2 + texel(COARSE_LEVEL)).toBeLessThanOrEqual(
+      rings.outer,
+    );
+    // And it still colours a third of a texel at its worst alignment on the
+    // coarser of the two levels, which is a warm ring and not a rumour.
+    expect(worstCoverage(rings.giltWidth, COARSE_LEVEL)).toBeGreaterThan(0.3);
+    expect(worstCoverage(rings.giltWidth, 2)).toBeGreaterThan(0.6);
+  });
+
+  /**
+   * CLAUDE.md's standing rule: *a new visual asset joins the flair gallery in
+   * the same pass that ships it* — and a re-drawn one brings its knobs with it.
+   * The route strip blits the atlas, which is rasterised once at page load, so
+   * a slider on any of the three new keys can only move a drawing the page
+   * paints itself. Read from the source, for `overlays3d.test.ts`' reason.
+   */
+  it('has a counter stall in the flair cabinet, with a slider on each new key', () => {
+    const gallery = import.meta.glob('../../src/flairGallery/*.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const stall = Object.entries(gallery).find(([path]) => path.endsWith('/route.ts'))?.[1];
+    expect(stall).toBeDefined();
+    // The same painter the atlas cell is painted by, never a picture of it.
+    expect(stall).toContain('paintMedallion(');
+    for (const key of ['rimWidth', 'giltRadius', 'giltWidth'] as const) {
+      expect(stall, key).toContain(`counter.set('${key}'`);
+    }
+    // And the twenty-pixel size on the page, since that is the size the ruling
+    // is argued at and the one the board will not hold still at.
+    expect(stall).toContain('[20,');
   });
 });

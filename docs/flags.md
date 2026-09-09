@@ -1549,6 +1549,46 @@ directly to confirm rulings — user marginalia are rulings.
      has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
 
+- (jjj) **The turn mark is a counter, not a medal** (the user, 2026-09-09;
+  the ruling was relayed with batch **V3**'s brief and is written down here
+  after the fact, which is the wrong order — the mock is the spec of record).
+  The mark on the hex each turn of a march ends on ((bbb)'s medallion) was
+  drawn as a medal: parchment, a heavy ink rule, a course of sixteen beads
+  inside it, the numeral in the middle. Ruled against, on the mock's third
+  candidate — **"The counter"**: *a flat bone gaming counter with one gilt
+  hairline inside an ink edge and the numeral in mono; no beads, no heavy
+  rule*. The argument the old drawing's own docblock made for beads is
+  overturned with it: **a medal is a reward, not an order**, and four rewards
+  in a row down a hillside is not what a route says. The same outer radius
+  every disc in the atlas draws to; the paper in `bone`; the ink edge walked
+  inside the paper's edge as before but lighter; a gilt ring at about four
+  fifths of the outer radius; the numeral re-fitted; three new keys
+  (`icons.medallionGiltRadius`, `icons.medallionGiltWidth`,
+  `icons.medallionGiltColor`) with sliders in the flair cabinet, and the ring
+  measured against the atlas's own minification at the twenty pixels the mock
+  is judged at. **V3 built 2026-09-09**: `medallionRimWidth` 0.05 → **0.03**
+  (a hairline-and-a-half, under the badge rim's own 0.042), gilt at
+  `medallionGiltRadius` **0.8** of the paper radius and `medallionGiltWidth`
+  **0.04** of the cell in `medallionGiltColor` **gilt**, the two bead keys
+  gone; on the 128px cell that is paper r58.6, an ink edge 3.8 wide walked at
+  r56.7, a gilt line 5.1 wide at r46.9 with 5.3px of bare bone between the two
+  and 9.2px outside it. The gilt is drawn **wider than the ink it sits
+  inside** on purpose: gilt on bone carries about a third of ink-on-bone's
+  contrast, so at equal width it reads at half the weight — the brief's
+  recommended 0.035 measured at 28% worst-case texel coverage at the mip a
+  twenty-pixel draw samples, and 0.04 lifts that to 32%. The alpha test was
+  never the risk (the ring is a colour on opaque paper, a whole coarse texel
+  clear of the disc's soft edge); what a hairline loses under minification is
+  colour, and that is the floor now pinned. The numeral **0.46 → 0.48**: the
+  counter's field (r44.3) is only 1.3% wider than the bead course's was
+  (r43.8), so the digit takes a notch, not a size — the ceiling is 0.4987 and
+  0.50 puts the widest label's corner outside the gilt. The widest label is
+  `9+` (the set caps at nine; every other label is one figure). The painter is
+  `paintMedallion` now, shared by the atlas cell and the cabinet's new counter
+  stall — the plate, board scale and twenty pixels, one figure and two, with a
+  slider on each of the three keys, since the atlas is rasterised once and a
+  slider cannot move a blit.
+
 - **H18 — the performance pass — BUILT** (the user, 2026-09-07: "could you do
   a performance pass on the game? I think it's starting to feel slow again.
   The Reliquary in particular is very slow."). Measured on a 150-turn

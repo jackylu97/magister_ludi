@@ -949,8 +949,10 @@ export const NUMERAL_CELLS: readonly number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
  * unit will be on each turn … a circular icon, with a decorative border and the
  * turn # in the middle"*).
  *
- * A medallion is the badge roundel's sibling one plane down: parchment, a
- * decorative ink border, and a numeral in the specimen's tabular mono. Where a
+ * A medallion is the badge roundel's sibling one plane down: bone paper, an ink
+ * edge with one gilt line inside it, and a numeral in the specimen's tabular
+ * mono — a gaming counter, not a medal, which is ruling (jjj) and the whole of
+ * `paintMedallion`'s docblock. Where a
  * badge names *which piece this is*, a medallion names *when it gets here* — so
  * it lies flat on the hex like every other thing printed on the ground rather
  * than standing on a pin, and it rides in this atlas for the reason the numerals
@@ -2026,88 +2028,186 @@ function drawNumeralCell(
 }
 
 /**
- * Paints one turn medallion: parchment, a decorative ink border, and the turn
- * number set in the middle.
+ * The four numbers the turn counter is drawn from, so the flair cabinet can
+ * move them without the atlas being rebuilt around it.
  *
- * Not `drawDiscCell` with a numeral on top, because the border is the point.
- * The badge roundel takes its edge from a *rim of geometry* in the player's
- * colour, which a mark lying on the ground has no equivalent for — so the
- * decoration is inked into the cell instead, and it is the badge's language
- * read in one ink: a heavy outer rule, and a ring of beads set just inside it.
- * Beads rather than a second rule for the same reason a real medal has them —
- * at forty pixels a plain double ring reads as a slightly thicker single ring,
- * where a beaded course still reads as *decorated* — and, unlike a hairline,
- * they survive the alpha test at the sizes this atlas is minified to.
- *
- * The numeral is the numerals' own face and their own arithmetic
- * (`drawNumeralCell`), set at a size of its own: this disc has a border eating
- * into it, so the digit that fits inside a plain roundel would be crowded here.
- * Two-figure labels come out narrower than one, which is what a mono face is
- * for — the medallions on one route stay the same object at the same weight
- * whatever number they carry.
+ * `medallionDial()` is the shipped setting; every painter here takes a dial and
+ * defaults to it, which is what lets the gallery's stall put a slider on a knob
+ * and still be looking at the renderer's own drawing rather than a picture of
+ * one.
  */
-function drawMedallionCell(
-  context: CanvasRenderingContext2D,
-  index: number,
-  layout: AtlasLayout,
-  id: MedallionId,
-): void {
-  const origin = badgeCellOrigin(index, layout);
-  const cell = layout.cell;
-  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
-  // The same outer edge every other disc in this atlas draws to, so a medallion
+export interface MedallionDial {
+  /** The ink edge's weight, as a fraction of the atlas cell. */
+  rimWidth: number;
+  /** Where the gilt line is walked, as a fraction of the paper's own radius. */
+  giltRadius: number;
+  /** The gilt line's weight, as a fraction of the atlas cell. */
+  giltWidth: number;
+  /** The numeral's size, as a fraction of the atlas cell. */
+  numeralScale: number;
+}
+
+/** The dial as `data/view3d.json` has it. */
+export function medallionDial(): MedallionDial {
+  return {
+    rimWidth: ICONS.medallionRimWidth,
+    giltRadius: ICONS.medallionGiltRadius,
+    giltWidth: ICONS.medallionGiltWidth,
+    numeralScale: ICONS.medallionNumeralScale,
+  };
+}
+
+/** Every radius the turn counter is built out of, in cell pixels. */
+export interface MedallionGeometry {
+  /** The paper disc's outer edge — the same one every disc in this atlas draws to. */
+  outer: number;
+  /** The ink edge's weight, and the radius its centreline is walked on. */
+  edgeWidth: number;
+  edgeRadius: number;
+  /** The gilt line's weight, and the radius its centreline is walked on. */
+  giltWidth: number;
+  giltRadius: number;
+  /** The numeral's font size, and the clear radius it is set inside. */
+  numeralSize: number;
+  fieldRadius: number;
+}
+
+/**
+ * The counter's arithmetic, with nothing drawn — so the fit can be *measured*.
+ *
+ * Two questions are asked of these numbers and neither can be asked of a canvas
+ * in this project's tests: does a two-figure label clear the gilt line, and does
+ * that line still cover a pixel at the size the atlas is minified to. Both live
+ * in `test/render/badges3d.test.ts`, and both read this rather than a copy of
+ * it — a helper that disagreed with the painter would answer for a mark nobody
+ * is looking at.
+ */
+export function medallionGeometry(
+  cell: number,
+  dial: MedallionDial = medallionDial(),
+): MedallionGeometry {
+  // The same outer edge every other disc in this atlas draws to, so a counter
   // and a resource roundel are the same size object on the board.
   const outer = paperRadiusFraction() * cell;
-  const rule = Math.max(1, ICONS.medallionRimWidth * cell);
+  const edgeWidth = Math.max(1, dial.rimWidth * cell);
+  const giltWidth = Math.max(1, dial.giltWidth * cell);
+  const giltRadius = dial.giltRadius * outer;
+  return {
+    outer,
+    edgeWidth,
+    // Half a stroke falls outside the path it is drawn on, so the edge is
+    // walked inside the paper's rather than on it — `markerPaperRadius`' own
+    // accounting, one shape over.
+    edgeRadius: outer - edgeWidth / 2,
+    giltWidth,
+    giltRadius,
+    numeralSize: Math.round(cell * dial.numeralScale),
+    fieldRadius: giltRadius - giltWidth / 2,
+  };
+}
+
+/**
+ * Paints one **turn counter**: a flat bone disc, one gilt hairline inside an ink
+ * edge, and the turn number set in the middle.
+ *
+ * *A medal is a reward, not an order.* This cell used to be drawn as one —
+ * a heavy rule with a course of beads inside it, the badge roundel's language
+ * borrowed wholesale — and that was the wrong object. The mark does not
+ * commemorate anything. It answers a question the player asked half a second
+ * ago by dragging a route: *which turn does the piece stand here*. Four of them
+ * lie along one march, and four medals in a row on a hillside read as four
+ * awards being handed out. What lies on a board and carries a number is a
+ * **gaming counter** — bone, flat, turned on a lathe, one line of gilt scored
+ * round the face and the figure stamped in the middle — so that is what it is
+ * now (`docs/flags.md` (jjj), the user's third candidate on the mock).
+ *
+ * The counter is three rings and a figure:
+ *
+ *   the paper   `bone`, out to `paperRadiusFraction()` — `icons.paperColor`
+ *               names it, and the atlas's paper and the palette's are the same
+ *               colour, so nothing here has to choose between them.
+ *   the edge    the ink, walked inside the paper's own edge at
+ *               `medallionRimWidth`. A hairline-and-a-half where the medal had
+ *               a rule: the edge is what makes the disc an object, not what
+ *               makes it decorated.
+ *   the gilt    one line at `medallionGiltRadius` of the outer radius, in
+ *               `medallionGiltColor`. It is drawn **wider than the ink it sits
+ *               inside**, which looks like an error and is not: gilt on bone
+ *               carries about a third of ink-on-bone's contrast, so at equal
+ *               width it reads as half the weight. The width is the one that
+ *               survives minification — see below.
+ *   the figure  the numerals' own face and their own optical centre
+ *               (`drawNumeralCell`), at a size of its own because this disc has
+ *               a border eating into it. Two figures come out no wider in ink
+ *               than they do in advance, which is what a mono face is for: the
+ *               counters on one route stay the same object at the same weight
+ *               whatever number they carry.
+ *
+ * **The gilt line and the mip chain.** The old docblock argued for beads partly
+ * on this ground — that a hairline would not survive the sizes the atlas is
+ * minified to — and it was arguing about the wrong failure. Nothing here is at
+ * risk from the alpha test: the gilt sits a long way inside the paper's edge,
+ * every pixel under it is opaque bone, and `medallionGeometry` is asserted to
+ * keep it more than a coarse texel clear of the disc's soft edge, so no mip
+ * average ever pulls transparency into it. What a thin line loses when the
+ * texture halves is *colour*, not coverage — it goes from a line to a tint —
+ * and that is measurable: the ring is `medallionGiltWidth × cell` wide, a
+ * texel at mip level L is `2^L` cell pixels across, and the worst alignment
+ * leaves the best-covered texel with half the ring's width. At the twenty-pixel
+ * draw the mock is judged at, that is a third of the texel in gilt, which is a
+ * warm ring and not a rumour. `test/render/badges3d.test.ts` holds the floor.
+ */
+export function paintMedallion(
+  context: CanvasRenderingContext2D,
+  origin: { x: number; y: number },
+  cell: number,
+  id: MedallionId,
+  dial: MedallionDial = medallionDial(),
+): void {
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+  const rings = medallionGeometry(cell, dial);
 
   context.save();
   context.fillStyle = cssHex(ICONS.paperColor);
   context.beginPath();
-  context.arc(center.x, center.y, outer, 0, Math.PI * 2);
+  context.arc(center.x, center.y, rings.outer, 0, Math.PI * 2);
   context.fill();
 
   context.strokeStyle = cssHex(ICONS.inkColor);
-  context.lineWidth = rule;
-  // Half a stroke falls outside the path it is drawn on, so the rule is walked
-  // inside the paper's edge rather than on it — `markerPaperRadius`' own
-  // accounting, one shape over.
+  context.lineWidth = rings.edgeWidth;
   context.beginPath();
-  context.arc(center.x, center.y, outer - rule / 2, 0, Math.PI * 2);
+  context.arc(center.x, center.y, rings.edgeRadius, 0, Math.PI * 2);
   context.stroke();
 
-  const beads = Math.max(0, Math.round(ICONS.medallionBeads));
-  const beadRadius = Math.max(0.5, ICONS.medallionBeadRadius * cell);
-  // Set inside the rule with a bead's own width of paper between the two, so
-  // the course reads as a course and not as a lumpy edge.
-  const course = outer - rule - beadRadius * 2;
-  if (beads > 0 && course > beadRadius) {
-    context.fillStyle = cssHex(ICONS.inkColor);
-    for (let i = 0; i < beads; i++) {
-      // Phased off the top of the circle so the ring is symmetric about the
-      // numeral's own vertical, whatever the count.
-      const angle = -Math.PI / 2 + (i / beads) * Math.PI * 2;
-      context.beginPath();
-      context.arc(
-        center.x + course * Math.cos(angle),
-        center.y + course * Math.sin(angle),
-        beadRadius,
-        0,
-        Math.PI * 2,
-      );
-      context.fill();
-    }
-  }
+  // The one gilt element, and one is the whole rule — a gilt mark is a single
+  // flat bright note or it is not the mark (`ImprovementProp.gilt`'s docblock
+  // says the same thing about a different object).
+  context.strokeStyle = cssHex(ICONS.medallionGiltColor);
+  context.lineWidth = rings.giltWidth;
+  context.beginPath();
+  context.arc(center.x, center.y, rings.giltRadius, 0, Math.PI * 2);
+  context.stroke();
   context.restore();
 
   context.save();
   context.fillStyle = cssHex(ICONS.inkColor);
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  context.font = `700 ${Math.round(cell * ICONS.medallionNumeralScale)}px "IBM Plex Mono", ui-monospace, monospace`;
+  context.font = `700 ${rings.numeralSize}px "IBM Plex Mono", ui-monospace, monospace`;
   // The numerals' own optical centre, not the geometric one: see
   // `drawNumeralCell`, which sets its digits at the same fraction.
   context.fillText(medallionLabel(id), center.x, origin.y + cell * 0.54);
   context.restore();
+}
+
+/** One counter, in its own cell of the atlas. */
+function drawMedallionCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: MedallionId,
+): void {
+  paintMedallion(context, badgeCellOrigin(index, layout), layout.cell, id);
 }
 
 /**

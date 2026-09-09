@@ -253,8 +253,8 @@ const chartBlock = block(
 const routeStall = drawRouteMedallions(
   open(
     'medallions',
-    'Turn Medallions',
-    'The mark on the hex each turn of a march ends on — a circular parchment roundel with an inked border and the turn number in it. On the board it is only ever on screen while a route is: under the cursor, or along the order a selected piece is already walking.',
+    'Turn Counters',
+    'The mark on the hex each turn of a march ends on — a flat bone gaming counter with one gilt line inside an ink edge and the turn stamped in the middle. On the board it is only ever on screen while a route is: under the cursor, or along the order a selected piece is already walking.',
   ),
 );
 

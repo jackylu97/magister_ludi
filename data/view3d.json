@@ -632,10 +632,11 @@
     "inscriptionColor": "vellumDeep",
     "inscriptionPad": 0.08,
     "chargeScale": 0.78,
-    "medallionRimWidth": 0.05,
-    "medallionBeads": 16,
-    "medallionBeadRadius": 0.022,
-    "medallionNumeralScale": 0.46,
+    "medallionRimWidth": 0.03,
+    "medallionGiltRadius": 0.8,
+    "medallionGiltWidth": 0.04,
+    "medallionGiltColor": "gilt",
+    "medallionNumeralScale": 0.48,
     "resourceKinds": {
       "bonus": {
         "shape": "circle",
