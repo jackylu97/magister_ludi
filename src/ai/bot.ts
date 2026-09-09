@@ -1507,12 +1507,16 @@ function focusTable(
     return {
       best: 'default',
       candidates: [
+        // Not a refusal: the ground simply outweighs the hammers, and a row that
+        // loses on its own fold is a scored row that loses (`decision.ts`'
+        // contract — a *rejected* row carries no arithmetic, and this one's
+        // arithmetic is the whole point of printing it). It loses to the
+        // baseline at nought.
         {
           label: 'work the hammers',
           score: foldOf(terms),
           chosen: false,
           terms,
-          rejected: 'the ground it would leave is worth more than the hammers',
         },
         {
           label: 'the balanced ordering',
@@ -1548,8 +1552,22 @@ function focusTable(
   // seeds, fifteen technologies and six buildings, for six points of culture.
   // A focus is a *standing* instruction, and the honest reason to give one is
   // that something this empire has committed to is waiting on the hammers.
+  // **A gate is a printed multiplication, not a refusal** (2026-09-09, the
+  // M3/X12 landing). `decision.ts`' contract, pinned by `aiDecision.test.ts`,
+  // is that a row the *rules* removed carries no arithmetic — and this gate and
+  // the starvation guard below are the arm's own policy, not a rule: the lean
+  // has to be the chains' idea (the spec's "focus production while
+  // chain-bound"), and a sheet that starves the town buys nothing. Each lands
+  // as a `× 0` with its reason, so the fold still reads every line X5b put on
+  // it (the keep, the growth), the score is the fold, and the lean loses to
+  // the baseline at nought.
   if (hammers === null || hammers.value <= 0) {
-    lean.rejected = 'nothing this empire is raising is waiting on hammers';
+    lean.terms.push({
+      label: '× 0 — nothing this empire is raising is waiting on hammers',
+      value: 0,
+      op: 'mul',
+    });
+    lean.score = foldOf(lean.terms);
   }
   // The guard `assignCitizens` would apply: a focused sheet that starves the
   // town is put back, so a focus that would starve it buys nothing at all.
@@ -1560,7 +1578,12 @@ function focusTable(
   // shifted to the sheet in question. That is what makes it a fact about the
   // ground rather than about the sheet the town happens to stand on today.
   if (lean.score > 0 && foodUnder(leanBag) < foodUpkeep(city)) {
-    lean.rejected = `${city.name} would not feed itself on the hammers`;
+    lean.terms.push({
+      label: `× 0 — ${city.name} would not feed itself on the hammers`,
+      value: 0,
+      op: 'mul',
+    });
+    lean.score = foldOf(lean.terms);
   }
   const plain: BotCandidate = {
     label: 'the balanced ordering',
