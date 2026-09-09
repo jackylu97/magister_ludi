@@ -26,10 +26,16 @@
  *     the row is not a town that would raise it, so the step's `towns` falls, the
  *     hammers it owes fall with them, and a step every town has holds no place in
  *     the chain at all. Nothing is stored and nothing is marked done — the board
- *     *is* the memory, which is principle 3 of the spec. The commitment story
- *     falls out of it: a half-paid chain's remaining worth **rises** as it is
- *     paid, because the payment has left the ledger and the payoff has not, and
- *     that is what makes an incumbent hard to displace without a single flag.
+ *     *is* the memory, which is principle 3 of the spec. **A chain's remaining
+ *     worth is what is left to finish**, and since batch X12 that is all it is:
+ *     the sentence that used to stand here — a half-paid chain is worth *more*
+ *     for the payment having left the ledger — was true of a chain that priced a
+ *     step at the row's flat bag and subtracted its stones as a lump, and both of
+ *     those are gone (X1d gave every copy its own town's fold, X12 made the
+ *     stones a wait). A chain that has raised one of three libraries is now worth
+ *     the two that are left, which is the honest reading; what defends a plan
+ *     while it is being executed is `priorities.switchMargin`, symmetric since
+ *     X12, and no flag anywhere.
  *   · **The worth is the fold of the printed terms.** `worth === foldTerms(terms)`
  *     exactly, `decision.ts`' contract, and the reason the spectate feed and the
  *     bot's own comparison can never disagree.
@@ -43,8 +49,8 @@
  *     a chain whose only remaining steps are buildings, so the build arm sees
  *     them as steps and raises them (`liveChains`).
  *
- * **Beakers are time; hammers are coin.** Two currencies, two different answers,
- * and the ruling that separated them is the user's of **2026-09-09**
+ * **Beakers are time, and so are hammers.** One argument, made twice, and the
+ * ruling behind both is the user's of **2026-09-09**
  * (`docs/flags.md`, item (ggg)): *"science really only should be valued when it's
  * a gain in yields … we shouldn't be thinking about science spend with the same
  * value we're thinking about science gain."*
@@ -63,40 +69,50 @@
  * `switchMargin` multiplies, so it makes a *negative* plan easier to displace,
  * and `chainStepShare` pushes the chain's own buildings down every town's queue.
  * **Batch X1b removed it.** The road's beakers are still printed, beside the
- * delay they bought, and folded at nothing.
+ * delay they bought, and folded at nothing. (Batch X12 answered the other two
+ * halves of that sentence: the stones went the same way, below, and the margin
+ * is symmetric — `techGoalTable`, `bot.ts`.)
  *
  * Science a step **gains** is untouched by that and always was: a library's
  * beakers are a yield, folded by `explainYields` at `weights.science` like food
  * or coin. The ruling is about the *spend*, and the spend below is a delay.
  *
- * A hammer is the other case, and keeps its subtraction. A town's stones are not
- * something the empire pours out regardless: they queue. A row raised is a row
- * some other row waited for, so what the steps still owe comes off the worth at
- * `weights.production`, through `explainLump` — the bot's one lump-to-rate
- * exchange, so the whole chain stays a *per-turn* figure like every other
- * appraisal in the bot.
+ * **A hammer is the same case, and batch X12 finished the argument** (the same
+ * item of the flags board, read off seed 1: t108–118, every chain between −128
+ * and −450 and the goal flipping six times in ten turns). Batch X1b kept the
+ * hammer subtraction because *"a row raised is a row some other row waited
+ * for"* — which is true and is exactly why the lump is a second charge.
+ * Production, like research, is **always spent on something**: a bot town's queue
+ * is never idle (`cityProduction` is an End Turn blocker it answers every turn),
+ * so declining this chain saves no stones at all, it spends them on the next row
+ * down the same list. The whole cost of raising X is that Y waits — and the chain
+ * already carries that, per town, more exactly than a lump ever could: every
+ * copy stands on **its own town's cursor** and is discounted at its own landing
+ * (`StepCopy.delay`). So a step's hammers are printed, beside the delay they
+ * bought, and folded at nothing.
  *
- * **Nowhere else in this file lumps a beaker**, which is worth saying because the
- * ruling is a rule about all three chains. The expansion chain has no beakers at
- * all; the bead race owes a road and folds it into `delay` and into a
- * zero-valued label, exactly as the tech chain now does; `chainCompression`,
- * `chainStepShare`, `townChainShare` and `raceTerm` all divide a worth that no
- * longer carries one. The one remaining `explainLump` below is the hammers'.
+ * **Nowhere in this file lumps a beaker or a hammer now**, which is worth saying
+ * because the ruling is a rule about all three chains. The expansion chain has no
+ * beakers and prints its settler's stones at nothing (the raising is charged by
+ * `push`'s own `÷ turns of build effort`); the bead race owes a road and a
+ * raising and folds both into `delay` and a zero-valued label;
+ * `townChainShare` walks a cursor and no longer subtracts a copy's stones beside
+ * the discount that cursor buys.
+ *
+ * **Two folds still read what a chain owes in hammers, and both survive the
+ * ruling**, because neither is a *charge*: they are derivatives of the delay.
+ * `hammerPrice` (`value.ts`) asks what one more hammer a turn takes off the
+ * copies a town still owes — the wait, differentiated, which is precisely the
+ * quantity this batch says the stones are; and `chainCompression` asks what a
+ * purse delivering one copy takes off the copies behind it. A charge would double
+ * the ledger; a derivative of the wait is the ledger read at the margin, and
+ * removing the lump makes both *more* honest rather than less, since the wait is
+ * now the only place stones enter at all. `chainStepShare` divides a worth that
+ * carries neither lump.
  *
  * Batch 4 was to give hammers a shadow price of their own and **deliberately did
- * not**, which is the batch's one written-down non-delivery. The spec offered an
- * escape hatch — *"leave at `weights.production` with a doc note if no honest
- * cheap reading exists"* — and there is none, for a reason particular to this
- * bot: a price is a reading of *scarcity*, and the two cheap empire-level
- * readings of hammer scarcity both answer the same number every turn. The share
- * of towns with a non-empty queue is 1.0 by construction — `cityProduction` is an
- * End Turn blocker the bot answers every turn, so a bot town is never idle when
- * anything asks what its hammers are worth — and median queue depth
- * is one or two rows in every empire on every board. A factor that is always one
- * is a multiplication by one wearing a price, and the honest alternative (what
- * the best candidate in each town would pay per hammer) is the per-town auction
- * the brief rules out. So the table stands in, it is written down here, and the
- * one `explainLump` call below remains the only line that would change.
+ * not**; batch 6 then gave them one as a derivative (`hammerPrice`), which is the
+ * shape this ruling leaves standing.
  *
  * **The road, and the towns on it** (batch X1d, the user's ruling of 2026-09-09,
  * `docs/flags.md` item (ggg)). Two of this module's crudenesses were the same
@@ -195,8 +211,8 @@ import {
   delayTerm,
   explainBuildingRow,
   explainEffects,
-  explainLump,
   explainMeterCall,
+  explainProjectRow,
   explainSoldier,
   explainYields,
   yieldDelta,
@@ -447,6 +463,13 @@ export function chainStepFor(
  * the copy on top of that would price the same beakers twice. What the arm that
  * raises the row folds beside this term is the town's own yield delta, which is
  * where the difference between a capital and a hamlet belongs.
+ *
+ * **The worth it divides carries no lump at all since batch X12** — neither the
+ * road's beakers nor the steps' stones, both of which are now the wait each copy
+ * is discounted through. So a share is what finishing the chain pays, shared, and
+ * it can no longer push the chain's own buildings *down* a town's queue by
+ * handing them a slice of a negative: the negative it used to divide was largely
+ * the stones `push`'s own `÷ turns of build effort` was about to charge again.
  */
 export function chainStepShare(chain: TechChain): number {
   return chain.worth / Math.max(1, chain.stepsRemaining);
@@ -658,13 +681,21 @@ export function techChain(
     });
   }
   if (hammers > 0) {
-    terms.push(
-      nest(
-        `the ${Math.round(hammers)} hammers its steps still owe`,
-        explainLump({ production: hammers }, ctx),
-        'sub',
-      ),
-    );
+    // **Printed, and folded at nothing** (batch X12; the user's ruling of
+    // 2026-09-09 on `docs/flags.md` item (ggg)), the beakers' clause above said
+    // once more for the stones. Production is always spent on something: a town
+    // whose queue is never idle does not *save* hammers by declining this chain,
+    // it spends them on the next row down its own list. So the cost of raising a
+    // step is that the step behind it waits — and every copy above carries that
+    // wait already, on its own town's cursor, discounted at its own landing.
+    // Subtracting the lump as well charged one thing twice, and it was the whole
+    // of what was left keeping the tree below zero after X1b.
+    terms.push({
+      label:
+        `(the ${Math.round(hammers)} hammers its steps still owe are charged by the turns ` +
+        `each copy above waits on its own town's queue)`,
+      value: 0,
+    });
   }
   return {
     goal,
@@ -702,6 +733,13 @@ export function techChain(
  * which one that is. The one crudeness left is `raise` itself: the middling
  * town's turns over one copy's stones, because a bridge is priced before the
  * town is chosen.
+ *
+ * **It reads a step's hammers and is not a charge for them** (batch X12): `raise`
+ * turns a copy's stones into *turns*, and every term below is what those turns
+ * are worth to the copies standing behind it. A derivative of the delay —
+ * `hammerPrice`'s answer one question over — which is why it survives the ruling
+ * that took the hammer lump out of a chain's worth, and why it reads truer for
+ * the lump's absence: the wait is now the only place stones enter a chain.
  */
 export function chainCompression(
   chain: TechChain,
@@ -894,18 +932,27 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
       copies: buildingCopies(ctx, building, folds),
     });
   }
-  const projects = (unlocks.projects ?? []).length;
   const abilities = (unlocks.abilities ?? []).length;
-  const flat: ValueTerm[] = [
-    {
-      label: `${projects} conversion project${projects === 1 ? '' : 's'}`,
-      value: projects * ai.research.projectValue,
-    },
-    {
-      label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
-      value: abilities * ai.research.abilityValue,
-    },
-  ];
+  const flat: ValueTerm[] = [];
+  // **A conversion project is worth what the conversion pays** (batch X12): the
+  // node's gift used to be a count times `research.projectValue`, a flat ten a
+  // row that stood in for a reading nobody had written — and the reading exists,
+  // it is the one the build arm scores the row by (`explainProjectRow`). The knob
+  // is retired with the stand-in. One reading of a `ProjectPayout` in the whole
+  // bot, and since that fold is now a *lump* the tree stops paying a node ten
+  // points for opening a shelf that pays five beakers once.
+  for (const project of unlocks.projects ?? []) {
+    flat.push(
+      nest(
+        `the ${projectDef(project).name} conversion it opens`,
+        explainProjectRow(project, ctx),
+      ),
+    );
+  }
+  flat.push({
+    label: `${abilities} ability${abilities === 1 ? '' : 'ies'}`,
+    value: abilities * ai.research.abilityValue,
+  });
   const undiscounted: ValueTerm[] = [];
   // **A node that pays a bead** (`TechDef.paysBead`) — the research half of the
   // win-condition templates (batch 5). Nothing in the bot priced this clause
@@ -1493,17 +1540,21 @@ export function townChainShare(ctx: ValueContext): Appraisal {
   for (const chain of ctx.chains) {
     for (const step of chain.steps) {
       if (step.kind !== 'building') continue;
-      const stones = explainLump({ production: stepUnitCost(step) }, ctx).total;
+      // **The stones are the cursor** (batch X12): the row's hammers buy the
+      // turns this town's own queue spends on it, and those turns are what the
+      // discount below charges. Subtracting a hammer lump beside the discount
+      // was the same double charge the chain's own hammers carried until this
+      // batch — see `techChain`'s zero-valued line.
       cursor += buildTurns(stepUnitCost(step), ctx);
       const discount = delayDiscount(cursor, ctx);
       if (discount <= 0) continue;
       const share = leastCopyRate(step) * discount;
-      if (share - stones <= 0) continue;
+      if (share <= 0) continue;
       terms.push({
         label:
           `${step.name} — one more town to raise it for the ${techDef(chain.goal).name} engine, ` +
           `${round(cursor)} turns into that town's own queue`,
-        value: share - stones,
+        value: share,
       });
     }
   }

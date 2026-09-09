@@ -168,7 +168,7 @@ import {
 import { type ProjectId, projectDef } from '../sim/projectData';
 // `citiesOf` is the one town walk every evaluator uses (CLAUDE.md) and batch
 // X2's scope reading is asked over it, so the import is no longer type-only.
-import { type City, type GameState, citiesOf } from '../sim/state';
+import { type City, type GameState, citiesOf, playerById } from '../sim/state';
 import { buildError } from '../sim/tech';
 import { type TechAge } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield } from '../sim/terrainData';
@@ -590,7 +590,12 @@ export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
  */
 export function voiceWeight(ctx: ValueContext, voice: Voice): number {
   if (voice === 'gold') return ctx.prices.gold;
-  if (voice === 'faith') return ctx.prices.faith;
+  // **Faith is two prices since batch X12**, and this door hands out the one for
+  // a *rate*. See `faithPrice`: what a banked point buys (`ctx.prices.faith`, the
+  // book's own shadow price) and what one more point **a turn** is worth are
+  // different questions, and every caller of this fold is asking the second —
+  // a shrine's faith line, a card's faith pays, a rite's trickle.
+  if (voice === 'faith') return faithPrice(ctx);
   // **Culture joined them in batch 6**, off the draft plan (`draftPlan`,
   // `wants.ts`). Those three are exactly the banks this game holds a *stock* of
   // and spends on rows somebody deals, and their price is read off a book of
@@ -730,9 +735,20 @@ export function hammerPrice(ctx: ValueContext, city?: City): number {
  * focus** arm (`focusCommand`, `bot.ts`). A new production-raising candidate
  * joins that list here, deliberately.
  *
- * Nothing that *spends* hammers folds it — a chain already charges its own
- * remaining hammers through `explainLump`, and charging the compression back
- * would be the bot disagreeing with itself about one wait.
+ * Nothing that *spends* hammers folds it: a candidate that spends stones is
+ * already charged by the turns it spends them over (`push`'s `÷ turns of build
+ * effort`, and a chain copy's own cursor since batch X12), and charging the
+ * compression back would be the bot disagreeing with itself about one wait.
+ *
+ * **The price itself survives batch X12's ruling that hammers are time**, and it
+ * survives *because* of it. The chains no longer subtract a lump for the stones
+ * they owe — the stones are the wait, and the wait is on each copy's own cursor —
+ * and this fold has never been a charge for stones either. It is the wait's
+ * **derivative**: one more hammer a turn takes `before − after` turns off a copy
+ * this town owes, and `discount(after) − discount(before)` is what those turns
+ * are worth to the chain waiting on them. With the lump gone the wait is the only
+ * place hammers enter a chain at all, so a derivative of it is the whole marginal
+ * story rather than half of one.
  */
 export function hammerTerm(
   production: number,
@@ -861,6 +877,103 @@ export function sciencePrice(ctx: ValueContext): number {
     table + Math.max(0, premium),
   );
   SCIENCE_PRICE_MEMO.set(ctx, price);
+  return price;
+}
+
+/**
+ * **What one more point of faith a turn is worth to this empire** —
+ * `sciencePrice`'s twin (batch X12 of `docs/bot-priorities.md`), in shape, in
+ * memo and in the argument behind it.
+ *
+ * The user's ruling of **2026-09-09** (`docs/flags.md`, item (ggg)): *"religion
+ * and pantheons need to be priced into the value of faith."* Read off seed 1 on
+ * the landed tree, the capital's pool sat at fifteen for ninety turns, the book
+ * valued the pantheon at 385 for forty faith the whole time, no Shrine was ever
+ * built and no god was ever consecrated. Nothing was broken in the book; what was
+ * missing is that **nothing told the build arm a Shrine is the step to it**.
+ *
+ * The reason is the same one `sciencePrice` was written for. `ctx.prices.faith`
+ * is a **stock** price — what one banked point buys, `worth ÷ price` over the
+ * book, banded — and it is the right number for a fold that *spends* faith (a
+ * purchase, a rung, a rite's cost, the saving rows). It is the wrong number for a
+ * fold that *raises the rate*, because a rate does not buy the pantheon: it
+ * brings the pantheon **forward**. An empire making one faith a turn with forty
+ * to find is twenty-five turns from its first god; at two a turn it is twelve,
+ * and the thirteen turns saved are what the Shrine is actually for.
+ *
+ * So the price is the table plus a premium, and the premium is a derivative on
+ * numbers the faith book already carries — no sweep, no search, closed form:
+ *
+ *     price = weights.faith
+ *           + Σ over the faith plan's wants of
+ *               delay = (want.price − the pool) ÷ rate      — turns until it pays
+ *               drop  = delay − (want.price − the pool) ÷ (rate + 1)
+ *               want.worth × ( discount(delay − drop) − discount(delay) )
+ *
+ * `rate` is `foldEmpireRates().faithPerTurn` **floored at one**, which is the
+ * clause that answers the seed-1 reading: an empire with no faith income at all
+ * would otherwise divide by nought and read every want as infinitely far off, so
+ * a zero-income empire reads a finite, large delay instead and prices its first
+ * Shrine as the door it is. The floor is `researchRoad`'s own, one bank over.
+ *
+ * `want.worth` is a per-turn figure like a chain step's `rate` (the fold of the
+ * want's own printed terms — a god's effects, a founding's trickle, a rite's
+ * blessing), which is why it multiplies the discount delta directly and nothing
+ * divides by `lumpTurns` here. The **wants are the whole plan**, not only the
+ * ones the purse can reach: a want out of reach is exactly the one a faster rate
+ * arrives at, and the saving rows that stand for holding are in the list because
+ * holding is one of the things faith does.
+ *
+ * The discount is read **twice** rather than through its slope, which is
+ * `chainCompression`'s device and `sciencePrice`'s: the function knows two things
+ * a slope does not, that a want already past the horizon gains nothing by
+ * arriving sooner, and that one which *crosses* the horizon gains only the part
+ * of the drop that lands inside it.
+ *
+ * **Floored at the table, capped by the band.** A want cannot be worth less than
+ * nothing to arrive sooner, so the premium is floored at nought and the price at
+ * `weights.faith`; the ceiling is `priorities.priceBandHigh` × the table, the same
+ * band gold, culture, hammers and beakers all live in. No new knob.
+ *
+ * **Which arm reads which price.** This one is `voiceWeight(ctx, 'faith')` — the
+ * rate: a building's faith line through `explainYields`, a card's `pays` in
+ * faith, a rite's trickle, anything whose delta is *faith a turn*.
+ * `ctx.prices.faith` stays the stock: `priceOf`'s own answer, read by the spend
+ * arms through the want book (`worthPerCoin`) and by the folds that charge a
+ * price in faith. A shrine raises the rate; a prophet spends the bank; the two
+ * questions have two answers and the book is still the source of both.
+ *
+ * **Memoised for the life of the context**, `sciencePrice`'s bargain exactly: it
+ * is asked of every faith line of every candidate and the answer is a fact about
+ * the empire rather than about the row. And like the science price it is read
+ * off a book built on the **prior** — `valueContext` builds the wants before any
+ * price exists — so one honest pass, no fixed point.
+ */
+const FAITH_PRICE_MEMO = new WeakMap<ValueContext, number>();
+export function faithPrice(ctx: ValueContext): number {
+  const held = FAITH_PRICE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const table = yieldWeight(ctx.ai, 'faith', ctx.age);
+  const high = table * ctx.ai.priorities.priceBandHigh;
+  // Set before the walk: `explainYields` below is not reached from here, but a
+  // want's own terms were folded at the prior and a re-entrant ask (a fold that
+  // reads a faith weight while this one is still running) must not recurse.
+  FAITH_PRICE_MEMO.set(ctx, table);
+  const rate = Math.max(1, ratesOf(ctx).faithPerTurn ?? 0);
+  const pool = Math.max(0, playerById(ctx.state, ctx.playerId)?.faithPool ?? 0);
+  let premium = 0;
+  for (const want of ctx.wants.faith) {
+    if (want.worth <= 0) continue;
+    const owed = Math.max(0, want.price - pool);
+    if (owed <= 0) continue;
+    const delay = want.delay + owed / rate;
+    const sooner =
+      delayDiscount(Math.max(0, want.delay + owed / (rate + 1)), ctx) - delayDiscount(delay, ctx);
+    if (sooner <= 0) continue;
+    premium += want.worth * sooner;
+  }
+  const price = Math.min(high, table + Math.max(0, premium));
+  FAITH_PRICE_MEMO.set(ctx, price);
   return price;
 }
 
@@ -1048,7 +1161,23 @@ function weightWords(ctx: ValueContext, voice: Voice): string {
       `for the turns one more beaker a turn takes off the road ahead`
     );
   }
-  if (voice !== 'gold' && voice !== 'faith' && voice !== 'culture') return 'age weight';
+  // **Faith's clause is batch X12's printed half** (`faithPrice`), and it says
+  // which of the bank's two prices this line read: the *rate* price, the table
+  // plus what one more point a turn takes off the wait for the plan's own wants.
+  // The book's note is printed beside it, because the wants the premium is read
+  // off are the very rows the note names.
+  if (voice === 'faith') {
+    const table = yieldWeight(ctx.ai, 'faith', ctx.age);
+    const premium = faithPrice(ctx) - table;
+    const note = ctx.priceNotes.faith;
+    const why = note === '' ? '' : ` (${note})`;
+    if (premium <= 0) return `age weight, with nothing in the faith plan to hurry${why}`;
+    return (
+      `the faith rate price — the table's ${round(table)} and ${round(premium)} more ` +
+      `for the turns one more faith a turn takes off the plan ahead${why}`
+    );
+  }
+  if (voice !== 'gold' && voice !== 'culture') return 'age weight';
   const note = ctx.priceNotes[voice];
   return `the ${voice} price` + (note === '' ? '' : ` (${note})`);
 }
@@ -1068,6 +1197,27 @@ export function explainLump(bag: YieldBag, ctx: ValueContext): Appraisal {
   if (weighted.terms.length === 0) return appraise([]);
   return appraise([
     nest('what it pays, weighted', weighted),
+    { label: `÷ ${round(turns)} — a gift paid once, not every turn`, value: turns, op: 'div' },
+  ]);
+}
+
+/**
+ * **`explainLump` for a gift that is already points** — the same exchange for the
+ * three one-time grants that are not a bag of voices (batch X12): a bead, a free
+ * technology, the renown a capstone pays when its stones go up.
+ *
+ * Not folded into `explainLump` because that one's argument is a `YieldBag` and a
+ * bead is not a voice — the weight table prices it directly. What the two share
+ * is the only thing that matters here, `score.lumpTurns`: **one exchange rate
+ * between a stock and a flow in the whole bot**, so a completion grant and a
+ * merchant's purse are converted by the same twenty turns and a reader of the
+ * feed sees the same division in both.
+ */
+export function lumpOfPoints(points: number, ctx: ValueContext): Appraisal {
+  const turns = Math.max(1, ctx.ai.score.lumpTurns);
+  if (points === 0) return appraise([]);
+  return appraise([
+    { label: `${round(points)} points, once`, value: points },
     { label: `÷ ${round(turns)} — a gift paid once, not every turn`, value: turns, op: 'div' },
   ]);
 }
@@ -1133,6 +1283,24 @@ export function costOfUpkeep(gold: number, ctx: ValueContext): number {
  * and `weights.bead` is what makes a thousand-hammer row worth starting. The row
  * that `endsTheGame` carries `weights.victory` on top, because finishing it is
  * not a bead — it is the curtain (Entry LVIII).
+ *
+ * **A row's per-turn lines are rates and its completion lines are lumps, and the
+ * two are priced through the one exchange** (batch X12, the ruling on
+ * `docs/flags.md` item (ggg) said one fold over from the projects). Happiness, a
+ * wall, a route slot, the renown trickle: those go on paying every turn the row
+ * stands, and `push` amortises them over the turns of effort the raising costs.
+ * The renown a capstone pays *when it is finished*, the glass bead, the free
+ * technology: those arrive once and never again, and folded at full weight beside
+ * the rates they were the biggest number on a wonder's row — a Walls of Uruk read
+ * its ten renown as though it paid ten renown a turn for ever. Each goes through
+ * `lumpOfPoints` now, `explainLump`'s sibling for a gift that is points rather
+ * than a bag of voices, at the same `score.lumpTurns`. The one grant that stays a
+ * standing thing is the free **piece**: it is on the board from the turn it lands
+ * and goes on being a piece.
+ *
+ * The bead is the race's while the race is live, never both (`raceIsLive`) — the
+ * arm that appraises this row folds `raceTerm` beside it, and one bead paid twice
+ * is what that gate exists to stop.
  *
  * Nothing here compares a building against a name: every clause is a marker on
  * the row, which is the discipline `src/sim/` keeps and a reader of the same
@@ -1251,17 +1419,41 @@ export function explainBuildingRow(
       label: `${signed(def.renown.perTurn)} renown a turn × ${ctx.ai.weights.renown}`,
       value: def.renown.perTurn * ctx.ai.weights.renown,
     });
-    terms.push({
-      label: `${signed(def.renown.onComplete ?? 0)} renown on completion × ${ctx.ai.weights.renown}`,
-      value: (def.renown.onComplete ?? 0) * ctx.ai.weights.renown,
-    });
+    // **A completion grant is a lump** (batch X12; see the fold's docblock).
+    // Renown on completion arrives once, when the stones are up.
+    const once = def.renown.onComplete ?? 0;
+    if (once !== 0) {
+      terms.push(
+        nest(
+          `${signed(once)} renown on completion, paid once`,
+          lumpOfPoints(once * ctx.ai.weights.renown, ctx),
+        ),
+      );
+    }
   }
   for (const grant of def.onComplete ?? []) {
-    if (grant.grant === 'bead') terms.push({ label: 'a glass bead on completion', value: ctx.ai.weights.bead });
-    else if (grant.grant === 'unit')
+    // Each of these lands **once**, the turn the row is finished, and each used
+    // to be folded at its full weight beside the row's per-turn lines — see the
+    // fold's docblock for what that did to a wonder's score.
+    if (grant.grant === 'bead') {
+      if (!raceIsLive(ctx)) {
+        terms.push(
+          nest('a glass bead on completion, paid once', lumpOfPoints(ctx.ai.weights.bead, ctx)),
+        );
+      }
+    } else if (grant.grant === 'unit') {
+      // A piece is the one grant that is **not** a lump: it stands on the board
+      // from the turn it arrives and goes on being a piece, which is what
+      // `weights.military × combatScale` already means everywhere else in this
+      // file (`unitStatPoints` reads the same "a piece" figure).
       terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
-    else if (grant.grant === 'tech') terms.push({ label: 'a free technology', value: ctx.ai.weights.tech });
-    else terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
+    } else if (grant.grant === 'tech') {
+      terms.push(
+        nest('a free technology, granted once', lumpOfPoints(ctx.ai.weights.tech, ctx)),
+      );
+    } else {
+      terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });
+    }
   }
   if (def.endsTheGame === true) terms.push({ label: 'it ends the game', value: ctx.ai.weights.victory });
   // **The route it opens** (batch 8): a market is shelves *and* a slot, and the
@@ -1618,13 +1810,41 @@ function unitStatPoints(
 }
 
 /**
- * A repeatable conversion's worth: what one turn of it pays, weighted, against
- * the hammers one turn of it costs — expressed as a per-turn figure so the
- * caller's amortisation treats it like everything else.
+ * A repeatable conversion's worth: **what one completion of it hands over, as a
+ * lump**, expressed in the per-turn currency so the caller's amortisation treats
+ * it like everything else.
  *
  * A project never finishes (Entry XXVI), so `turnsToBuild` is "how often does
  * this pay" rather than "when is this done", and the two questions being one is
  * exactly what lets a conversion sit in the same scored list as a granary.
+ *
+ * **The payout is a lump, and that is batch X12's first fix** (the user's ruling
+ * of 2026-09-09, `docs/flags.md` item (ggg)): *"science once != science per
+ * turn"*. Until this batch the bag went through `explainYields`, which prices a
+ * **rate** — a shelf that pays five beakers *every turn for ever*. Tithes and
+ * Scholarship pay five once, for twenty hammers, and stop the moment the town
+ * queues anything else. Priced as rates they read five and six times what a
+ * Library reads, and the seed-1 capital's table said so plainly: Scholarship 30
+ * and Tithes 22 over a Library at 10 on turn 45, and the Library waited from
+ * Writing at t41 until t88.
+ *
+ * So the bag goes through `explainLump` — the bot's one stock-to-flow exchange,
+ * `score.lumpTurns`, the very rate that turns a great person's purse into an
+ * income — and a shelf's rate stays a rate. That is the apples-to-apples the
+ * ruling asks for: what one completion buys, said in the currency everything
+ * else in this table is already quoted in.
+ *
+ * **Culture joined the bag with it.** Pageants pays culture and this fold read
+ * three of the four keys of `ProjectPayout`, so the one project that fills the
+ * draft basket was worth nothing at all to the arm choosing it. Every key of the
+ * payout is read now, and a fifth key would fail the type.
+ *
+ * **The bead is the race's, when the race is live** — `readNodeGifts`' own device
+ * one row over (`chain.ts`): a bead-paying row already carries `raceTerm` from
+ * the arm that appraises it, so folding `weights.bead` here as well would pay for
+ * one bead twice. The gate is `ctx.race`, which this file already carries, rather
+ * than a call into `chain.ts` (this module may not import it at runtime — see the
+ * type-only import at the head).
  */
 export function explainProjectRow(id: ProjectId, ctx: ValueContext): Appraisal {
   const def = projectDef(id);
@@ -1632,10 +1852,31 @@ export function explainProjectRow(id: ProjectId, ctx: ValueContext): Appraisal {
     gold: def.pays.gold ?? 0,
     science: def.pays.science ?? 0,
     faith: def.pays.faith ?? 0,
+    culture: def.pays.culture ?? 0,
   };
-  const terms: ValueTerm[] = [nest('what one turn of it pays', explainYields(bag, ctx))];
-  if (def.bead !== undefined) terms.push({ label: 'a glass bead', value: ctx.ai.weights.bead });
+  const terms: ValueTerm[] = [
+    nest('what one completion of it pays, once', explainLump(bag, ctx)),
+  ];
+  if (def.bead !== undefined && !raceIsLive(ctx)) {
+    terms.push({ label: 'a glass bead', value: ctx.ai.weights.bead });
+  }
   return appraise(terms);
+}
+
+/**
+ * **Is the bead race live for this seat** — the one question the two folds below
+ * ask before printing a bead of their own.
+ *
+ * A row that pays a bead carries the race's share from the arm that appraises it
+ * (`raceTerm`, `chain.ts`), and that share *is* what the bead is worth while the
+ * race is on. `readNodeGifts` has made the same either/or since batch 5 — the
+ * flat weight, or the race's share, never both — and these two folds now make it
+ * too. Read off `ValueContext.race`, which this module already carries as a type,
+ * because a value import of `chain.ts` would be the cycle the module docblock's
+ * type-only import exists to avoid.
+ */
+function raceIsLive(ctx: ValueContext): boolean {
+  return ctx.race !== null && ctx.race.live;
 }
 
 /**

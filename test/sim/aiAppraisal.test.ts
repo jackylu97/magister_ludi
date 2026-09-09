@@ -96,6 +96,9 @@ import {
   explainCounted,
   explainEffects,
   explainYields,
+  explainLump,
+  explainProjectRow,
+  faithPrice,
   hasFoldReadEngine,
   meterWeight,
   scoreEffects,
@@ -107,6 +110,7 @@ import {
   yieldWeight,
 } from '../../src/ai/value';
 import { levyReading } from '../../src/ai/campaign';
+import type { Want } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
@@ -179,6 +183,7 @@ import {
   orderDef,
 } from '../../src/sim/statecraftData';
 import { buildError, gatingTech, researchExpansion } from '../../src/sim/tech';
+import { PROJECT_IDS, projectDef } from '../../src/sim/projectData';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { isExploredBy, recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
@@ -1379,12 +1384,16 @@ describe('the tech chain', () => {
     expect(printed).not.toBeNull();
     expect(printed!.value).toBe(0);
     expect(printed!.op).toBeUndefined();
-    // The one lump a chain still subtracts is the hammers': stones queue, and a
-    // row raised is a row some other row waited for.
-    for (const term of chain.terms) {
-      if (term.op !== 'sub') continue;
-      expect(term.label).toMatch(/hammers its steps still owe/);
-    }
+    // **Re-aimed 2026-09-09, batch X12**: the stones went the same way as the
+    // beakers, by the same argument — production is always spent on something,
+    // and each copy above already waits on its own town's cursor. So a chain
+    // subtracts no lump at all now, and the hammers print at nothing beside the
+    // wait they bought.
+    const stones = findTerm(chain.terms, /hammers its steps still owe/);
+    expect(stones).not.toBeNull();
+    expect(stones!.value).toBe(0);
+    expect(chain.terms.some((term) => term.op === 'sub')).toBe(false);
+    expect(chain.hammers).toBeGreaterThan(0);
     expect(foldTerms(chain.terms)).toBe(chain.worth);
 
     // A chain whose road is walked prints no such line at all, and never did.
@@ -1570,19 +1579,32 @@ describe('the tech chain', () => {
     expect(foldTerms(plain.terms)).toBe(plain.total);
   });
 
-  it('drops a realised step out, and is worth more for the one that was paid', () => {
-    // **The commitment arithmetic.** Education's chain owes a University to every
-    // town that lacks one. A University pays no flat yield — its whole payout is
-    // `sciencePerPop` and a renown trickle, neither of which the chain multiplies
-    // by towns — so raising one in one town takes nothing out of the payoff and
-    // takes its whole 134 hammers out of what the chain still owes. The remaining
-    // worth therefore rises, which is principle 1 of the spec: incumbency is
-    // arithmetic, not memory.
+  it('drops a realised step out, and loses exactly the copy that was paid', () => {
+    // **The commitment arithmetic, re-aimed twice.** Education's chain owes a
+    // University to every town that lacks one, and a town that holds the row is
+    // not a town that would raise it — so the step's `towns`, the chain's
+    // `stepsRemaining` and the hammers it owes all fall by one copy. That half is
+    // principle 1 of the spec and has never moved: incumbency is arithmetic, not
+    // memory, and nothing is stored or marked done.
+    //
+    // What has moved is the *sign*. The case used to claim the remaining worth
+    // **rises**, and it did, for two reasons that are both gone: a step's payoff
+    // was the row's flat bag (a University's is empty — its whole payout is
+    // `sciencePerPop`), so raising one took nothing out of the payoff; and the
+    // chain subtracted the copy's hammers as a lump, so raising one took the
+    // whole 134 out of the cost. **Batch X1d** gave every copy its own town's
+    // fold, so a University now pays; **batch X12** made the stones a wait rather
+    // than a lump, so there is no cost ledger left for a payment to leave. The
+    // honest reading is what the fold now says: the chain loses **exactly** the
+    // copy that was raised, and nothing else about it moves.
     const { state, player, cities } = chained(3, 'education');
     const before = techChain(state, player, valueContext(state, player), 'education');
     const university = before.steps.find((step) => step.id === 'university');
     expect(university).toBeDefined();
     expect(university!.towns).toBe(3);
+    const raised = university!.copies.find((copy) => copy.cityId === cities[0]!.id)!;
+    expect(raised).toBeDefined();
+    expect(raised.value).toBeGreaterThan(0);
 
     cities[0]!.buildings.push('university');
     bumpRevision(state);
@@ -1590,7 +1612,9 @@ describe('the tech chain', () => {
     expect(after.steps.find((step) => step.id === 'university')!.towns).toBe(2);
     expect(after.stepsRemaining).toBe(before.stepsRemaining - 1);
     expect(after.hammers).toBe(before.hammers - buildingProductionCost('university'));
-    expect(after.worth).toBeGreaterThan(before.worth);
+    // The whole of the difference is that one copy: the other two towns raise on
+    // their own cursors and neither was waiting on this one.
+    expect(before.worth - after.worth).toBeCloseTo(raised.value, 6);
   });
 
   /**
@@ -4320,5 +4344,223 @@ describe('the ground nobody works (batch X1d-ground)', () => {
     const dry = town(6, 0, 2);
     const dryCtx = valueContext(dry.state, seat(dry.state, 0));
     expect(renewalFoldFor(dryCtx, 'irrigation').total).toBe(0);
+  });
+});
+
+/**
+ * **Batch X12 — the lump, the faith rate and the symmetric margin** (the user's
+ * ruling of 2026-09-09, `docs/flags.md` item (ggg), read off seed 1 on the landed
+ * tree).
+ *
+ * Three fixes and one shape between them: *a thing that happens once is not a
+ * thing that happens every turn*, and the bot has exactly one exchange between
+ * the two (`score.lumpTurns`). A conversion project pays once per completion; a
+ * capstone's renown and its glass bead land once when the stones go up; a
+ * shrine's faith, by contrast, really is a rate — and what that rate is worth is
+ * the wait it takes off the faith plan, which is `sciencePrice`'s argument said
+ * one bank over. The fourth case is the margin, which was arithmetic that only
+ * worked in one direction.
+ */
+describe('the lump, the faith rate and the symmetric margin (batch X12)', () => {
+  /** A town of `population` on grass, with a seat that can hold opinions. */
+  function bare(population = 6): { state: GameState; player: Player; city: City } {
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    recomputeAllVisibility(state);
+    city.population = population;
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    return { state, player: seat(state, 0), city };
+  }
+
+  it('folds a conversion project as a lump, under a shelf paying the same per turn', () => {
+    const { state, player } = bare();
+    const ctx = valueContext(state, player);
+    // Read off the table rather than named: whichever repeating conversion pays
+    // beakers is the one the seed-1 capital was topping its list with.
+    const id = PROJECT_IDS.find(
+      (row) => projectDef(row).finishes !== true && (projectDef(row).pays.science ?? 0) > 0,
+    )!;
+    expect(id).toBeDefined();
+    const paid = projectDef(id).pays.science!;
+
+    const row = explainProjectRow(id, ctx);
+    expect(foldTerms(row.terms)).toBe(row.total);
+    // **It is the lump exchange and nothing else**: the same bag through
+    // `explainLump`, to the bit.
+    expect(row.total).toBe(explainLump({ science: paid }, ctx).total);
+
+    // **And a shelf paying the same per turn out-scores it by exactly the
+    // exchange.** That is the whole of the ruling — "science once != science per
+    // turn" — and it is why a Library at ten beat a Scholarship at thirty on
+    // nothing but this arithmetic.
+    const shelf = explainYields({ science: paid }, ctx).total;
+    expect(shelf).toBeGreaterThan(row.total);
+    expect(shelf / row.total).toBeCloseTo(Math.max(1, ctx.ai.score.lumpTurns), 9);
+
+    // Every key of the payout is read, the culture one included: a conversion
+    // that fills the draft basket used to be worth nothing at all here.
+    const cultural = PROJECT_IDS.find(
+      (one) => projectDef(one).finishes !== true && (projectDef(one).pays.culture ?? 0) > 0,
+    );
+    if (cultural !== undefined) expect(explainProjectRow(cultural, ctx).total).toBeGreaterThan(0);
+  });
+
+  it('folds a row’s completion grants as lumps and its standing lines as rates', () => {
+    const { state, player, city } = bare();
+    const ctx = valueContext(state, player);
+    // A row that pays renown when its stones go up — read off the table, never
+    // named, which is the discipline the fold itself keeps.
+    const id = BUILDING_IDS.find((row) => (buildingDef(row).renown?.onComplete ?? 0) > 0)!;
+    expect(id).toBeDefined();
+    const once = buildingDef(id).renown!.onComplete!;
+    const appraisal = explainBuildingRow(id, ctx, city);
+    const line = findTerm(appraisal.terms, /renown on completion, paid once/);
+    expect(line).not.toBeNull();
+    expect(line!.value).toBeCloseTo(
+      (once * ctx.ai.weights.renown) / Math.max(1, ctx.ai.score.lumpTurns),
+      9,
+    );
+    // The trickle beside it is a rate and is untouched by the exchange.
+    const perTurn = buildingDef(id).renown!.perTurn;
+    if (perTurn > 0) {
+      const trickle = findTerm(appraisal.terms, /renown a turn/)!;
+      expect(trickle.value).toBe(perTurn * ctx.ai.weights.renown);
+    }
+    expect(foldTerms(appraisal.terms)).toBe(appraisal.total);
+  });
+
+  it('prices faith at the table with nothing to hurry, and above it with a god to reach', () => {
+    const { state, player } = bare();
+    const ctx = valueContext(state, player);
+    const table = yieldWeight(ctx.ai, 'faith', ctx.age);
+
+    // (a) **No faith plan at all** — the table, to the bit. A `ValueContext` is
+    // the memo's key, so each spread below is a fresh reading.
+    const idle: ValueContext = { ...ctx, wants: { ...ctx.wants, faith: [] } };
+    expect(faithPrice(idle)).toBe(table);
+
+    // (b) **A god forty faith off, on an empire earning nothing** — the seed-1
+    // reading exactly. The rate is floored at one so the delay is finite and
+    // large, and one more point a turn nearly halves it: the premium is what
+    // that brings forward.
+    const god: Want = {
+      label: 'the first god',
+      currency: 'faith',
+      price: 40,
+      worth: 385,
+      delay: 0,
+      terms: [],
+      outOfReach: true,
+    };
+    const wanting: ValueContext = { ...ctx, wants: { ...ctx.wants, faith: [god] } };
+    const priced = faithPrice(wanting);
+    expect(priced).toBeGreaterThan(table);
+    // Never past the band every other price in the file lives in.
+    expect(priced).toBeLessThanOrEqual(table * ctx.ai.priorities.priceBandHigh);
+
+    // (c) **A want the bank already covers hurries nothing**: the pool is past
+    // the price, so there is no wait for a rate to take off.
+    const covered: ValueContext = {
+      ...ctx,
+      wants: { ...ctx.wants, faith: [{ ...god, price: 0 }] },
+    };
+    expect(faithPrice(covered)).toBe(table);
+
+    // (d) **And the rate is what the line prints.** The feed says which of the
+    // bank's two prices it read and what the plan did to it.
+    const line = explainYields({ faith: 2 }, wanting).terms.find((term) =>
+      term.label.startsWith('faith'),
+    )!;
+    expect(line.label).toMatch(/the faith rate price/);
+    expect(line.value).toBe(2 * priced);
+  });
+
+  it('divides the incumbent’s margin when its plan reads below nought', () => {
+    // A negative chain is the case the multiplication got backwards, and it is
+    // reached here by turning one dial rather than by hunting a board: with the
+    // node itself worth less than nothing, every unresearched goal folds below
+    // zero and whichever one holds the plan is the case in hand.
+    withAiTuning({ weights: { tech: -400 } }, () => {
+      const state = bench(1);
+      const city = foundCityAt(state, 0, at(state.map, 5, 5));
+      recomputeAllVisibility(state);
+      city.population = 6;
+      refreshCityDerived(state, city);
+      bumpRevision(state);
+      const opening = decisionOfType(state, 0, 'chooseResearch');
+      expect(opening).not.toBeNull();
+      const scored = opening!.candidates.filter((row) => row.rejected === undefined);
+      const laggard = [...scored].sort((a, b) => a.score - b.score)[0]!;
+      expect(laggard.score).toBeLessThan(0);
+      const id = TECH_IDS.find((tech) => techDef(tech).name === laggard.label)!;
+      expect(
+        applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: id, queue: 'replace' }).ok,
+      ).toBe(true);
+      const again = decisionOfType(state, 0, 'chooseResearch');
+      expect(again).not.toBeNull();
+      const row = again!.candidates.find((entry) => entry.label === laggard.label)!;
+      const term = row.terms[row.terms.length - 1]!;
+      expect(term.label).toMatch(/reads below nought/);
+      expect(term.op).toBe('div');
+      expect(term.value).toBe(aiJson.priorities.switchMargin);
+      // A margin means "beat it by a tenth" in either sign: dividing a negative
+      // makes it *nearer* nought, which is a plan harder to displace, where
+      // multiplying it made the plan easier to take away the worse it read.
+      const undefended = foldTerms(row.terms.slice(0, -1));
+      expect(undefended).toBeLessThan(0);
+      expect(row.score).toBeGreaterThan(undefended);
+      expect(foldTerms(row.terms)).toBe(row.score);
+    });
+  });
+
+  it('carries no hammer lump on a chain’s building copy, and still reads the build', () => {
+    // The stones are a wait, not a ledger line — so a copy prints its own build
+    // turns in its discount and the chain subtracts nothing anywhere.
+    const state = bench(1);
+    for (const tile of state.map.tiles) tile.hills = true;
+    const towns = [
+      foundCityAt(state, 0, at(state.map, 3, 5)),
+      foundCityAt(state, 0, at(state.map, 9, 5)),
+    ];
+    recomputeAllVisibility(state);
+    for (const seated of towns) {
+      seated.population = 6;
+      refreshCityDerived(state, seated);
+    }
+    // The road walked, so the only wait left is the raising — which is the wait
+    // this case is about.
+    const player = seat(state, 0);
+    for (const node of [...researchExpansion(state, 0, 'education'), 'education' as TechId]) {
+      if (!player.techsResearched.includes(node)) player.techsResearched.push(node);
+    }
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const chain = techChain(state, player, ctx, 'education');
+    expect(chain.held).toBe(true);
+    expect(chain.researchDelay).toBe(0);
+    const step = chain.steps.find((one) => one.kind === 'building')!;
+    expect(step).toBeDefined();
+    expect(step.cost).toBeGreaterThan(0);
+
+    // No `sub` anywhere in the chain, and nothing in the step's own terms that
+    // charges its stones. (The one `paid once` line inside a copy is the row's
+    // *completion* renown, which is X12's other half — a lump priced as a lump.)
+    expect(chain.terms.some((term) => term.op === 'sub')).toBe(false);
+    expect(findTerm(step.terms, /hammer/i)).toBeNull();
+    const owed = findTerm(chain.terms, /hammers its steps still owe/)!;
+    expect(owed.value).toBe(0);
+
+    // **And the delay still reads the build.** With the road walked the whole of
+    // a copy's wait is its own town's raising, and no town can beat the busiest
+    // one's rate over the same stones.
+    for (const copy of step.copies) {
+      expect(copy.delay).toBeGreaterThanOrEqual(copy.cost / Math.max(1, ctx.bestProduction));
+      expect(copy.delay).toBeGreaterThan(0);
+    }
+    const wait = findTerm(step.terms, /have still to raise it/);
+    expect(wait).not.toBeNull();
+    expect(wait!.op).toBe('mul');
+    expect(foldTerms(step.terms)).toBe(step.value);
   });
 });

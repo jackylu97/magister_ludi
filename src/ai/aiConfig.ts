@@ -846,8 +846,14 @@ export interface AiConfig {
     goalHorizon: number;
     /** What one unlocked ability (embarkation) is worth. */
     abilityValue: number;
-    /** What one unlocked project is worth. */
-    projectValue: number;
+    /**
+     * **`projectValue` is retired** (batch X12). A flat ten a conversion stood
+     * in for a reading the bot already had: `explainProjectRow` is what the
+     * build arm scores a project by, and since that fold prices the payout as
+     * the **lump** it is, the node's gift is that fold at the node's own landing
+     * (`readNodeGifts`, `chain.ts`). One reading of a `ProjectPayout`, and no
+     * number in the sheet for a thing the data file already prices.
+     */
   };
   /**
    * The early-game appetite for gods — design addendum 5.

@@ -191,8 +191,7 @@
   },
   "research": {
     "goalHorizon": 6,
-    "abilityValue": 20,
-    "projectValue": 10
+    "abilityValue": 20
   },
   "religion": {
     "prophetTechValue": 600,

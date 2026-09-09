@@ -3196,11 +3196,17 @@ export function bestTechGoal(state: GameState, player: Player): TechId | null {
  *     below stays a plain maximum. That is greedy-with-a-margin, principle 1,
  *     spelled as arithmetic rather than as a rule.
  *
- * **A chain that has turned negative is not defended.** The margin multiplies, so
- * an incumbent whose remaining worth has gone below zero is made *worse* by
- * holding the plan and is displaced at once. That is the right answer rather than
- * an accident: a plan that is no longer worth finishing is a plan to abandon, and
- * the empire that would not abandon it is the one that chases sunk costs.
+ * **A chain that has turned negative is defended by the same tenth** (batch X12,
+ * and the correction of what stood here before). The margin used to be a
+ * multiplication and nothing else, so an incumbent below zero was made *worse*
+ * for holding the plan and was displaced at once — which reads like the right
+ * answer ("a plan no longer worth finishing is a plan to abandon") and is not,
+ * because when *every* chain on the board reads negative it makes each of them
+ * displace the other, turn after turn. What the margin means is one sentence — a
+ * challenger must beat the incumbent by a tenth — and below zero that sentence is
+ * a division. Abandoning a negative plan is still what happens the moment any
+ * challenger clears it by a tenth; what cannot happen any more is the swap that
+ * comes back the next turn.
  */
 function techGoalTable(
   state: GameState,
@@ -3234,11 +3240,33 @@ function techGoalTable(
     const chain = techChain(state, player, ctx, id);
     const terms: ValueTerm[] = [...chain.terms];
     if (id === incumbent && margin !== 1) {
-      terms.push({
-        label: `× ${round1(margin)} — holds the plan; a challenger must beat it by that much`,
-        value: margin,
-        op: 'mul',
-      });
+      // **The margin is symmetric** (batch X12, `docs/flags.md` item (ggg)). It
+      // was a multiplication and only a multiplication, which is the right
+      // arithmetic for a positive plan and exactly the wrong one for a negative
+      // — a chain worth −200 became worth −220 for holding the plan, so the
+      // incumbent was *easier* to displace the worse it read, and two negative
+      // chains each made the other look better the moment it took the plan.
+      // Measured on seed 1: Satrapies and Daughter Cities swapped six times in
+      // the ten turns from t108, every chain between −128 and −450.
+      //
+      // A margin means *a challenger must beat the incumbent by a tenth*, and
+      // that sentence is a division when the number is below zero. The term is
+      // printed either way, so a reader of the feed sees which of the two it was
+      // and why.
+      const negative = foldOf(terms) < 0;
+      terms.push(
+        negative
+          ? {
+              label: `÷ ${round1(margin)} — holds the plan, and reads below nought; a challenger must still beat it by that much`,
+              value: margin,
+              op: 'div',
+            }
+          : {
+              label: `× ${round1(margin)} — holds the plan; a challenger must beat it by that much`,
+              value: margin,
+              op: 'mul',
+            },
+      );
     }
     const candidate: BotCandidate = {
       label: techDef(id).name,

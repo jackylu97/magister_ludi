@@ -168,9 +168,17 @@ describe('the configuration panel is generated, not listed', () => {
     // `site.coastBonus`, the flat prior for "a coast is probably useful later",
     // replaced by the fishing boats a reachable node would let a town lay. A
     // retired knob leaves `data/ai.json` and the panel is one row shorter,
-    // because the panel walks the file.
+    // because the panel walks the file. X12 retires a fourth —
+    // `research.projectValue`, the flat ten a node's conversion project was
+    // worth, replaced by the fold the build arm already scores a project with
+    // (`explainProjectRow`).
     const walked = new Set(knobs.map((knob) => knobKey(knob.path)));
-    for (const gone of ['workers.planFalloff', 'site.ringFalloff', 'site.coastBonus']) {
+    for (const gone of [
+      'workers.planFalloff',
+      'site.ringFalloff',
+      'site.coastBonus',
+      'research.projectValue',
+    ]) {
       expect(walked.has(gone), gone).toBe(false);
       expect(html).not.toContain(gone.split('.')[1]);
     }

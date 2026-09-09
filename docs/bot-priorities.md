@@ -6269,3 +6269,251 @@ wants the remaining few per cent; it is not this one's.
 Unchanged and green: `verbs.test.ts` (still exactly three `read…`, all in
 `readings.ts`), `moduleCycles.test.ts`, `saves.test.ts`, `yieldsDocSync.test.ts`,
 and the whole of `test/sim`, `test/ui`, `test/render` and `test/mapgen`.
+
+---
+
+## Batch X12 as shipped — a thing that happens once (2026-09-09)
+
+The user's rulings on `docs/flags.md` item (ggg), "Read off seed 1 on the landed
+tree": three fixes, each measured in the capital's own table. Two of them are the
+same sentence — *a thing that happens once is not a thing that happens every
+turn* — and the third is the arithmetic that only worked in one direction.
+
+### 1 · A conversion project is a lump
+
+`explainProjectRow` (`value.ts`) folded a `ProjectPayout` through
+`explainYields`, which prices a **rate**: five beakers *every turn, for ever*.
+Tithes and Scholarship pay five once, for twenty hammers, and stop the moment the
+town queues anything else. Seed 1's capital said so — Scholarship 30.4, Tithes
+21.8, Library 9.8 on turn 45 — and the Library waited from Writing at t37 to t88
+while the town ran conversions fourteen times.
+
+The bag goes through **`explainLump`** now — `score.lumpTurns`, the bot's one
+stock-to-flow exchange, the same twenty turns that turn a great person's purse
+into an income. A shelf's rate stays a rate, so a Library paying two beakers a
+turn out-scores a Scholarship paying five once by exactly the exchange.
+
+Two things came with it:
+
+  · **all four keys of the payout are read.** Pageants pays culture and the fold
+    read gold, science and faith, so the one conversion that fills the draft
+    basket was worth nothing at all to the arm choosing it.
+  · **the bead is the race's while the race is live.** A bead-paying row already
+    carries `raceTerm` from the arm that appraises it; folding `weights.bead`
+    here as well paid for one bead twice. `readNodeGifts` has made that either/or
+    since batch 5 and this fold makes it now (`raceIsLive`, read off
+    `ValueContext.race` rather than through an import `value.ts` may not have).
+
+**One reading of a `ProjectPayout` in the whole bot.** `readNodeGifts`
+(`chain.ts`) priced a node's conversions at `projects × research.projectValue`, a
+flat ten a row standing in for a reading that already existed; it calls
+`explainProjectRow` at the node's own landing instead, and **`research.projectValue`
+retires** (the fourth knob to go this way — the arena panel walks the sheet, so
+the page is one row shorter with no edit).
+
+### 2 · A row's completion lines are lumps too
+
+The same sentence one fold over. `explainBuildingRow` folds what a row gives
+beyond a yield, and the list mixed two kinds of thing: happiness, a wall, a route
+slot and the renown *trickle* go on paying every turn the row stands, while the
+renown a capstone pays **when its stones go up**, the glass bead and the free
+technology arrive once and never again. Folded at full weight beside the rates,
+the once-only lines were the biggest number on a wonder's row.
+
+Measured on seed 1's capital at t79, the Great Ziggurat's own term tree:
+
+| line | main | X12 |
+|---|---|---|
+| `+2 renown a turn × 2` | 4.00 | 4.00 |
+| `+10 renown on completion × 2` | **20.00** | **1.00** |
+
+`lumpOfPoints` is `explainLump`'s sibling for a gift that is points rather than a
+bag of voices (a bead is not a voice), at the same `score.lumpTurns`. The one
+completion grant that stays a standing thing is the free **piece**: it is on the
+board from the turn it lands and goes on being a piece.
+
+### 3 · The faith rate, priced
+
+`faithPrice` (`value.ts`), `sciencePrice`'s twin in shape, memo and argument:
+
+    price = weights.faith
+          + Σ over ctx.wants.faith of
+              delay = want.delay + (want.price − the pool) ÷ rate
+              drop  = delay − (want.price − the pool) ÷ (rate + 1)
+              want.worth × ( discount(delay − drop) − discount(delay) )
+
+    rate  = foldEmpireRates().faithPerTurn, floored at one
+    price = min( weights.faith × priceBandHigh, max(weights.faith, …) )
+
+The seed-1 finding was not that the book was wrong. The pool sat at fifteen for
+ninety turns, the book valued the pantheon at 385 for forty faith the whole time,
+and **nothing told the build arm that a Shrine is the step to it** — because
+`voiceWeight(ctx, 'faith')` handed out `ctx.prices.faith`, the **stock** price
+(what one banked point buys), to a fold asking about a **rate**. A rate does not
+buy the pantheon; it brings the pantheon forward. An empire making one faith a
+turn with forty to find is twenty-five turns from its first god; at two a turn it
+is twelve, and the thirteen turns saved are what the Shrine is for.
+
+**Which arm reads which**, and it is in the docblock: `voiceWeight(ctx, 'faith')`
+is the rate — a building's faith line, a card's `pays` in faith, a rite's trickle,
+anything whose delta is faith *a turn*. `ctx.prices.faith` stays the stock — the
+book's own `priceOf`, read by the spend arms through `worthPerCoin` and by the
+folds that charge a price in faith. A shrine raises the rate; a prophet spends the
+bank. The floor at one on the rate is the clause the seed-1 board needed: a
+zero-income empire reads a finite, large delay and prices its first Shrine as the
+door it is, rather than dividing by nought.
+
+### 4 · The margin is symmetric, and hammers are time
+
+**(a)** `techGoalTable`'s incumbent term (`bot.ts`) was a multiplication and only
+a multiplication — right for a positive plan, exactly wrong for a negative one: a
+chain worth −200 became worth −220 for holding the plan, so an incumbent was
+*easier* to displace the worse it read, and two negative chains each made the
+other look better the moment it took the plan. Seed 1, t108–118: Satrapies and
+Daughter Cities swapped four times in four turns with every chain between −128 and
+−450. A margin means *a challenger must beat the incumbent by a tenth*, and below
+zero that sentence is a **division**. The term prints either way.
+
+**(b)** The `explainLump` subtraction of a step's hammers is gone from
+`techChain` and from `townChainShare`, by X1b's own argument said for the stones.
+X1b kept it because *"a row raised is a row some other row waited for"* — which is
+true and is exactly why the lump is a second charge. A bot town's queue is never
+idle (`cityProduction` is an End Turn blocker it answers every turn), so declining
+a chain saves no stones at all; it spends them on the next row down the same list.
+The whole cost of raising X is that Y waits, and the chain carries that per town,
+more exactly than a lump could: every copy stands on **its own town's cursor** and
+is discounted at its own landing. The hammers print, beside the delay they bought,
+and fold at nothing — `expansionChain` and `beadChain` have printed theirs that
+way since batch 4 and 5.
+
+**Two folds still read what a chain owes in hammers and both survive**, because
+neither is a charge: `hammerPrice` asks what one more hammer a turn takes off the
+copies a town still owes, and `chainCompression` what a purse delivering one copy
+takes off the copies behind it. Both are **derivatives of the wait** — the very
+quantity this ruling says the stones are — and both read truer for the lump's
+absence, since the wait is now the only place stones enter a chain at all.
+`chainStepShare` divides a worth that carries no lump of either kind.
+
+**The batch's own finding, written down rather than tuned away.** `chain.ts` rule
+1 claimed that *a half-paid chain's remaining worth rises as it is paid, because
+the payment has left the ledger and the payoff has not*. That was an artefact of
+two things that are both gone: a step priced at the row's **flat bag** (a
+University's is empty, so raising one took nothing out of the payoff — X1d gave
+every copy its own town's fold) and its stones subtracted as a **lump** (X12).
+A chain that has raised one of three libraries is now worth the two that are left,
+which is the honest reading; what defends a plan in flight is the symmetric margin
+alone, and no flag anywhere. The pin moved with it.
+
+### The t100 probe — eight seeds, standard, sixteen seats
+
+Seeds 1 · 2 · 3 · 42 · 101 · 999 · 31337 · 20260101, two balanced seats,
+barbarians on, `createBotStepper().playTurn()` to turn 100. Main measured in the
+same process shape, both runs concurrent on one machine (± is one standard error
+of the sixteen seats):
+
+| | cities | citizens | buildings | food | prod | gold | sci | culture | faith | treasury | techs | happiness | pantheons | ms/turn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| main | 6.31 | 44.06 | 19.38 | 137.7 | 74.5 | 33.5 | 55.3 | 60.6 | 17.9 | 336 | 22.69 | +2.0 | 0.88 | 504.6 |
+| SE | 0.35 | 3.65 | 1.67 | 13.5 | 6.5 | 7.2 | 8.7 | 6.4 | 3.7 | 32 | 0.96 | 3.0 | 0.09 | |
+| X12 | 6.00 | 45.19 | **36.13** | 138.1 | **95.9** | **50.3** | **100.1** | **86.7** | 19.9 | **506** | **27.06** | +4.3 | **1.00** | 477.7 |
+| SE | 0.44 | 4.23 | 2.09 | 13.8 | 7.0 | 19.1 | 8.5 | 10.0 | 2.8 | 90 | 0.78 | 2.3 | 0.00 | |
+
+The acceptance was *faith up; techs and science not down beyond one SE; buildings
+not down; pantheons up*. Faith is up half a standard error; science, techs,
+buildings, culture, production, gold, treasury and happiness are all up by more
+than one; every seat of sixteen founds a pantheon where fourteen of sixteen did.
+**Cities is the one column down** — 6.31 → 6.00, seven tenths of a standard
+error — and it is the expected direction: the whole batch moves points from
+*counting things later* to *what a town makes now*, and `townChainShare` no longer
+credits a new town with stones nobody was going to save. ms/turn −5%; both runs
+were concurrent, so the absolute figures are inflated and only the ratio is read.
+
+### The one-game readout, re-read (seed 1, standard, the capital)
+
+| | main | X12 |
+|---|---|---|
+| capital's completions | Worker t17 · Granary t27 · Monument t49 · Hanging Gardens t59 · Amphitheater t69 · Palisade t69 · **Walls of Uruk t79** · Library **t88** · Stone Walls t111 · Keep t108 · Market t114 | **Shrine t24** · Granary t34 · Monument t44 · **Library t55** · Amphitheater t57 · Palisade t69 · Great Ziggurat t95 · Market t99 · Stable/Aqueduct t105 · Stone Walls t107 · Pyramids t113 · Workshop t119 |
+| conversion projects queued in 120 turns | **14** | **0** |
+| research re-aims at an unchanged tech count, t100–120 | **5** (Satrapies ↔ Daughter Cities t115–118) | **2**, both isolated |
+| pantheon | none by t120 | **two beliefs by t45**, three by t79 |
+
+The capital's own table, before and after (the boards diverge from turn 2, so the
+rows are read as tables rather than as a paired difference):
+
+| t45, main | | t45, X12 | |
+|---|---|---|---|
+| Scholarship | **30.4** | Archer | 10.7 |
+| Tithes | **21.8** | Temple of Artemis | 10.1 |
+| Worker | 14.5 | Palisade | 9.4 |
+| Hanging Gardens | 12.8 | Hanging Gardens | 8.7 |
+| Library | 9.8 | Walls of Uruk | 5.9 |
+
+| t60, main | | t60, X12 | |
+|---|---|---|---|
+| Scholarship | **52.1** | Palisade | 55.4 |
+| Tithes | **43.2** | Hanging Gardens | 30.7 |
+| Library | 41.1 | Barracks | 21.3 |
+| Hanging Gardens | 33.3 | Walls of Uruk | 12.1 |
+| Shrine | 31.2 | Oracle | 7.9 |
+
+The Shrine's own case is earlier than the acceptance asked. Main read Shrine 10.0
+against Worker 26.1 at t30 and never built one; X12 reads **Shrine 3.5 against
+Worker 3.0 at t17**, queues it that turn and has it standing at t24 — inside the
+first forty turns, with the pantheon consecrated by t45.
+
+### Reported, not changed
+
+  · **A settler costs a size-2 town no citizen, because the simulation takes
+    none.** `data/units.json` gives the settler `minCityPop: 2` and
+    `haltsGrowth: true` and no population cost at all, so seed 1's third town
+    (founded t37) could raise one at size 2 by the rules. The bot does charge a
+    stand-in — the settler arm subtracts `explainCitizen`, which on that town at
+    t60 reads **24.85**: the best hex it would work (22.64), the beakers a citizen
+    makes by existing (5.21), a small-town premium of +9 for standing under
+    `growth.smallCityPop`, less 12 for the contentment the citizen would demand. But
+    it is a **one-citizen lump against a chain share of ~129**, and, more to the
+    point, **`haltsGrowth` is read nowhere in `src/ai/`**: the real cost is that
+    the town's growth is frozen for every turn the piece heads its queue, which is
+    why that town stood at size 4 at t98. A charge in the shape of the rule would
+    be the food the freeze costs over the raising's turns, at `weights.food`,
+    which is a reading the arm already has the parts for.
+  · **Nothing charges the risk that a rival finishes a wonder first.** A wonder is
+    one per world (`claimWonder`), and a town that loses the race gets the hammers
+    back only if the row is the **front** of its queue, at
+    `wonderRefundGoldPerHammer`. The build arm folds no such term. What the risk
+    would need is a reading of *the world's own progress toward the same row*, and
+    the only honest source is what this seat can see: a rival town's queue is not
+    public, so the readings available are the rivals' age and production (a rate
+    this bot already takes for the bead race's `leadingRival`), whether the
+    unlocking technology is held anywhere (`worldUnlockTech`/`opusOpen`'s own
+    device), and how many turns this town still owes. A term of the shape
+    *`P(lost) × (the row's payoff)` less `(1 − wonderRefundGoldPerHammer) ×` the
+    stones sunk*, with `P` read off the rivals' clocks the way `beadChain` reads
+    them, is queueable as its own batch; it is X10's ("The wonder, chased")
+    missing half.
+
+### Pins re-aimed
+
+  · `aiAppraisal.test.ts` "charges the road's beakers as a delay and never as a
+    lump" — the hammer line is now printed at nought like the beaker line, and the
+    case asserts the chain carries **no** `sub` term at all while `chain.hammers`
+    still reads what is owed.
+  · `aiAppraisal.test.ts` "drops a realised step out, and is worth more for the
+    one that was paid" → **"…and loses exactly the copy that was paid"**. The sign
+    flipped for the reason in §4 above, and the re-aimed case is stronger than the
+    old one: `before.worth − after.worth` is exactly the raised copy's own
+    `value`, so the claim is *the chain loses that copy and nothing else*.
+  · `arenaPage.test.ts` "loses a knob the day the bot retires one" —
+    `research.projectValue` joins `workers.planFalloff`, `site.ringFalloff` and
+    `site.coastBonus`.
+
+Five new cases in `aiAppraisal.test.ts` (`the lump, the faith rate and the
+symmetric margin`): a conversion project folds to `explainLump` of its own bag and
+scores under a shelf paying the same per turn by exactly `score.lumpTurns`, with
+every key of the payout read; a row's `renown.onComplete` folds at the exchange
+while its trickle does not; `faithPrice` is the table with an empty faith plan, is
+above it with a god forty faith off on a zero-income empire, is the table again
+for a want the bank already covers, and prints itself in the faith line; the
+incumbent's margin term is a **division** on a plan below nought and the score
+rises for it; and a chain's building copy carries no hammer anywhere in its terms
+while its delay still reads the build.
