@@ -333,6 +333,7 @@ import { BEAD_RULES, isBeadEndeavourId } from './beadData';
 import { awardBeadGrant, awardOrderBeads, endeavourError, endeavourIsOffered } from './beads';
 import { isProjectId, projectDef } from './projectData';
 import { type UnitTypeId, isNaval, isUnitTypeId, unitDef, unitMaxHp } from './unitData';
+import { bumpEconomy } from './slate';
 
 const RESEARCH = RULES.research;
 
@@ -1381,8 +1382,17 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   // turn's beakers would.
   const eraBefore = highestAge(player.techsResearched);
   player.sciencePool -= plan.cost;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
   player.researching = null;
   player.techsResearched.push(plan.techId);
+  // **A technology is `liveEffects`' tenth source and a reveal for the ground**
+  // (batch M3, `slate.ts`): a node's gift can be a rule the meters fold, and
+  // `resourceIsVisibleTo` gates what `controlledHoldings` may even name. The age
+  // it advances is read by `explainAuthority` on the same line. Announced at the
+  // push, so the promotion and the era clause below read the empire that holds
+  // it.
+  bumpEconomy(state);
   // The queue advances **here**, inside the one completion routine, and *after*
   // the push — so the promoted node's prerequisites are read against the tree
   // the player holds now rather than the one they held a line ago. It is the
@@ -1525,6 +1535,8 @@ export function upgradeUnits(state: GameState, player: Player): void {
     if (cost > 0) {
       if (player.gold < cost) continue;
       player.gold -= cost;
+      // The banks are a line of the meters too — see `collectYields` (batch M3).
+      bumpEconomy(state);
     }
     applyUpgrade(unit, target);
   }

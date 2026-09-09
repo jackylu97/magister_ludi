@@ -41,6 +41,7 @@ import { createMap, getTileAt } from '../../src/sim/map';
 import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
 import { resetVisibility } from '../../src/sim/visibility';
 import { readEmpire } from '../../src/sim/readings';
+import { setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { tradeLedger } from '../../src/ui/tradeScreen';
 
 const UI_SOURCE = import.meta.glob(
@@ -123,10 +124,18 @@ function counting<T>(
   run: () => T,
 ): { result: T; count: number } {
   const spy = vi.spyOn(module as never, name as never);
+  // **The shadow check is switched off for the count** (batch M3,
+  // `src/sim/slate.ts`): under `setSlateShadow` every *hit* recomputes as well,
+  // so a sweep count taken with it on measures the check rather than the hoist.
+  // Restored to whatever it was, because the whole suite is run with it on when
+  // the reducer changes.
+  const shadow = slateShadow();
+  setSlateShadow(false);
   try {
     const result = run();
     return { result, count: spy.mock.calls.length };
   } finally {
+    setSlateShadow(shadow);
     spy.mockRestore();
   }
 }

@@ -2896,6 +2896,10 @@ describe('the whole deck, priced (batch H2)', () => {
     const one = explainCounted(effect, valueContext(state, player)).total;
     const second = foundCityAt(state, 0, at(state.map, 9, 5));
     second.population = 6;
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(state);
     recomputeAllVisibility(state);
     const two = explainCounted(effect, valueContext(state, player)).total;
     // Two towns counted, and each of them paid: four times one town's one.

@@ -372,6 +372,10 @@ describe('the settler’s two new halves', () => {
     const before = explainNextTown(game.state, player, valueContext(game.state, player)).total;
     const capital = firstCity(game.state, 0);
     game.state.cities.push({ ...capital, id: capital.id + 9000 });
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(game.state);
     const after = explainNextTown(game.state, player, valueContext(game.state, player)).total;
     expect(after).toBeLessThan(before);
   });

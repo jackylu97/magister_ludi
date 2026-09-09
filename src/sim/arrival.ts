@@ -58,7 +58,6 @@ import {
 import { cardBehaviorRule } from './statecraft';
 import { layRoadUnder } from './roads';
 // A leaf with no runtime imports of its own, so this edge cannot make a cycle.
-import { noteEconomyWrite } from './slate';
 import { type TraderPlunder, settleTraderPlunder } from './trade';
 import { awardOccasion } from './triumphs';
 import { isCivilian, isCombatant, trades, unitDef } from './unitData';
@@ -174,14 +173,14 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
       if (town && town.ownerId !== unit.ownerId) {
         const capital = capitalCityOf(state, town.ownerId);
         if (capital && capital.id === town.id) {
-          revokeLegacies(state, town.ownerId, 'enemyEntersCapital');
-          // **A step that changed somebody's law.** The march reports this
+          // **A step that changes somebody's law.** The march reports this
           // nowhere — a revocation is a mark on a record and the interface reads
           // it off the board — and a legacy is one of `liveEffects`' sources, so
           // the empire that just lost one is not the empire whose happiness was
-          // remembered a moment ago. Said out loud rather than derived, which is
-          // `noteEconomyWrite`'s whole purpose (batch M2, `slate.ts`).
-          noteEconomyWrite();
+          // remembered a moment ago. Announced inside `revokeLegacies`, where
+          // the mark is made (batch M3; it was a flag read at the end of the
+          // command until then).
+          revokeLegacies(state, town.ownerId, 'enemyEntersCapital');
         }
       }
     }
@@ -310,9 +309,12 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   // highway is *worn* by traffic, so it is written where an arrival is written
   // and nowhere else. See `layRoadUnder` and `Tile.road`.
   //
-  // A hex that was paved is the report's other silent write (batch M2): a road
-  // joins the maintenance bill and can connect a town to the capital, and the
-  // march says so nowhere. See `noteEconomyWrite` in `slate.ts`.
-  if (layRoadUnder(unit, tile)) noteEconomyWrite();
+  // A hex that was paved is the report's other silent write, and since batch M3
+  // it needs no announcement of its own: a road joins the maintenance bill and
+  // can connect a town to the capital, both of them lines of `explainEmpireGold`
+  // and so of `readEmpire` — a **revision**-clock reading, which this command's
+  // own bump raises on the way out whether or not the economy moved. No walk on
+  // the economy clock folds `Tile.road`. See `slate.ts`'s M3 section.
+  layRoadUnder(unit, tile);
   return report;
 }

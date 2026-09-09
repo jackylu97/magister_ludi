@@ -67,6 +67,29 @@
  *     `Command['type']`, and `test/sim/readings.test.ts` fails the day a kind is
  *     in neither list.
  *
+ * **Two rows of that table were wrong, and batch M3's shadow run found them.**
+ * `meterEffects` does not open `state.units` and does not read the treasury —
+ * but the **card evaluator** it folds does both: The Long Watch pays "+1
+ * happiness for each unit standing in one of your cities" (`count: 'garrison'`)
+ * and Pilgrim Roads "+1 happiness for each 50 banked faith"
+ * (`count: 'bankedFaith'`, with `bankedGold` beside it). So a piece created,
+ * killed, taken or **moved**, and a bank paid into, change an empire's
+ * contentment — and from M2 until M3 a seat that marched or banked read a
+ * happiness one write out of date. Both are fixed the way M3 fixes everything:
+ * the seams announce (`createUnit`, `removeUnit`, `captureUnit`,
+ * `advanceAlongPath`, the melee advance, the two teleports; and every writer of
+ * `gold`, `faithPool`, `sciencePool` and `culturePool`), so the answer is thrown
+ * away where the world moved rather than where a command ends. What the economy
+ * clock still buys is the four order-only commands — a fortification, a sleep,
+ * an auto-explore switched on, an order cancelled — and the phases that write
+ * nothing a walk reads.
+ *
+ * The lesson is worth stating plainly, because it is what the next such batch
+ * needs: **the field list is not "what `meters.ts` reads", it is what the whole
+ * fold reaches**, and the fold goes through the card evaluator, whose `count`
+ * vocabulary can read almost anything on the board. A new `count` kind is a new
+ * row of `test/sim/slateRegister.test.ts`.
+ *
  * The economy counter is **not a field of `GameState`**, and that is the first of
  * the three facts above rather than an omission: the state is stringified into
  * every save hash and every replay comparison in the suite, so a second counter
@@ -88,37 +111,57 @@
  * walks miss 9–19% less often for it — and the clock barely moves, because after
  * M1 a miss at rest is no longer where the time goes. Counted over a 150-turn
  * game, the two readings cost **1.8% of it at rest and 10% of it while
- * suspended**: 44,000 of the 200,000 asks are taken inside a handler or a phase,
- * where nothing may be remembered at all. That is the shape of the next batch,
- * and it is written here rather than in a report so the next reader of this file
- * does not go looking for the win in the clocks.
+ * suspended**: 44,000 of the 200,000 asks were taken inside a handler or a
+ * phase, where nothing could be remembered at all. That was the shape of the
+ * next batch, and it is batch M3, below.
  *
  * ---
  *
- * **The one thing this file adds to that bargain: the world is not remembered
- * while it is moving.**
+ * **Batch M3: the bump moves to the mutation, and the window closes.**
  *
- * `GameState.revision`'s guarantee is stated at command and phase granularity
- * and no finer — the counter is raised *after* a command's handler has run and
- * *after* each end-of-turn phase, so a reading taken between the mutation and
- * the bump is a reading of a world halfway moved. That was harmless while the
- * only tenants were `readings.ts`', which nothing inside a handler asks. It is
- * not harmless for `meterEffects`: `expandBorders` claims hexes and `collectYields`
- * prices towns while the world is halfway moved, and a happiness walk remembered
- * across one of those mutations would be a rule change dressed as a cache.
+ * M1 and M2 both raised their clocks *after* the fact — `applyCommand` after the
+ * handler, the phase loop after each phase — so everything in between was a
+ * world halfway moved, and the slate answered it by **suspending itself**: while
+ * a writer held the window open every tenant computed fresh and remembered
+ * nothing. That was correct and it was where the time went. Measured on a
+ * 150-turn game (seed 20260903, duel, two bot seats, the wild): **57,000 asks
+ * inside a window, 8% of the whole game**, and 99.8% of them would have answered
+ * with the value the ask before them computed. `collectYields` alone held
+ * 36,000 of them: the phase prices every town, and pricing a town asks the
+ * empire's happiness, which asks what the empire holds.
  *
- * So the slate is **suspended while a writer holds it**. `applyCommand` and each
- * end-of-turn phase announce themselves through `beginWrite`/`endWrite`, and
- * inside that window every tenant computes fresh and remembers nothing — byte
- * for byte the behaviour of the tree before the memo existed. Outside it the
- * world is at rest, the revision is the subscription, and asking twice is one
- * integer compare.
+ * So the window is gone, and the discipline that replaces it is one sentence:
+ * **a write announces itself at the write**. Every mutation in the reducer and
+ * in the phases that changes what a tenant folds calls `bumpEconomy` on the line
+ * it happens, rather than leaving a stale answer standing until the command or
+ * the phase gets around to raising a counter. What the tenants may then remember
+ * is exactly what has not moved since it was asked, inside a phase and outside
+ * one alike.
  *
- * The depth is a **module variable and not state**, and that is safe for the one
- * reason it would not be safe as a memo: it is only ever read as "is somebody
- * writing", and two boards resolving in one process can only ever make the
- * answer *yes* more often than it needs to be — which costs a walk and cannot
- * change an answer. The slate itself is per-board, because it is on the board.
+ * Three facts make that safe rather than merely faster:
+ *
+ *   · **The register is a test, not a habit.** `test/sim/slateRegister.test.ts`
+ *     reads `src/sim` for every write to a field the tenants fold and fails
+ *     unless the function it is in announces (or is excused by name, with the
+ *     reason). A new unannounced write fails core the day it is written.
+ *   · **Only two tenants can be asked mid-write, and it is the module graph that
+ *     says so.** `meterEffects` and `controlledHoldings` are asked from inside
+ *     the simulation; `readCity`, `readEmpire` and `readEmpirePercents` live in
+ *     `readings.ts`, which **no module in `src/sim` imports** — it cannot,
+ *     without the runtime cycle `test/mapgen/moduleCycles.test.ts` gates. So the
+ *     three readings above are only ever asked at rest, where the command's and
+ *     the phase's own bump has always answered for them; the register carries
+ *     that argument and the cycle test keeps it true.
+ *   · **The command's and the phase's bumps stay** — conservative, and one
+ *     integer compare each. A write that announces twice costs a walk; a write
+ *     that announces not at all is a wrong answer, so the direction of every
+ *     doubt here is *announce*. And an announcement goes **after** the write it
+ *     announces: one line early is an answer taken again one line too early.
+ *
+ * `setSlateShadow` is the proof: with it on, **every hit also computes fresh and
+ * asserts the two are deeply equal**, naming the bucket, the key, the clock, the
+ * turn and the phase when they are not. It is off by default, never in data, and
+ * it stays for the next batch that touches the reducer.
  *
  * A caller that pokes the state by hand — a bench, a fixture — is a writer and
  * calls `bumpRevision` the way a command does. That was already the contract
@@ -178,34 +221,6 @@ export function economyStamp(state: GameState): number {
 }
 
 /**
- * **A write inside this command that the command's own result cannot carry.**
- *
- * `applyCommand` classifies a movement command by what it *reported* — a march
- * that claimed a ruin, burnt a camp, took a civilian or plundered a caravan says
- * so in `CommandResult.arrivals`, and a plain step says nothing. Two things
- * `arriveOnTile` does are not in that report and never were, because nothing
- * outside the simulation has any use for them: a legacy revoked because a
- * soldier walked into a capital (`revokeLegacies`), and a road worn under a
- * laden caravan (`layRoadUnder`). Both change what a reading folds, so both
- * raise this rather than being re-derived from the board afterwards — which is
- * `CommandResult`'s own argument about differences that stop existing.
- *
- * A module flag rather than state, on `writing`'s terms: it is read once, by the
- * command that opened the window, and cleared when the next one opens.
- */
-let economyNote = false;
-
-/** Raised by a seam whose write the command's result does not report. */
-export function noteEconomyWrite(): void {
-  economyNote = true;
-}
-
-/** Was one raised since this write window opened? See `noteEconomyWrite`. */
-export function economyNoted(): boolean {
-  return economyNote;
-}
-
-/**
  * **The table under the world** — raised when the *data* a reading folds is
  * swapped out from under it, which the revision cannot see.
  *
@@ -225,36 +240,58 @@ export function discardSlates(): void {
 }
 
 /**
- * How many writers are holding the world open.
+ * **The phase the resolution is in**, for a shadow-mode failure's message and
+ * nothing else.
  *
- * A counter rather than a flag because the two announcers nest: a command
- * dispatched from inside a phase would otherwise close the window early. Nothing
- * compares two depths; the only question asked is whether it is nought.
+ * A module string rather than state, on the epoch's terms: no rule reads it, no
+ * save carries it, and two boards resolving in one process can only ever make it
+ * name the wrong phase in a message that is already a failure. `runEndOfTurn`
+ * sets it around each phase and clears it after; a command outside a resolution
+ * leaves it empty.
  */
-let writing = 0;
+let currentPhase = '';
 
-/** A command handler or an end-of-turn phase is about to move the world. */
-export function beginWrite(): void {
-  // The outermost writer clears the note: it belongs to *this* command, and the
-  // command that reads it is the one that opened the window.
-  if (writing === 0) economyNote = false;
-  writing += 1;
-}
-
-/** It has finished. Paired with `beginWrite` in a `finally`, always. */
-export function endWrite(): void {
-  writing = Math.max(0, writing - 1);
+/** Named by the phase loop, read only by the shadow check's message. */
+export function setSlatePhase(name: string): void {
+  currentPhase = name;
 }
 
 /**
- * True while the world is halfway moved — see the module docblock.
+ * **Shadow mode** — every hit computes fresh as well, and the two must agree.
  *
- * Exported so `test/sim/readings.test.ts` can assert the window closes even when
- * a handler throws, which is the one way a leaked depth would be invisible: a
- * slate suspended for ever is a tree that is merely slow, never wrong.
+ * The proof of batch M3, kept for the next batch that touches the reducer: with
+ * the window gone, what makes the slate a cache rather than a rule is that every
+ * write announces itself, and the only honest way to test a register of writes
+ * is to disbelieve it. On, a hit is answered from the slate *and* recomputed,
+ * and a difference throws naming the bucket, the key, the clock, the turn and
+ * the phase — which is enough to find the write that said nothing.
+ *
+ * Test-only, off by default, and **never in data**: it doubles the cost of every
+ * reading, so nothing but a test may switch it on. It is a module flag rather
+ * than a field for `epoch`'s reason exactly — the state is stringified into
+ * every save hash.
  */
-export function slateSuspended(): boolean {
-  return writing > 0;
+let shadow = false;
+
+/** Switch the shadow check on or off. `test/sim` only; see the docblock. */
+export function setSlateShadow(on: boolean): void {
+  shadow = on;
+}
+
+/** Is the shadow check running? Exported so a test can restore what it found. */
+export function slateShadow(): boolean {
+  return shadow;
+}
+
+/**
+ * The remembered answer and the fresh one, printed the same way — `undefined`
+ * included, so a reading whose honest answer is nothing is compared rather than
+ * skipped. Deep equality by print because every tenant's answer is plain data
+ * (`MeterEffect[]`, `ResourceHolding[]`, `CityReading`), which is also what
+ * `snapshotState` relies on.
+ */
+function shadowPrint(value: unknown): string {
+  return value === undefined ? 'undefined' : JSON.stringify(value);
 }
 
 /** An empty half, at a stamp nothing can be remembered under. */
@@ -266,7 +303,11 @@ function emptyHalf(): Half {
  * This board's half of the slate for one clock — emptied the moment that clock
  * moved, and left alone when the *other* one did. That is the whole of batch M2:
  * a scout's step moves the revision and the town lists go with it, while the
- * empire's holdings and meters, which no step can reach, stay where they are.
+ * empire's **ground** stays where it is, because no step can reach it.
+ *
+ * The step *can* reach the empire's meters, which is M3's correction to M2's
+ * table above — and since the two walks share one half, a march now takes both.
+ * Sharpening that would be a third clock, and a third clock is a batch.
  */
 function halfOf(state: GameState, clock: SlateClock): Half {
   let slate = SLATES.get(state);
@@ -286,7 +327,9 @@ function halfOf(state: GameState, clock: SlateClock): Half {
 
 /**
  * **Remember one answer** — `compute` asked once per `(clock stamp, bucket,
- * key)`, and asked every time while a writer holds the world open.
+ * key)`, inside a write and outside one alike (batch M3: the writes announce
+ * themselves, so there is no longer such a thing as a world halfway moved that
+ * a tenant can see).
  *
  * `clock` is the reading's own declaration of what could change it (see "The two
  * clocks"), `bucket` names the reading and `key` names what it is about (a seat,
@@ -300,7 +343,6 @@ export function slateMemo<T>(
   key: string,
   compute: () => T,
 ): T {
-  if (writing > 0) return compute();
   const slate = halfOf(state, clock);
   let entries = slate.buckets.get(bucket);
   if (entries === undefined) {
@@ -310,8 +352,35 @@ export function slateMemo<T>(
   const held = entries.get(key);
   // `has` rather than `!== undefined`, so a reading whose honest answer is
   // `undefined` is remembered rather than recomputed for ever.
-  if (held !== undefined || entries.has(key)) return held as T;
+  if (held !== undefined || entries.has(key)) {
+    if (shadow) shadowCheck(state, clock, bucket, key, held, compute);
+    return held as T;
+  }
   const fresh = compute();
   entries.set(key, fresh);
   return fresh;
+}
+
+/**
+ * The hit, disbelieved — see `setSlateShadow`. Throws rather than reports,
+ * because a stale reading is a wrong game and the failure has to land on the
+ * ask that saw it rather than on whatever compared two boards afterwards.
+ */
+function shadowCheck(
+  state: GameState,
+  clock: SlateClock,
+  bucket: string,
+  key: string,
+  held: unknown,
+  compute: () => unknown,
+): void {
+  const remembered = shadowPrint(held);
+  const now = shadowPrint(compute());
+  if (remembered === now) return;
+  const where = currentPhase === '' ? '' : ` in phase ${currentPhase}`;
+  throw new Error(
+    `slate shadow: ${bucket}[${key}] on the ${clock} clock is stale at turn ${state.turn}${where}` +
+      `\n  remembered: ${remembered.slice(0, 400)}` +
+      `\n  fresh:      ${now.slice(0, 400)}`,
+  );
 }

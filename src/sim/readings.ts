@@ -114,11 +114,14 @@
  * the three below is the slate, which is the part that has to be shared.
  *
  * The slate adds one rule to the contract above, and it is the one this file
- * never needed: **nothing is remembered while a writer holds the world open**.
- * `applyCommand` and each phase announce themselves, and inside that window
- * every tenant computes fresh — which is what makes a memo asked from inside a
- * handler a cache rather than a rule. `slate.ts`'s docblock is the statement of
- * record.
+ * never needed: **a write announces itself where it happens** (batch M3). Until
+ * then the slate was *suspended* for the length of every handler and every
+ * phase, because the revision is raised after the fact; measured, that window
+ * was eight per cent of a bot's game. Now every mutation that changes what a
+ * tenant folds moves the clock on the line it happens, a source-reading register
+ * (`test/sim/slateRegister.test.ts`) fails the day one forgets, and
+ * `setSlateShadow` recomputes every hit to prove it. `slate.ts`'s docblock is
+ * the statement of record.
  *
  * ---
  *
@@ -134,15 +137,18 @@
  *
  * | tenant | clock | why |
  * |---|---|---|
- * | `meterEffects` | economy | walks towns, buildings, luxuries and law; never opens `state.units` |
+ * | `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the **garrisons** standing in the towns and the **banks** behind them (M3's correction: The Long Watch counts pieces and Pilgrim Roads counts banked faith, so the seams that write one announce) |
  * | `controlledHoldings` | economy | walks the ground |
  * | `readEmpirePercents` | economy | those, plus the treasury |
  * | `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) |
  * | `readEmpire` | revision | that reading summed |
  *
  * The split is not a taxonomy of yields; it is a claim about what each walk can
- * *see*. A town's list can see a piece and the empire's walks cannot, and that
- * one sentence is the whole batch.
+ * *see* — and M3's shadow run corrected two rows of it. A town's list can see a
+ * piece; so, it turns out, can the **meters**, because a card may pay
+ * contentment per unit standing in a town and per fifty banked faith. What no
+ * step can reach is the **ground**, which is the holdings walk, and that is what
+ * the coarser clock still buys.
  */
 
 import type { City, GameState } from './state';

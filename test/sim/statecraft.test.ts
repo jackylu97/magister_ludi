@@ -1228,6 +1228,10 @@ describe('every hook family, end to end', () => {
     // four, so a fourth town is still a hermit's and the fifth is the one that
     // is not.
     for (let i = 0; i < 3; i++) g.state.cities.push({ ...city, id: 800 + i });
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(g.state);
     expect(cityYieldPercents(g.state, city).some((l) => l.source.includes('Hermit'))).toBe(true);
     g.state.cities.push({ ...city, id: 899 });
     bumpRevision(g.state);

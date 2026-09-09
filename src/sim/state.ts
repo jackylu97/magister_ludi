@@ -3051,6 +3051,13 @@ export function createUnit(
   // byte-for-byte as it did before this field existed.
   if (stamped) unit.stamp = stamp;
   state.units.push(unit);
+  // **A piece standing in a town is a line of the empire's contentment** (batch
+  // M3, `slate.ts`): The Long Watch pays "+1 happiness for each unit standing in
+  // one of your cities" — `pays` at `where: 'empire'`, `count: 'garrison'` — so
+  // where a piece *is* reaches `explainHappiness` through the card evaluator.
+  // That is the correction batch M3's shadow run found in M2's table, and it is
+  // why every seam that creates, removes, takes or moves a piece announces.
+  bumpEconomy(state);
   // A new pair of eyes opens here, whoever asked for them: the `spawnUnit`
   // command, a city finishing production, a scenario seating an opening roster.
   // Refreshing in the constructor rather than at each of those call sites is the
@@ -3074,6 +3081,9 @@ export function removeUnit(state: GameState, unitId: number): boolean {
   if (index < 0) return false;
   const ownerId = state.units[index]!.ownerId;
   state.units.splice(index, 1);
+  // `createUnit`'s announcement, the other way round — see it for the garrison
+  // The Long Watch counts (batch M3, `slate.ts`).
+  bumpEconomy(state);
   // The counterpart of the refresh in `createUnit`, and it has to be read off
   // the unit *before* the splice: a piece that dies is a piece whose owner stops
   // seeing the ground around it, and by the time this returns there is nothing
@@ -3175,6 +3185,9 @@ export function wakeUnit(unit: Unit): boolean {
 export function captureUnit(state: GameState, unit: Unit, ownerId: number): void {
   const before = unit.ownerId;
   unit.ownerId = ownerId;
+  // A garrison that changed sides is two empires' contentment — `createUnit`'s
+  // announcement, made once for the pair (batch M3, `slate.ts`).
+  bumpEconomy(state);
   unit.movesLeft = 0;
   delete unit.path;
   breakFortify(unit);
@@ -3235,6 +3248,11 @@ export function createCity(
     guildBasket: 0,
   };
   state.cities.push(city);
+  // **A town on the board is a line in three walks** (batch M3, `slate.ts`):
+  // the authority it costs, the citizens it charges to happiness, and the ground
+  // `controlledHoldings` reads through `tileOwnerField`, which is a map of city
+  // ids. Announced here, at the one place a city comes into existence.
+  bumpEconomy(state);
   return city;
 }
 
@@ -3283,6 +3301,11 @@ export function claimWonder(
     turn: state.turn,
   };
   state.wonders.push(claim);
+  // The register is history and the *effects* follow the stones, so this line
+  // changes no meter by itself — but `liveEffects` guards its wonder sweep on
+  // `state.wonders.length`, so the first claim in a game opens a source that was
+  // closed a moment ago. Announced for that clause (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return claim;
 }
 

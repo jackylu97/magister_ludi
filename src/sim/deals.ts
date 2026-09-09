@@ -40,6 +40,7 @@
 import { RULES } from './rulesData';
 import { type ResourceId, resourceDef } from './resourceData';
 import { type GameState, isBarbarian, playerById } from './state';
+import { bumpEconomy } from './slate';
 
 /**
  * One side's half of a bargain: everything one empire hands the other.
@@ -465,6 +466,10 @@ export function openDeal(
     untilTurn: state.turn + RULES.war.dealTurns,
   };
   state.deals.push(row);
+  // **A bargain is a holding** (batch M3, `slate.ts`): `controlledHoldings`
+  // folds what a deal lent away and what it lent in, so the empire's luxuries
+  // are not what they were on the line above.
+  bumpEconomy(state);
   return row;
 }
 
@@ -499,6 +504,9 @@ export function cancelDealsBetween(state: GameState, x: number, y: number): Deal
     kept.push(deal);
   }
   state.deals = kept;
+  // The lent seams go home with the rows — `openDeal`'s line, said the other
+  // way round (batch M3, `slate.ts`).
+  bumpEconomy(state);
   state.dealProposals = state.dealProposals.filter(
     (row) => !((row.by === a && row.to === b) || (row.by === b && row.to === a)),
   );
@@ -525,5 +533,8 @@ export function pruneDeals(state: GameState): DealEndReport[] {
     ended.push({ id: deal.id, a: deal.a, b: deal.b, reason: 'expired' });
   }
   state.deals = kept;
+  // The broom is a write like any other: a lapsed bargain is a luxury back in
+  // somebody's hands (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return ended;
 }

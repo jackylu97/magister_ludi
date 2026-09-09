@@ -152,6 +152,7 @@ import { RULES } from './rulesData';
 import { awardBeadOccasion, awardOrderBeads } from './beads';
 import { awardOccasion } from './triumphs';
 import { unitDef, unitMaxHp } from './unitData';
+import { bumpEconomy } from './slate';
 
 // --- the pantheon's slots ---------------------------------------------------
 
@@ -564,6 +565,8 @@ export function openFaithLadder(state: GameState): void {
     // offer as the record of what was paid (and as the tell that this is the
     // ladder's hand, which `rerollError` reads), and the pick charges nothing.
     player.faithPool = Math.max(0, player.faithPool - plan.cost);
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
     player.pantheon.rungs += 1;
     offer.rungCost = plan.cost;
     offer.rerolls = 0;
@@ -936,6 +939,8 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
     // tally: a god asked again is not an Order asked again.
     const paid = nextBeliefRerollCost(state, player.id);
     player.faithPool = Math.max(0, player.faithPool - paid);
+    // The banks are a line of the meters too (batch M3, `slate.ts`).
+    bumpEconomy(state);
     offer.rerolls = (old.rerolls ?? 0) + 1;
     player.pantheon.pending = offer;
     return { kind, paid, taken: player.statecraft.rerollsTaken };
@@ -944,6 +949,8 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   const sc = player.statecraft;
   const paid = nextRerollCost(state, player.id, kind);
   player.faithPool = Math.max(0, player.faithPool - paid);
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
   sc.rerollsTaken += 1;
 
   if (kind === 'doctrine') {
@@ -1047,11 +1054,18 @@ export function settleBeliefChoice(
     if (!religion) return null;
     if (pool === 'follower') religion.follower.push(id);
     else religion.enhancer.push(id);
+    // **A belief is a card of the same vocabulary the meters fold** (batch M3,
+    // `slate.ts`): an enhancer reaches `liveEffects` through the holy city, a
+    // follower row reaches `cityLocalEffects` in every town that follows, and
+    // `explainHappiness` reads both.
+    bumpEconomy(state);
     refreshBeliefDerived(state, player);
     payBeliefDebt(state, player);
     return { id, name: beliefDef(id).name };
   }
   player.pantheon.beliefs.push(id);
+  // The pantheon is `liveEffects`' fourth source (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshBeliefDerived(state, player);
   // A God Named. It takes the `state` **only** for this — the belief itself is a
   // fact about the player alone — and that is a fair price for putting the
@@ -1320,6 +1334,8 @@ export function performRiteAt(
   const def = riteDef(rite);
   const cost = riteCostFor(state, player.id);
   player.faithPool = Math.max(0, player.faithPool - cost);
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
 
   const expiresTurn = stampRite(state, player.id, rite, def, city) ?? state.turn;
   const wonders = payRiteRiders(state, player, city);
@@ -1355,6 +1371,8 @@ function payRiteBuildings(state: GameState, player: Player, city: City): number 
   const paid = buildingRitePay(city);
   if (paid <= 0) return 0;
   player.culturePool += paid;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
   settleCultureWindfall(state, player);
   return paid;
 }
@@ -1392,6 +1410,9 @@ function stampRite(
   const list = city.timed ?? [];
   for (const effect of def.effects) list.push({ card: rite, effect, expiresTurn });
   city.timed = list;
+  // A rite reaches `cityLocalEffects`, which `cardBuildingHappiness` folds into
+  // the empire's contentment — announced at the stamp (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return expiresTurn;
 }
 
@@ -1418,6 +1439,8 @@ function clearCityRite(state: GameState, city: City): void {
   if (kept.length === timed.length) return;
   if (kept.length === 0) delete city.timed;
   else city.timed = kept;
+  // `stampRite`'s announcement, said the other way round (batch M3, `slate.ts`).
+  bumpEconomy(state);
 }
 
 /**
@@ -1547,6 +1570,8 @@ export function empireRiteAt(
   const def = riteDef(rite);
   const cost = riteCostFor(state, player.id);
   player.faithPool = Math.max(0, player.faithPool - cost);
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
 
   const cities: City[] = [];
   let expiresTurn = state.turn;
@@ -1603,6 +1628,12 @@ function sweep(state: GameState, holder: { timed?: TimedEffect[] }): void {
   if (live.length === timed.length) return;
   if (live.length === 0) delete holder.timed;
   else holder.timed = live;
+  // **The broom is still a write** (batch M3, `slate.ts`). Sweeping a dead
+  // entry changes no outcome — every reader compares an absolute turn — but it
+  // changes what a *list* prints, and `explainHappiness`' lines are the list.
+  // The clock the entry expired on has already been announced by `applyEndTurn`;
+  // this is the shape of the list catching up with it.
+  bumpEconomy(state);
 }
 
 // --- the cadenced draft -----------------------------------------------------
@@ -1798,6 +1829,10 @@ export function foundReligion(state: GameState, player: Player): Religion {
     foundedTurn: state.turn,
   };
   state.religions.push(religion);
+  // **A faith founded is a source opened** (batch M3, `slate.ts`): the enhancer
+  // shelf `liveEffects` reads through the holy city is this row's, and a town's
+  // majority is derived against `state.religions`.
+  bumpEconomy(state);
   // **The First Faith** — a bead occasion the Triumph table has no word for, so
   // it is hooked here rather than at `awardOccasion` (design ledger Entry VI).
   // In the *mechanism* beside the register write, for `awardFoundingTriumphs`'
@@ -1839,7 +1874,14 @@ export const RELIGION_NAME_LIMIT = 40;
 /** Renames a religion. Validates nothing — `renameReligionError` is the rule. */
 export function renameReligionAt(state: GameState, playerId: number, name: string): void {
   const religion = foundedReligion(state, playerId);
-  if (religion) religion.name = name.trim();
+  if (!religion) return;
+  religion.name = name.trim();
+  // A faith's name is printed on every line its beliefs pay — `liveEffects`
+  // labels an enhancer "Religion · <name>" and `explainHappiness` folds that
+  // list — so the ledger a reader is holding is out of date on this line. No
+  // number moves; the words do, and the words are the reading (batch M3,
+  // `slate.ts`, and hard rule 5).
+  bumpEconomy(state);
 }
 
 // --- the prophet's pools ----------------------------------------------------
@@ -2172,6 +2214,10 @@ export function plantHolySiteAt(
   const religion = foundReligion(state, player);
 
   tile.improvement = HOLY_SITE;
+  // The stones are an improvement like any other to `openedResource`, and they
+  // are also what `religionFounder` follows — announced at the write (batch M3,
+  // `slate.ts`).
+  bumpEconomy(state);
   refreshTileDerived(state, tile);
   religion.holySite ??= { col: tile.col, row: tile.row };
 
@@ -2588,6 +2634,9 @@ export function placeRelicAt(state: GameState, _player: Player, unit: Unit): Rel
   const city = cityAt(state, unit.col, unit.row)!;
   const building = RELIC!;
   city.buildings.push(building);
+  // A roof on a town is a line of `buildingHappiness` — `realiseItem`'s
+  // announcement, made by an apostle instead of a basket (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshCityDerived(state, city);
   const apostleSpent = spendCharge(state, unit);
   return {
@@ -2743,7 +2792,12 @@ export function purgeAt(state: GameState, player: Player, unit: Unit): PurgeRepo
         if (religion.id === spared) continue;
         unfollowed += purgePressure(city, religion.id, lump, perConvert);
       }
-      if (unfollowed > 0) refreshCityDerived(state, city);
+      // The Purge unmakes belief, which is the same write the tide makes and the
+      // same announcement (batch M3, `slate.ts`).
+      if (unfollowed > 0) {
+        bumpEconomy(state);
+        refreshCityDerived(state, city);
+      }
       cities.push({ cityId: city.id, unfollowed });
     }
   }
@@ -3336,7 +3390,15 @@ export function pressLump(
   const cities: ProclamationConversion[] = [];
   for (const { city, pressed } of lumpTargets(state, religion, at, range, lump)) {
     const converted = bankPressure(city, religion.id, order, pressed, perConvert);
-    if (converted > 0) refreshCityDerived(state, city);
+    // **A convert can change what a town believes** (batch M3, `slate.ts`), and
+    // a follower belief reaches `cityLocalEffects` in every town that follows,
+    // which `cardBuildingHappiness` folds. Announced where the citizens turn —
+    // `bankPressure` itself is deliberately free of the state (it is shared with
+    // the tide, whose towns are pure `City`), so the two callers say it.
+    if (converted > 0) {
+      bumpEconomy(state);
+      refreshCityDerived(state, city);
+    }
     cities.push({
       cityId: city.id,
       converted,
@@ -3383,7 +3445,10 @@ export function spreadReligion(state: GameState): void {
   for (const [index, city] of state.cities.entries()) {
     const totals = measured[index]!;
     for (const religion of state.religions) {
-      bankPressure(city, religion.id, order, totals[religion.id] ?? 0, perConvert);
+      // `pressLump`'s announcement, made by the tide (batch M3, `slate.ts`).
+      if (bankPressure(city, religion.id, order, totals[religion.id] ?? 0, perConvert) > 0) {
+        bumpEconomy(state);
+      }
     }
   }
 }

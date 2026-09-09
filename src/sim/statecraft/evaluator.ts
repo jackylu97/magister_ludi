@@ -169,6 +169,7 @@ import { isCoastal } from '../water';
 import { orderAtSlotPosition, settleCultureWindfall, tallyOf } from './draft';
 import { tileConditionWords } from './describers';
 import { statecraftOf } from './draft';
+import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
 const RESOURCE_KINDS: readonly ResourceKind[] = ['bonus', 'strategic', 'luxury'];
@@ -5070,6 +5071,7 @@ export function payWindfallGrants(
     if (grant.yield === 'gold') player.gold += grant.amount;
     else if (grant.yield === 'science') player.sciencePool += grant.amount;
     else if (grant.yield === 'culture') player.culturePool += grant.amount;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
     else if (grant.yield === 'faith') player.faithPool += grant.amount;
     else {
       const city = at ? nearestOwnedCity(state, player.id, at) : capitalCityOf(state, player.id) ?? null;
@@ -5078,6 +5080,7 @@ export function payWindfallGrants(
       else city.hammerBasket += grant.amount;
       if (!touched.includes(city)) touched.push(city);
     }
+    bumpEconomy(state);
   }
   // **The whole army, made whole** — The Empire's. Written straight onto the
   // pieces rather than through `healUnits`, because that phase is the *rested*
@@ -5099,6 +5102,10 @@ export function payWindfallGrants(
     const list = player.timed ?? [];
     for (const effect of hung.effects) list.push({ card: hung.card, effect, expiresTurn });
     player.timed = list;
+    // **What the realm is carrying is `liveEffects`' eighth source** (batch M3,
+    // `slate.ts`) — Crassus' bill is an ordinary card effect in every ledger it
+    // reaches, the meters' among them. Announced where it is hung.
+    bumpEconomy(state);
   }
   // **The renown last**, and through `settleRenownWindfall` — the one place
   // renown is ever added, and the seam that opens a great-person offer the

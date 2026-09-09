@@ -901,11 +901,15 @@ export function meterEffects(state: GameState, playerId: number): MeterEffect[] 
   // is suspended while a writer holds the world open, so `collectYields` and
   // `expandBorders` still read a world halfway moved exactly as they always did.
   //
-  // The **economy** clock rather than the revision (batch M2): this file walks
+  // The **economy** clock rather than the revision (batch M2). This file walks
   // `state.cities`, the buildings on them, the empire's luxuries and its law,
-  // and never opens `state.units` at all — a fact worth stating, because it is
-  // what makes a scout's step unable to reach this answer. A seat's happiness is
-  // now taken once per thing that could change it rather than once per command.
+  // and never opens `state.units` — but the **card evaluator** it folds does:
+  // The Long Watch pays for each unit standing in one of this empire's cities,
+  // so a piece created, killed, taken or moved changes this answer. That is
+  // batch M3's correction to M2's table, found by the shadow run; every seam
+  // that writes a piece announces (`src/sim/slate.ts`, and the register in
+  // `test/sim/slateRegister.test.ts`). A seat's happiness is taken once per
+  // thing that could change it rather than once per command.
   return slateMemo(state, 'economy', 'meterEffects', String(playerId), () =>
     meterEffectsOf(state, playerId),
   );

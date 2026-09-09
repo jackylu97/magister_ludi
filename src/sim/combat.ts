@@ -312,6 +312,7 @@ import { awardBeadOccasion } from './beads';
 import { awardOccasion } from './triumphs';
 import { fullMovement, hasStackingRoom, unitsOnTile } from './units';
 import { DIRECTION_COUNT, hasRiverEdge, neighborInDirection } from './water';
+import { bumpEconomy } from './slate';
 
 const COMBAT = RULES.combat;
 
@@ -2210,6 +2211,8 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     if (forecast.kind === 'melee' && tookGround && canAdvanceOnto(state, attacker, tile)) {
       attacker.col = tile.col;
       attacker.row = tile.row;
+      // The garrison moved — see `createUnit` (batch M3, `slate.ts`).
+      bumpEconomy(state);
       outcome.advanced = true;
       // The second of the two ways a unit's position changes, and therefore the
       // second caller of the one "it arrived somewhere" rule: storming a camp
@@ -2447,6 +2450,12 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   city.ownerId = ownerId;
   city.captured = true;
   city.puppet = true;
+  // **A town changing hands moves both empires' meters** (batch M3,
+  // `slate.ts`): the ground it owns, the buildings on it, the citizens it
+  // charges, and the three authority words above — captured, puppet, capital —
+  // are all read by `explainHappiness` and `explainAuthority`. Announced here,
+  // in the one seam a city changes owner.
+  bumpEconomy(state);
   if (wasCapital && loser !== ownerId) city.wasCapital = true;
   city.queue = [];
   city.hammerBasket = 0;

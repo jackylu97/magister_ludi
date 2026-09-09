@@ -108,6 +108,7 @@ import { settleResearchWindfall } from './tech';
 import { highestAge } from './techData';
 import { unitDef, unitMaxHp } from './unitData';
 import { recomputeVisibilityFor } from './visibility';
+import { bumpEconomy } from './slate';
 
 const PEOPLE = RULES.greatPeople;
 
@@ -533,19 +534,26 @@ export function purchaseGreatPersonOfferAt(
     // refused — costs an empire nothing rather than everything.
     const offer = drawGreatPersonOffer(state, player, def.family);
     if (offer.options.length === 0) return null;
-    chargeBank(player, def.currency, greatPersonOfferPrice(purchase));
+    chargeBank(state, player, def.currency, greatPersonOfferPrice(purchase));
     player.greatPersonOffer = offer;
     return offer;
   }
-  chargeBank(player, def.currency, greatPersonOfferPrice(purchase));
+  chargeBank(state, player, def.currency, greatPersonOfferPrice(purchase));
   const owed = Math.max(0, renownThreshold(player) - player.renownPool);
   return settleRenownWindfall(state, player, [{ family: null, amount: owed }]);
 }
 
 /** Takes the price out of one of the two banks. The only subtraction here. */
-function chargeBank(player: Player, currency: OfferCurrency, price: number): void {
+function chargeBank(
+  state: GameState,
+  player: Player,
+  currency: OfferCurrency,
+  price: number,
+): void {
   if (currency === 'gold') player.gold -= price;
   else player.faithPool -= price;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
 }
 
 // --- taking a name ----------------------------------------------------------
@@ -892,6 +900,8 @@ export function greatPersonActAt(
       // refuses a scholar with nothing under study, and what the beakers finish
       // is `settleResearchWindfall`'s business exactly as it is at end of turn.
       player.sciencePool += gained(actGainOf(state, player.id, 'science'));
+      // The banks are a line of the meters too (batch M3, `slate.ts`).
+      bumpEconomy(state);
       done.research = settleResearchWindfall(state, player)?.name ?? null;
       break;
     }
@@ -907,6 +917,7 @@ export function greatPersonActAt(
     }
     case 'merchant': {
       player.gold += paid(PEOPLE.merchantGold * era);
+      bumpEconomy(state);
       break;
     }
     case 'artist': {
@@ -924,6 +935,7 @@ export function greatPersonActAt(
         ]);
       }
       player.culturePool += culture;
+      bumpEconomy(state);
       settleCultureWindfall(state, player);
       if (city) refreshCityDerived(state, city);
       break;
@@ -995,6 +1007,12 @@ function stampTimed(
   const list = holder.timed ?? [];
   for (const effect of effects) list.push({ card, effect, expiresTurn });
   holder.timed = list;
+  // **What the realm is carrying is one of `liveEffects`' sources** (batch M3,
+  // `slate.ts`), and a town's is read by `cityLocalEffects`, which
+  // `cardBuildingHappiness` folds — so a boon hung here can move a meter. The
+  // holder may be a seat, a town or a piece; announced for all three rather than
+  // sorted, because the cheap answer is the safe one.
+  bumpEconomy(state);
   return expiresTurn;
 }
 
@@ -1019,6 +1037,9 @@ function spendGreatPerson(
   // `LegacyRecord`.
   if (!player.legacies.some((held) => held.id === id)) {
     player.legacies.push({ id, age: highestAge(player.techsResearched) });
+    // A legacy is `liveEffects`' sixth source, and the walk the meters fold
+    // (batch M3, `slate.ts`).
+    bumpEconomy(state);
   }
   // The growing cards' occasion, written here because this is **the** one place
   // a great person is spent — both verbs reach it, so The Reliquary Rolls counts
@@ -1066,6 +1087,12 @@ export function revokeLegacies(
     held.revoked = true;
     lost.push(held.id);
   }
+  // **A revocation is a write nothing else reports** (batch M3, `slate.ts`): a
+  // marked record is the one filter on `liveEffects`' sixth source, and a
+  // soldier walking into a capital revokes one mid-march. Announced here, at the
+  // mark — it used to be a flag `applyCommand` read on the way out (M2's
+  // `noteEconomyWrite`), and the mark is the honest place for it.
+  if (lost.length > 0) bumpEconomy(state);
   return lost;
 }
 
@@ -1175,6 +1202,10 @@ export function greatPersonWorkAt(
   const work = workOf(unit)!;
 
   tile.improvement = work;
+  // **A work opens the seam it covers** ("Iron · academy"), which is
+  // `openedResource`'s clause and so `controlledHoldings`' answer — announced at
+  // the write (batch M3, `slate.ts`).
+  bumpEconomy(state);
   const claimed = improvementDef(work).claimsNeighbours === true
     ? claimAround(state, player, tile, PEOPLE.citadelClaimRadius)
     : [];
@@ -1236,6 +1267,10 @@ function claimAround(
     claimed.push({ col: tile.col, row: tile.row });
   }
   if (claimed.length === 0) return claimed;
+  // **The citadel takes ground off somebody** — `claimTile`'s line, said for a
+  // sweep that also takes owned hexes rather than only empty ones, and announced
+  // once for the whole claim (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshCityDerived(state, seat);
   const seats = new Set<number>([player.id]);
   for (const cityId of dispossessed) {

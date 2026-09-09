@@ -31,11 +31,12 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
 import {
+  claimTile,
   controlledHoldings,
   emptyCityYields,
 } from '../../src/sim/cities';
 import { meterEffects } from '../../src/sim/meters';
-import { beginWrite, economyStamp, endWrite, slateSuspended } from '../../src/sim/slate';
+import { economyStamp, setSlatePhase, setSlateShadow, slateShadow } from '../../src/sim/slate';
 import { getTile, getTileAt, mapNeighbors, tileHex, tileIndex } from '../../src/sim/map';
 import { isWaterTerrain } from '../../src/sim/terrainData';
 import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
@@ -229,38 +230,88 @@ describe('the two empire walks are remembered on the same slate', () => {
     expect(meterEffects(state, 0)).not.toBe(meterEffects(state, 1));
   });
 
-  it('remembers nothing while a writer holds the world open', () => {
-    // The one thing the slate adds to the revision's bargain. `GameState
-    // .revision` is raised *after* a handler and *after* a phase, so a reading
-    // taken inside one is a reading of a world halfway moved — and
-    // `expandBorders` and `collectYields` take several. Inside the window every
-    // tenant computes fresh, which is byte for byte the tree before the memo.
+  it('remembers a reading taken after a write (batch M3)', () => {
+    // The window is **gone**. M1 suspended the slate for the length of every
+    // handler and every phase, because the revision is raised after the fact, so
+    // a phase that asked the same question a hundred times walked the empire a
+    // hundred times — 8% of a bot's game, measured. M3 announces at the mutation
+    // instead, so the pair below is one walk: the write threw the old answer
+    // away, and the answer *after* it is remembered like any other.
+    //
+    // Written with a real write (`claimTile`, `expandBorders`' own seam) rather
+    // than by pretending to be a phase, because since M3 there is no difference
+    // between the two — which is the whole claim. The phase name is set anyway,
+    // since that is the state a resolution is really in.
     const { state } = game();
-    found(state, 0);
-    expect(slateSuspended()).toBe(false);
-    beginWrite();
+    const city = found(state, 0)!;
+    const before = meterEffects(state, 0);
+    const free = state.map.tiles.find(
+      (tile) => state.tileOwner[tileIndex(state.map, tile.col, tile.row)] === null,
+    );
+    expect(claimTile(state, city, free!)).toBe(true);
+    setSlatePhase('expandBorders');
     try {
-      expect(slateSuspended()).toBe(true);
-      expect(meterEffects(state, 0)).not.toBe(meterEffects(state, 0));
-      expect(controlledHoldings(state, 0, 'luxury')).not.toBe(
-        controlledHoldings(state, 0, 'luxury'),
-      );
-      expect(readCity(state, state.cities[0]!)).not.toBe(readCity(state, state.cities[0]!));
+      const after = meterEffects(state, 0);
+      expect(after).not.toBe(before);
+      expect(meterEffects(state, 0)).toBe(after);
     } finally {
-      endWrite();
+      setSlatePhase('');
     }
-    expect(slateSuspended()).toBe(false);
   });
 
-  it('closes the window even when the handler throws', () => {
-    // A leaked depth is invisible — a slate suspended for ever is a tree that is
-    // merely slow, never wrong — so it is asserted rather than reasoned about.
+  it('throws the answer away on the line a write happens', () => {
+    // The other half of the same claim, and the one that makes it a cache: a
+    // hex claimed inside a phase changes what the empire holds *there*, not when
+    // the phase is over. `claimTile` is the announcement's own site, and the
+    // holdings walk is the reading a claimed hex actually moves.
     const { state } = game();
-    const before = slateSuspended();
-    expect(() =>
-      applyCommand(state, { type: 'foundCity', playerId: 0, settlerUnitId: -1 }),
-    ).not.toThrow();
-    expect(slateSuspended()).toBe(before);
+    found(state, 0);
+    const city = state.cities[0]!;
+    const held = controlledHoldings(state, 0, 'luxury');
+    const free = state.map.tiles.find(
+      (tile) => state.tileOwner[tileIndex(state.map, tile.col, tile.row)] === null,
+    );
+    expect(free).toBeDefined();
+    expect(claimTile(state, city, free!)).toBe(true);
+    expect(controlledHoldings(state, 0, 'luxury')).not.toBe(held);
+  });
+
+  it('shadow mode agrees with itself across a whole resolution', () => {
+    // The proof of the register (`setSlateShadow`): every hit recomputes and the
+    // two must be deeply equal. A resolution is the hardest case there is —
+    // every phase writes, and `collectYields` asks the meters once a town.
+    const { state } = game();
+    found(state, 0);
+    found(state, 1);
+    const was = slateShadow();
+    setSlateShadow(true);
+    try {
+      expect(() => runEndOfTurn(state)).not.toThrow();
+    } finally {
+      // **Restored, never switched off.** The workers keep their module graph
+      // between files (`isolate: false`), and the whole suite is run with the
+      // shadow on when the reducer changes — a `false` here would quietly end
+      // that run for every file after this one.
+      setSlateShadow(was);
+    }
+  });
+
+  it('shadow mode catches a write that said nothing', () => {
+    // And it fails when it should: a field poked by hand — the thing a bench
+    // does and a new unannounced write in `src/sim` would do — is exactly the
+    // stale answer the shadow check exists to name. `city.population` is a line
+    // of `explainHappiness`.
+    const { state } = game();
+    found(state, 0);
+    void meterEffects(state, 0);
+    state.cities[0]!.population += 3;
+    const was = slateShadow();
+    setSlateShadow(true);
+    try {
+      expect(() => meterEffects(state, 0)).toThrowError(/slate shadow/);
+    } finally {
+      setSlateShadow(was);
+    }
   });
 
   it('never reaches the snapshot', () => {
@@ -328,19 +379,22 @@ describe('the economy clock is the coarser subscription', () => {
     throw new Error('no dry hex beside the piece');
   };
 
-  it('stands still on a command that only moves a piece', () => {
+  it('keeps the ground still when a piece steps, and moves the meters with it', () => {
+    // **The correction batch M3's shadow run made to M2's table.** M2 claimed a
+    // step could not reach the empire's happiness, because `meters.ts` never
+    // opens `state.units`. It does not — but the card evaluator it folds does:
+    // The Long Watch pays "+1 happiness for each unit standing in one of your
+    // cities", so where a piece *stands* is a line of `explainHappiness`. The
+    // ground it walks over is a different question, and `controlledHoldings`
+    // still cannot see a piece at all.
     const { state } = game();
     found(state, 0);
     const town = state.cities[0]!;
-    const meters = meterEffects(state, 0);
     const holdings = controlledHoldings(state, 0, 'luxury');
-    const percents = readEmpirePercents(state, 0);
+    const meters = meterEffects(state, 0);
     const list = readCity(state, town);
-    const economy = economyStamp(state);
     const revision = state.revision;
 
-    // A scout takes one step over ordinary ground. Nothing it can reach is in
-    // the empire's happiness, its holdings or its meters.
     const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
     const marched = applyCommand(state, {
       type: 'moveUnit',
@@ -354,11 +408,16 @@ describe('the economy clock is the coarser subscription', () => {
     // object because a piece is exactly the kind of thing a town's list can see.
     expect(state.revision).toBe(revision + 1);
     expect(readCity(state, town)).not.toBe(list);
-    // And the economy did not: the very same objects, not merely equal ones.
-    expect(economyStamp(state)).toBe(economy);
-    expect(meterEffects(state, 0)).toBe(meters);
-    expect(controlledHoldings(state, 0, 'luxury')).toBe(holdings);
-    expect(readEmpirePercents(state, 0)).toBe(percents);
+    // The step announced itself where it happened (`advanceAlongPath`), so the
+    // meters are taken again — and answer the same thing, because this scout is
+    // not standing in a town.
+    expect(meterEffects(state, 0)).not.toBe(meters);
+    expect(meterEffects(state, 0)).toEqual(meters);
+    // The holdings walk is the ground and nothing else, so the answer is the
+    // same — an *equal* list rather than the same object, because a clock throws
+    // its whole half away and the two walks share one (`slate.ts`'s third fact).
+    // What the narrow door still buys is the four order-only commands below.
+    expect(controlledHoldings(state, 0, 'luxury')).toEqual(holdings);
   });
 
   it('stands still on the other four orders too', () => {
@@ -407,6 +466,9 @@ describe('the economy clock is the coarser subscription', () => {
     // `arriveOnTile` on every step, and arriving is how a ruin is claimed and a
     // camp is burnt out — each of which pays somebody. The decision is made from
     // the *result*, after the command, so it is exact rather than by category.
+    // Since batch M3 the steps themselves announce as well, so the count below
+    // is a floor: what this pins is that a march which *found* something is an
+    // economy command however few steps it took.
     const { state } = game();
     found(state, 0);
     const scout = state.units.find((unit) => unit.ownerId === 0 && unit.type === 'scout')!;
@@ -423,18 +485,26 @@ describe('the economy clock is the coarser subscription', () => {
       target,
     });
     expect(marched.ok && marched.arrivals?.length).toBe(1);
-    expect(economyStamp(state)).toBe(economy + 1);
+    expect(economyStamp(state)).toBeGreaterThan(economy);
     expect(meterEffects(state, 0)).not.toBe(meters);
   });
 
-  it('moves once per phase across a resolution, like the revision', () => {
+  it('moves at least once per phase across a resolution', () => {
     // A phase is a writer that says nothing about how much it moved, so both
-    // clocks follow it. `bumpRevision` is that announcement.
+    // clocks follow it — `bumpRevision` is that announcement, and it is still
+    // taken once per phase. Since batch M3 the writes *inside* a phase announce
+    // themselves as well (a hex claimed, a citizen born, a technology learnt),
+    // so the count is a floor rather than an equality: the phase's own bump is
+    // what guarantees the floor, and anything above it is the register doing its
+    // work. See `slate.ts`'s M3 section.
     const { state } = game();
     found(state, 0);
     const economy = economyStamp(state);
+    const revision = state.revision;
     runEndOfTurn(state);
-    expect(economyStamp(state) - economy).toBe(END_OF_TURN_PHASES.length);
+    expect(economyStamp(state) - economy).toBeGreaterThanOrEqual(END_OF_TURN_PHASES.length);
+    // The revision is unchanged in every respect: exactly one per phase.
+    expect(state.revision - revision).toBe(END_OF_TURN_PHASES.length);
   });
 
   it('never reaches the snapshot', () => {

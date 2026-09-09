@@ -64,13 +64,22 @@ The verb rule is unchanged — every `read…` is still in `readings.ts` and now
 else (`test/sim/verbs.test.ts`) — and the memos are still **one** cache with one
 lifetime, because they are on the same slate rather than in a second `WeakMap`.
 
-**The slate is suspended while a writer holds the world open.** `GameState
-.revision` is raised *after* a command's handler and *after* each end-of-turn
-phase, so a reading taken inside one is a reading of a world halfway moved, and
-`expandBorders` and `collectYields` take several. `applyCommand` and the phase
-loop announce themselves (`beginWrite`/`endWrite`); inside the window every
-tenant computes fresh, which is byte for byte the tree before the slate existed.
-A bench that pokes the state by hand is a writer and calls `bumpRevision`.
+**Nothing is suspended any more (batch M3).** M1 and M2 raised their clocks
+*after* the fact — `applyCommand` after the handler, the phase loop after each
+phase — so a reading taken inside one was a reading of a world halfway moved, and
+the slate answered that by suspending itself for the length of every handler and
+every phase. Measured, that window was 8% of a 150-turn bot game, and 99.8% of
+the asks inside it wanted the answer the ask before them had computed.
+
+So the window is gone and one rule replaces it: **a write announces itself at the
+write.** Every mutation in the reducer and in the phases that changes what a
+tenant folds calls `bumpEconomy(state)` on the line it happens.
+`test/sim/slateRegister.test.ts` is the register — it sweeps `src/sim` for every
+write to such a field and fails unless the enclosing function announces or is
+excused by name with the reason — and `setSlateShadow` is the proof: with it on,
+every **hit** recomputes and asserts deep equality, naming the bucket, key,
+clock, turn and phase when it does not. A bench that pokes the state by hand is a
+writer and calls `bumpRevision`, exactly as before.
 
 ### The two clocks (batch M2)
 
@@ -80,13 +89,24 @@ a reading *of*, and the slate keeps a half per clock:
 
 | tenant | clock | why |
 |---|---|---|
-| `meterEffects` | economy | walks towns, buildings, luxuries and law; never opens `state.units` |
+| `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the garrisons standing in them and the banks behind them (see the correction below) |
 | `controlledHoldings` | economy | walks the ground |
 | `readEmpirePercents` | economy | those, plus the treasury |
 | `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) — a **unit position** |
 | `readEmpire` | revision | that reading summed |
 
 The split is a claim about what each walk can *see*, not a taxonomy of yields.
+
+**Two rows of that claim were wrong, and M3's shadow run found them.**
+`meters.ts` never opens `state.units` — but the card evaluator it folds does:
+The Long Watch pays "+1 happiness for each unit standing in one of your cities"
+(`count: 'garrison'`), and Pilgrim Roads pays "+1 happiness for each 50 banked
+faith" (`count: 'bankedFaith'`, with `bankedGold` beside it). So a piece created,
+killed, taken or **moved**, and a bank that was paid into, are writes the empire
+walks fold. Every such seam announces since M3, and the register lists them; what
+the economy clock still buys is the four orders that move nobody — a
+fortification, a sleep, an auto-explore, a cancellation — and the phases that
+write nothing a walk reads.
 
 - **The economy clock is not a field of `GameState`.** The state is
   `JSON.stringify`d into every save hash, so a second counter on it would be a
@@ -104,9 +124,12 @@ The split is a claim about what each walk can *see*, not a taxonomy of yields.
   `arriveOnTile` on every step, and arriving is how a ruin is claimed, a camp
   burnt out, a civilian taken and a caravan plundered — each reported in
   `CommandResult`. The rule is the report: a movement command whose result says
-  anything beyond `ok` is an economy command. The two writes the report cannot
-  carry announce themselves (`noteEconomyWrite`): a legacy revoked when a soldier
-  enters a rival capital, and a road worn under a laden caravan.
+  anything beyond `ok` is an economy command. Since M3 the five `movement` rows
+  are a **floor** rather than a promise: a march announces itself where the piece
+  moves, so a `moveUnit` that walked anywhere has already moved the economy clock
+  by the time the result is classified. `noteEconomyWrite` retired with the
+  window — `revokeLegacies` announces its own mark, and no economy-clock walk
+  folds `Tile.road`.
 - **`bumpRevision` moves both clocks** and is what every writer outside
   `applyCommand` calls, benches included. The narrow door (`bumpPiecesOnly`) has
   one caller, holding a command and its result. Wrong in the broad direction is a

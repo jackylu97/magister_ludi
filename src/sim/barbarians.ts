@@ -122,6 +122,7 @@ import { UNIT_UNLOCK_TECH } from './techData';
 import { UNIT_TYPE_IDS, type UnitTypeId, isRanged, unitDef } from './unitData';
 import { hasStackingRoom, unitsOnTile } from './units';
 import { VISIBLE, isVisibleTo, visibilityAt } from './visibility';
+import { bumpEconomy } from './slate';
 
 const BARB = RULES.barbarians;
 
@@ -378,6 +379,9 @@ export function foundCamps(state: GameState): void {
     if (candidates.length === 0) return;
     const tile = candidates[nextInt(state.rng, 0, candidates.length)]!;
     state.camps.push({ col: tile.col, row: tile.row, foundedTurn: state.turn });
+    // A camp on the board is a line of the meters where a card counts the ones
+    // an empire can see (`count: 'visibleCamps'`) — batch M3, `slate.ts`.
+    bumpEconomy(state);
   }
 }
 

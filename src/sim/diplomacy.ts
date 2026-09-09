@@ -102,6 +102,7 @@ import {
   truceTurnsLeft,
   warBetween,
 } from './wars';
+import { bumpEconomy } from './slate';
 
 // --- what the verbs report --------------------------------------------------
 
@@ -534,6 +535,8 @@ function payLump(
   if (!from || !to) return;
   from.gold -= gold;
   to.gold += gold;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
   execution.payments.push({ fromId, toId, gold });
 }
 
@@ -1010,6 +1013,9 @@ export function expelFrom(state: GameState, moverId: number, holderId: number): 
     }
     unit.col = refuge.col;
     unit.row = refuge.row;
+    // An expelled column is a garrison that left — see `createUnit` (batch M3,
+    // `slate.ts`).
+    bumpEconomy(state);
     // The order it was under described a march from a hex it is no longer on.
     delete unit.path;
     arriveOnTile(state, unit, refuge);
@@ -1113,6 +1119,10 @@ export function annexCityError(
  */
 export function annexCityAt(state: GameState, city: City): void {
   delete city.puppet;
+  // The flag is read by both meters (`cityAuthorityCost` and the puppet's
+  // relief in `explainHappiness`), so the annexation is a write the empire walks
+  // fold — announced on the line that makes it (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshCityDerived(state, city);
 }
 
@@ -1211,6 +1221,10 @@ export function razeCityAt(
     tilesReleased,
   };
   state.cities = state.cities.filter((row) => row.id !== city.id);
+  // **A town off the board** (batch M3, `slate.ts`): the ground it held is
+  // released two lines up and the roster it was on is the one both meters walk.
+  // Announced once, for both writes.
+  bumpEconomy(state);
   state.citySightings = state.citySightings.map((list) =>
     list.filter((sighting) => sighting.cityId !== city.id),
   );

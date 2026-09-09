@@ -168,7 +168,7 @@ import {
   unitById,
   wakeUnit,
 } from './state';
-import { beginWrite, economyNoted, endWrite } from './slate';
+import { bumpEconomy } from './slate';
 import {
   adoptGovernmentAt,
   doctrineChoiceError,
@@ -1959,6 +1959,13 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   const report = runEndOfTurn(state);
   clearTurnEnded(state);
   state.turn += 1;
+  // **The clock is a field the readings fold** (batch M3, `slate.ts`): a deal
+  // lapses by comparison against `state.turn` and so does every rite and every
+  // seal, so what an empire holds and what its towns are content about can both
+  // change on this line with nothing else on the board different. Announced here
+  // rather than left to the command's own bump below, on the register's one
+  // rule: a write announces itself where it happens.
+  bumpEconomy(state);
   const result = ok(
     undefined,
     report.combats,
@@ -3154,6 +3161,9 @@ function applyUnslotOrder(state: GameState, command: UnslotOrderCommand): Comman
   if (problem) return fail(problem);
 
   unslotOrderAt(actor, command.slotIndex);
+  // `slotOrderAt`'s announcement, made here because `unslotOrderAt` is a fact
+  // about a player alone and takes no state (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return ok();
 }
 
@@ -3201,6 +3211,10 @@ function applyChooseDoctrine(
   if (problem) return fail(problem);
 
   const taken = settleDoctrineChoice(actor, command.optionIndex);
+  // A Doctrine is the second source of `liveEffects` and the meters fold that
+  // walk. Announced here for `applyUnslotOrder`'s reason: the settlement is a
+  // fact about a player and takes no state (batch M3, `slate.ts`).
+  bumpEconomy(state);
   // **The law just changed and is read again below** (`forgetTheLaw`'s
   // register): a Doctrine is a source of `liveEffects`, and The Muses' Call's
   // own grant is the case that found this — its `grantsAbility` opens the
@@ -3722,6 +3736,9 @@ function applyStartRoute(state: GameState, command: StartRouteCommand): CommandR
   const gates = getTileAt(state.map, from.col, from.row)!;
   unit.col = gates.col;
   unit.row = gates.row;
+  // The teleport to the origin is a piece moving like any other — see
+  // `createUnit` (batch M3, `slate.ts`).
+  bumpEconomy(state);
   // Whatever it was walking toward, it is not there any more. The sleep flag is
   // `orderedUnitId`'s business, like every other order's.
   delete unit.path;
@@ -4375,15 +4392,24 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
  * carries them in the first place, and reading the whole shape rather than
  * `arrivals` alone means a field added later needs no second thought here.
  *
- * The two writes the report cannot carry announce themselves instead
- * (`noteEconomyWrite`): the legacy revoked when a soldier walks into a rival's
- * capital, and the road worn under a laden caravan. Both are inside
- * `arriveOnTile`, both change what a reading folds, and neither is news anybody
- * outside the simulation asked for.
+ * The two writes the report cannot carry used to raise a flag this function
+ * read (`noteEconomyWrite`, batch M2): the legacy revoked when a soldier walks
+ * into a rival's capital, and the road worn under a laden caravan. Since batch
+ * M3 they do the plainer thing and **move the clock where they happen** —
+ * `revokeLegacies` announces its own write, and a road is not a field any
+ * economy tenant folds — so the flag is gone and this is the report's rule
+ * alone. Announcing early is the same coverage as announcing late and strictly
+ * better: the readings taken *after* the write in the same command see it too.
+ *
+ * **And the five movement rows are a floor rather than a promise** (batch M3).
+ * A march announces itself where the piece moves, because a garrison is a line
+ * of the empire's contentment (`slate.ts`, "two rows of that table were wrong"),
+ * so a `moveUnit` that walked anywhere has already moved the economy clock by
+ * the time this is asked. What the register still buys is the four orders that
+ * move nobody — a fortification, a sleep, an auto-explore, a cancellation.
  */
 function economyMoved(command: Command, result: CommandResult): boolean {
   if (COMMAND_CLOCKS[command.type] !== 'movement') return true;
-  if (economyNoted()) return true;
   return Object.keys(result).length > 1;
 }
 
@@ -4398,24 +4424,14 @@ function economyMoved(command: Command, result: CommandResult): boolean {
  * never given.
  */
 export function applyCommand(state: GameState, command: Command): CommandResult {
-  // **The world is not remembered while it is moving** (batch M1, `slate.ts`).
-  // The revision below is raised *after* the handler, so everything between here
-  // and it is a world halfway moved — and the two empire walks the slate now
-  // remembers (`meterEffects`, `controlledHoldings`) are asked from inside
-  // handlers. Announcing the window is what lets a memo be a cache rather than a
-  // rule: inside it every reading is taken fresh, byte for byte as it was before
-  // the slate existed. `finally`, because a handler that threw and left the
-  // window open would suspend the slate for the life of the process.
-  beginWrite();
-  try {
-    return applyCommandInside(state, command);
-  } finally {
-    endWrite();
-  }
-}
-
-/** `applyCommand`'s whole body, run inside the write window it announces. */
-function applyCommandInside(state: GameState, command: Command): CommandResult {
+  // **The world is no longer suspended while it moves** (batch M3, `slate.ts`).
+  // M1 wrapped this whole function in a write *window*, because the revision at
+  // the foot is raised after the handler and everything before it was therefore
+  // a world halfway moved — so the slate remembered nothing inside a command.
+  // M3 moves the announcement to the mutation instead: every write that changes
+  // what a tenant folds calls `bumpEconomy` on the line it happens, and the
+  // register (`test/sim/slateRegister.test.ts`) is what holds that true. The
+  // wrapper went with the window, and this is the handler again.
   // **The bead diff, taken once, here** (design ledger Entry VI). `Player.beads`
   // is append-only and turn-stamped, so a mark taken before the handler and a
   // slice taken after it is exactly what this command earned, at whatever depth

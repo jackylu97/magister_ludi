@@ -5994,3 +5994,278 @@ nought with no library and no chain, positive with a chain that owes two, and le
 than the same two libraries standing; and a coast with four fish outscores a
 meadow with four wheat-fed grassland hexes exactly when Sailing is inside the
 horizon, and loses to it when the horizon is cut too short to reach Sailing at all.
+
+---
+
+## Batch M3 as shipped — the suspension window closes (2026-09-09)
+
+M2's closing finding was this batch's brief: *"a miss at rest costs almost
+nothing after M1, and the real cost is the **suspension window** — a tenth of all
+readings are asked inside a phase or a handler where the slate may remember
+nothing at all."* M3 closes that window. The slate is never suspended; instead
+**every write announces itself where it happens**, a source-reading register
+holds that true, and a shadow mode disbelieves every hit so the register can be
+proved rather than argued.
+
+**On outcomes, precisely.** The window's removal is byte-identical: with the
+corrections below in place, the same games play out identically whether the old
+suspension is switched back on or left off — measured on two 150-turn duels and
+the eight-seed t100 probe, every column and every state hash. But this batch also
+**fixes a defect M2 introduced**, and a fix to a reading is a change to what the
+bot reads: two rows of M2's clock table were wrong, so since M2 landed every game
+has been played against a happiness that could be one write out of date.
+Deterministically out of date — which is exactly why every byte-for-byte pin in
+the suite went on passing, and why it took a shadow run to see it. Games that
+hold a card counting garrisons or banked faith therefore play differently on this
+tree than on the one before it, and they are the games that were wrong.
+
+### 1 · The ceiling, measured before anything was built
+
+One 150-turn stepper game, seed 20260903, duel, two balanced bot seats, the wild.
+Every ask taken inside a write window counted and timed, and each one compared
+against the value the previous ask of the same key computed — which is the
+**ceiling**: an ask whose answer has not changed is an ask a perfect
+invalidation could have answered from the slate.
+
+| window · bucket | asks | value unchanged | between `assignCitizens` writes | ms | share of the game |
+|---|---|---|---|---|---|
+| `collectYields` bank loop · `meterEffects` | 2,029 | 99.2% | 92.6% | 291 | 1.89% |
+| `collectYields` price loop · `meterEffects` | 1,678 | 97.9% | **15.3%** | 254 | 1.65% |
+| `collectYields` price loop · `holdings:luxury` | 19,164 | 100.0% | 91.2% | 172 | 1.12% |
+| `beads` · `meterEffects` | 601 | 96.2% | 100% | 124 | 0.81% |
+| `collectYields` bank loop · `holdings:luxury` | 13,394 | 100.0% | 98.9% | 117 | 0.76% |
+| `beads` · `holdings:luxury` | 6,108 | 100% | 100% | 60 | 0.39% |
+| `expandBorders` · `meterEffects` + holdings | 4,424 | 96–100% | 100% | 70 | 0.45% |
+| `collectYields`, the empire's own lines and the arrears | 6,445 | ~100% | 96% | 103 | 0.67% |
+| every command handler, all buckets | 2,197 | 50–100% | 100% | 55 | 0.36% |
+| the other five phases (renown, legacies, guilds, growth, the marches) | 1,202 | 100% | 100% | 13 | 0.08% |
+| **all** | **57,242** | **99.8%** | **93.5%** | **1,257** | **8.2%** |
+
+Read: **eight per cent of a 150-turn game** was these two readings taken inside a
+window, and essentially all of it was the same answer twice. `collectYields`
+alone holds 36,000 of the 57,000 asks, because the phase prices every town and
+pricing a town asks the empire's happiness, which asks what the empire holds.
+
+**The price loop is the one place a write really does sit between two reads.**
+Only 15% of its `meterEffects` asks fall between consecutive `assignCitizens`
+calls — the loop alternates a write and a read per town. But the *values* are
+unchanged 97.9% of the time, which says the write is idempotent turn to turn, and
+that is why `assignCitizens` announces **only when the citizens actually moved**
+(the worked list compared before and after, a string per town).
+
+**The design question, answered and not acted on**: does a town's reassignment
+depend on an earlier town's in the same sweep? Measured — the same 150-turn game
+played twice in lockstep, once interleaved and once as two passes (assign every
+town, then price every town) — the two boards are **byte-identical for all 150
+turns**. A two-sweep `collectYields` would be a byte-identical restructuring; it
+is not this batch's to make.
+
+### 2 · What was built
+
+- **`beginWrite`/`endWrite` are gone** from `applyCommand` and the phase loop, and
+  with them the `writing` counter and `slateSuspended`. `slateMemo` remembers
+  inside a phase and outside one alike.
+- **The bump moved to the mutation.** 89 announcements across 69 functions in
+  `src/sim` now call
+  `bumpEconomy(state)` on the line their write happens — the ground
+  (`claimTile`, `claimAround`, `buildImprovementAt`, `removeImprovementAt`,
+  `pillageAt`, `greatPersonWorkAt`, `plantHolySiteAt`), the towns (`createCity`,
+  `foundCityAt`, `razeCityAt`, `handOverCity`, `annexCityAt`, `settleGrowth`,
+  `settlePopulationWindfall`, `growCities`, `realiseItem`, `placeRelicAt`,
+  `assignCitizens` conditionally), the law (`settleResearch`, `slotOrderAt`,
+  `adoptGovernmentAt`, `settleBeliefChoice`, `foundReligion`, `renameReligionAt`,
+  `stampRite`, `clearCityRite`, the rite broom, `spendGreatPerson`,
+  `revokeLegacies`, `stampTimed`, `payWindfallGrants`, `awardBead`,
+  `claimWonder`, the three deal writers, `applyEndTurn`'s own `state.turn`), the
+  banks (every writer of `gold`/`faithPool`/`sciencePool`/`culturePool`), the
+  camps, the **sight** (`recomputeVisibility`, because a card may count the
+  camps an empire can *see*) and **the pieces** (see the correction below).
+- **The announcement goes after the write, always.** An announcement one line
+  early is an answer taken again one line too early: `advanceAlongPath` writes
+  the piece's hex and then calls `arriveOnTile`, which asks the meters, so the
+  bump sits between the two.
+- **`noteEconomyWrite` retires.** The two seams it existed for say the plainer
+  thing: `revokeLegacies` announces its own mark, and a road worn under a caravan
+  needs no announcement at all — no economy-clock walk folds `Tile.road`, and the
+  `readEmpire` reading that does is on the revision clock the command bumps
+  anyway.
+- **`test/sim/slateRegister.test.ts`** (core, source-reading) — the register. It
+  sweeps `src/sim` for every write to a field a tenant folds and fails unless the
+  enclosing function announces or is excused **by name with a reason**. 27 field
+  patterns, 69 announcing functions, 18 excused rows. The excuses are of exactly
+  three kinds: a write to something that is not the board (a report, a payout
+  descriptor, an accumulator), a write to a field no economy-clock tenant folds
+  (a unit's own timed effects, a path cell), and a helper deliberately free of
+  the state whose callers announce (`convertCitizen`, `unconvertCitizen`,
+  `shrinkFollowers`, `unslotOrderAt`, `settleDoctrineChoice` — each naming its
+  callers). It also pins the argument the field list rests on: the three
+  `readings.ts` tenants are unreachable from `src/sim` (the one importer,
+  `cardImpact.ts`, is imported by nothing in `src/sim`), so they are asked only
+  at rest.
+- **Shadow mode** (`setSlateShadow`, `src/sim/slate.ts`): every **hit** also
+  computes fresh and asserts deep equality, throwing with the bucket, key, clock,
+  turn and phase. Off by default, never in data, kept for the next batch that
+  touches the reducer. A phase name is threaded through `setSlatePhase`, which the
+  phase loop sets and clears. The runner is
+  `test/vitest.shadow.config.ts` + `test/slateShadow.ts`, two files whose whole
+  content is "the ordinary configuration, plus one setup file".
+
+### 3 · What the shadow run found — two rows of M2's table were wrong
+
+Both are **pre-existing** defects that M2 introduced and M3's proof surfaced.
+Neither was visible before, because a stale reading is *deterministic*: the same
+game replays to the same stale board, so every byte-for-byte pin still passed.
+
+1. **A garrison is happiness.** M2 put `meterEffects` on a clock a march cannot
+   move, on the claim that `meters.ts` never opens `state.units`. It does not —
+   but the card evaluator it folds does: **The Long Watch** pays "+1 happiness for
+   each unit standing in one of your cities" (`pays`, `where: 'empire'`,
+   `count: 'garrison'`). Found at turn 117 of a bot game, a bought spearman
+   moving the count 8 → 9. Fixed at the seams: `createUnit`, `removeUnit`,
+   `captureUnit`, `advanceAlongPath`, the melee advance and the two teleports all
+   announce.
+2. **A bank is happiness.** **Pilgrim Roads** pays "+1 happiness for each 50
+   banked faith" (`count: 'bankedFaith'`; `bankedGold` is its twin). Found at
+   turn 110, inside `collectYields`' own banking loop — the phase banks a town's
+   faith and then prices the next town against the meters it just moved. Every
+   writer of the four banks announces.
+
+Also found: `visibleCamps` reads `state.camps` and the seat's fog, and
+`workedHills` reads a town's worked list — all three now in the register.
+
+**Seven benches were writing without announcing** (M1 fixed eight of the same kind;
+the contract is `GameState.revision`'s): a ghost town pushed onto `state.cities`
+(`aiPersona`, `aiAppraisal`, `statecraft`), a resource dropped onto a tile
+(`aiWants`, `trade`), a technology handed over by hand (`cities`), and a town
+grown by hand (`aiWants`). Each now calls `bumpRevision`.
+
+### 4 · The shadow run
+
+`TEST_TIER=all npx vitest run --config test/vitest.shadow.config.ts` — the
+ordinary configuration plus one setup file (`test/slateShadow.ts`), deliberately
+**not** wired into `vite.config.ts` because the check roughly doubles the cost of
+every reading.
+
+**5,722 tests in 211 files, all green** — the whole core tier, the whole slow
+tier, every bot arena, every byte-for-byte replay and every save round-trip, with
+every slate hit disbelieved and recomputed. It costs 409 s wall, which is the
+price of the proof and the reason it is not the default.
+
+The two `topBarCost.test.ts` sweep-count claims switch the shadow off around
+their measurement and restore it, because a count taken with it on measures the
+check rather than the hoist.
+
+### 5 · The measurements
+
+The switch was `setSlateLegacyWindow`, a temporary that restored M2's suspension
+window inside the same process — so both arms play on **this** tree and the only
+difference is whether the slate is allowed to remember inside a handler and a
+phase. It is deleted, along with the slate's counters and every probe, now that
+the figures are written down here.
+
+**Only the alternation is trustworthy here.** The same 150 turns of seed 20260903
+measured 103 ms/turn during the ceiling probe and 185 ms/turn during the
+measurement below, on the same machine hours apart — so an arm is only ever
+compared against the arm interleaved with it, best-of-three, exactly as M1 and M2
+did and for the same reason.
+
+**1 · Whole games**, duel, two seats, the wild, 150 turns, stepper, three rounds
+a seed alternating, the fastest of each kept.
+
+| seed | | mean ms/turn | t0–50 | t50–100 | t100–150 |
+|---|---|---|---|---|---|
+| 20260903 | before | 193.5 | 44.1 | 149.9 | 386.4 |
+| 20260903 | **after** | **184.6** | 42.2 | 143.2 | **368.5** |
+| 4242 | before | 321.4 | 36.0 | 571.1 | 357.0 |
+| 4242 | **after** | **316.9** | 34.8 | 567.7 | **348.2** |
+
+**One state hash per seed across all six runs** (`f1ff810c`, `c41b1148`): the
+games are identical, and every band is faster in both.
+
+**2 · One identical board**, X2's method: the board played to a fixed turn, then
+ten `nextBotDecision` of that same state a block, eight blocks each way,
+alternating.
+
+| board | before (min · median) | after |
+|---|---|---|
+| 20260903 t75, 3 towns | 319.5 · 324.0 | 311.2 · 324.2 |
+| 20260903 t150, 3 towns | 1110.6 · 1146.4 | 1108.9 · **1121.7** |
+| 4242 t75, 3 towns | 4.3 · 4.4 | 4.3 · 4.4 |
+| 4242 t150, 6 towns | 2604.4 · 2628.6 | 2586.3 · 2621.0 |
+
+Parity, and it is the *expected* answer rather than a disappointment: a block of
+decisions dispatches no command, so nothing in it ever opened a window. M2's own
+section says the same about the same measurement. The board is asserted unchanged
+across all sixteen blocks.
+
+**3 · The slate's own counters**, one 150-turn game of seed 20260903, both arms.
+
+| | hits | misses | **asked while suspended** |
+|---|---|---|---|
+| before | 514,442 | 8,869 | **57,242** |
+| after | 548,390 | 14,595 | **0** |
+
+That is the batch in one table: **57,242 forced walks a game become nought**, at
+the cost of 5,726 extra misses — the price of announcing at the write rather than
+at the end of a command, and a fifth of what it buys. Per bucket, the suspended
+asks that disappear are `holdings:luxury` 51,814 and `meterEffects` 5,428.
+
+**4 · The t100 probe.** Eight seeds 1/2/3/42/101/999/31337/20260101, standard map,
+two balanced seats, the wild, stepper to t100, mean of sixteen seats.
+
+| | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness | ms/turn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| before | 6.3125 | 44.8750 | 141.0687 | 75.7275 | 54.8875 | 64.5094 | 71.0641 | 18.1875 | 326.0556 | 22.8750 | 0.8376 | 275.1 |
+| **after** | 6.3125 | 44.8750 | 141.0687 | 75.7275 | 54.8875 | 64.5094 | 71.0641 | 18.1875 | 326.0556 | 22.8750 | 0.8376 | **259.3** |
+
+**Every column equal to four decimals and all eight state hashes identical**
+(`f3a5a50e 9ef3c319 e976b994 edb2d33b 44915512 fae97bd3 23d558a5 6fb9224e`, both
+arms) — the same eight games, played **5.7% faster**.
+
+**5 · The core tier's own clock.** `npx vitest run test/sim`, once each way on the
+same machine with three workers: **83.0 s → 82.8 s** wall (the reported test time
+232.4 → 232.1 s), 3,031 tests either way. Parity, and the honest reading is that
+the tier is not where this batch pays: its benches ask at rest, where M1 already
+answered, and the two files that play a long game are in the slow tier.
+
+**Why the whole-game win is smaller than the 8% ceiling.** Because the
+corrections spend part of it. The ceiling was measured against a register that
+did not yet know a march or a banked coin moves the meters; now a step announces,
+and so does every coin `collectYields` banks in its second loop, so the answers
+that loop wanted are thrown away between towns. What is left is the price loop
+and the two other phases — 2 to 6% of a game, measured — and the honest way to
+read it is the counters, which are not machine-dependent: 57,242 forced walks
+become nought, and 5,726 extra misses is what they cost.
+
+**And a third clock is where the rest of it is.** The two walks share one half,
+so an announcement for either throws both away — a banked coin takes the holdings
+walk with it, though no coin can change the ground. Splitting the economy half
+into "the ground" and "the empire's own facts" is the next batch's if anybody
+wants the remaining few per cent; it is not this one's.
+
+### Pins
+
+- **`test/sim/slateRegister.test.ts`** (new, core): seven claims — the sweep
+  finds writes at all and covers every field pattern; every write is announced or
+  excused; every announcing function still announces; every excused row still
+  points at a write that exists; every excused row carries a reason; the three
+  `readings.ts` tenants are out of the reducer's reach (and `cardImpact.ts`, the
+  one importer, is out of `src/sim`'s); and the slate still exports the two
+  switches this batch added.
+- **`test/sim/readings.test.ts`**: the two window claims are replaced by M3's —
+  a reading taken inside a phase is *remembered*, and a write throws it away on
+  the line it happens (`claimTile`) — plus two shadow-mode claims: a whole
+  resolution agrees with itself, and a field poked by hand is caught. The M2 pin
+  "stands still on a command that only moves a piece" becomes "keeps the ground
+  still when a piece steps, and moves the meters with it", which is the
+  correction stated as a test. The per-phase clock claim is now a floor for the
+  economy clock and an equality for the revision.
+- **`test/ui/topBarCost.test.ts`**: the two sweep-count claims switch the shadow
+  off around their measurement (and restore it), because the check doubles the
+  very thing they count.
+- Seven benches announce their hand mutations (`aiAppraisal`, `aiPersona`,
+  `aiWants` ×2, `cities`, `statecraft`, `trade`).
+
+Unchanged and green: `verbs.test.ts` (still exactly three `read…`, all in
+`readings.ts`), `moduleCycles.test.ts`, `saves.test.ts`, `yieldsDocSync.test.ts`,
+and the whole of `test/sim`, `test/ui`, `test/render` and `test/mapgen`.

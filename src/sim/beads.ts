@@ -127,6 +127,7 @@ import {
 import { settleResearchWindfall } from './tech';
 import { BUILDING_UNLOCK_TECH, highestAge, isTechId, techDef, techsGrant } from './techData';
 import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
+import { bumpEconomy } from './slate';
 
 /**
  * What one bead award did, for the line the interface announces it in.
@@ -221,6 +222,11 @@ export function awardBead(
   state.beads.claimed.push({ id, age, playerId: player.id, turn: state.turn });
   const earned: EarnedBead = { id, kind, family: def.family, turn: state.turn };
   player.beads.push(earned);
+  // **A bead's cap is `liveEffects`' ninth source** (batch M3, `slate.ts`) —
+  // a permanent step in contentment or in authority capacity, read off
+  // `Player.beads` every time rather than settled when it was earned. So the
+  // roll is a write the meters fold, announced where the row lands.
+  bumpEconomy(state);
 
   const boon = 'boon' in def && def.boon !== undefined ? payBoon(state, player, def.boon) : [];
   return {
@@ -761,16 +767,23 @@ function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): 
   switch (windfall.yield) {
     case 'gold':
       player.gold += amount;
+      // **The banks are a line of the meters too** (batch M3, `slate.ts`): a
+      // card may pay contentment for each 50 banked faith or each 100 gold, so
+      // a treasury that moved is an empire whose happiness may have moved.
+      bumpEconomy(state);
       return true;
     case 'faith':
       player.faithPool += amount;
+      bumpEconomy(state);
       return true;
     case 'science':
       player.sciencePool += amount;
+      bumpEconomy(state);
       settleResearchWindfall(state, player);
       return true;
     case 'culture':
       player.culturePool += amount;
+      bumpEconomy(state);
       settleCultureWindfall(state, player);
       return true;
     case 'renown':

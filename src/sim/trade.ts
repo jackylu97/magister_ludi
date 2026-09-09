@@ -171,6 +171,7 @@ import { fullMovement } from './units';
 // file imports what it still uses and **re-exports the rest**, so a screen that
 // reads a route and the ledger together still has one import site for trade.
 import { routeCities, routeIsLive } from './routeYields';
+import { bumpEconomy } from './slate';
 
 export {
   type RouteYieldLine,
@@ -1028,6 +1029,8 @@ export function settleTraderPlunder(
   const payout = windfallPayout(state, playerId, 'pillageTrader', bounty.gold);
   plunder.gold = payout.amount;
   player.gold += plunder.gold;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
 
   const city = nearestOwnedCity(state, playerId, at);
   if (!city) {

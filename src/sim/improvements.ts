@@ -122,6 +122,7 @@ import {
 import { isExplorer, unitDef, unitMaxHp } from './unitData';
 import { greatPersonDef, isGreatPersonId } from './greatPeopleData';
 import { hasFreshWater } from './water';
+import { bumpEconomy } from './slate';
 
 const IMPROVEMENTS = RULES.improvements;
 
@@ -615,6 +616,12 @@ export function buildImprovementAt(
   improvementId: ImprovementId,
 ): boolean {
   tile.improvement = improvementId;
+  // **The seam the spade opened** (batch M3, `slate.ts`): an improvement is one
+  // of `openedResource`'s clauses, so what the empire holds — and the happiness
+  // a unique luxury pays — is not what it was on the line above. Announced at
+  // the write, beside the tile refresh that answers the same question for the
+  // town's own panel.
+  bumpEconomy(state);
   refreshTileDerived(state, tile);
   unit.movesLeft = 0;
   const left = chargesLeft(unit) - improvementDef(improvementId).chargeCost;
@@ -746,6 +753,9 @@ export function removeImprovementError(state: GameState, unitId: number): string
  */
 export function removeImprovementAt(state: GameState, unit: Unit, tile: Tile): void {
   delete tile.improvement;
+  // `buildImprovementAt`'s announcement, the other way round: bare ground holds
+  // no seam (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshTileDerived(state, tile);
   unit.movesLeft = 0;
 }
@@ -1253,6 +1263,8 @@ export function prospectAt(state: GameState, unit: Unit, tile: Tile): ProspectRe
       report.gold = payout.amount;
       report.cityName = city.name;
       player.gold += report.gold;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
     } else {
       // Nowhere to carry the samples. Said out loud rather than banked into
       // nothing — `settleCampBounty`'s ruling, and for its reason.
@@ -1450,6 +1462,9 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // next caravan to inherit a highway nobody pays for — and `layRoad` never
   // clears it, because `layRoad` never touches a hex that already has a road.
   delete tile.roadFree;
+  // A burnt plantation is a luxury the empire no longer holds — the same write
+  // `buildImprovementAt` announces, made by a raider (batch M3, `slate.ts`).
+  bumpEconomy(state);
   refreshTileDerived(state, tile);
   // Tyranny's `freePillage`, and the one place the raid's single point is
   // spent — so a law that says pillaging costs no movement is one clause read
@@ -1478,6 +1493,8 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   } else {
     report.gold = payout.amount;
     player.gold += payout.amount;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
     payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
     settleCultureWindfall(state, player);
   }

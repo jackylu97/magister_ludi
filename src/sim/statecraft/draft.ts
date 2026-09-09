@@ -55,6 +55,7 @@ import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
 import { effectsOfKind } from './evaluator';
+import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
 
@@ -996,6 +997,8 @@ export function settleDraft(state: GameState, player: Player): DraftCompletion |
   if (!plan) return null;
 
   player.culturePool = plan.overflow;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
   sc.drafts = plan.tier;
   const offer = drawOrderOffer(state, player);
   sc.pendingOrder = offer;
@@ -1273,6 +1276,12 @@ export function slotOrderAt(
     sealedUntil: state.turn + sealTurnsFor(state, player.id),
   };
   player.statecraft.slots[slotIndex] = slot;
+  // **A slotted Order is the third source of `liveEffects`** (batch M3,
+  // `slate.ts`), and the meters fold that walk — so the empire's contentment and
+  // its writ are not what they were on the line above. The law's own memo is
+  // dropped by the reducer beside this call (`forgetTheLaw`); this is the same
+  // sentence said to the slate.
+  bumpEconomy(state);
   // **The once-per-game grant, claimed here and settled by the caller.** Here,
   // because this is the one place a card goes into a slot and a flag written
   // anywhere else is a flag some future slotting path forgets; settled by the
@@ -1424,6 +1433,10 @@ export function adoptGovernmentAt(
     if (slot) amnestied.push(slot.card);
   }
   sc.government = id;
+  // A government is the first source of `liveEffects` and the amnesty below
+  // empties every slot — two writes the meters fold, announced together (batch
+  // M3, `slate.ts`).
+  bumpEconomy(state);
   // Rebuilt rather than resized: the new layout's slot 2 is not the old one's,
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.

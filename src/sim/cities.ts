@@ -106,7 +106,7 @@ import { governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
-import { slateMemo } from './slate';
+import { bumpEconomy, slateMemo } from './slate';
 import { anyBeadDef } from './beadData';
 // The great-person draft a completion grant opens. This module and
 // `greatPeople.ts` already sit on one runtime cycle (`cities` → `beads` →
@@ -793,6 +793,11 @@ export function claimTile(state: GameState, city: City, tile: Tile): boolean {
   const index = tileIndex(state.map, tile.col, tile.row);
   if (state.tileOwner[index] !== null) return false;
   state.tileOwner[index] = city.id;
+  // **The ground moved** (batch M3, `slate.ts`): `controlledHoldings` is a walk
+  // of exactly this array, so a hex claimed inside `expandBorders` changes what
+  // the empire holds while the phase is still running. Announced on the line
+  // that claims it, and only when the claim went through.
+  bumpEconomy(state);
   return true;
 }
 
@@ -873,6 +878,13 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
   for (const building of rider.buildings) {
     if (!city.buildings.includes(building)) city.buildings.push(building);
   }
+  // **A town is the biggest write there is** (batch M3, `slate.ts`): the centre
+  // hex, the ring around it, the citizens, the founding rider's stones. Every
+  // one of them is folded by a meter or by the holdings walk, and the settler's
+  // own command reads them again before it returns. Announced once, here, for
+  // the whole of what founding does — the two writes above are the ones no other
+  // seam covers, and `createCity` and `claimTile` announce their own.
+  bumpEconomy(state);
   if (rider.roads) layFoundingRoad(state, city);
   // A new city is working from the moment it exists, not from the end of the
   // turn: the panel opens on a city that is already doing something, and the
@@ -1236,6 +1248,20 @@ export function workableSeats(state: GameState, city: City): number {
  * deficit rather than abandoning the whole arrangement.
  */
 export function assignCitizens(state: GameState, city: City): void {
+  // **Announced only when the citizens actually moved** (batch M3, `slate.ts`).
+  //
+  // A worked hex is a field an empire-wide reading can fold — a card paying per
+  // worked mine counts them — so a reassignment has to move the economy clock or
+  // the next town in the sweep would be priced against the empire this one used
+  // to be in. But `collectYields` calls this on **every** town every turn, and
+  // the overwhelmingly common outcome is the same citizens on the same hexes, so
+  // announcing unconditionally would throw the empire's happiness away once a
+  // town for nothing. The list is short and sorted by tile index by
+  // `writeAssignment`, so the comparison is exact and costs a string.
+  //
+  // Any other helper whose write is idempotent turn to turn keeps the same
+  // discipline; this is the one the profile named.
+  const before = assignmentPrint(city);
   const balanced = CITIES.citizenWeights;
   writeAssignment(state, city, chooseCitizens(state, city, balanced));
   const lean = citizenLean(city);
@@ -1254,6 +1280,19 @@ export function assignCitizens(state: GameState, city: City): void {
     }
   }
   if (city.avoidGrowth === true) capFoodSurplus(state, city, weights);
+  if (assignmentPrint(city) !== before) bumpEconomy(state);
+}
+
+/**
+ * One town's worked list as a string, for the comparison above and nothing else.
+ *
+ * Sorted by tile index before it is stored (`writeAssignment`), so two prints
+ * are equal exactly when the same citizens stand on the same hexes.
+ */
+function assignmentPrint(city: City): string {
+  let print = '';
+  for (const seat of city.workedTiles) print += `${seat.col},${seat.row};`;
+  return print;
 }
 
 /**
@@ -2494,6 +2533,12 @@ export function settleGrowth(state: GameState, city: City): GrowthCompletion | n
   if (!plan) return null;
   city.foodBasket -= plan.cost;
   city.population = plan.population;
+  // **A mouth is a happiness cost** (batch M3, `slate.ts`): `explainHappiness`
+  // charges every town's population, so a citizen born mid-phase changes what
+  // the empire's meters say before the next town in the sweep is priced.
+  // Announced on the line the citizen arrives on, which is what makes the rider
+  // below read the empire it is actually paying into.
+  bumpEconomy(state);
   payGrowthRider(state, city);
   return { city, population: plan.population };
 }
@@ -2585,6 +2630,9 @@ export function settlePopulationWindfall(
   const grant = Math.max(0, Math.floor(points));
   if (grant === 0) return city.population;
   city.population += grant;
+  // `settleGrowth`'s line, for a citizen that arrived by grant rather than by
+  // harvest — the meters charge for it either way (batch M3, `slate.ts`).
+  bumpEconomy(state);
   for (let i = 0; i < grant; i++) payGrowthRider(state, city);
   settleProductionWindfall(state, city);
   refreshCityDerived(state, city);
@@ -2641,6 +2689,12 @@ export function growCities(state: GameState, report?: TurnReport): void {
       city.population = Math.max(1, city.population - 1);
       city.foodBasket = 0;
       const shrank = city.population < before;
+      // **A famine is a write the meters fold** (batch M3, `slate.ts`): one
+      // fewer mouth to charge, and one fewer follower below — and `cityReligion`
+      // is a majority of the population, so a town can change faith on this
+      // line. Announced here rather than at the phase's end, because the sweep
+      // prices the towns after this one.
+      if (shrank) bumpEconomy(state);
       // **A famine takes a believer too.** The congregations are counts of
       // citizens (`City.followers`), so a town that loses a mouth and kept every
       // count would end up with more followers than people — and `cityReligion`
@@ -3054,6 +3108,8 @@ function payProject(state: GameState, playerId: number, id: ProjectId): void {
   const culture = (pays.culture ?? 0) + (extra.culture ?? 0);
   if (culture !== 0) {
     player.culturePool += culture;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
     // The basket, settled the instant it fills — see the docblock. A draft dealt
     // here reaches the same turn's `statecraft` phase, because `advanceProduction`
     // runs before it.
@@ -3299,6 +3355,13 @@ export function realiseItem(
     // lines below the push that put it on the board. `forgetTheLaw`'s docblock
     // is the register of every seam that does this, and it has one entry.
     forgetTheLaw(state);
+    // **And the meters with it** (batch M3, `slate.ts`): a building is a line of
+    // `explainHappiness` (`buildingHappiness`) and a wonder is a source of the
+    // law the same walk folds, so the empire whose contentment was remembered a
+    // moment ago is not this one. The two announcements are the same sentence
+    // said to two memos — the law's, keyed on the revision, and the slate's, on
+    // the economy clock.
+    bumpEconomy(state);
     // The claim, and the race it settles. Here rather than in `settleProduction`
     // because this is the routine that means "the city now has the thing", and
     // a wonder existing *is* the claim — a second path that put a building in a
@@ -3642,7 +3705,11 @@ function payCompletionGrants(
       // The pool is topped up to exactly what the node costs and the ordinary
       // completion routine spends it, so the overflow, the era check, the
       // upgrade sweep and the Lyceum's rider all happen once and in one place.
-      if (plan.missing > 0) player.sciencePool += plan.missing;
+      if (plan.missing > 0) {
+    player.sciencePool += plan.missing;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
+  }
       const done = settleResearchWindfall(state, player);
       reports.push({
         grant: 'tech',
@@ -3843,7 +3910,11 @@ function refundBeatenWonders(
     const gold = hammers * rate;
     if (index === 0) city.hammerBasket -= hammers;
     const player = playerById(state, city.ownerId);
-    if (player) player.gold += gold;
+    if (player) {
+      player.gold += gold;
+      // The banks are a line of the meters too — see `collectYields` (batch M3).
+      bumpEconomy(state);
+    }
     refunds.push({ building, cityId: city.id, playerId: city.ownerId, hammers, gold });
   }
   return refunds;
@@ -4576,6 +4647,8 @@ export function purchaseTileAt(state: GameState, city: City, tile: Tile): void {
   const price = tilePurchasePrice(state, player.id, city.id, { col: tile.col, row: tile.row });
   claimTile(state, city, tile);
   player.gold -= price;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
   player.tilesPurchased += 1;
   // Chartered Companies' survey. A rider on an occasion that has no figure of
   // its own, so the base is zero and only the grants are read.

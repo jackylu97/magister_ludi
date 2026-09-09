@@ -97,6 +97,7 @@ import {
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
 import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { bumpEconomy } from './slate';
 
 /** The banks a thing may be priced in. */
 export type PurchaseCurrency = 'faith' | 'gold';
@@ -767,6 +768,8 @@ export function purchaseItemAt(
   if (price.currency === 'faith') player.faithPool -= price.total;
   else {
     player.gold -= price.total;
+  // The banks are a line of the meters too — see `collectYields` (batch M3).
+  bumpEconomy(state);
     // **The almoner's ledger** — the coin itself, not one purchase (see
     // `TallyOccasion`'s `goldSpent`). Written where the money leaves, which is
     // the only place the *figure* is in hand, and only for gold: a card that
@@ -1041,6 +1044,8 @@ export function contributeAt(
   const offer = explainContribution(state, player.id, city.id, currency)!;
   if (currency === 'faith') player.faithPool -= offer.spend;
   else player.gold -= offer.spend;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
   city.hammerBasket += offer.hammers;
   return settleProductionWindfall(state, city);
 }

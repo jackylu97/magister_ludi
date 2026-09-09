@@ -42,6 +42,7 @@ import { disbandCandidate } from '../upkeep';
 import { type CityYields, assignCitizens, borderGrowth, emptyCityYields, growthSurplus } from '../cities';
 import { foldStageSums } from './stages';
 import { type EmpirePercents, empirePercents, explainCity, foldCity } from './town';
+import { bumpEconomy } from '../slate';
 
 // --- turn phases ------------------------------------------------------------
 
@@ -135,6 +136,12 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     // The faithful gather, and augurs are what they gather for — see
     // `Player.faithPool` and `explainPurchaseCost`.
     player.faithPool += yields.faith;
+    // **The banks are a line of the meters too** (batch M3, `slate.ts`): a card
+    // may pay contentment "for each 50 banked faith" or "for each 100 gold"
+    // (`count: 'bankedFaith'`, `'bankedGold'`), so a treasury that moved is an
+    // empire whose happiness may have moved with it. The shadow run found this
+    // one on turn 110 of a bot game, in `collectYields`' own banking loop.
+    bumpEconomy(state);
     // **What the caravans carried**, counted once a turn for the Richest Roads
     // reckoning (design ledger Entry VI). Counted *here* and nowhere else,
     // because this is the one place a route's yields are banked rather than
@@ -173,6 +180,8 @@ export function collectYields(state: GameState, report?: TurnReport): void {
     player.sciencePool += empire.science;
     player.culturePool += empire.culture;
     player.faithPool += empire.faith;
+    // The banks are a line of the meters too — see `collectYields` (batch M3).
+    bumpEconomy(state);
     // **What the caravans carried**, counted here for the reason the city loop
     // counts its own: this is the one place these figures are *banked* rather
     // than previewed. The route lines' own figures, before the stage — a

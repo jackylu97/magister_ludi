@@ -3471,8 +3471,11 @@ describe('the reveal gate, in a city', () => {
     const { state, city } = seamCity();
     const before = foldCity(state, city);
     state.players[0]!.techsResearched = ['bronzePanoply']; // iron's reveal moved 2026-09-04
-    const after = foldCity(state, city);
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
     bumpRevision(state);
+    const after = foldCity(state, city);
 
     const line = resourceYield('iron');
     for (const key of TILE_YIELD_KEYS) {

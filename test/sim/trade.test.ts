@@ -995,11 +995,17 @@ describe('a road', () => {
     // A town standing on a seam controls it (`openedResource`'s city clause), so
     // one luxury under each centre is two goods on the road.
     at(state, 4, 4).resource = 'wine';
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(state);
     expect(gold()).toBe(bare + 1);
     at(state, 14, 4).resource = 'silk';
+    bumpRevision(state);
     expect(gold()).toBe(bare + 2);
     // The same good at both ends is still one good.
     at(state, 14, 4).resource = 'wine';
+    bumpRevision(state);
     expect(gold()).toBe(bare + 1);
   });
 

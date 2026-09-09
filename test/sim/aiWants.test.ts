@@ -1674,6 +1674,10 @@ describe('batch 8 — the caravan and the route it would run', () => {
       city.population += 8;
       refreshCityDerived(state, city);
     }
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(state);
     const richer = explainCaravan(valueContext(state, player))!;
     expect(richer.total).toBeGreaterThan(before);
   });
@@ -1905,6 +1909,7 @@ describe('batch 8 — the hexes a town would buy', () => {
     const { state, player, city, offers } = frontier();
     const seam = offers[1]!;
     getTileAt(state.map, seam.col, seam.row)!.resource = SILK;
+    bumpRevision(state);
     expect(JSON.stringify(wantAt(state, player, seam).terms)).toContain('owns no copy of');
 
     // One copy inside the borders, unimproved, unworked, unrevealed by anything.
@@ -1914,6 +1919,10 @@ describe('batch 8 — the hexes a town would buy', () => {
         tile.resource === undefined,
     )!;
     owned.resource = SILK;
+    // A bench that pokes the board by hand is a writer and says so — the
+    // contract on `GameState.revision` since batch E2, and the thing batch M3's
+    // shadow run is able to catch (`src/sim/slate.ts`).
+    bumpRevision(state);
     expect(hasResource(state, player.id, SILK)).toBe(false);
     expect(realmResources(state, player.id).has(SILK)).toBe(true);
     // The seam was the whole of what that hex was worth on this bench, so with

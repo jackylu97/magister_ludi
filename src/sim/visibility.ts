@@ -57,6 +57,7 @@ import { type GameMap, type Tile, getTileAt, mapRange, tileHex, tileIndex } from
 import { RULES } from './rulesData';
 import type { City, GameState, Unit } from './state';
 import { UNIT_TYPE_IDS, unitDef } from './unitData';
+import { bumpEconomy } from './slate';
 
 const VIS = RULES.visibility;
 const CITIES = RULES.cities;
@@ -342,6 +343,12 @@ export function recomputeVisibility(state: GameState, playerId: number): Visibil
 
   updateCitySightings(state, playerId, lit);
   recordMeetings(state, playerId, lit);
+  // **What an empire can see is a line of its meters** (batch M3, `slate.ts`):
+  // a card may pay contentment for each barbarian camp this empire has *sight*
+  // of (`count: 'visibleCamps'`), so the fog is a field an empire walk folds.
+  // Announced at the one place a grid is written, which every seam that moves a
+  // piece or founds a town already calls.
+  bumpEconomy(state);
   return { became, sources: sources.length, touched };
 }
 

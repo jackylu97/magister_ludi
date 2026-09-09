@@ -46,6 +46,7 @@ import type { Cell } from './pathfind';
 import { RULES } from './rulesData';
 import { type BarbarianCamp, type GameState, playerById } from './state';
 import type { UnitTypeId } from './unitData';
+import { bumpEconomy } from './slate';
 
 const BARB = RULES.barbarians;
 
@@ -73,6 +74,8 @@ export function removeCampAt(state: GameState, col: number, row: number): boolea
   const index = state.camps.findIndex((camp) => camp.col === col && camp.row === row);
   if (index < 0) return false;
   state.camps.splice(index, 1);
+  // `barbarians.ts`' announcement, the other way round (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return true;
 }
 
@@ -143,6 +146,8 @@ export function settleCampBounty(
   bounty.gold = payout.amount;
   bounty.lines = payout.lines;
   player.gold += bounty.gold;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
 
   const city = nearestOwnedCity(state, playerId, at);
   if (!city) {

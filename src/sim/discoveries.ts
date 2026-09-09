@@ -91,6 +91,7 @@ import { hasTech, researchSettledBy, settleResearchWindfall } from './tech';
 import { awardOccasion } from './triumphs';
 import { type UnitTypeId, unitDef } from './unitData';
 import { hasStackingRoom } from './units';
+import { bumpEconomy } from './slate';
 
 // --- the draw ---------------------------------------------------------------
 
@@ -455,10 +456,14 @@ function payDiscovery(
 
   if (effect.pool === 'gold') {
     player.gold += effect.amount;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
     return { cityName: null, unitName: null, completed: null, warning: null };
   }
   if (effect.pool === 'science') {
     player.sciencePool += effect.amount;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
     const learnt = settleResearchWindfall(state, player);
     return {
       cityName: null,
@@ -473,6 +478,8 @@ function payDiscovery(
   // completion routine (Entry XVIII's fourth bucket, same three shapes).
   if (effect.pool === 'culture') {
     player.culturePool += effect.amount;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
     const drafted = settleCultureWindfall(state, player);
     return {
       cityName: null,
@@ -483,6 +490,8 @@ function payDiscovery(
   }
   // Straight into the bank an augur is priced against (see `Player.faithPool`).
   player.faithPool += effect.amount;
+  // The banks are a line of the meters too (batch M3, `slate.ts`).
+  bumpEconomy(state);
   return { cityName: null, unitName: null, completed: null, warning: null };
 }
 

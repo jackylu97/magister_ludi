@@ -67,6 +67,7 @@ import type { GameState, Unit } from './state';
 // be a second evaluator of a card.
 import { cardLandfallEffects, timedEffectIsLive } from './statecraft';
 import { isWaterTerrain } from './terrainData';
+import { bumpEconomy } from './slate';
 
 
 export interface AdvanceResult {
@@ -138,6 +139,12 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     unit.col = tile.col;
     unit.row = tile.row;
     unit.movesLeft = after;
+    // **Where a piece stands is a line of the meters** — The Long Watch's
+    // garrison (batch M3, `slate.ts`, and `createUnit`'s note). *After* the two
+    // writes, which is the register's rule everywhere: an announcement before a
+    // write is an answer taken again one line too early, and `arriveOnTile`
+    // below asks the meters.
+    bumpEconomy(state);
     // A trench is a place, not a posture: the step out of it is the moment it
     // stops counting. Written here rather than in the `moveUnit` handler so it
     // also covers a stored order resumed by `spendLeftoverMovement` — one implementation
