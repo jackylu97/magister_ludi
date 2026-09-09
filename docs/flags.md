@@ -629,7 +629,24 @@ directly to confirm rulings — user marginalia are rulings.
   loaded mid-game forgets — one re-send, accepted. (X5) `explainCitizen`
   charges `happinessDemand` at the live happiness price as a signed line;
   `explainBuildingRow` folds `cityHp` beside `cityStat` through the
-  sim's own `buildingEffects` reading. (eee)
+  sim's own `buildingEffects` reading. **X4 and X5 landed 2026-09-08**
+  (6bea7db · b35bcd3): the paper remembered by the harness at four seams
+  (the local seat's Refuse in `controls.ts` among them — the user's
+  re-sent-paper annoyance), proposals 14 → 2 and 77 → 8; the citizen's
+  keep and the wall's hit points (the Palisade fronts a besieged town's
+  queue where a warrior did). **X5's finding**: `explainCitizen` has one
+  caller, the settler branch, which SUBTRACTS it — so the keep arrived as
+  more expansion (eight-seed sweep: towns 96 → 109, Σ happiness at t150
+  42 → 28, 9 of 16 seats at the ceiling); the growth channel
+  (`growthTerm`, the focus arm; `tileWants`, the hex purchase) is still
+  uncharged. **Ruled, X5b flies**: both charge the marginal keep of the
+  citizen they would add — `happinessDemand(pop+1) − happinessDemand(pop)`
+  at the live price, the same line — read at the town's *current*
+  population so a focus order does not move its own appraisal (a citizen
+  arrives by growth, never by a command); acceptance is the same sweep,
+  Σ happiness at t150 above 42 and ceiling seats at or under 4 of 16,
+  towns not below 96 by more than three. **X8 flies beside it** (the rows
+  nobody reads: a register in the shape of the fold registry). (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
