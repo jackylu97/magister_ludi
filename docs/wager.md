@@ -666,7 +666,11 @@ quests) is **retired** when it lands. Batch **C1**, after G2 (it shares the
 standings reading). Mock of both:
 https://claude.ai/code/artifact/afd3cee0-0ff3-4388-a6c7-3fc3bf9665d0 — the four
 sheets (the deal, the Abacus mid-age, the census, the census won) are the
-spec of record for G2 and C1 once the user marks them.
+spec of record for G2 and C1 — **marked 2026-09-09** ("looks great"): no
+"you stand at" on the deal (every seat is at nought on the deal turn); no
+age-progression line in any masthead (the clock's mechanics are not shown
+to the player — the countdown lives on the top bar's age card only); no
+"flavour" label on the census taker's name.
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 
