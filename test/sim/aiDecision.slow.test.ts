@@ -17,6 +17,14 @@
  *     purchases and the disbands the short file never gets to. `===`, never
  *     `toBeCloseTo`: a breakdown that is only approximately the arithmetic is a
  *     breakdown that will one day disagree about which candidate won.
+ *
+ * **The war half was retired** (the user, 2026-09-09). It played the same
+ * identity claim over a hundred and thirty turns of a persona'd duel map and
+ * was the most expensive single claim in the tier; since batches W1 and B1 the
+ * war it was named for no longer happens on its seed — its own comment said the
+ * two war assertions "are vacuous on a peaceful seed" — so what it actually
+ * asserted was the persona'd identity claim below, on a smaller map.
+ * `docs/audit/test-suite-speed.md` records it.
  */
 
 import { describe, expect, it } from 'vitest';
@@ -107,6 +115,13 @@ function theSteppedGame(): { snapshot: string; log: string; steps: BotStep[] } {
   return stepped;
 }
 
+/**
+ * Rule 5's discipline carried into the bot: a candidate's score is the **fold of
+ * its own labelled terms**, and a term with parts is the fold of those. `===`
+ * rather than `toBeCloseTo`, all the way down — a breakdown that is only
+ * approximately the arithmetic is a breakdown that will one day disagree about
+ * which candidate won, and the spectate page would be printing the disagreement.
+ */
 function partFailures(terms: readonly ValueTerm[], where: string): string[] {
   const failures: string[] = [];
   for (const term of terms) {
@@ -120,12 +135,15 @@ function partFailures(terms: readonly ValueTerm[], where: string): string[] {
   return failures;
 }
 
+/** Every candidate whose score is not the fold of its terms, named for a failure. */
 function foldFailures(candidates: readonly BotCandidate[], where: string): string[] {
   const failures: string[] = [];
   for (const candidate of candidates) {
     const folded = foldTerms(candidate.terms);
     if (folded !== candidate.score) {
-      failures.push(`${where} → "${candidate.label}": terms fold to ${folded}, score is ${candidate.score}`);
+      failures.push(
+        `${where} → "${candidate.label}": terms fold to ${folded}, score is ${candidate.score}`,
+      );
     }
     failures.push(...partFailures(candidate.terms, `${where} → ${candidate.label}`));
   }
@@ -205,87 +223,6 @@ describe('the two loops agree about a persona too', () => {
       }
       expect(failures).toEqual([]);
       expect(steps.length).toBeGreaterThan(200);
-    },
-    PATIENCE,
-  );
-});
-
-/**
- * **The war pass's own identity pin** (P3).
- *
- * The two loops agreeing about a persona is asserted above; this asks the same
- * thing of a game that actually *contains* a war, because the decisions the war
- * policy adds are the ones the two loops had never both walked. Three claims in
- * one game, for the reason every long game in this suite is shared:
- *
- *   · the stepper and the driver reach the same board and write the same log;
- *   · every candidate of every decision folds to its own score, exactly —
- *     including the warscore's six lines, a peace paper's two halves and a
- *     bargain's;
- *   · the feed actually reaches the new kinds, so the arithmetic above is being
- *     asserted about something rather than about an empty list.
- */
-describe('a war is a decision like any other', () => {
-  const WAR_CONFIG: GameConfig = {
-    seed: 20260903,
-    sizeName: 'duel',
-    players: [
-      { name: 'Crimson', color: '#d4502e', persona: 'warmonger' },
-      { name: 'Teal', color: '#1f8a85' },
-    ],
-    barbarians: true,
-  };
-
-  it(
-    'reaches the war kinds, folds their arithmetic, and plays the same game either way',
-    () => {
-      // Past the turn the warmonger's policy actually finds its neighbour on
-      // this seed (t115): a declaration needs a piece of its own within
-      // `war.reachRadius` of a town of theirs, and on a duel map that takes a
-      // while to happen by accident.
-      const turns = 130;
-      const warnings: string[] = [];
-      const driven = createGame(WAR_CONFIG);
-      for (let turn = 0; turn < turns; turn++) {
-        driveBots(driven, { warn: (message) => warnings.push(message) });
-        if (driven.state.winnerId !== null) break;
-      }
-      const walked = createGame(WAR_CONFIG);
-      const stepper = createBotStepper(walked, { warn: (message) => warnings.push(message) });
-      const steps: BotStep[] = [];
-      for (let turn = 0; turn < turns; turn++) {
-        for (const step of stepper.playTurn()) steps.push(step);
-        if (walked.state.winnerId !== null) break;
-      }
-      expect(warnings).toEqual([]);
-      expect(JSON.stringify(walked.log)).toBe(JSON.stringify(driven.log));
-      expect(snapshotState(walked.state)).toBe(snapshotState(driven.state));
-
-      const failures: string[] = [];
-      for (const step of steps) {
-        failures.push(
-          ...foldFailures(step.decision.candidates, `t${step.turn} ${step.decision.kind}/${step.decision.subject}`),
-        );
-      }
-      expect(failures).toEqual([]);
-
-      // **Whether a war is reached is no longer asserted here** (re-aimed
-      // 2026-09-08, after batches W1 and B1). Since the campaign (W1) a
-      // declaration is a conjunction — the ratio, a town in reach, a strike
-      // force with a shooter, and a road, all on one turn — and W1 measured that
-      // on a duel map the four rarely coincide (the warmonger held a force on
-      // 70 of 170 turns and never declared). Seed 20260903 happened to reach one
-      // until B1's rows moved the bots' play; a probe of eight neighbouring
-      // seeds found none that does in 130 turns. That is the ruling working,
-      // and `strikeForce` is the user's dial — so the war kinds are pinned on
-      // an arranged board in `test/sim/aiWar.test.ts` and `aiBot.slow.test.ts`'s
-      // war loop, exactly as `deal` always was. What this free game still
-      // proves is the claim in the describe's name: every war decision that
-      // *is* reached folds and replays; the two assertions below are vacuous
-      // on a peaceful seed and bite the day one fights.
-      const wars = steps.filter((step) => step.decision.kind === 'war');
-      expect(wars.every((step) => step.decision.summary.length > 0)).toBe(true);
-      expect(wars.every((step) => step.result.ok)).toBe(true);
     },
     PATIENCE,
   );

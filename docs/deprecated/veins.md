@@ -64,9 +64,12 @@ deleted after):
 | 20260904 | 681 | 564 | 175 | 135 | 26 | 4 · 2 · 8 |
 
 So a standard board hides **170–200 seams** — about thirty per seat — of
-which a dozen are luxuries. `test/mapgen/veins.slow.test.ts` pins the share,
-the lean toward common rows, and "never on the surface", across seeds and
-sizes.
+which a dozen are luxuries. The sweep that pinned the share, the lean toward
+common rows and "never on the surface" across seeds and sizes was
+`test/mapgen/veins.slow.test.ts`, **retired on 2026-09-09** (the user, the
+test-speed pass): with `veins.share` at 0 two of its three claims asserted the
+shelving rather than the layer. The reader register in `veins.test.ts` stands;
+the sweep comes back with the share (`docs/audit/test-suite-speed.md`).
 
 ### The survey — `prospect`, a worker or scout verb
 
@@ -220,7 +223,7 @@ against a known place and an unknown seam.
 | The compendium | rows → entries; `describeResource` says "found only underground; one in the world" from the markers |
 | `docs/luxuries.md` | eight rows in the table; the sync test pins it |
 | `src/ai/` | `workers.veinValue` → shallow/deep pair; `tileWants` prices a marked hill by depth; the arena panel walks the sheet, no page edit |
-| Tests | `veins.test.ts` (the reader register — unchanged in shape), `veins.slow` (share, lean, surface — plus once-each and the spread), `prospect.test.ts` (the depth gate, the deep refusal sentence, the reveal), `resourceEffects.test.ts` (eight signatures fold), `reveal3d.test.ts` (the second mark) |
+| Tests | `veins.test.ts` (the reader register — unchanged in shape), `veins.slow` (share, lean, surface — plus once-each and the spread; **retired 2026-09-09 while the share is 0**, and to be written again with it), `prospect.test.ts` (the depth gate, the deep refusal sentence, the reveal), `resourceEffects.test.ts` (eight signatures fold), `reveal3d.test.ts` (the second mark) |
 | Schema | the gate moves and depth is read — one bump, rides with the mapgen batch (flags notes 16 and 20) |
 
 ---

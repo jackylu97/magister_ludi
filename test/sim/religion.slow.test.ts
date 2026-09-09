@@ -617,28 +617,24 @@ describe('two faiths and a bomb', () => {
 });
 
 describe('what a god costs a real empire', () => {
-  it('lands the first consecration in the window the design predicted', () => {
+  it('reaches a consecration at all, and spends the bank it took to get there', () => {
     const played = playFaithful(200);
     // eslint-disable-next-line no-console
     console.log(
       `[religion] first consecration on turn ${String(played.firstConsecrationTurn)} — ` +
         `${played.rungsClimbed} rungs climbed, ${played.ritesPerformed} rites performed in 200 turns`,
     );
-    expect(played.firstConsecrationTurn).not.toBeNull();
-    // A **band**, not a memorised number, for `statecraftPacing.test.ts`'s
-    // reason: a curve that got cheaper is as much a regression as one that got
-    // dearer. `docs/religion-v2.md` prices the ladder's first rung at forty
-    // faith and this pious opening reaches Divination — which is what opens the
-    // first pantheon slot — around turn ten, so the window is generous on both
-    // sides and would catch a retune that made faith free or made it
-    // unreachable.
+    // **The turn window was axed** (the user, 2026-09-09: "axe the pacing
+    // claims"). It asserted that this scripted pious empire reached its first
+    // consecration between turns 10 and 75 — a script read as a yardstick for
+    // how fast the faith ladder moves, which is the shape the ruling axed. The
+    // figure is still printed above for whoever is looking.
     //
-    // **Re-aimed 2026-09-06** with the same window the augur's purchase had.
-    // The two prices are deliberately the same number (the ladder "wears the
-    // augur's old price ladder" — `faithLadder.test.ts`), so what moved is the
-    // errand and not the arithmetic, and the band did not have to move with it.
-    expect(played.firstConsecrationTurn!).toBeGreaterThan(10);
-    expect(played.firstConsecrationTurn!).toBeLessThan(75);
+    // What is left is the pair of claims a played game is actually needed for,
+    // and neither names a turn: the ladder is **reachable at all** (a rung that
+    // is correct and unreachable is the regression this file was written for),
+    // and the bank is **spent rather than hoarded**.
+    expect(played.firstConsecrationTurn).not.toBeNull();
     // And the bank is actually *spent* rather than hoarded: a rung climbed is a
     // god held, and the ladder is what turns one into the other.
     expect(playerById(played.game.state, 0)!.pantheon.beliefs.length)

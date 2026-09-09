@@ -1,15 +1,20 @@
 /**
- * The spread of projections `projection.test.ts` and `projection.slow.test.ts`
- * both sweep.
+ * The spread of projections `projection.test.ts` sweeps.
  *
  * Sixty projections — five squashes by four base sizes by three paddings — is
  * the whole point of the file: the projection is arithmetic and the interesting
  * failures are at the degenerate flat view and at the large base size, not in
- * the middle. Most claims cost one call per projection; the round-trip through
- * a hex's interior costs sixteen offsets on each of sixty-four cells on each of
- * the sixty, which is why that one alone is slow-tier and lives in the sibling.
- * The spread lives here because importing a `.test.ts` from a `.test.ts` would
- * re-register its tests.
+ * the middle. Every claim costs one call per projection.
+ *
+ * There used to be a sibling, `projection.slow.test.ts`, carrying the round trip
+ * through a hex's *interior* — sixteen offsets on each of sixty-four cells on
+ * each of the sixty. It was **retired** on 2026-09-09 (the user, the test-speed
+ * pass): the centre round trip kept here is the reading that fails first when
+ * the transform breaks, so the sixty thousand assertions bought a second
+ * warning rather than a first one. `docs/audit/test-suite-speed.md` records it.
+ *
+ * The spread stays in a plain module because importing a `.test.ts` from a
+ * `.test.ts` would re-register its tests.
  */
 import { createProjection } from '../../src/render/projection';
 

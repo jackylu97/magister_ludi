@@ -15,7 +15,12 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { type MapgenOverrides, generateMap } from '../../src/sim/mapgen';
+import { type MapgenOverrides } from '../../src/sim/mapgen';
+// Read-only sweeps, so they come off the directory's memo rather than the
+// generator (`fixtures.ts`): nothing here writes to a board it is handed, and
+// the same standard seeds are asked for by `startStrategics.slow.test.ts` and
+// by the two override sweeps below.
+import { mapFor } from './fixtures';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { isEnclosed, patchSizeByTile, woodLine, woodStats, woodedMask } from './forestHelpers';
 
@@ -51,7 +56,7 @@ function sweep(label: string, overrides?: MapgenOverrides): Averages {
     enclosedShare: 0,
   };
   for (const seed of SEEDS) {
-    const stats = woodStats(generateMap(seed, 'standard', overrides));
+    const stats = woodStats(mapFor(seed, 'standard', overrides));
     rows.push(woodLine(`  seed ${seed}`, stats));
     total.share += stats.share / SEEDS.length;
     total.patches += stats.patches / SEEDS.length;
@@ -101,7 +106,7 @@ describe('the woods, before and after the grain', () => {
     // which must stay in the same band across the sizes rather than growing
     // with the map.
     for (const size of ['duel', 'standard', 'large']) {
-      const stats = woodStats(generateMap(7, size));
+      const stats = woodStats(mapFor(7, size));
       console.log(woodLine(`  ${size}`, stats));
       expect(`${size} mean ${stats.meanPatch.toFixed(1)}`).toBe(
         `${size} mean ${Math.min(Math.max(stats.meanPatch, 2), 12).toFixed(1)}`,
@@ -119,8 +124,8 @@ describe('the clearing rate', () => {
     let offered = 0;
     let opened = 0;
     for (const seed of RATE_SEEDS) {
-      const grained = generateMap(seed, 'standard', { woodland: { clearingChance: 0 } });
-      const shipped = generateMap(seed, 'standard');
+      const grained = mapFor(seed, 'standard', { woodland: { clearingChance: 0 } });
+      const shipped = mapFor(seed, 'standard');
       const wooded = woodedMask(grained);
       // A wood below the floor is never offered, so the floor has to be applied
       // here too or the rate is measured against the wrong denominator.

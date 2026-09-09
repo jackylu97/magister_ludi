@@ -16,7 +16,11 @@ import { chooseStartPositions } from '../../src/sim/startPositions';
 import { mapFor } from './fixtures';
 import { landmassesOf, startsAwayFromHome, strandedLandTiles } from './pangaeaHelpers';
 
-const SEEDS = [1, 2, 3, 5, 7, 11, 13, 17, 23, 29, 42, 99, 101, 555, 777, 888, 1234, 2024, 2468, 31337];
+// Twenty seeds → the first eight (the user, 2026-09-09, the test-speed pass):
+// eight is still a sweep, and this was the mapgen tier's longest file at a fifth
+// the cost. A prefix rather than a chosen subset, so nothing here was picked to
+// make a floor clear.
+const SEEDS = [1, 2, 3, 5, 7, 11, 13, 17];
 
 describe('one continent, on every seed', () => {
   it('gathers most of the land into a single continent, at every size', () => {

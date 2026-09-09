@@ -58,7 +58,7 @@ import {
 } from '../../src/ai/value';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
 import { type Want, expectedBestOrder, hexDoor, savingRows, worthPerCoin } from '../../src/ai/wants';
-import { type Game, createGame, dispatch } from '../../src/sim/game';
+import { type Game, createGame, dispatch, restoreState, snapshotState } from '../../src/sim/game';
 import type { City } from '../../src/sim/state';
 import {
   type EarnedBead,
@@ -162,11 +162,65 @@ const CONFIG: GameConfig = {
  */
 const RIPE = 20;
 
-/** A board with towns, citizens and a queue — the state a book is interesting on. */
+/**
+ * A board with towns, citizens and a queue — the state a book is interesting on.
+ *
+ * **Played once and shared** (2026-09-09, the test-speed pass). Twenty cases in
+ * this file open on a grown board and eleven of them want the same twenty
+ * turns, so the file used to drive something like two hundred and fifty bot
+ * turns to reach five distinct boards. Driving is a pure function of the state,
+ * so the second board at twenty turns is the first one again bought at full
+ * price: one game is played *forward* here and every horizon it passes through
+ * is remembered as a snapshot.
+ *
+ * The contract is `test/mapgen/fixtures.ts`' and it is a sharp one: a caller
+ * gets a **private** copy (a JSON round trip through `restoreState` — the state
+ * is plain data), because half the cases here poke the board they are handed.
+ * The game the memo plays forward is never handed out.
+ *
+ * An unseen horizon *behind* the one already played rewinds to the nearest
+ * remembered board rather than replaying from turn nought, so a case added
+ * later costs the turns nobody has played yet and no more.
+ */
+interface GrownBench {
+  config: GameConfig;
+  state: string;
+  log: string;
+}
+
+const grownBenches = new Map<number, GrownBench>();
+let grownLive: Game | null = null;
+let grownLiveTurns = 0;
+
+function benchOf(game: Game): GrownBench {
+  return { config: game.config, state: snapshotState(game.state), log: JSON.stringify(game.log) };
+}
+
+function copyOf(bench: GrownBench): Game {
+  return {
+    config: JSON.parse(JSON.stringify(bench.config)) as GameConfig,
+    state: restoreState(bench.state),
+    log: JSON.parse(bench.log) as Game['log'],
+  };
+}
+
 function grownGame(turns = 8): Game {
-  const game = createGame(CONFIG);
-  for (let turn = 0; turn < turns; turn++) driveBots(game, { warn: () => {} });
-  return game;
+  const held = grownBenches.get(turns);
+  if (held !== undefined) return copyOf(held);
+  if (grownLive === null || grownLiveTurns > turns) {
+    const nearest = [...grownBenches.entries()]
+      .filter(([at]) => at <= turns)
+      .sort((a, b) => b[0] - a[0])[0];
+    grownLive = nearest === undefined ? createGame(CONFIG) : copyOf(nearest[1]);
+    grownLiveTurns = nearest === undefined ? 0 : nearest[0];
+  }
+  while (grownLiveTurns < turns) {
+    driveBots(grownLive, { warn: () => {} });
+    grownLiveTurns += 1;
+  }
+  const bench = benchOf(grownLive);
+  grownBenches.set(turns, bench);
+  return copyOf(bench);
 }
 
 function seat(state: GameState, id: number): Player {

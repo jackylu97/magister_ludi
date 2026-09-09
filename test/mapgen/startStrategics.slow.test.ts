@@ -17,12 +17,12 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { generateMapDetail } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES } from '../../src/sim/mapgenData';
 import { mapRange, tileHex } from '../../src/sim/map';
 import { resourceDef, tileSuitsResource } from '../../src/sim/resourceData';
 import { chooseStartPositions } from '../../src/sim/startPositions';
 import { RULES } from '../../src/sim/rulesData';
+import { detailFor } from './fixtures';
 
 const SEEDS = [1, 7, 42, 1234, 90210];
 const WANTED = MAPGEN_CONFIG.resources.startStrategics;
@@ -39,7 +39,12 @@ describe('every capital is armed', () => {
       const short: string[] = [];
       const groundless: string[] = [];
       for (const seed of SEEDS) {
-        const detail = generateMapDetail(seed, size);
+        // Through the directory's memo (`fixtures.ts`) rather than straight at
+        // the generator: this file reads its five boards and never writes to
+        // one, and `forests.slow.test.ts` asks for the same five seeds. A fork
+        // keeps its module graph between files (`isolate` is off), so the
+        // second file to ask for a board is handed the first file's.
+        const detail = detailFor(seed, size);
         forced += detail.forcedStrategics;
         const starts = chooseStartPositions(detail.map, RULES.game.maxPlayers);
         for (const start of starts) {

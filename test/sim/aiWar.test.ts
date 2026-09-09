@@ -1010,7 +1010,7 @@ describe('the three tactics', () => {
  * Every board here is arranged for the same reason the boards above are: the
  * claims are about *one decision*, and each of the four is a different sentence
  * that a played game could only demonstrate statistically. The slow tier plays
- * the whole thing (`aiBot.slow.test.ts`, the two-seat war) and measures what
+ * the whole thing (`aiWar.slow.test.ts`, the two-seat war) and measures what
  * arrives.
  */
 describe('the campaign', () => {
