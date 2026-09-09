@@ -1120,7 +1120,13 @@ directly to confirm rulings — user marginalia are rulings.
   had pinned the plate to one zoom is gone; U5/U6's slot and wiring and
   U6's suppression removed; a wounded warrior on the city hex draws its
   roundel and its bar beneath the plate; the gallery stall drives the
-  real renderer and overlay. **V2
+  real renderer and overlay. **U7b, 2026-09-09** (the user: "the city
+  banner seems to be adjusted higher in height than it used to, now it
+  feels awkward"; done by hand, not an agent): the fan term is dropped —
+  `tallestPieceRise` is the tallest single roster row's badge/bar top,
+  no stack climb; the rise is 1.92 (foot rows bar at 1.60, horse 1.78,
+  the standee 1.82, pole 1.15), was 2.445; the pin holds both halves,
+  above the bar and below the bar plus the climb. **V2
   (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
@@ -1283,7 +1289,40 @@ directly to confirm rulings — user marginalia are rulings.
   `currentColor`), on the card and both tables; `readRoutes` skips a
   partner whose centre the seat has not explored (`isExploredBy`, the
   chart not the sight — a remembered town stays a partner); the bot never
-  reads `readRoutes`. (eee)
+  reads `readRoutes`. **R4 — RULED** (the user, 2026-09-09: *"this is a
+  major bug: once a trade route completes, there's no way to re-send it.
+  We need some notion of trade routes that have already been purchased
+  in the trade screen. Sending a trade route should first aim to re-use
+  a route that's already been purchased (an existing trader). Currently,
+  the game still prompts you for orders on a trader unit once the route
+  completes, the new behavior should prompt you to 'send an idle
+  trader' and the send button opts to use an existing trader if one
+  exists, and never ask for orders on a trader unit"*). The ruling:
+  (1) **a bought cart is kept, not spent** — when a route lapses the
+  caravan idles at home as it does today, and the Trade screen counts
+  it: the purse line says how many carts stand idle beside the slots,
+  and an **Idle carts** section (or a line on every card) makes the
+  purchased-and-waiting state visible; (2) **Send re-uses before it
+  buys** — the sheet's Send on any card dispatches `startRoute` with the
+  seat's first idle `routeOnly` cart (by unit id order, deterministic;
+  the reducer's teleport carries it to the origin) and only falls back
+  to `buyRoute` and its price when no cart is idle; the button reads
+  the difference ("Send · idle cart" vs "Hire · 120 gold" — the price
+  only when it would be paid, and the gold gate applies only to the
+  hire); (3) **a cart is never asked for orders** — `unitAwaitsOrders`
+  and `unitOfferedForOrders` return false for a `routeOnly` piece
+  whether routed or idle; instead End Turn's blocker for a seat with an
+  idle cart and a sendable route says **"Send an idle trader"** and its
+  click opens the Trade screen (the blocker is passable the way an idle
+  worker's is — the sim reads nothing); an idle cart with nothing to
+  send (no partner, no slot) blocks nothing; (4) the unit sheet on a
+  cart offers no orders row but the sheet's own verbs (cancel route,
+  disband when idle) as today; a cart is still unselectable on its
+  route. No schema change (nothing new is stored). Tests: the Send
+  choice pinned pure (`buyCommandFor`-style helper returns the
+  `startRoute` when a cart idles, the `buyRoute` when none does), the
+  blocker's text and the predicate's `routeOnly` clause pinned in
+  `test/ui/turnBlockers.test.ts`/`test/sim/units.test.ts`. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
