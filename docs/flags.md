@@ -879,7 +879,23 @@ directly to confirm rulings — user marginalia are rulings.
   whole road, patience only for a bead or the curtain) and X1d-ground
   (`plan.ts` + the worker/site/pass arms in `bot.ts`: the worker's
   charges and worked hexes, the site's top-N, the renewal as a fold, the
-  pass's marginal pity). (eee)
+  pass's marginal pity). **M2, X1d-ground, X1d-chain landed
+  2026-09-09** (5e85688 · f0cbb32 · 62f116a): M2 is byte-identical and no
+  faster — its counters found that after M1 a miss at rest costs under 2%
+  of a game and the real cost is the **suspension window** (a tenth of
+  all readings are asked inside a phase or a handler where the slate may
+  remember nothing; End Turn puts the whole resolution inside one) —
+  shrinking that window is **M3**, held for the user's call; X1d-ground:
+  workers by t30 1.44 → 1.00, hands passed per 120 turns 3.4 → 0, food
+  and citizens up, production down two SE (spades ploughing where
+  citizens stand rather than mining hills nobody works — watched);
+  X1d-chain: buildings +17%, cities up, culture and gold up, science and
+  techs flat (the road buys the buildings and costs ~4 science —
+  reported, not tuned), ms/turn +18% under identical load; seed 1's
+  capital builds Library t47 · Monument t50 · Amphitheater t57 and no
+  ordinary wonder inside 120 turns. `surveyUpgradeSites` and its three
+  count pins retired with the swap. **X1e and the doors cleanup fly
+  next.** (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
