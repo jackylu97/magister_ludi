@@ -83,6 +83,32 @@ export interface AiConfig {
      * kind of cap (`search.pathProbes`, `expansion.siteSearchRadius`).
      */
     reaimsPerTurn: number;
+    /**
+     * How many times **one piece already under orders** is asked again in one
+     * turn — `reaimsPerTurn`'s sibling, one march over (batch X7).
+     *
+     * Since the standing-orders ruling (schema 98, `docs/flags.md` (bbb)) a
+     * column marches at the *end* of a turn and opens its owner's next turn
+     * standing where it stopped, holding a full allowance and still carrying
+     * what is left of its route. The simulation offers exactly that piece for
+     * fresh orders — `unitOfferedForOrders`, the **wide** predicate — and this
+     * bot only ever heard the **narrow** one through `firstBlocker`, so a
+     * settler or a spade on a six-hex walk was never asked a second question:
+     * it walked to the end of a stale path while a rival founded on its site.
+     *
+     * The re-ask is not free — a settler's arm scores every legal hex in its
+     * search radius, a spade's builds the whole improvement plan — so what is
+     * bounded here is the **ask**, not the order that may come of it: a piece
+     * asked once this turn is not asked again, whether the answer was a fresh
+     * march or silence. That is what keeps the command count from growing with
+     * the length of an empire's column, and it is the same honest kind of cap
+     * as `search.pathProbes` — a bound on effort, never on what may be decided.
+     *
+     * **Nought shuts the arm**, which is what makes it an arena A/B rather than
+     * a rule: a sheet with `reaskPerTurn: 0` plays exactly the bot that shipped
+     * before this batch.
+     */
+    reaskPerTurn: number;
   };
   search: {
     /**

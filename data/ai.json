@@ -3,7 +3,8 @@
     "commandsPerSeat": 400,
     "endTurnAttempts": 3,
     "greatPersonRedraws": 4,
-    "reaimsPerTurn": 1
+    "reaimsPerTurn": 1,
+    "reaskPerTurn": 1
   },
   "search": {
     "pathProbes": 4,

@@ -4597,3 +4597,169 @@ town whose next citizen is affordable.
   nobody would work is still never seen. That is the old behaviour exactly (its
   want folded to nought), recorded so nobody reads the bound as having introduced
   it.
+
+---
+
+## Batch X7 as shipped — the march is re-asked (2026-09-09)
+
+The standing-orders ruling (`docs/flags.md` (bbb), batch U1, schema 98) changed
+what a piece under orders *is*. `resetMovement` refills an allowance and resumes
+nothing; `spendLeftoverMovement` is the only phase that walks a stored path, and
+it walks it at the end of the turn on that turn's own points. A column therefore
+opens its owner's turn standing where it stopped, holding a full allowance and
+still carrying the rest of its route — and the simulation grew a **second**
+predicate for exactly that piece:
+
+  · `unitAwaitsOrders` — the **narrow** one, false the moment a piece has a path.
+    It is what `firstBlocker` raises and what End Turn blocks on;
+  · `unitOfferedForOrders` — the **wide** one, `awaits orders || (a stored path &&
+    movement left)`. It is what the interface *offers*, and until this batch it
+    had no caller in `src/ai/` at all.
+
+The bot only ever hears about a piece through `firstBlocker`, so a settler six
+hexes from the site the expansion chain named walked all six of them: a rival
+founded on the site, a camp appeared beside its road, better ground opened two
+hexes off its path, and the piece walked to the end of the stale route. Two
+narrower patches already covered two cases — `wakeTheCampaign` (a dug-in soldier
+of a seat at war) and `marchIsStalled` (a march to a hex the piece will never be
+allowed to stand on) — and neither covers a civilian on an ordinary walk.
+
+### The arm
+
+`reaskTheMarch` is `housekeeping`'s third waking arm, beside `wakeIdleSettler`
+and `wakeTheCampaign`, and it is **`wakeIdleSettler`'s shape generalised**: it
+asks the arm that ordered the piece what it would say now, and sends that. The
+arm, not a second opinion about marches — a settler is re-asked by the settle
+table, a worker by the improvement plan, a soldier by the soldier's questions —
+so no rule is written twice.
+
+Three clauses keep it from being churn.
+
+  · **The same destination is silence.** A `moveUnit` naming the hex the standing
+    path already ends on changes nothing at all: the piece would walk the same
+    route at the end of the turn either way. It is not sent. On a board that has
+    not moved this arm emits **nothing**, which is the property that lets it sit
+    in `housekeeping` at all.
+  · **A stand-down never cancels a march.** `standDown` is every arm's last line
+    and it is right for a piece with nothing to do *where it stands*; a piece
+    already walking somewhere has something to do, and answering it with
+    `sleepUnit` or `fortify` would throw a route away for nothing.
+    `wakeIdleSettler` refuses the same answer for the same reason.
+  · **`driver.reaskPerTurn` (1) bounds the ask, not the order.** A settler's arm
+    scores every legal hex in its search radius and a spade's builds the whole
+    improvement plan, so the *ask* is the expensive half; a piece asked once this
+    turn is struck off whether the answer was a fresh march or silence. The
+    counter is `BotSitting.reasked`, a `Map` by unit id — `reaims`' and
+    `focused`' sibling, and in the sitting rather than the driver for their
+    reason: the two loops open one sitting per seat per turn in the same place,
+    which is what keeps the byte-for-byte pin honest. **Nought shuts the arm**,
+    so the arena runs the batch against itself with no build.
+
+A caller with no sitting of the seat's own gets nothing, and that is where this
+arm and `reaimBeeline` part company: that one is idempotent by construction and
+merely bounded, this one has no such argument to fall back on, so the bound is
+not a guard on the behaviour — it *is* the behaviour.
+
+**Every re-issue says why**, as a zero-valued `ValueTerm` at the head of the
+chosen candidate's own arithmetic — the arranged board's own line, verbatim:
+*"re-asked: the site at (25,17) is taken — (25, 17) belongs to player 1; the arm
+now names (28,19)"*. The reason for a settler is
+the simulation's own refusal (`foundingErrorAt`) wherever there is one, exactly
+as every refused candidate in this file prints the rules' words rather than a
+paraphrase. Zero at the *head* of a fold that starts at zero is the one place a
+line can be added without moving a figure, which matters because
+`aiDecision.slow.test.ts` asserts `foldTerms(candidate.terms) === candidate.score`
+with `===`.
+
+### The arranged boards
+
+`test/sim/aiBot.test.ts`, three runs on one seed each. The piece is asked once
+carrying a route to a hex nobody would choose (which is how the test learns what
+the arm actually wants), once carrying a route to *that* hex, and once with the
+same route after the board has moved — so the piece is asked at the same point of
+the sitting all three times.
+
+| Arrangement | The seat says |
+|---|---|
+| A settler under orders, board unchanged | **nothing at all** — no command, and the route is still drawn when the sitting ends |
+| A settler under orders, a rival founds on the hex it is walking to | re-aims that turn, to a different hex, with the rules' own sentence about the taken site in the chosen candidate's terms |
+| A spade under orders, another spade lays the very row it was walking there to lay | re-plans that turn, to a different hex |
+| A played board, one sitting | no piece asked more than `driver.reaskPerTurn` times |
+
+The spade's cases want a **later** board than the settler's, and that is a
+finding of its own rather than a fixture detail: twelve turns in, this seat's
+improvement plan holds **one** hex, and a plan with one entry cannot show a plan
+changing its mind. It is thirty-two turns before the plan holds eight.
+
+### The command bench — 150 turns, duel, the stepper
+
+The bound's own measurement, and the reading that matters is the **re-issue
+count**, not the whole-game total: the two arms play different games from the
+first divergence, so a total is a fact about two boards.
+
+| seed | commands | /seat-turn | `unitOrder` | `moveUnit` | **re-issues** | marching pieces |
+|---|---|---|---|---|---|---|
+| 20260903, shut | 765 | 2.55 | 317 | 105 | — | 988 |
+| 20260903, on | 1,048 | 3.49 | 471 | 214 | **87 (0.29/seat-turn)** | 880 |
+| 4242, shut | 3,324 | 11.08 | 2,760 | 2,462 | — | 537 |
+| 4242, on | 515 | 1.72 | 228 | 63 | **30 (0.10/seat-turn)** | 179 |
+
+"Marching pieces" is the ceiling the bound allows — how many pieces of that seat
+were carrying a route with movement in hand when it handed over, summed over the
+three hundred seat-turns. The arm issues a **third to a tenth** of that, because
+most re-asks are silent: the board did not move under that piece.
+
+Two things the table says that the acceptance did not ask for. Seed 4242's
+before-run spends **2,462 of its 3,324 commands on `moveUnit`** — a march
+oscillation this batch did not fix and does not claim to; the after-run simply
+plays a different game and does not fall into it. And the two boards diverge
+early enough that the whole-game totals move in *opposite* directions (+37% and
+−85%), which is why the re-issue column exists.
+
+### The turn-100 probe — eight seeds, standard, mean of sixteen seats
+
+The orchestrator's shape (seeds 1/2/3/42/101/999/31337/20260101, two balanced
+seats, wild on, driven to t100 by the stepper), `±` the standard error of the
+mean over the sixteen seats.
+
+| | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| shut (main) | 5.9 ± 0.4 | 32.4 ± 2.1 | 99.1 ± 7.7 | 50.2 ± 4.0 | 30.7 ± 5.3 | 37.2 ± 4.5 | 51.3 ± 7.0 | 15.5 ± 3.8 | 232.9 ± 33.0 | 18.4 ± 0.8 | +3.8 ± 2.4 |
+| **on (X7)** | 5.7 ± 0.3 | 31.6 ± 2.1 | 95.5 ± 7.0 | 47.3 ± 2.9 | 37.8 ± 9.3 | 35.7 ± 3.8 | 52.7 ± 7.0 | 17.2 ± 2.1 | 228.8 ± 25.6 | 18.7 ± 0.5 | +4.7 ± 3.3 |
+
+**Every column is inside one standard error of the other arm**, the three the
+acceptance names included: cities −0.2 against ±0.5, citizens −0.8 against ±3.0,
+food −3.6 against ±10.4 (the errors added in quadrature). So the honest reading
+of this bench is *nothing moved* — and that is the right result to want here, not
+a disappointment. This batch changes what a seat does with **a settler already
+walking and a spade already walking**, which is a handful of pieces on a
+hundred-turn board; a t100 probe is a blunt enough instrument that the arm would
+have had to break something to show up in it. The three columns that lean upward
+— gold a turn 30.7 → 37.8, contentment +3.8 → +4.7, the tree 18.4 → 18.7 — lean
+by less than their own spread and are **not** claimed.
+
+What the bench *does* rule out is the failure mode a bounded re-ask could
+plausibly have had: a settler that re-decides every turn walks and never founds,
+and a seat that never founds shows up in the cities and food columns within
+twenty turns. It does not.
+
+### What this batch does not claim
+
+- **It does not make a march faster.** The ruling's other half stands: a stored
+  path walks on the turn's leftover, so a multi-turn march is a turn slower than
+  it was before schema 98. That is the rule, and re-asking a piece does not undo
+  it.
+- **It does not fix a march that oscillates.** Seed 4242's before-run is the
+  proof that one exists; the arm's own bound guarantees it cannot *cause* one,
+  and nothing here diagnoses the one that was already there.
+- **A piece whose arm would only stand it down keeps its route.** That is the
+  second clause and it is deliberate, but it has a cost worth naming: a spade
+  walking to a hex whose plan entry has since gone empty walks there anyway,
+  because "sleep instead" is not an answer this arm will take. Cancelling the
+  order outright is a third possible answer and it is not built.
+- **The re-ask reads the piece's arm, not the piece's *reason*.** A settler is
+  re-asked by the settle table, which re-scores every legal hex in range — it is
+  not told "the site you were walking to is gone, find the next one". The two
+  come to the same answer today because the table is a total order; a cheaper
+  arm that only re-asked when the old destination is refused would be a different
+  batch, and would miss "better ground opened".

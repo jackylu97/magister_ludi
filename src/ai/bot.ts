@@ -331,7 +331,7 @@ import {
   unitDef,
   unitMaxHp,
 } from '../sim/unitData';
-import { sleepError } from '../sim/units';
+import { sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
 import { hasFreshWater, isCoastal } from '../sim/water';
@@ -595,11 +595,34 @@ export interface BotSitting {
    * the hammers four commands later.
    */
   focused: Set<number>;
+  /**
+   * How many times each piece already under orders has been **asked again**
+   * this turn (`reaskTheMarch`), and the sitting's fourth piece of memory —
+   * `focused`' sibling, keyed by unit id and bounded by `driver.reaskPerTurn`.
+   *
+   * It counts the *ask* rather than the order, because the ask is what costs:
+   * a settler's arm scores every legal hex in its search radius and a spade's
+   * builds the improvement plan, and the answer is very often silence — the
+   * piece is walking to exactly the hex the arm would name again. A piece asked
+   * once has had this turn's question; the board's next move is next turn's.
+   *
+   * A `Map` rather than a `Set` because the knob is a count and a sheet may set
+   * it above one: the bound is "how many times a piece is re-asked in a turn",
+   * and a register that could only say *whether* would be a knob with two
+   * settings pretending to be a number.
+   */
+  reasked: Map<number, number>;
 }
 
 /** A fresh sitting for one seat's turn. The driver and the stepper open these. */
 export function botSitting(playerId: number): BotSitting {
-  return { playerId, ctx: null, reaims: 0, focused: new Set<number>() };
+  return {
+    playerId,
+    ctx: null,
+    reaims: 0,
+    focused: new Set<number>(),
+    reasked: new Map<number, number>(),
+  };
 }
 
 /**
@@ -1189,6 +1212,13 @@ function housekeeping(
   // and the finding W1 could not have been built without. See `wakeTheCampaign`.
   const called = wakeTheCampaign(state, player);
   if (called !== null) return called;
+
+  // **The march, re-asked** — the third arm of the same family (X7), and the
+  // one that covers every piece the other two do not: a settler or a spade
+  // walking a route it was given on a board that has since moved. See
+  // `reaskTheMarch`.
+  const reasked = reaskTheMarch(state, player, sitting);
+  if (reasked !== null) return reasked;
 
   // **Re-aiming the beeline**, which blocks nothing and is therefore never
   // surfaced by `firstBlocker`: a plan laid in peacetime is still the plan when
@@ -1785,6 +1815,174 @@ function wakeTheCampaign(state: GameState, player: Player): BotDecision | null {
     };
   }
   return null;
+}
+
+/**
+ * **The march, re-asked** — one piece already under orders, asked whether the
+ * board it was aimed at is still the board it is walking on (batch X7).
+ *
+ * Why it has to exist. Since the standing-orders ruling (2026-09-08, schema 98,
+ * `docs/flags.md` (bbb)) `resetMovement` refills an allowance and **resumes
+ * nothing**: `spendLeftoverMovement` is the only phase that walks a stored path,
+ * and it walks it at the *end* of the turn on that turn's own points. So a
+ * column opens its owner's turn standing where it stopped, holding a full
+ * allowance and still carrying the rest of its route — and the simulation has
+ * a predicate for exactly that piece. There are two of them, and the split is
+ * `unitOfferedForOrders`' own docblock:
+ *
+ *   · `unitAwaitsOrders` — the **narrow** one, which answers *false* the moment
+ *     a piece has a path. It is what `firstBlocker` raises, and `firstBlocker`
+ *     is the only way this bot ever heard about a piece at all;
+ *   · `unitOfferedForOrders` — the **wide** one, `awaits orders || (a stored
+ *     path && movement left)`. It is what the interface *offers* a player, and
+ *     until this batch it had no bot caller (`docs/audit/bot-pass-2.md`'s
+ *     standing-orders row).
+ *
+ * The consequence was a piece that could not change its mind. A settler six
+ * hexes from the site the expansion chain named walked all six of them while a
+ * rival founded on the site, a camp appeared beside its road and better ground
+ * opened two hexes off its path; a spade walked to a hex another spade improved
+ * on the way. Two narrower patches already covered two cases — `wakeTheCampaign`
+ * (a soldier of a seat at war) and `marchIsStalled` (a march to a hex the piece
+ * will never be allowed to stand on) — and neither covers a civilian on an
+ * ordinary walk across a board that simply moved.
+ *
+ * **`wakeIdleSettler`'s shape, generalised**, and that is the whole of the
+ * implementation: ask the arm that ordered the piece what it would say *now*,
+ * and send that — the arm, not a second opinion about marches, so a settler is
+ * re-asked by the settle table and a worker by the improvement plan and neither
+ * rule is written twice.
+ *
+ * Three clauses keep it from being churn:
+ *
+ *   · **The same destination is silence.** A re-issue whose `moveUnit` names the
+ *     hex the standing path already ends on is a command that changes nothing —
+ *     the piece would walk the same route at the end of the turn either way —
+ *     so it is not sent. On a board that has not moved this arm emits nothing
+ *     at all, which is the property that lets it sit in `housekeeping`.
+ *   · **A stand-down never cancels a march.** `standDown` is every arm's last
+ *     line and it is right for a piece with nothing to do *where it stands*; a
+ *     piece already walking somewhere has something to do, and answering it with
+ *     `sleepUnit` or `fortify` would throw away a route to replace it with
+ *     nothing. `wakeIdleSettler` refuses the same answer for the same reason.
+ *   · **At most `driver.reaskPerTurn` asks a piece a turn**, banked in the
+ *     sitting. The bound is on the *ask*, so a piece whose answer was silence is
+ *     not asked twice either — see the knob's own docblock for why the ask is
+ *     the expensive half. It is also what keeps this loop finite: there are
+ *     finitely many pieces and each is struck off as it is asked.
+ *
+ * A caller with no sitting of this seat's gets **nothing**, which is where this
+ * arm and `reaimBeeline` part company. That one is idempotent by construction
+ * and merely bounded; this one has no such argument to fall back on — an
+ * unbounded re-ask would re-walk every marching piece's arm on every ask of the
+ * driver's loop — so the bound is not a guard on the behaviour, it *is* the
+ * behaviour, and an arm without it is an arm that should not run.
+ */
+function reaskTheMarch(
+  state: GameState,
+  player: Player,
+  sitting?: BotSitting,
+): BotDecision | null {
+  const own = sitting !== undefined && sitting.playerId === player.id ? sitting : null;
+  if (own === null) return null;
+  const budget = Math.max(0, aiConfigFor(player.persona, player.id).driver.reaskPerTurn);
+  if (budget === 0) return null;
+  for (const unit of state.units) {
+    if (unit.ownerId !== player.id) continue;
+    // The wide predicate, asked of the simulation rather than restated here —
+    // a piece with movement in hand and a route still drawn. A piece with *no*
+    // route is the narrow predicate's and reaches this bot through
+    // `firstBlocker`, so `was === null` is that piece and it is left alone.
+    if (!unitOfferedForOrders(unit)) continue;
+    const was = marchEnd(unit);
+    if (was === null) continue;
+    if ((own.reasked.get(unit.id) ?? 0) >= budget) continue;
+    own.reasked.set(unit.id, (own.reasked.get(unit.id) ?? 0) + 1);
+    const fresh = unitCommand(state, player, unit.id, sitting);
+    if (fresh === null) continue;
+    const order = fresh.command;
+    // Standing down is not an answer to a piece that is already going somewhere.
+    if (order.type === 'sleepUnit' || order.type === 'fortify') continue;
+    // The same destination is the same march: no command, no churn.
+    if (order.type === 'moveUnit' && order.target.col === was.col && order.target.row === was.row) {
+      continue;
+    }
+    const now = fresh.focus ?? { col: unit.col, row: unit.row };
+    const why = staleMarchReason(state, player, unit, was);
+    return {
+      ...fresh,
+      summary: `Re-asks a piece already under orders — ${why}. ${fresh.summary}`,
+      candidates: withReason(
+        fresh.candidates,
+        `re-asked: ${why}; the arm now names (${now.col},${now.row})`,
+      ),
+    };
+  }
+  return null;
+}
+
+/** Where a standing order ends, or `null` when the piece is carrying none. */
+function marchEnd(unit: Unit): { col: number; row: number } | null {
+  const path = unit.path;
+  if (path === undefined || path.length === 0) return null;
+  return path[path.length - 1] ?? null;
+}
+
+/**
+ * Why the hex this piece was walking to is no longer the answer — **the
+ * simulation's own sentence wherever it has one**.
+ *
+ * A settler's stale march has a printed refusal behind it (`foundingErrorAt`:
+ * the site is inside somebody's borders, a town stands too near, a town stands
+ * on it) and that refusal is the honest reason to print, exactly as every
+ * refused candidate in this file prints the rules' words rather than a
+ * paraphrase. Every other piece's is a plainer fact — the arm weighed the board
+ * again and named somewhere else — and saying so is better than inventing a
+ * cause the bot did not actually read.
+ */
+function staleMarchReason(
+  state: GameState,
+  player: Player,
+  unit: Unit,
+  was: { col: number; row: number },
+): string {
+  const tile = getTileAt(state.map, was.col, was.row);
+  if (tile === undefined) return `(${was.col},${was.row}) is no longer on the board`;
+  if (unitDef(unit.type).foundsCity === true) {
+    const taken = foundingErrorAt(state, player.id, tile);
+    if (taken !== null) return `the site at (${was.col},${was.row}) is taken — ${taken}`;
+  }
+  return `the board has moved under its march to (${was.col},${was.row})`;
+}
+
+/**
+ * The chosen candidate's arithmetic with **one more line at the head of it**,
+ * saying why the piece was asked a second time.
+ *
+ * A zero-valued term at the *front* of the fold, which is the one place a line
+ * can be added without changing a single figure: `foldTerms` starts its
+ * accumulator at zero and applies each term in order, so `0 + 0` followed by the
+ * original list is bit-for-bit the original sum. That is not fussiness — the
+ * slow tier asserts `foldTerms(candidate.terms) === candidate.score` with `===`,
+ * and a reason that moved a score by an ulp would be a reason that broke the
+ * contract it was written to explain.
+ *
+ * It rides the chosen row rather than a row of its own because the reason is
+ * *about the choice*: a candidate scoring nothing, sitting in the table beside
+ * the hexes the arm actually weighed, would read as something the bot compared.
+ */
+function withReason(candidates: readonly BotCandidate[], reason: string): BotCandidate[] {
+  let said = false;
+  const table = candidates.map((candidate) => {
+    if (said || !candidate.chosen) return candidate;
+    said = true;
+    return { ...candidate, terms: [{ label: reason, value: 0 }, ...candidate.terms] };
+  });
+  // An arm that took an order without marking a row — none does today, and the
+  // promise is that a re-issue always says why. A row of its own then, scoring
+  // the nothing it is: the reason is said either way.
+  if (!said) table.push({ label: reason, score: 0, chosen: false, terms: [{ label: reason, value: 0 }] });
+  return table;
 }
 
 /**

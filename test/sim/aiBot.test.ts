@@ -19,15 +19,18 @@ import { driveBots } from '../../src/ai/driver';
 import {
   AI,
   bestTechGoal,
+  botSitting,
   chooseProduction,
   explainCitizen,
   nextBotCommand,
+  nextBotDecision,
   scoreCard,
   valueContext,
 } from '../../src/ai/bot';
-import { foldTerms } from '../../src/ai/decision';
+import { type BotDecision, foldTerms } from '../../src/ai/decision';
 import { type Game, createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import type { City, GameConfig, GameState, Player } from '../../src/sim/state';
+import type { City, GameConfig, GameState, Player, Unit } from '../../src/sim/state';
+import type { Tile } from '../../src/sim/map';
 import {
   createUnit,
   hasEndedTurn,
@@ -35,8 +38,13 @@ import {
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
+import { getTileAt, mapRange, tileHex, tileNeighbors } from '../../src/sim/map';
+import { findPath, isPassable } from '../../src/sim/pathfind';
+import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
+import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
+import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
-import { isCombatant, unitDef } from '../../src/sim/unitData';
+import { type UnitTypeId, isCombatant, unitDef } from '../../src/sim/unitData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { researchExpansion } from '../../src/sim/tech';
 import { anyCardDef } from '../../src/sim/statecraft';
@@ -709,6 +717,185 @@ describe('the two missing signs, on a played board (batch X5)', () => {
     } finally {
       signDoor.wall = true;
     }
+  });
+});
+
+/**
+ * **The march, re-asked** (batch X7) — arranged boards, because the thing being
+ * asserted is a *change of mind* and a played game gives you no way to say which
+ * turn the board moved on.
+ *
+ * The shape of every case below is the same three runs on the same seed, and it
+ * is the shape rather than the seed that makes them stable: the piece is asked
+ * once with a route to a hex nobody would choose (which is how the test learns
+ * what the arm actually wants), once with a route to *that* hex (the control —
+ * the board has not moved, so the seat must say nothing at all), and once with
+ * the same route after the board has moved under it. The piece is asked at the
+ * same point of the sitting in all three, which is why the first run's answer is
+ * still the answer in the second.
+ */
+describe('the march is re-asked (batch X7)', () => {
+  /** One seat's whole sitting, dispatched as it goes — `driveSeat` without the hand-over. */
+  function sittingOf(game: Game, playerId: number, cap = 120): BotDecision[] {
+    const sitting = botSitting(playerId);
+    const taken: BotDecision[] = [];
+    for (let step = 0; step < cap; step++) {
+      const decision = nextBotDecision(game.state, playerId, sitting);
+      if (decision === null) break;
+      if (!dispatch(game, decision.command).ok) break;
+      taken.push(decision);
+    }
+    return taken;
+  }
+
+  /** What this seat ordered that piece to do in one sitting, or `null`. */
+  function orderTo(decisions: readonly BotDecision[], unitId: number): BotDecision | null {
+    for (const decision of decisions) {
+      const command = decision.command as { unitId?: number };
+      if (command.unitId === unitId) return decision;
+    }
+    return null;
+  }
+
+  /**
+   * A hex beside the seat's capital that a civilian may stand on — and, for a
+   * settler, may **not** found on, so the arm has to march rather than settle
+   * where it was put.
+   */
+  function perchFor(state: GameState, playerId: number, mustRefuseFounding: boolean): Tile {
+    const home = state.cities.find((city) => city.ownerId === playerId)!;
+    const centre = getTileAt(state.map, home.col, home.row)!;
+    for (const tile of mapRange(state.map, tileHex(centre), 2)) {
+      if (tile.col === home.col && tile.row === home.row) continue;
+      if (!isPassable(tile)) continue;
+      if (state.units.some((unit) => unit.col === tile.col && unit.row === tile.row)) continue;
+      if (mustRefuseFounding && foundingErrorAt(state, playerId, tile) === null) continue;
+      return tile;
+    }
+    throw new Error('no perch beside the capital');
+  }
+
+  /** A hex the piece can be sent to that nothing would choose: the next one over. */
+  function dullTarget(state: GameState, unit: Unit): Tile {
+    for (const tile of tileNeighbors(state.map, getTileAt(state.map, unit.col, unit.row)!)) {
+      if (!isPassable(tile)) continue;
+      if (findPath(state, unit, tile) !== null) return tile;
+    }
+    throw new Error('nowhere dull to walk');
+  }
+
+  /** A fresh board with one piece of the seat's perched and carrying a route to `aim`. */
+  function marching(
+    type: UnitTypeId,
+    aim: { col: number; row: number } | null,
+    turns: number,
+  ): { game: Game; unit: Unit } {
+    // A grown board rather than turn one: a seat starts with no town at all, and
+    // "the site the chain names" is not a question a board with no empire on it
+    // can be asked. `grownGame` is a pure function of the seed, so the three runs
+    // below all begin on the very same board. The spade's cases want a *later*
+    // board than the settler's for a reason of its own: an empire twelve turns
+    // old holds one unimproved hex worth digging, and a plan with one entry in it
+    // cannot show a plan changing its mind.
+    const game = grownGame(turns);
+    const perch = perchFor(game.state, 0, unitDef(type).foundsCity === true);
+    const unit = createUnit(game.state, 0, type, perch.col, perch.row);
+    const goal =
+      aim === null ? dullTarget(game.state, unit) : getTileAt(game.state.map, aim.col, aim.row)!;
+    unit.path = findPath(game.state, unit, goal)!;
+    expect(unit.path.length).toBeGreaterThan(0);
+    return { game, unit };
+  }
+
+  /** Where the arm sends a piece of this kind once it is asked a second time. */
+  function aimOf(type: UnitTypeId, turns: number): { target: { col: number; row: number }; order: BotDecision } {
+    const { game, unit } = marching(type, null, turns);
+    const order = orderTo(sittingOf(game, 0), unit.id);
+    expect(order, 'the piece was never re-asked off its dull route').not.toBeNull();
+    expect(order!.command.type).toBe('moveUnit');
+    return { target: (order!.command as { target: { col: number; row: number } }).target, order: order! };
+  }
+
+  it('says nothing at all about a march the board has not moved under', () => {
+    const { target: aim } = aimOf('settler', 12);
+    const { game, unit } = marching('settler', aim, 12);
+    const before = JSON.stringify(unit.path);
+    // The same destination is silence: no command, no churn. The route the seat
+    // gave the piece is still drawn when the sitting is over.
+    expect(orderTo(sittingOf(game, 0), unit.id)).toBeNull();
+    expect(JSON.stringify(unit.path)).toBe(before);
+  });
+
+  it('re-aims a settler whose site a rival founded on while it was walking', () => {
+    const { target: aim } = aimOf('settler', 12);
+    const { game, unit } = marching('settler', aim, 12);
+    // The board moves: the rival takes the very hex the route ends on.
+    foundCityAt(game.state, 1, getTileAt(game.state.map, aim.col, aim.row)!);
+    bumpRevision(game.state);
+    const order = orderTo(sittingOf(game, 0), unit.id);
+    expect(order, 'the settler walked on to a site that is gone').not.toBeNull();
+    // It re-aims — anywhere but the hex it was walking to.
+    const target = (order!.command as { target?: { col: number; row: number } }).target;
+    if (target !== undefined) expect(`${target.col},${target.row}`).not.toBe(`${aim.col},${aim.row}`);
+    // And it says why, in the feed, as a term of the chosen candidate's own
+    // arithmetic — the rules' own sentence about the site inside it.
+    const chosen = order!.candidates.find((candidate) => candidate.chosen)!;
+    expect(chosen.terms[0]!.label).toContain('re-asked:');
+    expect(chosen.terms[0]!.label).toContain(`(${aim.col},${aim.row})`);
+    expect(chosen.terms[0]!.value).toBe(0);
+    // The reason line is free: a zero at the head of a fold that starts at zero.
+    expect(foldTerms(chosen.terms)).toBe(chosen.score);
+  });
+
+  it('re-plans a worker whose hex another spade improved while it was walking', () => {
+    const { target: aim, order: planned } = aimOf('worker', 32);
+    const { game, unit } = marching('worker', aim, 32);
+    // The board moves: a second spade of ours lays **the very row the first was
+    // walking there to lay** — the plan prints the improvement in its own
+    // candidate label, so the test does not have to guess which one it wanted.
+    // `buildImprovementAt` is the simulation's own verb.
+    const wanted = planned.candidates.find((candidate) => candidate.chosen)!.label.split(' at (')[0];
+    const laid = IMPROVEMENT_IDS.find((id) => improvementDef(id).name === wanted);
+    expect(laid, `no improvement is named "${wanted}"`).not.toBeUndefined();
+    const tile = getTileAt(game.state.map, aim.col, aim.row)!;
+    expect(improvementErrorAt(game.state, 0, tile, laid!)).toBeNull();
+    const other = createUnit(game.state, 0, 'worker', tile.col, tile.row);
+    buildImprovementAt(game.state, other, tile, laid!);
+    bumpRevision(game.state);
+    const order = orderTo(sittingOf(game, 0), unit.id);
+    expect(order, 'the spade walked on to a hex that is already dug').not.toBeNull();
+    const target = (order!.command as { target?: { col: number; row: number } }).target;
+    if (target !== undefined) expect(`${target.col},${target.row}`).not.toBe(`${aim.col},${aim.row}`);
+  });
+
+  it('asks each piece at most `driver.reaskPerTurn` times a sitting', () => {
+    // The bound, read off the sitting rather than off a count of commands: what
+    // is bounded is the *ask*, so a piece whose answer was silence is struck off
+    // too. A played turn, so the pieces are the ones the game actually made.
+    const played = play(24);
+    const game = played.game;
+    const sitting = botSitting(0);
+    for (let step = 0; step < 120; step++) {
+      const decision = nextBotDecision(game.state, 0, sitting);
+      if (decision === null) break;
+      if (!dispatch(game, decision.command).ok) break;
+    }
+    for (const [unitId, asks] of sitting.reasked) {
+      expect(asks, `unit ${unitId}`).toBeLessThanOrEqual(AI.driver.reaskPerTurn);
+    }
+  });
+
+  it('reads the simulation’s own wide predicate, and nothing of its own', () => {
+    // The register half. `unitOfferedForOrders` is the sim's (`src/sim/units.ts`,
+    // schema 98) and this arm exists precisely because the bot had no caller for
+    // it; a hand-rolled "has a path and some movement" here would be a second
+    // definition of the same word, which is the failure `turnBlockers.test.ts`
+    // reads the source to prevent one file over.
+    const source = code(AI_SOURCE[Object.keys(AI_SOURCE).find((path) => path.endsWith('/bot.ts'))!]!);
+    expect(source).toMatch(/import \{[^}]*unitOfferedForOrders[^}]*\} from '\.\.\/sim\/units'/);
+    expect(source).toContain('unitOfferedForOrders(unit)');
+    // And the bound is the sheet's, never a literal beside the arm.
+    expect(source).toContain('driver.reaskPerTurn');
   });
 });
 

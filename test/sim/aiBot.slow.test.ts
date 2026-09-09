@@ -23,6 +23,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { driveBots } from '../../src/ai/driver';
+import { createBotStepper } from '../../src/ai/stepper';
 import { type Game, createGame, replay, snapshotState } from '../../src/sim/game';
 import {
   foldEmpireRates,
@@ -211,6 +212,55 @@ describe('a hundred and twenty turns of bots', () => {
       const played = theLongGame();
       const rebuilt = replay(played.game.config, played.game.log);
       expect(snapshotState(rebuilt)).toBe(snapshotState(played.game.state));
+    },
+    PATIENCE,
+  );
+
+  it(
+    're-asks a standing march, and never twice about one piece in one turn (X7)',
+    () => {
+      // The bound, read off a **played** game rather than off an arranged one:
+      // the core file pins that a re-ask happens and that it is silent on a board
+      // that has not moved, and what only a long game can say is that the arm
+      // fires on boards nobody arranged and that the ask never doubles up.
+      //
+      // The stepper rather than `driveBots` because the claim is about
+      // *decisions* — a re-issue is an ordinary `moveUnit` in the log and the
+      // only thing that marks it as this arm's is the sentence it carries.
+      const game = createGame(CONFIG);
+      const stepper = createBotStepper(game, { warn: () => undefined });
+      const asked = new Map<string, number>();
+      let reissues = 0;
+      let commands = 0;
+      let seatTurns = 0;
+      for (let turn = 0; turn < 60; turn++) {
+        for (const step of stepper.playTurn()) {
+          if (step.decision.kind === 'endTurn') {
+            seatTurns += 1;
+            continue;
+          }
+          commands += 1;
+          if (!step.decision.summary.startsWith('Re-asks a piece already under orders')) continue;
+          reissues += 1;
+          const unitId = (step.decision.command as { unitId?: number }).unitId;
+          const key = `${step.turn}/${step.playerId}/${String(unitId)}`;
+          asked.set(key, (asked.get(key) ?? 0) + 1);
+        }
+      }
+      // It fires: a sixty-turn game on a full map moves under its own columns.
+      expect(reissues).toBeGreaterThan(0);
+      // And never twice about one piece in one seat's turn — the sheet's bound,
+      // asked of the commands rather than of the counter that enforces it.
+      const budget = aiConfigFor(undefined, 0).driver.reaskPerTurn;
+      const worst = [...asked.entries()].sort((a, b) => b[1] - a[1])[0]!;
+      expect({ where: worst[0], asks: worst[1] <= budget }).toEqual({
+        where: worst[0],
+        asks: true,
+      });
+      // The command count does not run away with the empire: the arm can add at
+      // most one order per marching piece per turn, and a seat marching that many
+      // pieces would be a seat with nothing else to spend a turn on.
+      expect(commands / seatTurns).toBeLessThan(20);
     },
     PATIENCE,
   );

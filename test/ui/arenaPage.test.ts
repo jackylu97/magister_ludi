@@ -145,6 +145,21 @@ describe('the configuration panel is generated, not listed', () => {
     expect(html).not.toContain('refusalMemoryTurns');
   });
 
+  it('carries X7’s re-ask bound, and it is an A/B the panel can shut', () => {
+    // The same promise one batch later, and this knob is the one worth pinning
+    // twice over: nought in the box plays exactly the bot that shipped before
+    // the march was re-asked, so the arena can run the batch against itself
+    // without a build.
+    const knob = knobs.find((row) => knobKey(row.path) === 'driver.reaskPerTurn');
+    expect(knob).toBeDefined();
+    expect(knob!.kind).toBe('number');
+    expect(knob!.value).toBe(AI.driver.reaskPerTurn);
+    for (const module of ['panel.ts', 'knobs.ts', 'main.ts', 'run.ts']) {
+      expect(source(module), module).not.toContain('reaskPerTurn');
+    }
+    expect(html).not.toContain('reaskPerTurn');
+  });
+
   it('groups by the sheet’s own top-level blocks, in the file’s order', () => {
     const blocks = blocksOf(knobs).map((block) => block.name);
     expect(blocks).toEqual(Object.keys(AI));
