@@ -4383,3 +4383,217 @@ and "keeps the research goal's honest negative".
   pass's 70.7%/84.8% for the same `main` cannot both be the same measurement.
   Until a probe of record lives in the tree, any absolute military target is a
   number nobody can reproduce.
+
+---
+
+---
+
+## Batch X6 as shipped — `tileWants` earns its 21% (2026-09-09)
+
+`docs/audit/bot-pass-2.md`, Part 3's queue row: *"the arm is the hottest in the
+bot and buys six hexes in 150 turns; the cheap fix is a bound and hoisting the
+hypothetical."* The bound is built and it costs the bot **nothing at all** —
+fourteen boards play byte-identically with it and every one of them plays faster.
+The hoist the audit asked for was already there, and what actually cost the 21%
+was a third thing the profile names.
+
+### What the 21% was, measured
+
+A CPU profile of seed 20260903's whole 150 turns (`node:inspector`, 200 µs,
+93,080 samples) on today's `main`, `src/ai` and `src/sim` frames both:
+
+| frame | inclusive | what it is |
+|---|---|---|
+| `tileWants` | **19.2%** | the arm |
+| ├ `purchasableTiles` | 14.7% | its one enumeration |
+| ├── **`tilePurchaseError`** | **13.3%** | the rule, asked once per offered hex |
+| └── `tilePurchasePrice` → `explainTilePurchase` | 2.4% | the ladder |
+| (`meterEffects`) | 22.4% | `tilePurchaseError`'s writ clause reads it |
+| (`explainHappiness` → `controlledHoldings`) | 15.8% / 20.6% | and *it* walks every town and every luxury |
+
+**So the arm's cost was never the appraisal.** Folding a hex is a tile fold and
+`explainTileYield` is 1% of the bot; the money went on asking `tilePurchaseError`
+*"may this seat buy this hex"* about twenty hexes a town, five towns, every
+sitting — and that question ends in `bordersFrozen(meterEffects(...))`, which is
+an empire-wide happiness walk. A hundred walks of the whole realm to buy a hex
+once a decade.
+
+**The audit's hoist was already shipped.** *"It folds a `foldCity` hypothetical
+per purchasable hex per town"* is not what the source does: there is no
+`foldCity` in this arm at all, and the town's own context has been hoisted since
+batch 9 (`cityContext`, one reading a town). X8's own finding, one batch on — the
+cheapest half of a fix is sometimes already in the tree, and the register that
+says so is the source.
+
+### The bound
+
+`pricedOffers` (`wants.ts`) replaces the `purchasableTiles` walk with two cuts,
+and **neither changes what a quoted hex is worth**:
+
+  · **a hex nobody would work and no seam sits on is not priced at all.** Its
+    appraisal was already nought — the ground term is a printed zero and there is
+    no seam beside it — and a want of nought was dropped one line later anyway.
+    `quote` returns `null` for it *before* the ladder or the rule is asked
+    anything. This is the cut that does the work: most of a town's frontier is
+    ground its citizens would not move to;
+  · **the rest are ranked, and the best `expansion.hexOffersPriced` (4) are put
+    to the rule.** The ranking is **worth per coin** — `worthPerCoin`'s own
+    comparison, the number `spendCommand` picks the top of — so what the bound
+    drops is what the spend arm would have ranked last. Ties break on the tile
+    index and the kept rows are pushed back in board order, so the book's rows sit
+    where they always sat.
+
+**Top-N by worth per coin rather than `bestExpansionTile`'s ring**, which was the
+audit's own suggestion. The two rank by different things: `expansionScore` is the
+*culture*'s preference (its own yield weights, a resource bonus, a ring penalty)
+and the book buys by worth per coin, so a first-copy silk three rings out — the
+most valuable hex on the frontier to this arm — can sit nowhere near the hex the
+borders would take next. Ranking by the book's own number cannot disagree with the
+book. `bestExpansionTile` is still read, because it is what tells a hex it is owed
+the *sooner* share, and it is read once a town.
+
+Two of the rule's clauses are asked cheaply in the bot to decide **what to ask
+about** — the frontier (six neighbours through `tileOwnerField`, because a hex
+records the *town* that claimed it and a frontier is an empire's) and the purse (a
+price against what the seat holds). Both were always refusals, so neither hides a
+want; `tilePurchaseError` is still the only thing that makes an offer legal, and
+`aiWants.test.ts` asserts every row of the bounded book passes it.
+
+The hoist that *is* new is the arm's shape: the six town-level readings (the
+context, the poorest worked hex, the citizen's keep, the border's clock, the hex
+the borders would take next, and its share) are taken once in `tileWants`' body
+and spent by one closure, `quote`, which is the whole of the per-hex appraisal.
+The bounded walk and the unbounded one hand hexes to the same closure, so they
+**cannot** fold a hex differently — the identity below is by construction, not by
+luck.
+
+### Off and on — fourteen boards, and not one of them moves
+
+`hexDoor.bound` is a source-level switch in `scopeDoor`'s and `keepDoor`'s idiom:
+shut, the arm walks `purchasableTiles` exactly as it did. Not a knob — not in
+`data/ai.json`, read by no persona, invisible to the arena.
+
+| bench | shut → open |
+|---|---|
+| six duel boards, 150 turns, stepper (20260903 · 4242 · 1 · 5 · 11 · 777) | **byte-identical** state and log on all six |
+| eight standard boards, 100 turns, sixteen seats | **byte-identical**, and every column of the t100 row equal to the decimal |
+| hexes bought | 1 · 0 · 2 · 1 · 0 · 1 — the same hexes, at the same turns |
+
+The t100 probe row (eight seeds 1/2/3/42/101/999/31337/20260101, standard, two
+balanced seats, wild on, mean of sixteen seats) with the door shut and open:
+
+| | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| door shut | 5.9 | 32.4 | 99.1 | 50.2 | 30.7 | 37.2 | 51.3 | 15.5 | 232.9 | 18.4 | +3.8 |
+| **door open** | 5.9 | 32.4 | 99.1 | 50.2 | 30.7 | 37.2 | 51.3 | 15.5 | 232.9 | 18.4 | +3.8 |
+
+That is the acceptance said as strongly as it can be said: *`purchaseTile` count
+unchanged or up* is **unchanged**, hex for hex, on fourteen boards, and no column
+of the probe row moves because no decision moves.
+
+### The clock
+
+**One identical board, alternating blocks** (X2's method): the board played to a
+fixed turn, then ten `nextBotDecision` of *that same state* a block, eight blocks
+each way, doors alternating.
+
+| board | door open | door shut |
+|---|---|---|
+| 20260903 t100, 5 towns | min **1480.0** · median 1764.6 | min 2034.0 · median 2421.2 |
+| 20260903 t150, 8 towns | min **627.9** · median 884.8 | min 1014.5 · median 1336.3 |
+| 4242 t100, 5 towns | min **904.8** · median 1311.0 | min 1318.5 · median 1961.6 |
+| 4242 t150, 8 towns | min **1072.1** · median 1127.2 | min 1361.7 · median 1462.3 |
+
+**21% to 38% off the decision clock on the minimum**, every board, and the same
+on the median.
+
+Whole games, one fresh process each, the tree before the batch against the tree
+after — a fair comparison here in a way it usually is not, because the two trees
+play the *same game*:
+
+| seed | | mean ms/turn | t0–50 | t50–100 | **t100–150** |
+|---|---|---|---|---|---|
+| 20260903 | before | 420.8 | 144.0 | 349.8 | **768.6** |
+| 20260903 | **after** | **166.6** | 54.9 | 130.9 | **314.1** |
+| 4242 | before | 514.2 | 100.5 | 204.0 | **1238.1** |
+| 4242 | **after** | **270.6** | 37.3 | 103.3 | **671.3** |
+
+**The audit's own figures for that column were 142 and 206, and they are not
+reachable on this tree** — not because the batch missed, but because the *bench*
+moved under it: seed 4242's game has gone from the audit's **1,256 commands to
+3,624**, and 20260903's from 1,003 to 1,065. X1 re-aimed the tech table and the
+seats grew; a turn at t150 is a bigger turn than the one the audit clocked. The
+honest reading is the ratio, and the ratio is **−59% and −46%** on the column the
+acceptance named.
+
+### The profile, after
+
+The same 150 turns, the same sampler, the same trajectory:
+
+| frame | before | after |
+|---|---|---|
+| **`tileWants`** | **19.2%** | **5.1%** |
+| `tilePurchaseError` | 13.3% | **0.3%** |
+| `tilePurchasePrice` · `explainTilePurchase` | 2.4% | 0.1% |
+| `purchasingPlan` | 29.0% | 16.2% |
+| `wantBook` | 43.0% | 32.5% |
+| `meterEffects` | 22.4% | 12.8% |
+| `explainHappiness` | 15.8% | 9.7% |
+| `controlledHoldings` (inclusive) | 20.6% | 17.8% |
+| `seatContext` / `valueContext` | 57.0% | 49.1% |
+| the profiled game, wall clock | 52.9 s | **30.9 s** |
+
+`tilePurchaseError` fell by a factor of forty, not five, and the reason is the
+first cut rather than the second: on a real board a town rarely has four frontier
+hexes anybody would move to, so the cap is seldom the thing that binds. The knob
+is a ceiling, and the ceiling is mostly not touched.
+
+### The knob
+
+**One**, and it is a count, so it is data: `expansion.hexOffersPriced` (**4**),
+beside `siteSearchRadius` — the same sentence about compute, said about ground
+already owned. It reaches the arena panel by the panel walking the sheet, with no
+page edit (`test/ui/arenaPage.test.ts` green untouched). Raise it and a town puts
+more of its own frontier to the rule at the price of those happiness walks; drop
+it to one and a town asks about the single best bargain on its border.
+
+### Pins re-aimed
+
+**None.** Every test in `aiWants.test.ts`, `aiAppraisal.test.ts`, `aiBot.test.ts`
+and `aiDecision.slow.test.ts` passes untouched, which is what fourteen
+byte-identical boards predicts. Five new claims join `aiWants.test.ts` ("batch X6
+— the hexes worth asking about"): the bound keeps exactly the top of the book by
+worth per coin; a hex still priced folds identically, term for term and price for
+price; no row of the bounded book fails `tilePurchaseError` and a frozen writ
+still empties it; the town's readings are taken once a town and the walk names
+none of them (a source pin, since a hoist is a claim about where a call sits); and
+the door ships open.
+
+The bench for the first two needed one arrangement worth recording: a town of
+**two**, not the bench's grown town of six. At six, on a board sitting at the
+happiness ceiling, X5b's keep is larger than a seam is worth and *every* offer
+folds to nought — which is the growth channel working exactly as X5b shipped it,
+and it means the claim about *which* offers survive a bound has to be asked of a
+town whose next citizen is affordable.
+
+### Known gaps, written down rather than fixed
+
+- **The empire's happiness walk is still the bot's largest single cost.**
+  `controlledHoldings` is 17.8% of a turn after this batch and `meterEffects`
+  12.8%, and neither is memoised — `readings.ts` remembers a town's yields on
+  `state.revision` and nothing remembers a meter. That is a *simulation* memo on
+  the slate pattern, it would pay every arm rather than this one, and it is
+  outside a bot batch's fence. It is the next measured target and it is larger
+  than this one was.
+- **The purse clause is asked twice.** `pricedOffers` compares a price against the
+  seat's gold to keep an unaffordable hex from spending a slot, and
+  `tilePurchaseError` compares it again. Both readings are the same line of the
+  same rule; the duplication buys the bound its fidelity and costs one comparison.
+- **The cap is a count of *offers*, not of walks.** Four hexes a town is four
+  happiness walks a town, so an empire of twelve towns still pays forty-eight. The
+  bound is linear in towns where the memo above would be constant.
+- **A hex is quoted before it is priced.** The order is deliberate — the quote is
+  what decides whether the ladder is asked at all — but it means a very cheap hex
+  nobody would work is still never seen. That is the old behaviour exactly (its
+  want folded to nought), recorded so nobody reads the bound as having introduced
+  it.

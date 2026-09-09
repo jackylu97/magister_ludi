@@ -18,7 +18,8 @@
   },
   "expansion": {
     "siteSearchRadius": 8,
-    "cityValueFalloff": 0.9
+    "cityValueFalloff": 0.9,
+    "hexOffersPriced": 4
   },
   "site": {
     "ringRadius": 2,

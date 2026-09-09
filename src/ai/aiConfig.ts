@@ -205,6 +205,23 @@ export interface AiConfig {
      * sentence, not a preference (see `buildCandidates`).
      */
     cityValueFalloff: number;
+    /**
+     * How many of a town's frontier hexes are put to the purchase rule each
+     * sitting — `siteSearchRadius`' sentence about compute, said about ground
+     * already owned (batch X6).
+     *
+     * The arm quotes every frontier hex a citizen would move to or a seam sits
+     * on, ranks them by **worth per coin** — the book's own ordering — and asks
+     * `tilePurchaseError` about the best this many. The rule's writ clause reads
+     * the empire's whole happiness (`meterEffects` → `controlledHoldings`), so
+     * the count is a price in walks of the map per town per sitting, and the
+     * hexes it drops are the ones the spend arm ranked last.
+     *
+     * Raise it and a town considers more of its own frontier at the cost of
+     * those walks; drop it to one and a town asks about the single best bargain
+     * on its border and nothing else.
+     */
+    hexOffersPriced: number;
   };
   site: {
     /**

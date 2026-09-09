@@ -57,7 +57,7 @@ import {
   yieldWeight,
 } from '../../src/ai/value';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
-import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
+import { type Want, expectedBestOrder, hexDoor, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import type { City } from '../../src/sim/state';
 import {
@@ -98,6 +98,7 @@ import {
   mirrorRowFor,
   purchasableTiles,
   refreshCityDerived,
+  tilePurchaseError,
 } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { unitDef, unitStampStrength } from '../../src/sim/unitData';
@@ -1802,6 +1803,163 @@ describe('batch 8 — the hexes a town would buy', () => {
     // `aiConfig.ts` *declares* the two numbers, which is the tuning surface's
     // job; `value.ts` is the only module that reads them.
     expect(naming).toEqual(['aiConfig.ts', 'value.ts']);
+  });
+});
+
+/**
+ * **Batch X6 — the hexes worth asking about.**
+ *
+ * `docs/audit/bot-pass-2.md`, Part 3: `tileWants` was 21% of a turn and bought
+ * six hexes in a hundred and fifty, because it put every unowned frontier hex of
+ * every town to `tilePurchaseError`, whose writ clause reads the empire's whole
+ * happiness. The batch asks the rule about fewer hexes and changes what a quoted
+ * hex is worth by nothing at all, and these are the three claims that says:
+ *
+ *   · a hex outside the bound is not priced — and *which* hexes fall outside it
+ *     is the book's own ordering, worth per coin;
+ *   · a hex still priced folds **identically**, term for term, with the door shut
+ *     or open;
+ *   · the town's own readings are taken once a town, not once a hex.
+ */
+describe('batch X6 — the hexes worth asking about', () => {
+  const LUXURIES = ['silk', 'gold', 'gems', 'wine', 'ivory', 'furs', 'incense'] as never[];
+
+  /**
+   * A town with a full purse and a frontier of seams — one unheld luxury a hex,
+   * so every offer is worth *something* and the offers are worth different
+   * somethings (a seam's yields differ by kind). The bound has to choose.
+   */
+  function seamedFrontier(): { state: GameState; player: Player } {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    player.gold = 5000;
+    const city = state.cities[0]!;
+    // A small town rather than the bench's grown one, and the reason is X5b's
+    // line: a town of six on a board at the happiness ceiling charges a citizen
+    // more keep than a seam is worth, and every offer folds to nought. The claim
+    // here is about *which* offers the bound keeps, so the bench is a town whose
+    // next citizen is affordable.
+    city.population = 2;
+    refreshCityDerived(state, city);
+    const offers = purchasableTiles(state, city).filter((offer) => offer.error === null);
+    expect(offers.length).toBeGreaterThan(LUXURIES.length);
+    for (let index = 0; index < LUXURIES.length; index++) {
+      const offer = offers[index]!;
+      getTileAt(state.map, offer.col, offer.row)!.resource = LUXURIES[index]!;
+    }
+    return { state, player };
+  }
+
+  /** Every hex row of a seat's gold book, in the order the book carries them. */
+  function hexRows(state: GameState, player: Player, bound: boolean): Want[] {
+    hexDoor.bound = bound;
+    try {
+      bumpRevision(state);
+      return valueContext(state, player).wants.gold.filter((row) => row.ground !== undefined);
+    } finally {
+      hexDoor.bound = true;
+    }
+  }
+
+  it('prices only the best few of a town’s frontier, and drops the rows it ranked last', () => {
+    const { state, player } = seamedFrontier();
+    const cap = AI.expansion.hexOffersPriced;
+    const shut = hexRows(state, player, false);
+    const open = hexRows(state, player, true);
+
+    expect(shut.length).toBeGreaterThan(cap);
+    expect(open.length).toBe(cap);
+
+    // The kept rows are exactly the top of the shut book by worth per coin, ties
+    // broken by the board's own order — `pricedOffers`' comparison, read back off
+    // the unbounded book rather than typed in.
+    const ranked = shut
+      .map((row, index) => ({ row, index }))
+      .sort((a, b) => worthPerCoin(b.row) - worthPerCoin(a.row) || a.index - b.index)
+      .slice(0, cap)
+      .sort((a, b) => a.index - b.index)
+      .map((entry) => entry.row.label);
+    expect(open.map((row) => row.label)).toEqual(ranked);
+  });
+
+  it('folds a hex it still prices exactly as it did unbounded — price, worth and every term', () => {
+    const { state, player } = seamedFrontier();
+    const shut = hexRows(state, player, false);
+    const open = hexRows(state, player, true);
+    expect(open.length).toBeGreaterThan(0);
+    for (const row of open) {
+      const before = shut.find((one) => one.label === row.label)!;
+      expect(before).toBeDefined();
+      expect(row.price).toBe(before.price);
+      expect(row.worth).toBe(before.worth);
+      expect(JSON.stringify(row.terms)).toBe(JSON.stringify(before.terms));
+      expect(row.ground).toEqual(before.ground);
+      // …and it still folds out of its own printed terms, which is the claim the
+      // whole book is asked for elsewhere, asked again of the bounded walk.
+      expect(foldTerms(row.terms)).toBe(row.worth);
+    }
+  });
+
+  it('carries no want the rules would strike — the bound narrows, the rule refuses', () => {
+    const { state, player } = seamedFrontier();
+    const city = state.cities[0]!;
+    for (const row of hexRows(state, player, true)) {
+      const ground = row.ground!;
+      expect(tilePurchaseError(state, player.id, city.id, { col: ground.col, row: ground.row })).toBe(
+        null,
+      );
+    }
+    // A frozen writ is the simulation's refusal and the bound does not step round
+    // it: no purse and no ranking makes a hex buyable while the borders are shut.
+    player.gold = 0;
+    expect(hexRows(state, player, true)).toEqual([]);
+  });
+
+  it('takes the town’s own readings once a town, and the hex’s once a hex', () => {
+    // A source pin, the register kind. The batch's other half is a *hoist*, and a
+    // hoist is a claim about where a call sits rather than about a number: the
+    // five town-level readings are taken in `tileWants`' own body, above the
+    // walk, and the walk that prices hexes may not name them.
+    const source = (
+      import.meta.glob('../../src/ai/wants.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../src/ai/wants.ts']!
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .replace(/(^|[^:])\/\/.*$/gm, '$1');
+
+    const body = (name: string): string => {
+      const at = source.indexOf(`function ${name}(`);
+      expect(at).toBeGreaterThan(0);
+      const open = source.indexOf('\n}', at);
+      return source.slice(at, open);
+    };
+    const count = (text: string, call: string): number =>
+      text.split(`${call}(`).length - 1;
+
+    const arm = body('tileWants');
+    for (const reading of ['cityContext', 'citizenKeepTerm', 'bestExpansionTile', 'borderGrowth']) {
+      expect([reading, count(arm, reading)]).toEqual([reading, 1]);
+    }
+    // The walk itself names none of them: it asks the ladder and the rule, and
+    // spends the readings the arm handed it.
+    const walk = body('pricedOffers');
+    for (const reading of ['cityContext', 'citizenKeepTerm', 'bestExpansionTile', 'borderGrowth']) {
+      expect([reading, count(walk, reading)]).toEqual([reading, 0]);
+    }
+    // And the expensive question is asked in exactly one place in the module.
+    expect(count(source, 'tilePurchaseError')).toBe(1);
+    expect(count(walk, 'tilePurchaseError')).toBe(1);
+  });
+
+  it('ships the door open, and it is not a knob', () => {
+    // `scopeDoor`'s and `keepDoor`'s sentence a third time: the switch exists for
+    // the acceptance bench, it is not in `data/ai.json`, no persona reads it and
+    // the arena cannot see it. The *bound* is the knob beside it.
+    expect(hexDoor).toEqual({ bound: true });
+    expect(AI.expansion.hexOffersPriced).toBeGreaterThan(0);
   });
 });
 

@@ -120,8 +120,11 @@ import {
   type CityYields,
   bestExpansionTile,
   borderGrowth,
+  cityTile,
   mirrorRowFor,
   purchasableTiles,
+  tilePurchaseError,
+  tilePurchasePrice,
   yieldScore,
 } from '../sim/cities';
 import {
@@ -138,7 +141,8 @@ import {
 // the top bar and the Ledger do (batch E2). See `readings.ts`.
 import { readCity, readEmpirePercents } from '../sim/readings';
 import { type ImprovementId, improvementYield, workForFamily } from '../sim/improvementData';
-import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
+import { getTileAt, mapRange, neighborTiles, tileHex, tileIndex, wrappedDistance } from '../sim/map';
+import type { GameMap, Tile } from '../sim/map';
 import type { TileYield } from '../sim/terrainData';
 import {
   type PurchasableItem,
@@ -166,6 +170,7 @@ import {
   riteError,
 } from '../sim/religion';
 import { RULES } from '../sim/rulesData';
+import { type TileOwnerField, playerById, tileOwnerField } from '../sim/state';
 import type { City, GameState, Player } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
 import {
@@ -508,12 +513,11 @@ export function purchasingPlan(
  * **The hexes a town could buy, as wants** — batch 8 of
  * `docs/bot-priorities.md`, and the game's first gold sink joins the book.
  *
- * `purchasableTiles` (`cities.ts`) is the one enumeration: every unowned hex in
- * a town's work radius that touches this empire, priced by the ladder and
- * carrying the reason it cannot be had when it cannot. Only the offers with no
- * reason at all become wants — a hex the writ has frozen, a hex the purse cannot
- * reach and a **puppet's** whole ring are refusals of the simulation's own, and
- * a want the rules would strike is a want the spend arm must not carry.
+ * `tilePurchaseError` (`cities.ts`) is the one rule: a hex the writ has frozen, a
+ * hex the purse cannot reach, a hex off the frontier and a **puppet's** whole ring
+ * are refusals of the simulation's own, and a want the rules would strike is a
+ * want the spend arm must not carry. Which hexes are *asked* that question is
+ * `pricedOffers` below, and that is batch X6's whole subject.
  *
  * What a hex is worth has two halves and they are different kinds of thing:
  *
@@ -555,10 +559,18 @@ export function purchasingPlan(
  * *signature* is not priced at all — a luxury's effect list is
  * `resourceEffects.ts`' to read and cannot be asked hypothetically, which is the
  * same note the great person's work carries.
+ *
+ * **What a hex is worth, and what it costs to ask** (batch X6). Everything above
+ * is a fact about the *town* or about the *hex*, and none of it is a fact about
+ * the empire — so the six town-level readings are taken once here (the context,
+ * the poorest worked hex, the citizen's keep, the border's clock, the hex the
+ * borders would take next, and the share that hex is owed) and the loop below
+ * spends them. `quote` is the whole of the per-hex appraisal in one closure, so
+ * the bounded walk and the unbounded one cannot fold a hex differently: they
+ * choose which hexes are quoted and nothing else.
  */
 function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   if (city.puppet === true) return [];
-  const wants: Want[] = [];
   // **The town's own reading, hoisted** (batch 9): a context is a fact about the
   // town — its shelves, its rites, its scoped cards, the faith it follows — and
   // it was being rebuilt for every worked hex and again for every hex on offer.
@@ -593,10 +605,8 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   const wait = borderGrowth(state, city).turns;
   const next = bestExpansionTile(state, city);
   const soonShare = wait === null ? 1 : Math.min(1, wait / horizon);
-  for (const offer of purchasableTiles(state, city)) {
-    if (offer.error !== null) continue;
-    const tile = getTileAt(state.map, offer.col, offer.row);
-    if (!tile) continue;
+
+  const quote = (tile: Tile): Appraisal | null => {
     const yields = foldTileLines(explainTileYield(tile, here));
     const terms: ValueTerm[] = [];
     const beats = poorest === null || yieldScore(yields) > poorest.score;
@@ -612,8 +622,8 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
       terms.push(
         nest(
           poorest === null
-            ? `what (${offer.col},${offer.row}) would pay ${city.name}`
-            : `what (${offer.col},${offer.row}) pays over the poorest hex ${city.name} works today`,
+            ? `what (${tile.col},${tile.row}) would pay ${city.name}`
+            : `what (${tile.col},${tile.row}) pays over the poorest hex ${city.name} works today`,
           explainYields(bag, ctx),
         ),
       );
@@ -621,12 +631,12 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
       if (keep !== null) terms.push(keep);
     } else {
       terms.push({
-        label: `no citizen of ${city.name} would move to (${offer.col},${offer.row}) today`,
+        label: `no citizen of ${city.name} would move to (${tile.col},${tile.row}) today`,
         value: 0,
       });
     }
     terms.push(...newResourceTerms(ctx.realm, ctx.ai, tile.resource, 'on the hex'));
-    const owed = next !== null && next.col === offer.col && next.row === offer.row;
+    const owed = next !== null && next.col === tile.col && next.row === tile.row;
     const share = owed ? soonShare : 1;
     const claim: ValueTerm = {
       label: owed
@@ -636,20 +646,171 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
       value: share,
       op: 'mul',
     };
-    const folded = appraise([nest(`the hex at (${offer.col},${offer.row})`, appraise(terms)), claim]);
-    if (folded.total <= 0) continue;
+    const folded = appraise([nest(`the hex at (${tile.col},${tile.row})`, appraise(terms)), claim]);
+    return folded.total <= 0 ? null : folded;
+  };
+
+  const wants: Want[] = [];
+  for (const offer of pricedOffers(state, ctx, city, quote)) {
     wants.push({
       label: `the hex at (${offer.col},${offer.row}) for ${city.name}`,
       currency: 'gold',
       price: offer.price,
-      worth: folded.total,
+      worth: offer.worth.total,
       delay: 0,
-      terms: folded.terms,
+      terms: offer.worth.terms,
       outOfReach: false,
       ground: { cityId: city.id, col: offer.col, row: offer.row },
     });
   }
   return wants;
+}
+
+/**
+ * **The bound, and the measurement that asked for it** — batch X6
+ * (`docs/audit/bot-pass-2.md`, Part 3). `tileWants` was the hottest arm in the
+ * bot at **21% of a turn** and bought six hexes in a hundred and fifty, and the
+ * profile says where the money went: not in folding a hex — that is a tile fold
+ * and it is cheap — but in *asking the ladder about* one. `purchasableTiles`
+ * prices and gates **every** unowned frontier hex of every town, and
+ * `tilePurchaseError`'s writ clause reads `meterEffects`, which walks every town
+ * of the empire and every luxury it holds (`explainHappiness` →
+ * `controlledHoldings`, the walk the audit measured at 17% of the bot). Twenty
+ * hexes a town, five towns, once a sitting: a hundred empire-wide happiness
+ * walks to buy a hex once a decade.
+ *
+ * So the arm asks the expensive question of fewer hexes, in two cuts, and neither
+ * of them changes what a quoted hex is worth:
+ *
+ *   · **a hex nobody would work and no seam sits on is not priced at all.** Its
+ *     appraisal was already nought — the ground term is a printed zero and there
+ *     is no seam beside it — and a want of nought was dropped one line later.
+ *     `quote` returns `null` for it before the ladder is asked anything. This is
+ *     the cut that does the work: most of a town's frontier is ground its
+ *     citizens would not move to;
+ *   · **the rest are ranked and the best `expansion.hexOffersPriced` of them are
+ *     put to the rule.** The ranking is **worth per coin** — the book's own
+ *     ordering, the very number `spendCommand` picks the top of — so what the
+ *     bound drops is what the spend arm would have ranked last. The price is
+ *     asked of all of them because the ladder is cheap (`explainTilePurchase`,
+ *     2.4% of a turn against `tilePurchaseError`'s 13.3%); the *rule* is asked of
+ *     the few.
+ *
+ * **Top-N by worth per coin rather than `bestExpansionTile`'s ring**, which was
+ * the audit's own suggestion, and the reason is that the two rank by different
+ * things: `expansionScore` is the *culture*'s preference (yield weights of its
+ * own, a resource bonus, a ring penalty) and the book buys by worth per coin. A
+ * first-copy silk three rings out is the most valuable hex on the frontier to this
+ * arm and can sit nowhere near the hex the borders would take next. Ranking by
+ * the book's own number cannot disagree with the book. `bestExpansionTile` is
+ * still read — it is what tells a hex it is owed the *sooner* share — and it is
+ * read once a town rather than once a hex.
+ *
+ * **Two of the rule's own clauses are asked here cheaply, and neither is the
+ * authority.** The frontier (six neighbours and a tile-owner lookup) and the
+ * purse (a price against what the seat holds) decide what is *asked about*;
+ * `tilePurchaseError` decides what may be *bought*, and every offer that becomes
+ * a want has been through it. They are asked twice rather than trusted once
+ * because both are cheap and both would otherwise spend a slot on a hex the rule
+ * was always going to strike — a hex off the frontier or beyond the treasury was
+ * never a want under the old walk either. A want the rules would strike still
+ * cannot reach the spend arm.
+ */
+export const hexDoor = { bound: true };
+
+/** A hex this town may buy, with the ladder's price and the arm's appraisal. */
+interface PricedHex {
+  col: number;
+  row: number;
+  price: number;
+  worth: Appraisal;
+}
+
+function pricedOffers(
+  state: GameState,
+  ctx: ValueContext,
+  city: City,
+  quote: (tile: Tile) => Appraisal | null,
+): PricedHex[] {
+  const owner = city.ownerId;
+  if (!hexDoor.bound) {
+    // The unbounded reading, kept whole so the acceptance bench has something to
+    // measure against: `purchasableTiles` prices and gates every frontier hex,
+    // and every offer with no refusal on it is quoted.
+    const all: PricedHex[] = [];
+    for (const offer of purchasableTiles(state, city)) {
+      if (offer.error !== null) continue;
+      const tile = getTileAt(state.map, offer.col, offer.row);
+      if (!tile) continue;
+      const worth = quote(tile);
+      if (worth === null) continue;
+      all.push({ col: offer.col, row: offer.row, price: offer.price, worth });
+    }
+    return all;
+  }
+
+  const { map } = state;
+  // The sweep reading of who owns a hex, hoisted for exactly this loop's lifetime
+  // (`tileOwnerField`'s own rule): `state.tileOwner` holds a **town's** id, and
+  // the frontier is an empire's.
+  const owners = tileOwnerField(state);
+  const purse = playerById(state, owner)?.gold ?? 0;
+  const asked: (PricedHex & { index: number; rank: number })[] = [];
+  for (const tile of mapRange(map, tileHex(cityTile(map, city)), RULES.cities.workRadius)) {
+    const index = tileIndex(map, tile.col, tile.row);
+    if (state.tileOwner[index] !== null) continue;
+    if (!atTheFrontier(map, owners, owner, tile)) continue;
+    const worth = quote(tile);
+    if (worth === null) continue;
+    const price = tilePurchasePrice(state, owner, city.id, { col: tile.col, row: tile.row });
+    if (price > purse) continue;
+    asked.push({
+      col: tile.col,
+      row: tile.row,
+      price,
+      worth,
+      index,
+      rank: worth.total / Math.max(1, price),
+    });
+  }
+  // Worth per coin, then the board's own order — `worthPerCoin`'s comparison and
+  // `purchasableTiles`' tie-break, so two hexes of the same bargain are chosen
+  // between by the map rather than by the walk.
+  asked.sort((a, b) => b.rank - a.rank || a.index - b.index);
+  const cap = Math.max(0, Math.round(ctx.ai.expansion.hexOffersPriced));
+  const kept: (PricedHex & { index: number })[] = [];
+  for (const offer of asked.slice(0, cap)) {
+    const cell = { col: offer.col, row: offer.row };
+    if (tilePurchaseError(state, owner, city.id, cell) !== null) continue;
+    kept.push(offer);
+  }
+  // Back into the board's order before they are pushed, so the book's rows sit
+  // where they always sat and a tie between two hexes breaks where it always did.
+  kept.sort((a, b) => a.index - b.index);
+  return kept;
+}
+
+/**
+ * Does this hex touch ground this empire already holds? `tilePurchaseError`'s
+ * frontier question, asked cheaply so the expensive one is asked of fewer hexes —
+ * see `hexDoor`. It narrows what is *asked*; it permits nothing, and the offers
+ * it lets through still go to the rule before any of them becomes a want.
+ *
+ * The owner reading is the field's rather than the raw array's for the reason
+ * `tileOwnerField` gives: a hex records the **town** that claimed it, and a
+ * frontier is an empire's — a hex wedged between two of your own towns is
+ * frontier however it was claimed.
+ */
+function atTheFrontier(
+  map: GameMap,
+  owners: TileOwnerField,
+  playerId: number,
+  tile: Tile,
+): boolean {
+  for (const neighbour of neighborTiles(map, tileHex(tile))) {
+    if (owners.at(tileIndex(map, neighbour.col, neighbour.row)) === playerId) return true;
+  }
+  return false;
 }
 
 /**
