@@ -68,6 +68,9 @@ const SOURCES = import.meta.glob(
     '../../src/ui/topBar.ts',
     '../../src/ui/cityPanel.ts',
     '../../src/ui/tradeLines.ts',
+    // The sheet, since batch R2 took the route verbs off the unit panel and put
+    // them here: a claim about where a verb *went* has to be able to read both.
+    '../../src/ui/tradeScreen.ts',
     '../../src/main.ts',
   ],
   { eager: true, query: '?raw', import: 'default' },
@@ -150,23 +153,30 @@ describe('a routed caravan’s sheet', () => {
 
   const panel = source('unitPanel.ts');
 
-  it('hides the move verbs and Cancel Route, rather than greying them', () => {
+  it('hides the move verbs and every route verb, rather than greying them', () => {
     // A caravan carrying a route walks itself, so Cancel Orders would drop a
     // path the resolution writes straight back. The early return is the rule.
     // Cancel Route joined the two after the 2026-08-28 ruling ("a routed
-    // caravan's sheet offers nothing to do"): the command is still the
-    // reducer's, but the sheet stops offering the button.
+    // caravan's sheet offers nothing to do"), and **batch R2 took the last two
+    // with it**: the user's ruling of 2026-09-09 — *"trade routes should be
+    // entirely sent/managed on the trade route screen"* — moved Auto-resend and
+    // All routes onto the sheet too, so what is left on this piece is one door.
     const block = panel.slice(panel.indexOf('const route = trades(unitDef(unit.type))'));
-    const actions = block.slice(0, block.indexOf('// An **idle** caravan'));
-    expect(actions).toContain('Auto-resend');
-    expect(actions).toMatch(/return actions;/);
+    const actions = block.slice(0, block.indexOf('if (unitDef(unit.type).foundsCity)'));
+    expect(actions).toContain("label: 'Open the trade sheet',");
+    expect(actions).toMatch(/if \(route\) return actions;/);
+    expect(actions).not.toContain('Auto-resend');
     expect(actions).not.toContain('Cancel Route');
     expect(actions).not.toContain('Cancel Orders');
     expect(actions).not.toContain('Sleep');
   });
 
-  it('flips auto-resend through the command and never the field', () => {
-    expect(panel).toMatch(/run: \(\) => onSetAutoResend\(!route\.autoResend\)/);
+  it('flips auto-renew from the sheet’s Running row, through the command and never the field', () => {
+    // The verb did not go away with the button — it moved. The Running row's ↻
+    // toggle is its surface now, and it is the same command it always was.
+    expect(source('tradeScreen.ts')).toContain(
+      'options.setAutoResend(route.unitId, !route.autoResend);',
+    );
     expect(controlsSource()).toMatch(/type: 'setAutoResend',/);
   });
 
@@ -181,9 +191,9 @@ describe('a routed caravan’s sheet', () => {
     expect(controls).toMatch(/routeSlotsLineOf\(getGame\(\)\.state, localPlayerId\)/);
   });
 
-  it('offers the start verb only to a piece that carries routes', () => {
+  it('offers the door only to a piece that carries routes', () => {
     expect(panel).toMatch(
-      /if \(trades\(unitDef\(unit\.type\)\) && onStartRoute\) \{[\s\S]{0,600}'Start route'/,
+      /if \(trades\(unitDef\(unit\.type\)\) && onOpenTrade\) \{[\s\S]{0,700}'Open the trade sheet'/,
     );
   });
 
@@ -229,13 +239,15 @@ describe('an idle caravan’s sheet', () => {
     expect(hasFreeRouteSlot(state, 0)).toBe(false);
   });
 
-  it('prints the capacity beside the verb, not only in the hover', () => {
-    const block = panel.slice(panel.indexOf("label: 'Start route'"));
+  it('prints the capacity beside the door, not only in the hover', () => {
+    const block = panel.slice(panel.indexOf("label: 'Open the trade sheet',"));
     const action = block.slice(0, block.indexOf('});'));
     expect(action).toContain('note: routeSlotsLine()');
-    expect(action).toContain('blocked:');
-    // Greyed, never hidden: a market finishing next turn gives the verb back.
-    expect(action).not.toContain('if (blocker');
+    // **Never blocked** since batch R2, and that is the change rather than an
+    // omission: this row is a link to a screen, not a thing done to the piece,
+    // so it has nothing to be refused by. The refusal lives on the sheet's own
+    // Send, in the reducer's own words.
+    expect(action).toContain('blocked: null,');
   });
 
   it('is greyed rather than hidden, and hides no move verb of its own', () => {

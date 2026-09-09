@@ -558,11 +558,12 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     greatPerson,
     onGreatPersonAct,
     onGreatPersonWork,
-    startRouteBlocker,
-    onStartRoute,
+    // `startRouteBlocker`, `onStartRoute`, `onSetAutoResend` and `onCancelRoute`
+    // stay on `UnitPanelOptions` unread by this file since batch R2: the three
+    // route verbs moved to the Trade sheet, and dropping the fields would be a
+    // change to `main.ts`'s wiring for nothing. See `actionsFor`.
     routeReading,
     routeSlotsLine,
-    onSetAutoResend,
     onOpenTrade,
     disbandBlocker,
     onDisband,
@@ -696,56 +697,32 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // (`render`, below), not as a verb here. `onCancelRoute` stays on
     // `UnitPanelOptions` unread by this file, because `main.ts` still wires it
     // and dropping the field would be a change to a file outside this fence.
-    const route = trades(unitDef(unit.type)) ? routeReading() : null;
-    if (route) {
-      actions.push({
-        label: route.autoResend ? 'Auto-resend ✓' : 'Auto-resend',
-        blocked: null,
-        hint: route.autoResend
-          ? 'The caravan starts a fresh route when this one lapses'
-          : 'Start a fresh route automatically when this one lapses',
-        run: () => onSetAutoResend(!route.autoResend),
-      });
-      // The one thing this sheet cannot say: what the *rest* of the empire's
-      // caravans are doing. One row out to the screen that can — a link to a
-      // screen, not a thing done to this piece, so it survives the "nothing to
-      // do" ruling.
-      if (onOpenTrade) {
-        actions.push({
-          label: 'All routes',
-          blocked: null,
-          hint: `Every caravan and every partner · ${routeSlotsLine()}`,
-          run: onOpenTrade,
-        });
-      }
-      return actions;
-    }
-
-    // An **idle** caravan: one verb, and it opens the screen where the route is
-    // chosen rather than arming a board full of plates (the user's ruling,
-    // 2026-08-28 — "I want to remove all micromanagement of units"). Which pair
-    // is legal, and why each refused one is not, is the screen's business
-    // (`routeStartable`, one greyed row each), so the row itself only answers
-    // "is there any route to start at all". It carries no clause about where
-    // the piece is standing, because there is no longer such a rule: the
-    // caravan is teleported to whichever origin the player picks.
+    // **Every route verb is one link now** (batch R2, `docs/flags.md` item (iii):
+    // *"trade routes should be entirely sent/managed on the trade route
+    // screen"*). This sheet used to carry three of them — two on a laden cart
+    // and one on an idle one — and each was a decision about the *empire's*
+    // caravans taken from a sheet about one piece. They live on the Trade sheet
+    // now: renewing, cancelling and auto-renewing are the Running tab's, and
+    // hiring is the Recommended tab's Send. What is left here is the door.
     //
-    // The move verbs below are **not** hidden for it. A routed caravan's sheet
-    // is its route and nothing else (the early return above); an idle one is an
-    // ordinary civilian that happens to have a screen to open.
-    if (trades(unitDef(unit.type)) && onStartRoute) {
-      const blocker = startRouteBlocker();
+    // The row is offered to a caravan whether or not it is carrying a route and
+    // whether or not a slot is free — it is a link to a screen, not a thing done
+    // to this piece, so it has nothing to be blocked by.
+    const route = trades(unitDef(unit.type)) ? routeReading() : null;
+    if (trades(unitDef(unit.type)) && onOpenTrade) {
       actions.push({
-        label: 'Start route',
-        // The capacity beside the verb, not only in the hover: the greying and
-        // the figure are the same fact, and a disabled button whose reason is a
-        // hover away is a button players guess about.
+        label: 'Open the trade sheet',
+        // The capacity beside the verb, not only in the hover: a player deciding
+        // whether the sheet is worth opening is deciding on this figure.
         note: routeSlotsLine(),
-        blocked: blocker === undefined ? 'No unit selected' : blocker,
-        hint: `Choose a route in the Trade screen · ${routeSlotsLine()}`,
-        run: onStartRoute,
+        blocked: null,
+        hint: `Every caravan and every partner · ${routeSlotsLine()}`,
+        run: onOpenTrade,
       });
     }
+    // A routed caravan's sheet is its route and the door beside it, and nothing
+    // else: the move verbs stay off for the reason stated above.
+    if (route) return actions;
     if (unitDef(unit.type).foundsCity) {
       // `undefined` means "no unit selected", which cannot happen while a unit
       // is being rendered — but it is a different value from `null` ("no

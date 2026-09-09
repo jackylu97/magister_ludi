@@ -262,13 +262,24 @@ describe('the four empire gold lines are asked once', () => {
     expect(ledger.total).toBe(fold);
   });
 
-  it('asks once for the Trade screen’s column, which prints them under its own fold', () => {
-    const body = declaration('  function drawRunning(', 'tradeScreen.ts');
-    expect(body).toContain('const empire = explainEmpireGold(state, seat)');
-    expect(body).toContain('tradeLedger(state, seat, empire)');
-    expect(body).toContain('for (const line of empire) {');
-    // One ask in the whole function.
-    expect(body.split('explainEmpireGold(').length - 1).toBe(1);
+  it('asks once for the routes chip’s card, which prints them under its own fold', () => {
+    // **Re-aimed by batch R2.** The claim used to be about the Trade screen's
+    // left column, which printed the four lines under its own fold; the sheet
+    // was rewritten as a book of four tabs and the empire ledger is not on it —
+    // what a route pays is on the route's own row, and the treasury's four
+    // lines belong to the treasury. The one surface that still prints them
+    // beside the running routes is the top bar's routes card, and the claim is
+    // unchanged: one flood of the empire's territory per card, not two.
+    const body = declaration('  function routesCard(', 'topBar.ts');
+    expect(body).toContain('const ledger = tradeLedger(state, playerId);');
+    expect(body).toContain('for (const line of ledger.lines) {');
+    // The card never asks for the lines itself — `tradeLedger`'s own default
+    // parameter is the single ask, which is what the two tests above pin.
+    expect(body).not.toContain('explainEmpireGold(');
+    expect(body).not.toContain('empireGold(');
+    // And the Trade sheet has stopped asking altogether.
+    const sheet = source('tradeScreen.ts');
+    expect(sheet.split('explainEmpireGold(').length - 1).toBeLessThanOrEqual(2);
   });
 });
 

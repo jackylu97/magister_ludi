@@ -89,6 +89,30 @@ describe('the game-screen disposal register', () => {
     expect(shell).toContain("closeButton.removeEventListener('click', close)");
   });
 
+  /**
+   * **The Trade sheet is the tenth on the frame, and its hotkey is in the
+   * register too** (batch R2, `docs/flags.md` item (iii)).
+   *
+   * The sheet's `dispose` is the shell's and is already pinned above. What this
+   * adds is the thing the rewrite brought with it: `E` opens the sheet, and a
+   * hotkey bound in `boot` and never unbound is a second copy of itself on the
+   * next game — Entry LVII's bug wearing a keystroke rather than a screen. The
+   * two older sheet hotkeys (`H`, `W`) are flagged rather than swept here; this
+   * one goes in the register the pass that ships it, which is the whole point.
+   */
+  it('gives the tenth sheet the frame’s dispose and unbinds its own hotkey', () => {
+    const main = source('main.ts');
+    const sheet = source('tradeScreen.ts');
+    // The frame, not a copy of the contract.
+    expect(sheet).toContain('createModalShell({');
+    expect(sheet).not.toContain("window.addEventListener('keydown'");
+    // The sheet's disposer, and the hotkey's, both in the one register.
+    expect(main).toContain('gameDisposers.push(() => trade?.dispose());');
+    expect(main).toContain(
+      "gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));",
+    );
+  });
+
   it('sweeps the register at both re-entry doors', () => {
     const main = source('main.ts');
     // Once on the way to the landing, once at the top of boot — a load can

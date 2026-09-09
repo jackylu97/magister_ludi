@@ -22,7 +22,7 @@
  */
 
 import { CITY_MARK_IDS, cityMark, cityMarkDataUri } from '../art/cityMarks';
-import { diplomacyMarkDataUri, statecraftMarkDataUri } from '../art/dockMarks';
+import { diplomacyMarkDataUri, statecraftMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
 import { type HeraldryId, HERALDRY_IDS, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { CARD_LINE_MARKS, SLOT_MARKS, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
 import {
@@ -163,11 +163,12 @@ function dockFamily(into: HTMLElement): void {
     block(
       into,
       'The dock — src/art/dockMarks.ts',
-      'One mark, and it opens the Statecraft sheet from the HUD dock.',
+      'The marks that open a sheet from the HUD dock. The cart is drawn here rather than vendored: no outline set carries a bale on two wheels.',
     ),
   );
   markCell(grid, 'statecraft', statecraftMarkDataUri(), 'the Orders & Doctrines dock button');
   markCell(grid, 'diplomacy', diplomacyMarkDataUri(), 'the war & peace dock button');
+  markCell(grid, 'trade', tradeMarkDataUri(), 'the Caravans dock button, and the routes chip');
 }
 
 function lineFamily(into: HTMLElement): void {

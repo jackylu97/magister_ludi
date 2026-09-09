@@ -34,6 +34,9 @@ const SOURCES = import.meta.glob(
     '../../src/sim/yields/empire.ts',
     '../../src/sim/readings.ts',
     '../../src/ui/topBar.ts',
+    '../../src/ui/hudDock.ts',
+    '../../src/art/dockMarks.ts',
+    '../../src/flairGallery/marks.ts',
   ],
   {
     eager: true,
@@ -150,5 +153,42 @@ describe("the top bar's age card", () => {
     const body = card.slice(0, card.indexOf('\n  }\n'));
     expect(body).toContain('realPlayers(state)');
     expect(body).toContain('highestAge(seat.techsResearched)');
+ * **The routes chip wears a drawn cart** (batch R2, `docs/flags.md` item (iii)).
+ *
+ * The user's ruling of 2026-09-09 asks for an icon for the Trade sheet beside
+ * the other three doors. The chip at the end of the yield strip is the sheet's
+ * older door and it wore a typed `⇄` — a pair of arrows meaning "exchange in
+ * the abstract" — where every other mark in this strip is path data traced into
+ * a mask. One drawing now serves both doors, and a typed glyph creeping back is
+ * the failure this pins: it would show as an emoji beside six drawn marks, and
+ * nothing would throw.
+ */
+describe('the routes chip’s mark', () => {
+  it('is the drawn cart, masked in the strip’s own ink', () => {
+    const bar = source('topBar.ts');
+    expect(bar).toContain("import { tradeMarkDataUri } from '../art/dockMarks';");
+    expect(bar).toContain("const icon = element('span', 'civ-yield-icon civ-yield-mark');");
+    expect(bar).toContain("icon.style.setProperty('--civ-mark', `url(\"${tradeMarkDataUri()}\")`);");
+    // The typed glyph is gone from the chip.
+    expect(bar).not.toContain("element('span', 'civ-yield-icon', '⇄')");
+  });
+
+  it('is one drawing, worn by the chip and by the dock button alike', () => {
+    // The dock's fourth button — the user's own words: *"The trade screen should
+    // have an icon next to the statecraft/religion/diplomacy buttons"*. Both
+    // doors take `tradeMarkDataUri`, so a redrawn cart moves in both places.
+    expect(source('hudDock.ts')).toContain("tradeMarkDataUri()");
+    expect(source('dockMarks.ts')).toContain('export const TRADE_MARK');
+    // Same grid and same weight as its two neighbours: no fifth mask mechanism.
+    expect(source('dockMarks.ts')).toContain(
+      'return markSvg(TRADE_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);',
+    );
+  });
+
+  it('joins the flair gallery in the pass that ships it', () => {
+    // CLAUDE.md's rule: a new visual asset joins the cabinet the same pass.
+    const marks = source('marks.ts');
+    expect(marks).toContain('tradeMarkDataUri');
+    expect(marks).toContain("markCell(grid, 'trade', tradeMarkDataUri()");
   });
 });

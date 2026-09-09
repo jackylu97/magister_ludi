@@ -190,46 +190,58 @@ describe('an order given at zero movement', () => {
 
 /**
  * A trader's sheet, after the user's ruling of 2026-08-28 ("I want to remove all
- * micromanagement of units").
+ * micromanagement of units") and the one that finished the job — 2026-09-09,
+ * *"trade routes should be entirely sent/managed on the trade route screen"*.
  *
- * The claim is a *subtraction*: an idle trader has **one** trade verb and it
- * opens a screen, there is no send mode to toggle it into, no clause about
- * standing in a city, and the ordinary civilian verbs below are neither hidden
- * nor treated specially. Read off the source for this file's stated reason —
- * there is no jsdom here, and what distinguishes a correct sheet from a
- * nearly-correct one is which rows it pushed.
+ * The claim is a *subtraction*, and it has got shorter twice. A caravan's sheet
+ * now has **one** trade row and it is a **link**: no send mode to toggle into,
+ * no clause about standing in a city, no Start route (a route is bought on the
+ * sheet, not started from a piece), no Auto-resend and no All routes. It is not
+ * even blocked — a door to a screen has nothing to be refused by, and the
+ * refusal a player needs is on the sheet's own Send in the reducer's own words.
+ * The ordinary civilian verbs below are neither hidden nor treated specially.
+ *
+ * Read off the source for this file's stated reason — there is no jsdom here,
+ * and what distinguishes a correct sheet from a nearly-correct one is which
+ * rows it pushed.
  */
 describe('an idle trader’s sheet', () => {
   const panel = source('unitPanel.ts');
-  const block = panel.slice(panel.indexOf('// An **idle** caravan'));
+  const block = panel.slice(panel.indexOf('// **Every route verb is one link now**'));
   const arm = block.slice(0, block.indexOf('if (unitDef(unit.type).foundsCity)'));
 
-  it('is one trade verb, and it is Start route', () => {
-    expect(arm).toContain("label: 'Start route'");
+  it('is one trade row, and it is a link to the sheet', () => {
+    expect(arm).toContain("label: 'Open the trade sheet',");
     // The old mode's two faces are gone: there is nothing to toggle into.
     expect(arm).not.toContain('Send Caravan');
     expect(arm).not.toContain('Choosing a Partner');
     expect(panel).not.toContain('isSendMode');
-    // And exactly one row is pushed for a trader carrying no route.
+    // And the three verbs that moved to the sheet are gone with them.
+    expect(arm).not.toContain('Start route');
+    expect(arm).not.toContain('Auto-resend');
+    expect(arm).not.toContain('All routes');
+    // Exactly one row is pushed for a caravan, laden or not.
     expect(arm.match(/actions\.push\(\{/g) ?? []).toHaveLength(1);
   });
 
-  it('opens the Trade screen rather than arming the board', () => {
-    expect(arm).toContain('run: onStartRoute');
-    expect(arm).toContain('Choose a route in the Trade screen');
+  it('opens the Trade sheet rather than arming the board', () => {
+    expect(arm).toContain('run: onOpenTrade,');
+    expect(arm).toContain('Every caravan and every partner');
   });
 
-  it('greys on the empire’s ledger and prints the figure beside the verb', () => {
-    expect(arm).toContain('const blocker = startRouteBlocker();');
+  it('prints the empire’s ledger beside the door, and blocks on nothing', () => {
     expect(arm).toContain('note: routeSlotsLine()');
-    expect(arm).toContain("blocked: blocker === undefined ? 'No unit selected' : blocker,");
+    expect(arm).toContain('blocked: null,');
+    expect(arm).not.toContain('startRouteBlocker()');
   });
 
   it('falls through to the ordinary civilian verbs rather than returning', () => {
-    // A *routed* caravan's sheet is its route and returns early; an idle one is
-    // a civilian that happens to have a screen to open, so Cancel Orders and
-    // Sleep are offered to it exactly as they are to a worker.
-    expect(arm).not.toContain('return actions;');
+    // A *routed* caravan's sheet is its route and the door, and returns after
+    // them; an idle one is a civilian that happens to have a screen to open, so
+    // Cancel Orders and Sleep are offered to it exactly as they are to a worker.
+    // The one return in this arm is the laden caravan's, and it is guarded.
+    expect(arm).toContain('if (route) return actions;');
+    expect(arm.match(/return actions;/g) ?? []).toHaveLength(1);
   });
 });
 

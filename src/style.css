@@ -2102,7 +2102,7 @@ button.seat:active {
    **Why the class is written twice.** Nearly every host line below this point
    sets its own colour on the element itself (`.city-rite-says`,
    `.info-card-state`, `.bead-card-gate`, `.rel-call-note`,
-   `.city-buildable-cost`, `.trade-candidate-why` …) and sits later in the
+   `.city-buildable-cost`, `.trade-reason-why` …) and sits later in the
    sheet, so a single class here loses the cascade to all of them — which is
    exactly what happened to the rite's "Taught by" line the day it landed. The
    doubled selector buys one point of specificity without moving this rule to
@@ -10562,82 +10562,595 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* =========================================================================
-   The Trade screen — caravans on the left, roads not yet taken on the right.
+   The Caravans — the ledger a route is hired out of (batch R2).
+
+   Rewritten with the sheet (`src/ui/tradeScreen.ts`). The screen it replaces
+   was a split: running routes down the left, a table of every ordered pair
+   down the right. This one is a **book** — a masthead, a row of cut index
+   tabs, and one leaf under them — because the ruling of 2026-09-09 is that
+   the sheet's job is to recommend rather than to enumerate.
+
+   Gilt is this sheet's one accent, and that is the user's own reasoning:
+   *"that fits the theme of 'trade routes are for gold/economy'"*. It lives on
+   the **inner edge of a tab** and nowhere else — in particular there is no
+   gilt hairline under the tab rule, which is the final mark of record; the ink
+   rule stands alone.
    ========================================================================= */
 
 /* A small verb, for a row that carries two of them beside its figures. `.btn`
    is sized for a panel's action list and three of those in a 320px column is
-   the column. */
+   the column. It was born here for the old Trade screen's rows; the sheet that
+   replaced them has its own `.trade-send`, and the city panel, the Diplomacy
+   sheet and the Reliquary are the users now. It stays in this block because
+   moving a shared rule is how a shared rule quietly gets two copies. */
 .btn-tiny {
   flex: 0 0 auto;
   padding: 3px 7px;
   font-size: 11px;
 }
 
-.trade-running {
-  gap: 10px;
-}
-
-.trade-row {
+.trade-book {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 8px 10px;
-  border: var(--border-thin) solid var(--ink-faint);
-  border-radius: var(--radius-sm);
-  background: var(--parchment);
+  min-height: 0;
 }
 
-/* A lapsed route is still a row — the caravan is walking home and the slot is
-   still spoken for — and it is faint, because there is nothing left to decide
-   about it until the piece gets there. */
-.trade-row.is-lapsed {
-  border-style: dashed;
+/* --- the masthead -------------------------------------------------------
+   The seat's name, the purse and the idle slots — and no turn (the user's
+   mark: no clock line in a masthead). The two figures are the two the whole
+   sheet is gated on. */
+.trade-masthead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.trade-masthead-title {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 26px;
+  letter-spacing: 0.01em;
+}
+
+.trade-masthead-title em {
+  font-style: italic;
   color: var(--ink-soft);
 }
 
-.trade-row-open {
+.trade-purse {
+  margin: 0;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.trade-purse b {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+/* --- the index's cut tabs ------------------------------------------------
+   Steps of parchment along the head of the page, each with an ink edge and a
+   gilt inner edge; the open one is bound into the leaf (its bottom border is
+   the paper's own colour, so the ink rule breaks under it) and its hedera
+   turns vermilion. */
+.trade-index {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 14px 0 0;
+  padding: 0 6px;
+  border-bottom: var(--border-thin) solid var(--ink);
+}
+
+.trade-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  margin-bottom: calc(var(--border-thin) * -1);
+  padding: 7px 14px 6px;
+  border: 1.5px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 3px 3px 0 0;
+  background: var(--table);
+  color: var(--ink-soft);
+  font: 500 11px/1 var(--face-ui);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  /* The gilt inner edge, and the shadow of the leaf beneath it. */
+  box-shadow:
+    inset 0 2px 0 var(--gilt),
+    inset 0 -3px 0 rgba(29, 26, 32, 0.08);
+  transform: translateY(2px);
+}
+
+/* The hedera, reversed so the two tabs' leaves face outward. It is a printed
+   ornament rather than a marker: the *count* says what is behind the tab. */
+.trade-tab::before {
+  content: '❧';
+  display: inline-block;
+  font-family: var(--face-display);
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+  transform: scaleX(-1);
+}
+
+.trade-tab-n {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  color: var(--ink-faint);
+}
+
+.trade-tab[aria-selected='true'] {
+  padding: 9px 16px 7px;
+  border-width: var(--border-thin);
+  border-bottom: var(--border-thin) solid var(--parchment);
+  background: var(--parchment);
+  color: var(--ink);
+  box-shadow: inset 0 2px 0 var(--gilt);
+  transform: none;
+}
+
+.trade-tab[aria-selected='true']::before {
+  color: var(--vermilion);
+}
+
+.trade-tab[aria-selected='true'] .trade-tab-n {
+  color: var(--ink-soft);
+}
+
+.trade-tab:focus-visible {
+  outline: 2.5px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+.trade-pane {
+  min-height: 0;
+  padding: 18px 2px 4px;
+  overflow-y: auto;
+}
+
+/* --- the recommendations -------------------------------------------------
+   Purpose groups, each a grid of compact bordered cards. An empty group is
+   never built (`recommendedGroups`), so there is no empty state to dress. */
+.trade-purpose + .trade-purpose {
+  margin-top: 22px;
+}
+
+.trade-purpose-head {
+  margin-bottom: 9px;
+}
+
+.trade-purpose-title {
+  margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 19px;
+}
+
+.trade-purpose-title small {
+  margin-left: 10px;
+  font-family: var(--face-ui);
+  font-size: 11.5px;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft);
+}
+
+.trade-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 8px 12px;
+}
+
+.trade-card {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  padding: 8px 10px 8px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--parchment);
+}
+
+/* The best card in each group carries the hard shadow and a hedera — the one
+   piece of emphasis on the tab, because "which of these three" is the only
+   question left once the group has answered "which three". */
+.trade-card.is-best {
+  box-shadow: var(--shadow-sm);
+}
+
+.trade-card.is-best .trade-card-pair::before {
+  content: '❧ ';
+  color: var(--vermilion);
+  font-size: 13px;
+}
+
+.trade-card-pair {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--face-name);
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.trade-arrow {
+  color: var(--ink-faint);
+}
+
+/* A rival's town in the rival's own ink — the teal every other surface names a
+   foreign empire in. */
+.trade-rival {
+  color: var(--teal);
+}
+
+.trade-card-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.trade-yields {
+  margin-left: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12.5px;
+}
+
+.trade-chip {
+  padding: 4px 7px 3px;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: none;
+  color: var(--ink-soft);
+  font: 500 10.5px/1 var(--face-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+button.trade-chip {
+  cursor: pointer;
+}
+
+.trade-chip.is-sea {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.trade-chip.is-abroad {
+  border-color: var(--grape);
+  color: var(--grape);
+}
+
+.trade-chip.is-on {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.trade-chip:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+/* The Land | Sea control. Two halves of one lozenge, the pressed side in ink,
+   the impossible side greyed — never prose, anywhere on this sheet. */
+.trade-mode {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+}
+
+.trade-mode button {
+  appearance: none;
+  padding: 4px 8px 3px;
+  border: 0;
+  background: none;
+  color: var(--ink-soft);
+  font: 500 10.5px/1 var(--face-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.trade-mode button + button {
+  border-left: 1px solid var(--ink);
+}
+
+.trade-mode button[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.trade-mode button[disabled] {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.trade-mode button:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: -2px;
+}
+
+/* The facts line: every figure tabular mono, every label the copy face. */
+.trade-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 14px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.trade-fact-k {
+  margin-right: 4px;
+  font-family: var(--face-ui);
+  letter-spacing: 0.04em;
+}
+
+.trade-card-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.trade-price {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+}
+
+.trade-price small {
+  margin-left: 4px;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.trade-send {
+  appearance: none;
+  padding: 6px 10px 5px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+  font: 600 11px/1 var(--face-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.trade-send:hover:not([disabled]) {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+}
+
+.trade-send:focus-visible {
+  outline: 2.5px solid var(--vermilion);
+  outline-offset: 2px;
+}
+
+.trade-send[disabled] {
+  border-color: var(--rule);
+  background: none;
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+/* The quiet twin — Cancel, and the auto-renew toggle when it is off. A verb
+   that undoes something is never the loudest thing in its row. */
+.trade-send.is-quiet {
+  border-color: var(--rule);
+  background: none;
+  color: var(--ink-soft);
+}
+
+.trade-send.is-on {
+  border-color: var(--gilt);
+  background: var(--gilt);
+  color: var(--parchment);
+}
+
+/* --- the two tables (Running, All routes) -------------------------------- */
+.trade-wrap {
+  overflow-x: auto;
+}
+
+.trade-table {
   width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.trade-table th {
+  padding: 4px 8px 6px 0;
+  border-bottom: 1px solid var(--rule);
+  font: 500 10.5px/1 var(--face-ui);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.trade-table td {
+  padding: 6px 8px 6px 0;
+  border-bottom: 1px dotted var(--rule);
+  vertical-align: baseline;
+}
+
+.trade-table td.is-num,
+.trade-table th.is-num {
+  text-align: right;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trade-table td .trade-send {
+  padding: 5px 8px 4px;
+  font-size: 10.5px;
+}
+
+.trade-table td .trade-send + .trade-send {
+  margin-left: 4px;
+}
+
+/* A lapsed route is still a row — the cart is walking home and the slot is
+   still spoken for — and it is faint, because the only decision left on it is
+   the Renew beside it. */
+.trade-table tr.is-lapsed td {
+  color: var(--ink-faint);
+}
+
+/* A cell that is a door: the route's name pans the camera to its cart. */
+.trade-linkish {
   padding: 0;
   border: 0;
   background: none;
   color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
 }
 
-.trade-row-pair {
-  font-family: var(--face-name);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink);
+.trade-linkish:hover {
+  color: var(--vermilion);
 }
 
-.trade-row-figures {
-  font-family: var(--face-num);
+/* --- the full list's controls and folds ---------------------------------- */
+.trade-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
   font-size: 12px;
-  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
 }
 
-.trade-row-clock {
-  font-family: var(--face-num);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
+.trade-origin {
+  border-top: 1px solid var(--rule);
+}
+
+.trade-origin:last-of-type {
+  border-bottom: 1px solid var(--rule);
+}
+
+.trade-origin summary {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: baseline;
+  gap: 16px;
+  padding: 10px 4px;
+  list-style: none;
+  cursor: pointer;
+  font-family: var(--face-name);
+  font-size: 15px;
+}
+
+.trade-origin summary::-webkit-details-marker {
+  display: none;
+}
+
+.trade-origin summary::before {
+  content: '▸';
+  display: inline-block;
+  width: 14px;
+  font-family: var(--face-ui);
+  font-size: 12px;
   color: var(--ink-faint);
 }
 
-.trade-row-verbs {
-  display: flex;
-  gap: 6px;
+.trade-origin[open] summary::before {
+  content: '▾';
 }
 
-.trade-foot {
-  padding-top: 10px;
-  border-top: var(--border-thin) solid var(--ink-faint);
+.trade-origin-count {
+  font-family: var(--face-ui);
+  font-size: 12px;
+  color: var(--ink-faint);
 }
+
+.trade-origin-slots {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* A ledger with nothing spare says so in the one alarm colour this sheet has. */
+.trade-origin-slots.is-full {
+  color: var(--vermilion);
+}
+
+.trade-origin .trade-wrap {
+  margin: 0 0 12px 18px;
+}
+
+/* --- the unavailable ----------------------------------------------------- */
+.trade-reason + .trade-reason {
+  margin-top: 16px;
+}
+
+/* A refusal's heading names a **state** — "Already running", "Out of reach" —
+   so it takes the sheet's own ink, stated on the element rather than inherited:
+   only the reducer's sentence under it is a *lack*, and only that wears the
+   wanting voice (`test/ui/wantingVoice.test.ts` reads both halves). */
+.trade-reason-title {
+  margin: 0 0 6px;
+  color: var(--ink);
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 17px;
+}
+
+.trade-reason-title small {
+  margin-left: 8px;
+  font-family: var(--face-ui);
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.trade-reason-list {
+  margin: 0;
+  padding-left: 18px;
+  color: var(--ink-soft);
+}
+
+.trade-reason-list li {
+  padding: 2px 0;
+}
+
+.trade-reason-list b {
+  font-family: var(--face-name);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.trade-reason-why {
+  margin-left: 8px;
+}
+
+
 
 /* A conquered town's block on the city panel: what a puppet is, and the two
    decisions its captor may make about it. `.city-built`'s bones (every named
@@ -11013,125 +11526,27 @@ body:has(.city-mode:not([hidden])) #hud-context {
   margin: 0;
 }
 
-/* --- the right pane's two controls ---------------------------------------
-   A chip row that picks which town's routes are shown, and four clickable
-   column headers over the figures. Both are per-opening state (`tradeScreen.ts`)
-   and both wear the sheet's own toggle dress rather than a new one. */
-.trade-filter {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-bottom: 10px;
+/* The routes chip's own drawn mark (batch R2). The strip's other marks are
+   printed by `yieldMark.ts` through `--yield-mark`; this one is set per node by
+   `topBar.ts` because there is exactly one of it, so it carries its own custom
+   property rather than joining a table shaped for a closed union. Same mask
+   recipe as `.yield-mark` and `.hud-dock-icon` — no fifth mechanism. */
+.civ-yield-mark {
+  flex: none;
+  display: inline-block;
+  width: 1.05em;
+  height: 1.05em;
+  background-color: currentColor;
+  -webkit-mask-image: var(--civ-mark);
+  mask-image: var(--civ-mark);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
 }
 
-/* The header row shares `.trade-candidate`'s grid, which is what makes the
-   headers sit over their columns: one template, declared once below. */
-.trade-head {
-  align-items: baseline;
-  padding: 0 0 4px;
-  border-bottom: var(--border-thin) solid var(--ink-faint);
-}
-
-.trade-head-name {
-  font-family: var(--face-ui);
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-}
-
-.trade-head-col {
-  padding: 0;
-  border: 0;
-  background: none;
-  font-family: var(--face-num);
-  font-size: 11px;
-  text-align: right;
-  color: var(--ink-faint);
-  cursor: pointer;
-}
-
-.trade-head-col:hover {
-  color: var(--ink);
-}
-
-/* The active column is the one the eye should land on, so it takes the ink and
-   the weight; the arrow beside it says which way. */
-.trade-head-col.is-active {
-  font-weight: 700;
-  color: var(--ink);
-}
-
-.trade-origin + .trade-origin {
-  margin-top: 14px;
-}
-
-.trade-candidates {
-  margin: 6px 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.trade-head,
-.trade-candidate {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) repeat(4, 3.1em) minmax(4.5em, auto);
-  align-items: baseline;
-  gap: 8px;
-  padding: 4px 0;
-}
-
-/* One voice per cell, right-aligned so the columns read down as a table does.
-   A zero is a mid-dot rather than "+0": a column of noughts is noise, and the
-   dot keeps the row's height and the eye's line. */
-.trade-cell {
-  font-family: var(--face-num);
-  font-size: 12px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.trade-cell.is-nil {
-  color: var(--ink-faint);
-}
-
-
-.trade-candidate + .trade-candidate {
-  border-top: 1px solid var(--rule);
-}
-
-.trade-candidate-name {
-  min-width: 0;
-  font-family: var(--face-name);
-  font-size: 13px;
-  color: var(--ink);
-}
-
-/* A refused partner keeps its figures and is greyed rather than dropped:
-   "Nippur would be worth +3🌾 and it is one turn too far" is the argument for
-   building a road, and a row that vanished would make the range something a
-   player discovers by not seeing anything (`tradeLines.ts`, one surface over). */
-.trade-candidate.is-blocked .trade-candidate-name,
-.trade-candidate.is-blocked .trade-cell {
-  color: var(--ink-faint);
-}
-
-.trade-candidate.is-running .trade-candidate-name {
-  font-weight: 700;
-}
-
-/* The refusal runs the full width *under* the row rather than in the verb's
-   column: a sentence squeezed into 4.5em is a sentence nobody reads, and the
-   reason a row is greyed is the argument for building the road that would
-   ungrey it. */
-.trade-candidate-why {
-  grid-column: 1 / -1;
-  font-family: var(--face-ui);
-  font-size: 11px;
-  font-style: italic;
-  color: var(--ink-faint);
-}
 
 /* The routes chip, at the end of the yield strip beside renown. It is a button
    because it opens a screen — the culture chip's precedent exactly. */

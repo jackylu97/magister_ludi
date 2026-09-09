@@ -3694,15 +3694,15 @@ async function boot(initial: Game | null): Promise<void> {
    *
    * Religion's sibling in every respect that matters — declared here beside it,
    * reached back through the `trade` holder, and every write it makes is a
-   * **command**, sent through `controls`' by-id route verbs (`startRouteFrom`
-   * and its two siblings; the latter two are the same inner functions the unit
-   * sheet calls by selection). So a route started from this screen is started
-   * the same way a network peer or a future AI would start one, and the refusal
-   * a greyed row shows is the reducer's own.
+   * **command**, sent through `controls`' route verbs (`buyRouteOf`, and the two
+   * by-id siblings the unit sheet calls by selection). So a route hired from
+   * this screen is hired the same way a network peer or a future AI would hire
+   * one, and the refusal a greyed row shows is the reducer's own.
    *
-   * It is also the **only** way a route is opened now (the user's ruling,
-   * 2026-08-28): the board's send plates are gone and the trader's sheet opens
-   * this screen rather than arming a mode.
+   * It is also the **only** way a route is opened now, and since batch R1
+   * (`docs/flags.md` item (iii)) the only way a caravan comes into being at all:
+   * the Trader row left the production menu and the purchase book, and Send here
+   * spends gold rather than a piece.
    *
    * `panTo` is `controls.panTo`, which is how everything in this interface
    * reaches the camera: `MapView` is `controls.ts`'s to drive.
@@ -3713,8 +3713,8 @@ async function boot(initial: Game | null): Promise<void> {
     closeButton: requireElement('trade-close'),
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    startRoute: (unitId, fromCityId, toCityId, mode) => {
-      controls.startRouteFrom(unitId, fromCityId, toCityId, mode);
+    buyRoute: (fromCityId, toCityId, mode) => {
+      controls.buyRouteOf(fromCityId, toCityId, mode);
       updatePanel(null, renderer.getHover());
     },
     setAutoResend: (unitId, on) => {
@@ -4215,6 +4215,14 @@ async function boot(initial: Game | null): Promise<void> {
   hudDock.diplomacyButton.addEventListener('click', () => {
     openScreen(() => diplomacy?.open());
   });
+  /* The fourth, and the reason it is here rather than only on the top bar's
+     routes chip: the user asked for it in these words (2026-09-09) — *"The trade
+     screen should have an icon next to the statecraft/religion/diplomacy
+     buttons"*. The chip keeps its own door; a system with two entrances is what
+     Statecraft has had since the dock was built. */
+  hudDock.tradeButton.addEventListener('click', () => {
+    openScreen(() => trade?.open());
+  });
 
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
   // own small listener rather than one more branch in `controls.ts`'s keydown
@@ -4263,6 +4271,35 @@ async function boot(initial: Game | null): Promise<void> {
     if (diplomacy?.isOpen === true) diplomacy.close();
     else openScreen(() => diplomacy?.open());
   });
+
+  // `E` opens the Trade sheet — the fourth screen with a letter, wired here
+  // beside `H` and `W` and for their stated reason exactly: a screen with no
+  // unit and no tile behind it belongs where its screen is built, not in
+  // `controls.ts`'s board switch. `T` is the star chart's and `R` is the
+  // roundels'; `E` reads as "exchange" and was free. Added with batch R2, when
+  // the sheet became the only place a route is hired.
+  //
+  // Unlike its two neighbours it goes into `gameDisposers`: a hotkey bound in
+  // `boot` and never unbound is a second copy of itself on the next game, which
+  // is Entry LVII's bug wearing a keystroke. The two above it are older and are
+  // flagged rather than swept here — not this batch's fence.
+  const onTradeKey = (event: KeyboardEvent): void => {
+    if (event.key !== 'e' && event.key !== 'E') return;
+    if (isInputBlocked()) return;
+    const target = event.target as HTMLElement | null;
+    const typing =
+      target !== null &&
+      (target.tagName === 'INPUT' ||
+        target.tagName === 'SELECT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable);
+    if (typing) return;
+    event.preventDefault();
+    if (trade?.isOpen === true) trade.close();
+    else openScreen(() => trade?.open());
+  };
+  window.addEventListener('keydown', onTradeKey);
+  gameDisposers.push(() => window.removeEventListener('keydown', onTradeKey));
 
   /**
    * The two city views. Both are pure readers of the simulation plus one

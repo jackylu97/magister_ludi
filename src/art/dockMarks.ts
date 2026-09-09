@@ -97,3 +97,49 @@ export function diplomacyMarkDataUri(color = '#000'): string {
   uriCache.set(`diplomacy:${color}`, uri);
   return uri;
 }
+
+/**
+ * **The cart** — the Trade sheet's door, and the third mark in this set (batch
+ * R2, the user's ruling of 2026-09-09: *"The trade screen should have an icon
+ * next to the statecraft/religion/diplomacy buttons"*).
+ *
+ * Drawn here rather than vendored, which is the one member of this file that is:
+ * the outline sets carry an office, a herald and a flame, and none of them
+ * carries a **bale on two wheels**. Lucide's nearest is a lorry, which is an
+ * anachronism on a board where the newest thing on a road is a cart. Same grid,
+ * same weight, same caps and joins as its two neighbours, so it masks and prints
+ * identically and no fifth mechanism was written for it.
+ *
+ * A bale rather than a coin, and that is the reading: what a route *is* is goods
+ * moving between two towns, and the gold is what it pays rather than what it is.
+ * It is the same subject as the caravan piece's own sculpt on the board
+ * (`src/render3d/geometry.ts`, the pack beast with its panniers) one scale down.
+ */
+export const TRADE_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+  note: 'a cart: a strapped bale on a bed, two wheels under it',
+  credit: 'drawn for Magister Ludi',
+  paths: [
+    // The bed, overhanging at the left where the shaft would be.
+    stroke('M2 14h19'),
+    // The bale, sitting on the bed, and the strap across it.
+    stroke('M6 14V6h10v8'),
+    stroke('M11 6v8'),
+    // Two wheels, hung just under the bed.
+    stroke('M10 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0'),
+    stroke('M19 17.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 1 1 5 0'),
+  ],
+};
+
+/** The cart as a standalone SVG document, inked in `color`. */
+export function tradeMarkSvg(color = '#000'): string {
+  return markSvg(TRADE_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
+}
+
+/** The cart as a `data:` URI. `statecraftMarkDataUri`'s twin, same cache. */
+export function tradeMarkDataUri(color = '#000'): string {
+  const cached = uriCache.get(`trade:${color}`);
+  if (cached !== undefined) return cached;
+  const uri = `data:image/svg+xml,${encodeURIComponent(tradeMarkSvg(color))}`;
+  uriCache.set(`trade:${color}`, uri);
+  return uri;
+}

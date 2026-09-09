@@ -187,8 +187,11 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   // The unit sheet's "Why not", and the blocked foot of a richer row's card.
   { file: 'unitPanel.ts', says: 'a refused verb', carries: "element('p', 'unit-card-blocked wanting', text)" },
   { file: 'unitPanel.ts', says: "a proclamation's refusal", carries: "element('p', 'unit-card-blocked wanting', row.blocked)" },
-  // The trade sheet's greyed partner.
-  { file: 'tradeScreen.ts', says: 'a route that cannot start', carries: "element('span', 'trade-candidate-why wanting', candidate.error)" },
+  // The trade sheet's refused pair. Batch R2 moved it from a greyed row in a
+  // table to the Unavailable tab's list, where a refusal is now grouped under
+  // the clause that made it — the sentence is the same reducer's and it wears
+  // the same voice.
+  { file: 'tradeScreen.ts', says: 'a route that cannot be sent', carries: "element('span', 'trade-reason-why wanting', entry.sentence)" },
   // The Statecraft sheet's arrangement.
   { file: 'statecraftScreen.ts', says: 'an arrangement that will not seal', carries: "element('p', 'sc-commit-problem wanting', problem)" },
   // The Reliquary's rail of calls.
@@ -217,7 +220,13 @@ describe('the wanting voice', () => {
       '.bead-card-gate',
       '.rel-call-note',
       '.city-buildable-cost',
-      '.trade-candidate-why',
+      // The trade sheet used to be a sixth host: `.trade-candidate-why` set its
+      // own faint ink on a greyed table row. Batch R2 rewrote the sheet and the
+      // refusal moved to the Unavailable tab, where `.trade-reason-why` owns
+      // only a margin and takes its ink by *inheritance* from the list around
+      // it — which the single class already beats. It is off this list because
+      // it stopped being a host, not because the rule stopped applying to it:
+      // the line above still asserts it wears the voice.
     ]) {
       expect(rule(host)).toMatch(/color:/);
       expect(sheet.indexOf(`\n${host} {`)).toBeGreaterThan(sheet.indexOf('\n.wanting.wanting'));
@@ -268,9 +277,13 @@ describe('the wanting voice', () => {
     expect(card).toContain("element('p', 'info-card-state is-planned'");
     // The bead card's met tick keeps its teal for the same reason.
     expect(uiSource('beadsScreen.ts')).toContain("gate.classList.toggle('is-met', face.met)");
-    // And the trade sheet's "already running" is a state, not a refusal.
+    // And on the trade sheet the **heading** over a group of refused pairs is a
+    // state rather than a lack — "Already running", "Out of reach" — so it is
+    // drawn in the sheet's own quiet display ink and only the reducer's
+    // sentence beneath it wears the voice (batch R2 moved these from a greyed
+    // table row to the Unavailable tab; the distinction is unchanged).
     expect(uiSource('tradeScreen.ts')).toContain(
-      "element('span', 'trade-candidate-why', 'already running')",
+      "const title = element('h4', 'trade-reason-title', group.title);",
     );
   });
 
@@ -316,7 +329,10 @@ describe('the wanting voice', () => {
       ['"Researched"', [on('info-card'), on('info-card-state')], 'var(--ink-soft)'],
       ['"3 in the plan"', [on('info-card'), on('info-card-state', 'is-planned')], 'var(--gilt)'],
       ['the bead gate, met', [on('bead-card'), on('bead-card-gate', 'is-met')], 'var(--teal)'],
-      ['"already running"', [on('trade-candidate'), on('trade-candidate-why')], 'var(--ink-faint)'],
+      // The trade sheet's refusal headings — "Already running", "Out of reach".
+      // A state, so quiet: the reducer's sentence under it is the lack, and it
+      // is in the `wanting` list above.
+      ['a refusal heading', [on('trade-reason'), on('trade-reason-title')], 'var(--ink)'],
       ['what a call does', [on('rel-call-note')], 'var(--ink-soft)'],
       [
         'an ordinary price on a greyed row',

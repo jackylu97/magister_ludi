@@ -488,7 +488,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
       text: 'It walks between the two cities of the route it carries, and builds road on every hex it walks over. A route sent by sea lays no road, and pays more for the crossing.',
     });
     out.push({
-      text: 'One already on the board with no route left to run can be sent again: select it and choose Start route, then pick a pair in the Trade screen.',
+      text: 'One already on the board with no route left to run walks home and waits; hiring the next route on the Trade screen brings a fresh caravan, and the old one keeps no slot once it is home.',
     });
   }
   if (def.ignoresTerrainCost === true) {

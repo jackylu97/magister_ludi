@@ -1,7 +1,7 @@
 /**
- * The HUD dock: three square buttons under the research card, top-left, in the
+ * The HUD dock: four square buttons under the research card, top-left, in the
  * same ink/parchment lozenge language — the front door to Statecraft, to
- * Religion and to Diplomacy.
+ * Religion, to Diplomacy and to Trade.
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -53,7 +53,7 @@
  * scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
  */
 
-import { diplomacyMarkDataUri, statecraftMarkDataUri } from '../art/dockMarks';
+import { diplomacyMarkDataUri, statecraftMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
 import type { Game } from '../sim/game';
 import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
@@ -110,6 +110,17 @@ export interface HudDock {
    * of a war would be pulsing for the rest of the game.
    */
   readonly diplomacyButton: HTMLButtonElement;
+  /**
+   * The trade door (the user's ruling, 2026-09-09, `docs/flags.md` item (iii):
+   * *"The trade screen should have an icon next to the
+   * statecraft/religion/diplomacy buttons"*).
+   *
+   * Fourth and last, and it wears **no waiting badge** for Diplomacy's reason
+   * exactly: the two that pulse do so when the empire owes the game an answer,
+   * and a free route slot is an opportunity rather than a debt. A dot that
+   * pulsed for every idle slot would be pulsing for most of the game.
+   */
+  readonly tradeButton: HTMLButtonElement;
   /** Refreshes the badges. */
   render(): void;
 }
@@ -160,12 +171,17 @@ export function createHudDock(options: HudDockOptions): HudDock {
     'Diplomacy (W)',
     diplomacyMarkDataUri(),
   );
-  container.append(statecraftButton, religionButton, diplomacyButton);
+  // The cart, fourth: the sheet behind it is where a route is hired now, and
+  // hiring one is a standing decision of exactly the kind the other three doors
+  // are for (batch R2).
+  const tradeButton = buildButton('hud-dock-trade', 'Trade', 'Trade (E)', tradeMarkDataUri());
+  container.append(statecraftButton, religionButton, diplomacyButton, tradeButton);
 
   return {
     statecraftButton,
     religionButton,
     diplomacyButton,
+    tradeButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());

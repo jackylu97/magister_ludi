@@ -51,6 +51,7 @@ import {
   drawSeatChips,
   seatTinctures,
 } from './marks';
+import { drawCaravan } from './caravan';
 import { drawPieceInks } from './pieceInks';
 import { block, checkbox, controls, element, section, select, slider } from './sheet';
 import { requireElement } from '../ui/dom';
@@ -265,7 +266,17 @@ const inkStage = drawPieceInks(
   ),
 );
 
-// --- 10. palette and ramp ---------------------------------------------------
+// --- 10. the caravan's own body ---------------------------------------------
+
+const caravanStage = drawCaravan(
+  open(
+    'caravan',
+    'The Caravan’s Own Body',
+    'The other comparison the board only makes by accident: a trader beside a soldier. Ruling (iii) asked for a different shape that is still semi-opaque, and both halves are one picture — the melee body, the caravan idle, and the caravan carrying a route, that last one painted through the renderer’s own washedInk with the mix under the canvas as a knob.',
+  ),
+);
+
+// --- 11. palette and ramp ---------------------------------------------------
 
 drawPaletteAndRamp(
   open(
@@ -314,4 +325,5 @@ window.addEventListener('resize', () => {
   strip.resize();
   shelf.resize();
   inkStage.resize();
+  caravanStage.resize();
 });

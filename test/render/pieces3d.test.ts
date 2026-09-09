@@ -59,13 +59,21 @@ import {
   signUnits,
   unitColor,
   unitStackIndices,
+  washedInk,
 } from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
 import { createMap, tileIndex } from '../../src/sim/map';
 import { type GameState, barbarianPlayer, newGame } from '../../src/sim/state';
 import { isEmbarkableTerrain } from '../../src/sim/terrainData';
-import { UNIT_TYPE_IDS, type ModelClass, type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import {
+  UNIT_TYPE_IDS,
+  type ModelClass,
+  type UnitTypeId,
+  caravanTypeId,
+  trades,
+  unitDef,
+} from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { closeWar, openWar } from '../../src/sim/wars';
 
@@ -2857,5 +2865,211 @@ describe("the wild's red", () => {
     layer.dispose();
     board.dispose();
     materials.dispose();
+  });
+});
+
+// --- the caravan's own body --------------------------------------------------
+
+/**
+ * **Ruling (iii)** (`docs/flags.md`, the user): *"trader units should still
+ * appear and build roads when a route is sent, but we should give them a
+ * different shape icon (still semi-opaque)"*.
+ *
+ * The sculpt half of it is pinned above, among the sculpts — `sculptFor('trader')`
+ * is the caravan and not the worker, the laden twin is the plain body plus a
+ * gilt bale, and the wash reaches the sculpt and the ghost. What this block adds
+ * is the two halves that had no register of their own: the ruling asks for the
+ * caravan **whichever roster row that is** — a fact the rules carry as
+ * `UnitDef.trades`, and one the renderer must not learn as a name — and
+ * CLAUDE.md's cabinet rule, which says a new visual asset joins `flair.html` in
+ * the same pass that ships it.
+ */
+describe("the caravan's own body", () => {
+  /**
+   * The row that `trades` is drawn as a caravan, and the *marker* is how the
+   * question is asked.
+   *
+   * `caravanTypeId` is the sim's own reading of `UnitDef.trades` — the register
+   * that keeps `"trader"` from being a string anybody compares against — and the
+   * assertion is that whatever row it names has a body that is **not** the model
+   * class the rules file gives it. A second trading row added to
+   * `data/units.json` and left out of `pieces.byUnitType` fails here, which is
+   * the actual hole: it would stand in the worker's silhouette, and — worse —
+   * `unitSculpt` would find no `laden` twin on it, so a routed merchant would
+   * carry no bale at all and the board would have no way to say it was busy.
+   */
+  it('draws every row that trades as a caravan, and never as the worker beside it', () => {
+    expect(caravanTypeId(), 'no roster row trades').not.toBeNull();
+    const board = geometry();
+    for (const type of UNIT_TYPE_IDS) {
+      if (!trades(unitDef(type))) continue;
+      const idle = sculptFor(type);
+      // A body of its own, one grade finer than the class the rules give it.
+      expect(idle, `${type} stands in its own model class`).not.toBe(modelClassFor(type));
+      expect(MODEL_CLASS_IDS, `${type} stands in a plain model class`).not.toContain(idle);
+      // …and it really is a different drawing, not the same one under two names.
+      expect(board.pieces[idle].geometry).not.toBe(board.pieces[modelClassFor(type)].geometry);
+      // The laden twin, which is what a route swaps under it — cut to the plain
+      // body's own size class, so the badge and the bar do not jump.
+      const laden = MINI_SCULPTS[idle].laden;
+      expect(laden, `${type} has no laden twin`).toBeDefined();
+      expect(MINI_SCULPTS[laden!].cls).toBe(MINI_SCULPTS[idle].cls);
+    }
+    board.dispose();
+  });
+
+  /**
+   * All three meshes take the caravan's geometry — the sculpt, the outline shell
+   * and the x-ray ghost.
+   *
+   * A piece is three `InstancedMesh`es over one buffer, and a body swapped into
+   * only one of them is the failure this pins: an outline in the worker's shape
+   * around a caravan, or a ghost that shows the wrong silhouette through a pine.
+   * Asserted by *geometry identity* rather than by counting alone, so a fourth
+   * pass added later still has to carry the same drawing.
+   */
+  it('gives the sculpt, the shell and the ghost the same caravan drawing', () => {
+    const type = caravanTypeId()!;
+    const board = geometry();
+    const layer = new UnitLayer();
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(game);
+    game.tileOwner = new Array<number | null>(12 * 8).fill(null);
+    game.cities = [];
+    game.units = [
+      { id: 1, type, ownerId: 0, col: 1, row: 2, hp: unitDef(type).maxHp, movesLeft: 2 },
+      {
+        id: 2,
+        type,
+        ownerId: 0,
+        col: 5,
+        row: 2,
+        hp: unitDef(type).maxHp,
+        movesLeft: 2,
+        trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+      },
+    ] as never;
+    const materialsLib = new MaterialLibrary(VIEW3D.look.rampSteps, 0x000000);
+    layer.build(game, board, materialsLib, new Quaternion(), false, null);
+
+    const meshes = layer.group.children.filter(
+      (child): child is InstancedMesh => child instanceof InstancedMesh,
+    );
+    const idle = sculptFor(type);
+    const laden = MINI_SCULPTS[idle].laden!;
+    for (const id of [idle, laden] as const) {
+      const wearing = meshes.filter((mesh) => mesh.geometry === board.pieces[id].geometry);
+      expect(wearing, `${id} is not three meshes`).toHaveLength(MESHES_PER_PIECE_BUCKET);
+    }
+    // And the worker's body is nowhere on this board, which is the sentence the
+    // ruling actually made: a trader is not the civilian standing beside it.
+    expect(meshes.some((mesh) => mesh.geometry === board.pieces.worker.geometry)).toBe(false);
+
+    layer.dispose();
+    board.dispose();
+    materialsLib.dispose();
+  });
+
+  /**
+   * `washedInk` is the board's own mix, and it reads the sheet at call time.
+   *
+   * It exists because the cabinet needed the wash without retyping it (see its
+   * docblock), and the property that makes that worth anything is that it is the
+   * *same* number `unitColor` spends: a stall that agreed with the board on the
+   * day it was written and drifted afterwards would be worse than no stall.
+   */
+  it('washes a caravan through one function the board and the cabinet share', () => {
+    const type = caravanTypeId()!;
+    const game = newGame({
+      seed: 11,
+      sizeName: 'duel',
+      players: [{ name: 'A', color: '#d4502e', isHuman: true }],
+    });
+    game.units = [
+      { id: 1, type, ownerId: 0, col: 1, row: 2, hp: 10, movesLeft: 2 },
+      {
+        id: 2,
+        type,
+        ownerId: 0,
+        col: 3,
+        row: 2,
+        hp: 10,
+        movesLeft: 2,
+        trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false },
+      },
+    ] as never;
+    const [idle, routed] = game.units;
+    expect(washedInk(unitColor(game, idle!))).toBe(unitColor(game, routed!));
+    // Read at call time, not captured: the cabinet's knob writes the sheet's own
+    // key, and a captured mix would leave the shelf and the board disagreeing for
+    // as long as the page was open.
+    const shipped = PIECES.routedWash;
+    try {
+      PIECES.routedWash = 0;
+      expect(washedInk(0x123456)).toBe(0x123456);
+      PIECES.routedWash = 1;
+      expect(washedInk(0x123456)).toBe(VIEW3D.fog.exploredWash);
+    } finally {
+      PIECES.routedWash = shipped;
+    }
+  });
+
+  /**
+   * The stall on `flair.html`, which is where this shape is iterated.
+   *
+   * The wild's-red pin one block up, applied to the asset this ruling ships:
+   * CLAUDE.md's rule for the cabinet is that a new visual asset joins it in the
+   * same pass, and that nothing on that page is a second copy of what the game
+   * draws. Both halves read out of the source — the section is opened by
+   * `main.ts`, and the module that draws it reaches for the board's own geometry,
+   * the board's own materials and the board's own wash, and asks the *marker*
+   * which row the caravan is rather than naming one.
+   */
+  it('stands the caravan beside a soldier on the flair cabinet', () => {
+    const modules = import.meta.glob(
+      ['../../src/flairGallery/caravan.ts', '../../src/flairGallery/main.ts'],
+      { eager: true, query: '?raw', import: 'default' },
+    ) as Record<string, string>;
+    const source = (name: string): string => {
+      const key = Object.keys(modules).find((path) => path.endsWith(name))!;
+      const text = modules[key];
+      if (typeof text !== 'string' || text.length === 0) throw new Error(`${name} came back empty`);
+      return text;
+    };
+
+    const page = source('flairGallery/main.ts');
+    expect(page).toContain('drawCaravan');
+    const stall = source('flairGallery/caravan.ts');
+    // The board's own three meshes, out of the board's own kit.
+    expect(stall).toContain('BoardGeometry');
+    expect(stall).toContain('pieceMaterials');
+    expect(stall).toContain('silhouette');
+    // The wash, through the function the layer spends rather than a copy of the
+    // mix — the whole reason `washedInk` is exported.
+    expect(stall).toContain('washedInk');
+    expect(stall).not.toContain('mixToward');
+    // The marker, not a name: which *row* is the caravan is asked of the rules'
+    // own register and turned into a drawing by the registry, so a second
+    // trading row arrives on the page with no edit to it. (The one sculpt id
+    // written out is the soldier's, below — a sculpt id is this page's own
+    // vocabulary; a unit type id would be the rules' and is what must not be
+    // here.)
+    expect(stall).toContain('caravanTypeId');
+    expect(stall).toContain('sculptFor(row)');
+    expect(stall).toContain('.laden');
+    // A soldier is on the shelf, or the comparison the ruling asked for is not
+    // being made at all.
+    expect(stall).toContain("SculptId = 'melee'");
+    // Knobs, which is what makes it a stall rather than a picture — and the one
+    // that matters writes the sheet's own key.
+    expect(stall).toContain('VIEW3D.pieces.routedWash = value');
+    expect((stall.match(/slider\(/g) ?? []).length).toBeGreaterThan(0);
+    // And no colour of its own anywhere in it.
+    expect(stall.match(/#[0-9a-fA-F]{6}\b/)).toBeNull();
   });
 });

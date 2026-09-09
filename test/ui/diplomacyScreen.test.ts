@@ -378,10 +378,16 @@ describe('the wiring that spans files', () => {
   // The sources come from the suite's shared glob (`sourceHelpers.ts`).
   const source = uiSource;
 
-  it('gives the dock a third button and mounts all three', () => {
+  it('gives the dock a third button and mounts every one of them', () => {
     const dock = source('hudDock.ts');
     expect(dock).toContain("buildButton(\n    'hud-dock-diplomacy'");
-    expect(dock).toContain('container.append(statecraftButton, religionButton, diplomacyButton);');
+    // Four since batch R2, when the Trade sheet took a door of its own beside
+    // this one (the user's ruling of 2026-09-09). The claim is unchanged and is
+    // about *this* button: the dock mounts the row it built, and a button
+    // constructed and never appended is a door nobody can open.
+    expect(dock).toContain(
+      'container.append(statecraftButton, religionButton, diplomacyButton, tradeButton);',
+    );
   });
 
   it('opens the sheet from that button, through the same door the other two use', () => {

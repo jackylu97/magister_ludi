@@ -2235,6 +2235,16 @@ export interface GameControls {
     toCityId: number,
     mode?: RouteMode,
   ): void;
+  /**
+   * **Hires a route with gold** — the Trade sheet's Send, and the only way a
+   * route is opened now (batch R1, `docs/flags.md` item (iii)).
+   *
+   * Two towns and a way, and no unit at all: the caravan is minted by the
+   * reducer in the origin's gates with the route already on it, so there is no
+   * piece for a caller to name. `startRouteFrom` above stays for a cart that is
+   * already standing.
+   */
+  buyRouteOf(fromCityId: number, toCityId: number, mode?: RouteMode): void;
   setAutoResendOf(unitId: number, on: boolean): void;
   cancelRouteOf(unitId: number): void;
 
@@ -3666,6 +3676,57 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     }
     renderer.invalidate();
     clearSelection();
+  }
+
+  /**
+   * **Hires a route out of the treasury**, naming both towns and the way.
+   *
+   * The Trade sheet's one write since batch R1 (`docs/flags.md` item (iii)): a
+   * caravan is no longer built, chosen and spent — the route is *bought*, and
+   * the reducer mints the cart in the origin's gates with the route already on
+   * it. So there is no unit id in this command and none to find: `startRouteFrom`
+   * beside it stays for the caravan already standing (an old save, a route that
+   * lapsed and left its wagon walking home, and the bot's re-send).
+   *
+   * The announcement is read *after* the command, off the route the reducer just
+   * wrote and off the piece it just minted — the sheet's own line, so the toast
+   * and the panel say one sentence — and it is anchored at the origin, which is
+   * where the new cart is standing.
+   */
+  function buyRouteOf(fromCityId: number, toCityId: number, mode?: RouteMode): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const before = new Set(state.units.map((unit) => unit.id));
+    const result = commit({
+      type: 'buyRoute',
+      playerId: localPlayerId,
+      fromCityId,
+      toCityId,
+      // Spread rather than assigned, so a caller that names no mode sends the
+      // command shape the reducer's own default decides on.
+      ...(mode === undefined ? {} : { mode }),
+    });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    // The cart the reducer just minted: the one trader of ours that was not
+    // standing before the command. Read off the state rather than reported,
+    // because `buyRoute` names no unit on the way in or out.
+    const minted = getGame().state.units.find(
+      (unit) => unit.ownerId === localPlayerId && unit.trade !== undefined && !before.has(unit.id),
+    );
+    if (minted) {
+      const reading = routeReadingOf(getGame().state, minted);
+      if (reading) {
+        announce(`✦ ${reading.line}`, { cell: { col: minted.col, row: minted.row } });
+      }
+    }
+    renderer.invalidate();
+    onUpdate(selectedUnit(), renderer.getHover());
   }
 
   /** The selected caravan's live route, as the sheet reads it. */
@@ -7415,6 +7476,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     setAutoResend,
     cancelRoute,
     startRouteFrom,
+    buyRouteOf,
     declareWarOn,
     annexCity: (cityId: number) => decideCapturedCity('annexCity', cityId),
     razeCity: (cityId: number) => decideCapturedCity('razeCity', cityId),

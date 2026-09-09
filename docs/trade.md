@@ -59,6 +59,90 @@ History and the original proposal: `docs/design-history.md`.
   **0.0004ms**. So the ranking, the filters, the tabs and the sort orders the
   mock asks for are free to redraw.
 
+## The sheet (batch R2)
+
+`src/ui/tradeScreen.ts`, the tenth on `modalShell.ts`. **A masthead, four cut
+tabs, one leaf.** Gilt is its one accent and it lives on the inner edge of a tab
+(the user, 2026-09-09: *"that fits the theme of 'trade routes are for
+gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
+
+- **`readRoutes` is the whole subject and nothing else prices a pair.** No
+  `routeStartable`, no `routeModesAvailable`, no `explainRouteYieldBetween`, no
+  `findPath` anywhere in the file — a source pin in `test/ui/tradeScreen.test.ts`
+  keeps it that way. `tradeContext` takes the reading once per paint and hands it
+  down; the pairs of empires this seat has not met are dropped there (a screen
+  reading, not a rule — the gate refuses them in words either way).
+- **Recommended** (default): purpose groups in the ruling's priority — *Richest*
+  (every voice of the fold summed, in the mode that pays most) · *Paves a road*
+  (a land cart with hexes left to pave toward a town of this seat's that
+  `connectedCities` cannot reach, ranked by what the connection would pay) ·
+  *Feeds a town* (ranked by the turns the cart takes off the next citizen, so no
+  "small" threshold is invented — `growthThreshold` climbs and the biggest saving
+  lands on the smallest town by the simulation's own arithmetic) · *Most science
+  and culture* (the foreign carts). Three cards each, best first with the hard
+  shadow and a hedera. **An empty group is not built at all.** A pair may appear
+  in two groups; the ruling says the overlap out loud.
+- **A card's facts, and where each is read from** (`routeFacts`' own table):
+  paves N hexes (land) ← `RouteReadingRow.roadHexes` · connects ⟨town⟩ turn T ←
+  `turns` added to `state.turn` · connection +G gold/t ← `connectedCities`' own
+  step, the town's people over `trade.connectionPerPop` · host keeps G gold/t ←
+  `trade.international.hostGold` · ⟨town⟩ size S · F food/t ← `readCity` +
+  `growthSurplus` · next citizen N turns (was M) ← `growthThreshold` against the
+  basket through `turnsToFill`, with the cart's food and without · blockaded ←
+  `cityBlockaded` · post at ⟨town⟩ +N range · K more towns in reach ←
+  `postReach` and `trade.postRangeTurns`.
+- **The mock's "warships on path" is deliberately not built.** `readRoutes` does
+  not carry the path — carrying it would mean surveying every refused pair, which
+  is the cost the reading exists to avoid — so the sheet cannot count hulls along
+  one. What stands in its place is the rule that actually takes a route's pay
+  back: a **blockade** at either end (`cityBlockaded`).
+- **The Land | Sea control re-reads the card**, and a mode is never prose
+  anywhere on the sheet (the user's final mark): the tables wear the same control
+  or a single chip where one mode is all there is, with the road state as its own
+  column. Pressing a side writes the choice down and repaints; `routeCard` is the
+  one place that decides what a card says.
+- **Running**: route · mode (a chip — a running route's mode is settled) · road ·
+  pays a turn · turns left · the three verbs (↻ auto-renew, Renew, Cancel). The
+  unit sheet's route buttons became one link, so this row is `setAutoResend`'s
+  only surface now.
+- **All routes**: the old screen's content behind a tab — collapsible `<details>`
+  by origin in founding order, filter chips (own · abroad · land · sea) and sort
+  chips (pay · food · gold · science · road). The slot tally on a summary is the
+  **empire's** ledger, so the same figure rides every fold; vermilion at nought.
+- **Unavailable**: four headings, classified by re-asking the simulation's own
+  clauses **in `routeStartable`'s order** — never by reading its prose. `war` ·
+  `slots` · `running` · `reach`. Two differences from the mock, both stated:
+  there is no *blockaded* heading (a blockade is not a refusal; it is a fact on
+  the card), and *Out of reach* covers both "no lane" and "too far", because the
+  reading does not survey a pair the gate refused. Each row prints the gate's own
+  sentence in the wanting voice; the slot group says `NO_ROUTE_CAPACITY` once
+  over the group instead of forty times down it.
+- **Every send and cancel lives here.** Send dispatches `buyRoute` through
+  `controls.buyRouteOf`; the unit sheet's row is a link ("Open the trade sheet");
+  the top bar's routes chip and a fourth HUD dock button both wear the drawn cart
+  (`TRADE_MARK`, `src/art/dockMarks.ts` — a bale on two wheels, drawn rather than
+  vendored, in the flair gallery's dock cabinet). `E` opens the sheet, beside
+  `C`/`H`/`W`; its listener is in `gameDisposers`.
+
+### Measured (batch R2)
+
+A twelve-town late board (eight of this seat's, four of a rival's, six buildings
+apiece, **88 ordered pairs**), warm, median of five interleaved runs:
+
+| | open | redraw (tab, filter, sort, toggle) |
+|---|---|---|
+| the old screen | 33.5ms | **33.5ms** — every redraw re-walked every pair |
+| the sheet | 67.1ms | **0.29ms** |
+
+The open costs about twice as much because the reading carries about twice as
+much: a fold *per mode* with the sea premium in it, the paving count, the march's
+turn count and the post's reach, where the old screen took one fold and the gate.
+What it buys is the second column. The old screen paid its whole walk again for a
+sort chip; opening the sheet and pressing three tabs was 134ms and is now 68ms,
+and an idle `refresh` is **free** — `draw` fingerprints the revision plus every
+control on the sheet and returns without touching the DOM when nothing moved.
+Cold (first open of a session, before the JIT warms) the two are 83ms and 129ms.
+
 ## Land or sea
 
 - A route is **entirely a land route or entirely a sea route** — never mixed.

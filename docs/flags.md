@@ -1203,7 +1203,34 @@ directly to confirm rulings — user marginalia are rulings.
   one accent; the **mode column** in the Running and All-routes tables
   is not prose ("land, road laid") but the same Land | Sea control the
   cards carry, or a single chip where only one mode is possible, with
-  the road state as its own column. The mock is the spec of record. (eee)
+  the road state as its own column. The mock is the spec of record.
+  **R2 BUILT 2026-09-09** (no schema): the sheet is the tenth on
+  `modalShell.ts` — masthead, four cut tabs (gilt inner edge, hedera vermilion
+  on the open one, ink rule alone beneath), one leaf. `readRoutes` is its whole
+  subject and **nothing else on it prices a pair** (a source pin forbids
+  `routeStartable`, `routeModesAvailable`, `explainRouteYieldBetween` and
+  `findPath` in the file). Recommended holds the four purpose groups in the
+  ruling's priority, three cards each, best first with the hard shadow and the
+  hedera, and an **empty group is not built at all**; a card's facts are the
+  reading's own (`routeFacts`' table, mirrored in `docs/trade.md`) and the
+  Land | Sea control re-reads them; Running is the table with ↻/Renew/Cancel;
+  All routes is the old screen behind a tab, `<details>` per origin with the
+  filter and sort chips; Unavailable groups by re-asking the gate's clauses **in
+  `routeStartable`'s order**, never by matching its prose. Send is `buyRoute`
+  through a new `controls.buyRouteOf`; the unit sheet's three route verbs became
+  one link; the top bar's chip and a **fourth HUD dock button** wear a drawn cart
+  (`TRADE_MARK`, joins the flair gallery's dock cabinet), and `E` opens the sheet
+  beside `C`/`H`/`W` with its listener in `gameDisposers`. The caravan's own
+  sculpt (a pack beast with panniers, a gilt bale when laden) shipped on
+  2026-08-28 and is now in the flair gallery beside a soldier with a live routed
+  wash. **Measured** on a twelve-town board (88 pairs, warm, median of five):
+  open 33.5ms → 67.1ms, redraw **33.5ms → 0.29ms** — the reading carries twice
+  as much and every redraw after it is free, which is what the lag was.
+  Two deliberate departures from the mock, both written down in `docs/trade.md`:
+  no "warships on path" fact (the reading carries no path; a **blockade** at
+  either end stands in its place, which is the rule that actually takes the pay
+  back) and no *blockaded* refusal heading (a blockade never refuses a hire).
+  (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a

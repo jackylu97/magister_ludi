@@ -570,6 +570,38 @@ body {
   border-radius: 50%;
 }
 
+/* --- the caravan's own body ----------------------------------------------- */
+
+/* Three figures rather than the wild's two, so the stage is a third wider at the
+   same height: a piece is about a world unit tall whatever is standing beside
+   it, and stretching the frame vertically would only add table. */
+.caravan-canvas {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 1.15;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--table);
+}
+
+/* One caption per figure, stacked rather than columned: each carries a sentence
+   about what the silhouette is doing, which does not survive being a third of a
+   line wide. */
+.caravan-captions {
+  display: grid;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.caravan-captions li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
 /* --- the palette and the ramp -------------------------------------------- */
 
 .palette-grid {

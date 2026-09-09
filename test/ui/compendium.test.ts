@@ -864,15 +864,21 @@ describe('never hand-written prose about a number', () => {
     const roster = trader.clauses.map((clause) => clause.text).join(' ');
     expect(roster).toContain('not built and not bought');
     expect(roster).toContain('Trade screen');
-    // And the wagon already standing still has its verb.
-    expect(roster).toContain('Start route');
 
-    // And nothing anywhere still describes a deleted mode.
+    // And nothing anywhere still describes a deleted mode or a retired verb.
+    // **Start route left the interface with batch R2** (the ruling of
+    // 2026-09-09: *"trade routes should be entirely sent/managed on the trade
+    // route screen"*) — the unit sheet's route buttons are one link now, so a
+    // shelf still telling a player to select a caravan and choose Start route
+    // would be describing a button that is not there. The command survives in
+    // the reducer for a save and for the bot's re-send; nothing prints it.
     for (const prose of written) {
       expect(prose).not.toContain('Send Caravan');
       expect(prose).not.toContain('send it from one of your cities');
       expect(prose).not.toContain('you can build a trader');
+      expect(prose).not.toContain('Start route');
     }
+    expect(roster).not.toContain('Start route');
   });
 
   it('says the capacity refusal in the user’s own sentence', () => {

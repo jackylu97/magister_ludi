@@ -2,18 +2,20 @@
  * One caravan, start to finish, read the way the interface reads it.
  *
  * The browser check as a test (the extension was not connected when this pass
- * shipped): buy a trader out of the treasury, open the Trade screen, read the
- * row, start the route from the screen, walk the shuttle for a few turns and
- * read the panels. Every figure here comes from the surfaces themselves —
- * `tradeOrigins`, `startCommandFor`, `routeReading`, `cityRouteRows`,
- * `explainEmpireGold`, `readEmpire` — so what is defended is the *sequence*: that
- * each of those keeps saying something true as the caravan moves, the road goes
- * down and the towns join up.
+ * shipped): open the sheet, read the recommendation, press its Send, watch the
+ * cart the reducer mints walk its road, and read the panels behind it. Every
+ * figure here comes from the surfaces themselves — `tradeContext`,
+ * `recommendedGroups`, `routeCard`, `buyCommandFor`, `runningRoutes`,
+ * `routeReading`, `cityRouteRows`, `explainEmpireGold`, `readEmpire` — so what
+ * is defended is the *sequence*: that each of those keeps saying something true
+ * as the caravan moves, the road goes down and the towns join up.
  *
- * Rewritten for the user's ruling of 2026-08-28: the trader is bought in one
- * town and the route is started **from the other**, which is the whole of what
- * changed — a caravan may begin anywhere and is teleported to the origin the
- * player picked.
+ * **Re-aimed to the sheet's own flow by batch R2** (`docs/flags.md` item (iii)).
+ * The walkthrough used to buy a trader and then send it; there is no trader to
+ * buy and no piece to send. The gesture is now: the sheet recommends a pair,
+ * Send hires it with gold, and the caravan comes with the route already on it.
+ * The tabs are walked in the order a player meets them — Recommended, then
+ * Running, then Unavailable once the ledger is full.
  *
  * Slow by kind (`CLAUDE.md`): it drives whole turn resolutions rather than
  * asking one evaluator a question.
@@ -28,7 +30,22 @@ import { type GameState, unitById, bumpRevision } from '../../src/sim/state';
 import { explainEmpireGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { readEmpire } from '../../src/sim/readings';
-import { cityRouteRows, routeReading, routeSlotsLine } from '../../src/ui/tradeLines';
+import {
+  NO_ROUTE_CAPACITY,
+  cityRouteRows,
+  routeReading,
+  routeSlotsLine,
+} from '../../src/ui/tradeLines';
+import {
+  buyCommandFor,
+  recommendedGroups,
+  refusalGroups,
+  routeCard,
+  runningRoutes,
+  tabCounts,
+  tradeContext,
+} from '../../src/ui/tradeScreen';
+import { cityDisplayName } from '../../src/ui/cityDisplay';
 import { at, bareState } from '../sim/improvementHelpers';
 
 function resolve(state: GameState): void {
@@ -50,56 +67,84 @@ describe('a caravan, from the treasury to the ledger', () => {
     partner.population = 6;
     state.players[0]!.gold = 900;
 
-    // 1. Hired on the trade sheet (R1, 2026-09-09): a Trader is not bought
+    // 1. **The sheet opens on its recommendations.** A Trader is not bought
     //    like a worker any more — the purchase book refuses it in the reducer's
-    //    words — and the route is bought outright with gold, which spawns the
-    //    caravan at the origin with the route already on it.
+    //    words — so the first thing a player meets is a card, not a build row.
     expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'gold')).toMatch(
       /hired on the trade sheet/,
     );
-    const price = routePrice(state, 0);
-    expect(price).toBeGreaterThan(0);
-    const goldBefore = state.players[0]!.gold;
-    const bought = applyCommand(state, {
-      type: 'buyRoute',
-      playerId: 0,
-      fromCityId: home.id,
-      toCityId: partner.id,
-      mode: 'land',
+    const opened = tradeContext(state, 0);
+    const groups = recommendedGroups(opened);
+    expect(groups.length).toBeGreaterThan(0);
+    // The four tab counts agree with what is behind them before anything is sent.
+    const counts = tabCounts(opened, groups);
+    expect(counts.running).toBe(0);
+    expect(counts.all).toBe(opened.rows.filter((row) => row.available).length);
+    expect(counts.all + counts.unavailable).toBe(opened.rows.length);
+
+    // 2. **The card the sheet leads with**, read in the mode the group picked
+    //    it for. Its price is the reading's own and the purse can pay it.
+    const best = groups[0]!.rows[0]!;
+    const card = routeCard(opened, best.row, best.mode);
+    // `cityDisplayName`, star and all — the sheet names a town the way every
+    // other surface does rather than reaching for `City.name`.
+    expect(card.fromName).toBe(cityDisplayName(state, home));
+    expect(card.figures).not.toBe('nothing yet');
+    expect(card.price).toBe(routePrice(state, 0));
+    expect(card.price).toBeGreaterThan(0);
+    expect(card.affordable).toBe(true);
+
+    // 3. **Send.** The command is the card's own — two towns and a way — and the
+    //    reducer mints the caravan in the origin's gates with the route on it.
+    const command = buyCommandFor(opened, best.row, best.mode)!;
+    expect(command).toEqual({
+      fromCityId: best.row.from.id,
+      toCityId: best.row.to.id,
+      mode: best.mode,
     });
+    const goldBefore = state.players[0]!.gold;
+    const bought = applyCommand(state, { type: 'buyRoute', playerId: 0, ...command });
     expect(bought.ok, bought.ok ? '' : bought.error).toBe(true);
-    expect(state.players[0]!.gold).toBe(goldBefore - price);
+    expect(state.players[0]!.gold).toBe(goldBefore - card.price);
     const trader = state.units.find((unit) => unit.type === 'trader')!;
     expect(trader).toBeDefined();
 
-    // 2. The caravan stands in the origin and the sheet reads as the route
-    //    rather than as a march.
+    // 4. **The Running tab has a row now**, and it says what the sheet said.
     expect({ col: trader.col, row: trader.row }).toEqual({ col: home.col, row: home.row });
+    const running = runningRoutes(state, 0);
+    expect(running).toHaveLength(1);
+    expect(running[0]!.fromName).toBe(cityDisplayName(state, home));
+    expect(running[0]!.mode).toBe(best.mode);
+    expect(running[0]!.turnsLeft).toBeGreaterThan(0);
     const sent = routeReading(state, trader)!;
-    expect(sent.toName).toBe(partner.name);
+    expect(sent.toName).toBe(best.row.to.name);
     expect(sent.figures).not.toBe('nothing yet');
     expect(routeSlotsLine(state, 0)).toBe('1 of 1 route');
-    // A second route has nowhere to go: the slot is spoken for, and the reducer
-    // says so in its own words.
-    const again = applyCommand(state, {
-      type: 'buyRoute',
-      playerId: 0,
-      fromCityId: home.id,
-      toCityId: partner.id,
-      mode: 'land',
-    });
+
+    // 5. **And the Unavailable tab has the rest**, under the clause that shut
+    //    them: the one market's slot is spent, so nothing is on offer and the
+    //    user's own sentence stands over the group.
+    const full = tradeContext(state, 0);
+    expect(full.slotFree).toBe(false);
+    expect(recommendedGroups(full)).toEqual([]);
+    expect(tabCounts(full, []).all).toBe(0);
+    const shut = refusalGroups(full);
+    expect(shut.map((group) => group.reason)).toEqual(['slots']);
+    expect(shut[0]!.note).toBe(NO_ROUTE_CAPACITY);
+    // The reducer agrees, which is the half a sheet cannot fake.
+    const again = applyCommand(state, { type: 'buyRoute', playerId: 0, ...command });
     expect(again.ok).toBe(false);
     const second = state.units.find((u) => u.type === 'trader' && u.id !== trader.id);
     expect(second).toBeUndefined();
 
-    // 5. Both towns show the route, and the destination is the one that is
+    // 6. Both towns show the route, and the destination is the one that is
     //    paid (2026-08-27: the origin's buildings set the figure, the
     //    destination banks it).
     expect(cityRouteRows(state, home)[0]!.outbound).toBe(true);
     expect(cityRouteRows(state, partner)[0]!.outbound).toBe(false);
     expect(cityRouteRows(state, partner)[0]!.text).toMatch(/🌾/);
 
-    // 6. A few turns of walking. The clock counts down by subtraction, the road
+    // 7. A few turns of walking. The clock counts down by subtraction, the road
     //    goes under the caravan, and the towns eventually join up.
     const before = routeReading(state, trader)!.turnsLeft;
     for (let turn = 0; turn < 14; turn++) resolve(state);
@@ -110,7 +155,7 @@ describe('a caravan, from the treasury to the ledger', () => {
     expect(unitById(state, trader.id)).toBeDefined();
     expect(state.map.tiles.some((tile) => tile.road === 0)).toBe(true);
 
-    // 7. The treasury's ledger: at most the four empire lines, each of them a
+    // 8. The treasury's ledger: at most the four empire lines, each of them a
     //    count and a total, and whatever it says is inside the headline the top
     //    bar promises. Stated as a *difference* rather than as a subtraction of
     //    the whole fold: since maintenance landed (Entry XLI) tearing up the

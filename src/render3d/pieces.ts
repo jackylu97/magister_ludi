@@ -739,11 +739,31 @@ function mixToward(color: number, target: number, mix: number): number {
 }
 
 /**
+ * `ink` as a *busy* piece wears it: the seat's own colour mixed `pieces.routedWash`
+ * of the way toward the parchment tone remembered ground fades toward.
+ *
+ * Exported for one caller and it is not the board: the Flair Cabinet's caravan
+ * shelf (`src/flairGallery/caravan.ts`), which stands the laden body beside the
+ * idle one and beside a soldier so the three silhouettes can be judged together.
+ * The cabinet's standing rule is that nothing on it is a second copy of what the
+ * game draws, and the wash is exactly the kind of two-line mix a gallery would
+ * otherwise retype — and then keep at 0.45 for a year after somebody dialled the
+ * sheet down to 0.3. Read out of `PIECES` at call time rather than captured, so a
+ * knob on that page moves the shelf and the board's own next rebuild together.
+ *
+ * `routedInk` below is still the only thing on the board that decides *whether*
+ * a piece is washed; this is only the mix it spends.
+ */
+export function washedInk(ink: number): number {
+  return mixToward(ink, ROUTED_WASH_TARGET, PIECES.routedWash);
+}
+
+/**
  * `ink`, mixed toward the routed wash if this is a caravan running a route —
  * and `ink` unchanged otherwise. `pieces.routedWash` is the mix.
  */
 function routedInk(unit: Unit, ink: number): number {
-  return unitIsRouted(unit) ? mixToward(ink, ROUTED_WASH_TARGET, PIECES.routedWash) : ink;
+  return unitIsRouted(unit) ? washedInk(ink) : ink;
 }
 
 /**

@@ -1,81 +1,121 @@
 /**
- * The Trade screen: every caravan on the road, and every road not yet taken.
+ * **The Caravans** — the ledger a trade route is hired out of, and the only
+ * surface that hires one.
  *
- * The fifth full-screen overlay and the third parchment one, and it is
- * deliberately the Religion sheet's sibling rather than a new language: same
- * bones (`.sc-*`), same split at the same breakpoint, and since batch H5 the
- * same frame — `modalShell.ts`, where `hidden` is the whole of the screen state,
- * the ×, Escape and a press on the ground arrive at one `close`, and opening
- * closes whatever else was up.
+ * The tenth sheet on `modalShell.ts` (`hidden` is the whole of the screen
+ * state, the ×, Escape and a press on the ground arrive at one `close`, the
+ * disposer is the game's), and the third rewrite of a screen that has been
+ * three different things. The user's ruling of 2026-09-09 (`docs/flags.md`
+ * item (iii)) is what this one is:
  *
- * The split is the same division those two make — *what I have* against *what I
- * can do with it*. The left column is the empire's running routes and what they
- * are worth; the right pane is every pair a caravan could still join, grouped by
- * the town it would set out from.
+ *   *"once you hit late game there's an overwhelming amount of trade routes
+ *   available and I'd like to organize and surface the best ones for the
+ *   player"* — and *"please look into the performance of the trade screen, it
+ *   gets quite laggy"*.
  *
- * The screen *is* the verb now (2026-08-28)
- * -----------------------------------------
- * Trade used to have three surfaces and no screen, and then a screen beside a
- * board full of send plates armed from an unladen trader. The user's ruling
- * deleted the second half of that: *"the caravan has action 'start route' and
- * you choose from an available trade route in the trade screen (from any city).
- * Once chosen, the caravan teleports to the origin city and begins the route as
- * before. I want to remove all micromanagement of units."*
+ * Two problems and they had the same cause. The old screen drew **every
+ * ordered pair** as a row in a table sorted by a column, which is a hundred
+ * rows on a late board with nothing to say which three of them matter; and it
+ * priced every one of those pairs from scratch on every open and every redraw,
+ * which is a few hundred A\* searches for a table nobody could read anyway.
  *
- * So a row is no longer "a send from the town a caravan happens to be standing
- * in". It is a **pair**, offered on its own merits, and the caravan is a
- * resource the empire spends on it — which is why the gate the rows grey with is
- * `routeStartable` (slots, pair, path, range, a free centre: everything that is
- * about the two towns) rather than an error asked of a particular piece. The
- * piece is named on the row's hover and nowhere else, because *which* caravan is
- * an answer, not a question.
+ * What replaced both
+ * ------------------
+ * **One reading, four tabs.** `readRoutes(state, seat)` (batch R1,
+ * `src/sim/readings.ts`) is this sheet's whole subject: every pair's available
+ * modes, the labelled fold per mode with the sea premium among its lines, the
+ * price, the hexes a land cart would pave, the march's turn count, the gate's
+ * own refusal sentence, and the towns a trading post at the partner would pull
+ * into range. It is memoised on the revision, so the tabs, the filters, the
+ * sort orders and the Land | Sea toggles are all free to redraw. **Nothing on
+ * this screen prices a pair by any other means** — there is no second survey
+ * here, no `routeStartable` asked row by row, and no fold taken beside the
+ * reading's own.
  *
- * Nothing here is a new rule
- * --------------------------
- * Every figure comes out of `trade.ts`: `explainRouteYield` for what a route
- * pays, `explainRouteYieldBetween` for what one *would* pay, `explainRouteSlots`
- * and `usedRouteSlots` for the capacity, `explainEmpireGold` for the four
- * empire-scale lines, `routeStartable` for every greyed row. A row's sentence is
- * the reducer's own — **never a copy wearing a route it is not carrying**, which
- * is the mistake `tradeLines.ts`' docblock records having made once already.
+ * The four tabs are the ruling's own list: **Recommended** (the default),
+ * **Running**, **All routes**, **Unavailable**. The first is the answer to the
+ * user's complaint — a hundred pairs sorted by a number is not a
+ * recommendation, so the pairs are grouped by **purpose** instead (Richest ·
+ * Paves a road · Feeds a town · Most science and culture) and each group shows
+ * its best few. An **empty purpose group does not appear at all**: a heading
+ * over nothing is a heading a player has to read to learn there is nothing
+ * under it.
  *
- * The pure half of this file is everything above `createTradeScreen`, for
- * `figures.ts`' reason: this suite has no jsdom, and the half of a panel that
- * can be *quietly wrong* — a sort order, a greyed sentence, a total — has to be
- * a function somebody can call.
+ * Facts, not adjectives
+ * ---------------------
+ * The user's marks on the mock (2026-09-09) cut every soft line off a card and
+ * left a row of **facts in mono**: what the cart paves, which town it joins to
+ * the capital and on what turn, what that connection pays, what a foreign host
+ * keeps, the fed town's size and its next citizen with the cart and without,
+ * and the trading post the first cart leaves with the towns its range would
+ * newly reach. No walk or sail turns, no "from" buildings, no flavour. Every
+ * one of those is read off the simulation — `readRoutes` for the route's own
+ * half, `connectedCities`, `growthThreshold`/`growthSurplus` and
+ * `RULES.trade` for the rest — and the register of which fact comes from where
+ * is `routeFacts` below.
+ *
+ * One fact on the mock is **not** built and its absence is deliberate:
+ * "warships on path". `readRoutes` does not carry the path — carrying it would
+ * mean surveying every refused pair, which is the cost this reading exists to
+ * avoid — so the sheet cannot count hulls along one. What it says instead is
+ * the rule that actually takes a route's pay away: a **blockade** at either end
+ * (`cityBlockaded`), which is the sim's own reading of a hull in a harbour
+ * mouth. See `docs/trade.md`.
+ *
+ * The pure half is everything above `createTradeScreen`, for `figures.ts`'
+ * reason: the half of a sheet that can be *quietly wrong* — a ranking, a
+ * grouping, a refusal's heading, a command's three ids — has to be a function
+ * somebody can call.
  */
 
 import {
   type RouteMode,
   type RouteYieldLine,
   type TradeGoldLine,
+  ROUTE_MODES,
   explainEmpireGold,
   explainRouteSenderYield,
-  explainRouteSenderYieldBetween,
   explainRouteSlots,
   explainRouteYield,
-  explainRouteYieldBetween,
   foldRouteYield,
-  originCityOf,
   routeCities,
   routeIsInternational,
   routeIsLive,
-  routeModesAvailable,
-  routeStartable,
   usedRouteSlots,
 } from '../sim/trade';
+import { type RouteReadingRow, type RoutesReading, readCity, readRoutes } from '../sim/readings';
+import { growthSurplus, growthThreshold, turnsToFill } from '../sim/cities';
+import { foldCity } from '../sim/yields/town';
+import { connectedCities } from '../sim/roads';
+import { cityBlockaded } from '../sim/blockade';
+import { atWar } from '../sim/wars';
 import { hasMetSeat } from '../sim/diplomacy';
-import { playerById } from '../sim/state';
-import { UNIT_TYPE_IDS, type UnitTypeId, trades, unitDef } from '../sim/unitData';
-import { gatingTech } from '../sim/tech';
-import { techDef } from '../sim/techData';
-import type { City, GameState, Unit } from '../sim/state';
+import { RULES } from '../sim/rulesData';
+import { type City, type GameState, playerById } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures } from './tradeLines';
 import { setYieldText } from './yieldMark';
 import { createModalShell } from './modalShell';
 import { element } from './dom';
+
+// --- the index's four tabs --------------------------------------------------
+
+export type TradeTabId = 'recommended' | 'running' | 'all' | 'unavailable';
+
+/**
+ * The ledger's cut tabs, in the order they are bound into the leaf.
+ *
+ * **Recommended first and open by default** — the ruling's own priority: a
+ * player opening this sheet wants to be told which caravan to send, and the
+ * complete list is a reference behind a tab rather than the front page.
+ */
+export const TRADE_TABS: readonly { id: TradeTabId; label: string }[] = [
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'running', label: 'Running' },
+  { id: 'all', label: 'All routes' },
+  { id: 'unavailable', label: 'Unavailable' },
+];
 
 // --- the running half -------------------------------------------------------
 
@@ -85,8 +125,14 @@ export interface RunningRoute {
   /** Where the piece is standing right now — the row's click pans here. */
   col: number;
   row: number;
+  fromCityId: number;
+  toCityId: number;
   fromName: string;
   toName: string;
+  /** True when the far end is another empire's town — the name is drawn in their ink. */
+  abroad: boolean;
+  /** The route's own mode, off `Unit.trade` — a running route's mode is settled. */
+  mode: RouteMode;
   /** "+3🌾 +2⚙ +1💰", or "nothing yet". */
   figures: string;
   /** The lines `figures` is the fold of — the hover ledger. */
@@ -106,7 +152,7 @@ export interface RunningRoute {
  * A **lapsed** route is still a row, and deliberately: the caravan is walking
  * home, the slot is still spoken for, and a player wondering where their fourth
  * route went needs to see exactly that. `turnsLeft` reads zero and the row
- * stands.
+ * stands — and it is the row the Renew button sits on.
  */
 export function runningRoutes(state: GameState, playerId: number): RunningRoute[] {
   const rows: RunningRoute[] = [];
@@ -119,8 +165,7 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
     const toName = pair ? cityDisplayName(state, pair.to) : 'a lost city';
     // **The seat's own take**, which for a route ending abroad is the sender's
     // fold and not the destination's (the international ruling of 2026-09-03):
-    // this column is the empire's own sheet, and a host's coin belongs on the
-    // host's.
+    // this sheet is the empire's own, and a host's coin belongs on the host's.
     const foreign = pair !== null && routeIsInternational(pair.from, pair.to);
     const lines = foreign
       ? explainRouteSenderYield(state, unit)
@@ -133,8 +178,12 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
       unitId: unit.id,
       col: unit.col,
       row: unit.row,
+      fromCityId: route.from,
+      toCityId: route.to,
       fromName,
       toName,
+      abroad: foreign,
+      mode: route.sea === true ? 'sea' : 'land',
       figures,
       lines,
       turnsLeft,
@@ -184,9 +233,6 @@ export function tradeLedger(
   // floods the empire's connected territory and sweeps every hex, unit and
   // building it holds, and this function used to ask for it twice — once for the
   // lines and again through `empireGold`, which is nothing but the fold of them.
-  // The parameter lets a screen that is already printing the four lines hand
-  // them in rather than pay a third time; the default is the same call, so the
-  // top bar's chip is unchanged. The total stays rule 5's own fold either way.
   empire: readonly TradeGoldLine[] = explainEmpireGold(state, playerId) as readonly TradeGoldLine[],
 ): TradeLedger {
   const lines: TradeLedgerLine[] = [];
@@ -199,7 +245,11 @@ export function tradeLedger(
     });
   }
   for (const line of empire) {
-    lines.push({ source: line.source, gold: line.gold, figures: `${signedFigure(line.gold)}${YIELD_GLYPH.gold}` });
+    lines.push({
+      source: line.source,
+      gold: line.gold,
+      figures: `${signedFigure(line.gold)}${YIELD_GLYPH.gold}`,
+    });
   }
   let total = 0;
   for (const route of routes) total += route.gold;
@@ -209,437 +259,727 @@ export function tradeLedger(
   return { lines, total, used, slots, chip: `${figure(used)} / ${figure(slots)}` };
 }
 
-// --- the available half -----------------------------------------------------
+// --- the sheet's one reading, and the facts hung off it ----------------------
 
-/** One destination a caravan could be sent to from one origin. */
-export interface TradeCandidate {
-  cityId: number;
-  name: string;
+/**
+ * Everything the whole sheet is a function of, gathered once per paint.
+ *
+ * `readRoutes` is the subject and the rest is the *surroundings* a fact needs:
+ * which of this seat's towns are joined to the capital (so "paves a road" can
+ * mean the road that would join one), the purse, and the slot ledger. Every one
+ * of these is a reading of the simulation asked **once** — the whole point of
+ * the pass — and handed down to every group, card and fact below rather than
+ * re-asked per row.
+ */
+export interface TradeContext {
+  state: GameState;
+  seat: number;
+  /** The seat's own name, for the masthead. */
+  seatName: string;
+  reading: RoutesReading;
   /**
-   * The empire that holds this town, when it is not this seat's — the
-   * international ruling of 2026-09-03, said on the row.
+   * The reading's rows, less the pairs this seat may not be *told* about.
    *
-   * `null` for one of your own, and that absence is the whole of the dress: a
-   * screen that labelled every row with an owner would print the player's own
-   * name a dozen times to say nothing. Only a row that is about somebody else
-   * carries a name.
+   * The met clause is a **screen** reading and not a rule, exactly as it was
+   * before this rewrite: the gate refuses an unmet partner in words, and a
+   * sheet that greyed out "You have not met Persia" would be telling the player
+   * Persia exists. The wild holds no towns worth a caravan and is not at the
+   * table, so a barbarian seat's towns go by the same clause every other roster
+   * uses.
    */
-  ownerName: string | null;
-  food: number;
-  production: number;
+  rows: readonly RouteReadingRow[];
   gold: number;
-  /**
-   * The two voices only a foreign route pays (the sender's science and
-   * culture). Zero on every domestic row, and on the columns' `total`.
-   */
-  science: number;
-  culture: number;
-  /** "+3🌾 +2⚙ +1💰", or "nothing yet". */
-  figures: string;
-  /**
-   * The lines `figures` is the fold of — **what this seat would get**.
-   *
-   * For a town of your own that is the destination's fold, because the
-   * destination is yours; for a foreign town it is the *sender's* fold, because
-   * that is the half that lands in your books. One rule said once: a row on this
-   * screen quotes what pressing its button pays you.
-   */
-  lines: RouteYieldLine[];
-  /** True when a live route already joins this pair, in either direction. */
-  running: boolean;
-  /**
-   * The reducer's own refusal, or `null`. **`routeStartable`'s sentence
-   * verbatim** — the gate about the *pair* (a free slot, no route already
-   * joining these two, a path, the range, a free centre to arrive on), asked
-   * with no caravan in mind at all, because under the 2026-08-28 ruling the
-   * caravan may be anywhere and is teleported to the origin.
-   *
-   * `null` exactly when `modes` is non-empty: a row is offered when some way of
-   * getting there is legal, and refused with the sentence the plain default
-   * gives when none is.
-   */
-  error: string | null;
-  /**
-   * The ways this pair could actually be joined, in `ROUTE_MODES` order (the
-   * ruling of 2026-09-03).
-   *
-   * Two entries is a **choice** and the row draws two buttons; one is today's
-   * single Start; none is a refused row. It is `routeModesAvailable`'s answer
-   * verbatim — the whole gate asked per mode — so a button drawn here is a
-   * command the reducer accepts.
-   */
-  modes: RouteMode[];
+  /** Ids of this seat's towns that already reach the capital by road. */
+  connected: ReadonlySet<number>;
+  /** True while the empire has a route slot to spend. */
+  slotFree: boolean;
 }
 
-/** One of this seat's towns, and every partner a route could join it to. */
-export interface TradeOrigin {
-  cityId: number;
-  name: string;
-  col: number;
-  row: number;
-  candidates: TradeCandidate[];
+export function tradeContext(state: GameState, seat: number): TradeContext {
+  const reading = readRoutes(state, seat);
+  const rows = reading.rows.filter((row) => partnerIsVisible(state, seat, row.to));
+  const connected = new Set<number>();
+  for (const entry of connectedCities(state, seat)) connected.add(entry.city.id);
+  return {
+    state,
+    seat,
+    seatName: playerById(state, seat)?.name ?? 'this empire',
+    reading,
+    rows,
+    gold: playerById(state, seat)?.gold ?? 0,
+    connected,
+    slotFree: hasFreeRouteSlot(state, seat),
+  };
 }
 
-/** The unit type that carries a route. Presence of `trades` is the marker. */
-function traderType(): UnitTypeId | null {
-  return UNIT_TYPE_IDS.find((type) => trades(unitDef(type))) ?? null;
+/** May this seat be shown a row about that town at all? See `TradeContext.rows`. */
+function partnerIsVisible(state: GameState, seat: number, to: City): boolean {
+  if (to.ownerId === seat) return true;
+  const owner = playerById(state, to.ownerId);
+  if (owner === undefined || owner.barbarian === true) return false;
+  return hasMetSeat(state, seat, to.ownerId);
 }
 
 /**
- * Every caravan of this seat that is standing free of a route, in `state.units`
- * order — which is what makes "the first idle trader" a fact about the state
- * rather than about who asked, exactly as every other sweep in this game is.
+ * One fact on a card, as the mock prints it: a small-caps label and a figure.
+ *
+ * Two halves rather than one sentence because the *label* is the copy face and
+ * the *figure* is tabular mono — the specimen's one rule about numbers — and a
+ * fact composed as a single string could not be drawn in two faces.
  */
-export function idleTraders(state: GameState, playerId: number): Unit[] {
-  return state.units.filter(
-    (unit) =>
-      unit.ownerId === playerId && unit.trade === undefined && trades(unitDef(unit.type)),
-  );
+export interface TradeFact {
+  key: string;
+  text: string;
 }
 
 /**
- * The caravan a Start would name: the **chooser** when the screen was opened
- * from a trader's own sheet, otherwise the **first idle trader** in `state.units`
- * order.
+ * What a card says about one pair read **in one mode** — the register of where
+ * each fact comes from.
  *
- * One function rather than a conditional in the click handler, for this file's
- * stated reason: "which caravan" is the part of that button that can be quietly
- * wrong. The chooser is honoured only while it is still idle and still this
- * seat's — a screen left open across a resolution that ended somebody's route,
- * or across a plunder, must not dispatch a piece that has moved on.
+ * | fact | read from |
+ * |---|---|
+ * | paves N hexes (land) | `RouteReadingRow.roadHexes`, the land leg's unpaved hexes |
+ * | connects ⟨town⟩ turn T | `RouteReadingRow.turns` added to `state.turn` — the cart lays the road as it walks |
+ * | connection +G gold/t | `connectedCities`' own arithmetic: the town's people over `rules.trade.connectionPerPop` |
+ * | host keeps G gold/t | `rules.trade.international.hostGold` |
+ * | ⟨town⟩ size S · F food/t | the destination's own reading — `readCity`/`foldCity`, `growthSurplus` |
+ * | next citizen N turns (was M) | `growthThreshold` against the basket, `turnsToFill` with the cart's food and without |
+ * | blockaded | `cityBlockaded` at either end — the rule that takes the pay back |
+ * | post at ⟨town⟩ +N range · K more towns in reach | `RouteReadingRow.postReach`, `rules.trade.postRangeTurns` |
+ *
+ * **The mode decides the facts**, which is the user's direction of record: a sea
+ * cart lays no road, so its paving line says so and its connection lines are
+ * absent; a land cart's paving counts. The food figure is the fold for *this*
+ * mode, so the sea premium moves the fed town's next citizen too.
  */
-export function startingTrader(
-  state: GameState,
-  playerId: number,
-  chooserUnitId: number | null,
-): Unit | null {
-  const idle = idleTraders(state, playerId);
-  const chooser =
-    chooserUnitId === null ? undefined : idle.find((unit) => unit.id === chooserUnitId);
-  return chooser ?? idle[0] ?? null;
-}
+export function routeFacts(
+  ctx: TradeContext,
+  row: RouteReadingRow,
+  mode: RouteMode,
+): TradeFact[] {
+  const facts: TradeFact[] = [];
+  const { state } = ctx;
+  const toName = cityDisplayName(state, row.to);
+  const pays = row.pays.find((entry) => entry.mode === mode) ?? null;
+  const domestic = row.to.ownerId === ctx.seat;
 
-/**
- * "Caravan from Ur will be sent" — which piece a Start would move, on the row's
- * hover.
- *
- * The teleport is the whole reason this is a *note* and not a gate: the caravan
- * no longer has to be standing anywhere in particular, so the honest thing to
- * say is which one is about to be spent and where it is coming from. A caravan
- * out in the field says so rather than naming a town it is only near.
- */
-export function starterNote(state: GameState, trader: Unit | null): string | null {
-  if (trader === null) return null;
-  const home = originCityOf(state, trader);
-  return home === null
-    ? 'A caravan in the field will be sent'
-    : `Caravan from ${cityDisplayName(state, home)} will be sent`;
-}
-
-/**
- * "Build a trader (Currency) to start a route.", or `null` when one is standing
- * idle somewhere.
- *
- * **One line at the top of the pane**, not one per origin group. The old screen
- * said "no caravan here — the nearest idle one is in Ur" on every town without a
- * piece on it, which was true of a rule that no longer exists: a route is
- * started from the screen and the caravan comes to it. The only fact left worth
- * saying is that the empire has no caravan at all, and the useful half of that
- * is the technology.
- */
-export function noTraderNote(state: GameState, playerId: number): string | null {
-  if (idleTraders(state, playerId).length > 0) return null;
-  const type = traderType();
-  const gate = type === null ? null : gatingTech('unit', type);
-  const named = type === null ? 'caravan' : unitDef(type).name.toLowerCase();
-  return gate === null
-    ? `Build a ${named} to start a route.`
-    : `Build a ${named} (${techDef(gate).name}) to start a route.`;
-}
-
-/**
- * A row's refusal: `routeStartable`'s sentence, **except** for the slot clause.
- *
- * The substitution is exact rather than a guess, and that is the whole reason it
- * is safe. `startRouteError` asks about the slots *before* the pair, the path
- * and the range (`trade.ts`), so a full ledger is the answer for every row and
- * only for a full ledger — which means "is a slot free" decides the swap with no
- * prose read at all. See `NO_ROUTE_CAPACITY`.
- */
-export function startableError(
-  state: GameState,
-  playerId: number,
-  fromCityId: number,
-  toCityId: number,
-): string | null {
-  const problem = routeStartable(state, playerId, fromCityId, toCityId);
-  if (problem === null) return null;
-  return hasFreeRouteSlot(state, playerId) ? problem : NO_ROUTE_CAPACITY;
-}
-
-/**
- * Every town a route could be started **to**, in `state.cities` order — this
- * seat's own, and the towns of empires it has met.
- *
- * The met clause is a *screen* reading and not a rule (`hasMetSeat`'s own
- * docblock says so): the gate refuses an unmet partner in words, and this list
- * simply does not draw a row for an empire nobody has run into yet — a sheet
- * that greyed out "You have not met Persia" would be telling the player Persia
- * exists. An empire that has been met and is at **war** keeps its rows and they
- * grey with the gate's own sentence, because that is a fact the player already
- * knows and a road worth remembering when the peace comes.
- *
- * The wild holds no towns worth a caravan and is not at the table
- * (`hasMetSeat` would answer for it), so a barbarian seat's cities are left out
- * by the same clause every other roster uses.
- */
-function tradePartners(state: GameState, playerId: number): City[] {
-  const partners: City[] = [];
-  for (const city of state.cities) {
-    if (city.ownerId === playerId) {
-      partners.push(city);
-      continue;
+  // The road. A land cart wears one into every hex it walks; a sea cart lays
+  // none at all, and the card says which rather than leaving the paving line
+  // off — the toggle's whole job is to show what changes.
+  if (mode === 'land') {
+    if (row.roadHexes !== null && row.roadHexes > 0) {
+      facts.push({ key: 'paves', text: `${figure(row.roadHexes)} hexes (land)` });
     }
-    const owner = playerById(state, city.ownerId);
-    if (owner === undefined || owner.barbarian === true) continue;
-    if (!hasMetSeat(state, playerId, city.ownerId)) continue;
-    partners.push(city);
+  } else if (row.modes.includes('land')) {
+    facts.push({ key: 'paves', text: '— (sea lays no road)' });
   }
-  return partners;
+
+  // The connection, and only for the case it is an argument in: a town of this
+  // seat's that the road would newly join to the capital. A connection already
+  // standing pays whether or not this cart goes, so saying it here would be
+  // crediting the route with somebody else's road.
+  if (
+    mode === 'land' &&
+    domestic &&
+    !ctx.connected.has(row.to.id) &&
+    row.roadHexes !== null &&
+    row.roadHexes > 0
+  ) {
+    if (row.turns !== null) {
+      facts.push({ key: `connects ${toName}`, text: `turn ${figure(state.turn + row.turns)}` });
+    }
+    const pay = connectionGold(row.to);
+    if (pay > 0) facts.push({ key: 'connection', text: `+${figure(pay)} gold/t` });
+  }
+
+  // What the far empire keeps. A route abroad pays its host a coin of their own
+  // (`rules.trade.international.hostGold`) and a player deciding to feed a
+  // rival's treasury should be told the figure rather than discover it.
+  if (!domestic) {
+    const host = Math.max(0, Math.floor(RULES.trade.international.hostGold));
+    if (host > 0) facts.push({ key: 'host keeps', text: `${figure(host)} gold/t` });
+  }
+
+  // The fed town, and what the cart does to its next citizen. Domestic only:
+  // a foreign route pays the sender's pools directly and banks nothing in the
+  // partner's basket, so there is no town of ours growing at the far end.
+  if (domestic && pays !== null && pays.total.food > 0) {
+    const growth = growthReading(ctx, row.to, pays.total.food);
+    facts.push({
+      key: toName,
+      text: `size ${figure(row.to.population)} · ${figure(growth.surplus)} food/t`,
+    });
+    if (growth.withCart !== null) {
+      const was = growth.without === null ? 'never' : `${figure(growth.without)}`;
+      facts.push({
+        key: 'next citizen',
+        text: `${figure(growth.withCart)} turns (was ${was})`,
+      });
+    }
+  }
+
+  // The one exposure the sheet can honestly name. See the module docblock on
+  // why this stands where the mock's "warships on path" did.
+  const shut = cityBlockaded(state, row.from)
+    ? row.from
+    : cityBlockaded(state, row.to)
+      ? row.to
+      : null;
+  if (shut !== null) {
+    facts.push({
+      key: 'blockaded',
+      text: `a hull sits in ${cityDisplayName(state, shut)}’s harbour mouth`,
+    });
+  }
+
+  // The post the first cart leaves, and what its range opens. `postReach` is
+  // empty when the partner already carries one, so the fact appears exactly
+  // when it is news.
+  if (row.postReach.length > 0) {
+    const extra = Math.max(0, Math.floor(RULES.trade.postRangeTurns));
+    const towns = row.postReach.length;
+    facts.push({
+      key: `post at ${toName}`,
+      text: `+${figure(extra)} range · ${figure(towns)} more town${towns === 1 ? '' : 's'} in reach`,
+    });
+  }
+
+  return facts;
 }
 
-/** Is a live route already joining these two towns, either way round? */
-function pairIsRunning(state: GameState, playerId: number, from: number, to: number): boolean {
+/** What a connected town of this size pays the treasury. `connectedCities`' own step. */
+export function connectionGold(city: City): number {
+  const per = Math.max(1, Math.floor(RULES.trade.connectionPerPop));
+  return Math.floor(city.population / per);
+}
+
+/**
+ * A town's growth with a cart's food and without it — the "next citizen"
+ * fact's whole arithmetic, and the simulation's own two functions.
+ *
+ * `growthSurplus` is what the basket will actually receive (the harvest less
+ * upkeep, less a settler at the front of the queue, less a happiness deficit),
+ * and `turnsToFill` is the same division the city panel prints. The cart's food
+ * is **added to the surplus** rather than folded into the town's yields,
+ * because that is where a route lands: `collectYields` banks a caravan's
+ * arrival into the destination's basket after the town has been priced.
+ */
+export function growthReading(
+  ctx: TradeContext,
+  city: City,
+  cartFood: number,
+): { surplus: number; without: number | null; withCart: number | null } {
+  const { state } = ctx;
+  const quote = readCity(state, city);
+  const surplus = growthSurplus(state, city, foldCity(state, city, [], undefined, quote));
+  const remaining = growthThreshold(city.population) - city.foodBasket;
+  return {
+    surplus: Math.round(surplus),
+    without: turnsToFill(remaining, surplus),
+    withCart: turnsToFill(remaining, surplus + cartFood),
+  };
+}
+
+// --- one card ---------------------------------------------------------------
+
+/** One pair on offer, read in one mode. See `routeCard`. */
+export interface RouteCard {
+  fromCityId: number;
+  toCityId: number;
+  fromName: string;
+  toName: string;
+  /** The empire that holds the far town when it is not this seat's, else `null`. */
+  rivalName: string | null;
+  /** The modes the gate would take today, in `ROUTE_MODES` order. */
+  modes: readonly RouteMode[];
+  /** The mode this card is currently read in. Always one of `modes`. */
+  mode: RouteMode;
+  /** "+9💰 +3🔬 +2🎭" for `mode`, or "nothing yet". */
+  figures: string;
+  /** The labelled list `figures` is the fold of — the hover ledger. */
+  lines: readonly RouteYieldLine[];
+  /** Every voice of the fold summed — the ranking's own number. */
+  total: number;
+  facts: TradeFact[];
+  price: number;
+  /** False when the purse cannot pay the price today. */
+  affordable: boolean;
+}
+
+/** Every voice of a mode's fold summed. The one ranking number, taken once. */
+export function routeModeTotal(row: RouteReadingRow, mode: RouteMode): number {
+  const pays = row.pays.find((entry) => entry.mode === mode);
+  if (pays === undefined) return 0;
+  const { food, production, gold, science, culture } = pays.total;
+  return food + production + gold + science + culture;
+}
+
+/** The mode a card opens in: the one that pays most, ties to `ROUTE_MODES` order. */
+export function bestMode(row: RouteReadingRow): RouteMode | null {
+  let best: RouteMode | null = null;
+  let bestTotal = -1;
+  for (const mode of ROUTE_MODES) {
+    if (!row.modes.includes(mode)) continue;
+    const total = routeModeTotal(row, mode);
+    if (total > bestTotal) {
+      best = mode;
+      bestTotal = total;
+    }
+  }
+  return best;
+}
+
+export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMode): RouteCard {
+  const pays = row.pays.find((entry) => entry.mode === mode) ?? null;
+  const lines = pays?.lines ?? [];
+  const rival =
+    row.to.ownerId === ctx.seat ? null : (playerById(ctx.state, row.to.ownerId)?.name ?? null);
+  return {
+    fromCityId: row.from.id,
+    toCityId: row.to.id,
+    fromName: cityDisplayName(ctx.state, row.from),
+    toName: cityDisplayName(ctx.state, row.to),
+    rivalName: rival,
+    modes: row.modes,
+    mode,
+    figures: pays === null ? 'nothing yet' : routeFigures(pays.total),
+    lines,
+    total: routeModeTotal(row, mode),
+    facts: routeFacts(ctx, row, mode),
+    price: ctx.reading.price,
+    affordable: ctx.gold >= ctx.reading.price,
+  };
+}
+
+// --- the recommendations ----------------------------------------------------
+
+/** One purpose group on the Recommended tab. An empty one is never built. */
+export interface PurposeGroup {
+  id: 'richest' | 'paves' | 'feeds' | 'learning';
+  title: string;
+  /** The heading's small line — what the group is *for*, in plain words. */
+  blurb: string;
+  /** The pairs, best first. The first is the one that carries the hedera. */
+  rows: { row: RouteReadingRow; mode: RouteMode }[];
+}
+
+/** How many cards a purpose group shows. The ruling's "the first two or three". */
+export const PURPOSE_CARDS = 3;
+
+/** Order two candidates and break every tie on the pair's own ids. Total, always. */
+function byScore(
+  score: (entry: { row: RouteReadingRow; mode: RouteMode }) => number,
+): (a: { row: RouteReadingRow; mode: RouteMode }, b: { row: RouteReadingRow; mode: RouteMode }) => number {
+  return (a, b) =>
+    score(b) - score(a) || a.row.from.id - b.row.from.id || a.row.to.id - b.row.to.id;
+}
+
+/**
+ * The Recommended tab: the pairs worth sending, grouped by **what for**.
+ *
+ * The four purposes are the user's own list and in the user's own priority
+ * (`docs/flags.md` (iii), *Refined*): the richest carts first because that is
+ * the first two or three a player ever sends; then the ones that finish a road
+ * to a town the capital cannot reach, which is usually the same cart wearing a
+ * second argument; then the ones that feed a town still growing, which is a
+ * late-game decision; then what a rival's towns teach.
+ *
+ * **An empty group does not appear at all.** There is no "no routes pave a road
+ * today" line, because a heading over an empty box is a thing a player has to
+ * read before learning it says nothing.
+ *
+ * A pair may appear in two groups and that is the point rather than a bug: a
+ * cart that is both the richest and the one that joins a town is *more* worth
+ * sending, not less, and the ruling says the overlap out loud.
+ */
+export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
+  const offered: { row: RouteReadingRow; mode: RouteMode }[] = [];
+  for (const row of ctx.rows) {
+    if (!row.available) continue;
+    const mode = bestMode(row);
+    if (mode === null) continue;
+    offered.push({ row, mode });
+  }
+
+  const groups: PurposeGroup[] = [];
+
+  // 1. Richest — every voice of the fold summed, in the mode that pays most.
+  const richest = [...offered].sort(byScore((entry) => routeModeTotal(entry.row, entry.mode)));
+  push(groups, {
+    id: 'richest',
+    title: 'Richest',
+    blurb: 'the routes that pay most a turn',
+    rows: richest.filter((entry) => routeModeTotal(entry.row, entry.mode) > 0),
+  });
+
+  // 2. Paves a road — a **land** cart whose walk lays hexes toward a town of
+  //    this seat's that the capital cannot yet reach by road. Ranked by what
+  //    the connection would pay, because that is the argument the group makes;
+  //    the pay per turn breaks the tie.
+  const paves = offered
+    .filter(
+      (entry) =>
+        entry.row.modes.includes('land') &&
+        entry.row.roadHexes !== null &&
+        entry.row.roadHexes > 0 &&
+        entry.row.to.ownerId === ctx.seat &&
+        !ctx.connected.has(entry.row.to.id),
+    )
+    .map((entry) => ({ row: entry.row, mode: 'land' as RouteMode }))
+    .sort(
+      byScore(
+        (entry) => connectionGold(entry.row.to) * 100 + routeModeTotal(entry.row, entry.mode),
+      ),
+    );
+  push(groups, {
+    id: 'paves',
+    title: 'Paves a road',
+    blurb: 'routes that lay the road to a town not yet joined to the capital',
+    rows: paves,
+  });
+
+  // 3. Feeds a town — ranked by the **turns the cart takes off the next
+  //    citizen**, which is the fact the card prints. No "still small" threshold
+  //    is invented: `growthThreshold` climbs with every citizen, so the biggest
+  //    saving lands on the smallest town by the simulation's own arithmetic.
+  const feeds: { row: RouteReadingRow; mode: RouteMode; saved: number }[] = [];
+  for (const entry of offered) {
+    if (entry.row.to.ownerId !== ctx.seat) continue;
+    const pays = entry.row.pays.find((one) => one.mode === entry.mode);
+    if (pays === undefined || pays.total.food <= 0) continue;
+    const growth = growthReading(ctx, entry.row.to, pays.total.food);
+    if (growth.withCart === null) continue;
+    // A town that would never grow without the cart is the strongest case there
+    // is, and a subtraction against `null` would drop it: it ranks above every
+    // town the cart merely hurries.
+    const saved = growth.without === null ? Number.MAX_SAFE_INTEGER : growth.without - growth.withCart;
+    if (saved <= 0) continue;
+    feeds.push({ ...entry, saved });
+  }
+  feeds.sort(
+    (a, b) => b.saved - a.saved || a.row.from.id - b.row.from.id || a.row.to.id - b.row.to.id,
+  );
+  push(groups, {
+    id: 'feeds',
+    title: 'Feeds a town',
+    blurb: 'the best food into a town still growing',
+    rows: feeds.map((entry) => ({ row: entry.row, mode: entry.mode })),
+  });
+
+  // 4. Most science and culture — the foreign carts, which are the only ones
+  //    that pay either voice (the international ruling of 2026-09-03).
+  const learning = offered
+    .filter((entry) => entry.row.to.ownerId !== ctx.seat)
+    .filter((entry) => {
+      const pays = entry.row.pays.find((one) => one.mode === entry.mode);
+      return pays !== undefined && pays.total.science + pays.total.culture > 0;
+    })
+    .sort(
+      byScore((entry) => {
+        const pays = entry.row.pays.find((one) => one.mode === entry.mode);
+        return pays === undefined ? 0 : pays.total.science + pays.total.culture;
+      }),
+    );
+  push(groups, {
+    id: 'learning',
+    title: 'Most science and culture',
+    blurb: 'what a rival’s towns teach',
+    rows: learning,
+  });
+
+  return groups;
+}
+
+/** Adds a group iff it has a card in it, capped at `PURPOSE_CARDS`. */
+function push(groups: PurposeGroup[], group: PurposeGroup): void {
+  if (group.rows.length === 0) return;
+  groups.push({ ...group, rows: group.rows.slice(0, PURPOSE_CARDS) });
+}
+
+// --- the full list ----------------------------------------------------------
+
+/** The four things a filter chip can say about a pair. All on is every pair. */
+export interface RouteFilters {
+  own: boolean;
+  abroad: boolean;
+  land: boolean;
+  sea: boolean;
+}
+
+export const ALL_ROUTE_FILTERS: RouteFilters = { own: true, abroad: true, land: true, sea: true };
+
+/** What the All-routes tab may be sorted by. `road` is the hexes a cart would pave. */
+export type RouteSortKey = 'pay' | 'food' | 'gold' | 'science' | 'road';
+
+export const ROUTE_SORTS: readonly { key: RouteSortKey; label: string }[] = [
+  { key: 'pay', label: 'pay' },
+  { key: 'food', label: 'food' },
+  { key: 'gold', label: 'gold' },
+  { key: 'science', label: 'science' },
+  { key: 'road', label: 'road' },
+];
+
+/** What one sort key reads on one row, in the mode the row is shown in. */
+export function routeSortValue(row: RouteReadingRow, mode: RouteMode, key: RouteSortKey): number {
+  if (key === 'road') return row.roadHexes ?? 0;
+  const pays = row.pays.find((entry) => entry.mode === mode);
+  if (pays === undefined) return 0;
+  if (key === 'pay') return routeModeTotal(row, mode);
+  return pays.total[key];
+}
+
+/** Does this pair survive the chips? A filter is a **narrowing**, never a re-ranking. */
+export function rowPassesFilters(
+  ctx: TradeContext,
+  row: RouteReadingRow,
+  mode: RouteMode,
+  filters: RouteFilters,
+): boolean {
+  const domestic = row.to.ownerId === ctx.seat;
+  if (domestic && !filters.own) return false;
+  if (!domestic && !filters.abroad) return false;
+  if (mode === 'land' && !filters.land) return false;
+  if (mode === 'sea' && !filters.sea) return false;
+  return true;
+}
+
+/** One origin town's fold on the All-routes tab. */
+export interface OriginGroup {
+  city: City;
+  name: string;
+  rows: { row: RouteReadingRow; mode: RouteMode }[];
+}
+
+/**
+ * Every offered pair, grouped by the town it sets out from, in founding order.
+ *
+ * The old screen's whole content, behind a tab: a reference the ruling keeps
+ * ("the full list stays viewable behind a tab, grouped by origin town with
+ * collapsible groups and the slot tally") rather than the front page it used to
+ * be. Only **available** pairs are here — the refused ones are the Unavailable
+ * tab's, which is the user's own instruction and the reason this tab is
+ * readable at all.
+ */
+export function originGroups(
+  ctx: TradeContext,
+  filters: RouteFilters,
+  sort: RouteSortKey,
+  modeOf: (row: RouteReadingRow) => RouteMode,
+): OriginGroup[] {
+  const groups = new Map<number, OriginGroup>();
+  for (const row of ctx.rows) {
+    if (!row.available) continue;
+    const mode = modeOf(row);
+    if (!rowPassesFilters(ctx, row, mode, filters)) continue;
+    let group = groups.get(row.from.id);
+    if (group === undefined) {
+      group = { city: row.from, name: cityDisplayName(ctx.state, row.from), rows: [] };
+      groups.set(row.from.id, group);
+    }
+    group.rows.push({ row, mode });
+  }
+  const ordered: OriginGroup[] = [];
+  // `state.cities` order — founding order, a fact about the state rather than
+  // about the sweep — so two players' sheets group the same way.
+  for (const city of ctx.state.cities) {
+    const group = groups.get(city.id);
+    if (group !== undefined) ordered.push(group);
+  }
+  for (const group of ordered) {
+    group.rows.sort(
+      (a, b) =>
+        routeSortValue(b.row, b.mode, sort) - routeSortValue(a.row, a.mode, sort) ||
+        a.row.to.id - b.row.to.id,
+    );
+  }
+  return ordered;
+}
+
+// --- the unavailable --------------------------------------------------------
+
+/**
+ * Why the gate refused a pair, as a **heading**.
+ *
+ * Classified by re-asking the simulation's own clauses **in the order
+ * `routeStartable` asks them** — never by reading its sentence. Matching prose
+ * to decide what a refusal meant is how two files start disagreeing the first
+ * time one of them is reworded, and `startableError`'s docblock has said so on
+ * this screen since 2026-08-28.
+ *
+ * There are four headings and not the mock's five, and both differences are
+ * stated rather than hidden:
+ *
+ *   · **No "blockaded"** — a blockade is not a refusal. A hull in the harbour
+ *     mouth takes a running route's pay back (`routeYields.ts`); it never stops
+ *     one being hired. The fact is on the *card*, where it belongs.
+ *   · **"Out of reach" holds two clauses** — no lane at all, and too far. The
+ *     reading does not survey a pair the gate refused (that is the whole of
+ *     R1's speed), so the sheet cannot tell those two apart without re-running
+ *     the search this reading exists to avoid. The heading covers both and each
+ *     row prints the gate's own sentence, which says which it was.
+ */
+export type RefusalReason = 'war' | 'slots' | 'running' | 'reach';
+
+export const REFUSAL_TITLES: Readonly<Record<RefusalReason, string>> = {
+  war: 'At war',
+  slots: 'No route slot free',
+  running: 'Already running',
+  reach: 'Out of reach',
+};
+
+export function refusalReason(ctx: TradeContext, row: RouteReadingRow): RefusalReason {
+  // The gate's own order: the foreign clauses, then the slot ledger, then the
+  // pair, then the ground.
+  if (row.to.ownerId !== ctx.seat && atWar(ctx.state, ctx.seat, row.to.ownerId)) return 'war';
+  if (!ctx.slotFree) return 'slots';
+  if (pairIsRunning(ctx.state, ctx.seat, row.from.id, row.to.id)) return 'running';
+  return 'reach';
+}
+
+/** Is a live route already running from this town to that one? Directional, as the gate is. */
+export function pairIsRunning(
+  state: GameState,
+  playerId: number,
+  from: number,
+  to: number,
+): boolean {
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     const route = unit.trade;
     if (route === undefined) continue;
-    const joins =
-      (route.from === from && route.to === to) || (route.from === to && route.to === from);
-    if (joins && routeIsLive(state, unit)) return true;
+    if (route.from !== from || route.to !== to) continue;
+    if (routeIsLive(state, unit)) return true;
   }
   return false;
 }
 
+export interface RefusalGroup {
+  reason: RefusalReason;
+  title: string;
+  /**
+   * The heading's own line, where the whole group has one thing to say.
+   *
+   * The slot group's is `NO_ROUTE_CAPACITY` — **the user's own sentence**
+   * (2026-08-28), which every surface that greys for the slot clause prints
+   * identically or it is two facts. Said once over the group rather than
+   * repeated down a list of forty pairs that are all refused for it.
+   */
+  note: string | null;
+  rows: { row: RouteReadingRow; sentence: string }[];
+}
+
 /**
- * Every town of this seat, in founding order, with every partner a route could
- * be started to from it.
+ * Every pair the gate refused, under the heading of the clause that refused it.
  *
- * Candidates are sorted **gold, then food, then production**, descending — the
- * brief's order and the honest one: the gold is the empire's, and the food and
- * the hammers are what **that candidate**, as the route's destination, would
- * bank in its own basket (2026-08-27: the origin's buildings set the figure,
- * the destination banks it) — so a player scanning a column is scanning for the
- * partner most worth feeding.
- *
- * A pair the empire is already running keeps its row and is marked rather than
- * dropped: "Nippur is the one already paying you" is the answer to why it is not
- * on offer, and a row that vanished would make that a thing a player deduces.
+ * The user's own instruction: *"trade routes that are unavailable shouldn't
+ * show in the main screen, they should be tucked away in an 'unavailable
+ * routes' tab."* — with the reason each one is unavailable, which is the
+ * reducer's own sentence and never a copy of it.
  */
-export function tradeOrigins(state: GameState, playerId: number): TradeOrigin[] {
-  const towns = state.cities.filter((city) => city.ownerId === playerId);
-  const partners = tradePartners(state, playerId);
-  const origins: TradeOrigin[] = [];
-  for (const city of towns) {
-    const candidates: TradeCandidate[] = [];
-    for (const other of partners) {
-      if (other.id === city.id) continue;
-      const foreign = routeIsInternational(city, other);
-      // **What pressing this row's button would pay *you*.** A domestic route
-      // pays its destination, which is your town; a foreign one pays you
-      // directly and pays the host a coin of their own — so the row quotes the
-      // sender's fold and the host's line stays on the host's sheet.
-      const lines = foreign
-        ? explainRouteSenderYieldBetween(state, city, other)
-        : explainRouteYieldBetween(state, city, other);
-      const fold = foldRouteYield(lines);
-      // The reducer's own gate about the *pair*, asked once per mode. No unit is
-      // named because none needs to be: the caravan is teleported to the origin,
-      // so which one it is cannot change the answer. See `TradeCandidate`.
-      const modes = routeModesAvailable(state, playerId, city.id, other.id);
-      candidates.push({
-        cityId: other.id,
-        name: cityDisplayName(state, other),
-        ownerName: foreign ? (playerById(state, other.ownerId)?.name ?? null) : null,
-        ...fold,
-        figures: routeFigures(fold),
-        lines,
-        running: pairIsRunning(state, playerId, city.id, other.id),
-        error: modes.length > 0 ? null : startableError(state, playerId, city.id, other.id),
-        modes,
-      });
-    }
-    candidates.sort(
-      (a, b) => b.gold - a.gold || b.food - a.food || b.production - a.production,
-    );
-    origins.push({
-      cityId: city.id,
-      name: cityDisplayName(state, city),
-      col: city.col,
-      row: city.row,
-      candidates,
+export function refusalGroups(ctx: TradeContext): RefusalGroup[] {
+  const order: RefusalReason[] = ['reach', 'war', 'running', 'slots'];
+  const buckets = new Map<RefusalReason, RefusalGroup['rows']>();
+  for (const row of ctx.rows) {
+    if (row.available) continue;
+    const reason = refusalReason(ctx, row);
+    const rows = buckets.get(reason) ?? [];
+    rows.push({ row, sentence: row.refusal ?? 'This route cannot be sent' });
+    buckets.set(reason, rows);
+  }
+  const groups: RefusalGroup[] = [];
+  for (const reason of order) {
+    const rows = buckets.get(reason);
+    if (rows === undefined || rows.length === 0) continue;
+    groups.push({
+      reason,
+      title: REFUSAL_TITLES[reason],
+      note: reason === 'slots' ? NO_ROUTE_CAPACITY : null,
+      rows,
     });
   }
-  return origins;
+  return groups;
 }
 
+// --- the one command this sheet sends ---------------------------------------
+
 /**
- * The `startRoute` a row would dispatch, or `null` when the row cannot dispatch
- * one.
+ * The `buyRoute` a Send would dispatch, or `null` when it cannot.
  *
- * The pure half of the Start button, split out for this file's stated reason:
- * "which caravan, from which town, to which town" is the part of that button
- * that can be quietly wrong, and it is a function somebody can call rather than
- * a closure inside a click handler. The two conditions are exactly the ones the
- * row is drawn under — the empire has an idle caravan, and the reducer is not
- * refusing this pair — so a row with a button is a row this answers for.
+ * The pure half of the button, split out for this file's stated reason: "which
+ * pair, in which mode" is the part of Send that can be quietly wrong. The two
+ * conditions are exactly the ones the card is drawn under — the gate takes this
+ * mode of this pair, and the purse can pay the price — so a card with a live
+ * button is a card this answers for.
  *
- * **The mode is named, always** (the ruling of 2026-09-03), and it must be one
- * of the row's own `modes` or there is no command: the screen never leans on the
- * command's absent-mode default, because that default is a fact about the path
- * and the row is drawn from the whole gate. A row offering one mode dispatches
- * that one; a row offering two dispatches whichever button was pressed.
+ * **The mode is named, always.** The sheet never leans on the command's
+ * absent-mode default, because that default is a fact about the path and the
+ * card is drawn from the whole gate; a card offering one mode sends that one, a
+ * card offering two sends whichever side of the toggle is pressed.
  */
-export function startCommandFor(
-  origin: TradeOrigin,
-  candidate: TradeCandidate,
-  trader: Unit | null,
+export function buyCommandFor(
+  ctx: TradeContext,
+  row: RouteReadingRow,
   mode: RouteMode,
-): { unitId: number; fromCityId: number; toCityId: number; mode: RouteMode } | null {
-  if (trader === null) return null;
-  if (candidate.error !== null) return null;
-  if (!candidate.modes.includes(mode)) return null;
-  return { unitId: trader.id, fromCityId: origin.cityId, toCityId: candidate.cityId, mode };
+): { fromCityId: number; toCityId: number; mode: RouteMode } | null {
+  if (!row.modes.includes(mode)) return null;
+  if (ctx.gold < ctx.reading.price) return null;
+  return { fromCityId: row.from.id, toCityId: row.to.id, mode };
 }
 
-/**
- * What a mode's button says. Plain words, the user's own: *"an option to go by
- * sea or go by land"*.
- *
- * The single-mode row keeps today's word — "Start" — because there is no choice
- * to name and a button that spelled out the only possibility would be a label
- * dressed as a decision. `MODE_LABEL` is what the two-button row prints.
- */
+/** What a mode's side of the toggle says. Plain words, the user's own. */
 export const MODE_LABEL: Readonly<Record<RouteMode, string>> = {
-  land: 'By land',
-  sea: 'By sea',
+  land: 'Land',
+  sea: 'Sea',
 };
 
-// --- the pane's two controls: sort, and filter by origin ---------------------
-
 /**
- * One offered pair, flattened out of its group.
+ * A route's ledger as the title attribute of whatever carries it.
  *
- * The **row model** the sort and the filter are functions of (user, 2026-08-28),
- * and flat on purpose: a comparator whose tie-break is "the origin's name, then
- * the destination's" needs both names in one object, and a sort written against
- * a nested shape would either be a loop per group or a comparator that cannot
- * see half of what it is breaking ties on. The grouping is put back afterwards
- * (`groupRouteRows`) from the origins' own founding order, which is why sorting
- * *within* a group and sorting the flat list are the same operation here.
+ * The platform's own tooltip rather than an `infoCard`, for the reason the
+ * pantheon wheel's houses use one: this is a *screen* and a hover card inside a
+ * screen is a second modal surface. The lines are the fold's own sentences,
+ * which already name the partner and what was counted.
  */
-export interface TradeRouteRow {
-  origin: TradeOrigin;
-  candidate: TradeCandidate;
+export function routeLedgerTitle(lines: readonly RouteYieldLine[]): string {
+  if (lines.length === 0) return 'This route pays nothing yet';
+  return lines
+    .map((line) => {
+      const parts = [
+        line.food === 0 ? '' : `${signedFigure(line.food)}${YIELD_GLYPH.food}`,
+        line.production === 0 ? '' : `${signedFigure(line.production)}${YIELD_GLYPH.production}`,
+        line.gold === 0 ? '' : `${signedFigure(line.gold)}${YIELD_GLYPH.gold}`,
+        line.science === 0 ? '' : `${signedFigure(line.science)}${YIELD_GLYPH.science}`,
+        line.culture === 0 ? '' : `${signedFigure(line.culture)}${YIELD_GLYPH.culture}`,
+      ].filter((part) => part.length > 0);
+      return `${line.source} ${parts.join(' ')}`;
+    })
+    .join('\n');
 }
 
-/** Every pair on offer, flattened in origin (founding) then candidate order. */
-export function tradeRouteRows(origins: readonly TradeOrigin[]): TradeRouteRow[] {
-  const rows: TradeRouteRow[] = [];
-  for (const origin of origins) {
-    for (const candidate of origin.candidates) rows.push({ origin, candidate });
+/**
+ * How many of each tab's things there are — the figure printed on the cut tab.
+ *
+ * One function so the four counts are taken from the one reading in one place;
+ * a tab whose number disagreed with its own pane would be worse than no number.
+ */
+export function tabCounts(
+  ctx: TradeContext,
+  groups: readonly PurposeGroup[],
+): Readonly<Record<TradeTabId, number>> {
+  let all = 0;
+  let unavailable = 0;
+  for (const row of ctx.rows) {
+    if (row.available) all += 1;
+    else unavailable += 1;
   }
-  return rows;
-}
-
-/** The four clickable columns. `total` is the three summed, not a fourth voice. */
-export type RouteSortKey = 'food' | 'production' | 'gold' | 'total';
-
-export type SortDirection = 'desc' | 'asc';
-
-/** What one column reads on one row. `total` is the sum and nothing else. */
-export function routeRowValue(row: TradeRouteRow, key: RouteSortKey): number {
-  const { food, production, gold, science, culture } = row.candidate;
-  // `total` is **every voice summed**, which is what it always was — it grew by
-  // two when a route abroad began paying science and culture (2026-09-03), and
-  // a total that left them out would rank a foreign row below a domestic one
-  // paying strictly less.
-  if (key === 'total') return food + production + gold + science + culture;
-  return key === 'food' ? food : key === 'production' ? production : gold;
-}
-
-/**
- * The rows in the order a column header asks for, or the sheet's own default.
- *
- * Pure, returns a new array, and **total** — every comparison falls through to
- * the origin's name, then the destination's, then their ids — so the order is a
- * function of the rows and never of the sort algorithm's stability. Names are
- * compared with `<`/`>` rather than `localeCompare`, which is locale-dependent
- * and would put two players' screens in different orders.
- *
- * `key: null` is the default and is the one the screen opens in: **gold, then
- * food, then production**, descending, because the gold is the empire's and a
- * player scanning a column is scanning for the biggest number that reaches the
- * treasury. `direction` is not consulted for it — the default is an order, not
- * a column.
- *
- * A **greyed row keeps its place**. There is deliberately no clause sinking a
- * refused pair to the bottom: "Nippur would be worth +4💰 and it is one turn too
- * far" is the argument for a road, and a row that fell out of the ranking would
- * make the case it is making impossible to see.
- */
-export function sortRouteRows(
-  rows: readonly TradeRouteRow[],
-  key: RouteSortKey | null,
-  direction: SortDirection,
-): TradeRouteRow[] {
-  const sign = direction === 'asc' ? -1 : 1;
-  return [...rows].sort((a, b) => {
-    if (key === null) {
-      const byGold = b.candidate.gold - a.candidate.gold;
-      if (byGold !== 0) return byGold;
-      const byFood = b.candidate.food - a.candidate.food;
-      if (byFood !== 0) return byFood;
-      const byProduction = b.candidate.production - a.candidate.production;
-      if (byProduction !== 0) return byProduction;
-    } else {
-      const byKey = routeRowValue(b, key) - routeRowValue(a, key);
-      if (byKey !== 0) return sign * byKey;
-    }
-    if (a.origin.name !== b.origin.name) return a.origin.name < b.origin.name ? -1 : 1;
-    if (a.candidate.name !== b.candidate.name) return a.candidate.name < b.candidate.name ? -1 : 1;
-    return a.origin.cityId - b.origin.cityId || a.candidate.cityId - b.candidate.cityId;
-  });
-}
-
-/** Only the rows setting out from this town, or all of them for `null`. */
-export function filterRouteRows(
-  rows: readonly TradeRouteRow[],
-  originId: number | null,
-): TradeRouteRow[] {
-  if (originId === null) return [...rows];
-  return rows.filter((row) => row.origin.cityId === originId);
-}
-
-/**
- * The rows back in their groups, in the origins' own founding order.
- *
- * The inverse of `tradeRouteRows`, and the reason the sort can be one pass over
- * a flat list: a group's rows come out in the order the sort left them, so
- * "sorting applies within the shown groups" is a consequence rather than a
- * second implementation. A town every row was filtered out of is dropped rather
- * than drawn empty.
- */
-export function groupRouteRows(
-  origins: readonly TradeOrigin[],
-  rows: readonly TradeRouteRow[],
-): { origin: TradeOrigin; rows: TradeRouteRow[] }[] {
-  const groups: { origin: TradeOrigin; rows: TradeRouteRow[] }[] = [];
-  for (const origin of origins) {
-    const own = rows.filter((row) => row.origin.cityId === origin.cityId);
-    if (own.length > 0) groups.push({ origin, rows: own });
-  }
-  return groups;
+  let recommended = 0;
+  for (const group of groups) recommended += group.rows.length;
+  return {
+    recommended,
+    running: runningRoutes(ctx.state, ctx.seat).length,
+    all,
+    unavailable,
+  };
 }
 
 // --- the screen -------------------------------------------------------------
@@ -647,18 +987,15 @@ export function groupRouteRows(
 export interface TradeScreen {
   readonly isOpen: boolean;
   /**
-   * Opens the screen, optionally naming the caravan that asked for it.
-   *
-   * The **chooser** is the trader whose sheet said "Start route" — every Start
-   * on the screen will send that piece rather than whichever one happens to be
-   * first. Opened from the bar, the chip or a city panel there is no chooser and
-   * the first idle caravan is spent; either way the row says which
-   * (`starterNote`).
+   * Opens the sheet. The argument is kept for the four doors that still name a
+   * caravan (the unit sheet's link, chiefly) and is ignored: since R1 a route is
+   * **bought**, not carried by a piece the player picked, so there is no chooser
+   * left to honour. Dropping the parameter would be a change to every caller.
    */
   open(chooserUnitId?: number | null): void;
   close(): void;
   toggle(): void;
-  /** The state changed. Redraws if the screen is up; cheap enough to call always. */
+  /** The state changed. Repaints iff the sheet is up and the reading moved. */
   refresh(): void;
   dispose(): void;
 }
@@ -671,21 +1008,14 @@ export interface TradeScreenOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   /**
-   * Starts the route. The screen never mutates state itself.
+   * Hires the route. The sheet never mutates state itself.
    *
-   * Three ids because the command is `startRoute { unitId, fromCityId,
-   * toCityId }`: the caravan may be standing anywhere, so the origin is *named*
-   * rather than read off the piece's hex. The fourth argument is the **mode**
-   * (the ruling of 2026-09-03) and the screen always names it — see
-   * `startCommandFor`.
+   * Two ids and a mode, because the command is `buyRoute { fromCityId,
+   * toCityId, mode }` (batch R1): there is no unit to name — the caravan is
+   * minted in the origin's gates by the reducer with the route already on it.
    */
-  startRoute: (
-    unitId: number,
-    fromCityId: number,
-    toCityId: number,
-    mode: RouteMode,
-  ) => void;
-  /** Flips a route's auto-resend flag. */
+  buyRoute: (fromCityId: number, toCityId: number, mode: RouteMode) => void;
+  /** Flips a route's auto-renew flag. */
   setAutoResend: (unitId: number, on: boolean) => void;
   /** Ends a route now and frees the slot. */
   cancelRoute: (unitId: number) => void;
@@ -700,370 +1030,543 @@ function button(className: string, label: string): HTMLButtonElement {
   return node;
 }
 
-/**
- * The four sortable columns, in the order they are drawn.
- *
- * `label` wears the glyph because the column is two characters wide and the
- * word will not fit; `name` is the word, for the header's `title` and for a
- * screen reader. The glyphs here are **typed**, not drawn — a header is a
- * `title` attribute's anchor and the marks are printed in the cells below it,
- * which is `figures.ts`' register exactly.
- */
-const SORT_COLUMNS: readonly { key: RouteSortKey; label: string; name: string }[] = [
-  { key: 'food', label: YIELD_GLYPH.food, name: 'food' },
-  { key: 'production', label: YIELD_GLYPH.production, name: 'production' },
-  { key: 'gold', label: YIELD_GLYPH.gold, name: 'gold' },
-  { key: 'total', label: 'Σ', name: 'the three together' },
-];
-
-/**
- * A route's ledger as the title attribute of whatever carries it.
- *
- * The platform's own tooltip rather than an `infoCard`, for the reason the
- * pantheon wheel's houses use one: this is a *screen* and a hover card inside a
- * screen is a second modal surface. The lines are `explainRouteYield`'s own
- * sentences, which already name the partner and what was counted.
- */
-export function routeLedgerTitle(lines: readonly RouteYieldLine[]): string {
-  if (lines.length === 0) return 'This route pays nothing yet';
-  return lines
-    .map((line) => {
-      const parts = [
-        line.food === 0 ? '' : `${signedFigure(line.food)}${YIELD_GLYPH.food}`,
-        line.production === 0 ? '' : `${signedFigure(line.production)}${YIELD_GLYPH.production}`,
-        line.gold === 0 ? '' : `${signedFigure(line.gold)}${YIELD_GLYPH.gold}`,
-        // The two a route only pays abroad, in `ROUTE_KEYS`' order.
-        line.science === 0 ? '' : `${signedFigure(line.science)}${YIELD_GLYPH.science}`,
-        line.culture === 0 ? '' : `${signedFigure(line.culture)}${YIELD_GLYPH.culture}`,
-      ].filter((part) => part.length > 0);
-      return `${line.source} ${parts.join(' ')}`;
-    })
-    .join('\n');
+/** A figure in mono, the yield marks drawn rather than typed. */
+function figuresNode(className: string, text: string): HTMLElement {
+  const node = element('span', className);
+  setYieldText(node, text);
+  return node;
 }
 
 export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
   const { overlay, body, closeButton, trigger } = options;
 
+  /** Which cut tab is bound into the leaf. Per-opening state, like `hidden`. */
+  let tab: TradeTabId = 'recommended';
+  /** The mode a pair is currently read in, where the player has said. Per opening. */
+  const modeChoice = new Map<string, RouteMode>();
+  let filters: RouteFilters = { ...ALL_ROUTE_FILTERS };
+  let sort: RouteSortKey = 'pay';
+  /** Which origin folds are open on the All-routes tab. */
+  const openOrigins = new Set<number>();
   /**
-   * The caravan whose sheet opened this, or `null`.
+   * **The fingerprint of what is on the paper** (the `MapView.noteStateChanged`
+   * idiom, one system over).
    *
-   * Screen state, exactly like `hidden` is: it is a fact about *this opening*
-   * and is dropped when the screen closes, so a player who reaches the screen
-   * from the bar next time is not still spending a piece they picked minutes
-   * ago. It is a *preference*, never a gate — `startingTrader` falls back to the
-   * first idle caravan the moment this one is no longer idle.
+   * The sheet's rows are rebuilt only when this string moves, which is the
+   * second half of the performance ruling: `readRoutes` is memoised on the
+   * revision, so a redraw that changed nothing used to still tear down and
+   * rebuild a hundred rows of DOM. The revision is in it because the reading
+   * is; everything else in it is a control on this sheet.
    */
-  let chooserUnitId: number | null = null;
-  /** `null` is the sheet's own gold → food → production order. See `sortRouteRows`. */
-  let sortKey: RouteSortKey | null = null;
-  let sortDirection: SortDirection = 'desc';
-  /** The town whose group is shown alone, or `null` for all of them. */
-  let originFilter: number | null = null;
+  let painted: string | null = null;
 
-  /** The left column: what is on the road, and what the empire is earning by it. */
-  function drawRunning(state: GameState, seat: number): HTMLElement {
-    const block = element('section', 'sc-column trade-running');
-    // The four empire lines once for the column: the ledger folds them into its
-    // total and the foot below prints them, which used to be two floods of the
-    // empire's territory to say one thing twice.
-    const empire = explainEmpireGold(state, seat) as readonly TradeGoldLine[];
-    const ledger = tradeLedger(state, seat, empire);
-    block.append(
-      element('p', 'eyebrow sc-eyebrow', `routes · ${ledger.chip}`),
+  function pairKey(from: number, to: number): string {
+    return `${from}:${to}`;
+  }
+
+  function chosenMode(row: RouteReadingRow): RouteMode {
+    const said = modeChoice.get(pairKey(row.from.id, row.to.id));
+    if (said !== undefined && row.modes.includes(said)) return said;
+    return bestMode(row) ?? 'land';
+  }
+
+  function fingerprint(state: GameState, seat: number): string {
+    const said = [...modeChoice.entries()].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+    return [
+      state.revision,
+      seat,
+      tab,
+      sort,
+      `${String(filters.own)}${String(filters.abroad)}${String(filters.land)}${String(filters.sea)}`,
+      [...openOrigins].sort((a, b) => a - b).join(','),
+      said.map(([key, mode]) => `${key}=${mode}`).join(','),
+    ].join('|');
+  }
+
+  // --- the masthead ---------------------------------------------------------
+
+  /**
+   * "The Caravans of Crimson", the purse, and the idle slots — **and no turn**
+   * (the user's mark of 2026-09-09: no clock line in a masthead).
+   *
+   * The two figures beside the title are the two the whole sheet is gated on:
+   * what a route costs against what is in the purse, and whether there is a
+   * slot to put one in.
+   */
+  function drawMasthead(ctx: TradeContext): HTMLElement {
+    const head = element('div', 'trade-masthead');
+    const title = element('h3', 'trade-masthead-title', 'The Caravans ');
+    title.append(element('em', '', `of ${ctx.seatName}`));
+    head.append(title);
+    const idle = Math.max(0, ctx.reading.slots - ctx.reading.used);
+    const purse = element('p', 'trade-purse');
+    purse.append(element('b', '', figure(ctx.gold)));
+    purse.append(document.createTextNode(' gold in the purse · '));
+    purse.append(element('b', '', figure(idle)));
+    purse.append(document.createTextNode(` of ${figure(ctx.reading.slots)} slots idle`));
+    head.append(purse);
+    return head;
+  }
+
+  /**
+   * The ledger's cut tabs: parchment steps with an ink edge, a **gilt inner
+   * edge** on each, a hedera that turns vermilion on the open one, and the ink
+   * rule alone beneath (the user's final mark: no gilt hairline under the rule
+   * — the gilt is the trade sheet's one accent and it lives on the tabs).
+   */
+  function drawIndex(counts: Readonly<Record<TradeTabId, number>>): HTMLElement {
+    const index = element('div', 'trade-index');
+    index.setAttribute('role', 'tablist');
+    index.setAttribute('aria-label', 'The ledger’s index');
+    for (const entry of TRADE_TABS) {
+      const node = button('trade-tab', entry.label);
+      node.setAttribute('role', 'tab');
+      node.setAttribute('aria-selected', String(tab === entry.id));
+      node.dataset.pane = entry.id;
+      node.append(element('span', 'trade-tab-n', figure(counts[entry.id])));
+      node.addEventListener('click', () => {
+        tab = entry.id;
+        draw();
+      });
+      index.append(node);
+    }
+    return index;
+  }
+
+  // --- one card -------------------------------------------------------------
+
+  /**
+   * The Land | Sea control, or a single chip where one mode is all there is.
+   *
+   * The user's final mark of record: a mode is **not prose** anywhere on this
+   * sheet. Pressing a side re-reads the card — the yields and the facts are the
+   * fold for the chosen mode — which is done by writing the choice down and
+   * repainting, so there is one place that decides what a card says and it is
+   * `routeCard`.
+   */
+  function drawModeControl(row: RouteReadingRow, mode: RouteMode): HTMLElement {
+    if (row.modes.length === 1) {
+      const only = row.modes[0]!;
+      const chip = element('span', `trade-chip is-${only}`, MODE_LABEL[only]);
+      return chip;
+    }
+    const group = element('span', 'trade-mode');
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', 'by land or by sea');
+    for (const one of ROUTE_MODES) {
+      const node = button('', MODE_LABEL[one]);
+      const offered = row.modes.includes(one);
+      node.setAttribute('aria-pressed', String(offered && one === mode));
+      node.disabled = !offered;
+      if (offered) {
+        node.addEventListener('click', () => {
+          modeChoice.set(pairKey(row.from.id, row.to.id), one);
+          draw();
+        });
+      }
+      group.append(node);
+    }
+    return group;
+  }
+
+  /** Send, and the price under it. The one write this sheet makes. */
+  function drawSend(ctx: TradeContext, row: RouteReadingRow, mode: RouteMode): HTMLElement {
+    const foot = element('div', 'trade-card-foot');
+    const command = buyCommandFor(ctx, row, mode);
+    const send = button('trade-send', 'Send');
+    if (command === null) {
+      send.disabled = true;
+      send.title = ctx.gold < ctx.reading.price
+        ? `The hire costs ${figure(ctx.reading.price)} gold`
+        : 'This route cannot be sent by that way';
+    } else {
+      send.title = `Hire a caravan from ${cityDisplayName(ctx.state, row.from)} for ${figure(ctx.reading.price)} gold`;
+      send.addEventListener('click', () => {
+        options.buyRoute(command.fromCityId, command.toCityId, command.mode);
+        // The decision is made and what a player wants next is to watch the cart
+        // leave — and the caravan is minted in the origin's gates, so that is
+        // where the camera goes.
+        close();
+        options.panTo({ col: row.from.col, row: row.from.row });
+      });
+    }
+    foot.append(send);
+    const price = element('span', 'trade-price', figure(ctx.reading.price));
+    price.append(element('small', '', 'gold'));
+    foot.append(price);
+    return foot;
+  }
+
+  /** The pair, the far town in its own empire's ink when it is not ours. */
+  function drawPair(card: RouteCard): HTMLElement {
+    const pair = element('div', 'trade-card-pair');
+    pair.append(document.createTextNode(card.fromName));
+    pair.append(element('span', 'trade-arrow', '→'));
+    pair.append(
+      card.rivalName === null
+        ? document.createTextNode(card.toName)
+        : element('span', 'trade-rival', card.toName),
     );
+    return pair;
+  }
 
-    // The column's two parts, exactly as the Statecraft sheet's: the routes
-    // scroll and the foot does not. A ledger that scrolled away with the rows
-    // above it would be a total a player has to go looking for.
-    const scroller = element('div', 'sc-column-body');
-    block.append(scroller);
+  function drawFacts(facts: readonly TradeFact[]): HTMLElement {
+    const line = element('div', 'trade-facts');
+    for (const fact of facts) {
+      const item = element('span', 'trade-fact');
+      item.append(element('span', 'trade-fact-k', fact.key));
+      item.append(document.createTextNode(fact.text));
+      line.append(item);
+    }
+    return line;
+  }
 
-    const rows = runningRoutes(state, seat);
-    if (rows.length === 0) {
-      scroller.append(
+  function drawCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMode, best: boolean): HTMLElement {
+    const card = routeCard(ctx, row, mode);
+    const node = element('article', best ? 'trade-card is-best' : 'trade-card');
+    node.dataset.pair = pairKey(row.from.id, row.to.id);
+    node.title = routeLedgerTitle(card.lines);
+    node.append(drawPair(card));
+
+    const chips = element('div', 'trade-card-chips');
+    chips.append(drawModeControl(row, mode));
+    if (card.rivalName !== null) {
+      chips.append(element('span', 'trade-chip is-abroad', card.rivalName));
+    } else {
+      chips.append(element('span', 'trade-chip', 'own'));
+    }
+    chips.append(figuresNode('trade-yields', card.figures));
+    node.append(chips);
+
+    node.append(drawFacts(card.facts));
+    node.append(drawSend(ctx, row, mode));
+    return node;
+  }
+
+  // --- the four panes -------------------------------------------------------
+
+  function drawRecommended(ctx: TradeContext, groups: readonly PurposeGroup[]): HTMLElement {
+    const pane = element('section', 'trade-pane');
+    if (groups.length === 0) {
+      pane.append(
         element(
           'p',
           'sc-none',
-          'No caravan is on the road. A market opens a route; a trader carries it.',
+          'No caravan can set out today. The other tabs say what is running and why the rest are shut.',
         ),
       );
+      return pane;
     }
-    for (const route of rows) {
-      const card = element('article', route.turnsLeft === 0 ? 'trade-row is-lapsed' : 'trade-row');
-      card.title = routeLedgerTitle(route.lines);
-      const open = button('trade-row-open', '');
-      open.append(element('span', 'trade-row-pair', `${route.fromName} ⇄ ${route.toName}`));
-      const figures = element('span', 'trade-row-figures');
-      setYieldText(figures, route.figures);
-      open.append(figures);
-      open.append(
+    for (const group of groups) {
+      const block = element('div', 'trade-purpose');
+      const head = element('header', 'trade-purpose-head');
+      const title = element('h4', 'trade-purpose-title', group.title);
+      title.append(element('small', '', group.blurb));
+      head.append(title);
+      block.append(head);
+      const grid = element('div', 'trade-cards');
+      group.rows.forEach((entry, index) => {
+        grid.append(drawCard(ctx, entry.row, chosenModeIn(entry), index === 0));
+      });
+      block.append(grid);
+      pane.append(block);
+    }
+    return pane;
+  }
+
+  /**
+   * A recommended card's mode: the player's own choice if they have made one for
+   * this pair, otherwise the mode the group picked it *for*.
+   *
+   * The group's own mode is the default rather than `bestMode` because a group
+   * makes an argument about a mode — "Paves a road" is about a land cart — and
+   * opening its card on the sea would be the heading disagreeing with the card
+   * under it.
+   */
+  function chosenModeIn(entry: { row: RouteReadingRow; mode: RouteMode }): RouteMode {
+    const said = modeChoice.get(pairKey(entry.row.from.id, entry.row.to.id));
+    if (said !== undefined && entry.row.modes.includes(said)) return said;
+    return entry.mode;
+  }
+
+  function drawRunning(ctx: TradeContext): HTMLElement {
+    const pane = element('section', 'trade-pane');
+    const rows = runningRoutes(ctx.state, ctx.seat);
+    if (rows.length === 0) {
+      pane.append(
         element(
-          'span',
-          'trade-row-clock',
-          route.turnsLeft === 0
-            ? 'lapsed · walking home'
-            : `${figure(route.turnsLeft)} turns${route.autoResend ? ' · ↻ auto' : ''}`,
+          'p',
+          'sc-none',
+          'No caravan is on the road. A market opens a route; the purse hires one.',
         ),
+      );
+      return pane;
+    }
+    const wrap = element('div', 'trade-wrap');
+    const table = element('table', 'trade-table');
+    const head = element('tr');
+    for (const label of ['Route', 'Mode', 'Road', 'Pays a turn', 'Turns left', '']) {
+      head.append(element('th', label === 'Pays a turn' || label === 'Turns left' ? 'is-num' : undefined, label));
+    }
+    const thead = element('thead');
+    thead.append(head);
+    table.append(thead);
+    const bodyRows = element('tbody');
+    for (const route of rows) {
+      const tr = element('tr', route.turnsLeft === 0 ? 'is-lapsed' : '');
+      tr.title = routeLedgerTitle(route.lines);
+      const name = element('td', '');
+      const open = button('trade-linkish', '');
+      open.append(document.createTextNode(`${route.fromName} → `));
+      open.append(
+        route.abroad
+          ? element('span', 'trade-rival', route.toName)
+          : document.createTextNode(route.toName),
       );
       open.title = 'Show me this caravan';
       open.addEventListener('click', () => {
         options.panTo({ col: route.col, row: route.row });
         close();
       });
-      card.append(open);
+      name.append(open);
+      tr.append(name);
+      // A running route's mode is settled: one chip, not a control offering a
+      // choice that cannot be made.
+      const mode = element('td', '');
+      mode.append(element('span', `trade-chip is-${route.mode}`, MODE_LABEL[route.mode]));
+      tr.append(mode);
+      tr.append(element('td', 'is-num', route.mode === 'sea' ? '—' : 'laying'));
+      const pays = element('td', 'is-num');
+      setYieldText(pays, route.figures);
+      tr.append(pays);
+      tr.append(element('td', 'is-num', figure(route.turnsLeft)));
 
-      const verbs = element('div', 'trade-row-verbs');
-      const auto = button(
-        route.autoResend ? 'btn btn-second btn-tiny' : 'btn btn-quiet btn-tiny',
-        route.autoResend ? 'Auto-resend ✓' : 'Auto-resend',
-      );
+      const verbs = element('td', '');
+      const auto = button(route.autoResend ? 'trade-send is-on' : 'trade-send is-quiet', '↻');
       auto.title = route.autoResend
         ? 'The caravan starts a fresh route when this one lapses'
         : 'Start a fresh route automatically when this one lapses';
+      auto.setAttribute('aria-pressed', String(route.autoResend));
       auto.addEventListener('click', () => {
         options.setAutoResend(route.unitId, !route.autoResend);
         draw();
       });
-      const cancel = button('btn btn-quiet btn-tiny', 'Cancel');
+      verbs.append(auto);
+      // Renew is a fresh **hire** of the same pair, which is only a thing when
+      // the ledger has a slot for it — the running one's slot comes free on the
+      // Cancel beside it, or when the route lapses and the cart gets home.
+      const again = ctx.rows.find(
+        (row) => row.from.id === route.fromCityId && row.to.id === route.toCityId,
+      );
+      const mode2 = again === undefined ? null : chosenMode(again);
+      const renewable =
+        again !== undefined && mode2 !== null && buyCommandFor(ctx, again, mode2) !== null;
+      const renew = button('trade-send', 'Renew');
+      renew.disabled = !renewable;
+      renew.title = renewable
+        ? `Hire a second caravan on this pair for ${figure(ctx.reading.price)} gold`
+        : 'There is no free slot for a second caravan on this pair';
+      if (renewable && again !== undefined && mode2 !== null) {
+        renew.addEventListener('click', () => {
+          options.buyRoute(again.from.id, again.to.id, mode2);
+          close();
+          options.panTo({ col: again.from.col, row: again.from.row });
+        });
+      }
+      verbs.append(renew);
+      const cancel = button('trade-send is-quiet', 'Cancel');
       cancel.title = 'End the route now and free the slot';
       cancel.addEventListener('click', () => {
         options.cancelRoute(route.unitId);
         draw();
       });
-      verbs.append(auto, cancel);
-      card.append(verbs);
-      scroller.append(card);
+      verbs.append(cancel);
+      tr.append(verbs);
+      bodyRows.append(tr);
     }
-
-    // The foot: the capacity, then the four empire-scale lines and the fold. The
-    // whole of `tradeLedger` under a double rule, which is what makes the chip's
-    // hover and this column the same arithmetic.
-    const foot = element('div', 'trade-foot');
-    foot.append(
-      element(
-        'p',
-        'hint',
-        `${figure(ledger.used)} of ${figure(ledger.slots)} route${ledger.slots === 1 ? '' : 's'} running`,
-      ),
-    );
-    const list = element('ul', 'meter-lines ledger');
-    for (const line of empire) {
-      const item = element('li', 'meter-line');
-      item.append(element('span', 'meter-line-source', line.source));
-      item.append(element('span', 'meter-line-value', signedFigure(line.gold)));
-      list.append(item);
-    }
-    if (list.childElementCount > 0) foot.append(list);
-    const total = element('div', 'meter-total ledger-total');
-    total.append(element('span', 'meter-line-source', 'Treasury, per turn'));
-    const value = element('span', 'meter-line-value');
-    setYieldText(value, `${signedFigure(ledger.total)}${YIELD_GLYPH.gold}`);
-    total.append(value);
-    foot.append(total);
-    block.append(foot);
-    return block;
+    table.append(bodyRows);
+    wrap.append(table);
+    pane.append(wrap);
+    return pane;
   }
 
-  /**
-   * The chips that pick which town's routes are shown — "All" and one per town,
-   * in founding order.
-   *
-   * Chips rather than a `<select>`, and the on/off dress is the one this very
-   * screen already uses for Auto-resend (`btn-second` when it is the answer,
-   * `btn-quiet` when it is not), so a player meets one toggle idiom on this
-   * sheet rather than two. `aria-pressed` because they are a set of toggles and
-   * exactly one is on.
-   */
-  function drawOriginFilter(origins: readonly TradeOrigin[]): HTMLElement {
-    const bar = element('div', 'trade-filter');
-    bar.setAttribute('role', 'group');
-    bar.setAttribute('aria-label', 'Show routes from');
-    const chip = (label: string, id: number | null, title: string): void => {
-      const on = originFilter === id;
-      const node = button(on ? 'btn btn-second btn-tiny' : 'btn btn-quiet btn-tiny', label);
-      node.title = title;
+  function drawFilters(): HTMLElement {
+    const bar = element('div', 'trade-filters');
+    bar.append(element('span', '', 'Show'));
+    const chip = (label: string, on: boolean, flip: () => void): void => {
+      const node = button(on ? 'trade-chip is-on' : 'trade-chip', label);
       node.setAttribute('aria-pressed', String(on));
       node.addEventListener('click', () => {
-        originFilter = id;
+        flip();
         draw();
       });
       bar.append(node);
     };
-    chip('All', null, 'Every route on offer, grouped by the town it sets out from');
-    for (const origin of origins) chip(origin.name, origin.cityId, `Only routes from ${origin.name}`);
+    chip('own', filters.own, () => {
+      filters = { ...filters, own: !filters.own };
+    });
+    chip('abroad', filters.abroad, () => {
+      filters = { ...filters, abroad: !filters.abroad };
+    });
+    chip('land', filters.land, () => {
+      filters = { ...filters, land: !filters.land };
+    });
+    chip('sea', filters.sea, () => {
+      filters = { ...filters, sea: !filters.sea };
+    });
+    bar.append(element('span', '', '· sort by'));
+    for (const entry of ROUTE_SORTS) {
+      const node = button(sort === entry.key ? 'trade-chip is-on' : 'trade-chip', entry.label);
+      node.setAttribute('aria-pressed', String(sort === entry.key));
+      node.addEventListener('click', () => {
+        sort = entry.key;
+        draw();
+      });
+      bar.append(node);
+    }
     return bar;
   }
 
-  /**
-   * The four clickable column headers.
-   *
-   * One click sorts by that column descending, a second flips it, and a third
-   * column takes over descending — the ordinary table contract, and the arrow is
-   * drawn on the active header alone so "which column am I reading" never has to
-   * be deduced from the numbers. Pressing the *active* column's own header a
-   * third time does **not** return to the default: the default is the order the
-   * screen opens in, and a control that silently cycled through three states
-   * would be one a player cannot aim.
-   */
-  function drawColumnHead(): HTMLElement {
-    const head = element('div', 'trade-head');
-    head.append(element('span', 'trade-head-name', 'Destination'));
-    const arrow = sortDirection === 'desc' ? ' ▾' : ' ▴';
-    for (const column of SORT_COLUMNS) {
-      const active = sortKey === column.key;
-      const node = button(
-        active ? 'trade-head-col is-active' : 'trade-head-col',
-        `${column.label}${active ? arrow : ''}`,
-      );
-      node.title = active
-        ? `Sorted by ${column.name}, ${sortDirection === 'desc' ? 'largest' : 'smallest'} first`
-        : `Sort by ${column.name}`;
-      node.setAttribute('aria-pressed', String(active));
-      node.addEventListener('click', () => {
-        if (sortKey === column.key) sortDirection = sortDirection === 'desc' ? 'asc' : 'desc';
-        else {
-          sortKey = column.key;
-          sortDirection = 'desc';
-        }
-        draw();
-      });
-      head.append(node);
-    }
-    head.append(element('span', 'trade-head-verb', ''));
-    return head;
-  }
-
-  /** One numeric cell, the mark drawn, a zero kept quiet rather than printed. */
-  function figureCell(value: number, key: 'food' | 'production' | 'gold' | null): HTMLElement {
-    const cell = element('span', 'trade-cell');
-    if (value === 0) {
-      cell.textContent = '·';
-      cell.classList.add('is-nil');
-      return cell;
-    }
-    if (key === null) cell.textContent = signedFigure(value);
-    else setYieldText(cell, `${signedFigure(value)}${YIELD_GLYPH[key]}`);
-    return cell;
-  }
-
-  /** The right pane: every road not yet taken, grouped by the town it starts in. */
-  function drawAvailable(state: GameState, seat: number): HTMLElement {
-    const pane = element('div', 'sc-pane trade-available');
-    const origins = tradeOrigins(state, seat);
-    if (origins.length === 0) {
-      pane.append(element('p', 'sc-none', 'You have no cities to trade between.'));
-      return pane;
-    }
-    // The pane's one caravan sentence, said once at the top rather than on every
-    // town: under the 2026-08-28 ruling the only fact left about *where* a
-    // caravan is standing is whether the empire has one at all.
-    const trader = startingTrader(state, seat, chooserUnitId);
-    const missing = noTraderNote(state, seat);
-    if (missing !== null) pane.append(element('p', 'hint', missing));
-    const starter = starterNote(state, trader);
-
-    // Filter, then sort, then group back: three pure passes over one flat row
-    // model, so "sorting applies within the shown groups" is a consequence of
-    // the grouping being last rather than a rule written twice.
-    pane.append(drawOriginFilter(origins));
-    const rows = sortRouteRows(
-      filterRouteRows(tradeRouteRows(origins), originFilter),
-      sortKey,
-      sortDirection,
-    );
-    pane.append(drawColumnHead());
-    const groups = groupRouteRows(origins, rows);
+  function drawAll(ctx: TradeContext): HTMLElement {
+    const pane = element('section', 'trade-pane');
+    pane.append(drawFilters());
+    const groups = originGroups(ctx, filters, sort, chosenMode);
     if (groups.length === 0) {
-      pane.append(element('p', 'sc-none', 'There is nowhere to send from here yet.'));
+      pane.append(element('p', 'sc-none', 'No pair survives those chips.'));
       return pane;
     }
-    // A single filtered origin needs no group heading — the chip above already
-    // says which town, and a header repeating it is a line the eye has to skip.
-    const flat = originFilter !== null;
+    const idle = Math.max(0, ctx.reading.slots - ctx.reading.used);
     for (const group of groups) {
-      const origin = group.origin;
-      const block = element('section', 'trade-origin');
-      if (!flat) block.append(element('p', 'eyebrow sc-eyebrow', `from ${origin.name}`));
-      // A row's figures are what *that town* — the candidate, the route's
-      // destination — would receive, read off `origin.name`'s own buildings
-      // (2026-08-27's reversal). Said once per origin group rather than per row,
-      // which is where every row's figures in the group come from.
-      // A domestic row's figures are what *that town* would receive, read off
-      // this origin's buildings (2026-08-27's reversal); a foreign row's are
-      // what **this empire** would take for the crossing, off no buildings at
-      // all (2026-09-03). One sentence for both, because a group holds both.
-      block.append(
+      const details = element('details', 'trade-origin') as HTMLDetailsElement;
+      details.open = openOrigins.has(group.city.id);
+      details.addEventListener('toggle', () => {
+        if (details.open) openOrigins.add(group.city.id);
+        else openOrigins.delete(group.city.id);
+      });
+      const summary = element('summary', '');
+      summary.append(element('span', '', group.name));
+      summary.append(
         element(
-          'p',
-          'hint',
-          `What a route pays you, off ${origin.name}'s buildings at home — a flat trade abroad`,
+          'span',
+          'trade-origin-count',
+          `${figure(group.rows.length)} route${group.rows.length === 1 ? '' : 's'}`,
         ),
       );
-      const list = element('ul', 'trade-candidates');
-      for (const row of group.rows) {
-        const candidate = row.candidate;
-        const item = element('li', 'trade-candidate');
-        if (candidate.running) item.classList.add('is-running');
-        if (candidate.error !== null) item.classList.add('is-blocked');
-        item.title = routeLedgerTitle(candidate.lines);
-        // The town, then whose it is when it is not yours — the row's own
-        // sentence rather than a badge, and drawn inside the name cell so the
-        // figure columns stay where the header put them.
-        const named = element('span', 'trade-candidate-name', candidate.name);
-        if (candidate.ownerName !== null) {
-          named.append(element('span', 'hint', ` · ${candidate.ownerName}`));
-        }
-        item.append(named);
-        item.append(figureCell(candidate.food, 'food'));
-        item.append(figureCell(candidate.production, 'production'));
-        item.append(figureCell(candidate.gold, 'gold'));
-        item.append(figureCell(routeRowValue(row, 'total'), null));
-        // One button when there is one way to go, two when the ruling's choice
-        // is real (2026-09-03). The label is "Start" in the first case — a
-        // single button naming the only possibility would dress a fact as a
-        // decision — and the two plain words in the second.
-        const offered = candidate.modes;
-        const buttons: HTMLButtonElement[] = [];
-        for (const mode of offered) {
-          const command = startCommandFor(origin, candidate, trader, mode);
-          if (command === null) continue;
-          const label = offered.length > 1 ? MODE_LABEL[mode] : 'Start';
-          const start = button('btn btn-primary btn-tiny', label);
-          // Which caravan is spent, on the button rather than in a rule the
-          // player has to know: the piece is teleported to the origin, so the
-          // only surprising half is *which* one leaves the map where it was.
-          if (starter !== null) start.title = starter;
-          // Starting closes the screen and takes the camera to the town the
-          // caravan is setting out from (user-approved): the decision has been
-          // made, and what a player wants next is to watch it leave — and after
-          // the teleport that town is where the piece now is.
-          start.addEventListener('click', () => {
-            options.startRoute(
-              command.unitId,
-              command.fromCityId,
-              command.toCityId,
-              command.mode,
-            );
-            close();
-            options.panTo({ col: origin.col, row: origin.row });
-          });
-          buttons.push(start);
-        }
-        if (buttons.length > 0) {
-          for (const start of buttons) item.append(start);
-        } else if (candidate.error !== null) {
-          // `wanting`: the refusal names what this route has not got — a road, a
-          // partner in range, a slot — and the user's ruling of 2026-09-08 is
-          // that every "you are missing X" on every surface is said in the one
-          // vermilion italic. "already running" one line down is a *state* and
-          // keeps the row's quiet ink, which is the whole of the rule.
-          item.append(element('span', 'trade-candidate-why wanting', candidate.error));
-        } else if (candidate.running) {
-          item.append(element('span', 'trade-candidate-why', 'already running'));
+      // The slot tally is the **empire's** ledger and not this town's — routes
+      // are counted across the whole empire (`routeSlots`) — so the same figure
+      // rides every fold, which is the honest thing rather than four different
+      // numbers for one count.
+      summary.append(
+        element(
+          'span',
+          idle === 0 ? 'trade-origin-slots is-full' : 'trade-origin-slots',
+          `${figure(idle)} of ${figure(ctx.reading.slots)} slots idle`,
+        ),
+      );
+      details.append(summary);
+
+      const wrap = element('div', 'trade-wrap');
+      const table = element('table', 'trade-table');
+      const head = element('tr');
+      for (const label of ['To', 'Mode', 'Pays a turn', 'Road', 'Price', '']) {
+        head.append(
+          element(
+            'th',
+            label === 'Pays a turn' || label === 'Road' || label === 'Price' ? 'is-num' : undefined,
+            label,
+          ),
+        );
+      }
+      const thead = element('thead');
+      thead.append(head);
+      table.append(thead);
+      const rows = element('tbody');
+      for (const entry of group.rows) {
+        const card = routeCard(ctx, entry.row, entry.mode);
+        const tr = element('tr', '');
+        tr.title = routeLedgerTitle(card.lines);
+        const to = element('td', '');
+        to.append(
+          card.rivalName === null
+            ? document.createTextNode(card.toName)
+            : element('span', 'trade-rival', card.toName),
+        );
+        tr.append(to);
+        const mode = element('td', '');
+        mode.append(drawModeControl(entry.row, entry.mode));
+        tr.append(mode);
+        const pays = element('td', 'is-num');
+        setYieldText(pays, card.figures);
+        tr.append(pays);
+        // The road is its own column (the user's final mark), and it is a
+        // figure: what a land cart would still have to pave, or nothing at all
+        // for a sea crossing.
+        tr.append(
+          element(
+            'td',
+            'is-num',
+            entry.mode === 'sea'
+              ? '—'
+              : entry.row.roadHexes === null || entry.row.roadHexes === 0
+                ? 'laid'
+                : `${figure(entry.row.roadHexes)} hexes`,
+          ),
+        );
+        tr.append(element('td', 'is-num', figure(ctx.reading.price)));
+        const verb = element('td', '');
+        const command = buyCommandFor(ctx, entry.row, entry.mode);
+        const send = button('trade-send', 'Send');
+        if (command === null) {
+          send.disabled = true;
+          send.title = `The hire costs ${figure(ctx.reading.price)} gold`;
         } else {
-          // No caravan idle anywhere: the pane's own line above says what to do
-          // about that, so the row keeps its figures and says nothing.
-          item.append(element('span', 'trade-candidate-why', ''));
+          send.addEventListener('click', () => {
+            options.buyRoute(command.fromCityId, command.toCityId, command.mode);
+            close();
+            options.panTo({ col: entry.row.from.col, row: entry.row.from.row });
+          });
+        }
+        verb.append(send);
+        tr.append(verb);
+        rows.append(tr);
+      }
+      table.append(rows);
+      wrap.append(table);
+      details.append(wrap);
+      pane.append(details);
+    }
+    return pane;
+  }
+
+  function drawUnavailable(ctx: TradeContext): HTMLElement {
+    const pane = element('section', 'trade-pane');
+    const groups = refusalGroups(ctx);
+    if (groups.length === 0) {
+      pane.append(element('p', 'sc-none', 'Every pair is open to you.'));
+      return pane;
+    }
+    for (const group of groups) {
+      const block = element('div', 'trade-reason');
+      block.dataset.reason = group.reason;
+      const title = element('h4', 'trade-reason-title', group.title);
+      if (group.note !== null) title.append(element('small', '', group.note));
+      block.append(title);
+      const list = element('ul', 'trade-reason-list');
+      for (const entry of group.rows) {
+        const item = element('li', '');
+        const pair = element('b', '');
+        pair.append(
+          document.createTextNode(
+            `${cityDisplayName(ctx.state, entry.row.from)} → ${cityDisplayName(ctx.state, entry.row.to)}`,
+          ),
+        );
+        item.append(pair);
+        // The gate's own sentence, and it wears the wanting voice (the ruling of
+        // 2026-09-08): every "you are missing X" on every surface is said in the
+        // one vermilion italic. A group that already says it in the heading does
+        // not say it again on forty rows — see `RefusalGroup.note`.
+        if (group.note === null) {
+          item.append(element('span', 'trade-reason-why wanting', entry.sentence));
         }
         list.append(item);
       }
@@ -1073,37 +1576,46 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     return pane;
   }
 
+  // --- the paint ------------------------------------------------------------
+
   function draw(): void {
-    // The shell never paints a sheet that is down (`refresh` guards, `open`
-    // shows first), and the four gestures below only exist while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
+    const mark = fingerprint(state, seat);
+    // **Rows are rebuilt only when the reading moved** — the performance half of
+    // the ruling. Everything the sheet draws is a function of this string, so a
+    // repaint that would produce the same DOM is not taken.
+    if (mark === painted) return;
+    painted = mark;
+
+    const ctx = tradeContext(state, seat);
+    const groups = recommendedGroups(ctx);
+    const counts = tabCounts(ctx, groups);
+
     body.replaceChildren();
-    // The split is an element *inside* the sheet's body rather than the body
-    // itself — the Statecraft and Religion sheets' own shape, and not a
-    // stylistic echo: `.statecraft-body` is a column, and a `.sc-split` worn by
-    // the body would inherit that and stack the two panes.
-    const split = element('div', 'sc-split');
-    split.append(drawRunning(state, seat));
-    split.append(drawAvailable(state, seat));
-    body.append(split);
+    const sheet = element('div', 'trade-book');
+    sheet.append(drawMasthead(ctx));
+    sheet.append(drawIndex(counts));
+    sheet.append(
+      tab === 'recommended'
+        ? drawRecommended(ctx, groups)
+        : tab === 'running'
+          ? drawRunning(ctx)
+          : tab === 'all'
+            ? drawAll(ctx)
+            : drawUnavailable(ctx),
+    );
+    body.append(sheet);
   }
 
   /**
-   * The frame (`modalShell.ts`) — `hidden` is the whole of the screen state, the
-   * ×, Escape and a press on the ground all arrive at one `close`, and the
-   * disposer is the game's.
+   * The frame (`modalShell.ts`) — the tenth sheet on it.
    *
-   * What this sheet hangs on it is the **facts about one opening**: the chooser
-   * (see `chooserUnitId`), the sort and the filter are a picture of a
-   * conversation, not of the empire, so a sheet reached from the bar tomorrow
-   * starts from the sheet's own defaults rather than from where somebody left
-   * off.
-   *
-   * `open` takes a chooser and the shell's `open` takes nothing, so the argument
-   * is written down first and the shell shows the sheet — and because the shell
-   * repaints a sheet that is already up, "open it on *this* caravan" works
-   * whether or not it was open.
+   * What this one hangs on the shell is the **facts about one opening**: the
+   * tab, the mode a pair is being read in, the chips and the folds are a picture
+   * of a conversation and not of the empire, so a sheet reached from the bar
+   * tomorrow starts from the sheet's own defaults. `onShow` forgets the
+   * fingerprint as well, so a genuine opening always paints fresh paper.
    */
   const shell = createModalShell({
     overlay,
@@ -1111,21 +1623,29 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     closeButton,
     trigger,
     onOpen: () => options.onOpen?.(),
+    onShow: () => {
+      painted = null;
+    },
     draw,
     onClose: () => {
-      chooserUnitId = null;
-      sortKey = null;
-      sortDirection = 'desc';
-      originFilter = null;
+      tab = 'recommended';
+      modeChoice.clear();
+      filters = { ...ALL_ROUTE_FILTERS };
+      sort = 'pay';
+      openOrigins.clear();
+      painted = null;
     },
   });
+
+  function close(): void {
+    shell.close();
+  }
 
   return {
     get isOpen(): boolean {
       return shell.isOpen;
     },
-    open(chooser: number | null = null): void {
-      chooserUnitId = chooser;
+    open(): void {
       shell.open();
     },
     close: shell.close,

@@ -101,6 +101,7 @@ import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { ABILITY_TECH, eraNumeral, highestAge, techDef } from '../sim/techData';
 import { hasAbility } from '../sim/tech';
 import { currentWorldAge, worldAgeCountdown } from '../sim/worldClock';
+import { tradeMarkDataUri } from '../art/dockMarks';
 import { createInfoCard } from './infoCard';
 import { foldCityHappiness, meterGroups } from './meterBreakdown';
 import { meterMarkNode, renownMarkNode } from './meterMark';
@@ -677,8 +678,16 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    */
   const routesItem = element('span', 'civ-yield is-routes civ-yield-routes');
   {
-    const icon = element('span', 'civ-yield-icon', '⇄');
+    // **The cart, drawn** (batch R2, the user's ruling of 2026-09-09). The chip
+    // wore a typed `⇄` — a pair of arrows meaning "exchange in the abstract" —
+    // where every other mark in this strip is path data traced into a mask, and
+    // the sheet behind it now has an icon of its own on the dock. One drawing,
+    // `TRADE_MARK` in `src/art/dockMarks.ts`, worn in both places: the mask takes
+    // `currentColor`, so the same cart sits in ink on the dock's parchment and in
+    // the strip's own ink here.
+    const icon = element('span', 'civ-yield-icon civ-yield-mark');
     icon.setAttribute('aria-hidden', 'true');
+    icon.style.setProperty('--civ-mark', `url("${tradeMarkDataUri()}")`);
     routesItem.append(icon);
     routesItem.tabIndex = 0;
   }
@@ -687,7 +696,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
   if (onOpenTrade) {
     routesItem.classList.add('civ-yield-clickable');
     routesItem.setAttribute('role', 'button');
-    routesItem.title = 'Open Trade';
+    routesItem.title = 'Open Trade (E)';
     routesItem.setAttribute('aria-label', 'trade routes — open Trade');
     routesItem.addEventListener('click', () => onOpenTrade());
     routesItem.addEventListener('keydown', (event) => {
