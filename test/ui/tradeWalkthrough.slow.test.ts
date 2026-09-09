@@ -23,13 +23,12 @@ import { describe, expect, it } from 'vitest';
 
 import { foundCityAt } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
-import { purchaseError } from '../../src/sim/purchase';
+import { purchaseError, routePrice } from '../../src/sim/purchase';
 import { type GameState, unitById, bumpRevision } from '../../src/sim/state';
 import { explainEmpireGold } from '../../src/sim/trade';
 import { runEndOfTurn } from '../../src/sim/turn';
 import { readEmpire } from '../../src/sim/readings';
 import { cityRouteRows, routeReading, routeSlotsLine } from '../../src/ui/tradeLines';
-import { startCommandFor, startingTrader, tradeOrigins } from '../../src/ui/tradeScreen';
 import { at, bareState } from '../sim/improvementHelpers';
 
 function resolve(state: GameState): void {
@@ -51,58 +50,45 @@ describe('a caravan, from the treasury to the ledger', () => {
     partner.population = 6;
     state.players[0]!.gold = 900;
 
-    // 1. Bought outright, out of the treasury, like a worker.
-    expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'gold')).toBeNull();
+    // 1. Hired on the trade sheet (R1, 2026-09-09): a Trader is not bought
+    //    like a worker any more — the purchase book refuses it in the reducer's
+    //    words — and the route is bought outright with gold, which spawns the
+    //    caravan at the origin with the route already on it.
+    expect(purchaseError(state, 0, home.id, { kind: 'unit', id: 'trader' }, 'gold')).toMatch(
+      /hired on the trade sheet/,
+    );
+    const price = routePrice(state, 0);
+    expect(price).toBeGreaterThan(0);
+    const goldBefore = state.players[0]!.gold;
     const bought = applyCommand(state, {
-      type: 'purchaseItem',
+      type: 'buyRoute',
       playerId: 0,
-      cityId: home.id,
-      item: { kind: 'unit', id: 'trader' },
-      currency: 'gold',
-    });
-    expect(bought.ok).toBe(true);
-    const trader = state.units.find((unit) => unit.type === 'trader')!;
-    expect(routeSlotsLine(state, 0)).toBe('0 of 1 route');
-
-    // 2. The caravan walks out of town, which under the ruling changes nothing:
-    //    where it is standing is no longer part of any gate.
-    trader.col = 6;
-    trader.row = 4;
-
-    // 3. The Trade screen's row for the pair, priced and startable, and the
-    //    caravan it would spend.
-    const origin = tradeOrigins(state, 0).find((entry) => entry.cityId === home.id)!;
-    const row = origin.candidates.find((entry) => entry.cityId === partner.id)!;
-    expect(row.error).toBeNull();
-    expect(row.figures).not.toBe('nothing yet');
-    const chosen = startingTrader(state, 0, trader.id);
-    expect(chosen?.id).toBe(trader.id);
-    const command = startCommandFor(origin, row, chosen, 'land')!;
-    expect(command).toEqual({
-      unitId: trader.id,
       fromCityId: home.id,
       toCityId: partner.id,
       mode: 'land',
     });
+    expect(bought.ok, bought.ok ? '' : bought.error).toBe(true);
+    expect(state.players[0]!.gold).toBe(goldBefore - price);
+    const trader = state.units.find((unit) => unit.type === 'trader')!;
+    expect(trader).toBeDefined();
 
-    // 4. Started from the screen. The piece is teleported to the origin and the
-    //    sheet now reads as the route rather than as a march.
-    const started = applyCommand(state, {
-      type: 'startRoute',
-      playerId: 0,
-      unitId: command.unitId,
-      fromCityId: command.fromCityId,
-      toCityId: command.toCityId,
-      mode: command.mode,
-    });
-    expect(started.ok, started.ok ? '' : started.error).toBe(true);
+    // 2. The caravan stands in the origin and the sheet reads as the route
+    //    rather than as a march.
     expect({ col: trader.col, row: trader.row }).toEqual({ col: home.col, row: home.row });
     const sent = routeReading(state, trader)!;
     expect(sent.toName).toBe(partner.name);
     expect(sent.figures).not.toBe('nothing yet');
     expect(routeSlotsLine(state, 0)).toBe('1 of 1 route');
-    // A second caravan has nowhere to go: the slot is spoken for, and the plate
-    // would say so in the reducer's words.
+    // A second route has nowhere to go: the slot is spoken for, and the reducer
+    // says so in its own words.
+    const again = applyCommand(state, {
+      type: 'buyRoute',
+      playerId: 0,
+      fromCityId: home.id,
+      toCityId: partner.id,
+      mode: 'land',
+    });
+    expect(again.ok).toBe(false);
     const second = state.units.find((u) => u.type === 'trader' && u.id !== trader.id);
     expect(second).toBeUndefined();
 
