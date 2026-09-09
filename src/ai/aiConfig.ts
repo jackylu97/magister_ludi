@@ -251,21 +251,19 @@ export interface AiConfig {
   };
   site: {
     /**
-     * How many rings of neighbours a site's appraisal folds. Two since P3: a
+     * How many rings of neighbours a site's appraisal looks at. Two since P3: a
      * town works a radius the first ring does not cover, and a bot that could
      * only see one ring picked a hill with three good hexes over a river bend
      * with nine.
+     *
+     * A **bound on the ground that is read**, and since 2026-09-09 nothing more
+     * than that: which of those hexes actually counts is the growth curve's
+     * answer (`explainSite`), not a weight. `ringFalloff` stood beside it — each
+     * further ring worth a fraction of the one inside it — and is **retired**
+     * with the sum it weighted, because a town that will never work the outer
+     * ring should count it at nothing rather than at a fraction.
      */
     ringRadius: number;
-    /**
-     * What each further ring is worth against the one inside it — a hex two
-     * away is `ringFalloff` of a hex next door, and so on outward. It is a
-     * *falloff* rather than a second weight table because the honest statement
-     * is "further ground is worth less", not "further ground is worth
-     * differently": a town works its inner ring first and may never reach the
-     * outer one at all.
-     */
-    ringFalloff: number;
     freshWaterBonus: number;
     coastBonus: number;
     /**
@@ -292,10 +290,18 @@ export interface AiConfig {
   workers: {
     searchRadius: number;
     improvements: string[];
-    /** How many unclaimed plan entries near a town its craving for workers folds. */
+    /**
+     * How many rows of the improvement plan a spade puts to the rules before it
+     * gives up on a turn (`workerCommand`'s shortlist, with `search.pathProbes`).
+     *
+     * A bound on compute, and only that. It used to be the width of a town's
+     * craving as well; since 2026-09-09 that is bounded by the worker's own
+     * charges and by the horizon (`explainWorkerCraving`), and `planFalloff` —
+     * each further entry worth a fraction of the one before it — is **retired**
+     * with the decay it expressed. A worker lays what its charges buy; a decay
+     * over rank was standing in for that count.
+     */
     planTopN: number;
-    /** Each further entry in that fold is worth this much of the one before it. */
-    planFalloff: number;
     /** Hexes from a town an entry has to be inside to count toward its craving. */
     planRadius: number;
     /** How much a hex of walking discounts an entry: `value / (1 + d × this)`. */

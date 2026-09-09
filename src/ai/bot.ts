@@ -221,9 +221,11 @@ import {
   yieldScore,
 } from '../sim/cities';
 import {
+  type TileYieldContext,
   explainTileYield,
   foldTile,
   foldTileLines,
+  yieldContextFor,
 } from '../sim/yields/hex';
 import {
   empirePercents,
@@ -697,7 +699,7 @@ function nextTownChain(
   const lines = explainFoundingCost(state, player.id, best.tile);
   const probe: SiteProbe = {
     tile: { col: best.tile.col, row: best.tile.row },
-    score: explainSite(state, ctx.realm, ai, best.tile).total,
+    score: explainSite(state, ctx.realm, ctx, best.tile, yieldContextFor(state, player.id)).total,
     distance: best.distance,
     // The escort question, asked of the *site* exactly as the settler's own arm
     // asks it (`marchToSite`): a settler with nothing walking beside it will not
@@ -2399,17 +2401,17 @@ function sameItem(a: QueueItem, b: QueueItem): boolean {
  * reading of the bag the appraisal does not have"*. It has one now. The draft
  * plan's estimator (`expectedBestOrder`, `wants.ts`) answers *what is the best
  * card a hand dealt from this pool would hold* over the real draw — the live
- * pool, the M/E/W guarantee, the rarity weights and the pity — so the pass is
- * simply that question asked with **one more pass banked** and discounted by how
- * long the next meter takes to fill:
+ * pool, the M/E/W guarantee, the rarity weights and the pity — and the pass is
+ * the **difference one more rung of pity makes** to that, discounted by how long
+ * the next meter takes to fill (re-folded 2026-09-09):
  *
- *     skip = E[best of the next hand at pity + 1] × delayDiscount(next draft)
+ *     skip = (E[best at pity + 1] − E[best at pity]) × delayDiscount(next draft)
  *
  * It is a candidate in the same table as the cards, folded from printed terms
- * like every other, and it wins exactly when it outscores all of them — an
- * empire staring at three commons it does not want, with culture coming in fast
- * enough that the next hand is a handful of turns away, passes. One that would
- * wait forty turns for the rarer hand does not, and the discount is what says so.
+ * like every other, and it wins exactly when it outscores all of them. The
+ * subtraction is the whole of the fix: the next hand is dealt either way, so
+ * crediting a pass with all of it made a pass beat almost any card — seven hands
+ * passed in a hundred and twenty turns where a person passes none.
  *
  * The pity is not free and the arithmetic knows it: `skipOrderOffer` spends the
  * hand on the table, so what the pass gives up is the very card the best
@@ -2444,7 +2446,7 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
       command: { type: 'skipOrderOffer', playerId },
       subject: player.name,
       summary:
-        `Passes the whole hand — the next one, dealt with a pass of pity banked, is worth ` +
+        `Passes the whole hand — one more rung of pity on the next deal is worth ` +
         `${round1(pass.score)} against ${round1(best?.score ?? 0)} for the best card on the table.`,
       candidates,
     };
@@ -2462,32 +2464,47 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
 }
 
 /**
- * **The pass, as a candidate** — what the *next* hand would be worth, banked one
- * pass of pity better and discounted by the turns the meter takes to refill.
+ * **The pass, as a candidate** — what one more rung of pity is worth, and
+ * nothing else.
  *
- * The estimator is the draft plan's own (`expectedBestOrder`), asked of the pool
- * this hand came out of with `orderSkips + 1`. Two crudenesses ride along and
- * both are the plan's, said once more rather than fixed here: the pool it reads
- * is the *live* one, so the cards on the table are still in it (a pass does not
- * remove them from the bag — a skipped hand's cards can be dealt again), and the
- * replacement a full government would have to bench is not charged, because a
- * pass benches nothing.
+ * **Re-folded 2026-09-09** (the user: *"sounds like we're valuing orders
+ * incorrectly?"* — yes). This used to credit a pass with the *whole* of the next
+ * hand, which is a comparison a card on the table can hardly ever win: the next
+ * hand comes either way. What a pass actually buys is the **difference** the pity
+ * makes to it — `expectedBestOrder(pool, size, skips + 1)` less the same estimate
+ * at the pity this empire already has (`skipPity` raises the uncommon and rare
+ * weights of the next deal, schema 63) — and what it costs is the whole card
+ * forgone, which is the candidate it is compared against. So a pass wins exactly
+ * when every card on the table is worth less than one rung of pity, and the bot
+ * that passed seven hands in a hundred and twenty turns passes almost none.
+ *
+ * The estimator is the draft plan's own (`expectedBestOrder`), asked twice of the
+ * pool this hand came out of. Two crudenesses ride along and both are the plan's,
+ * said once more rather than fixed here: the pool it reads is the *live* one, so
+ * the cards on the table are still in it (a pass does not remove them from the
+ * bag — a skipped hand's cards can be dealt again), and the replacement a full
+ * government would have to bench is not charged, because a pass benches nothing.
+ *
+ * The discount is unchanged: the pity is only collected at the *next* deal, so it
+ * waits for the meter exactly as the hand did.
  */
 function skipCandidate(state: GameState, player: Player, ctx: ValueContext): BotCandidate {
   const sc = player.statecraft;
   const pool = livePool(sc);
   const size = offerSize(state, player.id, 'order');
-  const hand = expectedBestOrder(pool, size, sc.orderSkips + 1, (id) =>
-    scoreCard(player, id, ctx),
-  );
+  const score = (id: OrderId): number => scoreCard(player, id, ctx);
+  const pitied = expectedBestOrder(pool, size, sc.orderSkips + 1, score);
+  const asIs = expectedBestOrder(pool, size, sc.orderSkips, score);
   // The next draft's own wait: the whole of the next threshold over what the
   // meter fills at, because a pass spends the culture already banked for this one.
   const rate = foldEmpireRates(state, player.id).culturePerTurn ?? 0;
   const delay = draftCost(sc.drafts + 1) / Math.max(1, rate);
   const terms: ValueTerm[] = [
     {
-      label: `the best of the next hand, dealt with ${sc.orderSkips + 1} pass${sc.orderSkips === 0 ? '' : 'es'} of pity`,
-      value: hand,
+      label:
+        `what one more pass of pity adds to the next hand — ${round1(pitied)} with ` +
+        `${sc.orderSkips + 1} banked against ${round1(asIs)} with ${sc.orderSkips}`,
+      value: pitied - asIs,
     },
     delayTerm(delay, ctx, 'the meter has to fill again'),
   ];
@@ -4273,10 +4290,10 @@ function push(
  * no longer a flat number either (`explainCitizen`). Those two changes are what
  * make "wide" and "tall" real preferences rather than two settings of a cap.
  *
- * A **worker** is no longer flat: it is worth the ground its town actually has
- * waiting for a spade (`explainWorkerCraving` over the improvement plan), so a
- * capital ringed by unploughed wheat wants workers and a town whose every hex is
- * finished stops. A **caravan** is still a flat figure multiplied by the gold
+ * A **worker** is no longer flat: it is worth the entries its own charges would
+ * lay on ground this town's citizens will stand on (`explainWorkerCraving` over
+ * the improvement plan), so a capital ringed by unploughed wheat its people work
+ * wants workers and a town whose worked hexes are finished stops. A **caravan** is still a flat figure multiplied by the gold
  * pressure: a broke empire builds trade, which is the one production decision
  * that answers a deficit directly. A **soldier** in an ungarrisoned town folds
  * `threat.garrisonValue`, which is what an empty town is worth defending.
@@ -4333,7 +4350,11 @@ function unitRoleValue(
     // separates a spade from a scout (`military.scoutCap` stays, and the audit
     // says why). So this branch has no refusal at all: the craving decides.
 
-    const craving = explainWorkerCraving(plan, state, city, ctx);
+    // The row itself is handed over, not just its town: what one more spade is
+    // worth is what *this* row's charges would buy (`UnitDef.charges`, and the
+    // pace it walks at), which is the ruling of 2026-09-09 and the reason the
+    // craving stopped being a decay over rank.
+    const craving = explainWorkerCraving(plan, state, city, ctx, id);
     return {
       value: craving.total,
       terms: [nest('the ground around this town that is waiting for a spade', craving)],
@@ -4941,19 +4962,27 @@ function settlerCommand(
   sitting?: BotSitting,
 ): UnitChoice | null {
   const ai = aiFor(player);
+  const ctx = seatContext(state, player, sitting);
   // Hoisted for the whole sitting, `valueContext`'s bargain: the site scorer
   // asks it per hex and there are two hundred hexes in a search radius. Since
   // batch 8 it is the *realm* reading — every seam standing on this empire's
   // own ground, improved or not — and the tile the purchasing plan would buy
   // reads the very same set (`ValueContext.realm`).
-  const held = seatContext(state, player, sitting).realm;
+  const held = ctx.realm;
+  // The seat's own reading of ground nobody owns, hoisted for the same reason
+  // and for the same walk: it is what gates a seam this empire cannot yet name.
+  const ground = yieldContextFor(state, player.id);
   // Who is walking with it, asked once and read twice — here and by the march.
   const escorted = escortWithin(state, player, unit);
   const here = getTileAt(state.map, unit.col, unit.row);
   const standing =
     here === undefined
       ? null
-      : { tile: here, appraisal: explainSite(state, held, ai, here), legal: foundingError(state, unit) };
+      : {
+          tile: here,
+          appraisal: explainSite(state, held, ctx, here, ground),
+          legal: foundingError(state, unit),
+        };
   const foundHere = (why: string): UnitChoice => ({
     command: { type: 'foundCity', playerId: player.id, settlerUnitId: unit.id },
     summary: why,
@@ -5005,10 +5034,11 @@ function settlerCommand(
     player,
     unit,
     held,
+    ground,
     escorted,
     standing?.appraisal ?? null,
     legalHere,
-    seatContext(state, player, sitting),
+    ctx,
   );
   if (march !== null) return march;
   // Nowhere better within reach: found here if the rules allow it — a settler
@@ -5044,6 +5074,8 @@ function marchToSite(
   unit: Unit,
   /** The empire's seams, hoisted by the caller. See `explainSite`. */
   held: ReadonlySet<ResourceId>,
+  /** The seat's own reading of unowned ground, hoisted. See `explainSite`. */
+  ground: TileYieldContext | undefined,
   /** The piece walking with it, or `null`. See `escortWithin`. */
   escorted: Unit | null,
   here: Appraisal | null,
@@ -5097,7 +5129,7 @@ function marchToSite(
   for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
-    const appraisal = explainSite(state, held, ai, tile);
+    const appraisal = explainSite(state, held, ctx, tile, ground);
     const distance = wrappedDistance(state.map, from, tileHex(tile));
     // **The road is part of the price** (batch 4, in `siteScoreMin`'s place). A
     // site three turns' walk away has to be *worth* the three turns: the same
@@ -5434,63 +5466,86 @@ function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
 }
 
 /**
- * What a hex is worth as a city site: the weighted fold of its own yield and of
- * every hex in its rings, plus the things a town cares about that no tile yield
- * says — fresh water, a coast, and **a kind of resource this empire has none
- * of**.
+ * What a hex is worth as a city site: **the hexes a town founded here would
+ * actually work**, each discounted at the turn the citizen who works it arrives,
+ * plus the things a town cares about that no tile yield says — fresh water, a
+ * coast, and **a kind of resource this empire has none of**.
  *
- * The ring is one flat run of adds rather than a per-hex subtotal, and that is
- * the arithmetic rather than a presentation choice: regrouping the sum would
- * move the last bits and a settler would walk somewhere else.
+ * **The top N, not the whole ring** (ruled 2026-09-09: *"values where we're
+ * overestimating the number of tiles a city could work"*). What stood here summed
+ * every hex inside `site.ringRadius` at a per-ring falloff, so a site with
+ * eighteen middling hexes outscored one with four rich ones — an empire settling
+ * for ground it would never stand on. The honest reading is the town's own:
  *
- * **Two rings, with a falloff** (P3). One ring was less ground than a town
- * actually works, so a hill with three good neighbours outscored a river bend
- * with nine; the second ring is folded at `site.ringFalloff` of the first, which
- * is the honest statement that a town works its inner ring first and may never
- * reach the outer one at all. The falloff is per *ring* rather than per hex, so
- * every hex at the same distance is worth the same thing whatever order the
- * range walk visits them in.
+ *   · the centre is worked for nothing the turn the town is founded, and its
+ *     first citizen takes the best hex in the ring, undiscounted;
+ *   · each further citizen arrives when the town has banked `growthThreshold` of
+ *     its size at the surplus the hexes it is already working leave it
+ *     (`foodUpkeep`'s `CITIES.foodPerCitizen` a head — the simulation's own two
+ *     constants, no curve of this bot's own), and takes the best hex left;
+ *   · a hex no citizen reaches **inside the horizon** counts nothing, and a hex a
+ *     late citizen reaches counts what `delayTerm` leaves of it.
+ *
+ * It is a simple honest reading and is written down as one: a fresh town's
+ * surplus is read off the ground alone — no granary, no card, no percentage, and
+ * no starvation guard — because the question is *which of two empty hexes to
+ * walk to* and the sheet a town will actually keep is a hundred turns of play
+ * away. `site.ringFalloff` retires with the sum it weighted; `ringRadius` stays,
+ * as the bound on the ground that is looked at.
  *
  * **Kind awareness** is the other half, and it is what a settler is really for
  * once an empire has any ground at all: a luxury is a *signature* and a second
  * copy of one pays nothing new (`resourceEffects.ts`), so what makes a site
  * valuable is a kind nobody in this empire holds. Read off the row's `kind` and
- * asked of the empire (`hasResource`), never against a name.
+ * asked of the empire (`hasResource`), never against a name. That half still
+ * walks the **whole** ring — a seam is worth holding whether or not a citizen
+ * ever stands on it, since an improvement opens it for the empire.
  *
- * The reading is deliberately **omniscient** — `explainTileYield` with no
- * context, mapgen's own start scorer, which CLAUDE.md allows exactly here — and
- * `held` is a fact about the *empire*, so a seam a rival has revealed and this
- * empire cannot name still counts. That is the creed's second clause, unchanged.
+ * **The seat's own context, not the omniscient reading** (the same ruling): the
+ * ground is priced through `yieldContextFor` — hoisted by the caller with `held`
+ * — so a reveal-gated seam pays this empire only once it can name it, which is
+ * rule 5's ctx clause read where a settler stands. `held` stays a fact about the
+ * *empire*, so a seam a rival has revealed and this one cannot name is still a
+ * kind it does not hold.
  *
- * `held` is **hoisted by the caller**, `tileOwnerField`'s bargain one system
- * over and for exactly its reason: `hasResource` sweeps the whole map, and a
- * settler prices two hundred candidate hexes in one decision. Asked per hex it
- * would be two hundred map sweeps to choose where to walk.
+ * `held` and `ground` are **hoisted by the caller**, `tileOwnerField`'s bargain
+ * one system over and for exactly its reason: `hasResource` sweeps the whole map
+ * and `yieldContextFor` walks two card tables, and a settler prices two hundred
+ * candidate hexes in one decision.
  */
-function explainSite(
+export function explainSite(
   state: GameState,
   held: ReadonlySet<ResourceId>,
-  ai: AiConfig,
+  ctx: ValueContext,
   tile: Tile,
+  ground: TileYieldContext | undefined,
 ) {
-  const ring: ValueTerm[] = [];
+  const ai = ctx.ai;
   const bonuses: ValueTerm[] = [];
   const here = tileHex(tile);
   const seen = new Set<ResourceId>();
+  const ranked: { col: number; row: number; worth: number; food: number; at: number }[] = [];
+  let centreFood = 0;
+  let centreWorth = 0;
   for (const near of mapRange(state.map, here, Math.max(0, ai.site.ringRadius))) {
-    const steps = wrappedDistance(state.map, here, tileHex(near));
-    const falloff = Math.pow(ai.site.ringFalloff, steps);
-    const yields = foldTileLines(explainTileYield(near));
+    const yields = foldTileLines(explainTileYield(near, ground));
+    let worth = 0;
     for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
       const value = (yields as unknown as Record<string, number>)[voice];
-      if (typeof value === 'number') {
-        ring.push({
-          label:
-            `(${near.col},${near.row}) ${voice} ${value} × ${weight}` +
-            (steps === 0 ? '' : ` × ${round1(falloff)} (ring ${steps})`),
-          value: value * weight * falloff,
-        });
-      }
+      if (typeof value === 'number') worth += value * weight;
+    }
+    const steps = wrappedDistance(state.map, here, tileHex(near));
+    if (steps === 0) {
+      centreFood = yields.food;
+      centreWorth = worth;
+    } else {
+      ranked.push({
+        col: near.col,
+        row: near.row,
+        worth,
+        food: yields.food,
+        at: tileIndex(state.map, near.col, near.row),
+      });
     }
     // The seam itself, once per kind: a site with two silk hexes is still a
     // site that opens silk, which is exactly what the signature pays for.
@@ -5499,8 +5554,44 @@ function explainSite(
     seen.add(resource);
     bonuses.push(...newResourceTerms(held, ai, resource, `at (${near.col},${near.row})`));
   }
+  // Best first, ties by tile index — a fact about the board rather than about the
+  // order the range walk happened to visit hexes in (rule 2).
+  ranked.sort((a, b) => b.worth - a.worth || a.at - b.at);
+
+  // The centre, worked for nothing from the turn the town stands.
+  const worked: ValueTerm[] = [
+    { label: `the centre (${tile.col},${tile.row}), worked for nothing`, value: centreWorth },
+  ];
+
+  let turn = 0;
+  let food = centreFood;
+  for (let citizen = 1; citizen <= ranked.length; citizen++) {
+    const hex = ranked[citizen - 1]!;
+    if (citizen > 1) {
+      // What the town banks a turn with `citizen - 1` people on the ground it has
+      // taken so far, and what the next one costs to grow (`growthThreshold`).
+      const surplus = food - (citizen - 1) * RULES.cities.foodPerCitizen;
+      if (surplus <= 0) break;
+      turn += growthThreshold(citizen - 1) / surplus;
+    }
+    const discount = delayTerm(turn, ctx, 'the citizen who works it has to be born');
+    // The clock only runs forward, so the first hex past the horizon is the last
+    // hex there is: everything below it is worth nothing and prints as nothing.
+    if (discount.value <= 0) break;
+    food += hex.food;
+    worked.push({
+      label: `(${hex.col},${hex.row}) — citizen ${citizen}'s hex, ${round1(turn)} turns out`,
+      value: hex.worth * discount.value,
+      parts: [{ label: `weighted ${round1(hex.worth)}`, value: hex.worth }, discount],
+    });
+  }
+
   const terms: ValueTerm[] = [
-    { label: `the hex and its ${ai.site.ringRadius} ring(s), weighted`, value: foldOf(ring), parts: ring },
+    {
+      label: `the hexes a town here would work inside the horizon (${worked.length} of ${ranked.length + 1})`,
+      value: foldOf(worked),
+      parts: worked,
+    },
   ];
   if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
   if (isCoastal(state.map, tile)) terms.push({ label: 'a coast', value: ai.site.coastBonus });

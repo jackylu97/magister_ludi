@@ -1219,36 +1219,90 @@ describe('the draft plan', () => {
     );
   });
 
-  it('passes a hand it does not want — the bot’s first, and the reducer takes it', () => {
-    // **The first pass this bot has ever taken.** Measured on the standard duel
-    // (2026-09-05): three of the eight drafts inside sixty turns are passed, and
-    // every one of them is a hand whose best card scored under what the
-    // pity-improved next hand is worth. Before batch 6 the arm could not pass at
-    // all — the comment above `orderDecision` said so, and said why.
+  it('takes the hands it is dealt: a pass is worth the pity it buys and no more', () => {
+    // **Re-aimed 2026-09-09** (X1d-ground, the user's ruling on `docs/flags.md`
+    // item (ggg): *"sounds like we're valuing orders incorrectly?"*). What stood
+    // here asserted the opposite claim — that the bot passes hands — and it was
+    // true because a pass was credited with the *whole* of the next hand, which
+    // no ordinary card can beat. The next hand is dealt either way; what a pass
+    // buys is one rung of pity, and against that a card on the table almost
+    // always wins. Measured on this same duel: **seven passes in sixty turns
+    // before the re-fold and none after**, with the drafts themselves unchanged
+    // in number.
     const game = createGame(CONFIG);
     const stepper = createBotStepper(game, { warn: () => {} });
-    const passes: BotDecision[] = [];
+    const hands: BotDecision[] = [];
     let drafts = 0;
     for (let turn = 0; turn < 60; turn++) {
       for (const step of stepper.playTurn()) {
+        if (step.decision.kind !== 'draft') continue;
         if (step.decision.command.type === 'chooseOrder') drafts += 1;
-        if (step.decision.command.type !== 'skipOrderOffer') continue;
-        // A pass this bot proposes is a pass the rules take.
-        expect(step.result.ok).toBe(true);
-        passes.push(step.decision);
+        if (step.decision.command.type === 'skipOrderOffer') {
+          // A pass this bot proposes is still a pass the rules take.
+          expect(step.result.ok).toBe(true);
+        }
+        hands.push(step.decision);
       }
     }
     expect(drafts).toBeGreaterThan(0);
-    expect(passes.length).toBeGreaterThan(0);
-    for (const decision of passes) {
+    const offered = hands.filter((decision) =>
+      decision.candidates.some((candidate) => candidate.label === 'pass the hand'),
+    );
+    expect(offered.length).toBeGreaterThan(0);
+    for (const decision of offered) {
       const pass = decision.candidates.find((candidate) => candidate.label === 'pass the hand')!;
       const cards = decision.candidates.filter((candidate) => candidate.label !== 'pass the hand');
-      expect(pass.chosen).toBe(true);
-      // It won on the arithmetic, not on a rule: the pass beat every card.
-      for (const card of cards) expect(pass.score).toBeGreaterThan(card.score);
       expect(foldTerms(pass.terms)).toBe(pass.score);
-      expect(decision.summary).toContain('Passes the whole hand');
+      // **The margin, not the hand.** The term prints both estimates — the next
+      // hand with one more rung of pity banked and the same hand without it —
+      // and the value it folds is the difference between them, which is strictly
+      // less than either.
+      const margin = pass.terms[0]!;
+      const printed = [...margin.label.matchAll(/-?\d+(?:\.\d+)?/g)].map((match) => Number(match[0]));
+      const pitied = printed[0]!;
+      const plain = printed[2]!;
+      // Both estimates print to a tenth, so the difference is within two of
+      // those of the value the term folds.
+      expect(Math.abs(margin.value - (pitied - plain))).toBeLessThanOrEqual(0.11);
+      expect(pitied).toBeGreaterThanOrEqual(0);
+      expect(margin.value).toBeLessThan(pitied);
+      // Whoever won, won on the argmax and on nothing else.
+      const chosen = decision.candidates.find((candidate) => candidate.chosen)!;
+      for (const other of [pass, ...cards]) {
+        if (other === chosen) continue;
+        expect(chosen.score).toBeGreaterThanOrEqual(other.score);
+      }
     }
+    // And on this board, no hand is passed at all: every one of them held a card
+    // worth more than a rung of pity.
+    expect(offered.filter((decision) => decision.command.type === 'skipOrderOffer')).toEqual([]);
+  });
+
+  it('never passes a hand of three cards it wants', () => {
+    // The ruling's own bench: *"a pass then wins only when every card on the
+    // table is worth less than one rung of pity"*. Three cards this seat scores
+    // above nothing are three cards it takes.
+    const state = benchState(2);
+    const player = seat(state, 0);
+    const ctx = valueContext(state, player);
+    // The three the seat itself scores highest out of the live pool — an
+    // arranged hand rather than whatever the first three ids happen to be.
+    const wanted = livePool(player.statecraft)
+      .map((id) => ({ id, score: explainCard(player, id, ctx).total }))
+      .sort((a, b) => b.score - a.score || (a.id < b.id ? -1 : 1))
+      .slice(0, 3);
+    expect(wanted.every((row) => row.score > 0)).toBe(true);
+    player.statecraft.pendingOrder = { options: wanted.map((row) => row.id) };
+    const decision = nextBotDecision(state, player.id);
+    const pass = decision!.candidates.find((candidate) => candidate.label === 'pass the hand')!;
+    const cards = decision!.candidates.filter((candidate) => candidate.label !== 'pass the hand');
+    expect(cards.length).toBe(3);
+    expect(cards.every((card) => card.score > 0)).toBe(true);
+    expect(decision!.command.type).toBe('chooseOrder');
+    expect(pass.chosen).toBe(false);
+    // The pass is on the table and it is small: one rung of pity against a whole
+    // card, which is the comparison the ruling asked for.
+    for (const card of cards) expect(card.score).toBeGreaterThan(pass.score);
   });
 });
 

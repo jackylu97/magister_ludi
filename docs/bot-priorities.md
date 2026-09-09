@@ -5335,3 +5335,178 @@ five movement rows named; and the economy clock held off the state with
 Unchanged and green: the whole core `test/sim` tier (3,015 tests),
 `aiDecision.slow.test.ts`, `saves.test.ts`, `moduleCycles.test.ts`,
 `verbs.test.ts` (still exactly three `read…`, all in `readings.ts`).
+
+---
+
+## Batch X1d-ground as shipped — the ground nobody works (2026-09-09)
+
+Four of the user's rulings on `docs/flags.md` item (ggg), and three of them are
+one sentence said in three places: **this bot counted ground nobody would ever
+stand on.** A town's craving for spades read every hex it could one day plough, a
+settle site read every hex of two rings, and a renewal tech read every farm
+standing or buildable within reach of a centre. Each count is replaced by a
+reading the simulation already had. The fourth is the draft: a pass was credited
+with the whole of the next hand, and what a pass actually buys is one rung of
+pity.
+
+### 1 · The worker's craving — what a spade's own charges would lay
+
+> *"the value of a worker should be the yields of the top improvable tiles based
+> on the number of workers it has"* · *"workers early is fine, as long as those
+> tiles will be worked"* · *"workers shouldn't really be built so early"*
+
+`explainWorkerCraving` (`plan.ts`) walks the plan's unclaimed entries in rank
+order and folds the ones **one more spade would actually lay**:
+
+- **the charges buy the count.** `UnitDef.charges` (a Worker's three) over each
+  row's `ImprovementDef.chargeCost`. A survey costs none — `prospectAt` spends the
+  turn and nothing else — which is why the cost is read off the row rather than
+  assumed. `workers.planFalloff`, the decay over rank that stood in for this
+  count, is **retired**: a fourth-best hex is not worth six tenths of the best
+  one, it is worth what it pays whenever a spade gets to it, and *whether a spade
+  gets to it at all* is a question about charges;
+- **the ground is the town's own.** An entry counts only on a hex a citizen works
+  or one of the next few the town would work — `citizenSeats`, which is
+  `assignableTiles` ranked by `yieldScore` over `foldTile` through the town's own
+  context, ties by tile index, `population + 2` deep, with the worked list in
+  whole beside it. That is `chooseCitizens`' greedy read rather than
+  re-implemented (CLAUDE.md's "never a second opinion"), and `+ 2` is the ruling's
+  own "the next few" rather than a knob;
+- **the delay is the walk and the digging.** Sequential, because one worker digs
+  one hex at a time: `ceil(distance ÷ movement) + 1` turns per entry, cumulative
+  from the town centre, each entry's worth through `delayTerm` at the turn it
+  lands. An entry past the horizon ends the fold, because the clock only runs
+  forward;
+- **the spades already out come off the front.** Each existing builder of the
+  empire is attributed to the town nearest it (`spokenFor`, ties by city id) and
+  its **remaining** charges (`Unit.chargesLeft`) are spent down the same ranked
+  list before the new spade sees it. Written down as crude and true to the board:
+  a worker standing in the capital's ring is going to plough the capital's ring.
+
+`workers.planTopN` survives as what it also always was — how many rows a spade
+puts to the rules before it gives up on a turn — and `workers.planRadius` as the
+outer bound on which entries a town looks at.
+
+### 2 · The settle site — the hexes a town would work
+
+> *"values where we're overestimating the number of tiles a city could work"*
+
+`explainSite` (`bot.ts`) ranks the ring's hexes by the site's own yield weights
+and counts **the ones a town founded there would work inside the horizon**:
+
+- the centre is worked for nothing from the turn the town stands;
+- the first citizen takes the best hex, undiscounted; each further citizen arrives
+  when the town has banked `growthThreshold(size)` at the surplus the hexes it is
+  already working leave it (`RULES.cities.foodPerCitizen` a head), and takes the
+  best hex left;
+- each hex is discounted by `delayTerm` at the turn its citizen arrives, and a hex
+  no citizen reaches inside the horizon counts **nothing**.
+
+A simple honest reading and written down as one: a fresh town's surplus is read
+off the ground alone, with no granary, no card, no percentage and no starvation
+guard, because the question is which of two empty hexes to walk to.
+`site.ringFalloff` is **retired** with the sum it weighted; `site.ringRadius`
+stays as the bound on the ground that is read.
+
+The other half of the same ruling: the ring is priced through the **seat's own
+context** (`yieldContextFor`, hoisted by the caller beside `held`) rather than the
+omniscient `explainTileYield(near)`, so a reveal-gated seam pays this empire only
+once it can name it. `held` stays a fact about the empire, so the *kind* bonus is
+unchanged — a seam is worth holding whether or not a citizen ever stands on it.
+
+### 3 · The renewal — priced as a building is
+
+> *"why isn't that using the already existing logic for pricing bonuses? All the
+> other bonuses are priced as if they took effect immediately"*
+
+`renewalFoldFor(ctx, tech)` (`plan.ts`) is the town's own fold **with the
+technology held** against its standing fold, over the hexes its citizens work:
+`TileYieldContext.techs` is the seat's list plus the candidate, and the
+simulation's own evaluator is asked twice. It prices the renewal *and* the seam
+the node reveals on those hexes by the same arithmetic and without a second
+clause, because the reveal gate is a clause of the same context. Memoised per node
+on a `WeakMap` keyed by the `ValueContext` itself, so the memo's lifetime is
+exactly the sitting's and nothing iterates it.
+
+`plannedRiderTerms` — the plan's own half, what a hex pays once a node already on
+this seat's research plan lands — reads the same hypothetical per hex
+(`techYieldDelta`), asked of the tile **with the candidate improvement standing on
+it**, since a renewal pays a farm and a bare bank would otherwise read zero. Its
+`requiresFreshwater` clause is deleted rather than moved: the evaluator refuses a
+dry hex its irrigation, and the register that had to be kept in two places is one
+evaluator now.
+
+`surveyUpgradeSites` and its `UpgradeTally` are superseded and kept only until the
+beeline's own reader (`renewalSteps` in `chain.ts`) is pointed at `renewalFoldFor`
+— one swap, X1d-chain's file.
+
+### 4 · The pass — the pity's margin, not the hand
+
+> *"#3 sounds like we're valuing orders incorrectly?"* — yes.
+
+`skipCandidate` (`bot.ts`) was `E[best of the next hand at pity + 1]`, discounted.
+The next hand is dealt either way; what a pass buys is the **difference** one rung
+of pity makes:
+
+```
+skip = ( expectedBestOrder(pool, size, skips + 1)
+       − expectedBestOrder(pool, size, skips) ) × delayDiscount(next draft)
+```
+
+So a pass wins exactly when every card on the table is worth less than a rung of
+pity — which on the measured boards is never. The discount is unchanged: the pity
+is collected at the next deal, so it waits for the meter exactly as the hand did.
+The term prints both estimates, so a reader of the feed sees the subtraction.
+
+### The measurement
+
+The t100 probe: eight seeds 1/2/3/42/101/999/31337/20260101, standard map, two
+balanced seats, wild on, `createBotStepper(...).playTurn()` to turn 100, mean of
+sixteen seats, standard error beside it.
+
+| | cities | citizens | buildings | food | prod | gold | sci | culture | faith | treasury | techs | happiness |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| main | 4.94 | 34.56 | 13.56 | 116.1 | 51.7 | 19.2 | 44.0 | 45.6 | 21.6 | 345 | 21.6 | +0.88 |
+| SE | ±0.39 | ±2.94 | ±1.56 | ±10.7 | ±5.0 | ±5.8 | ±4.6 | ±6.3 | ±3.8 | ±59 | ±0.99 | ±1.26 |
+| **X1d-ground** | **5.38** | **35.88** | **14.13** | **126.9** | **42.1** | **24.1** | **46.8** | **42.1** | **22.6** | **238** | **21.1** | **+0.96** |
+| SE | ±0.26 | ±2.70 | ±1.27 | ±12.9 | ±2.9 | ±4.6 | ±5.4 | ±4.9 | ±4.3 | ±32 | ±0.53 | ±1.67 |
+
+The acceptance, column by column: **workers built by t30 1.44 → 1.00**;
+**draft hands passed per 120 turns 3.38 → 0.00**; food and citizens **above** main
+(116 → 127, 34.6 → 35.9); cities inside a standard error either way (4.94 → 5.38).
+Science, buildings, gold, faith and happiness lean up by less than their own
+spread and are not claimed.
+
+**Two costs, both written down.** Production falls 51.7 → 42.1 (about two standard
+errors) and the treasury with it, 345 → 238: the empires that come out of this
+batch are greener and wider — more towns, more citizens, more food — and they
+plough where their citizens stand rather than mining hills nobody works. That is
+the ruling's own trade (*"workers shouldn't really be built so early"*) taken at
+its word, and it is the column to watch if the user wants the spade back.
+
+**ms/turn reads 32.3 → 51.9 on the probe and that is a diverged-game number, not
+the arms' price.** Measured on **one identical board** (seed 1 played to t60,
+thirty decisions a block, six blocks, alternating): the seat's whole deliberation
+is **0.72–0.78 ms** with both new arms on, **0.68–0.71** with the rider's
+hypothetical shut and **0.67–0.70** with the seats bound shut as well — so the two
+readings together are about a tenth of a decision. What the probe measures beside
+them is a bigger empire deciding more often.
+
+### Pins
+
+`test/sim/aiAppraisal.test.ts` grows section 18, "the ground nobody works": a
+spade priced at the entries its charges buy and no more (each term the entry's own
+worth times its own landing discount); a craving that counts three grassland hexes
+and none of the seven hills the plan holds mines on, because a size-1 town reaches
+three seats; a second spade worth exactly nothing beside a first that still holds
+three charges; four rich hexes scoring above eighteen middling ones, with the
+counted list shorter than the ring; a site read through the seat's own eyes worth
+more once the iron is nameable; and Irrigation worth exactly the fold delta of the
+two ploughed banks a town works — and nought for a town working none.
+
+`test/sim/aiWants.test.ts` re-aims the draft pin: what asserted that the bot passes
+hands now asserts that it takes them, with the pass's own term checked against the
+two estimates it prints, plus a new bench — a hand of three cards the seat scores
+above nothing is never passed. `test/ui/arenaPage.test.ts` gains the panel promise
+read backwards: a retired knob leaves `data/ai.json` and the panel is one row
+shorter, with no edit to the page.

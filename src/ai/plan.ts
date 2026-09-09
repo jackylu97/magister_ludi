@@ -43,21 +43,25 @@
  * table as a farm, so a worker compares digging to asking rather than only
  * reaching the survey when it has nothing else to do.
  *
- * The second reading of the same ground (2026-09-04)
- * ---------------------------------------------------
- * `surveyUpgradeSites` counts, per improvement row, how much ground a *renewal*
- * would land on — farms standing and river banks that could take one, counted
- * apart since the potential weight landed — so the beeline can price Irrigation
- * by what it would actually pay this empire rather than at zero. It walks
- * `groundInReach` exactly as the plan does, and it lives here rather than in
- * `bot.ts` for the module's whole reason: it is a reading of the board, and the
- * policy should be handed one rather than take fifty.
+ * The second reading of the same ground (2026-09-04, re-ruled 2026-09-09)
+ * -----------------------------------------------------------------------
+ * A **renewal** is priced exactly as a building is: the town's own fold with the
+ * technology held, against its standing fold (`renewalFoldFor`). The seat's
+ * technologies plus the candidate are a `TileYieldContext`, and the simulation's
+ * own evaluator is asked twice over the hexes a citizen is actually standing on
+ * — so Irrigation is worth what the ploughed river banks this town *works* would
+ * collect, and nothing at all to a town with none. It prices the seam a node
+ * **reveals** on those same hexes by the same arithmetic and without a second
+ * clause, because the reveal gate is a clause of the same context.
  *
- * The plan's own half of the same ruling is `plannedRiderTerms`: a hex is priced
- * at what it pays today **plus what a technology already on this seat's research
- * plan would add to it, discounted by how far off that node is**, so the spade
- * goes to the river bank while the beeline is still walking towards Irrigation
- * rather than after it lands.
+ * That replaces a count of every farm standing or buildable in reach
+ * (`surveyUpgradeSites`, which counted ground nobody works — the user's ruling of
+ * 2026-09-09), and it is the same fold `plannedRiderTerms` takes per hex: a hex
+ * is priced at what it pays today **plus what a technology already on this seat's
+ * research plan would add to it once the spade's own improvement is standing
+ * there, discounted by how far off that node is**, so the spade goes to the river
+ * bank while the beeline is still walking towards Irrigation rather than after it
+ * lands.
  *
  * Why it is its own module: `value.ts` is the appraisal, `bot.ts` is the policy,
  * and this is a *reading of the board* that both the policy and the great-person
@@ -77,22 +81,29 @@ import {
   hammerTerm,
 } from './value';
 
-import { hasResource, tileOwnerPlayerId } from '../sim/cities';
+import { assignableTiles, hasResource, tileOwnerPlayerId, yieldScore } from '../sim/cities';
 import {
   IMPROVEMENT_IDS,
   type ImprovementId,
   improvementDef,
   isImprovementId,
 } from '../sim/improvementData';
-import { improvementErrorAt, improvementYieldDelta, seatSeesSleepingVein } from '../sim/improvements';
+import {
+  chargesLeft,
+  improvementErrorAt,
+  improvementYieldDelta,
+  seatSeesSleepingVein,
+} from '../sim/improvements';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
-import type { City, GameState, Player, Unit } from '../sim/state';
+import { type City, type GameState, type Player, type Unit, playerById } from '../sim/state';
 import { researchPlan } from '../sim/tech';
 import { type TechId, techDef } from '../sim/techData';
-import { TILE_YIELD_KEYS, type TileYield, readTileYield } from '../sim/terrainData';
+import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from '../sim/terrainData';
+import { type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
 import { hasFreshWater } from '../sim/water';
+import { type TileYieldContext, cityContext, foldTile } from '../sim/yields/hex';
 import { round } from './decision';
 
 /**
@@ -262,7 +273,9 @@ function improvementEntry(
   // does not know which — which is the fallback `hammerPrice` states.
   const hammers = hammerTerm(delta.production ?? 0, ctx);
   if (hammers !== null) terms.push(hammers);
-  for (const term of plannedRiderTerms(player, ctx, tile, improvement)) terms.push(term);
+  for (const term of plannedRiderTerms(player, ctx, tile, improvement, ground(tile))) {
+    terms.push(term);
+  }
   return {
     col: tile.col,
     row: tile.row,
@@ -292,10 +305,14 @@ function improvementEntry(
  *     this reads intentions the empire has actually declared. No walk of the
  *     tree, no "a node two rungs on would also pay": a bot that priced ground by
  *     what the whole tree might one day grant would price every hex the same;
- *   · **this improvement, on this hex** — the rider's own conditions are asked
- *     of the tile (`requiresFreshwater`), exactly as `surveyUpgradeSites` asks
- *     them of the ground it counts. The two are halves of one register: a third
- *     condition on the record is counted there and asked here;
+ *   · **this improvement, on this hex, asked of the evaluator** — the rider is
+ *     the hex's own fold with the node held less its fold without it, taken with
+ *     the candidate improvement already standing on it (2026-09-09's ruling:
+ *     *"why isn't that using the already existing logic for pricing bonuses?"*).
+ *     Nothing here restates a renewal's conditions: `explainTileYield` refuses a
+ *     dry hex its irrigation and a nameless seam its yield, and a condition the
+ *     rules grow tomorrow is answered by the same call. The register that used to
+ *     have to be kept in two places is one evaluator now;
  *   · **the delay** — the node has not landed, and how far off it is is a thing
  *     this seat can actually read: the beakers still owed for it (its own cost
  *     plus everything ahead of it on the plan, less what the pool already holds)
@@ -311,6 +328,7 @@ function plannedRiderTerms(
   ctx: ValueContext,
   tile: Tile,
   improvement: ImprovementId,
+  ground: TileYieldContext | undefined,
 ): ValueTerm[] {
   const upgrades = improvementDef(improvement).upgrades ?? [];
   if (upgrades.length === 0) return [];
@@ -319,8 +337,8 @@ function plannedRiderTerms(
   const terms: ValueTerm[] = [];
   for (const upgrade of upgrades) {
     if (!plan.includes(upgrade.tech)) continue;
-    if (upgrade.requiresFreshwater === true && !hasFreshWater(tile)) continue;
-    const each = explainYields(bagOfTileYield(readTileYield(upgrade.add)), ctx);
+    const each = explainYields(bagOfTileYield(techYieldDelta(tile, improvement, ground, upgrade.tech)), ctx);
+    if (each.total === 0) continue;
     const discount = delayTerm(
       turnsUntilPlanned(player, ctx, upgrade.tech),
       ctx,
@@ -333,6 +351,43 @@ function plannedRiderTerms(
     });
   }
   return terms;
+}
+
+/**
+ * **What one technology would add to one hex** — the same two-askings-of-one-
+ * evaluator `improvementYieldDelta` is, with the *context* as the what-if rather
+ * than the tile.
+ *
+ * `TileYieldContext.techs` is the whole of what a renewal and a reveal are gated
+ * on (`explainTileYield`), so the seat's list plus the candidate is the honest
+ * hypothetical: ask the hex once as this empire reads it and once as it would
+ * read it holding the node, and the difference is what the node pays here. A
+ * renewal whose condition the hex fails, a seam this empire could not name and a
+ * node that renews nothing all come back as nought without a clause of their own.
+ *
+ * `improvement` is what the spade would leave standing when the reading is a
+ * plan entry's — a renewal pays a farm, so a bare bank has to be asked *with the
+ * farm on it* or the promise reads zero — and `null` where the ground is being
+ * read as it stands (the town's own worked hexes).
+ */
+function techYieldDelta(
+  tile: Tile,
+  improvement: ImprovementId | null,
+  ground: TileYieldContext | undefined,
+  tech: TechId,
+): TileYield {
+  // No context at all is the omniscient reading (mapgen and tests), which gates
+  // nothing on technology and so cannot be asked this question honestly.
+  if (ground === undefined) return emptyTileYield();
+  const held = ground.techs;
+  if (held.includes(tech)) return emptyTileYield();
+  const after: TileYieldContext = { ...ground, techs: [...held, tech] };
+  const subject = improvement === null ? tile : { ...tile, improvement };
+  const now = foldTile(subject, ground);
+  const then = foldTile(subject, after);
+  const delta = emptyTileYield();
+  for (const key of TILE_YIELD_KEYS) delta[key] = then[key] - now[key];
+  return delta;
 }
 
 /**
@@ -403,9 +458,123 @@ function surveyEntry(
   };
 }
 
+// --- what a renewal would pay -----------------------------------------------
+
+/**
+ * **What one town's ground would collect the day a node lands** — the town's own
+ * fold with the technology held, against its standing fold.
+ *
+ * The ruling of 2026-09-09: *"why isn't that using the already existing logic for
+ * pricing bonuses? All the other bonuses are priced as if they took effect
+ * immediately"*. A building is priced by a hypothetical fold of the town that
+ * would raise it; a renewal is priced by a hypothetical fold of the town that
+ * would collect it, and the hypothetical is a **context** rather than a shelf —
+ * `TileYieldContext.techs` is the seat's list plus the candidate, which is the
+ * whole of what a renewal and a reveal are gated on.
+ *
+ * **Over the hexes a citizen is standing on**, which is the reading's entire
+ * point. What it replaces (`surveyUpgradeSites`) counted every farm standing or
+ * buildable within reach of a town centre, so Irrigation was worth every hex a
+ * size-3 town could one day farm; this is worth what its three citizens would
+ * actually collect. The centre is deliberately outside it: nothing lays an
+ * improvement on a town hex, and the centre's inheritance rule would have to be
+ * re-derived here to ask it — which is the one thing this module does not do.
+ *
+ * Ground **nobody works yet** is not silent, it is simply somebody else's
+ * question: a bare river bank is the *worker plan's* entry, priced with the farm
+ * on it by `plannedRiderTerms`, and counting it here as well would pay for the
+ * same bank twice.
+ */
+export interface RenewalTownFold {
+  cityId: number;
+  name: string;
+  /** Weighted worth per turn, in the one currency. Folds from `terms`. */
+  value: number;
+  terms: ValueTerm[];
+}
+
+export interface RenewalFold {
+  /** One entry per town of this empire whose fold the node moves. */
+  towns: RenewalTownFold[];
+  /** The empire's total. The fold of `terms`. */
+  total: number;
+  terms: ValueTerm[];
+}
+
+export function renewalFoldFor(ctx: ValueContext, tech: TechId): RenewalFold {
+  const memo = memoOf(ctx).renewals;
+  const held = memo.get(tech);
+  if (held !== undefined) return held;
+  const fold = readRenewalFold(ctx, tech);
+  memo.set(tech, fold);
+  return fold;
+}
+
+function readRenewalFold(ctx: ValueContext, tech: TechId): RenewalFold {
+  const { state } = ctx;
+  const player = playerById(state, ctx.playerId);
+  const towns: RenewalTownFold[] = [];
+  const terms: ValueTerm[] = [];
+  if (player && !player.techsResearched.includes(tech)) {
+    for (const city of state.cities) {
+      if (city.ownerId !== ctx.playerId) continue;
+      const ground = cityContext(state, city);
+      const bag = emptyTileYield();
+      for (const cell of city.workedTiles) {
+        const tile = getTileAt(state.map, cell.col, cell.row);
+        if (!tile) continue;
+        const delta = techYieldDelta(tile, null, ground, tech);
+        for (const key of TILE_YIELD_KEYS) bag[key] += delta[key];
+      }
+      const worth = explainYields(bagOfTileYield(bag), ctx);
+      if (worth.total === 0) continue;
+      const term = nest(`${city.name}'s worked hexes, with the node held`, worth);
+      towns.push({ cityId: city.id, name: city.name, value: worth.total, terms: worth.terms });
+      terms.push(term);
+    }
+  }
+  return { towns, total: foldTerms(terms), terms };
+}
+
+/**
+ * **The memo the sitting hangs off**, keyed by the appraisal context itself.
+ *
+ * Its lifetime is exactly the context's, which is one decision — `zocField`'s
+ * and `tileContextField`'s rule said with a weak key rather than with a
+ * parameter. The context is a photograph of the empire at an instant, so a
+ * reading taken against it cannot outlive it and cannot be handed to a board that
+ * has moved: when the context is dropped the memo goes with it.
+ *
+ * Nothing iterates either table — both are read by lookup — so no outcome can
+ * depend on the order the questions were asked in (CLAUDE.md's rule 2).
+ */
+interface PlanMemo {
+  /** Per town, the hexes a citizen works or the next few it would. */
+  seats: Map<number, Set<number>>;
+  /** Per node, what its renewals and reveals would pay this empire's towns. */
+  renewals: Map<TechId, RenewalFold>;
+  /** Per town, the charges the spades already on the board will spend near it. */
+  spades: Map<number, number> | null;
+}
+
+const MEMOS = new WeakMap<ValueContext, PlanMemo>();
+
+function memoOf(ctx: ValueContext): PlanMemo {
+  const held = MEMOS.get(ctx);
+  if (held !== undefined) return held;
+  const fresh: PlanMemo = { seats: new Map(), renewals: new Map(), spades: null };
+  MEMOS.set(ctx, fresh);
+  return fresh;
+}
+
 // --- what a renewal would land on -------------------------------------------
 
 /**
+ * **Superseded by `renewalFoldFor`** and kept only until the beeline's own
+ * reader (`renewalSteps` in `chain.ts`) is pointed at it. It counts ground
+ * nobody works, which is the ruling of 2026-09-09 against it; nothing in this
+ * module reads it any more.
+ *
  * **How much ground a tech's renewal would actually pay on**, per improvement
  * row: hexes already carrying the improvement, plus hexes this empire could lay
  * it on today. Both halves, because both will collect the day the node lands —
@@ -510,49 +679,187 @@ function bagOfTileYield(delta: TileYield): YieldBag {
 // --- what the three decisions ask of it -------------------------------------
 
 /**
- * **What a town's unimproved ground is worth to it** — and therefore how badly
- * it wants another worker.
+ * **What one more spade would actually lay for this town** — and therefore how
+ * badly it wants one.
  *
- * The fold of the best `workers.planTopN` unclaimed entries inside
- * `workers.planRadius` of the town, each worth `workers.planFalloff` of the one
- * before it. The falloff is the honest half: one worker cannot lay four farms
- * this decade, so the fourth-best hex is worth a fraction of the first.
+ * The ruling of 2026-09-09, in the user's own words: *"the value of a worker
+ * should be the yields of the top improvable tiles based on the number of workers
+ * it has"*, and *"workers early is fine, as long as those tiles will be worked"*.
+ * Four clauses, and each of them is a thing this fold used to get wrong:
  *
- * This replaces the flat `weights.worker`, and the whole point is that it moves:
- * a capital ringed by unploughed wheat craves workers, a hamlet whose every hex
- * is finished does not, and neither of those sentences could be said before.
- * The hard `workers.cap` stays, as a safety rather than as the policy.
+ *   · **the entries it would lay, not a ranked window.** A worker is `charges`
+ *     spades in a box (`UnitDef.charges`, three for a Worker) and each row costs
+ *     `ImprovementDef.chargeCost`, so what one more of them is worth is the best
+ *     entries its charges actually buy. `workers.planTopN` × `planFalloff` was a
+ *     decay over rank standing in for that count; **`planFalloff` is retired**,
+ *     because a decay over rank is not a real thing and the count is;
+ *   · **on ground somebody will stand on.** An entry counts only on a hex a
+ *     citizen of this town works, or one of the next few it would work — the
+ *     town's own ranking of its assignable hexes, `population + 2` deep (see
+ *     `citizenSeats`). Before this, a size-2 town with eight farmable hexes read
+ *     eight entries and craved spades for ground nobody would stand on for
+ *     twenty turns (the one-game read of 2026-09-09);
+ *   · **at the turn it lands.** The tile pays once the farm is on it, and getting
+ *     there is a walk and a turn with a spade in the ground — sequential, because
+ *     one worker digs one hex at a time. Each entry is discounted by `delayTerm`
+ *     at its own landing turn, and an entry past the horizon is worth nothing and
+ *     ends the fold;
+ *   · **less what the spades already out will reach.** Each existing worker of
+ *     this empire is attributed to the town nearest it and its **remaining**
+ *     charges (`Unit.chargesLeft`) come off the front of that town's list, so the
+ *     second worker is priced against the ground the first has not got to.
+ *
+ * The whole point is still that it moves: a capital ringed by unploughed wheat
+ * its citizens will work craves spades, and a hamlet whose two worked hexes are
+ * finished does not.
  */
 export function explainWorkerCraving(
   plan: ImprovementPlan,
   state: GameState,
   city: City,
   ctx: ValueContext,
+  spade: UnitTypeId,
 ): Appraisal {
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return appraise([]);
+  const def = unitDef(spade);
   const here = tileHex(centre);
-  const near: PlanEntry[] = [];
+  const seats = citizenSeats(state, city, ctx);
+  const stride = Math.max(1, def.movement);
+  const terms: ValueTerm[] = [];
+
+  let charges = Math.max(1, def.charges ?? 1);
+  // What the spades already on the board will have taken by the time this one is
+  // standing. Counted off the front of the same ranked list, because that is the
+  // order they will take them in.
+  let spoken = spokenFor(state, city, ctx);
+  let clock = 0;
+  let from = here;
+
   for (const entry of plan.entries) {
+    if (charges <= 0) break;
     if (!entry.unclaimed) continue;
     const tile = getTileAt(state.map, entry.col, entry.row);
     if (!tile) continue;
+    const at = tileIndex(state.map, entry.col, entry.row);
+    if (!seats.has(at)) continue;
     if (wrappedDistance(state.map, here, tileHex(tile)) > ctx.ai.workers.planRadius) continue;
-    near.push(entry);
-    if (near.length >= Math.max(1, ctx.ai.workers.planTopN)) break;
-  }
-  const terms: ValueTerm[] = [];
-  let share = 1;
-  for (const entry of near) {
+    // A survey spends no charge at all (`prospectAt` takes the turn and nothing
+    // else), which is why the cost is read off the row rather than assumed.
+    const cost = entry.improvement === null ? 0 : improvementDef(entry.improvement).chargeCost;
+    if (cost > 0 && spoken >= cost) {
+      spoken -= cost;
+      continue;
+    }
+    if (cost > charges) continue;
+    const step = wrappedDistance(state.map, from, tileHex(tile));
+    // The walk, then the turn the spade spends with its hands in the ground: a
+    // build takes the whole of a worker's movement (`buildImprovementAt`).
+    clock += Math.ceil(step / stride) + 1;
+    const discount = delayTerm(clock, ctx, 'the spade has to walk out and dig');
+    // The clock only ever runs forward, so the first entry past the horizon is
+    // the last entry there is.
+    if (discount.value <= 0) break;
+    charges -= cost;
+    from = tileHex(tile);
     terms.push({
-      label:
-        `${entry.label} — ${round(entry.value)} a turn` +
-        (share === 1 ? '' : ` × ${round(share)} (one spade, one hex at a time)`),
-      value: entry.value * share,
+      label: `${entry.label} — ${round(entry.value)} a turn, ${round(clock)} turns out`,
+      value: entry.value * discount.value,
+      parts: [{ label: entry.label, value: entry.value }, discount],
     });
-    share *= ctx.ai.workers.planFalloff;
   }
   return appraise(terms);
+}
+
+/**
+ * **The hexes this town's people are standing on, plus the next few they would**
+ * — the bound the ruling of 2026-09-09 put on the craving.
+ *
+ * The ranking is the town's own and never a second opinion: `assignableTiles`
+ * for what may be worked at all, `yieldScore` of the simulation's own `foldTile`
+ * through the town's context for the order, ties by tile index — which is
+ * `chooseCitizens`' greedy, read rather than re-implemented. Its worked list goes
+ * in whole beside it, because a pinned hex is worked whatever the ranking says.
+ *
+ * `AHEAD` is the ruling's own "the next few": two citizens past the town's
+ * present size. It is a constant rather than a knob because it is the ruling's
+ * sentence, not an opinion about it — and because the *real* bound on how far a
+ * craving reaches is the horizon, which the delay already applies.
+ */
+const AHEAD = 2;
+
+function citizenSeats(state: GameState, city: City, ctx: ValueContext): Set<number> {
+  const memo = memoOf(ctx).seats;
+  const held = memo.get(city.id);
+  if (held !== undefined) return held;
+  const seats = new Set<number>();
+  for (const cell of city.workedTiles) seats.add(tileIndex(state.map, cell.col, cell.row));
+  const ground = cityContext(state, city);
+  const ranked = assignableTiles(state, city)
+    .map((tile) => ({ at: tileIndex(state.map, tile.col, tile.row), score: yieldScore(foldTile(tile, ground)) }))
+    .sort((a, b) => b.score - a.score || a.at - b.at);
+  for (const row of ranked.slice(0, Math.max(1, city.population + AHEAD))) seats.add(row.at);
+  memo.set(city.id, seats);
+  return seats;
+}
+
+/**
+ * **How much of this town's list the spades already out will have taken**, in
+ * charges — `Unit.chargesLeft`, which is what a worker has left to give and not
+ * what it was built with.
+ *
+ * Each spade is attributed to the town **nearest it**, ties by city id, which is
+ * the crude half and is written down as crude: a worker standing in the capital's
+ * ring is going to plough the capital's ring. Charging every town for every spade
+ * would have one worker talk three towns out of wanting one, and charging none of
+ * them is how an empire comes to hold six.
+ *
+ * Taken once per sitting and read per town, `tileContextField`'s bargain: the
+ * attribution is a fact about the board that every town's craving shares.
+ */
+function spokenFor(state: GameState, city: City, ctx: ValueContext): number {
+  const memo = memoOf(ctx);
+  if (memo.spades === null) {
+    const spades = new Map<number, number>();
+    for (const unit of state.units) {
+      if (unit.ownerId !== ctx.playerId) continue;
+      if (!laysGround(unitDef(unit.type))) continue;
+      const standing = getTileAt(state.map, unit.col, unit.row);
+      if (!standing) continue;
+      const on = tileHex(standing);
+      let nearest: { id: number; distance: number } | null = null;
+      for (const town of state.cities) {
+        if (town.ownerId !== ctx.playerId) continue;
+        const centre = getTileAt(state.map, town.col, town.row);
+        if (!centre) continue;
+        const distance = wrappedDistance(state.map, tileHex(centre), on);
+        if (nearest === null || distance < nearest.distance) nearest = { id: town.id, distance };
+      }
+      if (nearest === null) continue;
+      spades.set(nearest.id, (spades.get(nearest.id) ?? 0) + chargesLeft(unit));
+    }
+    memo.spades = spades;
+  }
+  return memo.spades.get(city.id) ?? 0;
+}
+
+/**
+ * Is this row the piece that lays farms and mines — as opposed to the other
+ * things in the roster that also carry charges?
+ *
+ * `isPlainBuilder`'s sentence (`bot.ts`), read off the row's own markers and
+ * never off a type name. Written here rather than imported because that one is
+ * private to the policy and this is a reading of the board — the same split
+ * `src/arenaPage/run.ts` makes for the same reason.
+ */
+function laysGround(def: UnitDef): boolean {
+  if (def.charges === undefined) return false;
+  if (def.foundsCity === true) return false;
+  if (def.greatWork === true) return false;
+  if (def.consecrates === true) return false;
+  if (def.prophesies === true) return false;
+  if (def.proclaims === true) return false;
+  return true;
 }
 
 /**

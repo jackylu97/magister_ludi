@@ -160,6 +160,23 @@ describe('the configuration panel is generated, not listed', () => {
     expect(html).not.toContain('reaskPerTurn');
   });
 
+  it('loses a knob the day the bot retires one, with no edit to the page', () => {
+    // The promise's other direction, asserted about the two X1d-ground retired
+    // (2026-09-09): `workers.planFalloff`, the decay over ranked plan entries a
+    // spade's own charges replaced, and `site.ringFalloff`, the per-ring weight
+    // the growth curve replaced. A retired knob leaves `data/ai.json` and the
+    // panel is one row shorter, because the panel walks the file.
+    const walked = new Set(knobs.map((knob) => knobKey(knob.path)));
+    for (const gone of ['workers.planFalloff', 'site.ringFalloff']) {
+      expect(walked.has(gone), gone).toBe(false);
+      expect(html).not.toContain(gone.split('.')[1]);
+    }
+    // And the knobs beside them are untouched: a retirement is one row, not a
+    // block.
+    expect(walked.has('workers.planTopN')).toBe(true);
+    expect(walked.has('site.ringRadius')).toBe(true);
+  });
+
   it('groups by the sheet’s own top-level blocks, in the file’s order', () => {
     const blocks = blocksOf(knobs).map((block) => block.name);
     expect(blocks).toEqual(Object.keys(AI));

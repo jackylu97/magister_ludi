@@ -60,7 +60,14 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { bestTechGoal, explainCard, explainCitizen, nextBotDecision, valueContext } from '../../src/ai/bot';
+import {
+  bestTechGoal,
+  explainCard,
+  explainCitizen,
+  explainSite,
+  nextBotDecision,
+  valueContext,
+} from '../../src/ai/bot';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
 import { citizenKeepTerm, keepDoor } from '../../src/ai/citizen';
@@ -70,7 +77,13 @@ import {
   type ValueTerm,
   foldTerms,
 } from '../../src/ai/decision';
-import { type PlanEntry, buildImprovementPlan, rankWorkSites } from '../../src/ai/plan';
+import {
+  type PlanEntry,
+  buildImprovementPlan,
+  explainWorkerCraving,
+  rankWorkSites,
+  renewalFoldFor,
+} from '../../src/ai/plan';
 import {
   BUILDING_ROW_FOLDED,
   BUILDING_ROW_SILENT,
@@ -127,7 +140,23 @@ import { LIVE_RITE_IDS, riteDef } from '../../src/sim/religionData';
 import { unitUpkeepTotal } from '../../src/sim/upkeep';
 import { applyCommand } from '../../src/sim/commands';
 import { improvementDef } from '../../src/sim/improvementData';
-import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import {
+  type GameMap,
+  type Tile,
+  createMap,
+  getTileAt,
+  mapRange,
+  tileHex,
+  tileIndex,
+} from '../../src/sim/map';
+import type { TerrainId } from '../../src/sim/terrainData';
+import { unitDef } from '../../src/sim/unitData';
+import {
+  type TileYieldContext,
+  cityContext,
+  foldTile,
+  yieldContextFor,
+} from '../../src/sim/yields/hex';
 import {
   type City,
   type GameState,
@@ -204,7 +233,7 @@ function raisingTurns(cost: number, state: GameState, playerId: number): number 
 /** `aiWar.test.ts`' bench: a blank board, seats seated, nothing on it. */
 function bench(
   seats = 2,
-  { width = 20, height = 12, terrain = 'grassland' as const } = {},
+  { width = 20, height = 12, terrain = 'grassland' }: { width?: number; height?: number; terrain?: TerrainId } = {},
 ): GameState {
   const colors = ['#a00', '#00a', '#0a0'];
   const state = newGame({
@@ -643,6 +672,15 @@ describe('a further scout', () => {
 // --- 5. what a node's riders are worth --------------------------------------
 
 describe('the beeline’s tech riders', () => {
+  /**
+   * **These four read `renewalSteps` (`chain.ts`), which is still counting
+   * ground with `surveyUpgradeSites`.** X1d-ground replaced that reading for the
+   * plan and for the town (`renewalFoldFor` — section 18 below pins it), and the
+   * beeline inherits it the moment `renewalSteps` is pointed at the same fold.
+   * The two claims here — proportional to the *ground counted*, standing and
+   * buildable apart — are claims about the count, so they retire with it: what
+   * replaces them is section 18's "prices a renewal as the fold it would move".
+   */
   /**
    * A town whose ring is `wet` hexes of farmable river bank and the rest dry,
    * with the road to Irrigation and to a rule-carrying node already walked.
@@ -3776,5 +3814,257 @@ describe('the growth channel charged (batch X5b)', () => {
     // `signDoor`'s sentence one batch on: the switch is the acceptance bench's,
     // it is not a knob, and no half ships shut.
     expect(keepDoor).toEqual({ growth: true, hex: true, town: true });
+  });
+});
+
+// --- 18. the ground nobody works (batch X1d-ground) --------------------------
+
+/**
+ * **The three places this bot counted ground nobody would stand on** — the
+ * user's rulings of 2026-09-09 on `docs/flags.md` item (ggg), each of them a
+ * count replaced by a reading the simulation already had:
+ *
+ *   · **the worker's craving** — the entries a spade's own charges would lay, on
+ *     hexes a citizen works or the next few the town would work, each discounted
+ *     at the turn it lands. `workers.planFalloff`, the decay over rank that stood
+ *     in for the count, is retired;
+ *   · **the settle site** — the hexes a town founded there would actually work
+ *     inside the horizon, at the turn each citizen arrives, rather than every hex
+ *     of two rings at a per-ring falloff, and through the seat's own context
+ *     rather than the omniscient one. `site.ringFalloff` retires with the sum;
+ *   · **the renewal** — the town's own fold with the node held against its
+ *     standing fold, over the hexes its citizens work, rather than every farm
+ *     standing or buildable within reach of a centre.
+ */
+describe('the ground nobody works (batch X1d-ground)', () => {
+  /** The seat that may lay farms and mines, so the plan has entries at all. */
+  function farming(state: GameState, playerId: number): Player {
+    const player = seat(state, playerId);
+    for (const goal of ['agriculture', 'mining'] as const) {
+      for (const step of [...researchExpansion(state, playerId, goal), goal]) {
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      }
+    }
+    bumpRevision(state);
+    return player;
+  }
+
+  /**
+   * A town in the desert with `grass` grassland hexes and `hill` grassland hills
+   * in its ring — the two kinds a citizen ranks very differently (two food
+   * against none), which is what makes "the hexes it would work" a bound with
+   * teeth rather than a restatement of the plan.
+   */
+  function town(grass: number, hills: number, population = 1): { state: GameState; city: City } {
+    const state = bench(1, { width: 20, height: 12, terrain: 'desert' });
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    const ring: [number, number][] = [
+      [4, 5],
+      [6, 5],
+      [5, 4],
+      [5, 6],
+      [4, 4],
+      [4, 6],
+      [3, 5],
+      [7, 5],
+      [5, 3],
+      [5, 7],
+    ];
+    for (let index = 0; index < ring.length; index++) {
+      const tile = own(state, city, ring[index]![0], ring[index]![1]);
+      if (index < grass + hills) tile.terrain = 'grassland';
+      tile.hills = index >= grass && index < grass + hills;
+    }
+    farming(state, 0);
+    city.population = population;
+    refreshCityDerived(state, city);
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, city };
+  }
+
+  function craving(state: GameState, city: City): { total: number; terms: readonly ValueTerm[] } {
+    const player = seat(state, 0);
+    const ctx = valueContext(state, player);
+    const plan = buildImprovementPlan(state, player, ctx);
+    const reading = explainWorkerCraving(plan, state, city, ctx, 'worker');
+    expect(foldTerms(reading.terms)).toBe(reading.total);
+    return reading;
+  }
+
+  it('prices a spade at the entries its own charges would buy, and no more', () => {
+    // Eight farmable hexes and a Worker's three charges: the fold is three
+    // entries, not eight — the ruling's "as many as its charges buy".
+    const { state, city } = town(8, 0, 2);
+    const reading = craving(state, city);
+    expect(reading.terms.length).toBeGreaterThan(0);
+    expect(reading.terms.length).toBeLessThanOrEqual(unitDef('worker').charges ?? 0);
+    // Each term is the entry's own worth discounted at the turn the spade lands
+    // it — the walk and the digging, sequential — and never the undiscounted
+    // figure the plan holds.
+    for (const term of reading.terms) {
+      const parts = term.parts!;
+      expect(term.value).toBeCloseTo(parts[0]!.value * parts[1]!.value, 10);
+      expect(term.value).toBeLessThan(parts[0]!.value);
+      expect(parts[1]!.label).toMatch(/walk out and dig/);
+    }
+  });
+
+  it('counts only the hexes this town’s citizens will stand on', () => {
+    // Three grassland hexes and seven grassland hills. A citizen ranks the flat
+    // grass above the hill (`yieldScore` off the town's own fold), and a size-1
+    // town reaches three seats — so the mines the plan holds on those hills are
+    // entries the craving does not count, however well a mine scores in the one
+    // currency.
+    const { state, city } = town(3, 7, 1);
+    const player = seat(state, 0);
+    const ctx = valueContext(state, player);
+    const plan = buildImprovementPlan(state, player, ctx);
+    const reading = explainWorkerCraving(plan, state, city, ctx, 'worker');
+    const hills = plan.entries.filter((entry) => at(state.map, entry.col, entry.row).hills);
+    expect(hills.length).toBeGreaterThan(0);
+    expect(reading.terms.length).toBeGreaterThan(0);
+    for (const term of reading.terms) {
+      const hex = /\((\d+),(\d+)\)/.exec(term.label)!;
+      expect(at(state.map, Number(hex[1]), Number(hex[2])).hills).toBe(false);
+    }
+  });
+
+  it('is answered by the charges the spades already out still hold', () => {
+    // A size-1 town reaches three seats and a Worker holds three charges, so the
+    // spade already standing beside it has the whole of that list spoken for and
+    // the second one is worth nothing — "the entries existing workers will
+    // reach, removed first", read at its limit.
+    const { state, city } = town(8, 0, 1);
+    const before = craving(state, city);
+    expect(before.total).toBeGreaterThan(0);
+    createUnit(state, 0, 'worker', city.col + 1, city.row);
+    bumpRevision(state);
+    const after = craving(state, city);
+    expect(after.terms.length).toBe(0);
+    expect(after.total).toBe(0);
+  });
+
+  /**
+   * Two sites on one board: `rich` is four hexes of wheat-fed grassland in a
+   * desert, `middling` is eighteen hexes of plains. The old sum — every hex of
+   * two rings at `site.ringFalloff` — read the eighteen higher; a town works the
+   * four.
+   */
+  function twoSites(): { state: GameState; rich: Tile; middling: Tile } {
+    const state = bench(1, { width: 24, height: 12, terrain: 'desert' });
+    farming(state, 0);
+    const rich = at(state.map, 4, 5);
+    rich.terrain = 'grassland';
+    for (const [col, row] of [
+      [3, 5],
+      [5, 5],
+      [4, 4],
+      [4, 6],
+    ] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'grassland';
+      tile.resource = 'wheat';
+    }
+    const middling = at(state.map, 16, 5);
+    middling.terrain = 'grassland';
+    for (const tile of mapRange(state.map, tileHex(middling), 2)) {
+      if (tile.col === middling.col && tile.row === middling.row) continue;
+      tile.terrain = 'plains';
+    }
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, rich, middling };
+  }
+
+  it('scores four rich hexes above eighteen middling ones', () => {
+    const { state, rich, middling } = twoSites();
+    const player = seat(state, 0);
+    const ctx = valueContext(state, player);
+    const ground = yieldContextFor(state, player.id);
+    const a = explainSite(state, ctx.realm, ctx, rich, ground);
+    const b = explainSite(state, ctx.realm, ctx, middling, ground);
+    expect(foldTerms(a.terms)).toBe(a.total);
+    expect(foldTerms(b.terms)).toBe(b.total);
+    expect(a.total).toBeGreaterThan(b.total);
+    // And it says why: the hexes counted are the ones a town would work, each
+    // named with the citizen that arrives to work it, and there are far fewer of
+    // them than there are hexes in two rings.
+    const counted = findTerm(a.terms, /would work inside the horizon/)!;
+    expect(counted.parts!.length).toBeLessThan(19);
+    expect(labelsOf([counted])).toMatch(/citizen 1's hex/);
+    expect(labelsOf([counted])).toMatch(/worked for nothing/);
+  });
+
+  it('reads a site through the seat’s own eyes, never the omniscient one', () => {
+    // A seam this empire cannot name pays it nothing — rule 5's ctx clause,
+    // which the settle table used to walk straight past (`explainTileYield` with
+    // no context at all, the omniscient reading).
+    const { state, rich } = twoSites();
+    const player = seat(state, 0);
+    for (const [col, row] of [
+      [3, 5],
+      [5, 5],
+    ] as const) {
+      at(state.map, col, row).resource = 'iron';
+    }
+    bumpRevision(state);
+    const blind = explainSite(
+      state,
+      valueContext(state, player).realm,
+      valueContext(state, player),
+      rich,
+      yieldContextFor(state, player.id),
+    );
+    for (const step of researchExpansion(state, 0, 'bronzePanoply')) {
+      if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+    }
+    if (!player.techsResearched.includes('bronzePanoply')) player.techsResearched.push('bronzePanoply');
+    bumpRevision(state);
+    const seeing = explainSite(
+      state,
+      valueContext(state, player).realm,
+      valueContext(state, player),
+      rich,
+      yieldContextFor(state, player.id),
+    );
+    expect(seeing.total).toBeGreaterThan(blind.total);
+  });
+
+  it('prices a renewal as the fold it would move, and at nothing where it moves none', () => {
+    // Irrigation on a town working two ploughed river banks is worth exactly what
+    // the town's own fold gains — `explainTileYield` asked twice with the two
+    // technology lists, which is how a building is priced one system over.
+    const { state, city } = town(6, 0, 2);
+    const player = seat(state, 0);
+    for (const [col, row] of [
+      [4, 5],
+      [6, 5],
+    ] as const) {
+      const tile = at(state.map, col, row);
+      tile.freshwater = true;
+      tile.improvement = 'farm';
+    }
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    const ctx = valueContext(state, player);
+    const fold = renewalFoldFor(ctx, 'irrigation');
+    expect(foldTerms(fold.terms)).toBe(fold.total);
+    expect(fold.towns.length).toBe(1);
+    // The delta is the simulation's own, hex by hex over what the town works.
+    const ground = cityContext(state, city)!;
+    const wet: TileYieldContext = { ...ground, techs: [...ground.techs, 'irrigation'] };
+    let gained = 0;
+    for (const cell of city.workedTiles) {
+      const tile = at(state.map, cell.col, cell.row);
+      gained += foldTile(tile, wet).food - foldTile(tile, ground).food;
+    }
+    expect(gained).toBeGreaterThan(0);
+    expect(fold.total).toBeCloseTo(explainYields({ food: gained }, ctx).total, 10);
+
+    // And a town whose citizens stand on no ploughed bank at all reads nothing.
+    const dry = town(6, 0, 2);
+    const dryCtx = valueContext(dry.state, seat(dry.state, 0));
+    expect(renewalFoldFor(dryCtx, 'irrigation').total).toBe(0);
   });
 });
