@@ -593,7 +593,20 @@ directly to confirm rulings — user marginalia are rulings.
   progress as the mean age, the choice window, the deck scaling off the
   world, what a malice is, reckonings retiring. Awaiting marginalia; the
   batches are G1 clock → G2 deal → G3 malice → W2 bots. The Abacus
-  world-clock ruling folds into its §1. (eee)
+  world-clock ruling folds into its §1. (ggg) **The bot's second pass**
+  (the user, 2026-09-08: "do a pass on the bot considering all the changes
+  we've made … squeeze as much performance as possible out of the bots …
+  variables that are missing from its evaluation"): the audit is
+  `docs/audit/bot-pass-2.md` — 33 mechanics matrixed (10 priced, 8 with a
+  named defect, 15 ignored), three measured findings (the cost standard
+  made two thirds of the tech table score negative and the beeline went
+  military; a deal loop re-sends one refused paper 37 times; faith rides
+  its ceiling and buys nothing), the missing variables (a CityScope is
+  never evaluated — 222 of 731 rows priced × cities; `cityHp` unread; the
+  citizen's happiness demand uncharged), 81–105 ms a turn measured, and a
+  queue X1–X11. **X1, X2, X3 fly now** (each an arithmetic change inside
+  an existing fold, each with its acceptance measurement); X4–X8 follow;
+  X9–X11 wait. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
