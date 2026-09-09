@@ -121,7 +121,6 @@ import {
   borderGrowth,
   cityTile,
   mirrorRowFor,
-  purchasableTiles,
   tilePurchaseError,
   tilePurchasePrice,
   yieldScore,
@@ -191,7 +190,7 @@ import {
 } from '../sim/unitData';
 import { buildingUpkeep } from '../sim/upkeep';
 import { round } from './decision';
-import { citizenKeepTerm, keepDoor } from './citizen';
+import { citizenKeepTerm } from './citizen';
 // **The town folds, one leaf down** (batch X1d). The chains price a building
 // step per copy off the very same grid, and a chain may not stand on the book
 // that stands on it — so the reading both books were already sharing moved to
@@ -544,7 +543,7 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   // The keep of the citizen who would stand on bought ground, hoisted for the
   // same reason: it is a fact about the town's size and the seat's price, so it
   // is one figure for every offer this loop prices (batch X5b).
-  const keep = keepDoor.hex ? citizenKeepTerm(ctx, city.population) : null;
+  const keep = citizenKeepTerm(ctx, city.population);
   // **The one hex a coin buys nothing but time on** — the hex this town's own
   // culture is about to claim for nothing (`bestExpansionTile`, the simulation's
   // own chooser). Buying *that* one gains its yield for the turns until the
@@ -621,6 +620,14 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
   return wants;
 }
 
+/** A hex this town may buy, with the ladder's price and the arm's appraisal. */
+interface PricedHex {
+  col: number;
+  row: number;
+  price: number;
+  worth: Appraisal;
+}
+
 /**
  * **The bound, and the measurement that asked for it** — batch X6
  * (`docs/audit/bot-pass-2.md`, Part 3). `tileWants` was the hottest arm in the
@@ -671,16 +678,6 @@ function tileWants(state: GameState, ctx: ValueContext, city: City): Want[] {
  * never a want under the old walk either. A want the rules would strike still
  * cannot reach the spend arm.
  */
-export const hexDoor = { bound: true };
-
-/** A hex this town may buy, with the ladder's price and the arm's appraisal. */
-interface PricedHex {
-  col: number;
-  row: number;
-  price: number;
-  worth: Appraisal;
-}
-
 function pricedOffers(
   state: GameState,
   ctx: ValueContext,
@@ -688,22 +685,6 @@ function pricedOffers(
   quote: (tile: Tile) => Appraisal | null,
 ): PricedHex[] {
   const owner = city.ownerId;
-  if (!hexDoor.bound) {
-    // The unbounded reading, kept whole so the acceptance bench has something to
-    // measure against: `purchasableTiles` prices and gates every frontier hex,
-    // and every offer with no refusal on it is quoted.
-    const all: PricedHex[] = [];
-    for (const offer of purchasableTiles(state, city)) {
-      if (offer.error !== null) continue;
-      const tile = getTileAt(state.map, offer.col, offer.row);
-      if (!tile) continue;
-      const worth = quote(tile);
-      if (worth === null) continue;
-      all.push({ col: offer.col, row: offer.row, price: offer.price, worth });
-    }
-    return all;
-  }
-
   const { map } = state;
   // The sweep reading of who owns a hex, hoisted for exactly this loop's lifetime
   // (`tileOwnerField`'s own rule): `state.tileOwner` holds a **town's** id, and
@@ -747,9 +728,9 @@ function pricedOffers(
 
 /**
  * Does this hex touch ground this empire already holds? `tilePurchaseError`'s
- * frontier question, asked cheaply so the expensive one is asked of fewer hexes —
- * see `hexDoor`. It narrows what is *asked*; it permits nothing, and the offers
- * it lets through still go to the rule before any of them becomes a want.
+ * frontier question, asked cheaply so the expensive one is asked of fewer hexes
+ * (batch X6). It narrows what is *asked*; it permits nothing, and the offers it
+ * lets through still go to the rule before any of them becomes a want.
  *
  * The owner reading is the field's rather than the raw array's for the reason
  * `tileOwnerField` gives: a hex records the **town** that claimed it, and a

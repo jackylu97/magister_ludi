@@ -71,7 +71,7 @@ import {
 } from '../../src/ai/bot';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
-import { citizenKeepTerm, keepDoor } from '../../src/ai/citizen';
+import { citizenKeepTerm } from '../../src/ai/citizen';
 import {
   type BotCandidate,
   type BotDecision,
@@ -97,11 +97,8 @@ import {
   explainYields,
   hasFoldReadEngine,
   meterWeight,
-  rowDoor,
-  scopeDoor,
   scoreEffects,
   sciencePrice,
-  signDoor,
   siteRefusal,
   townsAdmitting,
   voiceWeight,
@@ -3076,25 +3073,25 @@ describe('the scope, evaluated (batch X2)', () => {
     expect(townsAdmitting(valueContext(state, player), { test: 'hasBuilding', building: 'granary' })).toBe(3);
   });
 
-  it('leaves an unscoped clause exactly where it was', () => {
+  it('leaves an unscoped clause reading the whole realm, and says nothing about it', () => {
     // The other half of every acceptance in this file: a row that names no scope
-    // is priced by the same arithmetic it always was. The door is the proof —
-    // the same board, the same effects, the same number with the reading off.
+    // is every town's, which is what absence means — so the scope reading is the
+    // realm's own count and the label carries no note about ground it never
+    // narrowed.
     const { state, player } = realm(3);
+    const ctx = valueContext(state, player);
+    expect(townsAdmitting(ctx, undefined)).toBe(ctx.cities);
+    expect(ctx.cities).toBe(3);
     const rows: CardEffect[] = [
       { kind: 'pays', where: 'city', gold: 2 },
       { kind: 'percentYields', yield: 'science', percent: 20 },
       { kind: 'happiness', amount: 1, per: 'city' },
     ];
-    const open = scoreEffects(rows, valueContext(state, player));
-    scopeDoor.towns = false;
-    scopeDoor.hexes = false;
-    try {
-      expect(scoreEffects(rows, valueContext(state, player))).toBe(open);
-    } finally {
-      scopeDoor.towns = true;
-      scopeDoor.hexes = true;
-    }
+    const appraisal = explainEffects(rows, valueContext(state, player));
+    for (const term of appraisal.terms) expect(term.label).not.toMatch(/ of \d+ towns/);
+    // A `pays` line with no scope is the realm's whole town count, paid once a
+    // town — the arithmetic the scope reading only ever narrows.
+    expect(appraisal.terms[0]!.value).toBe(2 * voiceWeight(ctx, 'gold') * ctx.cities);
   });
 
   it('says the count in the label, so a nought in the feed can be accounted for', () => {
@@ -3142,10 +3139,10 @@ describe('the scope, evaluated (batch X2)', () => {
  * of stone is worth less of the bar than the first.
  *
  * Both are asked of the folds that hold them rather than of a played game, and
- * both are asked against the **door** (`signDoor`) rather than against a
- * remembered number, which is `scopeDoor`'s bargain one batch over: the claim is
- * *what the term changed*, and a claim written as a constant would move with the
- * weight table instead of failing when the arithmetic does.
+ * both are written out off the simulation's own readings rather than against a
+ * remembered number: the claim is *the arithmetic*, and a claim written as a
+ * constant would move with the weight table instead of failing when the
+ * arithmetic does.
  */
 describe('the two missing signs (batch X5)', () => {
   function realm(towns: number, population = 4): { state: GameState; player: Player; cities: City[] } {
@@ -3225,25 +3222,14 @@ describe('the two missing signs (batch X5)', () => {
     expect(labelsOf(settler!.terms)).toMatch(/the citizen it costs this town/);
     expect(labelsOf(settler!.terms)).toMatch(/what the town it founds would ask the empire for/);
     expect(foldTerms(settler!.terms)).toBe(settler!.score);
-    // The door proves the sign of the relief half: a citizen that costs
-    // contentment is a citizen the town gives up more cheaply, so the settler is
-    // worth more with it — asked with the chain's answering charge held out, so
-    // the two halves are read apart.
-    keepDoor.town = false;
-    try {
-      const open = decisionOfType(state, player.id, 'setCityProduction')!.candidates.find(
-        (row) => row.label === 'Settler',
-      )!;
-      signDoor.citizen = false;
-      const shut = decisionOfType(state, player.id, 'setCityProduction')!.candidates.find(
-        (row) => row.label === 'Settler',
-      )!;
-      expect(labelsOf(shut.terms)).not.toMatch(DEMANDED);
-      expect(open.score).toBeGreaterThan(shut.score);
-    } finally {
-      signDoor.citizen = true;
-      keepDoor.town = true;
-    }
+    // And the two are opposite signs, which is the whole of the pair: the
+    // citizen this town gives up is a **relief** on the settler (subtracted
+    // through `explainCitizen`, so a citizen that costs contentment makes the
+    // settler worth more) and the citizen the founding creates is a **charge**.
+    const relief = findTerm(settler!.terms, /the citizen it costs this town/)!;
+    const founds = findTerm(settler!.terms, /what the town it founds would ask the empire for/)!;
+    expect(findTerm(relief.parts ?? [], DEMANDED)!.value).toBeLessThan(0);
+    expect(founds.value).toBeLessThan(0);
   });
 
   const WALL_ROWS = BUILDING_IDS.filter((id) => (buildingDef(id).cityHp ?? 0) !== 0);
@@ -3374,11 +3360,6 @@ describe('the two missing signs (batch X5)', () => {
     }
   });
 
-  it('leaves the door open in the shipped bot, both halves', () => {
-    // `scopeDoor`'s sentence one batch over: the switch exists for the batch's own
-    // acceptance measurement, it is not a knob, and neither half ships shut.
-    expect(signDoor).toEqual({ citizen: true, wall: true });
-  });
 });
 
 // --- batch X8: the rows nobody reads ----------------------------------------
@@ -3652,9 +3633,6 @@ describe('the five charter lines (batch X8)', () => {
     }
   });
 
-  it('leaves the door open in the shipped bot, both halves', () => {
-    expect(rowDoor).toEqual({ rows: true, unitStat: true });
-  });
 });
 
 describe('the site, refused out loud (batch X8)', () => {
@@ -3702,22 +3680,22 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
     expect(scoreEffects(reach, ctx)).toBeCloseTo(aiJson.weights.military * (1 + ctx.threat), 9);
   });
 
-  it('was the arithmetic accident the audit named, and the door proves it', () => {
+  it('is no longer the arithmetic accident the audit named', () => {
+    // The accident: `amount` went straight into the military weight whatever the
+    // stat was, so Field Hospitals' whole mend read as a hundred points of
+    // strength — the strongest line in the game, by arithmetic rather than by
+    // design. A mend cannot exceed the bar it fills, so the whole of one is
+    // worth one piece and never a hundred.
     const { state, player } = x8Realm(2, 6);
     const ctx = valueContext(state, player);
     const full: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 100 }];
-    rowDoor.unitStat = false;
-    try {
-      // A hundred points of strength — the strongest line in the game, by
-      // arithmetic rather than by design.
-      expect(scoreEffects(full, ctx)).toBeCloseTo(
-        100 * aiJson.weights.military * (1 + ctx.threat),
-        9,
-      );
-    } finally {
-      rowDoor.unitStat = true;
-    }
+    expect(scoreEffects(full, ctx)).toBeLessThan(
+      100 * aiJson.weights.military * (1 + ctx.threat),
+    );
     expect(scoreEffects(full, ctx)).toBeLessThan(100 * aiJson.weights.military);
+    // A mend of two hundred is still one piece: the share is capped at the bar.
+    const twice: CardEffect[] = [{ kind: 'unitStat', stat: 'heal', amount: 200 }];
+    expect(scoreEffects(twice, ctx)).toBe(scoreEffects(full, ctx));
   });
 });
 
@@ -3836,18 +3814,14 @@ describe('the growth channel charged (batch X5b)', () => {
       expect(keep!.value).toBe(-marginal * meterWeight(ctx, 'happiness'));
       // A want's worth is the fold of its printed terms, this line included.
       expect(foldTerms(want!.terms)).toBe(want!.worth);
-      // Shut, the same hex is worth strictly more — the line is a charge, and
-      // nothing else moved with it.
-      keepDoor.hex = false;
-      try {
-        const shut = valueContext(state, player).wants.gold.find((row) =>
-          row.label.startsWith('the hex at'),
-        )!;
-        expect(labelsOf(shut.terms)).not.toMatch(KEEP);
-        expect(shut.worth).toBeGreaterThan(want!.worth);
-      } finally {
-        keepDoor.hex = true;
-      }
+      // It is a **charge**: the one negative line on a hex whose others are all
+      // gains, so the hex folds to strictly less than what it pays.
+      expect(keep!.value).toBeLessThan(0);
+      const hex = want!.terms[0]!;
+      const inside = hex.parts!;
+      expect(inside).toContain(keep!);
+      expect(inside.filter((term) => term.value < 0)).toHaveLength(1);
+      expect(hex.value).toBeLessThan(foldTerms(inside.filter((term) => term !== keep)));
     });
   });
 
@@ -3936,22 +3910,13 @@ describe('the growth channel charged (batch X5b)', () => {
     expect(line!.value).toBe(-(happinessDemand(1) - happinessDemand(0)) * meterWeight(ctx, 'happiness'));
     expect(line!.value).toBe(citizenKeepTerm(ctx, 0)!.value);
     expect(foldTerms(chain!.terms)).toBe(chain!.worth);
-    // Shut, the chain is worth strictly more and says nothing about contentment
-    // it can still pay for — the door's whole job.
-    keepDoor.town = false;
-    try {
-      const shut = valueContext(state, player).expansion!;
-      expect(labelsOf(shut.terms)).not.toMatch(KEEP);
-      expect(shut.worth).toBeGreaterThan(chain!.worth);
-    } finally {
-      keepDoor.town = true;
-    }
-  });
-
-  it('leaves the door open in the shipped bot, all three halves', () => {
-    // `signDoor`'s sentence one batch on: the switch is the acceptance bench's,
-    // it is not a knob, and no half ships shut.
-    expect(keepDoor).toEqual({ growth: true, hex: true, town: true });
+    // It is a charge on the chain, and it is nested under its own heading rather
+    // than folded loose among the gains — the clause a reader of the feed has to
+    // be able to find.
+    expect(line!.value).toBeLessThan(0);
+    const nested = findTerm(chain!.terms, /what the town it founds would ask the empire for/)!;
+    expect(nested.value).toBe(line!.value);
+    expect(nested.value).toBeLessThan(0);
   });
 });
 

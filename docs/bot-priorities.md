@@ -2920,6 +2920,9 @@ Duel, two balanced seats, wild on, 150 turns, driven a decision at a time throug
 before this batch. Not a knob: it is not in `data/ai.json`, no persona reads it,
 the arena cannot see it, and both halves ship open.
 
+*(The door came out on 2026-09-09 — see "The doors, removed" at the foot of this
+file. The measurement below stands as the record of what the batch moved.)*
+
 | seed | shut → open | towns-half alone | hexes-half alone | first divergence |
 |---|---|---|---|---|
 | 20260903 | **moved** | MOVES | MOVES | #33 `draft` — `chooseOrder` 1 → `skipOrderOffer` |
@@ -3449,6 +3452,9 @@ Both halves ride a **door** — `signDoor = { citizen: true, wall: true }`
 `scopeDoor` does: not in `data/ai.json`, no persona reads it, no surface offers
 it, both halves shipped open.
 
+*(The door came out on 2026-09-09 — see "The doors, removed" at the foot of this
+file. The measurement below stands as the record of what the batch moved.)*
+
 ### The wall half, on W1's siege bench
 
 The arranged board of `test/sim/aiWar.test.ts`: a three-town seat at war, its
@@ -3785,6 +3791,9 @@ because the batch is two arithmetics: `rows` is the five charter lines, `unitSta
 is the dispatch. Not a knob — not in `data/ai.json`, no persona reads it, no
 surface offers it, both halves ship open.
 
+*(The door came out on 2026-09-09 — see "The doors, removed" at the foot of this
+file. The measurement below stands as the record of what the batch moved.)*
+
 ### What bot.ts still owes (one line each, outside this batch's fence)
 
 - **`buildCandidates` (`bot.ts`) should hand the town in**:
@@ -3942,6 +3951,9 @@ X5's own bench, unchanged: seeds 1/2/3/42/101/999/31337/20260101, duel, two
 balanced seats, wild on, **sixteen seats**, 150 turns, `driveBots`. "Before" is
 X5 as shipped (`keepDoor` shut — the citizen's keep in the settler's arm, the
 growth channel uncharged); the halves are switched independently.
+
+*(The door came out on 2026-09-09 — see "The doors, removed" at the foot of this
+file. The measurement below stands as the record of what the batch moved.)*
 
 | | towns | `setCitizenFocus` | ceiling @t150 | Σ happiness t100 | Σ happiness t150 | science/turn | culture/turn |
 |---|---|---|---|---|---|---|---|
@@ -4472,6 +4484,9 @@ luck.
 `hexDoor.bound` is a source-level switch in `scopeDoor`'s and `keepDoor`'s idiom:
 shut, the arm walks `purchasableTiles` exactly as it did. Not a knob — not in
 `data/ai.json`, read by no persona, invisible to the arena.
+
+*(The door came out on 2026-09-09 — see "The doors, removed" at the foot of this
+file. The measurement below stands as the record of what the batch moved.)*
 
 | bench | shut → open |
 |---|---|
@@ -5749,3 +5764,59 @@ two-node road prices both nodes' gifts in the right order and drops the first on
 is held; and a long wonder in a town of four ranks under a four-turn shelf, with its
 divisor its real turns and its payoff discounted for them, while the Opus keeps its
 patience.
+
+---
+
+## The doors, removed — 2026-09-09
+
+`docs/flags.md` item (ggg): **the five attribution doors come out.** Each was a
+source-level switch a batch left behind so its own acceptance bench could play the
+same eight seeds with the new reading shut and open and attribute the boards that
+moved to the half that moved them; each was pinned open by a *"leaves the door open
+in the shipped bot"* case. They were right for measuring and dead weight after.
+
+| door | batch | halves | what its shut branch reproduced |
+|---|---|---|---|
+| `scopeDoor` (`value.ts`) | X2 | `towns` · `hexes` | the realm's whole town count, and `score.nominalTiles` |
+| `signDoor` (`value.ts`) | X5 | `citizen` · `wall` | a citizen as pure gain, a wall as its strength alone |
+| `keepDoor` (`citizen.ts`) | X5b | `growth` · `hex` · `town` | a citizen as pure ground, in all three arms |
+| `hexDoor` (`wants.ts`) | X6 | `bound` | `purchasableTiles` over every frontier hex, unranked |
+| `rowDoor` (`value.ts`) | X8 | `rows` · `unitStat` | no charter lines, and `amount × weights.military` whatever the stat |
+
+**132 lines out of `src/ai/` for 29 back** (336 for 191 counting the tests) — five
+exports and their docblocks gone, every open branch kept as the *only* branch, and
+one live comment reworded where it explained a knockout rather than the code. No
+shipped arithmetic moved: the t100 probe (eight seeds 1/2/3/42/101/999/31337/
+20260101, standard map, two balanced seats, wild on, `createBotStepper().playTurn()`
+to turn 100) is **byte-identical to main in every column** — state hash, command
+log hash and command count on all eight.
+
+### The pins
+
+Five *"leaves the door open"* cases are deleted outright (`aiAppraisal.test.ts` ×3,
+`aiWants.test.ts` ×1 — rewritten there as the claim that the *bound* is a real knob
+on the sheet, which it is). Every case that measured a difference by flipping a door
+was **rewritten to assert the open behaviour directly**, never dropped:
+
+  · `aiAppraisal.test.ts` "leaves an unscoped clause exactly where it was" → an
+    unscoped clause reads the whole realm (`townsAdmitting(ctx, undefined)` is
+    `ctx.cities`), prints no scope note, and pays its voice weight once a town.
+  · `aiAppraisal.test.ts` "is inherited by the settler's arm" → the two printed
+    citizen lines are asserted by **sign**: the one this town gives up is a relief,
+    the one the founding creates is a charge.
+  · `aiAppraisal.test.ts` the `unitStat` accident → a whole mend is worth less than
+    a hundred points of strength, and a mend of two hundred is worth exactly what a
+    mend of a hundred is (the share is capped at the bar).
+  · `aiAppraisal.test.ts` the hex purchase and the expansion chain → the keep is the
+    one negative line inside its own fold, and the fold is strictly less than the
+    same fold without it.
+  · `aiBot.test.ts` "leaves the wall chain worth more" → every `cityHp` row prints a
+    hit-points line worth something and no other row says a word about hit points.
+  · `aiWar.test.ts` the siege bench → the line is there, it is a gain, it is exactly
+    `(hp ÷ bar) × defence × (1 + threat)`, it is strictly less than the whole of
+    what defending the town is worth, and the town **still** does not front it.
+  · `aiPersona.test.ts` the tall seat → the gains alone are greater for the tall
+    seat and the charge is what turns the citizen's worth around.
+  · `aiWants.test.ts` the X6 bound → the "unbounded" reading is now
+    `expansion.hexOffersPriced` lifted past every offer a frontier has, so both
+    readings run one code path and the ranking claim survives whole.

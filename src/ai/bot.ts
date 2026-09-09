@@ -168,7 +168,6 @@ import {
   explainSoldier,
   explainUpkeepCost,
   explainYields,
-  signDoor,
   newResourceTerms,
   realmResources,
   townProduction,
@@ -177,7 +176,7 @@ import {
   yieldDelta,
   yieldWeight,
 } from './value';
-import { citizenKeepTerm, keepDoor } from './citizen';
+import { citizenKeepTerm } from './citizen';
 import {
   NO_WANTS,
   type BankCurrency,
@@ -1634,7 +1633,7 @@ function growthTerm(
   );
   // The keep, at the town's current population — the ruling's own line, and the
   // half of the citizen's worth that is not a fact about where its people stand.
-  const keep = keepDoor.growth ? citizenKeepTerm(ctx, city.population) : null;
+  const keep = citizenKeepTerm(ctx, city.population);
   const worth = appraise([
     {
       label: `the ground it would work — (${nextHex.col},${nextHex.row})`,
@@ -1643,8 +1642,7 @@ function growthTerm(
     ...(keep === null ? [] : [keep]),
   ]);
   // Nothing to charge either way: a citizen worth exactly nothing is a citizen
-  // whose arrival the horizon cannot price. (Shut, this is the old `citizen <= 0`
-  // guard exactly — a hex pays nothing negative.)
+  // whose arrival the horizon cannot price.
   if (worth.total === 0) return null;
   const remaining = Math.max(0, growthThreshold(city.population) - city.foodBasket);
   const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
@@ -4752,7 +4750,7 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
   // is a gain. Since X5b the line is `citizenKeepTerm`'s (`citizen.ts`) — one
   // arithmetic, folded here, by the focus arm, by the hex purchase and by the
   // expansion chain, so no two arms come to two answers about one citizen.
-  const keep = signDoor.citizen ? citizenKeepTerm(ctx, city.population) : null;
+  const keep = citizenKeepTerm(ctx, city.population);
   if (keep !== null) terms.push(keep);
   return appraise(terms);
 }

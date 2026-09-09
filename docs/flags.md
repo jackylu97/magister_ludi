@@ -720,6 +720,11 @@ directly to confirm rulings — user marginalia are rulings.
   (whole game and X2's identical-state method) plus the t100 probe's own
   ms/turn column; the five attribution doors (`scopeDoor`, `signDoor`,
   `keepDoor`, `hexDoor`, `rowDoor`) come out in a cleanup pass after M1.
+  **Done, batch D1, 2026-09-09**: all five out, 132 lines of `src/ai/` for
+  29 back, every open branch kept as the only branch, the t100 probe
+  byte-identical to main on all eight seeds; the pins that flipped a door
+  to measure a difference were rewritten to assert the open behaviour
+  directly (`docs/bot-priorities.md`, "The doors, removed").
   **Batch T1, the test suite's speed** (the user, 2026-09-09: "improve the
   speed of the testing suite … how much of it is actually necessary?"):
   the push-gate is 13 minutes and 12 of them are one file, the 200-turn

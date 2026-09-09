@@ -184,7 +184,7 @@
  */
 
 import { type LevyReading, isFieldSoldier, levyReading } from './campaign';
-import { citizenKeepTerm, keepDoor } from './citizen';
+import { citizenKeepTerm } from './citizen';
 import { type Appraisal, type ValueTerm, appraise, foldTerms, nest } from './decision';
 import { renewalFoldFor } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
@@ -1370,7 +1370,7 @@ export function expansionChain(
    * less what each *town* costs — and the town's own cost is what the clause
    * above already prices.
    */
-  const newTown = keepDoor.town ? citizenKeepTerm(ctx, 0) : null;
+  const newTown = citizenKeepTerm(ctx, 0);
   if (newTown !== null) {
     terms.push(nest('and what the town it founds would ask the empire for', appraise([newTown])));
   }

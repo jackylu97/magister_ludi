@@ -43,7 +43,6 @@ import {
   withAiTuning,
 } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
-import { signDoor } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { buildImprovementPlan } from '../../src/ai/plan';
 import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
@@ -415,14 +414,15 @@ describe('the settler’s two new halves', () => {
     expect(demanded(balanced)!.value).toBeLessThan(0);
 
     const tall = citizenFor('tall');
+    // The ruling's own claim, said in the two halves it is made of: the tall seat
+    // holds contentment dearer, so it charges the citizen more — and the charge
+    // is what makes a citizen worth *less* to it than to the balanced seat, where
+    // the gains alone would have said the opposite.
     expect(demanded(tall)!.value).toBeLessThan(demanded(balanced)!.value);
-    // The ruling's own claim, asked of the gains it was made about.
-    signDoor.citizen = false;
-    try {
-      expect(citizenFor('tall').total).toBeGreaterThan(citizenFor(DEFAULT_PERSONA).total);
-    } finally {
-      signDoor.citizen = true;
-    }
+    const gains = (appraisal: { terms: readonly { label: string; value: number }[] }): number =>
+      appraisal.terms.filter((term) => term.value > 0).reduce((sum, term) => sum + term.value, 0);
+    expect(gains(tall)).toBeGreaterThan(gains(balanced));
+    expect(tall.total).toBeLessThan(balanced.total);
   });
 });
 

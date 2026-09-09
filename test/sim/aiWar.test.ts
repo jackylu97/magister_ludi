@@ -54,7 +54,7 @@ import {
   explainWarScore,
 } from '../../src/ai/diplomacy';
 import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
-import { explainBuildingRow, signDoor } from '../../src/ai/value';
+import { explainBuildingRow } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { hasResource, foundCityAt, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
@@ -1313,87 +1313,67 @@ describe('the campaign', () => {
     return decision === null || decision.command.type !== 'setCityProduction' ? null : decision;
   }
 
-  it('raises the wall in a besieged town’s queue, and it is the hit points that do it', () => {
+  it('reads a besieged town’s wall as a share of its bar, and still does not front it', () => {
     // **X5's acceptance, arranged — and X5c's, which is the honest half of it.**
-    // The same board and the same decision, asked with the hit-point line shut
-    // and open, on a bench at threat 4 with the happiness price at its ceiling.
+    // One board, one decision, on a bench at threat 4 with the happiness price at
+    // its ceiling.
     //
     // X5 put the Palisade at the **front** of the queue here, and paid for it
     // everywhere else: the wall half alone cost the mean seat nine citizens,
     // thirty-four food and nine science on the t100 probe, because a point of
     // hit points was priced as a point of strength. Measured on this bench, the
-    // three readings of the Palisade's turn of build effort are
+    // three readings of the Palisade's turn of build effort were
     //
-    //   · **shut** 4.81 — fifth of nine, the town raises a Warrior (17.80);
+    //   · **no wall line at all** 4.81 — fifth of nine, the town raises a
+    //     Warrior (17.80);
     //   · **X5's points** 19.23 — first of nine, ahead of a Warrior at 16.52;
     //   · **X5c's share** 5.81 — **fourth** of nine, the town still raises a
     //     Warrior (17.30).
     //
-    // So the rank rose one place rather than four, and this test says so: the
-    // ruling's acceptance is *"a threatened town must still front a wall-chain
-    // row at threat 4, or the test says by how much the wall's rank rose"*, and
-    // it is the second arm. The raw line behind it fell 375 → 26.09 — a wall's
-    // fifteen hit points on a bar of a hundred and fifteen is an eighth again of
-    // however long this town lasts, not five soldiers standing on it, and this
-    // town's whole defence is worth 40 (a strength of 8 at the military weight).
-    signDoor.wall = false;
-    try {
-      const { state } = besiegedTown();
-      // Walk to the decision with the door shut, so both readings are asked of
-      // one board rather than of two boards that diverged on the way here.
-      for (let guard = 0; guard < 14; guard++) {
-        const decision = nextBotDecision(state, 0);
-        if (decision === null || decision.command.type === 'setCityProduction') break;
-        expect(applyCommand(state, decision.command).ok).toBe(true);
-      }
-      const ctx = valueContext(state, seat(state, 0));
-      expect(ctx.threat).toBe(4);
+    // So the acceptance is that the line is *there*, that it is a gain, and that
+    // it does not buy the front of the queue. The raw line behind it fell
+    // 375 → 26.09 — a wall's fifteen hit points on a bar of a hundred and fifteen
+    // is an eighth again of however long this town lasts, not five soldiers
+    // standing on it, and this town's whole defence is worth 40 (a strength of 8
+    // at the military weight).
+    const { state } = besiegedTown();
+    for (let guard = 0; guard < 14; guard++) {
+      const decision = nextBotDecision(state, 0);
+      if (decision === null || decision.command.type === 'setCityProduction') break;
+      expect(applyCommand(state, decision.command).ok).toBe(true);
+    }
+    const ctx = valueContext(state, seat(state, 0));
+    expect(ctx.threat).toBe(4);
 
-      const shut = tableAt(state)!;
-      const shutWall = shut.candidates.find((row) => row.label === buildingDef('palisade').name)!;
-      expect(shut.candidates.find((row) => row.chosen)!.label).not.toBe(buildingDef('palisade').name);
-      expect(termLabels(shutWall.terms)).not.toMatch(/town hit points/);
-
-      signDoor.wall = true;
-      const open = tableAt(state)!;
-      const openWall = open.candidates.find((row) => row.label === buildingDef('palisade').name)!;
-      expect(termLabels(openWall.terms)).toMatch(/town hit points/);
-      expect(openWall.score).toBeGreaterThan(shutWall.score);
-      // By how much the rank rose — the ruling's own second arm, read off the
-      // table rather than asserted as a place, so the claim survives a row
-      // joining the list.
-      const rankOf = (table: BotDecision): number =>
-        table.candidates
-          .filter((row) => row.rejected === undefined)
-          .sort((a, b) => b.score - a.score)
-          .findIndex((row) => row.label === buildingDef('palisade').name);
-      // Re-aimed 2026-09-09 (X1d-chain landing beside X5c): `push` now
-      // discounts every row for its build wait, which lifts the four-turn rows
-      // above a wall's share on this bench as much as the share lifts the wall,
-      // so the rank holds at fourth rather than rising. The claim that matters
-      // — the hit points raise the wall's score, and the line names them — is
-      // asserted above; the rank may not FALL.
-      expect(rankOf(open)).toBeLessThanOrEqual(rankOf(shut));
-      // The wall's whole raw line, before the amortiser: the row's hit points as
-      // a share of the bar this town would carry holding it, times what this
-      // town's defence is worth at the strength line's own rate, times the threat
-      // this seat reads. Both halves are the simulation's own readings.
-      const town = state.cities.find((city) => city.ownerId === 0 && city.population === 5)!;
-      const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
-      const bar = cityMaxHp({ ...town, buildings: [...town.buildings, 'palisade'] });
-      expect(findTerm(openWall.terms, /town hit points/)!.value).toBeCloseTo(
-        (hp / bar) *
-          cityBaseStrength(state, town) *
-          aiConfigFor(undefined).weights.military *
-          (1 + ctx.threat),
-        10,
-      );
-      for (const row of open.candidates) {
-        if (row.rejected !== undefined) continue;
-        expect(foldTerms(row.terms)).toBe(row.score);
-      }
-    } finally {
-      signDoor.wall = true;
+    const table = tableAt(state)!;
+    const wall = table.candidates.find((row) => row.label === buildingDef('palisade').name)!;
+    expect(termLabels(wall.terms)).toMatch(/town hit points/);
+    const line = findTerm(wall.terms, /town hit points/)!;
+    expect(line.value).toBeGreaterThan(0);
+    // Not the front of the queue: a threatened town reads its wall for what it is
+    // and still raises a soldier. Read as a place off the table rather than as a
+    // number, so the claim survives a row joining the list.
+    expect(table.candidates.find((row) => row.chosen)!.label).not.toBe(buildingDef('palisade').name);
+    const rank = table.candidates
+      .filter((row) => row.rejected === undefined)
+      .sort((a, b) => b.score - a.score)
+      .findIndex((row) => row.label === buildingDef('palisade').name);
+    expect(rank).toBeGreaterThan(0);
+    // The wall's whole raw line, before the amortiser: the row's hit points as
+    // a share of the bar this town would carry holding it, times what this
+    // town's defence is worth at the strength line's own rate, times the threat
+    // this seat reads. Both halves are the simulation's own readings.
+    const town = state.cities.find((city) => city.ownerId === 0 && city.population === 5)!;
+    const hp = foldBuildingCityStat(buildingCityHp({ buildings: ['palisade'] }));
+    const bar = cityMaxHp({ ...town, buildings: [...town.buildings, 'palisade'] });
+    const defence = cityBaseStrength(state, town) * aiConfigFor(undefined).weights.military;
+    expect(line.value).toBeCloseTo((hp / bar) * defence * (1 + ctx.threat), 10);
+    // X5c's own sentence, asserted rather than remembered: a course of stone is
+    // worth strictly less than the whole of what defending this town is worth.
+    expect(line.value).toBeLessThan(defence * (1 + ctx.threat));
+    for (const row of table.candidates) {
+      if (row.rejected !== undefined) continue;
+      expect(foldTerms(row.terms)).toBe(row.score);
     }
   });
 

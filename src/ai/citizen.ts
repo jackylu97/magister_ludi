@@ -58,19 +58,3 @@ export function citizenKeepTerm(ctx: ValueContext, population: number): ValueTer
     value: -demand * meterWeight(ctx, 'happiness'),
   };
 }
-
-/**
- * **The keep, switchable arm by arm** — `signDoor`'s twin one batch on
- * (`value.ts`, batch X5), for exactly the reason that one exists: the acceptance
- * bench plays the same eight seeds with each charge shut and open, and a
- * knockout that could not tell the arms apart would attribute none of them.
- *
- * `growth` is the focus arm's (`growthTerm`, `bot.ts`); `hex` is the purchase's
- * (`tileWants`, `wants.ts`); `town` is the expansion chain's — the demand the
- * town a settler founds would create, which is the half that answers the
- * settler's own relief. It is **not** a knob — not in `data/ai.json`, no persona
- * reads it, no surface offers it — and all three ship open. Shut, each arm reads
- * precisely what it read before X5b: a citizen as pure ground, and a founding
- * charged only where it over-spends the meter outright.
- */
-export const keepDoor = { growth: true, hex: true, town: true };

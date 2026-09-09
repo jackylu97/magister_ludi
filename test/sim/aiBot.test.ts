@@ -51,7 +51,7 @@ import { anyCardDef } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
 import { explainEmpireGold } from '../../src/sim/empireGold';
-import { explainBuildingRow, meterWeight, signDoor, yieldWeight } from '../../src/ai/value';
+import { explainBuildingRow, meterWeight, yieldWeight } from '../../src/ai/value';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { happinessDemand } from '../../src/sim/meters';
 import { worthPerCoin } from '../../src/ai/wants';
@@ -700,23 +700,28 @@ describe('the two missing signs, on a played board (batch X5)', () => {
     }
   });
 
-  it('leaves the wall chain worth more than it was, and every other row exactly where it was', () => {
+  it('prints a hit-points line on every wall-chain row and on no other', () => {
     // The wall half's own contract, said about the whole table rather than about
-    // one row: the seven `cityHp` rows rise, and nothing else in
-    // `data/buildings.json` moves by a point.
+    // one row: every `cityHp` row carries the line, it is worth something, and
+    // nothing else in `data/buildings.json` says a word about hit points.
     const game = grownGame(20);
     const ctx = valueContext(game.state, seat(game.state, 0));
-    const open = new Map(BUILDING_IDS.map((id) => [id, explainBuildingRow(id, ctx).total]));
-    signDoor.wall = false;
-    try {
-      for (const id of BUILDING_IDS) {
-        const shut = explainBuildingRow(id, ctx).total;
-        if ((buildingDef(id).cityHp ?? 0) === 0) expect(open.get(id), id).toBe(shut);
-        else expect(open.get(id), id).toBeGreaterThan(shut);
+    let walls = 0;
+    for (const id of BUILDING_IDS) {
+      const appraisal = explainBuildingRow(id, ctx);
+      const line = appraisal.terms.find((term) => /town hit points/.test(term.label));
+      if ((buildingDef(id).cityHp ?? 0) === 0) {
+        expect(line, id).toBeUndefined();
+        continue;
       }
-    } finally {
-      signDoor.wall = true;
+      walls += 1;
+      expect(line, id).not.toBeUndefined();
+      // A share of what this town's own defence is worth: strictly a gain, never
+      // the hundred points of strength the points reading used to make of it.
+      expect(line!.value, id).toBeGreaterThan(0);
+      expect(foldTerms(appraisal.terms), id).toBe(appraisal.total);
     }
+    expect(walls).toBeGreaterThan(0);
   });
 });
 

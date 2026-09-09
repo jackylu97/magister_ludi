@@ -1227,7 +1227,7 @@ export function explainBuildingRow(
   // `townPopulation`'s, said once more. An empire with no towns at all reads
   // nothing here: there is no bar to be a share of, and no defence to be worth a
   // share of it.
-  const hp = signDoor.wall ? foldBuildingCityStat(buildingCityHp({ buildings: [id] })) : 0;
+  const hp = foldBuildingCityStat(buildingCityHp({ buildings: [id] }));
   const walled = hp === 0 ? undefined : middlingTown(ctx, city);
   if (hp !== 0 && walled !== undefined) {
     const share = hp / Math.max(1, cityMaxHp(townHolding(walled, id)));
@@ -1293,7 +1293,6 @@ function rowCharterTerms(
   ctx: ValueContext,
   city: City | undefined,
 ): ValueTerm[] {
-  if (!rowDoor.rows) return [];
   // A town holding this row and nothing else — every clause below is the
   // simulation's own reading of it, never a `BuildingDef` field read twice.
   const held = { buildings: [id] };
@@ -1598,19 +1597,6 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
 };
 
 /**
- * **The rows nobody read, switchable** — `signDoor`'s twin for batch X8, and it
- * is here for that door's stated reason: the acceptance bench plays the same
- * eight seeds with each half shut and open, and a knockout that could not tell
- * the two halves apart would attribute neither.
- *
- * `rows` is the five charter lines in `explainBuildingRow`; `unitStat` is the
- * `stat` dispatch one fold over (a heal is not a hundred points of strength).
- * Not a knob: not in `data/ai.json`, no persona reads it, no surface offers it,
- * and both halves ship open.
- */
-export const rowDoor = { rows: true, unitStat: true };
-
-/**
  * **What one point of a `unitStat` is worth to one piece**, by which stat it is
  * — the `stat` half of batch X8 (`docs/audit/bot-pass-2.md` Part 2 row 8).
  *
@@ -1626,7 +1612,6 @@ function unitStatPoints(
   ctx: ValueContext,
 ): number {
   const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
-  if (!rowDoor.unitStat) return amount * ctx.ai.weights.military;
   if (stat === 'combatPercent') return (amount / 100) * piece;
   if (stat === 'heal') return (Math.min(Math.abs(amount), pieceBar()) / pieceBar()) * Math.sign(amount) * piece;
   return amount * ctx.ai.weights.military;
@@ -1682,51 +1667,6 @@ export function valueOfSoldier(id: UnitTypeId, ctx: ValueContext): number {
 }
 
 // --- the scope, evaluated (batch X2) ----------------------------------------
-
-/**
- * **The door batch X2 opens, and the only switch that closes it again.**
- *
- * `docs/audit/bot-pass-2.md`'s largest single finding: 222 of 731 effect-shaped
- * rows in the data carry a `scope`, an `on`, a `within`, an `origin` or a
- * `destination`, and until this batch every one of them was priced `× cities` —
- * a coastal line was worth as much to a landlocked realm as to a maritime one.
- *
- * The switch exists for the acceptance measurement and nothing else: the batch's
- * own bench plays the same seeds with it shut and open and attributes the boards
- * that move to the half that moved them (`docs/bot-priorities.md`, "Batch X2").
- * It is **not** a knob — it is not in `data/ai.json`, no persona reads it, no
- * surface offers it, and both halves are left open. A tuner who wanted a dial
- * here would be tuning whether the bot may read the rules, which is not a taste.
- *
- * **Two halves rather than one switch**, because the batch is two readings and a
- * knockout that could not tell them apart would attribute nothing: `towns` is
- * `townsAdmitting` — which of this realm's towns a `CityScope` admits — and
- * `hexes` is `workedHexesAdmitting`, the ground a `where: 'hex'` line lands on.
- * Shut, each falls back to exactly the figure the arm used before this batch:
- * the realm's whole town count, and `score.nominalTiles`.
- */
-export const scopeDoor = { towns: true, hexes: true };
-
-/**
- * **The two missing signs, switchable** — `scopeDoor`'s twin for batch X5
- * (`docs/audit/bot-pass-2.md`, change 5).
- *
- * `citizen` is the contentment a new citizen demands, charged in `explainCitizen`
- * (`bot.ts`); `wall` is the hit points a row adds to its town, folded beside its
- * strength in `explainBuildingRow` below. Two halves rather than one switch for
- * the reason `scopeDoor` has two: the batch is two arithmetics in two files, and
- * a knockout that could not tell them apart would attribute neither — the
- * acceptance bench plays the same eight seeds with each half shut and open.
- *
- * It is **not** a knob, by exactly `scopeDoor`'s sentence: it is not in
- * `data/ai.json`, no persona reads it, no surface offers it, and both halves are
- * left open. Shut, each arm reads precisely what it read before this batch — a
- * citizen as pure gain, a wall as its strength alone.
- *
- * It lives here rather than in `bot.ts` because a door is not a policy and
- * `bot.ts` already imports this module; the reverse edge does not exist.
- */
-export const signDoor = { citizen: true, wall: true };
 
 /**
  * **What one sitting has already worked out about a scope.**
@@ -1802,7 +1742,6 @@ function scopePromisesABuilding(scope?: CityScope): boolean {
  */
 export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
   if (scope === undefined) return ctx.cities;
-  if (!scopeDoor.towns) return ctx.cities;
   const memo = scopeMemo(ctx);
   const held = memo.get(scope);
   if (held !== undefined) return held;
@@ -1826,7 +1765,7 @@ export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
 function capitalAdmits(ctx: ValueContext, scope?: CityScope): number {
   const seat = capitalCityOf(ctx.state, ctx.playerId);
   if (seat === null || seat === undefined) return 0;
-  if (!scopeDoor.towns || scope === undefined) return 1;
+  if (scope === undefined) return 1;
   return cityScopeAdmits(ctx.state, seat, scope, ctx.playerId) ? 1 : 0;
 }
 
@@ -1862,7 +1801,6 @@ function capitalAdmits(ctx: ValueContext, scope?: CityScope): number {
  * it, and this empire's own average is the only town it can be asked about.
  */
 export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect): number {
-  if (!scopeDoor.hexes) return ctx.ai.score.nominalTiles;
   const memo = scopeMemo(ctx);
   const held = memo.get(effect);
   if (held !== undefined) return held;
@@ -1883,11 +1821,9 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
       if (holds) mine += 1;
     }
     everywhere += mine;
-    // The **towns** half of the door owns the scope even here: the ground is this
-    // function's reading and which towns' ground it is belongs to the other half,
-    // so a knockout can tell the two apart.
+    // The ground is this function's reading; *whose* ground it is is the scope's,
+    // and it is asked of each town in the same sweep.
     if (
-      !scopeDoor.towns ||
       effect.scope === undefined ||
       cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)
     ) {
@@ -1916,7 +1852,7 @@ export function workedHexesAdmitting(ctx: ValueContext, effect: CardPaysEffect):
  * between walking every town's fold again and ignoring the scope altogether.
  */
 function scopeShare(ctx: ValueContext, scope?: CityScope): number {
-  if (scope === undefined || !scopeDoor.towns || ctx.cities <= 0) return 1;
+  if (scope === undefined || ctx.cities <= 0) return 1;
   return townsAdmitting(ctx, scope) / ctx.cities;
 }
 
@@ -1930,11 +1866,9 @@ function scopeShare(ctx: ValueContext, scope?: CityScope): number {
  * file deals in.
  */
 function scopeNote(effect: CardEffect, ctx: ValueContext): string {
-  const scope = scopeDoor.towns ? (effect as { scope?: CityScope }).scope : undefined;
+  const scope = (effect as { scope?: CityScope }).scope;
   const hexes =
-    scopeDoor.hexes && effect.kind === 'pays' && effect.where === 'hex'
-      ? workedHexesAdmitting(ctx, effect)
-      : null;
+    effect.kind === 'pays' && effect.where === 'hex' ? workedHexesAdmitting(ctx, effect) : null;
   const parts: string[] = [];
   if (scope !== undefined) parts.push(`in ${townsAdmitting(ctx, scope)} of ${ctx.cities} towns`);
   if (hexes !== null) parts.push(`on ${round(hexes)} worked hexes`);
@@ -2147,7 +2081,7 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     let sum = 0;
     for (const city of ctx.state.cities) {
       if (city.ownerId !== ctx.playerId) continue;
-      if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
+      if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
       for (const id of city.buildings) {
         const def = buildingDef(id);
         if (def.category !== effect.category) continue;
@@ -2339,7 +2273,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       let sum = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
-        if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
+        if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
         for (const id of city.buildings) {
           if (!buildingMatchesYieldPercent(id, effect)) continue;
           const def = buildingDef(id);
@@ -2392,7 +2326,7 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       let towns = 0;
       for (const city of ctx.state.cities) {
         if (city.ownerId !== ctx.playerId) continue;
-        if (scopeDoor.towns && !cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
+        if (!cityScopeAdmits(ctx.state, city, effect.scope, ctx.playerId)) continue;
         towns += 1;
         for (const id of city.buildings) total += buildingDef(id).renown?.perTurn ?? 0;
       }

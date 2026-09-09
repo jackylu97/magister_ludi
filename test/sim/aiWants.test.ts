@@ -38,6 +38,7 @@ import {
   valueContext,
 } from '../../src/ai/bot';
 import { driveBots } from '../../src/ai/driver';
+import { withAiTuning } from '../../src/ai/aiConfig';
 import { createBotStepper } from '../../src/ai/stepper';
 import { type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { incumbentGoal, racePays, raceTerm } from '../../src/ai/chain';
@@ -57,7 +58,7 @@ import {
   yieldWeight,
 } from '../../src/ai/value';
 import { caravanRefusal, explainCaravan } from '../../src/ai/routes';
-import { type Want, expectedBestOrder, hexDoor, savingRows, worthPerCoin } from '../../src/ai/wants';
+import { type Want, expectedBestOrder, savingRows, worthPerCoin } from '../../src/ai/wants';
 import { type Game, createGame, dispatch, restoreState, snapshotState } from '../../src/sim/game';
 import type { City } from '../../src/sim/state';
 import {
@@ -1988,30 +1989,39 @@ describe('batch X6 — the hexes worth asking about', () => {
     return { state, player };
   }
 
-  /** Every hex row of a seat's gold book, in the order the book carries them. */
-  function hexRows(state: GameState, player: Player, bound: boolean): Want[] {
-    hexDoor.bound = bound;
-    try {
+  /**
+   * Every hex row of a seat's gold book, in the order the book carries them —
+   * asked under a stated bound.
+   *
+   * The unbounded reading is the bound lifted past every offer the town has
+   * rather than a second walk: `hexOffersPriced` is the knob the batch added,
+   * and a cap no frontier can reach prices exactly the hexes the old walk did.
+   * That keeps both readings on one code path, which is the claim the two
+   * comparisons below are actually about.
+   */
+  function hexRows(state: GameState, player: Player, cap: number): Want[] {
+    return withAiTuning({ expansion: { hexOffersPriced: cap } } as never, () => {
       bumpRevision(state);
       return valueContext(state, player).wants.gold.filter((row) => row.ground !== undefined);
-    } finally {
-      hexDoor.bound = true;
-    }
+    });
   }
+
+  /** A cap no town's frontier can reach — the walk unbounded. */
+  const UNBOUNDED = 999;
 
   it('prices only the best few of a town’s frontier, and drops the rows it ranked last', () => {
     const { state, player } = seamedFrontier();
     const cap = AI.expansion.hexOffersPriced;
-    const shut = hexRows(state, player, false);
-    const open = hexRows(state, player, true);
+    const all = hexRows(state, player, UNBOUNDED);
+    const open = hexRows(state, player, cap);
 
-    expect(shut.length).toBeGreaterThan(cap);
+    expect(all.length).toBeGreaterThan(cap);
     expect(open.length).toBe(cap);
 
-    // The kept rows are exactly the top of the shut book by worth per coin, ties
-    // broken by the board's own order — `pricedOffers`' comparison, read back off
-    // the unbounded book rather than typed in.
-    const ranked = shut
+    // The kept rows are exactly the top of the unbounded book by worth per coin,
+    // ties broken by the board's own order — `pricedOffers`' comparison, read back
+    // off that book rather than typed in.
+    const ranked = all
       .map((row, index) => ({ row, index }))
       .sort((a, b) => worthPerCoin(b.row) - worthPerCoin(a.row) || a.index - b.index)
       .slice(0, cap)
@@ -2022,11 +2032,11 @@ describe('batch X6 — the hexes worth asking about', () => {
 
   it('folds a hex it still prices exactly as it did unbounded — price, worth and every term', () => {
     const { state, player } = seamedFrontier();
-    const shut = hexRows(state, player, false);
-    const open = hexRows(state, player, true);
+    const all = hexRows(state, player, UNBOUNDED);
+    const open = hexRows(state, player, AI.expansion.hexOffersPriced);
     expect(open.length).toBeGreaterThan(0);
     for (const row of open) {
-      const before = shut.find((one) => one.label === row.label)!;
+      const before = all.find((one) => one.label === row.label)!;
       expect(before).toBeDefined();
       expect(row.price).toBe(before.price);
       expect(row.worth).toBe(before.worth);
@@ -2041,7 +2051,7 @@ describe('batch X6 — the hexes worth asking about', () => {
   it('carries no want the rules would strike — the bound narrows, the rule refuses', () => {
     const { state, player } = seamedFrontier();
     const city = state.cities[0]!;
-    for (const row of hexRows(state, player, true)) {
+    for (const row of hexRows(state, player, AI.expansion.hexOffersPriced)) {
       const ground = row.ground!;
       expect(tilePurchaseError(state, player.id, city.id, { col: ground.col, row: ground.row })).toBe(
         null,
@@ -2050,7 +2060,7 @@ describe('batch X6 — the hexes worth asking about', () => {
     // A frozen writ is the simulation's refusal and the bound does not step round
     // it: no purse and no ranking makes a hex buyable while the borders are shut.
     player.gold = 0;
-    expect(hexRows(state, player, true)).toEqual([]);
+    expect(hexRows(state, player, AI.expansion.hexOffersPriced)).toEqual([]);
   });
 
   it('takes the town’s own readings once a town, and the hex’s once a hex', () => {
@@ -2092,11 +2102,9 @@ describe('batch X6 — the hexes worth asking about', () => {
     expect(count(walk, 'tilePurchaseError')).toBe(1);
   });
 
-  it('ships the door open, and it is not a knob', () => {
-    // `scopeDoor`'s and `keepDoor`'s sentence a third time: the switch exists for
-    // the acceptance bench, it is not in `data/ai.json`, no persona reads it and
-    // the arena cannot see it. The *bound* is the knob beside it.
-    expect(hexDoor).toEqual({ bound: true });
+  it('takes its bound from the sheet, which is where a knob lives', () => {
+    // The bound is a real knob — `data/ai.json`, so a persona may lean on it and
+    // the arena's generated panel offers it with no page edit.
     expect(AI.expansion.hexOffersPriced).toBeGreaterThan(0);
   });
 });
