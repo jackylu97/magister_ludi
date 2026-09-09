@@ -1068,7 +1068,25 @@ directly to confirm rulings — user marginalia are rulings.
   than a meter line) and a capture has no `CommandResult` channel (the
   sheet infers it as the toast does) — a `captures?:` field. The
   spectate feed's great-person summary (`greatPersonCommand`, `bot.ts`)
-  still says act/work — R1's fence. **V2 (heraldry)** — (7) *"the
+  still says act/work — R1's fence. **(6) rebuilt as U5, 2026-09-09**
+  (the user's playtest the same day: *"I can't see it with the opening
+  scout"*, and a unit standing in a city has its badge hidden by the
+  banner): U4's badge was a drawn 3D mark over the flagpole, and the
+  banner is a **DOM plate positioned over the canvas** covering the
+  town's own hex — so the mark was behind it, as the piece's own sculpt
+  is. The badge is now **set into the plate** at its fly (Civ 5/6's
+  arrangement): the strongest piece's own badge file masked in the
+  plate's ink on a disc of parchment, rimmed in the *piece's* seat
+  colour, with a numeral bossing the corner once more than one is in —
+  civilians included, a scout, a worker, a settler, a caravan and a great
+  person each taking the slot, and a ship's composed mark drawn from the
+  same two tables the atlas composes. It rides the banner's watched gate
+  (nothing on a remembered town) and joins the plate's own signature, so
+  the pill repaints when the stack changes and not otherwise. The 3D
+  layer is **retired** — `render3d/garrison3d.ts` deleted, its four
+  wiring points and its four `view3d.json` keys with it, the flair
+  gallery's tag sliders replaced by a garrison stall on the banner
+  itself: one badge, one place. **V2 (heraldry)** — (7) *"the
   barbarian colors and the crimson color are too similar … barbarian
   units having red as its icon base color instead of its outline; double
   check the icon is still legible, and invert the black to white if

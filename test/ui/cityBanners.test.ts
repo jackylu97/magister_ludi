@@ -23,17 +23,21 @@ import { describe, expect, it } from 'vitest';
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
 import { cityMaxHp } from '../../src/sim/combat';
 import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
-import { type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
+import { unitDef } from '../../src/sim/unitData';
 import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
+import { badgeClassFor } from '../../src/render3d/board3d';
 import {
   RING,
   cityGrowthRing,
   cityHealthBar,
+  garrisonBadgeUri,
   growthRing,
   healthBar,
+  strongestGarrison,
   visibleCityBanners,
 } from '../../src/ui/cityBanners';
-import { uiSource } from './sourceHelpers';
+import { braceBody, uiSource } from './sourceHelpers';
 
 /** A blank grassland board, two seats, nothing on it yet. */
 function boardState(): GameState {
@@ -642,5 +646,264 @@ describe('a puppet says so beside its name', () => {
     // goes stale.
     const rule = css.slice(css.indexOf('.city-banner-yoke'));
     expect(rule.slice(0, rule.indexOf('}'))).toContain('mask-image: var(--yoke-mark)');
+  });
+});
+
+// --- the garrison slot ------------------------------------------------------
+
+/**
+ * **The badge came into the plate** (U5, 2026-09-09). U4 hung it over the 3D
+ * flagpole and the user could not see it, for a reason no amount of dialling
+ * would have fixed: this banner is HTML positioned over the canvas, it covers
+ * the town's own hex, and a mark at the pole's height is behind it. So the 3D
+ * layer was retired and the slot is on the pill.
+ *
+ * The bench the user asked for is here in full — a scout, a worker and a warrior
+ * standing in the capital in turn, then all three at once — because the point of
+ * the ruling is that it works for **civilians**: a town held by one worker is a
+ * town nobody is holding, and that is the reading a badge drawn only for
+ * soldiers would silently withhold.
+ */
+describe('what is standing in the town', () => {
+  /** The town, and `count` pieces of `type` on its hex, for one seat. */
+  function held(type: Parameters<typeof createUnit>[2], count = 1, seat = 0): GameState {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    for (let i = 0; i < count; i += 1) createUnit(state, seat, type, city.col, city.row);
+    return state;
+  }
+
+  function slot(state: GameState) {
+    return visibleCityBanners(state, 0, null)[0]!.garrison;
+  }
+
+  it('draws nothing over a town with an empty hex', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    expect(slot(state)).toBeNull();
+  });
+
+  /**
+   * The three the user named, one at a time. The badge is asked of
+   * `badgeClassFor` rather than written out here: the mapping under test is the
+   * board's own sentence about what a piece is, and a list in this file would be
+   * a second copy of it that could quietly disagree with the piece's roundel.
+   */
+  for (const type of ['scout', 'worker', 'warrior'] as const) {
+    it(`shows a ${type}'s own badge on the plate`, () => {
+      const facts = slot(held(type));
+      expect(facts).not.toBeNull();
+      expect(facts!.badge).toBe(badgeClassFor(type));
+      expect(facts!.count).toBe(1);
+      expect(facts!.label).toBe(`Standing here: ${unitDef(type).name}`);
+    });
+  }
+
+  /** A civilian's strength of nothing still wins an empty field. */
+  it('gives the slot to a settler, a caravan and a great person too', () => {
+    for (const type of ['settler', 'trader', 'greatPerson'] as const) {
+      expect(unitDef(type).combatStrength).toBe(0);
+      expect(slot(held(type))!.badge).toBe(badgeClassFor(type));
+    }
+  });
+
+  it('names the strongest when all three stand together, and counts them', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    createUnit(state, 0, 'scout', city.col, city.row);
+    createUnit(state, 0, 'worker', city.col, city.row);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+
+    const facts = slot(state)!;
+    expect(facts.badge).toBe(badgeClassFor('warrior'));
+    expect(facts.count).toBe(3);
+    expect(facts.label).toBe(`Standing here: ${unitDef('warrior').name} and 2 more`);
+  });
+
+  it('draws nothing for a piece merely standing beside the town', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    createUnit(state, 0, 'warrior', city.col + 1, city.row);
+    expect(slot(state)).toBeNull();
+  });
+
+  /**
+   * Whose the **piece** is, which is not always whose the town is — the whole
+   * reason to draw one, and the case a rim in the town's own ink could never
+   * say: a rival's garrison in a rival's town comes out in the rival's colour.
+   */
+  it('takes the piece’s seat ink, not the town’s', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const rival = foundCityAt(state, 1, getTileAt(state.map, 5, 4)!);
+    createUnit(state, 1, 'warrior', rival.col, rival.row);
+
+    const facts = visibleCityBanners(state, 0, null).find((b) => b.cityId === rival.id)!;
+    expect(facts.mine).toBe(false);
+    expect(facts.garrison).not.toBeNull();
+    expect(facts.garrison!.ownerId).toBe(1);
+    expect(facts.garrison!.ink).toBe(state.players[1]!.color);
+    expect(facts.garrison!.ink).not.toBe(state.players[0]!.color);
+  });
+
+  /**
+   * An army is not something a chart remembers. This rides the **watched** gate
+   * and nothing else — not `mine`, which is the ring's and the queue's gate — so
+   * a remembered town carries no slot however lately it was garrisoned.
+   */
+  it('draws nothing on a town the seat only remembers', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 2, 2)!);
+    const far = foundCityAt(state, 1, getTileAt(state.map, 13, 8)!);
+    createUnit(state, 1, 'warrior', far.col, far.row);
+    const tile = getTileAt(state.map, far.col, far.row)!;
+    state.visibility[0]![tileIndex(state.map, tile.col, tile.row)] = EXPLORED;
+    state.citySightings[0] = [
+      { cityId: far.id, col: far.col, row: far.row, name: far.name, ownerId: far.ownerId },
+    ];
+
+    const remembered = visibleCityBanners(state, 0, null).find((b) => b.cityId === far.id)!;
+    expect(remembered.stale).toBe(true);
+    expect(remembered.garrison).toBeNull();
+  });
+
+  it('breaks a tie by the order the pieces are iterated in, never by a sort', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const first = createUnit(state, 0, 'warrior', city.col, city.row);
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    expect(strongestGarrison(state.units)?.id).toBe(first.id);
+    // And the order they were founded in makes no difference to which is
+    // strongest when they are not equal.
+    const scout = createUnit(state, 0, 'scout', city.col, city.row);
+    expect(strongestGarrison([scout, first])?.id).toBe(first.id);
+    expect(strongestGarrison([first, scout])?.id).toBe(first.id);
+  });
+});
+
+/**
+ * The badge's artwork, which is the half of this that is not a fact about the
+ * simulation: the plate must wear **the same drawing** the piece's own roundel
+ * wears on the board, or the two say different things about one piece.
+ */
+describe('the badge on the plate is the badge on the board', () => {
+  it('names the atlas’s own file for the drawn-from-file half', () => {
+    // The file table is `BADGE_ICON_FILES`, asked rather than copied — the URL
+    // is resolved against the document exactly as `loadIcon`'s `image.src` is.
+    expect(garrisonBadgeUri(badgeClassFor('warrior'))).toBe('sprites/icons/warrior.svg');
+    expect(garrisonBadgeUri(badgeClassFor('scout'))).toBe('sprites/icons/scout.svg');
+    expect(garrisonBadgeUri(badgeClassFor('worker'))).toBe('sprites/icons/worker.svg');
+  });
+
+  /**
+   * A ship in a coastal town is a real garrison (`pathfind.ts`: a coastal city's
+   * hex is the one dry hex a hull may stand on), and the eighteen composed naval
+   * cells have no file — the rig is drawn. They are composed here from the same
+   * two mark tables the atlas composes, hull under canton.
+   */
+  it('composes a ship’s mark, hull under canton, for the drawn half', () => {
+    const galley = garrisonBadgeUri(badgeClassFor('galley'));
+    expect(galley.startsWith('data:image/svg+xml,')).toBe(true);
+    const doc = decodeURIComponent(galley.slice('data:image/svg+xml,'.length));
+    // Three documents: the outer one, the hull at full box, and the canton in
+    // the fly corner — both halves printed by `markSvg` rather than by a
+    // transform written here.
+    expect(doc.match(/<svg /gu)!.length).toBe(3);
+    expect(doc).toContain('viewBox="0 0 24 24"');
+    // And two different rigs are two different drawings, which is the property
+    // that makes the composition worth doing at all.
+    expect(galley).not.toBe(garrisonBadgeUri(badgeClassFor('trireme')));
+    expect(galley).not.toBe(garrisonBadgeUri(badgeClassFor('frigate')));
+  });
+});
+
+/**
+ * The two halves of "the plate repaints when the stack changes and not
+ * otherwise", plus the half of the slot that is not TypeScript.
+ */
+describe('the garrison’s fingerprint, its ink and its stall', () => {
+  it('folds the stack into the signature the banner is rewritten on', () => {
+    const text = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    const line = text.split('\n').find((row) => row.includes('const signature = '));
+    expect(line).toBeDefined();
+    expect(line!).toMatch(/\$\{stack\}/);
+    // The term is what the *slot* draws — a badge, a rim ink and a count — and
+    // nothing else about `state.units`: a scout crossing empty ground on the far
+    // side of the map must not repaint every banner in the world.
+    expect(text).toMatch(/const stack = [^\n]*badge[^\n]*ownerId[^\n]*count/);
+    // Painted inside the gate, beside the bar, rather than on every refresh.
+    expect(text).toMatch(/paintGarrison\(banner\.garrison, facts\.garrison\)/);
+  });
+
+  /** One walk over the pieces per refresh, never one walk per town. */
+  it('hoists the piece walk once for the whole sweep', () => {
+    const body = braceBody(uiSource('cityBanners.ts'), 'export function visibleCityBanners');
+    expect(body).toContain('garrisonsByCell(state)');
+    expect(body.match(/garrisonsByCell\(/gu)!.length).toBe(1);
+  });
+
+  it('prints the mark as a mask on parchment, rimmed in the piece’s seat', () => {
+    const css = uiSource('style.css');
+    const rule = (selector: string): string => {
+      const at = css.indexOf(`\n${selector} {`);
+      expect(at, selector).toBeGreaterThan(0);
+      const open = css.indexOf('{', at);
+      return css.slice(open + 1, css.indexOf('}', open));
+    };
+    // A mask, so the drawing takes the plate's ink and dims with the card —
+    // the yoke's trick, one slot over.
+    expect(rule('.city-banner-garrison-mark')).toContain('mask-image: var(--garrison-mark)');
+    // Parchment ground and an ink mark: the one pairing that reads for all
+    // twelve tinctures. The rim is the *piece's* ink, so it is a property of
+    // its own rather than the banner's `--banner-color`.
+    const disc = rule('.city-banner-garrison');
+    expect(disc).toMatch(/background:\s*var\(--parchment\)/);
+    expect(disc).toContain('var(--garrison-color');
+    // And the wound stops short of the roundel exactly as it stops short of the
+    // size badge at the hoist, or the channel runs under the seat's tincture.
+    const inset = /right:\s*(\d+)px/.exec(rule('.city-banner.is-held .city-banner-health'));
+    expect(inset).not.toBeNull();
+    expect(Number(inset![1])).toBeGreaterThanOrEqual(32);
+  });
+
+  /**
+   * The 3D tag is **gone**, not hidden: the plate covers the hex it was drawn
+   * over, and two badges for one fact is the chip the growth ruling refused.
+   */
+  it('leaves one badge in one place — the 3D layer is retired', () => {
+    const RENDERER = Object.values(
+      import.meta.glob('../../src/render3d/renderer3d.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    expect(RENDERER).not.toContain('Garrison');
+    expect(RENDERER).not.toContain('garrison');
+  });
+
+  /**
+   * The cabinet's bargain (`flairGallery/main.ts`, "Nothing is reproduced"): the
+   * page may lay the plate out and give it a ground; it may not own a second
+   * copy of what a badge, a rim or a count means. The knob drives real pieces on
+   * a real town, so the mapping on show is `badgeClassFor`'s.
+   */
+  it('shows the shipping slot on flair.html rather than a drawing of one', () => {
+    const gallery = Object.values(
+      import.meta.glob('../../src/flairGallery/flourishes.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    const stall = gallery.slice(gallery.indexOf('function cityGarrisonStall'));
+    const body = stall.slice(0, stall.indexOf('\n}\n'));
+    for (const called of ['buildGarrison', 'paintGarrison', 'garrisonSlot', 'createUnit']) {
+      expect(body, called).toMatch(new RegExp(`\\b${called}\\b`));
+    }
+    // No mapping of its own: a badge class named here would be the page
+    // repainting the thing it exists to inspect.
+    expect(body).not.toMatch(/badgeClassFor/);
+    expect(body).not.toMatch(/sprites\/icons/);
   });
 });

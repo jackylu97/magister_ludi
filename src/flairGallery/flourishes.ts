@@ -26,8 +26,11 @@
 import { EPIGRAPHS } from '../ui/frontispiece';
 import {
   type HealthParts,
+  buildGarrison,
   buildHealthBar,
   cityHealthBar,
+  garrisonSlot,
+  paintGarrison,
   paintHealthBar,
 } from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
@@ -38,10 +41,11 @@ import { YIELD_GLYPH, setYieldText } from '../ui/yieldMark';
 import { foundCityAt } from '../sim/cities';
 import { cityMaxHp } from '../sim/combat';
 import { createMap, getTileAt } from '../sim/map';
-import { newGame } from '../sim/state';
+import { createUnit, newGame } from '../sim/state';
 import { resetVisibility } from '../sim/visibility';
 import { type BeliefId, BELIEF_IDS, beliefDef } from '../sim/religionData';
-import { block, button, checkbox, controls, element, slider } from './sheet';
+import { type UnitTypeId } from '../sim/unitData';
+import { block, button, checkbox, controls, element, select, slider } from './sheet';
 
 /** One stall: a caption, and a surface with a single flourish on it. */
 function stall(into: HTMLElement, title: string, extraClass?: string): HTMLElement {
@@ -65,6 +69,7 @@ export function drawFlourishes(into: HTMLElement): void {
   giltFrameStall(into);
   pricePlateStall(into);
   cityBannerStall(into);
+  cityGarrisonStall(into);
   inscriptionStall(into);
   ledgerStall(into);
 }
@@ -225,6 +230,118 @@ function cityBannerStall(into: HTMLElement): void {
   // read as less of a wound because the town's maximum grew.
   checkbox(knobs, 'palisade', false, (on) => {
     town.buildings = on ? ['palisade'] : [];
+    repaint();
+  });
+}
+
+/**
+ * The garrison slot on the same pill: what is standing in the town, at its fly.
+ *
+ * The badge came **into the plate** on 2026-09-09 (U5, `docs/flags.md` (hhh) 6)
+ * after the user could not find the 3D tag U4 hung over the flagpole — the plate
+ * covers the town's hex, so a mark at the pole's height is behind it. It earns a
+ * stall of its own for the wound's second reason: in a game the slot is only
+ * ever the one thing that happens to be standing in a town, and the question it
+ * has to answer — *can I tell a scout from a worker from a warrior at thirteen
+ * pixels, and whose is it* — is a question about the marks side by side.
+ *
+ * Real pieces on a real town (`createUnit` on a `foundCityAt` town) and the
+ * shipping derivation (`garrisonSlot`, `strongestGarrison`) rather than a
+ * hand-made slot: the badge, the rim ink and the numeral are the three things
+ * this page must not own a second copy of. The knob picks a roster row, so the
+ * mapping under test is `badgeClassFor`'s and not a list written here.
+ */
+function cityGarrisonStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The city banner’s garrison',
+    'A roundel at the pill’s fly carrying the badge of whatever is standing on the town’s hex — the same mark that piece wears on the board, masked in the plate’s ink on a disc of parchment rimmed in the piece’s own seat colour, so a captured town garrisoned by its captor is plainly somebody else’s. The strongest piece takes the slot and a numeral bosses the corner once more than one is in; a civilian’s nothing still wins an empty field, because a town held by one worker is a town nobody is holding.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'held, and by whom');
+  const ground = element('div', 'banner-ground');
+
+  const state = newGame({
+    seed: 11,
+    sizeName: 'duel',
+    players: [
+      { name: 'Seat 1', color: '#b3402f', isHuman: true },
+      { name: 'Seat 2', color: '#2f6fb3', isHuman: true },
+    ],
+  });
+  state.map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+  state.units.length = 0;
+  state.cities.length = 0;
+  state.camps.length = 0;
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  resetVisibility(state);
+  const town = foundCityAt(state, 0, getTileAt(state.map, 3, 3)!);
+
+  const slot = buildGarrison();
+  const banner = element('div', 'city-banner is-mine is-held');
+  banner.style.setProperty('--banner-color', '#b3402f');
+  const size = element('span', 'city-banner-size');
+  size.append(element('span', 'city-banner-pop', '5'));
+  banner.append(
+    size,
+    element('span', 'city-banner-name', 'Lagash'),
+    element('span', 'city-banner-production', 'Warrior · 4t'),
+    slot.root,
+  );
+  const holder = element('div', 'banner-slot');
+  holder.append(banner, element('span', 'banner-caption', 'the plate'));
+  ground.append(holder);
+  cell.append(ground);
+
+  /** The knobs' whole state: a roster row, a count, and whose the pieces are. */
+  let type: UnitTypeId = 'warrior';
+  let count = 1;
+  let seat = 0;
+
+  const repaint = (): void => {
+    state.units.length = 0;
+    for (let i = 0; i < count; i += 1) createUnit(state, seat, type, town.col, town.row);
+    paintGarrison(slot, garrisonSlot(state, state.units));
+    banner.classList.toggle('is-held', state.units.length > 0);
+  };
+  repaint();
+
+  const knobs = controls(root);
+  select(
+    knobs,
+    'standing here',
+    [
+      ['none', 'nothing'],
+      ['scout', 'a scout'],
+      ['worker', 'a worker'],
+      ['settler', 'a settler'],
+      ['trader', 'a caravan'],
+      ['greatPerson', 'a great person'],
+      ['warrior', 'a warrior'],
+      ['knight', 'a knight'],
+      ['galley', 'a galley'],
+    ],
+    'warrior',
+    (value) => {
+      // "Nothing" is the count at zero rather than a type of its own: the
+      // absence this stall has to show is the absence the game draws, which is
+      // `garrisonSlot` answering `null` to an empty hex.
+      if (value === 'none') count = 0;
+      else {
+        if (count === 0) count = 1;
+        type = value as UnitTypeId;
+      }
+      repaint();
+    },
+  );
+  slider(knobs, 'how many', { min: 0, max: 5, step: 1, value: 1 }, (v) => (v === 0 ? 'empty' : `${v} in`), (v) => {
+    count = v;
+    repaint();
+  });
+  // Whose the *piece* is, which is not always whose the town is — the one thing
+  // a rim in the town's colour could never say.
+  checkbox(knobs, 'somebody else’s', false, (on) => {
+    seat = on ? 1 : 0;
     repaint();
   });
 }

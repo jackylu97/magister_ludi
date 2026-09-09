@@ -491,22 +491,6 @@ export interface CitySpec {
   puppetInset: number;
   puppetDrop: number;
   puppetNudge: number;
-  /**
-   * The **garrison badge** hung over the banner (`garrison3d.ts`, the user's
-   * ruling of 2026-09-09): the roundel's diameter, how far above the top of the
-   * pole it floats, how far it stands in front of itself so the rim clears the
-   * disc, and the size of the numeral that bosses it when more than one piece is
-   * in.
-   *
-   * Bigger than the charge on the cloth below it and smaller than a unit's own
-   * badge on the ground: it is read at the same distance a flag is, and it is
-   * the answer to "is anything holding that town", which is a question asked
-   * from across the table.
-   */
-  garrisonSize: number;
-  garrisonRise: number;
-  garrisonNudge: number;
-  garrisonCountSize: number;
   poleRadius: number;
   poleHeight: number;
   poleColor: string;

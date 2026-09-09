@@ -1205,7 +1205,10 @@ describe('the seat predicates the layers share', () => {
  * CLAUDE.md states the contract — *"seat-filtered layers rebuild off
  * `FogStats.tiles` in the render loop — a new one joins there, and in
  * `loadIcons` if it reads the atlas"* — and until the garrison tags arrived
- * (2026-09-09) nothing held anybody to it. The failure it is written against is
+ * (2026-09-09) nothing held anybody to it. Those tags were retired the same week
+ * (U5: the garrison badge is set into the DOM banner plate, which covered the
+ * 3D mark), and the register outlived them — the contract was never about that
+ * one layer. The failure it is written against is
  * silent and specific: a layer that filters by `seesCell` and is *not* rebuilt
  * on a fog move goes on drawing an army on ground the seat stopped watching,
  * which is the fog leaking through a hole no screenshot shows, because the
@@ -1235,7 +1238,6 @@ describe('the seat-filtered layers all follow the fog', () => {
   const layers = [
     'rebuildUnits',
     'rebuildCities',
-    'rebuildGarrisons',
     'rebuildTerritory',
     'rebuildRoads',
     'rebuildImprovements',
@@ -1284,7 +1286,6 @@ describe('the seat-filtered layers all follow the fog', () => {
       'rebuildUnits',
       'rebuildSites',
       'rebuildCities',
-      'rebuildGarrisons',
       'rebuildFog',
       'rebuildOverlays',
     ]) {

@@ -41,7 +41,6 @@ import './style.css';
 import { installFlourishMarks } from '../ui/deviceMarks';
 import { CityStrip, PART_CAPTIONS, PART_IDS, PartsShelf } from './cityStage';
 import { drawMarginaliaSwatches } from './chart';
-import { UnitBadges } from '../render3d/badges3d';
 import { VIEW3D } from '../render3d/lookData';
 import { drawRouteMedallions } from './route';
 import { drawFlourishes, drawFrontispiece, drawWheel } from './flourishes';
@@ -204,10 +203,12 @@ refreshCityCaptions();
     strip.setSpinning(on);
     shelf.setSpinning(on);
   });
-  // **The two marks the banner grew on 2026-09-09** (`docs/flags.md` (hhh) 5
-  // and 6). Both are drawn by the shipping layers off the fixtures' own state,
-  // so what is on the canvas is what is on the board — which is the only reason
-  // a slider under it is worth anything.
+  // **The yoke the flag grew on 2026-09-09** (`docs/flags.md` (hhh) 5). Drawn
+  // by the shipping layer off the fixture's own state, so what is on the canvas
+  // is what is on the board — which is the only reason a slider under it is
+  // worth anything. Its sibling ruling, (hhh) 6, no longer has a knob here: the
+  // garrison badge is set into the **DOM plate** now (U5), so it is judged on
+  // the banner's own stall rather than over a sculpt it was invisible behind.
   checkbox(knobs, 'puppet', false, (on) => strip.setPuppet(on));
   slider(
     knobs,
@@ -226,33 +227,6 @@ refreshCityCaptions();
     (value) => `${value.toFixed(2)}×flag`,
     (value) => {
       VIEW3D.city.puppetDrop = value;
-      strip.repaint();
-    },
-  );
-  slider(
-    knobs,
-    'garrison',
-    { min: 0, max: 4, step: 1, value: 0 },
-    (value) => (value === 0 ? 'empty' : `${value} in`),
-    (value) => strip.setGarrison(value),
-  );
-  slider(
-    knobs,
-    'tag size',
-    { min: 0.12, max: 0.5, step: 0.01, value: VIEW3D.city.garrisonSize },
-    (value) => value.toFixed(2),
-    (value) => {
-      VIEW3D.city.garrisonSize = value;
-      strip.repaint();
-    },
-  );
-  slider(
-    knobs,
-    'tag rise',
-    { min: 0, max: 0.6, step: 0.01, value: VIEW3D.city.garrisonRise },
-    (value) => value.toFixed(2),
-    (value) => {
-      VIEW3D.city.garrisonRise = value;
       strip.repaint();
     },
   );
@@ -334,16 +308,6 @@ void drawMarginaliaSwatches(chartBlock).then((icons) => {
   shelf.setIcons(icons);
   // The medallions come out of the same atlas and wait for it the same way.
   routeStall.setIcons(icons);
-});
-
-/**
- * The **badge** atlas, which is a second one and the only thing on this page
- * that fetches anything (the ten Tabler drawings and their in-house siblings).
- * The garrison tag is a picture out of it, so the strip waits for it exactly as
- * it waits for the tile atlas above.
- */
-void UnitBadges.load().then((badges) => {
-  strip.setBadges(badges);
 });
 
 window.addEventListener('resize', () => {

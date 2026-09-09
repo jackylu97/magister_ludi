@@ -82,7 +82,6 @@ import {
   signCityCells,
   signTerritory,
 } from './cities3d';
-import { GarrisonLayer, signGarrisons } from './garrison3d';
 import { type FogLevels, type FogStats, FogView, seesCell } from './fog3d';
 import {
   ImprovementLayer,
@@ -148,13 +147,6 @@ export class Renderer3D implements MapView {
   private readonly key: DirectionalLight;
   private readonly units = new UnitLayer();
   private readonly cities = new CityLayer();
-  /**
-   * The tags over the banners: what is standing in each town this seat can see
-   * (`garrison3d.ts`, the user's ruling of 2026-09-09). Its own layer beside the
-   * towns rather than inside them, because it is a *unit* fact — see that
-   * module's docblock for why folding it either way was the wrong trade.
-   */
-  private readonly garrisons = new GarrisonLayer();
   private readonly territory = new TerritoryLayer();
   /**
    * A free-form per-tile wash, empty in the game (see `setTileTints`). Held
@@ -271,12 +263,6 @@ export class Renderer3D implements MapView {
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
   private citiesSignature = 0;
-  /**
-   * The same for the tags over the banners. Its own, and deliberately not
-   * `signUnits`: see `signGarrisons` for why a scout's step must not repaint
-   * every town's tag.
-   */
-  private garrisonsSignature = 0;
   private territorySignature = 0;
   /** The same for the works on the ground. See `signImprovements`. */
   private improvementsSignature = 0;
@@ -357,7 +343,6 @@ export class Renderer3D implements MapView {
 
     this.scene.add(this.units.group);
     this.scene.add(this.cities.group);
-    this.scene.add(this.garrisons.group);
     this.scene.add(this.tints.group);
     this.scene.add(this.territory.group);
     this.scene.add(this.roads.group);
@@ -438,10 +423,6 @@ export class Renderer3D implements MapView {
       // same atlas: a city founded before it arrived would fly a plain banner
       // until it next grew.
       this.rebuildCities();
-      // The tags over those banners take one thing from this atlas — the
-      // numeral that counts a stack — so a town garrisoned before it landed
-      // would show a badge with no count until something else moved.
-      this.rebuildGarrisons();
       // The blank chart's serpents and its inscription are cells of this atlas,
       // so the one layer that could not be finished without it is finished now.
       // The single re-build of the chart layer in a session, and deliberately
@@ -508,7 +489,6 @@ export class Renderer3D implements MapView {
     }
     this.rebuildUnits();
     this.rebuildCities();
-    this.rebuildGarrisons();
     this.rebuildTerritory();
     this.rebuildRoads();
     this.rebuildImprovements();
@@ -723,7 +703,6 @@ export class Renderer3D implements MapView {
     // Everything that filters by the seat's own eyes has to follow it.
     this.rebuildUnits();
     this.rebuildCities();
-    this.rebuildGarrisons();
     this.rebuildTerritory();
     this.rebuildRoads();
     this.rebuildImprovements();
@@ -836,26 +815,6 @@ export class Renderer3D implements MapView {
       this.icons,
     );
     this.citiesSignature = signCities(this.state);
-  }
-
-  /**
-   * Rebuilds the garrison tags. Cheap — one walk over the pieces and two
-   * instances per held town — which is what lets it follow the towns' rhythm
-   * rather than needing one of its own.
-   */
-  private rebuildGarrisons(): void {
-    if (!this.state) return;
-    this.garrisons.build(
-      this.state,
-      this.geometry,
-      this.materials,
-      this.view.camera.quaternion.clone(),
-      this.shadows,
-      this.badges,
-      this.fogLevels(),
-      this.icons,
-    );
-    this.garrisonsSignature = signGarrisons(this.state);
   }
 
   private rebuildTerritory(): void {
@@ -2028,13 +1987,6 @@ export class Renderer3D implements MapView {
     if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
       this.rebuildCities();
     }
-    // The tags over the banners, on their own fingerprint: a piece walking into
-    // or out of a town moves it, and nothing else on the map does. A fog move
-    // reaches it for the towns' reason exactly — a garrison is an army, not
-    // something a chart remembers, so a town slipping out of sight loses its tag.
-    if (this.state && (fogMoved || signGarrisons(this.state) !== this.garrisonsSignature)) {
-      this.rebuildGarrisons();
-    }
     // Improvements are terrain-ish, so they follow the fog on explored ground
     // rather than disappearing with it — which means a fog move has to reach
     // this layer too, exactly as it reaches the towns and the borders.
@@ -2128,7 +2080,6 @@ export class Renderer3D implements MapView {
     this.icons?.dispose();
     this.units.dispose();
     this.cities.dispose();
-    this.garrisons.dispose();
     this.territory.dispose();
     this.tints.dispose();
     this.roads.dispose();

@@ -3121,6 +3121,75 @@ kbd {
   opacity: 0.85;
 }
 
+/* The garrison slot at the pill's fly (`cityBanners.ts`, "The garrison slot").
+   The board's own badge restated in HTML: a disc of parchment, the piece's mark
+   in ink on it, and a rim in the *piece's* seat colour — which is why the ink is
+   a custom property written per repaint rather than the banner's own
+   `--banner-color`. Parchment ground and not seat-fill, because the mark has to
+   read on it for all twelve tinctures, and an ink mark on parchment is the one
+   pairing that does. */
+.city-banner-garrison {
+  position: relative;
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--garrison-color, var(--banner-color));
+  border-radius: 999px;
+  background: var(--parchment);
+}
+
+/* A **mask** rather than an image, so the mark takes the ink above and dims with
+   the card — the yoke's trick, and the reason a badge is data rather than a
+   picture pasted on a pill. The document is the same file the badge atlas
+   rasterises for this piece's own roundel on the board. */
+.city-banner-garrison-mark {
+  width: 13px;
+  height: 13px;
+  background-color: var(--ink);
+  -webkit-mask-image: var(--garrison-mark);
+  mask-image: var(--garrison-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+/* How many are in, bossing the roundel's corner — the board's own arrangement,
+   and absent entirely at one, because a numeral that always said "1" would be
+   furniture on every held town on the map. Tabular mono, like every figure on
+   this surface. */
+.city-banner-garrison-count {
+  position: absolute;
+  right: -5px;
+  bottom: -4px;
+  display: grid;
+  place-items: center;
+  min-width: 13px;
+  height: 13px;
+  padding: 0 2px;
+  border: 1.5px solid var(--ink);
+  border-radius: 999px;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+/* A held town's wound stops short of the roundel, exactly as it stops short of
+   the size badge at the hoist: 20px of disc plus the row's 7px gap and the
+   pill's 12px right padding. Without this the channel would run under the
+   seat's own tincture, which is the thing the left inset exists to prevent. */
+.city-banner.is-held .city-banner-health {
+  right: 39px;
+}
+
 .city-banner-production {
   padding-left: 8px;
   border-left: 2px solid rgba(247, 242, 225, 0.3);
