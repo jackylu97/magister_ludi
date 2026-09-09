@@ -606,7 +606,19 @@ directly to confirm rulings — user marginalia are rulings.
   citizen's happiness demand uncharged), 81–105 ms a turn measured, and a
   queue X1–X11. **X1, X2, X3 fly now** (each an arithmetic change inside
   an existing fold, each with its acceptance measurement); X4–X8 follow;
-  X9–X11 wait. (eee)
+  X9–X11 wait. **X1, X2, X3 landed 2026-09-08** (63e0f96 · e8bfef4 ·
+  71cdc46): the unit step charges the levy's shortfall in hammers and the
+  military premium reads against it (military re-aims 63/67% → 40/44%,
+  techs at t150 32/36 → 54/40; the negative-node share is the building
+  side's and rose, recorded as a correction); every scoped clause is
+  priced over the towns `cityScopeAdmits` admits and a hex clause over the
+  worked hexes its condition admits (six of six boards move, five on a
+  draft passed); the faith book folds a faith house's town and prices a
+  Templar as its horse. Two findings for the queue: the audit's bench
+  never founds a house-opening faith in 150 turns (why the bots reach
+  t150 without a religion is upstream of the book), and the X1 bench's
+  treasuries at t150 fell (315/404 → 198/153, 666/392 → 384/352) while
+  the tree grew — solvent, watched. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
