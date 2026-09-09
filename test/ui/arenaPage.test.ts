@@ -164,10 +164,13 @@ describe('the configuration panel is generated, not listed', () => {
     // The promise's other direction, asserted about the two X1d-ground retired
     // (2026-09-09): `workers.planFalloff`, the decay over ranked plan entries a
     // spade's own charges replaced, and `site.ringFalloff`, the per-ring weight
-    // the growth curve replaced. A retired knob leaves `data/ai.json` and the
-    // panel is one row shorter, because the panel walks the file.
+    // the growth curve replaced. X1e retires a third the same way —
+    // `site.coastBonus`, the flat prior for "a coast is probably useful later",
+    // replaced by the fishing boats a reachable node would let a town lay. A
+    // retired knob leaves `data/ai.json` and the panel is one row shorter,
+    // because the panel walks the file.
     const walked = new Set(knobs.map((knob) => knobKey(knob.path)));
-    for (const gone of ['workers.planFalloff', 'site.ringFalloff']) {
+    for (const gone of ['workers.planFalloff', 'site.ringFalloff', 'site.coastBonus']) {
       expect(walked.has(gone), gone).toBe(false);
       expect(html).not.toContain(gone.split('.')[1]);
     }

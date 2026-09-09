@@ -143,6 +143,7 @@ import {
   explainWorkerCraving,
   rankPlanFor,
   rankWorkSites,
+  reachableGroundOn,
 } from './plan';
 import {
   NO_ROUTES,
@@ -334,7 +335,7 @@ import {
 import { sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
-import { hasFreshWater, isCoastal } from '../sim/water';
+import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
@@ -5518,9 +5519,10 @@ function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
 
 /**
  * What a hex is worth as a city site: **the hexes a town founded here would
- * actually work**, each discounted at the turn the citizen who works it arrives,
- * plus the things a town cares about that no tile yield says — fresh water, a
- * coast, and **a kind of resource this empire has none of**.
+ * actually work**, each at the best improvement a technology inside the horizon
+ * would let a spade lay on it, discounted at the turn the citizen who works it
+ * arrives, plus the things a town cares about that no tile yield says — fresh
+ * water and **a kind of resource this empire has none of**.
  *
  * **The top N, not the whole ring** (ruled 2026-09-09: *"values where we're
  * overestimating the number of tiles a city could work"*). What stood here summed
@@ -5543,6 +5545,25 @@ function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
  * walk to* and the sheet a town will actually keep is a hundred turns of play
  * away. `site.ringFalloff` retires with the sum it weighted; `ringRadius` stays,
  * as the bound on the ground that is looked at.
+ *
+ * **The ground as it would be worked, not as it lies** (batch X1e, ruled
+ * 2026-09-09: *"a human will take a suboptimal coastal spot over a slightly
+ * better inland spot if they suspect fishing boats later"*). Every ring hex is
+ * also asked what the best improvement a **reachable** technology would let a
+ * town lay on it would add — `reachableGroundOn` (`plan.ts`), which walks the
+ * tree once per sitting and answers with the simulation's own gate and the
+ * simulation's own yield delta — and that promise is discounted at whichever
+ * comes later, the node's landing or the citizen's arrival. So a coast with four
+ * fish reads four fishing boats before Sailing is chosen, a plain reads its
+ * farm, and a hill reads its mine; a node past the horizon reads nothing, which
+ * is the whole of the bound. `site.coastBonus` **retires** with the guess it
+ * stood in for: a coast is worth the boats a town would actually put on it, and
+ * a coast with nothing in the water is worth the water.
+ *
+ * The **centre** takes no promise. A town stands on it, and a town's own hex
+ * takes no improvement at all — the one clause of the hypothetical that the
+ * hypothetical cannot answer, because the town it would refuse for is the town
+ * this whole reading is about.
  *
  * **Kind awareness** is the other half, and it is what a settler is really for
  * once an empire has any ground at all: a luxury is a *signature* and a second
@@ -5575,27 +5596,40 @@ export function explainSite(
   const bonuses: ValueTerm[] = [];
   const here = tileHex(tile);
   const seen = new Set<ResourceId>();
-  const ranked: { col: number; row: number; worth: number; food: number; at: number }[] = [];
+  const ranked: {
+    col: number;
+    row: number;
+    worth: number;
+    food: number;
+    at: number;
+    /** What a spade would add here, and the node that would let it — batch X1e. */
+    promises: { worth: number; landing: number; name: string }[];
+  }[] = [];
   let centreFood = 0;
   let centreWorth = 0;
   for (const near of mapRange(state.map, here, Math.max(0, ai.site.ringRadius))) {
     const yields = foldTileLines(explainTileYield(near, ground));
-    let worth = 0;
-    for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
-      const value = (yields as unknown as Record<string, number>)[voice];
-      if (typeof value === 'number') worth += value * weight;
-    }
+    const worth = siteWorth(ai, yields);
     const steps = wrappedDistance(state.map, here, tileHex(near));
     if (steps === 0) {
       centreFood = yields.food;
       centreWorth = worth;
     } else {
+      // The improvements a reachable node would open on this hex, weighted in
+      // the site's own currency. Which of them is worth the most depends on when
+      // the citizen who works the hex arrives, so the choice is made below and
+      // the whole list is carried here.
       ranked.push({
         col: near.col,
         row: near.row,
         worth,
         food: yields.food,
         at: tileIndex(state.map, near.col, near.row),
+        promises: reachableGroundOn(ctx, near).map((promise) => ({
+          worth: siteWorth(ai, promise.delta),
+          landing: promise.landing,
+          name: improvementDef(promise.improvement).name,
+        })),
       });
     }
     // The seam itself, once per kind: a site with two silk hexes is still a
@@ -5607,6 +5641,14 @@ export function explainSite(
   }
   // Best first, ties by tile index — a fact about the board rather than about the
   // order the range walk happened to visit hexes in (rule 2).
+  //
+  // **The hex as it lies, and deliberately not as it could be** (batch X1e). The
+  // rank is a guess at which hex the *citizen* will take, and a citizen takes the
+  // best hex on the board it stands on (`yieldScore`, `assignCitizens`) — not the
+  // best hex a spade might one day make. Ranking by the promise put citizens on
+  // bare hills the town would never work, which stalled the growth curve that
+  // decides how many hexes are counted at all; the promise rides on the hexes the
+  // town would actually take, which is where it is paid.
   ranked.sort((a, b) => b.worth - a.worth || a.at - b.at);
 
   // The centre, worked for nothing from the turn the town stands.
@@ -5630,10 +5672,37 @@ export function explainSite(
     // hex there is: everything below it is worth nothing and prints as nothing.
     if (discount.value <= 0) break;
     food += hex.food;
+    // **The spade's half, at whichever comes later** — the node has to land and
+    // the citizen has to be born, and the hex pays the improvement only once both
+    // have happened. Chosen after the arrival is known rather than at the rank,
+    // because a hex worked late may be better served by a row a slower node opens.
+    // Nothing is the floor: a row that would *lower* what the hex pays is a row
+    // no spade lays, so the promise is never a subtraction.
+    let best: { worth: number; landing: number; name: string } | null = null;
+    let bestValue = 0;
+    for (const row of hex.promises) {
+      const value = row.worth * delayDiscount(Math.max(row.landing, turn), ctx);
+      if (value > bestValue) {
+        best = row;
+        bestValue = value;
+      }
+    }
+    const parts: ValueTerm[] = [
+      { label: `weighted ${round1(hex.worth)}`, value: hex.worth },
+      discount,
+    ];
+    if (best !== null) {
+      parts.push({
+        label:
+          `+ ${best.name} here, ${round1(Math.max(best.landing, turn))} turns out — ` +
+          `weighted ${round1(best.worth)}`,
+        value: bestValue,
+      });
+    }
     worked.push({
       label: `(${hex.col},${hex.row}) — citizen ${citizen}'s hex, ${round1(turn)} turns out`,
-      value: hex.worth * discount.value,
-      parts: [{ label: `weighted ${round1(hex.worth)}`, value: hex.worth }, discount],
+      value: hex.worth * discount.value + bestValue,
+      parts,
     });
   }
 
@@ -5645,9 +5714,26 @@ export function explainSite(
     },
   ];
   if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
-  if (isCoastal(state.map, tile)) terms.push({ label: 'a coast', value: ai.site.coastBonus });
   terms.push(...bonuses);
   return appraise(terms);
+}
+
+/**
+ * One tile reading in the settle table's own currency — `site.yieldWeights` over
+ * the six voices, and the one place the weights are applied.
+ *
+ * Its own function since batch X1e because two readings now go through it: the
+ * hex as it lies, and the delta an improvement would add to it. A promise
+ * weighted differently from the ground it stands on would be two currencies in
+ * one appraisal.
+ */
+function siteWorth(ai: AiConfig, yields: TileYield): number {
+  let worth = 0;
+  for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
+    const value = (yields as unknown as Record<string, number>)[voice];
+    if (typeof value === 'number') worth += value * weight;
+  }
+  return worth;
 }
 
 

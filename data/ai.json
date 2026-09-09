@@ -25,7 +25,6 @@
   "site": {
     "ringRadius": 2,
     "freshWaterBonus": 6,
-    "coastBonus": 3,
     "newLuxuryBonus": 14,
     "newStrategicBonus": 10,
     "yieldWeights": {

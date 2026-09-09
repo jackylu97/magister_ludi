@@ -5820,3 +5820,177 @@ was **rewritten to assert the open behaviour directly**, never dropped:
   · `aiWants.test.ts` the X6 bound → the "unbounded" reading is now
     `expansion.hexOffersPriced` lifted past every offer a frontier has, so both
     readings run one code path and the ranking claim survives whole.
+
+---
+
+## Batch X1e as shipped — potential, read off the register of intent (2026-09-09)
+
+> *"does the bot ever price the potential of a card? +1 science on libraries is
+> good even if you don't have libraries built yet … a human will take a
+> suboptimal coastal spot over a slightly better inland spot if they suspect
+> fishing boats later"* — the user, `docs/flags.md` item (ggg)
+
+Three arms priced the board **as it stands** where the thing they were pricing is
+a thing about to change: a card scoped to a building walked the shelves *held*, a
+settle site read its ring as *bare ground* plus a flat coastal prior, and the
+worker plan's rider read only the nodes the seat had *declared for*. Each is
+replaced by a reading of something the board can already name — a chain's own
+copies, and the tree's own landings. **Still greedy**: nothing here searches over
+decisions, and every promise is discounted at the turn it would arrive.
+
+### 1 · The card — the shelves a live chain still owes
+
+`promisedBuildings` (`value.ts`) walks `ValueContext.chains` — `liveChains`, the
+goals this empire is executing — and takes every building step's `copies` (batch
+X1d-chain: one copy per town that would raise the row, carrying that town's own
+landing). Each copy is a `{ town, row, discount }` at `delayDiscount(copy.delay)`,
+a town already holding the row is not promised anything, and a row two chains owe
+keeps the earlier landing. Memoised per sitting on the context, `SCOPE_MEMO`'s
+bargain.
+
+Three arms read it:
+
+- **`buildingYieldPercent`** — the held sweep, plus `promisedYieldPercent`: the
+  same row-for-row, voice-for-voice arithmetic asked of the copies and multiplied
+  by the discount. A "+10% on libraries" card is worth nought to an empire with
+  no library and no chain, and worth a share of two libraries to one whose chain
+  owes two;
+- **`pays` at `basis: 'mirror'`** — the same, `promisedMirror`;
+- **`townsAdmitting`** — a town the scope does not admit today but *would* with
+  the copy standing (`cityScopeAdmits` asked of `townHolding(city, row)`, the
+  build arm's own hypothetical) counts at that copy's discount. A town counts
+  once, at the best of its copies. **The wonder idiom is now a floor** rather
+  than a fallback: a scope that promises a building still reads at least the one
+  town that would raise it, so nothing this reading does can make a clause read
+  worse than it did.
+
+**Left alone, and the reason.** `cityRenownPercent` also walks `city.buildings`,
+and it is the one card arm not given a promise half: what a chain prices a copy
+at is the town's *yield* fold (`townFolds`), so a chain that owes a library has
+committed to beakers and not to renown — crediting a promise there would price a
+promise the chain itself never priced. `potentialTownsFor` (the `pays` count's
+promise) already had a potential half of its own, gated on `buildError`, and is
+untouched; `hammerPrice`'s walk of the chains and `boardTempo`'s count of raised
+shelves are not card arms at all.
+
+### 2 · The tree, walked once — `reachableTechs`
+
+`reachableTechs(ctx)` (`plan.ts`) answers *"which nodes could this seat be holding
+before the horizon runs out, and when"*:
+
+- a node **held** lands at turn nought;
+- a node **on the declared plan** lands at `turnsUntilPlanned` — everything ahead
+  of it on the plan is owed first, which is when the empire will actually hold it;
+- every **other** node lands at what its own road costs: the beakers of
+  `researchExpansion` less the pool banked, over `ValueContext.scienceRate`. That
+  is the earliest it could arrive, which is the honest reading of a *suspicion*;
+- a node past `priorities.horizonTurns` is **absent**, not zero.
+
+Memoised per sitting: the tree does not move between two candidate sites, and a
+settler prices two hundred of them in one decision.
+
+### 3 · The site — the ground as it would be worked
+
+`explainSite` (`bot.ts`) prices every ring hex it counts at **the best improvement
+a reachable node would let a town lay on it**, discounted at whichever comes
+later, the node's landing or the citizen's arrival. `reachableGroundOn` (`plan.ts`)
+answers per hex, memoised **by hex** rather than by site because the rings of two
+hundred candidates overlap almost completely.
+
+Two hypotheticals, and each answers a clause of the simulation's own gate rather
+than working around it:
+
+- **the technologies.** The seat holds its list plus every reachable node, so
+  `improvementTechError` stops refusing the fishing boat this whole batch is for;
+- **the ground.** `improvementGroundError`'s first clause is *"not in your
+  territory"* and a settle site's ring is wild. The hypothetical is a **copy** of
+  the state — three arrays replaced — whose unclaimed hexes belong to a phantom
+  town of this seat, minted by the simulation's own `createCity` and standing off
+  the map at (−1, −1) so no real hex reads as built on. The slate hangs off the
+  state object's identity, so the hypothetical remembers its own readings and
+  poisons none of the real ones.
+
+The **yield delta is read through the seat's own eyes**, not the hypothetical's: a
+reachable node buys a hex the right to be improved and never the sight of what is
+buried under it, so a seam this empire cannot name still pays it nothing (rule 5's
+ctx clause). The **centre takes no promise** — a town stands on it.
+`site.coastBonus` **retires**: a coast is worth the boats a town would put on it.
+
+**The one thing measured into the design.** The first cut ranked the ring by
+`worth + promise`, and that cost the batch four buildings, eight science and
+thirteen culture a seat. The rank is a guess at which hex the *citizen* takes, and
+a citizen takes the best hex on the board it stands on (`yieldScore`) — not the
+best hex a spade might one day make. Ranking by the promise stood citizens on bare
+hills, which stalled the growth curve that decides how many hexes are counted at
+all. The rank is the hex **as it lies**; the promise rides on the hexes the town
+would actually take.
+
+### 4 · The worker's rider — the same reading
+
+`plannedRiderTerms` (`plan.ts`) asked `researchPlan` and skipped every node not on
+it. It asks `reachableTechs` now, and the discount is that node's landing, so a
+spade's hex prices what any near node would add whether or not the seat has
+declared for it. The term says so: *"Irrigation is inside the horizon"*.
+
+### The t100 probe — eight seeds, standard, sixteen seats
+
+Seeds 1 · 2 · 3 · 42 · 101 · 999 · 31337 · 20260101, two balanced seats,
+barbarians on, `createBotStepper().playTurn()` to turn 100. Main measured in the
+same process shape (± is one standard error of the sixteen seats):
+
+| | cities | citizens | buildings | food | prod | gold | sci | culture | faith | treasury | techs | happiness | ms/turn |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| main | 6.44 | 44.19 | 19.38 | 142.3 | 73.8 | 27.8 | 56.4 | 55.4 | 18.0 | 320 | 23.7 | +1.3 | 138.8 |
+| SE | 0.43 | 4.32 | 1.60 | 17.9 | 6.0 | 4.8 | 6.0 | 6.8 | 2.6 | 43 | 0.93 | 2.2 | |
+| X1e | 6.31 | 44.88 | 20.00 | 141.1 | 75.7 | 33.0 | 58.0 | 62.5 | 17.8 | 326 | 22.9 | +0.8 | 141.4 |
+
+No column down beyond one standard error; culture, gold, production, science and
+buildings up; ms/turn +1.9%.
+
+**The coastal clause is not met, and it is the retired prior rather than the
+promise.** Towns within one hex of water fell 3.25 → 2.81 (−0.7 SE) and towns with
+a boat seam in the ring 1.69 → 1.44 (−0.7 SE) — both inside the noise, neither up.
+Measured three ways: with the site half shut the counts are 2.75 and 1.44, so the
+promise moves them by nothing; with the retired `coastBonus` restored beside the
+whole batch they are 3.00 and 1.56, so the flat prior explains under half the
+drop. What explains the rest is that the promise **tilts toward land**: a plain
+coast hex takes no improvement at all, while every grassland takes a farm and
+every hill a mine, so pricing the ring as it would be worked lifts inland sites
+proportionally harder than the fish lift coastal ones. Restoring the prior costs
+production (68.0 against 75.7) and science (53.1 against 58.0), so the retirement
+is a net gain everywhere else and is shipped as ruled. **What a coast is worth
+beyond its hexes — a harbour's routes, a lighthouse's food — is priced nowhere in
+the settle table, and that is the open question the flat prior was standing in
+front of.**
+
+### The variants measured and not shipped
+
+- **the site half alone** (cards and rider on, the ring as it lies): buildings
+  21.50, science 64.09, culture 70.34, happiness +3.58, treasury 388 — the batch
+  reads better without the site half on every column but production and gold.
+  Not a reason to drop it: the reading is the ruling, and the gap is the
+  rank-by-promise defect above, which the shipped cut does not have (the same
+  columns land at 20.00 · 58.01 · 62.51 · +0.84 · 326 with the rank corrected).
+
+### Pins re-aimed
+
+  · `aiAppraisal.test.ts` "anticipates a renewal only while the technology is on
+    the seat's own plan" — re-aimed to the horizon: the term is
+    *"is inside the horizon"*, it survives the plan being cleared (the node's road
+    is the node), and it goes silent when the pool is emptied and the node's own
+    road no longer lands inside `priorities.horizonTurns`.
+  · `aiAppraisal.test.ts` "moves the anticipation's delay with the beakers the
+    seat actually banks" — the label alone.
+  · `aiAppraisal.test.ts` "reads a site through the seat's own eyes" — read off
+    the **hex's own line** rather than the site's total, and the case says why: a
+    seat that cannot name the seam cannot see that the seam refuses its farm
+    either, so the total nets two honest readings against each other while the
+    hex's line is the ctx clause said plainly.
+  · `arenaPage.test.ts` "loses a knob the day the bot retires one" —
+    `site.coastBonus` joins `workers.planFalloff` and `site.ringFalloff`.
+
+Two new cases in `aiAppraisal.test.ts`: a "+100% on science shelves" card reads
+nought with no library and no chain, positive with a chain that owes two, and less
+than the same two libraries standing; and a coast with four fish outscores a
+meadow with four wheat-fed grassland hexes exactly when Sailing is inside the
+horizon, and loses to it when the horizon is cut too short to reach Sailing at all.

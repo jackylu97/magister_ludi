@@ -1723,6 +1723,155 @@ function scopePromisesABuilding(scope?: CityScope): boolean {
 }
 
 /**
+ * **One shelf this empire is about to raise**, and how much of it is real today.
+ *
+ * Batch X1e, the user's ruling of 2026-09-09 (`docs/flags.md` item (ggg)):
+ * *"does the bot ever price the potential of a card? +1 science on libraries is
+ * good even if you don't have libraries built yet"*. Every building-scoped arm
+ * in this file walked `city.buildings`, so a card that boosts libraries was
+ * worth nothing at all to an empire two turns from raising three of them, and
+ * the bot passed the card that its own research plan was making good.
+ *
+ * The promise is read off the **register of intent** and never off a search:
+ * `ValueContext.chains` is `liveChains`, the goals this empire is actually
+ * executing, and a building step's `copies` are the towns that would raise the
+ * row with the turn each copy lands (batch X1d-chain). So the potential this
+ * file prices is exactly the potential the chain book has already committed to
+ * — nothing here decides that a library *might* be built, it reads that one is
+ * owed — and the discount is that copy's own delay, which is the same figure
+ * the chain discounted its payoff by.
+ *
+ * `discount` is therefore between nought and one: a copy landing next turn is
+ * very nearly a shelf standing, and a copy past `priorities.horizonTurns` is
+ * dropped rather than kept at nothing.
+ */
+export interface PromisedBuilding {
+  /** The town that would raise it — the same town the scope is asked of. */
+  city: City;
+  id: BuildingId;
+  /** `delayDiscount` at the copy's own landing. Greater than nought. */
+  discount: number;
+}
+
+const PROMISE_MEMO = new WeakMap<ValueContext, PromisedBuilding[]>();
+
+/**
+ * **The shelves the live chains still owe**, one row per (town, building), best
+ * discount first come — memoised for the sitting, `SCOPE_MEMO`'s bargain.
+ *
+ * A town already holding the row is not promised anything: it is *held*, which
+ * is the reading the arms take first, and counting it here as well would pay the
+ * empire twice for one library. A row promised by two chains keeps the earlier
+ * landing, which is when it will actually stand.
+ *
+ * The list is built by walking arrays in the order the chain book holds them, so
+ * two identical boards build identical lists (rule 2).
+ */
+export function promisedBuildings(ctx: ValueContext): readonly PromisedBuilding[] {
+  const memoised = PROMISE_MEMO.get(ctx);
+  if (memoised !== undefined) return memoised;
+  const towns = new Map<number, City>();
+  for (const city of citiesOf(ctx.state, ctx.playerId)) towns.set(city.id, city);
+  const rows: PromisedBuilding[] = [];
+  const seen = new Map<string, PromisedBuilding>();
+  for (const chain of ctx.chains) {
+    for (const step of chain.steps) {
+      if (step.kind !== 'building') continue;
+      const id = step.id as BuildingId;
+      for (const copy of step.copies) {
+        const city = towns.get(copy.cityId);
+        if (city === undefined || city.buildings.includes(id)) continue;
+        const discount = delayDiscount(copy.delay, ctx);
+        if (discount <= 0) continue;
+        const key = `${copy.cityId}:${id}`;
+        const held = seen.get(key);
+        if (held === undefined) {
+          const row: PromisedBuilding = { city, id, discount };
+          seen.set(key, row);
+          rows.push(row);
+        } else if (discount > held.discount) {
+          held.discount = discount;
+        }
+      }
+    }
+  }
+  PROMISE_MEMO.set(ctx, rows);
+  return rows;
+}
+
+/**
+ * The promised shelves a scope would admit — the same question `townsAdmitting`
+ * asks of the towns, asked of the copies.
+ *
+ * The scope is tested against the town **holding the promised row**
+ * (`townHolding`, the hypothetical the build arm already uses), because that is
+ * the town the clause would land in: a card scoped to *"towns with a library"*
+ * lands in the town the chain is about to give one to, and asking the scope of
+ * the town as it stands would answer no for ever.
+ */
+function promisedRowsFor(ctx: ValueContext, scope?: CityScope): PromisedBuilding[] {
+  const rows: PromisedBuilding[] = [];
+  for (const row of promisedBuildings(ctx)) {
+    if (
+      scope !== undefined &&
+      !cityScopeAdmits(ctx.state, townHolding(row.city, row.id), scope, ctx.playerId)
+    ) {
+      continue;
+    }
+    rows.push(row);
+  }
+  return rows;
+}
+
+/**
+ * **What the shelves a chain still owes would add to a `buildingYieldPercent`
+ * clause** — the sweep above said about the copies, each at its own discount.
+ *
+ * Written as its own fold rather than as a second pass inside that sweep because
+ * the two questions are different: one is *what does this empire hold*, which is
+ * a fact, and this is *what has it committed to raising*, which is a promise
+ * with a delay on it. The arithmetic is deliberately the same, row for row and
+ * voice for voice, so a library standing and a library owed are priced by one
+ * reading of one row.
+ */
+function promisedYieldPercent(
+  effect: Extract<CardEffect, { kind: 'buildingYieldPercent' }>,
+  ctx: ValueContext,
+): number {
+  let sum = 0;
+  for (const row of promisedRowsFor(ctx, effect.scope)) {
+    if (!buildingMatchesYieldPercent(row.id, effect)) continue;
+    const def = buildingDef(row.id);
+    for (const voice of VOICES) {
+      if (effect.yield !== undefined && effect.yield !== 'all' && effect.yield !== voice) continue;
+      const base =
+        (def[voice] ?? 0) +
+        (voice === 'science' ? row.city.population * (def.sciencePerPop ?? 0) : 0);
+      if (base === 0) continue;
+      sum += voiceWeight(ctx, voice) * base * (effect.percent / 100) * row.discount;
+    }
+  }
+  return sum;
+}
+
+/**
+ * The same promise for a `basis: 'mirror'` clause — what the shelves this empire
+ * is about to raise would pay in `from`, paid again as `to`, discounted.
+ */
+function promisedMirror(effect: CardPaysEffect, ctx: ValueContext): number {
+  if (effect.from === undefined) return 0;
+  let sum = 0;
+  for (const row of promisedRowsFor(ctx, effect.scope)) {
+    const def = buildingDef(row.id);
+    if (def.category !== effect.category) continue;
+    const base = def[effect.from as Voice] ?? 0;
+    if (base === 0) continue;
+    sum += voiceWeight(ctx, effect.to as Voice) * base * row.discount;
+  }
+  return sum;
+}
+
+/**
  * **How many of this empire's towns a scope actually admits** — batch X2's one
  * function, and the replacement for every bare `× ctx.cities` on a scoped clause.
  *
@@ -1749,8 +1898,32 @@ export function townsAdmitting(ctx: ValueContext, scope?: CityScope): number {
   for (const city of citiesOf(ctx.state, ctx.playerId)) {
     if (cityScopeAdmits(ctx.state, city, scope, ctx.playerId)) towns += 1;
   }
-  // The wonder idiom, and the one promise a realm can keep — see above.
-  if (towns === 0 && scopePromisesABuilding(scope)) towns = Math.min(1, ctx.cities);
+  // **The shelves the chains still owe** (batch X1e). A town that does not admit
+  // the scope today but *would* once the copy its chain owes is standing counts
+  // at that copy's own discount, so a clause about libraries is worth something
+  // to an empire about to raise three and still worth nothing to one that will
+  // never raise any. A town counts once however many copies would admit it, at
+  // the best (earliest) of them: the clause lands in the town, not in the shelf.
+  if (scopePromisesABuilding(scope)) {
+    const gains: number[] = [];
+    const counted = new Map<number, number>();
+    for (const row of promisedBuildings(ctx)) {
+      if (cityScopeAdmits(ctx.state, row.city, scope, ctx.playerId)) continue;
+      if (!cityScopeAdmits(ctx.state, townHolding(row.city, row.id), scope, ctx.playerId)) continue;
+      const at = counted.get(row.city.id);
+      if (at === undefined) {
+        counted.set(row.city.id, gains.length);
+        gains.push(row.discount);
+      } else if (row.discount > gains[at]!) {
+        gains[at] = row.discount;
+      }
+    }
+    for (const gain of gains) towns += gain;
+  }
+  // The wonder idiom, and the one promise a realm can keep — see above. A realm
+  // whose chains promise less than a whole town still reads the one town that
+  // would raise the row, so the idiom is a floor rather than a fallback.
+  if (towns < 1 && scopePromisesABuilding(scope)) towns = Math.min(1, ctx.cities);
   memo.set(scope, towns);
   return towns;
 }
@@ -2090,7 +2263,9 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
         sum += voiceWeight(ctx, effect.to as Voice) * base;
       }
     }
-    return sum;
+    // And the shelves the live chains still owe, each at its own delay — batch
+    // X1e's promise half. See `promisedMirror`.
+    return sum + promisedMirror(effect, ctx);
   }
 
   if (basis === 'rate') {
@@ -2289,7 +2464,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
           }
         }
       }
-      return sum;
+      // **Plus the shelves this empire is about to raise** (batch X1e): a card
+      // that boosts libraries is worth something to an empire whose live chain
+      // owes three of them, each copy discounted at the turn it lands. See
+      // `promisedYieldPercent` — the same arithmetic, asked of the copies.
+      return sum + promisedYieldPercent(effect, ctx);
     }
     case 'slotPosition': {
       // Worth exactly what the card in that chair is worth, over again — asked of

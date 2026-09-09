@@ -264,8 +264,20 @@ export interface AiConfig {
      * ring should count it at nothing rather than at a fraction.
      */
     ringRadius: number;
+    /**
+     * What a river or a lake beside the town square is worth beyond the yields
+     * the ring already prints — the farms it waters and the thirst it answers,
+     * neither of which a hex reading says.
+     *
+     * `coastBonus` stood beside it and is **retired** (batch X1e, 2026-09-09).
+     * It was a flat prior for "a coast is probably useful later", and the site
+     * now reads that later directly: every ring hex is priced at the best
+     * improvement a technology inside the horizon would let a town lay on it, so
+     * a coast is worth the fishing boats a town would actually put on it and a
+     * coast with nothing in the water is worth the water. A guess and a reading
+     * of the same thing would have been the coast counted twice.
+     */
     freshWaterBonus: number;
-    coastBonus: number;
     /**
      * A luxury **kind** this empire holds none of, standing in the site's rings.
      * Read off the resource row's `kind` and never off a name, and asked of the

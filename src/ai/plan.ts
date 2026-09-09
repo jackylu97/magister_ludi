@@ -57,11 +57,13 @@
  * That replaces a count of every farm standing or buildable in reach
  * (`surveyUpgradeSites`, which counted ground nobody works — the user's ruling of
  * 2026-09-09), and it is the same fold `plannedRiderTerms` takes per hex: a hex
- * is priced at what it pays today **plus what a technology already on this seat's
- * research plan would add to it once the spade's own improvement is standing
- * there, discounted by how far off that node is**, so the spade goes to the river
- * bank while the beeline is still walking towards Irrigation rather than after it
- * lands.
+ * is priced at what it pays today **plus what a technology this seat could be
+ * holding inside the horizon would add to it once the spade's own improvement is
+ * standing there, discounted at the turn that node would land**, so the spade
+ * goes to the river bank while the beeline is still walking towards Irrigation
+ * rather than after it lands. The bound was the *declared plan* until batch X1e
+ * and is the *horizon* now (`reachableTechs`, the user's ruling of 2026-09-09):
+ * a node one re-aim away is a node a person prices ground for.
  *
  * Why it is its own module: `value.ts` is the appraisal, `bot.ts` is the policy,
  * and this is a *reading of the board* that both the policy and the great-person
@@ -96,12 +98,12 @@ import {
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo, resourceYield } from '../sim/resourceData';
 import { RULES } from '../sim/rulesData';
-import { type City, type GameState, type Player, type Unit, playerById } from '../sim/state';
-import { researchPlan } from '../sim/tech';
-import { type TechId, techDef } from '../sim/techData';
+import { type City, type GameState, type Player, type Unit, createCity, playerById } from '../sim/state';
+import { researchExpansion, researchPlan } from '../sim/tech';
+import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import { TILE_YIELD_KEYS, type TileYield, emptyTileYield } from '../sim/terrainData';
 import { type UnitDef, type UnitTypeId, unitDef } from '../sim/unitData';
-import { type TileYieldContext, cityContext, foldTile } from '../sim/yields/hex';
+import { type TileYieldContext, cityContext, foldTile, yieldContextFor } from '../sim/yields/hex';
 import { round } from './decision';
 
 /**
@@ -271,7 +273,7 @@ function improvementEntry(
   // does not know which — which is the fallback `hammerPrice` states.
   const hammers = hammerTerm(delta.production ?? 0, ctx);
   if (hammers !== null) terms.push(hammers);
-  for (const term of plannedRiderTerms(player, ctx, tile, improvement, ground(tile))) {
+  for (const term of plannedRiderTerms(ctx, tile, improvement, ground(tile))) {
     terms.push(term);
   }
   return {
@@ -298,11 +300,18 @@ function improvementEntry(
  * Three bounds, and each is the difference between an anticipation and a
  * fantasy:
  *
- *   · **the seat's own plan and nothing further** — `researchPlan` is
- *     `researching` plus the queue behind it (presence-is-state, `tech.ts`), so
- *     this reads intentions the empire has actually declared. No walk of the
- *     tree, no "a node two rungs on would also pay": a bot that priced ground by
- *     what the whole tree might one day grant would price every hex the same;
+ *   · **a node this seat could actually reach inside the horizon** — batch X1e,
+ *     and the user's ruling of 2026-09-09 (*"a human will take a suboptimal
+ *     coastal spot over a slightly better inland spot if they suspect fishing
+ *     boats later"*). Until that batch this was the seat's **declared plan** and
+ *     nothing further, on the grounds that a bot pricing ground by what the whole
+ *     tree might one day grant would price every hex the same. The bound that
+ *     actually says that is the *horizon* rather than the plan:
+ *     `reachableTechs` walks the tree once per sitting and keeps only the nodes
+ *     whose own road lands inside `priorities.horizonTurns`, so a node the seat
+ *     has declared for is priced at when the plan will pay for it, a node one
+ *     re-aim away is priced at what its own road costs, and a node six rungs out
+ *     is not priced at all;
  *   · **this improvement, on this hex, asked of the evaluator** — the rider is
  *     the hex's own fold with the node held less its fold without it, taken with
  *     the candidate improvement already standing on it (2026-09-09's ruling:
@@ -322,7 +331,6 @@ function improvementEntry(
  *     yield the hex does not pay.
  */
 function plannedRiderTerms(
-  player: Player,
   ctx: ValueContext,
   tile: Tile,
   improvement: ImprovementId,
@@ -330,20 +338,16 @@ function plannedRiderTerms(
 ): ValueTerm[] {
   const upgrades = improvementDef(improvement).upgrades ?? [];
   if (upgrades.length === 0) return [];
-  const plan = researchPlan(player);
-  if (plan.length === 0) return [];
+  const reachable = reachableTechs(ctx);
   const terms: ValueTerm[] = [];
   for (const upgrade of upgrades) {
-    if (!plan.includes(upgrade.tech)) continue;
+    const landing = reachable.get(upgrade.tech);
+    if (landing === undefined) continue;
     const each = explainYields(bagOfTileYield(techYieldDelta(tile, improvement, ground, upgrade.tech)), ctx);
     if (each.total === 0) continue;
-    const discount = delayTerm(
-      turnsUntilPlanned(player, ctx, upgrade.tech),
-      ctx,
-      'the node has still to land',
-    );
+    const discount = delayTerm(landing, ctx, 'the node has still to land');
     terms.push({
-      label: `${techDef(upgrade.tech).name} is on the plan — what it would add here, discounted`,
+      label: `${techDef(upgrade.tech).name} is inside the horizon — what it would add here, discounted`,
       value: each.total * discount.value,
       parts: [...each.terms, discount],
     });
@@ -410,6 +414,193 @@ function turnsUntilPlanned(player: Player, ctx: ValueContext, goal: TechId): num
   }
   const remaining = Math.max(0, owed - player.sciencePool);
   return remaining / Math.max(1, ctx.scienceRate);
+}
+
+/**
+ * **Every technology this seat could be holding before the horizon runs out, and
+ * the turn each of them would land** — batch X1e's one new reading, and the
+ * "register of intent" the ruling of 2026-09-09 asks for.
+ *
+ * The user's sentence is *"a human will take a suboptimal coastal spot over a
+ * slightly better inland spot if they suspect fishing boats later"*, and what a
+ * person suspects there is not a plan — nobody has queued Sailing — but a *road
+ * short enough to be worth suspecting*. So the walk is the tree and the bound is
+ * the clock:
+ *
+ *   · a node the seat **holds** lands at turn nought, so an arm asking this can
+ *     ask one question about a farm it could lay today and a fishing boat it
+ *     could lay in nine turns, and get one answer with the delay in it;
+ *   · a node **on the declared plan** lands when the plan will have paid for it
+ *     (`turnsUntilPlanned` — everything ahead of it is owed first), because that
+ *     is when this empire will actually hold it;
+ *   · every **other** node lands at what its own road costs: the beakers of
+ *     `researchExpansion` less the pool already banked, over the science rate.
+ *     That is the earliest it could arrive, which is the honest reading of a
+ *     suspicion — the seat would have to re-aim, and re-aiming is free;
+ *   · a node landing past `priorities.horizonTurns` is **absent**, not zero. The
+ *     horizon is the whole bound: `delayTerm` already prices a node at the edge
+ *     of it at nothing, and dropping it here keeps the walks that read this map
+ *     from asking about ground no arm will ever pay for.
+ *
+ * Nothing is searched and no decision is looked ahead through: this is what the
+ * board can already name about its own tree, which is the ruling's *"still
+ * greedy"* clause. Memoised for the sitting (`PlanMemo`), because a settler
+ * prices two hundred candidate sites in one decision and the tree does not move
+ * between two of them.
+ */
+export function reachableTechs(ctx: ValueContext): ReadonlyMap<TechId, number> {
+  const memo = memoOf(ctx);
+  if (memo.reachable !== null) return memo.reachable;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return new Map<TechId, number>();
+  const horizon = Math.max(1, ctx.ai.priorities.horizonTurns);
+  const rate = Math.max(1, ctx.scienceRate);
+  const plan = researchPlan(player);
+  const landings = new Map<TechId, number>();
+  for (const tech of TECH_IDS) {
+    if (player.techsResearched.includes(tech)) {
+      landings.set(tech, 0);
+      continue;
+    }
+    let landing: number;
+    if (plan.includes(tech)) {
+      landing = turnsUntilPlanned(player, ctx, tech);
+    } else {
+      let owed = 0;
+      for (const step of researchExpansion(ctx.state, player.id, tech)) owed += techDef(step).cost;
+      landing = Math.max(0, owed - player.sciencePool) / rate;
+    }
+    if (landing > horizon) continue;
+    landings.set(tech, landing);
+  }
+  memo.reachable = landings;
+  return landings;
+}
+
+/**
+ * **The board as it would read if every reachable node were held and the wild
+ * were this seat's** — the one hypothetical the site's ground reading is asked
+ * against, built once per sitting.
+ *
+ * Two patches, and each answers a clause of the simulation's own gate rather
+ * than working around it:
+ *
+ *   · **the technologies.** `improvementErrorAt` refuses a fishing boat to a
+ *     seat without Sailing (`improvementTechError`), so a gate asked of the real
+ *     seat would answer "nothing" about exactly the ground this batch is for.
+ *     The seat holds its own list plus every node inside the horizon, which is
+ *     what the delays priced beside it are the delays *of*. It patches the
+ *     **gate** and never the yield — see `ground` below;
+ *   · **the ground.** `improvementGroundError`'s first clause is *"(c, r) is not
+ *     in your territory"*, and a settle site's ring is wild by definition. A
+ *     town founded there would claim it, so the hypothetical hands every
+ *     unclaimed hex to a phantom town of this seat — minted by the simulation's
+ *     own `createCity` on a **copy** of the state, standing off the map at
+ *     (−1, −1) so no real hex ever reads as built on. Ground another empire
+ *     holds keeps its owner, because founding here would not take it.
+ *
+ * The state is a shallow copy with three arrays replaced, so nothing here can
+ * reach the board the decision is being made against; the slate memo hangs off
+ * the state object's identity (`slate.ts`), so the hypothetical remembers its
+ * own readings and poisons none of the real ones.
+ */
+interface SiteGround {
+  state: GameState;
+  playerId: number;
+  ground: TileYieldContext | undefined;
+}
+
+function siteGround(ctx: ValueContext): SiteGround | null {
+  const memo = memoOf(ctx);
+  if (memo.siteGround !== null) return memo.siteGround;
+  const player = playerById(ctx.state, ctx.playerId);
+  if (player === undefined) return null;
+  const reachable = reachableTechs(ctx);
+  const techs = [...player.techsResearched];
+  for (const tech of TECH_IDS) {
+    if (reachable.has(tech) && !techs.includes(tech)) techs.push(tech);
+  }
+  const state: GameState = {
+    ...ctx.state,
+    players: ctx.state.players.map((seat) =>
+      seat.id === player.id ? { ...seat, techsResearched: techs } : seat,
+    ),
+    cities: [...ctx.state.cities],
+    tileOwner: [...ctx.state.tileOwner],
+  };
+  const phantom = createCity(state, player.id, 'the town that would stand here', -1, -1);
+  for (let index = 0; index < state.tileOwner.length; index++) {
+    if (state.tileOwner[index] === null) state.tileOwner[index] = phantom.id;
+  }
+  const held: SiteGround = {
+    state,
+    playerId: player.id,
+    // **The gate holds the reachable nodes; the yield does not.** The delta a
+    // promise is worth is read through the seat's *own* eyes (`ctx.state`, the
+    // real tech list), because a seam this empire cannot name pays it nothing —
+    // rule 5's ctx clause, and the very claim the settle table was corrected for
+    // in X1d-ground. So a reachable node buys a hex the *right to be improved*
+    // and never the sight of what is buried under it: fishing boats on fish
+    // anybody can see, and no mine on iron nobody has a word for yet.
+    ground: yieldContextFor(ctx.state, player.id),
+  };
+  memo.siteGround = held;
+  return held;
+}
+
+/**
+ * **What a hex could come to pay once the spade and the tree catch up** — one
+ * promise per improvement a reachable technology would let a town lay on it.
+ *
+ * The ruling's second clause, said for one hex: *"a coast with four fish reads
+ * four fishing boats before Sailing is chosen"*. Every figure is somebody else's
+ * — `improvementErrorAt` says whether the ground would take the row (asked of
+ * `siteGround`'s hypothetical, so the tech gate and the seam's reveal are the
+ * simulation's own and not a second copy of them), `improvementYieldDelta` says
+ * what it would pay, and `reachableTechs` says when.
+ *
+ * The **delta and not the total**: the hex's own yield is priced where it always
+ * was, through the seat's real eyes, and this is the improvement laid on top of
+ * it. A seam a reachable node would *reveal* therefore pays nothing here — it is
+ * in both halves of the difference and cancels — which is deliberate: what a
+ * reveal is worth is a question about the empire's whole ground, and the site
+ * reading would be double-counting a thing the renewal fold already prices.
+ *
+ * Memoised **by hex** for the sitting rather than by site, because a settler
+ * prices two hundred candidates whose rings overlap almost completely: the walk
+ * is the map's workable hexes once, not once per site.
+ */
+export interface HexPromise {
+  improvement: ImprovementId;
+  delta: TileYield;
+  /** The turn the technology that opens it would land. Nought when held. */
+  landing: number;
+}
+
+export function reachableGroundOn(ctx: ValueContext, tile: Tile): readonly HexPromise[] {
+  const memo = memoOf(ctx);
+  const at = tileIndex(ctx.state.map, tile.col, tile.row);
+  const held = memo.ground.get(at);
+  if (held !== undefined) return held;
+  const hypothetical = siteGround(ctx);
+  if (hypothetical === null) return [];
+  const reachable = reachableTechs(ctx);
+  const promises: HexPromise[] = [];
+  for (const improvement of workRoster(ctx.ai)) {
+    const gate = improvementDef(improvement).requiresTech;
+    const landing = gate === undefined ? 0 : reachable.get(gate);
+    if (landing === undefined) continue;
+    if (improvementErrorAt(hypothetical.state, hypothetical.playerId, tile, improvement) !== null) {
+      continue;
+    }
+    promises.push({
+      improvement,
+      delta: improvementYieldDelta(tile, improvement, hypothetical.ground),
+      landing,
+    });
+  }
+  memo.ground.set(at, promises);
+  return promises;
 }
 
 /**
@@ -553,6 +744,19 @@ interface PlanMemo {
   renewals: Map<TechId, RenewalFold>;
   /** Per town, the charges the spades already on the board will spend near it. */
   spades: Map<number, number> | null;
+  /**
+   * Batch X1e's three: the tree walked once (`reachableTechs`), the board it
+   * would be read against (`siteGround`), and per hex the improvements a
+   * reachable node would open on it (`reachableGroundOn`).
+   *
+   * All three are bounded by construction — the tech table once, the map's
+   * arrays once, and one hex's roster once however many candidate sites ask
+   * about it — which is what lets a settler price two hundred sites without
+   * walking the tree two hundred times.
+   */
+  reachable: ReadonlyMap<TechId, number> | null;
+  siteGround: SiteGround | null;
+  ground: Map<number, readonly HexPromise[]>;
 }
 
 const MEMOS = new WeakMap<ValueContext, PlanMemo>();
@@ -560,7 +764,14 @@ const MEMOS = new WeakMap<ValueContext, PlanMemo>();
 function memoOf(ctx: ValueContext): PlanMemo {
   const held = MEMOS.get(ctx);
   if (held !== undefined) return held;
-  const fresh: PlanMemo = { seats: new Map(), renewals: new Map(), spades: null };
+  const fresh: PlanMemo = {
+    seats: new Map(),
+    renewals: new Map(),
+    spades: null,
+    reachable: null,
+    siteGround: null,
+    ground: new Map(),
+  };
   MEMOS.set(ctx, fresh);
   return fresh;
 }

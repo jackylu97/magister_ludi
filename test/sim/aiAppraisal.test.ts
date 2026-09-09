@@ -73,6 +73,7 @@ import { withAiTuning } from '../../src/ai/aiConfig';
 import { incumbentGoal, liveChains, techChain } from '../../src/ai/chain';
 import { citizenKeepTerm } from '../../src/ai/citizen';
 import {
+  type Appraisal,
   type BotCandidate,
   type BotDecision,
   type ValueTerm,
@@ -1195,18 +1196,32 @@ describe('the delay discount', () => {
     player.sciencePool = techDef('irrigation').cost - 20;
     const anticipated = entryFor();
     expect(anticipated).toBeDefined();
-    const term = findTerm(anticipated!.terms, /is on the plan/);
+    const term = findTerm(anticipated!.terms, /is inside the horizon/);
     expect(term).not.toBeNull();
     expect(term!.value).toBeGreaterThan(0);
     expect(foldTerms(anticipated!.terms)).toBe(anticipated!.value);
 
-    // The plan cleared, and the same hex is worth what it pays today and no more
-    // — no tree lookahead, only what the seat has actually declared.
+    // **The plan cleared, and the seat still suspects the node** — batch X1e
+    // (2026-09-09), which moved the bound from the declared plan to the horizon:
+    // a node one re-aim away is a node a person would price the ground for, and
+    // this one's whole road is the node itself, so clearing the queue changes
+    // neither the landing nor the rider.
     player.researching = null;
     player.researchQueue = [];
+    const undeclared = entryFor();
+    expect(undeclared).toBeDefined();
+    const still = findTerm(undeclared!.terms, /is inside the horizon/);
+    expect(still).not.toBeNull();
+    expect(still!.value).toBeCloseTo(term!.value, 10);
+
+    // And the horizon is the whole of the bound: the same hex with the pool
+    // emptied owes the node its whole cost, which a one-town bench banking a
+    // beaker a turn cannot reach inside `priorities.horizonTurns` — so the hex is
+    // worth what it pays today and no more.
+    player.sciencePool = 0;
     const plain = entryFor();
     expect(plain).toBeDefined();
-    expect(findTerm(plain!.terms, /is on the plan/)).toBeNull();
+    expect(findTerm(plain!.terms, /is inside the horizon/)).toBeNull();
     expect(plain!.value).toBeLessThan(anticipated!.value);
     expect(anticipated!.value - plain!.value).toBeCloseTo(term!.value, 10);
   });
@@ -1232,7 +1247,7 @@ describe('the delay discount', () => {
       const plan = buildImprovementPlan(state, player, ctx);
       const entry = plan.byTile.get(tileIndex(state.map, tile.col, tile.row));
       expect(entry).toBeDefined();
-      const term = findTerm(entry!.terms, /is on the plan/);
+      const term = findTerm(entry!.terms, /is inside the horizon/);
       expect(term).not.toBeNull();
       return term!;
     };
@@ -2284,6 +2299,56 @@ describe('the engine shapes, priced', () => {
     });
     expect(bare).toBe(0);
     expect(built).toBeGreaterThan(0);
+  });
+
+  /**
+   * **The potential half** (batch X1e, ruled 2026-09-09: *"+1 science on
+   * libraries is good even if you don't have libraries built yet"*).
+   *
+   * The card is the same "+100% on science shelves" in all three readings and
+   * only the board moves: nothing to multiply, a chain that owes two libraries,
+   * and the two libraries standing. The middle reading is the batch — worth
+   * something, and worth **less** than the shelves actually raised, because a
+   * copy pays from the turn it lands and no sooner.
+   */
+  it('prices the shelves a live chain still owes, discounted for the raising', () => {
+    const share: CardEffect[] = [
+      { kind: 'buildingYieldPercent', category: 'science', percent: 100 },
+    ];
+    /** Two towns of a size worth multiplying, and the road to Letters walked. */
+    const twoTowns = (state: GameState, player: Player, city: City): City => {
+      for (const step of researchExpansion(state, 0, 'letters')) {
+        if (step === 'letters') continue;
+        if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
+      }
+      player.researching = 'letters';
+      const second = foundCityAt(state, 0, at(state.map, 10, 5));
+      second.population = 6;
+      refreshCityDerived(state, city);
+      refreshCityDerived(state, second);
+      bumpRevision(state);
+      return second;
+    };
+    // Nothing raised and no road walked: the empire cannot name a library, so
+    // the card multiplies nothing at all.
+    const bare = priced(share);
+    // The road walked and two towns that lack one: the chain aimed at Letters
+    // owes a library in each of them, and the card is worth a share of what
+    // those two would pay — at the turn each of them would land.
+    const promised = priced(share, (state, player, city) => {
+      twoTowns(state, player, city);
+    });
+    // The same two towns with the shelves standing. Nothing is owed any more,
+    // so this is the held sweep alone and the promise is worth nothing.
+    const standing = priced(share, (state, player, city) => {
+      const second = twoTowns(state, player, city);
+      city.buildings.push('library');
+      second.buildings.push('library');
+      bumpRevision(state);
+    });
+    expect(bare).toBe(0);
+    expect(promised).toBeGreaterThan(0);
+    expect(promised).toBeLessThan(standing);
   });
 
   it('prices the position engine as the chair it points at', () => {
@@ -4103,6 +4168,15 @@ describe('the ground nobody works (batch X1d-ground)', () => {
     // A seam this empire cannot name pays it nothing — rule 5's ctx clause,
     // which the settle table used to walk straight past (`explainTileYield` with
     // no context at all, the omniscient reading).
+    //
+    // **Read off the hex rather than off the total** since batch X1e, and the
+    // reason is the batch's own promise half: a seat that cannot name the seam
+    // cannot see that the seam *refuses its farm* either (`improvementGroundError`
+    // hands a resource's ground to the row the resource wants), so a blind seat
+    // prices a farm on the iron and a seeing one prices the iron. Both readings
+    // are the seat's own eyes — which is the claim — and the total is the two
+    // netted against each other rather than the ctx clause said plainly. The hex's
+    // own line is the ctx clause said plainly.
     const { state, rich } = twoSites();
     const player = seat(state, 0);
     for (const [col, row] of [
@@ -4131,7 +4205,80 @@ describe('the ground nobody works (batch X1d-ground)', () => {
       rich,
       yieldContextFor(state, player.id),
     );
-    expect(seeing.total).toBeGreaterThan(blind.total);
+    // What one iron hex is worth as it lies, off the site's own printed line.
+    const hexAsItLies = (appraisal: Appraisal, col: number, row: number): number => {
+      const counted = findTerm(appraisal.terms, /would work inside the horizon/)!;
+      const hex = counted.parts!.find((part) => part.label.startsWith(`(${col},${row})`))!;
+      return hex.parts![0]!.value;
+    };
+    expect(hexAsItLies(seeing, 3, 5)).toBeGreaterThan(hexAsItLies(blind, 3, 5));
+    expect(hexAsItLies(seeing, 5, 5)).toBeGreaterThan(hexAsItLies(blind, 5, 5));
+  });
+
+  /**
+   * **The site's promise half** (batch X1e, ruled 2026-09-09: *"a human will
+   * take a suboptimal coastal spot over a slightly better inland spot if they
+   * suspect fishing boats later"*).
+   *
+   * Two sites on one desert board: a coast with four fish in its ring, and a
+   * meadow with four wheat-fed grassland hexes. The meadow is the better ground
+   * *as it lies* — a fed grassland with the farm this seat can already lay beats
+   * a bare coast — and the coast is the better ground once the boats are on the
+   * fish. So the ordering is the reading: the coast wins exactly when Sailing is
+   * inside the horizon, and the meadow wins when it is not.
+   *
+   * The horizon is the lever rather than the tree, because the tree is a fixed
+   * chart and Sailing is two cheap nodes from the root on it: the reading with
+   * `priorities.horizonTurns` cut short is the reading of a seat that cannot get
+   * there in time, which is the bound the batch is written around. (The ruling's
+   * word is "equal"; two different terrains are never exactly equal, so the
+   * claim is the ordering, which is what a settler acts on.)
+   */
+  function coastAndMeadow(): { state: GameState; coast: Tile; meadow: Tile } {
+    const state = bench(1, { width: 28, height: 12, terrain: 'desert' });
+    farming(state, 0);
+    const coast = at(state.map, 5, 5);
+    for (const [col, row] of [
+      [4, 5],
+      [6, 5],
+      [5, 4],
+      [5, 6],
+    ] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'coast';
+      tile.resource = 'fish';
+    }
+    const meadow = at(state.map, 20, 5);
+    for (const [col, row] of [
+      [19, 5],
+      [21, 5],
+      [20, 4],
+      [20, 6],
+    ] as const) {
+      const tile = at(state.map, col, row);
+      tile.terrain = 'grassland';
+      tile.resource = 'wheat';
+    }
+    recomputeAllVisibility(state);
+    bumpRevision(state);
+    return { state, coast, meadow };
+  }
+
+  it('reads the boats a coast could carry, once the node that opens them is in reach', () => {
+    const { state, coast, meadow } = coastAndMeadow();
+    const player = seat(state, 0);
+    const read = (tile: Tile): number => {
+      const ctx = valueContext(state, player);
+      return explainSite(state, ctx.realm, ctx, tile, yieldContextFor(state, player.id)).total;
+    };
+    // The sheet's own horizon: Sailing is two cheap nodes off, so the coast is
+    // priced at the fishing boats a town there would put on the fish.
+    expect(read(coast)).toBeGreaterThan(read(meadow));
+    // A horizon too short to reach Sailing at all, and the same two sites read
+    // as they lie: the fed meadow is the better ground.
+    withAiTuning({ priorities: { horizonTurns: 20 } }, () => {
+      expect(read(coast)).toBeLessThan(read(meadow));
+    });
   });
 
   it('prices a renewal as the fold it would move, and at nothing where it moves none', () => {
