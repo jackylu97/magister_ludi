@@ -720,11 +720,6 @@ directly to confirm rulings — user marginalia are rulings.
   (whole game and X2's identical-state method) plus the t100 probe's own
   ms/turn column; the five attribution doors (`scopeDoor`, `signDoor`,
   `keepDoor`, `hexDoor`, `rowDoor`) come out in a cleanup pass after M1.
-  **Done, batch D1, 2026-09-09**: all five out, 132 lines of `src/ai/` for
-  29 back, every open branch kept as the only branch, the t100 probe
-  byte-identical to main on all eight seeds; the pins that flipped a door
-  to measure a difference were rewritten to assert the open behaviour
-  directly (`docs/bot-priorities.md`, "The doors, removed").
   **Batch T1, the test suite's speed** (the user, 2026-09-09: "improve the
   speed of the testing suite … how much of it is actually necessary?"):
   the push-gate is 13 minutes and 12 of them are one file, the 200-turn
@@ -899,8 +894,18 @@ directly to confirm rulings — user marginalia are rulings.
   reported, not tuned), ms/turn +18% under identical load; seed 1's
   capital builds Library t47 · Monument t50 · Amphitheater t57 and no
   ordinary wonder inside 120 turns. `surveyUpgradeSites` and its three
-  count pins retired with the swap. **X1e and the doors cleanup fly
-  next.** (eee)
+  count pins retired with the swap. **X1e and D1 landed 2026-09-09**: potential read off the live chains
+  (a card's building-scoped effect counts the shelves a chain still owes,
+  at their discount) and the reachable tree (a site's ring hexes priced
+  at the best improvement a node inside the horizon would open;
+  `site.coastBonus` retired) — culture 55 → 63, gold 28 → 33, science 56
+  → 58, nothing down beyond one SE, ms/turn +2%; coastal towns did not
+  rise, and the open question is written down: what a coast is worth
+  beyond its hexes (a harbour's routes, a lighthouse's food) is priced
+  nowhere in the settle table. The five doors are out, byte-identical.
+  **The queue is drained**: X9/X10 held until the user has played on
+  this bot; M3 (the suspension window) held for the user's call; X11
+  waits on the Wager. (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
