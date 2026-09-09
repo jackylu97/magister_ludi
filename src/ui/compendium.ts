@@ -114,6 +114,7 @@ import { RULES } from '../sim/rulesData';
 import {
   describeBuildingRow,
   describeCard,
+  describeFamilyVerb,
   stripRefs,
   tileConditionWords,
 } from '../sim/statecraft';
@@ -1399,23 +1400,21 @@ function familyAct(family: Family): string {
   return `Use it once: every unit within ${figure(great.generalRadius)} hexes gains ${signedFigure(great.generalCombat)} combat strength for ${figure(great.generalTurns)} turns.`;
 }
 
-/** The work a family plants, named off the improvement table's own inverse. */
-function familyWork(family: Family): string {
-  for (const id of IMPROVEMENT_IDS) {
-    if (improvementDef(id).greatPerson === family) return improvementDef(id).name;
-  }
-  return '';
-}
-
 function greatPersonEntry(id: GreatPersonId): CompendiumEntry {
   const def = greatPersonDef(id);
-  const clauses: CompendiumClause[] = [{ text: familyAct(def.family) }];
-  const work = familyWork(def.family);
-  if (work.length > 0) {
-    clauses.push({
-      text: `Or send it to a hex to build ${withArticle(work)}, which also uses it up.`,
-    });
-  }
+  // **The family's own verbs head both clauses** (the user, 2026-09-09): the
+  // book names the verb the button names, so a player who read the entry
+  // recognises the row on the sheet. `describeFamilyVerb` is the one reading —
+  // and the work's clause carries its improvement as a keyword, which is what
+  // an entry that mentions another entry does everywhere else in this file.
+  const clauses: CompendiumClause[] = [
+    { text: `${describeFamilyVerb(def.family, 'act')}. ${familyAct(def.family)}` },
+    {
+      text:
+        `${describeFamilyVerb(def.family, 'work')}. Send it to a hex instead and the` +
+        ' work stands there for ever — this uses it up too.',
+    },
+  ];
   clauses.push(...cardClauses(id));
   // The kernel is **biography, not a rule**, and a note clause in the rules
   // column reads as a footnote to one (copy pass, 2026-08-28). The two words in

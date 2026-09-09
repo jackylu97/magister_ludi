@@ -190,6 +190,7 @@ export {
   describeBuildingRow,
   describeCard,
   describeEffects,
+  describeFamilyVerb,
   indefinite,
   occasionWords,
   periodicProbe,

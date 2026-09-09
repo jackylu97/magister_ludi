@@ -47,6 +47,11 @@ describe('the game-screen disposal register', () => {
       // string of timers, and a timer left running against a torn-down tree is
       // the bug every animation in this interface has already had once.
       'ceremony?.dispose()',
+      // The capture sheet, the ninth on the shell (2026-09-09). Raised by a
+      // conquest rather than opened from the bar, which is exactly why it is
+      // easy to forget: nothing on the HUD points at it, and its capturing
+      // Escape would go on swallowing the key for a game that is over.
+      'capture?.dispose()',
       // The four that batch H5 moved in. All four were disposed by name in
       // `showLanding` and by nothing at all in `boot`, so a save loaded straight
       // onto a board — the one re-entry that skips the landing — left the

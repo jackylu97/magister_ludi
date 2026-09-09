@@ -646,11 +646,13 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
    */
   function verbTitle(
     view: GreatPersonView,
-    verb: { blocked: string | null; preview: string },
+    verb: { verb: string; blocked: string | null; preview: string },
     when: 'now' | 'forever',
   ): string {
+    // The verb's own words head the card, stripped for the same reason the
+    // legacy below is: a `title` is text the platform draws.
     const lines = [
-      verb.blocked ?? `${view.name} · ${when} — ${verb.preview}`,
+      verb.blocked ?? `${stripRefs(verb.verb)} · ${view.name} · ${when} — ${verb.preview}`,
     ];
     for (const clause of view.legacy) {
       // **Stripped**: a `title` is text the platform draws, so a keyword's mark
@@ -1044,19 +1046,27 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
     // city is three hexes away" is a fact about where the piece is standing this
     // turn, not a verb it will never have.
     //
-    // The labels are the two words and nothing else. The simulation names no
-    // verb per family, and inventing five ("Discourse", "Compose", "Survey"…)
-    // would be the interface teaching a vocabulary the rules do not have.
+    // **The labels are the family's own two verbs** (the user, 2026-09-09:
+    // `Act` and `Work` were *"not informative enough"*). They used to be those
+    // two words and nothing else, on the argument that the simulation named no
+    // verb per family and the interface must not invent a vocabulary the rules
+    // do not have. The answer was not to invent one here but to *write it down*
+    // where every other player-facing word lives — the family's data row — so a
+    // scholar now offers `Write a Treatise` and `Found an Academy`, the same
+    // two words the ceremony and the Compendium print. No literal in this file.
+    //
+    // `stripRefs`, because a button is a thing that acts when it is pressed and
+    // the keyword ruling keeps links to descriptors.
     if (person) {
       actions.push({
-        label: 'Act',
+        label: stripRefs(person.act.verb),
         blocked: person.act.blocked,
         hint: `Spend ${person.name} now — ${person.act.preview}`,
         title: verbTitle(person, person.act, 'now'),
         run: onGreatPersonAct,
       });
       actions.push({
-        label: 'Work',
+        label: stripRefs(person.work.verb),
         blocked: person.work.blocked,
         hint: `Spend ${person.name} here, forever — ${person.work.preview}`,
         title: verbTitle(person, person.work, 'forever'),

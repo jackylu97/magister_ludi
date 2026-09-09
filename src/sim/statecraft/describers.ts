@@ -27,8 +27,15 @@ import {
   isBuildingId,
   isWonder,
 } from '../buildingData';
-import { type LegacyRevocation, greatPersonDef, isGreatPersonId } from '../greatPeopleData';
-import { improvementDef, isGreatPersonWork } from '../improvementData';
+import {
+  type Family,
+  type FamilyVerbKind,
+  type LegacyRevocation,
+  familyVerb,
+  greatPersonDef,
+  isGreatPersonId,
+} from '../greatPeopleData';
+import { improvementDef, isGreatPersonWork, workForFamily } from '../improvementData';
 import { projectDef } from '../projectData';
 import { beliefPoolOf, isBeliefId, isConsecrationId, isRiteId } from '../religionData';
 import { type CityYieldKey, resourceDef } from '../resourceData';
@@ -633,6 +640,36 @@ export function describeCard(id: CardId): CardClause[] {
     clauses.push({ text: `${missing} — not built yet`, deferred: true });
   }
   return clauses;
+}
+
+/**
+ * A family's verb, in the words the player reads — **the one describer for the
+ * two buttons a great person offers.**
+ *
+ * The words themselves are the family's row (`FamilyVerbs`, `greatPeopleData.ts`);
+ * what this adds is the mark. A work names the improvement it plants, and a named
+ * thing in a describer is a keyword ref — so "Found an Academy" comes back as
+ * `Found an [[improvement:academy|Academy]]` and the Compendium's entry links to
+ * the thing it is talking about, exactly as a card's does.
+ *
+ * The name is marked **in place** rather than the whole phrase being wrapped,
+ * because the grammar belongs to the sentence and only the noun is the entry: a
+ * player pressing a link that spans a verb would be told what a Customs House is
+ * when they clicked on "Build". The sync test holds that the noun is in there to
+ * find (`test/sim/greatPeopleDocSync.test.ts`); a row that drifted comes back
+ * unmarked rather than mismarked, which is the failure that cannot mislead.
+ *
+ * An **act** carries no mark at all. It pays a figure into a bank, and there is
+ * no entry in the book called "a treatise".
+ */
+export function describeFamilyVerb(family: Family, verb: FamilyVerbKind): string {
+  const words = familyVerb(family, verb);
+  if (verb !== 'work') return words;
+  const work = workForFamily(family);
+  if (work === null) return words;
+  const name = improvementDef(work).name;
+  if (!words.includes(name)) return words;
+  return words.replace(name, ref('improvement', work, name));
 }
 
 /**

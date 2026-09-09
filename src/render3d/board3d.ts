@@ -42,6 +42,7 @@ import {
   Vector3,
 } from 'three';
 
+import type { CityMarkId } from '../art/cityMarks';
 import type { HeraldryId } from '../art/heraldryMarks';
 import type { SurveyMarkId } from '../art/surveyMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
@@ -60,6 +61,7 @@ import {
   BADGE_CELLS,
   navalBadgeId,
   CHARGE_CELLS,
+  CITY_MARK_CELLS,
   MEDALLION_CELLS,
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
@@ -945,6 +947,22 @@ function buildAxisMarkers(): Record<BeliefAxis, BufferGeometry> {
   return out as Record<BeliefAxis, BufferGeometry>;
 }
 
+/**
+ * The town marks, standing up: `buildChargeMarkers` against a fourth set of
+ * atlas rectangles and nothing else different.
+ *
+ * `CITY_MARK_CELLS` is asked rather than `CITY_MARK_IDS` for `buildSiteMarkers`'
+ * reason: the atlas's own cell list is the authority on what has a rectangle.
+ */
+function buildCityMarkers(): Record<CityMarkId, BufferGeometry> {
+  const out: Partial<Record<CityMarkId, BufferGeometry>> = {};
+  for (const id of CITY_MARK_CELLS) {
+    const rect = tileIconRect({ set: 'cityMark', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<CityMarkId, BufferGeometry>;
+}
+
 function buildResourceMarkers(): Record<ResourceId, BufferGeometry> {
   const out: Partial<Record<ResourceId, BufferGeometry>> = {};
   for (const id of RESOURCE_IDS) {
@@ -1261,6 +1279,15 @@ export class BoardGeometry {
    * (`religionDevice`).
    */
   readonly axisMarkers: Record<BeliefAxis, BufferGeometry>;
+  /**
+   * The town marks, standing up — the same builder against the city-mark cells
+   * of the same atlas (`CITY_MARK_CELLS`).
+   *
+   * One today: the yoke a **puppet** flies under its seat's charge (the user's
+   * ruling of 2026-09-09). A fact about the town rather than about the seat,
+   * which is why it is its own set and not a thirteenth charge.
+   */
+  readonly cityMarkers: Record<CityMarkId, BufferGeometry>;
   /** The pale band on a land tile that touches the sea. */
   readonly shoreRing: BufferGeometry;
   /** One river's worth of water, lying across one grout gap. */
@@ -1378,6 +1405,7 @@ export class BoardGeometry {
     this.draconesDecal = atlasDecal(dracones.u0, dracones.v0, dracones.u1, dracones.v1);
     this.chargeMarkers = buildChargeMarkers();
     this.axisMarkers = buildAxisMarkers();
+    this.cityMarkers = buildCityMarkers();
   }
 
   dispose(): void {
@@ -1444,6 +1472,7 @@ export class BoardGeometry {
     this.draconesDecal.dispose();
     for (const quad of Object.values(this.chargeMarkers)) quad.dispose();
     for (const quad of Object.values(this.axisMarkers)) quad.dispose();
+    for (const quad of Object.values(this.cityMarkers)) quad.dispose();
   }
 }
 

@@ -1112,6 +1112,38 @@
       </div>
     </div>
 
+    <!-- ================= the capture sheet =====================
+         A town has fallen to this seat: annex it, hold it as a puppet, or
+         pull it down — the three with the meters' own figures beside them
+         (the user's ruling of 2026-09-09; docs/flags.md (hhh) 4). The ninth
+         sheet on modalShell.ts, and the one with no bar control that opens
+         it: a conquest raises it, and closing it leaves the town a puppet,
+         which is what the rules already made it. Built by
+         src/ui/captureSheet.ts on each open.
+         ============================================================ -->
+    <div
+      id="capture-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="A town has fallen"
+      hidden
+    >
+      <div class="statecraft-sheet capture-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">a town has fallen</p>
+            <h2 class="statecraft-title">What becomes of <em>it</em>?</h2>
+          </div>
+          <p class="statecraft-hint"><kbd>Esc</kbd> to hold it as a puppet</p>
+          <button id="capture-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="capture-body" class="statecraft-body capture-body"></div>
+      </div>
+    </div>
+
     <!-- ================= the spend ceremony ====================
          A great person was spent: the card rises to centre over a dimmed
          board, the LEGACY counts its figure (the inversion, 2026-09-03 — what

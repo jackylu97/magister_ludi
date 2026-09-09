@@ -905,7 +905,219 @@ directly to confirm rulings — user marginalia are rulings.
   nowhere in the settle table. The five doors are out, byte-identical.
   **The queue is drained**: X9/X10 held until the user has played on
   this bot; M3 (the suspension window) held for the user's call; X11
-  waits on the Wager. (eee)
+  waits on the Wager. **RULED** (the user, 2026-09-09: "let's do M3 with
+  the register and shadow mode"). **Batch M3 — the suspension window
+  closes**: the bump moves from *after* a command or phase to *at the
+  mutation*, so the slate is trustworthy at every instant and never
+  switches itself off; a read after a write misses and recomputes, every
+  read until the next write hits. Two guards, both required: (1) **the
+  register** — a source-reading core test that lists every assignment in
+  `src/sim/` to a field the slate's tenants fold (tile ownership, the six
+  mutable tile fields, a city's buildings/population/tiles/specialists/
+  queue, a player's cards/slots/beliefs/techs/deals/gold/meters) and
+  requires each to sit inside an announcing helper or be followed by an
+  announcement; (2) **shadow mode** — under a test-only switch every
+  slate hit also recomputes the reading fresh and asserts identity, run
+  over the whole slow tier once, so a missed announcement fails at the
+  reading that went stale with the phase and turn named. First step: a
+  probe counting, per phase and per command kind, the asks between
+  consecutive writes — the ceiling before the reducer is touched;
+  report it, then build. Outcomes byte-identical; no schema. **M3 built
+  2026-09-09**: 89 announcements in 69 functions, the window gone; the
+  register (27 field patterns, derived from the card evaluator's `count`
+  vocabulary, not only what `meters.ts` reads) and the shadow run over
+  the whole tier, which found **two staleness defects M2 had introduced**
+  that a deterministic replay could not see — The Long Watch pays per
+  garrison (a march moves happiness) and Pilgrim Roads per banked faith
+  (the banking loop moves it between towns); both announce now, and a
+  game holding either card changes, honestly. Gain: asked-while-suspended
+  57,242 → 0, ms/turn −5%, the t100 probe identical. Open for the user:
+  **two-pass `collectYields`** (assign every town, then price every town)
+  measured byte-identical over 150 turns — a restructuring worth making
+  for legibility, not speed. **Read off
+  seed 1 on the landed tree (2026-09-09)**: the opening is fixed (Settler
+  t16, Granary t27, no wonder before t79, no hand passed) and three things
+  remain, each probed in the capital's own table. **RULED** (the user,
+  2026-09-09: "yes, let's put in each of these fixes"), batch **X12**:
+  (1) **conversion projects** (Scholarship 30 · Tithes 22 · Library 10 at
+  t45; the Library waited from Writing at t41 to t88): a project's payout
+  is a **lump** — science once, not science a turn — and goes through
+  `explainLump`, the bot's one stock-to-flow exchange over the horizon,
+  exactly as every other one-time thing does; a shelf's rate stays a rate
+  (the user: "science once != science per turn"; libraries need no
+  lifetime value — the currency is per turn and the lump exchange is the
+  apples-to-apples). (2) **the faith rate** (pool 15 at t30/45/60/90, no
+  Shrine ever built, no pantheon; the book values the pantheon at 385 for
+  40 and nothing tells the build arm a Shrine is the step): a
+  **faith-rate premium**, `sciencePrice`'s twin — what one more faith a
+  turn saves in delay across the faith plan's wants (pantheon, founder,
+  beliefs, rites), the rate floored at 1 so a zero-income empire prices
+  its first Shrine as the door it is; the user: "religion and pantheons
+  need to be priced into the value of faith." (3) **the late wobble**
+  (t108–118: every chain −128 to −450, Satrapies ↔ Daughter Cities
+  flipped six times in ten turns): the incumbent's margin applied
+  **symmetrically** (a negative incumbent divided by `switchMargin`, not
+  multiplied), and — the ruling that removes the cause — **hammers in the
+  chains are time, not coin**, by the beakers argument (production is
+  always spent on something; the cost of raising X is that Y waits, and
+  the per-town cursor already carries that as delay): the `explainLump`
+  subtraction of a step's hammers goes from the tech chain, the expansion
+  chain's settler and the bead race alike; a step's hammers print at
+  nothing beside the delay they bought. Also noted: the third city
+  (founded t37) built a Settler at size 2 and stood at size 4 at t98 — the
+  expansion chain pulling a settler from a town too small to spare one;
+  X12 reports the arm without changing it. **X12 built 2026-09-09**: t100
+  buildings 19.4 → 36.1, production 74 → 96, gold 33 → 50, science 55 →
+  100, culture 61 → 87, treasury 336 → 506, techs 22.7 → 27.1, pantheons
+  16 of 16 seats (cities 6.3 → 6.0, inside noise); seed 1's capital
+  Shrine t24 · Granary t34 · Library t55, no conversion project in 120
+  turns, the late wobble gone. Three findings for the queue: (a) **the
+  settler's growth freeze** — the rules take no citizen for a settler
+  (`minCityPop 2`, `haltsGrowth`), the bot charges a one-citizen stand-in
+  (`explainCitizen`, ~25) against a chain share near 129, and
+  `haltsGrowth` is read nowhere in `src/ai/` — the honest charge is the
+  food the freeze costs over the raising's turns at the food weight,
+  which is why a size-2 town spared a settler and stood at size 4 at t98;
+  (b) `settleCandidate`'s own `hereScore × switchMargin` has the same
+  sign asymmetry, left alone; (c) **wonder-race risk** priced nowhere —
+  the reading it needs is public (rivals' age and production, whether
+  the unlocking tech is held anywhere, this town's owed turns): a `P(lost)
+  × payoff − (1 − refund) × stones sunk` term, X10's missing half. Also
+  written down: a half-paid chain is now worth what is left — the
+  sunk-cost defence was an artefact of the hammer ledger, and the
+  symmetric margin alone defends a plan in flight. **Potential on a row's hex
+  clause** (the user, 2026-09-09: "a wonder like the Great Lighthouse:
+  are the potential fishing boats it affects priced into its value?"):
+  no — a `pays` at `where: 'hex'` with an `on: improvement` test
+  (`workedHexesAdmitting`, X2) counts the hexes a citizen works that
+  carry the improvement **today**; a worked fish with no boat counts
+  nothing, and X1e's potential reads only the live chains (cards) and the
+  site's ring. (rec, **X1e-b**, after X12 lands — same file): a hex
+  clause counts the worked hexes that admit now plus the worked hexes
+  that *would* admit once an improvement the seat can lay (held tech) or
+  a reachable node opens (X1e's `reachableTechs`, the per-hex potential
+  memo) is laid, each discounted at max(the node's landing, the spade's
+  landing off the plan) — so the Great Lighthouse in a town working four
+  bare fish reads four boats' gold before the boats exist; the same
+  reading serves every hex-scoped card. (eee)
+- (hhh) **Playtest notes, 2026-09-09** (the user), each a ruling, three
+  batches flying together: **B4 (balance)** — (1) *"science costs for age
+  4 need to be scaled up significantly … so that age 4 is ~50% more
+  expensive"*: the tech ladder's Æra IV columns (`src/sim/tech.ts`, the
+  one tapered table; today `1100 · 1300 · 1500 · 1700` after `525`)
+  ×1.5, the doc's table sync-tested; (2) *"great people need to be gained
+  at roughly 1/3rd the rate they appear now"*: the renown ladder
+  (`rules.renown`, `first 40 · step 25`) ×3 — first 120, step 75 — so a
+  person arrives a third as often on the same renown; and
+  `docs/great-people.md` regenerated as a current reference (roster,
+  ladder, every act and work figure, the purchase offers) for the user's
+  balance pass. **B4 built 2026-09-09**: the ladder is a *taper* (its
+  ratio decays 2.3× → 1.09×), not an exponential, and Æra IV was the
+  flattest stretch — now 1650 · 1950 · 2250 · 2550, a `techDocSync` test
+  added; `rules.renown` 120 · 75, measured on two bot games at **half**
+  the arrivals (12 → 6 a seat by t150), not a third — the ladder's
+  cumulative cost is quadratic in the count, so a true third is of the
+  order of **first 360 · step 225**: ▢ the user's call whether half is
+  enough or the step goes again; `docs/great-people.md` regenerated as
+  the reference (the offer prices had drifted: doc 300/150 vs data
+  1000/750, fixed). **U4 (UI)** — (3) *"rename the great people actions
+  act/work because they're not informative enough"*: the two buttons
+  print the family's own verbs (a scholar *Writes a treatise* / *Founds
+  an academy*; the words from the family's data row, through the
+  describer, never a literal in the UI); (4) *"On city capture, the
+  player should be given a selection modal to either annex, raze or
+  puppet a city, with their outcomes labelled"*: a sheet on
+  `modalShell.ts` at the capture moment (today a captured town holds as a
+  puppet until annexed, with a toast), three choices with the sim's own
+  figures beside each — annex (the authority the town costs, the
+  unhappiness it brings), puppet (what a puppet is: its production
+  chosen for you, no authority? — read `docs/war-diplomacy.md` 9b and the
+  reducer), raze (the town destroyed, whatever the rules pay); the
+  choice a command already in the log (`annexCity`, `razeCity`, or
+  nothing for puppet); a bot seat is unaffected; (5) *"cities that are
+  puppeted should have an indicator in their banner"*: a puppet mark on
+  the city banner, joins `CityLook`; (6) *"units stationed in a city
+  should have their unit icon display on top of the banner"* (Civ 5/6's
+  pattern): the garrison's badge above the banner, seat-tinted, the
+  layer rebuilt off the units fingerprint, a new visual asset in the
+  flair gallery in the same pass. **V2 (heraldry)** — (7) *"the
+  barbarian colors and the crimson color are too similar … barbarian
+  units having red as its icon base color instead of its outline; double
+  check the icon is still legible, and invert the black to white if
+  needed"*: the wild's pieces take red as the **base** (the seat colour
+  `#3a3a42` in `seatBarbarians` moves to a red the crimson seat's
+  `#d4502e` is not confusable with — a darker, bluer red), the outline
+  no longer red, the glyph inverted to white where the contrast test
+  says so; the flair gallery shows the piece beside the crimson seat's.
+  **V2 built 2026-09-09**: the wild's red was on thin strokes only (a rim
+  washed toward `warRed`, a `warRed` ghost, an oxblood badge ring) over a
+  raven body; now `palette.wildRed #7a1f2b` is the base — ΔE2000 19.9
+  from the crimson piece ink against the old rim's 8.6, 3.8–8.2:1 on
+  every land ground, the ghost more legible than before — the glyph
+  inverted to bone (8.15:1 where black read 1.36:1), the wild no longer
+  counted hostile for the outline, the seat colour followed. (eee)
+- (iii) **The trade screen** (the user, 2026-09-09): *"drastically
+  improve the trade screen. The trade screen should have an icon next to
+  the statecraft/religion/diplomacy buttons. Instead of building traders,
+  lets have trade routes be purchasable with gold directly in the
+  interface of the trade screen … having traders be gated by gold does
+  make the decision making more interesting. Trader units should still
+  appear and build roads when a route is sent, but we should give them a
+  different shape icon (still semi-opaque) … trade routes should be
+  entirely sent/managed on the trade route screen. Also, please look
+  into the performance of the trade screen, it gets quite laggy. Also,
+  trade routes that are unavailable shouldn't show in the main screen,
+  they should be tucked away in an 'unavailable routes' tab."* Rulings:
+  **a route is bought with gold on the trade screen** — a new command
+  `buyRoute {playerId, fromCityId, toCityId, mode?}` (schema bump) that
+  charges the treasury and spawns the caravan at the origin with its
+  `trade` set, validating exactly as `startRoute` does (slots, range,
+  the pair, the mode) plus the purse; `startRoute` stays for a caravan
+  already standing (saves, the bot's teleport) and the Trader row leaves
+  the production menu and the purchase book (a marker read in
+  `buildError`/`purchaseError`, never a name; the bot's trade arm buys
+  through `buyRoute`); (rec) **the price** is the caravan's own purchase
+  price — `goldPerHammer × the Trader row's production cost` (the cost
+  standard, so it climbs the columns with the age) — one knob
+  `rules.trade.routePriceMultiplier` (rec 1.0) over it, printed by
+  `explainPurchaseCost` as a route line; the caravan piece takes a
+  **different sculpt** (a cart or a bale, not the unit disc), still
+  semi-opaque, joins the flair gallery; the **top bar** gains a trade
+  icon beside statecraft/religion/diplomacy opening the screen; the
+  screen shows only the routes the seat could send now, with an
+  **Unavailable** tab holding the rest and the reason each is unavailable
+  (out of range, no slot, at war, blockaded, the road unbuilt); the
+  screen's **performance** measured and fixed (the suspicion: every open
+  re-prices every pair through `routeYields`/`findPath`; the fix is the
+  slate — `readRoutes(state, seat)` per revision — and a render that
+  rebuilds rows only when the revision moved); every send and cancel
+  lives on the screen (the unit panel's route buttons retire in favour
+  of a link to it). Batches **R1** (sim + bot: the command, the marker,
+  the price, the bot's arm) and **R2** (UI + render: the screen, the
+  icon, the tab, the sculpt, the perf), R2 after R1's command exists.
+  **The user, 2026-09-09, on the screen's UX**: *"once you hit late game
+  there's an overwhelming amount of trade routes available and I'd like
+  to organize and surface the best ones for the player."* (rec, R2's
+  brief): the available routes are **ranked by what they pay a turn**
+  (`routeYields`' own fold, the bot's caravan appraisal is the same
+  reading) and grouped **by origin town**, each group collapsed to its
+  best three with a "show all" fold; a **Best routes** strip at the top
+  names the empire's top five across every origin with their pay and
+  price; a filter row (by partner: own towns / a rival's; by mode: land
+  / sea; by what it pays most: food · hammers · gold · science · culture
+  · faith); the search over pairs memoised on the revision so the
+  ranking is free to redraw; a route already running shows its remaining
+  turns and its pay in a **Running** tab; the Unavailable tab groups by
+  reason. **Refined** (the user, 2026-09-09): the main screen is the
+  **recommendations**, grouped by purpose in this priority — *Richest*
+  (the first two or three caravans), *Paves a road* (a missing city
+  connection, usually overlapping), *Feeds a town* (late game), *Most
+  science and culture* (the foreign carts) — no "expires soon" group; the
+  **full list** stays viewable behind a tab, grouped by origin town with
+  collapsible groups and the slot tally; a *Running* tab; the
+  *Unavailable* tab by reason. Mocked on invented figures at
+  https://claude.ai/code/artifact/d5391716-5bfa-4fee-ac26-e3a8cd479f91
+  (the spec of record for R2's layout once the user marks it). (eee)
   **The wanting voice** (the user, 2026-09-08: "have the 'taught by
   ____' in small red italicized script, similar to how tile yields
   display. Anywhere the game tells the player they're missing a
@@ -1204,35 +1416,6 @@ directly to confirm rulings — user marginalia are rulings.
      citizen line and the Counting Houses are the deck's answer; the tree
      has none. One gate per batch; one schema per batch that
   changes a save (71 → 75). The play checkout on :5199 stays where it is.
-
-  (hhh) item 7 **The wild's red — BUILT** (batch V2; the user, 2026-09-08:
-  *"the barbarian colors and the crimson color are too similar, could use a
-  different color scheme, with the barbarian units having red as its icon
-  base color instead of its outline? Double check the icon is still legible,
-  and invert the black to white if needed."*). The wild was `raven` in the
-  body and spent its red on two thin strokes — the outline shell washed
-  toward `units.hostileGlow` (a barbarian is always somebody you may hit)
-  and the badge's mark and rim in oxblood — which is a red stroke beside the
-  crimson seat's own red pieces. The red is the **base** now:
-  `palette.wildRed` `#7a1f2b` is the barbarian seat's colour in
-  `seatBarbarians` (`src/sim/state.ts`, a config string the sim never reads
-  — no outcome moves) and its `players.byColor` ink, so the sculpt, the
-  x-ray ghost, the badge's disc, a camp's banner, the info card and the
-  spectator's seat ink all say the same thing. Measured: `#7a1f2b` against
-  the crimson piece ink `#b35843` is ΔE2000 19.9 (against the panel's
-  `#d4502e`, 25.3) where the old oxblood rim was 8.6 from it; against the
-  parchment ground 6.27:1 on desert, 4.68 on plains, 3.94 on grassland.
-  The **glyph inverted to bone**: the badge's near-black on the new disc is
-  1.36:1 and unreadable, bone is 8.15:1. The rim goes `vellumDeep` — no red
-  anywhere on a wild badge, and the pale ring is what the selection lift
-  reads against. `hostileOwners` no longer glows the wild (an *empire* you
-  declared on still glows). Pinned: `test/render/pieces3d.test.ts` ("the
-  wild's red", five cases, the contrast checks computed by the new
-  `contrastRatio` in `lookData.ts`), `lookData.test.ts`, `badges3d.test.ts`.
-  Stall: **section 9 of `flair.html`**, the two pieces side by side behind a
-  canopy (so the ghost shows) with a knob per ink and the ratios printed.
-  Left alone deliberately: the camp *prop* (`sites.props.camp.color`) and
-  the faith lens's `campColor` are hex marks on the ground, not seat ink.
 
 - **H18 — the performance pass — BUILT** (the user, 2026-09-07: "could you do
   a performance pass on the game? I think it's starting to feel slow again.
@@ -1758,9 +1941,7 @@ rulings yet:
 - **Pamphlet shots: 3 outstanding** — move-attack, worker-improve,
   diplomacy-with-a-met-rival need a riper save; captions meanwhile.
 - **Closed by your marginalia, for the record**: mid-peace expulsion (not
-  now) · barbarian red rim (kept then, and **superseded** by (hhh) item 7:
-  the red is the wild's base now and its rim carries none) · 4.5× declare
-  (tune in playtest) ·
+  now) · barbarian red rim (keep) · 4.5× declare (tune in playtest) ·
   project-headed towns (Civ V behaviour, confirmed) · authority roominess
   (defer to playtest) · camera easing (not needed; pan lock shipped) ·
   the seal lengthening (vetoed — slot-in/out is skill expression).

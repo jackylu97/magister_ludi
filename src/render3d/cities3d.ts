@@ -217,6 +217,21 @@ export interface CityLook {
    * whose founder is conquered does not need forty city looks recomputed.
    */
   religion: ReligionId | null;
+  /**
+   * True while this town is held as a **puppet** — taken and not yet annexed
+   * (`City.puppet`, `docs/war-diplomacy.md` 9b).
+   *
+   * The user's ruling of 2026-09-09: *"cities that are puppeted should have an
+   * indicator in their banner"*. It changes what is drawn — a yoke under the
+   * seat's charge — so it belongs here and nowhere else, which is what puts it
+   * in the fingerprint at the same time: annexing a town repaints its banner
+   * without anything else about the town having to move.
+   *
+   * A fact about the **town** and not about its owner, exactly like `religion`:
+   * two of a seat's towns may differ, and one of them being annexed must not
+   * recompute the other.
+   */
+  puppet: boolean;
 }
 
 /** Does this town hold a finished building? */
@@ -270,6 +285,10 @@ export function cityLook(
     // it has to be one: without it a converted town would keep its old device
     // until something unrelated happened to grow it.
     religion: cityReligion(city),
+    // Presence is the state on the row (`City.puppet` is `true` or absent), and
+    // a look is a set of answers rather than a copy of the town — so it is asked
+    // as the question it is.
+    puppet: city.puppet === true,
   };
 }
 
@@ -689,7 +708,56 @@ export class CityLayer {
       { material: icons.standingMaterial },
     );
 
+    // The town's own mark, under the charge and in the charge's column. Drawn
+    // before the device so the two halves of the banner are collected in the
+    // order a reader reads them: whose town, then what it believes.
+    this.addTownMark(look, anchor, right, forward, geometry, collector, faceCamera, icons);
     this.addDevice(state, look, anchor, right, forward, geometry, collector, faceCamera, icons);
+  }
+
+  /**
+   * The **puppet's yoke**: the town's own mark, hung under the seat's charge.
+   *
+   * The user's ruling of 2026-09-09 — a town taken and not yet annexed says so
+   * on its banner, because "which of these six towns of mine are puppets" is a
+   * question a player currently answers by opening six city panels.
+   *
+   * Under the charge rather than in the fly's half, and `CitySpec.puppetInset`'s
+   * docblock has the argument: both halves of a banner are already spoken for,
+   * and a third mark competing for either would cost one of them its ground. A
+   * subscript under "whose town this is" is also the right *reading* — a puppet
+   * is a town whose owner is qualified.
+   *
+   * Ink on parchment, out of the same atlas as the charge and the pantheon's
+   * signs, drawn with the atlas's **standing** material: a mark on a flag is a
+   * thing in the diorama, so the mountain that hides the flag hides this too.
+   */
+  private addTownMark(
+    look: CityLook,
+    anchor: Vector3,
+    right: Vector3,
+    forward: Vector3,
+    geometry: BoardGeometry,
+    collector: InstanceCollector,
+    faceCamera: Quaternion,
+    icons: TileIcons | null,
+  ): void {
+    if (!icons || !look.puppet) return;
+    const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
+    collector.add(
+      geometry.cityMarkers.puppet,
+      [],
+      new Matrix4().compose(
+        anchor
+          .clone()
+          .addScaledVector(right, CITY.puppetInset * CITY.flagWidth)
+          .addScaledVector(up, -CITY.puppetDrop * CITY.flagHeight)
+          .addScaledVector(forward, CITY.puppetNudge),
+        faceCamera,
+        new Vector3(CITY.puppetSize, CITY.puppetSize, 1),
+      ),
+      { material: icons.standingMaterial },
+    );
   }
 
   /**
@@ -1172,6 +1240,10 @@ export function signCities(state: GameState): number {
       (look.shrine ? 1 << 5 : 0) |
       (look.temple ? 1 << 6 : 0) |
       (look.capital ? 1 << 7 : 0) |
+      // Above the wonder count rather than beside the other flags, because that
+      // count takes everything from bit 8 up: a flag folded into it would make
+      // an annexation look like a marvel.
+      (look.puppet ? 1 << 30 : 0) |
       // A *count*, not a bit, and it takes the high byte: a town's second wonder
       // is a second sculpt on the ring, so the hash has to move for it.
       (look.wonders << 8);

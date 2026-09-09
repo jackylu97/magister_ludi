@@ -54,9 +54,10 @@ import {
 } from 'three';
 
 import { type HeraldryId } from '../art/heraldryMarks';
-import { TileIcons } from '../render3d/badges3d';
+import { TileIcons, UnitBadges } from '../render3d/badges3d';
 import { BoardGeometry } from '../render3d/board3d';
 import { CityLayer } from '../render3d/cities3d';
+import { GarrisonLayer } from '../render3d/garrison3d';
 import { VIEW3D, shade } from '../render3d/lookData';
 import { cellCenter, directionYaw } from '../render3d/layout';
 import { MaterialLibrary, computeHullNormals } from '../render3d/toon';
@@ -64,7 +65,7 @@ import { type BuildingId } from '../sim/buildingData';
 import { type ImprovementId } from '../sim/improvementData';
 import { foundCityAt } from '../sim/cities';
 import { createMap, getTileAt } from '../sim/map';
-import { type GameState, newGame } from '../sim/state';
+import { type GameState, createUnit, newGame } from '../sim/state';
 import { type TechId } from '../sim/techData';
 import { VISIBLE, resetVisibility } from '../sim/visibility';
 import { seatTinctures } from './marks';
@@ -215,9 +216,20 @@ export class CityStrip {
   private readonly key: DirectionalLight;
   private readonly turntables: Group[] = [];
   private readonly layers: CityLayer[] = [];
+  /**
+   * The tags over the banners (`garrison3d.ts`). Its own layer here as on the
+   * board, so the strip draws the shipping thing rather than a picture of it —
+   * which is what makes the two sliders under the canvas honest.
+   */
+  private readonly garrisons: GarrisonLayer[] = [];
   private readonly table: Mesh;
 
   private icons: TileIcons | null = null;
+  private badges: UnitBadges | null = null;
+  /** How many pieces stand in each town. The garrison slider's whole state. */
+  private garrison = 0;
+  /** Whether the six towns are held as puppets. The yoke's whole state. */
+  private puppet = false;
   private shadows = LOOK.shadows;
   private seat: number;
   private spin = true;
@@ -278,6 +290,9 @@ export class CityStrip {
       const layer = new CityLayer();
       turntable.add(layer.group);
       this.layers.push(layer);
+      const tags = new GarrisonLayer();
+      turntable.add(tags.group);
+      this.garrisons.push(tags);
     }
     this.rebuild();
 
@@ -289,6 +304,39 @@ export class CityStrip {
   /** Hands the strip the rasterised atlas: the charge on every flag. */
   setIcons(icons: TileIcons | null): void {
     this.icons = icons;
+    this.rebuild();
+  }
+
+  /** And the roundel atlas: what a garrison tag is a picture of. */
+  setBadges(badges: UnitBadges | null): void {
+    this.badges = badges;
+    this.rebuild();
+  }
+
+  /** How many pieces stand in each town — 0 for none, which draws no tag. */
+  setGarrison(count: number): void {
+    const held = Math.max(0, Math.round(count));
+    if (this.garrison === held) return;
+    this.garrison = held;
+    this.rebuild();
+  }
+
+  /** Whether the towns are held as puppets, which is what flies the yoke. */
+  setPuppet(on: boolean): void {
+    if (this.puppet === on) return;
+    this.puppet = on;
+    this.rebuild();
+  }
+
+  /**
+   * Rebuilds against whatever `data/view3d.json`'s live values now say.
+   *
+   * The one door a *tunable* slider needs, and it is deliberately blunt: a knob
+   * on this page writes the number straight into `VIEW3D` and asks for the
+   * picture again, so the specimen is drawn by the shipping code reading the
+   * shipping table. Nothing here caches a figure, which is what makes that safe.
+   */
+  repaint(): void {
     this.rebuild();
   }
 
@@ -317,6 +365,19 @@ export class CityStrip {
     const faceCamera = this.camera.quaternion.clone();
     this.panels.forEach((panel, index) => {
       const layer = this.layers[index]!;
+      const tags = this.garrisons[index]!;
+      const city = panel.state.cities.find((entry) => entry.id === panel.cityId);
+      // The two knobs are written into the fixture's own state rather than
+      // passed to the layers, because both layers read them off a `City` and a
+      // `Unit` — the strip's whole bargain is that it draws the shipping thing.
+      if (city) {
+        if (this.puppet) city.puppet = true;
+        else delete city.puppet;
+        panel.state.units.length = 0;
+        for (let i = 0; i < this.garrison; i++) {
+          createUnit(panel.state, city.ownerId, 'warrior', city.col, city.row);
+        }
+      }
       layer.build(
         panel.state,
         this.geometry,
@@ -326,12 +387,22 @@ export class CityStrip {
         null,
         this.icons,
       );
+      tags.build(
+        panel.state,
+        this.geometry,
+        this.materials,
+        faceCamera,
+        this.shadows,
+        this.badges,
+        null,
+        this.icons,
+      );
       // The town stands at the origin of its own panel: the layer draws it at
       // its hex's world position, so the group is slid back by exactly that.
-      const city = panel.state.cities.find((entry) => entry.id === panel.cityId);
       if (!city) return;
       const centre = cellCenter(city.col, city.row);
       layer.group.position.set(-centre.x, 0, -centre.z);
+      tags.group.position.set(-centre.x, 0, -centre.z);
     });
   }
 
@@ -382,6 +453,7 @@ export class CityStrip {
   dispose(): void {
     this.running = false;
     for (const layer of this.layers) layer.dispose();
+    for (const tags of this.garrisons) tags.dispose();
     this.geometry.dispose();
     this.materials.dispose();
     this.renderer.dispose();

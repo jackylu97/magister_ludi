@@ -21,7 +21,14 @@
 import { describe, expect, it } from 'vitest';
 
 import { drawGreatPersonOffer } from '../../src/sim/greatPeople';
-import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
+import {
+  FAMILIES,
+  FAMILY_VERB_KINDS,
+  GREAT_PERSON_IDS,
+  greatPersonDef,
+} from '../../src/sim/greatPeopleData';
+import { improvementDef, workForFamily } from '../../src/sim/improvementData';
+import { describeFamilyVerb, stripRefs } from '../../src/sim/statecraft';
 import { type GameState, newGame } from '../../src/sim/state';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { poolFigure } from '../../src/ui/figures';
@@ -215,10 +222,41 @@ describe("the unit sheet's two verbs", () => {
     const panel = sourceOf('unitPanel.ts');
     expect(panel).toContain('blocked: person.act.blocked');
     expect(panel).toContain('blocked: person.work.blocked');
-    // Two words and no more — the simulation names no verb per family, and the
-    // sheet does not invent five.
-    expect(panel).toContain("label: 'Act'");
-    expect(panel).toContain("label: 'Work'");
+    // **The family's own two verbs, and no literal** (the user, 2026-09-09:
+    // `Act`/`Work` were "not informative enough"). The sheet prints what the
+    // family's data row names, stripped because a button is not a descriptor —
+    // a screen that went back to typing the words would fail here.
+    expect(panel).toContain('label: stripRefs(person.act.verb)');
+    expect(panel).toContain('label: stripRefs(person.work.verb)');
+    expect(panel).not.toContain("label: 'Act'");
+    expect(panel).not.toContain("label: 'Work'");
+    expect(controls).toContain("describeFamilyVerb(def.family, 'act')");
+    expect(controls).toContain("describeFamilyVerb(def.family, 'work')");
+  });
+
+  /**
+   * The words themselves, read off the table rather than typed here: five
+   * families, two verbs each, and the **work** verb naming the improvement the
+   * family actually plants. That last is the sync: rename the Customs House and
+   * forget the merchant's row and this fails, rather than a button quietly
+   * offering to build something that no longer exists.
+   */
+  it('names both verbs for every family, and the work names its own improvement', () => {
+    for (const family of FAMILIES) {
+      for (const verb of FAMILY_VERB_KINDS) {
+        const words = stripRefs(describeFamilyVerb(family, verb));
+        expect(words.length, `${family} ${verb}`).toBeGreaterThan(0);
+        // Plain words, never a figure: what a verb pays is the preview's.
+        expect(words, `${family} ${verb}`).not.toMatch(/\d/);
+      }
+      const work = workForFamily(family);
+      expect(work, `${family} plants something`).not.toBeNull();
+      expect(stripRefs(describeFamilyVerb(family, 'work'))).toContain(
+        improvementDef(work!).name,
+      );
+      // And the improvement is marked, so the Compendium's entry links to it.
+      expect(describeFamilyVerb(family, 'work')).toContain(`[[improvement:${work!}|`);
+    }
   });
 
   it('names the town an act pays into, from the same function the act uses', () => {

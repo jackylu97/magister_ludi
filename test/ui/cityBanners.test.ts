@@ -33,6 +33,7 @@ import {
   healthBar,
   visibleCityBanners,
 } from '../../src/ui/cityBanners';
+import { uiSource } from './sourceHelpers';
 
 /** A blank grassland board, two seats, nothing on it yet. */
 function boardState(): GameState {
@@ -604,5 +605,42 @@ describe('cityGrowthRing', () => {
     expect(full.filled).toBe(1);
     expect(full.ahead).toBe(0);
     expect(full.label).toBe('Grows next turn');
+  });
+});
+
+// --- the puppet's yoke ------------------------------------------------------
+
+describe('a puppet says so beside its name', () => {
+  it('marks a town of yours that is held as a puppet', () => {
+    const state = boardState();
+    const city = foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(false);
+    city.puppet = true;
+    expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(true);
+    // Annexation is the one verb, and it deletes the key — presence is the state.
+    delete city.puppet;
+    expect(visibleCityBanners(state, 0, null)[0]!.puppet).toBe(false);
+  });
+
+  it('says nothing about the inside of somebody else’s empire', () => {
+    const state = boardState();
+    foundCityAt(state, 0, getTileAt(state.map, 4, 4)!);
+    const rival = foundCityAt(state, 1, getTileAt(state.map, 5, 4)!);
+    rival.puppet = true;
+    const banner = visibleCityBanners(state, 0, null).find((b) => b.cityId === rival.id)!;
+    expect(banner.mine).toBe(false);
+    expect(banner.puppet).toBe(false);
+  });
+
+  /** One drawing, two printers — the flag's mark and the banner's are the same. */
+  it('is drawn from the one mark the board’s own banner flies', () => {
+    const banners = uiSource('cityBanners.ts');
+    expect(banners).toContain("cityMarkDataUri('puppet')");
+    const css = uiSource('style.css');
+    expect(css).toContain('.city-banner-yoke');
+    // A mask, so it takes the banner's ink and dims with it when the card
+    // goes stale.
+    const rule = css.slice(css.indexOf('.city-banner-yoke'));
+    expect(rule.slice(0, rule.indexOf('}'))).toContain('mask-image: var(--yoke-mark)');
   });
 });

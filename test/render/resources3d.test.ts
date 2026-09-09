@@ -10,9 +10,11 @@ import {
   Vector3,
 } from 'three';
 
+import { CITY_MARK_IDS } from '../../src/art/cityMarks';
 import {
   AXIS_CELLS,
   CHARGE_CELLS,
+  CITY_MARK_CELLS,
   MARGINALIA_CELLS,
   MEDALLION_CELLS,
   MEDALLION_TURNS,
@@ -380,6 +382,14 @@ describe('the tile-icon atlas', () => {
     expect(medallions).toEqual([...MEDALLION_CELLS]);
     expect(MEDALLION_CELLS).toHaveLength(MEDALLION_TURNS + 1);
     expect(MEDALLION_CELLS[MEDALLION_CELLS.length - 1]).toBe('more');
+    // And the tenth, appended by batch U4: the **town** marks, which are what a
+    // town flies about itself rather than about its seat — one today, the
+    // puppet's yoke. Its own set and not a thirteenth charge, for
+    // `cityMarks.ts`'s reason: a charge belongs to a player and this belongs to
+    // a city, and adding it to that list would have moved every seat past it.
+    const towns = TILE_ICON_CELLS.filter((cell) => cell.set === 'cityMark').map((c) => c.id);
+    expect(towns).toEqual([...CITY_MARK_CELLS]);
+    expect(CITY_MARK_CELLS).toEqual([...CITY_MARK_IDS]);
     expect(TILE_ICON_CELLS).toHaveLength(
       RESOURCE_IDS.length +
         6 +
@@ -389,7 +399,8 @@ describe('the tile-icon atlas', () => {
         CHARGE_CELLS.length +
         AXIS_CELLS.length +
         SURVEY_MARK_CELLS.length +
-        MEDALLION_CELLS.length,
+        MEDALLION_CELLS.length +
+        CITY_MARK_CELLS.length,
     );
   });
 
@@ -410,7 +421,12 @@ describe('the tile-icon atlas', () => {
     // A turn count below the first rest is not a thing the marks can carry, and
     // it is floored rather than refused: the board draws what it is told.
     expect(medallionIdFor(0)).toBe(1);
-    expect(tileIconIndex({ set: 'medallion', id: 'more' })).toBe(TILE_ICON_CELLS.length - 1);
+    // Last of its own set, which is now one set in from the end: the town marks
+    // went on behind it (batch U4), and an appended set moves nothing in front
+    // of it — which is exactly the property this file is about.
+    expect(tileIconIndex({ set: 'medallion', id: 'more' })).toBe(
+      TILE_ICON_CELLS.length - CITY_MARK_CELLS.length - 1,
+    );
   });
 
   /**
@@ -432,6 +448,7 @@ describe('the tile-icon atlas', () => {
         AXIS_CELLS.length -
         SURVEY_MARK_CELLS.length -
         MEDALLION_CELLS.length -
+        CITY_MARK_CELLS.length -
         MARGINALIA_CELLS.length,
     );
     // The inscription joined the marginalia *behind* the serpent, so the serpent
@@ -444,21 +461,30 @@ describe('the tile-icon atlas', () => {
         AXIS_CELLS.length -
         SURVEY_MARK_CELLS.length -
         MEDALLION_CELLS.length -
+        CITY_MARK_CELLS.length -
         1,
     );
     // The axes kept their place when the survey notes arrived behind them, which
     // is the property this suite is really about.
     expect(tileIconIndex({ set: 'axis', id: AXIS_CELLS[AXIS_CELLS.length - 1]! })).toBe(
-      TILE_ICON_CELLS.length - SURVEY_MARK_CELLS.length - MEDALLION_CELLS.length - 1,
+      TILE_ICON_CELLS.length -
+        SURVEY_MARK_CELLS.length -
+        MEDALLION_CELLS.length -
+        CITY_MARK_CELLS.length -
+        1,
     );
     // The survey notes kept their place when the medallions arrived behind
     // them, which is the property this suite is really about.
     expect(
       tileIconIndex({ set: 'survey', id: SURVEY_MARK_CELLS[SURVEY_MARK_CELLS.length - 1]! }),
-    ).toBe(TILE_ICON_CELLS.length - MEDALLION_CELLS.length - 1);
-    // The medallions are the newest set and are on the end, which is the rule.
+    ).toBe(TILE_ICON_CELLS.length - MEDALLION_CELLS.length - CITY_MARK_CELLS.length - 1);
+    // The medallions kept their place when the town marks arrived behind them.
     expect(tileIconIndex({ set: 'medallion', id: 1 })).toBe(
-      TILE_ICON_CELLS.length - MEDALLION_CELLS.length,
+      TILE_ICON_CELLS.length - MEDALLION_CELLS.length - CITY_MARK_CELLS.length,
+    );
+    // The town marks are the newest set and are on the end, which is the rule.
+    expect(tileIconIndex({ set: 'cityMark', id: CITY_MARK_IDS[0]! })).toBe(
+      TILE_ICON_CELLS.length - CITY_MARK_CELLS.length,
     );
   });
 

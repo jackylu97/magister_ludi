@@ -91,6 +91,7 @@ import {
   SRGBColorSpace,
 } from 'three';
 
+import { CITY_MARK_IDS, type CityMarkId, cityMark } from '../art/cityMarks';
 import { HERALDRY_IDS, type HeraldryId, heraldryMark } from '../art/heraldryMarks';
 import { DRACONES_LINES, marginaliaMark } from '../art/marginaliaMarks';
 import { pantheonMark } from '../art/pantheonMarks';
@@ -1085,6 +1086,21 @@ export const SURVEY_MARK_CELLS: readonly SurveyMarkId[] = SURVEY_MARK_IDS;
  */
 export const SITE_MARK_CELLS: readonly DiscoveryKind[] = DISCOVERY_KINDS;
 
+/**
+ * The **town** marks: one cell per drawn city mark (`src/art/cityMarks.ts`),
+ * which is one today — the puppet's yoke.
+ *
+ * Aliased from the art registry for `SITE_MARK_CELLS`' reason exactly. Printed
+ * on **parchment**, like the charges and the pantheon's signs and for their
+ * argument: a town mark stands on the coloured fly of a city flag, and ink
+ * straight on a dark tincture is a smudge.
+ *
+ * Its own set rather than a thirteenth charge, because a charge belongs to a
+ * *seat* and a town mark belongs to a *town* — `cityMarks.ts`'s docblock has the
+ * whole of that argument.
+ */
+export const CITY_MARK_CELLS: readonly CityMarkId[] = CITY_MARK_IDS;
+
 /** A cell of the tile atlas: which set it belongs to, and which member. */
 export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
@@ -1095,7 +1111,8 @@ export type TileIconCell =
   | { set: 'site'; id: DiscoveryKind }
   | { set: 'charge'; id: HeraldryId }
   | { set: 'axis'; id: BeliefAxis }
-  | { set: 'survey'; id: SurveyMarkId };
+  | { set: 'survey'; id: SurveyMarkId }
+  | { set: 'cityMark'; id: CityMarkId };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -1120,6 +1137,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   // On the end, like every set before it, and for this list's one rule: an
   // index here is a texture coordinate.
   ...MEDALLION_CELLS.map((id) => ({ set: 'medallion', id }) as TileIconCell),
+  ...CITY_MARK_CELLS.map((id) => ({ set: 'cityMark', id }) as TileIconCell),
 ];
 
 /**
@@ -1950,6 +1968,40 @@ function drawAxisCell(
 }
 
 /**
+ * Paints one town mark: a parchment disc with the mark on it.
+ *
+ * `drawChargeCell` and `drawAxisCell` a third time, on the same grid at the same
+ * weight, because the three are printed on the same banner an inch apart and a
+ * yoke drawn in a different hand from the crescent beside it would read as a
+ * sticker rather than as a second sentence.
+ */
+function drawCityMarkCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: CityMarkId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintMarkPaths(
+    context,
+    cityMark(id),
+    center,
+    Math.max(1, ICONS.chargeScale * cell),
+    ICONS.inkColor,
+  );
+}
+
+/**
  * Paints one numeral: a parchment disc with a digit on it.
  *
  * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
@@ -2291,8 +2343,14 @@ export class TileIcons {
         drawSurveyCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the eight branches above; this is
-      // the exhaustiveness check, not a reachable draw path — a ninth set
+      // A town's own mark, on the charges' field for the charges' reason; see
+      // `CITY_MARK_CELLS`.
+      if (cell.set === 'cityMark') {
+        drawCityMarkCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the nine branches above; this is
+      // the exhaustiveness check, not a reachable draw path — a tenth set
       // added to the union without a painter here fails typecheck instead of
       // drawing a blank cell.
       const exhaustive: never = cell;

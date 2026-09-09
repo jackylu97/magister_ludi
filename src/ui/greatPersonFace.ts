@@ -20,12 +20,17 @@
  */
 
 import { type CardClause, describeCard } from '../sim/statecraft';
-import { type Family, type GreatPersonId, type GreatPersonTier, greatPersonDef } from '../sim/greatPeopleData';
+import {
+  type Family,
+  type GreatPersonId,
+  type GreatPersonTier,
+  familyVerb,
+  greatPersonDef,
+} from '../sim/greatPeopleData';
 import { type StampReading, stampIsEmpty, stampReading } from './cardStamp';
 import { cardLineMarkUrl } from './cardLine';
 import { eraWord } from './figures';
 import { explainCardImpact } from '../sim/cardImpact';
-import { improvementDef, workForFamily } from '../sim/improvementData';
 import type { CardLine } from '../sim/statecraftData';
 import type { GameState } from '../sim/state';
 
@@ -151,13 +156,21 @@ export function legacyIsSilent(clauses: readonly CardClause[]): boolean {
  * (either verb spends the piece and leaves the same legacy — `docs/great-people.md`),
  * and a footnote that guessed would be a footnote that is wrong half the time.
  * What is true of every scholar is that their charge was a burst of study or the
- * Academy that stands in its place, and that is what this says. The work's name
- * is `improvementDef`'s, so a sixth family is a JSON row here too.
+ * Academy that stands in its place, and that is what this says.
+ *
+ * Both halves are the **family's own verbs** since the user's ruling of
+ * 2026-09-09, off the one table the buttons and the ceremony read — so this
+ * footnote names the same two things the sheet offered rather than a paraphrase
+ * of them. A sixth family is a JSON row here too.
+ *
+ * The **unmarked** reading (`familyVerb`, the data's own words) rather than the
+ * describer's: this file composes clauses and prints none of them
+ * (`test/ui/keywords.test.ts`'s composer register), so it may not reach for
+ * either printer — and a footnote is a plain sentence anyway. The mark is what
+ * `describeFamilyVerb` adds for the surfaces that draw descriptors.
  */
 export function deedFootnote(family: Family): string {
-  const work = workForFamily(family);
-  if (work === null) return `Spent as a ${family}.`;
-  return `Spent as a ${family} — the act, or the ${improvementDef(work).name}.`;
+  return `Spent as a ${family} — ${familyVerb(family, 'act')}, or ${familyVerb(family, 'work')}.`;
 }
 
 /** The mono eyebrow: the family, then the age the name belongs to. */

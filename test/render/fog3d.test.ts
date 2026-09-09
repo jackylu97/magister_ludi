@@ -1194,3 +1194,101 @@ describe('the seat predicates the layers share', () => {
     expect(seesCell(levels, state.map, 4, 4)).toBe(false);
   });
 });
+
+
+// --- the seat-filtered layers' register -------------------------------------
+
+/**
+ * **Every seat-filtered layer follows the fog**, and there are four doors it has
+ * to follow it through.
+ *
+ * CLAUDE.md states the contract — *"seat-filtered layers rebuild off
+ * `FogStats.tiles` in the render loop — a new one joins there, and in
+ * `loadIcons` if it reads the atlas"* — and until the garrison tags arrived
+ * (2026-09-09) nothing held anybody to it. The failure it is written against is
+ * silent and specific: a layer that filters by `seesCell` and is *not* rebuilt
+ * on a fog move goes on drawing an army on ground the seat stopped watching,
+ * which is the fog leaking through a hole no screenshot shows, because the
+ * picture is only wrong for the player who is not looking at it.
+ *
+ * Read off the source rather than driven, for the reason every register test in
+ * this repo is: the bug is a *missing call*, and a missing call is visible in
+ * which names a file mentions and in nothing a rendered frame shows.
+ */
+describe('the seat-filtered layers all follow the fog', () => {
+  const RENDERER = Object.values(
+    import.meta.glob('../../src/render3d/renderer3d.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>,
+  )[0]!;
+
+  /** Comments stripped — the rule lives in the code. `lens3d.test.ts`'s helper. */
+  function code(text: string): string {
+    return text.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+  }
+
+  const source = code(RENDERER);
+
+  /** Every layer whose build asks `seesCell` or takes the seat's own grid. */
+  const layers = [
+    'rebuildUnits',
+    'rebuildCities',
+    'rebuildGarrisons',
+    'rebuildTerritory',
+    'rebuildRoads',
+    'rebuildImprovements',
+    'rebuildSites',
+  ];
+
+  it('rebuilds each of them when the seat changes', () => {
+    const seat = source.slice(source.indexOf('setFogSeat('));
+    const body = seat.slice(0, seat.indexOf('\n  }'));
+    for (const layer of layers) expect(body, layer).toContain(`this.${layer}();`);
+  });
+
+  it('rebuilds each of them when a fresh state arrives', () => {
+    const set = source.slice(source.indexOf('setGameState('));
+    const body = set.slice(0, set.indexOf('\n  }'));
+    for (const layer of layers) expect(body, layer).toContain(`this.${layer}();`);
+  });
+
+  /**
+   * And in the loop, each behind `fogMoved` as well as behind its own
+   * fingerprint: a tile that changed level can add or remove a piece, a town, a
+   * border, a work or a tag, and no fingerprint of the *state* moves when only
+   * the seat's eyes did.
+   */
+  it('rebuilds each of them on a fog move, beside its own fingerprint', () => {
+    // The render loop's own half, from where it decides a fog move happened.
+    const loop = source.slice(source.indexOf('const fogMoved ='));
+    for (const layer of layers) {
+      const call = loop.indexOf(`this.${layer}();`);
+      expect(call, layer).toBeGreaterThan(0);
+      const guard = loop.lastIndexOf('if (', call);
+      expect(loop.slice(guard, call), layer).toContain('fogMoved');
+    }
+  });
+
+  /**
+   * The atlas's own door. A layer that prints from the tile atlas and is not
+   * rebuilt when it lands draws unmarked until something unrelated moves — the
+   * failure `loadIcons`' own comments describe one layer at a time.
+   */
+  it('rebuilds every atlas-printing layer when the atlas lands', () => {
+    const load = source.slice(source.indexOf('private loadIcons('));
+    const body = load.slice(0, load.indexOf('\n  }'));
+    for (const layer of [
+      'rebuildLens',
+      'rebuildUnits',
+      'rebuildSites',
+      'rebuildCities',
+      'rebuildGarrisons',
+      'rebuildFog',
+      'rebuildOverlays',
+    ]) {
+      expect(body, layer).toContain(`this.${layer}();`);
+    }
+  });
+});

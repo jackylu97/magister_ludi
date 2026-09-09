@@ -54,7 +54,7 @@ import { type GreatPersonFace, greatPersonFace, legacyIsSilent } from './greatPe
 import { cardStampNode, landCardStamp, playCardStamp } from './cardStamp';
 import { keywordsAllowedIn, setDescriptorText } from './keywords';
 import type { GameState } from '../sim/state';
-import type { GreatPersonId } from '../sim/greatPeopleData';
+import { type GreatPersonId, familyVerb, greatPersonDef } from '../sim/greatPeopleData';
 import { element } from './dom';
 import { wantsMotion } from './motion';
 
@@ -110,9 +110,19 @@ export interface GreatPersonSpend {
  * Two openings rather than one, because the two verbs are two kinds of event and
  * the sentence should say which: an act is a moment that paid, a work is a thing
  * that now stands on a hex. The figure inside is the preview's, untouched.
+ *
+ * The verb is named with the **family's own words** (the user, 2026-09-09), off
+ * the same table the unit sheet's two buttons read — so the card that closes the
+ * decision says the words the button that opened it said. The *unmarked*
+ * reading, because this line is a small mono footnote and not a descriptor; the
+ * roster is asked by id because the spend carries the id and nothing else about
+ * who this was.
  */
 export function deedLine(spend: GreatPersonSpend): string {
-  return spend.verb === 'act' ? `the act paid ${spend.deed}` : `the work stands · ${spend.deed}`;
+  const words = familyVerb(greatPersonDef(spend.id).family, spend.verb);
+  return spend.verb === 'act'
+    ? `${words} — the act paid ${spend.deed}`
+    : `${words} — the work stands · ${spend.deed}`;
 }
 
 export interface GreatPersonCeremony {

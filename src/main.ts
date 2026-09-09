@@ -175,6 +175,7 @@ import {
   type GreatPersonCeremony,
   createGreatPersonCeremony,
 } from './ui/greatPersonCeremony';
+import { type CaptureSheet, createCaptureSheet } from './ui/captureSheet';
 import { CARD_LINE_NAME, cardLineMarkUrl, lineOf, slotMarkUrl } from './ui/cardLine';
 import {
   type OfferKind,
@@ -390,6 +391,11 @@ const reliquaryBodyEl = requireElement<HTMLElement>('reliquary-body');
 /* The Ledger sheet — the eighth of the family (`ledgerScreen.ts`). */
 const ledgerOverlayEl = requireElement<HTMLElement>('ledger-overlay');
 const ledgerBodyEl = requireElement<HTMLElement>('ledger-body');
+/* The capture sheet — the ninth of the family (`captureSheet.ts`), and the one
+   nothing on the bar opens: a conquest raises it. */
+const captureOverlayEl = requireElement<HTMLElement>('capture-overlay');
+const captureBodyEl = requireElement<HTMLElement>('capture-body');
+const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 /**
@@ -749,6 +755,10 @@ function chosenReasons(decision: BotDecision): string[] {
    walked away from is exactly what those two sweeps exist to prevent. */
 let reliquary: ReliquaryScreen | null = null;
 let ceremony: GreatPersonCeremony | null = null;
+/* The capture sheet, held here for the ceremony's reason exactly: it is raised
+   by a conquest rather than opened, and a sheet left standing over a game the
+   player has walked away from is what the two sweeps exist to prevent. */
+let capture: CaptureSheet | null = null;
 /* The Ledger, held here for the Reliquary's reason exactly. */
 let ledger: LedgerScreen | null = null;
 
@@ -896,6 +906,10 @@ function closePopovers(): boolean {
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
     (ledger?.isOpen ?? false) ||
+    // Counted with the other sheets, and closing it is the puppet answer — the
+    // one the rules already made. It swallows its own Escape while it is up, so
+    // this arm is the landing screen's and a new game's, not the key's.
+    (capture?.isOpen ?? false) ||
     compendium.isOpen ||
     savesPanel.isOpen ||
     // Escape never actually arrives here while the card is up — it answers its
@@ -917,6 +931,7 @@ function closePopovers(): boolean {
   diplomacy?.close();
   reliquary?.close();
   ledger?.close();
+  capture?.close();
   // The ceremony is not a popover and answers no key, but it is a card standing
   // over the board on a timer, and Escape meaning "clear the screen" has to mean
   // it here too. It is not counted in `wasOpen`: it takes itself down, so it is
@@ -3228,6 +3243,18 @@ async function boot(initial: Game | null): Promise<void> {
       ceremony?.play(spend);
     },
     /**
+     * **A town has fallen to this seat** — the capture sheet (`captureSheet.ts`,
+     * the user's ruling of 2026-09-09). The three answers with the meters' own
+     * figures beside them, in place of a toast that scrolled away and two
+     * commands the player had to go looking for.
+     *
+     * Only the local seat's own blow reaches here (`onCityCaptured`'s docblock),
+     * so a bot's conquest raises nothing.
+     */
+    onCityCaptured: (cityId) => {
+      capture?.open(cityId);
+    },
+    /**
      * The Triumph sheet, over the awards this seat has just earned.
      *
      * The row is looked up here rather than carried on `TriumphAward`, because
@@ -3903,6 +3930,33 @@ async function boot(initial: Game | null): Promise<void> {
    * is asked for the element each time rather than captured, because the strip
    * outlives no game and a stale node would aim the card at nowhere.
    */
+  /**
+   * **The capture sheet**, raised by `controls`' `onCityCaptured` and by nothing
+   * else — a bot's conquest never reaches it, and neither does a refused blow.
+   *
+   * The ninth sheet on `modalShell.ts`, and the only one with no trigger: the
+   * question is put by the board, so there is no bar control to mirror and none
+   * to hand the keyboard back to. Both verbs go out as **commands** through
+   * `controls`, so a town annexed from this sheet is annexed the way a network
+   * peer or the bot would annex one; the third answer sends nothing, because a
+   * captured town is already a puppet.
+   */
+  capture = createCaptureSheet({
+    overlay: captureOverlayEl,
+    body: captureBodyEl,
+    closeButton: captureCloseEl,
+    getState: () => game.state,
+    localPlayerId: () => controls.localPlayerId(),
+    decide: (choice, cityId) => {
+      if (choice === 'annex') controls.annexCity(cityId);
+      else controls.razeCity(cityId);
+    },
+    onOpen: () => {
+      closePopovers();
+    },
+  });
+  gameDisposers.push(() => capture?.dispose());
+
   ceremony = createGreatPersonCeremony({
     overlay: ceremonyOverlayEl,
     getState: () => game.state,

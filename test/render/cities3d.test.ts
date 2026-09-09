@@ -430,6 +430,11 @@ describe('the city fingerprint carries every sculpt fact', () => {
     // converted town would otherwise keep its old device until something
     // unrelated happened to grow it.
     ['converting', (s) => convert(s, s.cities[0]!, 0)],
+    // The eighth fact `CityLook` names (the user's ruling of 2026-09-09): a town
+    // taken and not yet annexed flies a yoke under its seat's charge, so
+    // annexing one has to repaint its banner with nothing else about the town
+    // having moved.
+    ['being taken as a puppet', (s) => void (s.cities[0]!.puppet = true)],
   ];
 
   for (const [what, mutate] of facts) {
@@ -507,7 +512,71 @@ describe('the city fingerprint carries every sculpt fact', () => {
       capital: true,
       wonders: 0,
       religion: null,
+      puppet: false,
     });
+  });
+});
+
+// --- the puppet's yoke ------------------------------------------------------
+
+describe('a puppet says so on its banner', () => {
+  it('stamps one yoke per flag, out of the tile atlas', () => {
+    const state = townState();
+    state.cities[0]!.puppet = true;
+    const built = build(state);
+    expect(drew(built, built.geometry.cityMarkers.puppet)).toBe(3);
+    built.layer.dispose();
+  });
+
+  it('flies none at all on a town nobody took', () => {
+    const state = townState();
+    const built = build(state);
+    expect(drew(built, built.geometry.cityMarkers.puppet)).toBe(0);
+    built.layer.dispose();
+  });
+
+  it('takes it down the moment the town is annexed', () => {
+    const state = townState();
+    state.cities[0]!.puppet = true;
+    const held = build(state);
+    expect(drew(held, held.geometry.cityMarkers.puppet)).toBe(3);
+    held.layer.dispose();
+    // `annexCityAt` deletes the key; presence is the state.
+    delete state.cities[0]!.puppet;
+    const annexed = build(state);
+    expect(drew(annexed, annexed.geometry.cityMarkers.puppet)).toBe(0);
+    annexed.layer.dispose();
+  });
+
+  it('flies a plain banner while the atlas is still rasterising', () => {
+    const state = townState();
+    state.cities[0]!.puppet = true;
+    const geometry = new BoardGeometry();
+    const mats = materials();
+    const layer = new CityLayer();
+    layer.build(state, geometry, mats, new Quaternion(), false, state.visibility[0]!, null);
+    let marks = 0;
+    for (const child of layer.group.children) {
+      if (!(child instanceof InstancedMesh)) continue;
+      if (Object.values(geometry.cityMarkers).includes(child.geometry)) marks += child.count;
+    }
+    expect(marks).toBe(0);
+    layer.dispose();
+  });
+
+  /**
+   * The mark hangs **clear of the cloth**, on the charge's own line: both halves
+   * of a banner are spoken for (the hoist's charge, the fly's device), so a
+   * third mark on either would cost it its ground. Held as arithmetic rather
+   * than as a matrix, which is `deviceLayout`'s own bargain one mark over.
+   */
+  it('hangs below the flag rather than on it, in the charge’s column', () => {
+    const city = VIEW3D.city;
+    expect(city.puppetDrop * city.flagHeight).toBeGreaterThan(city.flagHeight / 2);
+    expect(city.puppetInset).toBe(city.chargeInset);
+    // Smaller than the charge it hangs under: it qualifies the mark above it
+    // rather than competing with it.
+    expect(city.puppetSize).toBeLessThan(city.chargeSize);
   });
 });
 

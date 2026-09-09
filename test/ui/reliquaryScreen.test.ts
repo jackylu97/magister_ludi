@@ -201,10 +201,18 @@ describe('the legacy is the headline', () => {
 
   it('says what the charge was spent on without inventing which verb was taken', () => {
     // Nothing in the state records the verb (either one spends the piece and
-    // leaves the same legacy), so the footnote names the family's two, and the
-    // work by the improvement row's own name.
-    expect(deedFootnote('scholar')).toBe('Spent as a scholar — the act, or the Academy.');
-    expect(deedFootnote('general')).toContain('Spent as a general — the act, or the ');
+    // leaves the same legacy), so the footnote names the family's two — and
+    // since the user's ruling of 2026-09-09 it names them in the family's own
+    // words, off the same data row the unit sheet's two buttons read.
+    expect(deedFootnote('scholar')).toBe(
+      'Spent as a scholar — Write a Treatise, or Found an Academy.',
+    );
+    expect(deedFootnote('general')).toBe('Spent as a general — Rally the Army, or Raise a Citadel.');
+    // Never the mark: this file composes clauses and prints none, so it takes
+    // the unmarked reading rather than reaching for a printer.
+    for (const family of Object.keys(FAMILY_EMBLEM) as (keyof typeof FAMILY_EMBLEM)[]) {
+      expect(deedFootnote(family), family).not.toContain('[[');
+    }
     // And it carries no figure — rule 7: numbers never appear in written prose.
     for (const family of Object.keys(FAMILY_EMBLEM) as (keyof typeof FAMILY_EMBLEM)[]) {
       expect(deedFootnote(family), family).not.toMatch(/\d/);

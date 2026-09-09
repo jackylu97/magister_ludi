@@ -21,6 +21,7 @@
  * is what the game does and a mask keeps only the alpha.
  */
 
+import { CITY_MARK_IDS, cityMark, cityMarkDataUri } from '../art/cityMarks';
 import { diplomacyMarkDataUri, statecraftMarkDataUri } from '../art/dockMarks';
 import { type HeraldryId, HERALDRY_IDS, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { CARD_LINE_MARKS, SLOT_MARKS, cardLineMarkDataUri, slotMarkDataUri } from '../art/lineMarks';
@@ -124,6 +125,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   badgeFamily(into);
   navalFamily(into);
   heraldryFamily(into);
+  cityMarkFamily(into);
   marginaliaFamily(into);
 }
 
@@ -669,6 +671,19 @@ function heraldryFamily(into: HTMLElement): void {
   );
   for (const id of HERALDRY_IDS) {
     markCell(grid, id, heraldryMarkDataUri(id));
+  }
+}
+
+function cityMarkFamily(into: HTMLElement): void {
+  const grid = markGrid(
+    block(
+      into,
+      'Town marks — src/art/cityMarks.ts',
+      'What a **town** flies, as against what a seat does: one mark so far, the yoke a puppet wears until it is annexed. Same grid and same weight as the charges, because the two print an inch apart on one banner — and its own set, because a charge belongs to a player and this belongs to a city.',
+    ),
+  );
+  for (const id of CITY_MARK_IDS) {
+    markCell(grid, id, cityMarkDataUri(id), cityMark(id).note);
   }
 }
 

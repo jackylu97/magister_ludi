@@ -119,12 +119,16 @@ describe('the ceremony fires on an accepted command and on nothing else', () => 
 
 describe('the deed line', () => {
   it('says which verb was taken, and quotes the simulation’s own figure', () => {
+    // The verb is named with the family's own words (the user, 2026-09-09) —
+    // Imhotep is a scholar, so the card says what the button said.
     expect(deedLine({ id: 'imhotep', verb: 'act', deed: '+184🔬 toward Writing' })).toBe(
-      'the act paid +184🔬 toward Writing',
+      'Write a Treatise — the act paid +184🔬 toward Writing',
     );
     expect(deedLine({ id: 'imhotep', verb: 'work', deed: 'Academy here · +3🔬' })).toBe(
-      'the work stands · Academy here · +3🔬',
+      'Found an Academy — the work stands · Academy here · +3🔬',
     );
+    // Never the mark: this line is a mono footnote, not a descriptor.
+    expect(deedLine({ id: 'imhotep', verb: 'work', deed: '' })).not.toContain('[[');
   });
 });
 

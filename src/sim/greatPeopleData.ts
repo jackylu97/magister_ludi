@@ -167,6 +167,55 @@ export function isLegacyRevocation(value: unknown): value is LegacyRevocation {
   return typeof value === 'string' && (LEGACY_REVOCATIONS as readonly string[]).includes(value);
 }
 
+/**
+ * The two words a family's verbs are offered under — **the whole of what the
+ * player reads on the two buttons**.
+ *
+ * The user's ruling of 2026-09-09 (`docs/flags.md`, (hhh) 3: *"rename the great
+ * people actions act/work because they're not informative enough"*). The sheet
+ * used to print `Act` and `Work` and said so in its own comment: the simulation
+ * named no verb per family, so inventing five in the interface would have been
+ * the interface teaching a vocabulary the rules did not have. This is that
+ * vocabulary, put where every other player-facing word already lives — a data
+ * row — so the sheet, the ceremony and the Compendium print the *same* two
+ * words and none of them owns them.
+ *
+ * Plain words in a first-time player's terms (hard rule 7): a scholar *writes a
+ * treatise* and *founds an Academy*, and neither sentence needs the manual. The
+ * **work** verb names the improvement the family plants, and it is the same name
+ * the improvement row carries — `test/sim/greatPeopleDocSync.test.ts` holds the
+ * two together, so renaming the Customs House and forgetting this fails the
+ * build rather than shipping a button that lies.
+ *
+ * No figure here, ever. What a verb *pays* is `RULES.greatPeople`'s and is
+ * printed beside these words by the preview that reads it.
+ */
+export interface FamilyVerbs {
+  /** The burst, spent now. "Write a Treatise". */
+  act: string;
+  /** The ground, planted forever. "Found an Academy". */
+  work: string;
+}
+
+/**
+ * A family's own row — the smallest table that names the five, added for the
+ * verbs and deliberately not more.
+ *
+ * `Family` and `FAMILIES` stay the union and the order (an outcome may depend on
+ * either, and both are decisions somebody made on purpose); this is the *words*
+ * that hang off them, which is data. A sixth family would be a row here and a
+ * member there, and the validator below refuses either one alone.
+ */
+export interface FamilyDef {
+  verbs: FamilyVerbs;
+}
+
+/** Which of the two verbs. The sheet offers exactly these, and always both. */
+export type FamilyVerbKind = keyof FamilyVerbs;
+
+/** The two, in the order every surface offers them: the burst, then the ground. */
+export const FAMILY_VERB_KINDS: readonly FamilyVerbKind[] = ['act', 'work'];
+
 export type GreatPersonId = keyof typeof greatPeopleJson.people & string;
 
 export interface GreatPersonDef {
@@ -209,6 +258,7 @@ export interface GreatPersonDef {
 }
 
 export interface GreatPeopleData {
+  families: Record<Family, FamilyDef>;
   people: Record<GreatPersonId, GreatPersonDef>;
 }
 
@@ -247,6 +297,24 @@ export function isFamily(value: unknown): value is Family {
   return typeof value === 'string' && (FAMILIES as readonly string[]).includes(value);
 }
 
+/** A family's row. Total over `Family` — the validator below makes it so. */
+export function familyDef(family: Family): FamilyDef {
+  const def = GREAT_PEOPLE.families[family];
+  if (!def) throw new Error(`Unknown family "${String(family)}"`);
+  return def;
+}
+
+/**
+ * The words one of a family's two verbs is offered under.
+ *
+ * **The one reading**, and every surface takes it: the unit sheet's two buttons,
+ * the ceremony's footnote, the Compendium's entry. A screen that wrote its own
+ * would be a fifth vocabulary for a thing the player is meant to learn once.
+ */
+export function familyVerb(family: Family, verb: FamilyVerbKind): string {
+  return familyDef(family).verbs[verb];
+}
+
 /** The roster ages the table actually holds, ascending. Derived, never restated. */
 export const ROSTER_AGES: readonly number[] = [
   ...new Set(GREAT_PERSON_IDS.map((id) => greatPersonDef(id).age)),
@@ -267,6 +335,24 @@ export function rosterOfAge(age: number): GreatPersonId[] {
  * nothing.
  */
 function validateTable(): void {
+  // The families first, because a person's row is checked against them. Both
+  // directions: a family with no row would print an empty button, and a row for
+  // a family the union does not know is a designer's typo that would otherwise
+  // sit in the file unread for ever.
+  const rows = Object.keys(GREAT_PEOPLE.families ?? {});
+  for (const family of FAMILIES) {
+    const def = GREAT_PEOPLE.families?.[family];
+    if (!def) throw new Error(`greatPeople.json: no row for the ${family} family`);
+    for (const verb of FAMILY_VERB_KINDS) {
+      const words = def.verbs?.[verb];
+      if (typeof words !== 'string' || words.length === 0) {
+        throw new Error(`greatPeople.json: the ${family} family names no ${verb} verb`);
+      }
+    }
+  }
+  for (const row of rows) {
+    if (!isFamily(row)) throw new Error(`greatPeople.json: families names unknown "${row}"`);
+  }
   for (const id of GREAT_PERSON_IDS) {
     const def = greatPersonDef(id);
     const where = `greatPeople.json: ${id}`;

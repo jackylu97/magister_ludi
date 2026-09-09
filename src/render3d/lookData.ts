@@ -470,6 +470,43 @@ export interface CitySpec {
   deviceMarkSize: number;
   deviceMarkSpread: number;
   deviceMarkNudge: number;
+  /**
+   * The **town's own mark** — the yoke a puppet flies (the user's ruling of
+   * 2026-09-09), under the seat's charge on the hoist.
+   *
+   * Under it rather than beside it, and that is the whole placement decision. A
+   * banner has two halves and both are spoken for: the hoist says whose town
+   * this is and the fly says what it believes. A third mark competing for
+   * either half would have cost one of those two its clear ground, so this one
+   * hangs *clear of the cloth altogether*, on the charge's own line and just
+   * below the flag — a tag tied to the staff under the arms, which is a
+   * subscript on "whose town this is" and is exactly what a puppet is.
+   *
+   * `puppetInset` is a fraction of the flag's width, like the charge's, so the
+   * two stay in one column when somebody dials `flagWidth`. `puppetDrop` is a
+   * fraction of the flag's **height**, measured down from the flag's middle —
+   * past a half, or the mark is on the cloth and fighting the charge.
+   */
+  puppetSize: number;
+  puppetInset: number;
+  puppetDrop: number;
+  puppetNudge: number;
+  /**
+   * The **garrison badge** hung over the banner (`garrison3d.ts`, the user's
+   * ruling of 2026-09-09): the roundel's diameter, how far above the top of the
+   * pole it floats, how far it stands in front of itself so the rim clears the
+   * disc, and the size of the numeral that bosses it when more than one piece is
+   * in.
+   *
+   * Bigger than the charge on the cloth below it and smaller than a unit's own
+   * badge on the ground: it is read at the same distance a flag is, and it is
+   * the answer to "is anything holding that town", which is a question asked
+   * from across the table.
+   */
+  garrisonSize: number;
+  garrisonRise: number;
+  garrisonNudge: number;
+  garrisonCountSize: number;
   poleRadius: number;
   poleHeight: number;
   poleColor: string;

@@ -1,4 +1,36 @@
 {
+  "families": {
+    "scholar": {
+      "verbs": {
+        "act": "Write a Treatise",
+        "work": "Found an Academy"
+      }
+    },
+    "artist": {
+      "verbs": {
+        "act": "Hold a Festival",
+        "work": "Raise a Landmark"
+      }
+    },
+    "engineer": {
+      "verbs": {
+        "act": "Rush the Works",
+        "work": "Raise a Manufactory"
+      }
+    },
+    "merchant": {
+      "verbs": {
+        "act": "Strike a Bargain",
+        "work": "Build a Customs House"
+      }
+    },
+    "general": {
+      "verbs": {
+        "act": "Rally the Army",
+        "work": "Raise a Citadel"
+      }
+    }
+  },
   "people": {
     "imhotep": {
       "name": "Imhotep",

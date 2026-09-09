@@ -294,6 +294,7 @@ import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from
 import {
   type CardClause,
   describeCard,
+  describeFamilyVerb,
   slotOrderError,
   statecraftBlocker,
   stripRefs,
@@ -760,6 +761,19 @@ export function proclaimSays(state: GameState, unitId: number): string {
  * the reducer's own refusal, and what it would do stated as the number.
  */
 export interface GreatPersonVerb {
+  /**
+   * The words this verb is offered under — the family's own, marked
+   * (`describeFamilyVerb`).
+   *
+   * The user's ruling of 2026-09-09: `Act` and `Work` were *"not informative
+   * enough"*. A scholar now *Writes a Treatise* or *Founds an Academy*, and the
+   * two words come off the family's data row rather than out of this file — the
+   * sheet, the ceremony and the Compendium all read the one table, so a player
+   * learns each verb once. Marked, so the work's improvement is a keyword where
+   * the surface draws descriptors; a **button** takes `stripRefs`, which is the
+   * keyword ruling's own line (no links on a thing that acts when pressed).
+   */
+  verb: string;
   /** Why it cannot be taken, or `null`. `greatPersonActError`'s own sentence. */
   blocked: string | null;
   /** What it would do, in one line. Never `null` — a verb always has an answer. */
@@ -1573,6 +1587,25 @@ export interface GameControlsOptions {
    */
   onGreatPersonSpent?: (spend: GreatPersonSpend) => void;
   /**
+   * **This seat has just taken a town** — the capture sheet's cue
+   * (`captureSheet.ts`, the user's ruling of 2026-09-09).
+   *
+   * Fired from the attack path after the result has been checked, and it carries
+   * the city's id and nothing else: the town is standing, it is this seat's, and
+   * everything the sheet prints it reads off the live state itself. A bot's
+   * conquest never reaches here — this seam is inside the one function that
+   * sends *this* client's blow.
+   *
+   * **How the capture is known.** It is measured across the dispatch rather than
+   * reported: `applyAttack` drops the `CombatOutcome` unless something was
+   * plundered, so `CombatOutcome.capturedCityId` never reaches the interface,
+   * and the existing "· Uruk taken!" notice reads the same way (the town's owner
+   * after the blow against who held it before). The honest fix is a `captures`
+   * channel on `CommandResult`; until there is one, this reads what the notice
+   * one function down already reads, so the two can never disagree.
+   */
+  onCityCaptured?: (cityId: number) => void;
+  /**
    * Raises the Triumph sheet over these awards — `main.ts`'s triumph modal
    * (`triumphModal.ts`). Local seat only; the caller queues them.
    *
@@ -2210,6 +2243,17 @@ export interface GameControls {
    * the turn ends (`settleDiplomacy`, `turn.ts`).
    */
   declareWarOn(targetId: number): void;
+  /**
+   * What becomes of a town this seat has taken. `annexCity` takes it into the
+   * empire (irreversible), `razeCity` pulls it down; **holding it as a puppet is
+   * neither**, because a captured town already is one.
+   *
+   * The capture sheet's two verbs (`captureSheet.ts`), and any other surface
+   * with `controls` to hand. Refusals are the reducer's own sentences —
+   * `annexCityError`, `razeCityError`.
+   */
+  annexCity(cityId: number): void;
+  razeCity(cityId: number): void;
   offerPeaceTo(
     targetId: number,
     standing: boolean,
@@ -2275,6 +2319,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferReligion,
     onOfferGreatPerson,
     onGreatPersonSpent,
+    onCityCaptured,
     onTriumphs,
     onBeadAwards,
     onBeadAgeOpened,
@@ -3696,6 +3741,36 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * What becomes of a town this seat has taken: into the empire, or down.
+   *
+   * One function for two commands, `offerPeaceTo`'s arrangement and for its
+   * reason — the capture sheet puts them side by side as one question and the
+   * refusal path is identical. The **third** answer is not here and must never
+   * be: a captured town is already a puppet, so holding it is the absence of a
+   * command rather than a quiet one.
+   *
+   * Through `commit` like every other verb, which is what gets the raze its
+   * toast (`CommandResult.razed`, read by `reportDiplomacy`) and the board its
+   * repaint. The city panel dispatches these two for itself against the same
+   * reducer; this is the funnel for every surface that has `controls` to hand.
+   */
+  function decideCapturedCity(type: 'annexCity' | 'razeCity', cityId: number): void {
+    const { state } = getGame();
+    if (!canOrder()) {
+      reject(`You have ended turn ${state.turn}`);
+      return;
+    }
+    const result = commit({ type, playerId: localPlayerId, cityId });
+    if (!result.ok) {
+      reject(result.error);
+      return;
+    }
+    renderer.invalidate();
+    refreshOverlays();
+    onUpdate(selectedUnit(), renderer.getHover());
+  }
+
+  /**
    * Puts a standing white-peace offer on the table, or takes it back.
    *
    * One function for two commands, because they are one flag with a sign — the
@@ -4543,6 +4618,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const before = unitSnapshot();
     const cityBefore = cityAt(state, col, row);
     const cityHpBefore = cityBefore?.hp ?? 0;
+    // Who held the town on this hex before the blow. A live `City` is mutated in
+    // place by `handOverCity`, so the owner has to be copied out here or the
+    // comparison below is a value against itself.
+    const cityHeldBy = cityBefore?.ownerId ?? null;
     const attackerFrom = { col: unit.col, row: unit.row };
     const wonBefore = state.winnerId;
 
@@ -4576,6 +4655,18 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // cell is the unit's own — `unit` is a live reference, so it is already
     // standing on whatever it took.
     reportArrivals(result, { col: unit.col, row: unit.row });
+    // **The town changed hands to this seat**, measured the way the notice above
+    // measures it (see `onCityCaptured`). Raised after the blow is narrated,
+    // because that is the order it happened in, and only for a town that is now
+    // this seat's puppet — which is every stormed town and no other.
+    if (
+      cityBefore &&
+      cityHeldBy !== localPlayerId &&
+      cityBefore.ownerId === localPlayerId &&
+      cityBefore.puppet === true
+    ) {
+      onCityCaptured?.(cityBefore.id);
+    }
 
     if (getGame().state.winnerId !== null && wonBefore === null) {
       onVictory?.(getGame().state.winnerId!);
@@ -5435,10 +5526,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       epigram: def.epigram,
       kernel: def.kernel,
       act: {
+        verb: describeFamilyVerb(def.family, 'act'),
         blocked: ended ?? greatPersonActError(state, localPlayerId, unit.id),
         preview: greatPersonActPreview(unit),
       },
       work: {
+        verb: describeFamilyVerb(def.family, 'work'),
         blocked: ended ?? greatPersonWorkError(state, localPlayerId, unit.id),
         preview: greatPersonWorkPreview(unit),
       },
@@ -7313,6 +7406,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     cancelRoute,
     startRouteFrom,
     declareWarOn,
+    annexCity: (cityId: number) => decideCapturedCity('annexCity', cityId),
+    razeCity: (cityId: number) => decideCapturedCity('razeCity', cityId),
     offerPeaceTo,
     proposeDealWith,
     answerDealOf,

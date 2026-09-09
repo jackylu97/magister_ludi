@@ -3100,6 +3100,27 @@ kbd {
   letter-spacing: -0.005em;
 }
 
+/* The yoke: this town is held as a puppet (the user's ruling of 2026-09-09).
+   A **mask** rather than an image, so the mark takes the banner's own ink and
+   dims with it when the card goes stale — the same trick the seat strip plays
+   with a charge, and the reason a mark is data rather than a file. The drawing
+   is `src/art/cityMarks.ts`'s, which is also what the flag on the board flies. */
+.city-banner-yoke {
+  flex: 0 0 auto;
+  width: 13px;
+  height: 13px;
+  background-color: currentColor;
+  -webkit-mask-image: var(--yoke-mark);
+  mask-image: var(--yoke-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  opacity: 0.85;
+}
+
 .city-banner-production {
   padding-left: 8px;
   border-left: 2px solid rgba(247, 242, 225, 0.3);
@@ -13026,4 +13047,119 @@ body.compendium-page {
   stroke: var(--rule);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
+}
+
+/* ===================== the capture sheet ==================================
+   A town has fallen and the game asks what becomes of it (the user's ruling of
+   2026-09-09; `docs/flags.md` (hhh) 4). The ninth sheet on the parchment frame,
+   and the only one that is a *question*: three columns side by side, each with
+   the meters' own figures under it and a verb at its foot.
+
+   Three across rather than a list, because the three are being **compared** and
+   a column of paragraphs is read one at a time. They collapse to one column on a
+   narrow viewport, which is the same rule every split on this paper follows. */
+.capture-body {
+  gap: 12px;
+}
+
+/* The town's name, drawn in the body rather than in the header: the header is
+   markup and the subject changes with every conquest. */
+.capture-town {
+  margin: 0;
+  font-family: var(--face-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.capture-lead {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.capture-choices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .capture-choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* One answer. The card is a column so the verb sits at the foot of all three at
+   the same height however long the prose above it runs. */
+.capture-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--parchment);
+}
+
+.capture-choice-title {
+  margin: 0;
+  font-family: var(--face-name);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.capture-choice-body {
+  margin: 0;
+  flex: 1 1 auto;
+  font-family: var(--face-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* The figures: a label and a number per row, the number tabular mono, which is
+   the house rule for every figure on every surface. */
+.capture-figures {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 10px;
+  margin: 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+
+.capture-figure-label {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.capture-figure-value {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--ink);
+}
+
+.capture-press {
+  align-self: stretch;
+  justify-content: center;
+}
+
+/* Why a verb is refused, in the wanting voice — the one class every "you are
+   missing X" line on every surface wears (batch U3). */
+.capture-blocked {
+  margin: 0;
 }

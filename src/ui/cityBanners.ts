@@ -183,6 +183,7 @@ import type { Game } from '../sim/game';
 import type { City, GameState } from '../sim/state';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
+import { cityMarkDataUri } from '../art/cityMarks';
 import type { MapView } from './mapView';
 
 export interface CityBannersOptions {
@@ -238,6 +239,13 @@ interface Banner {
   size: HTMLElement;
   pop: HTMLElement;
   ring: RingParts;
+  /**
+   * The yoke beside the name, drawn iff this town is a puppet. One node, shown
+   * and hidden — building it per banner and toggling `hidden` is what every
+   * other part of this card does, and a node created on demand would be a
+   * fourth lifecycle in a file that has three.
+   */
+  yoke: HTMLElement;
   /** The channel on the banner's foot. See "The wound on the foot". */
   health: HealthParts;
   production: HTMLElement;
@@ -276,6 +284,19 @@ interface BannerFacts {
    */
   health: HealthBar | null;
   production: string;
+  /**
+   * True while this is **your** town and it is held as a puppet (`City.puppet`).
+   *
+   * The user's ruling of 2026-09-09, and the DOM half of it: the 3D banner flies
+   * a yoke under the seat's charge (`CityLook.puppet`), and this is the same
+   * mark beside the name, where the name actually is. "Which of my six towns are
+   * puppets" is otherwise a question answered by opening six city panels.
+   *
+   * Behind the `mine` gate with the queue and the ring, not beside the health
+   * bar: whether a rival's conquest has been annexed yet is a fact about the
+   * inside of somebody else's empire, and this banner does not report those.
+   */
+  puppet: boolean;
   mine: boolean;
   /** Drawn from `citySightings` rather than from the city itself. */
   stale: boolean;
@@ -471,6 +492,7 @@ function watchedFacts(state: GameState, city: City, mine: boolean): BannerFacts 
     // whoever owns it. See "The wound on the foot".
     health: cityHealthBar(city),
     production: '',
+    puppet: mine && city.puppet === true,
     mine,
     stale: false,
   };
@@ -526,6 +548,10 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     // already have been lifted or lost.
     health: null,
     production: '',
+    // A memory keeps a name and a flag and nothing else — see the docblock. Who
+    // governs a town this seat has not looked at in twenty turns is exactly the
+    // kind of figure that would be stale and read as current.
+    puppet: false,
     mine,
     stale: true,
   };
@@ -699,6 +725,17 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     const name = document.createElement('span');
     name.className = 'city-banner-name';
+    // The town's own mark, in the same hand as the flag's — one drawing, two
+    // printers (`src/art/cityMarks.ts`): the board traces it into the icon
+    // atlas, and here it is a mask in `currentColor`, so the yoke on the banner
+    // and the yoke on the flag are the same yoke.
+    const yoke = document.createElement('span');
+    yoke.className = 'city-banner-yoke';
+    yoke.setAttribute('role', 'img');
+    yoke.setAttribute('aria-label', 'Held as a puppet');
+    yoke.title = 'Held as a puppet — annex it to govern it';
+    yoke.style.setProperty('--yoke-mark', `url("${cityMarkDataUri('puppet')}")`);
+    yoke.hidden = true;
     const pop = document.createElement('span');
     pop.className = 'city-banner-pop';
     // The badge and the ring share one box and one centre — the ring is *about*
@@ -714,7 +751,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // reading order — name, queue, and then the wound underneath both.
     const health = buildHealthBar();
 
-    root.append(size, name, production, health.root);
+    root.append(size, name, yoke, production, health.root);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -734,6 +771,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       size,
       pop,
       ring,
+      yoke,
       health,
       production,
       signature: '',
@@ -808,9 +846,13 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       const wound = hurt === null ? '' : `${hurt.filled.toFixed(4)}/${hurt.label}`;
       const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${wound}|${facts.name}|${
         facts.production
-      }|${facts.stale ? 1 : 0}`;
+      }|${facts.stale ? 1 : 0}|${facts.puppet ? 1 : 0}`;
       if (signature !== banner.signature) {
         banner.signature = signature;
+        // A signature term for the reason every other one is: annexing a town
+        // is a thing this banner says, so it is rewritten when that changes and
+        // never polled.
+        banner.yoke.hidden = !facts.puppet;
         banner.pop.textContent = facts.pop;
         banner.pop.hidden = facts.pop === '';
         // A memory keeps neither figure, so the whole box goes rather than
