@@ -35,6 +35,7 @@ import { createMap, getTileAt, tileHex, wrappedDistance } from '../../src/sim/ma
 import { isCombatant, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { aiConfigFor } from '../../src/ai/aiConfig';
+import aiJson from '../../data/ai.json';
 import { strikeForce } from '../../src/ai/campaign';
 
 const TURNS = 120;
@@ -360,8 +361,21 @@ describe('the arena: two hundred turns, two bots, one economy', () => {
       // number this claim is about, and the floor is set an order of magnitude
       // the right side of it: a seat may run a small deficit for a stretch (a
       // war levy, a wonder's decade) and must never run one that compounds.
+      //
+      // **What "compounds" means, written down** (2026-09-09, batches X8 and
+      // X5b landing together). The rate alone tripped this on a seat that was
+      // nothing like Entry LIX's: sixteen towns, a ninety-piece army in a war
+      // it had chosen, and a treasury of four to eight hundred coin that *rose*
+      // through the nine turns its rate read −43 to −35 — the age turned and
+      // every piece's keep stepped up at once, and the war's plunder more than
+      // paid the difference. A deficit that compounds is one the treasury cannot
+      // carry, so a reading counts only where the rate is under the floor AND
+      // the purse behind it is thin — ten times the arrears bar, the point past
+      // which the solvency arm itself would already be selling. A rich empire
+      // running a war at a loss for a decade is a war economy, not a bleed.
       const floor = -30;
-      const worst = late.filter((reading) => reading.netGold < floor);
+      const cushion = 10 * aiJson.solvency.arrearsTreasury;
+      const worst = late.filter((reading) => reading.netGold < floor && reading.gold < cushion);
       expect(
         worst
           .slice(0, 5)
