@@ -43,11 +43,45 @@
  *     a chain whose only remaining steps are buildings, so the build arm sees
  *     them as steps and raises them (`liveChains`).
  *
- * **What a hammer costs, and the honest note beside it.** The chain subtracts
- * what it still owes: beakers at `weights.science` and hammers at
- * `weights.production`, both through `explainLump` — the bot's one lump-to-rate
+ * **Beakers are time; hammers are coin.** Two currencies, two different answers,
+ * and the ruling that separated them is the user's of **2026-09-09**
+ * (`docs/flags.md`, item (ggg)): *"science really only should be valued when it's
+ * a gain in yields … we shouldn't be thinking about science spend with the same
+ * value we're thinking about science gain."*
+ *
+ * A beaker is not spent by choosing this goal. Research **always runs**: the
+ * empire banks its science every turn and pours it into whatever the plan names,
+ * so aiming at A does not consume anything that aiming at B would have kept. The
+ * only real cost of A is that **B arrives later** — and this chain already
+ * carries that, more exactly than a lump ever could. `researchDelay` is the
+ * beakers still owed over the empire's own science rate, the build cursor starts
+ * there, and every payoff behind the goal is discounted through it (`delayTerm`).
+ * Subtracting the same beakers a second time at `weights.science` was one thing
+ * charged twice, and it is why most of the tree scored below zero: 62–78% of
+ * every node weighed on the audit's bench (`docs/bot-priorities.md`, batch X1),
+ * and a negative chain is then mishandled twice more — the incumbent's
+ * `switchMargin` multiplies, so it makes a *negative* plan easier to displace,
+ * and `chainStepShare` pushes the chain's own buildings down every town's queue.
+ * **Batch X1b removed it.** The road's beakers are still printed, beside the
+ * delay they bought, and folded at nothing.
+ *
+ * Science a step **gains** is untouched by that and always was: a library's
+ * beakers are a yield, folded by `explainYields` at `weights.science` like food
+ * or coin. The ruling is about the *spend*, and the spend below is a delay.
+ *
+ * A hammer is the other case, and keeps its subtraction. A town's stones are not
+ * something the empire pours out regardless: they queue. A row raised is a row
+ * some other row waited for, so what the steps still owe comes off the worth at
+ * `weights.production`, through `explainLump` — the bot's one lump-to-rate
  * exchange, so the whole chain stays a *per-turn* figure like every other
  * appraisal in the bot.
+ *
+ * **Nowhere else in this file lumps a beaker**, which is worth saying because the
+ * ruling is a rule about all three chains. The expansion chain has no beakers at
+ * all; the bead race owes a road and folds it into `delay` and into a
+ * zero-valued label, exactly as the tech chain now does; `chainCompression`,
+ * `chainStepShare`, `townChainShare` and `raceTerm` all divide a worth that no
+ * longer carries one. The one remaining `explainLump` below is the hammers'.
  *
  * Batch 4 was to give hammers a shadow price of their own and **deliberately did
  * not**, which is the batch's one written-down non-delivery. The spec offered an
@@ -62,7 +96,7 @@
  * is a multiplication by one wearing a price, and the honest alternative (what
  * the best candidate in each town would pay per hammer) is the per-town auction
  * the brief rules out. So the table stands in, it is written down here, and the
- * two `explainLump` calls below remain the only lines that would change.
+ * one `explainLump` call below remains the only line that would change.
  *
  * **Where the delay is crude, and why it is written down as crude.** Steps are
  * assumed to be raised one after another by a middling town
@@ -71,7 +105,8 @@
  * *parallel*, so a step's build time is one town's rather than every town's, and
  * only its hammers multiply by the towns. A unit unlock advances no cursor at
  * all: it is an option the empire may take the turn the node lands, never an
- * obligation, and it starts paying the turn the node lands.
+ * obligation, and it starts paying the turn the node lands — **and waits for the
+ * road until then**, which is X1b's second half below.
  *
  * **Why a unit step used to be free, and why it is not** (batch X1,
  * `docs/audit/bot-pass-2.md`). "An option, never an obligation" was the argument
@@ -79,15 +114,43 @@
  * on a piece nobody has decided to raise. But it was also used to excuse the
  * hammers, and there the argument does not hold: an empire three spears short of
  * its levy that researches Bronze Panoply raises three spears, and those hammers
- * are as real as a library's. Batches P1 and S1 then made the hammer and the
- * beaker sides of this subtraction dearer and left the unit side untouched, so a
- * node whose gift was a spearman was a pure positive while a node whose gift was
- * a library was a positive minus a big number — measured, **62–64% of every node
- * weighed scored negative and 61–63% of every re-aim was military**. So a unit
- * step now takes its hammers the way a building step does, at the count the levy
- * itself asks for (`levyReading`, `campaign.ts`, shared with the town's own
- * build arm), and `unitTerm`'s threat premium is charged against that same
- * shortfall rather than unconditionally.
+ * are as real as a library's. Batches P1 and S1 had made both sides of this
+ * subtraction dearer and left the unit side untouched, so a node whose gift was a
+ * spearman was a pure positive while a node whose gift was a library was a
+ * positive minus a big number — measured, **62–64% of every node weighed scored
+ * negative and 61–63% of every re-aim was military**. So a unit step now takes
+ * its hammers the way a building step does, at the count the levy itself asks
+ * for (`levyReading`, `campaign.ts`, shared with the town's own build arm), and
+ * `unitTerm`'s threat premium is charged against that same shortfall rather than
+ * unconditionally.
+ *
+ * X1's own acceptance then failed on the negative share, and the audit wrote down
+ * why: the share is a reading of the *other* side of the subtraction, which the
+ * unit step does not own. **X1b is the answer to it** — the beaker half of that
+ * subtraction was never a cost at all (see above), and with it gone what is left
+ * of a negative node is what its hammers account for.
+ *
+ * **And the option waits for the road** — X1b's second half, and the ruling's own
+ * premise rather than an addition to it. The ruling removes the lump *because*
+ * the chain already carries the road "as its delay, discounting every payoff
+ * behind it", and for a building step it did: its `delay` starts at the cursor's
+ * `researchDelay` and `delayTerm` multiplies it. For the option a node hands over
+ * it did **not** — `unitTerm` was folded at full price on a node nobody had
+ * researched, which is the very thing the beeline's flats were corrected for in
+ * batch 3. Removed the lump and left alone, that would leave a military node's
+ * road priced by *nothing at all*, and the bench says so plainly: the military
+ * share of re-aims went **up** (71% → 88% and 85% → 87%) and the tree shrank.
+ * So the unit gift multiplies by the road's own discount, exactly as the flats
+ * do, and the two halves shipped together (the measurement of each alone is in
+ * `docs/bot-priorities.md`, "Batch X1b as shipped").
+ *
+ * Three gifts still do not wait and are written down rather than swept: the
+ * conversion projects and abilities a node counts, the glass bead a node pays,
+ * and the rules the node itself carries. The first two are flat constants off
+ * the sheet, the third is the race's own share (which carries `beadChain`'s
+ * delay already), and the fourth would want `explainEffects` to take a discount
+ * it has no parameter for. None of them moved a board on this bench; a pass that
+ * gives them the road's discount is a pass, not a line.
  *
  * **Three chains live here now**, in the order the batches added them: the tech
  * chain above, the **expansion** chain (batch 4 — the next town, its settler, its
@@ -339,7 +402,18 @@ export function techChain(
 
   for (const unit of unlocks.units ?? []) {
     const def = unitDef(unit);
-    const term = unitTerm(unit, ctx, levy);
+    const bare = unitTerm(unit, ctx, levy);
+    // **The option waits for the node** (batch X1b's second half). It advances no
+    // cursor — nothing queues behind a piece nobody has decided to raise — but it
+    // is still a payoff on the far side of the road, and a promise is worth less
+    // the longer it takes. The building flats beside it have been discounted
+    // since batch 3; this was the one gift folded at full price on a node nobody
+    // had researched, and with the beaker lump gone it was the *only* thing left
+    // that could have priced a military node's distance. A chain whose road is
+    // walked prints no wait, because there is none.
+    const wait = held ? null : delayTerm(researchDelay, ctx, 'the node has still to land');
+    const term: ValueTerm =
+      wait === null ? bare : { label: bare.label, value: bare.value * wait.value, parts: [bare, wait] };
     const owed = unitStepShortfall(def, levy);
     giftTerms.push(term);
     steps.push({
@@ -474,13 +548,20 @@ export function techChain(
   const terms: ValueTerm[] = [nest('what the goal unlocks, step by step', gifts)];
   if (!held) {
     terms.push({ label: 'holding one more technology', value: ai.weights.tech });
-    terms.push(
-      nest(
-        `the ${Math.round(remainingBeakers)} beakers still owed for the road`,
-        explainLump({ science: remainingBeakers }, ctx),
-        'sub',
-      ),
-    );
+    // **Printed, and folded at nothing** (batch X1b; the user's ruling of
+    // 2026-09-09, `docs/flags.md` item (ggg)). The beakers are not a cost — they
+    // are a *wait*, and the wait is already charged: `researchDelay` is this very
+    // figure over the science rate, the cursor above starts there, and every
+    // payoff in `gifts` was discounted through it. Subtracting them again at
+    // `weights.science` charged one thing twice and put most of the tree below
+    // zero. `expansionChain`'s two zero-valued labels are the same device: say
+    // what is owed, beside the number that was actually multiplied.
+    terms.push({
+      label:
+        `(the ${Math.round(remainingBeakers)} beakers still owed for the road are charged by the ` +
+        `${round(researchDelay)} turns every payoff above waits through)`,
+      value: 0,
+    });
   }
   if (hammers > 0) {
     terms.push(

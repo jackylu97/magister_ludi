@@ -227,6 +227,10 @@ techChain(state, player, ctx, goal, sites?) → {
   through `explainLump` (`weights.science` and `weights.production`). Hammers have
   no shadow price until batch 4; the weight table stands in, and the two
   `explainLump` calls are the only lines that change when it lands.
+  **Superseded by batch X1b** (2026-09-09, below): the beaker half is gone —
+  a road is a *wait*, already priced as `researchDelay`, and subtracting it as
+  well charged one thing twice. One `explainLump` call is left and it is the
+  hammers'.
 - `delay` runs through the whole chain: `remainingBeakers ÷ scienceRate`, then a
   cursor that walks the **building** steps in roster order, each waiting for the
   ones before it. Towns build in parallel, so a step's build time is one town's
@@ -4189,3 +4193,193 @@ walled one), and production, treasury and faith all read a little **above** shut
 The register test that forbids `.cityHp` anywhere in `src/ai/` is untouched and
 still passes: the fold reads the row through `buildingCityHp` and the bar through
 `cityMaxHp`, and never `BuildingDef.cityHp` itself.
+
+---
+
+---
+
+## Batch X1b as shipped — beakers are time, not coin (2026-09-09)
+
+The user's ruling on `docs/flags.md` item (ggg): *"science really only should be
+valued when its a gain in yields (science per turn, and not lump science used to
+spend on a technology) … we shouldn't be thinking about science spend with the
+same value we're thinking about science gain."*
+
+A tech's beakers are **time, never coin**. Research always runs — the empire
+banks its science every turn and pours it into whatever the plan names — so
+aiming at A consumes nothing that aiming at B would have kept. The only cost of A
+is that **B arrives later**, and `techChain` already carries that: `researchDelay`
+is the beakers owed over the empire's own science rate, the build cursor starts
+there, and the payoffs behind the goal are discounted through it. The
+`explainLump` subtraction of the same beakers at `weights.science` was one thing
+charged twice, and it is why most of the tree scored below zero (X1's own bench:
+62–78% of every node weighed). A negative chain is then mishandled twice more —
+`switchMargin` **multiplies**, so it makes a negative plan *easier* to displace,
+and `chainStepShare` pushes the chain's own buildings down every town's queue.
+
+### The mechanism — two halves, and the second is the first's premise
+
+**1 — the lump is gone.** `techChain`'s `!held` arm no longer nests
+`explainLump({ science: remainingBeakers })` at `'sub'`. The road's beakers are
+still **printed**, at nothing, beside the delay they bought — `expansionChain`'s
+zero-valued-label device, so a reader of the feed still sees what the road owes
+next to the number that was actually multiplied. Hammers keep their subtraction
+and the docblock says why in one line: stones **queue**. A town's hammers are not
+poured out regardless — a row raised is a row some other row waited for — so what
+the steps still owe comes off the worth at `weights.production` through the one
+`explainLump` left in the file. Science *gained* is untouched and always was: a
+library's beakers are a yield, folded by `explainYields` at `weights.science`
+like food or coin.
+
+**2 — the option waits for the road.** The ruling removes the lump *because* the
+chain already prices the road "as its delay, discounting every payoff behind
+it" — and for a building step it did (its `delay` starts at the cursor's
+`researchDelay`), while for the **option a node hands over** it did not.
+`unitTerm` was folded at full price on a node nobody had researched, which is the
+very thing batch 3 corrected the beeline's flats for. Removed the lump and left
+alone, that leaves a military node's road priced by *nothing at all*, and the
+bench says so: the military share of re-aims goes **up**, the tree **shrinks**,
+and the t100 row falls on citizens, food, production, science and technologies.
+So the unit gift multiplies by `delayTerm(researchDelay)` exactly as the flats
+do — the delay arithmetic itself is byte-identical, `researchDelay`, `step.delay`
+and the cursor all unchanged; what changed is which payoffs honour it. A chain
+whose road is walked prints no wait, because there is none.
+
+Three gifts still do not wait, written down rather than swept: the conversion
+projects and abilities a node counts (flat constants off the sheet), the glass
+bead a node pays (`raceTerm` carries `beadChain`'s own delay already) and the
+rules the node itself carries (`explainEffects` takes no discount parameter).
+None moved a board on this bench.
+
+**Nowhere else in the file lumped a beaker.** The expansion chain has none at
+all; `beadChain` owes a road and folds it into `delay` and a zero-valued label,
+which is what the tech chain now does; `chainCompression`, `chainStepShare`,
+`townChainShare` and `raceTerm` divide a worth that no longer carries one. The
+bot's only other `explainLump({ science })` is the **scholar's act**
+(`bot.ts`) — beakers *gained*, an addition, which the ruling leaves alone.
+
+### Before/after, on X1's own bench
+
+Two duel games, two balanced seats, wild on, seeds 20260903 and 4242, 150 turns,
+driven a decision at a time through `createBotStepper` (a throwaway `zz*` probe,
+deleted). "main" is today's `main`, with X4/X5/X5b/X8 landed — **not** X1's own
+after-column, which was measured before those four. A node counts as *military*
+when it unlocks a piece `isCombatant` and not an explorer, which is `unitTerm`'s
+own soldier branch; the same lens reads every column.
+
+| seed 20260903 | main | the lump alone | **as shipped** |
+|---|---|---|---|
+| re-aims | 41 | 16 | 49 |
+| nodes weighed | 865 | 290 | 1,087 |
+| scoring negative | 619 (**71.6%**) | 145 (**50.0%**) | 826 (**76.0%**) |
+| **of those, hammer-only** | 161 (**26.0%**) | 145 (**100%**) | 826 (**100%**) |
+| military re-aims | 29 (**70.7%**) | 14 (**87.5%**) | 31 (**63.3%**) |
+| technologies at t150 | 19 · 20 (**39**) | 12 · 21 (**33**) | 25 · 24 (**49**) |
+| treasury at t150 | 337 · 398 | 435 · 724 | 525 · 396 |
+| towns at t150 | 8 · 8 | 4 · 8 | 10 · 7 |
+
+| seed 4242 | main | the lump alone | **as shipped** |
+|---|---|---|---|
+| re-aims | 33 | 15 | 55 |
+| nodes weighed | 647 | 254 | 1,191 |
+| scoring negative | 461 (**71.3%**) | 125 (**49.2%**) | 843 (**70.8%**) |
+| **of those, hammer-only** | 135 (**29.3%**) | 125 (**100%**) | 843 (**100%**) |
+| military re-aims | 28 (**84.8%**) | 13 (**86.7%**) | 30 (**54.5%**) |
+| technologies at t150 | 19 · 18 (**37**) | 14 · 19 (**33**) | 24 · 23 (**47**) |
+| treasury at t150 | 451 · 50 | 183 · 150 | 129 · 359 |
+| towns at t150 | 8 · 5 | 8 · 8 | 4 · 12 |
+
+**The acceptance's first figure is met exactly, and it is the ruling's own.**
+*Every* negative node is now a node its hammers account for — 100% on both
+benches, against 26% and 29% on `main` — because the beaker debt was the only
+other subtraction a chain made. The share of nodes scoring negative is
+**unchanged** as a headline (72% → 76% and 71% → 71%), and that is the audit's
+own correction standing: the share is a reading of the **building** side's price
+standard (P1's hammers over a road up to `research.goalHorizon` long), it rises
+with an empire's own progress, and a pass that grows the tree by ten nodes a seat
+raises it by succeeding. What changed is that it is now made of **one** thing
+instead of two, which is what "falls to what hammers alone account for" asks for.
+
+### The two figures the acceptance did not get, and what they are
+
+- **Military re-aims did not reach 45%.** They go **down** on both benches
+  (71% → 63%, 85% → 55%) where the lump alone drives them **up** to 87–88%, but
+  the target is X1's own absolute number and it is not reachable from here: under
+  this pass's lens today's `main` already reads **70.7% and 84.8%**, where X1
+  read 40% and 44% on the same benches the day it landed. Either the lens differs
+  from X1's throwaway probe (which is not in the tree to compare against) or the
+  four batches since re-armed the beeline. Both are worth a measurement of their
+  own; neither is settled by this batch, and the honest claim here is the
+  **direction**, which is down on both boards.
+- **Technologies at t150 did not reach X1's 54 and 40 on both boards.** They
+  reach **49 and 47** — up hard from `main`'s 39 and 37, over X1's figure on one
+  bench and five nodes under it on the other. `main` was already below X1's
+  after-column before this batch was written, which is the same drift the
+  military share shows.
+- **Treasury.** No seat went near bankruptcy on either board; the thinnest
+  reading is 129, comfortably over `solvency.arrearsTreasury`, and the batch
+  repairs `main`'s own thinnest seat (4242 seat 1, **50 → 359**). Against X1's
+  198/153 and 384/352 the first bench is up on both seats and the second is
+  mixed.
+
+### The t100 probe — eight seeds, sixteen seats
+
+The orchestrator's row (seeds 1 · 2 · 3 · 42 · 101 · 999 · 31337 · 20260101,
+standard map, two balanced seats, wild on, stepped to t100, mean per seat), with
+this pass's own reading of the same `main` beside it — the two agree on cities,
+citizens, food, production and technologies and differ on the bank voices, so the
+column that carries the claim is **this pass's**, measured with one lens across
+all three.
+
+| | main (orchestrator) | main (this pass) | the lump alone | **as shipped** |
+|---|---|---|---|---|
+| cities | 5.9 | 5.9 | 6.1 | **6.1** |
+| citizens | 32.2 | 32.4 | 28.6 | **35.3** |
+| food / turn | 95.9 | 99.1 | 90.5 | **104.7** |
+| production / turn | 50.8 | 50.2 | 46.1 | **53.2** |
+| gold / turn | 18.5 | 30.7 | 45.6 | **30.1** |
+| science / turn | 30.3 | 37.2 | 28.1 | **42.6** |
+| culture / turn | 46.0 | 51.3 | 51.2 | **56.2** |
+| faith / turn | 15.2 | 15.5 | 13.8 | **20.0** |
+| treasury | 203 | 232.9 | 259.1 | **227.8** |
+| technologies | 18.3 | 18.4 | 15.1 | **19.9** |
+| happiness | 3.3 | 3.8 | 2.5 | **2.5** |
+
+Ten of the eleven meters are at or over `main` on both readings. The eleventh is
+**happiness, 3.8 → 2.5** (3.3 → 2.5 against the orchestrator's row), and the
+cause is the batch working rather than a term going missing: the seats found more
+towns and grow them faster — a citizen more each and six bushels more a turn —
+and X5b's keep charges each of those citizens honestly. It is still positive and
+still over X5's own −0.7. Whether it wants a knob is a ruling; nothing here
+touches a happiness line.
+
+### The pins
+
+`test/sim/aiAppraisal.test.ts` gains two cases in the tech-chain section. The
+first is the ruling itself: a chain still owing a road has `researchDelay ===
+remainingBeakers ÷ scienceRate` and no step starting before it, the beaker line
+is **printed at zero with no `op`**, the only `'sub'` left in the fold names the
+hammers, and a walked road prints no such line at all. The second is the second
+half: a node's unit step carries a `× delayDiscount(researchDelay)` term naming
+the road, folding to the step's own value, and a held node's does not.
+
+**The margin fixture did not move.** X1 re-aimed it and this pass swept for the
+same reason and did not have to: `chained(3, 'sailing')` with Mathematics held
+still produces a pair straddling `switchMargin` after both halves, both boundary
+assertions hold, and the sweep of one- and two-node held sets was not needed.
+`aiDecision.slow.test.ts` still replays byte-identical to itself, and
+`aiWants.test.ts` / `aiBot.test.ts` pass unchanged — including the two that most
+directly watch this arithmetic, "changes its mind about the plan far less often"
+and "keeps the research goal's honest negative".
+
+### What this batch does not claim
+
+- **The negative share is still not a depth-normalised reading.** It is one
+  subtraction now instead of two, which is all the ruling asked; the audit's
+  request for a ratio of a node's gifts to its debt at a fixed depth stands.
+- **Three gifts still do not wait for the road** (above). Small, measured at
+  nothing on this bench, and a pass of their own.
+- **The military share wants its own before-column.** X1's 40%/44% and this
+  pass's 70.7%/84.8% for the same `main` cannot both be the same measurement.
+  Until a probe of record lives in the tree, any absolute military target is a
+  number nobody can reproduce.

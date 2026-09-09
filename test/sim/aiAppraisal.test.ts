@@ -1358,6 +1358,81 @@ describe('the tech chain', () => {
     }
   });
 
+  /**
+   * **Batch X1b — beakers are time, not coin** (the user's ruling of 2026-09-09,
+   * `docs/flags.md` item (ggg): *"we shouldn't be thinking about science spend
+   * with the same value we're thinking about science gain"*).
+   *
+   * Research always runs, so aiming at a goal consumes nothing an empire would
+   * otherwise have kept — the only cost is that everything behind it arrives
+   * later, and the chain carries that as `researchDelay` and discounts every
+   * payoff through it. Subtracting the same beakers again at `weights.science`
+   * was one thing charged twice and is gone. Two halves, both pinned here: the
+   * delay still reads the beakers, and the fold no longer does.
+   */
+  it('charges the road’s beakers as a delay and never as a lump', () => {
+    const { state, player } = chained(3);
+    const ctx = valueContext(state, player);
+    const chain = techChain(state, player, ctx, 'education');
+    expect(chain.held).toBe(false);
+    expect(chain.remainingBeakers).toBeGreaterThan(0);
+
+    // **The delay still reads them** — the road's beakers over the empire's own
+    // science rate, and no step of the chain starts paying before it.
+    expect(chain.researchDelay).toBe(chain.remainingBeakers / Math.max(1, ctx.scienceRate));
+    expect(chain.steps.every((step) => step.delay >= chain.researchDelay)).toBe(true);
+
+    // **And the fold does not.** The line is still printed — a reader of the feed
+    // wants to see what the road owes — beside the number that was multiplied.
+    const printed = findTerm(chain.terms, /beakers still owed for the road/);
+    expect(printed).not.toBeNull();
+    expect(printed!.value).toBe(0);
+    expect(printed!.op).toBeUndefined();
+    // The one lump a chain still subtracts is the hammers': stones queue, and a
+    // row raised is a row some other row waited for.
+    for (const term of chain.terms) {
+      if (term.op !== 'sub') continue;
+      expect(term.label).toMatch(/hammers its steps still owe/);
+    }
+    expect(foldTerms(chain.terms)).toBe(chain.worth);
+
+    // A chain whose road is walked prints no such line at all, and never did.
+    const { state: held, player: holder } = chained(3, 'education');
+    const walked = techChain(held, holder, valueContext(held, holder), 'education');
+    expect(walked.held).toBe(true);
+    expect(findTerm(walked.terms, /beakers still owed for the road/)).toBeNull();
+  });
+
+  /**
+   * **X1b's second half** — the ruling's own premise made true. It says the road
+   * is already charged *"discounting every payoff behind it"*, and a building
+   * step's was (its `delay` starts at the cursor's `researchDelay`) while the
+   * option a node hands over was not: `unitTerm` was folded at full price on a
+   * node nobody had researched. With the beaker lump gone that left a military
+   * node's road priced by nothing at all — measured, and the table is in
+   * `docs/bot-priorities.md`. The option waits for the node like everything else.
+   */
+  it('makes the option a node hands over wait for the road it is behind', () => {
+    const { state, player } = chained(3);
+    const ctx = valueContext(state, player);
+    const chain = techChain(state, player, ctx, 'fletching');
+    expect(chain.held).toBe(false);
+    const step = chain.steps.find((one) => one.kind === 'unit')!;
+    const wait = findTerm(step.terms, /the node has still to land/);
+    expect(wait).not.toBeNull();
+    expect(wait!.op).toBe('mul');
+    expect(wait!.value).toBe(delayTerm(chain.researchDelay, ctx, 'x').value);
+    expect(foldTerms(step.terms)).toBe(step.value);
+
+    // A node this empire already holds hands over its option now, so there is no
+    // wait to print and none is printed.
+    const { state: held, player: holder } = chained(3, 'fletching');
+    const walked = techChain(held, holder, valueContext(held, holder), 'fletching');
+    expect(walked.held).toBe(true);
+    const now = walked.steps.find((one) => one.kind === 'unit')!;
+    expect(findTerm(now.terms, /the node has still to land/)).toBeNull();
+  });
+
   it('drops a realised step out, and is worth more for the one that was paid', () => {
     // **The commitment arithmetic.** Education's chain owes a University to every
     // town that lacks one. A University pays no flat yield — its whole payout is
