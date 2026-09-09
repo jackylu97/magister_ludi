@@ -106,6 +106,7 @@ import { governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
 import { nextInt } from './rng';
+import { slateMemo } from './slate';
 import { anyBeadDef } from './beadData';
 // The great-person draft a completion grant opens. This module and
 // `greatPeople.ts` already sit on one runtime cycle (`cities` → `beads` →
@@ -523,6 +524,23 @@ export function resourceCopies(
  * column wraps and a linear scan of `state.cities` per owned hex.
  */
 export function controlledHoldings(
+  state: GameState,
+  playerId: number,
+  kind: ResourceKind,
+): ResourceHolding[] {
+  // **Remembered on the revision** (batch M1), keyed on the pair the question is
+  // about. The paragraph above calls this the most-asked question in the game
+  // and the profile agrees — 15.3% of a bot's turn after batch X6, half of it
+  // under `explainHappiness` and half of it the card evaluator asking what the
+  // empire holds. The slate is suspended while a writer holds the world open
+  // (`slate.ts`), so a phase that claims a hex and then prices the next town
+  // still sees the ground it just took.
+  return slateMemo(state, `holdings:${kind}`, String(playerId), () =>
+    holdingsOf(state, playerId, kind),
+  );
+}
+
+function holdingsOf(
   state: GameState,
   playerId: number,
   kind: ResourceKind,

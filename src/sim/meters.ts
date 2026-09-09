@@ -79,6 +79,7 @@ import {
   resourceTierBoost,
 } from './resourceEffects';
 import { type MeterStep, RULES } from './rulesData';
+import { slateMemo } from './slate';
 import {
   cardAmplifier,
   cardAmplifierFlat,
@@ -887,6 +888,23 @@ export interface MeterEffect {
  * building and thinking at full rate, it has simply stopped growing outward.
  */
 export function meterEffects(state: GameState, playerId: number): MeterEffect[] {
+  // **Remembered on the revision** (batch M1, `slate.ts`). This is the reading
+  // `empirePercents`, `borderGrowth`, `explainGrowthPercent` and
+  // `tilePurchaseError` all ask, and the one the bot reaches through every one
+  // of them — 11.3% of a turn measured, with `explainHappiness`'s walk of every
+  // luxury the empire holds inside it.
+  //
+  // The memo is **here rather than on the two folds below**, because this is the
+  // question every one of those callers actually asks: `happinessOf` and
+  // `authorityOf` are asked directly only by surfaces that ask once. The slate
+  // is suspended while a writer holds the world open, so `collectYields` and
+  // `expandBorders` still read a world halfway moved exactly as they always did.
+  return slateMemo(state, 'meterEffects', String(playerId), () =>
+    meterEffectsOf(state, playerId),
+  );
+}
+
+function meterEffectsOf(state: GameState, playerId: number): MeterEffect[] {
   const effects: MeterEffect[] = [];
 
   const happiness = happinessOf(state, playerId);

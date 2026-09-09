@@ -31,8 +31,13 @@ import { describe, expect, it } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
 import {
+  controlledHoldings,
   emptyCityYields,
 } from '../../src/sim/cities';
+import { meterEffects } from '../../src/sim/meters';
+import { beginWrite, endWrite, slateSuspended } from '../../src/sim/slate';
+import { tileIndex } from '../../src/sim/map';
+import { resourceDef, withExtraResources } from '../../src/sim/resourceData';
 import {
   explainCity,
   foldCity,
@@ -182,6 +187,119 @@ describe('the revision is the subscription', () => {
   });
 });
 
+/**
+ * **The two empire walks, remembered** — batch M1 (`docs/flags.md` item (ggg),
+ * the M1 paragraph; `docs/bot-priorities.md`, "Batch X6 as shipped", known gaps).
+ *
+ * `meterEffects` and `controlledHoldings` are the two largest single costs in a
+ * bot's turn and neither was remembered. They are not `read…` verbs and cannot
+ * be: both are asked from *inside* the simulation — `empirePercents`,
+ * `borderGrowth`, `explainGrowthPercent`, `tilePurchaseError` — by modules that
+ * would make a runtime cycle out of importing `readings.ts`. So they sit on the
+ * same slate, under them, and the three claims below are what makes that a cache
+ * rather than a rule.
+ */
+describe('the two empire walks are remembered on the same slate', () => {
+  it('hands the same list back until the world moves', () => {
+    const { state } = game();
+    found(state, 0);
+    expect(meterEffects(state, 0)).toBe(meterEffects(state, 0));
+    expect(controlledHoldings(state, 0, 'luxury')).toBe(controlledHoldings(state, 0, 'luxury'));
+
+    const held = meterEffects(state, 0);
+    const holdings = controlledHoldings(state, 0, 'luxury');
+    bumpRevision(state);
+    expect(meterEffects(state, 0)).not.toBe(held);
+    expect(controlledHoldings(state, 0, 'luxury')).not.toBe(holdings);
+    // A fresh object, and the same answer — which is the whole claim.
+    expect(meterEffects(state, 0)).toEqual(held);
+    expect(controlledHoldings(state, 0, 'luxury')).toEqual(holdings);
+  });
+
+  it('keeps the kinds apart, and the seats', () => {
+    // One bucket per `(kind, seat)`: a memo that answered "which strategics"
+    // with "which luxuries" would be silent and total.
+    const { state } = game();
+    found(state, 0);
+    found(state, 1);
+    expect(controlledHoldings(state, 0, 'luxury')).not.toBe(
+      controlledHoldings(state, 0, 'strategic'),
+    );
+    expect(meterEffects(state, 0)).not.toBe(meterEffects(state, 1));
+  });
+
+  it('remembers nothing while a writer holds the world open', () => {
+    // The one thing the slate adds to the revision's bargain. `GameState
+    // .revision` is raised *after* a handler and *after* a phase, so a reading
+    // taken inside one is a reading of a world halfway moved — and
+    // `expandBorders` and `collectYields` take several. Inside the window every
+    // tenant computes fresh, which is byte for byte the tree before the memo.
+    const { state } = game();
+    found(state, 0);
+    expect(slateSuspended()).toBe(false);
+    beginWrite();
+    try {
+      expect(slateSuspended()).toBe(true);
+      expect(meterEffects(state, 0)).not.toBe(meterEffects(state, 0));
+      expect(controlledHoldings(state, 0, 'luxury')).not.toBe(
+        controlledHoldings(state, 0, 'luxury'),
+      );
+      expect(readCity(state, state.cities[0]!)).not.toBe(readCity(state, state.cities[0]!));
+    } finally {
+      endWrite();
+    }
+    expect(slateSuspended()).toBe(false);
+  });
+
+  it('closes the window even when the handler throws', () => {
+    // A leaked depth is invisible — a slate suspended for ever is a tree that is
+    // merely slow, never wrong — so it is asserted rather than reasoned about.
+    const { state } = game();
+    const before = slateSuspended();
+    expect(() =>
+      applyCommand(state, { type: 'foundCity', playerId: 0, settlerUnitId: -1 }),
+    ).not.toThrow();
+    expect(slateSuspended()).toBe(before);
+  });
+
+  it('never reaches the snapshot', () => {
+    const { state } = game();
+    found(state, 0);
+    const clean = snapshotState(state);
+    void meterEffects(state, 0);
+    void controlledHoldings(state, 0, 'luxury');
+    expect(snapshotState(state)).toBe(clean);
+  });
+
+  it('is void when the table under it is swapped', () => {
+    // `withExtraResources` installs an invented row for the length of a body — a
+    // proof obligation, not a mechanic — and a board's revision cannot see it.
+    // The slate's second integer can (`discardSlates`).
+    const { state } = game();
+    const city = found(state, 0);
+    const seam = state.map.tiles.find(
+      (tile) => state.tileOwner[tileIndex(state.map, tile.col, tile.row)] === city.id,
+    )!;
+    seam.resource = 'silk';
+    seam.improvement = 'plantation';
+    bumpRevision(state);
+    const before = controlledHoldings(state, 0, 'luxury').map((holding) => holding.id);
+    expect(before).toContain('silk');
+    const inside = withExtraResources(
+      {
+        silk: {
+          ...(resourceDef('silk') as unknown as Record<string, unknown>),
+          kind: 'strategic',
+        } as never,
+      },
+      () => controlledHoldings(state, 0, 'luxury').map((holding) => holding.id),
+    );
+    expect(inside).not.toContain('silk');
+    // And put back, with no revision having moved on either side of it.
+    expect(controlledHoldings(state, 0, 'luxury').map((holding) => holding.id)).toEqual(before);
+  });
+});
+
 describe('the empire’s reading is what the surfaces read', () => {
   it('totals exactly what the top bar prints', () => {
     const { state } = game();
@@ -326,6 +444,20 @@ describe('nobody rebuilds the town’s list', () => {
         /revision/.test(text) ? `${path} keys on the revision` : `${path} keys on something else`,
       );
     }
+  });
+
+  it('holds the slate in one file, and keys it on the revision', () => {
+    // Batch M1: the machinery moved into `slate.ts` so that the two tenants
+    // below it — `meterEffects` and `controlledHoldings`, which are asked from
+    // *inside* the simulation and cannot import `readings.ts` — sit on the same
+    // slate as the three readings above it. Two `WeakMap`s keyed on the same
+    // integer would be two caches with two lifetimes.
+    const slate = read('slate.ts');
+    expect(slate).toContain('new WeakMap<GameState, Slate>');
+    expect(slate).toContain('held.revision === state.revision');
+    expect(read('readings.ts')).toContain("from './slate'");
+    // And nowhere else keeps one: the readings' own `WeakMap` is gone.
+    expect(read('readings.ts').includes('new WeakMap')).toBe(false);
   });
 
   it('keeps the reading leaf out of `cities.ts`', () => {

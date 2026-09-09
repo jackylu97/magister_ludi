@@ -4984,3 +4984,180 @@ Three readings of that:
   keeps the map that the sweep spends. Whether the other half is worth a town is
   a design question this batch deliberately leaves to the user, with both rows
   measured on one bench and printed side by side above.
+
+---
+
+---
+
+## Batch M1 as shipped — the two readings memoised (2026-09-09)
+
+X6's own "known gaps" named the next target and sized it: *"the empire's
+happiness walk is still the bot's largest single cost. `controlledHoldings` is
+17.8% of a turn after this batch and `meterEffects` 12.8%, and neither is
+memoised… That is a **simulation** memo on the slate pattern, it would pay every
+arm rather than this one, and it is outside a bot batch's fence."* This is that
+batch. It touches no bot file at all, and the bot is a quarter to a third faster
+for it.
+
+### The honest seam, and why it is not a `read…` verb
+
+The brief's first shape was `readControlledHoldings` / `readMeterEffects` in
+`readings.ts`. **Measured, that shape pays almost nothing**, and the reason is
+the module graph. A stack-bucketed count of every ask over sixty turns of seed
+20260903 (the two functions wrapped, the caller chain recorded):
+
+| reading | asks | reached through |
+|---|---|---|
+| `controlledHoldings` | 3,171 | **3,051 of them `explainHappiness`** — i.e. under `meterEffects` |
+| `meterEffects` | 2,841 | `empirePercents` 1,868 · `borderGrowth` 528 · `expandBorders` 180 · `explainGrowthPercent` 173 · `tilePurchaseError` 92 |
+
+Every one of those five callers lives in `cities.ts` or `yields/town.ts`, and
+neither may import `readings.ts` — that is a runtime cycle and
+`test/mapgen/moduleCycles.test.ts` is the gate. A memo in `readings.ts` is
+reachable only from *above* it, and above it is `src/ai/` and `src/ui/`, which
+ask these questions through `foldCity`'s and `borderGrowth`'s own defaults
+rather than by name. So the memo has to sit **under** the callers, at the two
+definition sites, and the third verb's rule is kept a different way: there is
+**one slate**, in a new leaf.
+
+- **`src/sim/slate.ts`** — the `WeakMap` on the state, the slate keyed on
+  `GameState.revision`, and one lookup. A type-only import of `GameState` and no
+  runtime edge to anything, so it cannot make a cycle from anywhere.
+- **`readings.ts` is now a tenant of it** rather than the owner of a `WeakMap` of
+  its own. `readCity`, `readEmpire` and `readEmpirePercents` are unchanged in
+  name, shape and answer; the register in `test/sim/verbs.test.ts` still reads
+  exactly those three, because **no new `read…` was added**.
+- `meterEffects` (`meters.ts`) and `controlledHoldings` (`cities.ts`) are the two
+  other tenants. Two `WeakMap`s keyed on the same integer would be two caches
+  with two lifetimes — the thing batch E2 built one file to prevent.
+
+### The one thing the slate had to add: the world is not remembered while it moves
+
+**This is the finding of the revision audit, and it is not a missing bump.**
+`GameState.revision` is raised by `applyCommand` *after* the handler has run and
+by `runEndOfTurn` *after* each phase — its own docblock says the guarantee is
+"at command and phase granularity and no finer". That was harmless while the
+only tenants were `readings.ts`', which nothing inside a handler asks. It is not
+harmless for the meters: `collectYields` prices every town while the world is
+halfway moved, `expandBorders` claims hexes between two reads of the same
+frozen-borders rule, and a happiness walk remembered across one of those would be
+a rule change dressed as a cache.
+
+So the slate is **suspended while a writer holds it open**: `applyCommand` and
+the phase loop announce themselves with `beginWrite`/`endWrite` (in a `finally`,
+so a throw cannot leak the window), and inside it every tenant computes fresh —
+byte for byte the tree before the memo existed. The depth is a module counter
+rather than state, which is safe for the one reason it would not be safe as a
+memo: it is only ever read as "is somebody writing", and two boards resolving in
+one process can only make the answer *yes* more often than it needs to be.
+
+**The one real gap the audit found** is one the revision cannot see at all:
+`withExtraResources` (`resourceData.ts`) swaps the *resource table* under the
+world for the length of a test — a proof obligation, not a mechanic — and no
+board's revision moves when it does. The slate carries a second integer for it
+(`discardSlates`), raised on the way in and on the way out.
+
+**The other half of the audit is the benches.** A caller that pokes the state by
+hand is a writer and calls `bumpRevision` — the contract stated on
+`GameState.revision` since batch E2, and the discipline `test/sim/benches.test.ts`
+already holds for the card evaluator's memo. Eight sites in five benches were
+writing without announcing and are now announced: `overextendTo` and the two
+furs seams (`territory.test.ts`), `plant` (`meters.test.ts`), a town grown by
+hand (`cities.test.ts`), `standIn` and a seam's technology
+(`resourceEffects.test.ts`), and the lapis seam (`renown.test.ts`). Nothing else
+in `src/` mutates outside `applyCommand` or a phase — checked by grep over
+`src/ui`, `src/ai`, `src/main.ts`, `src/arenaPage` and `src/spectate`.
+
+### The measurements
+
+Every figure below is **alternating** — the memo switched off and on in the same
+process, several rounds, the best of each kept — because three other agents were
+working the same machine and a straight before-then-after comparison drifted by
+more than the effect. `M1_OFF` disabled only the two new tenants, never
+`readCity`/`readEmpire`, so "before" is the tree as it stood.
+
+**1 · Whole games, duel, two balanced seats, wild on, `createBotStepper`, 150
+turns.** Three rounds a seed, alternating, the fastest of each kept.
+
+| seed | | mean ms/turn | t0–50 | t50–100 | **t100–150** |
+|---|---|---|---|---|---|
+| 20260903 | before | 165.6 | 61.6 | 134.6 | **300.4** |
+| 20260903 | **after** | **112.4** | 32.6 | 64.1 | **240.4** |
+| 4242 | before | 129.6 | 34.2 | 107.5 | **247.2** |
+| 4242 | **after** | **98.6** | 27.5 | 81.6 | **186.6** |
+
+**−32% and −24% on the mean**, −20% and −25% on the late column. All six runs of
+each seed produced **one** state hash — the games are identical.
+
+**2 · One identical board, alternating blocks** (X2's method): the board played
+to a fixed turn, then ten `nextBotDecision` of *that same state* a block, eight
+blocks each way, the memo alternating.
+
+| board | before | after |
+|---|---|---|
+| 20260903 t75, 3 towns | min 362.2 · median 494.0 | min **313.3** · median **412.9** |
+| 20260903 t150, 5 towns | min 671.0 · median 673.2 | min **498.5** · median **501.8** |
+| 4242 t75, 3 towns | min 186.3 · median 234.2 | min **130.6** · median **193.2** |
+| 4242 t150, 4 towns | min 410.1 · median 417.3 | min **296.3** · median **304.8** |
+
+**14% to 30% off the decision clock on the minimum**, and 16% to 27% on the
+median.
+
+**3 · The profile.** Seed 20260903's whole 150 turns, `node:inspector` at 200 µs,
+inclusive share of the samples, the same trajectory both ways.
+
+| frame | before | after |
+|---|---|---|
+| **`controlledHoldings`** | **19.8%** | **5.2%** |
+| ├ its walk (`holdingsOf`) | 15.5% | 3.6% |
+| **`meterEffects`** | **11.3%** | **6.9%** |
+| ├ `explainHappiness` | 9.0% | 5.7% |
+| ├ `explainAuthority` | 2.3% | 1.5% |
+| `empirePercents` | 8.4% | 4.6% |
+| `borderGrowth` | 3.5% | 1.8% |
+| `openedResource` | 2.7% | 1.0% |
+| `foldEmpireRates` | 18.4% | 13.8% |
+| `wantBook` | 30.4% | 24.7% |
+| `seatContext` / `valueContext` | 40.3% | 34.7% |
+| the profiled game, wall clock | 17.9 s | **14.7 s** |
+
+What is left of the two frames is the **misses**: the revision moves on every
+accepted command, so a seat pays for one walk per command per seat rather than
+one per question. That is the shape of the remaining work, and it is a different
+batch (a finer counter, or a reading that survives a command that could not have
+moved it).
+
+**4 · The t100 probe.** Eight seeds 1/2/3/42/101/999/31337/20260101, standard
+map, two balanced seats, wild on, stepper to t100, mean of sixteen seats.
+
+| | cities | citizens | food | prod | gold | sci | culture | faith | treasury | techs | happiness | **ms/turn** |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| before | 5.5625 | 35.6250 | 112.4375 | 53.3181 | 35.7500 | 41.7522 | 53.3225 | 17.3750 | 331.4950 | 20.0000 | −1.0922 | 184.3 |
+| **after** | 5.5625 | 35.6250 | 112.4375 | 53.3181 | 35.7500 | 41.7522 | 53.3225 | 17.3750 | 331.4950 | 20.0000 | −1.0922 | **157.0** |
+
+**Every column equal to four decimals, and all eight state hashes identical** —
+the same eight games, played 15% faster.
+
+**5 · The core tier's own clock.** `npx vitest run test/sim`, once each way on an
+otherwise idle machine: **150.1 s → 109.7 s** wall (−27%; the reported test time
+287.4 s → 209.1 s, the same figure). The suite pays these readings too, and it
+pays them under a *suspended* slate for the whole of every resolution — the
+entire end-of-turn runs inside `applyCommand`'s window, because the `endTurn`
+handler is what calls `runEndOfTurn` — so the tier's share of the win is the
+questions its benches ask at rest, and it is still a quarter of the clock.
+
+### Pins
+
+`test/sim/readings.test.ts` grows six claims under "the two empire walks are
+remembered on the same slate": the same list back until the world moves and a
+fresh one after (equal, never identical); the kinds and the seats kept apart;
+nothing remembered while a writer holds the window; the window closed even when
+a handler throws; nothing reaching the snapshot; and the slate void when the
+resource table is swapped under it. A seventh, in the register, holds the slate
+in one file and keyed on the revision — and holds `readings.ts` to owning no
+`WeakMap` of its own.
+
+Unchanged and green: `verbs.test.ts` (still exactly three `read…`, all in
+`readings.ts`), `moduleCycles.test.ts`, `aiDecision.slow.test.ts`,
+`aiBot.slow.test.ts`, `saves.test.ts`, and the whole of `test/ui`, `test/render`
+and `test/mapgen`.

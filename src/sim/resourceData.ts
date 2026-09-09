@@ -125,6 +125,8 @@ import {
   readTileYield,
 } from './terrainData';
 import { TECH_AGES, TECH_IDS, type TechAge, type TechId, eraNumeral } from './techData';
+// A leaf with no runtime imports of its own, so this edge cannot make a cycle.
+import { discardSlates } from './slate';
 
 /**
  * Every resource the table names — read off the JSON's keys, so a new row is a
@@ -621,12 +623,18 @@ export function withExtraResources<T>(
   const previousIds = RESOURCE_IDS;
   RESOURCE_DATA.resources = { ...previousTable, ...rows } as Record<ResourceId, ResourceDef>;
   RESOURCE_IDS = Object.keys(RESOURCE_DATA.resources) as ResourceId[];
+  // The rows the readings fold have changed, and no board's revision moved to
+  // say so — see `discardSlates` (`slate.ts`), which is why this announcement
+  // exists at all. Announced on the way in *and* on the way out, because
+  // putting the table back is the same kind of change as swapping it.
+  discardSlates();
   try {
     validateTable();
     return body();
   } finally {
     RESOURCE_DATA.resources = previousTable;
     RESOURCE_IDS = previousIds;
+    discardSlates();
   }
 }
 

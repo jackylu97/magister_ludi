@@ -156,6 +156,7 @@ import {
 } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
 import { type GameState, type Unit, bumpRevision, wakeUnit } from './state';
+import { beginWrite, endWrite } from './slate';
 import { isCombatant, unitDef, unitMaxHp } from './unitData';
 import { fullMovement, isRested } from './units';
 import { RULES } from './rulesData';
@@ -1187,7 +1188,19 @@ export function runEndOfTurn(state: GameState): TurnReport {
   // once per phase, after that phase has run. Deterministic by construction:
   // the phase list is fixed and ordered, so a replay reaches the same integer.
   for (const phase of END_OF_TURN_PHASES) {
-    phase.run(state, report);
+    // **The world is not remembered while a phase runs** (batch M1,
+    // `slate.ts`): the bump below is the phase's, taken after it, so everything
+    // inside it is a world halfway moved. `expandBorders` claims hexes and
+    // `collectYields` prices towns while it is, and both read the meters — a
+    // memo held across one of those mutations would be a rule change dressed as
+    // a cache. `finally`, so a phase that threw cannot leave the slate
+    // suspended for the life of the process.
+    beginWrite();
+    try {
+      phase.run(state, report);
+    } finally {
+      endWrite();
+    }
     bumpRevision(state);
   }
   report.triumphs.push(...triumphsSince(state, marks));

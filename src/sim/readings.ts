@@ -70,7 +70,8 @@
  * are the re-asked conditions; the benches announce their hand mutations
  * instead (§4c.1 of `docs/audit/evaluations.md`, `test/sim/benches.test.ts`).
  *
- * Three facts about the memos, and each of them is load-bearing:
+ * Three facts about the memos, and each of them is load-bearing — they are
+ * implemented in `slate.ts` now (see below) and stated on it:
  *
  *   · **`WeakMap` on the state, never a field of it.** `snapshotState` is
  *     `JSON.stringify(state)`, so anything hung on `GameState` is in every save
@@ -91,6 +92,33 @@
  * (`test/mapgen/moduleCycles.test.ts` is the gate). That is why `collectYields`
  * still takes its own readings rather than calling in here; the phase's own
  * docblock says what else keeps it there.
+ *
+ * ---
+ *
+ * **The slate itself lives one file down** (batch M1, `src/sim/slate.ts`), and
+ * this file is a tenant of it rather than its owner.
+ *
+ * The reason is the graph again, read from the other side. Two readings the bot
+ * spends a quarter of its turn on — `meterEffects` (`meters.ts`) and
+ * `controlledHoldings` (`cities.ts`) — are asked from *inside* the pipeline, by
+ * `empirePercents`, `borderGrowth`, `explainGrowthPercent` and
+ * `tilePurchaseError`. Every one of those is below this file and none of them
+ * may import it. A memo they can reach has to sit under them; a memo that sat in
+ * a second `WeakMap` would be a second cache with a second lifetime, which is
+ * the thing this file was built to prevent. So there is **one** slate, in a leaf
+ * with no runtime imports at all, and three tenants above it and two below.
+ *
+ * They are **not** `read…` verbs and must not be renamed into them: the third
+ * verb lives here and nowhere else (`test/sim/verbs.test.ts`), and neither of
+ * those two is a reading of a *yield* in the first place. What they share with
+ * the three below is the slate, which is the part that has to be shared.
+ *
+ * The slate adds one rule to the contract above, and it is the one this file
+ * never needed: **nothing is remembered while a writer holds the world open**.
+ * `applyCommand` and each phase announce themselves, and inside that window
+ * every tenant computes fresh — which is what makes a memo asked from inside a
+ * handler a cache rather than a rule. `slate.ts`'s docblock is the statement of
+ * record.
  */
 
 import type { City, GameState } from './state';
@@ -111,6 +139,7 @@ import {
   type EmpireYieldLine,
 } from './yields/empire';
 import { CITY_YIELD_KEYS } from './resourceData';
+import { slateMemo } from './slate';
 
 /** One town's whole reading: its labelled list, and what it banks. */
 export interface TownReading {
@@ -160,30 +189,6 @@ export interface EmpireReading {
   totals: CityYields;
 }
 
-/** One board's remembered readings, thrown away whole when the revision moves. */
-interface Slate {
-  revision: number;
-  percents: Map<number, EmpirePercents>;
-  towns: Map<number, CityReading>;
-  empires: Map<number, EmpireReading>;
-}
-
-const MEMO = new WeakMap<GameState, Slate>();
-
-/** This board's slate at this revision — a fresh one the moment the world moved. */
-function slateOf(state: GameState): Slate {
-  const held = MEMO.get(state);
-  if (held !== undefined && held.revision === state.revision) return held;
-  const fresh: Slate = {
-    revision: state.revision,
-    percents: new Map(),
-    towns: new Map(),
-    empires: new Map(),
-  };
-  MEMO.set(state, fresh);
-  return fresh;
-}
-
 /**
  * **The empire's half of every town's percentages, taken once per seat per
  * revision** — the hoist the top bar's strip, `foldEmpireRates` and the bot each
@@ -197,12 +202,7 @@ function slateOf(state: GameState): Slate {
  * default would have made.
  */
 export function readEmpirePercents(state: GameState, playerId: number): EmpirePercents {
-  const slate = slateOf(state);
-  const held = slate.percents.get(playerId);
-  if (held !== undefined) return held;
-  const fresh = empirePercents(state, playerId);
-  slate.percents.set(playerId, fresh);
-  return fresh;
+  return slateMemo(state, 'percents', String(playerId), () => empirePercents(state, playerId));
 }
 
 /**
@@ -221,12 +221,9 @@ export function readEmpirePercents(state: GameState, playerId: number): EmpirePe
  * the slate away.
  */
 export function readCity(state: GameState, city: City): CityReading {
-  const slate = slateOf(state);
-  const held = slate.towns.get(city.id);
-  if (held !== undefined) return held;
-  const fresh = explainCity(state, city, [], readEmpirePercents(state, city.ownerId));
-  slate.towns.set(city.id, fresh);
-  return fresh;
+  return slateMemo(state, 'towns', String(city.id), () =>
+    explainCity(state, city, [], readEmpirePercents(state, city.ownerId)),
+  );
 }
 
 /**
@@ -242,10 +239,10 @@ export function readCity(state: GameState, city: City): CityReading {
  * this empire content, and is it in debt".
  */
 export function readEmpire(state: GameState, playerId: number): EmpireReading {
-  const slate = slateOf(state);
-  const held = slate.empires.get(playerId);
-  if (held !== undefined) return held;
+  return slateMemo(state, 'empires', String(playerId), () => empireReading(state, playerId));
+}
 
+function empireReading(state: GameState, playerId: number): EmpireReading {
   const empire = readEmpirePercents(state, playerId);
   const towns: TownReading[] = [];
   for (const city of state.cities) {
@@ -261,7 +258,7 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
   const banked = foldEmpireLines(lines);
   for (const key of CITY_YIELD_KEYS) totals[key] += banked[key];
 
-  const fresh: EmpireReading = {
+  return {
     playerId,
     towns,
     lines,
@@ -269,6 +266,4 @@ export function readEmpire(state: GameState, playerId: number): EmpireReading {
     empire,
     totals,
   };
-  slate.empires.set(playerId, fresh);
-  return fresh;
 }

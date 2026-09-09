@@ -48,6 +48,30 @@ Two stated shapes inside those rules, each because the layer is what it is:
   a total could be computed. The bare sum of the list, with no stage on it, is
   `foldCityFlats`, which is what `explainCity` fills `flats` with.
 
+### The slate, and the two tenants beneath the verb (batch M1)
+
+The **machinery** the third verb sits on lives in `src/sim/slate.ts`: one
+`WeakMap` on the state, one slate keyed on `GameState.revision`, thrown away
+whole when it moves. `readings.ts` is a tenant of it; so are two readings that
+are **not** `read…` verbs and cannot be:
+
+| reading | where | why it is not a `read…` |
+|---|---|---|
+| `meterEffects` | `meters.ts` | asked from *inside* the pipeline — `empirePercents`, `borderGrowth`, `explainGrowthPercent`, `tilePurchaseError` — by modules that would make a runtime cycle out of importing `readings.ts` |
+| `controlledHoldings` | `cities.ts` | the same, and `readings.ts` imports `cities.ts` |
+
+The verb rule is unchanged — every `read…` is still in `readings.ts` and nowhere
+else (`test/sim/verbs.test.ts`) — and the memos are still **one** cache with one
+lifetime, because they are on the same slate rather than in a second `WeakMap`.
+
+**The slate is suspended while a writer holds the world open.** `GameState
+.revision` is raised *after* a command's handler and *after* each end-of-turn
+phase, so a reading taken inside one is a reading of a world halfway moved, and
+`expandBorders` and `collectYields` take several. `applyCommand` and the phase
+loop announce themselves (`beginWrite`/`endWrite`); inside the window every
+tenant computes fresh, which is byte for byte the tree before the slate existed.
+A bench that pokes the state by hand is a writer and calls `bumpRevision`.
+
 ### What was renamed (E3b)
 
 | was | is | why |

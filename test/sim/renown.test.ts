@@ -167,6 +167,9 @@ describe('the ledger', () => {
     )!;
     seam.resource = 'lapis';
     seam.improvement = improvementForResource('lapis')!;
+    // A seam dug by hand is a writer, and a writer announces (the contract on
+    // `GameState.revision`; the slate that reads it is `slate.ts`).
+    bumpRevision(g.state);
 
     // One line, on the recurring half, naming its arithmetic — and **no family**,
     // which is the ruling: the pool grows, the feed record does not.

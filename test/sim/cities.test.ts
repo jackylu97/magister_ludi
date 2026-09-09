@@ -1586,6 +1586,10 @@ describe('city yields', () => {
 
     city.population = 4;
     assignCitizens(state, city);
+    // A town grown by hand is a writer, and a writer announces — the town's
+    // citizens are what the happiness meter charges for, and the reading below
+    // is remembered on the revision (`slate.ts`).
+    bumpRevision(state);
     // Through the happiness multiplier, which bites at this size: the two rules
     // compose in the documented order — every source **exact** on its own since
     // batch X, then the empire's percentage applied once to the sum, and the

@@ -167,6 +167,7 @@ import {
   unitById,
   wakeUnit,
 } from './state';
+import { beginWrite, endWrite } from './slate';
 import {
   adoptGovernmentAt,
   doctrineChoiceError,
@@ -4260,6 +4261,24 @@ function orderedUnitId(command: Command): number | undefined {
  * never given.
  */
 export function applyCommand(state: GameState, command: Command): CommandResult {
+  // **The world is not remembered while it is moving** (batch M1, `slate.ts`).
+  // The revision below is raised *after* the handler, so everything between here
+  // and it is a world halfway moved — and the two empire walks the slate now
+  // remembers (`meterEffects`, `controlledHoldings`) are asked from inside
+  // handlers. Announcing the window is what lets a memo be a cache rather than a
+  // rule: inside it every reading is taken fresh, byte for byte as it was before
+  // the slate existed. `finally`, because a handler that threw and left the
+  // window open would suspend the slate for the life of the process.
+  beginWrite();
+  try {
+    return applyCommandInside(state, command);
+  } finally {
+    endWrite();
+  }
+}
+
+/** `applyCommand`'s whole body, run inside the write window it announces. */
+function applyCommandInside(state: GameState, command: Command): CommandResult {
   // **The bead diff, taken once, here** (design ledger Entry VI). `Player.beads`
   // is append-only and turn-stamped, so a mark taken before the handler and a
   // slice taken after it is exactly what this command earned, at whatever depth

@@ -104,6 +104,11 @@ function techsUpTo(age: TechAge): TechId[] {
 /** Stands a player in an age, with every reveal and improvement of it in hand. */
 function standIn(state: GameState, playerId: number, age: TechAge): void {
   state.players[playerId]!.techsResearched = techsUpTo(age);
+  // A tree rewritten by hand is a writer, and a writer announces — the contract
+  // on `GameState.revision`, which the meters' slate reads (`slate.ts`). An age
+  // gates a luxury's signature, so a bench that stands a seat in a different age
+  // has moved every meter in the empire.
+  bumpRevision(state);
   expect(highestAge(state.players[playerId]!.techsResearched)).toBe(age);
 }
 
@@ -1490,6 +1495,7 @@ describe('a city standing on the seam', () => {
     expect(controlledResources(state, 0, 'luxury')).not.toContain(id);
 
     state.players[0]!.techsResearched = [needed];
+    bumpRevision(state);
     expect(hasResource(state, 0, id)).toBe(true);
     expect(controlledResources(state, 0, 'luxury')).toContain(id);
   });

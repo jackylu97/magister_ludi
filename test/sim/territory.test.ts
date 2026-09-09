@@ -101,6 +101,11 @@ function overextendTo(state: GameState, playerId: number, target: number): void 
   let row = 1;
   while (authorityOf(state, playerId) > target) {
     planted.push(foundCityAt(state, playerId, at(state.map, state.map.width - 2, row)));
+    // A town founded by hand is a writer, and a writer announces (the contract
+    // on `GameState.revision`; the slate that reads it is `slate.ts`). Said here
+    // rather than once at the end because the loop's own condition reads the
+    // meter it just moved.
+    bumpRevision(state);
     row += 3;
     if (row >= state.map.height) throw new Error('ran out of board to over-extend on');
   }
@@ -406,6 +411,7 @@ describe('the writ and the borders', () => {
 
     // One city more and the writ is overdrawn.
     foundCityAt(state, 0, at(state.map, state.map.width - 5, 11));
+    bumpRevision(state);
     expect(authorityOf(state, 0)).toBeLessThan(0);
     expect(bordersFrozen(meterEffects(state, 0))).toBe(true);
 
@@ -605,6 +611,9 @@ describe('what a tile costs', () => {
     seam.feature = 'forest';
     seam.resource = 'furs';
     seam.improvement = 'camp';
+    // A seam dug by hand is a writer, and a writer announces (the contract on
+    // `GameState.revision`; the slate that reads it is `slate.ts`).
+    bumpRevision(state);
 
     const discounted = tilePurchasePrice(state, 0, city.id, cell);
     expect(discounted).toBe(Math.max(1, Math.floor(plain * 0.9)));

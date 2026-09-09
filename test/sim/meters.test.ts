@@ -329,6 +329,9 @@ describe('happiness supply', () => {
     const tile = at(state.map, col, row);
     tile.resource = resource;
     tile.improvement = 'plantation';
+    // A seam dug by hand is a writer, and a writer announces (the contract on
+    // `GameState.revision`; the slate that reads it is `slate.ts`).
+    bumpRevision(state);
     expect(state.tileOwner[row * state.map.width + col]).toBe(city.id);
   }
 
