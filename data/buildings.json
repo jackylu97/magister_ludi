@@ -593,7 +593,7 @@
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 20,
+          "amount": 10,
           "scope": {
             "test": "capital"
           }
@@ -1671,7 +1671,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 10
+        "amount": 5
       },
       "cityHp": 25,
       "renown": {
@@ -1991,7 +1991,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 20
+        "amount": 5
       },
       "cityHp": 30,
       "awaitsTech": true,
