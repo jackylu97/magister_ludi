@@ -1,6 +1,7 @@
 /**
  * **Where a yield came from, as a player would name it** — the eight classes and
- * the one function that decides which a card's line belongs to.
+ * the two functions that decide which a line belongs to: `classifyCard` for a
+ * line a card pays, `classifyImprovement` for the ground a citizen works.
  *
  * It is a *leaf* and that is the whole reason it exists as a file (batch E2,
  * `docs/audit/evaluations.md` §3a). The class was invented by the Ledger and
@@ -19,6 +20,7 @@
 import { isBeadCardId } from './beadData';
 import { isBuildingId, isWonder } from './buildingData';
 import { isGreatPersonId } from './greatPeopleData';
+import { type ImprovementId, improvementDef } from './improvementData';
 import { isMaliceId } from './maliceData';
 import { isBeliefId, isConsecrationId, isRiteId } from './religionData';
 import type { CardId } from './statecraftData';
@@ -106,4 +108,40 @@ export function classifyCard(card: CardId): LedgerClass {
   if (isTechId(card)) return 'other';
   if (isBuildingId(card)) return isWonder(card) ? 'wonders' : 'buildings';
   return 'other';
+}
+
+/**
+ * **Which class a worked hex belongs to**, decided by what is standing on it —
+ * the land, unless a great person is standing on it, in which case it is theirs
+ * (the user's ruling of 2026-09-10, `docs/flags.md` (eeee)).
+ *
+ * The Patronage promises *"their works, their gifts and their legacies"* and was
+ * reading near nought on a realm whose great people had all been planted: a
+ * legacy carries the person's card and was already `people` (`classifyCard`),
+ * but an academy's three beakers are a **tile** line and filed under `tiles`
+ * with the grass under it. A card that reads a class the game files elsewhere is
+ * a card that lies, so the class follows the piece.
+ *
+ * The whole hex line moves, not the improvement's own entries alone. That is
+ * deliberate and it is `foldTile`'s doing rather than a shortcut: a hex is one
+ * fold in which a hill *replaces* the grass under it, so the improvement's share
+ * of the total cannot be taken back out without a second sum of the remainder —
+ * exactly the thing rule 5 forbids. A work is planted once and for good, so
+ * "the hex the scholar is standing on is the scholar's" is both the honest
+ * reading and the only one that keeps a single fold.
+ *
+ * **The prophet's holy site is not a great person's** and stays with the land.
+ * It carries the same `greatPerson` marker (its `WorkFamily` is `'prophet'`),
+ * but a prophet is bought with faith and holds no renown — that is the whole
+ * reason `WorkFamily` widened `Family` by one rather than `Family` itself
+ * widening — so its faith belongs under `tiles` as it always has. Filing it
+ * under `religion` would be a second ruling nobody made: the faith a holy site
+ * pays reaches the Tithe's reading through the beliefs standing on it, and
+ * counting the ground twice would be the Tithe and the Patronage both paid for
+ * one hex.
+ */
+export function classifyImprovement(id: ImprovementId): LedgerClass {
+  const family = improvementDef(id).greatPerson;
+  if (family === undefined || family === 'prophet') return 'tiles';
+  return 'people';
 }

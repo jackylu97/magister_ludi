@@ -205,6 +205,17 @@ what makes the order structural rather than incidental. Its own order is
 6. the **works percent** — a share of the entries in (4) alone;
 7. the **ground percent** (`basePercent`) — a share of the entries before (4).
 
+**Which Ledger class the hex line lands in** (`CityYieldLine.class`) is decided
+in `explainCity` off the hex itself, not off the fold: a card's line inside the
+fold is lifted out under `classifyCard`'s answer, and what is left is the
+**land's** — unless a **great person's work** stands on the hex, in which case
+the whole line is the **people's** (`classifyImprovement`, `ledgerClass.ts`; the
+user's ruling of 2026-09-10, `docs/flags.md` (eeee)). The whole line and not the
+improvement's entries alone, because the hex is one fold in which a hill
+*replaces* the grass under it and the improvement's share cannot be taken back
+out without a second sum of the remainder. The prophet's holy site carries the
+same marker and is **not** a great person's work: it stays with the land.
+
 ### Inside step 9 — the building shares
 
 Two passes, in `cardBuildingPercents`' own order: the **ordinary** shares, each
