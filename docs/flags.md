@@ -1800,6 +1800,184 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (uuu) **The user's tree pass — RULED, to fold** (the user, 2026-09-10:
+  *"could you fold in my changes to the tech tree, so we have a clean
+  slate to rework the ordering of units?"*). The spec of record is the
+  user's bracketed marks in the MAIN tree's `docs/tech-tree.md`
+  (uncommitted; agents read `/Users/jacky/code/webciv/docs/tech-tree.md`
+  directly and never overwrite it; the fold regenerates the doc with
+  `TECH_DOC_WRITE=1`, which is what retires the marks). **T5 builds**, each
+  mark → data: (1) **Barracks** `productionBonus` 10% all units → **+25%
+  toward foot units** — the spear, warrior and archer lines, read as a
+  class selector on `modelClass` melee | ranged (not mounted, not siege,
+  not naval); (2) **Lighthouse** → **+2 food** base, **+1 gold on coastal
+  tiles** (the water `tileYields` line pays gold, not food); (3)
+  **Stable** keeps its abilities, `productionBonus` 10% → **+25% toward
+  mounted**; (4) **Irrigation** unlocks a new building **Garden**: **+1
+  happiness per 5 citizens in this city** (the Amphitheatre's `count:
+  population, per: 5` shape, paying happiness) and **+15% renown from
+  this city** (a city-scoped renown percent — `renownPercent` if the
+  vocabulary has it, else a deferred note and the ▢); (5) **Harbour** →
+  **+3 production** base, **+1 food and +1 gold on water resource tiles**
+  (the all-water food line goes), keeps its route slot; (6) **Raised
+  Fields is retired** and **a new node takes its place** in the same
+  column with the same prereq (Wayfinding) and Shipwrights still
+  chaining off it (the lanes are the user's chart — the slot is kept),
+  ▢ **name** (rec: *The Silk Road*; the agent uses it and marks ▢):
+  unlocks the **Caravanserai** (moved off Mathematics; Petra stays
+  there), **+3 gold on international trade routes**, and **an
+  international route gives a copy of a luxury the destination holds
+  improved, with its effects halved** — the `docs/playstyles.md` §7 rule
+  at the user's own figure: half the happiness and half every other
+  effect of the luxury; one luxury per route; unique kinds only (a
+  second copy pays as a second copy does today); lapses with the route;
+  read where luxury copies are counted (`resourceEffects.ts`); the bots
+  need a want for it (a W2-style line: an international route's
+  appraisal carries the imported luxury's half-value); (7) **State
+  Workforce** unlocks a new building **Public Bath**: **+3 food** base,
+  **+2 happiness if the city is joined to the capital** (`scope`/`on` a
+  connected-to-capital test — the Satrapies reading); (8) **Shipyard** →
+  **no route slot**, **+3 production** base, `productionBonus` **+25%
+  toward naval**, **+1 food and +1 production on fishing boats** (a
+  `tileYields` line on the improvement); (9) **The Saddle** adds
+  **pillaging a tile pays 15 science and 15 culture** — a tech effect on
+  the pillage occasion, through the windfall vocabulary (`pillageBounty`
+  in `rules.trade` is the gold/food/hammer bounty; this is a rider that
+  joins it, `settleResearchWindfall`/`settleCultureWindfall` — numbers in
+  data, never prose); (10) **Satrapies** loses "roads near your cities
+  cost nothing to keep" (`roadFree`'s rule) and the deferred hammers
+  clause (delete the row's `deferred` line) — a nerf to wide, the user's;
+  (11) **Daughter Cities** adds **internal trade routes +1 food and +1
+  production** — the Caravanserai's `pays where: route` shape restricted
+  to domestic routes (both ends this empire's). The Compendium, the
+  cards' text snapshot (`CARD_TEXT_WRITE=1` if a row's text changes),
+  `docs/tech-tree.md` (regenerated), `docs/luxuries.md`/`docs/trade.md`
+  where they state a rule, and the wager/luxury sync tests follow. Every
+  new building joins `docs/production-costs.md`'s size table by size (no
+  figure on a row). Schema bump (a replay's yields move). Report the t100
+  row and, for the luxury rule, one bench sentence: how many imported
+  copies the mean bot seat holds at t100.
+- (ttt) **The strength ladder — RULED** (the user, 2026-09-10: *"do a pass
+  through units.md? There should be a larger gap between units in combat
+  strength. i'd love for the fire lancer to end as an 80 strength unit
+  (should one-shot a swordsman, or nearly). Use inspiration from the civ
+  6 values, a more expensive unit should be stronger, but also aim to
+  maintain game balance within the era (ranged units should have weaker
+  ranged strength than the premiere melee and cavalry units of the
+  era)"*). The curve is Civ 6's — `baseDamage` 30 × e^(`strengthExponent`
+  0.04 × difference) — so Civ 6's magnitudes are the natural scale: a
+  gap of 10 is ×1.5 damage, 30 one-shots. **U9 builds the ladder below
+  in `data/units.json`**, by the unlocking tech's era (read the tree;
+  Bronzeworking, Castellany and Natural Philosophy the agent places),
+  monotone within a class across eras, ranged strength always below the
+  era's premiere melee and cavalry, cost (size) rising with strength.
+  Melee/mounted (str) — Æra I: Scout 10 · Warrior 20 · Spearman 25 ·
+  War Chariot 28. Æra II: Phalanx 30 (+10 vs mounted) · Swordsman 35.
+  Æra III: Spear Wall 35 (+12 vs mounted) · Horseman 36 · Legionary 40 ·
+  War Elephant 42 (+8 vs cities) (the Cataphract is **retired** — the
+  user, 2026-09-10: "we replaced cataphracts with horsemen"; the row
+  stays for saves, out of the doc and every pool). Æra IV:
+  Pikeman 45 (+15 vs mounted) · Longswordsman 48 · Knight 50 · **The
+  Fire Lance 80** (the era's capstone, a step above by design: one-shots
+  a Swordsman and nearly a Knight; Knights Templar keep mirroring the
+  best mounted). Ranged (melee/ranged) — Æra I: Archer 15/20 · Chariot
+  Archer 18/22. Æra II: Bowman 20/28. Æra III: Horse Archer 25/32 ·
+  Composite Bowman 25/33 · Catapult 20/35 (+15 vs cities). Æra IV:
+  Crossbowman 32/42 · Trebuchet 28/45 (+20 vs cities). Naval — light
+  (hit and run, +10 vs ranged ships): Trireme 22 · Bireme 28 · Galley 35
+  · Caravel 45 · Corvette 55; heavy (blockade): War Galley 35 · Tower
+  Ship 45 · Carrack 60 · Ship of the Line 75; ranged (fragile hull −10):
+  Fire Ship 25/35 · Gun Galley 35/50 · Frigate 50/65 (+20 bombardment).
+  **Every flat line beside the strengths scales with them or it
+  silently shrinks** (the agent applies ×2–2.5 and says each): terrain
+  hills 3 → 6, forest/jungle 2 → 5; `fortifyBonusPerTurn` 2 → 3,
+  `fortifyMax` 4 → 6 (Civ 6's); `generalAuraStrength` 3 → 5;
+  `cityMinStrength` 8 → 20; walls' `cityStat` Palisade 5 → 10, Stone
+  Walls 4 → 10, Walls of Uruk 10 → 20 and its +2 line → +4; naval
+  `atSeaPenalty` 10 → 20, `lineBonusPerHull` 2 → 4, `lineBonusMax` 4 → 8;
+  every card/belief/rite/wonder/great-person combat line (God of the
+  Forge +1, Warrior Monks +5, The Crusade +3, the Muster's +2, "+1
+  combat strength" Orders, Blessing of Arms, the citadel's defender
+  line) ×2–3, rounded, each named in the report. **The bot re-cut so its
+  soldier valuation is unchanged in coin**: `weights.military` 5 → 2
+  (and the warmonger persona's 9 in proportion), `score.combatScale`,
+  `threat.techMilitaryFactor` checked against a fixture before/after;
+  the wager bars on `armyStrength` (Bread and Iron 150/480/1000, The War
+  Chest) ×2.5 in data and doc together, ▢ the user's figures. Hit
+  points, `cityHp`, `siegeDamagePerTurn`, escalation unchanged. **Pins**:
+  a matchup table in `test/sim/combat.test.ts` — expected damage,
+  midpoint roll, for each era's premiere melee vs its ranged unit and
+  the Fire Lance vs Swordsman (kills) and vs Knight (≥ 90); ranged
+  strength < the era's best melee/mounted strength for every era (a
+  register test over the rows); every strength monotone along
+  `upgradesTo`. `docs/units.md` regenerated; `docs/war-diplomacy.md`
+  §combat figures; schema bump (every battle's dice move). Report: the
+  before/after t100 row, units per seat, and the matchup table.
+- (sss) **The bot's build order and tech selection, audited — one root
+  defect** (the user, 2026-09-10: *"could you take a look at bot build
+  order and tech selection in it's current state? lets verify its still
+  making reasonable decisions"*). Method: seat 0's full decision log
+  over 120 turns on seeds 42 and 7 (research, every queue head, every
+  completion), then the scoring tables and term trees behind the odd
+  picks. **What is reasonable**: scout → settler → worker opening; a
+  second city by t18–26 and 8–10 towns by t120; Writing by t42–49 with
+  the Library following; Divination second (the pantheon); walls and
+  archers with the wild on; workers plentiful (three charges each);
+  wonders taken when the capital's table has nothing better; Currency →
+  traders by t97. **What is not — and it is one root**:
+  `garrisonWorth` (`bot.ts`) returns **null** whenever `garrisonAt` ≥
+  `military.garrisonPerCity` (1), and `garrisonAt` (`campaign.ts`)
+  counts **any combatant standing on the hex — a scout passing through
+  included**. Three symptoms measured on seed 7: (1) **the shadow price
+  of gold swings 36 ↔ 6 on alternate turns** — with no building yet
+  purchasable the only gold wants are soldiers, and on the turn the
+  fresh scout stands in the capital there are none, so `priceOf` falls
+  to the band's floor ("nothing this empire could buy"); (2) **research
+  thrashes** — Sailing scores 125 / absent / 125 / absent across t2–t7
+  because its Lighthouse line is priced in gold, so the goal flips
+  Divination ↔ Sailing every turn (the 1.1× incumbent margin cannot hold
+  a 6× swing; beakers are a pool so nothing is lost, but the plan and
+  the feed are unstable and every gold-paying row — Market, Lighthouse,
+  Bank, the techs that unlock them — is undervalued six-fold on half the
+  turns; PP1's "a Market prices negative in most towns" is the same
+  root); (3) **extra scouts** — at t3 the Warrior candidate is dropped
+  (null worth, the new scout on the hex) and the Scout wins the table by
+  default, so seat 0 builds three scouts by t5 and seven by t66. **X13 —
+  RULED**: (a) `garrisonAt` counts a **standing** garrison — a combatant
+  that is not an explorer and is not mid-march (fortified, or with its
+  full allowance unspent at the seat's own decision time is fine: the
+  agent picks the reading that the campaign's own garrison logic
+  already uses and says which) — never a scout; (b) `garrisonWorth`
+  never returns null for a garrison already met: the garrison share is
+  a **term** that reads nought when met, and the soldier keeps its field
+  value, so the want survives and the table always holds a soldier row
+  to compare against; (c) `priceOf` with **no want at all** prices the
+  currency at the **prior** (`priorPrice`: the table × gold pressure),
+  not the band's floor — "nothing to buy" is not "worthless"; (d) pins:
+  the gold price is unchanged when a scout steps onto the capital hex;
+  the Warrior row stays in the table with a scout in the town; seed 7's
+  research goal does not flip in the first 30 turns without a change of
+  knowledge; the opening builds at most one scout beyond the starting
+  one before the first settler; (e) t100 row before/after and the seed-7
+  first-30-turn research and build logs before/after in the report.
+  **X13 built** (2026-09-10): `garrisonAt` counts **field soldiers**
+  (`isFieldSoldier`: combatant, not an explorer, not naval — the
+  campaign's own predicate, so the levy and the garrison agree; the
+  mid-march clause deliberately not taken: an allowance is spent during
+  the seat's own turn); `defendersAt` keeps the "any combatant here"
+  reading for the enemy-town tie-break. `garrisonWorth`: the garrison is
+  a term (`threat.garrisonValue × short`), and — beyond the ruling,
+  measured — it now charges the **levy** like the queue and the faith
+  bank do (ruling (b) alone put the mean seat at twice its levy: units
+  24 → 32, sci 87 → 78). `priceOf` with no want → the **prior**. Six
+  pins in `test/sim/aiGarrison.test.ts`, all failing on the old code.
+  **t100** (8 seeds): happiness **+4.7 → +12.2**, prod 73.5 → 83.2, sci
+  86.8 → 89.9, cul 62.9 → 69.6, buildings 29.3 → 30.9, treasury 270 →
+  320, rangers 3.8 → 2.7, faith 20.1 → 18.2. Seed 7: the t3–t6 goal
+  flip-flop gone; the opening is **warrior · scout · worker · settler**
+  (every seat starts with a scout, so `openingScout`'s third clause has
+  always declined — the "scout first" ruling was never in force; ▢ the
+  user). ▢ `military.scoutCap` 3 — the seat now stops at its dial.
 - (rrr) **The two families — worksheet opened** (the user, 2026-09-10, across
   the maritime / wide-land / imperium-and-steppe / land-commerce / tall /
   faith conversation: *"generally i see the game having two predominant
