@@ -72,6 +72,7 @@ import type { TriumphId } from "./triumphData";
 import { bumpEconomy } from "./slate";
 import type { GameMap } from "./map";
 import { generateMap, getMapSize } from "./mapgen";
+import { type LeaderId, isLeaderId } from "./leaderData";
 import { type MapgenOverrides, resolveMapgenConfig } from "./mapgenData";
 import {
   type BeliefId,
@@ -96,7 +97,7 @@ import {
   newPlayerStatecraft,
 } from "./statecraft";
 import type { CardEffect, CardId } from "./statecraftData";
-import { chooseStartPositions, planStartingUnits } from "./startPositions";
+import { chooseStartPositionsFor, planStartingUnits } from "./startPositions";
 import type { TechId } from "./techData";
 import {
   type UnitStamp,
@@ -911,6 +912,32 @@ export interface PlayerSpec {
    * before they existed.
    */
   persona?: string;
+  /**
+   * The **figure** in this chair — `'pachacuti'`, `'mithridates'`, … — or absent
+   * for a seat under nobody.
+   *
+   * `charge`'s and `persona`'s sibling in shape and its opposite in one respect
+   * that has to be said out loud: this one **is read by the generator**. A
+   * leader carries a start bias (`data/leaders.json`, `leaderData.ts`), and the
+   * three stages of it decide where the seat stands, what the scatter puts near
+   * it and what the fairness pass furnishes it with — see `docs/flags.md`
+   * (cccc). So a roster's figures are an input to the *map*, exactly as the
+   * seed and the override sheet are.
+   *
+   * That is replay-safe for the same reason those two are, and only because of
+   * it: the world is generated from the config, a save is `{config, log}`, and
+   * the roster is in the config. **No schema bump**, and the argument is exact —
+   * `normalizeConfig` writes the key only when it is there, a config that never
+   * heard of leaders normalises byte-identically to one from before they
+   * existed, and a leaderless roster generates the map it always generated (see
+   * `chooseStartPositionsFor` and `placeResources`, both of which take the
+   * untouched path when nobody is seated).
+   *
+   * Refused by `validateConfig` when it names a figure the sheet does not
+   * carry, rather than ignored: a leader that quietly did nothing would be a
+   * player who chose Modu and got somebody else's steppe.
+   */
+  leader?: LeaderId;
   /** Defaults to false — the caller decides who sits at the keyboard. */
   isHuman?: boolean;
 }
@@ -3367,6 +3394,9 @@ export function normalizeConfig(config: GameConfig): GameConfig {
       // The persona, on exactly the same terms: written only when it is named,
       // so a roster from before personas existed normalises byte-identically.
       if (spec.persona !== undefined) player.persona = spec.persona;
+      // And the figure, on the same terms again — which is what keeps a
+      // leaderless roster's map the map it always was. See `PlayerSpec.leader`.
+      if (spec.leader !== undefined) player.leader = spec.leader;
       return player;
     }),
   };
@@ -3415,6 +3445,14 @@ function validateConfig(config: GameConfig): void {
   // Throws on an unknown key or a mistyped value, *before* a tile is drawn — a
   // bad sheet is a bad config, not a map that quietly ignored half of it.
   resolveMapgenConfig(config.mapgenOverrides);
+  // The same rule for a seat's figure, and for the same reason one step in: a
+  // leader biases the map (`PlayerSpec.leader`), so an id the sheet does not
+  // carry is a config that would have generated a world nobody asked for.
+  for (const spec of config.players) {
+    if (spec.leader !== undefined && !isLeaderId(spec.leader)) {
+      throw new Error(`Unknown leader "${spec.leader}"`);
+    }
+  }
 }
 
 /**
@@ -3476,10 +3514,14 @@ export function newGame(config: GameConfig): GameState {
   const normalized = normalizeConfig(config);
   validateConfig(normalized);
 
+  // The roster is a **fourth input to the map**: a seat's figure biases where it
+  // stands and what grows there (`PlayerSpec.leader`, the three stages). A
+  // roster with no figures in it generates the map it always generated.
   const map = generateMap(
     normalized.seed,
     normalized.sizeName,
     normalized.mapgenOverrides,
+    normalized.players,
   );
   // Named before the state is built, because the two decks are shuffled off it
   // (see `newBeadTable`) and the state literal below cannot refer to itself.
@@ -3602,7 +3644,7 @@ export function newGame(config: GameConfig): GameState {
     census: newCensusRegister(rng, RULES.game.startingTurn),
     winnerId: null,
   };
-  placeStartingUnits(state);
+  placeStartingUnits(state, normalized.players);
   // The wild is seated **after** the opening rosters, and that ordering is the
   // whole of why player id is still the player's index: `placeStartingUnits`
   // asks `chooseStartPositions` for `state.players.length` sites, so a seat
@@ -3624,8 +3666,13 @@ export function newGame(config: GameConfig): GameState {
  * alone (see `startPositions.ts`), so it rolls no dice and needs no log entry —
  * a replay reproduces the same starts from the config.
  */
-function placeStartingUnits(state: GameState): void {
-  const starts = chooseStartPositions(state.map, state.players.length);
+function placeStartingUnits(state: GameState, seats: readonly PlayerSpec[]): void {
+  // The seats' own sites, scored each by its own figure's bias — and exactly the
+  // sites `placeResources` guaranteed food, luxuries and strategics at, because
+  // both ask the same pure function the same question (`chooseStartPositionsFor`,
+  // `startPositions.ts`). A leaderless roster takes the unbiased chooser
+  // untouched, which is what keeps every start of every seed where it was.
+  const starts = chooseStartPositionsFor(state.map, seats);
   for (const placement of planStartingUnits(
     state.map,
     starts,

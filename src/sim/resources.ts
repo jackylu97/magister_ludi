@@ -99,6 +99,23 @@
  * stream, and it means the guarantees do not shift when the scatter above them
  * is retuned.
  *
+ * The leaders
+ * -----------
+ * Two of the three stages a leader's start bias rides are here (`docs/flags.md`
+ * (cccc); stage one is the start chooser). **Stage two** puts a seated figure's
+ * thumb on two draws and no others: the scatter's *tile* draw inside
+ * `startBiasRadius` of that leader's own start, and the **hand draw** of the
+ * continent it stands on — so the budgets, the per-kind cap, the spacing rule
+ * and the hostability filter are all exactly where they were, and no kind
+ * reaches a continent the deal would not have given it. **Stage three** is a
+ * fifth guarantee beside the four above, `ensureStartFurnishing`: one resource
+ * of each improvement kind the figure's own text pays on.
+ *
+ * A **leaderless roster changes not one tile**. Every field is empty, every draw
+ * takes the arm it always took — the uniform tile draw is kept as its own arm
+ * rather than expressed as equal weights, because `nextInt` and `nextFloat` are
+ * different draws off one stream — and the map of a seed is the map of that seed.
+ *
  * Strategic fairness — "every player can reach iron or horses" — is deliberately
  * *not* attempted here. It is a much stronger claim (it is about distance
  * through terrain, contested ground and expansion, not about one ring of tiles)
@@ -107,6 +124,7 @@
  * this design; a start that cannot feed itself is not.
  */
 
+import { type FurnishEntry, type StartBias, furnishMatches, startBiasOf } from './leaderData';
 import type { GameMap, Tile } from './map';
 import { mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from './map';
 import {
@@ -120,7 +138,7 @@ import {
 } from './resourceData';
 import { type Rng, nextFloat, nextInt } from './rng';
 import { RULES } from './rulesData';
-import { chooseStartPositions } from './startPositions';
+import { type StartSeat, chooseStartPositions, chooseStartPositionsFor } from './startPositions';
 import { isWaterTerrain } from './terrainData';
 import { landRegions } from './water';
 
@@ -638,6 +656,7 @@ export function dealContinentLuxuries(
   continentCount: number,
   config: ResourceConfig,
   ground: LuxuryGround = OPEN_GROUND,
+  handBias: LuxuryHandBias = NO_HAND_BIAS,
 ): ResourceId[][] {
   const luxuries = resourcesOfKind('luxury');
   const hands: ResourceId[][] = [];
@@ -669,9 +688,13 @@ export function dealContinentLuxuries(
    * and a kind anybody can wear is left at its own frequency.
    */
   const bias = Math.max(0, config.luxuryScarcityBias);
-  const weightOf = (id: ResourceId): number => {
+  const weightOf = (continent: number, id: ResourceId): number => {
     const hosts = Math.max(1, ground.hostCount(id));
-    return resourceDef(id).frequency * Math.pow(Math.max(1, continentCount) / hosts, bias);
+    return (
+      resourceDef(id).frequency *
+      Math.pow(Math.max(1, continentCount) / hosts, bias) *
+      handBias(continent, id)
+    );
   };
 
   for (let continent = 0; continent < continentCount; continent++) {
@@ -702,7 +725,7 @@ export function dealContinentLuxuries(
         for (const id of rest) least = Math.min(least, used.get(id) ?? 0);
         pool = rest.filter((id) => (used.get(id) ?? 0) === least);
       }
-      const weights = pool.map(weightOf);
+      const weights = pool.map((id) => weightOf(continent, id));
       const total = weights.reduce((sum, weight) => sum + weight, 0);
       const chosen =
         total > 0 ? drawWeighted(rng, pool, weights, total) : pool[nextInt(rng, 0, pool.length)]!;
@@ -715,6 +738,24 @@ export function dealContinentLuxuries(
   }
   return hands;
 }
+
+/**
+ * What a **leader seated on this continent** does to a kind's draw.
+ *
+ * Stage two's luxury half (`docs/flags.md` (cccc)): a continent seating
+ * Mithridates draws wine more heavily. A multiplier on the deal's own weight and
+ * nothing else, which is the whole of why the design is safe — the per-kind cap,
+ * the hostability filter and the relaxation are untouched, so no kind reaches a
+ * continent the deal would not have given it and the map's character is still
+ * the deal's to decide.
+ *
+ * `1` from a leaderless world, and then the draw is the draw it always was, to
+ * the same dice.
+ */
+export type LuxuryHandBias = (continent: number, id: ResourceId) => number;
+
+/** The world with nobody's thumb on it. */
+const NO_HAND_BIAS: LuxuryHandBias = () => 1;
 
 /**
  * Which continents can actually grow which luxuries.
@@ -857,6 +898,26 @@ export interface ResourceConfig {
   startStrategics: ResourceId[];
   /** How far from a start those copies may be. Six, as the ruling names. */
   startStrategicRadius: number;
+  /**
+   * How far a leader's resource bias reaches from its own start.
+   *
+   * Stage two of the three (`docs/flags.md` (cccc)): a seated leader multiplies
+   * the scatter's **tile** draw for the rows it names, inside this radius and
+   * nowhere else. A radius rather than a whole-map weight because the bias is
+   * about *this seat's* opening — a Modu who doubles horses everywhere has
+   * doubled them for his neighbours too, which is a retuned world rather than a
+   * leader.
+   */
+  startBiasRadius: number;
+  /**
+   * How far from a start its leader's furnishing may stand.
+   *
+   * Stage three: one resource of each `startBias.furnish` kind within this many
+   * hexes (`ensureStartFurnishing`). Deliberately tighter than the strategic
+   * radius — a plantation six hexes off is a second city's plantation, and the
+   * leader whose text pays on plantations wants one its capital can work.
+   */
+  startFurnishRadius: number;
   /** Land tiles one carved continent aims for. See `carveContinents`. */
   continentTargetTiles: number;
   /**
@@ -1018,7 +1079,12 @@ function drawWeighted(
  * (`ensureStartStrategics`). It is the one thing the finished map cannot be
  * asked: a forced copy and a dealt copy are the same tile.
  */
-export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): number {
+export function placeResources(
+  map: GameMap,
+  rng: Rng,
+  config: ResourceConfig,
+  seats: readonly StartSeat[] = [],
+): number {
   const spacing = Math.max(1, Math.round(config.minSpacing));
   const land = landTileCount(map);
 
@@ -1031,13 +1097,46 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     if (list.length > 0) candidates.set(id, list);
   }
 
+  // --- the seats, and what their figures pull toward them -------------------
+  // Rolls nothing, exactly as carving and choosing the starts roll nothing, so
+  // all of it happens before the first draw. A **leaderless roster changes not
+  // one tile**: every field below is empty, every draw below takes the uniform
+  // path it always took, and the map is the map it was.
+  const seated = seats.some((seat) => startBiasOf(seat.leader) !== undefined)
+    ? chooseStartPositionsFor(map, seats)
+    : [];
+  const pull = resourcePull(map, seats, seated, config);
+
+  /**
+   * The scatter's tile draw: uniform, or weighted where a leader wants this row
+   * near its own start (stage two, `startBiasRadius`).
+   *
+   * The uniform arm is kept rather than expressed as "all weights equal"
+   * deliberately: `nextInt` and `nextFloat` are different draws off the same
+   * stream, so a world nobody biased must take the integer arm or every seed
+   * would move the day leaders existed.
+   */
+  const pickTile = (id: ResourceId, list: readonly Tile[]): Tile => {
+    const field = pull.get(id);
+    if (!field || list.length === 0) return list[nextInt(rng, 0, list.length)]!;
+    let total = 0;
+    for (const tile of list) total += field[tileIndex(map, tile.col, tile.row)]!;
+    if (total <= 0) return list[nextInt(rng, 0, list.length)]!;
+    let roll = nextFloat(rng) * total;
+    for (const tile of list) {
+      roll -= field[tileIndex(map, tile.col, tile.row)]!;
+      if (roll < 0) return tile;
+    }
+    return list[list.length - 1]!;
+  };
+
   /** Places up to `wanted` tiles of one resource from one candidate list. */
   const scatterOne = (id: ResourceId, list: readonly Tile[], wanted: number): number => {
     const def = resourceDef(id);
     let placed = 0;
     const attempts = Math.max(1, Math.round(config.attemptsPerResource)) * Math.max(1, wanted);
     for (let attempt = 0; attempt < attempts && placed < wanted; attempt++) {
-      const tile = list[nextInt(rng, 0, list.length)]!;
+      const tile = pickTile(id, list);
       if (tile.resource !== undefined) continue;
       if (hasResourceNear(map, tile, spacing - 1, new Set())) continue;
       const [min, max] = def.clusterSize ?? [1, 1];
@@ -1059,7 +1158,13 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   // ground a guarantee is about to stand on, and the two fairness passes at the
   // end work from the same list.
   const starts = chooseStartPositions(map, RULES.game.maxPlayers);
-  const hands = dealContinentLuxuries(rng, continents.count, config, ground);
+  const hands = dealContinentLuxuries(
+    rng,
+    continents.count,
+    config,
+    ground,
+    luxuryHandBias(map, seats, seated, continents),
+  );
 
   // --- pass 1: the luxuries, dealt continent by continent -------------------
   // A directed pass rather than a weighted scatter that is *refused* off the
@@ -1126,7 +1231,7 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
     for (let attempt = 0; attempt < attempts && placed < budget; attempt++) {
       const id = drawWeighted(rng, table, weights, totalWeight);
       const list = candidates.get(id)!;
-      const tile = list[nextInt(rng, 0, list.length)]!;
+      const tile = pickTile(id, list);
       if (tile.resource !== undefined) continue;
       if (hasResourceNear(map, tile, spacing - 1, new Set())) continue;
       const def = resourceDef(id);
@@ -1139,13 +1244,24 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   // The three guarantees, over the one set of possible starts chosen above. The
   // answer cannot change between the passes — a start is chosen on *ground*
   // (see `startPositions.ts`), and nothing here touches any.
-  ensureStartFood(map, starts, config);
-  ensureStartLuxuries(map, starts, continents, hands, config);
+  // Every *possible* start, and — when figures are seated — the seats' own
+  // sites beside them. A biased roster's starts are not a prefix of the maximum
+  // roster's (each seat sorts the board its own way), so the promise that the
+  // maximum roster covers every real game only holds for the unbiased half and
+  // the biased half has to be named. Both lists are chosen on **ground** and
+  // nothing here touches any, so the answer cannot change between the passes.
+  const guaranteed = [...starts, ...seated];
+  ensureStartFood(map, guaranteed, config);
+  ensureStartLuxuries(map, guaranteed, continents, hands, config);
   // The third guarantee (ruled 2026-09-05), after the other two so that a hex
   // a luxury seam wanted is not taken from under it by a strategic: the
   // strategic pass reaches six hexes and the luxuries four, so it has the most
   // room to give way and gives it.
-  const forcedStrategics = ensureStartStrategics(map, starts, config);
+  const forcedStrategics = ensureStartStrategics(map, guaranteed, config);
+  // Stage three, and the last thing planted: what a seat's own figure needs
+  // standing on the ground its text pays on. After the strategics because it is
+  // the narrowest promise of the four and asks for the least room.
+  ensureStartFurnishing(map, seats, seated, continents, hands, config);
 
   // --- pass 4: the luxury budget, settled -----------------------------------
   // The deal decides *what grows where*; this decides *how much of it there is*.
@@ -1153,12 +1269,187 @@ export function placeResources(map: GameMap, rng: Rng, config: ResourceConfig): 
   // own, so a budget settled before them is a budget the next pass walks out of.
   // Settling afterwards makes the figure on the census the figure that was
   // asked for. Rolls nothing — see `settleLuxuryDensity`.
-  settleLuxuryDensity(map, continents, byContinent, starts, land, config);
+  settleLuxuryDensity(map, continents, byContinent, guaranteed, land, config);
 
   // The one figure this pass has to *tell* somebody, because it cannot be read
   // off the finished map: how many strategics the guarantee had to force. A
   // copy it planted and a copy the scatter dealt are the same tile afterwards.
   return forcedStrategics;
+}
+
+/**
+ * What each seated figure pulls toward its own start: a multiplier per tile,
+ * per row it names, `undefined` for every row nobody named.
+ *
+ * Stage two's scatter half. The field is built once and read by the tile draw,
+ * which is the only shape that keeps the bias *local*: a leader who wants horses
+ * gets a heavier draw inside `startBiasRadius` of its own site and changes
+ * nothing about how many horses the world has — the budget, the spacing rule and
+ * the per-kind weights are all where they were.
+ *
+ * Multipliers **compose** where two figures overlap, because two leaders who
+ * both want cattle in the same valley both want cattle in the same valley. A row
+ * nobody names is absent from the map rather than a field of ones, and that
+ * absence is what the uniform arm of the draw is keyed on.
+ */
+function resourcePull(
+  map: GameMap,
+  seats: readonly StartSeat[],
+  seated: readonly Tile[],
+  config: ResourceConfig,
+): Map<ResourceId, Float64Array> {
+  const fields = new Map<ResourceId, Float64Array>();
+  const radius = Math.max(0, Math.round(config.startBiasRadius));
+  for (let index = 0; index < seats.length && index < seated.length; index++) {
+    const bias: StartBias | undefined = startBiasOf(seats[index]!.leader);
+    const wanted = bias?.resources;
+    if (!wanted) continue;
+    const disc = mapRange(map, tileHex(seated[index]!), radius);
+    for (const id of RESOURCE_IDS) {
+      const multiplier = wanted[id];
+      if (multiplier === undefined || multiplier === 1) continue;
+      let field = fields.get(id);
+      if (!field) {
+        field = new Float64Array(map.tiles.length).fill(1);
+        fields.set(id, field);
+      }
+      for (const tile of disc) field[tileIndex(map, tile.col, tile.row)]! *= Math.max(0, multiplier);
+    }
+  }
+  return fields;
+}
+
+/**
+ * What each seated figure does to the hand of the continent it stands on.
+ *
+ * Stage two's luxury half. A leader is on exactly one continent, so the bias is
+ * a fact about that continent and about no other — which is what keeps a hand a
+ * *region's* character rather than a roster's.
+ */
+function luxuryHandBias(
+  map: GameMap,
+  seats: readonly StartSeat[],
+  seated: readonly Tile[],
+  continents: ContinentMap,
+): LuxuryHandBias {
+  const byContinent = new Map<string, number>();
+  let any = false;
+  for (let index = 0; index < seats.length && index < seated.length; index++) {
+    const wanted = startBiasOf(seats[index]!.leader)?.luxuries;
+    if (!wanted) continue;
+    const start = seated[index]!;
+    const continent = continents.of[tileIndex(map, start.col, start.row)]!;
+    if (continent < 0) continue;
+    for (const id of RESOURCE_IDS) {
+      const multiplier = wanted[id];
+      if (multiplier === undefined || multiplier === 1) continue;
+      const key = `${continent}|${id}`;
+      byContinent.set(key, (byContinent.get(key) ?? 1) * Math.max(0, multiplier));
+      any = true;
+    }
+  }
+  if (!any) return NO_HAND_BIAS;
+  return (continent, id) => byContinent.get(`${continent}|${id}`) ?? 1;
+}
+
+/**
+ * The fifth guarantee, and the only one a *figure* asks for: one resource of
+ * each kind its leader is written about, within `startFurnishRadius`.
+ *
+ * Stage three (`docs/flags.md` (cccc); `docs/leaders.md`, the user: *"a final
+ * pass to furnish resources"*). Mithridates' first age pays on plantations and
+ * camps, so a Mithridates whose rings hold neither has a leader whose text
+ * cannot be read — and unlike the ground, which the chooser can select for, a
+ * resource is *placed* and can simply be placed here.
+ *
+ * A **kind** rather than a row, because which wine and which deer is the
+ * ground's business: the pass asks the improvement table which rows a kind opens
+ * (`improvementForResource`) and plants the first that suits a hex in reach.
+ *
+ * **A luxury is drawn from the continent's hand first**, exactly as
+ * `ensureStartLuxuries` draws one — the deal decides what grows where — and, as
+ * there, the pass bends rather than quietly does nothing when the ground in
+ * reach will grow nothing the region was dealt. See the clause for the two seeds
+ * that measured it. A bonus or a strategic row is free of the question: neither
+ * has a region.
+ *
+ * Rolls nothing: nearest legal hex, ties by tile index, spacing preferred and
+ * given up rather than lose the promise — the bargain all four passes strike.
+ */
+function ensureStartFurnishing(
+  map: GameMap,
+  seats: readonly StartSeat[],
+  seated: readonly Tile[],
+  continents: ContinentMap,
+  hands: readonly ResourceId[][],
+  config: ResourceConfig,
+): void {
+  const radius = Math.max(0, Math.round(config.startFurnishRadius));
+  const spacing = Math.max(1, Math.round(config.minSpacing));
+
+  for (let index = 0; index < seats.length && index < seated.length; index++) {
+    const furnish = startBiasOf(seats[index]!.leader)?.furnish;
+    if (!furnish || furnish.length === 0) continue;
+    const start = seated[index]!;
+    const from = tileHex(start);
+    const near = mapRange(map, from, radius);
+    const continent = continents.of[tileIndex(map, start.col, start.row)]!;
+    const hand = continent >= 0 ? (hands[continent] ?? []) : [];
+
+    const ordered = near
+      .map((tile) => ({
+        tile,
+        distance: wrappedDistance(map, from, tileHex(tile)),
+        index: tileIndex(map, tile.col, tile.row),
+      }))
+      .sort((a, b) => a.distance - b.distance || a.index - b.index);
+
+    for (const entry of furnish as readonly FurnishEntry[]) {
+      // Already furnished — by the deal, by the scatter, or by an earlier
+      // guarantee. What a player has is what is there.
+      if (near.some((tile) => tile.resource !== undefined && furnishMatches(entry, tile.resource))) {
+        continue;
+      }
+      // Table order, and **the continent's hand first**: a bonus or a strategic
+      // has no region and is offered freely — the row a figure names by name is
+      // the row it needs (Modu's horses; `ensureStartStrategics` promises them
+      // six hexes out, and six hexes is a second city's herd) — while a luxury
+      // is the deal's business and the deal's kinds are tried before any other.
+      //
+      // The fallthrough to the rest of the table is `ensureStartLuxuries`' own
+      // clause and is here for its reason, measured: on two of twenty-four
+      // standard seeds the only camp ground inside Mithridates' rings was flat
+      // plains, which of the four camp rows is ivory alone, and ivory was not in
+      // that continent's hand — so a hand-only pass planted nothing and the
+      // figure's first age had nothing to stand on. A guarantee that quietly
+      // does nothing is worse than one that bends.
+      const suits = (id: ResourceId): boolean =>
+        furnishMatches(entry, id) && resourceDef(id).buried !== true;
+      const rows = [
+        ...RESOURCE_IDS.filter((id) => suits(id) && (resourceDef(id).kind !== 'luxury' || hand.includes(id))),
+        ...RESOURCE_IDS.filter((id) => suits(id) && resourceDef(id).kind === 'luxury' && !hand.includes(id)),
+      ];
+      if (rows.length === 0) continue;
+
+      const pick = (respectSpacing: boolean): { tile: Tile; id: ResourceId } | null => {
+        for (const id of rows) {
+          const def = resourceDef(id);
+          for (const entry of ordered) {
+            if (entry.tile.resource !== undefined) continue;
+            if (!tileSuitsResource(entry.tile, def)) continue;
+            if (respectSpacing && hasResourceNear(map, entry.tile, spacing - 1, new Set())) continue;
+            return { tile: entry.tile, id };
+          }
+        }
+        return null;
+      };
+      const chosen = pick(true) ?? pick(false);
+      // Nothing this ground will take. A start ringed by bare grassland has
+      // nowhere to put a camp, and one kind short is the honest outcome rather
+      // than a deer on a hex its own row forbids.
+      if (chosen) chosen.tile.resource = chosen.id;
+    }
+  }
 }
 
 /**
@@ -1571,6 +1862,16 @@ function ensureStartLuxuries(
 
     // The continent's hand first, then the rest of the table, both in table
     // order.
+    //
+    // **The fallthrough stays, measured** (`docs/flags.md` (cccc) asked whether
+    // it could go: hand or nothing). Tightening it to the hand alone leaves six
+    // of the hundred and forty-four possible starts over twelve standard seeds
+    // short of their second kind and two short of their seam — the guarantee
+    // silently not kept, on four per cent of the seats, which is worse than the
+    // exclusivity it would buy. The leader biases make the miss rarer (a
+    // continent seating a figure draws that figure's kinds more heavily) but
+    // they cannot make it rare enough: the guarantee covers the *maximum*
+    // roster, and most of those seats have no figure to bias anything.
     const continent = continents.of[tileIndex(map, start.col, start.row)]!;
     const hand = continent >= 0 ? (hands[continent] ?? []) : [];
     const preferred = [...luxuries.filter((id) => hand.includes(id)),

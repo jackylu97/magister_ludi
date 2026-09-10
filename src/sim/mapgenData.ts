@@ -103,6 +103,29 @@ export interface StartsConfig {
   freshwaterBonus: number;
   /** Flat bonus for a coastal site — the authority discount (Entry I.b). */
   coastBonus: number;
+  /**
+   * How much a leader's start bias may add to a site, as a share of the best
+   * **unbiased** site on the map.
+   *
+   * The ceiling that keeps a bias a preference rather than a verdict (ruled in
+   * `docs/flags.md` (cccc), and `docs/leaders.md`'s feasibility note before it:
+   * *"a bias must be a score, never a rejection"*). A leader's lines are summed
+   * and then clamped to `±biasCap × best`, so the worst a figure can do to its
+   * own seat is trade a fifth of a site's quality for the ground it wants — and
+   * no seat can be handed an unliveable coast for the sake of a coast, because
+   * the refusals never see the bias at all.
+   *
+   * Measured against the best unbiased site rather than against the site being
+   * scored, so the ceiling is one number for the whole map: a bias worth two
+   * points means the same thing on a good hex and a poor one, which is what
+   * makes the ceiling a *cap* rather than a second weight.
+   *
+   * The ceiling is **approached, never reached** (`softCap` in
+   * `startPositions.ts`): a hard clamp flattens every good site onto the same
+   * number and hands the choice straight back to the unbiased score, which is a
+   * bias that does nothing. See that function for the measurement.
+   */
+  biasCap: number;
   /** Food the scored tiles must carry between them before a site is accepted. */
   minRingFood: number;
   /** Production the scored tiles must carry. The other half of "workable". */

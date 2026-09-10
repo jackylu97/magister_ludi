@@ -55,6 +55,7 @@
 import './style.css';
 
 import { type Game, createGame, dispatch } from '../sim/game';
+import { LEADER_IDS, leaderDef } from '../sim/leaderData';
 import { MAPGEN_CONFIG, type MapgenOverrides } from '../sim/mapgenData';
 import type { PlayerSpec } from '../sim/state';
 import { RULES } from '../sim/rulesData';
@@ -94,6 +95,7 @@ const tuningStatusEl = requireElement<HTMLElement>('tuning-status');
 const continentsToggle = requireElement<HTMLInputElement>('continents-toggle');
 const yieldsToggle = requireElement<HTMLInputElement>('yields-toggle');
 const resourcesToggle = requireElement<HTMLInputElement>('resources-toggle');
+const leadersToggle = requireElement<HTMLInputElement>('leaders-toggle');
 const timingEl = requireElement<HTMLElement>('timing');
 const sectionsEl = requireElement<HTMLElement>('sections');
 const tileCardEl = requireElement<HTMLElement>('tile-card');
@@ -151,6 +153,24 @@ const ROSTER: PlayerSpec[] = Array.from({ length: RULES.game.maxPlayers }, (_, i
   color: seatColor(index),
   isHuman: true,
 }));
+
+/**
+ * The roster with the figures dealt to it, seat by seat in sheet order and
+ * wrapping when there are more chairs than leaders.
+ *
+ * Behind a switch rather than always on, because the two questions this page
+ * answers are different questions: *is the generator making good ground* wants
+ * nobody's thumb on the scale, and *does a leader get the ground it asks for*
+ * wants exactly one. A seat's name says which figure it carries so the start
+ * table below can be read against the map.
+ */
+function rosterFor(seats: number, leaders: boolean): PlayerSpec[] {
+  return ROSTER.slice(0, seats).map((spec, index) => {
+    if (!leaders || LEADER_IDS.length === 0) return spec;
+    const leader = LEADER_IDS[index % LEADER_IDS.length]!;
+    return { ...spec, leader, name: leaderDef(leader).name };
+  });
+}
 
 for (let seats = RULES.game.minPlayers; seats <= RULES.game.maxPlayers; seats++) {
   const option = document.createElement('option');
@@ -563,10 +583,11 @@ function generate(): void {
   const overrides = tuningOverrides();
 
   const startedGen = performance.now();
+  const roster = rosterFor(seats, leadersToggle.checked);
   const session = createGame({
     seed: currentSeed(),
     sizeName: SIZE_NAME,
-    players: ROSTER.slice(0, seats),
+    players: roster,
     ...(overrides ? { mapgenOverrides: overrides } : {}),
   });
   const genMs = performance.now() - startedGen;
@@ -576,7 +597,7 @@ function generate(): void {
   const foundMs = performance.now() - startedFound;
 
   const startedReport = performance.now();
-  const reading = mapReport(session.state);
+  const reading = mapReport(session.state, roster);
   const reportMs = performance.now() - startedReport;
 
   game = session;
@@ -1046,7 +1067,12 @@ function startSection(reading: MapReport): HTMLElement {
     `Rings 1–2 workable food and production, read off the start scorer itself. ` +
       `Luxuries are the kinds within ${reading.starts.luxuryRadius} hexes — the ` +
       `radius the guarantee pass works to. Strategics are the guaranteed rows ` +
-      `within ${reading.starts.strategicRadius}; a seat short of one says so in red.`,
+      `within ${reading.starts.strategicRadius}; a seat short of one says so in red.` +
+      (reading.starts.biasCap > 0
+        ? ` With figures seated, each seat's own bias lines follow its hand — ` +
+          `the score the seat was chosen by, held under ${reading.starts.biasCap.toFixed(1)} — ` +
+          `and then what it was furnished with inside ${reading.starts.furnishRadius} hexes.`
+        : ''),
   );
   const { el: tableEl, body } = table([
     { label: 'Seat' },
@@ -1059,7 +1085,7 @@ function startSection(reading: MapReport): HTMLElement {
     who.append(swatchNode(playerPieceColor('', start.playerId), true));
     const name = document.createElement('span');
     name.className = 'start-name';
-    name.textContent = start.name;
+    name.textContent = start.leaderName ?? start.name;
     who.append(name);
     const at = document.createElement('span');
     at.className = 'coords';
@@ -1099,6 +1125,31 @@ function startSection(reading: MapReport): HTMLElement {
       short.className = 'reject';
       short.textContent = `no ${start.strategicsMissing.join(' or ')} within ${reading.starts.strategicRadius}`;
       holder.append(short);
+    }
+    // The figure's own half: why this seat got this hex, and what stage three
+    // put on the ground for it. Both are empty for a seat under nobody, which
+    // is a seat scored exactly as it always was.
+    if (start.bias.length > 0) {
+      const lines = document.createElement('span');
+      lines.className = 'flags';
+      lines.textContent = `bias: ${start.bias
+        .map((entry) => `${entry.source} ${entry.value >= 0 ? '+' : '−'}${Math.abs(entry.value).toFixed(1)}`)
+        .join(' · ')}`;
+      holder.append(lines);
+    }
+    if (start.wants.length > 0) {
+      const asks = document.createElement('span');
+      asks.className = 'flags';
+      asks.textContent = `wants: ${start.wants
+        .map((want) => `${want.label} ${want.met ? '✓' : '✗'}`)
+        .join(' · ')}`;
+      holder.append(asks);
+    }
+    for (const kind of start.furnish) {
+      const furnished = document.createElement('span');
+      furnished.className = 'flags';
+      furnished.textContent = `${kind.kind}: `;
+      holder.append(furnished, handNode(kind.found));
     }
     if (start.reject !== null) {
       const why = document.createElement('span');
@@ -1143,6 +1194,8 @@ regenerateButton.addEventListener('click', generate);
 continentsToggle.addEventListener('change', applyContinentOverlay);
 yieldsToggle.addEventListener('change', applyLens);
 resourcesToggle.addEventListener('change', applyLens);
+// Not a lens: the figures change the world, so the world is made again.
+leadersToggle.addEventListener('change', generate);
 
 capitalPrevButton.addEventListener('click', () => stepCapital(-1));
 capitalNextButton.addEventListener('click', () => stepCapital(1));

@@ -173,7 +173,9 @@
     "startLuxuryKinds": 2,
     "startLuxuryCopies": 2,
     "startStrategics": ["horses", "iron"],
-    "startStrategicRadius": 6
+    "startStrategicRadius": 6,
+    "startBiasRadius": 4,
+    "startFurnishRadius": 3
   },
   "veins": {
     "share": 0,
@@ -215,6 +217,7 @@
     "goldWeight": 0.3,
     "freshwaterBonus": 10,
     "coastBonus": 6,
+    "biasCap": 0.2,
     "minRingFood": 16,
     "minRingProduction": 11,
     "hostileTerrain": [

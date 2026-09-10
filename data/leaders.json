@@ -1,0 +1,51 @@
+{
+  "leaders": {
+    "pachacuti": {
+      "name": "Pachacuti",
+      "startBias": {
+        "terrain": { "river": 6, "hills": 1.5, "mountain": 2.5 },
+        "wants": { "mountainWithin": 2, "riverWithin": 1 }
+      }
+    },
+    "taizong": {
+      "name": "Emperor Taizong",
+      "startBias": {
+        "terrain": { "grassland": 0.9, "river": 2 },
+        "wants": { "grasslandWithin": 2 }
+      }
+    },
+    "modu": {
+      "name": "Modu Chanyu",
+      "startBias": {
+        "terrain": { "grassland": 0.45, "plains": 0.4, "hills": -0.3 },
+        "resources": { "horses": 12, "cattle": 4 },
+        "furnish": ["horses"],
+        "wants": { "pastureGroundWithin": 3 }
+      }
+    },
+    "akhenaten": {
+      "name": "Akhenaten",
+      "startBias": {
+        "terrain": { "river": 6, "floodplain": 2.5, "oasis": 3 },
+        "wants": { "riverOrFloodplainWithin": 1 }
+      }
+    },
+    "almamun": {
+      "name": "Al-Ma'mun",
+      "startBias": {
+        "terrain": { "river": 5, "coast": 0.6 },
+        "wants": { "riverWithin": 2 }
+      }
+    },
+    "mithridates": {
+      "name": "Mithridates VI",
+      "startBias": {
+        "terrain": { "river": 9, "coast": 0.4, "hills": 0.6 },
+        "resources": { "deer": 2 },
+        "luxuries": { "wine": 2.5 },
+        "furnish": ["plantation", "camp"],
+        "wants": { "riverWithin": 2 }
+      }
+    }
+  }
+}

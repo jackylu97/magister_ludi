@@ -97,6 +97,13 @@
           <label class="switch"><input type="checkbox" id="continents-toggle" /><span>Continents</span></label>
           <label class="switch"><input type="checkbox" id="yields-toggle" /><span>Yields</span></label>
           <label class="switch"><input type="checkbox" id="resources-toggle" checked /><span>Resources</span></label>
+          <!--
+            The figures. A leader biases where its seat stands and what grows
+            near it (`docs/leaders.md`, the three stages), so this switch does
+            not repaint the board — it regenerates the world with the six
+            leaders dealt to the seats in order.
+          -->
+          <label class="switch"><input type="checkbox" id="leaders-toggle" /><span>Leaders</span></label>
         </div>
         <p id="timing">—</p>
       </div>

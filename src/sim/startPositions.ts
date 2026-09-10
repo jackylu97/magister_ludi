@@ -87,6 +87,18 @@
  *
  * Ties are broken by tile index, so the result is a pure function of the map.
  *
+ * The figures
+ * -----------
+ * A seat may carry a **leader** (`data/leaders.json`), and a leader's start bias
+ * is stage one of three (`docs/flags.md` (cccc), `docs/mapgen.md`, "The leaders'
+ * three stages"): extra labelled lines on the same list, one per ground the
+ * figure asked for, **soft and capped** by `starts.biasCap` and never a
+ * rejection — so every sweep that proves a roster seats legally on every seed
+ * still holds. `chooseStartPositionsFor` is the entry that takes a roster;
+ * `chooseStartPositions` is the unbiased one, unchanged, and a roster with no
+ * figures in it is delegated straight to it so a game without leaders seats
+ * exactly where it always did.
+ *
  * The import of `cities.ts`, and why it is safe
  * ---------------------------------------------
  * `resources.ts` imports this module and `mapgen.ts` imports that, so a *value*
@@ -107,6 +119,18 @@
 import {
   foldTile,
 } from './yields/hex';
+import { improvementForResource } from './improvementData';
+import {
+  START_BIAS_KEYS,
+  START_WANT_KEYS,
+  type LeaderId,
+  type StartBias,
+  type StartBiasKey,
+  type StartWants,
+  biasIsEmpty,
+  startBiasOf,
+  wantCount,
+} from './leaderData';
 import type { GameMap, Tile } from './map';
 import {
   getTile,
@@ -165,6 +189,29 @@ export interface StartPlacement {
 export interface StartScoreContribution {
   source: string;
   value: number;
+  /**
+   * True on the lines a **leader's start bias** put here (stage one of the
+   * three, `docs/flags.md` (cccc)) — the ground weights and the one clamp line
+   * that holds them under `starts.biasCap`.
+   *
+   * A marker rather than a second list, for rule 5's reason: the total is the
+   * fold of *this* list and there is no arithmetic beside it. What the flag buys
+   * is a surface that can say why this seat and not another one got this hex —
+   * the mapgen page prints exactly these lines under the seat.
+   */
+  bias?: true;
+}
+
+/**
+ * One seat, as the chooser needs to see it: who is sitting there, and nothing
+ * else.
+ *
+ * Deliberately not `PlayerSpec`. The chooser is mapgen's and must not depend on
+ * the shape of a game config — and the only thing about a seat that can move a
+ * start is its figure.
+ */
+export interface StartSeat {
+  leader?: LeaderId;
 }
 
 /**
@@ -332,8 +379,117 @@ export function scoreStartSite(
   ground?: readonly TileYield[],
   landmass?: LandmassFacts,
   arms?: StrategicGround,
+  bias?: BiasReading,
 ): StartSiteScore {
-  return scoreSite(map, startsFor(map), tile, ground, landmass, arms);
+  return scoreSite(map, startsFor(map), tile, ground, landmass, arms, bias);
+}
+
+/**
+ * A leader's bias, and the ceiling the map holds it under.
+ *
+ * The two travel together because neither means anything alone: the weights say
+ * what this figure wants and `cap` says how much of a site's quality it may
+ * spend getting it (`StartsConfig.biasCap`, read off the best *unbiased* site —
+ * see `chooseStartPositionsFor`, which is the only thing that can know it).
+ */
+export interface BiasReading {
+  bias: StartBias;
+  cap: number;
+}
+
+/** What ground one hex carries, in the bias vocabulary. */
+function biasKeysOf(tile: Tile): StartBiasKey[] {
+  const keys: StartBiasKey[] = [tile.terrain];
+  if (tile.feature !== 'none') keys.push(tile.feature);
+  if (tile.hills) keys.push('hills');
+  if (tile.riverEdges !== 0) keys.push('river');
+  return keys;
+}
+
+/**
+ * A bias, held under `cap` — **bent, not cut**.
+ *
+ * `cap · b / (cap + |b|)`: near nought it is `b` itself, it approaches the cap
+ * and never reaches it, and it is strictly increasing all the way. That last
+ * property is the whole reason it is not a clamp, and the reason is measurable:
+ * a hard clamp made most of the good ground on a map score *exactly* the cap, so
+ * every one of those sites tied and the tie was broken by the unbiased score —
+ * which is to say the bias did nothing at all except on the sites it was
+ * weakest on. Over twenty-four seeds a clamped Taizong found grassland exactly
+ * as often as a seat with nobody in it. A squash keeps the order the weights
+ * describe (more river is more river, everywhere) and still spends no more than
+ * the ceiling.
+ *
+ * Symmetric, because a negative weight is lawful: Modu's steppe reads "away from
+ * hills", and a bias may cost a site as much as it may earn one.
+ */
+function softCap(value: number, cap: number): number {
+  if (cap <= 0) return 0;
+  return (cap * value) / (cap + Math.abs(value));
+}
+
+/**
+ * The rows a pasture opens, memoised on first use.
+ *
+ * Asked of the improvement table rather than written out here, so "ground a
+ * pasture could stand on" stays one sentence in `improvements.json` and this
+ * file keeps its promise to hold no numbers and no lists. Lazy rather than a
+ * module constant for the reason the docblock at the top of this file gives
+ * about `cities.ts`: nothing here may run at load time.
+ */
+let PASTURE_ROWS: ResourceId[] | null = null;
+function pastureRows(): ResourceId[] {
+  if (PASTURE_ROWS === null) {
+    PASTURE_ROWS = RESOURCE_IDS.filter((id) => improvementForResource(id) === 'pasture');
+  }
+  return PASTURE_ROWS;
+}
+
+/** Does one hex answer one want? The whole vocabulary, in one switch. */
+function hexAnswers(key: keyof StartWants, tile: Tile): boolean {
+  switch (key) {
+    case 'mountainWithin':
+      return tile.terrain === 'mountain';
+    case 'riverWithin':
+      return tile.riverEdges !== 0;
+    case 'riverOrFloodplainWithin':
+      return tile.riverEdges !== 0 || tile.feature === 'floodplain';
+    case 'grasslandWithin':
+      return tile.terrain === 'grassland';
+    case 'pastureGroundWithin':
+      return pastureRows().some((id) => tileSuitsResource(tile, resourceDef(id)));
+  }
+}
+
+/**
+ * Does this site meet **every** want the figure carries?
+ *
+ * One hex in reach per want, the site's own included, and the walk stops at the
+ * first hex that answers. Read off the *ground* like everything else in this
+ * file — a want may not ask about a resource, because resources are planted at
+ * the starts afterwards and a want that chased one would be the guarantee
+ * chasing itself around the map (see the module docblock).
+ */
+export function siteMeetsWants(map: GameMap, tile: Tile, wants: StartWants): boolean {
+  const from = tileHex(tile);
+  for (const key of START_WANT_KEYS) {
+    const within = wants[key];
+    if (within === undefined) continue;
+    const radius = Math.max(0, Math.round(within));
+    let found = false;
+    for (const near of mapRange(map, from, radius)) {
+      if (!hexAnswers(key, near)) continue;
+      found = true;
+      break;
+    }
+    if (!found) return false;
+  }
+  return true;
+}
+
+/** "grassland" → "Grassland". The lines are read by a person. */
+function biasLabel(key: StartBiasKey): string {
+  return key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 /**
@@ -350,6 +506,7 @@ function scoreSite(
   ground?: readonly TileYield[],
   landmass?: LandmassFacts,
   arms?: StrategicGround,
+  reading?: BiasReading,
 ): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
     ground ? ground[tileIndex(map, target.col, target.row)]! : foldTile(groundOf(target));
@@ -367,6 +524,18 @@ function scoreSite(
   let ringFood = 0;
   let ringProduction = 0;
 
+  // The leader's ground, tallied over the same walk: how much of each thing it
+  // asked for stands here, each hex worth the ring it stands in. **Every** hex
+  // counts, workable or not — a mountain is not a tile a citizen can be sent to
+  // and is exactly what Pachacuti's terraces are written about, so a tally that
+  // skipped it would refuse to see the one bias the figure has.
+  const tally = reading ? new Map<StartBiasKey, number>() : null;
+  const tallyHex = (near: Tile, weight: number): void => {
+    if (!tally) return;
+    for (const key of biasKeysOf(near)) tally.set(key, (tally.get(key) ?? 0) + weight);
+  };
+  tallyHex(tile, STARTS.centreWeight);
+
   // One walk of the whole neighbourhood. Every workable tile is remembered with
   // the weight of the ring it stands in; how many rings there are is the length
   // of the weight list, so a third ring is a number in `mapgen.json`.
@@ -377,6 +546,7 @@ function scoreSite(
     const ring = wrappedDistance(map, from, tileHex(near));
     if (ring < 1 || ring > rings) continue;
     ringTiles += 1;
+    tallyHex(near, STARTS.ringWeights[ring - 1]!);
     if (isWaterTerrain(near.terrain)) water += 1;
     else if (hostileTerrain.includes(near.terrain)) hostile += 1;
     if (!isWorkableSiteTile(near)) continue;
@@ -407,6 +577,28 @@ function scoreSite(
 
   if (tile.freshwater) entries.push({ source: 'Fresh water', value: STARTS.freshwaterBonus });
   if (isCoastal(map, tile)) entries.push({ source: 'Coast', value: STARTS.coastBonus });
+
+  // The leader's lines, last, and **soft**: one per thing the figure asked for,
+  // then one line that takes back however much of their sum the cap will not
+  // allow. The give-back is a line of its own rather than a rescaling of the
+  // others because a designer reading the seat's breakdown should see the weight
+  // the sheet actually carries beside the ceiling that took it back — and
+  // because rule 5's fold is then still the arithmetic, with nothing computed
+  // twice.
+  if (reading && tally) {
+    let biased = 0;
+    for (const key of START_BIAS_KEYS) {
+      const weight = reading.bias.terrain?.[key];
+      if (weight === undefined || weight === 0) continue;
+      const found = tally.get(key) ?? 0;
+      if (found === 0) continue;
+      const value = weight * found;
+      biased += value;
+      entries.push({ source: biasLabel(key), value, bias: true });
+    }
+    const held = softCap(biased, reading.cap);
+    if (held !== biased) entries.push({ source: 'Bias cap', value: held - biased, bias: true });
+  }
 
   let total = 0;
   for (const entry of entries) total += entry.value;
@@ -577,6 +769,214 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
     if (chosen.length < count) seat(map, refused, chosen, taken, count, spacing, 1);
   }
   return chosen;
+}
+
+/** The best score among the sites this map stands behind. Nought if it has none. */
+function bestAccepted(scores: Iterable<StartSiteScore>): number {
+  let best = 0;
+  for (const score of scores) {
+    if (score.reject === null && score.total > best) best = score.total;
+  }
+  return best;
+}
+
+/** The ceiling itself: a share of that best site. One expression, one place. */
+function capFrom(STARTS: StartsConfig, best: number): number {
+  return Math.max(0, STARTS.biasCap) * best;
+}
+
+/**
+ * How much a leader's bias may be worth **on this map**, in the score's own
+ * units.
+ *
+ * The same number `chooseStartPositionsFor` clamps with, offered to the surfaces
+ * that print a seat's bias lines — the mapgen page says what the cap was, and
+ * the sweep that measures the biases asserts against it. It pays for its own
+ * pass of the board rather than being handed one, because a caller that wanted
+ * it usually has no scores in hand.
+ */
+export function startBiasCap(map: GameMap): number {
+  const STARTS = startsFor(map);
+  const ground = groundYields(map);
+  const landmass = landmassFacts(map);
+  const arms = strategicGround(map);
+  let best = 0;
+  for (const tile of map.tiles) {
+    if (!isStartCandidate(tile)) continue;
+    const score = scoreSite(map, STARTS, tile, ground, landmass, arms);
+    if (score.reject === null && score.total > best) best = score.total;
+  }
+  return capFrom(STARTS, best);
+}
+
+/**
+ * The best remaining site for **one** seat, or `null` when nothing fits.
+ *
+ * `seat`'s single-chair sibling, and it exists because a biased roster cannot
+ * use `seat`: every seat orders the board differently, so there is no one list
+ * to sweep. The relaxation is the same rule read one chair at a time — the
+ * spacing gives way by one when nothing fits, down to `floor`.
+ */
+function seatOne(
+  map: GameMap,
+  ordered: readonly Tile[],
+  chosen: readonly Tile[],
+  taken: ReadonlySet<number>,
+  fromSpacing: number,
+  floor: number,
+  meets?: Uint8Array,
+): Tile | null {
+  for (let spacing = Math.max(floor, fromSpacing); spacing >= floor; spacing--) {
+    for (const tile of ordered) {
+      const at = tileIndex(map, tile.col, tile.row);
+      if (taken.has(at)) continue;
+      // The wants, when there are any: a filter over the order, never a change
+      // to it. The site that comes back is still the best-scoring one the seat
+      // could have had — of those that answer what the figure asked for.
+      if (meets && meets[at] !== 1) continue;
+      const hex = tileHex(tile);
+      if (chosen.every((other) => wrappedDistance(map, hex, tileHex(other)) >= spacing)) return tile;
+    }
+  }
+  return null;
+}
+
+/**
+ * One start per **seat**, each scoring the board its own leader's way.
+ *
+ * Stage one of the three (`docs/flags.md` (cccc), `docs/leaders.md`): a leader's
+ * bias is extra labelled lines on the same score the chooser already sorts —
+ * soft, capped by `starts.biasCap`, and **never a rejection**, so every sweep
+ * that proves a roster seats legally on every seed still holds.
+ *
+ * The seating is **per seat**, one chair at a time — the ruling's own shape and
+ * the readable one (the mapgen page can say why this seat got this hex) rather
+ * than an assignment that maximises the sum. The order is **the seats with the
+ * most wants first, ties by roster index**: a figure with hard needs picks
+ * before a flexible one, because a need asked from last place is a need asked of
+ * what everybody else has left. Nothing else about a figure moves its turn, so
+ * the order is a fact about the roster and reads off it.
+ *
+ * Each chair takes its best-scoring **accepted** site that meets every want it
+ * carries; where the map offers none it takes the best-scoring accepted site
+ * outright, then a refused one, then gives up the spacing floor. A want is
+ * therefore never a rejection and never a guarantee — see `StartBias.wants`.
+ *
+ * **A roster with no leaders is today's map, exactly.** The unbiased case is
+ * delegated to `chooseStartPositions` rather than reimplemented here, so the
+ * batch sweep's relaxation cascade (all seats through the accepted sites before
+ * any refused one) is the one that runs, and a game without figures is
+ * byte-identical to a game from before they existed. The per-seat cascade below
+ * differs in exactly that: a seat that cannot be seated at all falls to the
+ * refused sites on its own account, because there is no shared ordering left to
+ * fall through together.
+ */
+export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[]): Tile[] {
+  const biases = seats.map((seat) => {
+    const bias = startBiasOf(seat.leader);
+    return biasIsEmpty(bias) ? undefined : bias;
+  });
+  if (biases.every((bias) => bias === undefined)) {
+    return chooseStartPositions(map, seats.length);
+  }
+
+  const STARTS = startsFor(map);
+  const ground = groundYields(map);
+  const landmass = landmassFacts(map);
+  const arms = strategicGround(map);
+  const candidates = map.tiles.filter(isStartCandidate);
+
+  // The unbiased reading of the whole board, once: it is what a leaderless seat
+  // sorts by, and its best accepted site is the number the cap is a share of.
+  const plain = new Map<number, StartSiteScore>();
+  for (const tile of candidates) {
+    plain.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground, landmass, arms));
+  }
+  const cap = capFrom(STARTS, bestAccepted(plain.values()));
+
+  // Whether a site is *allowed* is the same question for every seat — a bias is
+  // a score and never a rejection — so the two pools are built once and only
+  // their order changes from chair to chair.
+  const rejected = (tile: Tile): boolean =>
+    plain.get(tileIndex(map, tile.col, tile.row))!.reject !== null;
+  const accepted = candidates.filter((tile) => !rejected(tile));
+  const refused = candidates.filter(rejected);
+  const spacing = startSpacing(map, STARTS);
+
+  // **The needy choose first.** Seats are served in order of how many wants
+  // they carry, ties by roster index — deterministic, and the answer to the one
+  // thing the measured soft bias could not fix: Mithridates asking for a river
+  // from sixth place is asking for what three river-hungry chairs have already
+  // taken. A count is the whole of the order; nothing else about a figure moves
+  // its turn.
+  const order = seats
+    .map((_, index) => index)
+    .sort((a, b) => wantCount(biases[b]) - wantCount(biases[a]) || a - b);
+
+  const chosen: Tile[] = [];
+  const taken = new Set<number>();
+  const seatOf = new Array<Tile | undefined>(seats.length).fill(undefined);
+  for (const index of order) {
+    const bias = biases[index];
+    const scores = new Map<number, number>();
+    for (const tile of candidates) {
+      const at = tileIndex(map, tile.col, tile.row);
+      scores.set(
+        at,
+        bias === undefined
+          ? plain.get(at)!.total
+          : scoreSite(map, STARTS, tile, ground, landmass, arms, { bias, cap }).total,
+      );
+    }
+    const byScore = (a: Tile, b: Tile): number => {
+      const ia = tileIndex(map, a.col, a.row);
+      const ib = tileIndex(map, b.col, b.row);
+      return scores.get(ib)! - scores.get(ia)! || ia - ib;
+    };
+    const wanted = [...accepted].sort(byScore);
+    const rest = [...refused].sort(byScore);
+
+    // The wants, asked once over the sites this map stands behind. A field
+    // rather than a predicate in the loop because the cascade sweeps the list
+    // once per spacing it relaxes to, and the answer cannot change between
+    // sweeps — the ground does not move.
+    let meets: Uint8Array | undefined;
+    const asks = bias?.wants;
+    if (asks !== undefined && wantCount(bias) > 0) {
+      meets = new Uint8Array(map.tiles.length);
+      for (const tile of wanted) {
+        if (siteMeetsWants(map, tile, asks)) meets[tileIndex(map, tile.col, tile.row)] = 1;
+      }
+    }
+
+    // The cascade one chair at a time: what the figure asked for, then the best
+    // ground going, then the sites this map does not stand behind, then the
+    // floor itself giving way. **The want is the first arm and never the last**,
+    // which is the whole of "a hard want with a fallback": a map with no
+    // mountain going seats Pachacuti anyway, on the best hex he could have had.
+    const pick =
+      (meets ? seatOne(map, wanted, chosen, taken, spacing, STARTS.minDistance, meets) : null) ??
+      seatOne(map, wanted, chosen, taken, spacing, STARTS.minDistance) ??
+      seatOne(map, rest, chosen, taken, spacing, STARTS.minDistance) ??
+      seatOne(map, wanted, chosen, taken, spacing, 1) ??
+      seatOne(map, rest, chosen, taken, spacing, 1);
+    if (!pick) continue;
+    chosen.push(pick);
+    seatOf[index] = pick;
+    taken.add(tileIndex(map, pick.col, pick.row));
+  }
+
+  // Back into **roster** order: the seating order is an implementation detail of
+  // who was served first, and every caller indexes this by seat. A chair with
+  // nothing under it can only happen on a map with fewer standable hexes than
+  // players, which is `chooseStartPositions`' own "fewer than count" case, so
+  // the prefix is where the list ends — exactly as it does there.
+  const seated: Tile[] = [];
+  for (const tile of seatOf) {
+    if (tile === undefined) break;
+    seated.push(tile);
+  }
+  return seated;
 }
 
 /**

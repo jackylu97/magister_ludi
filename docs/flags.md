@@ -1876,6 +1876,16 @@ directly to confirm rulings — user marginalia are rulings.
   unchanged. Pins per verb; schema bump if a replay's spend differs (it
   does: a two-charge draw); `docs/religion-v2.md` follows. Needed for
   Akhenaten's deck (`docs/leaders.md`).
+  **F2 built** (2026-09-10, schema **112**, stacked on S2 in the gate and
+  **held** with it): `rules.religion.prophetCosts` (found 2 · plant 2 ·
+  belief 2 · proclaim 1 · rite 1), `chargeCostOf` the one reader,
+  `spendCharge(state, unit, verb)` the one spender (`spendProphet`
+  deleted — the split was the ladder), `agentProblem` the one refusal
+  with the ruling's sentence, `chargeCostWords` the one printer; founding
+  vs planting priced by whether the empire already has a faith; the
+  apostle's and inquisitor's acts enumerated at one. Seven pins incl. a
+  doc sync against `docs/religion-v2.md`'s table; `CLAUDE.md`'s stale
+  "One-charge prophet" trap corrected.
 - (aaaa) **Leaders — direction, and player progression PARKED** (the user,
   2026-09-10). `docs/leaders.md` is the casting call (26 figures, themes and
   possible bonuses in the user's format) and carries the draft's shape as

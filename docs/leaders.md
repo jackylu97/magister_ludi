@@ -590,6 +590,35 @@ then always has something to stand on.
   Rule 2 holds: every stage draws from the map's own stream and the bias is
   config, so the same seed and roster draw the same world.
 
+**Built** (batch M1). The six rows are `data/leaders.json` (`leaderData.ts`), one
+`startBias` each: ground weights, resource and luxury multipliers, furnishing
+kinds. A seat names its figure in the game config (`PlayerSpec.leader`,
+refused by `validateConfig` if the sheet does not carry it), which makes the
+roster a fourth input to the map beside the seed, the size and the override
+sheet — and a roster with no figures in it generates the map it always
+generated, tile for tile. Stage one is `chooseStartPositionsFor`
+(`startPositions.ts`), stage two the scatter's tile draw and the continent's hand
+(`resources.ts`), stage three `ensureStartFurnishing` beside the other
+guarantees. The cap is `starts.biasCap` and it is **approached, never reached**:
+a hard clamp was measured to flatten every good site onto one number and hand the
+choice back to the unbiased score. The reference is `docs/mapgen.md`, "The
+leaders' three stages" — the knobs, the measured before-and-after table, and the
+one ▢ that came back the other way: the luxury guarantee's fallthrough **stays**,
+because hand-or-nothing left four per cent of the possible starts short of the
+kinds they are promised. The mapgen page seats the six behind its Leaders switch
+and prints each seat's bias lines and its furnishing.
+
+**M1b — the wants.** The capped score was measured and it moves the odds a few
+points; it cannot deliver a need. So a row may also carry `startBias.wants` — a
+mountain within two, a river within one — and the chooser gives that seat the
+best **accepted** site that answers all of them, falling back to the soft-scored
+best where the map has none (never a rejection, so the legality sweeps hold).
+The seats with the most wants are served first, ties by roster index. With the
+wants and one furnishing that names a row rather than a kind (Modu's horses),
+every criterion in the sweep holds on every one of twenty-four seeds, and the
+seats pay at most a couple of points of site quality for it. Nothing else of a
+leader is built: no deck, no passive, no boon, no unique.
+
 ## Notes for the system
 
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for

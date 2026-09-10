@@ -89,6 +89,7 @@ import { placeDiscoveries } from './discoveryPlacement';
 import { createNoise3D, fbm3, ridged3, type Noise3D } from './noise';
 import { placeResources } from './resources';
 import { hashSeed, makeRng, nextFloat, nextUint32 } from './rng';
+import type { StartSeat } from './startPositions';
 import { placeVeins } from './veins';
 import { isWaterTerrain, type FeatureId, type TerrainId } from './terrainData';
 import {
@@ -1088,13 +1089,22 @@ export interface MapDetail {
  * sheet is carried on the map and in the game config, so a map generated with
  * one regenerates identically from the same config. Absent on every ordinary
  * game.
+ *
+ * `seats` is the **roster's figures**, and it is a fourth input on exactly the
+ * same terms: a leader biases where the seats stand and what grows near them
+ * (`docs/flags.md` (cccc), the three stages), the roster lives in the game
+ * config, and a save is `{config, log}` — so the world a leader made regenerates
+ * from the config that made it. A roster with no leaders in it changes nothing:
+ * every draw takes the path it took before figures existed, and the map is
+ * byte-identical to the map of the same seed.
  */
 export function generateMap(
   seed: number,
   sizeName: string,
   overrides?: MapgenOverrides,
+  seats: readonly StartSeat[] = [],
 ): GameMap {
-  return generateMapDetail(seed, sizeName, overrides).map;
+  return generateMapDetail(seed, sizeName, overrides, seats).map;
 }
 
 /**
@@ -1111,6 +1121,7 @@ export function generateMapDetail(
   seed: number,
   sizeName: string,
   overrides?: MapgenOverrides,
+  seats: readonly StartSeat[] = [],
 ): MapDetail {
   // Resolved once, here, and handed down — every pass below reads *this*
   // config and never the module table, which is what lets an override sheet
@@ -1284,7 +1295,7 @@ export function generateMapDetail(
   // hills, features and river edges on a given seed are bit-identical to what
   // they were before resources existed. Adding a pass must never move the
   // ground. See `resources.ts`.
-  const forcedStrategics = placeResources(map, rng, config.resources);
+  const forcedStrategics = placeResources(map, rng, config.resources, seats);
 
   // Pass 7: the ruins and the villages, and they are **last** for the third time
   // for the same reason — every draw made here is a draw nothing before it can

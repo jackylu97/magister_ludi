@@ -42,8 +42,26 @@ import {
   type ResourceKind,
   resourceDef,
 } from '../sim/resourceData';
+import {
+  START_WANT_KEYS,
+  type FurnishEntry,
+  type LeaderId,
+  type StartWants,
+  furnishMatches,
+  leaderDef,
+  startBiasOf,
+} from '../sim/leaderData';
 import { carveContinents, landTileCount } from '../sim/resources';
-import { chooseStartPositions, landmassFacts, scoreStartSite } from '../sim/startPositions';
+import {
+  type StartScoreContribution,
+  type StartSeat,
+  chooseStartPositionsFor,
+  landmassFacts,
+  scoreStartSite,
+  siteMeetsWants,
+  startBiasCap,
+  strategicGround,
+} from '../sim/startPositions';
 import type { GameState } from '../sim/state';
 import { isWaterTerrain } from '../sim/terrainData';
 import { hasFreshWater, isCoastal } from '../sim/water';
@@ -244,6 +262,46 @@ export interface StartRow {
   strategicsMissing: ResourceId[];
   freshwater: boolean;
   coast: boolean;
+  /** The figure in this chair, or absent for a seat under nobody. */
+  leader?: LeaderId;
+  /** That figure's name, as the page prints it. */
+  leaderName?: string;
+  /**
+   * The **bias lines** of this seat's own score — why this figure got this hex
+   * — straight off `scoreStartSite`'s list, cap line and all. Empty for a seat
+   * with no figure, which is the same thing as a seat that was scored plainly.
+   */
+  bias: StartScoreContribution[];
+  /**
+   * What the furnishing pass promised (`startBias.furnish`) and what is
+   * standing there: one row per kind, read off the ground rather than reported
+   * by the pass — a copy the pass planted and a copy the scatter dealt are the
+   * same tile afterwards.
+   */
+  furnish: FurnishCount[];
+  /**
+   * The figure's **hard wants** and whether this hex answers them.
+   *
+   * A want is a filter over the order rather than a line in the score, so it
+   * cannot show up in `bias` — and "no" is the interesting row: it says the map
+   * had none going and the seat fell back to the best ground it could get.
+   */
+  wants: WantCheck[];
+}
+
+/** One want a figure carries, and whether its seat's hex answers it. */
+export interface WantCheck {
+  /** The want as a person reads it: "mountain within 2". */
+  label: string;
+  met: boolean;
+}
+
+/** One furnishing kind, and the resources of it in reach. */
+export interface FurnishCount {
+  /** The improvement kind the leader's text pays on — `plantation`, `camp`. */
+  kind: string;
+  /** The rows of that kind standing within `startFurnishRadius`. */
+  found: LuxuryCount[];
 }
 
 export interface StartReport {
@@ -251,8 +309,15 @@ export interface StartReport {
   luxuryRadius: number;
   /** The radius `strategics` was gathered over. Its sibling. */
   strategicRadius: number;
+  /** The radius a leader's furnishing was gathered over. Its sibling again. */
+  furnishRadius: number;
   /** Seats missing at least one guaranteed strategic. Zero is the promise kept. */
   seatsMissingStrategics: number;
+  /**
+   * How much a bias could be worth on this map (`startBiasCap`) — the ceiling
+   * the lines under each seat were clamped to. Nought when nobody is seated.
+   */
+  biasCap: number;
   rows: StartRow[];
 }
 
@@ -270,21 +335,42 @@ export interface StartReport {
  * that looks thin on this table is thin by the generator's own measure rather
  * than by a second one invented here.
  */
-export function startReport(state: GameState): StartReport {
+export function startReport(state: GameState, seats: readonly StartSeat[] = []): StartReport {
   const { map } = state;
   const config = resourcesOf(map);
   const radius = Math.max(0, Math.round(config.startLuxuryRadius));
   const armsRadius = Math.max(0, Math.round(config.startStrategicRadius));
+  const furnishRadius = Math.max(0, Math.round(config.startFurnishRadius));
   const armsWanted = (config.startStrategics ?? []).filter(
     (id) => RESOURCE_IDS.includes(id) && resourceDef(id).kind === 'strategic',
   );
-  const starts = chooseStartPositions(map, state.players.length);
+  // The seats as the chooser sees them: the figures the caller handed over,
+  // padded out to the roster with empty chairs. A page that names no figures
+  // asks exactly the question it always asked — `chooseStartPositionsFor`
+  // delegates a leaderless roster to the unbiased chooser.
+  const chairs: StartSeat[] = state.players.map((_, index) => seats[index] ?? {});
+  const seated = chooseStartPositionsFor(map, chairs);
+  const anyLeader = chairs.some((chair) => startBiasOf(chair.leader) !== undefined);
   // One walk of the land for the whole table. `scoreStartSite` would otherwise
-  // recompute the landmass floor's components once per seat.
+  // recompute the landmass floor's components — and the strategic dilation —
+  // once per seat.
   const landmass = landmassFacts(map);
+  const arms = strategicGround(map);
+  const cap = anyLeader ? startBiasCap(map) : 0;
 
-  const rows = starts.map((tile, seat) => {
-    const scored = scoreStartSite(map, tile, undefined, landmass);
+  const rows = seated.map((tile, seat) => {
+    const leader = chairs[seat]?.leader;
+    const bias = startBiasOf(leader);
+    // Scored the seat's own way, so the lines under it are the lines that chose
+    // it — the cap included.
+    const scored = scoreStartSite(
+      map,
+      tile,
+      undefined,
+      landmass,
+      arms,
+      bias === undefined ? undefined : { bias, cap },
+    );
     return {
       playerId: seat,
       name: state.players[seat]?.name ?? `Seat ${seat + 1}`,
@@ -301,14 +387,66 @@ export function startReport(state: GameState): StartReport {
       ),
       freshwater: hasFreshWater(tile),
       coast: isCoastal(map, tile),
+      ...(leader === undefined ? {} : { leader, leaderName: leaderDef(leader).name }),
+      bias: scored.entries.filter((entry) => entry.bias === true),
+      furnish: furnishNear(map, tile, furnishRadius, bias?.furnish ?? []),
+      wants: wantChecks(map, tile, bias?.wants),
     };
   });
   return {
     luxuryRadius: radius,
     strategicRadius: armsRadius,
+    furnishRadius,
     seatsMissingStrategics: rows.filter((row) => row.strategicsMissing.length > 0).length,
+    biasCap: cap,
     rows,
   };
+}
+
+/**
+ * Each want this figure carries, asked of the hex it actually got.
+ *
+ * The label is the key's own words with the code word taken off the front —
+ * "mountainWithin: 2" reads "mountain within 2" — so the page names no want it
+ * does not read from the sheet.
+ */
+function wantChecks(map: GameMap, tile: Tile, wants: StartWants | undefined): WantCheck[] {
+  if (!wants) return [];
+  const checks: WantCheck[] = [];
+  for (const key of START_WANT_KEYS) {
+    const within = wants[key];
+    if (within === undefined) continue;
+    const what = key.replace('Within', '').replace(/([A-Z])/g, (m) => ` ${m.toLowerCase()}`);
+    checks.push({
+      label: `${what} within ${within}`,
+      met: siteMeetsWants(map, tile, { [key]: within }),
+    });
+  }
+  return checks;
+}
+
+/**
+ * What is standing in reach of each kind this seat's figure was furnished with.
+ *
+ * Read off the ground, exactly as the strategics column is and for the same
+ * reason: the pass cannot be asked afterwards which copy was its own, and what a
+ * player has is what is there.
+ */
+function furnishNear(
+  map: GameMap,
+  from: Tile,
+  radius: number,
+  entries: readonly FurnishEntry[],
+): FurnishCount[] {
+  return entries.map((entry) => {
+    const tally = new Map<ResourceId, number>();
+    for (const near of mapRange(map, tileHex(from), radius)) {
+      const id = near.resource;
+      if (id === undefined || !furnishMatches(entry, id)) continue;
+      tally.set(id, (tally.get(id) ?? 0) + 1);
+    }
+    return { kind: entry, found: luxuryList(tally) };
+  });
 }
 
 /** Each guaranteed strategic within `radius` of a tile, with its copy count. */
@@ -454,7 +592,7 @@ export interface MapReport {
  * is run **once** here rather than by each section, which is what keeps
  * regenerating cheap enough to hold the seed key down on.
  */
-export function mapReport(state: GameState): MapReport {
+export function mapReport(state: GameState, seats: readonly StartSeat[] = []): MapReport {
   const { map } = state;
   const continents = carveContinents(map, resourcesOf(map));
   const report = continentReport(state);
@@ -465,7 +603,7 @@ export function mapReport(state: GameState): MapReport {
     sizeName: map.sizeName,
     census: resourceCensus(state),
     continents: report,
-    starts: startReport(state),
+    starts: startReport(state, seats),
     woodland: woodlandReport(state),
     continentOf: continents.of,
   };
