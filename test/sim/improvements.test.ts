@@ -83,7 +83,6 @@ import {
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
 import { at, bareState, woodedWorker } from './improvementHelpers';
-import { markMountainAdjacency } from '../../src/sim/mapgen';
 import { unitAwaitsOrders } from '../../src/sim/units';
 
 /**
@@ -120,6 +119,25 @@ function workerState(col = 5, row = 4): { state: GameState; worker: Unit } {
   foundCityAt(state, 0, at(state, 5, 5));
   const worker = createUnit(state, 0, 'worker', col, row);
   return { state, worker };
+}
+
+/**
+ * `workerState` with **Siegecraft** in the seat's hand — the lumbermill's gate.
+ *
+ * The bench withholds every node whose gift is a *rule* (`improvementHelpers.ts`
+ * derives the list rather than naming it), and since the user's tree pass of
+ * 2026-09-10 Siegecraft is one: it puts a town's own citizens on its walls. The
+ * lumbermill's gate is scenery in the three tests below and its subject in the
+ * fourth, so it is opened deliberately here rather than by widening a fixture
+ * six files share — the floating gardens' bench one screen down, exactly.
+ */
+function sawyerState(col = 5, row = 4): { state: GameState; worker: Unit } {
+  const built = workerState(col, row);
+  for (const player of built.state.players) {
+    if (!player.techsResearched.includes('siegecraft')) player.techsResearched.push('siegecraft');
+  }
+  bumpRevision(built.state);
+  return built;
 }
 
 function build(playerId: number, unitId: number, improvement: ImprovementId): Command {
@@ -471,7 +489,7 @@ describe('buildImprovement', () => {
       // prod, can only be built on forest and jungle tiles". The *whole* rule is
       // the feature, so the row names `validFeatures` and no terrain — which is
       // the third kind of constraint the table now has.
-      const { state, worker } = workerState();
+      const { state, worker } = sawyerState();
       const tile = at(state, 5, 4);
       for (const feature of ['forest', 'jungle'] as const) {
         tile.feature = feature;
@@ -497,7 +515,7 @@ describe('buildImprovement', () => {
       // The one improvement that works the thing already on the tile. Nothing
       // writes `feature = 'none'` for it and it clears no clutter, so the board
       // keeps its pines and the yield is the canopy's plus one hammer.
-      const { state, worker } = workerState();
+      const { state, worker } = sawyerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       const before = foldTile(tile);
@@ -532,7 +550,7 @@ describe('buildImprovement', () => {
       // The seam rule is unchanged and still applies over a canopy: a lumbermill
       // on bare woodland is fine, and one on a deer forest is refused because
       // the deer want a camp.
-      const { state, worker } = workerState();
+      const { state, worker } = sawyerState();
       const tile = at(state, 5, 4);
       tile.feature = 'forest';
       expect(improvementError(state, worker.id, 'lumbermill')).toBeNull();
@@ -736,7 +754,7 @@ describe('buildImprovement', () => {
         for (const tile of built.state.map.tiles) {
           if (tile.col === 4 || tile.col === 5) tile.terrain = 'coast';
         }
-        for (const player of built.state.players) player.techsResearched.push('raisedFields');
+        for (const player of built.state.players) player.techsResearched.push('irrigation');
         bumpRevision(built.state);
         return built;
       }
@@ -2385,7 +2403,7 @@ describe('improvements in the log', () => {
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
     // 73 since batch D (2026-09-06): the buildings cut with chains; 74 since
     // batch C2's rites landed the same day.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;
@@ -2492,69 +2510,3 @@ describe('the works pay instantly', () => {
   });
 });
 
-/**
- * **Raised Fields' mountain-side farm** (the playtest notes, 2026-09-03: the
- * node stopped unlocking a building and started paying a hex).
- *
- * The claim under test is the new *shape* rather than the number: mountain
- * adjacency is a `TileCondition` (`adjacentMountain`) read off ground the
- * generator already marked (`Tile.mountainAdjacent`), so the clause lands in
- * `explainTileYield`'s card lines as one more labelled entry and the fold is
- * still the fold of the list. Nothing computes a total beside it (hard rule 5),
- * and nothing walks the map inside the predicate.
- */
-describe('a farm beside a mountain', () => {
-  /** A worker's board with a peak at (6, 4) and every neighbour marked. */
-  function withPeak(): { state: GameState; tile: Tile } {
-    const state = bareState();
-    foundCityAt(state, 0, at(state, 5, 5));
-    at(state, 6, 4).terrain = 'mountain';
-    markMountainAdjacency(state.map);
-    const tile = at(state, 5, 4);
-    tile.improvement = 'farm';
-    for (const player of state.players) player.techsResearched.push('raisedFields');
-    bumpRevision(state);
-    return { state, tile };
-  }
-
-  it('adds one labelled line to the hex, and folds into the total', () => {
-    const { state, tile } = withPeak();
-    expect(tile.mountainAdjacent, 'the ground was marked').toBe(true);
-    const ctx = yieldContextFor(state, 0);
-    const list = explainTileYield(tile, ctx);
-    const named = list.filter((entry) => entry.source.includes(techDef('raisedFields').name));
-    expect(named).toHaveLength(1);
-    expect(named[0]!.food).toBe(1);
-    // The total is the fold of the list and never a second sum beside it.
-    expect(foldTile(tile, ctx)).toEqual(foldTileLines(list));
-  });
-
-  it('pays a farm, and only where a mountain actually stands next door', () => {
-    const { state, tile } = withPeak();
-    const ctx = yieldContextFor(state, 0);
-    const beside = foldTile(tile, ctx).food;
-
-    // Away from the peak, the same farm on the same ground pays the ordinary
-    // amount: the clause is `all` of two conditions and both have to hold.
-    const away = at(state, 2, 8);
-    away.improvement = 'farm';
-    expect(away.mountainAdjacent).toBeUndefined();
-    expect(foldTile(away, ctx).food).toBe(beside - 1);
-
-    // And it is the *farm*: bare ground beside the peak gets nothing, which is
-    // the improvement half of the condition doing its work.
-    delete tile.improvement;
-    const bare = explainTileYield(tile, ctx);
-    expect(bare.some((entry) => entry.source.includes(techDef('raisedFields').name))).toBe(false);
-  });
-
-  it('is the empire\u2019s law, so an empire without the node is paid nothing', () => {
-    const { state, tile } = withPeak();
-    state.players[0]!.techsResearched = state.players[0]!.techsResearched.filter(
-      (id) => id !== 'raisedFields',
-    );
-    bumpRevision(state);
-    const list = explainTileYield(tile, yieldContextFor(state, 0));
-    expect(list.some((entry) => entry.source.includes(techDef('raisedFields').name))).toBe(false);
-  });
-});

@@ -1082,12 +1082,17 @@ describe('a technology says its rules once', () => {
 
   it('gives a name and a page to every node whose rules run past the bar', () => {
     const named = techsWithNamedRules(TECH_IDS);
-    // The five the audit measured (§2), and no others: the bar is a decision
-    // this suite holds rather than a threshold that drifts with the wording.
+    // The bar is a decision this suite holds rather than a threshold that drifts
+    // with the wording, so the roster is pinned by name and moves only when a
+    // row's rules do. The user's tree pass of 2026-09-10 moved three of them:
+    // **Satrapies** lost its free roads and its deferred half and fits on its
+    // own card again, while **Daughter Cities** gained the caravan's grain and
+    // **The Silk Road** — the new node — carries three clauses on its own.
     expect(named).toEqual([
       'epicPoetry',
-      'theImperialPost',
       'theExaminationHall',
+      'colonialCharters',
+      'silkRoad',
       'theSilkRoad',
       'movableType',
     ]);

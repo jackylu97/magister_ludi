@@ -212,16 +212,19 @@ send many caravans; they were where the caravans went.
   scales with the host's population, so the tall capital is the destination
   everyone wants and profits from peace. Bots pick destinations by value and
   will come on their own. ▢ rate.
-- **Luxuries by route** — **not in the game today** (a luxury pays coin *on*
-  routes; nothing carries a luxury *to* a city). (rec) a **foreign** route to a
-  city holding an improved luxury you lack counts as **half a copy** at the
-  origin; **one luxury per route**; **unique kinds only** (a second copy pays
-  nothing, as today); lapses with the route (twenty turns, plunder, war). The
-  bounds are what keep it from being wide's free lunch: the ceiling is the
-  handful of kinds reachable rivals hold and you do not, every route abroad is
-  a road not paved at home, and happiness that arrives by caravan leaves by
-  caravan. Helps tall most, the sea second. The bots need a want for it or it
-  pays only humans (a W2-style want, same batch). ▢ rule in or out, ▢ half.
+- **Luxuries by route** — **built** (T5, the user's tree pass of 2026-09-10,
+  `docs/flags.md` (uuu) mark 6), and gated behind **The Silk Road** rather than
+  given to everybody: a **foreign** route to a city holding an improved luxury
+  you lack counts as **half a copy** at the origin
+  (`rules.trade.importedLuxuryPercent`); **one luxury per route**; **unique
+  kinds only** (a second copy pays what a second copy has always paid); lapses
+  with the route (twenty turns, plunder, war). The bounds are what keep it from
+  being wide's free lunch: the ceiling is the handful of kinds reachable rivals
+  hold and you do not, every route abroad is a road not paved at home, and
+  happiness that arrives by caravan leaves by caravan. Helps tall most, the sea
+  second. The bot's want rides the road's own appraisal (`explainRoutePay`,
+  `src/ai/routes.ts`), at the loaned contentment — enough to order two markets
+  apart, which is what an appraisal is for.
 
 ## 8. Faith — wide's per-building beliefs, tall's holy city
 

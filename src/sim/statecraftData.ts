@@ -871,6 +871,25 @@ export interface CombatScale {
  */
 export interface UnitFilter {
   modelClass?: ModelClass;
+  /**
+   * **Any one of these silhouettes** — the Barracks' foot soldiers, which the
+   * roster draws in two model classes (`melee` and `ranged`) and the user's tree
+   * pass calls one thing: *"the spear, warrior and archer lines"*.
+   *
+   * `TileCondition`'s `anyFeature`/`anyImprovement` one table over, and here for
+   * their reason exactly: the sentence names **one** kind of soldier the roster
+   * happens to draw two ways, and there is no `or` composite in this vocabulary
+   * — a filter that could be any boolean tree is a filter nobody can print. So a
+   * list is the smallest honest thing to say.
+   *
+   * `modelClass` stays for the single-silhouette reading rather than being
+   * folded into a one-element list: a row that means *one* silhouette says so,
+   * four tables already spell it that way, and the describer prints the two
+   * differently ("mounted units" against "melee and ranged units"). A row
+   * carrying both must satisfy both, which is the reading every other pair of
+   * narrowings on this shape takes.
+   */
+  modelClasses?: ModelClass[];
   category?: UnitCategory;
   /** True: only types that shoot. False: only types that close. */
   ranged?: boolean;
@@ -2033,7 +2052,32 @@ export type BehaviorRuleId =
    * have been worse than either. Same rule, second sentence, exactly as the
    * plunder clause itself is written in both places.
    */
-  | 'tradersUnplunderable';
+  | 'tradersUnplunderable'
+  /**
+   * **A road that ends abroad brings a luxury home** — The Silk Road's, and the
+   * user's tree pass of 2026-09-10 (`docs/flags.md` (uuu), mark 6).
+   *
+   * Every live route of this empire that ends in another realm's town hands the
+   * sender **one** copy of a luxury that town holds improved, and every figure
+   * that copy pays is worth `rules.trade.importedLuxuryPercent` of what an owned
+   * seam pays — half, as the user's figure has it, where
+   * `docs/playstyles.md` §7 had written the whole.
+   *
+   * A *fact about the world* and therefore a `BehaviorRuleId`: what changes is
+   * not a verb this empire uses but what its own caravans are carrying, which is
+   * `tradersUnplunderable`' shape exactly. Read in the one module that counts
+   * luxury copies (`resourceEffects.ts`, `importedLuxuries`) so that the tenth
+   * thing a luxury pays is halved by the same multiplication as the first, and
+   * nothing else in the game learns a second word for "a luxury you hold".
+   *
+   * **Unique kinds only, and never a kind the empire already controls**: a
+   * second copy is worth what a second copy has always been worth (nothing, bar
+   * the Grand Bazaar's `luxuryDuplicates`), so a road that could only bring home
+   * a kind already dug is a road that brings home nothing. It **lapses with the
+   * route**, because it is derived from the live routes every time it is asked
+   * and there is nowhere for it to be written down.
+   */
+  | 'routesImportLuxuries';
 
 /** A rule of **Statecraft itself** that a card rewrites. Entry XV.b's metaRule. */
 export type MetaRuleId = 'sealTurns';
@@ -2698,6 +2742,26 @@ export interface CardPaysEffect extends CardYieldBag {
    * cities.
    */
   perEndpointLuxury?: true;
+  /**
+   * **Which side of a border the road has to cross** — The Silk Road's coin on a
+   * caravan sent abroad, and Daughter Cities' grain on one that never leaves.
+   * `where: 'route'`.
+   *
+   * `origin` and `destination` ask about the two *towns*; this asks about the
+   * **pair**, which is the one question neither of them can answer: a scope is a
+   * predicate over one city and "the two ends belong to different empires" is a
+   * fact about both at once. It is `routeIsInternational` (`routes.ts`) either
+   * way round, so a card and the two folds cannot disagree about what a foreign
+   * road is.
+   *
+   * Absent reaches every road this empire sends, which is what every row written
+   * before it meant. A row that names a crossing and is asked about an origin
+   * with **no far end in hand** (a preview of a road nobody has drawn) admits
+   * nothing, exactly as a `destination` clause does there and for its reason: a
+   * line that answered yes would be a line the preview promised and the caravan
+   * never paid.
+   */
+  crossing?: 'domestic' | 'international';
 }
 
 /**
@@ -3318,6 +3382,29 @@ export interface CardCityStatEffect {
   stat: 'defense' | 'sight';
   amount: number;
   scope?: CityScope;
+  /**
+   * **What buys one helping of `amount`**, taken in the town the line lands in —
+   * Siegecraft's *"cities gain +1 combat strength per 4 citizens"* (the user's
+   * tree pass of 2026-09-10, `docs/flags.md` (uuu) mark 15). Absent pays the
+   * flat once, which is what every row written before this meant.
+   *
+   * `CardPaysEffect`'s `count`/`per`/`max` trio, said again here rather than
+   * borrowed by making a walls line a `pays` row: a city's defence is not one of
+   * the six voices, it is not staged by Entry XVII, and it lands in a combat
+   * forecast rather than in a ledger. What is shared is the **count** itself —
+   * the same `countOf` the yields ask, with the same `within: 'city'` reading —
+   * so a card counting citizens for hammers and a card counting them for walls
+   * cannot disagree about how many there are.
+   *
+   * Read in `cardCityStat`, which already holds the town, and folded into the
+   * defender's strength as one more labelled line (rule 5 in a fight): the
+   * forecast says "Siegecraft · 3 helpings", never a bare number.
+   */
+  count?: CountKind;
+  /** How many of the thing counted buy one helping. Default 1. */
+  per?: number;
+  /** The most helpings that ever pay. */
+  max?: number;
 }
 
 /** A rule of Statecraft itself. See `MetaRuleId`. */

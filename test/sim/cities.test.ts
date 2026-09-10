@@ -3366,7 +3366,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

@@ -318,9 +318,34 @@ Cold (first open of a session, before the JIT warms) the two are 83ms and 129ms.
   (`routeGoals`, `trade.ts`), which is also the hex the range is priced to and
   the hex `routeArrived` turns the caravan around on. The road is laid up to
   the gates.
-- Riders deliberately NOT built (flagged): +1💰 per luxury kind the partner
-  has that the sender lacks; science base 2 when the partner is an age
-  ahead.
+- Riders deliberately NOT built (flagged): science base 2 when the partner is
+  an age ahead.
+- **A route row may name the crossing** (`CardPaysEffect.crossing`, the user's
+  tree pass of 2026-09-10): `'international'` rides the sender's fold alone,
+  `'domestic'` the destination's alone, absent rides both. It is a fact about
+  the *pair* and therefore not a `CityScope` — asked through
+  `routeIsInternational`, the one reading of "foreign", and refused where no far
+  end is in hand exactly as a `destination` clause is. Two live rows: **The Silk
+  Road** (+3💰 abroad) and **Daughter Cities** (+1🌾 +1⚙ at home).
+- **The Silk Road lends a luxury** (`routesImportLuxuries`, the same pass): each
+  live route of this empire that ends abroad hands the sender **one** kind the
+  destination holds improved — never a kind the empire already controls, never
+  the same kind twice, one per route, lapsing with the route. Derived every time
+  it is asked (`importedLuxuries`, `resourceEffects.ts`), remembered on the
+  revision clock, nothing stored. Every figure it pays is
+  `trade.importedLuxuryPercent` (50) of a dug seam's, because the share is read
+  as the **copy count** (`copiesFor`) and not applied fold by fold; the flat
+  contentment every unique luxury pays is halved beside it in `explainHappiness`.
+  Every line says `· on loan`.
+
+- **A slot may grow with the town** (`BuildingDef.routeSlotsPerPopulation`, the
+  user's tree pass of 2026-09-10, marks 14 and 17): the Market's and the
+  Caravanserai's eight citizens buy one further route apiece, counted in the
+  **holding town** and floored there, as its own labelled line of
+  `explainRouteSlots`. A building field rather than a card effect, for
+  `sciencePerPop`'s reason exactly — the fold already walks each town's shelves
+  with the town in hand. The **Shipyard** carries no slot at all since the same
+  pass (mark 8); the Harbour keeps its one.
 
 ## City connections
 

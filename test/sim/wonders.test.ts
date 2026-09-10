@@ -1455,7 +1455,7 @@ describe('the building rows of batch E4a', () => {
         (sum, line) => sum + line.percent,
         0,
       );
-    expect(behind('trireme')).toBe(10);
+    expect(behind('trireme')).toBe(25);
     expect(behind('warrior')).toBe(0);
   });
 

@@ -159,14 +159,16 @@ reading for a once-per-empire row.
 | `courthouse` | Courthouse | large | 9 | 520 |
 | `shipyard` | Shipyard | medium | 7 | 202 |
 | `castle` | Castle | large | 10 | 681 |
-| `forge` | Forge | large | 10 | 681 |
-| `caravanserai` | Caravanserai | large | 7 | 303 |
+| `forge` | Foundry | large | 10 | 681 |
+| `caravanserai` | Caravanserai | large | 6 | 231 |
+| `printingHouse` | Printing House | large | 11 | 893 |
 | `observatory` | Observatory | large | 11 | 893 |
+| `garden` | Garden | medium | 5 | 117 |
+| `publicBath` | Public Bath | medium | 6 | 154 |
 | `lighthouse` | Lighthouse | small | 2 | 39 |
 | `townCharter` | Town Charter | small | 8 | 198 |
 | `bank` | Bank | large | 11 | 893 |
 | `bourse` | Bourse | large | 9 | 520 |
-| `printingHouse` | Printing House | large | 11 | 893 |
 | `bastion` | Bastion | large | 10 | 681 |
 | `alchemicalSociety` | The Alchemical Society | large | 12 | 1169 |
 | `chartTheStars` | Chart the Stars | large | 4 | 134 |

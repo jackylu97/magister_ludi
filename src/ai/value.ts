@@ -1621,7 +1621,17 @@ export function explainBuildingRow(
   // **The route it opens** (batch 8): a market is shelves *and* a slot, and the
   // slot is worth what the pair it would join would pay — but only while every
   // slot this empire has is spoken for. See `routeSlotTerm`.
-  const route = routeSlotTerm(def.routeSlots ?? 0, ctx);
+  // **And the slot the town's size buys with it** (`routeSlotsPerPopulation`,
+  // the user's tree pass of 2026-09-10): the same door, counted the way
+  // `explainRouteSlots` counts it — floored, off the holding town's own people —
+  // so a market in a metropolis is appraised as the three routes it really is.
+  // Folded into the one figure rather than a second term, because it is one
+  // question ("how many roads does this shelf open") asked of one building.
+  const grown =
+    def.routeSlotsPerPopulation === undefined || def.routeSlotsPerPopulation <= 0
+      ? 0
+      : Math.floor((city?.population ?? 0) / def.routeSlotsPerPopulation);
+  const route = routeSlotTerm((def.routeSlots ?? 0) + grown, ctx);
   if (route !== null) terms.push(route);
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
   // **The bar this seat staked** (batch W2): three of the deck's readings count
@@ -1889,6 +1899,7 @@ export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
   onComplete: 'the bead, the piece, the technology — a grant apiece',
   endsTheGame: 'the curtain, at the victory weight',
   routeSlots: 'the pair a slot would open, while every slot is spoken for',
+  routeSlotsPerPopulation: 'the further slots this town has grown, at the same pair’s worth',
   effects: 'its written effects, through the card evaluator',
 };
 

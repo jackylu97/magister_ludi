@@ -1497,6 +1497,14 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
     bumpEconomy(state);
     payWindfallGrants(state, player, payout, { col: tile.col, row: tile.row });
     settleCultureWindfall(state, player);
+    // **And the beakers settle too** (The Saddle, the user's tree pass of
+    // 2026-09-10: *"pillaging tiles yield science and culture"*). A grant that
+    // fills the research bar has to finish the node the instant it lands, for
+    // the reason the culture settlement beside it exists: a pool left over its
+    // threshold is a completion the next phase would pay, and a raid that
+    // finished a technology has finished it now. The one research-completion
+    // routine, never a second one.
+    settleResearchWindfall(state, player);
   }
   if (payout.heal > 0) {
     // Capped at the type's maximum, like every other heal in the game: a raid

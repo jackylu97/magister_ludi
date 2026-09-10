@@ -2029,7 +2029,7 @@ describe('trade in the log', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
   });
 
   it('refuses the command the old build wrote, rather than half-applying it', () => {
@@ -2132,12 +2132,22 @@ describe('trade in the log', () => {
  * own figure did not explain it — `Tile.roadFree`'s argument, one occasion over.
  */
 describe('The Imperial Post', () => {
-  /** Puts the Post in a seat's hand, through the register rather than by name. */
+  /**
+   * Puts Satrapies in a seat's hand, through the register rather than by name —
+   * the node is found by the amplifier it carries on what a joined city pays.
+   *
+   * It used to be found by `freeCityRoads`, and that clause is **gone from the
+   * data**: the user's tree pass of 2026-09-10 (`docs/flags.md` (uuu) mark 10)
+   * took the free roads off Satrapies as a nerf to wide, so the rule is now one
+   * of the handful `BehaviorRuleId` holds with no live row naming it. The verb
+   * that reads it is untouched and is still tested, below, by hanging the clause
+   * on a row for the length of the test.
+   */
   function post(state: GameState, playerId: number): void {
     const player = state.players[playerId]!;
     for (const id of TECH_IDS) {
       if (!(techDef(id).effects ?? []).some((effect) =>
-        effect.kind === 'rule' && effect.rule === 'freeCityRoads',
+        effect.kind === 'effectAmplifier' && effect.target === 'connectionYields',
       )) {
         continue;
       }
@@ -2154,20 +2164,48 @@ describe('The Imperial Post', () => {
     const charged = roadsBuiltBy(state, 0);
     expect(charged).toBeGreaterThan(0);
 
-    post(state, 0);
-    const posted = roadsBuiltBy(state, 0);
-    // Both towns are on row 4 and the road runs between them, so the reach of
-    // three hexes covers the whole of it: the empire pays nothing.
-    expect(posted).toBeLessThan(charged);
-    expect(explainEmpireGold(state, 0).some((line) => /Road maintenance/.test(line.source))).toBe(
-      false,
-    );
+    // **The clause is hung on a row for the length of the test**, because no
+    // live row carries it since the tree pass took it off Satrapies. What is
+    // under test is `roadsBuiltBy`'s reading of the rule, and that reading is
+    // exactly as live as it ever was — which is the whole reason the rule is
+    // kept rather than deleted with the card that used to say it.
+    const def = techDef('theImperialPost');
+    const authored = def.effects;
+    try {
+      def.effects = [...(authored ?? []), { kind: 'rule', rule: 'freeCityRoads' }];
+      post(state, 0);
+      const posted = roadsBuiltBy(state, 0);
+      // Both towns are on row 4 and the road runs between them, so the reach of
+      // three hexes covers the whole of it: the empire pays nothing.
+      expect(posted).toBeLessThan(charged);
+      expect(explainEmpireGold(state, 0).some((line) => /Road maintenance/.test(line.source))).toBe(
+        false,
+      );
 
-    // A hex out of reach of every town is charged exactly as before — the rule
-    // is about *where* a road is, never about who researched what.
-    const far = at(state, 3, 0);
-    far.road = 0;
-    expect(roadsBuiltBy(state, 0)).toBe(posted + 1);
+      // A hex out of reach of every town is charged exactly as before — the rule
+      // is about *where* a road is, never about who researched what.
+      const far = at(state, 3, 0);
+      far.road = 0;
+      expect(roadsBuiltBy(state, 0)).toBe(posted + 1);
+    } finally {
+      def.effects = authored;
+      bumpRevision(state);
+    }
+  });
+
+  it('no longer keeps a wide empire\u2019s roads for nothing', () => {
+    // The nerf itself, read off the data: Satrapies is the only row that ever
+    // said `freeCityRoads`, and it does not say it any more.
+    for (const id of TECH_IDS) {
+      expect(
+        (techDef(id).effects ?? []).some(
+          (effect) => effect.kind === 'rule' && effect.rule === 'freeCityRoads',
+        ),
+        id,
+      ).toBe(false);
+    }
+    // And the deferred half went with it: the row promises nothing it cannot pay.
+    expect(techDef('theImperialPost').deferred).toBeUndefined();
   });
 
   it('pays a further coin for every city joined to the capital', () => {

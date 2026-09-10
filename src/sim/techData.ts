@@ -323,8 +323,14 @@ export type TechId =
   | 'paperMoney'
   | 'horology'
   | 'shipwrights'
-  // The terraced hillside (tree revision 4). Æra III's addition.
-  | 'raisedFields'
+  // The long road east (the user's tree pass of 2026-09-10, `docs/flags.md`
+  // (uuu) mark 6). It stands in Raised Fields' slot — the same column, the same
+  // lane, the same prerequisite, with Shipwrights still chaining off it — and
+  // the terraces are gone with the node that taught them. The **id** is fresh
+  // rather than the old one reused, because Floating Gardens are still built and
+  // a row called `raisedFields` that unlocked a caravanserai would be a lie the
+  // improvement table would go on reading.
+  | 'silkRoad'
   // Æra IV — The Age of Cathedrals
   | 'feudalism'
   | 'steel'

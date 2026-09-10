@@ -834,7 +834,7 @@ describe("the research queue field", () => {
     // feats, endeavours and quests carry `retired: true`, the `beads` phase is
     // gone, and `newGame` shuffles nothing, so a v107 log's every later roll
     // is a different number.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
   });
 });
 

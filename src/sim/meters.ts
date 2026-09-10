@@ -77,6 +77,7 @@ import type { Tile } from './map';
 import { type ResourceRule, resourceDef } from './resourceData';
 import {
   foldRulePercent,
+  importedLuxuries,
   resourceAuthority,
   resourceHappiness,
   resourceRulePercent,
@@ -259,6 +260,22 @@ export function explainHappiness(state: GameState, playerId: number): MeterContr
       part: 'gain',
       value: Math.floor((each * (100 + luxuryBoost)) / 100),
     });
+  }
+  // **The luxuries a foreign road lends this empire**, at the share the rule
+  // sets (The Silk Road, the user's tree pass of 2026-09-10): the flat every
+  // luxury pays is one of the fourteen figures "every effect halved" reaches,
+  // and it is the only one that is not read through `copiesFor` — it is the
+  // meter's own line rather than the row's. Said here, immediately after the
+  // seams and in the same two amplifiers, so there is one arithmetic for what a
+  // luxury is worth in contentment and one place a step or a share is applied.
+  //
+  // Floored per line for the loop above's reason exactly: five loans at half a
+  // point are five roundings, never one rounding of a total.
+  for (const id of importedLuxuries(state, playerId)) {
+    const each = Math.max(0, rules.perUniqueLuxury + luxuryStep);
+    const value = Math.floor((each * (100 + luxuryBoost) * RULES.trade.importedLuxuryPercent) / 10000);
+    if (value === 0) continue;
+    list.push({ source: `${resourceDef(id).name} · on loan`, part: 'gain', value });
   }
   // A luxury whose signature is *more happiness* says so on a line of its own
   // rather than swelling the flat line above it — "Wine +4" is what a luxury is

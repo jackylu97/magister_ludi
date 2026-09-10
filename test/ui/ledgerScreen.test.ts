@@ -632,7 +632,7 @@ describe('the gain, and who supplied it', () => {
     bumpRevision(state);
     town.queue = [{ kind: 'unit', id: 'warrior' }];
     const weights = percentWeights(state, town, explainCity(state, town), 'production');
-    expect(weights).toContainEqual({ into: 'buildings', percent: 10 });
+    expect(weights).toContainEqual({ into: 'buildings', percent: 25 });
     const gain = gainOf(state, town, 'production');
     expect(gain).toBeGreaterThan(0);
     expect(shareGain(gain, weights).buildings).toBeGreaterThan(0);
@@ -640,7 +640,7 @@ describe('the gain, and who supplied it', () => {
     // fact about the pair (town, item), never about the town's science.
     expect(percentWeights(state, town, explainCity(state, town), 'science')).not.toContainEqual({
       into: 'buildings',
-      percent: 10,
+      percent: 25,
     });
     const hammers = explainLedger(state, playerId).find((voice) => voice.key === 'production')!;
     let parts = 0;

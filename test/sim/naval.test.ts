@@ -24,7 +24,7 @@ import {
 } from '../../src/sim/pathfind';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import { RULES } from '../../src/sim/rulesData';
-import { type GameState, type Unit, createUnit, newGame } from '../../src/sim/state';
+import { type GameState, type Unit, bumpRevision, createUnit, newGame } from '../../src/sim/state';
 import { buildError } from '../../src/sim/tech';
 import { plainTechs } from './techHelpers';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -760,6 +760,14 @@ describe('the line', () => {
 describe('the blockade', () => {
   it('denies the sea lane so one hull can besiege a small port', () => {
     const state = seaState();
+    // **Siegecraft, put back by hand.** The bench withholds every node whose
+    // gift is a *rule* (`plainTechs`), and the user's tree pass of 2026-09-10
+    // made Siegecraft one — it puts a town's own citizens on its walls
+    // (`docs/flags.md` (uuu) mark 15). The siege *verb* is that node's too, and
+    // the verb is scenery here rather than the subject, so it is granted
+    // deliberately rather than by widening a fixture several files share.
+    for (const player of state.players) player.techsResearched.push('siegecraft');
+    bumpRevision(state);
     const town = foundCityAt(state, 0, at(state, 5, 4));
     // Ring the landward side with an enemy army so only the sea is in question.
     // Read off the map's own neighbours rather than written out, because which

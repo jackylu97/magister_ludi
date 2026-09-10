@@ -77,12 +77,14 @@ describe('techGifts', () => {
     // and then Petra — a wonder is an ordinary building on the list. The
     // library's renewal used to sort after all three; it was struck by the
     // renewals axe (2026-09-04). Batch D put the **Caravanserai** on the node
-    // as the age's route hub (`docs/history/tech-gifts.md` §7), so it is four gifts
-    // again and the two buildings still sort behind the two pieces.
+    // as the age's route hub (`docs/history/tech-gifts.md` §7), and the user's
+    // tree pass of 2026-09-10 moved the hub again, onto The Silk Road — the node
+    // written around the caravan (`docs/flags.md` (uuu) mark 6). So Mathematics
+    // is three gifts, Petra behind the two pieces, and the ordering claim is the
+    // same claim.
     expect(techGifts('mathematics').map((gift) => gift.kind)).toEqual([
       'unit',
       'unit',
-      'building',
       'building',
     ]);
     // Engineering took Construction's works: four buildings, the Circus Maximus
@@ -98,13 +100,16 @@ describe('techGifts', () => {
       'building',
     ]);
     // And Siegecraft is where it went: the bowman, the walls, then the
-    // improvement, and the siege ability last with the other verbs — the same
-    // reading order, one age earlier.
+    // improvement, the siege ability with the other verbs, and the node's own
+    // written rule last of all — the walls manned by the townsfolk, which the
+    // user's tree pass of 2026-09-10 hung on this node (`docs/flags.md` (uuu)
+    // mark 15). The reading order is the same reading order, one age earlier.
     expect(techGifts('siegecraft').map((gift) => [gift.kind, gift.id])).toEqual([
       ['unit', 'bowman'],
       ['building', 'stoneWalls'],
       ['improvement', 'lumbermill'],
       ['ability', 'siege'],
+      ['techEffect', 'siegecraft'],
     ]);
     // Bronzeworking hands over three buildings — the barracks and the funeral
     // games from the Age I sinks, and the Walls of Uruk from the wonders — and
@@ -264,12 +269,14 @@ describe('techGifts', () => {
       expect(Object.keys(buildingDef(building)), building).not.toContain('upgrades');
     }
     // The tile lines are the survivors and are not the same bargain: the
-    // lighthouse's food lands on *ground the town works*, and it rides on the
-    // building rather than on a node. The shape that would gate one behind a
-    // technology stays declared and unfed, which is where the water pass left
-    // it (`water.test.ts`) and not this ruling's business.
+    // lighthouse's coin lands on *ground the town works*, and it rides on the
+    // building rather than on a node. (The line paid food until the user's tree
+    // pass of 2026-09-10 — the light is what brings the boats home, so the water
+    // pays a coin and the food is the town's own.) The shape that would gate one
+    // behind a technology stays declared and unfed, which is where the water
+    // pass left it (`water.test.ts`) and not this ruling's business.
     expect(buildingDef('lighthouse').tileYields).toEqual([
-      { on: { test: 'water' }, add: { food: 1 } },
+      { on: { test: 'water' }, add: { gold: 1 } },
     ]);
   });
 

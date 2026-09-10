@@ -1644,8 +1644,8 @@
   ],
   "toolmakersCharter": [
    {
-    "raw": "unlocks the [[building:smithy|Smithy]] — +2 production; +1 production per military Order you have in a slot; +1 renown per turn, favouring engineers",
-    "text": "unlocks the Smithy — +2 production; +1 production per military Order you have in a slot; +1 renown per turn, favouring engineers"
+    "raw": "unlocks the [[building:smithy|Smithy]] — +2 production; +1 renown per turn, favouring engineers; +1 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
+    "text": "unlocks the Smithy — +2 production; +1 renown per turn, favouring engineers; +1 production on every hex with a Mine or Quarry carrying a resource"
    }
   ],
   "mintCharter": [
@@ -3161,6 +3161,22 @@
     "text": "+10% science in every city with an Observatory with a mountain hex inside its borders"
    }
   ],
+  "garden": [
+   {
+    "raw": "+1 happiness per 5 citizens in this city",
+    "text": "+1 happiness per 5 citizens in this city"
+   },
+   {
+    "raw": "+15% renown in this city",
+    "text": "+15% renown in this city"
+   }
+  ],
+  "publicBath": [
+   {
+    "raw": "+2 happiness while this city is joined to your capital by road",
+    "text": "+2 happiness while this city is joined to your capital by road"
+   }
+  ],
   "lighthouse": [],
   "townCharter": [],
   "clocktower": [],
@@ -3251,12 +3267,7 @@
     "text": "+2 authority capacity"
    }
   ],
-  "smithy": [
-   {
-    "raw": "+1 production per military Order you have in a slot",
-    "text": "+1 production per military Order you have in a slot"
-   }
-  ],
+  "smithy": [],
   "coinworks": [
    {
     "raw": "10% of the gold in every city with a [[building:coinworks|Coinworks]] is gained again as culture",
@@ -3986,7 +3997,12 @@
   "divination": [],
   "letters": [],
   "theWheel": [],
-  "siegecraft": [],
+  "siegecraft": [
+   {
+    "raw": "every city: +1 city defence per 4 citizens",
+    "text": "every city: +1 city defence per 4 citizens"
+   }
+  ],
   "irrigation": [],
   "wayfinding": [],
   "epicPoetry": [
@@ -4041,21 +4057,12 @@
   "mathematics": [],
   "theImperialPost": [
    {
-    "raw": "roads near your cities cost nothing to keep",
-    "text": "roads near your cities cost nothing to keep"
-   },
-   {
     "raw": "each connected city pays +1 gold",
     "text": "each connected city pays +1 gold"
    },
    {
     "raw": "+1 happiness in every city joined to your capital by road",
     "text": "+1 happiness in every city joined to your capital by road"
-   },
-   {
-    "raw": "Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town. — not built yet",
-    "text": "Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town. — not built yet",
-    "deferred": true
    }
   ],
   "theExaminationHall": [
@@ -4080,6 +4087,10 @@
    {
     "raw": "new cities are founded with a [[building:townCharter|Town Charter]]",
     "text": "new cities are founded with a Town Charter"
+   },
+   {
+    "raw": "+1 food, +1 production on every trade route between two of your own cities",
+    "text": "+1 food, +1 production on every trade route between two of your own cities"
    }
   ],
   "theQadisCourt": [
@@ -4098,17 +4109,30 @@
    }
   ],
   "engineering": [],
-  "theCataphract": [],
+  "theCataphract": [
+   {
+    "raw": "pillaging grants +15 science",
+    "text": "pillaging grants +15 science"
+   },
+   {
+    "raw": "pillaging grants +15 culture",
+    "text": "pillaging grants +15 culture"
+   }
+  ],
   "prospecting": [
    {
     "raw": "+1 production, +1 faith on every hex with a [[improvement:mine|Mine]] carrying a resource",
     "text": "+1 production, +1 faith on every hex with a Mine carrying a resource"
    }
   ],
-  "raisedFields": [
+  "silkRoad": [
    {
-    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a mountain",
-    "text": "+1 food on every hex with a Farm beside a mountain"
+    "raw": "+3 gold on every trade route that ends in another empire’s city",
+    "text": "+3 gold on every trade route that ends in another empire’s city"
+   },
+   {
+    "raw": "a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own",
+    "text": "a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own"
    }
   ],
   "banking": [],

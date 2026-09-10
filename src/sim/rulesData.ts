@@ -473,6 +473,19 @@ export interface TradeRules {
    */
   international: InternationalRouteRules;
   /**
+   * What a luxury **lent home by a foreign road** is worth, as a whole percent
+   * of what a seam this empire dug pays — The Silk Road's, at the user's own
+   * figure (2026-09-10: *"effects 50% reduced"*, `docs/flags.md` (uuu) mark 6,
+   * where `docs/playstyles.md` §7 had written the whole thing).
+   *
+   * **One number for every figure a luxury pays**, because it is read as the
+   * copy count (`copiesFor`, `resourceEffects.ts`) rather than applied fold by
+   * fold: the happiness, the yields, the writ, the renown, the hammers, the
+   * caravan's coin and the payroll's rebate are all this share of themselves
+   * without any of the fourteen folds knowing the rule exists.
+   */
+  importedLuxuryPercent: number;
+  /**
    * Origin buildings of the food-paying categories per 🌾 a route carries:
    * `floor(count / buildingsPerFood)`. The 2026-09-03 nerf's knob — at 1 this
    * is the old rule (a food per building), at 2 the ruled half.

@@ -68,6 +68,7 @@
       "goldPerCombinedPop": 10,
       "hostGold": 1
     },
+    "importedLuxuryPercent": 50,
     "buildingsPerFood": 2,
     "buildingsPerProduction": 2,
     "connectionPerPop": 2,

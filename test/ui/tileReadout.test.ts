@@ -703,6 +703,6 @@ describe('the owning city\'s own lines reach the readout', () => {
     const lines = tileYieldContributions(state, 0, coast!);
     const lighthouse = lines.find((line) => line.source === 'Lighthouse');
     expect(lighthouse, 'the Lighthouse line on the coast hex').toBeDefined();
-    expect(lighthouse!.food).toBe(1);
+    expect(lighthouse!.gold).toBe(1);
   });
 });

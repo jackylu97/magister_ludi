@@ -328,7 +328,7 @@ describe("the bead catalogue", () => {
     // `retired: true`, `BeadTable` is the world's register alone, and `newGame`
     // no longer shuffles anything — so a v107 log's every later roll is a
     // different number.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
   });
 
   it("puts the world clock after renown and the wager after it, with no bead phase left", () => {

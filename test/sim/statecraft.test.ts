@@ -1726,7 +1726,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7382,10 +7382,13 @@ describe("a charter carries the description of the building it opens", () => {
         expect(stripRefs(clause.text), id).not.toContain("[[");
     }
     // The ungated line a building pays on the ground it works is the row's own,
-    // not a technology's gift — the Lighthouse's food on water.
+    // not a technology's gift — the Lighthouse's coin on water since the user's
+    // tree pass of 2026-09-10 (`docs/flags.md` (uuu) mark 2: the light is what
+    // brings the boats home, so the water line pays gold and the food is the
+    // town's own).
     expect(
       describeBuildingRow("lighthouse").map((entry) => entry.text),
-    ).toContain("+1 food on every water hex");
+    ).toContain("+1 gold on every water hex");
     // Every ungated ground line a row pays is stated, naming the hexes it lands
     // on in the card describer's own words for that condition. A **gated** line
     // belongs to the node that hands it over and is announced there
@@ -8648,12 +8651,21 @@ describe("the engine shapes", () => {
       // The Printing House since batch E4b: back in the draw, and paying the
       // roads that **end** at its presses (`CardRouteYieldEffect.destination`).
       "printingHouse · routeYield",
+      // The user's tree pass of 2026-09-10 (`docs/flags.md` (uuu) mark 4): the
+      // Garden is the second row in the game to take a share of what one town
+      // earns in renown, and the first ordinary building to.
+      "garden · cityRenownPercent",
       "heroicEpic · cityRenownPercent",
       // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
       "theLongCount · periodic",
       "theLongCount · buildingsOfCategories",
+      // Daughter Cities' grain, the same pass (mark 11): a route row narrowed
+      // to the roads that never leave the realm (`CardPaysEffect.crossing`).
+      "colonialCharters · routeYield",
       "horology · periodic",
       "horology · buildingsOfCategories",
+      // And The Silk Road's coin abroad (mark 6), the crossing's other half.
+      "silkRoad · routeYield",
       "theSilkRoad · routeYield",
     ]);
   });
@@ -10138,7 +10150,7 @@ describe("the deferred rows of batch E4b", () => {
       productionModifiers(g.state, city, { kind: "unit", id } as never)
         .filter((line) => line.building === "stable")
         .reduce((sum, line) => sum + line.percent, 0);
-    expect(share("chariot")).toBe(10);
+    expect(share("chariot")).toBe(25);
     expect(share("warrior")).toBe(0);
   });
 

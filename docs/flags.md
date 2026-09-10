@@ -1800,6 +1800,86 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (www) **Sunk progress, and the Ministry of Works — RULED** (the user,
+  2026-09-10: *"the pool of yields shouldn't swap over when reselecting
+  something, i.e. science is placed into a tech, and that tech is
+  committed at the end of turn, swapping to a different tech shouldn't
+  allow you to keep your technology progress on the new tech, same for
+  production"*; and the chartered building: *"the queue can never hold
+  fewer than two items, purchases are allowed, but production is
+  already sunk into the current queue per turn, and the queue cannot go
+  below two items"*). **S2 — sunk progress** (a rules batch, after T5
+  and U9 land; schema bump): beakers and hammers are **committed to the
+  thing they were spent on** — (rec) **kept with that thing, not lost**
+  (Civ V/VI's buckets: `Player.sciencePool` becomes progress per tech,
+  `City`'s banked production becomes progress per queue item, keyed by
+  the item; switching aims at a new thing at nought and the old thing
+  keeps what it had for when you return — **kept, confirmed** by the
+  user, 2026-09-10: "kept and not lost is what i was thinking too").
+  The last turn's spend is committed at the end of turn, as today.
+  Consequences the batch carries: the bot's research goal table and
+  PP1's puppet re-decision each gain a term for the progress a switch
+  would strand (`bestTechGoal`'s incumbent already holds by a margin —
+  the stranded beakers join it as a cost); the Compendium's rule shelf
+  says it; the city panel and the star chart show the banked figure on
+  the item that holds it. **The Ministry of Works** (the chartered
+  production building; ▢ name — the user asked for "state planning of
+  production", then "not so modern", then "a vizier, or a censor's
+  quarters" — **RULED: The Vizier's Hall**, the charter **The
+  Vizierate** (the user, 2026-09-10: "lets do the viziers hall"); queued
+  as S2's second half, behind T5 and U9 —
+  Imhotep was vizier and architect at once, the office that ran the
+  corvée and the king's building programme; the Roman censor let the
+  public-works contracts (Appius Claudius's road and aqueduct), so *The
+  Censor's Rolls* fits too but collides with the census sheet in a
+  player's mind; earlier candidates *The King's Works* / *The Clerk of
+  Works*):
+  **+30% production while the city's queue holds two or more items**
+  (a production percent gated on a new city condition, queue depth ≥
+  2); **in a city that holds it the queue can never fall below two
+  items** — a `setCityProduction` that would leave fewer than two is
+  refused by the reducer, the city panel greys the last two removes;
+  **purchases are allowed** (the bought head leaves; if that drops the
+  queue under two the buy is refused until a second item is queued —
+  the user: purchases allowed, the floor holds); hammers are sunk into
+  the head per S2. The bot: in a town that holds it, always queue the
+  table's runner-up behind the head (the driver's town pass), else
+  bots never see the bonus. Replaces the Foundry proposal for the
+  Toolmakers' Charter (`docs/orders-and-doctrines.md`'s inline mark).
+- (vvv) **The mounted line — RE-RULED** (the user, 2026-09-10, minutes
+  later: *"this feels somewhat anachronistic. What if we moved chariots
+  to age 2, horseman and horse archer to age 3 and removed
+  cataphracts."* — then: *"i think we can keep chariots where they are,
+  they're close enough to the start of age 2."*). **This supersedes the
+  paragraph below.** **Nothing moves in the tree**: the chariots stay
+  on The Wheel (the last column of Æra I, a step from Æra II), **The
+  Saddle stays in Æra III** with Horseman, Horse Archer and War
+  Elephant as today, and **the Cataphract is retired** (row kept for
+  saves). Strengths (U9), (ttt)'s figures: War Chariot **28**, Chariot
+  Archer **18/22** (under the Spearman's 25, since The Wheel is still
+  Æra I's node); Horseman **38**, Horse Archer **25/32**, War Elephant
+  **44** (+8 vs cities; over the Legionary's 40 only by the ivory
+  gate); Knight 50. The mounted line reads War Chariot (I, late) ·
+  Horseman, War Elephant (III) · Knight (IV); the ranged-cavalry line
+  Chariot Archer (I, late) · Horse Archer (III). Æra II's cavalry is the
+  chariot bought one column early — the user's call. *(The earlier ruling, for the record:* the user,
+  2026-09-10: *"we move saddle to era 2, and re-introduce cataphracts in
+  age 3"*, answering the Æra II cavalry gap — withdrawn.) **The Saddle → Æra II** (T5 places it: age 2,
+  ▢ prereqs — rec Husbandry + Bronzeworking, the horse and the bronze
+  bit, which puts it in the age's first column; the lanes are the
+  user's chart, so the agent says where it landed), keeping its pillage
+  rider from (uuu) and its pasture renewal, unlocking **Horseman** (36)
+  and **Horse Archer** (22/30 — below the Swordsman's 35 and the
+  Horseman's 36). **The Cataphract is un-retired** and returns as the
+  Æra III heavy horse (U9: `retired` off, `awaitsTech` off, **42**, +5
+  vs ranged, needs improved Horses **and Iron**), unlocked at ▢ **Iron
+  Working** (rec: the armoured horse beside the Legionary and the Spear
+  Wall), where the **War Elephant** (44, +8 vs cities, ivory) moves too,
+  so Æra II is not carrying a 44. The mounted line then reads War
+  Chariot (I) · Horseman (II) · Cataphract, War Elephant (III) · Knight
+  (IV); the ranged-cavalry line Chariot Archer (I) · Horse Archer (II).
+  (ttt)'s Æra III row is amended accordingly; the era pins read the
+  rows' unlocking techs at test time, so the placement is data.
 - (uuu) **The user's tree pass — RULED, to fold** (the user, 2026-09-10:
   *"could you fold in my changes to the tech tree, so we have a clean
   slate to rework the ordering of units?"*). The spec of record is the
@@ -1857,6 +1937,45 @@ directly to confirm rulings — user marginalia are rulings.
   figure on a row). Schema bump (a replay's yields move). Report the t100
   row and, for the luxury rule, one bench sentence: how many imported
   copies the mean bot seat holds at t100.
+  **Eight more marks** (the user, 2026-09-10, later the same day; T5
+  folds these too): (12) **Calendar — plantations pay +2 gold, not +1
+  food** (`data/improvements.json`; the §1 fix at the user's figure);
+  (13) **Bronze Panoply unlocks a new building, the Forge** (Æra II):
+  **+2 production** base and **+1 production on mines and quarries
+  carrying a resource in this city** (`tileYields` on those
+  improvements with `hasResource`); (14) **Market — +1 trade route
+  slot per 8 citizens in this city** (a `routeSlots` line on a
+  `population, per: 8` count — the §7 slot-per-size-band rule); (15)
+  **Siegecraft — cities gain +1 combat strength per 4 citizens** (a
+  tech effect: `cityStat defense` on a population count, or a rule that
+  sets `rules.combat.cityStrengthPerPop`'s reading once Siegecraft is
+  held — the agent picks the shape the evaluator already has and says
+  which; ▢ with the ladder tripled the figure may want 1 per 2); (16)
+  **Harbour gives no trade route** (its `routeSlots` line goes, with the
+  Shipyard's); (17) **Caravanserai — +1 trade route slot per 8 citizens
+  in this city** (as 14); (18) Mathematics loses the Caravanserai (as
+  (6) said); (19) **Steel's Forge is renamed the Foundry** (id stays for
+  saves, `name` changes; everything that names it follows), the new
+  Æra II Forge being (13). ▢ noted for the user: with the Harbour and
+  Shipyard slot-less and slots coming from Market/Caravanserai by size,
+  a wide-and-thin sea empire runs few routes — the sea build's identity
+  was foreign routes.
+  **Three answers** (the user, 2026-09-10): (a) *"rename the forge to
+  smithy"* — the new Æra II building is the **Smithy**. A Smithy already
+  exists as a charter building (`smithy`, unlocked by the Toolmakers'
+  Charter: +2 production, medium, column 4, a count effect), so **the
+  existing row moves into the tree**: unlocked by Bronze Panoply, its
+  effects replaced by the user's (+2 production base, +1 production on
+  mines and quarries carrying a resource in this city), `unlockedByCard`
+  off, column read from the node; the **Toolmakers' Charter retires**
+  (▢ or is re-aimed — the user); Steel's **Forge keeps its name** (the
+  Foundry rename was only ever to free the word; ▢ if the user still
+  wants it). (b) *"a sea empire is able to still build markets, but i'm
+  ok with the harbour gaining one back"* — the **Harbour keeps its route
+  slot**; mark 16 withdrawn; the Shipyard stays slot-less. (c) The city
+  strength question withdrawn: damage is the *difference*, and the base
+  is the best buildable unit, so **+1 per 4 citizens stands** as a
+  modifier over keeping up in military tech — the user's reading.
 - (ttt) **The strength ladder — RULED** (the user, 2026-09-10: *"do a pass
   through units.md? There should be a larger gap between units in combat
   strength. i'd love for the fire lancer to end as an 80 strength unit
@@ -1913,6 +2032,34 @@ directly to confirm rulings — user marginalia are rulings.
   `upgradesTo`. `docs/units.md` regenerated; `docs/war-diplomacy.md`
   §combat figures; schema bump (every battle's dice move). Report: the
   before/after t100 row, units per seat, and the matchup table.
+  **U9 built** (2026-09-10, schema **109**): the ladder as ruled with
+  (vvv)'s final mounted line; Knights Templar mirror at 38. Flat lines:
+  forest/jungle 2 → 5, hills 3 → 6; fortify 2/4 → 3/6; `cityMinStrength`
+  8 → 20; general aura 3 → 5, `generalCombat` 3 → 6; naval at-sea 10 →
+  20, line 2/4 → 4/8; citadel 8 → 20; walls Palisade 5 → 10, Stone
+  Walls 4 → 10, Castle 5 → 10, Bastion 10 → 20, Great Wall 5 → 10,
+  Walls of Uruk 10 → 20 (+2 line → +4); Terracotta 3 → 6 (stamp 1 →
+  2), Alhambra 2 → 4, Codex 3 → 6; every Order/doctrine/government/
+  belief/great-person line ×2 (Siege Doctrine 8, Marshals 4 cap 8,
+  Decisive Blows 10, Knightly Orders 10, Siege Train 12, Admiralty 10,
+  Warrior Monks 10, Crusade 6, Blessing of Arms 10 …); Castellany's
+  line 5 → 10; Thin Ranks −2; `armyStrength` wager bars 375/1200/2500
+  ▢. Bot: `weights.military` 2, warmonger 3.6, `combatScale` 7.5, new
+  `weights.unitEdge` 5 (the movement/sight/range arm's own unit of
+  worth); soldier worth −2.4% on the mean, the Knight −29% (the ladder
+  stretched the bottom more than the top — no single weight fits both
+  ends). Matchups (midpoint): War Chariot → Chariot Archer 45 / 24
+  back; Swordsman → Bowman 55 / 23; War Elephant → Catapult 78 / 21;
+  Trebuchet → Fire Lance 7; **Fire Lance kills a Swordsman outright,
+  100 into a Knight**. **t100**: happiness +4.7 → **+10.8**, prod 73.5 →
+  82.8, sci 86.8 → 91.2, cul 62.9 → 72.7, treasury 270 → 361, buildings
+  29.3 → 30.8, **units 24.3 → 24.1** (the split held), faith 20.1 →
+  16.2. ▢ **the naval triangle now kills in one blow** (a light hull on a
+  gun deck: a 10-point gap plus the ±10 lines = 30 = a kill) — the two
+  naval lines at ×1.5 instead of ×2 if that is too sharp. ▢ **cost
+  inversion**: the Legionary (40, 54⚙, column 6) is stronger *and*
+  cheaper than the Horseman (38, 101⚙, column 7) — a column artefact for
+  the tree pass.
 - (sss) **The bot's build order and tech selection, audited — one root
   defect** (the user, 2026-09-10: *"could you take a look at bot build
   order and tech selection in it's current state? lets verify its still

@@ -196,7 +196,7 @@ describe('the embark ability', () => {
     expect(improvement, 'the boats').toBeDefined();
     expect(improvement!.id).toBe('fishingBoats');
 
-    // **The food on water is the lighthouse's, and only the lighthouse's** (the
+    // **The line on water is the lighthouse's, and only the lighthouse's** (the
     // playtest notes, 2026-09-03). The granary used to carry a second, Sailing-
     // gated copy of the same line; the user's ruling deleted it, because two
     // buildings paying a coastline is a coastline that pays twice for reasons a
@@ -206,7 +206,7 @@ describe('the embark ability', () => {
     const lighthouse = gifts.find((gift) => gift.kind === 'building' && gift.id === 'lighthouse');
     expect(lighthouse, 'the lighthouse').toBeDefined();
     expect(buildingDef('lighthouse').tileYields).toEqual([
-      { on: { test: 'water' }, add: { food: 1 } },
+      { on: { test: 'water' }, add: { gold: 1 } },
     ]);
     expect(buildingDef('granary').tileYields).toBeUndefined();
     // And nothing anywhere else pays the ground out of a building's row on this
@@ -585,7 +585,7 @@ describe('the lighthouse on the water', () => {
     return city;
   }
 
-  it('adds food to the water hexes a town works, and to no dry one', () => {
+  it('adds a coin to the water hexes a town works, and to no dry one', () => {
     const state = seaState();
     const city = shoreTown(state);
     const land = at(state, 4, 5);
@@ -597,15 +597,18 @@ describe('the lighthouse on the water', () => {
     // arithmetic. Held still, the whole of the difference is the line.
     city.lockedTiles = [{ col: 2, row: 5 }];
     assignCitizens(state, city);
-    const before = foldCity(state, city).food;
+    const before = foldCity(state, city).gold;
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
     city.buildings.push('lighthouse');
     bumpRevision(state);
     assignCitizens(state, city);
-    const after = foldCity(state, city).food;
-    // The lighthouse's own flat food — none — plus a point for the pinned water
-    // hex, and nothing for the dry ones the other citizens are standing on.
-    expect(after).toBe(before + buildingFood('lighthouse') + 1);
+    const after = foldCity(state, city).gold;
+    // The lighthouse's own flat coin, plus a coin for the pinned water hex, and
+    // nothing for the dry ones the other citizens are standing on. The line
+    // paid food until the user's tree pass of 2026-09-10 (`docs/flags.md` (uuu)
+    // mark 2) moved the food onto the row and put a coin on the water — the
+    // claim is which *hexes* the line reaches, and that has not moved.
+    expect(after).toBe(before + buildingGold('lighthouse') + 1);
 
     // Dry ground is untouched by it, and so is the empire's own context — the
     // line is the *city's*, which is why `yieldContextFor` cannot see it.
@@ -627,7 +630,11 @@ describe('the lighthouse on the water', () => {
     const line = buildingDef('lighthouse').tileYields![0]!;
     expect(line.requiresTech).toBeUndefined();
     expect(line.on).toEqual({ test: 'water' });
-    expect(line.add.food).toBe(1);
+    // A **coin** since the user's tree pass of 2026-09-10 (`docs/flags.md`
+    // (uuu) mark 2): the light is what brings the boats home, so the water pays
+    // gold and the food the row used to spread over the sea is the town's own.
+    // The claim under test is the gate, and the gate is unchanged.
+    expect(line.add.gold).toBe(1);
 
     const state = seaState();
     const city = shoreTown(state);
@@ -636,11 +643,11 @@ describe('the lighthouse on the water', () => {
     bumpRevision(state);
     assignCitizens(state, city);
     expect(city.workedTiles).toContainEqual({ col: 2, row: 5 });
-    const withLight = foldCity(state, city).food;
+    const withLight = foldCity(state, city).gold;
     city.buildings = city.buildings.filter((id) => id !== 'lighthouse');
     bumpRevision(state);
     assignCitizens(state, city);
-    expect(foldCity(state, city).food).toBe(withLight - 1);
+    expect(foldCity(state, city).gold).toBe(withLight - 1 - buildingGold('lighthouse'));
   });
 
   it('pays only the town that built it', () => {
@@ -659,9 +666,9 @@ describe('the lighthouse on the water', () => {
   });
 });
 
-/** A building's own flat food, for the "the rest of the gain is the line" claim. */
-function buildingFood(id: 'lighthouse'): number {
-  return buildingDef(id).food;
+/** A building's own flat coin, for the "the rest of the gain is the line" claim. */
+function buildingGold(id: 'lighthouse'): number {
+  return buildingDef(id).gold;
 }
 
 // --- determinism ------------------------------------------------------------

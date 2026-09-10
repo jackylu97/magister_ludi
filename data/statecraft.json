@@ -4690,6 +4690,7 @@
       "rarity": "uncommon",
       "flavor": "First the tools, then the things the tools are for.",
       "text": "Unlocks the Smithy.",
+      "retired": true,
       "effects": [
         {
           "kind": "unlocksBuilding",

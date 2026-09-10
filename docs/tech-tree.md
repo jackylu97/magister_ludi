@@ -156,6 +156,23 @@ which is one field on the route shape now, so Movable Type opens a buildable row
 again. Two rows joined the table in the same batch — the **Stable** at The Wheel
 and the **Bourse** at Paper Money.
 
+**The user's tree pass** (2026-09-10, `docs/flags.md` (uuu)). Nineteen marks
+written straight onto this file and folded as data. **Raised Fields left the
+tree** and **The Silk Road** took its slot, its column, its lane and its
+prerequisite whole, with Shipwrights still chaining off it — the id
+`raisedFields` is gone from `TechId`, so a save that researched it is refused
+rather than replayed (schema 110), and the Floating Gardens moved to Irrigation
+with the water that grows them. The Caravanserai came down one lane from
+Mathematics onto the node written around the caravan; Petra stayed. Three nodes
+that had handed over nothing now hand over a building — Irrigation's **Garden**,
+State Workforce's **Public Bath**, and Bronze Panoply's **Smithy**, which came
+out from behind The Toolmakers' Charter (retired with the door it opened). The
+figures on the Barracks, the Stable, the Lighthouse, the Harbour, the Shipyard,
+the Market, the Caravanserai and the plantation moved with them, and three nodes
+gained or lost a rule: Satrapies no longer keeps a wide realm's roads for
+nothing, The Saddle pays beakers and songs for a burnt field, and Siegecraft puts
+a town's own citizens on its walls.
+
 **Batch E — the tree's gifts** (2026-09-06, `docs/history/tech-gifts.md` §7 as the user
 marked it). The six nodes batch D left handing over no building hand over
 something else now, and every gift is a **row** rather than a branch: the effect
@@ -196,12 +213,12 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
-| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | — | reveals **Iron** |
+| Bronze Panoply | 100 | The Wheel | Phalanx, Swordsman *(needs improved Iron)* | Smithy | reveals **Iron** |
 | Chronology | 100 | Writing | — | Chart the Stars ‡ | The Long Count · renewals: Plantation +1🎭 |
 | Currency | 100 | The Wheel | Trader *(never built — comes with a route bought in gold)* | Market, **The Mausoleum** | Rite of Plenty · renewals: Plantation +1💰 |
 | Epic Poetry † | 100 | Writing | — | Amphitheater, **The Theatre of Dionysus**, Heroic Epic ‡ | Ancestor Rites |
 | Code of Laws | 190 | Chronology | — | Imperial Throne ‡, *Pageants* (project) | — |
-| Irrigation | 190 | Chronology, Bronze Panoply | — | — | renewals: Farm +1🌾 on fresh water |
+| Irrigation | 190 | Chronology, Bronze Panoply | — | Garden | workers may build Floating Gardens · renewals: Farm +1🌾 on fresh water |
 | Siegecraft | 190 | Bronze Panoply | Bowman | Stone Walls | workers may build Lumbermill · Siege |
 | The High Temple | 190 | Epic Poetry | Prophet | Temple, High Temple ‡ | — |
 | Wayfinding | 190 | Sailing, Currency | Bireme, War Galley | Harbour, **The Colossus** | Sea Legs |
@@ -216,18 +233,20 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Code of Laws** — +3 authority capacity
 - **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could.*
 - **Irrigation** — *A farm standing beside fresh water feeds its city better than it did.*
+- **Siegecraft** — every city: +1 city defence per 4 citizens
+- **Siegecraft** — *A wall is only as good as the hands on it. Every few citizens of a town of yours make its defence harder to break.*
 
 ### Æra III — The Age of Empire (14 nodes, 360–1150🔬)
 
 | node | 🔬 | prereqs | units | buildings | abilities & gifts |
 |---|---|---|---|---|---|
 | Iron Working | 360 | Irrigation, Siegecraft | Legionary *(needs improved Iron)*, Spear Wall | **The Terracotta Army**, **The Statue of Zeus** | — |
-| Raised Fields | 360 | Wayfinding | — | — | workers may build Floating Gardens |
 | Rhetoric | 360 | The High Temple | — | Forum ‡, **The Great Library** | — |
-| State Workforce | 360 | Currency | — | — | — |
-| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra**, Caravanserai ‡ | — |
-| Satrapies † | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
-| Shipwrights | 650 | Raised Fields | Galley, Tower Ship, Fire Ship | Shipyard | — |
+| State Workforce | 360 | Currency | — | Public Bath | — |
+| The Silk Road | 360 | Wayfinding | — | Caravanserai ‡ | — |
+| Mathematics | 650 | Iron Working | Catapult, Composite Bowman | **Petra** | — |
+| Satrapies | 650 | State Workforce | — | **The Forbidden City**, **The Great Wall** | — |
+| Shipwrights | 650 | The Silk Road | Galley, Tower Ship, Fire Ship | Shipyard | — |
 | The Civil Service | 650 | Code of Laws | — | — | — |
 | The Saddle | 650 | Iron Working | Horseman *(needs improved Horses)*, Horse Archer *(needs improved Horses)*, War Elephant *(needs improved Ivory)* | — | renewals: Pasture +1⚙ |
 | Daughter Cities | 1150 | The Civil Service | — | Town Charter ◇ | — |
@@ -239,23 +258,26 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 What the nodes say (the rules the chart prints, then each node's own note in *italics*):
 
 - **Iron Working** — *Iron is named at last, and every warrior of yours retools into a sword the moment a seam of it is yours.*
-- **Raised Fields** — +1 food on every hex with a Farm beside a mountain
-- **Raised Fields** — *A farm on a hex touching a mountain feeds its city better than it did. It is the field that changes, not the peak: nothing is grown on the mountain itself.*
 - **State Workforce** — newly created workers gain +1 charge
 - **State Workforce** — workers cost −25% to buy
 - **State Workforce** — *Every worker you train has one more season of work in it, and the treasury hires one at a quarter off.*
-- **Satrapies** — roads near your cities cost nothing to keep
+- **The Silk Road** — +3 gold on every trade route that ends in another empire’s city
+- **The Silk Road** — a trade route ending in another empire’s city lends you one luxury resource that city has improved, worth a share of your own
+- **The Silk Road** — *A caravan that ends its journey in another empire’s city is paid well for the crossing, and it comes home carrying one of the fine goods that city has opened — not a seam of your own, and worth less than one, but yours for as long as the road runs.*
 - **Satrapies** — each connected city pays +1 gold
 - **Satrapies** — +1 happiness in every city joined to your capital by road
-- **Satrapies** † Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town. — not built yet
-- **Satrapies** — *Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one.*
+- **Satrapies** — *Every city joined to your capital pays one more gold, and a joined city is a contented one.*
 - **The Civil Service** — +5 percentage points to the bonus your positive happiness pays
 - **The Civil Service** — +5 authority capacity
 - **The Civil Service** — +1 food, +1 production on every hex carrying a great person's work
 - **The Civil Service** — *A realm that is content or well governed is rewarded more generously, and the crown's authority reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.*
+- **The Saddle** — pillaging grants +15 science
+- **The Saddle** — pillaging grants +15 culture
+- **The Saddle** — *The horse is ridden rather than driven, and a rider who tears out a field carries home what he saw there — the way the ditches ran, the songs the diggers sang.*
 - **Daughter Cities** — settlers cost 33% less production
 - **Daughter Cities** — new cities are founded with a Town Charter
-- **Daughter Cities** — *Settlers are trained faster, and every city you found is founded with its charter already granted.*
+- **Daughter Cities** — +1 food, +1 production on every trade route between two of your own cities
+- **Daughter Cities** — *Settlers are trained faster, every city you found is founded with its charter already granted, and the carts that run between your own towns carry more than they did.*
 - **Guildhalls** — +10% production toward wonders
 - **Guildhalls** — +2 culture per wonder you hold
 - **Guildhalls** — *The guilds put their weight behind the great works: a wonder rises faster in your cities, and every wonder your realm has raised sings a little louder.*

@@ -122,6 +122,12 @@ import {
   isCoastalCity,
   resourceCopies,
 } from './cities';
+import { RULES } from './rulesData';
+import { slateMemo } from './slate';
+// The three route readings this module needs to answer "what is a caravan of
+// mine carrying home" — a leaf (`routes.ts`) below both this file and
+// `routeYields.ts`, which is where the pair resolution has always lived.
+import { routeCities, routeIsInternational, routeIsLive } from './routes';
 import {
   type CityYieldKey,
   type ResourceCityScope,
@@ -137,7 +143,13 @@ import {
   resourceEffects,
 } from './resourceData';
 import { type ImprovementId, improvementDef } from './improvementData';
-import { type TileLine, cardAmplifier, cityScopeAdmits, cityScopeWords } from './statecraft';
+import {
+  type TileLine,
+  cardAmplifier,
+  cardBehaviorRule,
+  cityScopeAdmits,
+  cityScopeWords,
+} from './statecraft';
 import { type City, type GameState, type Unit, citiesOf, playerById } from './state';
 import { type TechAge, highestAge } from './techData';
 
@@ -241,13 +253,30 @@ function ageOf(state: GameState, playerId: number): TechAge {
  * multiplier — and so that "how many silver do I control" has exactly one
  * answer (`resourceCopies`, which asks the same `openedResource` rule
  * everything else does).
+ *
+ * **And the whole of the borrowed copy** (The Silk Road, the user's tree pass of
+ * 2026-09-10): a luxury a foreign road lends this empire counts
+ * `rules.trade.importedLuxuryPercent` of a time — half — and because every
+ * reading in this file arrives at its figure by multiplying this number, *every*
+ * effect of a borrowed luxury is halved by one multiplication rather than by
+ * fourteen. That is why the share is here and not in a fold: a rule written as
+ * "and also halve the renown, and the writ, and the hammers" is a rule that
+ * stops being true the day a fifteenth fold is added.
+ *
+ * A borrowed copy is **exactly half of one**, with `perCopy` and the Grand
+ * Bazaar's duplicates both skipped: the empire owns no tile of it (so the copy
+ * count is nought and a `perCopy` row would pay nothing at all, which is a
+ * different sentence from "half"), and a caravan's loan is not a second copy of
+ * a seam somebody dug.
  */
 function copiesFor(
   state: GameState,
   playerId: number,
   id: ResourceId,
   effect: ResourceEffect,
+  imported = false,
 ): number {
+  if (imported) return IMPORTED_SHARE;
   if (effect.perCopy) return resourceCopies(state, playerId, id);
   // The Grand Bazaar's second clause, and the one place a card reaches into this
   // vocabulary: "additional copies of a luxury count at 30%". The uniqueness rule
@@ -350,11 +379,21 @@ function scopeNote(scope: ResourceCityScope | undefined): string {
  * not in the list at all: it is shown by `describeResourceSignature`, which is
  * what the hover reads.
  */
-function lineLabel(id: ResourceId, note: string | null, copies: number): string {
+function lineLabel(
+  id: ResourceId,
+  note: string | null,
+  copies: number,
+  imported = false,
+): string {
   const name = resourceDef(id).name;
   const parts = [name];
   if (note) parts.push(note);
-  if (copies !== 1) parts.push(`×${copies} copies`);
+  // **A borrowed copy says so, and never says a fraction.** The share is the
+  // rule and the ledger's business is *why* the figure is what it is — "Wine ·
+  // ×0.5 copies" is arithmetic showing its working, and "Wine · on loan" is the
+  // sentence a player can act on (cut the road and it goes).
+  if (imported) parts.push('on loan');
+  else if (copies !== 1) parts.push(`×${copies} copies`);
   return parts.join(' · ');
 }
 
@@ -365,12 +404,13 @@ function lineOf(
   note: string | null,
   copies: number,
   scale = 1,
+  imported = false,
 ): ResourceYieldLine {
   // Exact since batch X: a half-point signature on one copy pays half a point.
   const at = (key: keyof ResourceYieldBag): number => (bag[key] ?? 0) * copies * scale;
   return {
     resource: id,
-    source: lineLabel(id, note, copies),
+    source: lineLabel(id, note, copies, imported),
     food: at('food'),
     production: at('production'),
     gold: at('gold'),
@@ -381,22 +421,91 @@ function lineOf(
 }
 
 /**
+ * **What a borrowed copy of a luxury is worth**, as a multiplier — the user's
+ * own figure for `docs/playstyles.md` §7's rule ("effects halved", 2026-09-10).
+ *
+ * Read once, at load, off `rules.trade.importedLuxuryPercent`, because it is a
+ * balance figure and balance figures live in the data (CLAUDE.md's layout rule).
+ * Exact rather than floored, `lineOf`'s bargain exactly: a half of one point is
+ * half a point, and the folds floor where they have always floored.
+ */
+const IMPORTED_SHARE = Math.max(0, RULES.trade.importedLuxuryPercent) / 100;
+
+/**
+ * **The luxuries this empire's foreign roads lend it**, in the resource table's
+ * own order — The Silk Road's clause (`BehaviorRuleId`'s `routesImportLuxuries`).
+ *
+ * One kind per live international route, never a kind the empire already
+ * controls and never the same kind twice, read off the **destination's** own
+ * improved holdings (`cityResources`, the one-per-town rule every other reading
+ * of "what does this town hold" asks). Derived every time it is asked, so it
+ * lapses the instant a route does — there is nothing written down anywhere and
+ * therefore nothing to keep in step.
+ *
+ * The routes are walked in `state.units` order and each takes the first kind the
+ * ones before it left, which is the contention rule the whole game uses (sweep
+ * order decides) and the only one a replay reproduces. The **table's** order is
+ * what comes back, so two empires holding the same loans read them the same way
+ * round in every ledger.
+ *
+ * Remembered on the **revision** clock rather than the economy one: a route is a
+ * fact about a *piece* — where a caravan is standing and what it is carrying —
+ * and the economy half is the ground and nothing but (see "The two clocks" in
+ * `slate.ts`).
+ */
+export function importedLuxuries(state: GameState, playerId: number): ResourceId[] {
+  if (!cardBehaviorRule(state, playerId, 'routesImportLuxuries')) return [];
+  return slateMemo(state, 'revision', 'importedLuxuries', String(playerId), () => {
+    const held = new Set<ResourceId>(controlledResources(state, playerId, 'luxury'));
+    const lent = new Set<ResourceId>();
+    for (const unit of state.units) {
+      if (unit.ownerId !== playerId || unit.trade === undefined) continue;
+      if (!routeIsLive(state, unit)) continue;
+      const pair = routeCities(state, unit);
+      if (!pair || !routeIsInternational(pair.from, pair.to)) continue;
+      for (const id of cityResources(state, pair.to, 'luxury')) {
+        if (held.has(id) || lent.has(id)) continue;
+        lent.add(id);
+        // **One luxury per route**, and the road is finished the moment it has
+        // found one: a caravan carries a cargo, not a manifest.
+        break;
+      }
+    }
+    return RESOURCE_IDS.filter((id) => lent.has(id));
+  });
+}
+
+/**
  * Every live effect this player's luxuries declare, resource-table order first
  * and row order within that, each paired with the resource it belongs to.
  *
  * The single walk. Everything below filters it by kind rather than repeating
  * the uniqueness reading, the age gate and the table order ten times — which is
  * how "one evaluator" stays true as the vocabulary grows.
+ *
+ * **The borrowed copies come last and carry a mark** (The Silk Road). They are
+ * appended rather than merged into the first list because they are a different
+ * fact about the empire — a seam it dug against a road it is running — and
+ * because `importedLuxuries` has already excluded every kind the first list
+ * holds, so the two never name the same luxury and no reading has to break a
+ * tie. The mark is the *only* thing every fold below has to know about them:
+ * `copiesFor` turns it into the share, and the share is what halves the
+ * fourteen figures a luxury can pay.
  */
 function liveLuxuryEffects(
   state: GameState,
   playerId: number,
-): { id: ResourceId; effect: ResourceEffect }[] {
+): { id: ResourceId; effect: ResourceEffect; imported: boolean }[] {
   const age = ageOf(state, playerId);
-  const list: { id: ResourceId; effect: ResourceEffect }[] = [];
+  const list: { id: ResourceId; effect: ResourceEffect; imported: boolean }[] = [];
   for (const id of controlledResources(state, playerId, 'luxury')) {
     for (const effect of resourceEffects(id)) {
-      if (effectIsLive(effect, age)) list.push({ id, effect });
+      if (effectIsLive(effect, age)) list.push({ id, effect, imported: false });
+    }
+  }
+  for (const id of importedLuxuries(state, playerId)) {
+    for (const effect of resourceEffects(id)) {
+      if (effectIsLive(effect, age)) list.push({ id, effect, imported: true });
     }
   }
   return list;
@@ -423,7 +532,7 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
     if (effect.kind === 'buildingCategoryYields') {
       // **Paid where the building stands.** The shape's whole reading: a
       // workshop is what earns the line, so the town that raised the workshop is
@@ -432,18 +541,18 @@ export function cityResourceYields(state: GameState, city: City): ResourceYieldL
       // list at all, which is `foldOne`'s filter below doing its usual job.
       const held = matchingBuildings(city, effect);
       if (held === 0) continue;
-      const copies = copiesFor(state, owner, id, effect);
-      list.push(lineOf(id, effect, `${selectorNote(effect)} ×${held}`, copies, held));
+      const copies = copiesFor(state, owner, id, effect, imported);
+      list.push(lineOf(id, effect, `${selectorNote(effect)} ×${held}`, copies, held, imported));
       continue;
     }
     if (effect.kind !== 'perCityYields' && effect.kind !== 'perPopulationYields') continue;
     if (!scopeAdmits(state, city, effect.scope, local, id)) continue;
-    const copies = copiesFor(state, owner, id, effect);
+    const copies = copiesFor(state, owner, id, effect, imported);
     if (effect.kind === 'perCityYields') {
-      list.push(lineOf(id, effect, scopeNote(effect.scope), copies));
+      list.push(lineOf(id, effect, scopeNote(effect.scope), copies, 1, imported));
       continue;
     }
-    list.push(lineOf(id, effect, `per citizen ×${city.population}`, copies, city.population));
+    list.push(lineOf(id, effect, `per citizen ×${city.population}`, copies, city.population, imported));
   }
   return list.filter((line) => foldOne(line) !== 0);
 }
@@ -491,9 +600,9 @@ function foldOne(line: ResourceYieldLine): number {
  */
 export function empireResourceYields(state: GameState, playerId: number): ResourceYieldLine[] {
   const list: ResourceYieldLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'pays') continue;
-    list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect)));
+    list.push(lineOf(id, effect, 'empire', copiesFor(state, playerId, id, effect, imported), 1, imported));
   }
   return list;
 }
@@ -552,13 +661,13 @@ export function resourceTileLines(state: GameState, playerId: number): TileLine[
   // refresh, so this is the difference between a fifth of a turn resolution and
   // nothing at all on the boards where the sea is empty.
   if (!boardHasAny(state, IMPROVEMENTS_PAID_ON)) return list;
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'improvementYields') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     // Through `lineOf` so a `perCopy` improvement line scales and labels itself
     // exactly as every other bag on the table does — there is one reading of a
     // yield bag in this module and this is not a second one.
-    const paid = lineOf(id, effect, improvementDef(effect.improvement).name.toLowerCase(), copies);
+    const paid = lineOf(id, effect, improvementDef(effect.improvement).name.toLowerCase(), copies, 1, imported);
     const resolved: TileLine = {
       source: paid.source,
       on: { test: 'improvement', improvement: effect.improvement },
@@ -649,9 +758,9 @@ export function endpointLuxuryCount(state: GameState, from: City, to: City): num
 export function resourceRouteYields(state: GameState, playerId: number): ResourceRouteLine[] {
   const list: ResourceRouteLine[] = [];
   if (!tableHasLive(state, playerId, 'routeYields')) return list;
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'routeYields') continue;
-    const paid = lineOf(id, effect, 'trade route', copiesFor(state, playerId, id, effect));
+    const paid = lineOf(id, effect, 'trade route', copiesFor(state, playerId, id, effect, imported), 1, imported);
     if (paid.food === 0 && paid.production === 0 && paid.gold === 0) continue;
     list.push({
       resource: id,
@@ -699,9 +808,9 @@ export function resourceUpkeepRebateLines(
 ): ResourceUpkeepLine[] {
   const list: ResourceUpkeepLine[] = [];
   if (!tableHasLive(state, playerId, 'unitUpkeepRebate')) return list;
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'unitUpkeepRebate') continue;
-    const off = effect.amount * copiesFor(state, playerId, id, effect);
+    const off = effect.amount * copiesFor(state, playerId, id, effect, imported);
     if (off <= 0) continue;
     let gold = 0;
     for (const unit of state.units) {
@@ -712,7 +821,7 @@ export function resourceUpkeepRebateLines(
     }
     gold = Math.floor(gold);
     if (gold <= 0) continue;
-    list.push({ resource: id, source: lineLabel(id, 'each soldier', 1), gold });
+    list.push({ resource: id, source: lineLabel(id, 'each soldier', 1, imported), gold });
   }
   return list;
 }
@@ -776,7 +885,7 @@ function cityCount(state: GameState, playerId: number, coastalOnly: boolean): nu
  */
 export function resourceHappiness(state: GameState, playerId: number): ResourceHappinessLine[] {
   const list: ResourceHappinessLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     // **A building's contentment is the empire's**, not the town's — happiness
     // is an empire meter and there is no city-scale reading of it to land in
     // (`meters.ts`). So the same selector that pays faith into one workshop's
@@ -785,7 +894,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
     if (effect.kind === 'buildingCategoryYields') {
       const amount = effect.happiness ?? 0;
       if (amount === 0) continue;
-      const copies = copiesFor(state, playerId, id, effect);
+      const copies = copiesFor(state, playerId, id, effect, imported);
       let held = 0;
       for (const city of state.cities) {
         if (city.ownerId !== playerId) continue;
@@ -795,13 +904,13 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
       if (total === 0) continue;
       list.push({
         resource: id,
-        source: lineLabel(id, `${selectorNote(effect)} ×${held}`, copies),
+        source: lineLabel(id, `${selectorNote(effect)} ×${held}`, copies, imported),
         amount: total,
       });
       continue;
     }
     if (effect.kind !== 'extraHappiness') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     const towns =
       effect.per === undefined ? 1 : cityCount(state, playerId, effect.per === 'coastalCity');
     const amount = effect.amount * copies * towns;
@@ -810,7 +919,7 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
       effect.per === undefined
         ? 'signature'
         : `${effect.per === 'coastalCity' ? 'coastal cities' : 'cities'} ×${towns}`;
-    list.push({ resource: id, source: lineLabel(id, note, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, note, copies, imported), amount });
   }
   return list;
 }
@@ -824,14 +933,14 @@ export function resourceHappiness(state: GameState, playerId: number): ResourceH
  */
 export function resourceAuthority(state: GameState, playerId: number): ResourceAuthorityLine[] {
   const list: ResourceAuthorityLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'authority') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     const towns = effect.per === 'city' ? cityCount(state, playerId, false) : 1;
     const amount = effect.amount * copies * towns;
     if (amount === 0) continue;
     const note = effect.per === 'city' ? `cities ×${towns}` : 'authority';
-    list.push({ resource: id, source: lineLabel(id, note, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, note, copies, imported), amount });
   }
   return list;
 }
@@ -853,13 +962,13 @@ export function resourceAuthority(state: GameState, playerId: number): ResourceA
  */
 export function resourceRenown(state: GameState, playerId: number): ResourceRenownLine[] {
   const list: ResourceRenownLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'renownPerCity') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     const towns = cityCount(state, playerId, false);
     const amount = effect.amount * copies * towns;
     if (amount === 0) continue;
-    list.push({ resource: id, source: lineLabel(id, `cities ×${towns}`, copies), amount });
+    list.push({ resource: id, source: lineLabel(id, `cities ×${towns}`, copies, imported), amount });
   }
   return list;
 }
@@ -879,13 +988,13 @@ export function resourceTierBoost(state: GameState, playerId: number): {
 } {
   const lines: ResourceHappinessLine[] = [];
   let points = 0;
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'happinessTierBoost') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     const amount = effect.points * copies;
     if (amount === 0) continue;
     points += amount;
-    lines.push({ resource: id, source: lineLabel(id, 'happiness', copies), amount });
+    lines.push({ resource: id, source: lineLabel(id, 'happiness', copies, imported), amount });
   }
   return { lines, points };
 }
@@ -910,13 +1019,13 @@ export function resourceProduction(
   const owner = city.ownerId;
   const local = cityResources(state, city, 'luxury');
   const list: ResourceProductionLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
     if (effect.kind !== 'productionBonus' || effect.category !== category) continue;
     if (effect.scope !== 'empire' && !local.includes(id)) continue;
-    const copies = copiesFor(state, owner, id, effect);
+    const copies = copiesFor(state, owner, id, effect, imported);
     list.push({
       resource: id,
-      source: lineLabel(id, null, copies),
+      source: lineLabel(id, null, copies, imported),
       percent: effect.percent * copies,
     });
   }
@@ -942,13 +1051,13 @@ export function resourceProduction(
 export function resourcePercentYields(state: GameState, city: City): ResourcePercentLine[] {
   const owner = city.ownerId;
   const list: ResourcePercentLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, owner)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, owner)) {
     if (effect.kind !== 'percentYields') continue;
     if (!scopeAdmits(state, city, effect.scope, cityResources(state, city, 'luxury'), id)) continue;
-    const copies = copiesFor(state, owner, id, effect);
+    const copies = copiesFor(state, owner, id, effect, imported);
     list.push({
       resource: id,
-      source: lineLabel(id, effect.scope === undefined ? null : scopeNote(effect.scope), copies),
+      source: lineLabel(id, effect.scope === undefined ? null : scopeNote(effect.scope), copies, imported),
       yield: effect.yield,
       percent: effect.percent * copies,
       stage: scopeStage(effect.scope),
@@ -974,12 +1083,12 @@ export function resourceRulePercent(
   rule: ResourceRule,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'rulePercent' || effect.rule !== rule) continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     list.push({
       resource: id,
-      source: lineLabel(id, null, copies),
+      source: lineLabel(id, null, copies, imported),
       percent: effect.percent * copies,
     });
   }
@@ -1003,12 +1112,12 @@ export function resourceConnectionPercent(
   playerId: number,
 ): ResourceRuleLine[] {
   const list: ResourceRuleLine[] = [];
-  for (const { id, effect } of liveLuxuryEffects(state, playerId)) {
+  for (const { id, effect, imported } of liveLuxuryEffects(state, playerId)) {
     if (effect.kind !== 'connectionPercent') continue;
-    const copies = copiesFor(state, playerId, id, effect);
+    const copies = copiesFor(state, playerId, id, effect, imported);
     list.push({
       resource: id,
-      source: lineLabel(id, 'city connections', copies),
+      source: lineLabel(id, 'city connections', copies, imported),
       percent: effect.percent * copies,
     });
   }

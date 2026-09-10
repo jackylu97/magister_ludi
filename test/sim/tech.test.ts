@@ -1501,7 +1501,7 @@ describe('research in the log', () => {
     // ladder is re-run from the first paid column's 10, so every column above
     // the second charges fewer beakers and a v90 log pays a price this build
     // does not ask for from its second technology on.
-    expect(SCHEMA_VERSION).toBe(109);
+    expect(SCHEMA_VERSION).toBe(110);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1832,8 +1832,13 @@ describe('the shape of the tree', () => {
       'ironWorking', 'mathematics', 'currency', 'philosophy',
       'theHighTemple', 'engineering', 'feudalism', 'machinery', 'theology',
       'steel', 'physics', 'education', 'theImperialPost',
-      // And revision 4's own three, which are ids from this day forward.
-      'stateWorkforce', 'raisedFields', 'militantOrders',
+      // And revision 4's own three, which are ids from this day forward —
+      // except Raised Fields, which the user's tree pass of 2026-09-10 struck
+      // out and replaced in its own slot (`docs/flags.md` (uuu) mark 6). It is
+      // named in the pruned list below with the re-cut's other losses, because
+      // a save that researched it is refused rather than replayed against a
+      // tree that no longer has it (schema 110).
+      'stateWorkforce', 'militantOrders',
     ]) {
       expect(isTechId(id), id).toBe(true);
     }
@@ -1857,6 +1862,9 @@ describe('the shape of the tree', () => {
       // Temple, the knight and the Alhambra to Militant Orders, the Great Wall
       // to Satrapies, the bastion to nothing at all) and the ids are gone.
       'ancestorRites', 'chivalry', 'fortification',
+      // And the one the user's tree pass of 2026-09-10 cut: Raised Fields, whose
+      // slot, column, lane and prerequisite The Silk Road took over whole.
+      'raisedFields',
     ]) {
       expect(isTechId(id), id).toBe(false);
     }
@@ -2000,7 +2008,10 @@ describe('the shape of the tree', () => {
    * (`docs/history/tech-gifts.md` §7, batch D). One per node, each `oncePerEmpire`, and
    * the Caravanserai moved down two ages from The Golden Roads to Mathematics —
    * a hub is a decision about *where*, and the age of trade is where the
-   * decision belongs.
+   * decision belongs. The user's tree pass of 2026-09-10 moved it one lane
+   * over to **The Silk Road**, the node written around the caravan: Petra stays
+   * on Mathematics, and a hub belongs on the road rather than beside the siege
+   * engines.
    */
   it('puts each unique building on its own node, and one of them nowhere else', () => {
     const homes: Record<string, string> = {
@@ -2008,7 +2019,7 @@ describe('the shape of the tree', () => {
       imperialThrone: 'kingship',
       highTemple: 'theHighTemple',
       forum: 'philosophy',
-      caravanserai: 'mathematics',
+      caravanserai: 'silkRoad',
     };
     for (const [building, node] of Object.entries(homes)) {
       expect(BUILDING_UNLOCK_TECH.get(building as never), building).toBe(node);

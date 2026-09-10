@@ -780,8 +780,26 @@ import {
  * piece — but **a v108 log does not replay**: every battle rolls against
  * different numbers, so the damage, the deaths and the dice spent after the
  * first blow all move.
+ *
+ * v110 (batch T5, the user's tree pass — `docs/flags.md` (uuu), 2026-09-10:
+ * *"could you fold in my changes to the tech tree"*): **eleven marks, and a
+ * replay's yields move on every one of them.** The Barracks, the Stable and the
+ * Shipyard hurry a quarter rather than a tenth and each now names *which*
+ * soldiers; the Lighthouse and the Harbour trade a food line for a coin and a
+ * seam; two new buildings stand (the **Garden** at Irrigation, the **Public
+ * Bath** at State Workforce); Satrapies stops keeping a wide realm's roads for
+ * nothing; Daughter Cities pays the carts that never leave the realm; The Saddle
+ * pays beakers and songs for a burnt field. And **Raised Fields is gone** — the
+ * id leaves `TechId`, so a v108 log that researched it is refused rather than
+ * replayed against a tree without it, exactly as v44's re-cut refused one that
+ * named Drama. **The Silk Road** stands in its slot, at its column, off its
+ * prerequisite, with Shipwrights still chaining off it; it carries the
+ * Caravanserai down from Mathematics, pays a caravan that ends abroad, and
+ * lends the empire one luxury from every foreign market it reaches, at half
+ * (`rules.trade.importedLuxuryPercent`). The Floating Gardens move to Irrigation
+ * with the water that grows them.
  */
-export const SCHEMA_VERSION = 109;
+export const SCHEMA_VERSION = 110;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

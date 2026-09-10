@@ -277,9 +277,24 @@ function bagWords(bag: Partial<Record<CityYieldKey, number>>): string {
  * its destination read as the same kind of sentence. A row that names both is
  * two conditions on one caravan and says so.
  */
-function routeWhose(effect: { origin?: CityScope; destination?: CityScope }): string {
+function routeWhose(effect: {
+  origin?: CityScope;
+  destination?: CityScope;
+  crossing?: 'domestic' | 'international';
+}): string {
   const parts: string[] = [];
   if (effect.origin !== undefined) parts.push(`sent from ${cityScopeWords(effect.origin)}`);
+  // **The crossing, in the plainest words there are** (hard rule 7): a player is
+  // told the caravan ends in another empire's city or runs between two of their
+  // own, never that a route is "international". Between the two ends, because
+  // that is the order a road is read in — where it left, where it goes.
+  if (effect.crossing !== undefined) {
+    parts.push(
+      effect.crossing === 'international'
+        ? 'that ends in another empire’s city'
+        : 'between two of your own cities',
+    );
+  }
   if (effect.destination !== undefined) {
     // **One town, not every town**: a caravan ends in exactly one place, so the
     // scope's own "every city with a Printing House" reads as a promise about
@@ -1207,11 +1222,26 @@ function describeEffect(
         // as the building's, so the card must too, or a player reading "+1
         // happiness in every city with a Temple" would go looking for a line
         // that is filed under the temple. See `CardHappinessEffect.building`.
+        //
+        // **And a scope on a one-town line says so too** (the user's tree pass
+        // of 2026-09-10): the Public Bath is worth its contentment only in a
+        // town the road from the capital has reached, and the evaluator has
+        // always asked (`cityLocalHappiness`) — it was the words that were
+        // silent, so the row printed a promise it kept conditionally. A town's
+        // own line says it as a **condition** rather than as "in every city
+        // joined to your capital", which on a building that stands in one place
+        // would be a sentence about the realm.
         text:
           effect.building !== undefined
             ? `${buildingPluralName(effect.building)} supply ${signed(effect.amount)} happiness`
             : `${signed(effect.amount)} happiness` +
-              (effect.per === 'city' ? ` in ${scopeWordsFor(subject, effect.scope)}` : ''),
+              (effect.per === 'city'
+                ? ` in ${scopeWordsFor(subject, effect.scope)}`
+                : effect.scope === undefined
+                  ? ''
+                  : subject === 'here'
+                    ? ` while this city is ${scopeCondition(effect.scope)}`
+                    : ` in ${cityScopeWords(effect.scope)}`),
       });
       return;
     case 'authority':
@@ -1537,17 +1567,25 @@ function describeEffect(
       });
       return;
     }
-    case 'cityStat':
+    case 'cityStat': {
+      const stat = effect.stat === 'defense' ? 'city defence' : 'city sight';
+      // **What buys one helping**, where the row is counted — Siegecraft's
+      // citizens on the walls. The count's own noun, the same table a `pays`
+      // count prints through, so one card counting townsfolk for hammers and
+      // another counting them for walls read as the same sentence.
+      const each =
+        effect.count === undefined
+          ? ''
+          : ` per ${countWords(effect.per, countNoun({ kind: 'pays', where: 'city', basis: 'count', count: effect.count, within: 'city' }, ''))}`;
       out.push({
         // **The subject, not "every city"** (batch L1): the Great Wall's five
         // points of defence stand in the town that holds the stones and a
         // Blessing of Arms in the town keeping the rite, and both said "every
         // city" until the class supplied the word. See `scopeWordsFor`.
-        text: `${scopeWordsFor(subject, effect.scope)}: ${signed(effect.amount)} ${
-          effect.stat === 'defense' ? 'city defence' : 'city sight'
-        }`,
+        text: `${scopeWordsFor(subject, effect.scope)}: ${signed(effect.amount)} ${stat}${each}`,
       });
       return;
+    }
     case 'metaRule':
       out.push({
         text: `a newly placed Order is locked for ${effect.value} turns instead of ${METER.sealTurns}`,
@@ -2505,6 +2543,32 @@ export function cityScopeWords(scope?: CityScope): string {
   return ['every', ...phrase.adjectives, 'city', ...phrase.qualifiers].join(' ');
 }
 
+/**
+ * A scope said as a **condition on one town** — "joined to your capital by road",
+ * "on fresh water" — rather than as a promise about the realm.
+ *
+ * `cityScopeWords`' one transform, and it is a transform rather than a second
+ * table for that function's own reason: there is one sentence-builder for what a
+ * scope means, and a second list of adjectives and qualifiers is exactly the
+ * drift the first one exists to prevent. The leading "every city" is what makes
+ * the phrase a promise; drop it and what is left is the test itself.
+ *
+ * The two scopes that already name a single town read right unchanged ("your
+ * capital", "your newest city"), so they are handed back as they are.
+ */
+function scopeCondition(scope: CityScope): string {
+  const said = cityScopeWords(scope);
+  if (!said.startsWith('every ')) return said;
+  const rest = said.slice('every '.length);
+  // An adjective sits *before* the noun ("every coastal city") and a qualifier
+  // after it ("every city joined to your capital by road"); both read as a
+  // condition once the noun is taken out, which is the whole of the transform.
+  return rest
+    .replace(/\bcity\b/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
+
 function filterWords(filter: UnitFilter): string {
   // The named row first, because it is the *narrowest* clause and a phrase that
   // said "workers" when the filter means one row would be a promise the price
@@ -2534,6 +2598,13 @@ function filterWords(filter: UnitFilter): string {
   if (filter.modelClass === 'navalHeavy') return 'heavy warships';
   if (filter.modelClass === 'navalRanged') return 'ships that fire at a distance';
   if (filter.modelClass !== undefined) return `${filter.modelClass} units`;
+  // **Two silhouettes said once** — the Barracks' foot soldiers. The list is
+  // read out in the row's own order, because the row's order is the order a
+  // designer wrote the sentence in, and the noun is singular-plural exactly as
+  // the one-silhouette arm above spells it ("melee and ranged units").
+  if (filter.modelClasses !== undefined && filter.modelClasses.length > 0) {
+    return `${listWords(filter.modelClasses)} units`;
+  }
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';
   if (filter.category !== undefined) return `${filter.category} units`;
@@ -3312,6 +3383,13 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   // because "a shore step is free" is the name of a price and not a rule.
   cityRestoresMovement: 'a unit that stops in one of your cities gets its movement back',
   freeLanding: 'your units come ashore from the water without spending movement',
+  // The Silk Road's. No figure in it (hard rule 7): the *share* a borrowed
+  // luxury pays is a number and lives in the data, and what a player needs told
+  // here is that the goods come home at all and are worth less than a seam of
+  // their own.
+  routesImportLuxuries:
+    'a trade route ending in another empire’s city lends you one luxury resource that ' +
+    'city has improved, worth a share of your own',
   // The zone of control, and the only rule of it there is. `ZocRuleId`.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
 };

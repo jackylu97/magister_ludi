@@ -923,8 +923,11 @@ describe('the march is re-asked (batch X7)', () => {
   });
 
   it('re-plans a worker whose hex another spade improved while it was walking', () => {
-    const { target: aim, order: planned } = aimOf('worker', 32);
-    const { game, unit } = marching('worker', aim, 32);
+    // 32 turns until batch T5 (the tree pass) moved the plantation's voice and
+    // the bench's worker had nothing left to be re-asked about at that turn; at
+    // 36 the plan has a row for it again.
+    const { target: aim, order: planned } = aimOf('worker', 36);
+    const { game, unit } = marching('worker', aim, 36);
     // The board moves: a second spade of ours lays **the very row the first was
     // walking there to lay** — the plan prints the improvement in its own
     // candidate label, so the test does not have to guess which one it wanted.

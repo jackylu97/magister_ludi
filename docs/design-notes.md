@@ -356,3 +356,27 @@ per seat with the seed, then the **mean per seat position**, which is the whole
 point: one seed proves nothing about a weight. Runs stack, newest first, each
 captioned with the sheet it was run with, because a tuning session is a
 comparison.
+
+## Entry LXX — the user's tree pass (2026-09-10)
+
+`docs/flags.md` (uuu). Nineteen marks the user wrote onto `docs/tech-tree.md`,
+folded as data with three new members of the card vocabulary and one new
+building field. Three rules of record moved. **A route row may name the
+crossing** (`CardPaysEffect.crossing`): a fact about the *pair* of towns rather
+than about either of them, so it is not a `CityScope` and is asked through
+`routeIsInternational` — The Silk Road's coin abroad, Daughter Cities' grain at
+home. **A luxury may be held on loan** (`routesImportLuxuries`): every live
+route of an empire that ends in a foreign city lends the sender one kind that
+town holds improved — unique kinds only, never one already controlled, one per
+route, lapsing with the route — and every figure it pays is
+`rules.trade.importedLuxuryPercent` of a dug seam's, because the share is read
+as the **copy count** (`copiesFor`) and not applied fold by fold; fourteen folds
+halve without one of them knowing the rule exists. **A route slot may grow with
+the town** (`BuildingDef.routeSlotsPerPopulation`): `sciencePerPop`'s shape one
+fold over, read where route slots are already counted. Beside them: Raised
+Fields left the tree and **The Silk Road** took its slot, column, lane and
+prerequisite whole (schema 110 — a save that researched the old id is refused,
+not replayed); Satrapies lost the free roads that made wide cheap; the Smithy
+came out from behind an Order and into Bronze Panoply, and the Order retired
+with the door it opened.
+

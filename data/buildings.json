@@ -55,12 +55,16 @@
       "sciencePerPop": 0,
       "productionBonus": {
         "category": "unit",
-        "percent": 10
+        "percent": 25,
+        "class": {
+          "modelClasses": ["melee", "ranged"]
+        }
       },
       "renown": {
         "family": "general",
         "perTurn": 1
-      }
+      },
+      "note": "The drill yard of the foot. Spearmen, warriors and archers are raised here faster than anywhere else; horse, engine and hull are trained elsewhere."
     },
     "stable": {
       "name": "Stable",
@@ -74,7 +78,7 @@
       "sciencePerPop": 0,
       "productionBonus": {
         "category": "unit",
-        "percent": 10,
+        "percent": 25,
         "class": {
           "modelClass": "mounted"
         }
@@ -201,13 +205,15 @@
       "production": 0,
       "gold": 2,
       "routeSlots": 1,
+      "routeSlotsPerPopulation": 8,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
       "renown": {
         "family": "merchant",
         "perTurn": 1
-      }
+      },
+      "note": "The stalls, the scales and the road out. A town big enough keeps more than one caravan on the road at a time."
     },
     "aqueduct": {
       "name": "Aqueduct",
@@ -1491,7 +1497,7 @@
       "category": "food",
       "size": "medium",
       "food": 1,
-      "production": 0,
+      "production": 3,
       "gold": 0,
       "science": 0,
       "culture": 0,
@@ -1507,14 +1513,23 @@
       "tileYields": [
         {
           "on": {
-            "test": "water"
+            "test": "all",
+            "of": [
+              {
+                "test": "water"
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
           },
           "add": {
-            "food": 1
+            "food": 1,
+            "gold": 1
           }
         }
       ],
-      "note": "Built on the coast. Every water hex the city works pays a further food."
+      "note": "Built on the coast. The wharf works for the town that keeps it, and every seam of the sea the city works \u2014 the fish, the crabs, the whales \u2014 pays a further food and a further coin."
     },
     "baths": {
       "name": "Baths",
@@ -1610,18 +1625,17 @@
       "category": "military",
       "size": "medium",
       "food": 0,
-      "production": 1,
+      "production": 3,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "routeSlots": 1,
       "requiresSite": {
         "test": "coastal"
       },
       "productionBonus": {
         "category": "unit",
-        "percent": 10,
+        "percent": 25,
         "class": {
           "category": "naval"
         }
@@ -1630,21 +1644,15 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Built on the coast. Ships leave the slips faster; everything else is built at the ordinary pace.",
+      "note": "Built on the coast. The slips work for the town that keeps them, every fishing boat the city works brings in more, and ships leave the yard faster; everything else is built at the ordinary pace.",
       "tileYields": [
         {
           "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "water"
-              },
-              {
-                "test": "hasResource"
-              }
-            ]
+            "test": "improvement",
+            "improvement": "fishingBoats"
           },
           "add": {
+            "food": 1,
             "production": 1
           }
         }
@@ -1705,6 +1713,7 @@
       "culture": 0,
       "sciencePerPop": 0,
       "routeSlots": 1,
+      "routeSlotsPerPopulation": 8,
       "oncePerEmpire": true,
       "effects": [
         {
@@ -1722,7 +1731,7 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "A walled yard, a well, and room for one more trade route. Every caravan that sets out from this city carries more than it could alone."
+      "note": "A walled yard, a well, and room for another trade route \u2014 and another again as the town grows. Every caravan that sets out from this city carries more than it could alone."
     },
     "printingHouse": {
       "name": "Printing House",
@@ -1798,11 +1807,68 @@
       ],
       "requiresBuilding": "university"
     },
+    "garden": {
+      "name": "Garden",
+      "category": "culture",
+      "size": "medium",
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "artist",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "population",
+          "per": 5,
+          "within": "city"
+        },
+        {
+          "kind": "cityRenownPercent",
+          "percent": 15
+        }
+      ],
+      "note": "Water is led where nothing needed it. Every fifth citizen of this town has somewhere to walk in the evening, and what the town does is remembered further afield."
+    },
+    "publicBath": {
+      "name": "Public Bath",
+      "category": "food",
+      "size": "medium",
+      "food": 3,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": 2,
+          "scope": {
+            "test": "connected"
+          }
+        }
+      ],
+      "note": "Hot water, cold water, and somewhere to argue in between \u2014 kept full by the road from the capital, and worth little to a town the road has not reached."
+    },
     "lighthouse": {
       "name": "Lighthouse",
       "category": "gold",
       "size": "small",
-      "food": 0,
+      "food": 2,
       "production": 0,
       "gold": 2,
       "science": 0,
@@ -1817,7 +1883,7 @@
             "test": "water"
           },
           "add": {
-            "food": 1
+            "gold": 1
           }
         }
       ],
@@ -1825,7 +1891,7 @@
         "family": "merchant",
         "perTurn": 1
       },
-      "note": "Built on the coast. Every water hex the city works feeds it a little better."
+      "note": "Built on the coast. It feeds the town that keeps it, and every water hex the city works pays a further coin for the light that brings the boats home."
     },
     "townCharter": {
       "name": "Town Charter",
@@ -2270,30 +2336,36 @@
       "name": "Smithy",
       "category": "production",
       "size": "medium",
-      "column": 4,
       "food": 0,
       "production": 2,
       "gold": 0,
       "science": 0,
       "culture": 0,
       "sciencePerPop": 0,
-      "unlockedByCard": true,
       "renown": {
         "family": "engineer",
         "perTurn": 1
       },
-      "effects": [
+      "tileYields": [
         {
-          "kind": "pays",
-          "where": "city",
-          "basis": "count",
-          "to": "production",
-          "amount": 1,
-          "count": "slottedOrdersOfSlot",
-          "slot": "military"
+          "on": {
+            "test": "all",
+            "of": [
+              {
+                "test": "anyImprovement",
+                "improvements": ["mine", "quarry"]
+              },
+              {
+                "test": "hasResource"
+              }
+            ]
+          },
+          "add": {
+            "production": 1
+          }
         }
       ],
-      "note": "The hammers fall harder for every military Order standing in your government."
+      "note": "The first hearth hot enough to matter. It works for the town that keeps it, and every seam the city has opened \u2014 a mine or a quarry standing on a named resource \u2014 gives up a further hammer."
     },
     "coinworks": {
       "name": "Coinworks",

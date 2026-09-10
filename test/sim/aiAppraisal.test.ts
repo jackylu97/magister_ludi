@@ -588,14 +588,17 @@ describe('the hypothetical building’s own tile lines', () => {
     return { state, city };
   }
 
-  it('sees a lighthouse’s coastal food, which is the whole worth of the row', () => {
+  it('sees a lighthouse’s coastal coin, which is the whole worth of the row', () => {
     const { state, city } = coastal();
     const now = foldCity(state, city);
     const withIt = foldCity(state, city, ['lighthouse']);
-    // +2💰 off the row itself, and the +1🌾 on the water hex that used to be
-    // invisible to the what-if (2026-09-04).
-    expect(withIt.food - now.food).toBe(1);
-    expect(withIt.gold - now.gold).toBeGreaterThan(now.gold - now.gold);
+    // The row's own +2🌾 +2💰, and the +1💰 on the water hex that used to be
+    // invisible to the what-if (2026-09-04). The water line paid food until the
+    // user's tree pass of 2026-09-10 turned it into a coin and moved the food
+    // onto the row — the claim under test is that the what-if sees the *tile*
+    // line at all, and it is the same claim in the other voice.
+    expect(withIt.food - now.food).toBe(2);
+    expect(withIt.gold - now.gold).toBe(3);
   });
 
   it('promises exactly what building it actually pays', () => {

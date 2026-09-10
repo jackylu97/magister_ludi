@@ -88,7 +88,7 @@ import { connectedCities } from '../roads';
 // could exist: `routeEndsHere` asks whether a caravan's road still describes the
 // board, `routeYields.ts` imports this file for the lines a card puts on a
 // caravan, and a question two hubs ask lives below both of them (`routes.ts`).
-import { routeIsLive } from '../routes';
+import { routeIsInternational, routeIsLive } from '../routes';
 import {
   type City,
   type GameState,
@@ -115,6 +115,7 @@ import {
   type CardDefBase,
   type CardEffect,
   type CardFlagRuleId,
+  type CardCityStatEffect,
   type CardHappinessEffect,
   type CardId,
   type CardLandfallEffect,
@@ -4293,6 +4294,14 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   if (filter.modelClass !== undefined && def.modelClass !== (filter.modelClass as ModelClass)) {
     return false;
   }
+  // The list form of the same question — the Barracks' foot soldiers. Read
+  // beside `modelClass` and never instead of it, so a row carrying both must
+  // satisfy both (see `UnitFilter.modelClasses`). An **empty** list admits
+  // nothing, which is the honest reading of a row that named no silhouette at
+  // all rather than a guard that would quietly admit every piece.
+  if (filter.modelClasses !== undefined && !filter.modelClasses.includes(def.modelClass)) {
+    return false;
+  }
   if (filter.category !== undefined && def.category !== filter.category) return false;
   if (filter.ranged !== undefined && (def.range !== undefined) !== filter.ranged) return false;
   // "Religious units", asked of the roster's own marker. Absent on every type
@@ -4454,6 +4463,26 @@ export function cardUnitStamp(
   return stamp;
 }
 
+/**
+ * A counted `cityStat` row read as the count it is asking — `payPeriodicBoon`'s
+ * probe one ledger over, and here for that one's reason exactly: `countOf` is
+ * the simulation's own answer to "how many of this does a town have", and a
+ * second implementation of "citizens" beside it is how two cards start
+ * disagreeing about one number. `within: 'city'` because the line lands in one
+ * town and the count is that town's.
+ */
+function cityStatProbe(effect: CardCityStatEffect): CardPaysEffect {
+  return {
+    kind: 'pays',
+    where: 'city',
+    basis: 'count',
+    count: effect.count,
+    per: effect.per,
+    max: effect.max,
+    within: 'city',
+  };
+}
+
 /** One line of what a card adds to a city's own defence or sight. */
 export interface CardCityStatLine {
   card: CardId;
@@ -4480,7 +4509,20 @@ export function cardCityStat(
     if (!cityScopeAdmits(state, city, effect.scope)) continue;
     const amount = effect.amount;
     if (amount === 0) continue;
-    list.push({ card, source: label(source, scopeNote(effect.scope)), amount });
+    // **A counted line pays a helping at a time** — Siegecraft's walls by the
+    // townsfolk (`CardCityStatEffect.count`). Asked through the simulation's own
+    // count with this town in hand, so a card counting citizens for walls and a
+    // card counting them for hammers read the same number; a row with no count
+    // pays its flat once, which is every row written before the field existed.
+    let times = 1;
+    let note = scopeNote(effect.scope);
+    if (effect.count !== undefined) {
+      const probe = cityStatProbe(effect);
+      times = helpings(countOf(state, city.ownerId, card, probe, city), effect.per, effect.max);
+      if (times === 0) continue;
+      note = note === null ? `×${times}` : `${note} · ×${times}`;
+    }
+    list.push({ card, source: label(source, note), amount: amount * times });
   }
   return list;
 }
@@ -5932,10 +5974,15 @@ function routeRows(
  * caller with no far end is asking a question about the origin alone (a preview
  * of a road nobody has drawn yet), and a line that answered yes there would be a
  * line the preview promised and the caravan never paid.
+ *
+ * **The crossing is asked here too** (`CardPaysEffect.crossing`), and it takes
+ * the destination clause's bargain for the destination clause's reason: it is a
+ * fact about the *pair*, so a caller holding one end cannot answer it and is not
+ * promised anything.
  */
 function routeScopesAdmit(
   state: GameState,
-  effect: { origin?: CityScope; destination?: CityScope },
+  effect: { origin?: CityScope; destination?: CityScope; crossing?: 'domestic' | 'international' },
   from: City,
   to?: City,
 ): boolean {
@@ -5944,12 +5991,27 @@ function routeScopesAdmit(
     if (!to) return false;
     if (!cityScopeAdmits(state, to, effect.destination)) return false;
   }
+  if (effect.crossing !== undefined) {
+    if (!to) return false;
+    const abroad = routeIsInternational(from, to);
+    if (abroad !== (effect.crossing === 'international')) return false;
+  }
   return true;
 }
 
 /** What a route row's ends say about where a line landed, for the label. */
-function routeScopeNote(effect: { origin?: CityScope; destination?: CityScope }): string | null {
-  const notes = [scopeNote(effect.origin), scopeNote(effect.destination)].filter(
+function routeScopeNote(effect: {
+  origin?: CityScope;
+  destination?: CityScope;
+  crossing?: 'domestic' | 'international';
+}): string | null {
+  const notes = [
+    scopeNote(effect.origin),
+    scopeNote(effect.destination),
+    // The crossing reads as a word of its own on the ledger line, because it is
+    // the one narrowing a player cannot check by looking at either town.
+    effect.crossing === undefined ? null : effect.crossing === 'international' ? 'abroad' : 'at home',
+  ].filter(
     (note): note is string => note !== null,
   );
   return notes.length === 0 ? null : notes.join(' + ');

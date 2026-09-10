@@ -137,7 +137,16 @@ function raise(state: GameState, city: City, ...ids: BuildingId[]): void {
 }
 
 /** Every charter row: the Order, and the building it opens. */
-const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.flatMap((id) =>
+const CHARTERS: { order: OrderId; building: BuildingId }[] = ORDER_IDS.filter(
+  // **A retired charter is not one of the family.** The Toolmakers' Charter
+  // opened the Smithy and nothing else, and the user's tree pass of 2026-09-10
+  // (`docs/flags.md` (uuu)) moved the Smithy into the tree at Bronze Panoply —
+  // so the row is `retired: true`, out of every pool, kept for saves and for the
+  // Compendium's record. Filtered here rather than named in an exception list,
+  // exactly as `statecraftDocSync` filters the doc: the family is the *live*
+  // rows, and a twelfth charter written tomorrow joins it with no edit.
+  (id) => orderDef(id).retired !== true,
+).flatMap((id) =>
   orderDef(id)
     .effects.filter((effect) => effect.kind === 'unlocksBuilding')
     .map((effect) => ({ order: id, building: effect.building })),
@@ -149,8 +158,9 @@ const THE_TREE_KEEPS: readonly BuildingId[] = ['mint', 'observatory'];
 // --- the register -----------------------------------------------------------
 
 describe('the charters as a family', () => {
-  it('ships eleven of them, each opening one real building row', () => {
-    expect(CHARTERS.length).toBe(11);
+  it('ships ten of them, each opening one real building row', () => {
+    // Eleven until the tree pass took the Toolmakers' Charter's door away.
+    expect(CHARTERS.length).toBe(10);
     for (const { order, building } of CHARTERS) {
       expect(isBuildingId(building), `${order} → ${building}`).toBe(true);
       // A row a card opens must say so on its own row, or `isUnlocked` never
@@ -198,7 +208,6 @@ describe('the charters as a family', () => {
       coinCharter: 'governmentII',
       waterwrightsCharter: 'governmentII',
       theSenatus: 'governmentII',
-      toolmakersCharter: 'governmentII',
       mintCharter: 'governmentIII',
       almshouseCharter: 'governmentIII',
       stargazersCharter: 'governmentIII',
@@ -454,16 +463,30 @@ describe('what each charter building does', () => {
     );
   });
 
-  it('Smithy — one hammer per military Order in the spread', () => {
+  it('Smithy — a hammer for every seam the town has opened', () => {
+    // **The row moved into the tree** (the user's tree pass of 2026-09-10,
+    // `docs/flags.md` (uuu)): the Smithy is Bronze Panoply's now, its deck-
+    // reading hammer is gone, and what it pays is a line on the *ground* — a
+    // mine or a quarry standing on a named resource. Tested here rather than
+    // deleted with the charter, because the row is still a row and this file is
+    // where its behaviour has always been pinned; the family test above no
+    // longer counts it, which is the honest split.
     const state = bench();
     const city = capitalOf(state);
     raise(state, city, 'smithy');
-    slot(state, 0, 'vigilCharter');
-    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(1);
-    slot(state, 0, 'justicesCharter');
-    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(2);
-    slot(state, 0, 'ritesCharter');
-    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(2);
+    // No card line at all any more — the hammers are the hex's.
+    expect(foldCardYields(explainCardCityYields(state, city)).production).toBe(0);
+    const line = buildingDef('smithy').tileYields![0]!;
+    expect(line.add.production).toBe(1);
+    expect(line.on).toEqual({
+      test: 'all',
+      of: [
+        { test: 'anyImprovement', improvements: ['mine', 'quarry'] },
+        { test: 'hasResource' },
+      ],
+    });
+    // And it is the tree that opens it now, not a slot.
+    expect(buildingDef('smithy').unlockedByCard).toBeUndefined();
   });
 
   it('Coinworks — the town pays a tenth of its gold again as culture', () => {

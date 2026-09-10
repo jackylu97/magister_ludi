@@ -255,7 +255,17 @@
           "stoneWalls"
         ]
       },
-      "flavor": "A wall is only a promise about time."
+      "effects": [
+        {
+          "kind": "cityStat",
+          "stat": "defense",
+          "amount": 1,
+          "count": "population",
+          "per": 4
+        }
+      ],
+      "flavor": "A wall is only a promise about time.",
+      "note": "A wall is only as good as the hands on it. Every few citizens of a town of yours make its defence harder to break."
     },
     "irrigation": {
       "name": "Irrigation",
@@ -267,7 +277,11 @@
         "theLongCount",
         "bronzePanoply"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "garden"
+        ]
+      },
       "flavor": "Water is taught where to go.",
       "note": "A farm standing beside fresh water feeds its city better than it did."
     },
@@ -422,7 +436,11 @@
       "prereqs": [
         "currency"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "publicBath"
+        ]
+      },
       "effects": [
         {
           "kind": "unitStat",
@@ -478,6 +496,9 @@
         "units": [
           "phalanx",
           "swordsman"
+        ],
+        "buildings": [
+          "smithy"
         ]
       },
       "flavor": "A shield is only a wall if it stands beside another."
@@ -489,7 +510,7 @@
       "row": 7,
       "cost": 650,
       "prereqs": [
-        "raisedFields"
+        "silkRoad"
       ],
       "unlocks": {
         "units": [
@@ -587,8 +608,7 @@
           "compositeBowman"
         ],
         "buildings": [
-          "petra",
-          "caravanserai"
+          "petra"
         ]
       },
       "flavor": "The siege begins as a diagram."
@@ -610,10 +630,6 @@
       },
       "effects": [
         {
-          "kind": "rule",
-          "rule": "freeCityRoads"
-        },
-        {
           "kind": "effectAmplifier",
           "target": "connectionYields",
           "amount": 1
@@ -628,10 +644,7 @@
         }
       ],
       "flavor": "The message arrives before the rumour does.",
-      "deferred": [
-        "Hammers toward a building your capital already keeps waits until a one-time grant can look at what stands in another town."
-      ],
-      "note": "Roads near your cities cost nothing to keep, every city joined to your capital pays one more gold, and a joined city is a contented one."
+      "note": "Every city joined to your capital pays one more gold, and a joined city is a contented one."
     },
     "theExaminationHall": {
       "name": "The Civil Service",
@@ -693,10 +706,17 @@
         {
           "kind": "foundingRider",
           "building": "townCharter"
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "food": 1,
+          "production": 1
         }
       ],
       "flavor": "A city, written down before it is built.",
-      "note": "Settlers are trained faster, and every city you found is founded with its charter already granted."
+      "note": "Settlers are trained faster, every city you found is founded with its charter already granted, and the carts that run between your own towns carry more than they did."
     },
     "theQadisCourt": {
       "name": "Divine Right",
@@ -854,7 +874,26 @@
           "warElephant"
         ]
       },
-      "flavor": "Man and horse, both in iron, both surprised by it."
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "science",
+            "amount": 15
+          }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "grant": {
+            "yield": "culture",
+            "amount": 15
+          }
+        }
+      ],
+      "flavor": "Man and horse, both in iron, both surprised by it.",
+      "note": "The horse is ridden rather than driven, and a rider who tears out a field carries home what he saw there — the way the ditches ran, the songs the diggers sang."
     },
     "prospecting": {
       "name": "Geomancy",
@@ -890,37 +929,34 @@
       "flavor": "The hill is asked again, and this time it answers.",
       "note": "Every mine your cities work gives up a further hammer, and a mine sunk into a named seam gives up more still — and a little devotion with it, for the earth is asked before it is taken."
     },
-    "raisedFields": {
-      "name": "Raised Fields",
-      "glyph": "🌱",
+    "silkRoad": {
+      "name": "The Silk Road",
+      "glyph": "🐪",
       "age": 3,
       "row": 7,
       "cost": 360,
       "prereqs": [
         "wayfinding"
       ],
-      "unlocks": {},
+      "unlocks": {
+        "buildings": [
+          "caravanserai"
+        ]
+      },
       "effects": [
         {
           "kind": "pays",
-          "where": "hex",
-          "food": 1,
-          "on": {
-            "test": "all",
-            "of": [
-              {
-                "test": "improvement",
-                "improvement": "farm"
-              },
-              {
-                "test": "adjacentMountain"
-              }
-            ]
-          }
+          "where": "route",
+          "crossing": "international",
+          "gold": 3
+        },
+        {
+          "kind": "rule",
+          "rule": "routesImportLuxuries"
         }
       ],
-      "flavor": "The field is lifted above the flood, and the flood is made to feed it.",
-      "note": "A farm on a hex touching a mountain feeds its city better than it did. It is the field that changes, not the peak: nothing is grown on the mountain itself."
+      "flavor": "Nobody has walked it. Everything has.",
+      "note": "A caravan that ends its journey in another empire\u2019s city is paid well for the crossing, and it comes home carrying one of the fine goods that city has opened \u2014 not a seam of your own, and worth less than one, but yours for as long as the road runs."
     },
     "banking": {
       "name": "The Counting Houses",

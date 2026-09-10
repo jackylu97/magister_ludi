@@ -462,9 +462,23 @@ export function explainRouteSlots(state: GameState, playerId: number): RouteSlot
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
     for (const id of city.buildings) {
-      const slots = buildingDef(id).routeSlots;
-      if (slots === undefined || slots === 0) continue;
-      lines.push({ source: `${buildingDef(id).name} · ${city.name}`, slots });
+      const def = buildingDef(id);
+      const slots = def.routeSlots;
+      if (slots !== undefined && slots !== 0) {
+        lines.push({ source: `${def.name} · ${city.name}`, slots });
+      }
+      // **And the slot the town's own size buys** (`routeSlotsPerPopulation`,
+      // the user's tree pass of 2026-09-10): a line of its own rather than a
+      // bigger figure on the line above, because the two answer different
+      // questions — "you built a market" and "your market's town grew" — and a
+      // player watching a slot appear is owed the reason. Floored per building,
+      // exactly as `sciencePerPop` floors per city: two half-helpings buy two
+      // halves rather than rounding into a free route.
+      const per = def.routeSlotsPerPopulation;
+      if (per === undefined || per <= 0) continue;
+      const grown = Math.floor(city.population / per);
+      if (grown === 0) continue;
+      lines.push({ source: `${def.name} · ${city.name} · ${city.population} people`, slots: grown });
     }
   }
   for (const line of cardRouteSlots(state, playerId)) {

@@ -305,7 +305,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 | `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |
 | `pays` | city · mirror | 3 | additive — a voice paid again off one category's buildings |
 | `cardYieldAmplifier` | | 2, 3, 16 | additive flat and a percentage, over the *card lines* of the fold it reads |
-| `pays` | route · flat | 6, 14 | additive (arrivals at 6, the caravans abroad at 14) |
+| `pays` | route · flat | 6, 14 | additive (arrivals at 6, the caravans abroad at 14); `crossing` narrows a row to one of the two |
 | `pays` | route · count | 6, 14 | additive, same two steps — the helpings multiply the **bag**, as `perEndpointLuxury` does; the count is the road's own length (`routeLength`) |
 | `buildingYieldPercent` | | 9 | multiplicative within the step; lands as a flat |
 | `pays` | city · share | 10 | multiplicative within the step; lands as a flat |

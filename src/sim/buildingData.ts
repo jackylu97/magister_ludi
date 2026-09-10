@@ -386,6 +386,17 @@ export type BuildingId =
   // founded with, Horology's clocktower, Banking's bank, Fortification's
   // bastion, and the closing node's own workshop of the age.
   | 'lighthouse'
+  // The two rows the user's tree pass of 2026-09-10 adds (`docs/flags.md`
+  // (uuu), marks 4 and 7), each hung on a node whose gift was a rule and
+  // nothing else: Irrigation's **Garden** — the water led somewhere it was not
+  // needed — and State Workforce's **Public Bath**, which is what a corvée
+  // builds first and is worth little in a town the road has not reached.
+  //
+  // (Mark 13 added no id at all in the end: the Æra II hearth is the **Smithy**,
+  // a row that already existed behind The Toolmakers' Charter and has moved into
+  // the tree at Bronze Panoply. The Charter is retired with the door it opened.)
+  | 'garden'
+  | 'publicBath'
   | 'townCharter'
   | 'clocktower'
   | 'bank'
@@ -620,6 +631,26 @@ export interface BuildingDef {
    * of one number, exactly as `authorityCapacity` and a card's `authority` are.
    */
   routeSlots?: number;
+  /**
+   * Citizens of **this town** that buy one *further* route, or absent for a row
+   * whose slot does not grow — the Market's and the Caravanserai's eight (the
+   * user's tree pass of 2026-09-10, `docs/flags.md` (uuu) marks 14 and 17).
+   *
+   * `routeSlots`' per-citizen twin, and `sciencePerPop` is the field it is built
+   * after: a flat beside a rate, read in the same place, by the same walk, and
+   * floored once. It is a **building** field rather than a card effect for that
+   * reason exactly — route slots are already counted per building standing on
+   * the board (`explainRouteSlots`, the one reader), and a card effect would
+   * have needed a per-town walk of its own for a question the fold already asks
+   * with a town in hand.
+   *
+   * The count is the **holding town's** population, never the realm's: a market
+   * in a village is one route and a market in a metropolis is three, which is
+   * the whole of what the mark is about (tall trades further, `docs/playstyles.md`
+   * §7). Floored, so a town two citizens short of the next helping runs the
+   * routes it has grown.
+   */
+  routeSlotsPerPopulation?: number;
   /** Flat science added to the city's total every turn, before `sciencePerPop`. */
   science: number;
   /** Flat culture added to the city's total every turn. */

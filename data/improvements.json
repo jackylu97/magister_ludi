@@ -230,9 +230,9 @@
       "chargeCost": 1,
       "requiresTech": "calendar",
       "yields": {
-        "food": 1,
+        "food": 0,
         "production": 0,
-        "gold": 0
+        "gold": 2
       },
       "requiresResource": [
         "silk",
@@ -305,7 +305,7 @@
       "name": "Floating Gardens",
       "emoji": "🪷",
       "chargeCost": 1,
-      "requiresTech": "raisedFields",
+      "requiresTech": "irrigation",
       "yields": {
         "food": 1,
         "production": 0,
