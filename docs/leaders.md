@@ -562,20 +562,33 @@ the common camp). It costs the deal nothing it does not already do, it is
 deterministic, and it reads on the mapgen page as "furnished for Mithridates:
 Wine, Deer". ▢ rec: yes — his Æra I passive (+2 food on plantations and camps)
 then always has something to stand on.
-  **Against the continent's deal** (the user's question): today's start
-  guarantee (`ensureStartLuxuries`) prefers the continent's dealt hand but
-  **falls through to the whole table** when no dealt kind suits the ground
-  near the start — so it can plant a kind the continent was never dealt —
-  and its copies are **extra** tiles beyond `luxuryCopiesPerKind`, placed
-  without the spacing rule (the documented exception). The continent cap
-  (`maxContinentsPerLuxury`) is not consulted by the guarantee. A leader
-  furnishing would ride the same seam and inherit the same looseness. ▢
-  rec: make the furnishing **hand-only** — a plantation kind is drawn from
-  the continent's dealt kinds or not at all (a wine or an olive is dealt
-  nearly everywhere, so the miss is rare), and the copy counts against the
-  kind's copies on that continent; and, while there, ▢ whether the base
-  guarantee should be tightened the same way, since it is the one pass that
-  can put a kind where the deal said none grows.
+  **The three stages** (the user, 2026-09-10: "leader terrain spawn biases
+  … resource spawn biases … and then a final pass to furnish resources to
+  ensure all leaders have access to strategics"), each on a pass that
+  exists, in the order the generator already runs them:
+  1. **Terrain bias** — in the start chooser (`scoreStartSite`): score lines
+     per leader (river, floodplain, oasis, grassland and plains, hills,
+     coast), soft and capped, never a rejection. Starts are chosen on the
+     ground before any resource exists, so terrain can be biased here only.
+  2. **Resource bias** — two levers, because the game treats the two kinds
+     differently. *Bonus resources* (cattle, wheat, deer, fish) are scattered
+     freely (`placeResources`), so a leader's bias is a draw weight within a
+     radius of its start (cattle and horses heavier for Modu; wine and deer
+     for Mithridates), no cap to respect. *Luxuries* are dealt per continent
+     under a cap (`dealContinentLuxuries`): the bias goes on **the hand's
+     draw** — a continent seating Mithridates draws wine more heavily — so the
+     cap and hostability hold unchanged and the copies land near him because
+     the scatter is then weighted by his start. No kind appears where the
+     deal said none grows.
+  3. **The furnishing pass** — last, unchanged in shape (`ensureStartFood`,
+     `ensureStartStrategics`, `ensureStartLuxuries`): every start keeps its
+     strategics and its luxury floor. ▢ tighten the one loose clause while
+     there: the luxury guarantee prefers the continent's hand today but falls
+     through to the whole table when nothing dealt suits the ground — the one
+     way a kind reaches a continent that was never dealt it. Hand or nothing;
+     with a biased deal the miss is rare.
+  Rule 2 holds: every stage draws from the map's own stream and the bias is
+  config, so the same seed and roster draw the same world.
 
 ## Notes for the system
 
