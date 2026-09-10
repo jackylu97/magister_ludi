@@ -533,11 +533,14 @@ describe('the triangle', () => {
       const shooting = duel(rank.shooter, rank.light, 2);
       const light = blowsToKill(closing.state, closing.a, closing.b);
       const ranged = blowsToKill(shooting.state, shooting.a, shooting.b);
-      // **One** strike since U9's ladder: the light hull's +10 against a gun
-      // deck and the gun deck's own −10 fragility are a twenty-point swing on
-      // top of a ten-point gap in the hulls themselves, and thirty points is a
-      // kill on this curve. The triangle is sharper than it was and the corner
-      // it favours is the same one.
+      // **One** strike since U9's ladder, and still one after U9b raised every
+      // hull (`docs/flags.md` (yyy), "Naval, commensurate"): the light hull's
+      // +10 against a gun deck and the gun deck's own −10 fragility are a
+      // twenty-point swing on top of the dozen points the hulls differ by, and
+      // thirty points is a kill on this curve. **By design** — the user was
+      // shown the one-blow corner when U9 landed and raised the hulls anyway,
+      // so the sharpness is the ruling and not a drift out of it. The triangle
+      // is sharper than it was and the corner it favours is the same one.
       expect(light.blows).toBe(1);
       expect(light.blows).toBeLessThan(ranged.blows);
     });
