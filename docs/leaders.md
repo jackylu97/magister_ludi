@@ -17,29 +17,76 @@ civ's) so a leader shades a playstyle rather than dictating it. A leader would
 take two or three of the bullets under it, not all. Each fits one of
 `docs/playstyles.md`'s families first and a sub-identity second.
 
-## The starting six (re-decided 2026-09-10 on the user's second pass)
+## The starting six — the decks (2026-09-10)
 
-One per family, each drafting across at least two systems, on a spectrum from
-"the game as usual, a little better" to "a different game"; one eastern and one
-Middle Eastern seat among them. The user's own bullets under each entry below
-are the deck; nothing is cut from them here.
+Pachacuti · Taizong · Modu Chanyu · Akhenaten · Al-Ma'mun · Mithridates. Three
+wide, three tall; the sea unrepresented in the first cut. **The draft**: when a
+seat enters an age (its own tech age), it is shown that age's three cards from
+its leader's deck — one **passive** (lasts the game), one **boon** (one time,
+now), one **unique** (a unit or building of that age) — and takes one. Æra I's
+row is offered at the first turn. Every line is written against a shape the
+game has (a passive is a doctrine-weight card effect; a boon is a windfall or a
+grant; a unique is a row with `unlockedByCard`-style gating). ▢ every figure.
 
-| # | Leader | Family | Spectrum | Dimensions |
-|---|---|---|---|---|
-| 1 | **Pachacuti** | wide — the imperium | generically strong | roads, road-joined towns, the corvée, hills and growth |
-| 2 | **Akhenaten** | tall — faith and wonders | generically strong | early prophets, desert holy sites, wonders in holy cities, the Nile's farms, the khopesh |
-| 3 | **Mithridates VI** | tall — defensive, the come-back | middle | strength against wider realms, gardens (happiness, authority), science from soldiers, food |
-| 4 | **Ulugh Beg** | tall — science and renown (the Middle Eastern seat; the user is reworking him) | middle | the Observatory, science buildings' culture, renown from technologies, the Turning Heavens |
-| 5 | **Yongle** ▢ (rec) | wide — sea commerce (the eastern seat) | situational | the treasure fleet, tributary trade, the canal, the Forbidden City — entry below |
-| 6 | **Modu Chanyu** | wide — the steppe | situationally very strong | pillage and mobility, tribute, rites → strength, mounted archers per age |
+### Pachacuti — wide, roads and growth (Inca)
 
-Djoser and Basil II step down to the second set (the user: faith + wonders is
-the more interesting tall seat; Pachacuti the imperium). ▢ the Chinese wide
-sea-commerce seat: **Yongle** (rec — the emperor behind Zheng He's treasure
-fleets, the Grand Canal reopened, the capital moved to Beijing) or **Emperor
-Wu of Han** (the Silk Road's opener and the Xiongnu's enemy — land commerce
-and war, and a historical foil to Modu at the same table); both entries are
-below. Joan of Arc joins the deferred set. Cut: Tigranes, Amanirenas.
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | workers gain +1 charge (the corvée) | your capital and its nearest town are joined by road at once, and a worker arrives | **Terraces** — farms may be built on hills, +1 food |
+| II | a city joined to the capital by road pays +1 happiness and +1 production | every domestic route running finishes its road this turn | **The Tambo** — +1 route slot; domestic routes from here pay +1 food +1 production |
+| III | roads cost nothing to maintain inside your borders | +10 production in every city joined to the capital | **The Royal Road** — a road step inside your borders costs a fifth for your units |
+| IV | domestic routes pay more for each hill the origin works | a citizen in every city joined to the capital | **The Qollqa** — the city keeps a quarter of its food on growing, +2 production |
+
+### Emperor Taizong — wide, the imperium (Tang)
+
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | melee units +1 combat strength | a spearman musters in every city | **The Fubing** — a spearman line that costs no upkeep while garrisoned |
+| II | garrisoned cities pay +1 production | the Xuanwu Gate: your next Order draft shows one more card and costs nothing | **The Examination Hall** — Orders in military slots pay +1 science each |
+| III | a captured city costs 1 less authority; puppets pay +1 culture each | the Heavenly Khagan: every puppet pays 100 gold at once | **Tang heavy cavalry** — a horseman line, +2 strength, +1 against mounted |
+| IV | melee units +1 more combat strength against mounted | a knight musters in every city with a Barracks | **The Post Road** — routes to the capital pave in half the turns; joined cities +5% production |
+
+### Modu Chanyu — wide, the steppe (Xiongnu)
+
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | mounted units +1 movement on grassland and plains | Horses are revealed, and a pasture is laid where your capital's nearest horses stand | **The Whistling Arrow** — a chariot archer line available from Husbandry, +1 range |
+| II | pillaging costs no movement; mounted units heal extra on a hex they pillaged | every rival improvement within 3 hexes of your units is pillaged at once | **The Horde Camp** — a pasture that also hurries mounted units by a quarter in its city |
+| III | puppets pay +10% science and +10% culture | Tribute: every puppet pays a lump of gold | **The Xiongnu horse archer** — a horse archer line, +1 movement, hit and run |
+| IV | units +1 combat strength while a rite is active in your empire | a great general arrives | **The Chanyu's Guard** — a knight line that ignores zone of control |
+
+### Akhenaten — tall, faith and wonders (Egypt)
+
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | +1 faith on farms adjacent to a river | a prophet arrives with Divination | **The Aten Shrine** — a shrine that pays +2 faith and presses harder |
+| II | holy sites on desert pay +3 faith | Amarna: the capital moves once for nothing and founds a holy site where it lands | **The Khopesh** — a swordsman line, +3 strength in cities of your religion |
+| III | cities with a holy site +20% production toward wonders | a wonder in progress gains a lump of hammers | **The Sun Court** — +3 happiness, +1 faith per 4 citizens |
+| IV | the holy city presses harder for every 3 citizens | every foreign city that follows you converts fully | **The Obelisk** — +2 culture +2 faith; every wonder in the city pays +1 renown |
+
+### Al-Ma'mun — tall, science and faith (Abbasid)
+
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | the capital's science buildings pay +1 science per 3 citizens more | the first Library is free | **The Translation Hall** — +2 science, +1 per foreign route ending here |
+| II | faith gained in the capital is gained again as science, at a fifth | the Almagest: a peace signed pays a lump of science | **The Shammasiya** — an observatory an age early: +2 science, +1 renown |
+| III | a scholar great person costs a third less renown | +40 renown | **The Mihna Court** — +2 authority capacity; cities following your religion +10% science |
+| IV | +2 science per trade route ending in the capital | the Great Enquiry: a lump of science | **The Paper Mill** — +3 science +3 culture; routes ending here bring science |
+
+### Mithridates VI — tall, defence and growth (Pontus)
+
+| Æra | Passive | Boon | Unique |
+|---|---|---|---|
+| I | +2 combat strength against empires with more cities (puppets not counted) | the Antidote: a malice seated against you is struck out | **The Pontic peltast** — a spearman line that heals when it kills |
+| II | Gardens pay +2 happiness and +1 authority | the royal physician: every city grows one citizen | **The Mithridatium** — the Garden an age early, +2 food +1 science |
+| III | +1 science for every 2 military units | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
+| IV | +1 food on every hex carrying a resource | the twenty-two tongues: every rival's yields visible for the age, +100 renown | **The Mountain Hold** — a citadel-building: +30 city strength, +2 food |
+
+**Second set** (one per family, for later): Sher Shah Suri, Rajendra Chola,
+Basil II, Sargon, Gwanggaeto, Tomyris, Bumin, Zenobia, Yongle, Emperor Wu,
+Dandolo, Teuta, Hanno, Ulugh Beg, Abd al-Rahman III, Jayavarman VII, Justinian
+and Theodora, Djoser, Ezana; Mansa Musa ▢. **Deferred** (the game-warping
+seats): Joan of Arc, Rudolf II, Ludovico Sforza. **Cut**: Tigranes, Amanirenas.
 
 ## The one the user named
 
