@@ -1800,6 +1800,46 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (hhhh) **A bought unit stands on the city hex, or is not sold — RULED**
+  (the user, 2026-09-10, mid-playtest: *"purchased units should spawn on
+  the city tile. If a unit of it's type is already occupying the city
+  tile, it should block purchasing"*). **P3 builds**: a unit bought with
+  gold or faith is placed **on the city hex** and nowhere else; if the
+  city hex already holds a unit of the same stacking category (the
+  stacking rule's own reading — `hasStackingRoom`; a military piece
+  blocks a military purchase, a worker a civilian one, a trader a
+  trader), `purchaseError` refuses with one plain sentence ("A Warrior
+  already stands in Uruk — move it first") **before** any coin moves
+  (validate fully; a refused purchase is byte-identical); the city
+  panel's buy buttons wear the `.wanting` voice with that sentence; the
+  bots read the same gate (they already ask `purchaseError`). Production
+  completion is untouched (a built unit keeps today's placement). Pins:
+  a purchase lands on the hex; a blocked purchase is refused and the
+  state unchanged; the panel's sentence; the purchase bucket stamp is not
+  spent by a refusal.
+- (gggg) **Auto-explore spends the whole allowance; a siege mark on the
+  banner — RULED** (the user, 2026-09-10, mid-playtest: *"units set on
+  auto-explore should use all of their movement. Also, we need an icon
+  for when a city is under siege"*). **X14 builds**: (1) an auto-exploring
+  unit (`src/sim/explore.ts`, the standing order the End Turn runs)
+  keeps stepping toward its aim while it has movement and a reachable
+  unrevealed hex — a march, not a single step per turn; re-aim when the
+  aim is reached or blocked; it never ends a turn with movement it could
+  have spent (a hex it cannot enter, an enemy zone or fog with nothing
+  left to see are the honest stops); pinned: a scout with 2 movement on
+  open ground reveals more than one hex's worth per turn, and a march
+  through the whole allowance costs the same as the equivalent moves
+  (`stepCost`, no fifth pricer); (2) **a siege mark**: `underSiege` is
+  derived (`siegeField`, never stored); the city banner (`cityBanners.ts`)
+  shows a drawn mark on the plate when the town is besieged — a small
+  vermilion ring of spears / a portcullis glyph in the atlas's own
+  language (path data, never fetched), on the pill beside the name, with
+  a hover word "Under siege"; the mark is a signature term (fingerprint,
+  not per-frame); the 3D piece untouched; **the new mark joins the flair
+  gallery in the same pass** (`src/flairGallery/`, a stall with the
+  banner besieged and not); the city panel already says it — leave it.
+  Pins: the banner shows the mark iff `underSiege`; the gallery stall;
+  the signature changes when a siege begins and ends.
 - (ffff) **Walls halved back; the chariot's upgrade — RULED and built**
   (the user, 2026-09-10, mid-playtest: *"i'm finding it very hard to kill
   this city … was a palisade and stone walls always +10? Let's change
@@ -1880,6 +1920,37 @@ directly to confirm rulings — user marginalia are rulings.
   leader's name) behind a top-bar door, the spectator page naming the
   seat's leader. Both batches build on the held stack (S2 · F2 · M1) —
   the agent merges the gate clone's main into its worktree first.
+  **L2a built** (2026-09-10, schema **113**; stacked on the held pile in
+  the gate): `src/sim/leaders.ts` (the verbs), `src/ai/leader.ts` (the
+  appraisal: a passive through `explainEffects`, a boon through the lump,
+  a unique through the row it opens); `LeaderDef.bonus` + `deck` beside
+  `startBias`; `LeaderCard.unlocks` declares a unique and the effect is
+  composed from it; `LeaderBoon` = the bead's `windfall` and the wonder's
+  `grants`, paid by `payWindfall`/`payGrants`; `Player.leader` ·
+  `leaderPicks` · `leaderOffer` (presence-is-state); occasion
+  `leaderOffered` from a new `leaders` phase directly after research (so
+  the seat's *own* age is current; Æra I's row written in `newGame`, no
+  dice — a leader draft cannot move a seed); blocker `leaderDraft` above
+  `wager`; `chooseLeaderCard {playerId, index}`, the boon's things on
+  `CommandResult.grants`; ten unique units and fourteen unique buildings
+  (`unlockedByLeader`) with sizes and silhouettes; the Compendium's 21st
+  shelf `leader:…`; 29 pins. **One rule the sheet did not name**: three
+  Æra I boons hand a town something, so the Æra I pick waits (blocker
+  silent, command refused) until the capital stands — L2b shows the row
+  and says so. Deferred whole (do nothing, annotated): Modu's *The Horse
+  Lords* and *The Great Raid*, Akhenaten's *The Great Conversion*,
+  Mithridates' *The King's Friends* (nothing reveals a resource, lays an
+  improvement, converts a neighbourhood at a stroke, or widens a
+  government's slots); ~35 half-lines annotated; two gaps worth a ruling
+  — ▢ a **scoped authority-cost** line ("cities of kind X cost 1 fewer
+  authority", three cards) and ▢ a **per-puppet count**. Fixed beyond
+  the brief: `moveAfterKill` never received the attacker's type (a
+  class-narrowed row was skipped); the wild's footmen ladder could
+  muster a leader-unique sword; "mounted archers" now prints as words;
+  the building `mountainHold` renamed `ponticHold` (an Order had the id).
+  A human seat with a leader sees "Your leader awaits" on End Turn with
+  no sheet until L2b lands — L2b is building on top (agent flying
+  2026-09-10, merged the gate's `held` branch first).
 - (cccc) **Start biases in three stages — RULED** (the user, 2026-09-10:
   *"queue up the mapgen changes, and then verify that we can have
   satisfactory starts for the new leaders (the steppe leader is useless
