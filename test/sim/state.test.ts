@@ -844,7 +844,7 @@ describe("the research queue field", () => {
     // prophet that had spoken once could found a faith or draw a belief before
     // this and is refused now, so the draws after it move with the generator.
     // (111 is batch S2's.)
-    expect(SCHEMA_VERSION).toBe(114);
+    expect(SCHEMA_VERSION).toBe(115);
   });
 });
 

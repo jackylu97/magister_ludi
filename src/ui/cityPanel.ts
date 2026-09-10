@@ -2799,10 +2799,22 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       button,
       label === undefined ? `${price.total}${glyph}` : `${label} · ${price.total}${glyph}`,
     );
-    const blocker = locked
-      ? `You have ended turn ${state.turn}`
-      : purchaseError(state, seat, city.id, item, currency);
+    const refusal = purchaseError(state, seat, city.id, item, currency);
+    const blocker = locked ? `You have ended turn ${state.turn}` : refusal;
     button.disabled = blocker !== null;
+    // **The wanting voice on the tag** (item (hhhh)): the day a purchase could
+    // be refused for something standing in the town's own hex, a greyed price
+    // stopped being enough — "60💰" in faint ink says *not now* where the
+    // sentence says *move your warrior*. So a tag the reducer refuses wears the
+    // vermilion italic every other refusal on this screen wears, and the words
+    // are on the control itself (`title`/`aria-label`) rather than in a second
+    // line beside it: this is a button with a reason on it.
+    //
+    // `refusal` and not `blocker`, and that is the sweep's own distinction
+    // (`test/ui/wantingVoice.test.ts`): a seat that has ended its turn is in a
+    // *state*, not short of anything, and shouting at it in vermilion would be
+    // telling a player off for pressing End Turn.
+    if (refusal !== null) button.classList.add('wanting');
     // Words only in the spoken form: a screen reader announcing a currency glyph
     // reads its Unicode name before the number it decorates.
     button.setAttribute(

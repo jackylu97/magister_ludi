@@ -123,6 +123,7 @@ import {
   borderGrowth,
   cityTile,
   mirrorRowFor,
+  tileOwnerPlayerId,
   tilePurchaseError,
   tilePurchasePrice,
   yieldScore,
@@ -151,6 +152,7 @@ import {
   explainPurchaseCost,
   purchasableName,
   purchaseError,
+  purchaseHexBlocker,
 } from '../sim/purchase';
 import {
   LIVE_RITE_IDS,
@@ -171,6 +173,7 @@ import {
   riteError,
 } from '../sim/religion';
 import { RULES } from '../sim/rulesData';
+import { canStopOn, moveProfile, stepCost, zocField } from '../sim/pathfind';
 import { type TileOwnerField, playerById, tileOwnerField } from '../sim/state';
 import type { City, GameState, Player } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
@@ -2307,8 +2310,93 @@ function reachOf(
   if (price === null) return null;
   const refusal = purchaseError(state, player.id, city.id, item, currency);
   if (refusal === null) return { price: price.total, outOfReach: false };
+  // **A piece in the town's own hex is a thing this seat can move**, not a
+  // reason to stop wanting a soldier (item (hhhh), the ruling of 2026-09-10).
+  // The row is kept and priced *exactly as before* — the step costs no coin and
+  // changes nothing about what the piece is worth — and the spend arm asks
+  // `stepAsideFor` again at the moment it fires, walks the blocker one hex, and
+  // buys in the same turn. Turns are simultaneous, so both commands land in one
+  // resolution and the town is garrisoned again by the end of it.
+  //
+  // A blocker with nowhere to go is the honest `outOfReach`: the want stands, a
+  // saving row comes of it, and nothing is refused.
+  //
+  // **The purse is asked again here, and it has to be.** The room clause sits in
+  // front of the money clause, so a blocked hex hides whether this empire could
+  // have paid at all — and a book that answered "within reach" for a want a
+  // penniless seat cannot buy would have the spend arm marching a garrison
+  // about for nothing. It is the same comparison `outOfReachFor` recognises,
+  // made rather than parsed, and it is sound because the money clause is the
+  // *last* thing `purchaseError` asks: past the room there is nothing else left
+  // to refuse for.
+  if (purchaseHexBlocker(state, player.id, city.id, item, currency) !== null) {
+    const short = bankOf(player, currency) < price.total;
+    const stuck = stepAsideFor(state, player, city, item, currency) === null;
+    return { price: price.total, outOfReach: short || stuck };
+  }
   if (!outOfReachFor(player, item, currency, price.total, refusal)) return null;
   return { price: price.total, outOfReach: true };
+}
+
+/**
+ * **Where the piece in the way would step**, or `null` when there is nowhere.
+ *
+ * One reading, asked twice: the book asks it to decide whether a blocked want is
+ * still within reach, and the spend arm asks it again at the moment it fires to
+ * get the command. Deliberately *not* stored on the `Want` — a book is built
+ * once a turn (`BotSitting`) and a hex the blocker could step to three decisions
+ * ago is exactly the sort of fact that goes stale while nobody is looking.
+ *
+ * The choice, in the ruling's own order:
+ *
+ *   · **it must be somewhere the piece may come to rest** — `canStopOn`, the
+ *     simulation's own reading, which carries the water a land piece may not
+ *     stand on, the foreign town it may not walk into and the stacking cap that
+ *     started all this. Nothing here restates any of them;
+ *   · **friendly ground first**. A garrison that steps outside its own borders
+ *     to make room has solved one problem by walking into another;
+ *   · then the **cheapest** step, priced through `stepCost` — the one price of a
+ *     step (CLAUDE.md), asked with a `zocField` hoisted once for this walk;
+ *   · then **neighbour order**, which is `HEX_DIRECTIONS`' and therefore the
+ *     same on every machine (hard rule 2).
+ *
+ * The piece must be able to move **now**: a march ordered at zero movement is
+ * accepted as *orders* and clears nothing this turn, so a spent garrison would
+ * have the spend arm proposing the same step for ever. `movesLeft > 0` is the
+ * whole guard — `advanceAlongPath` spends a step for any positive allowance —
+ * and a town whose garrison has already marched is simply out of reach until
+ * tomorrow.
+ *
+ * Somebody else's piece is never moved, for the obvious reason.
+ */
+export function stepAsideFor(
+  state: GameState,
+  player: Player,
+  city: City,
+  item: PurchaseSubject,
+  currency: BankCurrency,
+): { unitId: number; col: number; row: number } | null {
+  const blocker = purchaseHexBlocker(state, player.id, city.id, item, currency);
+  if (blocker === null || blocker.ownerId !== player.id || blocker.movesLeft <= 0) return null;
+  const centre = getTileAt(state.map, city.col, city.row);
+  if (!centre) return null;
+  const mover = moveProfile(state, blocker);
+  const field = zocField(state, blocker.ownerId);
+  let best: { tile: Tile; cost: number; friendly: boolean } | null = null;
+  for (const tile of neighborTiles(state.map, tileHex(centre))) {
+    if (!canStopOn(state, blocker, tile, mover)) continue;
+    const price = stepCost(state.map, centre, tile, mover, field);
+    if (price === null) continue;
+    const friendly = tileOwnerPlayerId(state, tile.col, tile.row) === player.id;
+    if (
+      best === null ||
+      (friendly && !best.friendly) ||
+      (friendly === best.friendly && price.cost < best.cost)
+    ) {
+      best = { tile, cost: price.cost, friendly };
+    }
+  }
+  return best === null ? null : { unitId: blocker.id, col: best.tile.col, row: best.tile.row };
 }
 
 /** `purchaseError`'s money clause, said back to it. See `reachOf`. */

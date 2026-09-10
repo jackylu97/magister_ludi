@@ -63,6 +63,7 @@ import {
   type GameState,
   type Player,
   type QueueItem,
+  type Unit,
   type UnitPurchaseBucket,
   cityById,
   frontKey,
@@ -657,6 +658,82 @@ export function isRouteItem(raw: unknown): boolean {
 }
 
 /**
+ * The piece standing in the city hex's slot, or `null` when nothing is in the
+ * way.
+ *
+ * A *reading of the same board* `hasStackingRoom` just refused on, not a second
+ * opinion about it: the rule stays in `units.ts`, and this only goes back to
+ * find out **who**. It walks `state.units` in array order, so the piece it finds
+ * is the same one on every machine (hard rule 2), and it asks the category
+ * rather than the type because the category is what the cap counts — a
+ * player told "A Warrior is in the way" when they tried to buy a spearman has
+ * been told the truth, and the truth is more useful than "no room".
+ *
+ * Whoever owns the blocker is not asked. A foreign piece cannot ordinarily
+ * stand in a town it does not own, but if one ever does it is *still* what is
+ * in the way, and a sentence that pretended otherwise would be a sentence a
+ * player could not act on.
+ */
+function cityHexBlockerUnit(state: GameState, city: City, type: UnitTypeId): Unit | null {
+  const { category } = unitDef(type);
+  for (const unit of state.units) {
+    if (unit.col !== city.col || unit.row !== city.row) continue;
+    if (unitDef(unit.type).category !== category) continue;
+    return unit;
+  }
+  return null;
+}
+
+/**
+ * The refusal that names the piece in the way — composed in one place so that
+ * `purchaseError` and `purchaseHexBlocker` below cannot drift a word apart.
+ *
+ * The article is spelled out here rather than borrowed from `src/ui/dom.ts`'s
+ * `withArticle`: the simulation may not import the interface, and the vowel test
+ * is the same crude one for the same reason — every name it sees is a roster
+ * row's.
+ */
+function blockedByPieceSentence(blocker: Unit, city: City): string {
+  const { name } = unitDef(blocker.type);
+  return `${/^[aeiou]/i.test(name) ? 'An' : 'A'} ${name} already stands in ${city.name} — move it first`;
+}
+
+/**
+ * **The piece this sale was refused for**, or `null` when it was refused for
+ * something else — or not refused at all.
+ *
+ * The bot's half of item (hhhh), and it lives here rather than in `src/ai/`
+ * because the alternative is the bot rebuilding a player-facing sentence to
+ * recognise it. `outOfReachFor` (`src/ai/wants.ts`) already does exactly that
+ * for the money clause and says in its own docblock that it is coupling to the
+ * simulation's words; one such coupling is a documented cost, two is a habit.
+ * So the comparison is made **inside the module that composes the sentence**,
+ * where it cannot drift, and what crosses the seam is a piece rather than a
+ * string.
+ *
+ * `purchaseError` is still the single gate: this asks it, and answers `null`
+ * for every refusal that is not this one. That ordering matters — a town that
+ * has already spent its afternoon (`purchasedUnitTurns`) is refused *before*
+ * the room clause, and that refusal is not a piece anyone can move out of the
+ * way, so it correctly comes back `null` here.
+ */
+export function purchaseHexBlocker(
+  state: GameState,
+  playerId: number,
+  cityId: number,
+  item: unknown,
+  currency: unknown,
+): Unit | null {
+  const refusal = purchaseError(state, playerId, cityId, item, currency);
+  if (refusal === null) return null;
+  const city = cityById(state, cityId);
+  const bought = readPurchasableItem(item);
+  if (!city || bought === null || bought.kind !== 'unit') return null;
+  const blocker = cityHexBlockerUnit(state, city, bought.id);
+  return blocker !== null && refusal === blockedByPieceSentence(blocker, city) ? blocker : null;
+}
+
+/**
  * Why this player cannot buy this thing in this city, or `null` when they can.
  *
  * **The** gate: the `purchaseItem` command refuses with this sentence, the
@@ -677,12 +754,16 @@ export function isRouteItem(raw: unknown): boolean {
  * a queue asks that `buildError` does not: a building already standing, and a
  * city too small for the unit.
  *
- * **Stacking is asked**, since M9, and that is the completion routine's doing
- * rather than a new rule: a bought piece stands where a built one would
- * (`spawnTileFor` — the city tile, else a neighbour with room), so the only
- * refusal is the one production already gives, a town boxed in on all sides.
- * The religion pass did not ask it because it put the piece on the city tile
- * regardless; sharing one routine is worth more than that one difference.
+ * **Stacking is asked**, since M9, and since P3 it is asked **of the city hex
+ * alone** (the user's ruling of 2026-09-10, `docs/flags.md` item (hhhh)): a
+ * bought piece stands in the town it was bought for or it is not sold. So the
+ * refusal is no longer only the rare boxed-in town — it is the ordinary
+ * afternoon where the warrior already garrisoning Uruk is standing in the slot
+ * the new one would take, and the sentence names that piece rather than the
+ * geometry, because "move it first" is a thing a player can go and do.
+ * `spawnTileFor`'s `onCityHexOnly` is the same walk with its second beat cut,
+ * so the hex the purchase would land on is still asked of the one function that
+ * knows, and the *built* piece keeps its spill to a neighbour.
  *
  * The **authority freeze is deliberately absent** — see the module docblock.
  */
@@ -921,8 +1002,20 @@ export function purchaseError(
       return `${city.name} has already bought ${bucketWords(bucket)} this turn`;
     }
   }
-  if (bought.kind === 'unit' && spawnTileFor(state, city, bought.id) === null) {
-    return `${city.name} has nowhere to put a ${name}`;
+  // **A bought unit stands on the city hex, or is not sold** (item (hhhh)).
+  // Asked before the price, so a refusal costs nothing and stamps nothing: the
+  // bucket above was only *compared* against, and every mutation is
+  // `purchaseItemAt`'s.
+  if (
+    bought.kind === 'unit' &&
+    spawnTileFor(state, city, bought.id, { onCityHexOnly: true }) === null
+  ) {
+    const blocker = cityHexBlockerUnit(state, city, bought.id);
+    // Nothing of the category is standing there and the hex still refuses: the
+    // hull's own reading of the centre said no (a town that is not on the
+    // water), which is the boxed-in sentence's remaining job.
+    if (blocker === null) return `${city.name} has nowhere to put a ${name}`;
+    return blockedByPieceSentence(blocker, city);
   }
 
   // **The queue floor** — The Vizier's Hall's law, and the user ruled it the
@@ -962,7 +1055,9 @@ export function purchaseError(
  *     fact about the empire, exactly as `unitsBuilt` is;
  *   · the thing is realised through `realiseItem`, the **one** completion
  *     routine, so a bought piece is born exactly as a built one is and **can act
- *     this turn**;
+ *     this turn** — with the single stated difference that it is born **on the
+ *     city hex** and nowhere else (item (hhhh)), which is a fact about *where*
+ *     and not about the routine;
  *   · a queued copy is struck off, because the town now has the thing and a row
  *     asking for it again is a row the queue would either drop or duplicate. The
  *     hammers banked behind it stay in the basket and pay for whatever is next;
@@ -1037,7 +1132,11 @@ export function purchaseItemAt(
           {
             kind: 'unit',
             id: item.id,
-            tile: spawnTileFor(state, city, item.id)!,
+            // **The city hex, or the sale did not happen** (item (hhhh)) —
+            // the same `onCityHexOnly` reading `purchaseError` refused on, so
+            // the `!` is the gate's guarantee rather than a hope. A *built*
+            // piece still spills to a neighbour; see `spawnTileFor`.
+            tile: spawnTileFor(state, city, item.id, { onCityHexOnly: true })!,
           },
           // **Which bank paid**, handed down to the one writer of `Unit.stamp`
           // — Mercenaries' hired sword (`CardUnitStampEffect.bought`). Passed

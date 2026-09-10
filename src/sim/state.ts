@@ -873,8 +873,19 @@ import {
  * replay**: an explorer that walked one hex a turn now walks two or three, so
  * every hex it claims, every camp it burns and every unit it meets happens on
  * a different turn, and the resolution order moves with it.
+ *
+ * v115 (batch P3, `docs/flags.md` (hhhh); the user, 2026-09-10: *"purchased
+ * units should spawn on the city tile. If a unit of it's type is already
+ * occupying the city tile, it should block purchasing"*): **a bought unit
+ * stands on the city hex, or is not sold.** `spawnTileFor`'s walk stops at the
+ * centre for a purchase (`onCityHexOnly`) and `purchaseError` refuses, naming
+ * the piece in the way, before any coin moves; a *built* unit keeps its spill
+ * to a neighbour. No new state, but **a v114 log does not replay**: a purchase
+ * made into a garrisoned town was accepted then and is refused now, and the
+ * bots step their garrison aside before buying — two commands where there was
+ * one.
  */
-export const SCHEMA_VERSION = 114;
+export const SCHEMA_VERSION = 115;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

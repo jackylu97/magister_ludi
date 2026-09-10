@@ -43,7 +43,7 @@ import {
   governmentsAtTier,
   orderDef,
 } from '../../src/sim/statecraftData';
-import { game, found } from './statecraftHelpers';
+import { game, found, marchOut } from './statecraftHelpers';
 
 // --- harness ----------------------------------------------------------------
 
@@ -347,6 +347,9 @@ describe('the occasions, at the seams that already knew', () => {
     const sc = slot(g.state, 0, 'theAlmonersBook');
     const player = playerById(g.state, 0)!;
     const city = found(g.state, 0);
+    // `purchaseItemAt` validates nothing — the gate is `purchaseError`'s — so a
+    // bench calling it directly owes the town a clear hex (item (hhhh)).
+    marchOut(g.state, city);
     player.gold = 100000;
     const before = player.gold;
     const bought = purchaseItemAt(g.state, player, city, { kind: 'unit', id: 'warrior' }, 'gold');

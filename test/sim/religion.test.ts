@@ -57,6 +57,7 @@ import {
   tileIndex,
   wrappedDistance,
 } from "../../src/sim/map";
+import { isPassable } from "../../src/sim/pathfind";
 import { DISCOVERY_IDS, discoveryDef } from "../../src/sim/discoveryData";
 import { settleDiscovery } from "../../src/sim/discoveries";
 import {
@@ -228,6 +229,25 @@ function found(state: GameState, playerId: number) {
     playerId,
     getTileAt(state.map, unit.col, unit.row)!,
   );
+}
+
+/**
+ * Walks every piece off a town's hex — "move it first", done by the bench.
+ *
+ * Since item (hhhh) a bought unit stands on the city hex or is not sold, so a
+ * case whose subject is the *faith ladder* clears the escort before it buys.
+ */
+function marchOut(state: GameState, city: { col: number; row: number }): void {
+  for (const piece of state.units) {
+    if (piece.col !== city.col || piece.row !== city.row) continue;
+    const out = neighborTiles(
+      state.map,
+      tileHex(getTileAt(state.map, city.col, city.row)!),
+    ).find((tile) => isPassable(tile))!;
+    piece.col = out.col;
+    piece.row = out.row;
+  }
+  bumpRevision(state);
 }
 
 /** Hands a seat a technology, the way a completed research would. */
@@ -1586,6 +1606,7 @@ describe("The High Temple", () => {
     const g = game();
     learn(g.state, 0, "divination", "stonecraft", "theHighTemple");
     const city = found(g.state, 0);
+    marchOut(g.state, city);
     const player = playerById(g.state, 0)!;
     player.faithPool = 500;
     purchaseItemAt(

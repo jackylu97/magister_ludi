@@ -12,7 +12,8 @@
 import { foundCityAt } from '../../src/sim/cities';
 import { type Game, createGame, dispatch, restoreState, snapshotState } from '../../src/sim/game';
 import type { Command } from '../../src/sim/commands';
-import { getTileAt } from '../../src/sim/map';
+import { getTileAt, neighborTiles, tileHex } from '../../src/sim/map';
+import { isPassable } from '../../src/sim/pathfind';
 import { type GameConfig, type GameState, bumpRevision } from '../../src/sim/state';
 import { ABILITY_TECH } from '../../src/sim/techData';
 
@@ -124,4 +125,27 @@ export function found(state: GameState, playerId: number) {
   const city = foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
   bumpRevision(state);
   return city;
+}
+
+/**
+ * Walks every piece off a town's own hex — "move it first", done by the bench.
+ *
+ * Since item (hhhh) a **bought** unit stands on the city hex or is not sold, and
+ * a bench town founded under the seat's escort therefore refuses every purchase.
+ * A test whose subject is a *card* firing on a purchase says this first, so the
+ * refusal it is not about cannot swallow the one thing it is.
+ *
+ * Additive on purpose: `found` is unchanged, because a town with its escort
+ * still standing in it is the honest board for everything else in this bench.
+ */
+export function marchOut(state: GameState, city: { col: number; row: number }): void {
+  for (const piece of state.units) {
+    if (piece.col !== city.col || piece.row !== city.row) continue;
+    const out = neighborTiles(state.map, tileHex(getTileAt(state.map, city.col, city.row)!)).find(
+      (tile) => isPassable(tile),
+    )!;
+    piece.col = out.col;
+    piece.row = out.row;
+  }
+  bumpRevision(state);
 }

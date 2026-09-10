@@ -29,6 +29,7 @@ import {
   buildingProductionCost,
   foundCityAt,
   queueItemName,
+  spawnTileFor,
   tilePurchaseError,
   unitProductionCost,
   unitRosterCost,
@@ -37,7 +38,8 @@ import {
   foldCity,
 } from '../../src/sim/yields/town';
 import { dispatch, snapshotState } from '../../src/sim/game';
-import { getTileAt, tileHex, wrappedDistance } from '../../src/sim/map';
+import { getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/sim/map';
+import { isPassable } from '../../src/sim/pathfind';
 import {
   type PurchasableItem,
   bankOf,
@@ -55,11 +57,13 @@ import {
   type City,
   type GameState,
   SCHEMA_VERSION,
+  createUnit,
   playerById,
   bumpRevision,
 } from '../../src/sim/state';
 import { buildError, gatingTech } from '../../src/sim/tech';
-import { unitDef } from '../../src/sim/unitData';
+import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
+import { hasStackingRoom } from '../../src/sim/units';
 import { buyCommand, game } from './purchaseHelpers';
 
 // --- harness ----------------------------------------------------------------
@@ -79,10 +83,51 @@ const TRADER: PurchasableItem = { kind: 'unit', id: 'trader' };
 const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
 const RATE = RULES.production.goldPerHammer;
 
-/** A city for a player, on the tile their first unit is standing on. */
+/**
+ * A city for a player, on the tile their first unit is standing on — **with the
+ * hex cleared**, because since item (hhhh) a bought unit stands on the city hex
+ * or is not sold, and a town founded under the seat's own escort would refuse
+ * every soldier in this file for a reason none of these tests is about.
+ *
+ * The escort is walked one hex out rather than deleted: the pieces are still on
+ * the board, still this seat's, and a test that wants the hex occupied puts one
+ * back (see "a bought unit stands on the city hex" below).
+ */
 function found(state: GameState, playerId: number): City {
   const unit = state.units.find((u) => u.ownerId === playerId)!;
-  return foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
+  const city = foundCityAt(state, playerId, getTileAt(state.map, unit.col, unit.row)!);
+  marchOut(state, city);
+  return city;
+}
+
+/**
+ * "Move it first", done by the bench: every piece on the town's hex steps to the
+ * first neighbour its category fits on.
+ *
+ * The verb a player performs between two purchases on one afternoon, so a test
+ * that means to buy twice says so by calling this — and a test that means to be
+ * refused simply does not.
+ */
+function marchOut(state: GameState, city: City): void {
+  const centre = tileHex(getTileAt(state.map, city.col, city.row)!);
+  for (const piece of state.units) {
+    if (piece.col !== city.col || piece.row !== city.row) continue;
+    const out = neighborTiles(state.map, centre).find(
+      (tile) =>
+        isPassable(tile) &&
+        hasStackingRoom(state, tile.col, tile.row, unitDef(piece.type).category, piece.id),
+    )!;
+    piece.col = out.col;
+    piece.row = out.row;
+  }
+  bumpRevision(state);
+}
+
+/** Stands one piece of `type` on the town's own hex — the board item (hhhh) is
+ *  about, built by hand so each case says what it is testing. */
+function garrison(state: GameState, city: City, type: UnitTypeId): void {
+  createUnit(state, city.ownerId, type, city.col, city.row);
+  bumpRevision(state);
 }
 
 function learn(state: GameState, playerId: number, ...techs: string[]): void {
@@ -305,9 +350,10 @@ describe('buying a unit', () => {
     const bought = g.state.units[g.state.units.length - 1]!;
     expect(bought.type).toBe('warrior');
     expect(bought.ownerId).toBe(0);
-    // The city tile if it has room, else a neighbour — `spawnTileFor`, shared
-    // with the production queue.
-    expect(stepsFrom(g.state, city, bought.id)).toBeLessThanOrEqual(1);
+    // **The city hex, and nowhere else** (item (hhhh)): a purchase is the
+    // player's own act on this town's tile. The spill to a neighbour is the
+    // *built* piece's, and stays there — see the case below.
+    expect(stepsFrom(g.state, city, bought.id)).toBe(0);
     // Born through `createUnit`, so it can act this turn.
     expect(bought.movesLeft).toBe(unitDef('warrior').movement);
     // **Purchasing does not consume the banked basket.** The hammers this town
@@ -412,6 +458,10 @@ describe('buying a unit', () => {
     // comparison simply stops matching.
     for (const seat of g.state.players) dispatch(g, { type: 'endTurn', playerId: seat.id });
     expect(city.purchasedUnitTurns!.militaryGold).toBeLessThan(g.state.turn);
+    // Yesterday's warrior is garrisoning the hex today, and item (hhhh) sells
+    // nothing into an occupied slot — so it marches out, which is the sentence's
+    // own instruction and the only thing this case needs from it.
+    marchOut(g.state, city);
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
     expect(city.purchasedUnitTurns!.militaryGold).toBe(g.state.turn);
   });
@@ -429,9 +479,15 @@ describe('buying a unit', () => {
     player.faithPool = 500;
     player.gold = 4000;
 
+    // Each delivery is walked out of the gate before the next is bought — the
+    // three buckets are the subject here, and item (hhhh)'s one-piece-per-hex is
+    // a different rule with its own case below.
     expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    marchOut(g.state, city);
     expect(dispatch(g, buyCommand(city.id, WORKER)).ok).toBe(true);
+    marchOut(g.state, city);
     expect(dispatch(g, buyCommand(city.id, PROPHET, 'faith')).ok).toBe(true);
+    marchOut(g.state, city);
     expect(city.purchasedUnitTurns).toEqual({
       militaryGold: g.state.turn,
       civilianGold: g.state.turn,
@@ -465,6 +521,92 @@ describe('buying a unit', () => {
     expect(bankOf(player, 'faith')).toBe(80);
     expect(player.prophetsPurchased).toBe(1);
     expect(g.state.units.some((u) => u.type === 'prophet')).toBe(true);
+  });
+});
+
+// --- the city hex ------------------------------------------------------------
+
+/**
+ * **A bought unit stands on the city hex, or is not sold** — the user's ruling
+ * of 2026-09-10, `docs/flags.md` item (hhhh).
+ *
+ * Three claims, and the third is the one that keeps the rule from spreading:
+ *
+ *   · a purchase lands on the town's own tile, never a hex over;
+ *   · a piece of the same stacking category standing there refuses the sale, in
+ *     a sentence that names it — and refuses it *before* the coin and before the
+ *     bucket stamp, so a refused afternoon is an afternoon the town can still
+ *     spend once the piece has moved;
+ *   · a **built** piece still spills to a neighbour. The two ways of paying now
+ *     differ in exactly one place, and it is the placement helper's own option.
+ */
+describe('a bought unit stands on the city hex', () => {
+  it('lands on the town’s own tile, not a neighbour with room', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    playerById(g.state, 0)!.gold = 500;
+
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    const bought = g.state.units[g.state.units.length - 1]!;
+    expect(bought.col).toBe(city.col);
+    expect(bought.row).toBe(city.row);
+  });
+
+  it('refuses the sale when a piece of the same kind is in the way, naming it', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 500;
+    garrison(g.state, city, 'warrior');
+
+    const refusal = purchaseError(g.state, 0, city.id, WARRIOR, 'gold');
+    expect(refusal).toBe(`A Warrior already stands in ${city.name} — move it first`);
+
+    // Nothing moved: not the coin, not the stamp, not a byte.
+    const before = snapshotState(g.state);
+    const blocked = dispatch(g, buyCommand(city.id, WARRIOR));
+    expect(blocked.ok).toBe(false);
+    expect(blocked.ok === false && blocked.error).toBe(refusal);
+    expect(snapshotState(g.state)).toEqual(before);
+    expect(city.purchasedUnitTurns).toBeUndefined();
+
+    // And the town's afternoon is still its own — the stamp was never spent, so
+    // the piece walking out is the whole of the fix.
+    marchOut(g.state, city);
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+    expect(city.purchasedUnitTurns).toEqual({ militaryGold: g.state.turn });
+  });
+
+  it('asks the stacking category, so a worker blocks a settler and not a warrior', () => {
+    // The rule is `hasStackingRoom`'s own reading, which counts by category: a
+    // civilian in the slot refuses another civilian and says nothing at all
+    // about the garrison.
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.gold = 4000;
+    city.population = 3;
+    garrison(g.state, city, 'worker');
+
+    expect(purchaseError(g.state, 0, city.id, SETTLER, 'gold')).toBe(
+      `A Worker already stands in ${city.name} — move it first`,
+    );
+    expect(purchaseError(g.state, 0, city.id, WARRIOR, 'gold')).toBeNull();
+    expect(dispatch(g, buyCommand(city.id, WARRIOR)).ok).toBe(true);
+  });
+
+  it('leaves the built piece its spill to a neighbour', () => {
+    // The one place the two ways of paying differ, read straight off the helper
+    // they share: the queue's completion still finds a hex, the purchase does
+    // not, and the difference is the option rather than two walks.
+    const g = game();
+    const city = found(g.state, 0);
+    garrison(g.state, city, 'warrior');
+
+    const built = spawnTileFor(g.state, city, 'warrior');
+    expect(built).not.toBeNull();
+    expect(built!.col === city.col && built!.row === city.row).toBe(false);
+    expect(spawnTileFor(g.state, city, 'warrior', { onCityHexOnly: true })).toBeNull();
   });
 });
 
@@ -1028,6 +1170,6 @@ describe('the schema witness', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(114);
+    expect(SCHEMA_VERSION).toBe(115);
   });
 });

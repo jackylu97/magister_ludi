@@ -2781,8 +2781,24 @@ function ejectUnbuildableQueue(city: City): string[] {
  * Exported since M9's purchases: a bought piece stands where a built one would,
  * which is the whole of "same completion routine" applied to the one question a
  * price cannot answer. See `realiseItem`.
+ *
+ * **`onCityHexOnly` stops the walk at the centre** (the user's ruling of
+ * 2026-09-10, `docs/flags.md` item (hhhh)) — the one place the two ways of
+ * paying now differ, and the difference is deliberate rather than an oversight
+ * in one of them. A **built** unit spills to a neighbour: the town worked on it
+ * for turns, the player was not looking when it finished, and a piece appearing
+ * one hex over is better than a queue that silently stalls. A **bought** one
+ * does not: buying is the player's own act on *that* hex this turn — they
+ * pressed the tag to put a defender in the town — so a spearman that turns up
+ * outside the walls is the opposite of what was paid for. When the centre is
+ * taken the sale is refused instead, in `purchaseError`, before any coin moves.
  */
-export function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
+export function spawnTileFor(
+  state: GameState,
+  city: City,
+  type: UnitTypeId,
+  opts: { onCityHexOnly?: boolean } = {},
+): Tile | null {
   const def = unitDef(type);
   const { category } = def;
   const centre = cityTile(state.map, city);
@@ -2822,6 +2838,7 @@ export function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Ti
     ) {
       return centre;
     }
+    if (opts.onCityHexOnly === true) return null;
     for (const tile of neighborTiles(state.map, tileHex(centre))) {
       if (tileMoveCost(tile, mover) === null) continue;
       if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
@@ -2829,6 +2846,7 @@ export function spawnTileFor(state: GameState, city: City, type: UnitTypeId): Ti
     return null;
   }
   if (hasStackingRoom(state, centre.col, centre.row, category)) return centre;
+  if (opts.onCityHexOnly === true) return null;
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
     if (!isPassable(tile)) continue;
     if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;

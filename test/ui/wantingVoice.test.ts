@@ -178,6 +178,10 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   { file: 'cityPanel.ts', says: "a building's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
   { file: 'cityPanel.ts', says: "a unit row's missing resource", carries: "price.classList.add('is-reason', 'wanting')" },
   { file: 'cityPanel.ts', says: "a building row's refusal", carries: "costSpan.classList.add('is-reason', 'wanting')" },
+  // The buy tag, since item (hhhh): a purchase the reducer refuses — most often
+  // now because a piece of the same kind is standing in the city hex — greys
+  // *and* speaks, and the sentence is on the control (`title`/`aria-label`).
+  { file: 'cityPanel.ts', says: "a buy tag the reducer refuses", carries: "if (refusal !== null) button.classList.add('wanting')" },
   // The star chart's node card, at the foot, under the two state lines that are
   // not lacks.
   { file: 'techTree.ts', says: "a node's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
@@ -224,6 +228,10 @@ describe('the wanting voice', () => {
       '.bead-card-gate',
       '.rel-call-note',
       '.city-buildable-cost',
+      // The buy tag sets the treasury's gold on itself, later in the sheet than
+      // the rule — so the doubled class is what carries the refusal's vermilion
+      // onto it (item (hhhh)).
+      '.city-buildable-buy',
       // The trade sheet used to be a sixth host: `.trade-candidate-why` set its
       // own faint ink on a greyed table row. Batch R2 rewrote the sheet and the
       // refusal moved to the Unavailable tab, where `.trade-reason-why` owns
@@ -241,6 +249,10 @@ describe('the wanting voice', () => {
     // One descendant rule beats even the doubled class, and it is the one that
     // matters most: the row carrying "needs improved ⛏ Iron" is disabled.
     expect(css()).toContain('.city-buildable:disabled .city-buildable-cost:not(.wanting)');
+    // And the same excuse said on a control (item (hhhh)): `:disabled` on the
+    // buy tag is a class plus a pseudo-class, which ties the doubled `.wanting`
+    // and beats it on order — so the tag's *ink* is split off its plate.
+    expect(css()).toContain('.city-buildable-buy:disabled:not(.wanting)');
   });
 
   it('folded the three vermilions that were doing its job', () => {
@@ -303,6 +315,10 @@ describe('the wanting voice', () => {
         'the buildable row\'s "needs improved ⛏ Iron"',
         [off('city-buildable'), on('city-buildable-cost', 'is-reason', 'wanting')],
       ],
+      [
+        'the buy tag the reducer refuses',
+        [off('city-buildable-buy', 'wanting')],
+      ],
       ['the unit sheet\'s "Why not"', [on('unit-card'), on('unit-card-blocked', 'wanting')]],
       ['the bead gate, unmet', [on('bead-card'), on('bead-card-gate', 'wanting')]],
       [
@@ -347,6 +363,9 @@ describe('the wanting voice', () => {
         [off('city-buildable'), on('city-buildable-cost')],
         'inherit',
       ],
+      // A buy tag greyed because this seat has ended its turn: a state, not a
+      // lack, so it never carries the class and keeps the plate's faint ink.
+      ['a buy tag on an ended turn', [off('city-buildable-buy')], 'var(--ink-faint)'],
     ];
     for (const [what, chain, ink] of quiet) {
       expect(computed(chain, 'color')?.value, what).toBe(ink);

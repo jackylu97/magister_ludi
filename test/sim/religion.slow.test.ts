@@ -41,7 +41,7 @@ import { describe, expect, it } from 'vitest';
 import type { Command } from '../../src/sim/commands';
 import { foundingErrorAt } from '../../src/sim/cities';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
-import { mapRange, tileHex } from '../../src/sim/map';
+import { getTileAt, mapRange, neighborTiles, tileHex } from '../../src/sim/map';
 import { availableRites, empireRiteError, riteError } from '../../src/sim/religion';
 import { type PurchasableItem, explainPurchaseCost } from '../../src/sim/purchase';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -50,7 +50,7 @@ import { type GameState, SCHEMA_VERSION, playerById } from '../../src/sim/state'
 import { availableTechs, buildError } from '../../src/sim/tech';
 import { TECH_IDS,
   type TechId, techDef } from '../../src/sim/techData';
-import { unitDef } from '../../src/sim/unitData';
+import { type UnitCategory, type UnitTypeId, unitDef } from '../../src/sim/unitData';
 
 /** The thing faith sells, since religion v2 — the augur's row is retired. */
 const PROPHET: PurchasableItem = { kind: 'unit', id: 'prophet' };
@@ -357,7 +357,7 @@ describe('determinism', () => {
     // nodes hand over different rows and a Machinery army marches further on
     // the same paving). A v70 log replays into a different world at every one
     // of those, which is what a schema number is for.
-    expect(SCHEMA_VERSION).toBe(114);
+    expect(SCHEMA_VERSION).toBe(115);
     const played = playFaithful(200);
     // The empire actually got there: the faith ladder dealt a god and the bank
     // paid for it, a town said a rite, and a belief is held. A determinism test
@@ -485,6 +485,13 @@ function playTwoFaiths(maxTurns: number): {
             }
             continue;
           }
+          // **Move it first** (item (hhhh), 2026-09-10): a bought unit stands on
+          // the city hex or is not sold, and this capital has been raising
+          // settlers and warriors for three centuries — one of them is standing
+          // in the slot the prophet would land in. The script says the sentence's
+          // own instruction, by command, and the whole game founded nothing on
+          // the day it did not.
+          marchOut(g, seat, home, unitDef(item.id as UnitTypeId).category);
           dispatch(g, {
             type: 'purchaseItem',
             playerId: seat,
@@ -596,6 +603,42 @@ function playTwoFaiths(maxTurns: number): {
     for (const count of Object.values(city.followers ?? {})) converts += count ?? 0;
   }
   return { game: g, religionsFounded: g.state.religions.length, bombs, converts };
+}
+
+/**
+ * Walks every piece of one stacking category off a town's hex, by command.
+ *
+ * "Move it first" (item (hhhh)) done the only way a determinism script may do
+ * anything: `moveUnit` commands, which land in the log the replay reads back.
+ * The first neighbour the reducer accepts is good enough — where the piece goes
+ * is not the subject, only that the slot the purchase needs is free.
+ */
+function marchOut(
+  g: ReturnType<typeof createGame>,
+  seat: number,
+  town: { col: number; row: number },
+  category: UnitCategory,
+): void {
+  for (const piece of g.state.units.filter(
+    (u) =>
+      u.ownerId === seat &&
+      u.col === town.col &&
+      u.row === town.row &&
+      unitDef(u.type).category === category,
+  )) {
+    for (const target of neighborTiles(
+      g.state.map,
+      tileHex(getTileAt(g.state.map, town.col, town.row)!),
+    )) {
+      dispatch(g, {
+        type: 'moveUnit',
+        playerId: seat,
+        unitId: piece.id,
+        target: { col: target.col, row: target.row },
+      } as Command);
+      if (piece.col !== town.col || piece.row !== town.row) break;
+    }
+  }
 }
 
 describe('two faiths and a bomb', () => {

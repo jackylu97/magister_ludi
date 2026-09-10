@@ -181,6 +181,7 @@ import {
   expectedBestOrder,
   meterPrices,
   shadowPrices,
+  stepAsideFor,
   wantBook,
   worthPerCoin,
 } from './wants';
@@ -3836,6 +3837,22 @@ function bankSpend(
     const bought = best.want.buy!;
     const refusal = purchaseError(state, player.id, bought.cityId, bought.item, currency);
     if (refusal !== null) {
+      // **"Move it first", done** (item (hhhh)). A bought unit stands on the
+      // city hex or is not sold, and the one refusal on that list this seat can
+      // *act on* is a piece of its own standing in the slot. So the arm steps it
+      // one hex and returns; the driver asks again inside the same turn, the
+      // book's row is still there, and the purchase fires next. Two commands,
+      // one resolution — turns are simultaneous, so the town is garrisoned
+      // again by the time anybody else sees the board.
+      //
+      // Asked of the live state rather than carried on the `Want`: the book is
+      // built once a turn and where a piece could step is exactly the sort of
+      // fact that goes stale between decisions. `stepAsideFor` answers `null`
+      // for every refusal that is not this one, for a blocker that is not this
+      // seat's, for one that has already marched, and for a town with nowhere
+      // to put it — and in each of those the row is struck as it always was.
+      const step = stepAsideFor(state, player, cityById(state, bought.cityId)!, bought.item, currency);
+      if (step !== null) return stepAsideDecision(state, player, best.want, step, candidates);
       best.candidate.rejected = refusal;
       continue;
     }
@@ -3992,6 +4009,49 @@ function purchaseDecision(
         : `against ${round1(worthPerCoin(bar))} for ${bar.label}.`),
     candidates,
     focus: { col: city.col, row: city.row },
+  };
+}
+
+/**
+ * **The garrison steps aside** so the thing this town just bought has somewhere
+ * to stand — the first of the two commands item (hhhh) turned one purchase into.
+ *
+ * Its own function beside `purchaseDecision` for the reason `tileDecision` and
+ * `riteDecision` are theirs: this is a different verb (`moveUnit`) and the feed
+ * should say so in its own words, rather than a purchase row quietly reporting a
+ * march. The candidate table is the one the arm already weighed — the want is
+ * still the chosen row; what changed is only which of its two commands is being
+ * issued this instant.
+ *
+ * Nothing is spent and nothing is decided again: the piece walks one hex, the
+ * driver comes straight back, and the purchase this was for is the very next
+ * thing the same arm returns.
+ */
+function stepAsideDecision(
+  state: GameState,
+  player: Player,
+  best: Want,
+  step: { unitId: number; col: number; row: number },
+  candidates: BotCandidate[],
+): BotDecision {
+  const piece = state.units.find((unit) => unit.id === step.unitId)!;
+  for (const candidate of candidates) {
+    if (candidate.label === best.label && candidate.rejected === undefined) candidate.chosen = true;
+  }
+  return {
+    kind: 'unitOrder',
+    command: {
+      type: 'moveUnit',
+      playerId: player.id,
+      unitId: step.unitId,
+      target: { col: step.col, row: step.row },
+    },
+    subject: `${unitDef(piece.type).name} ${piece.id}`,
+    summary:
+      `Steps the ${unitDef(piece.type).name} out of the town so ${best.label} has ` +
+      'somewhere to stand, and buys it in the same turn.',
+    candidates,
+    focus: { col: step.col, row: step.row },
   };
 }
 

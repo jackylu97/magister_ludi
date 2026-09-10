@@ -102,7 +102,7 @@ import {
 } from '../../src/sim/statecraft';
 import type { CardEffectKind } from '../../src/sim/statecraftData';
 import { highestAge, techDef } from '../../src/sim/techData';
-import { game, found, keepTheRites } from './statecraftHelpers';
+import { game, found, keepTheRites, marchOut } from './statecraftHelpers';
 
 const PEOPLE = RULES.greatPeople;
 
@@ -1848,6 +1848,9 @@ describe('the one-row shapes, built generically', () => {
     bear(g.state, 0, 'crassus');
     const player = g.state.players[0]!;
     player.gold = 5000;
+    // A bought piece stands on the city hex or is not sold (item (hhhh)); the
+    // subject here is Crassus's bill, so the escort steps out of the way.
+    marchOut(g.state, city);
     const before = happinessOf(g.state, 0);
     expect(applyCommand(g.state, {
       type: 'purchaseItem',

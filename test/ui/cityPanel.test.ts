@@ -30,7 +30,16 @@ import {
   foldBuildingPreview,
 } from '../../src/sim/yields/town';
 import { beliefDef } from '../../src/sim/religionData';
-import { type City, type GameState, newGame, bumpRevision } from '../../src/sim/state';
+import {
+  type City,
+  type GameState,
+  createUnit,
+  newGame,
+  playerById,
+  bumpRevision,
+} from '../../src/sim/state';
+import { purchaseError } from '../../src/sim/purchase';
+import { braceBody, uiSource } from './sourceHelpers';
 import { resetVisibility } from '../../src/sim/visibility';
 import { cityGuildInflow, dismissSpecialistError, idleCitizens } from '../../src/sim/guilds';
 import { guildThreshold } from '../../src/sim/specialists';
@@ -268,6 +277,47 @@ describe('the build list prices rows off one quote', () => {
 });
 
 
+
+/**
+ * **The buy tag says why, in the reducer's words** — item (hhhh), the ruling
+ * that made a refused purchase an ordinary afternoon rather than a rare
+ * boxed-in town.
+ *
+ * Two halves, and neither can stand without the other. The *sentence* is the
+ * simulation's, so it is asked of the simulation here — the panel prints
+ * `purchaseError`'s answer and never composes one of its own, which is what
+ * lets this suite check the words without a document. The *voice* is the
+ * panel's, and it is read off the source for this suite's usual reason (no
+ * jsdom): a tag that quietly stopped adding the class would still draw.
+ */
+describe('the buy tag carries the reducer’s refusal', () => {
+  it('greys, speaks, and wears the wanting voice off the same answer', () => {
+    const tag = braceBody(uiSource('cityPanel.ts'), 'function priceTag(');
+    // One question, asked once and used three ways: the disabled state, the
+    // words on the control, and the ink.
+    expect(tag).toContain('const refusal = purchaseError(state, seat, city.id, item, currency);');
+    expect(tag).toContain('button.disabled = blocker !== null;');
+    expect(tag).toContain("if (refusal !== null) button.classList.add('wanting');");
+    // The words are the reducer's, never the panel's — `blocker` here so an
+    // ended turn still says so.
+    expect(tag).toContain('button.title = blocker ??');
+    expect(tag).toMatch(/'aria-label',\s*\n\s*blocker \?\?/);
+  });
+
+  it('prints the piece in the way, by name', () => {
+    // The sentence a player reads on the greyed tag when the town's own
+    // garrison is standing in the slot the purchase would land on.
+    const state = flatState();
+    const city = plant(state, 0, 8, 5);
+    playerById(state, 0)!.gold = 500;
+    createUnit(state, 0, 'warrior', city.col, city.row);
+    bumpRevision(state);
+
+    expect(purchaseError(state, 0, city.id, { kind: 'unit', id: 'warrior' }, 'gold')).toBe(
+      `A Warrior already stands in ${city.name} — move it first`,
+    );
+  });
+});
 
 /**
  * The Specialists row (ledger Entry XLVIII), through the three printers the DOM

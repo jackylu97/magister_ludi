@@ -4580,10 +4580,23 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .city-buildable-buy:disabled {
   border-color: var(--ink-faint);
-  color: var(--ink-faint);
   background: var(--table);
   box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.18);
   cursor: default;
+}
+
+/* The ink is split off the plate above for one reason, and it is the buildable
+   row's `:not(.wanting)` excuse said on a control instead of a cell: a tag the
+   reducer refuses wears the wanting voice (item (hhhh) — "A Warrior already
+   stands in Uruk"), and `:disabled` here is a class plus a pseudo-class, which
+   ties `.wanting.wanting` on specificity and beats it on order. Everything a
+   greyed tag *is* — the faint rim, the dead ground, the shallow throw — stays
+   above; only the figure's colour steps aside for the voice.
+
+   A seat that has merely ended its turn is not wanting anything, so its tag
+   never carries the class and takes the faint ink here, exactly as before. */
+.city-buildable-buy:disabled:not(.wanting) {
+  color: var(--ink-faint);
 }
 
 /* The stripe down the left edge is what separates the two kinds: a city builds

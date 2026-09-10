@@ -251,7 +251,7 @@ function slot(state: GameState, playerId: number, id: OrderId): void {
 }
 
 /** A city for a player, on the tile their first unit is standing on. */
-import { found, game, keepTheRites } from "./statecraftHelpers";
+import { found, game, keepTheRites, marchOut } from "./statecraftHelpers";
 
 // --- the table --------------------------------------------------------------
 
@@ -1732,7 +1732,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(114);
+    expect(SCHEMA_VERSION).toBe(115);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2864,6 +2864,9 @@ describe("the master-list cut of 2026-08-28", () => {
   it("buying or completing — Rites of Passage pays once for a warrior, however it was paid for", () => {
     const g = game();
     const city = found(g.state, 0);
+    // Item (hhhh): the purchase below lands on the city hex, so the seat's
+    // escort steps out first — the subject is the card, not the slot.
+    marchOut(g.state, city);
     const player = playerById(g.state, 0)!;
     slot(g.state, 0, "ritesOfPassage");
     expect(windfallPayout(g.state, 0, "unitCompletion").grants[0]?.amount).toBe(

@@ -68,6 +68,7 @@ import {
   type GameConfig,
   type GameState,
   type Player,
+  createUnit,
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
@@ -110,7 +111,7 @@ import {
 } from '../../src/sim/yields/empire';
 import { authorityOf, happinessOf } from '../../src/sim/meters';
 import { renownPerTurn } from '../../src/sim/renown';
-import { createMap, getTileAt } from '../../src/sim/map';
+import { createMap, getTileAt, neighborTiles, tileHex, wrappedDistance } from '../../src/sim/map';
 import { newGame } from '../../src/sim/state';
 import { recomputeAllVisibility, resetVisibility } from '../../src/sim/visibility';
 
@@ -2865,5 +2866,168 @@ describe('batch X3 — the faith book prices the piece', () => {
     const spent = applyCommand(state, decision!.command as never);
     expect(spent.ok).toBe(true);
     expect(player.faithPool).toBeLessThan(400);
+  });
+});
+
+// --- item (hhhh): the garrison steps aside -----------------------------------
+
+/**
+ * **A piece in the town's own hex is a thing this seat can move**, not a reason
+ * to stop wanting a soldier — `docs/flags.md` item (hhhh), 2026-09-10.
+ *
+ * The ruling put a new refusal in front of every unit purchase: a bought unit
+ * stands on the city hex or it is not sold. The book asks `purchaseError` as its
+ * single gate, so the naive consequence was that a want *vanished* the moment
+ * anything of its category was standing in the town — which is every garrisoned
+ * town this bot has, and would have quietly stopped it buying soldiers where it
+ * most wants them.
+ *
+ * Four claims, and the second one is the behaviour:
+ *
+ *   · the row is **kept and priced as before** — a step costs no coin, so
+ *     nothing about what the piece is worth may move;
+ *   · the spend arm **steps the blocker one hex and buys in the same turn**.
+ *     Turns are simultaneous, so both commands land in one resolution and the
+ *     town is garrisoned again before anybody else sees the board;
+ *   · the piece **walks back in** on a later turn, which is an arm that already
+ *     existed and is why the step needs nothing remembered;
+ *   · a blocker with **nowhere to go** is out of reach — a saving row, exactly
+ *     as a want beyond the purse is, and never a refusal.
+ */
+describe('a bought unit stands on the city hex, so the garrison steps aside', () => {
+  /** The bench's one town, with a warrior standing in it. */
+  function garrisoned(): { state: GameState; player: Player; city: City; blockerId: number } {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    player.gold = 4000;
+    const city = state.cities.find((town) => town.ownerId === player.id)!;
+    const blocker = createUnit(state, player.id, 'warrior', city.col, city.row);
+    bumpRevision(state);
+    return { state, player, city, blockerId: blocker.id };
+  }
+
+  it('keeps the want, and prices it exactly as an empty town would', () => {
+    const clear = benchState(1);
+    const open = seat(clear, 0);
+    open.gold = 4000;
+    bumpRevision(clear);
+    const empty = valueContext(clear, open).wants.gold.find((row) =>
+      row.label.startsWith('Warrior at '),
+    );
+    expect(empty).toBeDefined();
+
+    const { state, player } = garrisoned();
+    const blocked = valueContext(state, player).wants.gold.find((row) =>
+      row.label.startsWith('Warrior at '),
+    );
+    // Still in the book, still buyable today, and the coin is the same coin: the
+    // march the purchase needs first is not something the empire pays for.
+    expect(blocked).toBeDefined();
+    expect(blocked!.outOfReach).toBe(false);
+    expect(blocked!.buy).toBeDefined();
+    expect(blocked!.price).toBe(empty!.price);
+  });
+
+  it('steps the blocker out and buys, both in one turn’s log', () => {
+    const { state, player, city, blockerId } = garrisoned();
+    const sitting = botSitting(0);
+    const log: { type: string; unitId?: number; cityId?: number }[] = [];
+    for (let ask = 0; ask < 60; ask++) {
+      const decision = nextBotDecision(state, player.id, sitting);
+      if (decision === null) break;
+      const result = applyCommand(state, decision.command);
+      // The driver's rule: a refusal is a bug. A seat that had to be refused to
+      // get here would prove nothing about the two commands being one plan.
+      expect(result.ok).toBe(true);
+      log.push(decision.command as unknown as { type: string; unitId?: number; cityId?: number });
+      if (decision.command.type === 'purchaseItem') break;
+    }
+
+    const step = log.findIndex((row) => row.type === 'moveUnit' && row.unitId === blockerId);
+    const buy = log.findIndex((row) => row.type === 'purchaseItem' && row.cityId === city.id);
+    expect(step).toBeGreaterThanOrEqual(0);
+    // The order is the whole claim: the hex is cleared *first*, and the purchase
+    // that needed it clearing is the next thing the same arm returns.
+    expect(buy).toBeGreaterThan(step);
+
+    // Where everybody ended up: the bought piece is standing in the town — item
+    // (hhhh)'s own rule — and the blocker is one hex off it.
+    const blocker = state.units.find((unit) => unit.id === blockerId)!;
+    expect(blocker.col === city.col && blocker.row === city.row).toBe(false);
+    expect(
+      wrappedDistance(
+        state.map,
+        tileHex(getTileAt(state.map, blocker.col, blocker.row)!),
+        tileHex(getTileAt(state.map, city.col, city.row)!),
+      ),
+    ).toBe(1);
+    expect(
+      state.units.some(
+        (unit) =>
+          unit.ownerId === player.id &&
+          unit.id !== blockerId &&
+          unit.col === city.col &&
+          unit.row === city.row,
+      ),
+    ).toBe(true);
+  });
+
+  it('is out of reach, never refused, when the blocker has nowhere to go', () => {
+    // Every neighbour taken by a piece of the same category, so `canStopOn`
+    // answers no six times. The want stands — a saving row like any other — and
+    // the arm proposes no purchase in that town rather than marching about for
+    // no reason.
+    const { state, player, city } = garrisoned();
+    for (const tile of neighborTiles(
+      state.map,
+      tileHex(getTileAt(state.map, city.col, city.row)!),
+    )) {
+      createUnit(state, player.id, 'warrior', tile.col, tile.row);
+    }
+    bumpRevision(state);
+
+    const row = valueContext(state, player).wants.gold.find((entry) =>
+      entry.label.startsWith('Warrior at '),
+    );
+    expect(row).toBeDefined();
+    expect(row!.outOfReach).toBe(true);
+    expect(row!.buy).toBeUndefined();
+  });
+});
+
+/**
+ * **Nothing has to remember the step**, which is why it is safe to take.
+ *
+ * `garrisonAt` counts what is *standing in* the town, so the moment the blocker
+ * walks out the town reads short — and `undefendedCity` is the arm that marches
+ * the nearest piece back into a town short of its garrison, ahead of hunting and
+ * escorting in the unit order. So the piece returns on its own, by an arm that
+ * predates this ruling and needed no clause added to it.
+ *
+ * Read off the source, because the claim is about **which arm owns it** rather
+ * than about one board: a behavioural case here would pass just as well if some
+ * other arm happened to walk the piece home for some other reason.
+ */
+describe('the piece walks itself back in, by the arm that already did that', () => {
+  const AI_HHHH = import.meta.glob('../../src/ai/bot.ts', {
+    eager: true,
+    query: '?raw',
+    import: 'default',
+  }) as Record<string, string>;
+
+  function botSource(): string {
+    const key = Object.keys(AI_HHHH).find((path) => path.endsWith('/bot.ts'))!;
+    return AI_HHHH[key]!;
+  }
+
+  it('marches the nearest piece to a town short of its garrison', () => {
+    const source = botSource();
+    // The arm is in the unit order, and it reads the standing count rather than
+    // any memory of who stepped out of where.
+    expect(source).toContain('const home = undefendedCity(state, player, unit);');
+    expect(source).toContain('garrisonAt(state, player.id, city) >= ai.military.garrisonPerCity');
+    // And the step the spend arm takes stores nothing: it is asked of the live
+    // board at the moment it fires, never carried on a `Want`.
+    expect(source).toContain('const step = stepAsideFor(');
   });
 });

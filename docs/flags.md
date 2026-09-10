@@ -1982,6 +1982,32 @@ directly to confirm rulings — user marginalia are rulings.
   A human seat with a leader sees "Your leader awaits" on End Turn with
   no sheet until L2b lands — L2b is building on top (agent flying
   2026-09-10, merged the gate's `held` branch first).
+  **L2b built** (2026-09-10, no schema; on the held stack): the landing
+  gains a second card (`#landing-leaders`, empty markup walked from
+  `LEADER_IDS` by `src/ui/leaderSelect.ts` — a seventh figure appears
+  with no page edit), one button a figure with the seat's canton, the
+  bonus through `describeCard`, and the chosen one's Æra I row in three
+  inks with the plain sentence that the pick itself lands on the first
+  turn with a capital; *No leader* is default and writes no key (a
+  leaderless config is byte-identical to before). **Rivals' figures**:
+  the remaining leaders in sheet order behind yours, deterministic, no
+  dice. Start's label reads "Begin as …". The **draft sheet**
+  (`leaderDraftSheet.ts`, thirteenth on `modalShell`, raised by the
+  `leaderDraft` blocker) — click to pick up, *Take* issues the command; a
+  "today it would pay" stamp from `explainCardImpact` (a sixth
+  `CardImpactSubject`, `leaderCard`; a boon is not ghosted — a lump is
+  not a rate); refused cards greyed with the capital rule in `.wanting`.
+  The **leader sheet** (`leaderSheet.ts`, fourteenth) behind a fifth HUD
+  dock door wearing the seat's charge: the bonus, one block an age (taken
+  marked, the two left greyed, locked rows with the techs that open the
+  age), the ledger gathered from `readEmpire`'s lines by card id; a row
+  never expires so the sheet can reopen the draft. Spectator roster names
+  the figure. Notes: ▢ `data/leaders.json` carries no `family`/`spectrum`
+  field, so the mockup's two lines are absent (a data decision); ▢ the
+  Compendium's leader shelf prints a pure-boon card's effects only (the
+  draft sheet composes the lump via `describeBeadBoon` + `grantWords`;
+  `compendium.ts` could reuse the two calls); `grantWords` gained a
+  moment lead ("when you take it"). Not browser-checked by the agent.
 - (cccc) **Start biases in three stages — RULED** (the user, 2026-09-10:
   *"queue up the mapgen changes, and then verify that we can have
   satisfactory starts for the new leaders (the steppe leader is useless
