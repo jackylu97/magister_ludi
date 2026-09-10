@@ -30,6 +30,8 @@ grant; a unique is a row with `unlockedByCard`-style gating). ▢ every figure.
 
 ### Pachacuti — wide, roads and growth (Inca)
 
+leader bonus: farms gain +1 food for each adjacent mountain
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
 | I | workers gain +1 charge (the corvée) | +3 authority | **Terraces** — farms may be built on hills, +1 food |
@@ -495,6 +497,55 @@ defer these for later - these should have the most unique/game-warping abilities
   - the Ornithopter and the Armoured Cart come one node early
   - an artist or engineer great person costs a third less renown
   - +15% production toward wonders in the capital
+
+## Start biases — feasibility against the map script (2026-09-10)
+
+How starts are chosen today (`src/sim/startPositions.ts`, `docs/mapgen.md`
+"Starts"): every passable land tile is scored as a **site** — its ground yield
+plus the best six worked tiles of rings one and two, each a labelled line
+(`scoreStartSite`, rule 5's shape), plus two site bonuses already on the sheet:
+`freshwaterBonus` (10) and `coastBonus` (6); seven hard **rejections** back the
+score up (landmass, terrain, cold/arid share, water share, food and production
+floors, room for the strategics). Sites are sorted and seated greedily with a
+spacing; **no dice** — starts are deterministic in the map alone and are not
+logged. Then the fairness passes (`resources.ts`) plant food, luxuries and the
+promised strategics **at** the chosen starts.
+
+What that means for a bias:
+
+- **Feasible, and small.** A bias is extra labelled score lines per seat —
+  `+coast × leader.coast`, `+river × leader.river`, `+hills`, `+grassland and
+  plains`, `+floodplain and oasis` — folded into the same list the chooser
+  already sorts. Every weight in `mapgen.starts` is data; a leader's bias is a
+  data row beside them. Rule 5 holds: the mapgen page can print why a leader
+  got its site.
+- **A bias must be a score, never a rejection**, or the seed sweeps that prove
+  every roster seats legally on every seed stop holding. Soft and capped (rec:
+  a bias may add at most a fifth of the best site's score), so no leader is
+  handed an unliveable coast for the sake of a coast.
+- **Horses and iron need no bias**: every capital is already promised its
+  strategics within `startStrategicRadius` (`ensureStartStrategics`), so
+  Modu's pastures and Bumin's iron are met by construction.
+- **Desert is a rejection today** (`hostileTerrain`, `maxHostileRingShare`
+  0.45), so Akhenaten's bias is the river, the floodplain and the oasis — the
+  Nile's valley, not the Sahara.
+- **The seating becomes per-seat.** Today starts are chosen first and handed to
+  seats in roster order; with biases each seat scores the board its own way,
+  so the chooser seats **in roster order** (seat one takes its best site, seat
+  two its best of what remains at spacing, …) — deterministic, and the order
+  is the config's. ▢ or an assignment that maximises the sum, which is fairer
+  and still deterministic but harder to read on the page. `chooseStartPositions(map,
+  count)` keeps its old shape for the tools and tests; the biased call is a
+  second entry taking the roster.
+- **Cost**: one score term kind, a `bias` block per leader row, the per-seat
+  seating, the mapgen page printing the lines, `docs/mapgen.md` "Starts" and
+  its sync test, and the seed sweep re-run with every leader seated. A day's
+  batch, after the leader system exists to carry the row.
+
+Proposed biases (▢ each): Pachacuti — hills and river; Taizong — river and
+grassland (the Yangtze passive); Modu Chanyu — grassland and plains, away from
+hills; Akhenaten — river, floodplain, oasis; Al-Ma'mun — river, with a mild
+coast; Mithridates — coast and hills (the Black Sea and the Pontic mountains).
 
 ## Notes for the system
 
