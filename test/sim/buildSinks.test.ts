@@ -760,7 +760,8 @@ describe('the palisade is a wall the town built', () => {
     if (!walled.ok) throw new Error(walled.error);
 
     const added = buildingDef('palisade').cityStat!.amount;
-    expect(added).toBe(10);
+    // Five since 2026-09-10 (the user, mid-playtest: walls halved back).
+    expect(added).toBe(5);
     expect(walled.defenderStrength).toBe(bare.defenderStrength + added);
     // A list, never a number: "+5" beside the walls with no reason is exactly
     // what a breakdown exists to prevent.
