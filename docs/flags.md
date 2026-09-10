@@ -1800,6 +1800,82 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (cccc) **Start biases in three stages — RULED** (the user, 2026-09-10:
+  *"queue up the mapgen changes, and then verify that we can have
+  satisfactory starts for the new leaders (the steppe leader is useless
+  without horses, and relies on pastures, pachacuti relies on spawning
+  near mountains, and mithridates is somewhat reliant on camps and
+  plantations, wide leaders in general are going to have bad games if
+  they don't have ample rivers near them)"* — corrected minutes later: **"tall leaders in general need rivers"**: the river criterion is the tall seats' — Akhenaten, Al-Ma'mun, Mithridates — with Pachacuti's river as his own growth line, not a wide rule). The spec of record is
+  `docs/leaders.md` "Start biases — feasibility" and its "three stages"
+  paragraph. **M1 builds** the mechanism before the leader system exists
+  to carry it: (1) a new `data/leaders.json` — the six leaders by id
+  (`pachacuti` · `taizong` · `moduChanyu` · `akhenaten` · `alMamun` ·
+  `mithridates`), each row a `name`, a `startBias` { `terrain`: weights
+  per line — river, floodplain, oasis, grassland, plains, hills,
+  mountainAdjacent, coast — and `resources`: draw-weight multipliers per
+  bonus kind within `startBiasRadius`, and `luxuries`: hand-draw
+  multipliers per kind for the continent that seats them, and
+  `furnish`: improvement kinds guaranteed within the rings — e.g.
+  `["plantation", "camp"]` } — figures in data, never in code; the
+  playstyle bonuses come later in their own batch and this file is where
+  they will live; (2) `GameConfig.players[i].leader?: LeaderId` (a config
+  field; a save carries its config, so no state schema); (3) **stage 1**,
+  `startPositions.ts`: `chooseStartPositionsFor(map, seats)` seats in
+  roster order, each seat scoring the board with its own bias as labelled
+  score lines (soft, capped at `mapgen.starts.biasCap`, a share of the
+  best unbiased site's score; never a rejection); the old
+  `chooseStartPositions(map, count)` stays as the unbiased case; (4)
+  **stage 2**, `resources.ts`: the bonus scatter's draw weight × the
+  seated leader's `resources` multiplier within `startBiasRadius` of its
+  start; the continent's luxury hand draw × the `luxuries` multiplier of
+  every leader seated on that continent (cap and hostability unchanged);
+  (5) **stage 3**, the furnishing: `ensureStartFurnishing` after the
+  strategics — each `furnish` kind gets one suitable resource within the
+  rings, **drawn from the continent's hand for a luxury** (hand or
+  nothing) and freely for a bonus; and the base luxury guarantee tightened
+  to hand-or-nothing (its whole-table fallthrough removed — ▢ if the
+  sweep shows it starves a start, say so and keep the fallthrough); (6)
+  the mapgen page prints each seat's bias lines and its furnishing; (7)
+  `docs/mapgen.md` "Starts" and a `docs/leaders.md` note follow, both
+  sync-tested where they mirror data. **The verification the user asked
+  for**, as a slow test (`test/stress/leaderStarts.slow.test.ts`) and a
+  report: over 24 seeds × standard × 6 seats each seated with one leader,
+  the share of starts where — Modu has Horses within 4 and ≥ 2 pasture
+  hexes; Pachacuti has a mountain within 2 and ≥ 3 hills within 2 and a
+  river; Mithridates has a camp kind and a plantation kind within 3;
+  Pachacuti a river within 1 (his growth line); the tall seats — Akhenaten
+  a river or floodplain within 1, Al-Ma'mun a river within 2, Mithridates a
+  river within 2 beside his coast and hills; Taizong grassland within 2 — **before (unbiased)
+  and after**, and the mean unbiased site score of every seat before and
+  after (a bias must not cost a seat more than the cap). Rule 2: every
+  stage on the map's stream; same seed and roster, same world; the seed
+  sweeps that prove every roster seats legally re-run with biases on. (the user, 2026-09-10: *"Prophets
+  should have only two charges (i feel like i've said this before).
+  Proclamations and empire-wide rites each take 1 charge. Founding a
+  religion creates a holy site and consumes two charges. Drawing a new
+  belief costs two charges. Additionally: prophets can plant new holy
+  sites that also consume 2 charges."*). Today (`data/units.json`) the
+  prophet already carries **2** charges and its four verbs
+  (`ProphetVerbName`: plantHolySite · gainBelief · proclaim · empireRite,
+  `religion.ts`) each spend **one** through `spendCharge`; founding a
+  religion spends the piece whole (`spendProphet`) and places the holy
+  site. **F2 builds a per-verb cost**: `proclaim` 1 · `empireRite` 1 ·
+  `foundReligion` 2 (the holy site placed as today — verify and say so)
+  · `gainBelief` 2 · `plantHolySite` 2 — figures in data
+  (`rules.religion.prophetCosts` or on the unit row's `charges` beside a
+  `verbCosts` map; never in prose), read in ONE place (`spendCharge`
+  takes the verb; a verb whose cost exceeds the charges left is refused
+  by the verb's own `…Error` with one sentence, "a prophet with one
+  charge left cannot found a faith"). So a prophet either founds, draws
+  a belief or plants a site — and is spent — or proclaims/rites twice.
+  The city panel's and unit sheet's verbs print the cost ("2 charges");
+  the Compendium's religion shelf says it in words; the bots' prophet
+  logic (`src/ai/` where a prophet is spent) reads the same table; the
+  apostle (2 charges: proclaim/rite) and the inquisitor (1: purge)
+  unchanged. Pins per verb; schema bump if a replay's spend differs (it
+  does: a two-charge draw); `docs/religion-v2.md` follows. Needed for
+  Akhenaten's deck (`docs/leaders.md`).
 - (aaaa) **Leaders — direction, and player progression PARKED** (the user,
   2026-09-10). `docs/leaders.md` is the casting call (26 figures, themes and
   possible bonuses in the user's format) and carries the draft's shape as
@@ -2074,6 +2150,24 @@ directly to confirm rulings — user marginalia are rulings.
   table's runner-up behind the head (the driver's town pass), else
   bots never see the bonus. Replaces the Foundry proposal for the
   Toolmakers' Charter (`docs/orders-and-doctrines.md`'s inline mark).
+  **S2 built** (2026-09-10, schema **111**; gated green, **held** until the
+  user is between games — saves are `{config, log}` and a mismatched
+  schema is refused, pre-release): `Player.techProgress` and
+  `City.itemProgress` park every bucket but the live one; two seams in
+  `state.ts` (`aimResearchAt`, `reaimProduction` — `kept: true` parks,
+  `kept: false` overflows forward); the star chart draws the bar on the
+  node that holds the beakers and the city panel prints "n⚙ set aside".
+  The Vizier's Hall (`viziersHall`, large, column 4, `queueFloor: 2`,
+  +30% production scoped to the holding town at queue depth ≥ 2 — a new
+  `CityScope` `queueDepth`); The Vizierate is the un-retired
+  `toolmakersCharter`. Judgement call: the reducer refuses a queue only
+  when the command would *shorten* it below the floor (a strict floor
+  deadlocks an emptied town) — ▢. Bot: `research.strandWeight` and
+  `puppet.strandWeight` (0.35) charge a switch what it strands; the
+  driver queues to the floor; a real bug fixed (every build candidate
+  was quoted the front row's basket). t100: the rule alone costs ~8
+  science; at the shipped weight sci 105 → 97, cul 78 → 67, happiness
+  13.3 → 12.2 — ▢ an arena sweep of the two weights.
 - (vvv) **The mounted line — RE-RULED** (the user, 2026-09-10, minutes
   later: *"this feels somewhat anachronistic. What if we moved chariots
   to age 2, horseman and horse archer to age 3 and removed

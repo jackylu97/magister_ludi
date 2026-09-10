@@ -447,6 +447,6 @@ describe("the blocker", () => {
 
 describe("the schema", () => {
   it("is bumped for the register the census added", () => {
-    expect(SCHEMA_VERSION).toBe(111);
+    expect(SCHEMA_VERSION).toBe(112);
   });
 });

@@ -1515,7 +1515,7 @@ export function empireRiteError(
   unitId: number,
   rite: unknown,
 ): string | null {
-  const problem = prophetProblem(state, playerId, unitId);
+  const problem = prophetProblem(state, playerId, unitId, 'empireRite');
   if (problem !== null) return problem;
   const player = playerById(state, playerId)!;
   if (!isRiteId(rite)) return `There is no rite called "${String(rite)}"`;
@@ -1583,7 +1583,7 @@ export function empireRiteAt(
     refreshCityDerived(state, city);
     cities.push(city);
   }
-  const prophetSpent = spendCharge(state, unit);
+  const prophetSpent = spendCharge(state, unit, 'empireRite');
   return {
     rite,
     name: def.name,
@@ -1997,8 +1997,13 @@ export function isApostle(unit: Unit): boolean {
  * think of them. The **pending offer** clause is `consecrateError`'s and for its
  * reason: a second hand dealt on top of the first would silently destroy it.
  */
-function prophetProblem(state: GameState, playerId: number, unitId: number): string | null {
-  return agentProblem(state, playerId, unitId, isProphet, 'prophet');
+function prophetProblem(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  verb: ChargeVerbName,
+): string | null {
+  return agentProblem(state, playerId, unitId, isProphet, 'prophet', verb);
 }
 
 /**
@@ -2009,8 +2014,13 @@ function prophetProblem(state: GameState, playerId: number, unitId: number): str
  * and was told "a Worker is no prophet" would be reading about a piece that is
  * not on the screen.
  */
-function apostleProblem(state: GameState, playerId: number, unitId: number): string | null {
-  return agentProblem(state, playerId, unitId, isApostle, 'apostle');
+function apostleProblem(
+  state: GameState,
+  playerId: number,
+  unitId: number,
+  verb: ChargeVerbName,
+): string | null {
+  return agentProblem(state, playerId, unitId, isApostle, 'apostle', verb);
 }
 
 /**
@@ -2019,6 +2029,13 @@ function apostleProblem(state: GameState, playerId: number, unitId: number): str
  * `is` is the roster **marker** (`prophesies`, `proclaims`), never a type name —
  * so a third preacher is a data row and this function is unchanged — and `noun`
  * is what a player calls the thing, because a refusal is a sentence.
+ *
+ * **The charge question knows what is being asked of the piece** (the ruling of
+ * 2026-09-10): it is no longer "has it a charge" but "has it *this act's*
+ * charges", so a prophet that has already spoken once is refused a founding here
+ * — in the verb's own gate, with the verb's own sentence — rather than being
+ * quietly emptied by the act. One clause, so the reducer, the greyed row and the
+ * bot's feed are all reading the same refusal.
  */
 function agentProblem(
   state: GameState,
@@ -2026,6 +2043,7 @@ function agentProblem(
   unitId: number,
   is: (unit: Unit) => boolean,
   noun: string,
+  verb: ChargeVerbName,
 ): string | null {
   const player = playerById(state, playerId);
   if (!player) return `No player with id ${String(playerId)}`;
@@ -2033,7 +2051,9 @@ function agentProblem(
   if (!unit) return `No unit with id ${String(unitId)}`;
   if (unit.ownerId !== playerId) return `Unit ${unit.id} does not belong to player ${playerId}`;
   if (!is(unit)) return `A ${unitDef(unit.type).name} is no ${noun}`;
-  if ((unit.chargesLeft ?? 0) < 1) return `That prophet has nothing left to give`;
+  const left = unit.chargesLeft ?? 0;
+  if (left < 1) return `That ${noun} has nothing left to give`;
+  if (left < chargeCostOf(verb)) return tooFewCharges(noun, left, verb);
   if (unit.movesLeft <= 0) return `Unit ${unit.id} has no movement left`;
   if (player.pantheon.pending !== undefined) {
     return `${player.name} still has a belief waiting to be chosen`;
@@ -2045,21 +2065,26 @@ function agentProblem(
  * The verbs a prophet's charges may be spent on, named as the interface names
  * them, so a row and a command cannot drift apart by a typo.
  *
- * **Two charges again, and the ladder is back — deliberately** (ruled
- * 2026-09-06). Entry LVIII gave the prophet one charge because a piece with
- * three made the first act nearly free and the last one agonising. Two is a
- * different shape and it is the one the ruling asks for: the two acts that
- * settle what a faith *is* — founding it on stones, drawing it another belief —
- * take the **whole** piece, and the two that merely spend its voice — a
- * proclamation, a rite said over the realm — take **one**. So the question the
- * price ladder poses is still asked once and answered once ("what is this
- * prophet for"), and a prophet kept for its voice gets to use it twice.
+ * **Two charges, and a price on each act** (the user, 2026-09-10,
+ * `docs/flags.md` (bbbb)). Entry LVIII gave the prophet one charge because a
+ * piece with three made the first act nearly free and the last one agonising;
+ * two with a ladder is a different shape and it is the one the ruling asks for.
+ * The two acts that settle what a faith *is* — founding it on stones, drawing it
+ * another belief — take **both** charges, and the two that merely spend its
+ * voice — a proclamation, a rite said over the realm — take **one** each. So a
+ * prophet either does one lasting thing and is gone, or it speaks twice.
  *
- * Which is which is not a field: it is which routine the act ends with —
- * `spendProphet` for the whole piece, `spendCharge` for one — and that is
- * stated on both.
+ * Which is which is no longer a fact about *which routine an act calls*: it is a
+ * figure in `rules.religion.prophetCosts`, read in one place (`chargeCostOf`),
+ * spent in one place (`spendCharge`) and refused in one place (`agentProblem`).
+ * A designer who wants a prophet that can found twice moves a number.
+ *
+ * `foundReligion` and `plantHolySite` are two keys for what is today one verb —
+ * planting *is* founding (Entry LVIII) — because they are two questions, and
+ * `plantingCost` chooses between them by what the act is about to do.
  */
 export type ProphetVerbName =
+  | 'foundReligion'
   | 'plantHolySite'
   | 'gainBelief'
   | 'proclaim'
@@ -2069,36 +2094,100 @@ export type ProphetVerbName =
   | 'empireRite';
 
 /**
- * Spends the whole prophet on the act it just performed, and the piece leaves
- * the board with whatever it was still carrying.
+ * Every act any religious agent spends a charge on — the prophet's ladder plus
+ * the three small deeds that cost one charge apiece by construction.
  *
- * One function rather than a `removeUnit` line in each of the four verbs, for
- * the reason `prophetProblem` is one function: a rule about the piece stated
- * four times is a rule three of them will eventually disagree with. The charge
- * count is deliberately **not** zeroed on the way out — the unit is gone, and a
- * write to a removed piece is a fact nobody can read.
+ * One union rather than three, because `spendCharge`, the refusal and the price
+ * word are one function each and every one of them takes a verb. The apostle's
+ * and the inquisitor's acts carry no data row (see `ProphetChargeCosts`): a
+ * piece whose whole existence is one or two deeds prices them at one charge, and
+ * a table entry for each would be a knob that cannot move on its own.
  */
-function spendProphet(state: GameState, unit: Unit): void {
-  removeUnit(state, unit.id);
+export type ChargeVerbName = ProphetVerbName | 'healAdjacent' | 'placeRelic' | 'purge';
+
+/**
+ * What one act costs the piece performing it — **the one read of
+ * `rules.religion.prophetCosts`**.
+ *
+ * Everything that has an opinion about a charge asks this: the reducer before it
+ * spends, the verb's own refusal before it consents, the sheet that prints the
+ * price, and the bots planning a piece they have not bought yet. So the sentence
+ * a player is refused with and the arithmetic that refused them cannot drift.
+ *
+ * The three small deeds are one charge and say so here rather than in the data,
+ * for `ChargeVerbName`'s stated reason.
+ */
+export function chargeCostOf(verb: ChargeVerbName): number {
+  const costs = RULES.religion.prophetCosts;
+  switch (verb) {
+    case 'foundReligion':
+      return costs.foundReligion;
+    case 'plantHolySite':
+      return costs.plantHolySite;
+    case 'gainBelief':
+      return costs.gainBelief;
+    case 'proclaim':
+      return costs.proclaim;
+    case 'empireRite':
+      return costs.empireRite;
+    // The small preachers' three, enumerated rather than defaulted: a new verb
+    // has to come here and say what it costs, which is the whole point of one
+    // reader.
+    case 'healAdjacent':
+    case 'placeRelic':
+    case 'purge':
+      return 1;
+  }
 }
 
 /**
- * Spends one of an agent's charges, and lets go of a piece that emptied.
+ * What that act costs, in the words every surface prints — "2 charges".
+ *
+ * One formatter, so the city panel's card, the unit sheet's row and the hover
+ * card beside it all say it the same way. Digits, because this is a price on a
+ * row rather than a sentence about the rules (hard rule 7's line): the *prose*
+ * that explains the ladder is the Compendium's and carries no numbers at all.
+ */
+export function chargeCostWords(verb: ChargeVerbName): string {
+  const cost = chargeCostOf(verb);
+  return `${cost} ${cost === 1 ? 'charge' : 'charges'}`;
+}
+
+/**
+ * Which of the two planting prices this act pays: the founding's, or a second
+ * set of stones'.
+ *
+ * Today every planting founds (`plantHolySiteError` asks `foundReligionError`
+ * unconditionally, so an empire with a faith is refused before it reaches the
+ * ground), which makes the second arm unreachable — deliberately, and for
+ * `consecrateAt`'s reason exactly: the *rule* the ruling states has two prices
+ * in it, and a rule kept whole survives the day a prophet may raise a second
+ * site again. Both rows of the table are live figures either way.
+ */
+function plantingCost(state: GameState, playerId: number): ProphetVerbName {
+  return foundedReligion(state, playerId) === undefined ? 'foundReligion' : 'plantHolySite';
+}
+
+/**
+ * Spends an act's charges, and lets go of a piece that emptied.
  *
  * Returns true when the piece left the board — which is the *exhaustion* rule,
- * not the consumption one: a one-charge prophet that proclaims is spent because
- * it has nothing left, and a two-charge prophet that proclaims walks away. The
- * day goes with the charge (`movesLeft = 0`): an act is the whole turn.
+ * not the consumption one: a two-charge prophet that founds is spent because
+ * founding costs both, and one that proclaims walks away with a charge in hand.
+ * The day goes with the act (`movesLeft = 0`): an act is the whole turn.
  *
- * **Both agents share it.** It was the prophet's alone and `performRiteAt` kept
- * a line-for-line copy of it, which is the shape this file spends its docblocks
- * refusing: two statements of "an act is the piece's whole turn" are two
- * statements one of them will eventually stop making. An augur's charge and a
- * prophet's are the same charge — three acts in a box — so they are spent by the
- * same four lines.
+ * **Every agent shares it**, and now every act does too. There was a second
+ * routine here (`spendProphet`) that removed the piece outright, and the split
+ * between them *was* the price ladder — which is exactly the shape this file
+ * spends its docblocks refusing, because a rule stated in the choice of a
+ * function name is a rule no designer can retune. The price is
+ * `chargeCostOf(verb)` and the arithmetic is these five lines.
+ *
+ * It never validates: a verb whose cost exceeds what the piece carries is
+ * refused upstream, in that verb's own `…Error` (`agentProblem`).
  */
-function spendCharge(state: GameState, unit: Unit): boolean {
-  const left = (unit.chargesLeft ?? 0) - 1;
+function spendCharge(state: GameState, unit: Unit, verb: ChargeVerbName): boolean {
+  const left = (unit.chargesLeft ?? 0) - chargeCostOf(verb);
   if (left <= 0) {
     removeUnit(state, unit.id);
     return true;
@@ -2106,6 +2195,36 @@ function spendCharge(state: GameState, unit: Unit): boolean {
   unit.chargesLeft = left;
   unit.movesLeft = 0;
   return false;
+}
+
+/**
+ * What a piece too poor for an act is told, in a first-time player's words.
+ *
+ * The ruling's own sentence ("a prophet with one charge left cannot found a
+ * faith"), and it is one function because it is said by four gates, three
+ * panels and every bot's feed. The count is spelt rather than printed: this is
+ * prose, and the digits belong on the price beside the row (`chargeCostWords`).
+ */
+function tooFewCharges(noun: string, left: number, verb: ChargeVerbName): string {
+  return `A ${noun} with ${chargesInWords(left)} left cannot ${CHARGE_ACT_WORDS[verb]}`;
+}
+
+/** What each act is called when a refusal has to name it. Plain, no identifiers. */
+const CHARGE_ACT_WORDS: Record<ChargeVerbName, string> = {
+  foundReligion: 'found a faith',
+  plantHolySite: 'plant a holy site',
+  gainBelief: 'draw another belief',
+  proclaim: 'proclaim',
+  empireRite: 'say a rite over the realm',
+  healAdjacent: 'lay on hands',
+  placeRelic: 'leave a relic',
+  purge: 'purge',
+};
+
+/** "one charge", "two charges" — a count small enough to be a word, said as one. */
+function chargesInWords(count: number): string {
+  const words = ['no charges', 'one charge', 'two charges', 'three charges'];
+  return words[count] ?? `${count} charges`;
 }
 
 /**
@@ -2135,7 +2254,7 @@ export function plantHolySiteError(
   playerId: number,
   unitId: number,
 ): string | null {
-  const problem = prophetProblem(state, playerId, unitId);
+  const problem = prophetProblem(state, playerId, unitId, plantingCost(state, playerId));
   if (problem !== null) return problem;
   const cannot = foundReligionError(state, playerId);
   if (cannot !== null) return cannot;
@@ -2171,7 +2290,12 @@ export interface HolySitePlanting {
   offer: BeliefOffer | null;
   col: number;
   row: number;
-  /** True when the prophet was spent — always, now that it carries one charge. */
+  /**
+   * True when the prophet was spent — always, in practice: a founding costs both
+   * of a prophet's charges (`rules.religion.prophetCosts`) and a prophet that
+   * had already spoken once was refused the act. It is the act's own report
+   * rather than a constant, so the day the table says otherwise this says so.
+   */
   prophetSpent: boolean;
 }
 
@@ -2197,8 +2321,10 @@ export interface HolySitePlanting {
  *      the second opens the instant the first is answered (`payBeliefDebt`).
  *      Owed only when a first was actually dealt — an empire that could not be
  *      offered one belief is not owed two.
- *   5. **the prophet**, whole. One charge, one deed (Entry LVIII), so there is
- *      no day left to spend because there is no prophet left to spend it.
+ *   5. **the prophet's charges**, which for a founding is both of them
+ *      (`prophetCosts.foundReligion`, the ruling of 2026-09-10) — so there is no
+ *      day left to spend because there is no prophet left to spend it. Through
+ *      `spendCharge` like every other act: the price is a figure, not a routine.
  *
  * **The stones are the seat of the faith.** The `??=` is kept although a prophet
  * can no longer raise a second site: what `religionFounder` reads is *this* hex,
@@ -2211,6 +2337,10 @@ export function plantHolySiteAt(
   unit: Unit,
   tile: Tile,
 ): HolySitePlanting {
+  // Asked **before** the faith exists, because that is the question the price is
+  // an answer to: the stones that found a religion are the founding's price, and
+  // the ones a later prophet might raise beside them are their own.
+  const verb = plantingCost(state, player.id);
   const religion = foundReligion(state, player);
 
   tile.improvement = HOLY_SITE;
@@ -2229,8 +2359,11 @@ export function plantHolySiteAt(
     player.pantheon.owed = 1;
   }
 
-  spendProphet(state, unit);
-  return { religion, founded: true, offer, col: tile.col, row: tile.row, prophetSpent: true };
+  // The planting's own price (`plantingCost`), spent through the one routine
+  // every charge goes through — and it is the *founding's* two, because a
+  // planting founds. `prophetSpent` is what the act actually did to the piece.
+  const prophetSpent = spendCharge(state, unit, verb);
+  return { religion, founded: true, offer, col: tile.col, row: tile.row, prophetSpent };
 }
 
 /**
@@ -2259,7 +2392,7 @@ export function gainBeliefError(
   playerId: number,
   unitId: number,
 ): string | null {
-  const problem = prophetProblem(state, playerId, unitId);
+  const problem = prophetProblem(state, playerId, unitId, 'gainBelief');
   if (problem !== null) return problem;
   const religion = foundedReligion(state, playerId);
   if (!religion) return 'You have founded no religion to teach';
@@ -2280,8 +2413,9 @@ export function gainBeliefError(
 const ENHANCER_TECH: TechId = 'theology';
 
 /**
- * Spends the whole prophet on one belief draft. Validates nothing —
- * `gainBeliefAt`'s gate is `gainBeliefError`.
+ * Spends the prophet's two charges on one belief draft — the whole piece, at
+ * today's figures. Validates nothing — `gainBeliefAt`'s gate is
+ * `gainBeliefError`.
  *
  * `plantHolySiteAt`'s closing steps in the same order and for the same reasons —
  * the draw, then the piece. **Which house it draws from is the ladder's answer**
@@ -2293,7 +2427,7 @@ export function gainBeliefAt(state: GameState, player: Player, unit: Unit): Beli
   const pool = drawableBeliefPool(state, player.id, religion)!;
   const offer = drawPoolBeliefOffer(state, player, religion, pool);
   player.pantheon.pending = offer;
-  spendProphet(state, unit);
+  spendCharge(state, unit, 'gainBelief');
   return offer;
 }
 
@@ -2315,8 +2449,8 @@ export function proclaimError(state: GameState, playerId: number, unitId: number
   const unit = unitById(state, unitId);
   const problem =
     unit !== undefined && isApostle(unit)
-      ? apostleProblem(state, playerId, unitId)
-      : prophetProblem(state, playerId, unitId);
+      ? apostleProblem(state, playerId, unitId, 'proclaim')
+      : prophetProblem(state, playerId, unitId, 'proclaim');
   if (problem !== null) return problem;
   if (foundedReligion(state, playerId) === undefined) {
     return 'You have founded no religion to proclaim';
@@ -2377,7 +2511,7 @@ export function proclaimAt(state: GameState, player: Player, unit: Unit): Procla
   const religion = foundedReligion(state, player.id)!;
   const { range, lump } = bombFigures(state, player.id, unit);
   const report = pressLump(state, religion, { col: unit.col, row: unit.row }, range, lump);
-  spendCharge(state, unit);
+  spendCharge(state, unit, 'proclaim');
   // **The Final Proclamation's bead** — announced at the act rather than at the
   // command, the ten Triumph seams' rule: this is the one place a proclamation
   // happens, and a prophet is a prophet whoever is driving it.
@@ -2474,7 +2608,7 @@ export function healAdjacentError(
   playerId: number,
   unitId: number,
 ): string | null {
-  return apostleProblem(state, playerId, unitId);
+  return apostleProblem(state, playerId, unitId, 'healAdjacent');
 }
 
 /** One piece an apostle's hands mended. See `HealingReport`. */
@@ -2530,7 +2664,7 @@ export function healAdjacentAt(state: GameState, player: Player, unit: Unit): He
       units.push({ unitId: other.id, healed });
     }
   }
-  const apostleSpent = spendCharge(state, unit);
+  const apostleSpent = spendCharge(state, unit, 'healAdjacent');
   return { units, apostleSpent };
 }
 
@@ -2591,7 +2725,7 @@ export function placeRelicError(
   playerId: number,
   unitId: number,
 ): string | null {
-  const problem = apostleProblem(state, playerId, unitId);
+  const problem = apostleProblem(state, playerId, unitId, 'placeRelic');
   if (problem !== null) return problem;
   if (RELIC === undefined) return 'There is no relic to leave';
   const unit = unitById(state, unitId)!;
@@ -2638,7 +2772,7 @@ export function placeRelicAt(state: GameState, _player: Player, unit: Unit): Rel
   // announcement, made by an apostle instead of a basket (batch M3, `slate.ts`).
   bumpEconomy(state);
   refreshCityDerived(state, city);
-  const apostleSpent = spendCharge(state, unit);
+  const apostleSpent = spendCharge(state, unit, 'placeRelic');
   return {
     city,
     building,
@@ -2803,7 +2937,7 @@ export function purgeAt(state: GameState, player: Player, unit: Unit): PurgeRepo
   }
   // One charge, so the piece goes with the act — the routine all three agents
   // share (`spendCharge`), rather than a fourth statement of the same rule.
-  spendCharge(state, unit);
+  spendCharge(state, unit, 'purge');
   return { religionId: spared, cities };
 }
 

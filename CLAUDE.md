@@ -288,7 +288,13 @@ be renamed — it would change every seeded outcome. No further rename passes.
   never stored. Follower beliefs apply city-locally to whoever owns the city;
   founder-side pay follows the stones (`religionFounder` = holder of the holy
   site). A follower row paying an empire fails the build. Beliefs/rites are rows
-  of the same effect vocabulary read by the same evaluator. One-charge prophet.
+  of the same effect vocabulary read by the same evaluator. **A prophet's acts
+  are priced in charges** (`rules.religion.prophetCosts`, batch F2): read in one
+  place (`chargeCostOf`), spent in one (`spendCharge(state, unit, verb)`),
+  refused in one (`agentProblem`, the verb's own sentence) and printed by one
+  (`chargeCostWords`) — founding or a belief takes both charges, a proclamation
+  or an empire rite one; the apostle's three acts and the inquisitor's are one
+  charge each by construction.
   The augur is **retired** (`data/units.json`): rites are a city's verbs now,
   and `consecrateError`/`consecrateAt` are a deliberately unreachable arm kept
   so the rule is not deleted with the piece.

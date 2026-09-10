@@ -66,6 +66,7 @@ import {
 import {
   availableRites,
   beliefPool,
+  chargeCostOf,
   explainNextRung,
   faithRungCost,
   gainBeliefError,
@@ -3015,6 +3016,210 @@ describe("the prophet’s four verbs", () => {
     // Nothing is left standing on the board.
     expect(seat.pressureBank).toBeUndefined();
     // And one charge of two is gone: the apostle walks away.
+    expect(g.state.units.find((u) => u.id === apostle.id)!.chargesLeft).toBe(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+
+/**
+ * **The prophet's price ladder** — batch F2, the user's ruling of 2026-09-10
+ * (`docs/flags.md` (bbbb)): *"Proclamations and empire-wide rites each take 1
+ * charge. Founding a religion creates a holy site and consumes two charges.
+ * Drawing a new belief costs two charges."*
+ *
+ * One test per verb, and each asks the same three questions the ruling implies:
+ * what the act spends, what a piece too poor for it is told, and whether the
+ * piece leaves the board when the act empties it. Plus the two claims that keep
+ * the ladder a *figure* rather than a rule written in five places — the table is
+ * the data's, and it is read in exactly one function.
+ */
+describe("the prophet’s price ladder", () => {
+  /** A seat with gods, a town and a prophet on legal ground beside it. */
+  function readyProphet(seed = 5) {
+    const g = game(seed);
+    learn(g.state, 0, "divination", "stonecraft", "theHighTemple");
+    found(g.state, 0);
+    keep(g.state, 0, "keeperOfTheHearth");
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const ground = landBeside(g.state, seat);
+    return { g, seat, prophet: prophetAt(g.state, 0, ground.col, ground.row) };
+  }
+
+  it("is a table in the data, read in exactly one place", () => {
+    // The figures the ruling names, in the file a designer retunes.
+    expect(RULES.religion.prophetCosts).toEqual({
+      foundReligion: 2,
+      plantHolySite: 2,
+      gainBelief: 2,
+      proclaim: 1,
+      empireRite: 1,
+    });
+    // And the one reader every surface asks — the reducer, the sheet, the bots.
+    expect(chargeCostOf("foundReligion")).toBe(2);
+    expect(chargeCostOf("plantHolySite")).toBe(2);
+    expect(chargeCostOf("gainBelief")).toBe(2);
+    expect(chargeCostOf("proclaim")).toBe(1);
+    expect(chargeCostOf("empireRite")).toBe(1);
+    // The small preachers' acts are one charge apiece by construction, and say
+    // so in the function rather than in a data row nobody may turn alone.
+    expect(chargeCostOf("healAdjacent")).toBe(1);
+    expect(chargeCostOf("placeRelic")).toBe(1);
+    expect(chargeCostOf("purge")).toBe(1);
+    // **One read of the table**, so a second opinion about a charge cannot
+    // exist. `spendProphet` is gone with the split it stated.
+    const source = simSource("religion.ts");
+    expect((source.match(/RULES\.religion\.prophetCosts/g) ?? []).length).toBe(1);
+    expect(source).not.toContain("function spendProphet");
+  });
+
+  it("says the same figures as docs/religion-v2.md", () => {
+    // A doc table that mirrors data carries a sync test (CLAUDE.md's rule).
+    const doc = Object.values(
+      import.meta.glob("../../docs/religion-v2.md", {
+        eager: true,
+        query: "?raw",
+        import: "default",
+      }),
+    )[0] as string;
+    const rows = new Map<string, number>();
+    for (const line of doc.split("\n")) {
+      const match = /^\|\s*`(\w+)`\s*\|\s*(\d+)\s*\|$/.exec(line.trim());
+      if (match) rows.set(match[1]!, Number(match[2]));
+    }
+    expect(Object.fromEntries(rows)).toEqual(RULES.religion.prophetCosts);
+  });
+
+  it("founding: spends both charges, plants the site, and is refused to a prophet that has spoken", () => {
+    const { g, prophet } = readyProphet();
+    expect(prophet.chargesLeft).toBe(2);
+    expect(applyCommand(g.state, {
+      type: "plantHolySite",
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command).ok).toBe(true);
+    // The stones stand where the piece stood, and the piece is gone: two
+    // charges of two.
+    const stones = getTileAt(g.state.map, prophet.col, prophet.row)!;
+    expect(stones.improvement).toBe("holySite");
+    expect(foundedReligion(g.state, 0)!.holySite).toEqual({
+      col: prophet.col,
+      row: prophet.row,
+    });
+    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
+
+    // And the refusal the ruling wrote out, on the reducer's own path: a
+    // prophet with one charge left cannot found a faith, and the state does not
+    // move a byte while it is told so.
+    const second = readyProphet(6);
+    second.prophet.chargesLeft = 1;
+    bumpRevision(second.g.state);
+    expect(plantHolySiteError(second.g.state, 0, second.prophet.id)).toBe(
+      "A prophet with one charge left cannot found a faith",
+    );
+    const before = snapshotState(second.g.state);
+    const refused = applyCommand(second.g.state, {
+      type: "plantHolySite",
+      playerId: 0,
+      unitId: second.prophet.id,
+    } as Command);
+    expect(refused.ok).toBe(false);
+    expect(refused.ok ? null : refused.error).toBe(
+      "A prophet with one charge left cannot found a faith",
+    );
+    expect(snapshotState(second.g.state)).toBe(before);
+  });
+
+  it("a belief: spends both charges, and is refused to a prophet that has spoken", () => {
+    const { g, seat } = readyProphet();
+    faith(g.state, 0, "starReaders");
+    const piece = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(gainBeliefError(g.state, 0, piece.id)).toBeNull();
+    expect(applyCommand(g.state, {
+      type: "gainBelief",
+      playerId: 0,
+      unitId: piece.id,
+    } as Command).ok).toBe(true);
+    expect(g.state.units.find((u) => u.id === piece.id)).toBeUndefined();
+    applyCommand(g.state, {
+      type: "chooseBelief",
+      playerId: 0,
+      optionIndex: 0,
+    } as Command);
+
+    const spent = prophetAt(g.state, 0, seat.col, seat.row);
+    spent.chargesLeft = 1;
+    bumpRevision(g.state);
+    expect(gainBeliefError(g.state, 0, spent.id)).toBe(
+      "A prophet with one charge left cannot draw another belief",
+    );
+    const before = snapshotState(g.state);
+    expect(applyCommand(g.state, {
+      type: "gainBelief",
+      playerId: 0,
+      unitId: spent.id,
+    } as Command).ok).toBe(false);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it("the voice: one charge each, so a prophet proclaims and then says a rite", () => {
+    const { g, prophet } = readyProphet();
+    faith(g.state, 0, "starReaders");
+    learn(g.state, 0, "burial");
+    expect(applyCommand(g.state, {
+      type: "proclaim",
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command).ok).toBe(true);
+    // One charge of two: the piece walks away, and its day went with the act.
+    const spoken = g.state.units.find((u) => u.id === prophet.id)!;
+    expect(spoken.chargesLeft).toBe(1);
+    expect(spoken.movesLeft).toBe(0);
+
+    // The next day, the same prophet says a rite over the realm — the second
+    // charge, and the act that empties it takes the piece off the board.
+    spoken.movesLeft = fullMovement(spoken, g.state);
+    const rite = availableRites(g.state, 0)[0]!;
+    playerById(g.state, 0)!.faithPool = 500;
+    bumpRevision(g.state);
+    expect(empireRiteError(g.state, 0, spoken.id, rite)).toBeNull();
+    const said = empireRiteAt(g.state, playerById(g.state, 0)!, spoken, rite);
+    expect(said.prophetSpent).toBe(true);
+    expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
+  });
+
+  it("names the act it cannot afford, in the piece’s own words", () => {
+    // One sentence-maker, so every verb's refusal reads the same way and names
+    // the deed rather than the command.
+    const { g, prophet } = readyProphet();
+    faith(g.state, 0, "starReaders");
+    prophet.chargesLeft = 1;
+    bumpRevision(g.state);
+    expect(gainBeliefError(g.state, 0, prophet.id)).toContain(
+      "cannot draw another belief",
+    );
+    expect(plantHolySiteError(g.state, 0, prophet.id)).toContain(
+      "cannot plant a holy site",
+    );
+    // And the one-charge acts are not refused at all — the prophet still has a
+    // voice, which is the whole point of the ladder.
+    expect(proclaimError(g.state, 0, prophet.id)).toBeNull();
+  });
+
+  it("leaves the apostle and the inquisitor where they were", () => {
+    // The ruling touched the prophet alone: two charges, three acts of one
+    // charge each for the apostle, and one act for the inquisitor.
+    expect(unitDef("apostle").charges).toBe(2);
+    expect(unitDef("inquisitor").charges).toBe(1);
+    const g = game(9);
+    const seat = town(g.state, 0, 6, 6);
+    faith(g.state, 0, "starReaders");
+    const apostle = createUnit(g.state, 0, "apostle", seat.col, seat.row);
+    expect(applyCommand(g.state, {
+      type: "proclaim",
+      playerId: 0,
+      unitId: apostle.id,
+    } as Command).ok).toBe(true);
     expect(g.state.units.find((u) => u.id === apostle.id)!.chargesLeft).toBe(1);
   });
 });

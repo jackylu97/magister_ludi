@@ -474,7 +474,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   // clause above it would otherwise claim a prophet digs mines.
   if (def.prophesies === true) {
     out.push({
-      text: 'One deed, and it uses up the whole unit: found your religion where it stands, draw another belief for a religion you already have, proclaim your faith over the land around it, or give one of your religion’s pools back to be drawn again.',
+      text: 'Its charges are ministries rather than spadework, and its deeds are not all worth the same. Founding your religion where it stands, or drawing another belief for a religion you already have, takes every charge it carries and uses up the unit. Proclaiming your faith over the land around it, or saying a rite over every city you own at once, costs less — so a prophet kept for its voice may speak, and then speak again, before it is spent.',
     });
     out.push({
       text: 'Founding raises the holy site that anchors the faith, out of the gods you already keep, and opens two belief drafts — the second offered the moment the first is answered. Later prophets fill the follower beliefs first and the enhancer beliefs after them, and the enhancers wait on a technology.',

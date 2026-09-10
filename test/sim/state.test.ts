@@ -834,7 +834,13 @@ describe("the research queue field", () => {
     // feats, endeavours and quests carry `retired: true`, the `beads` phase is
     // gone, and `newGame` shuffles nothing, so a v107 log's every later roll
     // is a different number.
-    expect(SCHEMA_VERSION).toBe(111);
+    // 112 is batch F2's (2026-09-10, item (bbbb)): a price on every one of a
+    // prophet's acts (`rules.religion.prophetCosts`). No new state — a charge
+    // was always a number on the piece — but a v111 log does not replay: a
+    // prophet that had spoken once could found a faith or draw a belief before
+    // this and is refused now, so the draws after it move with the generator.
+    // (111 is batch S2's.)
+    expect(SCHEMA_VERSION).toBe(112);
   });
 });
 

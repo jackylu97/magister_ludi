@@ -27,6 +27,7 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import {
+  chargeCostOf,
   foundReligion,
   gainBeliefError,
   plantHolySiteError,
@@ -61,7 +62,7 @@ import {
   religionReading,
   riteGrantWords,
 } from '../../src/ui/religionScreen';
-import { AGENT_PRICE_WORD, proclaimSays } from '../../src/ui/controls';
+import { chargeCostWords, proclaimSays } from '../../src/ui/controls';
 import { unitDef } from '../../src/sim/unitData';
 
 const SOURCE = {
@@ -352,25 +353,48 @@ describe('the religious agents’ sheet', () => {
     expect(rows).not.toContain('enhanceReligion');
   });
 
-  it('says what a verb costs — one word per agent, because the piece is the price', () => {
-    // Entry LVIII: every agent carries one charge, so every deed ends the
-    // piece and the rule that used to pick between two answers has one. What is
-    // left is the sentence, and it is still printed on every row, because "this
-    // is the whole of the most expensive thing your faith buys" is the fact a
-    // player is deciding against.
-    expect(AGENT_PRICE_WORD.prophet).toBe('Uses the prophet');
-    expect(AGENT_PRICE_WORD.inquisitor).toBe('Uses the inquisitor');
-    expect(rows).toContain('const price = AGENT_PRICE_WORD.prophet;');
-    // **Two words, because a prophet has two charges and two kinds of act**: the
-    // two that settle what a faith is take the whole piece, the two that spend
-    // its voice take one charge each.
-    expect((rows.match(/cost: price,/g) ?? []).length).toBe(2);
-    expect((rows.match(/cost: charge,/g) ?? []).length).toBe(5);
-    expect(rows).toContain('cost: AGENT_PRICE_WORD.inquisitor,');
-    // Driven: the charge counts on the roster are what make the words true.
+  it('says what a verb costs — a price a row, off the simulation’s own table', () => {
+    // The ruling of 2026-09-10 (`docs/flags.md` (bbbb)): a prophet's acts are
+    // not worth the same, so the row a player is deciding between has to say
+    // which of them takes the piece and which leaves it standing. One formatter
+    // (`chargeCostWords`), and the interface knows no numbers of its own.
+    expect(chargeCostWords('foundReligion')).toBe('2 charges');
+    expect(chargeCostWords('gainBelief')).toBe('2 charges');
+    expect(chargeCostWords('proclaim')).toBe('1 charge');
+    expect(chargeCostWords('empireRite')).toBe('1 charge');
+    expect(chargeCostWords('purge')).toBe('1 charge');
+    // Every row on the sheet prices itself through that one formatter — eight
+    // rows, seven of them asking on the spot and the founding's asked once and
+    // shared with its own sentence. Not one figure is written into the interface.
+    expect((rows.match(/cost: chargeCostWords\('[a-zA-Z]+'\)/g) ?? []).length).toBe(7);
+    expect(rows).toContain('cost: founding,');
+    expect(rows).toContain("const founding = chargeCostWords('foundReligion');");
+    expect(sourceOf('controls.ts')).not.toContain('AGENT_PRICE_WORD');
+    expect(sourceOf('controls.ts')).not.toContain('AGENT_CHARGE_WORD');
+    // Driven: the charge counts on the roster are what make the prices spendable.
     expect(unitDef('prophet').charges).toBe(2);
     expect(unitDef('apostle').charges).toBe(2);
     expect(unitDef('inquisitor').charges).toBe(1);
+  });
+
+  it('prints a clergy row’s charges on the city panel’s card, through the same formatter', () => {
+    // The card told a player a prophet "builds 2 improvements, then is spent",
+    // which was the builder's sentence read off a field the two pieces share.
+    const card = fn('cityPanel.ts', 'agentChargeNotes');
+    expect(card).toContain("chargeCostWords('foundReligion')");
+    expect(card).toContain("chargeCostWords('proclaim')");
+    // Off the roster's markers, never off a name — the card's own discipline.
+    expect(card).toContain('def.prophesies === true');
+    expect(card).toContain('def.proclaims === true');
+    // And the builder keeps its sentence, because a worker's charges are spades.
+    expect(sourceOf('cityPanel.ts')).toContain('Builds ${def.charges} improvements');
+    // The card pairs the acts by price in prose; this is the pin that says the
+    // pairing is still the table's, so the day a cost moves the test fails and
+    // not the sentence.
+    expect(chargeCostOf('gainBelief')).toBe(chargeCostOf('foundReligion'));
+    expect(chargeCostOf('empireRite')).toBe(chargeCostOf('proclaim'));
+    expect(chargeCostOf('healAdjacent')).toBe(chargeCostOf('proclaim'));
+    expect(chargeCostOf('purge')).toBe(chargeCostOf('proclaim'));
   });
 
   it('gives the empire rite one sub-row per rite, each with its own refusal', () => {
@@ -832,7 +856,13 @@ describe('the Compendium’s religion rows', () => {
   it('says what a prophet’s charges do, and never that they dig', () => {
     const clauses = entry('unit:prophet')!.clauses.map((clause) => clause.text);
     expect(clauses.some((text) => text.includes('holy site'))).toBe(true);
-    expect(clauses.some((text) => text.includes('found your religion'))).toBe(true);
+    expect(clauses.some((text) => text.includes('Founding your religion'))).toBe(true);
+    // The ladder in words, since the ruling of 2026-09-10: the two acts that
+    // settle what a faith is take the piece, the two that spend its voice do
+    // not — and the retired redraft is gone from the shelf with it.
+    expect(clauses.some((text) => text.includes('takes every charge it carries'))).toBe(true);
+    expect(clauses.some((text) => text.includes('speak, and then speak again'))).toBe(true);
+    expect(clauses.some((text) => text.includes('pools back'))).toBe(false);
     // The worker's sentence would otherwise fire on a piece with charges and no
     // other marker.
     expect(clauses.some((text) => text.includes('work charge'))).toBe(false);
@@ -963,11 +993,24 @@ describe('the Faith concept’s prose', () => {
     expect(all).toContain('enhancer belief');
   });
 
-  it('names all four of the things a prophet’s one deed can be', () => {
+  it('names the four acts a prophet’s charges buy, and says the ladder in words', () => {
+    // Re-cut by the ruling of 2026-09-10 (`docs/flags.md` (bbbb)): the shelf
+    // named a redraft that was retired with Entry LVIII and said every agent
+    // carried a single charge. It now says the *rule* — two acts take the piece,
+    // two spend its voice — and carries no figure at all (the digit test below).
     const all = prose.join(' ');
-    for (const act of ['founds your religion', 'draws another belief', 'proclaims', 'gives a pool']) {
+    for (const act of [
+      'Founding your religion',
+      'drawing another belief',
+      'a proclamation',
+      'a rite said over every city you own',
+    ]) {
       expect(`${act}: ${all.includes(act)}`).toBe(`${act}: true`);
     }
+    expect(all).toContain('takes every charge the prophet has');
+    expect(all).toContain('Speaking costs less');
+    expect(all).not.toContain('gives a pool');
+    expect(all).not.toContain('single charge');
   });
 
   it('puts Details last, and nowhere else', () => {

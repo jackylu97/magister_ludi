@@ -132,7 +132,7 @@ import { pressureLedgerText } from './religionScreen';
 import { buildError, isUnlocked, requiredResource, upgradeTargetForType } from '../sim/tech';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { describeBeadBoon } from '../sim/beads';
-import { type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
+import { type UnitDef, type UnitTypeId, UNIT_TYPE_IDS, unitDef } from '../sim/unitData';
 import { buildingUpkeep, unitUpkeep } from '../sim/upkeep';
 import { cityDisplayName } from './cityDisplay';
 import {
@@ -150,6 +150,7 @@ import {
 import type { RiteOption } from './controls';
 import { cityRite, cityRiteTurnsLeft } from '../sim/religion';
 import { type RiteId, riteDef } from '../sim/religionData';
+import { chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
@@ -470,6 +471,39 @@ let addTab: AddTab = 'all';
  */
 function shelfShows(shelf: AddShelf): boolean {
   return addTab === 'all' || addTab === shelf;
+}
+
+/**
+ * What a **religious agent's** charges buy, at the simulation's own prices — or
+ * nothing at all for the pieces whose charges are spadework.
+ *
+ * The card told a player that a prophet "builds 2 improvements, then is spent",
+ * which was the *builder's* sentence read off a field the two pieces happen to
+ * share. A prophet lays no farms: it founds a faith, deepens one, proclaims or
+ * says a rite over the realm, and since the ruling of 2026-09-10
+ * (`docs/flags.md` (bbbb)) those acts are not worth the same — which is exactly
+ * the fact somebody deciding whether to spend a hundred faith on the piece is
+ * deciding against.
+ *
+ * Every figure is `chargeCostWords`', so a retuned `rules.religion.prophetCosts`
+ * moves this card without being touched; the *pairing* of the acts is pinned in
+ * the tests, so the day the table stops agreeing with the sentence the pin says
+ * so rather than the card.
+ *
+ * Asked of the roster's markers and never of a name, the discipline the whole
+ * card keeps (see `unitCard`).
+ */
+function agentChargeNotes(def: UnitDef): string[] {
+  if (def.prophesies === true) {
+    return [
+      `Founding a faith, or drawing a belief · ${chargeCostWords('foundReligion')}`,
+      `A proclamation, or a rite said over the realm · ${chargeCostWords('proclaim')}`,
+    ];
+  }
+  if (def.proclaims === true || def.purges === true) {
+    return [`Each of its acts · ${chargeCostWords('proclaim')}`];
+  }
+  return [];
 }
 
 /**
@@ -1191,7 +1225,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const notes = element('ul', 'info-card-notes');
     if (def.foundsCity) notes.append(note('Founds a city, and is spent doing it'));
     if (def.charges !== undefined) {
-      notes.append(note(`Builds ${def.charges} improvements, then is spent`));
+      const clergy = agentChargeNotes(def);
+      if (clergy.length === 0) {
+        notes.append(note(`Builds ${def.charges} improvements, then is spent`));
+      } else {
+        notes.append(note(`Carries ${def.charges} charges`));
+        for (const line of clergy) notes.append(note(line));
+      }
     }
     // The one note that is about *moving* rather than about building or
     // fighting, and it earns its line because the Moves figure above cannot say

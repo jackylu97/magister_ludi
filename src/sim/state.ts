@@ -821,8 +821,19 @@ import {
  * queue, or a `dequeueResearch` that dropped the head now leaves the old
  * thing's progress behind rather than handing it to the new one, so every
  * completion after that moment lands on a different turn.
+ *
+ * v112 (batch F2, the user's ruling of 2026-09-10 — `docs/flags.md` (bbbb):
+ * *"Prophets should have only two charges … Proclamations and empire-wide rites
+ * each take 1 charge. Founding a religion creates a holy site and consumes two
+ * charges. Drawing a new belief costs two charges."*): **a price on every one of
+ * a prophet's acts**, in `rules.religion.prophetCosts`, read in one place
+ * (`chargeCostOf`) and spent in one (`spendCharge`). No new state — a charge has
+ * always been a number on the piece — but **a v111 log does not replay**: a
+ * prophet that had spent a charge speaking could found a faith or draw a belief
+ * before this, and is refused now, so a log whose prophet did that diverges at
+ * the command and every draw after it moves with the generator.
  */
-export const SCHEMA_VERSION = 111;
+export const SCHEMA_VERSION = 112;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

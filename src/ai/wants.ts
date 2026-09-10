@@ -1181,8 +1181,10 @@ function ladderPlan(
  *
  *   · **a prophet is the best of the acts it could perform** (`prophetTerms`) —
  *     founding a faith, drawing another rung of one already founded, or saying a
- *     rite over the whole realm. A prophet is spent *whole* on one act
- *     (`spendProphet`), so its worth is the best of them and not their sum;
+ *     rite over the whole realm. Its two charges buy **one** of the acts this
+ *     book prices — founding and deepening take both (`chargeCostOf`,
+ *     `rules.religion.prophetCosts`) — so its worth is the best of them and not
+ *     their sum;
  *   · **an apostle is the relic it would leave** (`explainRelic`), which is a
  *     shelf paying a stated trickle in a town that has topped out a cathedral.
  *     Its other two charges stay stand-ins and say so;
@@ -1381,9 +1383,12 @@ function expansionTerm(ctx: ValueContext): ValueTerm {
 /**
  * **What a prophet is worth: the best single thing it could do** — batch H12.
  *
- * A prophet carries two charges and every act worth having spends the whole
- * piece (`spendProphet`, `docs/religion-v2.md`), so the honest price of one is
- * the best of its acts rather than the sum of them:
+ * A prophet carries two charges and every act this book prices spends both of
+ * them — founding and deepening are the two-charge acts of the ruled ladder
+ * (`chargeCostOf`, `docs/religion-v2.md`) and the rite is the one act here that
+ * leaves a charge standing. So the honest price of one is the best of its acts
+ * rather than the sum of them, and a **floor** rather than the whole where the
+ * spare charge would have bought a second rite:
  *
  *   · **found the faith** (`explainFounding`) — the stones, the rungs the
  *     founding deals, the founder's trickle over the towns the tide would reach;

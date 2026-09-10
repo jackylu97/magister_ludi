@@ -1761,6 +1761,44 @@ export interface ReligionRules {
    * arithmetic on whole numbers. Two thirds (user, 2026-08-27).
    */
   maxReligions: { numerator: number; denominator: number };
+  /**
+   * **What each of a prophet's acts costs it, in charges** (the user, 2026-09-10,
+   * `docs/flags.md` (bbbb): *"Proclamations and empire-wide rites each take 1
+   * charge. Founding a religion creates a holy site and consumes two charges.
+   * Drawing a new belief costs two charges."*).
+   *
+   * The whole of the prophet's price ladder, and the reason it is five numbers
+   * rather than a marker on the verb: the two acts that settle what a faith *is*
+   * — founding it on stones, drawing it another belief — take the piece whole,
+   * and the two that merely spend its voice take half of it, so a prophet either
+   * does one lasting thing or speaks twice. Which is which is a **figure a
+   * designer may move**, not a shape the code knows: raise `proclaim` to two and
+   * the piece is one act again, with no line of simulation touched.
+   *
+   * Read in exactly one place (`chargeCostOf`, `religion.ts`), so the reducer's
+   * refusal, the sheet's price and the bots' plan are all quoting the same table.
+   * The small preachers are absent on purpose — an apostle's and an inquisitor's
+   * acts are one charge each by construction, and a table row for each would be
+   * a knob nobody may turn without the piece's own charge count moving with it.
+   */
+  prophetCosts: ProphetChargeCosts;
+}
+
+/**
+ * The five acts a prophet's charges buy, each with its price.
+ *
+ * `foundReligion` and `plantHolySite` are two keys for what is today one verb
+ * (planting *is* founding since Entry LVIII) because they are two questions:
+ * what a first faith costs, and what a second set of stones would. The act
+ * chooses its key by what it is about to do (`plantingCost`), so both rows are
+ * live figures rather than one figure and one aspiration.
+ */
+export interface ProphetChargeCosts {
+  foundReligion: number;
+  plantHolySite: number;
+  gainBelief: number;
+  proclaim: number;
+  empireRite: number;
 }
 
 /**

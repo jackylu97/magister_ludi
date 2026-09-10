@@ -315,6 +315,13 @@
     "maxReligions": {
       "numerator": 2,
       "denominator": 3
+    },
+    "prophetCosts": {
+      "foundReligion": 2,
+      "plantHolySite": 2,
+      "gainBelief": 2,
+      "proclaim": 1,
+      "empireRite": 1
     }
   },
   "offers": {

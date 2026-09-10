@@ -83,7 +83,9 @@ function setProduction(cityId: number, queue: unknown[], playerId = 0): Command 
 
 describe('the schema says so', () => {
   it('bumps to the version the changelog writes the rule down at', () => {
-    expect(SCHEMA_VERSION).toBe(111);
+    // 111 is this batch's; 112 landed on top of it the same evening (F2, the
+    // prophet's charges), so the constant reads the later number.
+    expect(SCHEMA_VERSION).toBe(112);
   });
 
   it('says in the changelog what a v110 log does now', () => {

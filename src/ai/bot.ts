@@ -7624,6 +7624,13 @@ function augurCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
  * the work the prophet family plants, read off the table's own inverse rather
  * than by name), so the march is only ever toward somewhere the planting will
  * actually be legal.
+ *
+ * **The charges are the simulation's arithmetic and never this file's** (the
+ * ruling of 2026-09-10, `docs/flags.md` (bbbb)): each act costs what
+ * `rules.religion.prophetCosts` says, and a piece too poor for one is refused by
+ * that verb's own gate — which is the gate this arm already asks first. So a bot
+ * can never issue a verb the reducer would refuse, and it learns *why* in the
+ * refusal's own sentence, printed on the feed like every other candidate.
  */
 function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const tried: BotCandidate[] = [];
