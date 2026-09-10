@@ -1687,6 +1687,23 @@ directly to confirm rulings — user marginalia are rulings.
   Held back for other fences: `data/beads.json`'s two "contentment" rows
   (Q1) and the bot's appraisal words in `src/ai/value.ts`/`citizen.ts`
   (swept at W2's merge).
+  **N1 built** (2026-09-09, schema **107** — Q1 takes 108): `waterlineError`
+  is the one clause (tint, forecast, reducer): "Warrior cannot strike at
+  the water" / "Spearman is afloat and cannot fight a ship"; an embarked
+  piece may still strike a *land* target. `landVsShipPercent` reads
+  `modelClass` (ranged/mountedRanged −50, siege +50) as an attacker line
+  "Against a hull ±N%" before the river factor; `counterPercents` on the
+  forecast ("Boarding at sea" 50) scales the counter alone, separate from
+  `atSeaPenalty`. `capturesCityOnKill` = melee + garrison beat + not the
+  wild + `canHoldTakenGround` with the garrison counted dead; step 4b of
+  `applyCombat` captures through the same `captureCity`, so the capture
+  sheet rises unchanged; the forecast says "kill the garrison and the
+  city falls". `docs/war-diplomacy.md` §5b; `docs/units.md` regenerated
+  (the three figures now in its table). ▢ the three percentages are
+  first cuts; ▢ walls too? **Consequence to flag**: a land melee piece can
+  no longer ride down an *embarked civilian* (a march onto the hex still
+  captures it, a bow still shoots it). The bot needs nothing: its
+  `decisive` already counts `kills`, which is the garrison-beat case.
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

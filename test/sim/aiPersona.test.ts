@@ -414,7 +414,7 @@ describe('the settler’s two new halves', () => {
     expect(balanced.terms.some((term) => term.label.includes('science it makes'))).toBe(true);
     // And the fourth line is there, negative, in both seats.
     const demanded = (appraisal: { terms: readonly { label: string; value: number }[] }) =>
-      appraisal.terms.find((term) => term.label.includes('contentment one more citizen demands'));
+      appraisal.terms.find((term) => term.label.includes('happiness one more citizen demands'));
     expect(demanded(balanced)!.value).toBeLessThan(0);
 
     const tall = citizenFor('tall');

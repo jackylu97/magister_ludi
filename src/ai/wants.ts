@@ -203,6 +203,7 @@ import type { RouteMode } from '../sim/trade';
 // the leaf all three can reach. See `townFolds.ts`.
 import { type TownFolds, townFolds } from './townFolds';
 import { foundedReligionOf, hasFoundedReligion } from './ground';
+import { type WagerWant, wagerWantOf } from './wager';
 
 /**
  * The two **banks** the book prices. The two *constraints* — authority and
@@ -308,10 +309,26 @@ export interface WantBook {
    * one and not a book.
    */
   culture: Want[];
+  /**
+   * **The bar this seat staked** (batch W2, `docs/wager.md` §6) — the stock the
+   * bar still owes, priced at what closing it is worth, or `null` for a seat
+   * with no live stake.
+   *
+   * A row of the book and **not** of any bank's array, and the difference is a
+   * rule rather than a filing decision: every other row here is a thing the
+   * simulation will *sell* the empire, and two folds downstream read a
+   * `Want.price` as coins in a named bank (`faithPrice`'s saving delay,
+   * `cheapestWantPrice` in `value.ts`). A bar quoted in beakers or in towns
+   * sitting in the gold array would be those two quietly answering nonsense. So
+   * the wager keeps its own field, prints beside the banks, and pays its lean
+   * through the two doors that are actually about prices — `voiceWeight` and
+   * `wagerAppetiteTerm`. See `src/ai/wager.ts`.
+   */
+  wager: WagerWant | null;
 }
 
 /** An empire that has not been asked yet — the shape `valueContext` starts from. */
-export const NO_WANTS: WantBook = { gold: [], faith: [], culture: [] };
+export const NO_WANTS: WantBook = { gold: [], faith: [], culture: [], wager: null };
 
 /**
  * The readings the book needs that are facts about the *empire* rather than
@@ -386,6 +403,10 @@ export function wantBook(
     gold: purchasingPlan(state, player, ctx, inputs, folds),
     faith: faithPlan(state, player, ctx, inputs, folds),
     culture: draftPlan(state, player, ctx, inputs),
+    // **The staked bar, as a stock** (batch W2). Built off the lean the context
+    // already carries rather than re-read here, so the book and the two price
+    // levers can never disagree about what the bar still owes.
+    wager: wagerWantOf(ctx.wager),
   };
 }
 

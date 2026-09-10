@@ -197,6 +197,12 @@
     "prophetTechValue": 600,
     "tideShare": 0.5
   },
+  "wager": {
+    "ageTurns": 32,
+    "malicePenalty": 0,
+    "leanWeight": 1,
+    "driftWeight": 1
+  },
   "puppetProfile": {
     "weights": {
       "gold": [

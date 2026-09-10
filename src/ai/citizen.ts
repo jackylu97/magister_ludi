@@ -56,7 +56,7 @@ export function citizenKeepTerm(ctx: ValueContext, population: number): ValueTer
   const demand = happinessDemand(population + 1) - happinessDemand(population);
   if (demand <= 0) return null;
   return {
-    label: `the contentment one more citizen demands — ${round(demand)} × ${meterWords(ctx, 'happiness')}`,
+    label: `the happiness one more citizen demands — ${round(demand)} × ${meterWords(ctx, 'happiness')}`,
     value: -demand * meterWeight(ctx, 'happiness'),
   };
 }

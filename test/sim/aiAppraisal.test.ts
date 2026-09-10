@@ -3363,7 +3363,7 @@ describe('the two missing signs (batch X5)', () => {
     return { state, player: seat(state, 0), cities };
   }
 
-  const DEMANDED = /the contentment one more citizen demands/;
+  const DEMANDED = /the happiness one more citizen demands/;
 
   it('charges the citizen exactly the marginal demand, at the meter’s live price', () => {
     const { state, player, cities } = realm(2, 6);
@@ -3939,7 +3939,7 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
  * off the context the arm itself used, never off a remembered number.
  */
 describe('the growth channel charged (batch X5b)', () => {
-  const KEEP = /the contentment one more citizen demands/;
+  const KEEP = /the happiness one more citizen demands/;
 
   /**
    * A town of four on wheat fields and hills, with one hex on offer richer than

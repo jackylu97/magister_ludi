@@ -80,7 +80,7 @@ import type { BeadChain, ExpansionChain, TechChain } from './chain';
  */
 import type { RouteOutlook } from './routes';
 
-import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef, isWonder } from '../sim/buildingData';
 // **The one place a building's non-yield facts are read** (CLAUDE.md), and batch
 // X8 reads five more of them through it: the demand a court forgives, the coin
 // an assay house takes off a price, the wages a throne rebates, what a keep
@@ -469,6 +469,154 @@ export interface ValueContext {
    * and the settler's arm asks it of two hundred candidate hexes.
    */
   realm: ReadonlySet<ResourceId>;
+  /**
+   * **The bar this seat staked, and what reaching it is worth** (batch W2,
+   * `docs/wager.md` §6) — or `null` for a seat with no live stake at all, which
+   * is every seat in Æra I and every seat whose card is already cleared.
+   *
+   * A **lean, never a lock**, and the whole of what it does is two bounded
+   * lifts: `voiceWeight` raises the voice a flow reading is quoted in, up to the
+   * same band ceiling every other price is clamped into, and `wagerAppetiteTerm`
+   * adds one printed line to the three things a standing reading of towns,
+   * buildings or wonders is actually asking for. Nothing here refuses anything,
+   * and `ai.wager.leanWeight: 0` plays exactly the bot that shipped before it.
+   *
+   * It rides on the context for `wants`' reason exactly — it is read by every
+   * yield fold in the bot, and a lean rebuilt per candidate would be one wager
+   * standing per appraisal.
+   */
+  wager: WagerLean | null;
+}
+
+// --- the wager's lean --------------------------------------------------------
+
+/**
+ * The three standing readings a card may ask for that this bot has an *arm*
+ * for: one more town, one more building, one more wonder.
+ *
+ * A closed union rather than a `WagerCount`, because what the lean needs is not
+ * the reading but the **appetite** it raises — three of the deck's readings ask
+ * for a building and two for a wonder, and the call site that folds the term is
+ * asking "am I about to raise one of those?" rather than "which card is it".
+ */
+export type WagerAppetite = 'city' | 'building' | 'wonder';
+
+/**
+ * **What one seat's staked bar is, and what closing it is worth** — the lean's
+ * whole shape (`src/ai/wager.ts` builds it; this file spends it).
+ *
+ * `worth` is already discounted for the wait to the close, so both levers spend
+ * the same number and neither discounts twice.
+ */
+export interface WagerLean {
+  /** The card's own id and printed name, for the terms a reader of the feed sees. */
+  id: string;
+  name: string;
+  /** Which of the three on the table, and the age they were dealt for. */
+  index: number;
+  age: number;
+  /** The bar, what this seat has reached, and the difference. */
+  bar: number;
+  standing: number;
+  shortfall: number;
+  /** Turns until the age closes, as the world clock reads it or the sheet assumes. */
+  turnsLeft: number;
+  /**
+   * What keeping this card is worth, discounted for the wait: the extra bead a
+   * stake pays over clearing it unstaked, plus the malice it avoids.
+   */
+  worth: number;
+  /** The voices this reading is quoted in — empty for a reading that is none. */
+  voices: readonly Voice[];
+  /** The appetite a standing reading raises, or `null`. */
+  appetite: WagerAppetite | null;
+  /**
+   * The town the appetite is about, when the card counts only the **seat of
+   * government** — three of the deck's readings do. `null` for a card that
+   * counts the whole realm, and for a realm with no capital at all.
+   */
+  capitalId: number | null;
+  /** Why the lean reads what it does. A label; it changes no fold. */
+  note: string;
+}
+
+/**
+ * **How much of the shortfall one more unit closes**, capped at all of it.
+ *
+ * One more point of a voice a turn banks `turnsLeft` of them by the close, so
+ * the fraction of the bar it closes is `turnsLeft ÷ shortfall` — the same
+ * arithmetic for a flow (which accumulates by definition) and for a standing
+ * reading quoted in the same coin (a treasury, an army). A bar already cleared
+ * has no shortfall and closes nothing, which is what takes the lean off the
+ * board the turn the card is claimed.
+ */
+function wagerShare(lean: WagerLean, units: number): number {
+  if (lean.shortfall <= 0) return 0;
+  return Math.min(1, Math.max(0, units) / lean.shortfall);
+}
+
+/**
+ * **What one more point of this voice a turn is worth to the bar this seat
+ * staked** — nought for every voice the card does not read.
+ *
+ * A card reading several voices at once (The Six Voices reads all of them) has
+ * its worth shared out rather than paid six times over: what the empire is
+ * buying is one bar, and a lean that paid the whole of it per voice would price
+ * a wager at six wagers.
+ */
+function wagerVoicePremium(ctx: ValueContext, voice: Voice): number {
+  const lean = ctx.wager;
+  if (lean === null || lean.voices.length === 0) return 0;
+  if (!lean.voices.includes(voice)) return 0;
+  const share = 1 / lean.voices.length;
+  return lean.worth * wagerShare(lean, lean.turnsLeft) * share * ctx.ai.wager.leanWeight;
+}
+
+/**
+ * **The lift, and the ceiling it stops at** — a wager may argue with the weight
+ * table by the same factor a want book may (`priorities.priceBandHigh`), and no
+ * further. That is what makes it a lean.
+ *
+ * The ceiling is never allowed to *lower* a price something else already set
+ * higher: gold's own price carries the collapse lever's pressure, and a bleeding
+ * empire's coin must not get cheaper because a wager was staked on it.
+ */
+function wagerLift(ctx: ValueContext, voice: Voice, base: number): number {
+  const premium = wagerVoicePremium(ctx, voice);
+  if (premium <= 0) return base;
+  const table = yieldWeight(ctx.ai, voice, ctx.age);
+  const ceiling = Math.max(base, table * ctx.ai.priorities.priceBandHigh);
+  return Math.min(ceiling, base + premium);
+}
+
+/**
+ * **The appetite's own term** — one printed line for a candidate that would
+ * raise the very thing the staked bar counts, or `null` when it would not.
+ *
+ * `units` is what this candidate delivers in the bar's own coin: one town, one
+ * building, one wonder. The term is folded where the arm already prices the
+ * thing, so a reader of the feed sees the wager beside the town rather than a
+ * number nobody can account for.
+ */
+export function wagerAppetiteTerm(
+  ctx: ValueContext,
+  appetite: WagerAppetite,
+  units: number,
+  why: string,
+  /** The town that would raise it — a capital-scoped card counts no other. */
+  cityId?: number,
+): ValueTerm | null {
+  const lean = ctx.wager;
+  if (lean === null || lean.appetite !== appetite) return null;
+  if (lean.capitalId !== null && cityId !== undefined && cityId !== lean.capitalId) return null;
+  const value = lean.worth * wagerShare(lean, units) * ctx.ai.wager.leanWeight;
+  if (value <= 0) return null;
+  return {
+    label:
+      `${why} toward ${lean.name} — ${round(units)} of the ${round(lean.shortfall)} still owed, ` +
+      `and the bar is worth ${round(lean.worth)}`,
+    value,
+  };
 }
 
 /**
@@ -593,6 +741,16 @@ export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
  * still has to ask.
  */
 export function voiceWeight(ctx: ValueContext, voice: Voice): number {
+  // **The wager's lean rides on top of whatever else set the price** (batch W2):
+  // a seat that has staked a bar quoted in this voice values one more point of
+  // it a turn by what the bar is worth, up to the same band ceiling every other
+  // price is clamped into. `ctx.wager` is `null` on every seat that has not
+  // staked, so this is a null test on every turn of Æra I and on most others.
+  return wagerLift(ctx, voice, baseVoiceWeight(ctx, voice));
+}
+
+/** What the voice was worth before the wager was staked. See `voiceWeight`. */
+function baseVoiceWeight(ctx: ValueContext, voice: Voice): number {
   if (voice === 'gold') return ctx.prices.gold;
   // **Faith is two prices since batch X12**, and this door hands out the one for
   // a *rate*. See `faithPrice`: what a banked point buys (`ctx.prices.faith`, the
@@ -1466,6 +1624,18 @@ export function explainBuildingRow(
   const route = routeSlotTerm(def.routeSlots ?? 0, ctx);
   if (route !== null) terms.push(route);
   terms.push(nest('its written effects', explainEffects(def.effects ?? [], ctx)));
+  // **The bar this seat staked** (batch W2): three of the deck's readings count
+  // buildings and two count wonders, and a row that would be one of them is one
+  // unit of the shortfall. A lean and never a lock — the row is scored exactly
+  // as it was and this is one more printed line on it.
+  const wagered = wagerAppetiteTerm(
+    ctx,
+    isWonder(id) ? 'wonder' : 'building',
+    1,
+    isWonder(id) ? 'one more wonder' : 'one more building',
+    city?.id,
+  );
+  if (wagered !== null) terms.push(wagered);
   return appraise(terms);
 }
 
@@ -1514,7 +1684,7 @@ function rowCharterTerms(
       terms.push({
         label:
           `${relief}% of what a town of ${round(size)} asks for — ` +
-          `${round(forgiven)} contentment × ${meterWords(ctx, 'happiness')}`,
+          `${round(forgiven)} happiness × ${meterWords(ctx, 'happiness')}`,
         value: forgiven * meterWeight(ctx, 'happiness'),
       });
     }
@@ -1706,8 +1876,8 @@ export function siteRefusal(
  * The value is the words, not a number: what the fold prints for that field.
  */
 export const BUILDING_ROW_FOLDED: Readonly<Record<string, string>> = {
-  happiness: 'contentment supplied, at the meter’s live price',
-  authorityCapacity: 'writ supplied, at the meter’s live price',
+  happiness: 'happiness supplied, at the meter’s live price',
+  authorityCapacity: 'authority supplied, at the meter’s live price',
   cityStat: 'town strength, at the military weight and the threat',
   cityHp: 'a share of the town’s bar, worth that share of its defence (batch X5c)',
   demandRelief: 'a share of a town’s citizen demand forgiven, at the happiness price',

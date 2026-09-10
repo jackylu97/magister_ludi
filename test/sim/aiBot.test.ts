@@ -759,7 +759,7 @@ describe('the two missing signs, on a played board (batch X5)', () => {
     for (const city of towns) {
       const citizen = explainCitizen(game.state, city, ctx);
       const line = citizen.terms.find((term) =>
-        term.label.includes('the contentment one more citizen demands'),
+        term.label.includes('the happiness one more citizen demands'),
       );
       expect(line, city.name).not.toBeUndefined();
       expect(line!.value).toBe(
@@ -1018,6 +1018,14 @@ describe('the bot module', () => {
     // `ground.ts`' bargain a third time — the standing and hypothetical folds of
     // every town of one empire, asked by the build arm, by both banks and now by
     // the chains, which is three modules two of which already stand on the third.
+    //
+    // Sixteen since W2 (2026-09-09): `wager.ts` is the seventh leaf — which of
+    // the age's three bars this seat stakes, and what having staked one is worth
+    // per unit of the shortfall. It is a module rather than an arm of `bot.ts`
+    // for `citizen.ts`' reason exactly: **three** files fold it, and two of them
+    // already stand on one another (`bot.ts` sends the command, `wants.ts` puts
+    // the stock in the book, `value.ts` holds the two levers the lean is spent
+    // through), so a reading all three ask can live in none of them.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1034,6 +1042,7 @@ describe('the bot module', () => {
       'stepper.ts',
       'townFolds.ts',
       'value.ts',
+      'wager.ts',
       'wants.ts',
     ]);
   });
@@ -1116,6 +1125,9 @@ describe('the bot module', () => {
       // in batch 4 (route pay is priced) and `traderCap` followed once a
       // caravan's wage was charged at gold's shadow price. A block with nothing
       // in it is a dial that turns nothing, which is what this list is for.
+      // The wager block (W2): what a bot assumes about the age it is staking a
+      // bar in, and how hard it leans on the bar it staked.
+      'wager',
       // The war block (P3): what a seat declares over, sues at, and signs.
       'war',
       'weights',

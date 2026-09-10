@@ -1529,9 +1529,9 @@ describe('the focus arm', () => {
     for (const growth of growths) {
       const printed = JSON.stringify(growth);
       expect(printed).toContain('the ground it would work');
-      expect(printed).toContain('the contentment one more citizen demands');
+      expect(printed).toContain('the happiness one more citizen demands');
       const worth = growth.parts!.find((part) => part.label.includes('what the next citizen is worth'))!;
-      const keep = worth.parts!.find((part) => part.label.includes('contentment'))!;
+      const keep = worth.parts!.find((part) => part.label.includes('happiness'))!;
       expect(keep.value).toBeLessThan(0);
       expect(foldTerms(worth.parts!)).toBe(worth.value);
       expect(foldTerms(growth.parts!)).toBe(growth.value);

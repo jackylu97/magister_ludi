@@ -912,6 +912,72 @@ export interface AiConfig {
      */
     tideShare: number;
   };
+  /**
+   * **The wager** (batch W2, `docs/wager.md` §6) — what the bot assumes about
+   * the age it is staking a bar in, and how hard it leans on the bar it staked.
+   *
+   * Four numbers and not one of them a threshold: the stake is an appraisal
+   * (`src/ai/wager.ts`) and these are the two estimates it cannot read off the
+   * board plus the two weights the arena sweeps.
+   */
+  wager: {
+    /**
+     * **How long a bot assumes an age runs**, in turns, when the world clock has
+     * not yet announced a close.
+     *
+     * The clock only starts counting when the *mean* of the board crosses into
+     * the next age (`worldAgeCountdown`), and a wager is dealt at the moment an
+     * age **opens** — so on the one turn a seat may answer the table there is no
+     * countdown to read and the deadline is genuinely unknown. This is the
+     * honest stand-in, and it is a stand-in rather than a rule: the moment a
+     * countdown *is* running the clock's own figure is used instead.
+     *
+     * Measured on the t100 bench (eight seeds): Æra II is dealt between turns
+     * 59 and 83 and the two seeds that reach its judgement close it thirty and
+     * thirty-six turns later, which is what this is set to. A figure that is too
+     * long is the dangerous one — it flatters every flow bar and stakes a seat
+     * on a bar it will not reach.
+     */
+    ageTurns: number;
+    /**
+     * **What the mean malice costs**, per turn, in the appraisal's own currency
+     * — or `0` to price the deck instead.
+     *
+     * A malice is twelve rows of ordinary card effects and the bot already
+     * prices those (`explainEffects`), so the default is nought and the deck is
+     * read: the mean of what its rows would do to *this* empire, times
+     * `score.lumpTurns`, which is the same exchange rate every other stock in
+     * this bot is quoted at. A sheet that sets it names a flat penalty instead,
+     * which is the arena's way of asking how much the malice is worth being
+     * afraid of without changing what the deck holds.
+     */
+    malicePenalty: number;
+    /**
+     * **How hard the staked bar leans on the rest of the appraisal**, ≥ 0.
+     *
+     * One at the shipped setting: a wager's worth is spent in full on the voice
+     * it reads and on the town, building or wonder it counts, and the band
+     * (`priorities.priceBandHigh`) is what stops it running away with the empire
+     * — the lean can argue with the weight table by the same factor a want book
+     * may, and no further.
+     *
+     * **Nought shuts the lean off**, which is what makes it an arena A/B rather
+     * than a rule: a sheet with `leanWeight: 0` still stakes the best bar on the
+     * table and then plays exactly the bot that shipped before this batch.
+     */
+    leanWeight: number;
+    /**
+     * **What the deal's own drift is worth as evidence**, ≥ 0 — the multiplier
+     * on the pace a standing reading is projected forward at.
+     *
+     * A standing bar is projected by what this realm has managed so far: five
+     * towns in sixty turns is a town every twelve, and the bar is asked whether
+     * that pace reaches it by the close. One says *the next age will go like the
+     * last one*; a sheet below one is a bot that expects to slow down, and above
+     * one a bot that expects the pace to pick up as its engines come in.
+     */
+    driftWeight: number;
+  };
 }
 
 // --- personas ---------------------------------------------------------------

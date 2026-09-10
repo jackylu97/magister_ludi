@@ -215,6 +215,7 @@ import {
   explainProjectRow,
   explainSoldier,
   explainYields,
+  wagerAppetiteTerm,
   yieldDelta,
 } from './value';
 // **The town folds** (batch X1d) — the standing and hypothetical folds of every
@@ -1373,6 +1374,12 @@ export function expansionChain(
       value: 0,
     },
   ];
+  // **The bar this seat staked** (batch W2): a card counting towns is a card one
+  // more town brings a whole unit closer, and the settler is the arm that would
+  // raise it. A lean and never a lock — one printed line on a chain that is
+  // otherwise scored exactly as it was.
+  const wagered = wagerAppetiteTerm(ctx, 'city', 1, 'one more town');
+  if (wagered !== null) terms.push(wagered);
   const short = {
     authority: Math.max(0, probe.costs.authority - authorityOf(state, player.id)),
     happiness: Math.max(0, probe.costs.happiness - happinessOf(state, player.id)),

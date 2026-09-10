@@ -1499,6 +1499,57 @@ Added: `search.routeGateProbes` (24) — a bound on compute, the audit's one hon
 kind of cap. Deleted: `weights.trader` (70), the last flat guess in the piece
 table. The arena panel needed no edit; it walks the sheet.
 
+### Measured, t100
+
+Eight seeds (1/2/3/42/101/999/31337/20260101), standard, two balanced seats, the
+wild in the fog, mean of sixteen seats, paired seed by seed. **Wagers kept** and
+**malices seated** are the two columns this batch is about, sampled turn by turn
+as the game is played (a deal clears every stake as it opens, so neither is
+recoverable from the state at t100).
+
+| | before (index 0) | after (shipped) |
+|---|---|---|
+| **wagers kept** | 0.25 | **0.44** |
+| **malices seated** | 0.38 | **0.19** |
+| cities | 5.94 | 5.94 |
+| citizens | 42.13 | 41.63 |
+| buildings | 31.81 | 32.25 |
+| food/turn | 129.93 | 126.03 |
+| production/turn | 88.47 | 84.76 |
+| gold/turn | 40.55 | 41.50 |
+| science/turn | 104.29 | 105.18 |
+| culture/turn | 61.56 | 64.14 |
+| faith/turn | 23.43 | 22.58 |
+| treasury | 348.69 | 312.89 |
+| techs | 24.19 | 24.25 |
+| happiness | +7.38 | **+9.10** |
+
+**Kept up three quarters, malices halved**, and the two are the same fact read
+twice. Contentment is up 1.7 — the malice deck's own bite, not paid — and culture
+up 2.6, which is the flags board's diagnosis (a vermilion chair displacing an
+Order, and the council making a fifth less culture for it) coming back the other
+way. Food and production are down about three per cent and the treasury by
+thirty-six coins; everything else is inside the noise of eight seeds. The sample
+behind the two wager columns is thin on purpose — only two of the eight seeds
+reach an Æra II judgement by t100 — so what it is evidence of is *direction*.
+
+**The lean, swept** (same bench, `wager.leanWeight` at nought against the shipped
+one): kept 0.44 / malices 0.19 either way — the **stake** is where the whole of
+the wager gain is — and the lean itself trades about two points of production and
+two of science for two and a half of culture and 1.2 of contentment. It is
+shipped at one because that trade is what a staked bar *is*, and because nought
+is a knob away for anybody who disagrees.
+
+**One measured mistake, kept here as the reason for the code.** The first cut let
+every reading name a voice and assumed one more point a turn banked `turnsLeft`
+of them by the close — true of a lifetime flow, false of a bar quoted as a rate
+and false of a bar counting things. Five of the eight seeds deal a clause row,
+whose shortfall is quoted in *clauses*, so every one of them pegged gold or
+beakers at the band's ceiling for forty turns: production 88.5 → **80.3**, gold
+40.6 → **32.5**, science 104.3 → **98.7**, contentment +7.4 → **+5.1**. The wager
+columns were already good (kept 0.38, malices 0.19); the economy paid for it. The
+table now names a voice only where the coin accrues into the bar.
+
 ### Known gaps, written down rather than fixed
 
 - **Camps are deferred by ruling** ("a smaller concern") and nothing here touches
@@ -6585,3 +6636,147 @@ standard error. Production is the one row that moved by about a standard error,
 and it moved *down*, which is not the direction the change predicts — a town
 that no longer spends hammers on a wagon should make more — so it reads as
 noise plus one fewer shelf rather than a finding.
+
+## Batch W2 as shipped — the bots' wager (2026-09-09)
+
+`docs/wager.md` §6, and the placeholder batch G2 left with a date on it:
+`wagerDecision` staked **index nought** — the same card the `wagers` phase gives
+an empty chair — so the appraisal that decides everything else this bot does had
+nothing at all to say about the one bar the age judges it on.
+
+### What the placeholder cost, measured
+
+The turn-100 probe (eight seeds, standard, two balanced seats, sixteen seats
+averaged) reads **0.25 wagers kept and 0.38 malices seated per seat**. A malice
+is a vermilion chair displacing an Order for a whole age, and the Æra II
+judgement seats one in most bot councils — which is the flags board's own
+reading of why the bench's culture fell a fifth when G3 landed.
+
+*(Measured on this branch's deck, which predates W3's bar cuts — The Academies
+4000 → 1500, The Contented Realm 650 → 200. The appraisal reads `wagerBar` and
+knows nothing about the figures, so a lower bar simply raises every margin; the
+row above should be re-taken once the two land together.)*
+
+### 1 · The stake — one expected value over a margin
+
+`src/ai/wager.ts`, the seventh leaf, and the arithmetic is two lines:
+
+```
+margin(i) = min(1, projected(i) ÷ bar(i))
+value(i)  = margin × (stakeBeads − otherBeads) × weights.bead
+            − (1 − margin) × what a malice costs
+```
+
+The other two cards are worth the same to this seat **whichever one it stakes** —
+a wager is a bar any number of seats may clear, and clearing one you did not
+stake still pays `otherBeads` — so the whole of what a stake buys is the *extra*
+bead, and the whole of what it risks is the chair. Both fall out as printed
+terms; the score is their fold, exactly (`decision.ts`' contract). Highest wins,
+ties by the order the cards were dealt in, and a card `chooseWagerError` refuses
+is struck before the best is picked rather than scored and beaten — the driver's
+standing rule that a refusal is a bug.
+
+### 2 · What `projected` is, and where it comes from
+
+- **A flow** counts from the deal, so on the one turn a seat may answer the table
+  its standing is nought *by construction* and there is nothing to extrapolate
+  from. What the bot reads instead is the realm's own books: the phase's twelve
+  accumulators (`turnReadings`), taken again on this side of the fence off the
+  same Ledger fold (`ledgerFold.ts`) — **`turnReadings` is not exported from
+  `src/sim/wagers.ts`**, and the phase is not the bot's to change, so the bag is
+  the bot's own estimate of its own books exactly as `explainEffects` is its own
+  opinion about a card. One Ledger bag, asked **once per age per seat**.
+- **The two flow readings that are not accumulators** (renown, the kill ledger)
+  are real lifetime counters a verb keeps, so those are projected off the pace
+  the realm has actually kept.
+- **A standing** card is projected by the realm's own drift — `standing ÷ turns
+  played`, times `wager.driftWeight` — and floored at the standing. No
+  per-reading model of what makes a realm grow: that would be the whole bot said
+  again inside a corner of it.
+- **The deadline** is the world clock's own countdown where one is running, and
+  `wager.ageTurns` less the turns since the deal where none is. It has to be an
+  assumption on the deal turn: the clock only starts counting when the *mean* of
+  the board crosses, and a wager is dealt the moment an age opens.
+
+### 3 · What the malice costs, priced off the deck
+
+A malice **is** a card — twelve rows of the very effect vocabulary
+`explainEffects` already reads — so the penalty is the mean of what the deck
+would do to *this* board, taken as a rate and turned into a stock by
+`score.lumpTurns`, the one exchange rate this bot quotes a stock at. The mean
+rather than the worst and rather than a draw: the seat has no say in which row it
+takes. Memoised on the context (`faithPrice`'s bargain), and
+`wager.malicePenalty` replaces it with a flat figure when a sheet names one.
+
+### 4 · The lean — two bounded levers, and never a lock
+
+A staked bar joins the book as a **stock** (`WantBook.wager`: the bar less the
+standing, priced at what closing it is worth per unit) and is spent two ways:
+
+- **the voice**, through `voiceWeight` — a card whose bar the voice's own coin
+  *accumulates into* raises what one more point of that voice a turn is worth by
+  `worth × min(1, turnsLeft ÷ shortfall)`, shared out across the voices a card
+  reads (The Six Voices reads all six and is not worth six wagers), **clamped at
+  `priorities.priceBandHigh × the table`** — the same ceiling every other price
+  in this bot is clamped into, and never allowed to *lower* a price the collapse
+  lever already set higher.
+
+  **Which rows those are is a units rule, and the first cut got it wrong.** The
+  premium's sentence is "one more point a turn banks `turnsLeft` of them by the
+  close", and that is true only of a lifetime flow and of the treasury. It is not
+  true of a bar quoted as a **rate** (food to spare in one turn, learning per
+  citizen, what the buildings pay) and not true of a bar counting **things**
+  (towns, wonders, clauses held): one more hammer a turn does not raise a third
+  of a wonder. Shipped wrong, it cost the mean seat nine per cent of its
+  production and a fifth of its gold — five of the eight bench seeds deal a
+  clause row and every one of them pegged a voice at the band's ceiling for forty
+  turns. Those rows lean through the appetite instead, or through nothing;
+- **the appetite**, through `wagerAppetiteTerm` — a standing card counting towns,
+  buildings or wonders adds one printed line to the arm that would raise one
+  (`explainBuildingRow`, `expansionChain`). A capital-scoped card names one town
+  and no other.
+
+The lean comes **off the board** the turn the bar is claimed: a bead already
+banked is not a bar to chase.
+
+**The want book row is a field, not an array entry**, and that is a rule rather
+than a filing decision: two folds downstream read a `Want.price` as coins in a
+named bank (`faithPrice`'s saving delay, `cheapestWantPrice`), and a bar quoted
+in beakers or in towns sitting in the gold array would be those two quietly
+answering nonsense.
+
+### Knobs added
+
+`wager.ageTurns` 32 · `wager.malicePenalty` 0 (nought prices the deck) ·
+`wager.leanWeight` 1 · `wager.driftWeight` 1. All four appear on the arena with
+no edit to the page (the panel walks the sheet), pinned in
+`test/sim/aiWager.test.ts`. **`leanWeight: 0` plays exactly the bot that shipped
+before this batch** while still staking the best bar on the table, which is what
+makes the whole of it an arena A/B.
+
+### Known gaps, written down rather than fixed
+
+- **The deadline is an assumption on the deal turn, and always will be.** The
+  world clock cannot announce a close before the mean of the board crosses, so
+  `wager.ageTurns` is the honest stand-in and a seat that stakes a flow bar is
+  betting on how long the *world* takes. Measured on the bench it is thirty to
+  thirty-six turns; a board of runaway leaders would make it shorter and the bot
+  would over-stake. The fix is not a better guess, it is the clock announcing an
+  expected close, which is a simulation change and not this batch's.
+- **A clause row's drift is the crudest reading here.** "Two of three clauses in
+  sixty turns" is not really a rate, and a card whose last clause is one town
+  away is scored the same as one whose last clause is an age away. Nothing in the
+  deck is priced clause by clause; that would be a per-reading model of what
+  makes a realm grow, which is the whole bot said again inside a corner of it.
+- **`turnReadings` is not exported from `src/sim/wagers.ts`**, so the flow bag is
+  a second reading of the same folds on the bot's side of the fence. If the phase
+  ever exports it the bag becomes one call and cannot drift.
+- **Nine of the deck's twenty-nine readings lean on nothing** — an army's
+  strength, a town taken, renown, a kill ledger, the capital's citizens. Each of
+  them is a bar this bot has no cheap lever for, and a lean that pretended
+  otherwise would be the bot leaning on whatever it happened to have an arm for.
+- **The stake is answered once and never revisited.** The blocker opens on one
+  turn (`dealtOn + 1`) and the pick is the pick, which is the rule rather than a
+  gap — but it does mean a seat that is knocked out of its bar by a war carries a
+  lean toward a bar it will not reach for the rest of the age. The lean is
+  bounded by the band, so what that costs is a tilt and never a lock.

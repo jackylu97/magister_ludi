@@ -338,8 +338,8 @@ import { atWar } from '../sim/wars';
 import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
+import { appraiseWagers, wagerLeanOf } from './wager';
 import { censusBlocker } from '../sim/census';
-import { type WagerId, wagerDef } from '../sim/wagerData';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
 // **The what-if grid** (batch X1d) — the standing and hypothetical folds of every
@@ -463,7 +463,16 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     // purchasing plan would buy. It reads the map and nothing else, so it can be
     // built with the prior.
     realm: realmResources(state, player.id),
+    // **The lean is built on the prior**, one line down, and is `null` here for
+    // the reason every other price is: a wager appraised against the prices it
+    // is itself about to lift would be the fixed point batch 1 refused.
+    wager: null,
   };
+  // **The bar this seat staked, before everything that reads a price** (batch
+  // W2, `docs/wager.md` §6). It is one `wagerStanding` for one card and it lifts
+  // a voice's weight, so it has to stand before the chains, the book and both
+  // banks — every one of which prices a yield.
+  const staked: ValueContext = { ...prior, wager: wagerLeanOf(state, player, prior) };
   // **The chains, before the book** (batch 3 of `docs/bot-priorities.md`): the
   // purchasing plan's bridge rows price what a delivery would buy a live chain in
   // turns, so the chains have to exist before the book that reads them. Both are
@@ -485,7 +494,7 @@ export function valueContext(state: GameState, player: Player): ValueContext {
   // building row that opens a route folds what that route would pay, and a
   // building row is priced by the chains, by the book and by the queue. It reads
   // the prior's prices, which is the one honest pass batch 1 shipped.
-  const traded: ValueContext = { ...prior, routes: routeOutlook(state, player, prior) };
+  const traded: ValueContext = { ...staked, routes: routeOutlook(state, player, staked) };
   const raced: ValueContext = { ...traded, race: beadChain(state, player, traded) };
   const engines: ValueContext = { ...raced, chains: liveChains(state, player, raced) };
   const chained: ValueContext = {
@@ -506,19 +515,19 @@ export function valueContext(state: GameState, player: Player): ValueContext {
     wageReserve: goldReserveFor(state, player),
     goldRate: netGold,
     faithRate: rates.faithPerTurn ?? 0,
-    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, prior),
+    soldierWorth: (city, id) => garrisonWorth(state, player, city, id, staked),
     // **The draft plan's two readings** (batch 6): the clock the meter fills at,
     // and what one Order is worth to this empire. The card is appraised at the
     // **prior**, like every other row of the book — a hand priced at the culture
     // price it is itself about to set would be the fixed point batch 1 refused.
     cultureRate: rates.culturePerTurn ?? 0,
-    cardWorth: (id) => explainCard(player, id, prior),
+    cardWorth: (id) => explainCard(player, id, staked),
     // **The levy the faith book charges a bought soldier against** (batch X3),
     // read at the prior for `soldierWorth`'s reason: the book is what sets the
     // live price, so every row in it is appraised before that price exists.
-    levy: levyReading(prior),
+    levy: levyReading(staked),
   } satisfies WantInputs);
-  const priced = shadowPrices(book, prior);
+  const priced = shadowPrices(book, staked);
   return {
     ...constrained,
     prices: {
@@ -1163,7 +1172,7 @@ function answerBlocker(
     case 'greatPerson':
       return greatPersonDecision(state, player, sitting);
     case 'wager':
-      return wagerDecision(state, player);
+      return wagerDecision(state, player, sitting);
     case 'census':
       return censusDecision(state, player);
     case 'idleUnit':
@@ -1194,27 +1203,50 @@ function answerBlocker(
 }
 
 /**
- * **Stakes the first card on the table** (`docs/wager.md` §2, §6).
+ * **Stakes the bar it can actually reach** (`docs/wager.md` §2, §6, batch W2).
  *
- * A placeholder with a date on it: batch **W2** gives the bot a wager want —
- * the bar as its stock, priced by the appraisal it already runs on everything
- * else — and this arm becomes that call. Until then it answers the blocker the
- * way the `wagers` phase' own default would, so a bot seat is never held at the
- * table and never quietly different from an absent hot-seat player.
+ * The whole appraisal is `appraiseWagers` (`src/ai/wager.ts`) and this arm is
+ * the command it comes out as: each of the three cards is projected forward to
+ * the age's close on this realm's own books, the margin is scored against the
+ * extra bead a stake pays and the malice it risks, and the highest wins with
+ * ties going to the order the cards were dealt in.
  *
- * Index nought rather than a roll, deliberately: a bot that picked at random
- * would make the arena's per-seat averages noisier for no gain, and a
- * deterministic answer keeps a replay across the deal byte-identical.
+ * What it replaces is the placeholder batch G2 left: **index nought**, the same
+ * card the phase's own default gives an empty chair, which on the turn-100 bench
+ * was a seat that kept a quarter of a wager and took three eighths of a malice.
+ *
+ * A card the rules refuse is never proposed — every option carries
+ * `chooseWagerError`'s own sentence and a refused one is struck before the best
+ * is picked — which is the driver's standing rule that a refusal is a bug. If
+ * every card on the table is refused the arm answers `null` and the phase's
+ * default fills the chair at the end of the turn, exactly as it does for an
+ * absent hot-seat player.
  */
-function wagerDecision(state: GameState, player: Player): BotDecision | null {
+function wagerDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
   const deal = wagerBlocker(state, player.id);
   if (deal === null) return null;
+  const stake = appraiseWagers(state, player, seatContext(state, player, sitting));
+  if (stake === null || stake.best === null) return null;
+  const best = stake.best;
+  const candidates: BotCandidate[] = stake.options.map((option) =>
+    option.rejected !== null
+      ? refused(option.name, option.rejected)
+      : {
+          label: option.name,
+          score: option.score,
+          chosen: option.index === best.index,
+          terms: option.terms,
+        },
+  );
   return {
     kind: 'draft',
-    command: { type: 'chooseWager', playerId: player.id, index: 0 },
+    command: { type: 'chooseWager', playerId: player.id, index: best.index },
     subject: player.name,
-    summary: 'Stakes the first wager on the table — this bot does not appraise a bar yet.',
-    candidates: unweighed(deal.dealt.map((id) => wagerDef(id as WagerId).name)),
+    summary:
+      `Stakes ${best.name} — ${round1(best.standing)} of ${round1(best.bar)} today and ` +
+      `${round1(best.projected)} by the close in ${stake.turnsLeft} turns, which is ` +
+      `${Math.round(best.margin * 100)}% of the bar; a malice would cost ${round1(stake.malice)}.`,
+    candidates,
   };
 }
 
