@@ -56,10 +56,19 @@ import {
   spendGold,
 } from '../../src/sim/state';
 import {
+  GREAT_PERSON_IDS,
+  type GreatPersonId,
+  LIVE_GREAT_PERSON_IDS,
+  greatPersonDef,
+} from '../../src/sim/greatPeopleData';
+import {
   type PlayerStatecraft,
   cardHappiness,
+  cardUnitStat,
   countOf,
   describeEffects,
+  explainCardEmpireYields,
+  foldCardYields,
   stripRefs,
   unitMatches,
 } from '../../src/sim/statecraft';
@@ -469,7 +478,21 @@ describe('the counts the pass added', () => {
         expect(clause.text).toBeTruthy();
         expect(stripRefs(clause.text).includes('[[')).toBe(false);
       }
+      // **And it says its own figure.** The (route, count) pair is the one count
+      // that pays the *bag* rather than a `to` and an `amount`, and the words
+      // printed "+0 " for it until GP3 taught `payoutWords` to read the bag —
+      // a clause that was truthy, ref-free and wrong. So the sweep asks for the
+      // number as well as for the sentence.
+      expect(stripRefs(clauses[0]!.text), clauses[0]!.text).not.toContain('+0 ');
     }
+    // The pair by name, since it is the one the gap was in.
+    expect(
+      stripRefs(
+        describeEffects([
+          { kind: 'pays', where: 'route', basis: 'count', count: 'routeLength', per: 2, gold: 1 },
+        ])[0]!.text,
+      ),
+    ).toBe('+1 gold per 2 hexes between the two cities');
   });
 
   it('lands an empire count’s percentage at the empire stage, in every town', () => {
@@ -579,6 +602,206 @@ describe('happiness per science building across the realm', () => {
         expect(line?.amount).toBe(2);
       },
     );
+  });
+});
+
+// --- GP3: the rows themselves ------------------------------------------------
+
+/**
+ * **The twelve halves the roster was waiting on** — batch GP3.
+ *
+ * Everything above is a *synthetic* card standing in for a shape, which is how a
+ * shape earns its rules a batch before a row uses them. This block is the other
+ * claim and it is the one a balance pass reads: the **roster row** now folds to
+ * the figure the user wrote in `docs/great-people.md`'s Legacy column. So each
+ * test bears the real legacy — nothing swapped, nothing synthesised — and pins
+ * the number.
+ *
+ * Three of the twelve are pinned in `greatPeople.test.ts` instead, beside the
+ * deferral tests they replace: Ibn Baṭṭūṭa's share of song, Spartacus' attack
+ * line, and Marco Polo's coin by the mile.
+ */
+describe('the twelve legacies GP3 wired', () => {
+  /** A legacy attached to a seat, without spending a piece to do it. */
+  function bear(state: GameState, playerId: number, id: GreatPersonId): void {
+    playerById(state, playerId)!.legacies.push({ id, age: 1 });
+    bumpRevision(state);
+  }
+
+  /** What the law's building shares are worth in this town, by voice. */
+  function buildingShare(state: GameState, city: City) {
+    return explainCardBuildingYields(state, city);
+  }
+
+  it('Rūmī doubles what a temple pays, and leaves the shrine beside it alone', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('temple', 'shrine');
+    bumpRevision(g.state);
+    expect(buildingShare(g.state, city)).toHaveLength(0);
+    bear(g.state, 0, 'rumi');
+    const lines = buildingShare(g.state, city);
+    expect(lines).toHaveLength(1);
+    // The Temple's own faith over again — the Shrine pays faith too and is not
+    // a Temple, which is what naming one row buys over naming a category.
+    expect(lines[0]!.faith).toBe(buildingDef('temple').faith);
+  });
+
+  it('Aristotle takes half again off every house that supplies science', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('library', 'monument');
+    bumpRevision(g.state);
+    bear(g.state, 0, 'aristotle');
+    const lines = buildingShare(g.state, city);
+    expect(lines).toHaveLength(1);
+    // Half again of what the Library pays *this town*, **its per-citizen line
+    // included** — which is the shape's own claim and the reason the figure is
+    // not simply half the row — and nothing of the Monument's song: the
+    // selector is the voice a row **pays**, not the shelf it sits on.
+    const library = buildingDef('library');
+    const paid = library.science + (library.sciencePerPop ?? 0) * city.population;
+    expect(lines[0]!.science).toBeCloseTo(paid / 2, 6);
+    expect(lines[0]!.culture ?? 0).toBe(0);
+  });
+
+  it('al-Jazarī doubles the houses that supply work', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('workshop', 'monument');
+    bumpRevision(g.state);
+    bear(g.state, 0, 'alJazari');
+    const lines = buildingShare(g.state, city);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.production).toBe(buildingDef('workshop').production);
+  });
+
+  it('Dürer keeps his song per marvel and takes half again off the marvels', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    city.buildings.push('theOracle', 'monument');
+    bumpRevision(g.state);
+    bear(g.state, 0, 'durer');
+    // The half he already had: two song for the one wonder standing.
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).culture).toBe(2);
+    // And the half GP2 built: the Oracle's own song raised by half, the
+    // Monument's untouched.
+    const lines = buildingShare(g.state, city);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]!.culture).toBeCloseTo(buildingDef('theOracle').culture / 2, 6);
+  });
+
+  it('Pytheas takes his laden carts off the target list, and lends them an eye', () => {
+    const g = game();
+    const from = found(g.state, 0);
+    const to = found(g.state, 1);
+    const cart = createUnit(g.state, 0, 'trader', from.col + 2, from.row);
+    startRouteAt(g.state, cart, from, to, 'land');
+    bumpRevision(g.state);
+    // Plunder is the standing rule, so without the legacy the cart is a target.
+    expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit?.id).toBe(cart.id);
+    bear(g.state, 0, 'pytheas');
+    expect(attackTargetAt(g.state, cart.col, cart.row, 1)?.unit ?? null).toBeNull();
+    // The other half of the row, untouched by GP3 and pinned beside it.
+    const soldier = createUnit(g.state, 0, 'warrior', from.col + 3, from.row);
+    bumpRevision(g.state);
+    expect(cardUnitStat(g.state, cart, 'sight')).toBe(1);
+    expect(cardUnitStat(g.state, soldier, 'sight')).toBe(0);
+  });
+
+  it('al-Khwārizmī opens the faith bank to the science houses, and keeps his tithe', () => {
+    const g = game();
+    const city = found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    player.faithPool = 5000;
+    if (!player.techsResearched.includes('letters' as never)) {
+      player.techsResearched.push('letters' as never);
+    }
+    bumpRevision(g.state);
+    const library = { kind: 'building', id: 'library' } as const;
+    // Without him a building is bought with gold and nothing else.
+    expect(explainPurchaseCost(g.state, 0, city.id, library, 'faith')).toBeNull();
+    bear(g.state, 0, 'alKhwarizmi');
+    const price = explainPurchaseCost(g.state, 0, city.id, library, 'faith');
+    expect(price?.currency).toBe('faith');
+    expect(price!.total).toBeGreaterThan(0);
+    expect(purchaseError(g.state, 0, city.id, library, 'faith')).toBeNull();
+    // A house that supplies no science is still gold's.
+    expect(
+      explainPurchaseCost(g.state, 0, city.id, { kind: 'building', id: 'monument' }, 'faith'),
+    ).toBeNull();
+  });
+
+  it('Gracia widens the writ, then pays for every point of it left spare', () => {
+    const g = game();
+    found(g.state, 0);
+    const bare = foldMeter(explainAuthority(g.state, 0));
+    bear(g.state, 0, 'graciaMendesNasi');
+    // The half GP1 shipped: eight more points of writ.
+    const widened = foldMeter(explainAuthority(g.state, 0));
+    expect(widened).toBe(bare + 8);
+    const spare = Math.max(0, widened);
+    expect(spare).toBeGreaterThan(0);
+    // And the two halves GP3 wired, off that same fold: gladness a point, gold
+    // ten. The count cannot feed the meter it reads, which is why neither of
+    // these pays authority.
+    const glad = cardHappiness(g.state, 0)
+      .filter((line) => String(line.card) === 'graciaMendesNasi')
+      .reduce((sum, line) => sum + line.amount, 0);
+    expect(glad).toBe(spare);
+    expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(spare * 10);
+  });
+
+  it('Cosimo is paid a song for every hundred the treasury has let go', () => {
+    const g = game();
+    found(g.state, 0);
+    const player = playerById(g.state, 0)!;
+    bear(g.state, 0, 'cosimoDeMedici');
+    const song = (): number => foldCardYields(explainCardEmpireYields(g.state, 0)).culture;
+    expect(song()).toBe(0);
+    player.gold = 500;
+    spendGold(g.state, player, 200);
+    bumpRevision(g.state);
+    // Two hundred out of the purse, two songs — and **culture**, which is the
+    // user's mark on the row rather than the coin the shape's example paid.
+    expect(song()).toBe(2);
+    // The ninety-nine over buy nothing until they are a hundred.
+    spendGold(g.state, player, 99);
+    bumpRevision(g.state);
+    expect(song()).toBe(2);
+  });
+
+  it('Epicurus forgives a town of ten and charges a town of nine', () => {
+    const g = game();
+    const big = found(g.state, 0);
+    big.population = 10;
+    const small = { ...big, id: big.id + 400, name: 'Hamlet', population: 9 };
+    g.state.cities.push(small);
+    bumpRevision(g.state);
+    const plain = costOf(g.state, 'Hamlet');
+    const before = costOf(g.state, big.name);
+    bear(g.state, 0, 'epicurus');
+    expect(costOf(g.state, big.name)).toBeCloseTo(before * 0.85, 6);
+    // Nine is one short of the scope's own figure, and inclusive means ten.
+    expect(costOf(g.state, 'Hamlet')).toBeCloseTo(plain, 6);
+  });
+
+  /** What one town's citizens cost this empire, off the meter's own list. */
+  function costOf(state: GameState, name: string): number {
+    const line = explainHappiness(state, 0).find(
+      (entry) => entry.part === 'cost' && entry.source.startsWith(`${name} ·`),
+    );
+    return line === undefined ? 0 : -line.value;
+  }
+
+  it('leaves no roster row deferred', () => {
+    // The pass's own closing claim: GP1 struck twelve halves through and GP3
+    // wired every one, so nothing on the roster is waiting on a shape any more.
+    const waiting = GREAT_PERSON_IDS.filter((id) => (greatPersonDef(id).deferred?.length ?? 0) > 0);
+    expect(waiting).toEqual([]);
+    // And nothing live is silent: every drawable name leaves something behind.
+    const silent = LIVE_GREAT_PERSON_IDS.filter((id) => greatPersonDef(id).legacy.length === 0);
+    expect(silent).toEqual([]);
   });
 });
 

@@ -2557,6 +2557,18 @@ function payoutWords(effect: CardPaysEffect, times = 1, voice?: string): string 
   if (effect.stage !== undefined) {
     return `${signed((effect.percent ?? 0) * times)}% ${voice ?? effect.to ?? ''}`;
   }
+  // **The counted row that pays a bag** — the (route, count) pair alone (batch
+  // GP2's `routeLength`, written by Marco Polo in GP3). Every other count says
+  // its figure with `to` and `amount` because it pays into a fold carrying one
+  // voice at a time; a caravan's line is a bag, so the row says its figure the
+  // way a flat route row does and the words have to follow it there. Without
+  // this the clause printed "+0 " and named no voice at all.
+  if (effect.to === undefined && effect.amount === undefined) {
+    const bag = bagWords(
+      Object.fromEntries(VOICES.map((key) => [key, (effect[key] ?? 0) * times])),
+    );
+    if (bag !== '') return bag;
+  }
   const figure = signed((effect.amount ?? 0) * times);
   // The **folded** voice, where a run of siblings paid the same figure on every
   // one of them: "of every yield" stands in for the six names — see

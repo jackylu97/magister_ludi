@@ -31,9 +31,13 @@ import {
   yieldContextFor,
 } from '../../src/sim/yields/hex';
 import {
+  cityYieldPercents,
   explainCity,
   foldCity,
 } from '../../src/sim/yields/town';
+import { startRouteAt } from '../../src/sim/trade';
+import { routeHexes } from '../../src/sim/routes';
+import { explainRouteSenderYieldBetween } from '../../src/sim/routeYields';
 import {
   foldEmpireRates,
 } from '../../src/sim/yields/empire';
@@ -866,24 +870,36 @@ describe('the legacies this pass built', () => {
   });
 
   /**
-   * **Ibn Baṭṭūṭa's Rihla is deferred** (batch GP1): the user's re-cut asks for
-   * culture per *empire your roads reach*, which is a count the vocabulary does
-   * not have (batch GP2's `tradePartnerEmpires`). The row is kept and says so,
-   * which is the table's rule — never bend a clause into a near-fit — and this
-   * pins that the deferral is honest: nothing at all is paid until it is built.
+   * **Ibn Baṭṭūṭa's Rihla, wired** (batch GP3): the user's re-cut pays a share of
+   * song per *empire your roads reach*, which is GP2's `tradePartnerEmpires`
+   * counted at the empire stage. The percentage is Entry XVII's second
+   * multiplication, so the pin is on the **percent list** rather than on a
+   * town's floored total: five percent of a young town's song rounds to nothing
+   * and would have made this test agree with a row that paid nothing at all.
    */
-  it('Ibn Baṭṭūṭa leaves nothing behind until his count exists', () => {
+  it('Ibn Baṭṭūṭa pays a share of song for every realm his roads reach', () => {
     const g = game(109);
-    found(g.state, 0);
+    const mine = found(g.state, 0);
+    const theirs = found(g.state, 1);
     bear(g.state, 0, 'ibnBattuta');
-    g.state.citySightings[0] = [
-      { cityId: 1, col: 1, row: 1, name: 'Ur', ownerId: 0 },
-      { cityId: 2, col: 2, row: 2, name: 'Kish', ownerId: 1 },
-      { cityId: 3, col: 3, row: 3, name: 'Lagash', ownerId: 1 },
-    ];
-    expect(greatPersonDef('ibnBattuta').legacy).toEqual([]);
-    expect(greatPersonDef('ibnBattuta').deferred?.length).toBe(1);
-    expect(empire(g.state, 0).gold).toBe(0);
+    const share = (): number =>
+      cityYieldPercents(g.state, mine)
+        .filter((line) => line.yield === 'culture' && line.stage === 'empire')
+        .reduce((sum, line) => sum + line.percent, 0);
+    // No caravan out, no partner, nothing added — read as a delta off whatever
+    // the seat's own law already puts on its song.
+    const bare = share();
+    const cart = createUnit(g.state, 0, 'trader', mine.col, mine.row);
+    startRouteAt(g.state, cart, mine, theirs, 'land');
+    bumpRevision(g.state);
+    // One court at the far end of the road: five percent, at the empire stage.
+    expect(share()).toBe(bare + 5);
+    // A second road to the **same** court is the same court — partners, not
+    // caravans, which is why the count is its own member.
+    const second = createUnit(g.state, 0, 'trader', mine.col, mine.row);
+    startRouteAt(g.state, second, mine, theirs, 'land');
+    bumpRevision(g.state);
+    expect(share()).toBe(bare + 5);
   });
 
   it('Sima Qian pays every town, once per age behind it', () => {
@@ -1561,23 +1577,41 @@ describe('the one-row shapes, built generically', () => {
   });
 
   /**
-   * **Spartacus is deferred** (batch GP1): the user's re-cut asks for a line
-   * against *an empire holding more cities than you*, which is a fight the
-   * combat conditions cannot describe (batch GP2's `vsWiderEmpire`). The row is
-   * kept and says so rather than being left on the nearest-fitting condition it
-   * used to carry, and this pins that it now costs the board nothing.
+   * **Spartacus, wired** (batch GP3) on GP2's `vsWiderEmpire`: three points
+   * against a realm holding more towns than yours.
+   *
+   * **Attack only**, and deliberately: the row he carried before the pass was
+   * `side: 'attack'` on `strongerTarget`, the user's re-cut changed *who* the
+   * line is against and said nothing about the posture, so the posture is the
+   * one the row already had. The slave who left the school went at them.
    */
-  it('Spartacus leaves nothing behind until his fight can be described', () => {
+  it('Spartacus strikes harder at the wider realm, and only when striking', () => {
     const g = game(213);
     found(g.state, 0);
+    const theirs = found(g.state, 1);
     bear(g.state, 0, 'spartacus');
     const unit = g.state.units.find((u) => u.ownerId === 0)!;
-    const here = getTileAt(g.state.map, unit.col, unit.row);
-    const mine = unitDef(unit.type).combatStrength;
-    expect(greatPersonDef('spartacus').legacy).toEqual([]);
-    expect(greatPersonDef('spartacus').deferred?.length).toBe(1);
-    expect(fight(g.state, unit, here, 'attack', mine + 5)).toBe(0);
-    expect(fight(g.state, unit, here, 'defend', mine + 5)).toBe(0);
+    const here = getTileAt(g.state.map, unit.col, unit.row)!;
+    const against = (side: 'attack' | 'defend'): number =>
+      cardCombatLines(g.state, {
+        unit,
+        side,
+        tile: here,
+        vsBarbarians: false,
+        vsCity: false,
+        targetHp: 10,
+        targetMaxHp: 10,
+        vsOwnerId: 1,
+      }).reduce((sum, line) => sum + line.amount, 0);
+    // One town each: nobody is wider, so the line is silent on both postures.
+    expect(against('attack')).toBe(0);
+    expect(against('defend')).toBe(0);
+    // A second town for them, and the blow carries three.
+    g.state.cities.push({ ...theirs, id: theirs.id + 500, name: 'Second' });
+    bumpRevision(g.state);
+    expect(against('attack')).toBe(3);
+    // The posture is the row's own: standing your ground pays nothing.
+    expect(against('defend')).toBe(0);
   });
 
   it('Hemiunu costs happiness only while a wonder is in somebody’s queue', () => {
@@ -1786,19 +1820,24 @@ describe('the one-row shapes, built generically', () => {
   });
 
   /**
-   * **Marco Polo is deferred** (batch GP1): the user's re-cut pays by *how far
-   * the caravan walks*, which nothing reads off a route (batch GP2's
-   * `routeLength`). Kept, said out loud, and paying nothing meanwhile.
+   * **Marco Polo, wired** (batch GP3) on GP2's `routeLength`: a coin for every
+   * two hexes between the road's two towns. The distance and not the walked
+   * path, so the Trade screen can promise the figure before a cart exists.
    */
-  it('Marco Polo leaves nothing behind until a road can be measured', () => {
+  it('Marco Polo pays a caravan by the mile', () => {
     const g = game(233);
     const mine = found(g.state, 0);
     const theirs = found(g.state, 1);
     bear(g.state, 0, 'marcoPolo');
-    const trader = createUnit(g.state, 0, 'trader', mine.col, mine.row);
-    trader.trade = { from: mine.id, to: theirs.id, expiresTurn: 99, outbound: true, autoResend: false };
-    expect(greatPersonDef('marcoPolo').legacy).toEqual([]);
-    expect(greatPersonDef('marcoPolo').deferred?.length).toBe(1);
+    const hexes = routeHexes(g.state, mine, theirs);
+    expect(hexes).toBeGreaterThan(1);
+    const line = explainRouteSenderYieldBetween(g.state, mine, theirs).find((row) =>
+      row.source.includes('hex'),
+    );
+    expect(line, 'the road prints its own length').toBeDefined();
+    expect(line!.gold).toBe(Math.floor(hexes / 2));
+    // The count answers nothing to a reader holding no road: only the fold that
+    // holds both ends can measure one, so the empire's own books stay silent.
     expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(0);
   });
 

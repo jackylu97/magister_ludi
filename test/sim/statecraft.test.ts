@@ -488,11 +488,12 @@ describe('the card table', () => {
       'empire/rate',
       // The caravan — steps 6 and 14.
       'route/flat',
-      // `route/count` is **declared and not yet written** (batch GP2, Marco
-      // Polo): the arm is built, the doc's register carries the row, and the
-      // roster row that uses it lands with GP3. It is deliberately absent here —
-      // this list is *what a live row names*, so the "nothing else" sweep below
-      // is what tells the batch that writes it to add the line.
+      // And the caravan counted by its own length (batch GP3, Marco Polo): the
+      // arm was built with GP2 and the roster row that names it is live now, so
+      // the pair joins the list the day a row writes it. It is the one count
+      // that pays the **bag** rather than a `to`, because a route's line is a
+      // bag and the road's fold multiplies bags.
+      'route/count',
     ];
     for (const pair of expected) expect(pairs.has(pair), pair).toBe(true);
     // And nothing else: a pair no arm reads would pay nothing at all.

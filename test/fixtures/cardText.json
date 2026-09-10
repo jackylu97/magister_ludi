@@ -3452,16 +3452,14 @@
   ],
   "epicurus": [
    {
-    "raw": "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet. — not built yet",
-    "text": "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "-15% happiness demanded per citizen, in every city of 10 or more citizens",
+    "text": "-15% happiness demanded per citizen, in every city of 10 or more citizens"
    }
   ],
   "aristotle": [
    {
-    "raw": "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "text": "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "your buildings that supply science pay +50%",
+    "text": "your buildings that supply science pay +50%"
    }
   ],
   "hemiunu": [
@@ -3596,9 +3594,8 @@
     "text": "trader units: +1 sight"
    },
    {
-    "raw": "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet. — not built yet",
-    "text": "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet. — not built yet",
-    "deferred": true
+    "raw": "your trade units cannot be attacked or plundered",
+    "text": "your trade units cannot be attacked or plundered"
    }
   ],
   "hannibal": [
@@ -3639,9 +3636,8 @@
   ],
   "spartacus": [
    {
-    "raw": "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet. — not built yet",
-    "text": "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "+3 combat strength against an empire with more cities than you",
+    "text": "+3 combat strength against an empire with more cities than you"
    }
   ],
   "ibnSina": [
@@ -3656,9 +3652,8 @@
     "text": "+10% faith in every city with a University"
    },
    {
-    "raw": "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet. — not built yet",
-    "text": "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet. — not built yet",
-    "deferred": true
+    "raw": "you may buy buildings that supply science with faith",
+    "text": "you may buy buildings that supply science with faith"
    }
   ],
   "maimonides": [
@@ -3707,9 +3702,8 @@
   ],
   "rumi": [
    {
-    "raw": "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "text": "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "your [[building:temple|Temples]] pay +100%, counted after every other bonus on them",
+    "text": "your Temples pay +100%, counted after every other bonus on them"
    }
   ],
   "seiShonagon": [
@@ -3720,9 +3714,8 @@
   ],
   "alJazari": [
    {
-    "raw": "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "text": "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "your buildings that supply production pay +100%, counted after every other bonus on them",
+    "text": "your buildings that supply production pay +100%, counted after every other bonus on them"
    }
   ],
   "suSong": [
@@ -3745,16 +3738,14 @@
   ],
   "ibnBattuta": [
    {
-    "raw": "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet. — not built yet",
-    "text": "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet. — not built yet",
-    "deferred": true
+    "raw": "+5% culture per other empire you trade with",
+    "text": "+5% culture per other empire you trade with"
    }
   ],
   "marcoPolo": [
    {
-    "raw": "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet. — not built yet",
-    "text": "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet. — not built yet",
-    "deferred": true
+    "raw": "+1 gold per 2 hexes between the two cities",
+    "text": "+1 gold per 2 hexes between the two cities"
    }
   ],
   "francescoDatini": [
@@ -3853,9 +3844,8 @@
     "text": "+2 culture per wonder you hold"
    },
    {
-    "raw": "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "text": "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet. — not built yet",
-    "deferred": true
+    "raw": "your wonders pay +50%",
+    "text": "your wonders pay +50%"
    }
   ],
   "basho": [
@@ -3936,16 +3926,18 @@
     "text": "+8 authority capacity"
    },
    {
-    "raw": "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet. — not built yet",
-    "text": "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet. — not built yet",
-    "deferred": true
+    "raw": "+1 happiness per spare authority",
+    "text": "+1 happiness per spare authority"
+   },
+   {
+    "raw": "+10 gold per spare authority",
+    "text": "+10 gold per spare authority"
    }
   ],
   "cosimoDeMedici": [
    {
-    "raw": "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet. — not built yet",
-    "text": "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet. — not built yet",
-    "deferred": true
+    "raw": "+1 culture per 100 gold you have spent buying",
+    "text": "+1 culture per 100 gold you have spent buying"
    }
   ],
   "gustavusAdolphus": [

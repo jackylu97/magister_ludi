@@ -1375,7 +1375,19 @@ directly to confirm rulings — user marginalia are rulings.
   counts through `explainCounted` for free, the by-mile row through one
   new arm, and names the two rules in `score.unknownEffect`'s list. GP3
   wires the rows (the first live `route/count` pair joins
-  `statecraft.test.ts`'s pair sweep). (eee)
+  `statecraft.test.ts`'s pair sweep). **GP3 built 2026-09-09** (no
+  bump): the twelve halves wired, zero `deferred` keys on the roster,
+  no live row silent (a register pin says so); `route/count` in the
+  pair sweep; one describer gap fixed — `payoutWords` had no arm for a
+  counted row paying a *bag*, so Marco Polo printed "+0" (now reads the
+  bag); the doc regenerated — 66 rows byte-identical, the 12 moved,
+  the Notes kept; `cardText.json` moved exactly the twelve. Readings:
+  Spartacus stays **attack-only** (the row's old posture; the mark
+  changed only whom); Cosimo pays **culture** (the mark, not GP2's
+  worked example); Pytheas reads "cannot be attacked or plundered";
+  Marco Polo "per 2 hexes between the two cities". Every legacy on the
+  roster prices off a fold bar the two rules and Leonardo's amplifier
+  (pinned in `aiAppraisal.test.ts`). (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

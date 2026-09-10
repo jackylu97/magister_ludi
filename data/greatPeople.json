@@ -426,9 +426,16 @@
       "tier": "strong",
       "epigram": "The garden asks little and gives back the day.",
       "kernel": "Athenian of the Garden; pleasure read as the absence of pain.",
-      "legacy": [],
-      "deferred": [
-        "A town of ten citizens or more asks a smaller share for its keep — a relief read off the size of one town, which nothing can say yet."
+      "legacy": [
+        {
+          "kind": "rulePercent",
+          "rule": "happinessDemand",
+          "percent": -15,
+          "scope": {
+            "test": "populationAtLeast",
+            "value": 10
+          }
+        }
       ]
     },
     "aristotle": {
@@ -438,9 +445,12 @@
       "tier": "defining",
       "epigram": "He asked what a thing was for, and wrote the answer down.",
       "kernel": "Founder of the Lyceum; logic, physics, politics, the first library of everything.",
-      "legacy": [],
-      "deferred": [
-        "Buildings that supply science pay half as much again — a share taken on what a building itself yields, which nothing can say yet."
+      "legacy": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "science",
+          "percent": 50
+        }
       ]
     },
     "hemiunu": {
@@ -845,10 +855,11 @@
           "class": {
             "category": "trader"
           }
+        },
+        {
+          "kind": "rule",
+          "rule": "tradersUnplunderable"
         }
-      ],
-      "deferred": [
-        "Your caravans cannot be plundered — a blow on a laden cart is still a blow, and nothing forbids it yet."
       ]
     },
     "hannibal": {
@@ -946,9 +957,15 @@
       "tier": "situational",
       "epigram": "He left the school with kitchen knives.",
       "kernel": "Vesuvius.",
-      "legacy": [],
-      "deferred": [
-        "Your soldiers strike harder at an empire that holds more cities than you — a battle line drawn against the size of the realm opposite, which nothing can say yet."
+      "legacy": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "attack",
+          "when": {
+            "test": "vsWiderEmpire"
+          }
+        }
       ]
     },
     "ibnSina": {
@@ -982,10 +999,11 @@
             "test": "hasBuilding",
             "building": "university"
           }
+        },
+        {
+          "kind": "rule",
+          "rule": "faithBuysScienceBuildings"
         }
-      ],
-      "deferred": [
-        "You may hurry buildings that supply science out of the faith bank — the bank sells only what its own rows name, and nothing opens it to these yet."
       ]
     },
     "maimonides": {
@@ -1133,9 +1151,13 @@
       "tier": "situational",
       "epigram": "Out beyond ideas of wrongdoing…",
       "kernel": "The Masnavi.",
-      "legacy": [],
-      "deferred": [
-        "Temples pay twice over — a share taken on what a building itself yields, which nothing can say yet."
+      "legacy": [
+        {
+          "kind": "buildingYieldPercent",
+          "building": "temple",
+          "percent": 100,
+          "appliedLast": true
+        }
       ]
     },
     "seiShonagon": {
@@ -1165,9 +1187,13 @@
       "tier": "strong",
       "epigram": "It poured the wine and bowed.",
       "kernel": "The automata.",
-      "legacy": [],
-      "deferred": [
-        "Buildings that supply work pay twice over — a share taken on what a building itself yields, which nothing can say yet."
+      "legacy": [
+        {
+          "kind": "buildingYieldPercent",
+          "pays": "production",
+          "percent": 100,
+          "appliedLast": true
+        }
       ]
     },
     "suSong": {
@@ -1235,9 +1261,16 @@
       "tier": "situational",
       "epigram": "Thirty years, and I never took the same road twice.",
       "kernel": "The Rihla.",
-      "legacy": [],
-      "deferred": [
-        "More songs for every empire your caravans reach — nothing counts the realms at the far ends of your roads yet."
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "tradePartnerEmpires",
+          "to": "culture",
+          "percent": 5,
+          "stage": "empire"
+        }
       ]
     },
     "marcoPolo": {
@@ -1247,9 +1280,15 @@
       "tier": "situational",
       "epigram": "I have not told the half.",
       "kernel": "The Travels.",
-      "legacy": [],
-      "deferred": [
-        "More gold the further a caravan walks — nothing reads the length of the road a cart is on yet."
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "basis": "count",
+          "count": "routeLength",
+          "per": 2,
+          "gold": 1
+        }
       ]
     },
     "francescoDatini": {
@@ -1508,10 +1547,12 @@
           "to": "culture",
           "amount": 2,
           "count": "wonders"
+        },
+        {
+          "kind": "buildingYieldPercent",
+          "wonder": true,
+          "percent": 50
         }
-      ],
-      "deferred": [
-        "Wonders pay half as much again — a share taken on what a building itself yields, which nothing can say yet."
       ]
     },
     "basho": {
@@ -1718,10 +1759,23 @@
         {
           "kind": "authority",
           "amount": 8
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "happiness",
+          "amount": 1
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "authoritySurplus",
+          "to": "gold",
+          "amount": 10
         }
-      ],
-      "deferred": [
-        "Gladness and gold for every point of authority you hold spare — nothing counts the room left in your authority yet."
       ]
     },
     "cosimoDeMedici": {
@@ -1731,9 +1785,16 @@
       "tier": "situational",
       "epigram": "Patron of everything, prince of nothing.",
       "kernel": "The bank that bought a Renaissance.",
-      "legacy": [],
-      "deferred": [
-        "Songs for every hundred gold you have spent all game — nothing remembers what the treasury has paid out yet."
+      "legacy": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "count": "goldSpent",
+          "to": "culture",
+          "amount": 1,
+          "per": 100
+        }
       ]
     },
     "gustavusAdolphus": {

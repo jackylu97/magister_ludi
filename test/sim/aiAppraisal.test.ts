@@ -114,6 +114,7 @@ import type { Want } from '../../src/ai/wants';
 import aiJson from '../../data/ai.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
+import { LIVE_GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import {
   buildingProductionCost,
   foundCityAt,
@@ -2920,6 +2921,42 @@ describe('the whole deck, priced (batch H2)', () => {
     expect(
       scoreEffects([{ kind: 'rulePercent', rule: 'happinessDemand', percent: -15 }], ctx),
     ).toBe(0.15 * demand * ctx.prices.happiness);
+  });
+
+  /**
+   * **Every legacy the roster carries has a price** (batch GP3).
+   *
+   * GP1 struck twelve halves through and GP3 wired them, so the bot met twelve
+   * fresh clauses in one pass — three new counts, two new selectors on the
+   * building share, a combat condition and two rules. A shape the appraiser has
+   * no arm for is a shape the bot values at `unknownEffect`, which is the same
+   * figure it gives a card it cannot read at all: it would rank a doubled temple
+   * beside a rule about roads and never know the difference.
+   *
+   * So the claim is the roster's, not one row's: **every effect on every live
+   * name prices off a fold**, and the only exceptions are the two flag rules,
+   * which are stand-ins on purpose and named in the list two tests above.
+   */
+  it('prices every legacy on the roster, but for the two rules named above', () => {
+    const { state, player } = board();
+    const ctx = valueContext(state, player);
+    const stand = ctx.ai.score.unknownEffect;
+    const standIns: string[] = [];
+    for (const id of LIVE_GREAT_PERSON_IDS) {
+      for (const effect of greatPersonDef(id).legacy) {
+        if (scoreEffects([effect], ctx) === stand) standIns.push(`${id} · ${effect.kind}`);
+      }
+    }
+    // Pytheas' unplunderable carts and al-Khwārizmī's second bank: two facts
+    // with no fold behind them, priced as the stand-in and named for it here.
+    // Leonardo is older than this pass and is on the amplifier arm's own list
+    // (an amplifier that is not a rate), named two tests above; he is here so
+    // the register is the whole roster rather than the twelve rows GP3 wired.
+    expect(standIns).toEqual([
+      'pytheas · rule',
+      'alKhwarizmi · rule',
+      'leonardo · effectAmplifier',
+    ]);
   });
 
   it('prices a rate conversion out of the books it converts', () => {
