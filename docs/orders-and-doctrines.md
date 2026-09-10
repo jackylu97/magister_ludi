@@ -347,10 +347,6 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Great Clock | W | 🏛 | ○ | E | Your Orders that pay every so many turns come round 3 turns sooner and pay half again. |
 | The Encyclopaedists | E | ✶ | ○ | P | Every 10 turns, gain culture equal to the science your empire makes in a turn. |
 | The Colleges’ Rule | E | ✶ | ○ | P | Your science buildings pay double, counted after every other share. |
-| The Great Enquiry | W | ✶ | ○ | S | The learning of the last age is counted toward the great work itself. |
-| The Last Laurels | W | 🏛 | ○ | S | A draft turned down is counted toward the great work itself. |
-| The Salted Earth | M | ⚒ | ○ | S | A city put to the torch is counted toward the great work itself. |
-| The Final Proclamation | W | 🕯 | ○ | S | A prophet’s proclamation is counted toward the great work itself. |
 
 ### Notes and deferred halves (from the data rows)
 
@@ -386,10 +382,6 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Salon** — The great-person improvements are the academy, landmark, manufactory, customs house and citadel.
 - **The Silk Exchange** — The share is taken of everything the road already carries, its own culture included, and before anything that raises the whole caravan.
 - **The Magister's Court** — The court doubles nothing yet: the fifth age has no great people in it, and no law can yet make a legacy count twice. † the legacies of great people of the fifth age count twice
-- **The Great Enquiry** — Dealt only once the last age is reached, and earned only there.
-- **The Last Laurels** — Dealt only once the last age is reached, and earned only there.
-- **The Salted Earth** — Dealt only once the last age is reached, and earned only there.
-- **The Final Proclamation** — Dealt only once the last age is reached, and earned only there.
 - **The Muses' Call** — Renown banks from the first turn whether or not anybody answers it. This opens the door early, and opens it with somebody already through.
 - **Mountain Hold** — The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody.
 - **The Burning Way** — The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays.

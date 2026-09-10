@@ -2,6 +2,25 @@
  * The Bead Race — the game's one victory condition (design ledger Entry VI,
  * `docs/beads.md`).
  *
+ * **Two sources, since batch Q1** (`docs/wager.md` §5)
+ * -----------------------------------------------------
+ * A bead is minted by a **wager kept** (`wagers.ts`, which claims the four
+ * repeatable rows through `awardBead` itself) or by a **grant** — a thing that
+ * hands one over, through `awardBeadGrant`. That is the whole list, and it is a
+ * shorter one than this file was written for: the feats, the endeavours and the
+ * quests are retired, and the machinery that dealt them — the decks, the hands,
+ * the slots, the once-a-turn deal, the count sweep, the streak book, the
+ * reckonings' taking — is deleted rather than left turning over nothing. The
+ * `beads` phase went with it; only `runWorldClock` is left below.
+ *
+ * What is kept and inert is the **announcement seam** (`awardBeadOccasion`) and
+ * the **endeavour gate** (`endeavourError`): the first is how six seams say a
+ * word without knowing anything about beads, and ripping it out would leave the
+ * shared `Occasion` union (`occasions.ts`) with one listener; the second is the
+ * rule that keeps a retired race project out of a queue, and a rule is not
+ * deleted with the piece it refused (`consecrateAt`'s own excuse, one system
+ * over). Both refuse everything, because every row they could reach is retired.
+ *
  * One `switch` per question, in one file
  * -------------------------------------
  * A bead row names a **deed shape**, a **count** and a **boon shape**
@@ -12,28 +31,28 @@
  * bead is a JSON row**. Every seam below calls `awardBeadOccasion` with a word
  * and knows nothing else about the system.
  *
- * Four kinds of question, four ways of asking
- * -------------------------------------------
+ * Two kinds of question, and one of them is retired
+ * -------------------------------------------------
  *   · an **occasion** is announced. `awardOccasion` (`triumphs.ts`) already
  *     stands at ten of the eleven seams a bead cares about, so the bead
  *     listener is hung off that one call rather than added to ten call sites;
  *     the three occasions the Triumph table has no word for — a religion
  *     founded, a palace taken, a great person called — are hooked at their own
- *     seams, in the *mechanism*, so an AI earns them too.
- *   · a **count** is swept, once a turn, in the `beads` phase. "Twelve cities
- *     of six citizens" is a fact about the board, not an event, and a sweep
- *     cannot miss a threshold crossed and uncrossed inside one turn.
- *   · a **streak** is the same count with a memory: `GameState.beads.streaks`
- *     holds a per-seat run per card, raised on a turn the count holds and reset
- *     to zero on a turn it does not, so "for ten turns together" means
- *     together.
+ *     seams, in the *mechanism*, so an AI earns them too. Every row that named
+ *     one is retired, so the listener announces to nobody; see above for why it
+ *     is kept. The **count** and the **streak** went with the sweep that read
+ *     them (batch Q1): a deed swept once a turn was the feats' and the quests'
+ *     half of this file, and `beadCount` is left below as the reading those
+ *     retired rows are written against, the way their bodies are left in
+ *     `data/beads.json`.
  *   · a **grant** is asked no question at all (Entry LVIII, the endgame). It is
  *     the fifth class of row and the one thing here that is not a claim on the
  *     world: a building or a node hands it over, through `awardBeadGrant`, and
  *     because it is a *reward* rather than a first it is **once per empire** —
  *     the register is asked by seat (`beadGrantedTo`) instead of by age. The
  *     Opus's golden bead, the closing technology's, and one for each of the
- *     three great works of the Observatory.
+ *     three great works of the Observatory. The four **repeatable** rows a
+ *     wager pays are grants too, and they are the other live source.
  *
  * The news is a **diff**, never a sink
  * ------------------------------------
@@ -48,12 +67,10 @@
  * One clock for everybody (the user's rule), and since batch G1 it is the
  * **mean** of the board rather than the first seat's tree — the readings live
  * in `worldClock.ts` and the phase that turns it lives here (`runWorldClock`),
- * because opening an age is this table's own business: the closing age's
- * reckonings are taken across every seat at once, the new age's hand turns face
- * up, and the per-age counters reset. What changed is *when* — an age is given
- * `rules.wager.countdown` turns' notice — and what it is read off. What did not
- * is the rule that makes rushing the tree *call* a reckoning rather than
- * forfeit one.
+ * because opening an age is this file's own business: the per-age counters
+ * reset there, and an age closing is the moment the wager is judged on. What
+ * changed is *when* — an age is given `rules.wager.countdown` turns' notice —
+ * and what it is read off.
  */
 
 import {
@@ -69,24 +86,16 @@ import {
   type BeadGrant,
   type BeadGrantDef,
   type BeadGrantId,
-  type BeadPrerequisite,
   type BeadWindfall,
-  BEAD_DECK_AGES,
   BEAD_FEAT_IDS,
-  BEAD_QUEST_IDS,
-  BEAD_RULES,
   anyBeadDef,
   isBeadAge,
   beadEndeavourDef,
   beadFeatDef,
-  beadHandSize,
   beadIsDormant,
-  beadQuestDef,
-  beadReckoningDef,
   isBeadEndeavourId,
-  isBeadReckoningId,
 } from './beadData';
-import { type BuildingId, buildingDef } from './buildingData';
+import type { BuildingId } from './buildingData';
 import type { CardEffect, OrderBeadOccasion } from './statecraftData';
 import {
   capitalCityOf,
@@ -135,7 +144,6 @@ import {
   highestAge,
   isTechId,
   techDef,
-  techsGrant,
 } from './techData';
 import { type UnitTypeId, isCombatant, isUnitTypeId, unitDef } from './unitData';
 import { bumpEconomy } from './slate';
@@ -265,7 +273,15 @@ export function awardBead(
 // --- the occasions ----------------------------------------------------------
 
 /**
- * Awards every live feat and occasion quest whose trigger is this occasion.
+ * Awards every live feat whose trigger is this occasion — **and since batch Q1
+ * every feat is retired, so it awards nothing.**
+ *
+ * Kept, and kept whole, for the reason the module docblock gives: this is the
+ * call six seams make to say a word without knowing anything about beads, and it
+ * is the second listener on the shared `Occasion` union (`occasions.ts`). A deed
+ * that names a moment is a shape the game still has; what it has no rows of is
+ * deeds. The quest half of the loop *is* gone — a quest was claimable only off
+ * the table, and there is no table.
  *
  * **The call every seam makes**, and the reason a seam knows nothing about
  * beads beyond a word. `awardOccasion` (`triumphs.ts`) makes it for the ten
@@ -303,13 +319,6 @@ export function awardBeadOccasion(
     const award = awardBead(state, playerId, id, age);
     if (award) awards.push(award);
   }
-  for (const id of BEAD_QUEST_IDS) {
-    const def = beadQuestDef(id);
-    if (!deedMatches(def.deed, occasion, family)) continue;
-    if (!questIsOnTheTable(state, id)) continue;
-    const award = awardBead(state, playerId, id, 0);
-    if (award) awards.push(award);
-  }
   return awards;
 }
 
@@ -321,39 +330,14 @@ function deedMatches(deed: BeadDeed, occasion: BeadOccasion, family?: Family): b
   return true;
 }
 
-/**
- * Is this age's hand **shown to this seat**, whether or not the world has turned
- * it face up?
- *
- * **The Long Count** (the tree pass of 2026-08-30): an empire that keeps the long
- * count sees the *next* age's hand before that age opens. It is a per-seat
- * reading rather than a write, and that is the whole of why it is here and not a
- * second `faceUp` rule: `card.faceUp` is the **world's** fact and it is what
- * makes a quest claimable (`questIsOnTheTable`), so turning one over early for
- * one seat would hand that seat a bead nobody else could race for. What the
- * technology buys is *sight* — knowing what the age will ask before it asks —
- * and sight is a question a screen asks, never a field.
- *
- * Exactly one age ahead, so a realm that reaches it in Æra II is not handed the
- * whole book.
+/*
+ * `beadHandIsShownTo` and `questIsOnTheTable` stood here and are **gone** (batch
+ * Q1). The first was The Long Count's sight — an empire that kept the long count
+ * saw the next age's hand before that age opened — and the second was the rule
+ * that a quest is claimable only off a face-up card. Both were questions about a
+ * table, and there is no table: `The Long Count` keeps its other gifts and buys
+ * no early look at anything.
  */
-export function beadHandIsShownTo(state: GameState, playerId: number, age: number): boolean {
-  const open = currentWorldAge(state);
-  if (age <= open) return true;
-  if (age !== open + 1) return false;
-  const player = playerById(state, playerId);
-  return player !== undefined && techsGrant(player.techsResearched, 'theLongCount');
-}
-
-/** Is this quest's card face up in its age's hand? A quest is claimable only there. */
-function questIsOnTheTable(state: GameState, id: BeadCardId): boolean {
-  for (const age of BEAD_DECK_AGES) {
-    for (const card of state.beads.hands[String(age)] ?? []) {
-      if (card.id === id) return card.faceUp;
-    }
-  }
-  return false;
-}
 
 // --- the counts -------------------------------------------------------------
 
@@ -367,6 +351,13 @@ function questIsOnTheTable(state: GameState, id: BeadCardId): boolean {
  *
  * Nothing here mutates and nothing here rolls a die, so a count may be asked
  * from a preview, a sweep or a test with no consequences at all.
+ *
+ * **Nothing in the game asks it since batch Q1**, and it is kept for the reason
+ * the rows it reads are kept: a retired feat, quest or reckoning still says on
+ * its face what it counted, and the Compendium prints that face. Deleting the
+ * reading would leave three decks of rows making a claim the code could no
+ * longer answer. It is the switch a deed-shaped bead would be written against
+ * the day one is wanted again.
  */
 export function beadCount(state: GameState, playerId: number, count: BeadCount): number {
   const player = playerById(state, playerId);
@@ -879,115 +870,33 @@ function payGrant(
 // --- endeavours -------------------------------------------------------------
 
 /**
- * Why this empire may not queue this race project, or `null` when it may.
+ * Why this empire may not queue this race project — **and since batch Q1 the
+ * answer is always the same one**: the races are retired.
  *
  * **The** gate, asked twice by design: `isUnlocked` (`tech.ts`) turns it into a
  * yes-or-no so the panel's build list offers exactly what the reducer will
  * accept, and `buildError` prints the sentence. A row an empire cannot see and
- * a row it is refused are one rule.
+ * a row it is refused are one rule, and that rule is what keeps a withdrawn row
+ * out of a queue — so it stays, refusing, rather than being deleted with the
+ * piece it refused. It had three clauses (not on the table, already won by
+ * somebody, the realm does not have what the race asks); the table and the race
+ * are both gone, so one plain sentence is the whole of it.
  *
- * Three clauses, in the order a player needs to hear them: the card is not on
- * the table, somebody has already finished it, or the empire does not yet have
- * what the race asks for.
+ * `prerequisiteMissing` and `endeavourPrerequisiteMet` went with the clauses —
+ * the one `switch` on a `BeadPrerequisite`, and the tick beside "ten cities" the
+ * deed sheet drew. The prerequisite itself is still read, by `beadIsDormant`,
+ * which is the one thing left that asks an endeavour anything.
  */
 export function endeavourError(
   state: GameState,
   playerId: number,
   id: BeadEndeavourId,
 ): string | null {
+  void state;
+  void playerId;
   const def = beadEndeavourDef(id);
-  if (beadIsDormant(id)) return `${def.name} waits on something this age has not reached`;
-  // **Asked before the table**, and the order is the message: a race somebody
-  // has won leaves every hand in the world the moment they win it
-  // (`clearSpentCards`), so a claimed row is also an absent row — and "it is not
-  // on the table" is a true sentence that tells the player nothing about why
-  // their hammers stopped mattering.
-  if (beadClaimed(state, id, def.age)) {
-    const claim = state.beads.claimed.find((one) => one.id === id);
-    const who = claim ? playerById(state, claim.playerId) : undefined;
-    return who ? `${def.name} was finished first by ${who.name}` : `${def.name} is already won`;
-  }
-  if (!questIsOnTheTable(state, id)) return `${def.name} is not on the table`;
-  const missing = prerequisiteMissing(state, playerId, def.prerequisite);
-  if (missing !== null) return `${def.name} wants ${missing}`;
+  if (beadIsDormant(id)) return `${def.name} is no longer raced`;
   return null;
-}
-
-/**
- * Does this empire already have what the race asks for?
- *
- * `prerequisiteMissing` inverted, and exported as its own question because the
- * screen asks a *different* one from `endeavourError`: a row may be met and
- * still refused (somebody else finished it), or unmet and perfectly reachable,
- * and a tick beside "ten cities" is not the same fact as a greyed button. One
- * evaluator, two readings — the `isUnlocked`/`buildError` split one scale in.
- */
-export function endeavourPrerequisiteMet(
-  state: GameState,
-  playerId: number,
-  id: BeadEndeavourId,
-): boolean {
-  return prerequisiteMissing(state, playerId, beadEndeavourDef(id).prerequisite) === null;
-}
-
-/**
- * What an endeavour's prerequisite is still missing, in a player's words, or
- * `null` when the empire meets it.
- *
- * The one `switch` on a `BeadPrerequisite`. Every arm is a plain read, and an
- * empire with no cities at all fails `buildingInEveryCity` rather than passing
- * it by vacuum — "in every city" is a claim about a realm, and a realm with no
- * towns has not made it.
- */
-function prerequisiteMissing(
-  state: GameState,
-  playerId: number,
-  prerequisite: BeadPrerequisite,
-): string | null {
-  const cities = citiesOf(state, playerId);
-  const test = prerequisite.test;
-  switch (test) {
-    case 'citySize': {
-      for (const city of cities) {
-        if (city.population >= prerequisite.value) return null;
-      }
-      return `a city of ${prerequisite.value} citizens`;
-    }
-    case 'buildingInEveryCity': {
-      const name = buildingDef(prerequisite.building).name.toLowerCase();
-      if (cities.length === 0) return `a ${name} in every city`;
-      for (const city of cities) {
-        if (!city.buildings.includes(prerequisite.building)) return `a ${name} in every city`;
-      }
-      return null;
-    }
-    case 'buildingsInCities': {
-      const name = buildingDef(prerequisite.building).name.toLowerCase();
-      let held = 0;
-      for (const city of cities) {
-        if (city.buildings.includes(prerequisite.building)) held += 1;
-      }
-      return held >= prerequisite.cities ? null : `a ${name} in ${prerequisite.cities} cities`;
-    }
-    case 'activeRoutes': {
-      let running = 0;
-      for (const unit of state.units) {
-        if (unit.ownerId === playerId && unit.trade !== undefined) running += 1;
-      }
-      return running >= prerequisite.value ? null : `${prerequisite.value} caravans on the road`;
-    }
-    case 'cities':
-      return cities.length >= prerequisite.value ? null : `${prerequisite.value} cities`;
-    case 'wondersHeld': {
-      const held = wondersHeld(state, playerId, null);
-      return held >= prerequisite.value ? null : `${prerequisite.value} wonders`;
-    }
-    default: {
-      const unhandled: never = test;
-      void unhandled;
-      return null;
-    }
-  }
 }
 
 /**
@@ -1094,14 +1003,12 @@ export interface GreatWorkClose {
  *
  * Two beats, and each reaches machinery that already exists:
  *
- *   1. **the age closes** — `takeReckonings` for the world's current age, the
- *      same call `advanceWorldClock` makes when a seat enters a new one. The
- *      final measures are taken by the one routine that takes every other
- *      measure, ties pay nobody here exactly as they pay nobody there, and the
- *      awards ride out on the ordinary bead diff (`beadsAwarded` /
- *      `beadsSince`) with no new report field anywhere. They are **history, not
- *      arithmetic**: nothing about them decides who won, and they are taken
- *      because an age that ended unmeasured would be a hole in the record.
+ *   1. **the age closes** — the stamp is pulled forward to this turn, so the
+ *      clock phase at the end of it announces the close. Beat one used to be
+ *      `takeReckonings` as well, and both the reckonings (batch G2) and the
+ *      table they were taken off (batch Q1) are retired: the age's measures are
+ *      the wager's now, and they were judged as they were met rather than at the
+ *      curtain.
  *   2. **the winner is the builder** — full stop. The beads are the *door*
  *      (`buildError` refuses the row to a rod short of `BEAD_RULES.threshold`)
  *      and no longer the *close*: an empire that filled its rod, reached the
@@ -1115,7 +1022,14 @@ export interface GreatWorkClose {
  */
 export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose {
   const age = currentWorldAge(state);
-  const awards = takeReckonings(state, age);
+  // **Nothing is measured at the curtain since batch Q1.** Beat one used to be
+  // `takeReckonings` for the world's current age — history rather than
+  // arithmetic, taken because an age that ended unmeasured would be a hole in
+  // the record. The reckonings retired in G2 and their table in Q1, so the hole
+  // is filled by the wager instead: the age's three bars were judged as they
+  // were met, all game, for everybody. `awards` stays on the report because a
+  // caller that says what closing did should not change shape for this.
+  const awards: BeadAward[] = [];
 
   // **The Opus closes the age it was raised in** (`docs/wager.md` §1: the last
   // age "closes only by the Opus … or at `lastAgeTurns` after it opened,
@@ -1139,48 +1053,29 @@ export function closeTheGreatWork(state: GameState, city: City): GreatWorkClose 
 
 // --- the phase --------------------------------------------------------------
 
-/**
- * The `beads` phase, in three beats. Its position in `END_OF_TURN_PHASES` is a
- * rules decision like every other entry: **directly after `worldClock`**, which
- * is itself directly after `renown` — so the turn's standing Triumphs are on
- * the register, the world's age is settled, and a bead swept here reads a board
- * that has finished moving.
+/*
+ * The `beads` phase stood here and is **gone** (batch Q1, `docs/wager.md` §5).
  *
- *   1. **the deal** — one card a turn off the first deck that still has one, into
- *      a hand that is not yet full. Face down until its age opens.
- *   2. **the sweep** — every face-up count and streak deed, and every feat whose
- *      trigger is a count, in seat order.
+ * It had three beats and every one of them served a deed: the broom that took a
+ * spent card off the table, the deal that turned one card a turn off the first
+ * deck with a slot open, and the sweep that read every face-up count and streak
+ * deed for every seat. The feats, endeavours and quests are retired, so the
+ * phase was a walk over three empty tables — and a phase that does nothing is a
+ * place somebody will one day put something.
  *
- * The clock used to be beat one of this phase, because the Bead Race was the
- * only system that asked what age the world was in. Batch G1 lifted it into a
- * phase of its own (`runWorldClock`, below) — the wager, the Horde and the top
- * bar all read it now, and a clock several systems read is not one system's
- * beat. The order is unchanged: it still runs immediately before this.
+ * It had lost a fourth beat already, on 2026-09-04: the first seat to
+ * `BEAD_RULES.threshold` beads simply won, and that reading never once decided a
+ * game. The threshold *opens the Magnum Opus* now (`buildError`, `tech.ts`) and
+ * the game is closed by the work being finished (`closeTheGreatWork`), which
+ * names its builder the winner outright. The beads have been a door rather than
+ * a tally since, and this phase decided nothing before it was deleted.
  *
- * There is **no fourth beat**. Until 2026-09-04 there was one — the first seat
- * to `BEAD_RULES.threshold` beads simply won — and it never once decided a game
- * (`docs/beads.md` flagged it). The ruling moved that number one step earlier:
- * the threshold now *opens the Magnum Opus* (`buildError`, `tech.ts`), and the
- * game is closed by the work being finished (`closeTheGreatWork`), which names
- * its builder the winner outright (schema 69). The beads are a door and nothing
- * in this phase decides a game — the finish line is a thing somebody built
- * rather than a tally quietly crossed in a sweep.
- *
- * Seats are walked in `realPlayers` order throughout, so two seats that cross a
- * threshold on the same turn always resolve the same way, and the wild is
- * skipped for `runStatecraft`'s reason: it has no Abacus and nothing to win.
+ * `runWorldClock` is untouched and keeps its seat in `END_OF_TURN_PHASES`:
+ * directly after `renown`, and now directly before `wagers`, which is the phase
+ * that mints a bead these days.
  */
-export function runBeads(state: GameState, report?: BeadReport): void {
-  const awards: BeadAward[] = [];
 
-  clearSpentCards(state);
-  dealOneCard(state);
-  sweepStandingBeads(state, awards);
-
-  if (report) report.beads.push(...awards);
-}
-
-/** What the phase writes into. `TurnReport`'s two bead fields and nothing else. */
+/** What the clock phase writes into. `TurnReport`'s two bead fields, no more. */
 export interface BeadReport {
   beads: BeadAward[];
   beadAgeOpened?: BeadAge;
@@ -1245,7 +1140,7 @@ export function runWorldClock(state: GameState, report?: BeadReport): void {
     for (const player of realPlayers(state)) {
       awards.push(...awardBeadOccasion(state, player.id, 'ageClosed'));
     }
-    openBeadAge(state, closing, awards);
+    openBeadAge(state, closing);
     if (report) {
       const opened = currentWorldAge(state);
       // **The opening is news, not a diff.** An age opens once, on one turn, and
@@ -1279,224 +1174,46 @@ export function runWorldClock(state: GameState, report?: BeadReport): void {
 }
 
 /**
- * Opens an age: the closing age's reckonings, then the new hand face up, then
- * the per-age counters reset.
+ * Opens an age: the per-age counters reset.
  *
- * The order is the rule. A reckoning is a snapshot of *the age that just ended*
- * and must be taken before anything else moves — which is also the user's
- * ruling in full: "calculated once one player advances to the next age,
- * snapshot all players and assign a victor". Every seat is measured at once,
- * one victor per card by the highest count, and **ties pay nobody** — two
- * empires with nine cities each have not settled the question.
+ * It had two beats before it since batch Q1 took them. **The closing age's
+ * reckonings** were taken first — every seat measured at once on one count, one
+ * victor, ties paying nobody — and then the **new age's hand turned face up**.
+ * The reckonings retired in G2 and the hand in Q1, so what is left is the reset,
+ * and the order that mattered (the counters were reset *after* the reckonings
+ * had read them) no longer has two things to order.
  *
- * The counters reset *after* the reckonings have read them, which is the whole
- * reason the reset lives here and not in the phase above it.
+ * The counters are still reset here rather than in the clock phase above,
+ * because "the age turned over" is the fact that zeroes them and this is the one
+ * place that fact is written down. `Player.routeYieldsThisAge` and
+ * `Player.greatPeopleThisAge` are read by the wager's own countings.
  */
-function openBeadAge(state: GameState, closing: number, awards: BeadAward[]): void {
-  awards.push(...takeReckonings(state, closing));
-
-  // The world's own clock, asked rather than a number handed in: `closing` says
-  // which age's reckonings are due, and `currentWorldAge` says which hands are
-  // now open. Two questions, and on the last age's close they answer differently
-  // — the fourth age closes and nothing opens above it.
-  const open = currentWorldAge(state);
-  for (const age of BEAD_DECK_AGES) {
-    if (age > open) continue;
-    for (const card of state.beads.hands[String(age)] ?? []) card.faceUp = true;
-  }
-
+function openBeadAge(state: GameState, closing: number): void {
+  void closing;
   for (const player of state.players) {
     player.routeYieldsThisAge = 0;
     player.greatPeopleThisAge = 0;
   }
 }
 
-/**
- * Takes the closing age's reckonings: **only the ones on the table**.
+/*
+ * Five routines stood here and are **gone** (batch Q1, `docs/wager.md` §5):
  *
- * A reckoning is an ordinary card of its age's deck (`drawAgeReckonings` picks
- * four of the eight, one per family, at `newGame`), so which of them the world
- * ever answers is a fact about what was *dealt* — the doc's "one per family per
- * age is dealt, so the eight are a pool, not a fixed set". A card still face
- * down, or still in the deck, measures nobody: nobody was ever shown it.
+ *   · `takeReckonings` — the closing age's snapshot, taken off the cards that
+ *     were face up in that age's hand. The rows retired in G2 and it has
+ *     answered `[]` ever since; with the hands deleted it has nothing to read.
+ *   · `cardIsSpent` and `clearSpentCards` — the broom that took a claimed card
+ *     off the table so the deck could deal into the freed slot.
+ *   · `dealOneCard` — one card a turn, off the first deck with a slot open,
+ *     face down until its age opened.
+ *   · `sweepStandingBeads` and `standingDeedHolds` — the once-a-turn read of
+ *     every count and streak deed, and the streak book that made "ten turns
+ *     together" mean together.
  *
- * Every seat is measured at once on one count, the highest takes it, and **ties
- * pay nobody** — two empires with nine cities each have not settled the
- * question. Walked in the hand's own order so two reckonings resolved in one
- * opening always resolve the same way, and `realPlayers` order inside, so a tie
- * broken by seat order is a fact about the roster rather than about which sweep
- * ran first.
- *
- * Two callers, and both are *history*: `openBeadAge`, when the `worldClock`
- * phase closes an age, and `closeTheGreatWork`, so the age a great work ended
- * in is measured like every age before it. Neither reading decides a winner — since
- * schema 69 the builder of the Opus wins outright — so a reckoning taken at the
- * curtain is an annal and nothing more. Exported besides because it is the one
- * seam a test can reach without an age-four technology.
+ * All five were the deal and the sweep, and the deeds they served are retired.
+ * What replaced them is `wagers.ts`: an age deals three bars, a seat stakes one,
+ * and a bead is minted the turn a bar is met.
  */
-export function takeReckonings(state: GameState, closing: number): BeadAward[] {
-  const awards: BeadAward[] = [];
-  for (const card of state.beads.hands[String(closing)] ?? []) {
-    if (!card.faceUp) continue;
-    if (!isBeadReckoningId(card.id)) continue;
-    const id = card.id;
-    if (beadIsDormant(id)) continue;
-    if (beadClaimed(state, id, closing)) continue;
-    const count = beadReckoningDef(id).count;
-    let bestScore = 0;
-    let bestSeat: number | null = null;
-    let tied = false;
-    for (const player of realPlayers(state)) {
-      const score = beadCount(state, player.id, count);
-      if (score <= 0) continue;
-      if (bestSeat === null || score > bestScore) {
-        bestScore = score;
-        bestSeat = player.id;
-        tied = false;
-      } else if (score === bestScore) {
-        tied = true;
-      }
-    }
-    if (bestSeat === null || tied) continue;
-    const award = awardBead(state, bestSeat, id, closing);
-    if (award) awards.push(award);
-  }
-  return awards;
-}
-
-/**
- * Is this card spent — has the world already given away what it offered?
- *
- * The key is the pair the claim was written under, never the bare id, and that
- * precision is load-bearing: the same reckoning may be drawn into **both**
- * decks, and one taken when age 2 closed must not sweep its twin off age 3's
- * table before anybody has answered it. So a quest is asked at `0`, an
- * endeavour at its own age, and a reckoning at the age whose hand it is sitting
- * in.
- */
-function cardIsSpent(state: GameState, age: BeadAge, id: BeadCardId): boolean {
-  if (isBeadEndeavourId(id)) return beadClaimed(state, id, beadEndeavourDef(id).age);
-  if (isBeadReckoningId(id)) return beadClaimed(state, id, age);
-  return beadClaimed(state, id, 0);
-}
-
-/**
- * Takes every spent card off the table, freeing its slot.
- *
- * **A hand is a set of open slots, not a one-time deal** (the ruling of
- * 2026-08-30). Without this the table was a window four cards wide that never
- * moved: a twenty-five card deck would show four of its rows in a whole game
- * and the other twenty-one would never be seen by anybody. With it the deck
- * *flows* through the hand — a card claimed frees its slot, `dealOneCard` fills
- * it on the next tick, and what bounds the age is the deck rather than the hand.
- *
- * A **reckoning holds its slot** until its age closes, and needs no clause of
- * its own to do it: a reckoning is claimed *at* the closing, which is the
- * moment it stops being worth a slot.
- *
- * Run before the deal and after the previous turn's sweep, so a card claimed
- * last turn is gone before this turn's card is dealt. It is a **broom**, exactly
- * like `pruneTimedEffects`: a spent card is already inert (`awardBead` refuses
- * it, `endeavourError` refuses it), so removing it changes no outcome — which is
- * what makes it safe to run anywhere, twice, or not at all.
- */
-function clearSpentCards(state: GameState): void {
-  for (const age of BEAD_DECK_AGES) {
-    const key = String(age);
-    const hand = state.beads.hands[key];
-    if (!hand) continue;
-    state.beads.hands[key] = hand.filter((card) => !cardIsSpent(state, age, card.id));
-  }
-}
-
-/**
- * Deals one card, once a turn, off the first deck that still has one into a hand
- * with a slot open.
- *
- * The hand fills **over** the age rather than all at once, which is Entry VI's
- * drafting model: a card dealt before its age opens lies face down — it is
- * there, it is in the seeded order, and nobody may claim it — and it turns over
- * with the rest the moment the first seat in the world reaches that age. So the
- * deck for an age nobody has entered still deals, and the deal is a fact about
- * the *turn* rather than about who looked at a screen.
- *
- * "Not full" is asked *after* `clearSpentCards` has swept the table, which is
- * the whole of the open-slot rule: a hand of four with one card claimed is a
- * hand of three, and the deck fills it back up.
- *
- * `BEAD_DECK_AGES` order, so the earlier age's hand always fills first and the
- * order of the world's table is a property of the data.
- */
-function dealOneCard(state: GameState): void {
-  if (state.turn % Math.max(1, Math.floor(BEAD_RULES.dealEveryTurns)) !== 0) return;
-  for (const age of BEAD_DECK_AGES) {
-    const key = String(age);
-    const deck = state.beads.decks[key];
-    const hand = state.beads.hands[key];
-    if (!deck || !hand) continue;
-    if (hand.length >= beadHandSize(age)) continue;
-    const id = deck.shift();
-    if (id === undefined) continue;
-    hand.push({ id, faceUp: age <= currentWorldAge(state) });
-    return;
-  }
-}
-
-/**
- * Sweeps every count and streak deed for every real seat.
- *
- * Feats first, then the quests on the table, both in file order and both inside
- * a walk of `realPlayers` — so a threshold two seats crossed on the same turn is
- * always taken by the same one, and that one is a fact about seat order rather
- * than about which sweep happened to run first.
- *
- * A **streak** is the only thing here that writes state of its own: the run is
- * raised on a turn the count holds and set to zero on a turn it does not, which
- * is what makes "ten turns together" mean together. The book is per seat per
- * card and is never pruned — a finished card's entry is a handful of bytes and
- * deleting it would be a second rule about a thing that is already claimed.
- */
-function sweepStandingBeads(state: GameState, awards: BeadAward[]): void {
-  for (const player of realPlayers(state)) {
-    for (const id of BEAD_FEAT_IDS) {
-      const def = beadFeatDef(id);
-      const age = def.once === 'age' ? highestAge(player.techsResearched) : 0;
-      if (!standingDeedHolds(state, player, id, def.trigger)) continue;
-      const award = awardBead(state, player.id, id, age);
-      if (award) awards.push(award);
-    }
-    for (const id of BEAD_QUEST_IDS) {
-      const def = beadQuestDef(id);
-      if (!questIsOnTheTable(state, id)) continue;
-      if (!standingDeedHolds(state, player, id, def.deed)) continue;
-      const award = awardBead(state, player.id, id, 0);
-      if (award) awards.push(award);
-    }
-  }
-}
-
-/**
- * Does this count or streak deed hold for this seat right now?
- *
- * An occasion deed answers `false` — it is announced, never swept, which is
- * `standingHolds`' own split one system over.
- */
-function standingDeedHolds(
-  state: GameState,
-  player: Player,
-  id: BeadCardId,
-  deed: BeadDeed,
-): boolean {
-  if (deed.shape === 'occasion') return false;
-  const held = beadCount(state, player.id, deed.count) >= deed.value;
-  if (deed.shape === 'count') return held;
-
-  const book = (state.beads.streaks[String(player.id)] ??= {});
-  const run = held ? (book[id] ?? 0) + 1 : 0;
-  book[id] = run;
-  return run >= deed.turns;
-}
-
 /*
  * `namePossibleWinner` stood here until 2026-09-04 and is **retired**: crossing
  * the threshold no longer wins the game, it opens the Magnum Opus (see

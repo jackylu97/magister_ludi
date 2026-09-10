@@ -21,19 +21,23 @@ voice ruling; Æra IV ≈ the 1400s).
 
 ## Victory — the Bead Race
 
-One win condition: beads on an abacus. Sources: deeds (per-age decks, drawn
-3|4), age-entry dice, contested triumphs (`(id, age)`, first by log order),
-per-empire grants, Alchemy pays every completer. The endgame: first Alchemy
+One win condition: beads on an abacus. **Two sources** since batch Q1 (schema
+107, `docs/wager.md` §5): a **wager kept** — the age's three bars, staked one
+each — and a **grant**, the handful of things that hand a bead over (Alchemy
+pays every completer, the three great works of the sky, the Opus itself). The
+deeds are retired with their decks: feats, endeavours, quests and reckonings keep
+their rows for the Compendium's record and pay nobody, and the deal that put them
+in front of a player is gone from the state. The endgame: first Alchemy
 world-unlocks the **Magnum Opus** (once-per-empire 1200⚙ building, accepts
-gold/faith contributions); completion → golden bead → the age closes →
-reckonings (history) → **the builder wins outright** (ruled 2026-09-05, schema
-69: the most-beads reading and its tie rule are retired). `opusOpen` is derived,
-never stored. **The 20-bead threshold opens the Opus** (ruled 2026-09-04, schema
-64): an empire may begin the great work only while it holds that many, and the
-threshold's old reading — first seat to it wins outright, which never decided a
-game — is retired. So beads gate the door and the finished work decides the
-game. Pacing note: a one-city bench holds four beads at t1700, so
-the gate is a real barrier, not a formality.
+gold/faith contributions); completion → golden bead → the age closes → **the
+builder wins outright** (ruled 2026-09-05, schema 69: the most-beads reading and
+its tie rule are retired). `opusOpen` is derived, never stored. **The threshold
+opens the Opus** (ruled 2026-09-04, schema 64): an empire may begin the great
+work only while it holds that many, and the threshold's old reading — first seat
+to it wins outright, which never decided a game — is retired. So beads gate the
+door and the finished work decides the game. The figure is
+`rules.threshold` = **7**, re-cut on the bench for a world
+with no deeds in it (Q1; it was 20, which was priced for the decks).
 
 ## Economy
 

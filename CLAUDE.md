@@ -353,8 +353,11 @@ be renamed — it would change every seeded outcome. No further rename passes.
   carry card effects (`liveEffects`' tenth source), `paysBead`, `ageEntryDice`.
 - **Endgame**: `opusOpen(state)` is DERIVED (any real player holds `alchemy`),
   no stored flag. Opus completion → golden bead → `closeTheGreatWork` →
-  `takeReckonings` (history only) → `winnerId` = **the builder**; beads gate the
-  door (the threshold in `buildError`), never the close.
+  `winnerId` = **the builder**; beads gate the door (the threshold in
+  `buildError`), never the close. **A bead comes from a wager kept or a grant**
+  (Q1, schema 108): feats/quests/endeavours/reckonings are `retired: true` rows
+  (bodies kept for saves and the Compendium), there is no `beads` phase, and
+  `newGame` shuffles no deck.
 - **A runtime import cycle** is caught by `test/mapgen/moduleCycles.test.ts`
   (globs every `src/sim/*.ts` **and `src/sim/*/*.ts`** as an entry).
   `export * from` a module that imports you back comes out **empty** under the

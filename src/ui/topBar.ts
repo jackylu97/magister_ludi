@@ -763,8 +763,8 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
    * The one chip on this strip that is not about *this* empire. Every other
    * figure here is the local seat's own — its yields, its renown, its routes,
    * its beads — and the age is the world's, held in common: it is the calendar
-   * every empire's deed table, and from G2 every empire's wager, is judged
-   * against. A player who cannot see it cannot see the deadline they are
+   * every empire's wager is judged against (the deed tables were the other
+   * reader until batch Q1 retired them). A player who cannot see it cannot see the deadline they are
    * playing to, and "a wager with a hidden deadline is a coin toss" is the
    * user's own reading (§1).
    *
@@ -882,7 +882,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
 
     const recent = (player?.beads ?? []).slice(-3).reverse();
     if (recent.length === 0) {
-      box.append(element('p', 'hint', 'No bead yet. Every bead is a first in the world.'));
+      box.append(element('p', 'hint', 'No bead yet. A wager kept is the ordinary way to one.'));
     } else {
       const list = element('ul', 'meter-lines ledger');
       for (const earned of recent) {
@@ -912,7 +912,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
       rods.append(row);
     }
     box.append(rods);
-    if (onOpenBeads) box.append(element('p', 'hint', '☞ Press V for the whole table.'));
+    if (onOpenBeads) box.append(element('p', 'hint', '☞ Press V for the whole ledger.'));
     return box;
   }
 

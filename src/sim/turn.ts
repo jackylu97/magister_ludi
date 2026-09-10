@@ -102,9 +102,9 @@
  * ever fire on a hand-edited state, which is a phase no test can honestly cover.
  */
 
-import { barbarianTurn } from './barbarians';
-import { buildingAdjacentHeal } from './buildingEffects';
-import type { CampBounty } from './camps';
+import { barbarianTurn } from "./barbarians";
+import { buildingAdjacentHeal } from "./buildingEffects";
+import type { CampBounty } from "./camps";
 import {
   advanceProduction,
   expandBorders,
@@ -115,38 +115,45 @@ import {
   type ConsecrationReport,
   type StarvationReport,
   type WonderCompletion,
-} from './cities';
+} from "./cities";
+import { collectYields } from "./yields/empire";
 import {
-  collectYields,
-} from './yields/empire';
-import { type CombatOutcome, type SiegeReport, advanceFortify, healCities } from './combat';
-import type { PillageReport } from './improvements';
-import type { DisbandReport } from './upkeep';
-import { hasLineOfSight } from './los';
-import { openPeriodicOffers, pruneTimedEffects, spreadReligion } from './religion';
-import { getTileAt, tileHex, wrappedDistance } from './map';
-import { advanceAlongPath } from './movement';
+  type CombatOutcome,
+  type SiegeReport,
+  advanceFortify,
+  healCities,
+} from "./combat";
+import type { PillageReport } from "./improvements";
+import type { DisbandReport } from "./upkeep";
+import { hasLineOfSight } from "./los";
+import {
+  openPeriodicOffers,
+  pruneTimedEffects,
+  spreadReligion,
+} from "./religion";
+import { getTileAt, tileHex, wrappedDistance } from "./map";
+import { advanceAlongPath } from "./movement";
 import {
   cardBehaviorRule,
   cardUnitStat,
   musterPeriodicUnits,
   runPeriodicBoons,
   runStatecraft,
-} from './statecraft';
-import { type PeaceOutcome, settlePeace } from './diplomacy';
-import { pruneTruces } from './wars';
+} from "./statecraft";
+import { type PeaceOutcome, settlePeace } from "./diplomacy";
+import { pruneTruces } from "./wars";
 // The bargains' own broom, beside the truces': both sweep rows whose absolute
 // expiry has arrived, and neither changes an outcome by doing it.
-import { type DealEndReport, pruneDeals } from './deals';
-import { reviewLegacies } from './greatPeople';
-import { type GuildReport, runGuilds } from './guilds';
-import { type BeadAward, beadMarks, beadsSince, runBeads, runWorldClock } from './beads';
-import { runWagers } from './wagers';
-import { runCensus } from './census';
-import type { BeadAge } from './beadData';
-import { runRenown, settleRenownWindfall } from './renown';
-import { advanceResearch } from './tech';
-import { type ExploreEndReport, marchExplorers } from './explore';
+import { type DealEndReport, pruneDeals } from "./deals";
+import { reviewLegacies } from "./greatPeople";
+import { type GuildReport, runGuilds } from "./guilds";
+import { type BeadAward, beadMarks, beadsSince, runWorldClock } from "./beads";
+import { runWagers } from "./wagers";
+import { runCensus } from "./census";
+import type { BeadAge } from "./beadData";
+import { runRenown, settleRenownWindfall } from "./renown";
+import { advanceResearch } from "./tech";
+import { type ExploreEndReport, marchExplorers } from "./explore";
 import {
   type RouteEndReport,
   endRoute,
@@ -155,14 +162,20 @@ import {
   routeLegPath,
   routeMode,
   routeTarget,
-} from './trade';
-import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
-import { type CensusRecord, type GameState, type Unit, bumpRevision, wakeUnit } from './state';
-import { setSlatePhase } from './slate';
-import { isCombatant, unitDef, unitMaxHp } from './unitData';
-import { fullMovement, isRested } from './units';
-import { RULES } from './rulesData';
-import { recomputeAllVisibility, sightOf } from './visibility';
+} from "./trade";
+import { type TriumphAward, triumphMarks, triumphsSince } from "./triumphs";
+import {
+  type CensusRecord,
+  type GameState,
+  type Unit,
+  bumpRevision,
+  wakeUnit,
+} from "./state";
+import { setSlatePhase } from "./slate";
+import { isCombatant, unitDef, unitMaxHp } from "./unitData";
+import { fullMovement, isRested } from "./units";
+import { RULES } from "./rulesData";
+import { recomputeAllVisibility, sightOf } from "./visibility";
 
 /**
  * What a resolution *did* that stops being visible the instant it is over.
@@ -354,7 +367,12 @@ export interface TurnReport {
    * finished — the same courtesy `reportArrivals` already takes for a
    * multi-hex march that found more than one thing.
    */
-  campBounties: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
+  campBounties: {
+    ownerId: number;
+    col: number;
+    row: number;
+    bounty: CampBounty;
+  }[];
   /**
    * Every bead anybody clacked during the resolution, in the order they were
    * earned (`BeadAward`, design ledger Entry VI).
@@ -410,7 +428,12 @@ export interface TurnReport {
    * the three on one turn (a wager is a bar, not a race) and the Abacus flips on
    * each of them the way it flips on a bead.
    */
-  wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
+  wagerClaims?: {
+    playerId: number;
+    wager: string;
+    index: number;
+    beads: number;
+  }[];
   /**
    * **The census taken during this resolution**, or absent — which it is on
    * every turn but a dozen in a whole game (batch C1, `docs/wager.md` §10).
@@ -508,7 +531,7 @@ export interface TurnPhase {
  */
 export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   {
-    name: 'settleDiplomacy',
+    name: "settleDiplomacy",
     // **First, beside the other broom**, and it is two things in one beat: the
     // spent truces are swept out (`pruneTruces` — a broom rather than a clock,
     // exactly like the phase below it: every reader compares an absolute turn,
@@ -526,7 +549,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: settleDiplomacy,
   },
   {
-    name: 'pruneTimedEffects',
+    name: "pruneTimedEffects",
     // **First**, and it is a broom rather than a clock (ledger Entry XXVIII).
     // Every reader of a rite compares `state.turn` against an absolute
     // `expiresTurn`, so an effect that has run out is already inert and deleting
@@ -536,7 +559,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: pruneTimedEffects,
   },
   {
-    name: 'spreadReligion',
+    name: "spreadReligion",
     // The tide, run once for the world — **before `collectYields`**, and the
     // position is the rule (`docs/religion-v2.md`): a town whose citizens turn
     // this turn flies its new banner *before* anything is banked, so the founder
@@ -549,7 +572,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: spreadReligion,
   },
   {
-    name: 'collectYields',
+    name: "collectYields",
     // Re-assigns citizens, then banks food, hammers, gold, science and culture —
     // and, last of all, lets the creditors take a piece off an empire deep
     // enough in arrears (the maintenance ruling, 2026-08-28), which is the one
@@ -558,12 +581,12 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: collectYields,
   },
   {
-    name: 'growCities',
+    name: "growCities",
     // Spends a full food basket on a population point, or starves one away.
     run: growCities,
   },
   {
-    name: 'guilds',
+    name: "guilds",
     // A town's own renown quietly takes a citizen out of the fields and puts
     // them in a trade (ledger Entry XLVIII). Its position is the usual rules
     // decision, and it is a pair of sentences:
@@ -580,20 +603,20 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: runGuilds,
   },
   {
-    name: 'advanceProduction',
+    name: "advanceProduction",
     // Completes at most one item per city, carrying the overflow forward — and
     // reports any wonder claimed, which is the one completion the whole world
     // hears about. The second phase to write into the report, after the wild.
     run: advanceProduction,
   },
   {
-    name: 'advanceResearch',
+    name: "advanceResearch",
     // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
     // army up its upgrade chains the moment one lands.
     run: advanceResearch,
   },
   {
-    name: 'periodicBoons',
+    name: "periodicBoons",
     // The calendar's own beat (`CardPeriodicEffect`): every Order whose clock has
     // come round pays its windfall, and every clock is re-stamped.
     //
@@ -614,7 +637,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
       }),
   },
   {
-    name: 'statecraft',
+    name: "statecraft",
     // Culture buys a draft, and a tier buys a government offer. Directly after
     // `advanceResearch` because the two are the same shape — an empire spending
     // a pool `collectYields` filled at the top of this resolution — and because
@@ -625,7 +648,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: runStatecraft,
   },
   {
-    name: 'religion',
+    name: "religion",
     // The cadenced drafts — Keeper of the Calendar's almanac, and nothing else
     // today. Directly after `statecraft` because it is the same shape one
     // currency over: an offer dealt from `state.rng` at the end of a resolution,
@@ -635,7 +658,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: openPeriodicOffers,
   },
   {
-    name: 'muster',
+    name: "muster",
     // The cadenced *pieces* — The Standing Levy's spear, and nothing else
     // today. Its own beat rather than a clause inside `statecraft`, because a
     // levy is not a draft: nothing is spent, nothing is chosen, and nothing
@@ -647,7 +670,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: musterPeriodicUnits,
   },
   {
-    name: 'renown',
+    name: "renown",
     // Buildings and wonders pay their trickle, standing Triumphs are claimed,
     // and a filled ladder deals a great person. Directly after `religion`
     // because it is the same shape a fifth currency over — an empire spending a
@@ -658,30 +681,28 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: runRenown,
   },
   {
-    name: 'worldClock',
+    name: "worldClock",
     // **The world's calendar** (batch G1, `docs/wager.md` §1): an age closes
     // when the stamp on it says so, and a new countdown opens when the world's
     // *mean* age crosses into the next one.
     //
     // Its position is the usual rules decision, and it is one sentence: **every
     // phase that reads the world's age must run after this one.** The loudest
-    // of them is directly below — the deed tables turn face up in this phase
-    // and are swept for a bead in the next — and the wager's deal and
-    // judgement (G2) and the Horde's surge (H1) join them behind it for the
-    // same reason. A world that opened an age in one phase and swept its cards
-    // in a phase *above* it would be dealing this age's table for the last
-    // age's world.
+    // of them is directly below — the wager's deal and judgement (G2) — and the
+    // Horde's surge (H1) joins them behind it for the same reason. A world that
+    // opened an age in one phase and judged that age's bars in a phase *above*
+    // it would be measuring the age that is ending.
     //
     // **After `renown`**, which is the seat the clock held when it was beat one
-    // of `runBeads` (this is a lift, not a move): the turn's standing Triumphs
-    // and its recruitments are on the register before an age is snapshotted by
-    // a reckoning. It became a phase of its own because the clock is no longer
-    // the Bead Race's private business — the wager, the Horde and the top bar
-    // all read it. See `runWorldClock`.
+    // of the old `beads` phase (this is a lift, not a move): the turn's standing
+    // Triumphs and its recruitments are on the register before an age turns
+    // over. It became a phase of its own because the clock is no longer the Bead
+    // Race's private business — the wager, the Horde and the top bar all read
+    // it. See `runWorldClock`.
     run: runWorldClock,
   },
   {
-    name: 'wagers',
+    name: "wagers",
     // **The age's own bars** (batch G2, `docs/wager.md` §2): the deal, the
     // running totals, the claims and the judgement.
     //
@@ -689,17 +710,16 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // **Directly after `worldClock`**, because every question this phase asks is
     // about the age and the clock is what decides that an age closed on this
     // turn — a deal taken above it would be dealing the age that is ending.
-    // **Directly before `beads`**, because a wager kept mints beads and the deed
-    // sweep in the very next phase reads the rod they land on; a claim settled
-    // below the sweep would be a bead that arrives a turn late on every screen
-    // that counts one.
+    // It is **the** phase that mints a bead now (batch Q1): the deed tables that
+    // used to sweep for one directly below it are retired, so a wager kept and
+    // the grants handed over at their own seams are the whole of the race.
     //
-    // It skips the wild for `runBeads`' reason: the wild is dealt no card and
-    // stakes nothing. See `runWagers`.
+    // It skips the wild for `runStatecraft`'s reason: the wild is dealt nothing
+    // and stakes nothing. See `runWagers`.
     run: runWagers,
   },
   {
-    name: 'census',
+    name: "census",
     // **The world, measured** (batch C1, `docs/wager.md` §10/§11): every
     // thirteen to seventeen turns the clerks rank every living empire on one
     // figure, and the seat at the head takes a Triumph.
@@ -708,33 +728,24 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // **Directly after `wagers`**, because a bar cleared on this very turn has
     // already minted its beads and a census of the rods should count them — and
     // because both phases are about a board the clock above them has already
-    // settled. **Directly before `beads`**, because the leader's Triumph pays
-    // renown through `settleRenownWindfall` and the deed sweep in the very next
-    // phase reads the register it lands on.
+    // settled. It stood directly before `beads` while that phase existed (the
+    // deed sweep read the renown its Triumph paid); batch Q1 retired the deeds
+    // and the phase, and the census is now the last of the three.
     //
     // It skips the wild for `runBeads`' reason: the wild has no page in the
     // census and nothing to lead. See `runCensus`.
     run: runCensus,
   },
+  /*
+   * The `beads` phase stood here and is **gone** (batch Q1, `docs/wager.md`
+   * §5). It dealt one card of a deed deck a turn and swept every standing deed
+   * on a board whose age `worldClock` had just settled; the feats, endeavours
+   * and quests are retired, so it dealt nothing and swept nothing. What mints a
+   * bead now is the phase directly above — a wager kept — and the grants, which
+   * are handed over at their own seams and never in a sweep.
+   */
   {
-    name: 'beads',
-    // The Bead Race's own beat (design ledger Entry VI): one card is dealt and
-    // every standing deed is swept, on a board whose age the phase above has
-    // just settled.
-    //
-    // Its position is the usual rules decision. **Directly after `renown`**, so
-    // the turn's standing Triumphs and its recruitments are already on the
-    // register before a bead is swept — a great person called this turn is a
-    // great person the Dynasty's count can see. And **before `expandBorders`**
-    // for `renown`'s own reason one phase down: everything a deed reads has
-    // already grown, built, learnt and been paid this turn.
-    //
-    // It skips the wild the way `runStatecraft` does: the wild has no Abacus
-    // and nothing to win.
-    run: runBeads,
-  },
-  {
-    name: 'reviewLegacies',
+    name: "reviewLegacies",
     // The two revocations that are **conditions of a turn** rather than events:
     // Hypatia's mob and Boudica's century. Directly after `renown`, because that
     // is the phase that can hand an empire a legacy in the first place, and
@@ -747,12 +758,12 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: reviewLegacies,
   },
   {
-    name: 'expandBorders',
+    name: "expandBorders",
     // Culture buys the next tile for each city, best-scoring first.
     run: expandBorders,
   },
   {
-    name: 'healCities',
+    name: "healCities",
     // Towns recover unconditionally, unlike units: there is no "did it act?"
     // question to ask of a city — with the one exception of a **siege**, which
     // is asked here because a siege is exactly the absence of this heal plus a
@@ -767,7 +778,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: healCities,
   },
   {
-    name: 'barbarians',
+    name: "barbarians",
     // The wild founds camps, musters bands and raids — after the towns have had
     // their turn, so a raid is resolved against the world this turn produced, and
     // *before* `healUnits`, so a raider that marched or fought is not resting.
@@ -776,7 +787,7 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: barbarianTurn,
   },
   {
-    name: 'healUnits',
+    name: "healUnits",
     // Units that spent nothing this turn recover; anyone who marched or fought
     // does not. Reads `movesLeft` and `hasAttacked`, so it must run before
     // `resetMovement` clears both — and after `barbarians`, so the question is
@@ -784,21 +795,21 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: healUnits,
   },
   {
-    name: 'advanceFortify',
+    name: "advanceFortify",
     // Everybody still dug in digs a little deeper. After `healUnits`, because
     // fortifying and resting are different questions and a unit that fortified
     // this turn has still been standing still all of it.
     run: advanceFortify,
   },
   {
-    name: 'marchTraders',
+    name: "marchTraders",
     // The caravans keep walking, turn around at each end, and drop a route that
     // has run out. Directly before `spendLeftoverMovement`, and the position is
     // the rule — see `marchTraders`.
     run: marchTraders,
   },
   {
-    name: 'marchExplorers',
+    name: "marchExplorers",
     // The explorers aim themselves at the next unseen hex, or stand down when
     // there is none left within reach. Directly before `spendLeftoverMovement`
     // — `marchTraders`' seat and argument: this phase decides *where* a ranging
@@ -807,26 +818,26 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     run: marchExplorers,
   },
   {
-    name: 'spendLeftoverMovement',
+    name: "spendLeftoverMovement",
     // Standing orders march once more on **this** turn's unspent points, before
     // anything is refilled. The position is the rule — see the function.
     run: spendLeftoverMovement,
   },
   {
-    name: 'resetMovement',
+    name: "resetMovement",
     // Refills every allowance and clears `hasAttacked` — and resumes nothing.
     // The march is the phase above, on the points this turn granted; see both
     // functions for the ruling that moved it there.
     run: resetMovement,
   },
   {
-    name: 'wakeSleepers',
+    name: "wakeSleepers",
     // A sleeping civilian with a foreign combatant inside its own sight wakes.
     // **Last**, and the position is the rule — see `wakeSleepers`.
     run: wakeSleepers,
   },
   {
-    name: 'refreshVisibility',
+    name: "refreshVisibility",
     // Last, and unconditionally, for every seat.
     //
     // Every *individual* mutation already refreshes the empire it belongs to —
@@ -868,7 +879,7 @@ function healUnits(state: GameState): void {
     // outside your borders, which is what makes the clause bite on a campaign
     // rather than only in a rival's homeland.
     if (
-      cardBehaviorRule(state, unit.ownerId, 'noHealAbroad') &&
+      cardBehaviorRule(state, unit.ownerId, "noHealAbroad") &&
       tileOwnerPlayerId(state, unit.col, unit.row) !== unit.ownerId
     ) {
       continue;
@@ -879,7 +890,10 @@ function healUnits(state: GameState): void {
     // ends up healing past its cap.
     unit.hp = Math.min(
       maxHp,
-      unit.hp + amount + cardUnitStat(state, unit, 'heal') + keepHeal(state, unit),
+      unit.hp +
+        amount +
+        cardUnitStat(state, unit, "heal") +
+        keepHeal(state, unit),
     );
   }
 }
@@ -1038,7 +1052,11 @@ function marchTraders(state: GameState, report: TurnReport): void {
  *      route the board agreed to and re-derive it against a board that may have
  *      an enemy standing on it.
  */
-function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void {
+function marchOneTrader(
+  state: GameState,
+  unit: Unit,
+  report: TurnReport,
+): void {
   const route = unit.trade;
   if (!route) return;
 
@@ -1066,7 +1084,8 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
       // A fresh leg on the same terms — the whole of "auto-resend". The expiry
       // is *rewritten* rather than extended, so a caravan that sat at home for
       // ten turns does not carry ten turns of credit.
-      route.expiresTurn = state.turn + Math.max(1, Math.floor(RULES.trade.routeTurns));
+      route.expiresTurn =
+        state.turn + Math.max(1, Math.floor(RULES.trade.routeTurns));
       noteEnd(true);
     }
     route.outbound = !route.outbound;
@@ -1089,9 +1108,12 @@ function marchOneTrader(state: GameState, unit: Unit, report: TurnReport): void 
     // narrowing of the piece's own profile, so a leg it finds is a leg
     // `advanceAlongPath` can walk.
     const pair = routeCities(state, unit);
-    const other = pair === null ? null : target.id === pair.to.id ? pair.from : pair.to;
+    const other =
+      pair === null ? null : target.id === pair.to.id ? pair.from : pair.to;
     const path =
-      pair && other ? routeLegPath(state, unit, other, target, routeMode(route)) : null;
+      pair && other
+        ? routeLegPath(state, unit, other, target, routeMode(route))
+        : null;
     if (!path || path.length === 0) {
       // **A jam is not a wall**, which is `advanceAlongPath`'s own distinction
       // read one level up: the commonest reason a caravan cannot path to a town
@@ -1295,7 +1317,7 @@ export function runEndOfTurn(state: GameState): TurnReport {
     try {
       phase.run(state, report);
     } finally {
-      setSlatePhase('');
+      setSlatePhase("");
     }
     bumpRevision(state);
   }
@@ -1304,7 +1326,9 @@ export function runEndOfTurn(state: GameState): TurnReport {
   // Matching on the pair `(playerId, id)` is exact: a bead is claimed once in
   // the world, so one seat can hold one row once and there is nothing to
   // disambiguate.
-  const already = new Set(report.beads.map((award) => `${award.playerId}:${award.id}`));
+  const already = new Set(
+    report.beads.map((award) => `${award.playerId}:${award.id}`),
+  );
   for (const award of beadsSince(state, beadMarksBefore)) {
     if (already.has(`${award.playerId}:${award.id}`)) continue;
     report.beads.push(award);

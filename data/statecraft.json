@@ -6216,7 +6216,7 @@
       "rarity": "rare",
       "flavor": "Ask the last questions first.",
       "text": "The learning of the last age is counted toward the great work itself.",
-      "note": "Dealt only once the last age is reached, and earned only there.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "beadPerOccasion",
@@ -6224,7 +6224,8 @@
           "bead": "theLastLearning",
           "every": 2
         }
-      ]
+      ],
+      "retired": true
     },
     "theLastLaurels": {
       "name": "The Last Laurels",
@@ -6235,14 +6236,15 @@
       "rarity": "rare",
       "flavor": "Refuse the wreath and they carve you two.",
       "text": "A draft turned down is counted toward the great work itself.",
-      "note": "Dealt only once the last age is reached, and earned only there.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "beadPerOccasion",
           "occasion": "draftPassed",
           "bead": "theWreathRefused"
         }
-      ]
+      ],
+      "retired": true
     },
     "theSaltedEarth": {
       "name": "The Salted Earth",
@@ -6253,14 +6255,15 @@
       "rarity": "rare",
       "flavor": "Nothing grows there now. That was the point.",
       "text": "A city put to the torch is counted toward the great work itself.",
-      "note": "Dealt only once the last age is reached, and earned only there.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "beadPerOccasion",
           "occasion": "cityRazed",
           "bead": "theSownSalt"
         }
-      ]
+      ],
+      "retired": true
     },
     "theFinalProclamation": {
       "name": "The Final Proclamation",
@@ -6271,14 +6274,15 @@
       "rarity": "rare",
       "flavor": "Read once, in every square, at the same hour.",
       "text": "A prophet’s proclamation is counted toward the great work itself.",
-      "note": "Dealt only once the last age is reached, and earned only there.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it.",
       "effects": [
         {
           "kind": "beadPerOccasion",
           "occasion": "proclamationMade",
           "bead": "theWordGoneOut"
         }
-      ]
+      ],
+      "retired": true
     },
     "theEldersWrit": {
       "name": "The Elders' Writ",

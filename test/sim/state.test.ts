@@ -1,9 +1,9 @@
-import { describe, expect, it } from 'vitest';
-import { newPlayerStatecraft } from '../../src/sim/statecraft';
-import { newPlayerPantheon } from '../../src/sim/religionData';
-import { type Command, applyCommand } from '../../src/sim/commands';
-import { unitProductionCost, unitRosterCost } from '../../src/sim/cities';
-import { RULES } from '../../src/sim/rulesData';
+import { describe, expect, it } from "vitest";
+import { newPlayerStatecraft } from "../../src/sim/statecraft";
+import { newPlayerPantheon } from "../../src/sim/religionData";
+import { type Command, applyCommand } from "../../src/sim/commands";
+import { unitProductionCost, unitRosterCost } from "../../src/sim/cities";
+import { RULES } from "../../src/sim/rulesData";
 import {
   type GameConfig,
   type GameState,
@@ -13,26 +13,27 @@ import {
   cityById,
   clearTurnEnded,
   deriveGameplayRng,
+  drawCensusInterval,
   emptyRenownFeed,
   hasEndedTurn,
   newGame,
   normalizeConfig,
   playerById,
   unitById,
-} from '../../src/sim/state';
-import { researchPlan } from '../../src/sim/tech';
-import { END_OF_TURN_PHASES, runEndOfTurn } from '../../src/sim/turn';
-import { generateMap } from '../../src/sim/mapgen';
-import { nextUint32 } from '../../src/sim/rng';
+} from "../../src/sim/state";
+import { researchPlan } from "../../src/sim/tech";
+import { END_OF_TURN_PHASES, runEndOfTurn } from "../../src/sim/turn";
+import { generateMap } from "../../src/sim/mapgen";
+import { nextUint32 } from "../../src/sim/rng";
 
 function config(overrides: Partial<GameConfig> = {}): GameConfig {
   return {
     seed: 4242,
-    sizeName: 'duel',
+    sizeName: "duel",
     players: [
-      { name: 'Ada', color: '#e8503a', isHuman: true },
-      { name: 'Bors', color: '#3a7fe8' },
-      { name: 'Cleo', color: '#4caf50' },
+      { name: "Ada", color: "#e8503a", isHuman: true },
+      { name: "Bors", color: "#3a7fe8" },
+      { name: "Cleo", color: "#4caf50" },
     ],
     ...overrides,
   };
@@ -45,11 +46,11 @@ function clone(state: GameState): GameState {
 
 /** `endTurn` for one seat. Every command names the player who issued it. */
 function endTurn(playerId: number): Command {
-  return { type: 'endTurn', playerId };
+  return { type: "endTurn", playerId };
 }
 
-describe('newGame', () => {
-  it('starts on turn 1 with every seat open and the opening rosters', () => {
+describe("newGame", () => {
+  it("starts on turn 1 with every seat open and the opening rosters", () => {
     const state = newGame(config());
     expect(state.schemaVersion).toBe(SCHEMA_VERSION);
     expect(state.turn).toBe(RULES.game.startingTurn);
@@ -61,11 +62,13 @@ describe('newGame', () => {
     // the entity counter has already handed out their ids.
     const perPlayer = RULES.startingUnits.length;
     expect(state.units).toHaveLength(state.players.length * perPlayer);
-    expect(state.nextEntityId).toBe(RULES.game.firstEntityId + state.units.length);
+    expect(state.nextEntityId).toBe(
+      RULES.game.firstEntityId + state.units.length,
+    );
     expect(state.cities).toEqual([]);
   });
 
-  it('turns player specs into players with index ids and explicit humanity', () => {
+  it("turns player specs into players with index ids and explicit humanity", () => {
     const state = newGame(config());
     // Milestone 3 adds the three empty yield pools every player starts with;
     // Milestone 4 adds the research fields — nothing chosen, and the opening
@@ -154,50 +157,56 @@ describe('newGame', () => {
       malices: [],
     };
     expect(state.players).toEqual([
-      { id: 0, name: 'Ada', color: '#e8503a', isHuman: true, ...pools },
-      { id: 1, name: 'Bors', color: '#3a7fe8', isHuman: false, ...pools },
-      { id: 2, name: 'Cleo', color: '#4caf50', isHuman: false, ...pools },
+      { id: 0, name: "Ada", color: "#e8503a", isHuman: true, ...pools },
+      { id: 1, name: "Bors", color: "#3a7fe8", isHuman: false, ...pools },
+      { id: 2, name: "Cleo", color: "#4caf50", isHuman: false, ...pools },
     ]);
   });
 
-  it('generates the map from the seed and size', () => {
-    const state = newGame(config({ seed: 99, sizeName: 'duel' }));
-    expect(state.map).toEqual(generateMap(99, 'duel'));
+  it("generates the map from the seed and size", () => {
+    const state = newGame(config({ seed: 99, sizeName: "duel" }));
+    expect(state.map).toEqual(generateMap(99, "duel"));
     expect(state.map.seed).toBe(99);
-    expect(state.map.sizeName).toBe('duel');
+    expect(state.map.sizeName).toBe("duel");
   });
 
-  it('is deterministic: the same config produces an identical state', () => {
+  it("is deterministic: the same config produces an identical state", () => {
     expect(newGame(config())).toEqual(newGame(config()));
     // Also identical byte-for-byte, key order included.
-    expect(JSON.stringify(newGame(config()))).toBe(JSON.stringify(newGame(config())));
+    expect(JSON.stringify(newGame(config()))).toBe(
+      JSON.stringify(newGame(config())),
+    );
   });
 
-  it('does not depend on how many other games were created first', () => {
+  it("does not depend on how many other games were created first", () => {
     const first = newGame(config());
     newGame(config({ seed: 7 }));
-    newGame(config({ seed: -13, sizeName: 'standard' }));
+    newGame(config({ seed: -13, sizeName: "standard" }));
     expect(newGame(config())).toEqual(first);
   });
 
-  it('gives different seeds different maps and different generator states', () => {
+  it("gives different seeds different maps and different generator states", () => {
     const a = newGame(config({ seed: 1 }));
     const b = newGame(config({ seed: 2 }));
     expect(a.rng.state).not.toBe(b.rng.state);
     expect(a.map).not.toEqual(b.map);
   });
 
-  it('derives a gameplay stream decorrelated from the map generator', () => {
+  it("derives a gameplay stream decorrelated from the map generator", () => {
     const seed = 4242;
     const state = newGame(config({ seed }));
     // The map generator starts at `seed` itself; gameplay must not.
     expect(state.rng.state).not.toBe(seed | 0);
-    // **Not the derived seed itself any more**: `newGame` shuffles the two bead
-    // decks off this generator before a piece is placed (schema 38), so what a
-    // fresh state carries is the derived stream *already advanced*. The property
-    // that matters is unchanged and is asserted below — the stream is a pure
-    // function of the config, and it is not the map's.
-    expect(state.rng.state).not.toBe(deriveGameplayRng(seed).state);
+    // **The derived seed, one roll along** (batch Q1, schema 108). From schema 38
+    // to 107 `newGame` shuffled the two bead decks off this generator before a
+    // piece was placed; the deeds are retired and there are no decks, so the only
+    // thing a fresh state has spent is the census's first interval (batch C1) —
+    // which is the whole of why a v107 log does not replay. The property that
+    // matters is unchanged and is asserted below: the stream is a pure function
+    // of the config, and it is not the map's.
+    const derived = deriveGameplayRng(seed);
+    drawCensusInterval(derived);
+    expect(state.rng.state).toBe(derived.state);
     expect(newGame(config({ seed })).rng).toEqual(state.rng);
     // The first gameplay roll is not the first mapgen roll either.
     const gameplay = deriveGameplayRng(seed);
@@ -205,42 +214,48 @@ describe('newGame', () => {
     expect(nextUint32(gameplay)).not.toBe(nextUint32(mapgen));
   });
 
-  it('produces a plain, JSON-serializable state', () => {
+  it("produces a plain, JSON-serializable state", () => {
     const state = newGame(config());
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
   });
 
-  it('rejects impossible configs', () => {
+  it("rejects impossible configs", () => {
     expect(() => newGame(config({ players: [] }))).toThrow(/at least/);
     const crowd = new Array(RULES.game.maxPlayers + 1)
       .fill(null)
-      .map((_, i) => ({ name: `P${i}`, color: '#fff' }));
+      .map((_, i) => ({ name: `P${i}`, color: "#fff" }));
     expect(() => newGame(config({ players: crowd }))).toThrow(/at most/);
-    expect(() => newGame(config({ sizeName: 'gigantic' }))).toThrow(/Unknown map size/);
+    expect(() => newGame(config({ sizeName: "gigantic" }))).toThrow(
+      /Unknown map size/,
+    );
   });
 });
 
-describe('normalizeConfig', () => {
-  it('coerces the seed to a 32-bit integer and fills in isHuman', () => {
+describe("normalizeConfig", () => {
+  it("coerces the seed to a 32-bit integer and fills in isHuman", () => {
     const normalized = normalizeConfig({
       seed: 12.75,
-      sizeName: 'duel',
-      players: [{ name: 'Ada', color: '#fff' }],
+      sizeName: "duel",
+      players: [{ name: "Ada", color: "#fff" }],
     });
     expect(normalized.seed).toBe(12);
-    expect(normalized.players[0]).toEqual({ name: 'Ada', color: '#fff', isHuman: false });
+    expect(normalized.players[0]).toEqual({
+      name: "Ada",
+      color: "#fff",
+      isHuman: false,
+    });
   });
 
-  it('copies the players so later edits to the spec cannot reach the game', () => {
+  it("copies the players so later edits to the spec cannot reach the game", () => {
     const source = config();
     const state = newGame(source);
-    source.players[0]!.name = 'Mallory';
-    expect(state.players[0]!.name).toBe('Ada');
+    source.players[0]!.name = "Mallory";
+    expect(state.players[0]!.name).toBe("Ada");
   });
 });
 
-describe('accessors', () => {
-  it('allocates entity ids in a deterministic sequence', () => {
+describe("accessors", () => {
+  it("allocates entity ids in a deterministic sequence", () => {
     const state = newGame(config());
     // The starting units have already consumed the first ids.
     const first = state.nextEntityId;
@@ -249,10 +264,10 @@ describe('accessors', () => {
     expect(state.nextEntityId).toBe(first + 2);
   });
 
-  it('finds players, units and cities by id', () => {
+  it("finds players, units and cities by id", () => {
     const state = newGame(config());
-    expect(playerById(state, 0)!.name).toBe('Ada');
-    expect(playerById(state, 2)!.name).toBe('Cleo');
+    expect(playerById(state, 0)!.name).toBe("Ada");
+    expect(playerById(state, 2)!.name).toBe("Cleo");
     expect(playerById(state, 9)).toBeUndefined();
     expect(unitById(state, state.units[0]!.id)).toBe(state.units[0]);
     expect(unitById(state, 9999)).toBeUndefined();
@@ -261,8 +276,8 @@ describe('accessors', () => {
   });
 });
 
-describe('turn status helpers', () => {
-  it('reads and clears the per-player flags', () => {
+describe("turn status helpers", () => {
+  it("reads and clears the per-player flags", () => {
     const state = newGame(config());
     expect(hasEndedTurn(state, 1)).toBe(false);
 
@@ -285,15 +300,15 @@ describe('turn status helpers', () => {
     expect(allTurnsEnded(state)).toBe(false);
   });
 
-  it('iterates players, not flags, so a stray flag cannot resolve a turn', () => {
+  it("iterates players, not flags, so a stray flag cannot resolve a turn", () => {
     const state = newGame(config());
     state.turnEnded = [true, true, false, true];
     expect(allTurnsEnded(state)).toBe(false);
   });
 });
 
-describe('endTurn', () => {
-  it('marks one seat finished and leaves the turn alone', () => {
+describe("endTurn", () => {
+  it("marks one seat finished and leaves the turn alone", () => {
     const state = newGame(config());
     expect(state.turn).toBe(1);
 
@@ -302,7 +317,7 @@ describe('endTurn', () => {
     expect(state.turn).toBe(1);
   });
 
-  it('resolves the turn only when the last of three seats ends', () => {
+  it("resolves the turn only when the last of three seats ends", () => {
     const state = newGame(config());
 
     expect(applyCommand(state, endTurn(2))).toEqual({ ok: true });
@@ -317,12 +332,12 @@ describe('endTurn', () => {
     expect(state.turnEnded).toEqual([false, false, false]);
   });
 
-  it('resolves on the second seat in a two-player game', () => {
+  it("resolves on the second seat in a two-player game", () => {
     const state = newGame(
       config({
         players: [
-          { name: 'Ada', color: '#a00' },
-          { name: 'Bors', color: '#00a' },
+          { name: "Ada", color: "#a00" },
+          { name: "Bors", color: "#00a" },
         ],
       }),
     );
@@ -333,23 +348,26 @@ describe('endTurn', () => {
     expect(state.turnEnded).toEqual([false, false]);
   });
 
-  it('advances every turn in a single-player game', () => {
-    const state = newGame(config({ players: [{ name: 'Solo', color: '#fff' }] }));
+  it("advances every turn in a single-player game", () => {
+    const state = newGame(
+      config({ players: [{ name: "Solo", color: "#fff" }] }),
+    );
     applyCommand(state, endTurn(0));
     expect(state.turn).toBe(2);
     expect(state.turnEnded).toEqual([false]);
   });
 
-  it('keeps rolling over many turns', () => {
+  it("keeps rolling over many turns", () => {
     const state = newGame(config());
     for (let turn = 0; turn < 10; turn++) {
-      for (const player of state.players) applyCommand(state, endTurn(player.id));
+      for (const player of state.players)
+        applyCommand(state, endTurn(player.id));
     }
     expect(state.turn).toBe(11);
     expect(state.turnEnded).toEqual([false, false, false]);
   });
 
-  it('does not care in which order the seats end', () => {
+  it("does not care in which order the seats end", () => {
     const forwards = newGame(config());
     for (const id of [0, 1, 2]) applyCommand(forwards, endTurn(id));
     const backwards = newGame(config());
@@ -357,19 +375,22 @@ describe('endTurn', () => {
     expect(JSON.stringify(backwards)).toBe(JSON.stringify(forwards));
   });
 
-  it('refuses a second endTurn from the same seat, untouched', () => {
+  it("refuses a second endTurn from the same seat, untouched", () => {
     const state = newGame(config());
     applyCommand(state, endTurn(1));
     const before = clone(state);
 
     const result = applyCommand(state, endTurn(1));
-    expect(result).toEqual({ ok: false, error: 'Player 1 has already ended turn 1' });
+    expect(result).toEqual({
+      ok: false,
+      error: "Player 1 has already ended turn 1",
+    });
     expect(state).toEqual(before);
     // And the seat that has *not* ended is still welcome.
     expect(applyCommand(state, endTurn(0))).toEqual({ ok: true });
   });
 
-  it('lets a seat end the next turn after ending this one', () => {
+  it("lets a seat end the next turn after ending this one", () => {
     const state = newGame(config());
     for (const id of [0, 1, 2]) applyCommand(state, endTurn(id));
     expect(applyCommand(state, endTurn(0))).toEqual({ ok: true });
@@ -377,51 +398,60 @@ describe('endTurn', () => {
     expect(state.turnEnded).toEqual([true, false, false]);
   });
 
-  it('refuses a playerId that is not a player, without touching the state', () => {
+  it("refuses a playerId that is not a player, without touching the state", () => {
     const state = newGame(config());
     const before = clone(state);
-    for (const bad of [7, -1, 1.5, undefined, '0']) {
-      const result = applyCommand(state, { type: 'endTurn', playerId: bad } as unknown as Command);
+    for (const bad of [7, -1, 1.5, undefined, "0"]) {
+      const result = applyCommand(state, {
+        type: "endTurn",
+        playerId: bad,
+      } as unknown as Command);
       expect(result.ok).toBe(false);
     }
     expect(state).toEqual(before);
   });
 
-  it('refuses a corrupt flag array without touching the state', () => {
+  it("refuses a corrupt flag array without touching the state", () => {
     const state = newGame(config());
     state.turnEnded = [false, false];
     const before = clone(state);
     const result = applyCommand(state, endTurn(0));
     expect(result).toEqual({
       ok: false,
-      error: 'Corrupt turnEnded: 2 flag(s) for 3 player(s)',
+      error: "Corrupt turnEnded: 2 flag(s) for 3 player(s)",
     });
     expect(state).toEqual(before);
   });
 });
 
-describe('applyCommand contract', () => {
-  it('rejects an unknown command type and leaves the state untouched', () => {
+describe("applyCommand contract", () => {
+  it("rejects an unknown command type and leaves the state untouched", () => {
     const state = newGame(config());
     const before = clone(state);
     // `foundCity` used to stand in for "not a command yet"; it is one now.
-    const result = applyCommand(state, { type: 'gildRoof', tile: 3 } as unknown as Command);
+    const result = applyCommand(state, {
+      type: "gildRoof",
+      tile: 3,
+    } as unknown as Command);
     expect(result.ok).toBe(false);
-    expect(result).toEqual({ ok: false, error: 'Unknown command type "gildRoof"' });
+    expect(result).toEqual({
+      ok: false,
+      error: 'Unknown command type "gildRoof"',
+    });
     expect(state).toEqual(before);
   });
 
-  it('rejects malformed commands rather than throwing', () => {
+  it("rejects malformed commands rather than throwing", () => {
     const state = newGame(config());
     const before = clone(state);
-    for (const bad of [null, undefined, 42, 'endTurn', {}, { type: 7 }, []]) {
+    for (const bad of [null, undefined, 42, "endTurn", {}, { type: 7 }, []]) {
       const result = applyCommand(state, bad as unknown as Command);
       expect(result.ok).toBe(false);
     }
     expect(state).toEqual(before);
   });
 
-  it('never returns a shared result object', () => {
+  it("never returns a shared result object", () => {
     const state = newGame(config());
     const a = applyCommand(state, endTurn(0));
     const b = applyCommand(state, endTurn(1));
@@ -429,128 +459,126 @@ describe('applyCommand contract', () => {
   });
 });
 
-describe('end-of-turn pipeline', () => {
-  it('runs a fixed, named, ordered set of phases', () => {
+describe("end-of-turn pipeline", () => {
+  it("runs a fixed, named, ordered set of phases", () => {
     expect(END_OF_TURN_PHASES.map((phase) => phase.name)).toEqual([
       // First, and two brooms in one beat: the spent truces are swept out and
       // every war both sides have signed is closed — so the turn resolves in a
       // world whose relations are settled, and the columns a peace sends home
       // are walked out before any standing order resumes. See `settlePeace`
       // (`src/sim/diplomacy.ts`).
-      'settleDiplomacy',
+      "settleDiplomacy",
       // Then the other broom: an expired rite is already
       // inert (every reader compares turns), so this only stops dead paper
       // accumulating. See `pruneTimedEffects` (ledger Entry XXVIII).
-      'pruneTimedEffects',
+      "pruneTimedEffects",
       // The tide, before anything is banked: a town whose citizens turn this
       // turn flies its new banner before `collectYields` pays anybody for it.
       // See `spreadReligion` (`docs/religion-v2.md`).
-      'spreadReligion',
-      'collectYields',
-      'growCities',
+      "spreadReligion",
+      "collectYields",
+      "growCities",
       // A town's own renown quietly takes a citizen out of the fields and puts
       // them in a trade (ledger Entry XLVIII). After growth, so the conversion
       // is judged against the population the town ended the turn with; before
       // production, so a guildsman formed this turn is seated and paying before
       // the next basket is banked. See `runGuilds`.
-      'guilds',
-      'advanceProduction',
-      'advanceResearch',
+      "guilds",
+      "advanceProduction",
+      "advanceResearch",
       // The periodic boons (batch A, 2026-09-06): a slotted Order whose clock has
       // come round pays its burst here — after the baskets this turn's yields
       // filled, before the draft that might spend one, so a boon paid in culture
       // opens the draft it fills on the spot. See `runPeriodicBoons`.
-      'periodicBoons',
+      "periodicBoons",
       // Culture buys a draft, beside the phase that spends the other pool a
       // resolution filled — and before `expandBorders`, whose channel it never
       // touches. See `runStatecraft`.
-      'statecraft',
+      "statecraft",
       // The cadenced drafts — Keeper of the Calendar's almanac — beside the
       // phase they are the same shape as, one currency over.
-      'religion',
+      "religion",
       // The cadenced *pieces* — The Standing Levy's spear (master-list cut,
       // 2026-08-28). Its own beat rather than a clause inside `statecraft`,
       // because a levy is not a draft: nothing is spent, nothing is chosen, and
       // nothing blocks End Turn. See `musterPeriodicUnits`.
-      'muster',
+      "muster",
       // Buildings and wonders pay their renown trickle, standing Triumphs are
       // claimed, and a filled ladder deals a great person — the same shape a
       // fifth currency over, and after `advanceProduction` so a wonder finished
       // this turn pays into the sweep that banks the library beside it. See
       // `runRenown`.
-      'renown',
+      "renown",
       // The world's calendar (batch G1, `docs/wager.md` §1): an age closes when
       // its stamp says so and a countdown opens when the world's *mean* age
       // crosses. Directly after `renown` — the seat the clock held when it was
-      // beat one of `runBeads` — and directly before the tables that read it,
-      // which is the whole of its position. See `runWorldClock`.
-      'worldClock',
-      // The age's own bars, between the clock and the deed table (batch G2):
-      // every question the wager asks is about the age, and a claim mints beads
-      // the sweep directly below reads. See `runWagers` (`docs/wager.md` §2).
-      'wagers',
+      // beat one of the old `beads` phase — and directly before everything that
+      // reads the age, which is the whole of its position. See `runWorldClock`.
+      "worldClock",
+      // The age's own bars, directly after the clock (batch G2): every question
+      // the wager asks is about the age, and since batch Q1 this is **the**
+      // phase that mints a bead. See `runWagers` (`docs/wager.md` §2).
+      "wagers",
       // The world, measured (batch C1, `docs/wager.md` §10/§11): every thirteen
       // to seventeen turns every living empire is ranked on one figure and the
       // seat at the head takes a Triumph. Directly after the wagers because both
       // read a board the clock has settled, and directly before the tables
       // because the Triumph pays renown the sweep below reads. See `runCensus`.
-      'census',
-      // The Bead Race's own beat, directly after the clock so the turn's
-      // standing Triumphs, this turn's recruitments and the world's age are all
-      // on the register before a deed is swept. See `runBeads` (Entry VI).
-      'beads',
+      "census",
+      // The `beads` phase stood here and is gone (batch Q1): it dealt a card of
+      // a deed deck and swept every standing deed, and the deeds are retired.
       // The two revocations that are conditions of a turn rather than events —
       // Hypatia's mob, Boudica's century. A broom's twin: marking a record
       // already marked changes nothing, so the phase is safe anywhere, and it
       // sits after `renown` because that is the phase that can hand out a
       // legacy in the first place. See `reviewLegacies`.
-      'reviewLegacies',
-      'expandBorders',
-      'healCities',
+      "reviewLegacies",
+      "expandBorders",
+      "healCities",
       // The wild acts after the towns and before the healing, so a raider that
       // marched or fought is not resting. See `barbarianTurn`.
-      'barbarians',
-      'healUnits',
-      'advanceFortify',
+      "barbarians",
+      "healUnits",
+      "advanceFortify",
       // The caravans keep walking: a route's leg is turned around at each end
       // and a route that has run out is dropped, immediately before the two
       // phases that actually spend the movement it just aimed. See
       // `marchTraders`.
-      'marchTraders',
+      "marchTraders",
       // The explorers aim themselves at the next unseen hex, or stand down
       // with a report when there is none left within reach — `marchTraders`'
       // seat and argument, one verb over: the phase decides *where* a ranging
       // piece goes, and the spender below walks it. See `marchExplorers`.
-      'marchExplorers',
+      "marchExplorers",
       // **The one phase that walks a standing order** (batch U1, 2026-09-08):
       // every march goes on *this* turn's unspent points — after the two phases
       // that ask "has this unit been still all turn?", so a piece's healing
       // never depends on whether a neighbour got out of its way, and
       // immediately before the refill, so the points it spends are the turn's
       // own. See `spendLeftoverMovement`.
-      'spendLeftoverMovement',
+      "spendLeftoverMovement",
       // Refills every allowance and clears `hasAttacked` — and resumes nothing.
-      'resetMovement',
+      "resetMovement",
       // As late as it can be: the question "is an enemy standing next to my
       // sleeping worker" is only worth asking of a board that has stopped
       // moving, which is after the wild has raided *and* after
       // `spendLeftoverMovement` has walked everybody's standing orders. See
       // `wakeSleepers`.
-      'wakeSleepers',
+      "wakeSleepers",
       // Still last and unconditional: clearing a flag moves no piece.
-      'refreshVisibility',
+      "refreshVisibility",
     ]);
   });
 
-  it('changes nothing when no unit has moved or been hurt', () => {
+  it("changes nothing when no unit has moved or been hurt", () => {
     const state = newGame(config());
     const before = clone(state);
     runEndOfTurn(state);
-    // **Except the table**, which deals one card a turn whatever anybody does:
-    // the hand fills over an age rather than all at once (design ledger Entry
-    // VI), so a quiet turn still turns a card face down onto the table.
-    expect(state.beads).not.toEqual(before.beads);
-    state.beads = before.beads;
+    // **The table included** since batch Q1: it dealt one card a turn whatever
+    // anybody did, because the hand filled over an age rather than all at once
+    // (design ledger Entry VI), and there is no hand — so a quiet turn is quiet
+    // all the way down.
+    expect(state.beads).toEqual(before.beads);
     // **And except the revision** (batch E2), which is the point of it: a
     // resolution moves the world without a command behind it, and every derived
     // reading is keyed on this counter, so a quiet turn moves it exactly once
@@ -570,83 +598,99 @@ describe('end-of-turn pipeline', () => {
  * of the game leans on: an absent key reads as an empty plan, and a plan is
  * never non-empty behind an empty head.
  */
-describe('the research queue field', () => {
-  it('is absent until something is queued, and gone again when it empties', () => {
+describe("the research queue field", () => {
+  it("is absent until something is queued, and gone again when it empties", () => {
     const state = newGame(config());
     const player = state.players[0]!;
-    expect('researchQueue' in player).toBe(false);
+    expect("researchQueue" in player).toBe(false);
     expect(researchPlan(player)).toEqual([]);
 
     // A node whose prerequisites are met is a plan of one, and still no key —
     // a game that never queues serialises exactly as it did at schema 21.
-    expect(applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'mining' })).toEqual({
+    expect(
+      applyCommand(state, {
+        type: "chooseResearch",
+        playerId: 0,
+        techId: "mining",
+      }),
+    ).toEqual({
       ok: true,
     });
-    expect('researchQueue' in player).toBe(false);
-    expect(researchPlan(player)).toEqual(['mining']);
+    expect("researchQueue" in player).toBe(false);
+    expect(researchPlan(player)).toEqual(["mining"]);
 
     // A locked node fills it: the Bronze Panoply wants The Wheel, which wants
     // Bronzeworking *and* Stonecraft, which want Mining and Pottery — tree
     // revision 4 closes Æra I on two gates, so the plan under the Panoply is a
     // lattice flattened by depth and then by roster order.
     expect(
-      applyCommand(state, { type: 'chooseResearch', playerId: 0, techId: 'bronzePanoply' }),
+      applyCommand(state, {
+        type: "chooseResearch",
+        playerId: 0,
+        techId: "bronzePanoply",
+      }),
     ).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual([
-      'mining',
-      'earthenware',
-      'bronzeWorking',
-      'stonecraft',
-      'theWheel',
-      'bronzePanoply',
+      "mining",
+      "earthenware",
+      "bronzeWorking",
+      "stonecraft",
+      "theWheel",
+      "bronzePanoply",
     ]);
     expect(player.researchQueue).toEqual([
-      'earthenware',
-      'bronzeWorking',
-      'stonecraft',
-      'theWheel',
-      'bronzePanoply',
+      "earthenware",
+      "bronzeWorking",
+      "stonecraft",
+      "theWheel",
+      "bronzePanoply",
     ]);
 
     // Dropping a node takes its dependants with it: Mining goes, and
     // Bronzeworking, The Wheel and the Panoply go with it, leaving exactly the
     // two that never needed it.
     expect(
-      applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId: 'mining' }),
+      applyCommand(state, {
+        type: "dequeueResearch",
+        playerId: 0,
+        techId: "mining",
+      }),
     ).toEqual({ ok: true });
-    expect(researchPlan(player)).toEqual(['earthenware', 'stonecraft']);
+    expect(researchPlan(player)).toEqual(["earthenware", "stonecraft"]);
 
     // And dropping the rest empties the plan — the key is deleted rather than
     // left as `[]`.
-    for (const techId of ['stonecraft', 'earthenware'] as const) {
-      expect(applyCommand(state, { type: 'dequeueResearch', playerId: 0, techId })).toEqual({
+    for (const techId of ["stonecraft", "earthenware"] as const) {
+      expect(
+        applyCommand(state, { type: "dequeueResearch", playerId: 0, techId }),
+      ).toEqual({
         ok: true,
       });
     }
     expect(researchPlan(player)).toEqual([]);
     expect(player.researching).toBe(null);
-    expect('researchQueue' in player).toBe(false);
+    expect("researchQueue" in player).toBe(false);
   });
 
-  it('reads a state that has never heard of it as an empty plan', () => {
+  it("reads a state that has never heard of it as an empty plan", () => {
     // The migration, such as it is: a save is `{config, log}` and is refused
     // across a schema bump, so the only way a key-less player reaches this build
     // is a snapshot or a hand-edited state. It reads as "nothing queued" rather
     // than as a crash, through the one place the `?? []` lives.
     const state = newGame(config());
     const player = state.players[0]!;
-    player.researching = 'mining';
+    player.researching = "mining";
     delete player.researchQueue;
-    expect(researchPlan(player)).toEqual(['mining']);
+    expect(researchPlan(player)).toEqual(["mining"]);
   });
 
-  it('carries the schema version that says the queue and the leftover march exist', () => {
+  it("carries the schema version that says the queue and the leftover march exist", () => {
     // A v21 log is not merely older: a `moveUnit` given with no movement left
     // used to be refused and is now a standing order, and the resolution has
     // grown a phase no v21 state has been through.
     // v40: the Cathedral (Entry LV) — cost 340 and a consecration draw at completion
     // moved every replay that raised one.
-        // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
+    // v42: the faith rework of Entry LVIII — one-charge agents, the founding's
     // double draft and The Holy Office's tenants move every replay with a
     // prophet or an augur in it.
     // v43: the map's layers of Entry LVIII — the vein pass, the second discovery
@@ -786,19 +830,23 @@ describe('the research queue field', () => {
     // board — but a v106 log does not replay, because battles do: a blow now
     // refused spends no dice, a shot at a hull rolls against a different
     // strength, and a garrison's death ends a siege one blow earlier.
-    expect(SCHEMA_VERSION).toBe(107);
+    // 108 is batch Q1's (2026-09-09, `docs/wager.md` §5): the deeds retire —
+    // feats, endeavours and quests carry `retired: true`, the `beads` phase is
+    // gone, and `newGame` shuffles nothing, so a v107 log's every later roll
+    // is a different number.
+    expect(SCHEMA_VERSION).toBe(108);
   });
 });
 
-describe('the unitsBuilt field (schema 31)', () => {
-  it('starts empty: presence is the state, exactly as researchQueue', () => {
+describe("the unitsBuilt field (schema 31)", () => {
+  it("starts empty: presence is the state, exactly as researchQueue", () => {
     const state = newGame(config());
     const player = state.players[0]!;
     expect(player.unitsBuilt).toEqual({});
     expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({});
   });
 
-  it('reads a v30 player with no unitsBuilt key as nobody having built anything', () => {
+  it("reads a v30 player with no unitsBuilt key as nobody having built anything", () => {
     // The migration note on `SCHEMA_VERSION` (31): a v30 save's
     // `settlersBuilt: n` has no home here, and a replay of the log re-derives
     // the count from scratch — the bump refuses the snapshot rather than
@@ -812,11 +860,15 @@ describe('the unitsBuilt field (schema 31)', () => {
     // The roster's own price and no ladder — an empty count is what this case is
     // about, not the curve. Both rows are opened at the first column, so what
     // the sized figure says is the whole of the price (batch P1).
-    expect(unitProductionCost(state, 0, 'settler')).toBe(unitRosterCost('settler'));
-    expect(unitProductionCost(state, 0, 'worker')).toBe(unitRosterCost('worker'));
+    expect(unitProductionCost(state, 0, "settler")).toBe(
+      unitRosterCost("settler"),
+    );
+    expect(unitProductionCost(state, 0, "worker")).toBe(
+      unitRosterCost("worker"),
+    );
   });
 
-  it('keys the settler and the worker independently, and replays byte for byte', () => {
+  it("keys the settler and the worker independently, and replays byte for byte", () => {
     const state = newGame(config());
     const player = state.players[0]!;
     player.unitsBuilt.settler = 2;
@@ -825,6 +877,9 @@ describe('the unitsBuilt field (schema 31)', () => {
     expect(player.unitsBuilt).toEqual({ settler: 2, worker: 1 });
     // Round-trips through JSON exactly, key order and all — the same claim
     // `newGame`'s determinism test makes for the whole state.
-    expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({ settler: 2, worker: 1 });
+    expect(JSON.parse(JSON.stringify(player)).unitsBuilt).toEqual({
+      settler: 2,
+      worker: 1,
+    });
   });
 });

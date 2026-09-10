@@ -17,7 +17,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../../src/sim/buildingData';
-import { BEAD_DATA, beadIsDormant, prerequisiteBuilding } from '../../src/sim/beadData';
+import { BEAD_DATA, prerequisiteBuilding } from '../../src/sim/beadData';
 import {
   buildingProductionCost,
   foundCityAt,
@@ -488,12 +488,17 @@ describe('the five unique buildings', () => {
 // --- the deeds ---------------------------------------------------------------
 
 describe('the three bead deeds that named cut rows', () => {
-  it('names a row an empire can still raise, so no race is dealt dead', () => {
+  it('names a row an empire can still raise, whatever became of the race', () => {
+    // **Re-aimed by batch Q1**: every race project is retired now, so
+    // `beadIsDormant` answers `true` for all of them and the second half of this
+    // claim would fail on the retirement rather than on a cut building. What is
+    // still worth pinning is the first half — the deed names a row that exists —
+    // because the rows are kept for the record and a record pointing at a
+    // deleted building is a page that cannot be printed.
     for (const [id, def] of Object.entries(BEAD_DATA.endeavours)) {
       const building = prerequisiteBuilding(def.prerequisite);
       if (building === null) continue;
       expect(buildingDef(building).retired, `${id} → ${building}`).not.toBe(true);
-      expect(beadIsDormant(id as never), id).toBe(false);
     }
   });
 

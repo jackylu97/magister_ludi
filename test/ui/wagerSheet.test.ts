@@ -210,13 +210,14 @@ describe('the deed sheet’s age draw, retired', () => {
     expect(body).not.toContain('announceAge');
   });
 
-  it('leaves the deed tables one press away', () => {
-    // Nothing the banner listed was lost with it: the whole table is still drawn
-    // and still reached three ways — the bead chip, an Abacus rod, and `V`.
+  it('leaves the bead ledger one press away', () => {
+    // The deed tables the banner indexed are retired with their rows (batch Q1)
+    // and what is behind the same three doors — the bead chip, an Abacus rod,
+    // and `V` — is the ledger: the rods, what still pays a bead, and the door.
     const beads = source('beadsScreen.ts');
-    expect(beads).toContain('function drawAge(');
-    expect(beads).toContain('function drawFeats(');
-    expect(beads).toContain('function drawReckonings(');
+    expect(beads).not.toContain('function drawAge(');
+    expect(beads).toContain('function drawRods(');
+    expect(beads).toContain('function drawGrants(');
     expect(source('main.ts')).toContain('onToggleBeads: () => beads?.toggle(),');
   });
 });

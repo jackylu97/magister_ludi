@@ -1704,6 +1704,24 @@ directly to confirm rulings — user marginalia are rulings.
   no longer ride down an *embarked civilian* (a march onto the hex still
   captures it, a bow still shoots it). The bot needs nothing: its
   `decisive` already counts `kills`, which is the garrison-beat case.
+  **W2 built** (2026-09-09): `src/ai/wager.ts` — score = margin × premium
+  − (1 − margin) × malice; a flow projected off the phase's own
+  accumulators re-read on the bot's side, a standing card off its drift;
+  the malice priced through `explainEffects` × `score.lumpTurns`; the
+  staked bar leans the voice weight (banded) and one appetite line.
+  `data/ai.json` `wager` block: ageTurns 32 · malicePenalty 0 ·
+  leanWeight 1 · driftWeight 1. Paired t100 (8 seeds, W2's branch, before
+  W3's bars): wagers kept 0.25 → **0.44**, malices seated 0.38 → **0.19**,
+  happiness +7.4 → +9.1; the lean itself trades ~2 prod/sci for ~2.5
+  culture. The bot's appraisal words swept to authority/happiness here.
+  Flagged: `turnReadings` is not exported from `wagers.ts`, so the flow
+  bag is a second reading of the same fold.
+  **t100 after D2 · U8 · K1 · N1 · W2 on top of W3/T3** (8 seeds, 16
+  seats): cities 6.1 · citizens 43.9 · buildings 34.3 · units 26.6 · food
+  129.4 · prod 89.3 · gold 42.1 · sci 112.6 · cul 78.1 · faith 25.1 ·
+  treasury 322 · techs 24.6 · happiness +9.5 (C1's row: cul 61.6,
+  happiness +7.4 — the wager want and W3's lower bars recovered the
+  culture the malices had been costing).
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

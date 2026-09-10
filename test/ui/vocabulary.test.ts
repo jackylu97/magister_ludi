@@ -34,13 +34,13 @@
  * test rather than a silent gap.
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 /** The retired words, each with what it became. Case-insensitive, whole words. */
 const RETIRED: readonly { pattern: RegExp; replacement: string }[] = [
-  { pattern: /\bwrits?\b/i, replacement: 'authority' },
-  { pattern: /\bcheer(s|ful|fully)?\b/i, replacement: 'happiness' },
-  { pattern: /\bcontentment\b/i, replacement: 'happiness' },
+  { pattern: /\bwrits?\b/i, replacement: "authority" },
+  { pattern: /\bcheer(s|ful|fully)?\b/i, replacement: "happiness" },
+  { pattern: /\bcontentment\b/i, replacement: "happiness" },
 ];
 
 /**
@@ -48,57 +48,66 @@ const RETIRED: readonly { pattern: RegExp; replacement: string }[] = [
  * surface is adding a row; nothing else in this file names a file.
  */
 const SURFACES: readonly { glob: string; why: string }[] = [
-  { glob: 'src/ui/*.ts', why: 'every screen, panel, sheet, chip and hover card' },
-  { glob: 'src/art/*.ts', why: 'the dock and meter marks — their labels and tooltips' },
   {
-    glob: 'src/sim/statecraft/describers.ts',
-    why: 'the word tables every card, belief, rite and legacy is printed through',
+    glob: "src/ui/*.ts",
+    why: "every screen, panel, sheet, chip and hover card",
   },
   {
-    glob: 'src/sim/meters.ts',
+    glob: "src/art/*.ts",
+    why: "the dock and meter marks — their labels and tooltips",
+  },
+  {
+    glob: "src/sim/statecraft/describers.ts",
+    why: "the word tables every card, belief, rite and legacy is printed through",
+  },
+  {
+    glob: "src/sim/meters.ts",
     why: 'the two meters write their own ledger lines — "Palace", "Ur · puppet"',
   },
   {
-    glob: 'src/sim/resourceEffects.ts',
+    glob: "src/sim/resourceEffects.ts",
     why: 'a luxury’s ledger line names what it pays — "Amber · happiness"',
   },
   {
-    glob: 'src/sim/statecraft/evaluator.ts',
-    why: 'a card’s ledger line does the same, through the one evaluator',
+    glob: "src/sim/statecraft/evaluator.ts",
+    why: "a card’s ledger line does the same, through the one evaluator",
   },
-  { glob: '*.html', why: 'the root pages’ own markup — headings, hints, aria labels' },
+  {
+    glob: "*.html",
+    why: "the root pages’ own markup — headings, hints, aria labels",
+  },
 ];
 
 /** Everything the globs above resolve to, as raw text, path → source. */
 const SOURCES: Record<string, string> = {
-  ...(import.meta.glob('../../src/ui/*.ts', {
+  ...(import.meta.glob("../../src/ui/*.ts", {
     eager: true,
-    query: '?raw',
-    import: 'default',
+    query: "?raw",
+    import: "default",
   }) as Record<string, string>),
-  ...(import.meta.glob('../../src/art/*.ts', {
+  ...(import.meta.glob("../../src/art/*.ts", {
     eager: true,
-    query: '?raw',
-    import: 'default',
+    query: "?raw",
+    import: "default",
   }) as Record<string, string>),
   ...(import.meta.glob(
-    '../../src/sim/{meters.ts,resourceEffects.ts,statecraft/describers.ts,statecraft/evaluator.ts}',
-    { eager: true, query: '?raw', import: 'default' },
+    "../../src/sim/{meters.ts,resourceEffects.ts,statecraft/describers.ts,statecraft/evaluator.ts}",
+    { eager: true, query: "?raw", import: "default" },
   ) as Record<string, string>),
 };
 
 /** The root pages' markup, path → source. */
-const PAGES: Record<string, string> = import.meta.glob('../../*.html', {
+const PAGES: Record<string, string> = import.meta.glob("../../*.html", {
   eager: true,
-  query: '?raw',
-  import: 'default',
+  query: "?raw",
+  import: "default",
 }) as Record<string, string>;
 
 /** Every data deck, as raw text, path → source. */
-const DATA: Record<string, string> = import.meta.glob('../../data/*.json', {
+const DATA: Record<string, string> = import.meta.glob("../../data/*.json", {
   eager: true,
-  query: '?raw',
-  import: 'default',
+  query: "?raw",
+  import: "default",
 }) as Record<string, string>;
 
 /**
@@ -106,7 +115,7 @@ const DATA: Record<string, string> = import.meta.glob('../../data/*.json', {
  * first-time player's terms (CLAUDE.md rule 7). `name`, `flavor` and `epigram`
  * are excluded on purpose; see the module docblock.
  */
-const PROSE_FIELDS: readonly string[] = ['note', 'deferred', 'summary', 'text'];
+const PROSE_FIELDS: readonly string[] = ["note", "deferred", "summary", "text"];
 
 /**
  * **One file another agent holds**, and the reason, so the exception is a row
@@ -118,7 +127,7 @@ const PROSE_FIELDS: readonly string[] = ['note', 'deferred', 'summary', 'text'];
  * its file come out together.
  */
 const PENDING: readonly { file: string; why: string }[] = [
-  { file: 'beads.json', why: 'batch Q1 holds data/beads.json; two `text` rows still say the old word' },
+  // Empty since batch Q1 landed and `data/beads.json`'s two rows were swept.
 ];
 
 /**
@@ -136,44 +145,44 @@ const PENDING: readonly { file: string; why: string }[] = [
 export function stringsIn(source: string): string[] {
   const out: string[] = [];
   /** The last character that was neither whitespace nor part of a comment. */
-  let previous = '';
+  let previous = "";
   let index = 0;
   while (index < source.length) {
     const ch = source[index];
-    if (ch === '/' && source[index + 1] === '/') {
-      const end = source.indexOf('\n', index);
+    if (ch === "/" && source[index + 1] === "/") {
+      const end = source.indexOf("\n", index);
       index = end < 0 ? source.length : end + 1;
       continue;
     }
-    if (ch === '/' && source[index + 1] === '*') {
-      const end = source.indexOf('*/', index + 2);
+    if (ch === "/" && source[index + 1] === "*") {
+      const end = source.indexOf("*/", index + 2);
       index = end < 0 ? source.length : end + 2;
       continue;
     }
-    if (ch === '/' && '(,=:[!&|?{};+*%<>~^'.includes(previous)) {
+    if (ch === "/" && "(,=:[!&|?{};+*%<>~^".includes(previous)) {
       // A regular expression. Skip to its unescaped closing slash.
       let scan = index + 1;
       let inClass = false;
       while (scan < source.length) {
         const c = source[scan];
-        if (c === '\\') scan += 2;
-        else if (c === '[') (inClass = true), (scan += 1);
-        else if (c === ']') (inClass = false), (scan += 1);
-        else if (c === '/' && !inClass) break;
-        else if (c === '\n') break;
+        if (c === "\\") scan += 2;
+        else if (c === "[") ((inClass = true), (scan += 1));
+        else if (c === "]") ((inClass = false), (scan += 1));
+        else if (c === "/" && !inClass) break;
+        else if (c === "\n") break;
         else scan += 1;
       }
-      previous = '/';
+      previous = "/";
       index = scan + 1;
       continue;
     }
-    if (ch === "'" || ch === '"' || ch === '`') {
+    if (ch === "'" || ch === '"' || ch === "`") {
       let scan = index + 1;
-      let text = '';
+      let text = "";
       while (scan < source.length) {
         const c = source[scan];
-        if (c === '\\') {
-          text += source[scan + 1] ?? '';
+        if (c === "\\") {
+          text += source[scan + 1] ?? "";
           scan += 2;
           continue;
         }
@@ -181,7 +190,7 @@ export function stringsIn(source: string): string[] {
         // A single- or double-quoted string never spans a line; a lone
         // apostrophe that reached here is not one, and bailing keeps the walk
         // in step with the code rather than swallowing the rest of the file.
-        if (ch !== '`' && c === '\n') break;
+        if (ch !== "`" && c === "\n") break;
         text += c;
         scan += 1;
       }
@@ -190,17 +199,17 @@ export function stringsIn(source: string): string[] {
       index = scan + 1;
       continue;
     }
-    if (ch.trim() !== '') previous = ch;
+    if (ch.trim() !== "") previous = ch;
     index += 1;
   }
   return out;
 }
 
 /** Every prose string in one parsed data deck, with the path that reached it. */
-function proseIn(value: unknown, at = ''): { where: string; text: string }[] {
+function proseIn(value: unknown, at = ""): { where: string; text: string }[] {
   const found: { where: string; text: string }[] = [];
   const walk = (node: unknown, path: string, prose: boolean): void => {
-    if (typeof node === 'string') {
+    if (typeof node === "string") {
       if (prose) found.push({ where: path, text: node });
       return;
     }
@@ -208,9 +217,15 @@ function proseIn(value: unknown, at = ''): { where: string; text: string }[] {
       node.forEach((row, at) => walk(row, `${path}[${at}]`, prose));
       return;
     }
-    if (node !== null && typeof node === 'object') {
-      for (const [key, row] of Object.entries(node as Record<string, unknown>)) {
-        walk(row, path === '' ? key : `${path}.${key}`, prose || PROSE_FIELDS.includes(key));
+    if (node !== null && typeof node === "object") {
+      for (const [key, row] of Object.entries(
+        node as Record<string, unknown>,
+      )) {
+        walk(
+          row,
+          path === "" ? key : `${path}.${key}`,
+          prose || PROSE_FIELDS.includes(key),
+        );
       }
     }
   };
@@ -220,7 +235,7 @@ function proseIn(value: unknown, at = ''): { where: string; text: string }[] {
 
 /** The file name at the end of a glob key — `'captureSheet.ts'`, `'beads.json'`. */
 function fileOf(path: string): string {
-  return path.slice(path.lastIndexOf('/') + 1);
+  return path.slice(path.lastIndexOf("/") + 1);
 }
 
 /** Every retired word in one piece of text, named. */
@@ -230,41 +245,46 @@ function offences(text: string): string[] {
   );
 }
 
-describe('the two retired words', () => {
-  it('names the surfaces it read, and every one of them resolves', () => {
+describe("the two retired words", () => {
+  it("names the surfaces it read, and every one of them resolves", () => {
     // A glob that resolves to nothing is the failure this register exists to
     // prevent: the sweep would pass on a file it never opened.
     expect(SURFACES.length).toBeGreaterThan(0);
     const read = Object.keys(SOURCES).map(fileOf);
     for (const named of [
-      'captureSheet.ts',
-      'cityPanel.ts',
-      'topBar.ts',
-      'unitPanel.ts',
-      'cardStamp.ts',
-      'compendium.ts',
-      'compendiumShelves.ts',
-      'compendiumText.ts',
-      'figures.ts',
-      'meterMark.ts',
-      'controls.ts',
-      'meterMarks.ts',
-      'dockMarks.ts',
-      'describers.ts',
-      'meters.ts',
-      'resourceEffects.ts',
-      'evaluator.ts',
+      "captureSheet.ts",
+      "cityPanel.ts",
+      "topBar.ts",
+      "unitPanel.ts",
+      "cardStamp.ts",
+      "compendium.ts",
+      "compendiumShelves.ts",
+      "compendiumText.ts",
+      "figures.ts",
+      "meterMark.ts",
+      "controls.ts",
+      "meterMarks.ts",
+      "dockMarks.ts",
+      "describers.ts",
+      "meters.ts",
+      "resourceEffects.ts",
+      "evaluator.ts",
     ]) {
       expect(read, `${named} is a surface a player reads`).toContain(named);
     }
-    expect(Object.keys(PAGES).map(fileOf)).toContain('index.html');
+    expect(Object.keys(PAGES).map(fileOf)).toContain("index.html");
     expect(Object.keys(DATA).length).toBeGreaterThan(10);
-    for (const named of ['statecraft.json', 'buildings.json', 'techs.json', 'religion.json']) {
+    for (const named of [
+      "statecraft.json",
+      "buildings.json",
+      "techs.json",
+      "religion.json",
+    ]) {
       expect(Object.keys(DATA).map(fileOf), named).toContain(named);
     }
   });
 
-  it('says neither word on any surface a player reads', () => {
+  it("says neither word on any surface a player reads", () => {
     const wrong: string[] = [];
     for (const [path, source] of Object.entries(SOURCES)) {
       for (const text of stringsIn(source)) {
@@ -281,18 +301,19 @@ describe('the two retired words', () => {
    * label. HTML comments go first, the way a docblock does above; nothing else
    * on these pages is anything but words a player reads.
    */
-  it('says neither word in any root page’s markup', () => {
+  it("says neither word in any root page’s markup", () => {
     const wrong: string[] = [];
     for (const [path, raw] of Object.entries(PAGES)) {
-      const markup = raw.replace(/<!--[\s\S]*?-->/g, ' ');
-      for (const line of markup.split('\n')) {
-        for (const said of offences(line)) wrong.push(`${fileOf(path)}: ${said} — ${line.trim()}`);
+      const markup = raw.replace(/<!--[\s\S]*?-->/g, " ");
+      for (const line of markup.split("\n")) {
+        for (const said of offences(line))
+          wrong.push(`${fileOf(path)}: ${said} — ${line.trim()}`);
       }
     }
     expect(wrong).toEqual([]);
   });
 
-  it('says neither word in any data row’s prose', () => {
+  it("says neither word in any data row’s prose", () => {
     const held = new Set(PENDING.map((row) => row.file));
     const wrong: string[] = [];
     for (const [path, raw] of Object.entries(DATA)) {
@@ -300,7 +321,9 @@ describe('the two retired words', () => {
       if (held.has(file)) continue;
       for (const line of proseIn(JSON.parse(raw))) {
         for (const said of offences(line.text)) {
-          wrong.push(`${file} ${line.where}: ${said} — ${line.text.slice(0, 90)}`);
+          wrong.push(
+            `${file} ${line.where}: ${said} — ${line.text.slice(0, 90)}`,
+          );
         }
       }
     }
@@ -311,7 +334,7 @@ describe('the two retired words', () => {
    * The exception is a row with a reason and a file that exists, so it cannot
    * quietly outlive the batch that owns it.
    */
-  it('holds its exceptions by name, with the reason', () => {
+  it("holds its exceptions by name, with the reason", () => {
     const files = new Set(Object.keys(DATA).map(fileOf));
     for (const row of PENDING) {
       expect(files, row.file).toContain(row.file);
@@ -320,14 +343,18 @@ describe('the two retired words', () => {
   });
 
   /** The scanner itself, since everything above is only as true as it is. */
-  it('reads quotes and skips comments, regexes and identifiers', () => {
-    expect(stringsIn("const writ = 1; // the writ\nconst a = 'said aloud';")).toEqual([
-      'said aloud',
+  it("reads quotes and skips comments, regexes and identifiers", () => {
+    expect(
+      stringsIn("const writ = 1; // the writ\nconst a = 'said aloud';"),
+    ).toEqual(["said aloud"]);
+    expect(stringsIn("/** the writ */ const b = `a ${x} template`;")).toEqual([
+      "a ${x} template",
     ]);
-    expect(stringsIn("/** the writ */ const b = `a ${x} template`;")).toEqual(['a ${x} template']);
-    expect(stringsIn("const c = /['\"]/; const d = 'after';")).toEqual(['after']);
-    expect(offences('It asks less of your writ')).toHaveLength(1);
-    expect(offences('It asks less of your authority')).toHaveLength(0);
-    expect(offences('rewritten, written, writer')).toHaveLength(0);
+    expect(stringsIn("const c = /['\"]/; const d = 'after';")).toEqual([
+      "after",
+    ]);
+    expect(offences("It asks less of your writ")).toHaveLength(1);
+    expect(offences("It asks less of your authority")).toHaveLength(0);
+    expect(offences("rewritten, written, writer")).toHaveLength(0);
   });
 });

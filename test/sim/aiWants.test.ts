@@ -71,7 +71,7 @@ import {
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
-import { BEAD_FEAT_IDS, beadFeatDef } from '../../src/sim/beadData';
+import { BEAD_FEAT_IDS, BEAD_RULES, beadFeatDef } from '../../src/sim/beadData';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS, greatPersonDef } from '../../src/sim/greatPeopleData';
 import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
@@ -775,6 +775,28 @@ describe('the bead race', () => {
    * rate reads off a real number of turns rather than off turn one), a rod part
    * filled, and — when asked — the closing technology in the world's hands.
    */
+  /**
+   * **Three rods, said against the rules row rather than as figures.**
+   *
+   * They were 16, 20, 19 and 3 — four short of the door, a full rod, one short,
+   * and a straggler — when `rules.threshold` was 20. Batch Q1 re-cut the
+   * threshold for a world with no deeds in it (`docs/wager.md` §5), and a bench
+   * that names a figure would have been measuring a door that had moved: what
+   * these tests are about is *how far from the door*, which is the arithmetic
+   * below and not any particular number.
+   */
+  const SHORT_ROD = Math.max(0, BEAD_RULES.threshold - 4);
+  /**
+   * The turn the short rod is read at, chosen to hold the **rate** the bench was
+   * written against rather than the turn: sixteen beads at turn 120 is one bead
+   * every seven or eight turns, and what the appraisal discounts by is how long
+   * the rest of the rod takes at that pace. A shorter door read at the same turn
+   * would be a much slower empire, which is a different test.
+   */
+  const RACE_TURN = Math.max(24, SHORT_ROD * 8);
+  const NEARLY_ROD = Math.max(1, BEAD_RULES.threshold - 1);
+  const BEHIND_ROD = Math.max(0, Math.floor(NEARLY_ROD / 6));
+
   function raceBench(options: {
     towns: number;
     turn: number;
@@ -818,8 +840,8 @@ describe('the bead race', () => {
       expect(partFailures(race!.terms, 'race')).toEqual([]);
     }
     for (const arrangement of [
-      { towns: 3, turn: 120, beads: 16, alchemy: true },
-      { towns: 3, turn: 120, beads: 3, rivalBeads: 19 },
+      { towns: 3, turn: RACE_TURN, beads: SHORT_ROD, alchemy: true },
+      { towns: 3, turn: 120, beads: BEHIND_ROD, rivalBeads: NEARLY_ROD },
       { towns: 2, turn: 60, beads: 0 },
     ]) {
       const { state, player } = raceBench(arrangement);
@@ -830,7 +852,7 @@ describe('the bead race', () => {
   });
 
   it('is a reading of the board and nothing else — two readings are identical', () => {
-    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 16, alchemy: true });
+    const { state, player } = raceBench({ towns: 3, turn: RACE_TURN, beads: SHORT_ROD, alchemy: true });
     const first = valueContext(state, player).race;
     const second = valueContext(state, player).race;
     expect(JSON.stringify(second)).toBe(JSON.stringify(first));
@@ -867,12 +889,13 @@ describe('the bead race', () => {
   });
 
   it('prices the whole road once the work is open, and shares it over what is left', () => {
-    // **The takeover, on an arranged board.** Sixteen beads at turn a hundred and
-    // twenty is a rate the last four are reachable at; the world holds the closing
+    // **The takeover, on an arranged board.** A rod four short of the door at
+    // turn a hundred and twenty is a rate the last four are reachable at; the
+    // world holds the closing
     // technology, so the race is *on* and the planning horizon stops applying —
     // what is left is whether this empire can get there before anybody else, and
     // on this board there is nobody else.
-    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 16, alchemy: true });
+    const { state, player } = raceBench({ towns: 3, turn: RACE_TURN, beads: SHORT_ROD, alchemy: true });
     const ctx = valueContext(state, player);
     const race = ctx.race!;
     expect(race.open).toBe(true);
@@ -910,7 +933,12 @@ describe('the bead race', () => {
     // thing, divided by the ten turns of patience a bead row is read at — so
     // without it Chart the Stars scores 19 and the soldier wins, which is what
     // the bot did before this batch.
-    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 20, alchemy: true });
+    const { state, player } = raceBench({
+      towns: 3,
+      turn: 120,
+      beads: BEAD_RULES.threshold,
+      alchemy: true,
+    });
     // A library apiece, so the age-four rows that pay beads are legal at all:
     // what is under test is the *ranking*, not whether a bench has a site.
     for (const city of state.cities) {
@@ -947,17 +975,23 @@ describe('the bead race', () => {
   });
 
   it('prints its zero when a rival holds the race whatever this empire builds', () => {
-    // **Out of reach.** Nineteen beads against three, on a rate five times ours:
+    // **Out of reach.** A rival one bead short of the door against a straggler,
+    // on a rate several times ours:
     // the rival closes long before this empire could, and since the victory
     // ruling of 2026-09-05 (schema 69) that is the whole of the reading —
     // whoever finishes the work wins it, so a rod this empire might still fill
     // behind them buys nothing. The chain is worth nothing and names them rather
     // than merely reading low, because a bot pouring hammers into a lost race is
     // the failure this clause exists to prevent.
-    const { state, player } = raceBench({ towns: 3, turn: 120, beads: 3, rivalBeads: 19 });
+    const { state, player } = raceBench({
+      towns: 3,
+      turn: 120,
+      beads: BEHIND_ROD,
+      rivalBeads: NEARLY_ROD,
+    });
     const ctx = valueContext(state, player);
     const race = ctx.race!;
-    expect(race.rival?.beads).toBe(19);
+    expect(race.rival?.beads).toBe(NEARLY_ROD);
     expect(race.rival!.close).toBeLessThan(race.delay);
     expect(race.lost).toBe(true);
     expect(race.live).toBe(false);
@@ -969,7 +1003,7 @@ describe('the bead race', () => {
     expect(zero.op).toBe('mul');
     expect(zero.value).toBe(0);
     expect(zero.label).toContain('Brun');
-    expect(zero.label).toContain('19 beads');
+    expect(zero.label).toContain(`${NEARLY_ROD} beads`);
     expect(raceTerm(ctx, { kind: 'building', id: race.opus })).toBeNull();
   });
 });

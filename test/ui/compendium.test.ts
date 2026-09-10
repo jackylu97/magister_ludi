@@ -47,7 +47,6 @@ import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
 import { WAGER_IDS, wagerDef } from '../../src/sim/wagerData';
 import {
-  BEAD_DECK_AGES,
   BEAD_ENDEAVOUR_IDS,
   BEAD_FEAT_IDS,
   BEAD_QUEST_IDS,
@@ -667,7 +666,7 @@ describe('the Bead Race shelf', () => {
     }
   });
 
-  it('prints the threshold and the hand sizes from the rules row', () => {
+  it('prints the threshold from the rules row, and nothing about a deal', () => {
     const rules = shelf.entries.find((entry) => entry.id === 'bead:rules')!;
     const labels = rules.rows.map((row) => row.label);
     // The threshold's job changed on 2026-09-04 (schema 64) and the label
@@ -675,12 +674,12 @@ describe('the Bead Race shelf', () => {
     expect(labels).toContain('Beads that open the Magnum Opus');
     const winning = rules.rows.find((row) => row.label === 'Beads that open the Magnum Opus')!;
     expect(winning.figures).toBe(String(BEAD_RULES.threshold));
-    // One row per deck, and each carries that deck's own hand size.
-    for (const age of BEAD_DECK_AGES) {
-      const row = rules.rows.find((one) => one.label.startsWith('Cards on the table'));
-      expect(row, String(age)).toBeDefined();
-    }
-    expect(rules.rows).toHaveLength(2 + BEAD_DECK_AGES.length);
+    // **The hand sizes went with the hand** (batch Q1): there is no deal, so a
+    // page that printed how many cards were on the table would be printing a
+    // rule the game does not have.
+    expect(labels.some((label) => label.startsWith('Cards on the table'))).toBe(false);
+    expect(labels).not.toContain('Turns between deals');
+    expect(rules.rows).toHaveLength(1);
   });
 
   it('says what a card does in the row’s own words', () => {
@@ -688,6 +687,29 @@ describe('the Bead Race shelf', () => {
       const entry = shelf.entries.find((one) => one.id === `bead:${id}`)!;
       expect(entry.clauses[0]!.text, id).toBe(beadQuestDef(id).text);
     }
+  });
+
+  it('keeps a withdrawn row’s page and says on it that it is withdrawn', () => {
+    // **The ruling's own reading of "kept for the record"** (batch Q1, ruling 5):
+    // a bead somebody earned in an older game has to be a page somewhere, so a
+    // retired row keeps its page and carries a note. The book's other kinds are
+    // not consistent about this — a retired building has no page at all, a
+    // retired Order has an ordinary one — and a note is the simplest thing that
+    // is true of every bead, on the retired rite's precedent one shelf over.
+    for (const id of [...BEAD_FEAT_IDS, ...BEAD_ENDEAVOUR_IDS, ...BEAD_QUEST_IDS]) {
+      const entry = shelf.entries.find((one) => one.id === `bead:${id}`)!;
+      expect(entry, id).toBeDefined();
+      expect(entry.eyebrow, id).toContain('withdrawn');
+      // Never "dealt in Æra …": a withdrawn row is dealt in no age at all.
+      expect(entry.eyebrow, id).not.toContain('dealt in');
+      expect(
+        entry.clauses.some((clause) => clause.text.startsWith('Withdrawn:')),
+        id,
+      ).toBe(true);
+    }
+    // And a live row says nothing of the kind.
+    const live = shelf.entries.find((one) => one.id === 'bead:theGoldenBead')!;
+    expect(live.eyebrow).not.toContain('withdrawn');
   });
 });
 

@@ -133,7 +133,21 @@ describe('beadAwardFace', () => {
     // instant this bead landed* — see `beadRodsFor`.
     expect(beadAwardFace(news({ rod: rod(1) }), 1).arriving).toBe(0);
     expect(beadAwardFace(news(), 1).arriving).toBe(2);
-    expect(beadAwardFace(news({ rod: rod(7) }), 1).arriving).toBe(6);
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold - 1) }), 1).arriving).toBe(
+      BEAD_RULES.threshold - 2,
+    );
+  });
+
+  it('animates nothing once the rod is past the door', () => {
+    // A rod is threshold-long and its last slot is the **golden** one, which
+    // only the Magnum Opus mints — so a seat holding as many ordinary beads as
+    // the threshold has slots has run off the end of the drawing. It matters at
+    // the figure batch Q1 cut (`docs/wager.md` §5): a bench leader ends an age-IV
+    // game holding more beads than the door asks. The face says so by refusing
+    // the animation rather than marking the golden slot, which is the one slot
+    // nothing may ever be drawn in.
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold) }), 1).arriving).toBeNull();
+    expect(beadAwardFace(news({ rod: rod(BEAD_RULES.threshold + 3) }), 1).arriving).toBeNull();
   });
 
   it('collapses to the settled rod for a reader who wants less motion', () => {
@@ -194,12 +208,16 @@ describe('the age-opening list, retired', () => {
     expect(screen).not.toContain('ageOpeningGroups');
   });
 
-  it('leaves every table it printed reachable', () => {
-    // Nothing was lost with the banner — it was an index over cards the sheet
-    // already draws — and the table keeps its three ordinary doors.
-    expect(screen).toContain('function drawAge(');
-    expect(screen).toContain('function drawFeats(');
-    expect(screen).toContain('function drawReckonings(');
+  it('leaves a ledger where the table was, behind the same three doors', () => {
+    // **Re-aimed by batch Q1.** The banner was an index over cards the sheet
+    // drew, and the cards themselves are retired now — so what the sheet keeps
+    // is the ledger: the rods, the rows that still pay a bead, and the Opus's
+    // line. The three ordinary doors are unchanged.
+    expect(screen).not.toContain('function drawAge(');
+    expect(screen).not.toContain('function drawFeats(');
+    expect(screen).not.toContain('function drawReckonings(');
+    expect(screen).toContain('function drawGrants(');
+    expect(screen).toContain('function drawRods(');
   });
 });
 

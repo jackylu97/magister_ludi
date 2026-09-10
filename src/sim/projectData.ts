@@ -56,6 +56,7 @@ import {
   type BeadPrerequisite,
   BEAD_ENDEAVOUR_IDS,
   beadEndeavourDef,
+  beadIsDormant,
 } from './beadData';
 
 /**
@@ -128,8 +129,15 @@ interface ProjectTable {
 const BASE_PROJECTS: ProjectTable = buildingsJson as unknown as ProjectTable;
 
 /**
- * The whole project table: the two conversions from `buildings.json`, then
- * every endeavour from `beads.json` adapted into the same shape.
+ * The whole project table: the conversions from `buildings.json`, then every
+ * **live** endeavour from `beads.json` adapted into the same shape.
+ *
+ * Since batch Q1 the second half is empty and the filter is why: the races are
+ * retired (`docs/wager.md` §5), and a retired row leaves every pool — which for
+ * a race project means the build list, the Compendium's shelf of projects and
+ * the queue itself. `beadIsDormant` is the one predicate that answers it, so a
+ * row waiting on a technology and a row withdrawn leave by the same door. The
+ * ids stay in `ProjectId` for the rows' own sake; nothing offers them.
  *
  * Adapted here rather than duplicated in the bead table, so that the queue's
  * four readers (`planQueueItem`, `queueItemCost`, `queueItemName`,
@@ -140,6 +148,7 @@ const BASE_PROJECTS: ProjectTable = buildingsJson as unknown as ProjectTable;
 function buildProjectTable(): Record<ProjectId, ProjectDef> {
   const table: Record<string, ProjectDef> = { ...BASE_PROJECTS.projects };
   for (const id of BEAD_ENDEAVOUR_IDS) {
+    if (beadIsDormant(id)) continue;
     const def = beadEndeavourDef(id);
     table[id] = {
       name: def.name,

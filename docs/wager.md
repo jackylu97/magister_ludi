@@ -57,6 +57,27 @@ that file's.
 
 - Beads open the Magnum Opus at `rules.threshold` (`data/beads.json`); the seat
   that builds the Opus wins.
+- **A bead comes from a wager kept or from a grant, and from nothing else**
+  (batch Q1, schema 108): feats, quests and endeavours — the old victory
+  conditions — carry `retired: true` the reckonings' way (bodies kept for the
+  Compendium's record, out of every pool, refused inside `awardBead`); the four
+  Æra V bead Orders and the four grant rows they minted retire with them; the
+  `beads` phase is gone, so `worldClock` → `wagers` → `census` is the calendar.
+- **The threshold is cut on the bench**: two bot seats and the wild, seeds 11 and
+  4242, 240 turns; the top seat's rod read 13 and 10, and two-thirds of the
+  pair's mean, floored, is **7** (was 20 for deeds). ▢ the user's own figure
+  comes with the balance pass. An age pays at most 4 (2 for the stake kept, 1
+  for each of the other two met), so three wagering ages are a 12-bead ceiling
+  before grants.
+- **The Beads screen is the ledger**: rods, the live grants with what this seat
+  has had out of each, and the Opus line — behind the bead chip, any Abacus
+  rod ("The ledger") and `V`. Folding it into the Abacus is the right end state
+  and a small job whenever the Abacus is still. The Compendium keeps every
+  withdrawn row's page, marked "withdrawn".
+
+
+- Beads open the Magnum Opus at `rules.threshold` (`data/beads.json`); the seat
+  that builds the Opus wins.
 
 ## The deck
 

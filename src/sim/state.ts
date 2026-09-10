@@ -54,65 +54,63 @@
  * disagree with itself.
  */
 
-import { type BuildingId, isWonder } from './buildingData';
-import {
-  type BeadCardId,
-  type BeadFamily,
-  type BeadKind,
-  BEAD_DECK_AGES,
-  beadDeckFor,
-  drawAgeReckonings,
-} from './beadData';
-import type { ProjectId } from './projectData';
-import type { DiscoveryId, DiscoveryKind } from './discoveryData';
+import { type BuildingId, isWonder } from "./buildingData";
+import { type BeadCardId, type BeadFamily, type BeadKind } from "./beadData";
+import type { ProjectId } from "./projectData";
+import type { DiscoveryId, DiscoveryKind } from "./discoveryData";
 import {
   FAMILIES,
   SPECIALIST_FAMILIES,
   type Family,
   type GreatPersonId,
   type SpecialistFamily,
-} from './greatPeopleData';
-import type { TriumphId } from './triumphData';
+} from "./greatPeopleData";
+import type { TriumphId } from "./triumphData";
 // The economy clock lives beside the slate rather than on the state (batch M2,
 // `slate.ts`). That file is a true leaf — a type-only import of `GameState` and
 // no runtime edge at all — so this edge cannot make a cycle from here either.
-import { bumpEconomy } from './slate';
-import type { GameMap } from './map';
-import { generateMap, getMapSize } from './mapgen';
-import { type MapgenOverrides, resolveMapgenConfig } from './mapgenData';
+import { bumpEconomy } from "./slate";
+import type { GameMap } from "./map";
+import { generateMap, getMapSize } from "./mapgen";
+import { type MapgenOverrides, resolveMapgenConfig } from "./mapgenData";
 import {
   type BeliefId,
   type ConsecrationId,
   type PlayerPantheon,
   newPlayerPantheon,
-} from './religionData';
-import { type Rng, hashSeed, makeRng, nextInt, shuffle } from './rng';
-import { type CitizenFocus, RULES } from './rulesData';
+} from "./religionData";
+import { type Rng, hashSeed, makeRng, nextInt } from "./rng";
+import { type CitizenFocus, RULES } from "./rulesData";
 // Type-only, and deliberately: `wars.ts` imports *values* from this module, so
 // an ordinary import here would be a runtime cycle. Nothing runs across this
 // arrow — the two shapes are declarations — which is the documented exception
 // (`statecraft.ts`/`religionData.ts` keep the same bargain).
-import type { Truce, WarState } from './wars';
+import type { Truce, WarState } from "./wars";
 // `deals.ts` keeps the same bargain, and for the same reason: it imports values
 // from this module, so the two shapes it names here arrive type-only.
-import type { DealProposal, DealState } from './deals';
+import type { DealProposal, DealState } from "./deals";
 import {
   type PlayerStatecraft,
   cardExtraCharges,
   cardUnitStamp,
   newPlayerStatecraft,
-} from './statecraft';
-import type { CardEffect, CardId } from './statecraftData';
-import { chooseStartPositions, planStartingUnits } from './startPositions';
-import type { TechId } from './techData';
-import { type UnitStamp, type UnitTypeId, unitDef, unitMaxHp } from './unitData';
+} from "./statecraft";
+import type { CardEffect, CardId } from "./statecraftData";
+import { chooseStartPositions, planStartingUnits } from "./startPositions";
+import type { TechId } from "./techData";
+import {
+  type UnitStamp,
+  type UnitTypeId,
+  unitDef,
+  unitMaxHp,
+} from "./unitData";
 import {
   type CitySighting,
   newVisibilityGrid,
   recomputeAllVisibility,
   recomputeVisibility,
   recomputeVisibilityFor,
-} from './visibility';
+} from "./visibility";
 
 /**
  * Bumped whenever the shape of `GameState`, `GameConfig` or the command log
@@ -745,8 +743,27 @@ import {
  * used to land spends no dice at all, a shot at a hull rolls against a different
  * strength, and a garrison's death now ends a siege one blow earlier, so every
  * draw downstream of the first fight is one place along.
+ *
+ * v108 (batch Q1, `docs/flags.md` (nnn); the user, 2026-09-09: *"Could we remove
+ * the table of the previous win conditions and remove it from our code? the
+ * wager system seems way better to me."*): **the deeds retire**. Feats,
+ * endeavours and quests were the old victory conditions and the wager replaced
+ * them, so every row of the three carries `retired: true` — kept for the
+ * Compendium's record, dealt to nobody — beside the eight reckonings that went
+ * this way in G2 and the four Æra V bead Orders, whose grants go with the cards
+ * that minted them. `BeadTable` loses `decks`, `hands` and `streaks` and is the
+ * world's register alone; `BeadCard` is gone with the table it sat on; the
+ * `beads` phase is gone from `END_OF_TURN_PHASES`, because a phase that dealt a
+ * card, swept a count and kept a streak book has none of the three left to do.
+ * `rules.handSize` and `rules.dealEveryTurns` leave `data/beads.json` and
+ * `rules.threshold` is re-cut on the bench for a world with no deeds in it.
+ *
+ * A v107 log does not replay. `newGame` drew four reckonings and shuffled two
+ * decks off `state.rng` and now draws nothing at all, so every generator-fed
+ * decision in the game — the first great person offered, the first Order dealt,
+ * the malice — moves by the rolls the deal used to spend.
  */
-export const SCHEMA_VERSION = 107;
+export const SCHEMA_VERSION = 108;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1545,23 +1562,12 @@ export interface BeadClaim {
   turn: number;
 }
 
-/**
- * One card on the table. See `BeadTable.hands`.
- *
- * `faceUp` is the whole of Entry VI's drafting model: a card dealt before its
- * age opens is face down — it is *there*, it is in the seeded order, and nobody
- * may claim it — and the turn the world's own clock enters that age every card
- * in the hand turns over at once. A card dealt after the age has opened arrives
- * face up.
- *
- * "The world's own clock" was the *first seat* to reach the age until batch G1;
- * it is the mean now, ten turns after the middle of the board crossed
- * (`worldClock.ts`). Which age is open moved; nothing about `faceUp` did.
+/*
+ * `BeadCard` — one card on the table, face up or face down — stood here and is
+ * **gone** (batch Q1, schema 108). It was Entry VI's drafting model, and the
+ * model went with the deeds it dealt: the wager is what an age asks now, and a
+ * wager is not a card somebody turns over.
  */
-export interface BeadCard {
-  id: BeadCardId;
-  faceUp: boolean;
-}
 
 /**
  * **An age's close, decided** (batch G1, `docs/wager.md` §1).
@@ -1726,20 +1732,21 @@ export interface CensusRegister {
 }
 
 /**
- * The Bead Race's whole world state (design ledger Entry VI).
+ * The Bead Race's whole world state (design ledger Entry VI) — **one field**.
  *
- * Four fields, and each of them is one sentence:
- *
- *   · `decks` — the shuffled order of each age's cards, drawn from `state.rng`
- *     **once, in `newGame`**, so a seed *is* a deal (Entry II's fairness: every
- *     seat sees the same cards in the same order). Cards are taken off the
- *     front; an empty deck is an age that has dealt everything it holds.
- *   · `hands` — what is on the table for each age, in deal order.
  *   · `claimed` — the world's register. **The** place contention is settled, so
  *     "the first seat by log and sweep order" is a property of the order things
  *     were applied in rather than of a check somebody could forget.
- *   · `streaks` — how many consecutive turns each seat has held each streak
- *     deed's count at or above its value. Reset to zero the turn it falls short.
+ *
+ * It held four until batch Q1, and the other three were the deal: `decks` (each
+ * age's cards in a seeded order, drawn once in `newGame`), `hands` (what was on
+ * the table) and `streaks` (how many turns running each seat had held each
+ * streak deed's count). The feats, endeavours and quests they served are retired
+ * — the wager is what an age asks now — so the three are deleted rather than
+ * left empty: a field nothing writes is a question somebody will one day try to
+ * answer. What is left is the register, which every bead still writes: a grant
+ * is claimed once per empire and a wager's four rows are claimed every time they
+ * are kept.
  *
  * There was a fifth until batch G1: `worldAge`, a **stored** clock raised to the
  * highest age any real seat had reached. That was the first-seat rule, and it
@@ -1749,15 +1756,12 @@ export interface CensusRegister {
  * systems read is not one system's field, and a *stored* age is a second answer
  * to a question the technology lists already answer.
  *
- * Plain objects and arrays throughout, never a `Map` or a `Set`: every one of
- * them is iterated for an outcome, and an outcome that depends on iteration
- * order must depend on an order the state itself carries.
+ * A plain array, never a `Map` or a `Set`: it is iterated for an outcome, and an
+ * outcome that depends on iteration order must depend on an order the state
+ * itself carries.
  */
 export interface BeadTable {
-  decks: Record<string, BeadCardId[]>;
-  hands: Record<string, BeadCard[]>;
   claimed: BeadClaim[];
-  streaks: Record<string, Record<string, number>>;
 }
 
 /**
@@ -2202,9 +2206,9 @@ export interface TradeRoute {
  * casting. It stays two flat fields so it serialises as an ordinary object.
  */
 export type QueueItem =
-  | { kind: 'unit'; id: UnitTypeId }
-  | { kind: 'building'; id: BuildingId }
-  | { kind: 'project'; id: ProjectId };
+  | { kind: "unit"; id: UnitTypeId }
+  | { kind: "building"; id: BuildingId }
+  | { kind: "project"; id: ProjectId };
 
 /**
  * The three kinds of row a queue holds, for the gates that ask one question of
@@ -2215,7 +2219,7 @@ export type QueueItem =
  * barracks putting ten percent behind Tithes would be a barracks minting money,
  * and a project's rate is printed on its row precisely so nothing modifies it.
  */
-export type QueueKind = QueueItem['kind'];
+export type QueueKind = QueueItem["kind"];
 
 /**
  * A city.
@@ -2267,7 +2271,7 @@ export type QueueKind = QueueItem['kind'];
  * the city's; `purchase.ts` imports this module and an import the other way
  * would be the runtime cycle `moduleCycles.test.ts` exists to catch.
  */
-export type UnitPurchaseBucket = 'militaryGold' | 'civilianGold' | 'faith';
+export type UnitPurchaseBucket = "militaryGold" | "civilianGold" | "faith";
 
 export interface City {
   id: number;
@@ -2649,7 +2653,10 @@ export interface Religion {
  * so there is no flag on the player that could disagree with it and no way to
  * hold two. A walk of a list that never exceeds a handful of rows.
  */
-export function foundedReligion(state: GameState, playerId: number): Religion | undefined {
+export function foundedReligion(
+  state: GameState,
+  playerId: number,
+): Religion | undefined {
   for (const religion of state.religions) {
     if (religion.founderId === playerId) return religion;
   }
@@ -2685,7 +2692,8 @@ export function followerCount(city: City, religion: ReligionId): number {
 /** Citizens of this town who follow nothing at all. Never negative. */
 export function unconvertedCitizens(city: City): number {
   let followed = 0;
-  for (const count of Object.values(city.followers ?? {})) followed += count ?? 0;
+  for (const count of Object.values(city.followers ?? {}))
+    followed += count ?? 0;
   return Math.max(0, city.population - followed);
 }
 
@@ -2772,7 +2780,10 @@ export function unconvertCitizen(city: City, from: ReligionId): boolean {
  * The key is **deleted** when a congregation empties, so a town nobody follows
  * any more serialises exactly like one nobody ever preached to.
  */
-export function shrinkFollowers(city: City, order: readonly ReligionId[]): void {
+export function shrinkFollowers(
+  city: City,
+  order: readonly ReligionId[],
+): void {
   if (unconvertedCitizens(city) > 0) return;
   const followers = city.followers;
   if (!followers) return;
@@ -3239,8 +3250,13 @@ export function normalizeConfig(config: GameConfig): GameConfig {
   // map. The round trip also drops any `undefined` a partial was spread from,
   // so an empty sheet normalises to *no* sheet and the game is byte-identical
   // to one that never had the field.
-  if (config.mapgenOverrides && Object.keys(config.mapgenOverrides).length > 0) {
-    const copied = JSON.parse(JSON.stringify(config.mapgenOverrides)) as MapgenOverrides;
+  if (
+    config.mapgenOverrides &&
+    Object.keys(config.mapgenOverrides).length > 0
+  ) {
+    const copied = JSON.parse(
+      JSON.stringify(config.mapgenOverrides),
+    ) as MapgenOverrides;
     if (Object.keys(copied).length > 0) normalized.mapgenOverrides = copied;
   }
   // Written only when it is on, exactly as the override sheet is: a quiet world
@@ -3276,43 +3292,22 @@ function validateConfig(config: GameConfig): void {
 }
 
 /**
- * A fresh Bead Race: both decks drawn and shuffled, both hands empty, nothing
- * claimed.
+ * A fresh Bead Race: an empty register, and nothing else.
  *
- * **The one place a deck is ordered.** It is drawn here, in `newGame`, rather
- * than when an age opens, for the doctrine `discoveries.ts` states and every
- * offer generator obeys: an order rolled later would make the deal a function
- * of *when* somebody reached an age, and under simultaneous turns two seats
- * reach it in the same window. Rolled once from the config's own generator, a
- * seed **is** a deal — which is also Entry II's fairness rule, since every seat
- * looks at the same table.
+ * **It rolled nothing since batch Q1, and that is the whole change.** It used to
+ * be the one place a deck was ordered — two ages' endeavours and quests shuffled
+ * together with four reckonings drawn from the pool of eight, off the config's
+ * own generator, so that a seed *was* a deal and every seat looked at the same
+ * table. The deeds are retired and there is no deal, so the function takes no
+ * generator: the rolls it spent are the reason a v106 log does not replay
+ * (`SCHEMA_VERSION`).
  *
- * A deck is **two halves shuffled together**: the age's endeavours and quests,
- * which are the same in every game (`beadDeckFor`), and **four reckonings, one
- * per family, drawn from the pool of eight** (`drawAgeReckonings`). A reckoning
- * is an ordinary card in every respect that matters here — shuffled in, dealt
- * one a turn, turned face up when its age opens — and differs only in when it
- * resolves: at the *next* age's opening, across every seat at once.
- *
- * The order of the two calls per age is the rule, not a habit: the reckonings
- * are drawn first and the combined list is shuffled second, so the generator is
- * consumed in one fixed sequence and a replay deals the same table. Ages are
- * walked in `BEAD_DECK_AGES` order for the same reason. `beadDeckFor` has
- * already dropped every dormant card, so nothing unreachable is ever dealt into
- * a hand somebody has to read.
+ * No clock here since batch G1 either. The world begins in its first age because
+ * nothing has closed one yet (`GameState.ageClose` absent), which is a fact about
+ * the calendar rather than about anything this function builds.
  */
-function newBeadTable(rng: Rng): BeadTable {
-  const decks: Record<string, BeadCardId[]> = {};
-  const hands: Record<string, BeadCard[]> = {};
-  for (const age of BEAD_DECK_AGES) {
-    const reckonings = drawAgeReckonings(rng);
-    decks[String(age)] = shuffle(rng, [...beadDeckFor(age), ...reckonings]);
-    hands[String(age)] = [];
-  }
-  // No clock here since batch G1. The world begins in its first age because
-  // nothing has closed one yet (`GameState.ageClose` absent), which is a fact
-  // about the calendar rather than about the deck this function builds.
-  return { decks, hands, claimed: [], streaks: {} };
+function newBeadTable(): BeadTable {
+  return { claimed: [] };
 }
 
 /**
@@ -3355,7 +3350,11 @@ export function newGame(config: GameConfig): GameState {
   const normalized = normalizeConfig(config);
   validateConfig(normalized);
 
-  const map = generateMap(normalized.seed, normalized.sizeName, normalized.mapgenOverrides);
+  const map = generateMap(
+    normalized.seed,
+    normalized.sizeName,
+    normalized.mapgenOverrides,
+  );
   // Named before the state is built, because the two decks are shuffled off it
   // (see `newBeadTable`) and the state literal below cannot refer to itself.
   const rng = deriveGameplayRng(normalized.seed);
@@ -3445,7 +3444,9 @@ export function newGame(config: GameConfig): GameState {
     tileOwner: new Array<number | null>(map.tiles.length).fill(null),
     // One grid per seat, all blank. Sized here for the reason `tileOwner` is:
     // every later access is a plain indexed read that cannot be out of range.
-    visibility: normalized.players.map(() => newVisibilityGrid(map.tiles.length)),
+    visibility: normalized.players.map(() =>
+      newVisibilityGrid(map.tiles.length),
+    ),
     citySightings: normalized.players.map(() => []),
     camps: [],
     // Nothing has been built yet, which is what an empty claim register means.
@@ -3462,11 +3463,10 @@ export function newGame(config: GameConfig): GameState {
     truces: [],
     deals: [],
     dealProposals: [],
-    // **The deal is the seed.** Both decks are shuffled here, before a single
-    // piece is placed, so that a config alone determines every card and the
-    // order it comes off — Entry II's fairness, and the reason no generator ever
-    // draws a bead card on sight (see `beads.ts`).
-    beads: newBeadTable(rng),
+    // The world's register, empty. There is no deal to seed since batch Q1 —
+    // the deeds are retired and a bead comes from a wager kept or from a thing
+    // that hands one over (see `beads.ts`).
+    beads: newBeadTable(),
     // Append-only, and empty until the first age closes: a world in its first
     // age has been dealt nothing (`docs/wager.md` §2 — no wager in Æra I).
     wagers: [],
@@ -3500,10 +3500,20 @@ export function newGame(config: GameConfig): GameState {
  */
 function placeStartingUnits(state: GameState): void {
   const starts = chooseStartPositions(state.map, state.players.length);
-  for (const placement of planStartingUnits(state.map, starts, RULES.startingUnits)) {
+  for (const placement of planStartingUnits(
+    state.map,
+    starts,
+    RULES.startingUnits,
+  )) {
     const player = state.players[placement.ownerIndex];
     if (!player) continue;
-    createUnit(state, player.id, placement.unitType, placement.col, placement.row);
+    createUnit(
+      state,
+      player.id,
+      placement.unitType,
+      placement.col,
+      placement.row,
+    );
   }
 }
 
@@ -3527,7 +3537,7 @@ function placeStartingUnits(state: GameState): void {
 function seatBarbarians(state: GameState): void {
   const player: Player = {
     id: state.players.length,
-    name: 'Barbarians',
+    name: "Barbarians",
     // The simulation never interprets a colour (see `PlayerSpec`); the diorama
     // maps this one onto `palette.wildRed` in `data/view3d.json`, and every
     // panel that prints a seat's ink — a camp's banner, the info card, the
@@ -3536,7 +3546,7 @@ function seatBarbarians(state: GameState): void {
     // to be read as another empire's (user, 2026-09-08). The red is the *base*
     // now and the rim is nobody's; changing the value here is a config change
     // and moves no outcome, because nothing in `src/sim/` ever reads it.
-    color: '#7a1f2b',
+    color: "#7a1f2b",
     isHuman: false,
     gold: 0,
     sciencePool: 0,
@@ -3658,8 +3668,10 @@ export function createUnit(
   // are two reasons for the same point.
   if (gift !== undefined) {
     if (gift.hp !== undefined) stamp.hp = (stamp.hp ?? 0) + gift.hp;
-    if (gift.strength !== undefined) stamp.strength = (stamp.strength ?? 0) + gift.strength;
-    if (gift.movement !== undefined) stamp.movement = (stamp.movement ?? 0) + gift.movement;
+    if (gift.strength !== undefined)
+      stamp.strength = (stamp.strength ?? 0) + gift.strength;
+    if (gift.movement !== undefined)
+      stamp.movement = (stamp.movement ?? 0) + gift.movement;
   }
   const stamped = Object.keys(stamp).length > 0;
   const unit: Unit = {
@@ -3860,7 +3872,11 @@ export function wakeUnit(unit: Unit): boolean {
  * named there, with the reason each is not spending. A caller with a figure it
  * does not want written down subtracts for itself and says why.
  */
-export function spendGold(state: GameState, player: Player, amount: number): void {
+export function spendGold(
+  state: GameState,
+  player: Player,
+  amount: number,
+): void {
   player.gold -= amount;
   // The ledger takes what actually left. A refund is not a thing and a negative
   // price is not a purchase, so nothing here can lower the record.
@@ -3868,7 +3884,11 @@ export function spendGold(state: GameState, player: Player, amount: number): voi
   bumpEconomy(state);
 }
 
-export function captureUnit(state: GameState, unit: Unit, ownerId: number): void {
+export function captureUnit(
+  state: GameState,
+  unit: Unit,
+  ownerId: number,
+): void {
   const before = unit.ownerId;
   unit.ownerId = ownerId;
   // A garrison that changed sides is two empires' contentment — `createUnit`'s
@@ -3957,7 +3977,10 @@ export function newCitySpecialists(): Record<SpecialistFamily, number> {
  * scan of a list that holds at most one row per wonder in the game — see
  * `GameState.wonders` for why an array is the right shape here.
  */
-export function wonderClaim(state: GameState, building: BuildingId): WonderClaim | undefined {
+export function wonderClaim(
+  state: GameState,
+  building: BuildingId,
+): WonderClaim | undefined {
   for (const claim of state.wonders) {
     if (claim.building === building) return claim;
   }
@@ -4202,7 +4225,10 @@ export function cityById(state: GameState, id: number): City | undefined {
  * `undefined` for a player with no cities at all, which is every player on turn
  * one: a palace nobody has built supplies nothing, and the meters say so.
  */
-export function capitalCityOf(state: GameState, playerId: number): City | undefined {
+export function capitalCityOf(
+  state: GameState,
+  playerId: number,
+): City | undefined {
   let fallback: City | undefined;
   for (const city of state.cities) {
     if (city.ownerId !== playerId) continue;
@@ -4263,7 +4289,8 @@ export function wondersHeldBy(
     if (city.ownerId !== playerId) continue;
     for (const id of city.buildings) {
       if (!isWonder(id)) continue;
-      if (age !== undefined && ageOf !== undefined && ageOf(id) !== age) continue;
+      if (age !== undefined && ageOf !== undefined && ageOf(id) !== age)
+        continue;
       held += 1;
     }
   }

@@ -143,7 +143,7 @@ export interface AbacusScreenOptions {
   register: HTMLElement;
   /** Called as this opens, so whatever else was up can get out of the way. */
   onOpen?: () => void;
-  /** Opens the Bead Race's table. A rod is the door to the cards behind it. */
+  /** Opens the Bead Race's ledger. A rod is the door to the rows behind it. */
   onOpenBeads?: () => void;
   /**
    * **The age's three bars, with every seat's standing against each** — the
@@ -477,7 +477,7 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
         const open = document.createElement('button');
         open.type = 'button';
         open.className = 'abacus-rod-open';
-        open.textContent = 'The table';
+        open.textContent = 'The ledger';
         open.setAttribute('aria-label', `Open the Bead Race — ${row.name}`);
         open.addEventListener('click', () => onOpenBeads());
         rod.append(open);

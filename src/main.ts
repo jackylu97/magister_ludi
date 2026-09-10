@@ -3160,8 +3160,9 @@ async function boot(initial: Game | null): Promise<void> {
     }
     // **The age's own sheet is the wager's now** (batch G2, `docs/wager.md`
     // §5/§11). It used to be the Bead Race's table wearing a banner; what an age
-    // asks of everybody is the three bars it sets, and the deed table is still
-    // one press away all game (the bead chip, an Abacus rod, `V`).
+    // asks of everybody is the three bars it sets. The table itself is retired
+    // with the deeds (batch Q1) and what is one press away behind the same three
+    // doors — the bead chip, an Abacus rod, `V` — is the bead ledger.
     //
     // Raised only for a seat that still owes the table an answer, which is
     // `firstBlocker`'s own reading: a hot-seat player who has already staked
@@ -3973,7 +3974,8 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => abacus?.dispose());
 
   /**
-   * The Beads screen: the Bead Race's table.
+   * The Beads screen: the Bead Race's **ledger** — the rods, what pays a bead,
+   * and the Opus's door. It was the *table* until batch Q1 retired the deeds.
    *
    * Statecraft's sibling in every respect — see `beadsScreen.ts` — and reached
    * three ways: the bead chip in the top bar, a rod on the Abacus, and `V`.

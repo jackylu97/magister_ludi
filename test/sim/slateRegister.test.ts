@@ -278,17 +278,17 @@ const ANNOUNCING = new Set([
  * state whose callers announce instead (named, so the pair can be checked).
  */
 const EXCUSED = new Map<string, string>([
-  [
-    'beads.ts#runBeads',
-    'writes the turn report, not the board — `awardBead` is where the row lands',
-  ],
+  // `beads.ts#runBeads` stood here and is gone with the phase (batch Q1): it
+  // dealt a card of a deed deck and swept every standing deed, and the deeds are
+  // retired. Its excuse is inherited by the two below, which is why they still
+  // quote it.
   [
     'beads.ts#runWorldClock',
-    'writes the turn report, not the board — `runBeads`’ excuse one phase up: the close’s own awards land through `awardBead`, and the clock’s state (`GameState.ageClose`) is an absolute stamp no tenant folds a yield from',
+    'writes the turn report, not the board — the old `beads` phase’s excuse one phase up: the close’s own awards land through `awardBead`, and the clock’s state (`GameState.ageClose`) is an absolute stamp no tenant folds a yield from',
   ],
   [
     'wagers.ts#runWagers',
-    'writes the turn report, not the board — `runBeads`’ excuse one phase up: a kept wager’s beads land through `awardBead`, which announces, and everything else this phase writes (`Player.wagerTotals`, `Player.wager`, `WagerDeal.claimed`) is a running total or an absolute stamp no tenant folds a yield from',
+    'writes the turn report, not the board — the old `beads` phase’s excuse one phase up: a kept wager’s beads land through `awardBead`, which announces, and everything else this phase writes (`Player.wagerTotals`, `Player.wager`, `WagerDeal.claimed`) is a running total or an absolute stamp no tenant folds a yield from',
   ],
   [
     'turn.ts#runEndOfTurn',

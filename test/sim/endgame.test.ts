@@ -38,12 +38,7 @@ import {
   beadDataProblems,
   isBeadGrantId,
 } from '../../src/sim/beadData';
-import {
-  awardBeadGrant,
-  beadGrantedTo,
-  closeTheGreatWork,
-  takeReckonings,
-} from '../../src/sim/beads';
+import { awardBeadGrant, beadGrantedTo, closeTheGreatWork } from '../../src/sim/beads';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import { buildingProductionCost, foundCityAt, realiseItem } from '../../src/sim/cities';
@@ -60,7 +55,6 @@ import {
 } from '../../src/sim/state';
 import { cardCombatLines, cardUnitStat } from '../../src/sim/statecraft';
 import { buildError, hasAbility, opusOpen, worldTechReached } from '../../src/sim/tech';
-import { currentWorldAge } from '../../src/sim/worldClock';
 import { unlockDataProblems } from '../../src/sim/techUnlocks';
 import { BUILDING_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { unitDef } from '../../src/sim/unitData';
@@ -590,17 +584,19 @@ describe('finishing the Opus wins the game for whoever raised it', () => {
     expect(g.state.winnerId).toBe(0);
   });
 
-  it('takes the reckonings through the ordinary machinery, once', () => {
+  it('measures nothing at the curtain, and says so on the report', () => {
+    // **Re-aimed by batch Q1.** Beat one of the close used to be
+    // `takeReckonings` — history rather than arithmetic, so that an age ending
+    // at the curtain was measured like every age before it. The reckonings
+    // retired in G2 and the table they were taken off in Q1, so the close puts
+    // exactly one thing on the register: the golden bead the row's own
+    // completion grant handed over.
     const { g, mine } = board();
     const before = g.state.beads.claimed.length;
     realiseItem(g.state, mine, { kind: 'building', id: OPUS });
-    // Whatever the age's face-up hand held has now been measured; a second call
-    // to the same routine measures nothing, because the register refuses it.
-    const after = g.state.beads.claimed.length;
-    expect(after).toBeGreaterThanOrEqual(before);
-    // The world's age is derived since batch G1 (`worldClock.ts`) — the same
-    // number this routine reads, asked the way the routine asks it.
-    expect(takeReckonings(g.state, currentWorldAge(g.state))).toEqual([]);
+    expect(g.state.beads.claimed.length).toBe(before + 1);
+    const close = closeTheGreatWork(g.state, mine);
+    expect(close.awards).toEqual([]);
   });
 
   it('never unseats a winner somebody else already is', () => {

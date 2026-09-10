@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it } from "vitest";
 
 import {
   type GameConfig,
@@ -6,10 +6,10 @@ import {
   bumpRevision,
   newGame,
   realPlayers,
-} from '../../src/sim/state';
-import type { TechId } from '../../src/sim/techData';
-import { runWorldClock } from '../../src/sim/beads';
-import { runWagers } from '../../src/sim/wagers';
+} from "../../src/sim/state";
+import type { TechId } from "../../src/sim/techData";
+import { runWorldClock } from "../../src/sim/beads";
+import { runWagers } from "../../src/sim/wagers";
 import {
   chooseWagerError,
   drawWagers,
@@ -21,7 +21,7 @@ import {
   wagerMet,
   wagerStandings,
   wagerStanding,
-} from '../../src/sim/wagers';
+} from "../../src/sim/wagers";
 import {
   WAGER_AGES,
   WAGER_COUNTS,
@@ -32,11 +32,11 @@ import {
   wagerDealtInAge,
   wagerDef,
   wagerLinesOfAge,
-} from '../../src/sim/wagerData';
-import { OCCASIONS } from '../../src/sim/occasions';
-import { END_OF_TURN_PHASES } from '../../src/sim/turn';
-import { applyCommand } from '../../src/sim/commands';
-import { firstBlocker } from '../../src/ui/turnBlockers';
+} from "../../src/sim/wagerData";
+import { OCCASIONS } from "../../src/sim/occasions";
+import { END_OF_TURN_PHASES } from "../../src/sim/turn";
+import { applyCommand } from "../../src/sim/commands";
+import { firstBlocker } from "../../src/ui/turnBlockers";
 
 /**
  * **The wager** — batch G2, `docs/wager.md` §2/§3/§3b (the spec of record).
@@ -58,20 +58,20 @@ import { firstBlocker } from '../../src/ui/turnBlockers';
 function config(over: Partial<GameConfig> = {}): GameConfig {
   return {
     seed: 7,
-    sizeName: 'duel',
+    sizeName: "duel",
     players: [
-      { name: 'Ada', color: '#a00', isHuman: true },
-      { name: 'Bors', color: '#00a', isHuman: false },
+      { name: "Ada", color: "#a00", isHuman: true },
+      { name: "Bors", color: "#00a", isHuman: false },
     ],
     ...over,
   };
 }
 
 const OF_AGE: Record<number, TechId> = {
-  1: 'agriculture',
-  2: 'currency',
-  3: 'mathematics',
-  4: 'education',
+  1: "agriculture",
+  2: "currency",
+  3: "mathematics",
+  4: "education",
 };
 
 /** Puts one seat into a built age. `worldClock.test.ts`' helper, verbatim. */
@@ -111,57 +111,62 @@ function dealAgeTwo(state: GameState): void {
     tick(state);
     if (openWagerDeal(state) !== null) return;
   }
-  throw new Error('no wager was ever dealt');
+  throw new Error("no wager was ever dealt");
 }
 
 // --- 1. the deck ------------------------------------------------------------
 
-describe('the deck', () => {
-  it('is consistent: every row reads something, and every age can be dealt from', () => {
+describe("the deck", () => {
+  it("is consistent: every row reads something, and every age can be dealt from", () => {
     expect(wagerDataProblems()).toEqual([]);
   });
 
-  it('holds the four-and-twenty of the worksheet', () => {
+  it("holds the four-and-twenty of the worksheet", () => {
     expect(WAGER_IDS).toHaveLength(24);
   });
 
-  it('answers every reading in the vocabulary — nothing declared and unread', () => {
+  it("answers every reading in the vocabulary — nothing declared and unread", () => {
     // The register test the cards, the beads and the Triumphs each keep: a
     // member of the union that no arm answers would be a bar nobody could
     // clear, and a member no row names would be vocabulary as decoration.
     const state = newGame(config());
     for (const count of WAGER_COUNTS) {
-      expect(typeof wagerCount(state, 0, count)).toBe('number');
+      expect(typeof wagerCount(state, 0, count)).toBe("number");
     }
     const named = new Set<string>();
     for (const id of WAGER_IDS) {
       const reads = wagerDef(id).reads;
-      if (reads.shape === 'count') named.add(reads.count);
+      if (reads.shape === "count") named.add(reads.count);
       else for (const clause of reads.clauses) named.add(clause.count);
     }
     for (const count of WAGER_COUNTS) expect(named.has(count)).toBe(true);
   });
 
-  it('keeps a deferred row in the table and out of every pool', () => {
+  it("keeps a deferred row in the table and out of every pool", () => {
     // The vocabulary's own convention (`docs/wager.md` §3): a card whose reading
     // does not exist yet is deferred and annotated, never bent into a near-fit.
-    const deferred = WAGER_IDS.filter((id) => wagerDef(id).deferred !== undefined);
+    const deferred = WAGER_IDS.filter(
+      (id) => wagerDef(id).deferred !== undefined,
+    );
     expect(deferred.length).toBeGreaterThan(0);
     for (const id of deferred) {
       expect(wagerDef(id).deferred![0]!.length).toBeGreaterThan(0);
-      for (const age of WAGER_AGES) expect(wagerDealtInAge(id, age)).toBe(false);
+      for (const age of WAGER_AGES)
+        expect(wagerDealtInAge(id, age)).toBe(false);
     }
   });
 
-  it('never deals a row before the age it names', () => {
+  it("never deals a row before the age it names", () => {
     // The Tithe is Æra III and up: religion pays nothing worth a bar in Æra II.
-    expect(wagerDealtInAge('theTithe', 2)).toBe(false);
-    expect(wagerDealtInAge('theTithe', 3)).toBe(true);
+    expect(wagerDealtInAge("theTithe", 2)).toBe(false);
+    expect(wagerDealtInAge("theTithe", 3)).toBe(true);
   });
 
-  it('has at least three lines to deal from in every wagering age', () => {
+  it("has at least three lines to deal from in every wagering age", () => {
     for (const age of WAGER_AGES) {
-      expect(wagerLinesOfAge(age).length).toBeGreaterThanOrEqual(WAGER_RULES.dealt);
+      expect(wagerLinesOfAge(age).length).toBeGreaterThanOrEqual(
+        WAGER_RULES.dealt,
+      );
     }
   });
 });
@@ -192,46 +197,49 @@ describe('the deck', () => {
  *     is a closed list on purpose, so a fourth way of saying it is a decision
  *     rather than a slip.
  */
-describe('the deck’s words', () => {
+describe("the deck’s words", () => {
   /** The whole of how a note may state its window. See the docblock. */
-  const SPAN_WORDS = ['turn', 'age', 'at once'];
+  const SPAN_WORDS = ["turn", "age", "at once"];
 
-  it('writes no figure and no keyword ref into a note', () => {
+  it("writes no figure and no keyword ref into a note", () => {
     for (const id of WAGER_IDS) {
       const note = wagerDef(id).note;
       expect(/\d/.test(note), `${id}: ${note}`).toBe(false);
-      expect(note.includes('[['), id).toBe(false);
+      expect(note.includes("[["), id).toBe(false);
       // A note is one plain sentence a first-time player can act on, not a
       // paragraph: long enough to name the reading, short enough to read.
       expect(note.length, id).toBeGreaterThan(20);
-      expect(note.endsWith('.'), id).toBe(true);
+      expect(note.endsWith("."), id).toBe(true);
     }
   });
 
-  it('names the span every note counts in', () => {
+  it("names the span every note counts in", () => {
     for (const id of WAGER_IDS) {
       const note = wagerDef(id).note.toLowerCase();
       const named = SPAN_WORDS.filter((word) => note.includes(word));
-      expect(named.length, `${id} names no span: ${wagerDef(id).note}`).toBeGreaterThan(0);
+      expect(
+        named.length,
+        `${id} names no span: ${wagerDef(id).note}`,
+      ).toBeGreaterThan(0);
     }
   });
 
-  it('carries no flavour field beside the note', () => {
+  it("carries no flavour field beside the note", () => {
     // The wager row has no `flavor`/`epigram` and must not gain one (the
     // ruling): the deck's whole voice is the note, and a second string beside
     // it is where the flavour that had to be cut would come back.
     for (const id of WAGER_IDS) {
       const row = wagerDef(id) as unknown as Record<string, unknown>;
-      expect('flavor' in row, id).toBe(false);
-      expect('epigram' in row, id).toBe(false);
+      expect("flavor" in row, id).toBe(false);
+      expect("epigram" in row, id).toBe(false);
     }
   });
 });
 
 // --- 2. the deal ------------------------------------------------------------
 
-describe('the deal', () => {
-  it('draws three cards from three different lines', () => {
+describe("the deal", () => {
+  it("draws three cards from three different lines", () => {
     const state = newGame(config());
     for (const age of WAGER_AGES) {
       for (let roll = 0; roll < 40; roll++) {
@@ -244,7 +252,7 @@ describe('the deal', () => {
     }
   });
 
-  it('deals nothing in Æra I and deals when Æra II opens', () => {
+  it("deals nothing in Æra I and deals when Æra II opens", () => {
     const state = newGame(config());
     expect(state.wagers).toEqual([]);
     // A dozen turns of the first age: the opening is for learning the board.
@@ -262,10 +270,11 @@ describe('the deal', () => {
       realPlayers(state).map((player) => player.id),
     );
     for (const opening of deal.opening) expect(opening.at).toHaveLength(3);
-    for (const player of realPlayers(state)) expect(player.wager).toBeUndefined();
+    for (const player of realPlayers(state))
+      expect(player.wager).toBeUndefined();
   });
 
-  it('is a seed — the same board deals the same three', () => {
+  it("is a seed — the same board deals the same three", () => {
     const one = newGame(config());
     const two = newGame(config());
     dealAgeTwo(one);
@@ -273,7 +282,7 @@ describe('the deal', () => {
     expect(openWagerDeal(one)!.dealt).toEqual(openWagerDeal(two)!.dealt);
   });
 
-  it('never deals an age twice', () => {
+  it("never deals an age twice", () => {
     const state = newGame(config());
     dealAgeTwo(state);
     const dealt = [...openWagerDeal(state)!.dealt];
@@ -285,12 +294,12 @@ describe('the deal', () => {
 
 // --- 3. the stake -----------------------------------------------------------
 
-describe('the stake', () => {
-  it('holds every seat that has not staked, on the deal turn and only then', () => {
+describe("the stake", () => {
+  it("holds every seat that has not staked, on the deal turn and only then", () => {
     const state = newGame(config());
     dealAgeTwo(state);
     expect(wagerBlocker(state, 0)).not.toBeNull();
-    expect(firstBlocker(state, 0)?.kind).toBe('wager');
+    expect(firstBlocker(state, 0)?.kind).toBe("wager");
 
     // The turn after, the chair is filled by the phase rather than by a button
     // nobody can press: a blocker that outlived its window is a locked End Turn
@@ -299,7 +308,7 @@ describe('the stake', () => {
     expect(wagerBlocker(state, 0)).toBeNull();
   });
 
-  it('never holds the wild', () => {
+  it("never holds the wild", () => {
     const state = newGame(config({ barbarians: true }));
     dealAgeTwo(state);
     const wild = state.players.find((player) => player.barbarian);
@@ -307,33 +316,43 @@ describe('the stake', () => {
     expect(wagerBlocker(state, wild!.id)).toBeNull();
   });
 
-  it('takes a pick through the reducer and refuses a second', () => {
+  it("takes a pick through the reducer and refuses a second", () => {
     const state = newGame(config());
     dealAgeTwo(state);
-    const first = applyCommand(state, { type: 'chooseWager', playerId: 0, index: 1 });
+    const first = applyCommand(state, {
+      type: "chooseWager",
+      playerId: 0,
+      index: 1,
+    });
     expect(first.ok).toBe(true);
     expect(state.players[0]!.wager).toEqual({ age: 2, index: 1 });
 
-    const second = applyCommand(state, { type: 'chooseWager', playerId: 0, index: 2 });
+    const second = applyCommand(state, {
+      type: "chooseWager",
+      playerId: 0,
+      index: 2,
+    });
     expect(second.ok).toBe(false);
     expect(state.players[0]!.wager).toEqual({ age: 2, index: 1 });
   });
 
-  it('refuses an index that is not one of the three, and moves nothing', () => {
+  it("refuses an index that is not one of the three, and moves nothing", () => {
     const state = newGame(config());
     dealAgeTwo(state);
     const before = JSON.stringify(state.players[0]);
     for (const index of [-1, 3, 1.5]) {
       expect(chooseWagerError(state, 0, index)).not.toBeNull();
-      expect(applyCommand(state, { type: 'chooseWager', playerId: 0, index }).ok).toBe(false);
+      expect(
+        applyCommand(state, { type: "chooseWager", playerId: 0, index }).ok,
+      ).toBe(false);
     }
     expect(JSON.stringify(state.players[0])).toBe(before);
   });
 
-  it('fills an empty chair with the first card, the turn after the deal', () => {
+  it("fills an empty chair with the first card, the turn after the deal", () => {
     const state = newGame(config());
     dealAgeTwo(state);
-    applyCommand(state, { type: 'chooseWager', playerId: 0, index: 2 });
+    applyCommand(state, { type: "chooseWager", playerId: 0, index: 2 });
     expect(state.players[1]!.wager).toBeUndefined();
 
     tick(state);
@@ -347,7 +366,7 @@ describe('the stake', () => {
 
 // --- 4. the claim -----------------------------------------------------------
 
-describe('the claim', () => {
+describe("the claim", () => {
   /** Arranges a board with the table dealt and one card trivially clearable. */
   function board(): GameState {
     const state = newGame(config());
@@ -356,18 +375,21 @@ describe('the claim', () => {
     return state;
   }
 
-  it('claims the turn a bar is first met, and mints two beads for the stake', () => {
+  it("claims the turn a bar is first met, and mints two beads for the stake", () => {
     const state = board();
     const deal = openWagerDeal(state)!;
     expect(wagerBar(deal.dealt[0]! as never, 2)).toBeGreaterThan(0);
 
-    applyCommand(state, { type: 'chooseWager', playerId: 0, index: 0 });
-    applyCommand(state, { type: 'chooseWager', playerId: 1, index: 1 });
+    applyCommand(state, { type: "chooseWager", playerId: 0, index: 0 });
+    applyCommand(state, { type: "chooseWager", playerId: 1, index: 1 });
 
     forceMet(state, 0, 0);
     forceMet(state, 1, 0);
 
-    const beadsBefore = [state.players[0]!.beads.length, state.players[1]!.beads.length];
+    const beadsBefore = [
+      state.players[0]!.beads.length,
+      state.players[1]!.beads.length,
+    ];
     tick(state);
 
     const after = wagerDealOf(state, 2)!;
@@ -377,26 +399,32 @@ describe('the claim', () => {
     // past — the resolution's own turn, one before the players' next.
     for (const claim of claims) expect(claim.turn).toBe(state.turn - 1);
     // Two for the staker, one for the seat that cleared somebody else's card.
-    expect(state.players[0]!.beads.length - beadsBefore[0]!).toBe(WAGER_RULES.stakeBeads);
-    expect(state.players[1]!.beads.length - beadsBefore[1]!).toBe(WAGER_RULES.otherBeads);
+    expect(state.players[0]!.beads.length - beadsBefore[0]!).toBe(
+      WAGER_RULES.stakeBeads,
+    );
+    expect(state.players[1]!.beads.length - beadsBefore[1]!).toBe(
+      WAGER_RULES.otherBeads,
+    );
   });
 
-  it('claims once and never again', () => {
+  it("claims once and never again", () => {
     const state = board();
-    applyCommand(state, { type: 'chooseWager', playerId: 0, index: 0 });
+    applyCommand(state, { type: "chooseWager", playerId: 0, index: 0 });
     forceMet(state, 0, 0);
     tick(state);
     const banked = state.players[0]!.beads.length;
     for (let step = 0; step < 3; step++) tick(state);
-    expect(wagerDealOf(state, 2)!.claimed.filter((one) => one.playerId === 0)).toHaveLength(1);
+    expect(
+      wagerDealOf(state, 2)!.claimed.filter((one) => one.playerId === 0),
+    ).toHaveLength(1);
     expect(state.players[0]!.beads.length).toBe(banked);
   });
 
-  it('announces the moment, and the union carries the word', () => {
-    expect(OCCASIONS).toContain('wagerClaimed');
+  it("announces the moment, and the union carries the word", () => {
+    expect(OCCASIONS).toContain("wagerClaimed");
   });
 
-  it('ranks every seat against a bar, highest first, and marks the ones that met it', () => {
+  it("ranks every seat against a bar, highest first, and marks the ones that met it", () => {
     const state = board();
     forceMet(state, 1, 0);
     tick(state);
@@ -422,7 +450,7 @@ describe('the claim', () => {
  * table's. Only the deal on this board changes, and its openings are re-taken so
  * every seat still starts the age at nought.
  */
-const ARRANGED: string[] = ['solventRealm', 'academies', 'theChronicle'];
+const ARRANGED: string[] = ["solventRealm", "academies", "theChronicle"];
 
 function arrange(state: GameState): void {
   const deal = openWagerDeal(state)!;
@@ -431,7 +459,9 @@ function arrange(state: GameState): void {
     playerId: player.id,
     at: ARRANGED.map((id) => {
       const reads = wagerDef(id as never).reads;
-      return reads.shape === 'count' ? wagerCount(state, player.id, reads.count) : 0;
+      return reads.shape === "count"
+        ? wagerCount(state, player.id, reads.count)
+        : 0;
     }),
   }));
 }
@@ -442,22 +472,25 @@ function forceMet(state: GameState, playerId: number, index: number): void {
   const id = deal.dealt[index]! as never;
   const def = wagerDef(id);
   const reads = def.reads;
-  if (reads.shape !== 'count') throw new Error('the bench arranges flows only');
-  const opening = deal.opening.find((one) => one.playerId === playerId)!.at[index]!;
-  state.players[playerId]!.wagerTotals[reads.count] = opening + wagerBar(id, deal.age) + 1;
+  if (reads.shape !== "count") throw new Error("the bench arranges flows only");
+  const opening = deal.opening.find((one) => one.playerId === playerId)!.at[
+    index
+  ]!;
+  state.players[playerId]!.wagerTotals[reads.count] =
+    opening + wagerBar(id, deal.age) + 1;
   bumpRevision(state);
   expect(wagerMet(state, playerId, id, deal.age)).toBe(true);
 }
 
 // --- 5. the judgement -------------------------------------------------------
 
-describe('the judgement', () => {
-  it('marks a staker who missed, and nobody else — and pays the mark at once', () => {
+describe("the judgement", () => {
+  it("marks a staker who missed, and nobody else — and pays the mark at once", () => {
     const state = newGame(config());
     dealAgeTwo(state);
     arrange(state);
-    applyCommand(state, { type: 'chooseWager', playerId: 0, index: 0 });
-    applyCommand(state, { type: 'chooseWager', playerId: 1, index: 1 });
+    applyCommand(state, { type: "chooseWager", playerId: 0, index: 0 });
+    applyCommand(state, { type: "chooseWager", playerId: 1, index: 1 });
     // The first seat clears its own card; the second does not.
     forceMet(state, 0, 0);
     tick(state);
@@ -476,10 +509,10 @@ describe('the judgement', () => {
     expect(seated.map((one) => one.playerId)).toEqual([1]);
   });
 
-  it('is taken once — the Opus and the backstop reach the same age', () => {
+  it("is taken once — the Opus and the backstop reach the same age", () => {
     const state = newGame(config());
     dealAgeTwo(state);
-    applyCommand(state, { type: 'chooseWager', playerId: 0, index: 0 });
+    applyCommand(state, { type: "chooseWager", playerId: 0, index: 0 });
     judgeWagers(state, 2);
     const held = state.players[0]!.malices.length;
     judgeWagers(state, 2);
@@ -491,8 +524,8 @@ describe('the judgement', () => {
 
 // --- 6. the flow's window ---------------------------------------------------
 
-describe('a flow counts from the deal', () => {
-  it('starts every seat at nought and subtracts the stamp, never a reset', () => {
+describe("a flow counts from the deal", () => {
+  it("starts every seat at nought and subtracts the stamp, never a reset", () => {
     const state = newGame(config());
     dealAgeTwo(state);
     arrange(state);
@@ -507,27 +540,28 @@ describe('a flow counts from the deal', () => {
     state.players[0]!.wagerTotals[count] = opening + 40;
     bumpRevision(state);
     expect(wagerStanding(state, 0, id as never, 2)).toBe(40);
-    expect(deal.opening.find((one) => one.playerId === 0)!.at[at]).toBe(opening);
+    expect(deal.opening.find((one) => one.playerId === 0)!.at[at]).toBe(
+      opening,
+    );
   });
 });
 
 // --- 7. the phase ------------------------------------------------------------
 
-describe('the phase', () => {
-  it('runs directly after the clock and directly before the beads', () => {
-    // The position is the rule (`runWagers`' docblock): after the clock because
-    // every question here is about the age, before the beads because a claim
-    // mints beads the deed sweep reads on the same turn.
+describe("the phase", () => {
+  it("runs directly after the clock, and is now the phase that mints a bead", () => {
+    // The position is the rule (`runWagers`' docblock): after the clock, because
+    // every question here is about the age. It used to be *before the beads* as
+    // well — a claim minted beads the deed sweep read on the same turn — and
+    // batch Q1 deleted that phase with the deeds, so this is the one left.
     const names = END_OF_TURN_PHASES.map((phase) => phase.name);
-    const clock = names.indexOf('worldClock');
-    const wagers = names.indexOf('wagers');
-    const beads = names.indexOf('beads');
+    const clock = names.indexOf("worldClock");
+    const wagers = names.indexOf("wagers");
     expect(wagers).toBe(clock + 1);
-    // The census slid in between the two in batch C1 — it pays a Triumph and the
-    // deed sweep reads the register it lands on — so what this pins is the pair
-    // of edges rather than one adjacency: the wagers still sit on the clock, and
-    // the beads still sweep after everything that mints for them.
-    expect(names[wagers + 1]).toBe('census');
-    expect(beads).toBe(wagers + 2);
+    // The census slid in after the wagers in batch C1 — it pays a Triumph on a
+    // board the clock has settled — and the `beads` phase that once swept after
+    // both is gone (batch Q1): a wager kept is what mints a bead now.
+    expect(names[wagers + 1]).toBe("census");
+    expect(names).not.toContain("beads");
   });
 });

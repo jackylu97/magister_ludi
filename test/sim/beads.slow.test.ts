@@ -3,40 +3,39 @@
  * than asserted.
  *
  * `beads.test.ts` pins the rules one at a time on a hand-built board. What it
- * cannot answer is the question the model actually turns on: **when does the
- * table open in a real game**, and does the deck keep flowing once it has. That
- * is a claim about tens of turns of a scripted empire, which is what puts it on
- * this side of the line (see `tech.slow.test.ts`'s docblock for the convention).
- *
- * The claim under test is the 2026-08-30 re-keying: the deck keys are the
- * **built** age numbers, so the doc's Æra III deck is deck **2**, and a real
- * game therefore turns its first hand face up when the first seat reaches the
- * matching age — turn 308 on this script since batches D, E and X (2026-09-06;
- * turn 46 when the re-keying landed, on a much cheaper tree) — rather than
- * never, which is what an age-4 key would have meant on a three-age tree.
+ * cannot answer is the question the model actually turns on, which batch Q1
+ * changed the wording of but not the shape: it used to be **when does the table
+ * open in a real game**, and the deeds are retired, so it is now **what reaches
+ * a rod in a real game** — and the answer had better be a wager and a grant and
+ * nothing else. That is a claim about hundreds of turns of played empires, which
+ * is what puts it on this side of the line (see `tech.slow.test.ts`'s docblock
+ * for the convention).
  */
 
 import { describe, expect, it } from 'vitest';
 
+import { driveBots } from '../../src/ai/driver';
 import { type Game, createGame, dispatch } from '../../src/sim/game';
 import { unitDef } from '../../src/sim/unitData';
 import { availableTechs, isUnlocked } from '../../src/sim/tech';
 import { TECH_IDS, highestAge, techDef } from '../../src/sim/techData';
+import { anyBeadDef } from '../../src/sim/beadData';
+import { type GameConfig, realPlayers } from '../../src/sim/state';
 import { currentWorldAge } from '../../src/sim/worldClock';
 
 /**
  * One seat, one capital, the cheapest tech available every turn, and a queue of
  * everything the tree has handed over — `tech.slow.test.ts`'s `playEmpire`
  * stripped to the half this file needs. The buildings matter: without them the
- * capital is science-starved and the table opens twelve turns later, which would
- * be a measurement of an empire nobody plays.
+ * capital is science-starved and the clock turns over twelve turns later, which
+ * would be a measurement of an empire nobody plays.
  */
 const WANTED = [
   'granary', 'monument', 'shrine', 'library', 'temple', 'market',
   'aqueduct', 'workshop', 'watermill', 'amphitheater', 'monastery', 'university',
 ];
 
-function playSeat(maxTurns: number): { game: Game; opened: number | null; firstDeal: number | null } {
+function playSeat(maxTurns: number): { game: Game; opened: number | null } {
   const game = createGame({
     seed: 4242,
     sizeName: 'standard',
@@ -46,7 +45,6 @@ function playSeat(maxTurns: number): { game: Game; opened: number | null; firstD
   dispatch(game, { type: 'foundCity', playerId: 0, settlerUnitId: settler.id });
 
   let opened: number | null = null;
-  let firstDeal: number | null = null;
   for (let turn = 0; turn < maxTurns; turn++) {
     const player = game.state.players[0]!;
     if (player.researching === null) {
@@ -70,104 +68,85 @@ function playSeat(maxTurns: number): { game: Game; opened: number | null; firstD
     }
     dispatch(game, { type: 'endTurn', playerId: 0 });
 
-    const hand = game.state.beads.hands['3'] ?? [];
-    if (firstDeal === null && hand.length > 0) firstDeal = game.state.turn;
-    if (opened === null && hand.some((card) => card.faceUp)) opened = game.state.turn;
+    if (opened === null && currentWorldAge(game.state) >= 3) opened = game.state.turn;
   }
-  return { game, opened, firstDeal };
+  return { game, opened };
 }
 
-describe('the table in a played game', () => {
-  it('deals from turn one and opens when the first seat enters built age 3', () => {
-    const { game, opened, firstDeal } = playSeat(400);
+describe('the calendar in a played game', () => {
+  it('reaches the Empire band inside a game, with nothing dealt behind it', () => {
+    const { game, opened } = playSeat(400);
     const player = game.state.players[0]!;
 
-    // The deal does not wait for anybody: a card lands on the table face down
-    // in the very first resolution, which is what "the hand fills over the age"
-    // means (Entry VI's drafting model). Read as turn 2 because `endTurn`
-    // advances the counter past the turn that dealt.
-    expect(firstDeal).toBe(2);
-
-    // And the world's clock is what turns them over. Re-measured for the tree
-    // pass of 2026-08-30: the decks re-keyed 2|3 → 3|4 with the ages, so the
-    // first table is Æra III's and it opens when a seat reaches the Empire band
-    // rather than the old Classical one. The band is deliberately wide on both
-    // sides, because what is being pinned is that the table opens *inside a
-    // game* rather than the exact turn — a tighter band here would fail on a
-    // retune of the tree that this file has no opinion about. An `opened` of
-    // `null` is the regression this test exists for: it is what a deck keyed to
-    // an age no technology belongs to produces, and it means no seat ever saw a
-    // card.
+    // **Re-aimed by batch Q1.** What this measured was the turn the Æra III
+    // *table* turned face up; the deeds are retired and there is no table, so
+    // what is left of the same reading is the turn the world's clock enters the
+    // Empire band. The rest of the test is unchanged, and so is its argument: an
+    // `opened` of `null` is the regression it exists for — a world whose clock
+    // never moves is a game nobody can finish.
     expect(opened).not.toBeNull();
     // Reported, not banded (the user, 2026-09-06: "can we stop using scripted
-    // bots for measuring changes"): the turn the Æra III table opens for a
-    // scripted seat is printed, never asserted; the horizon (400) stays wide
-    // enough that the machinery below — the age opens, four cards are dealt, a
-    // deck stands — is what the test claims. Last measured 2026-09-08, after
-    // batch S1 re-anchored the tech ladder at 10 (`docs/flags.md` item (vv)):
-    // t244, against t308 on 2026-09-06. The age opens sooner because the two
-    // ages in front of it are cheaper, which is the whole of the change; the
-    // horizon (400) still has room in it.
-    //
-    // **Re-measured 2026-09-09, batch B6** (`docs/flags.md` item (hhh): the
-    // whole ladder re-fitted as one curve from 5 to 8000): **t220**, against
-    // **t211** on the ladder it replaced — both measured in the same pass, on
-    // the same tree, so the nine turns are this ruling's and nothing else's.
-    // (The t244 above is not the comparison: it predates batch G1's world
-    // clock, which moved this reading by its own ten-turn countdown.)
-    //
-    // Nine turns is the *right* size for what moved. This seat reaches built
-    // age 3 off the whole of Æra I and Æra II plus one Æra III node, and the
-    // re-fit barely touched those — 266 → 269 and 1295 → 1350, a beaker or two
-    // a rung — with the first Æra III node going 310 → 360. What the curve made
-    // dear is the far end of the chart, which this measurement never reaches:
-    // the age table opens on the opening of the game, and the opening is the
-    // half of the curve that did not move. The horizon (400) still has room.
-    console.info(`[pacing] the scripted seat opens the Æra III table on t${opened}`);
-    // **Re-measured 2026-09-09, batch G1** (the world clock is the mean with a
-    // ten-turn countdown): this lone seat reaches built age 2 on t82 and built
-    // age 3 on t201, the world enters Æra II on t91 and Æra III on t210, and the
-    // hand turns over on t211. On a one-seat board the mean *is* that seat, so
-    // what the batch added to this pacing is exactly the countdown — ten turns
-    // between the tree arriving and the calendar following it.
-    // Re-banded 2026-09-01 (Entry LIV): the tree's new walls put the Empire
-    // band around t100 on this seed; the band stays deliberately loose.
-    // Re-banded 2026-09-02 (the column-formula costs): every price in the tree
-    // is read off the node's own chart column now, and the two early ages got
-    // much dearer — AEra I costs 814 beakers where it cost 169 — so this seat
-    // reaches the Empire band at **t211** rather than t100. The band goes to
-    // 300, which is still the loose one this test wants: what is pinned is that
-    // the table opens *inside a game*, and a tighter band would fail on a tree
-    // retune this file has no opinion about.
-    //
-    // **Re-aimed 2026-09-06 — the one dated pass after batches D, E and X**
-    // (`docs/fewer-things-plan.md`, "Pacing re-aim after D, E, X"). Nothing
-    // about the beads moved: no deed was re-keyed, no deck re-priced, and the
-    // Water Clock's rework (E) hands this seat a periodic beaker rather than
-    // taking one away. **It is the science pace, and only that.** This lone
-    // capital reaches built age 2 on t133 and built age 3 on **t308**, and the
-    // hand turns over on exactly the turn the age does — against t211 before
-    // the three batches. D halved the base beaker and cut the buildings to
-    // chains, X's exact yields gave most of it back (a size-1 town's half
-    // beaker is banked rather than floored away), and what is left is the
-    // halving itself, paid over a one-city economy that has the least of it to
-    // spare. The horizon grows 260 → 400 with the band, for the reason every
-    // pacing harness in this suite gives: one that stops before the thing it
-    // measures happens measures nothing at all.
-    // **Re-aimed by batch G1**: the world's age is derived from the mean and
-    // lags the tree by a countdown (`worldClock.ts`), so this lone capital's
-    // own age is what the tree pace is measured by, and the world's is what the
-    // hand is measured by. On a solo board the two are the same reading ten
-    // turns apart, which is why the horizon below still reaches both.
+    // bots for measuring changes"): the turn is printed, never asserted; the
+    // horizon (400) stays wide enough that the machinery below is the claim.
+    // Last measured 2026-09-09, batch B6: t220 for the age opening, which under
+    // batch G1's clock is the same reading as this one.
+    console.info(`[pacing] the scripted seat's world enters Æra III on t${String(opened)}`);
     expect(currentWorldAge(game.state)).toBeGreaterThanOrEqual(3);
     expect(highestAge(player.techsResearched)).toBeGreaterThanOrEqual(3);
 
-    // Once open, the hand is full and the deck is still dealing behind it.
-    expect((game.state.beads.hands['3'] ?? []).every((card) => card.faceUp)).toBe(true);
-    expect((game.state.beads.hands['3'] ?? []).length).toBe(4);
-    expect((game.state.beads.decks['3'] ?? []).length).toBeGreaterThan(0);
-    // The next age's deck has been filling face down behind it all along.
-    expect((game.state.beads.hands['4'] ?? []).length).toBeGreaterThan(0);
-    expect((game.state.beads.hands['4'] ?? []).every((card) => !card.faceUp)).toBe(true);
+    // **And no deed was dealt to anybody, because there is nothing to deal.**
+    // The table is the world's register alone since batch Q1.
+    expect(Object.keys(game.state.beads)).toEqual(['claimed']);
+    expect(game.state.beads.claimed.every((claim) => claim.id !== undefined)).toBe(true);
   });
+});
+
+describe('what reaches a rod', () => {
+  /**
+   * **The pin the retirement is worth**, made twice — once over a long scripted
+   * game and once over a short board with two bot seats and the wild.
+   *
+   * The horizon is the shortest one at which each claim still bites, measured
+   * rather than guessed (this file's standing rule). A deed was a *first in the
+   * world*, a *deed dealt from an age's deck* or a *race in the build list*, and
+   * every one of the three could be reached inside the first fifty turns by a
+   * seat that founded a city — so a board that plays fifty turns and clacks
+   * nothing off a deed deck is the claim. The four hundred turns below cost
+   * nothing extra: it is the same game the pacing test above already played.
+   */
+  it('is never a feat, a quest or a race project, over four hundred played turns', () => {
+    const { game } = playSeat(400);
+    const player = game.state.players[0]!;
+    expect(player.beads.every((bead) => bead.kind === 'grant')).toBe(true);
+    for (const claim of game.state.beads.claimed) {
+      expect(anyBeadDef(claim.id).kind, claim.id).toBe('grant');
+    }
+  });
+
+  it('is never a deed on a board with rivals and the wild on it', () => {
+    // The seat above founds one city and races nobody. This one is the arena's
+    // own bench shape — two balanced bot seats and the wild — because half the
+    // deeds were claims on *the world* (the first religion, the first palace
+    // taken, the most cities at an age's close) and a solo board could not have
+    // contested one either way.
+    const config: GameConfig = {
+      seed: 11,
+      sizeName: 'standard',
+      players: [
+        { name: 'Crimson', color: '#d4502e' },
+        { name: 'Teal', color: '#1f8a85' },
+      ],
+      barbarians: true,
+    };
+    const game = createGame(config);
+    for (let turn = 0; turn < 60; turn++) {
+      for (const report of driveBots(game)) void report;
+      if (game.state.winnerId !== null) break;
+    }
+    const earned = realPlayers(game.state).flatMap((player) => player.beads);
+    expect(earned.every((bead) => bead.kind === 'grant')).toBe(true);
+    expect(game.state.beads.claimed.every((claim) => anyBeadDef(claim.id).kind === 'grant')).toBe(
+      true,
+    );
+  }, 600_000);
 });

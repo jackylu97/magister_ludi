@@ -181,9 +181,8 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   // The star chart's node card, at the foot, under the two state lines that are
   // not lacks.
   { file: 'techTree.ts', says: "a node's refusal", carries: "element('p', 'info-card-state wanting', problem)" },
-  // The bead card: the unmet gate, and the reducer's refusal under it.
-  { file: 'beadsScreen.ts', says: 'a race this empire does not qualify for', carries: "gate.classList.toggle('wanting', !face.met)" },
-  { file: 'beadsScreen.ts', says: "the race's refusal", carries: "element('p', 'info-card-state wanting', face.refusal)" },
+  // The bead card's unmet gate and the race's refusal stood here until batch
+  // Q1 retired the deeds: the ledger lists grants, which nobody is refused.
   // The unit sheet's "Why not", and the blocked foot of a richer row's card.
   { file: 'unitPanel.ts', says: 'a refused verb', carries: "element('p', 'unit-card-blocked wanting', text)" },
   { file: 'unitPanel.ts', says: "a proclamation's refusal", carries: "element('p', 'unit-card-blocked wanting', row.blocked)" },
@@ -275,8 +274,7 @@ describe('the wanting voice', () => {
     expect(card).toContain("element('p', 'info-card-state', 'Researched')");
     expect(card).toContain("element('p', 'info-card-state', `Being researched");
     expect(card).toContain("element('p', 'info-card-state is-planned'");
-    // The bead card's met tick keeps its teal for the same reason.
-    expect(uiSource('beadsScreen.ts')).toContain("gate.classList.toggle('is-met', face.met)");
+    // (The bead card's met tick was the fourth until batch Q1 retired the races.)
     // And on the trade sheet the **heading** over a group of refused pairs is a
     // state rather than a lack — "Already running", "Out of reach" — so it is
     // drawn in the sheet's own quiet display ink and only the reducer's

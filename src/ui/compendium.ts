@@ -160,7 +160,6 @@ import { CONCEPT_ENTRIES, INTRO_ENTRIES } from './compendiumText';
 import { HAMMER, YIELD_GLYPH, eraWord, figure, percentFigure, signedFigure } from './figures';
 import {
   type BeadCardId,
-  BEAD_DECK_AGES,
   BEAD_ENDEAVOUR_IDS,
   BEAD_FEAT_IDS,
   BEAD_GRANT_IDS,
@@ -168,7 +167,6 @@ import {
   BEAD_RECKONING_IDS,
   BEAD_RULES,
   anyBeadDef,
-  beadHandSize,
 } from '../sim/beadData';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
 import { MALICE_IDS, type MaliceId, maliceDef } from '../sim/maliceData';
@@ -1536,11 +1534,6 @@ function beadRulesEntry(): CompendiumEntry {
     mark: { kind: 'glyph', glyph: '◉' },
     rows: [
       { label: 'Beads that open the Magnum Opus', figures: figure(BEAD_RULES.threshold) },
-      ...BEAD_DECK_AGES.map((age) => ({
-        label: `Cards on the table in ${deckEraWord(age)}`,
-        figures: figure(beadHandSize(age)),
-      })),
-      { label: 'Turns between deals', figures: figure(BEAD_RULES.dealEveryTurns) },
     ],
     clauses: [
       {
@@ -1550,7 +1543,7 @@ function beadRulesEntry(): CompendiumEntry {
         text: 'The last bead of all is golden, and only the Magnum Opus mints it. Its slot sits empty on every rod for the whole game.',
       },
       {
-        text: 'A hand is a set of open slots. When a card is claimed it leaves the table, and the deck fills the gap on the next deal.',
+        text: 'Beads are minted two ways: by keeping a wager the age set you, and by the handful of things that hand one over outright.',
       },
     ],
     flavor: null,
@@ -1576,6 +1569,20 @@ function beadEntry(id: BeadCardId): CompendiumEntry {
   for (const paid of describeBeadBoon(boon ?? {})) clauses.push({ ...paid });
   for (const line of def.deferred ?? []) clauses.push({ text: line, deferred: true });
   if (def.dormant !== undefined) clauses.push({ text: def.dormant, note: true });
+  // **A withdrawn row keeps its page and says so**, which is the ruling's own
+  // reading of what "kept for the record" means: a bead somebody earned in an
+  // older game still has to be a page somewhere. The book's other kinds are not
+  // consistent about this — a withdrawn building has no page at all, a withdrawn
+  // Order has an ordinary one — and the simplest thing that is true of every
+  // bead is a note, on the retired rite's precedent one shelf over ("nobody —
+  // withdrawn"). It reads off the field rather than off a list of ids, so the
+  // day another row is withdrawn its page says so with no edit here.
+  if (def.retired === true) {
+    clauses.push({
+      text: 'Withdrawn: this is no longer dealt, raced for or earned. A game that earned the bead before it was withdrawn keeps it.',
+      note: true,
+    });
+  }
 
   // A **repeatable** reward says so instead of saying "once per empire", which
   // would be the eyebrow contradicting the card underneath it: the four bead
@@ -1584,8 +1591,11 @@ function beadEntry(id: BeadCardId): CompendiumEntry {
     kind === 'grant' && (def as { repeatable?: boolean }).repeatable === true
       ? 'a reward, every time it is earned'
       : BEAD_KIND_WORD[kind];
-  const scope =
-    kind === 'feat'
+  // A withdrawn row is never dealt, so its eyebrow must not say which age deals
+  // it. It says what class of thing it was and that it is gone.
+  const scope = def.retired === true
+    ? `${kindWord}, withdrawn`
+    : kind === 'feat'
       ? (def as { once: 'game' | 'age' }).once === 'age'
         ? 'a first in the world, once in each age'
         : 'a first in the world, once per game'

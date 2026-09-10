@@ -1,11 +1,6 @@
 {
   "rules": {
-    "threshold": 20,
-    "handSize": {
-      "3": 4,
-      "4": 5
-    },
-    "dealEveryTurns": 1
+    "threshold": 7
   },
   "feats": {
     "firstIntoTheAge": {
@@ -16,7 +11,8 @@
       "trigger": {
         "shape": "occasion",
         "occasion": "ageEntered"
-      }
+      },
+      "retired": true
     },
     "firstMarvelOfTheAge": {
       "name": "The First Marvel",
@@ -26,7 +22,8 @@
       "trigger": {
         "shape": "occasion",
         "occasion": "wonderCompleted"
-      }
+      },
+      "retired": true
     },
     "theFirstFaith": {
       "name": "The First Faith",
@@ -36,7 +33,8 @@
       "trigger": {
         "shape": "occasion",
         "occasion": "religionFounded"
-      }
+      },
+      "retired": true
     },
     "theFallenPalace": {
       "name": "The Fallen Palace",
@@ -46,7 +44,8 @@
       "trigger": {
         "shape": "occasion",
         "occasion": "capitalCaptured"
-      }
+      },
+      "retired": true
     },
     "theFirstScholar": {
       "name": "The First Scholar",
@@ -57,7 +56,8 @@
         "shape": "occasion",
         "occasion": "greatPersonRecruited",
         "family": "scholar"
-      }
+      },
+      "retired": true
     },
     "theFirstGeneral": {
       "name": "The First General",
@@ -68,7 +68,8 @@
         "shape": "occasion",
         "occasion": "greatPersonRecruited",
         "family": "general"
-      }
+      },
+      "retired": true
     },
     "theFirstMerchant": {
       "name": "The First Merchant",
@@ -79,7 +80,8 @@
         "shape": "occasion",
         "occasion": "greatPersonRecruited",
         "family": "merchant"
-      }
+      },
+      "retired": true
     },
     "theFirstArtist": {
       "name": "The First Artist",
@@ -90,7 +92,8 @@
         "shape": "occasion",
         "occasion": "greatPersonRecruited",
         "family": "artist"
-      }
+      },
+      "retired": true
     },
     "theGreatCityOfTheWorld": {
       "name": "The Great City",
@@ -101,7 +104,8 @@
         "shape": "count",
         "count": "largestCity",
         "value": 15
-      }
+      },
+      "retired": true
     },
     "theEngine": {
       "name": "The Engine",
@@ -113,7 +117,8 @@
         "count": "engineCompleted",
         "value": 1
       },
-      "dormant": "The Engine has no row in the tree yet."
+      "dormant": "The Engine has no row in the tree yet.",
+      "retired": true
     }
   },
   "grants": {
@@ -152,28 +157,32 @@
       "family": "science",
       "repeatable": true,
       "source": "The learning of the last age, while The Great Enquiry stands in a slot.",
-      "text": "Nothing is left to find, so the finding itself is what the age is counted by."
+      "text": "Nothing is left to find, so the finding itself is what the age is counted by.",
+      "retired": true
     },
     "theWreathRefused": {
       "name": "The Wreath Refused",
       "family": "culture",
       "repeatable": true,
       "source": "Turning down a draft, while The Last Laurels stands in a slot.",
-      "text": "An honour declined in front of everybody is remembered longer than one taken."
+      "text": "An honour declined in front of everybody is remembered longer than one taken.",
+      "retired": true
     },
     "theSownSalt": {
       "name": "The Sown Salt",
       "family": "domination",
       "repeatable": true,
       "source": "Putting a city to the torch, while The Salted Earth stands in a slot.",
-      "text": "The field is ruined and the lesson is not."
+      "text": "The field is ruined and the lesson is not.",
+      "retired": true
     },
     "theWordGoneOut": {
       "name": "The Word Gone Out",
       "family": "culture",
       "repeatable": true,
       "source": "A prophet's proclamation, while The Final Proclamation stands in a slot.",
-      "text": "Read in every square at the same hour, and heard in all of them."
+      "text": "Read in every square at the same hour, and heard in all of them.",
+      "retired": true
     },
     "theWagerOfArms": {
       "name": "The Wager of Arms",
@@ -222,7 +231,8 @@
         }
       },
       "flavor": "Every soul in the realm, set down in one hand.",
-      "text": "A race. Needs a city of fifteen citizens. The first empire to finish gains a citizen in every city."
+      "text": "A race. Needs a city of fifteen citizens. The first empire to finish gains a citizen in every city.",
+      "retired": true
     },
     "theGreatGames": {
       "name": "The Great Games",
@@ -242,7 +252,8 @@
         ]
       },
       "flavor": "The whole world comes to watch, and forgets to fight.",
-      "text": "A race. Needs an amphitheater in every city. The first empire to finish keeps a lasting step of contentment."
+      "text": "A race. Needs an amphitheater in every city. The first empire to finish keeps a lasting step of happiness.",
+      "retired": true
     },
     "theGrandCaravan": {
       "name": "The Grand Caravan",
@@ -262,7 +273,8 @@
         ]
       },
       "flavor": "One road, and the whole of it yours.",
-      "text": "A race. Needs ten caravans on the road at once. The first empire to finish may keep more of them thereafter."
+      "text": "A race. Needs ten caravans on the road at once. The first empire to finish may keep more of them thereafter.",
+      "retired": true
     },
     "theGrandSatrapy": {
       "name": "The Grand Satrapy",
@@ -286,7 +298,8 @@
         ]
       },
       "flavor": "Govern a province and you govern a people; govern ten and you govern a world.",
-      "text": "A race. Needs ten cities. The first empire to finish keeps a lasting step of contentment and of authority."
+      "text": "A race. Needs ten cities. The first empire to finish keeps a lasting step of happiness and of authority.",
+      "retired": true
     },
     "theCathedralOfTheAge": {
       "name": "The Cathedral of the Age",
@@ -303,7 +316,8 @@
         }
       },
       "flavor": "Stone raised so high the argument stops.",
-      "text": "A race. Needs a cathedral in every city. The first empire to finish is sent a prophet."
+      "text": "A race. Needs a cathedral in every city. The first empire to finish is sent a prophet.",
+      "retired": true
     },
     "theEncyclopaedia": {
       "name": "The Encyclopaedia",
@@ -325,7 +339,8 @@
       "text": "A race. Needs a university in every city. The first empire to finish banks a great sum of learning.",
       "deferred": [
         "A free technology of the current age — a research grant is banked as beakers instead."
-      ]
+      ],
+      "retired": true
     },
     "theMint": {
       "name": "The Mint",
@@ -347,7 +362,8 @@
       "text": "A race. Needs a bank in every city. The first empire to finish banks a great sum of gold.",
       "deferred": [
         "Cheaper purchases for a spell — a timed empire effect the boon vocabulary does not carry."
-      ]
+      ],
+      "retired": true
     },
     "theMusterOfTheRealm": {
       "name": "The Muster of the Realm",
@@ -372,7 +388,8 @@
         ]
       },
       "flavor": "Every spear counted, every spear sharpened.",
-      "text": "A race. Needs a forge in three cities. The first empire to finish fights a little harder ever after."
+      "text": "A race. Needs a forge in three cities. The first empire to finish fights a little harder ever after.",
+      "retired": true
     },
     "theExposition": {
       "name": "The Exposition",
@@ -391,7 +408,8 @@
         }
       },
       "flavor": "Come and see what we have made of the world.",
-      "text": "A race. Needs six wonders held. The first empire to finish banks a great sum of culture."
+      "text": "A race. Needs six wonders held. The first empire to finish banks a great sum of culture.",
+      "retired": true
     }
   },
   "quests": {
@@ -413,7 +431,8 @@
             "amount": 4
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theFounder": {
       "name": "The Founder",
@@ -430,7 +449,8 @@
         "grant": {
           "settler": true
         }
-      }
+      },
+      "retired": true
     },
     "theConqueror": {
       "name": "The Conqueror",
@@ -450,7 +470,8 @@
             "amount": 4
           }
         ]
-      }
+      },
+      "retired": true
     },
     "threeOfTheAge": {
       "name": "Three of the Age",
@@ -466,7 +487,8 @@
       "boon": {},
       "deferred": [
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theScholarsWager": {
       "name": "The Scholar's Wager",
@@ -482,7 +504,8 @@
       "boon": {},
       "deferred": [
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theLibraryOfTheRealm": {
       "name": "The Library of the Realm",
@@ -501,7 +524,8 @@
           "amount": 300,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "theWaterworks": {
       "name": "The Waterworks",
@@ -520,7 +544,8 @@
           "amount": 1,
           "where": "every"
         }
-      }
+      },
+      "retired": true
     },
     "theSurveyor": {
       "name": "The Surveyor",
@@ -537,7 +562,8 @@
       "deferred": [
         "One more claimed hex for every city — a border grant in every town at once.",
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theApostle": {
       "name": "The Apostle",
@@ -557,7 +583,8 @@
             "amount": 2
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theHierophant": {
       "name": "The Hierophant",
@@ -574,7 +601,8 @@
         "grant": {
           "prophet": true
         }
-      }
+      },
+      "retired": true
     },
     "theTithe": {
       "name": "The Tithe",
@@ -593,7 +621,8 @@
           "amount": 200,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "theScholarship": {
       "name": "The Scholarship",
@@ -612,7 +641,8 @@
           "amount": 200,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "thePatron": {
       "name": "The Patron",
@@ -628,7 +658,8 @@
       "boon": {},
       "deferred": [
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theLongReign": {
       "name": "The Long Reign",
@@ -646,7 +677,8 @@
       "deferred": [
         "A free Order draft — a draft handed over outright is not in the boon vocabulary.",
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theBreadbasket": {
       "name": "The Breadbasket",
@@ -666,7 +698,8 @@
           "amount": 1,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "theForgeCity": {
       "name": "The Forge-City",
@@ -686,7 +719,8 @@
           "amount": 200,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "theMetropolis": {
       "name": "The Metropolis",
@@ -706,7 +740,8 @@
             "amount": 3
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theTwelve": {
       "name": "The Twelve",
@@ -726,7 +761,8 @@
             "amount": 6
           }
         ]
-      }
+      },
+      "retired": true
     },
     "theBuilder": {
       "name": "The Builder",
@@ -742,7 +778,8 @@
       "boon": {},
       "deferred": [
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theLegacy": {
       "name": "The Legacy",
@@ -759,7 +796,8 @@
       "deferred": [
         "Every struck legacy of yours restored — a revocation is marked, and unmarking it is not a boon shape.",
         "A die of the Magister — the dice are gone from the game, and this deed's boon is not yet written anew."
-      ]
+      ],
+      "retired": true
     },
     "theLaureatesCourt": {
       "name": "The Laureate's Court",
@@ -776,7 +814,8 @@
         "grant": {
           "greatPerson": "choice"
         }
-      }
+      },
+      "retired": true
     },
     "theDynasty": {
       "name": "The Dynasty",
@@ -795,7 +834,8 @@
           "amount": 200,
           "where": "capital"
         }
-      }
+      },
+      "retired": true
     },
     "theEnhancer": {
       "name": "The Enhancer",
@@ -812,7 +852,8 @@
         "grant": {
           "prophet": true
         }
-      }
+      },
+      "retired": true
     },
     "theStandingArmy": {
       "name": "The Standing Army",
@@ -833,7 +874,8 @@
             "amount": 2
           }
         ]
-      }
+      },
+      "retired": true
     }
   },
   "reckonings": {

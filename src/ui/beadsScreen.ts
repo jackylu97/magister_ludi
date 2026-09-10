@@ -1,12 +1,25 @@
 /**
- * The Beads screen: **the one thing everybody is playing for, on one table.**
+ * The Beads screen: **the bead ledger** — who holds how many, what pays one, and
+ * whether the door is open.
  *
  * Design ledger Entry VI and `docs/beads.md`. The Bead Race is the game's only
- * victory condition — glass beads across four families, a threshold that opens
- * the Magnum Opus (schema 64; it used to win outright), and a table of cards
- * every seat can see. The Abacus is the *score*
- * (the object, the rods, who is ahead); this is the **table**: what is on offer,
- * who has taken what, and what is still face down.
+ * victory condition — glass beads across four families, and a threshold that
+ * opens the Magnum Opus (schema 64; it used to win outright).
+ *
+ * It was **the table** until batch Q1 (`docs/wager.md` §5): what was on offer,
+ * who had taken what, what was still face down. The deeds are retired — feats,
+ * quests and race projects, the old victory conditions — so there is no table,
+ * and what is left is the ledger: every seat's rod, the rows that still pay a
+ * bead, and the Opus's own line.
+ *
+ * **Why it is still a screen.** Folding it into the Abacus was the preferred
+ * reading of the ruling and is not what this batch did, for one reason on the
+ * board rather than a design one: the Abacus is being reworked in the same batch
+ * as the wager screen (its band of cards, its measured stage), and a second hand
+ * in that file would be two agents editing one layout. The three doors are
+ * unchanged — the bead chip, any rod on the Abacus, and `V` — and the fold stays
+ * available the day the Abacus is still: the rods are already drawn there, the
+ * grants are a short list, and the door is one line.
  *
  * The sibling it is built from
  * ----------------------------
@@ -21,11 +34,9 @@
  * Derived, never stored
  * ---------------------
  * Nothing on this screen is state of its own. The rods are `Player.beads`, the
- * hands are `GameState.beads.hands`, the claimants are
- * `GameState.beads.claimed`, the threshold and the hand sizes are
- * `data/beads.json`'s rules row, and an endeavour's refusal is `endeavourError`
- * — the reducer's own sentence, so a row this screen greys is a row the reducer
- * would refuse.
+ * claimants are `GameState.beads.claimed`, the threshold is `data/beads.json`'s
+ * rules row, and the Opus's line is `opusOpen` — the reducer's own reading, so a
+ * door this screen calls open is a door `buildError` would let a city through.
  *
  * Pure builders, because this suite has no jsdom
  * ----------------------------------------------
@@ -37,23 +48,15 @@
  */
 
 import {
-  type BeadAge,
   type BeadCardId,
   type BeadFamily,
   type BeadKind,
-  BEAD_DECK_AGES,
-  BEAD_FEAT_IDS,
+  BEAD_GRANT_IDS,
   BEAD_RULES,
   anyBeadDef,
-  beadHandSize,
-  isBeadEndeavourId,
+  beadIsDormant,
 } from '../sim/beadData';
-import {
-  beadHandIsShownTo,
-  describeBeadBoon,
-  endeavourError,
-  endeavourPrerequisiteMet,
-} from '../sim/beads';
+import { describeBeadBoon } from '../sim/beads';
 import {
   type EarnedBead,
   type GameState,
@@ -149,20 +152,6 @@ export interface BeadCardFace {
   boon: CardClause[];
   /** "Taken by Crimson on turn 84", or "Open — nobody has taken it". */
   claim: string;
-  /**
-   * For a race project only: does the reading seat meet what the race asks,
-   * right now? `null` for every other kind — a quest is not something you
-   * qualify for, it is something you do.
-   *
-   * **`endeavourPrerequisiteMet`'s answer, and nothing else.** It is a different
-   * question from `refusal` below and they must not be folded: a race whose
-   * prerequisite this empire meets can still be refused because somebody else
-   * finished it, and a tick that flipped to a cross the moment a rival won would
-   * be telling the player something untrue about their own realm.
-   */
-  met: boolean | null;
-  /** Why the reducer would refuse this race today, in its own sentence. */
-  refusal: string | null;
   /** Halves of the ratified card this build does not implement. */
   deferred: string[];
   /** Why this row cannot be reached at all in this build. */
@@ -196,18 +185,19 @@ export function beadClaimLine(claim: BeadClaimView | null): string {
 /**
  * One card's whole face.
  *
- * The three facts about a *game* arrive from the caller rather than being asked
- * for here — the claimant off the world's register, `met` off
- * `endeavourPrerequisiteMet`, `refusal` off `endeavourError` — because asking is
- * the simulation's job and this function is pure, which is what lets the test
- * suite build a face with no game behind it.
+ * The one fact about a *game* arrives from the caller rather than being asked
+ * for here — the claimant, off the world's register — because asking is the
+ * simulation's job and this function is pure, which is what lets the test suite
+ * build a face with no game behind it.
+ *
+ * It carried two more until batch Q1: `met`, off `endeavourPrerequisiteMet`, and
+ * `refusal`, off `endeavourError`. Both were the race project's two lines and
+ * the races are retired.
  */
 export function beadCardFace(
   id: BeadCardId,
   options: {
     claim?: BeadClaimView | null;
-    met?: boolean | null;
-    refusal?: string | null;
   } = {},
 ): BeadCardFace {
   const { kind, def } = anyBeadDef(id);
@@ -225,59 +215,34 @@ export function beadCardFace(
     deed: source === null ? def.text : `${source} ${def.text}`,
     boon: boon === undefined ? [] : describeBeadBoon(boon),
     claim: beadClaimLine(options.claim ?? null),
-    met: options.met ?? null,
-    refusal: options.refusal ?? null,
     deferred: def.deferred ?? [],
     dormant: def.dormant ?? null,
   };
 }
 
-/**
- * "Three cards face down until the age opens" — the pile, counted.
- *
- * Empty when there is nothing face down, so a caller may print it or not by
- * asking whether it is empty rather than by counting again.
+/*
+ * `faceDownLine` and `deckLine` stood here and are **gone** (batch Q1). They
+ * counted the pile that had not turned over and what was still to be dealt, and
+ * a ledger with no deck behind it has neither.
  */
-export function faceDownLine(count: number, age: number): string {
-  if (count <= 0) return '';
-  const what = count === 1 ? 'card' : 'cards';
-  return `${figure(count)} ${what} face down until ${deckEraWord(age)} opens`;
-}
-
-/**
- * "9 still in the deck" — what has not been dealt yet.
- *
- * A hand is a set of **open slots that refill** (the sim, 2026-08-30): a claimed
- * card leaves the table and the deck fills the gap on the next deal. So "what is
- * on the table" and "what is still to come" are two different numbers and a
- * player planning an age needs both. Empty when the deck is spent, which is an
- * age that has shown everything it holds.
- */
-export function deckLine(remaining: number): string {
-  if (remaining <= 0) return 'The deck is spent — this is everything the age holds';
-  return `${figure(remaining)} still in the deck`;
-}
 
 // --- the age opening -------------------------------------------------------
 
 /*
- * The age-opening banner and its two pure builders stood here until batch G2 and
- * are **retired** (`docs/wager.md` §5/§11).
+ * The age-opening banner and its two pure builders were retired in batch G2 and
+ * the **whole table** followed them in Q1 (`docs/wager.md` §5).
  *
- * They were the age-opening draw: this sheet raised itself the turn an age
- * turned over, wearing a banner that grouped the new table into races and
- * measures. What replaced it is the **wager's deal sheet** — three bars the age
- * sets for everybody, which is what an age asks now — and two full-screen sheets
- * on one turn is one sheet too many.
+ * The banner was the age-opening draw: this sheet raised itself the turn an age
+ * turned over, wearing an index of the new table. What replaced it is the
+ * **wager's deal sheet** — three bars the age sets for everybody, which is what
+ * an age asks now — and two full-screen sheets on one turn was one too many.
  *
- * Nothing the banner listed was lost with it. The whole table is still drawn by
- * `drawAge` for every deck age, the feats by `drawFeats` and the measures taken
- * by `drawReckonings`, and all of it is reachable all game by the table's three
- * ordinary doors: the bead chip in the top bar, any rod on the Abacus, and `V`.
- * The **measures themselves** are retired too, one system over — `data/beads.json`'s
- * eight reckonings carry `retired: true` since this batch, because the wager is
- * the age's snapshot now and it is taken for everybody rather than paying the
- * leader alone.
+ * What the banner indexed is now gone with the rows behind it: `drawAge`, the
+ * per-age tables of quests and race projects; `drawFeats`, the world firsts; and
+ * `drawReckonings`, the measures the world had taken. The feats, quests, race
+ * projects and reckonings all carry `retired: true` in `data/beads.json` — the
+ * wager sets the age's bars and pays for them, for everybody, and a screen that
+ * still drew four decks of withdrawn cards would be an index of nothing.
  */
 
 
@@ -332,6 +297,20 @@ export function opusStandingLine(open: boolean): string {
   return open
     ? 'The Magnum Opus is open — the first one finished closes the age'
     : 'The Magnum Opus is not yet open — it waits on the world reaching Alchemy';
+}
+
+/**
+ * "held", "twice", or nothing — what this seat has had out of one grant row.
+ *
+ * Pure, on `beadClaimLine`'s precedent, because how a repeatable row reads when
+ * it has paid twice is exactly the kind of thing that can be quietly wrong.
+ * Empty for a row that has never paid, so the column is blank rather than
+ * carrying a nought.
+ */
+export function grantHeldLine(held: number): string {
+  if (held <= 0) return '';
+  if (held === 1) return 'held';
+  return `held ${figure(held)} times`;
 }
 
 /** "Crimson 7" — one seat's standing, for the threshold list. */
@@ -438,194 +417,51 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
    * closes, so a player who comes back to the table by `V` gets the table.
    */
 
-  /** Who took this card, or null. Read off the world's register. */
-  function claimOf(state: GameState, id: BeadCardId): BeadClaimView | null {
-    const claim = state.beads.claimed.find((one) => one.id === id);
-    if (!claim) return null;
-    const who = playerById(state, claim.playerId);
-    return { playerName: who?.name ?? 'An empire', turn: claim.turn };
-  }
-
-  /** One card, drawn. The face is pure; this is the paper it is printed on. */
-  function drawCard(face: BeadCardFace): HTMLElement {
-    const card = element('article', 'bead-card');
-    card.id = `bead-card-${face.id}`;
-    card.classList.toggle('is-taken', face.claim.startsWith('Taken'));
-    card.classList.toggle('is-dormant', face.dormant !== null);
-    card.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[face.family].ink})`);
-
-    const head = element('div', 'bead-card-head');
-    head.append(familyMarkNode(face.family));
-    head.append(element('h4', 'bead-card-name', face.name));
-    card.append(head);
-    card.append(element('p', 'eyebrow bead-card-eyebrow', face.eyebrow));
-
-    const deed = element('p', 'bead-card-deed');
-    setDescriptorText(deed, face.deed, { linked: false });
-    card.append(deed);
-
-    for (const clause of face.boon) {
-      const paid = element('p', 'bead-card-boon');
-      paid.classList.toggle('is-deferred', clause.deferred === true);
-      // A boon may name a thing it hands over ("a free [[unit:settler|settler]]
-      // at the capital"), so it goes through the one renderer. Unlinked: the
-      // card is a face on a screen with its own doors, and a click that opened
-      // the Compendium from under it would take the table away.
-      setDescriptorText(paid, clause.text, { linked: false });
-      card.append(paid);
-    }
-    for (const line of face.deferred) {
-      card.append(element('p', 'bead-card-deferred', line));
-    }
-    if (face.dormant !== null) {
-      card.append(element('p', 'bead-card-deferred', face.dormant));
-    }
-
-    // **Two lines, two questions, and they must not be folded.** The tick is
-    // `endeavourPrerequisiteMet` — a fact about *this realm*, which does not
-    // change because a rival finished first — and the sentence under it is
-    // `endeavourError`, which is why the reducer would refuse the row today.
-    //
-    // The unmet half wears `wanting` and the met half does not: the ruling of
-    // 2026-09-08 is that a line naming something the empire has not got looks
-    // the same everywhere, and "does not meet what the race asks yet" names
-    // exactly that. It supersedes this card's earlier note that the gate is
-    // "never vermilion, a plan rather than an alarm" — the plan is still a plan,
-    // it is simply said in the interface's one voice for a lack. The tick keeps
-    // its teal, because a met condition is not a lack at all.
-    if (face.met !== null) {
-      const gate = element('p', 'bead-card-gate');
-      gate.classList.toggle('is-met', face.met);
-      gate.classList.toggle('wanting', !face.met);
-      gate.textContent = face.met
-        ? '✓ Your empire meets what the race asks'
-        : '✗ Your empire does not meet what the race asks yet';
-      card.append(gate);
-    }
-    if (face.refusal !== null) {
-      card.append(element('p', 'info-card-state wanting', face.refusal));
-    }
-
-    card.append(element('p', 'bead-card-claim', face.claim));
-    return card;
-  }
-
-  /** The backs of the pile, and what the pile is waiting for. */
-  function drawFaceDown(count: number, age: number): HTMLElement | null {
-    const line = faceDownLine(count, age);
-    if (line.length === 0) return null;
-    const box = element('div', 'bead-facedown');
-    const backs = element('div', 'bead-backs');
-    for (let i = 0; i < count; i++) backs.append(element('span', 'bead-back'));
-    backs.setAttribute('aria-hidden', 'true');
-    box.append(backs);
-    box.append(element('p', 'hint bead-facedown-line', line));
-    return box;
-  }
-
-  /** One age's table: the cards face up, then the pile that is not. */
-  function drawAge(state: GameState, seat: number, age: BeadAge): HTMLElement {
-    const section = element('section', 'bead-age');
-    const hand = state.beads.hands[String(age)] ?? [];
-    const deck = state.beads.decks[String(age)] ?? [];
-
-    const head = element('div', 'bead-age-head');
-    head.append(element('h3', 'bead-age-title', `${deckEraWord(age)} — the table`));
-    head.append(
-      element(
-        'p',
-        'bead-age-count',
-        `${figure(hand.length)} of ${figure(beadHandSize(age))}`,
-      ),
-    );
-    section.append(head);
-
-    // **The Long Count shows the next age's hand a turn early** (the tree pass
-    // of 2026-08-30). It is *sight* and never a claim: `faceUp` stays the
-    // world's fact — it is what makes a quest claimable — and this seat is
-    // simply allowed to read a table that has not turned over yet. So the cards
-    // are drawn and the claim state on them is whatever it already was.
-    const shown = beadHandIsShownTo(state, seat, age);
-    const faceUp = hand.filter((card) => card.faceUp || shown);
-    const grid = element('div', 'bead-card-grid');
-    for (const card of faceUp) {
-      const race = card.id;
-      grid.append(
-        drawCard(
-          beadCardFace(card.id, {
-            claim: claimOf(state, card.id),
-            met: isBeadEndeavourId(race) ? endeavourPrerequisiteMet(state, seat, race) : null,
-            refusal: isBeadEndeavourId(race) ? endeavourError(state, seat, race) : null,
-          }),
-        ),
-      );
-    }
-    if (faceUp.length === 0) {
-      grid.append(
-        element('p', 'hint', 'Nothing has turned face up here yet — the age has not opened.'),
-      );
-    } else if (shown && hand.some((card) => !card.faceUp)) {
-      grid.append(
-        element('p', 'hint', 'Read ahead of the age, by the long count your scribes keep.'),
-      );
-    }
-    section.append(grid);
-
-    const down = drawFaceDown(hand.length - faceUp.length, age);
-    if (down) section.append(down);
-    // A hand is open slots that refill, so what is still in the deck is a
-    // different question from what is face down on the table.
-    section.append(element('p', 'hint bead-deck-line', deckLine(deck.length)));
-    return section;
-  }
-
-  /** The feats: always in play, never dealt, and every one of them contested. */
-  function drawFeats(state: GameState): HTMLElement {
-    const section = element('section', 'bead-age');
-    section.append(element('h3', 'bead-age-title', 'Feats — always in play'));
-    const list = element('ul', 'bead-feat-list');
-    for (const id of BEAD_FEAT_IDS) {
-      const face = beadCardFace(id, { claim: claimOf(state, id) });
-      const row = element('li', 'bead-feat');
-      row.classList.toggle('is-dormant', face.dormant !== null);
-      row.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[face.family].ink})`);
-      row.append(familyMarkNode(face.family));
-      const words = element('div', 'bead-feat-words');
-      words.append(element('span', 'bead-feat-name', face.name));
-      const deed = element('span', 'bead-feat-deed');
-      setDescriptorText(deed, face.deed, { linked: false });
-      words.append(deed);
-      row.append(words);
-      row.append(element('span', 'bead-feat-claim', face.claim));
-      list.append(row);
-    }
-    section.append(list);
-    return section;
-  }
+  /*
+   * `drawCard` stood here and is **gone** (batch Q1). It was the paper a deed
+   * card was printed on — the family mark, the eyebrow, the deed, what it paid,
+   * the two race lines and the claimant — and there are no deed cards. The
+   * ledger's one table is a list (`drawGrants`), which is what a short list of
+   * rows nobody races for should look like.
+   */
 
   /**
-   * The reckonings the world has already taken.
+   * **The grants — what still hands a bead over.**
    *
-   * A reckoning is an ordinary card of its age's deck now (the sim, 2026-08-30:
-   * four per deck, one per family), so an *undealt* one is drawn with the rest
-   * of the table above and an *unresolved* one is sitting face up there. What
-   * has no place on the table is a reckoning that has already been taken — it
-   * left the hand the moment it resolved — and that is the record this reads:
-   * `GameState.beads.claimed`, the world's own register, filtered to the ages
-   * that have closed. Nothing at all before the first age turns over.
+   * The one table left on this sheet, and the ledger's other half beside the
+   * rods. Every live row of the fifth class, in file order, with the sentence
+   * saying where the bead comes from (`BeadGrantDef.source`, which is the field
+   * that class carries *because* it has no deed to print) and, on the right,
+   * what this seat has had out of it.
+   *
+   * `beadIsDormant` is the filter, so a row waiting on a technology and a row
+   * withdrawn leave by the same door — which since batch Q1 takes the four the
+   * Æra V bead Orders minted with it, because the cards that named them are
+   * retired in the same pass.
+   *
+   * The count is read off `Player.beads` rather than off the world's register,
+   * and deliberately: a **repeatable** row (the four a wager pays) may pay one
+   * seat several times, and "twice" is a fact about a rod. A once-per-empire row
+   * reads "held" or nothing at all.
    */
-  function drawReckonings(state: GameState): HTMLElement | null {
-    const taken = state.beads.claimed.filter(
-      (claim) => anyBeadDef(claim.id).kind === 'reckoning',
-    );
-    if (taken.length === 0) return null;
-
+  function drawGrants(state: GameState, seat: number): HTMLElement {
     const section = element('section', 'bead-age');
-    section.append(element('h3', 'bead-age-title', 'Reckonings taken'));
+    section.append(element('h3', 'bead-age-title', 'What pays a bead'));
+    section.append(
+      element(
+        'p',
+        'hint',
+        'A bead is minted by a wager kept, or handed over by one of these.',
+      ),
+    );
+    const player = playerById(state, seat);
     const list = element('ul', 'bead-feat-list');
-    for (const claim of taken) {
-      const face = beadCardFace(claim.id);
+    for (const id of BEAD_GRANT_IDS) {
+      if (beadIsDormant(id)) continue;
+      const face = beadCardFace(id);
+      const held = (player?.beads ?? []).filter((earned) => earned.id === id).length;
       const row = element('li', 'bead-feat');
+      row.classList.toggle('is-taken', held > 0);
       row.style.setProperty('--bead-ink', `var(${BEAD_FAMILY_MARK[face.family].ink})`);
       row.append(familyMarkNode(face.family));
       const words = element('div', 'bead-feat-words');
@@ -634,13 +470,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
       setDescriptorText(deed, face.deed, { linked: false });
       words.append(deed);
       row.append(words);
-      row.append(
-        element(
-          'span',
-          'bead-feat-claim',
-          `${deckEraWord(claim.age)}: ${playerById(state, claim.playerId)?.name ?? '—'}`,
-        ),
-      );
+      row.append(element('span', 'bead-feat-claim', grantHeldLine(held)));
       list.append(row);
     }
     section.append(list);
@@ -710,10 +540,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
     body.append(drawRods(state, seat));
 
     const pane = element('div', 'bead-pane');
-    for (const age of BEAD_DECK_AGES) pane.append(drawAge(state, seat, age));
-    pane.append(drawFeats(state));
-    const reckonings = drawReckonings(state);
-    if (reckonings) pane.append(reckonings);
+    pane.append(drawGrants(state, seat));
     body.append(pane);
   }
 

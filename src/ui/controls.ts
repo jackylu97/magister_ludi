@@ -3352,21 +3352,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * inside `commit` like every other piece of news, so the one funnel covers
    * both paths.
    *
-   * **And the table is raised, to every seat.** An age opening is the moment
-   * the race is announced — the whole hand turns face up at once and nothing
-   * else in the game tells a player what this age is worth winning — so it gets
-   * a surface and not only a line (`beadsScreen.ts`'s `announceAge`, which is
-   * the table itself wearing a banner). Collected exactly like an award above:
-   * one that lands in a resolution belongs to the hand-over, behind the card.
+   * **And a surface is raised, to every seat.** An age opening is the moment the
+   * age's bars are dealt, and the sheet that says what they are is the wager's
+   * (`main.ts`'s `pumpBeadNews` routes the moment there). The line said here
+   * used to count the cards that had just turned face up on the bead table; the
+   * deeds are retired (batch Q1) and there is no table, so it says the one thing
+   * left that is true of every seat at once — the age turned over. Collected
+   * exactly like an award above: one that lands in a resolution belongs to the
+   * hand-over, behind the card.
    */
   function reportAgeOpened(result: CommandResult): void {
     if (!result.ok || result.beadAgeOpened === undefined) return;
     const age = result.beadAgeOpened;
-    const dealt = (getGame().state.beads.hands[String(age)] ?? []).filter(
-      (card) => card.faceUp,
-    ).length;
-    const what = dealt === 1 ? 'card' : 'cards';
-    announce(`◈ ${deckEraWord(age)} opens — ${dealt} ${what} on the table`);
+    announce(`◈ ${deckEraWord(age)} opens`);
     if (heldBeadNews === null) onBeadAgeOpened?.(age);
     else heldBeadNews.ageOpened = age;
   }

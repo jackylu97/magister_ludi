@@ -11,19 +11,32 @@
  * kind and `statecraft.ts` for a `CardEffect.kind`, made once more, and it buys
  * the same thing: **a new bead is a JSON row**.
  *
- * Four classes of row, and what separates them
+ * **Three of the five classes are withdrawn** (batch Q1, `docs/wager.md` §5).
+ * Feats, endeavours and quests were the old victory conditions — the deeds — and
+ * the wager replaced them: an age sets three bars, a seat stakes one, and a bead
+ * is what keeping it pays. Every row of the three carries `retired: true`, which
+ * is the reckonings' own retirement read three decks further (batch G2). The
+ * rows keep their bodies for the Compendium's record; they are dealt to nobody,
+ * swept for nobody and awarded to nobody, and the hand that used to deal them —
+ * the decks, the slots, `handSize`, `dealEveryTurns` — is gone from the state
+ * rather than left empty. **A bead comes from a wager kept or from a grant**, and
+ * from nothing else.
+ *
+ * Five classes of row, and what separated them
  * --------------------------------------------
  *   · a **feat** is a first in the world, always in play, never dealt. It is
  *     contested — the register settles it — and it is scoped `game` or `age`.
+ *     *Retired.*
  *   · an **endeavour** is a *race project*: a queue row every empire may build
  *     while the card is face up and its prerequisite is met, and the first
  *     empire to finish takes the bead and the boon. Nobody else gets either.
+ *     *Retired.*
  *   · a **quest** is a deed, dealt from an age's deck, taken by the first seat
- *     that does it.
+ *     that does it. *Retired.*
  *   · a **reckoning** is the age's snapshot, taken the moment the **world's**
  *     age closes (`worldClock.ts` — the mean of the board since batch G1, not
  *     the first seat): every seat measured at once over one count, a victor
- *     named, and **ties pay nobody**.
+ *     named, and **ties pay nobody**. *Retired* (batch G2).
  *   · a **grant** is a bead a *thing hands over* — the closing technology, the
  *     Magnum Opus, the three great works of the Observatory (Entry LVIII, the
  *     endgame). It is never dealt, never swept and never contested: it has no
@@ -63,9 +76,8 @@ import { OCCASIONS, type Occasion } from './occasions';
 import type { CardEffect } from './statecraftData';
 import { type BuildingId, isBuildingId, buildingDef } from './buildingData';
 import { type Family, isFamily } from './greatPeopleData';
-// `rng.ts` is a pure leaf with no imports of its own, so the draw rule can live
-// beside the table it draws from rather than in whichever module holds a seed.
-import { type Rng, nextInt } from './rng';
+// No generator here since batch Q1: the one draw this file made was the age's
+// four reckonings, and there is no deal left to roll for.
 
 /**
  * The four families a bead may belong to (Entry VI.5). Domination, culture,
@@ -356,6 +368,12 @@ interface BeadDefBase {
    * The eight **reckonings** carry it since batch G2 (`docs/wager.md` §5): the
    * wager is the age's snapshot now, taken for everybody rather than paying the
    * leader alone. Their bodies stay for saves and for the Compendium's record.
+   *
+   * Since batch Q1 the **feats, endeavours and quests** carry it too, and so do
+   * the four **grants the Æra V bead Orders mint** — the cards that minted them
+   * are retired the same turn, so a row nothing can name is a row nothing should
+   * offer. That is every deed the game had: what is left live is the five beads a
+   * thing hands over and the four a wager pays.
    */
   retired?: boolean;
 }
@@ -462,29 +480,27 @@ export type BeadCardId =
 export interface BeadRules {
   /**
    * Beads that **open the Magnum Opus**. Entry VI's pacing knob, re-aimed by the
-   * ruling of 2026-09-04 (schema 64).
+   * ruling of 2026-09-04 (schema 64) and re-cut by batch Q1 (schema 108).
    *
    * It named the seat that won outright until then, and that reading never once
-   * decided a game — the Opus always closed the age first. So the number stays
-   * and the rod stays as long as it ever was; what changed is what a full rod
-   * *buys*: the right to begin the great work (`buildError`, `tech.ts`). The
-   * game is won by that work being **finished**, by whoever finished it
-   * (`closeTheGreatWork`, schema 69) — the rod is a door and never a tally.
+   * decided a game — the Opus always closed the age first. So the rod stays a
+   * rod; what changed is what a full one *buys*: the right to begin the great
+   * work (`buildError`, `tech.ts`). The game is won by that work being
+   * **finished**, by whoever finished it (`closeTheGreatWork`, schema 69) — the
+   * rod is a door and never a tally.
+   *
+   * **The figure is cut for a world with no deeds in it.** It was 20 when a
+   * seat could clack a bead for a first in the world, a quest off the table and
+   * an age's reckoning; with the deeds retired (batch Q1) a bead comes from a
+   * wager kept or from a grant, and the bench says what that is worth: two
+   * balanced bot seats plus the wild, standard map, seeds 11 and 4242, played
+   * 240 turns into Æra IV — the top seat's rod held **13** and **10**. Two-thirds
+   * of the pair's mean, floored, is the door, and never below four: **7**. The
+   * measurement and the arithmetic are `docs/wager.md` §5.
+   *
+   * ▢ the user's own figure comes with the balance pass; this is the bench's.
    */
   threshold: number;
-  /**
-   * How many cards an age's hand holds **face up at once**, by built age.
-   *
-   * A hand is a set of **open slots**, not a one-time deal (the ruling of
-   * 2026-08-30). A card that is claimed — an endeavour finished, a quest taken —
-   * leaves the table, and the deck deals into the freed slot on the next tick,
-   * so a twenty-five card deck flows through a four-slot hand over an age rather
-   * than stopping at four. A reckoning holds its slot until its age closes,
-   * which is exactly when it is taken.
-   */
-  handSize: Record<string, number>;
-  /** Turns between deals. One. */
-  dealEveryTurns: number;
 }
 
 export interface BeadData {
@@ -607,80 +623,23 @@ function prerequisiteUnreachable(prerequisite: BeadPrerequisite): boolean {
   return def.awaitsTech === true || def.retired === true;
 }
 
-/**
- * The **fixed** cards of one age's deck, in file order: its endeavours, then its
- * quests.
+/*
+ * `beadDeckFor`, `reckoningsOfFamily`, `drawAgeReckonings` and `beadHandSize`
+ * stood here and are **gone** (batch Q1, `docs/wager.md` §5).
  *
- * The reckonings are deliberately not here. Which four an age holds is a *draw*
- * (`drawAgeReckonings`), so it needs a generator and cannot be a pure function
- * of the age — this is the half that is the same in every game, and
- * `newBeadTable` shuffles the two halves together.
+ * They were the deal: which cards an age's deck held, which four reckonings were
+ * drawn into it at `newGame`, and how many slots the table showed at once. With
+ * the feats, endeavours and quests retired there is no deck to order and no hand
+ * to fill, so the four are deleted outright rather than left answering nothing —
+ * the state they fed (`BeadTable.decks`, `BeadTable.hands`) went with them.
+ *
+ * G2 kept `drawAgeReckonings`' wasted roll so that retiring the reckonings would
+ * not re-seed the world. That bargain is **off** here and deliberately: three
+ * whole decks leaving means the shuffle that consumed the generator is gone
+ * whatever this file does, so a v106 log does not replay and the schema says so
+ * (107). Paying a roll to preserve a stream that has already moved would buy
+ * nothing.
  */
-export function beadDeckFor(age: BeadAge): BeadCardId[] {
-  const deck: BeadCardId[] = [];
-  for (const id of BEAD_ENDEAVOUR_IDS) {
-    if (beadEndeavourDef(id).age !== age) continue;
-    if (beadIsDormant(id)) continue;
-    deck.push(id);
-  }
-  for (const id of BEAD_QUEST_IDS) {
-    if (beadQuestDef(id).age !== age) continue;
-    if (beadIsDormant(id)) continue;
-    deck.push(id);
-  }
-  return deck;
-}
-
-/** The live reckonings of one family, in file order. The pool a draw picks from. */
-export function reckoningsOfFamily(family: BeadFamily): BeadReckoningId[] {
-  return BEAD_RECKONING_IDS.filter(
-    (id) => beadReckoningDef(id).family === family && !beadIsDormant(id),
-  );
-}
-
-/**
- * The **four** reckonings one age holds — one per family, drawn from the pool of
- * eight (`docs/beads.md`: "one per family per age is *dealt*, so the eight are a
- * pool, not a fixed set").
- *
- * A reckoning is an ordinary card of its age's deck, exactly like a quest: it is
- * shuffled in with the rest, it reaches the table by the ordinary deal, and it
- * turns face up when the age opens. What makes it a reckoning is only *when* it
- * resolves — at the **next** age's opening, across every seat at once.
- *
- * Drawn here rather than when the age opens, for the doctrine every offer
- * generator in the game obeys: a deal rolled later would be a function of when
- * somebody reached an age, and under simultaneous turns two seats reach it in
- * the same window. Rolled once at `newGame`, a seed **is** the deal.
- *
- * Families are walked in `BEAD_FAMILIES` order and each picks one row from its
- * own pool, so the generator is consumed in the same sequence every time. A
- * family with exactly one live row still costs a roll — deliberately, because a
- * draw that skipped the trivial case would change every roll after it the day
- * somebody added a second economic reckoning.
- */
-export function drawAgeReckonings(rng: Rng): BeadReckoningId[] {
-  const drawn: BeadReckoningId[] = [];
-  for (const family of BEAD_FAMILIES) {
-    const pool = reckoningsOfFamily(family);
-    // **An empty pool still costs its roll**, which is the docblock's own rule
-    // read one step further — and since batch G2 it is the *only* case, because
-    // every reckoning is retired (`docs/wager.md` §5). A draw that skipped the
-    // roll would have moved every generator-fed decision in the game downstream
-    // of `newGame` on the day the rows were withdrawn: every bead deck, every
-    // Order draft, every offer. Retiring a card is a rules decision; re-seeding
-    // the world is not, and the two are kept apart by one wasted number.
-    const at = nextInt(rng, 0, Math.max(1, pool.length));
-    if (pool.length === 0) continue;
-    drawn.push(pool[at]!);
-  }
-  return drawn;
-}
-
-/** How many cards an age's hand holds. */
-export function beadHandSize(age: BeadAge): number {
-  return Math.max(0, Math.floor(BEAD_RULES.handSize[String(age)] ?? 0));
-}
 
 // --- the lint ---------------------------------------------------------------
 
@@ -695,13 +654,9 @@ export function beadHandSize(age: BeadAge): number {
  */
 export function beadDataProblems(): string[] {
   const problems: string[] = [];
-  const { threshold, dealEveryTurns } = BEAD_RULES;
+  const { threshold } = BEAD_RULES;
 
   if (!(threshold > 0)) problems.push(`threshold is ${String(threshold)}; nobody could ever win`);
-  if (!(dealEveryTurns >= 1)) problems.push('dealEveryTurns is less than one turn');
-  for (const age of BEAD_DECK_AGES) {
-    if (!(beadHandSize(age) > 0)) problems.push(`age ${age} deals a hand of nothing`);
-  }
 
   const seen = new Set<string>();
   const checkBase = (id: string, def: BeadDefBase, where: string): void => {
@@ -816,21 +771,19 @@ export function beadDataProblems(): string[] {
     }
   }
 
-  // A deck with nothing live in it would open an age and deal nothing, which is
-  // the one failure the per-row checks cannot see.
-  for (const age of BEAD_DECK_AGES) {
-    if (beadDeckFor(age).length === 0) problems.push(`age ${age}'s deck holds no live card`);
-  }
-  // The reckonings' own check stood here and is **retired with them** (batch G2,
-  // `docs/wager.md` §5): every row carries `retired: true`, so every family's
-  // pool is empty by design and a lint that said so would fail the build on the
-  // ruling itself. What replaced the measure is the wager, which is measured by
-  // `wagerDataProblems` (`wagerData.ts`) — including the check this one was: that
-  // every wagering age has enough *lines* to deal three different ones from.
-  for (const family of [] as BeadFamily[]) {
-    if (reckoningsOfFamily(family).length === 0) {
-      problems.push(`no live reckoning measures the ${family} family`);
-    }
+  // **A live grant is the only thing left to check for**, and it is checked the
+  // way the decks used to be: a catalogue with nothing in it that can still be
+  // earned is a rod nobody could ever fill.
+  //
+  // The two checks that stood here are retired with what they measured. The
+  // deck check went with the decks (batch Q1) and the reckonings' family check
+  // went with the reckonings (batch G2) — a lint that asked whether an age's
+  // deck held a live card would now fail the build on the ruling itself. What
+  // replaced both is the wager, measured by `wagerDataProblems`
+  // (`wagerData.ts`), including the check the second one was: that every
+  // wagering age has enough *lines* to deal three different ones from.
+  if (BEAD_GRANT_IDS.every((id) => beadIsDormant(id))) {
+    problems.push('no live bead is left for anything to hand over');
   }
   return problems;
 }

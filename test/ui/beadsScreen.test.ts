@@ -10,30 +10,34 @@
  * instrument `seatRoster.test.ts` and `triumphModal.test.ts` use, because every
  * remaining failure is a filter or an ordering that throws nothing.
  *
- * Five claims:
+ * **Re-aimed by batch Q1** (`docs/wager.md` §5): the deeds are retired and the
+ * screen is the **ledger** rather than the table — the rods, the rows that still
+ * pay a bead, and the Opus's own line. The pile, the deck and the race project's
+ * two lines went with the cards they described.
+ *
+ * Four claims:
  *
  *   1. A card's face is the **row's** words — the deed is `def.text`, never a
- *      sentence composed here — and its eyebrow names the deck in the numerals
- *      the player knows rather than the temporary deck key.
- *   2. A face-down pile is counted, and says nothing at all when it is empty.
- *   3. A claimant reads as a claimant, and an unclaimed card reads as open.
- *   4. **A rod is as long as the threshold and its last slot is golden**, drawn
+ *      sentence composed here — and a withdrawn row still has one, because the
+ *      rows are kept for the record.
+ *   2. A claimant reads as a claimant, and an unclaimed card reads as open.
+ *   3. **A rod is as long as the threshold and its last slot is golden**, drawn
  *      empty however many beads the seat has earned.
- *   5. The awards reach `announce` from the commit funnel, and the screen opens
- *      from a door rather than from the pointer.
+ *   4. The awards reach `announce` from the commit funnel, and the screen opens
+ *      from its three doors rather than from the pointer.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import {
   type BeadCardId,
-  BEAD_DECK_AGES,
   BEAD_ENDEAVOUR_IDS,
   BEAD_FEAT_IDS,
   BEAD_QUEST_IDS,
   BEAD_RECKONING_IDS,
   BEAD_RULES,
   anyBeadDef,
+  beadIsDormant,
 } from '../../src/sim/beadData';
 import type { EarnedBead } from '../../src/sim/state';
 import {
@@ -43,12 +47,11 @@ import {
   beadClaimLine,
   beadHoverText,
   deckEraWord,
-  deckLine,
-  faceDownLine,
+  grantHeldLine,
   standingLine,
   opusStandingLine,
 } from '../../src/ui/beadsScreen';
-import { describeBeadBoon, endeavourPrerequisiteMet } from '../../src/sim/beads';
+import { describeBeadBoon } from '../../src/sim/beads';
 import { BEAD_GRANT_IDS } from '../../src/sim/beadData';
 import { stripRefs } from '../../src/sim/statecraft';
 import { victoryFace } from '../../src/ui/victoryModal';
@@ -92,12 +95,12 @@ describe('a card face', () => {
     }
   });
 
-  it('names the deck in the numerals the player knows, not the deck key', () => {
+  it('still names the deck a withdrawn row was dealt in, in the player’s numerals', () => {
+    // The rows are kept for the record and the record includes which age dealt
+    // them, so the eyebrow is unchanged; what the Compendium does with the
+    // withdrawal is its own page's business (`compendium.test.ts`).
     for (const id of BEAD_QUEST_IDS) {
       const face = beadCardFace(id);
-      // The keys are the built ages (2, 3) and the doc's numerals are one
-      // higher; a face that printed the key would teach a number about to
-      // change. See `deckEraWord`.
       expect(face.eyebrow, id).toContain('Æra');
       expect(face.eyebrow, id).not.toContain('Æra I —');
     }
@@ -108,23 +111,6 @@ describe('a card face', () => {
   it('calls a feat a feat, and says it is always in play', () => {
     const face = beadCardFace(BEAD_FEAT_IDS[0]!);
     expect(face.eyebrow).toBe('feat · always in play');
-    // A feat is not something you qualify for, so there is no tick on it.
-    expect(face.met).toBeNull();
-  });
-
-  it('keeps the tick and the refusal apart — two questions, two answers', () => {
-    // `endeavourPrerequisiteMet` is a fact about *this realm* and does not move
-    // because a rival finished first; `endeavourError` is why the reducer would
-    // refuse the row today. Folding them would flip a player's own tick on
-    // somebody else's turn.
-    const id = BEAD_ENDEAVOUR_IDS[0]!;
-    const won = beadCardFace(id, { met: true, refusal: 'The Census was finished first by Ada' });
-    expect(won.met).toBe(true);
-    expect(won.refusal).toBe('The Census was finished first by Ada');
-    expect(beadCardFace(id, { met: false, refusal: null }).met).toBe(false);
-    // Anything that is not a race has no tick at all.
-    expect(beadCardFace(BEAD_QUEST_IDS[0]!).met).toBeNull();
-    expect(beadCardFace(BEAD_FEAT_IDS[0]!).met).toBeNull();
   });
 
   it('carries every family in the table, each with an ink and a glyph', () => {
@@ -154,7 +140,7 @@ describe('what a bead pays', () => {
     for (const id of BEAD_RECKONING_IDS) expect(beadCardFace(id).boon, id).toEqual([]);
   });
 
-  it('gives every live dealt card something to print', () => {
+  it('gives every row something to print', () => {
     // A card blank in both halves would be one a player reads and learns
     // nothing from. The deed is always there; this is about the boon.
     for (const id of [...BEAD_QUEST_IDS, ...BEAD_ENDEAVOUR_IDS]) {
@@ -172,7 +158,7 @@ describe('what a bead pays', () => {
     // A boon may name the thing it hands over ("a free [[unit:settler|…]]"), so
     // no surface may print one raw — CLAUDE.md's keyword rule.
     const screen = source('beadsScreen.ts');
-    expect(screen).toContain('setDescriptorText(paid, clause.text, { linked: false })');
+    expect(screen).toContain('setDescriptorText(deed, face.deed, { linked: false })');
     expect(source('cityPanel.ts')).toContain('describeBeadBoon(def.boon ?? {})');
     expect(source('compendium.ts')).toContain('describeBeadBoon(boon ?? {})');
     // And the one plain sink: a native tooltip is a string the platform draws.
@@ -184,24 +170,42 @@ describe('what a bead pays', () => {
   });
 });
 
-// --- the pile and the deck --------------------------------------------------
+// --- the grants, which are the one table left -------------------------------
 
-describe('the pile', () => {
-  it('counts the backs and names the age they are waiting for', () => {
-    expect(faceDownLine(3, 2)).toBe('3 cards face down until Æra II opens');
-    expect(faceDownLine(1, 3)).toBe('1 card face down until Æra III opens');
+describe('the ledger’s one table', () => {
+  it('lists what a live grant has paid this seat, and nothing for one it has not', () => {
+    expect(grantHeldLine(0)).toBe('');
+    expect(grantHeldLine(-1)).toBe('');
+    expect(grantHeldLine(1)).toBe('held');
+    // A **repeatable** row — the four a wager pays — may pay one seat several
+    // times, and "twice" is a fact about a rod.
+    expect(grantHeldLine(3)).toBe('held 3 times');
   });
 
-  it('says nothing when nothing is face down', () => {
-    expect(faceDownLine(0, 2)).toBe('');
-    expect(faceDownLine(-1, 2)).toBe('');
+  it('is the live grants and nothing else, filtered by the one predicate', () => {
+    const screen = source('beadsScreen.ts');
+    expect(screen).toContain('for (const id of BEAD_GRANT_IDS)');
+    expect(screen).toContain('if (beadIsDormant(id)) continue;');
+    // And what the filter takes out is the four the retired bead Orders minted.
+    expect(BEAD_GRANT_IDS.filter((id) => beadIsDormant(id))).toEqual([
+      'theLastLearning',
+      'theWreathRefused',
+      'theSownSalt',
+      'theWordGoneOut',
+    ]);
   });
 
-  it('says what is still in the deck, and when the deck is spent', () => {
-    // A hand is open slots that refill, so "on the table" and "still to come"
-    // are two different numbers and a player planning an age needs both.
-    expect(deckLine(9)).toBe('9 still in the deck');
-    expect(deckLine(0)).toContain('spent');
+  it('draws no deed table at all any more', () => {
+    // The retirement, read at the source: the per-age tables, the feats and the
+    // measures are gone with the rows behind them.
+    const screen = source('beadsScreen.ts');
+    expect(screen).not.toContain('function drawAge(');
+    expect(screen).not.toContain('function drawFeats(');
+    expect(screen).not.toContain('function drawReckonings(');
+    expect(screen).toContain('function drawGrants(');
+    // And nothing on it reads a hand or a deck, because the state has neither.
+    expect(screen).not.toContain('state.beads.hands');
+    expect(screen).not.toContain('state.beads.decks');
   });
 });
 
@@ -320,7 +324,10 @@ describe('the announcements', () => {
     expect(controls).toContain('${who} took a bead: ${award.name}');
   });
 
-  it('calls a reckoning by name rather than announcing it as a bead', () => {
+  it('keeps the reckoning’s own line, for a save that earned one', () => {
+    // Retired in G2 and unreachable since, but a loaded game may hold one on a
+    // rod — and a bead that announced itself by the wrong word would be the
+    // retirement leaking into the news.
     expect(controls).toContain("award.kind === 'reckoning'");
     expect(controls).toContain('◈ Reckoning: ${award.name} — ${who}');
   });
@@ -328,9 +335,12 @@ describe('the announcements', () => {
   it('announces an age opening off the report, never off a diff', () => {
     // `CommandResult.beadAgeOpened`, ridden out of `TurnReport`. A
     // before-and-after of `state.beads.worldAge` would be a second
-    // implementation of "did it move".
+    // implementation of "did it move". The line no longer counts the cards that
+    // turned face up with it (batch Q1): there is no table, and the sheet the
+    // moment raises is the wager's.
     expect(controls).toContain('result.beadAgeOpened === undefined');
-    expect(controls).toContain('opens — ${dealt} ${what} on the table');
+    expect(controls).toContain('◈ ${deckEraWord(age)} opens`);');
+    expect(controls).not.toContain('${what} on the table');
     expect(controls).not.toContain('const ageBefore =');
   });
 });
@@ -372,29 +382,29 @@ describe('the doors to the screen', () => {
 describe('a race project in the build list', () => {
   const panel = source('cityPanel.ts');
 
-  it('prints its family and the one rule that makes it a race', () => {
-    expect(panel).toContain('First to finish takes the bead — nobody else gets it');
-    expect(panel).toContain('BEAD_FAMILY_MARK[bead.family].word.toLowerCase()');
-  });
-
+  /**
+   * **Re-aimed by batch Q1.** The races are retired and no row of that class
+   * reaches a build list any more — `PROJECT_IDS` does not carry one. What is
+   * pinned is the panel's half of the rule, kept whole: the mark that says a
+   * row never leaves the queue belongs to the two conversions alone, and the
+   * greying is still the reducer's own sentence.
+   */
   it('greys with the reducer’s own sentence, like every other row', () => {
     expect(panel).toContain("buildError(getGame().state, city.ownerId, 'project', id, city)");
   });
 
-  it('asks the simulation whether the realm qualifies, never a string match', () => {
-    const screen = source('beadsScreen.ts');
-    expect(screen).toContain('endeavourPrerequisiteMet(state, seat, race)');
-    expect(screen).toContain('endeavourError(state, seat, race)');
-    // And the predicate really is a plain read of the realm: a race already won
-    // by somebody else still answers for *this* empire.
-    expect(typeof endeavourPrerequisiteMet).toBe('function');
-  });
-
-  it('keeps the repeating project’s mark off it', () => {
-    // `↻` means "this never leaves the queue" and belongs to the two
-    // conversions alone; a race finishes.
+  it('keeps the repeating project’s mark off a row that finishes', () => {
     expect(panel).toContain('`${def.name} ↻`');
     expect(panel).toContain('bead === undefined');
+  });
+
+  it('asks the screen nothing about a prerequisite any more', () => {
+    const screen = source('beadsScreen.ts');
+    expect(screen).not.toContain('endeavourPrerequisiteMet(state');
+    expect(screen).not.toContain('endeavourError(state');
+    // The screen imports one thing from the simulation's bead module now: the
+    // describer, for the rows it still prints.
+    expect(screen).toContain("import { describeBeadBoon } from '../sim/beads';");
   });
 });
 
@@ -422,15 +432,11 @@ describe('the victory sheet', () => {
 
 // --- the deck ages ----------------------------------------------------------
 
-describe('the deck keys', () => {
-  it('are the built ages, and the screen never prints one', () => {
-    // Re-keyed by the tree pass of 2026-08-30: the deck keys and the doc's
-    // numerals are the same numbers now — Æra III (Empire) and Æra IV
-    // (Cathedrals). See `BeadAge`.
-    expect([...BEAD_DECK_AGES]).toEqual([3, 4]);
-    const screen = source('beadsScreen.ts');
+describe('the era word', () => {
+  it('reads the age straight, with no shim in front of it', () => {
     // The +1 shim died with the re-banding (2026-08-31, as its docblock
     // promised); this pin keeps it dead — the helper reads the key straight.
+    const screen = source('beadsScreen.ts');
     expect(screen).not.toContain('age + 1');
     expect(screen.match(/eraWord\(age\)/g)).toHaveLength(1);
   });
