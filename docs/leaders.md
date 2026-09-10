@@ -337,6 +337,25 @@ take two or three of the bullets under it, not all. Each fits one of
   - an artist or engineer great person costs a third less renown
   - +15% production toward wonders in the capital
 
+## The draft (the user's direction, 2026-09-10 — not yet ruled)
+
+- **One pick per age, when *you* enter the age** (your own tech age, not the
+  world clock's turn — so it never lands on the wager's deal turn and it rewards
+  teching). Three cards from the leader's own deck, one of each kind, take one:
+  - a **passive** that lasts the game,
+  - a **one-time boon** that fits the leader,
+  - a **unique unit or building** for that age.
+  The bullets under each figure above are the raw deck; ▢ sort each into the
+  three kinds and add the missing kind where a figure lacks one.
+- **Player progression is PARKED for the first cut** (the user: "lets just not
+  have player progression be a thing"). When it returns it unlocks **breadth,
+  never depth** — more leaders, portraits, charges — so no seat at a table holds
+  a stronger card; it lives in the profile, outside the sim, the way heraldry
+  does. Storage when it returns: a local profile with export/import first; an
+  anonymous account with a claim code and passkey recovery once the netcode
+  exists; a finished game is a `{config, log}` and the server can replay it to
+  verify an unlock.
+
 ## Notes for the system
 
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for

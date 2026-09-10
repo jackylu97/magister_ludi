@@ -1800,6 +1800,16 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (aaaa) **Leaders — direction, and player progression PARKED** (the user,
+  2026-09-10). `docs/leaders.md` is the casting call (26 figures, themes and
+  possible bonuses in the user's format) and carries the draft's shape as
+  discussed: one pick per age when *you* enter it, three cards of three
+  kinds (passive · one-time boon · unique unit/building), from the leader's
+  own deck. Nothing ruled; the user is reading the doc. **Parked**: player
+  progression / meta-unlocks — "for the first cut lets just not have player
+  progression be a thing"; when it returns, breadth never depth, outside the
+  sim (local profile + export first, anonymous account + passkey later, the
+  replay log verifies an unlock). Do not build.
 - (zzz) **The trade sheet knows the Silk Road — RULED** (the user,
   2026-09-10: *"in the trade route menu: please note any luxury
   resources that can be gained once that ability is unlocked. Also -
