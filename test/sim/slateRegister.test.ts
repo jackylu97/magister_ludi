@@ -291,6 +291,10 @@ const EXCUSED = new Map<string, string>([
     'writes the turn report, not the board — the old `beads` phase’s excuse one phase up: a kept wager’s beads land through `awardBead`, which announces, and everything else this phase writes (`Player.wagerTotals`, `Player.wager`, `WagerDeal.claimed`) is a running total or an absolute stamp no tenant folds a yield from',
   ],
   [
+    'state.ts#aimResearchAt',
+    'moves beakers between `Player.sciencePool` and the bucket `Player.techProgress` parks them in (batch S2, schema 111) — the empire’s total does not change, and every caller announces anyway: the reducer’s own clock for the two research commands, and `settleResearch` for the promotion',
+  ],
+  [
     'turn.ts#runEndOfTurn',
     'writes the turn report, not the board — the bead diff, already announced by `awardBead`',
   ],

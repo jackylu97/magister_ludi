@@ -137,12 +137,17 @@ import {
   type Player,
   type QueueItem,
   type Unit,
+  bankedTowardItem,
   cityById,
   claimWonder,
   createCity,
   createUnit,
+  forgetItemProgress,
+  frontKey,
   hasEndedTurn,
   playerById,
+  queueItemKey,
+  reaimProduction,
   shrinkFollowers,
   spendGold,
   tileOwnerField,
@@ -2409,8 +2414,13 @@ export function queueItemName(item: QueueItem): string {
  *
  * `index` is what the basket turns on, and it is the whole of the arithmetic's
  * honesty. A city banks hammers toward whatever is *at the front* of its queue
- * (`advanceProduction` only ever looks at `queue[0]`), so only the front item
- * may count what is already banked; anything behind it is quoted at full price.
+ * (`advanceProduction` only ever looks at `queue[0]`), and since schema 111 a row
+ * behind the front may still hold hammers of its own — the bucket parked under
+ * its name the last time the town changed its mind. So the front counts the
+ * basket, a row behind it counts its own bucket, and a row the empire has never
+ * put a hammer into is quoted at full price, which is what every row was before
+ * the rule.
+ *
  * A row the player is about to *append* is therefore asked at `city.queue.length`
  * — which is 0 exactly when the queue is empty, and an empty city's basket is
  * indeed what the next thing queued will be paid for.
@@ -2437,7 +2447,7 @@ export function turnsToBuild(
 ): number | null {
   const cost = queueItemCost(state, city.ownerId, item);
   if (cost === null) return null;
-  const banked = index === 0 ? city.hammerBasket : 0;
+  const banked = index === 0 ? city.hammerBasket : (city.itemProgress?.[queueItemKey(item)] ?? 0);
   // The rate *for this item*: a barracks city fills its basket faster while a
   // unit is at the front and at the plain rate otherwise, so an estimate that
   // divided by the city's unmodified production would promise a schedule the
@@ -3130,8 +3140,20 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   const plan = planProduction(state, city);
   if (!plan) return null;
 
+  // What the basket is aimed at going in. Every arm below that changes the queue
+  // hands this to `reaimProduction`, which is the one seam a town's hammers may
+  // change rows at (schema 111). Nothing here is a *switch* — a thing finished,
+  // was bought, or was found unbuildable — so what is left in the basket is
+  // overflow and follows the queue rather than staying with the row.
+  const before = frontKey(city);
+
   if (plan.kind === 'drop') {
+    const row = city.queue[plan.index]!;
     city.queue.splice(plan.index, 1);
+    // A drop is a row that can never be built here — a building already
+    // standing, a wonder somebody else has raised — so its bucket goes with it.
+    forgetItemProgress(city, row);
+    reaimProduction(city, before, false);
     return null;
   }
 
@@ -3176,6 +3198,7 @@ export function settleProduction(state: GameState, city: City): ProductionComple
       if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
         city.hammerBasket += city.hammerBasket;
       }
+      reaimProduction(city, before, false);
       if (isBeadEndeavourId(plan.id)) claimEndeavour(state, city, plan.id);
       return done;
     }
@@ -3202,6 +3225,11 @@ export function settleProduction(state: GameState, city: City): ProductionComple
   if (city.hammerBasket > 0 && cardActionRule(state, city.ownerId, 'doubleOverflow')) {
     city.hammerBasket += city.hammerBasket;
   }
+  // The overflow follows the queue to whatever came up, and that row's own
+  // bucket — from an earlier visit — comes with it. A Standing Levy jump splices
+  // out of the middle and leaves the front alone, which this reads as the no-op
+  // it is.
+  reaimProduction(city, before, false);
 
   if (plan.kind === 'building') {
     const realised = realiseItem(state, city, { kind: 'building', id: plan.id });
@@ -3916,12 +3944,25 @@ function refundBeatenWonders(
       (item) => item.kind === 'building' && item.id === building,
     );
     if (index < 0) continue;
-    city.queue.splice(index, 1);
-    // Only the front row was being paid for. See the docblock.
-    const hammers = index === 0 ? Math.max(0, city.hammerBasket) : 0;
+    const row = city.queue[index]!;
+    const before = frontKey(city);
+    // What was banked toward *this row*, wherever it was standing — the front's
+    // basket, or the bucket schema 111 parked under its name when the town was
+    // told to build something else. Before the sunk-progress rule this was "the
+    // front row or nothing", because nothing behind the front could have been
+    // paid for; a row that can hold progress at any position has to be bought
+    // back at any position, or a lost race would quietly burn hammers the town
+    // really had spent.
+    const hammers = Math.max(0, bankedTowardItem(city, row));
     // Exact since batch X: the basket is a fraction and so is what it buys back.
     const gold = hammers * rate;
     if (index === 0) city.hammerBasket -= hammers;
+    city.queue.splice(index, 1);
+    // The row is gone from this town for good — the world has the wonder — so
+    // its bucket goes with it rather than sitting in the save forever, and the
+    // basket picks up whatever came up behind it.
+    forgetItemProgress(city, row);
+    reaimProduction(city, before, false);
     const player = playerById(state, city.ownerId);
     if (player) {
       player.gold += gold;

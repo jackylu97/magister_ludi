@@ -2332,6 +2332,45 @@
       ],
       "note": "Built in the seat of your government and nowhere else."
     },
+    "viziersHall": {
+      "name": "The Vizier's Hall",
+      "category": "production",
+      "size": "large",
+      "column": 4,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByCard": true,
+      "queueFloor": 2,
+      "renown": {
+        "family": "engineer",
+        "perTurn": 1
+      },
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 30,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "hasBuilding",
+                "building": "viziersHall"
+              },
+              {
+                "test": "queueDepth",
+                "atLeast": 2
+              }
+            ]
+          }
+        }
+      ],
+      "note": "The office that keeps the town's works list. It must always hold at least two things to build, and while it does, everything is raised faster."
+    },
     "smithy": {
       "name": "Smithy",
       "category": "production",

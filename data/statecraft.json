@@ -4702,18 +4702,17 @@
       ]
     },
     "toolmakersCharter": {
-      "name": "The Toolmakers' Charter",
+      "name": "The Vizierate",
       "pool": "governmentII",
       "slot": "economic",
       "line": "forge",
       "rarity": "uncommon",
-      "flavor": "First the tools, then the things the tools are for.",
-      "text": "Unlocks the Smithy.",
-      "retired": true,
+      "flavor": "He kept the lists, and the lists kept the kingdom.",
+      "text": "Unlocks The Vizier's Hall.",
       "effects": [
         {
           "kind": "unlocksBuilding",
-          "building": "smithy"
+          "building": "viziersHall"
         }
       ]
     },

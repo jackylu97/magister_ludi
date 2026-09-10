@@ -1648,8 +1648,8 @@
   ],
   "toolmakersCharter": [
    {
-    "raw": "unlocks the [[building:smithy|Smithy]] — +2 production; +1 renown per turn, favouring engineers; +1 production on every hex with a [[improvement:mine|Mine]] or [[improvement:quarry|Quarry]] carrying a resource",
-    "text": "unlocks the Smithy — +2 production; +1 renown per turn, favouring engineers; +1 production on every hex with a Mine or Quarry carrying a resource"
+    "raw": "unlocks [[building:viziersHall|The Vizier's Hall]] — +30% production in every city with [[building:viziersHall|The Vizier's Hall]] while it has 2 or more things to build; +1 renown per turn, favouring engineers",
+    "text": "unlocks The Vizier's Hall — +30% production in every city with The Vizier's Hall while it has 2 or more things to build; +1 renown per turn, favouring engineers"
    }
   ],
   "mintCharter": [
@@ -2820,8 +2820,8 @@
   ],
   "reliquary": [
    {
-    "raw": "+10% faith in every city with a [[building:reliquary|The Reliquary]]",
-    "text": "+10% faith in every city with a The Reliquary"
+    "raw": "+10% faith in every city with [[building:reliquary|The Reliquary]]",
+    "text": "+10% faith in every city with The Reliquary"
    },
    {
     "raw": "+4 happiness",
@@ -3323,6 +3323,12 @@
    {
     "raw": "+2 authority capacity",
     "text": "+2 authority capacity"
+   }
+  ],
+  "viziersHall": [
+   {
+    "raw": "+30% production in every city with [[building:viziersHall|The Vizier's Hall]] while it has 2 or more things to build",
+    "text": "+30% production in every city with The Vizier's Hall while it has 2 or more things to build"
    }
   ],
   "smithy": [],

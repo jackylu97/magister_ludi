@@ -1732,7 +1732,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(110);
+    expect(SCHEMA_VERSION).toBe(111);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -7331,7 +7331,9 @@ describe("a charter carries the description of the building it opens", () => {
     for (const { card, building } of OPENERS) {
       const clause = describeCard(card as never)
         .map((entry) => entry.text)
-        .find((text) => text.includes("unlocks the "));
+        // "unlocks the Assay House" — or "unlocks The Vizier's Hall", for a row
+        // whose own name carries the article (batch S2, `theBuilding`).
+        .find((text) => text.includes("unlocks "));
       expect(clause, card).toBeDefined();
       // The building is **named as a keyword**, so a reader can open its page
       // from the card and the Compendium resolves the mark to a real entry.

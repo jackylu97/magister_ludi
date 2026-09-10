@@ -181,6 +181,7 @@ reading for a once-per-empire row.
 | `assayHouse` | Assay House | large | 4 | 134 |
 | `cistern` | Cistern | medium | 4 | 89 |
 | `assemblyHall` | Assembly Hall | large | 4 | 134 |
+| `viziersHall` | The Vizier's Hall | large | 4 | 134 |
 | `smithy` | Smithy | medium | 4 | 89 |
 | `coinworks` | Coinworks | large | 6 | 231 |
 | `almshouse` | Almshouse | large | 6 | 231 |

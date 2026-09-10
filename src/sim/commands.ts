@@ -165,14 +165,19 @@ import {
   cityById,
   clearTurnEnded,
   createUnit,
+  frontKey,
   hasEndedTurn,
   playerById,
+  reaimProduction,
   removeUnit,
   spendGold,
   unitById,
   wakeUnit,
 } from './state';
 import { bumpEconomy } from './slate';
+// The Vizier's Hall's law, read where every other non-yield building fact is
+// (`buildingEffects.ts`) so the reducer names no building.
+import { cityQueueFloor, queueFloorRefusal } from './buildingEffects';
 import {
   adoptGovernmentAt,
   doctrineChoiceError,
@@ -2472,6 +2477,20 @@ function applySetCityProduction(
   const queue = validateQueue(state, city, command.queue);
   if (typeof queue === 'string') return fail(queue);
 
+  // The **queue floor** — The Vizier's Hall's law, and the last refusal because
+  // it is the only one about the queue as a whole rather than about a row in it.
+  // Asked of the queue that would stand, so a town under the floor is a town
+  // that cannot be *left* under it; a queue already short of it (the Hall was
+  // captured, or finished while one row stood) may still be edited upward.
+  const floor = cityQueueFloor(city);
+  if (queue.length < floor && queue.length < city.queue.length) {
+    return fail(queueFloorRefusal(city, floor));
+  }
+
+  // Read before the queue moves: the row the basket is aimed at. See
+  // `reaimProduction` — this is a **switch**, so what is banked stays with the
+  // row it was spent on and the new front starts from its own bucket.
+  const before = frontKey(city);
   // Copy: the command (and the log entry it becomes) must not be aliased into
   // the state, or a caller reusing its array would rewrite history.
   city.queue = queue.map((item): QueueItem => {
@@ -2479,6 +2498,7 @@ function applySetCityProduction(
     if (item.kind === 'project') return { kind: 'project', id: item.id };
     return { kind: 'building', id: item.id };
   });
+  reaimProduction(city, before, true);
   return ok();
 }
 

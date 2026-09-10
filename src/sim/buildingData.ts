@@ -1226,6 +1226,25 @@ export interface BuildingDef {
    */
   irrigates?: boolean;
   /**
+   * **The fewest things a town holding this may be left with to build** — The
+   * Vizier's Hall's law (`docs/flags.md` (www); the user, 2026-09-10: *"the
+   * queue can never hold fewer than two items … the queue cannot go below two
+   * items"*).
+   *
+   * `waters`' kind of marker — a fact about what this building *is*, read in
+   * exactly one place (`cityQueueFloor`, `buildingEffects.ts`) — but a number
+   * rather than a flag, because the rule the office keeps is "never fewer than
+   * this many" and the figure belongs on the row with every other figure in the
+   * game. A second building keeping a different works list is then a JSON row.
+   *
+   * It is the reducer's rule and the purchase gate's, never production's: the
+   * floor says what a town may be *left* with, and a queue that has fallen under
+   * it some other way — the office finished while one row stood, the town was
+   * taken — still builds what it holds. That is what keeps the rule a law about
+   * decisions rather than a trap that stops a town's work.
+   */
+  queueFloor?: number;
+  /**
    * A half of this row's ratified text that is **deliberately not built**, in
    * the words a player reads, struck through on the card.
    *

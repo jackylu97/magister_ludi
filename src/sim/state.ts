@@ -798,8 +798,31 @@ import {
  * lends the empire one luxury from every foreign market it reaches, at half
  * (`rules.trade.importedLuxuryPercent`). The Floating Gardens move to Irrigation
  * with the water that grows them.
+ *
+ * v111 (batch S2, `docs/flags.md` (www); the user, 2026-09-10: *"the pool of
+ * yields shouldn't swap over when reselecting something … swapping to a
+ * different tech shouldn't allow you to keep your technology progress on the
+ * new tech, same for production"*): **beakers and hammers are committed to the
+ * thing they were spent on.** A pool used to follow the aim, so switching
+ * research or re-heading a queue carried every banked point along with it and
+ * cost nothing. Progress is now **kept with the thing** and neither carried nor
+ * lost: `Player.techProgress` parks the beakers banked toward a technology the
+ * empire has aimed away from, `City.itemProgress` parks the hammers banked
+ * toward a queue row that is no longer at the front, and returning to either
+ * finds it exactly where it was left. Overflow still follows the *queue* —
+ * what is left after a thing completes was never toward that thing — and the
+ * turn's own spend is still committed at the end of turn. **The Vizier's Hall**
+ * stands with the rule (`BuildingDef.queueFloor`): a town that holds it may not
+ * be left with fewer than two rows to build, and it makes half again as many
+ * hammers while it has them.
+ *
+ * A v110 log replays identically **except where a seat changed its mind**: a
+ * `chooseResearch` that moved the aim, a `setCityProduction` that re-headed a
+ * queue, or a `dequeueResearch` that dropped the head now leaves the old
+ * thing's progress behind rather than handing it to the new one, so every
+ * completion after that moment lands on a different turn.
  */
-export const SCHEMA_VERSION = 110;
+export const SCHEMA_VERSION = 111;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -937,11 +960,38 @@ export interface Player {
   gold: number;
   /**
    * Science banked toward the current technology. A pool rather than a per-turn
-   * rate because research is bought, not rented — and, since Milestone 4, the
-   * pool *is* the progress: there are no per-tech buckets, so switching research
-   * moves the aim and loses nothing. See the model note in `tech.ts`.
+   * rate because research is bought, not rented.
+   *
+   * Since schema 111 it is the **current technology's bucket** and not a pool
+   * that follows the aim: what is in here belongs to `researching`, and the
+   * moment the aim moves it is parked in `techProgress` under the technology it
+   * was spent on (`aimResearchAt`, the one seam). An empire that has aimed at
+   * nothing banks here too — beakers with no name on them yet — and those join
+   * whatever is chosen next, which is what they always did.
+   *
+   * See the model note in `tech.ts`.
    */
   sciencePool: number;
+  /**
+   * **Beakers committed to a technology the empire is not aimed at** — the rest
+   * of schema 111's answer to *"swapping to a different tech shouldn't allow
+   * you to keep your technology progress on the new tech"* (`docs/flags.md`
+   * (www)).
+   *
+   * Progress is kept with the thing it was spent on rather than lost: a seat
+   * that puts Bronzeworking down at forty beakers to answer a war finds forty
+   * beakers still standing there when it comes back. `sciencePool` is the
+   * current aim's bucket and this is every other bucket, so between them they
+   * are "progress per technology" and no beaker is in two places at once.
+   *
+   * Presence is the state and the key is **deleted** rather than zeroed, which
+   * is `researchQueue`'s convention and is here for its reasons: an empire that
+   * never switched serialises exactly as it did before the field existed, and a
+   * completed technology's bucket is swept the moment it lands rather than
+   * lingering as a bank nobody can ever spend. Written by `aimResearchAt` and
+   * `settleResearch` and nowhere else; read through `bankedTowardTech`.
+   */
+  techProgress?: Partial<Record<TechId, number>>;
   /**
    * Culture banked toward the next Statecraft draft — and **the basket itself**,
    * not a running total beside one (see `PlayerStatecraft`, which deliberately
@@ -2270,7 +2320,9 @@ export type QueueKind = QueueItem["kind"];
  * completes — the remainder is overflow and belongs to the next item:
  *
  *   foodBasket    food toward the next population point (`growCities`)
- *   hammerBasket  production toward the front of the queue (`advanceProduction`)
+ *   hammerBasket  production toward the front of the queue (`advanceProduction`);
+ *                 since schema 111 the front row's own bucket, with every other
+ *                 row's parked beside it in `itemProgress`
  *   culture       culture toward the next border tile (`expandBorders`)
  *
  * `culture` is the city's *unspent* culture, not its lifetime total; the running
@@ -2408,8 +2460,35 @@ export interface City {
   wasCapital?: true;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
-  /** Production banked toward the front of the queue. */
+  /**
+   * Production banked toward the front of the queue.
+   *
+   * Since schema 111 it is the **front row's bucket** and not a basket that
+   * follows whatever is put in front of it: re-heading a queue parks what is in
+   * here under the row it was spent on (`reaimProduction`, the one seam) and
+   * loads whatever that row had banked. A town with an empty queue banks here
+   * too, and those unaimed hammers pay for the next thing queued exactly as
+   * they always did.
+   */
   hammerBasket: number;
+  /**
+   * **Hammers committed to a queue row that is not at the front** — schema
+   * 111's other half (`docs/flags.md` (www)), keyed by the row's own
+   * `queueItemKey` ("building:granary", "unit:archer", "project:tithes").
+   *
+   * `hammerBasket` is the front row's bucket and this is every other bucket, so
+   * between them they are "progress per queue item". A town three turns into a
+   * granary that is told to raise spearmen instead keeps the granary's three
+   * turns; a **project**, which never completes and so never spends its bucket
+   * down, simply accumulates in its own — which is what makes a conversion put
+   * aside for an emergency still a conversion half-done when the emergency ends.
+   *
+   * Presence is the state and a key is **deleted** rather than zeroed, for
+   * `techProgress`' reasons exactly. Overflow is deliberately *not* in here: what
+   * is left in the basket after a thing completes was never spent toward that
+   * thing, so it follows the queue to whatever comes up next.
+   */
+  itemProgress?: Record<string, number>;
   /** Tiles the citizens work, excluding the free centre. Sorted by tile index. */
   workedTiles: { col: number; row: number }[];
   /**
@@ -4099,6 +4178,191 @@ export function claimWonder(
 export function bumpRevision(state: GameState): void {
   state.revision += 1;
   bumpEconomy(state);
+}
+
+// --- sunk progress (schema 111) ---------------------------------------------
+
+/**
+ * The key a queue row banks its hammers under — `"building:granary"`,
+ * `"unit:archer"`, `"project:tithes"`.
+ *
+ * A row is a `kind` and an `id` and nothing else, so the two spelled out with a
+ * colon between them is the whole identity of the thing being built. It lives
+ * here, beside `QueueItem` itself, because every module that re-heads a queue
+ * needs it and `state.ts` is the leaf all of them already import — a helper in
+ * `cities.ts` would be an import edge from `combat.ts` to buy two words.
+ *
+ * `kind` is a closed union and an `id` is an identifier, so the pair cannot
+ * collide across kinds and the key is stable across saves.
+ */
+export function queueItemKey(item: QueueItem): string {
+  return `${item.kind}:${item.id}`;
+}
+
+/**
+ * Beakers this empire has banked toward `techId` — the current aim's own
+ * bucket, or the one parked under its name.
+ *
+ * **The** reading of "how far along is that technology", and the one place
+ * `techProgress`' absence turns into nought, so a state from before the field
+ * reads as an empire that has never switched rather than as a crash.
+ */
+export function bankedTowardTech(player: Player, techId: TechId): number {
+  if (player.researching === techId) return player.sciencePool;
+  return player.techProgress?.[techId] ?? 0;
+}
+
+/**
+ * Hammers this town has banked toward `item` — the front row's own basket, or
+ * the one parked under its key.
+ *
+ * `bankedTowardTech`'s twin, and it takes the **item** rather than a queue
+ * index for the reason the estimates take one: the panel asks this of a row it
+ * is drawing, and a row's progress is a fact about the row and not about where
+ * it happens to be standing this turn. A row at the front is the basket by
+ * definition, which is why the front is asked first.
+ */
+export function bankedTowardItem(city: City, item: QueueItem): number {
+  const front = city.queue[0];
+  if (front && front.kind === item.kind && front.id === item.id) return city.hammerBasket;
+  return city.itemProgress?.[queueItemKey(item)] ?? 0;
+}
+
+/**
+ * The key the town's basket is aimed at right now, or `null` for an empty
+ * queue — read *before* a queue is touched and handed to `reaimProduction`
+ * after.
+ */
+export function frontKey(city: City): string | null {
+  const front = city.queue[0];
+  return front ? queueItemKey(front) : null;
+}
+
+/**
+ * Forgets what was banked toward a row that has left this town's queue for
+ * good and cannot come back — a building already standing, a wonder the world
+ * has given to somebody else.
+ *
+ * A bucket under a row nothing can ever re-queue is hammers no town can ever
+ * spend, and the two seams that produce one (`planProduction`'s `drop`,
+ * `refundBeatenWonders`) each say out loud why the row is gone. Everything else
+ * that leaves a queue may be queued again, and its bucket waits for it.
+ */
+export function forgetItemProgress(city: City, item: QueueItem): void {
+  parkHammers(city, queueItemKey(item), 0);
+}
+
+/** Parks `amount` under `key`, deleting the key rather than banking nothing. */
+function parkHammers(city: City, key: string, amount: number): void {
+  if (amount > 0) {
+    if (!city.itemProgress) city.itemProgress = {};
+    city.itemProgress[key] = amount;
+    return;
+  }
+  if (city.itemProgress) {
+    delete city.itemProgress[key];
+    if (Object.keys(city.itemProgress).length === 0) delete city.itemProgress;
+  }
+}
+
+/** Takes what is banked under `key` out of the parking, or nought. */
+function unparkHammers(city: City, key: string | null): number {
+  if (key === null || !city.itemProgress) return 0;
+  const banked = city.itemProgress[key] ?? 0;
+  delete city.itemProgress[key];
+  if (Object.keys(city.itemProgress).length === 0) delete city.itemProgress;
+  return banked;
+}
+
+/**
+ * **The one seam a city's hammers change hands at** (schema 111).
+ *
+ * Called *after* a queue has moved, with the key that was at the front
+ * *before* it moved, and it reconciles the basket with the row now standing
+ * there. Two rules, and each is the user's ruling read at one of the two
+ * moments a queue can change:
+ *
+ *   · a **switch** (`kept: true`) — the old row is still owed hammers, so what
+ *     is in the basket is *its* progress and is parked under its name. The new
+ *     front starts at whatever it had banked, which is nought the first time
+ *     and everything it had the second.
+ *   · a **completion** (`kept: false`) — a thing finished, was bought, or was
+ *     dropped as unbuildable, so nothing is owed it. What is in the basket is
+ *     overflow, it was never spent toward that row, and it follows the *queue*
+ *     to whatever came up — which is exactly what overflow has always done.
+ *
+ * A front that did not move is a no-op, which is what makes it safe to call
+ * from every seam rather than only from the ones that might have moved it: The
+ * Standing Levy's jump splices a unit out of the middle and leaves the head
+ * alone, and this says so by saying nothing.
+ *
+ * `before` is `null` for a queue that was empty, and then the basket's unaimed
+ * hammers carry into the new front on top of whatever it had — a town that
+ * banked while it had nothing to build has not spent those hammers on anything
+ * yet, so there is nothing to keep them with.
+ */
+export function reaimProduction(city: City, before: string | null, kept: boolean): void {
+  const front = city.queue[0];
+  const after = front ? queueItemKey(front) : null;
+  if (before === after) return;
+  if (before !== null && kept) {
+    parkHammers(city, before, city.hammerBasket);
+    city.hammerBasket = 0;
+  }
+  city.hammerBasket += unparkHammers(city, after);
+}
+
+/**
+ * **The one seam an empire's beakers change hands at** (schema 111) — points
+ * `sciencePool` at `next`, parking what it holds under the technology it was
+ * aimed at.
+ *
+ * `reaimProduction`'s twin one bucket over, and it takes the same two readings
+ * of the same ruling: an aim that *moves* leaves its beakers behind under the
+ * old node's name, and an empire aiming from nothing (a fresh game, and the
+ * instant after a completion, when what is in the pool is overflow) carries
+ * what it holds into the new node on top of whatever that node had banked.
+ *
+ * The two writers of `researching` — `writeResearchPlan` and
+ * `promoteResearchQueue`, both in `tech.ts` — go through here, which is the
+ * whole of the invariant: there is no other way to move the aim, so there is no
+ * way to strand a bucket or to spend one twice.
+ *
+ * It announces nothing, and takes no state so that it cannot: the empire's total
+ * beakers do not move here — one bucket is emptied into another — and every
+ * caller announces anyway (`applyCommand`'s own clock for the two commands,
+ * `settleResearch` for the promotion). See its row in `slateRegister.test.ts`.
+ */
+export function aimResearchAt(player: Player, next: TechId | null): void {
+  const before = player.researching;
+  if (before === next) return;
+  if (before !== null) {
+    if (player.sciencePool > 0) {
+      if (!player.techProgress) player.techProgress = {};
+      player.techProgress[before] = player.sciencePool;
+    }
+    player.sciencePool = 0;
+  }
+  player.researching = next;
+  if (next !== null && player.techProgress) {
+    player.sciencePool += player.techProgress[next] ?? 0;
+    delete player.techProgress[next];
+    if (Object.keys(player.techProgress).length === 0) delete player.techProgress;
+  }
+}
+
+/**
+ * Forgets what was banked toward `techId` — called the instant it is learnt.
+ *
+ * A bucket under a technology the empire already holds is beakers nobody can
+ * ever spend, and it would come back as a windfall the day a Great Library
+ * grant handed the node over while a bucket sat under it. Swept rather than
+ * refunded: the beakers were spent on the thing, and the thing arrived.
+ */
+export function clearTechProgress(player: Player, techId: TechId): void {
+  if (!player.techProgress) return;
+  delete player.techProgress[techId];
+  if (Object.keys(player.techProgress).length === 0) delete player.techProgress;
 }
 
 /**

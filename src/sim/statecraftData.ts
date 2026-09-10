@@ -501,6 +501,23 @@ export type CityScope =
    */
   | { test: 'queueHolds'; category: ProductionCategory }
   /**
+   * The town has **at least this many things lined up to build** — The Vizier's
+   * Hall's clause, which pays a town that plans ahead and nothing to a town
+   * living hand to mouth (`docs/flags.md` (www)).
+   *
+   * `queueHolds`' sibling and deliberately a second arm rather than a field on
+   * it: that one asks *what* is in the queue and this asks *how much*, and a
+   * scope that took both would be a scope nobody could print in one clause. Read
+   * off `City.queue.length` — the rows themselves, not what they are worth or
+   * whether any of them can be paid for this turn, because "has this town a
+   * works list" is a question about the list.
+   *
+   * `atLeast` is on the row rather than fixed here for `queueFloor`'s reason:
+   * the figure is the building's, and a second row wanting a deeper list is a
+   * JSON row.
+   */
+  | { test: 'queueDepth'; atLeast: number }
+  /**
    * Every one of these holds. The composite, and the only one there is.
    *
    * There is deliberately no `any` and no `not`. A disjunction is two lines on

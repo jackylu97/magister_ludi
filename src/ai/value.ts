@@ -1958,6 +1958,7 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   wonder: 'one per world: the production category and the claim, both the rules’ business; what a wonder pays is its `effects`, its `renown` and its grants, all folded above',
   consecrated: 'the patron roll — uniform over the consecrations, and this bot has no reading of a patron',
   acceptsContributions: 'a way to pay a basket; the bot has no contribution arm to price it for',
+  queueFloor: 'a law about the queue, not a worth: the reducer refuses a shorter one and the driver simply builds a two-row list in that town (batch S2)',
 };
 
 /**

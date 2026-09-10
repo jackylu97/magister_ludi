@@ -165,6 +165,7 @@ import {
   explainYields,
   newResourceTerms,
   realmResources,
+  sciencePrice,
   townProduction,
   hammerTerm,
   valueOfYields,
@@ -185,6 +186,9 @@ import {
 } from './wants';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
+// The Vizier's Hall's law, read where the reducer reads it so the bot never
+// sends a queue the reducer would refuse (batch S2).
+import { cityQueueFloor } from '../sim/buildingEffects';
 import { discoveryDef } from '../sim/discoveryData';
 import {
   type Family,
@@ -212,6 +216,7 @@ import {
   foundingError,
   foundingErrorAt,
   growthThreshold,
+  queueItemCost,
   tileContextAt,
   tileOwnerPlayerId,
   tilePurchaseError,
@@ -2543,6 +2548,17 @@ function projectIdleCommand(
     // The scorer still prefers the conversion that is already running: nothing
     // to say.
     if (sameItem(wanted, front)) continue;
+    // **And the hammers already in the conversion argue for finishing it**
+    // (batch S2). The puppet's own re-decision charges exactly this, and the two
+    // arms of one question must not disagree about what a half-paid row is
+    // worth: a switch parks the basket, and a town most of the way through a
+    // conversion is a town with something nearly in hand.
+    const challenger = scoreOf(table.candidates, wanted);
+    const running = scoreOf(table.candidates, front);
+    if (challenger !== null && running !== null) {
+      const share = strandShare(state, player, city);
+      if (share > 0 && challenger <= running + Math.abs(running) * share) continue;
+    }
     // The conversion is never cancelled — it waits behind the thing worth
     // building. Both subtractions that make the command one the reducer will
     // take are `queueAhead`'s, and its docblock is where they are argued.
@@ -3491,6 +3507,36 @@ function techGoalTable(
     }
     const chain = techChain(state, player, ctx, id);
     const terms: ValueTerm[] = [...chain.terms];
+    // **What changing its mind would leave behind** (batch S2, schema 111).
+    // Beakers now stay with the node they were spent on, so a challenger whose
+    // road does not pass through the node the pool is aimed at strands
+    // everything banked there — not for ever, but until the empire comes back,
+    // which on a beeline it may never do. Charged against the *challenger*,
+    // because the incumbent strands nothing, and priced through the same
+    // `sciencePrice` every other beaker in this file is priced through, so the
+    // charge is in the table's own units.
+    //
+    // A challenger that still learns the aimed-at node on its way — the ordinary
+    // case, since `researchExpansion` names every prerequisite — strands nothing
+    // and is charged nothing. `research.strandWeight` is the dial, and **nought
+    // shuts it off**, which makes it an arena A/B rather than a rule.
+    const aimed = player.researching;
+    if (
+      aimed !== null &&
+      id !== incumbent &&
+      player.sciencePool > 0 &&
+      !road.includes(aimed) &&
+      ai.research.strandWeight !== 0
+    ) {
+      const stranded = player.sciencePool * sciencePrice(ctx) * ai.research.strandWeight;
+      terms.push({
+        label:
+          `− ${round1(player.sciencePool)} beakers left standing in ` +
+          `${techDef(aimed).name}, which this road never reaches`,
+        value: stranded,
+        op: 'sub',
+      });
+    }
     if (id === incumbent && margin !== 1) {
       // **The margin is symmetric** (batch X12, `docs/flags.md` item (ggg)). It
       // was a multiplication and only a multiplication, which is the right
@@ -4130,13 +4176,28 @@ function cityCommand(
   const table = productionTable(state, player, city, sitting);
   const item = table.best;
   if (item === null) return null;
+  // **A works list where the town keeps one** (batch S2). The Vizier's Hall pays
+  // a town that has two things lined up and its office refuses to be left with
+  // fewer, so the blocker's answer here is a queue as long as the floor the town
+  // keeps — the winner, then the runner-up behind it. Everywhere else this is
+  // one row, exactly as it has always been, because the floor is nought.
+  //
+  // Truncated to what the table actually offered: a town with one legal
+  // candidate sends one row and the reducer takes it, because the rule refuses a
+  // queue *shortened* below the floor and never a town that has run out of
+  // things it may build. See `applySetCityProduction`.
+  const queue = table.ranked.slice(0, Math.max(1, cityQueueFloor(city)));
+  const behind = queue.slice(1);
   return {
     kind: 'build',
-    command: { type: 'setCityProduction', playerId: player.id, cityId, queue: [item] },
+    command: { type: 'setCityProduction', playerId: player.id, cityId, queue },
     subject: townSubject(city),
     summary:
       `${city.name} starts ${itemName(item)} — best value per turn of build effort of ` +
-      `${table.candidates.filter((c) => c.rejected === undefined).length} legal candidates.`,
+      `${table.candidates.filter((c) => c.rejected === undefined).length} legal candidates.` +
+      (behind.length === 0
+        ? ''
+        : ` ${behind.map((row) => itemName(row)).join(', ')} goes behind it: the town keeps a works list.`),
     candidates: table.candidates,
     focus: { col: city.col, row: city.row },
   };
@@ -4285,8 +4346,39 @@ function puppetRedecisionTable(
   // `AiConfig.puppet.switchMargin` for why this one adds where the beeline's
   // multiplies.
   const margin = Math.max(0, aiFor(player).puppet.switchMargin);
-  if (challenger <= incumbent + Math.abs(incumbent) * margin) return null;
+  if (challenger <= incumbent + Math.abs(incumbent) * (margin + strandShare(state, player, city))) {
+    return null;
+  }
   return { wanted, front, candidates: table.candidates };
+}
+
+/**
+ * **How hard the hammers already spent argue against changing this town's
+ * mind**, as a share to add to a switching margin (batch S2, schema 111).
+ *
+ * Hammers stay with the row they were spent on now, so a switch does not burn
+ * the basket — it *parks* it, and the town stops working on something it is
+ * part of the way through. That is worth defending in proportion to how far
+ * through it is: a town one hammer into a conversion is barely committed, a
+ * town nine tenths of the way through it has a thing almost in hand.
+ *
+ * A **share** rather than a charge in points, because the two re-decisions this
+ * serves compare scores in *value per turn of build effort* and the basket is in
+ * hammers: multiplying a rate by a bucket would be a number in no units at all.
+ * The reading is the front row's own progress, which is the one fact both
+ * questions turn on, and `puppet.strandWeight` says what a whole row of it is
+ * worth. **Nought shuts it off**, which makes it an arena A/B rather than a
+ * rule.
+ */
+function strandShare(state: GameState, player: Player, city: City): number {
+  const weight = Math.max(0, aiFor(player).puppet.strandWeight);
+  if (weight === 0) return 0;
+  const front = city.queue[0];
+  if (front === undefined) return 0;
+  const cost = queueItemCost(state, player.id, front);
+  if (cost === null || cost <= 0) return 0;
+  const progress = Math.min(1, Math.max(0, city.hammerBasket / cost));
+  return progress * weight;
 }
 
 /** One row of a scored table, found by the name the table printed it under. */
@@ -4311,13 +4403,14 @@ function productionTable(
   player: Player,
   city: City,
   sitting?: BotSitting,
-): { best: QueueItem | null; candidates: BotCandidate[] } {
+): { best: QueueItem | null; ranked: QueueItem[]; candidates: BotCandidate[] } {
   // **The opening book, ahead of the scoring** — the one hard-coded build in
   // this bot. See `openingScout`.
   const opening = openingScout(state, player, city);
   if (opening !== null) {
     return {
       best: opening,
+      ranked: [opening],
       candidates: [
         {
           label: itemName(opening),
@@ -4342,7 +4435,7 @@ function productionTable(
   // floor's escape hatch, and for its reason exactly.
   const candidates =
     restricted.length > 0 ? restricted : buildCandidates(state, player, city, ctx, plan, false);
-  if (candidates.length === 0) return { best: null, candidates: [] };
+  if (candidates.length === 0) return { best: null, ranked: [], candidates: [] };
 
   // **No solvency filter any more** (batch 7). `solvency.stopMaintainedBelow`
   // struck every upkeep-bearing row out of this table below an income of one, and
@@ -4362,7 +4455,18 @@ function productionTable(
     chosen: candidate === best,
     terms: candidate.terms,
   }));
-  return { best: best.item, candidates: rows };
+  // **The whole table in its own order**, for the one caller that needs more
+  // than the winner: a town holding The Vizier's Hall may not be left with a
+  // one-row queue (batch S2), so the blocker's answer has to name the runner-up
+  // as well. Sorted here rather than re-argmaxed there — the winner and the
+  // runner-up must come off one comparison or the feed's "best of N" would be
+  // describing a different table from the queue it sent. Ties keep the roster's
+  // own order, which is `candidates`' order and therefore a fact a replay
+  // reproduces.
+  const ranked = [...candidates]
+    .sort((a, b) => b.score - a.score)
+    .map((candidate) => candidate.item);
+  return { best: best.item, ranked, candidates: rows };
 }
 
 /**
@@ -4681,7 +4785,18 @@ function push(
   const ai = ctx.ai;
   // `null` is "this town will never finish it" — no production at all — and a
   // candidate that never finishes has no score, not a bad one.
-  const turns = turnsToBuild(state, city, item, 0, standing);
+  // **At the position this row would really be paid from** (batch S2). It was
+  // asked at index 0 flat, which was the honest reading while a town's basket
+  // followed whatever was put in front of it: every candidate really would have
+  // inherited the banked hammers. Schema 111 ended that — hammers stay with the
+  // row they were spent on — so quoting the front row's basket to every
+  // candidate promised each of them a completion that belongs to one of them,
+  // and a town three turns into a settler read every cheap piece on the roster
+  // as one turn away. The front is asked at the front; everything else is asked
+  // behind it, where `turnsToBuild` counts that row's **own** parked bucket.
+  const front = city.queue[0];
+  const atFront = front !== undefined && front.kind === item.kind && front.id === item.id;
+  const turns = turnsToBuild(state, city, item, atFront ? 0 : city.queue.length, standing);
   if (turns === null) return;
   // **One H** (batch 7): `score.maxTurns` is retired into `priorities.horizonTurns`.
   // Both were forty and both meant the same thing — how far ahead this bot will

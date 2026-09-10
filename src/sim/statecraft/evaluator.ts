@@ -1461,6 +1461,12 @@ export function cityScopeAdmits(
       const front = city.queue[0];
       return front !== undefined && queueCategory(front) === scope.category;
     }
+    case 'queueDepth':
+      // The rows themselves, and nothing about them. `queueHolds` above asks
+      // what is at the front and this asks how long the list is — the Vizier's
+      // works list, which is worth something because it is planned and not
+      // because of what is on it.
+      return city.queue.length >= scope.atLeast;
     case 'frontier':
       return isFrontierCity(state, city, scope.radius ?? FRONTIER_RADIUS);
     case 'captured':
@@ -1652,6 +1658,8 @@ function scopeNote(scope?: CityScope): string | null {
       return `settled on ${scope.kind}`;
     case 'queueHolds':
       return `building a ${scope.category}`;
+    case 'queueDepth':
+      return `${scope.atLeast} things queued`;
     case 'frontier':
       return 'near a rival';
     case 'captured':

@@ -135,7 +135,7 @@ import type { Command } from '../sim/commands';
 import { type Game, dispatch } from '../sim/game';
 import { improvementDef } from '../sim/improvementData';
 import { projectDef, projectRate } from '../sim/projectData';
-import { type GameState, type Player, hasEndedTurn } from '../sim/state';
+import { type GameState, type Player, bankedTowardTech, hasEndedTurn } from '../sim/state';
 import { techRuleClauses } from './techRuleWords';
 import {
   availableTechs,
@@ -1044,9 +1044,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     if (researched) {
       box.append(element('p', 'info-card-state', 'Researched'));
     } else if (player?.researching === id) {
-      const progress = researchProgress(player.sciencePool, def.cost, rate);
+      const progress = researchProgress(bankedTowardTech(player, id), def.cost, rate);
       box.append(
         element('p', 'info-card-state', `Being researched · ${progress.banked}/${progress.cost}`),
+      );
+    } else if (player && bankedTowardTech(player, id) > 0) {
+      // **A node this empire has put beakers into and walked away from** (schema
+      // 111): the progress is kept with the node, so the card that shows it is
+      // the node's own. Ahead of the refusal, because "you have already paid for
+      // some of this" is the more useful thing to say about a node the player is
+      // looking at than "and you cannot start it yet".
+      const progress = researchProgress(bankedTowardTech(player, id), def.cost, rate);
+      box.append(
+        element('p', 'info-card-state', `Set aside · ${progress.banked}/${progress.cost}`),
       );
     } else if (problem) {
       box.append(element('p', 'info-card-state wanting', problem));
@@ -1227,18 +1237,26 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     setYieldText(face.turns, turns === null ? '—' : `~${turns}t`);
     mark(face.turns, face.figures, !researched);
 
-    if (current && player) {
+    // **The bar belongs to whichever node holds the beakers** (schema 111).
+    // It used to be the current node's alone, because the pool was one bank that
+    // followed the aim and no other node could have anything in it. Progress is
+    // kept with the node now, so a node the empire started and left still shows
+    // what it has — which is the whole of what "kept, not lost" looks like on
+    // the chart.
+    const banked = player ? bankedTowardTech(player, id) : 0;
+    const shows = player !== undefined && !researched && (current || banked > 0);
+    if (shows && player) {
       // The same arithmetic the HUD's research card draws, from the same
       // helper: the bar on this node and the bar at the top-left of the screen
       // are one fact shown twice, and they must never round differently.
-      const progress = researchProgress(player.sciencePool, def.cost, rate);
+      const progress = researchProgress(banked, def.cost, rate);
       face.fill.style.width = `${(progress.fraction * 100).toFixed(1)}%`;
       setYieldText(face.progress, `${progress.banked} / ${progress.cost}`);
     }
     // In front of the unlock list, which is where they were built: the bar reads
     // as part of the node's figures and the list as what the figures buy.
-    mark(face.bar, card, current && player !== undefined, face.unlocks);
-    mark(face.progress, card, current && player !== undefined, face.unlocks);
+    mark(face.bar, card, shows, face.unlocks);
+    mark(face.progress, card, shows, face.unlocks);
 
     // The numeral, worn on the card's *corner* rather than set inside it: it is
     // a mark about the node — its place in a list that lives somewhere else —

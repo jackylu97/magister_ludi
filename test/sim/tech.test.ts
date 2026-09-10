@@ -27,6 +27,7 @@ import {
   type City,
   type GameState,
   SCHEMA_VERSION,
+  bankedTowardTech,
   createUnit,
   newGame,
   bumpRevision,
@@ -734,19 +735,31 @@ describe('chooseResearch', () => {
     expect(prereqsMet(state, 0, plan[0]!)).toBe(true);
   });
 
-  it('switches mid-research without losing a single beaker', () => {
+  it('switches mid-research and leaves the beakers with the node they bought', () => {
     const state = flatState();
     applyCommand(state, choose(0, 'earthenware'));
-    state.players[0]!.sciencePool = 50;
+    const player = state.players[0]!;
+    player.sciencePool = 50;
 
+    // Schema 111: the aim moves, the progress stays. The new node starts at
+    // nought and the old one keeps its fifty for when the empire comes back.
     expect(applyCommand(state, choose(0, 'mining'))).toEqual({ ok: true });
-    expect(state.players[0]!.researching).toBe('mining');
-    expect(state.players[0]!.sciencePool).toBe(50);
+    expect(player.researching).toBe('mining');
+    expect(player.sciencePool).toBe(0);
+    expect(bankedTowardTech(player, 'earthenware')).toBe(50);
+    expect(bankedTowardTech(player, 'mining')).toBe(0);
 
-    // And the banked pool finishes the new choice immediately.
+    // Nothing lands, because nothing has been spent on this one.
     advanceResearch(state);
-    expect(state.players[0]!.techsResearched).toContain('mining');
-    expect(state.players[0]!.sciencePool).toBe(50 - techDef('mining').cost);
+    expect(state.players[0]!.techsResearched).not.toContain('mining');
+
+    // And going back finds the bucket exactly where it was left.
+    expect(applyCommand(state, choose(0, 'earthenware'))).toEqual({ ok: true });
+    expect(player.sciencePool).toBe(50);
+    expect(bankedTowardTech(player, 'mining')).toBe(0);
+    advanceResearch(state);
+    expect(state.players[0]!.techsResearched).toContain('earthenware');
+    expect(player.sciencePool).toBe(50 - techDef('earthenware').cost);
   });
 
   it('refuses through the same evaluator the tech screen enables its nodes with', () => {
@@ -1262,8 +1275,12 @@ describe('glanceable numbers', () => {
     const cost = techDef('letters').cost;
     expect(turnsToTech(state, 0, 'letters')).toBe(Math.ceil(cost / rate));
 
-    // Banked beakers count toward whichever tech is asked about.
+    // Banked beakers count toward **the node they were banked into** since
+    // schema 111: a pool aimed elsewhere buys this one nothing, and the same
+    // beakers under this node's own name finish it on the spot.
     state.players[0]!.sciencePool = cost;
+    expect(turnsToTech(state, 0, 'letters')).toBe(Math.ceil(cost / rate));
+    state.players[0]!.techProgress = { letters: cost };
     expect(turnsToTech(state, 0, 'letters')).toBe(0);
   });
 
@@ -1501,7 +1518,7 @@ describe('research in the log', () => {
     // ladder is re-run from the first paid column's 10, so every column above
     // the second charges fewer beakers and a v90 log pays a price this build
     // does not ask for from its second technology on.
-    expect(SCHEMA_VERSION).toBe(110);
+    expect(SCHEMA_VERSION).toBe(111);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });
@@ -1657,13 +1674,16 @@ describe('the research queue', () => {
     expect(applyCommand(state, drop(0, 'bronzeWorking'))).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual(['mining', 'earthenware', 'stonecraft']);
 
-    // Dropping the head empties the plan, and spends nothing.
+    // Dropping the head empties the plan and spends nothing — but since schema
+    // 111 the beakers stay with the node rather than following the aim into
+    // nothing, so the pool empties and Mining keeps its own.
     player.sciencePool = 33;
     for (const id of ['stonecraft', 'earthenware']) applyCommand(state, drop(0, id));
     expect(applyCommand(state, drop(0, 'mining'))).toEqual({ ok: true });
     expect(researchPlan(player)).toEqual([]);
     expect(player.researching).toBe(null);
-    expect(player.sciencePool).toBe(33);
+    expect(player.sciencePool).toBe(0);
+    expect(bankedTowardTech(player, 'mining')).toBe(33);
   });
 
   it('empties to no queue at all, and refuses a node that is not in the plan', () => {

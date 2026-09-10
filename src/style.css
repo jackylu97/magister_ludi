@@ -4387,6 +4387,17 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
+/* What a queue row has already been paid (schema 111). Quieter than the price
+   beside it: the cost is what the row *is*, and this is a note about how far
+   along the town is. */
+.city-queue-banked {
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint, var(--ink-soft));
+  font-style: italic;
+}
+
 .city-icon-button {
   flex: 0 0 auto;
   width: 19px;

@@ -65,7 +65,9 @@ import {
   type QueueItem,
   type UnitPurchaseBucket,
   cityById,
+  frontKey,
   playerById,
+  reaimProduction,
   spendGold,
 } from './state';
 import {
@@ -91,7 +93,7 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { buildingPurchaseDiscount } from './buildingEffects';
+import { buildingPurchaseDiscount, cityQueueFloor, queueFloorRefusal } from './buildingEffects';
 import { RULES } from './rulesData';
 import {
   cardActionRule,
@@ -917,6 +919,22 @@ export function purchaseError(
     return `${city.name} has nowhere to put a ${name}`;
   }
 
+  // **The queue floor** — The Vizier's Hall's law, and the user ruled it the
+  // way round that costs something: *"purchases are allowed, but … the queue
+  // cannot go below two items"*. A bought row leaves the queue
+  // (`purchaseItemAt`), so a town at the floor with the thing already queued is
+  // refused until it lines up something else — the buy is not forbidden, it is
+  // *not yet* affordable in rows. A row the queue does not hold takes nothing
+  // out of it and is never refused here.
+  const floor = cityQueueFloor(city);
+  if (
+    floor > 0 &&
+    city.queue.length <= floor &&
+    city.queue.some((row) => row.kind === bought.kind && row.id === bought.id)
+  ) {
+    return queueFloorRefusal(city, floor);
+  }
+
   const price = explainPurchaseCost(state, playerId, cityId, bought, currency);
   if (!price) return `${name} is not for sale in ${currency}`;
   const held = bankOf(player, currency);
@@ -1026,10 +1044,15 @@ export function purchaseItemAt(
   // A bought thing leaves the queue. Only the **first** copy: a queue may not
   // hold two of a building anyway, and a player who queued two warriors and
   // bought one still wants the other.
+  const before = frontKey(city);
   const queued = city.queue.findIndex(
     (row) => row.kind === item.kind && row.id === item.id,
   );
   if (queued >= 0) city.queue.splice(queued, 1);
+  // Nothing was *switched* — the town has the thing, it simply did not build it
+  // — so the hammers in the basket are overflow and follow the queue to whatever
+  // came up behind, picking up that row's own bucket on the way (schema 111).
+  reaimProduction(city, before, false);
 
   // **The purchase occasion** (Crassus, 2026-08-28), fired here and nowhere
   // else. `WindfallOccasion` had deliberately refused one until a card wanted to

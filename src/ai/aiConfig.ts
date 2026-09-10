@@ -862,6 +862,24 @@ export interface AiConfig {
     /** What one unlocked ability (embarkation) is worth. */
     abilityValue: number;
     /**
+     * **What changing its mind leaves behind**, as a share of the beakers it
+     * would strand — batch S2, schema 111, `docs/flags.md` (www).
+     *
+     * Progress is kept with the technology it was spent on now, so a challenger
+     * whose road never reaches the node the pool is aimed at leaves everything
+     * banked there standing. `techGoalTable` charges the challenger that, priced
+     * through `sciencePrice` like every other beaker in the bot, times this — one
+     * is "those beakers are simply gone", a half is "the empire expects to come
+     * back for them eventually".
+     *
+     * It sits beside `priorities.switchMargin` and does a different job: the
+     * margin is a flat scepticism about changing plans at all, and this is the
+     * *price* of this particular change, which is nothing at all when the new
+     * road runs through the node the old one was on. **Nought shuts it off**,
+     * which makes it an arena A/B rather than a rule.
+     */
+    strandWeight: number;
+    /**
      * **`projectValue` is retired** (batch X12). A flat ten a conversion stood
      * in for a reading the bot already had: `explainProjectRow` is what the
      * build arm scores a project by, and since that fold prices the payout as
@@ -1025,6 +1043,24 @@ export interface AiConfig {
      * rule: a sheet with `switchMargin: 0` re-decides on the bare argmax.
      */
     switchMargin: number;
+    /**
+     * **What the hammers already spent are worth to a re-decision** (batch S2,
+     * schema 111, `docs/flags.md` (www)) — a share added to `switchMargin`, in
+     * proportion to how far through the front row the town already is.
+     *
+     * Since progress is kept with the thing it was spent on, a switch parks the
+     * basket rather than burning it; what it really costs is that the town stops
+     * working on something it is part of the way through. So the defence rises
+     * with the progress: a whole row of it is worth this much extra margin, none
+     * of it is worth nothing.
+     *
+     * Read by both halves of one question — the puppet's own re-decision and the
+     * driver's project-idle pass — so a town nobody controls and a town whose
+     * queue has stalled on a conversion cannot disagree about what a half-paid
+     * row is worth. **Nought shuts it off**, which makes it an arena A/B rather
+     * than a rule.
+     */
+    strandWeight: number;
   };
 }
 

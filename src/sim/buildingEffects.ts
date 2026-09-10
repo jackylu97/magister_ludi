@@ -204,6 +204,49 @@ export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
 }
 
 /**
+ * **How many things a town must always have to build** — The Vizier's Hall's
+ * law, and nothing else today (`docs/flags.md` (www); the user, 2026-09-10:
+ * *"the queue cannot go below two items"*).
+ *
+ * `cityIsWatered`'s shape one marker over (`BuildingDef.queueFloor`), and it is
+ * a **number** rather than a flag for the reason every other entry in this file
+ * is: the rule the office keeps is "never fewer than *this many*", the figure is
+ * the row's, and a second building that kept a different one is a JSON row
+ * rather than a branch here. Nought when the town holds no such office, which is
+ * every town in the game until a charter is drafted, and the highest of them
+ * when it somehow holds two.
+ *
+ * A town **building** one is under no floor at all: the office does not keep the
+ * rolls until it stands, which is what makes the Hall reachable — a queue of one
+ * would otherwise be a queue the reducer could never accept.
+ */
+export function cityQueueFloor(city: City): number {
+  let floor = 0;
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const wanted = buildingDef(id).queueFloor ?? 0;
+    if (wanted > floor) floor = wanted;
+  }
+  return floor;
+}
+
+/**
+ * What a town under the floor says when it refuses — the reducer's sentence,
+ * the purchase gate's, and the tooltip on the greyed remove in the city panel.
+ *
+ * One sentence in one place, so a button a player cannot press carries exactly
+ * the words the command would have answered with (the `buildError` discipline),
+ * and it names no building and no number the player has not been shown: the
+ * office is what keeps the rule, so the office is what the sentence blames.
+ */
+export function queueFloorRefusal(city: City, floor: number): string {
+  return (
+    `${city.name} keeps a standing works list and must always have ` +
+    `${floor} things to build`
+  );
+}
+
+/**
  * **The row an act leaves behind** — the relic, and nothing else today.
  *
  * `workForFamily`'s trick one table over: the *rule* is "the placed row", the

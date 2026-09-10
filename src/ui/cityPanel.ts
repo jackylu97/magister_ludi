@@ -59,7 +59,7 @@ import {
   buildingDef,
   isWonder,
 } from '../sim/buildingData';
-import { wonderClaim } from '../sim/state';
+import { bankedTowardItem, wonderClaim } from '../sim/state';
 import { cardCityStat, describeCard, ref } from '../sim/statecraft';
 import { consecrationDef } from '../sim/religionData';
 import { type CitizenFocus, CITIZEN_FOCUSES, RULES } from '../sim/rulesData';
@@ -78,7 +78,7 @@ import {
   siegeField,
   underSiege,
 } from '../sim/combat';
-import { buildingCityStat } from '../sim/buildingEffects';
+import { buildingCityStat, cityQueueFloor, queueFloorRefusal } from '../sim/buildingEffects';
 import {
   type PurchasableItem,
   type PurchaseCurrency,
@@ -2129,7 +2129,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     const drop = element('button', 'city-icon-button', '×');
     drop.type = 'button';
     drop.title = 'Stop building this';
-    drop.disabled = locked;
+    // The works-list floor greys this one too — the last two rows of a Vizier's
+    // town are the two the reducer will not let it be left without, and the
+    // front row is one of them. Same sentence as the queue list's ×.
+    const floor = cityQueueFloor(city);
+    if (floor > 0 && city.queue.length <= floor) {
+      drop.disabled = true;
+      drop.title = queueFloorRefusal(city, floor);
+    } else {
+      drop.disabled = locked;
+    }
     drop.addEventListener('click', () => {
       const next = draft(city);
       next.splice(0, 1);
@@ -2211,6 +2220,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     // nothing after the thing it is building, and prints no list at all.
     if (city.queue.length <= 1) return null;
     const box = element('div', 'city-queue');
+    const floor = cityQueueFloor(city);
 
     const list = element('ol', 'city-queue-list');
     city.queue.forEach((item, index) => {
@@ -2225,9 +2235,21 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
           `${queueItemCost(getGame().state, city.ownerId, item) ?? '?'}${HAMMER}`,
         ),
       );
-      // The estimate is for *this* item at the position it is standing in, so
-      // only the front row counts the basket — see `turnsToBuild`. Row two is
-      // therefore "and then this long", not "and by then it will be turn nine".
+      // **What this row has already been paid** (schema 111). Hammers stay with
+      // the thing they were spent on, so a row the town started and put down
+      // carries its own figure — printed only when there is one, because a row
+      // nobody has spent a hammer on has nothing to say and every other queue
+      // row would grow a "0" it does not mean.
+      const banked = bankedTowardItem(city, item);
+      if (banked > 0) {
+        row.append(
+          element('span', 'city-queue-banked', `${roundYield(banked)}${HAMMER} set aside`),
+        );
+      }
+      // The estimate is for *this* item at the position it is standing in, and
+      // the front row counts the basket while a row behind it counts its own
+      // parked bucket — see `turnsToBuild`. Row two is therefore "and then this
+      // long", not "and by then it will be turn nine".
       row.append(
         element(
           'span',
@@ -2255,7 +2277,16 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       const remove = element('button', 'city-icon-button', '×');
       remove.type = 'button';
       remove.title = 'Remove';
-      remove.disabled = locked;
+      // **The works list a town may not be left short of** — The Vizier's Hall
+      // (batch S2). The greyed button carries the reducer's own sentence, which
+      // is this panel's rule everywhere: a button a player cannot press says
+      // exactly what the command would have answered.
+      if (floor > 0 && city.queue.length <= floor) {
+        remove.disabled = true;
+        remove.title = queueFloorRefusal(city, floor);
+      } else {
+        remove.disabled = locked;
+      }
       remove.addEventListener('click', () => {
         const next = draft(city);
         next.splice(index, 1);

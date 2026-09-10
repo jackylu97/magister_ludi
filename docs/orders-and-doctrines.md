@@ -246,6 +246,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Coin Charter | E | 🐫 | ◆ | S | Unlocks the Assay House. |
 | The Waterwrights' Charter | E | 🌾 | ◆ | S | Unlocks the Cistern. |
 | The Senatus | W | 📜 | ◆ | S | Unlocks the Assembly Hall. |
+| The Vizierate | E | ⚒ | ◆ | S | Unlocks The Vizier's Hall. |
 | The Banner-Call | M | ⚒ | ◆ | S | While you are at war: +15% production toward units, and killing a unit grants +5 culture. |
 | The Tithe of Iron | E | ⚒ | ◆ | P | +3 production on every mine · −3 food in every city with one. |
 | The First Chair | E | 🏛 | ◆ | E | The Order in your first economic slot pays twice. |

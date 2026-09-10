@@ -379,7 +379,16 @@ describe('the second pass\u2019s rows', () => {
     expect(smithy.unlockedByCard).toBeUndefined();
     expect(smithy.column).toBeUndefined();
     expect(techDef('bronzePanoply').unlocks.buildings ?? []).toContain('smithy');
-    expect(orderDef('toolmakersCharter').retired).toBe(true);
+    // The Order that was the Smithy's only door kept its id for saves and was
+    // retired with the door. Batch S2 re-opened the row as **The Vizierate**
+    // over a building the tree does not carry, so what the tree pass settled is
+    // the *Smithy's* door and not the card's: whatever that row is called now,
+    // it must not be a second way to the Smithy.
+    expect(
+      orderDef('toolmakersCharter').effects.some(
+        (effect) => effect.kind === 'unlocksBuilding' && effect.building === 'smithy',
+      ),
+    ).toBe(false);
     // Steel's Forge is untouched: two hearths, two ages, two rows.
     expect(buildingDef('forge').name).toBe('Forge');
     expect(describeBuildingRow('smithy').map((clause) => stripRefs(clause.text))).toContain(

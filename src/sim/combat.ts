@@ -2910,6 +2910,11 @@ export function handOverCity(state: GameState, city: City, ownerId: number): voi
   if (wasCapital && loser !== ownerId) city.wasCapital = true;
   city.queue = [];
   city.hammerBasket = 0;
+  // And every bucket parked behind the queue (schema 111). A town's committed
+  // hammers are the old owner's plans as surely as the queue itself is, and a
+  // conqueror who found a half-built granary waiting under a name he never chose
+  // would be inheriting work he did not order.
+  delete city.itemProgress;
   city.lockedTiles = [];
   // And the focus pane's two words, which are the same kind of thing the pins
   // are: the old owner's standing instruction about where these people work. A

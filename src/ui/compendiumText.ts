@@ -133,7 +133,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
       'As a city\'s buildings earn renown, some of its people leave the fields for the trades. A guild forms on its own, needs nothing from you, and takes one citizen off the land in exchange for what that trade pays — scholars study, merchants trade, engineers build, artists compose. Only a fraction of a city\'s people ever join one, and if you would rather have the hex back you can dismiss a guildsman from the city panel.',
       'Cities can be captured. Beat a city\'s defence down by attacking it, then deal with whoever is holding the gate: a melee (close-combat) unit that kills the last defender takes the city with the same blow, and an undefended city is taken by a melee unit simply attacking into it. Protect your own cities with walls and a unit stationed inside.',
       'Where you settle matters for growth: a city beside a river, a lake or an oasis has fresh water and grows at full speed, while one founded away from water grows slowly until you build an aqueduct in it.',
-      'Details: spare food fills a growth basket; when it is full the city gains a citizen. A granary keeps part of the basket after each growth. Border expansion picks the best available hex each time. A captured city keeps its buildings and counts against the new owner\'s authority. Your oldest city is your capital; if it is captured, the next oldest becomes the capital.',
+      'Details: a city\'s production goes into whatever is at the front of its queue, and it stays with that thing. Put something else in front and the work already done waits where you left it, so nothing is wasted by changing your mind. Spare food fills a growth basket; when it is full the city gains a citizen. A granary keeps part of the basket after each growth. Border expansion picks the best available hex each time. A captured city keeps its buildings and counts against the new owner\'s authority. Your oldest city is your capital; if it is captured, the next oldest becomes the capital.',
     ],
   ),
   written(
@@ -157,7 +157,7 @@ export const CONCEPT_ENTRIES: readonly CompendiumEntry[] = [
     [
       'Technologies unlock new things: units, buildings, improvements, and abilities. Your science yield researches them one at a time. Open the research screen to see the tree — later technologies require earlier ones, and they are grouped into ages that mark the game\'s progress from the earliest era onward.',
       'To research something, click it. If it needs other technologies first, the game queues those first automatically. Hold Shift and click to add more to the queue, and the numbers on the tree show the order.',
-      'Details: some technologies reveal a resource that was on the map all along — you cannot see or use it until then. Your empire moves into the next age when it holds enough of the current age\'s technologies. The age affects unit costs, how your cities look, and which great people can be recruited.',
+      'Details: your science goes into whichever technology you are researching, and it stays there. Aim somewhere else and the new one starts from nothing while the old one keeps what you had put into it, waiting for you to come back. Some technologies reveal a resource that was on the map all along — you cannot see or use it until then. Your empire moves into the next age when it holds enough of the current age\'s technologies. The age affects unit costs, how your cities look, and which great people can be recruited.',
     ],
   ),
   written(

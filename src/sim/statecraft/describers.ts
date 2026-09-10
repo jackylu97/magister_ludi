@@ -1683,7 +1683,7 @@ function describeEffect(
         .map((clause) => clause.text)
         .join('; ');
       out.push({
-        text: `unlocks the ${buildingName(effect.building)}${does === '' ? '' : ` — ${does}`}`,
+        text: `unlocks ${theBuilding(effect.building)}${does === '' ? '' : ` — ${does}`}`,
       });
       return;
     }
@@ -2360,6 +2360,12 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'queueHolds':
       into.qualifiers.push(`while it is building ${indefinite(scope.category)} ${scope.category}`);
       return;
+    case 'queueDepth':
+      // "while it has 2 or more things to build" — the works list said the way a
+      // player would say it, with the figure the row carries. `populationAtLeast`
+      // prints its own the same way, one qualifier over.
+      into.qualifiers.push(`while it has ${scope.atLeast} or more things to build`);
+      return;
     case 'frontier':
       // A qualifier and not an adjective, for `notCapital`'s reason one step
       // further: "frontier" is a word the game never defines anywhere else, and
@@ -2559,13 +2565,44 @@ function buildingWords(id: BuildingId): string {
   // The row's own article wins where the vowel rule would be wrong — "a
   // University" — which is the fix `indefinite`'s docblock names: a field
   // beside the name, never a special case in the sound rule.
+  // And a row whose *name* begins with "The" is a proper name already — an
+  // office, not a thing there can be one of — so it takes no article at all,
+  // exactly as a wonder does. See `theBuilding`, the same test one article over.
+  if (isWonder(id) || namedWithThe(id)) return marked;
+  // The row's own article wins where the vowel rule would be wrong — "a
+  // University" — which is the fix `indefinite`'s docblock names: a field
+  // beside the name, never a special case in the sound rule.
   const article = buildingDef(id).article ?? indefinite(name);
-  return isWonder(id) ? marked : `${article} ${marked}`;
+  return `${article} ${marked}`;
+}
+
+/** Whether this row's name carries its own definite article. `theBuilding`'s test. */
+function namedWithThe(id: BuildingId): boolean {
+  return /^the\s/i.test(buildingDef(id).name);
 }
 
 /** A building's bare name, marked. `buildingWords` without the article. */
 function buildingName(id: BuildingId): string {
   return ref(isWonder(id) ? 'wonder' : 'building', id, buildingDef(id).name);
+}
+
+/**
+ * "the Assay House" · "The Vizier's Hall" — a building named with **the** in
+ * front of it, and only where it needs one.
+ *
+ * `indefinite`'s rule one article over, and here for its reason exactly: a
+ * charter's clause reads "unlocks the …", and a row whose own name begins with
+ * *The* — the way an office does, rather than a thing — printed "unlocks the The
+ * Vizier's Hall" the day one shipped. The test is the name's own first word,
+ * because a definite article is part of a proper name where it appears at all
+ * and the roster is where that is written down.
+ *
+ * The mark rides inside the returned string (`ref`'s docblock says why), so the
+ * article is composed here rather than glued onto a link by the caller.
+ */
+function theBuilding(id: BuildingId): string {
+  const marked = buildingName(id);
+  return namedWithThe(id) ? marked : `the ${marked}`;
 }
 
 /**

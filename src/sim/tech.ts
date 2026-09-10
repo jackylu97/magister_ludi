@@ -9,25 +9,34 @@
  * offers is a node the reducer will accept, and a "~7 turns" the screen promises
  * is the arithmetic the turn pipeline will actually perform.
  *
- * The research model: progress *is* the pool
- * ------------------------------------------
+ * The research model: progress is kept with the technology
+ * --------------------------------------------------------
  * `Player.sciencePool` accumulates every turn exactly as it did in Milestone 3.
- * `Player.researching` names the tech that pool is aimed at, and nothing else
- * about research is stored — there are no per-tech buckets. When the pool covers
- * the current tech's cost, `advanceResearch` pays it, banks the tech, keeps the
- * remainder as overflow and clears `researching` so the player chooses again.
+ * `Player.researching` names the tech that pool is aimed at, and since schema
+ * 111 the pool *is that technology's bucket*: every other technology the empire
+ * has ever put beakers into keeps its own in `Player.techProgress`. When the
+ * pool covers the current tech's cost, `advanceResearch` pays it, banks the
+ * tech, keeps the remainder as overflow and clears `researching` so the player
+ * chooses again.
  *
  * Two consequences, both deliberate:
  *
- *   · **Switching is free and lossless.** Changing your mind mid-research moves
- *     the aim, not the beakers — the pool is untouched. Civ V charges you for
- *     that (progress sits in the tech you abandoned); Civ IV's "beakers are
- *     yours" is the friendlier reading and it is the one a *simultaneous-turn*
- *     game wants, because the alternative punishes a player for reacting to
- *     something another player did inside the same turn window.
+ *   · **Switching keeps, and does not carry.** Changing your mind mid-research
+ *     leaves the beakers with the node they were spent on and aims at the new
+ *     one from whatever *it* had banked; come back and they are still there.
+ *     Civ V and Civ VI read it this way and the user ruled for it (`docs/flags.md`
+ *     (www), 2026-09-10: *"kept and not lost is what i was thinking too"*). The
+ *     older reading — the pool follows the aim, so switching is free — made a
+ *     beeline a suggestion rather than a commitment, which is the thing a
+ *     *simultaneous-turn* game most needs a plan to be. Nothing is confiscated
+ *     either way: the alternative to keeping was losing, and losing would punish
+ *     a player for reacting to something another seat did inside the same turn
+ *     window.
  *   · **Banking is real.** A player with no current research still accumulates,
- *     so forgetting to choose costs a decision, not a turn's science. The
- *     interface nags (see the tech screen); the simulation does not confiscate.
+ *     so forgetting to choose costs a decision, not a turn's science. Those
+ *     beakers have no technology's name on them yet, so they join whatever is
+ *     chosen next rather than being parked. The interface nags (see the tech
+ *     screen); the simulation does not confiscate.
  *
  * One tech per player per turn, like production: a player who banks four hundred
  * beakers does not empty an age in one resolution. The overflow pays for the
@@ -41,7 +50,7 @@
  * is set to learn" asks that rather than the fields.
  *
  * The queue changes no arithmetic at all. Nothing is spent by planning, the pool
- * is still the progress, switching is still free, and the overflow from a
+ * is still the current node's progress, and the overflow from a
  * completion still pays for whatever comes up next — the difference is only that
  * "whatever comes up next" can now have been decided in advance instead of
  * asked for at the top of a turn. Two writers touch the field, and between them
@@ -412,7 +421,10 @@ import {
   type Player,
   type QueueKind,
   type Unit,
+  aimResearchAt,
+  bankedTowardTech,
   cityById,
+  clearTechProgress,
   playerById,
   realPlayers,
   wonderClaim,
@@ -1148,12 +1160,13 @@ export function researchPlan(player: Player): TechId[] {
  * rather than emptied, which is `Unit.path`'s convention: an empire that emptied
  * its queue and one that never had one must serialise identically.
  *
- * It spends nothing. The pool is the progress (see the module docblock), so
- * re-planning moves the aim and every banked beaker stays where it was — which
- * is exactly what made switching free before a queue existed.
+ * It spends nothing and it confiscates nothing. Since schema 111 the pool is the
+ * *current node's* progress (see the module docblock), so re-planning parks what
+ * is banked under the node it was spent on and picks up whatever the new head
+ * had — through `aimResearchAt`, which is the one seam the aim may move at.
  */
 function writeResearchPlan(player: Player, plan: readonly TechId[]): void {
-  player.researching = plan[0] ?? null;
+  aimResearchAt(player, plan[0] ?? null);
   const rest = plan.slice(1);
   if (rest.length > 0) player.researchQueue = [...rest];
   else delete player.researchQueue;
@@ -1375,7 +1388,10 @@ function promoteResearchQueue(state: GameState, player: Player): void {
     const next = queue.shift()!;
     if (player.techsResearched.includes(next)) continue;
     if (!prereqsMet(state, player.id, next)) continue;
-    player.researching = next;
+    // Through the one seam, with the aim already cleared by `settleResearch` —
+    // so what is in the pool is overflow, it carries into the promoted node, and
+    // it lands on top of whatever that node had banked from an earlier visit.
+    aimResearchAt(player, next);
     break;
   }
   if (queue.length === 0) delete player.researchQueue;
@@ -1505,7 +1521,16 @@ export function settleResearch(state: GameState, player: Player): ResearchComple
   player.sciencePool -= plan.cost;
   // The banks are a line of the meters too — see `collectYields` (batch M3).
   bumpEconomy(state);
+  // **The one excused write of `researching`** (schema 111). Every other move of
+  // the aim goes through `aimResearchAt` so the beakers stay with the node they
+  // were spent on; this one must not, because the node was *paid for* and what
+  // is left in the pool is overflow. Parking it under the technology that just
+  // landed would bury it in a bucket nobody can ever spend.
   player.researching = null;
+  // And the bucket that node may have had from an earlier visit goes with it —
+  // a technology arrived at by a grant while beakers sat under its name must not
+  // hand them back as a windfall.
+  clearTechProgress(player, plan.techId);
   player.techsResearched.push(plan.techId);
   // **A technology is `liveEffects`' tenth source and a reveal for the ground**
   // (batch M3, `slate.ts`): a node's gift can be a rule the meters fold, and
@@ -1772,10 +1797,11 @@ export function playerScience(state: GameState, playerId: number): number {
  * Turns until this player could complete a technology at their current rate, or
  * `null` when they never would (no science at all).
  *
- * Every tech is measured against the *pool*, not against a bucket of its own,
- * because that is what the model is: the beakers already banked would pay for
- * whichever node the player pointed them at. So the number a locked node shows
- * is the honest answer to "and if I went for that one instead?".
+ * Every tech is measured against **its own bucket** since schema 111, because
+ * that is what the model is: beakers stay with the node they were spent on, so
+ * a node three columns away is quoted at full price unless the empire has
+ * already put something into it, and the number it shows is the honest answer to
+ * "and if I went for that one instead?".
  *
  * `rate` is the empire's beakers a turn, and it is a parameter only because the
  * star chart asks this question twenty-seven times in a row about one empire —
@@ -1793,7 +1819,7 @@ export function turnsToTech(
   const player = playerById(state, playerId);
   if (!player) return null;
   return turnsToFill(
-    techDef(techId).cost - player.sciencePool,
+    techDef(techId).cost - bankedTowardTech(player, techId),
     rate ?? playerScience(state, playerId),
   );
 }
@@ -1815,9 +1841,12 @@ export interface ResearchQueueStep {
  * Two things make it more than a map over `turnsToTech`, and both are rules the
  * pipeline really has:
  *
- *   · **the costs accumulate.** The pool is one bank aimed at one node at a
- *     time, so the third entry is paid for by the beakers left after the first
- *     two — a per-node reading would promise the whole queue arriving at once.
+ *   · **what is owed accumulates.** Beakers are made at one rate and spent one
+ *     node at a time, so the third entry is paid for by what is left after the
+ *     first two — a per-node reading would promise the whole queue arriving at
+ *     once. Since schema 111 each node's own bucket comes off its own price
+ *     before the running total takes it, which is the same sum said honestly for
+ *     a plan whose middle node has been visited before.
  *   · **one technology per player per turn.** `settleResearch` completes at most
  *     one, however full the pool is (see its docblock), so the *n*-th entry can
  *     never land sooner than *n* turns from now however cheap it is. That floor
@@ -1837,10 +1866,10 @@ export function queueTurns(
   if (!player) return [];
   const at = rate ?? playerScience(state, playerId);
   const steps: ResearchQueueStep[] = [];
-  let cost = 0;
+  let owed = 0;
   for (const techId of researchPlan(player)) {
-    cost += techDef(techId).cost;
-    const turns = turnsToFill(cost - player.sciencePool, at);
+    owed += techDef(techId).cost - bankedTowardTech(player, techId);
+    const turns = turnsToFill(owed, at);
     steps.push({ techId, turns: turns === null ? null : Math.max(steps.length + 1, turns) });
   }
   return steps;

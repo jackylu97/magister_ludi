@@ -380,3 +380,27 @@ not replayed); Satrapies lost the free roads that made wide cheap; the Smithy
 came out from behind an Order and into Bronze Panoply, and the Order retired
 with the door it opened.
 
+## Entry LXXI — sunk progress, and The Vizier's Hall (2026-09-10)
+
+`docs/flags.md` (www), schema 111. **Beakers and hammers are committed to the
+thing they were spent on, and kept with it.** A pool used to follow the aim, so
+changing your mind carried every banked point along and cost nothing; progress
+is now per technology (`Player.techProgress` beside the current node's
+`sciencePool`) and per queue row (`City.itemProgress` beside the front row's
+`hammerBasket`), switching starts the new thing at nought, and the old thing is
+still standing there when you come back. Overflow is unchanged and stays the
+opposite rule — what is left after a thing completes was never spent toward it,
+so it follows the *queue*. Two seams carry the whole of it (`aimResearchAt`,
+`reaimProduction`) and every writer of an aim goes through one of them. The star
+chart draws a node's bar wherever the beakers are, and a queue row prints what
+it has set aside.
+
+Beside it, the charter half: the retired Toolmakers' Charter is un-retired as
+**The Vizierate** and opens **The Vizier's Hall** — half again as many hammers
+while the town has a works list of two or more rows (an ordinary `percentYields`
+under a new `queueDepth` scope), and an office that refuses to be left with
+fewer (`BuildingDef.queueFloor`, read once in `buildingEffects.ts`; the reducer,
+the purchase gate and the greyed × in the city panel all say one sentence). The
+bot gained the two terms the rule owes it: a challenger technology is charged
+the beakers its road would leave standing, and a re-decision is charged a share
+of how far through the current row the town already is.

@@ -158,9 +158,11 @@ const THE_TREE_KEEPS: readonly BuildingId[] = ['mint', 'observatory'];
 // --- the register -----------------------------------------------------------
 
 describe('the charters as a family', () => {
-  it('ships ten of them, each opening one real building row', () => {
-    // Eleven until the tree pass took the Toolmakers' Charter's door away.
-    expect(CHARTERS.length).toBe(10);
+  it('ships eleven of them, each opening one real building row', () => {
+    // Eleven, then ten while the tree pass held the Toolmakers' Charter's door
+    // shut, and eleven again since batch S2 re-opened that row as **The
+    // Vizierate** over a different building — The Vizier's Hall.
+    expect(CHARTERS.length).toBe(11);
     for (const { order, building } of CHARTERS) {
       expect(isBuildingId(building), `${order} → ${building}`).toBe(true);
       // A row a card opens must say so on its own row, or `isUnlocked` never
@@ -208,6 +210,7 @@ describe('the charters as a family', () => {
       coinCharter: 'governmentII',
       waterwrightsCharter: 'governmentII',
       theSenatus: 'governmentII',
+      toolmakersCharter: 'governmentII',
       mintCharter: 'governmentIII',
       almshouseCharter: 'governmentIII',
       stargazersCharter: 'governmentIII',
