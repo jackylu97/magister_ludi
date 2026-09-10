@@ -28,11 +28,13 @@ import {
   type HealthParts,
   buildGarrisonRow,
   buildHealthBar,
+  buildSiegeMark,
   cityHealthBar,
   createCityBanners,
   garrisonRow,
   paintGarrisonRow,
   paintHealthBar,
+  paintSiegeMark,
 } from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
 import { printerDeviceMarkUrl } from '../ui/deviceMarks';
@@ -72,6 +74,7 @@ export function drawFlourishes(into: HTMLElement): void {
   giltFrameStall(into);
   pricePlateStall(into);
   cityBannerStall(into);
+  siegeMarkStall(into);
   garrisonRowStall(into);
   bannerAnchorStall(into);
   inscriptionStall(into);
@@ -235,6 +238,93 @@ function cityBannerStall(into: HTMLElement): void {
   checkbox(knobs, 'palisade', false, (on) => {
     town.buildings = on ? ['palisade'] : [];
     repaint();
+  });
+}
+
+/**
+ * The siege mark on the plate, beside a quiet one.
+ *
+ * X14's stall (the user, 2026-09-10, `docs/flags.md` (gggg): *"we need an icon
+ * for when a city is under siege"*). It earns a stall for the wound's reason and
+ * one of its own. The wound's: the plate is only ever seen floating over a
+ * diorama at eleven pixels, so "is a thirteen-pixel portcullis legible, or is it
+ * a smudge" is a question no full-size drawing of the mark can answer — which is
+ * why the knob is its **size** and not its colour.
+ *
+ * Its own: **the mark is absent unless a ring has closed**, and closing one
+ * takes a war. The third pill is the state worth judging hardest — a town both
+ * besieged and hurt, where the mark and the bar are the *same ink on one plate*
+ * and the question is whether two vermilions shout over each other. If they do,
+ * this is where it shows.
+ *
+ * The town is a real `GameState` for `cityBannerStall`'s reason (`cityMaxHp` is
+ * the base plus every wall), and the mark is built and painted by the shipping
+ * functions — nothing on this page knows what the portcullis means or when it
+ * is drawn.
+ */
+function siegeMarkStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The siege mark',
+    'A portcullis beside the town’s name while its ring is closed. The yoke’s means — one drawing masked in one colour, so the mark on the plate and the mark traced into the board’s atlas are the same drawing — in the alarm ink rather than the plate’s own, because a siege is the one emergency this label reports. Two uprights and one crossbar, not the herald’s five: at this size a true lattice closes into a smudge, and the serrated foot is what makes a gate a portcullis. It carries its word on the hover, and the city panel keeps its sentence.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'quiet, cut off, and cut off while hurt');
+  const ground = element('div', 'banner-ground');
+
+  const state = newGame({
+    seed: 9,
+    sizeName: 'duel',
+    players: [{ name: 'Seat 1', color: '#b3402f', isHuman: true }],
+  });
+  state.map = createMap({ width: 8, height: 6, terrain: 'grassland' });
+  state.units.length = 0;
+  state.cities.length = 0;
+  state.camps.length = 0;
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  // The grids are sized to the map they were made for, and the table above is
+  // not that map — `cityStage.ts` does the same, for the same reason.
+  resetVisibility(state);
+  const beaten = foundCityAt(state, 0, getTileAt(state.map, 5, 3)!);
+  beaten.hp = Math.max(1, Math.round(cityMaxHp(beaten) / 5));
+
+  const marks: HTMLElement[] = [];
+  const pill = (name: string, caption: string, besieged: boolean, hurt: boolean): void => {
+    const slot = element('div', 'banner-slot');
+    const banner = element('div', 'city-banner is-mine');
+    banner.style.setProperty('--banner-color', '#b3402f');
+    const size = element('span', 'city-banner-size');
+    size.append(element('span', 'city-banner-pop', '5'));
+    const mark = buildSiegeMark();
+    const bar = buildHealthBar();
+    banner.append(
+      size,
+      element('span', 'city-banner-name', name),
+      mark,
+      element('span', 'city-banner-production', 'Palisade · 3t'),
+      bar.root,
+    );
+    // The game's own two painters, from the game's own rules: the mark is the
+    // presence the banner draws, and the bar is `healthBar`'s absence at full
+    // health rather than a bar this stall left off.
+    paintSiegeMark(mark, besieged);
+    paintHealthBar(bar, hurt ? cityHealthBar(beaten) : null);
+    slot.append(banner, element('span', 'banner-caption', caption));
+    ground.append(slot);
+    marks.push(mark);
+  };
+
+  pill('Eridu', 'quiet', false, false);
+  pill('Uruk', 'under siege', true, false);
+  pill('Lagash', 'besieged · walls down', true, true);
+  cell.append(ground);
+
+  const knobs = controls(root);
+  // Written on each mark rather than on the ground under them: the default is
+  // declared on `.city-banner-siege` itself, so a value inherited from an
+  // ancestor would lose to the class every time — the price plate's rule.
+  slider(knobs, 'size', { min: 8, max: 22, step: 0.5, value: 13 }, (v) => `${v}px`, (v) => {
+    for (const mark of marks) mark.style.setProperty('--siege-size', `${v}px`);
   });
 }
 

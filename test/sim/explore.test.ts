@@ -10,9 +10,12 @@
  *   2. **The target is the nearest revealing hex, ties by tile index** —
  *      `exploreTarget` is pure, deterministic, and bounded
  *      (`rules.explore.searchLimit`).
- *   3. **The march is an ordinary march.** The aim is a `path` the pipeline
- *      walks through `arriveOnTile` per step, so a ruin on the way is claimed
- *      exactly as any other walk would claim it.
+ *   3. **The march is an ordinary march, and it spends the whole allowance**
+ *      ((gggg), 2026-09-10). The aim is a `path` walked by `advanceAlongPath`
+ *      through `arriveOnTile` per step — so a ruin on the way is claimed
+ *      exactly as any other walk would claim it, and a hex costs exactly what
+ *      a player's own order pays for it — and the piece re-aims and walks
+ *      again while it has points and somewhere to go.
  *   4. **An order is a recall.** Any other accepted command naming the unit
  *      clears the flag through `applyCommand`'s one seam, `cancelOrder`
  *      included — never a per-handler line.
@@ -34,13 +37,20 @@ import {
   autoExploreError,
   exploreSearch,
   exploreTarget,
+  marchExplorers,
 } from '../../src/sim/explore';
+import { advanceAlongPath } from '../../src/sim/movement';
 import { createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
 import { unitAwaitsOrders } from '../../src/sim/units';
-import { EXPLORED, isExploredBy, resetVisibility } from '../../src/sim/visibility';
+import {
+  EXPLORED,
+  isExploredBy,
+  recomputeVisibility,
+  resetVisibility,
+} from '../../src/sim/visibility';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 
 /**
@@ -287,19 +297,107 @@ describe('the march', () => {
     const state = flatState();
     const scout = createUnit(state, 0, 'scout', 5, 5);
     expect(applyCommand(state, explore(scout.id)).ok).toBe(true);
-    // The aim is a plain standing order; put a ruin on its destination and let
+    // The aim is a plain standing order; put a ruin on its first hex and let
     // the resolution walk it. The claim is `arriveOnTile`'s, per step — this
-    // test never calls it.
+    // test never calls it, and since the march spends the whole allowance the
+    // ruin is claimed by *riding over* it rather than by stopping on it.
     const path = scout.path!;
-    const goal = getTileAt(state.map, path[path.length - 1]!.col, path[path.length - 1]!.row)!;
-    goal.discovery = 'ruins';
+    const first = getTileAt(state.map, path[0]!.col, path[0]!.row)!;
+    first.discovery = 'ruins';
     endAllTurns(state);
-    expect(scout.col).toBe(goal.col);
-    expect(scout.row).toBe(goal.row);
-    expect(goal.discovery).toBeUndefined();
+    expect(first.discovery).toBeUndefined();
     expect(state.players[0]!.pendingDiscovery).toBeDefined();
+    // Rode on: the scout is not standing where the ruin was.
+    expect(scout.col === first.col && scout.row === first.row).toBe(false);
     // Still ranging: the world is not charted yet.
     expect(scout.autoExplore).toBe(true);
+  });
+});
+
+/**
+ * (gggg), the user 2026-09-10: "units set on auto-explore should use all of
+ * their movement." Four pins, and they are the whole of the change: the
+ * allowance is spent, it is spent at the ordinary price, an exhausted world
+ * still stops the piece rather than spinning it, and the report still fires
+ * once.
+ */
+describe('the march spends the whole allowance', () => {
+  it('a two-point scout on open ground enters two hexes in one turn', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    const allowance = scout.movesLeft;
+    expect(allowance).toBe(2);
+    const from = { col: scout.col, row: scout.row };
+    expect(applyCommand(state, explore(scout.id)).ok).toBe(true);
+    // The aim is the *nearest* revealing hex, which on flat ground is one tile
+    // away — the whole reason the old march stopped a point short.
+    expect(scout.path!.length).toBe(1);
+    endAllTurns(state);
+    // Two hexes of open grassland at one point each: the allowance, spent.
+    expect(wrappedDistance(state.map, tileHex(getTileAt(state.map, from.col, from.row)!), tileHex(getTileAt(state.map, scout.col, scout.row)!))).toBe(allowance);
+  });
+
+  it('costs exactly what the same walk ordered by hand costs — no fifth pricer', () => {
+    // The march's route, then the same route walked as ordinary move orders on
+    // an identical board. If the ranging piece paid a different price for a hex
+    // than a player's own order does, these two purses would part.
+    const marched = flatState();
+    const ranger = createUnit(marched, 0, 'scout', 5, 5);
+    expect(applyCommand(marched, explore(ranger.id)).ok).toBe(true);
+    const route: { col: number; row: number }[] = [];
+    // The phase itself, so the walk under test is the one the resolution runs.
+    marchExplorers(marched, { exploreEnded: [] }, (unit, path) => {
+      const result = advanceAlongPath(marched, unit, path);
+      for (let step = 0; step < result.steps; step += 1) route.push({ col: unit.col, row: unit.row });
+      recomputeVisibility(marched, unit.ownerId);
+      return result.steps;
+    });
+    expect(route.length).toBeGreaterThan(1);
+
+    const ordered = flatState();
+    const walker = createUnit(ordered, 0, 'scout', 5, 5);
+    for (const cell of route) {
+      expect(
+        applyCommand(ordered, { type: 'moveUnit', playerId: 0, unitId: walker.id, target: cell }).ok,
+      ).toBe(true);
+    }
+    expect({ col: walker.col, row: walker.row }).toEqual({ col: ranger.col, row: ranger.row });
+    expect(walker.movesLeft).toBe(ranger.movesLeft);
+  });
+
+  it('stops without error when there is nothing left to see', () => {
+    const state = flatState();
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    markAllExplored(state, 0);
+    expect(applyCommand(state, explore(scout.id)).ok).toBe(true);
+    const before = { col: scout.col, row: scout.row, moves: scout.movesLeft };
+    endAllTurns(state);
+    // It never set out, and the allowance it did not spend is the honest stop.
+    expect({ col: scout.col, row: scout.row }).toEqual({ col: before.col, row: before.row });
+    expect('autoExplore' in scout).toBe(false);
+  });
+
+  it('reports the exhausted world once, however many legs it walked', () => {
+    const state = flatState();
+    // A pocket of grassland in the sea: the scout charts the whole of it inside
+    // one turn's allowance and stands down mid-march, in that turn.
+    state.map = createMap({ width: 24, height: 12, terrain: 'ocean' });
+    resetVisibility(state);
+    for (let col = 4; col <= 7; col += 1) {
+      for (let row = 4; row <= 6; row += 1) getTileAt(state.map, col, row)!.terrain = 'grassland';
+    }
+    const scout = createUnit(state, 0, 'scout', 5, 5);
+    expect(applyCommand(state, explore(scout.id)).ok).toBe(true);
+    // However many legs and however many turns the charting takes, the world
+    // runs out exactly once — the flag is deleted where the report is pushed,
+    // and there is one such line.
+    const ended: unknown[] = [];
+    for (let turn = 0; turn < 12; turn += 1) {
+      const result = endAllTurns(state);
+      if (result.ok && result.exploreEnded) ended.push(...result.exploreEnded);
+    }
+    expect(ended).toEqual([{ unitId: scout.id, ownerId: 0 }]);
+    expect('autoExplore' in scout).toBe(false);
   });
 });
 

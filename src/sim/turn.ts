@@ -832,12 +832,13 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
   },
   {
     name: "marchExplorers",
-    // The explorers aim themselves at the next unseen hex, or stand down when
-    // there is none left within reach. Directly before `spendLeftoverMovement`
-    // — `marchTraders`' seat and argument: this phase decides *where* a ranging
-    // piece is going and never how far it gets, and the one spender below walks
-    // the path it set on this turn's unspent points.
-    run: marchExplorers,
+    // The explorers aim themselves at the next unseen hex, walk to it, aim
+    // again, and stand down when there is none left within reach. Still
+    // directly before `spendLeftoverMovement`, and for the seat's own reasons:
+    // everything a march must run *after* (the healing and the fortifying,
+    // which both ask whether a piece stood still all turn) is above it, and a
+    // piece this phase leaves jammed is the one spender's to try once more.
+    run: rangeExplorers,
   },
   {
     name: "spendLeftoverMovement",
@@ -1157,8 +1158,36 @@ function marchOneTrader(
 }
 
 /**
+ * The explorers' phase: `marchExplorers` with the walk handed down to it.
+ *
+ * The closure is the whole of this function, and it exists so that the two
+ * things a march owes stay where they already live. `advanceAlongPath` is the
+ * one mover and prices every step through `stepCost`; `collectCampBounties` is
+ * the one line that puts a camp a standing order burnt out onto the report. A
+ * ranging piece now re-aims and walks several times in a turn (`explore.ts`,
+ * the user's ruling of 2026-09-10), and neither of those facts changes for it —
+ * `explore.ts` decides *whether to keep going* and calls this to go, which is
+ * how `combat.ts` hands a presser down to the evaluator for exactly the same
+ * reason: the caller may not import what the callee owns.
+ *
+ * It answers the step count rather than the whole `AdvanceResult`, because the
+ * only thing the decision above needs to know is whether the leg moved: a leg
+ * that entered no tile is a jam, and a jam is waited on rather than retried.
+ */
+function rangeExplorers(state: GameState, report: TurnReport): void {
+  marchExplorers(state, report, (unit, path) => {
+    const result = advanceAlongPath(state, unit, path);
+    collectCampBounties(report, unit, result.arrivals);
+    return result.steps;
+  });
+}
+
+/**
  * Marches every standing order that still has movement to spend, on the points
- * this turn left it — **the only phase that walks one** (2026-09-08).
+ * this turn left it — **the only phase that walks an ordinary one** (2026-09-08;
+ * the explorers' own march is one line up, and for the reason its docblock
+ * gives: a piece that re-decides where it is going mid-turn is not a stored
+ * path being resumed).
  *
  * It began as the tidy-up below and is now the whole of the rule, because the
  * two used to be one march split across the turn change and that was the bug.
@@ -1240,10 +1269,9 @@ function spendLeftoverMovement(state: GameState, report: TurnReport): void {
  *
  * It was `spendLeftoverMovement`'s and `resetMovement`'s one shared line, so
  * the two phases that both resumed a standing order could not drift on how they
- * reported what one found. Since 2026-09-08 there is only one such phase and
- * this has one caller; it stays a function anyway, because the day a second
- * phase learns to walk a piece is the day it has to report a burnt camp the
- * same way, and that is a rule about the report rather than about the march.
+ * reported what one found. The prediction it was kept for came true on
+ * 2026-09-10: `rangeExplorers` is the second phase that walks a piece, and it
+ * reports a burnt camp through this and not through a second copy of it.
  */
 function collectCampBounties(
   report: TurnReport,

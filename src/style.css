@@ -3246,6 +3246,31 @@ kbd {
   opacity: 0.85;
 }
 
+/* The portcullis, beside the name, on a town that is cut off (`cityBanners.ts`,
+   "The siege mark"). The yoke's rule with two differences and no third: it wears
+   the alarm ink rather than the plate's own, because a siege is the plate's one
+   *emergency* and the wound below it already speaks in that ink; and it is drawn
+   at full strength, because the yoke's whisper is right for a standing fact of
+   government and wrong for a ring that closed this turn. */
+.city-banner-siege {
+  /* Declared here with the shipping figure, so the gallery's slider is a
+     proposal against the number the game ships rather than a preview of a
+     change already made — the price plate's bargain, one device over. */
+  --siege-size: 13px;
+  flex: 0 0 auto;
+  width: var(--siege-size);
+  height: var(--siege-size);
+  background-color: var(--vermilion-lit);
+  -webkit-mask-image: var(--siege-mark);
+  mask-image: var(--siege-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
 .city-banner-production {
   padding-left: 8px;
   border-left: 2px solid rgba(247, 242, 225, 0.3);

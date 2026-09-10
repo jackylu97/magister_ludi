@@ -123,7 +123,7 @@ column, which is carried through every regeneration.
 | Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 41 | — | Siegecraft | Composite Bowman | — |  |
 | Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 18 | — | Bronzeworking | Phalanx | — |  |
 | Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 101 | — | The Saddle | Knight | needs improved Horses |  |
-| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 34 | — | The Wheel | — | needs improved Horses |  |
+| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 34 | — | The Wheel | Horseman | needs improved Horses |  |
 | Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 34 | — | The Wheel | Horse Archer | needs improved Horses |  |
 | Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 31 | — | Bronze Panoply | Legionary | needs improved Iron |  |
 | Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 116 | — | Mathematics | Trebuchet | — |  |

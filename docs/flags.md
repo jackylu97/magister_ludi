@@ -1920,6 +1920,37 @@ directly to confirm rulings — user marginalia are rulings.
   leader's name) behind a top-bar door, the spectator page naming the
   seat's leader. Both batches build on the held stack (S2 · F2 · M1) —
   the agent merges the gate clone's main into its worktree first.
+  **L2a built** (2026-09-10, schema **113**; stacked on the held pile in
+  the gate): `src/sim/leaders.ts` (the verbs), `src/ai/leader.ts` (the
+  appraisal: a passive through `explainEffects`, a boon through the lump,
+  a unique through the row it opens); `LeaderDef.bonus` + `deck` beside
+  `startBias`; `LeaderCard.unlocks` declares a unique and the effect is
+  composed from it; `LeaderBoon` = the bead's `windfall` and the wonder's
+  `grants`, paid by `payWindfall`/`payGrants`; `Player.leader` ·
+  `leaderPicks` · `leaderOffer` (presence-is-state); occasion
+  `leaderOffered` from a new `leaders` phase directly after research (so
+  the seat's *own* age is current; Æra I's row written in `newGame`, no
+  dice — a leader draft cannot move a seed); blocker `leaderDraft` above
+  `wager`; `chooseLeaderCard {playerId, index}`, the boon's things on
+  `CommandResult.grants`; ten unique units and fourteen unique buildings
+  (`unlockedByLeader`) with sizes and silhouettes; the Compendium's 21st
+  shelf `leader:…`; 29 pins. **One rule the sheet did not name**: three
+  Æra I boons hand a town something, so the Æra I pick waits (blocker
+  silent, command refused) until the capital stands — L2b shows the row
+  and says so. Deferred whole (do nothing, annotated): Modu's *The Horse
+  Lords* and *The Great Raid*, Akhenaten's *The Great Conversion*,
+  Mithridates' *The King's Friends* (nothing reveals a resource, lays an
+  improvement, converts a neighbourhood at a stroke, or widens a
+  government's slots); ~35 half-lines annotated; two gaps worth a ruling
+  — ▢ a **scoped authority-cost** line ("cities of kind X cost 1 fewer
+  authority", three cards) and ▢ a **per-puppet count**. Fixed beyond
+  the brief: `moveAfterKill` never received the attacker's type (a
+  class-narrowed row was skipped); the wild's footmen ladder could
+  muster a leader-unique sword; "mounted archers" now prints as words;
+  the building `mountainHold` renamed `ponticHold` (an Order had the id).
+  A human seat with a leader sees "Your leader awaits" on End Turn with
+  no sheet until L2b lands — L2b is building on top (agent flying
+  2026-09-10, merged the gate's `held` branch first).
 - (cccc) **Start biases in three stages — RULED** (the user, 2026-09-10:
   *"queue up the mapgen changes, and then verify that we can have
   satisfactory starts for the new leaders (the steppe leader is useless

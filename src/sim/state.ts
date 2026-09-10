@@ -863,8 +863,18 @@ import {
  * and no blocker is raised. A log whose roster *does* name a figure does not
  * replay — the seat is now owed a decision on turn one that it was not owed
  * before, so the command log is a different log.
+ *
+ * v114 (batch X14, `docs/flags.md` (gggg); the user, 2026-09-10: *"units set on
+ * auto-explore should use all of their movement"*): **a ranging piece marches,
+ * not steps.** `marchExplorers` re-aims and walks again on the same turn's
+ * points until the allowance is spent, the road is jammed, or there is nothing
+ * left to see — the seat's fog recomputed between legs so the search reads the
+ * ground the piece has just lit. No new state, but **a v113 log does not
+ * replay**: an explorer that walked one hex a turn now walks two or three, so
+ * every hex it claims, every camp it burns and every unit it meets happens on
+ * a different turn, and the resolution order moves with it.
  */
-export const SCHEMA_VERSION = 113;
+export const SCHEMA_VERSION = 114;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

@@ -47,6 +47,12 @@ that file's.
   `src/sim/wagerData.ts` — only readings the Ledger already prints. A row wanting
   a reading that does not exist is **deferred and annotated**, never bent, and
   leaves every pool while it is.
+- **A great person's work is the Patronage's** (2026-09-10, `docs/flags.md`
+  (eeee)): a worked hex with a great person's work standing on it files its whole
+  yield under the Ledger's `people` class instead of `tiles`
+  (`classifyImprovement`, `src/sim/ledgerClass.ts`), so the row's promise of
+  "their works" is a reading rather than a hope. The prophet's holy site is not a
+  great person's and stays with the land.
 - **The census** (batch C1, proposed, not built): a full-screen sheet every
   13–17 turns (`rules.census.every` 15, `rules.census.jitter` 3 — the keys land
   with C1) ranking **one** reading across the world, the leading seat taking a
@@ -103,7 +109,7 @@ deal sheet, the Abacus and the Compendium print. The last column is the user's.
 | The Tithe | C | ☽ Cloister | `religionYields` | flow | — | 6400 | 8000 | Everything your religion pays the realm, added up over the age. |  |
 | The Wonder of the Age | C | 🏛 Marble Court | `wondersOfThisAge` | standing | 3 | 3 | 3 | Wonders of the age the world is in now, standing in your towns — held at once. |  |
 | The Marvels' Pay | C | 🏛 Marble Court | `wonderYields` | flow | 900 | 4500 | 5500 | Everything your wonders pay you, added up over the age. |  |
-| The Patronage | C | 🏛 Marble Court | `peopleYields` | flow | 650 | 2900 | 3500 | Everything your great people pay you — their works, their gifts and their legacies — added up over the age. |  |
+| The Patronage | C | 🏛 Marble Court | `peopleYields` | flow | 650 | 2900 | 3500 | Everything your great people pay you — their works, their gifts and their legacies — added up since this age was dealt. | ▢ the only flow row that says its window as *since the deal* rather than *over the age*; the other flows read the same way and could follow |
 | The Renowned | C | 🏛 Marble Court | `renown` | flow | 1000 | 5000 | 6000 | Renown your realm earns over the age, spent or not, added up. |  |
 | The Chronicle | C | 🏛 Marble Court | `culture` | flow | 3700 | 14500 | 18000 | Culture made across the realm, added up over the age. |  |
 | The Deck | S | 📜 Charter | `deckYields` | flow | 2800 | 11000 | 13000 | Everything the cards slotted in your government pay you, added up over the age. | ▢ plainer name: *The Cards in Your Chairs* |

@@ -32,7 +32,7 @@ import {
   isBuildingId,
   isWonder,
 } from '../buildingData';
-import { type LedgerClass, classifyCard } from '../ledgerClass';
+import { type LedgerClass, classifyCard, classifyImprovement } from '../ledgerClass';
 import { getTileAt } from '../map';
 import { type ModifierStage, type StageSums, applyStages, withStage } from './stages';
 import { CITY_YIELD_KEYS, type CityYieldKey, type ResourceId } from '../resourceData';
@@ -1279,16 +1279,31 @@ export function explainCity(
     // `override` list becomes a number and a hill replaces the grass under it.
     const hexLines = explainTileYield(tile, ctx);
     const ground = foldTile(tile, ctx, hexLines);
+    // **A hex a great person is standing on is the great person's** — the
+    // ruling of 2026-09-10 (`docs/flags.md` (eeee)). The academy's beakers, the
+    // landmark's note and the manufactory's hammers are tile lines like any
+    // other, so The Patronage — which promises "their works, their gifts and
+    // their legacies" — read near nought on a realm that had planted all five.
+    // `classifyImprovement` says which, off the row's own `greatPerson` marker
+    // and never off a name; its docblock says why the whole line moves and why
+    // the prophet's holy site does not move with it.
+    const hexClass =
+      tile.improvement === undefined ? 'tiles' : classifyImprovement(tile.improvement);
     let label = HEX_SOURCE;
     for (const entry of hexLines) {
       if (entry.kind !== 'add') label = entry.source;
       if (entry.card === undefined || entry.kind !== 'add') continue;
       const into = classifyCard(entry.card);
-      if (into === 'tiles') continue;
+      // A card's line stays in the fold when it belongs where the fold is going
+      // — the land's, or the great person's on a hex that is already theirs.
+      // The comparison is against the *hex's* class rather than the constant,
+      // because lifting a rider out of a work's hex only to file it back under
+      // the same class would be a second line saying the same thing.
+      if (into === hexClass) continue;
       say(2, entry.source, into, entry, { card: entry.card });
       for (const key of TILE_YIELD_KEYS) ground[key] -= entry[key];
     }
-    say(2, label, 'tiles', ground);
+    say(2, label, hexClass, ground);
   }
 
   // **3 — the cards' city lines.** What this empire's Statecraft cards pay this

@@ -22,12 +22,13 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { CITY_MARK_IDS, cityMark } from '../../src/art/cityMarks';
 import { foundCityAt, growthThreshold } from '../../src/sim/cities';
-import { cityMaxHp } from '../../src/sim/combat';
-import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import { cityMaxHp, siegeField, underSiege } from '../../src/sim/combat';
+import { createMap, getTileAt, neighborTiles, tileHex, tileIndex } from '../../src/sim/map';
 import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
 import { type UnitTypeId, unitMaxHp } from '../../src/sim/unitData';
-import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, VISIBLE, resetVisibility } from '../../src/sim/visibility';
 import { cssHex } from '../../src/render3d/badges3d';
 import { badgeClassFor } from '../../src/render3d/board3d';
 import { VIEW3D } from '../../src/render3d/lookData';
@@ -1215,5 +1216,148 @@ describe('where the plate hangs', () => {
     for (const painted of ['--roundel-ink', 'is-fanned', 'city-banner-piece-fill']) {
       expect(local.includes(painted), painted).toBe(false);
     }
+  });
+});
+
+/**
+ * The siege mark (X14, `docs/flags.md` (gggg), the user 2026-09-10: "we need an
+ * icon for when a city is under siege").
+ *
+ * Three properties, and they are the whole of it: the mark is drawn exactly
+ * when `underSiege` says the ring is closed and never on a memory of one; the
+ * plate is rewritten when a siege begins and when it lifts, because the fact is
+ * a term of the signature rather than something polled; and the drawing joins
+ * the town-mark alphabet and the flair cabinet in the same pass that ships it.
+ *
+ * The derivation half is asserted on the pure list-out (`visibleCityBanners`),
+ * and the DOM half by reading the source — there is no jsdom in this project,
+ * which is the same bargain the wound and the row are pinned under.
+ */
+describe('the siege mark', () => {
+  /** The six hexes around a town — `combat.test.ts`'s ring, one surface over. */
+  function ring(state: GameState, city: { col: number; row: number }) {
+    return neighborTiles(state.map, tileHex(getTileAt(state.map, city.col, city.row)!));
+  }
+
+  /**
+   * Seat 0 shuts a ring round seat 1's town. The besieger's own eyes are what
+   * puts the banner on screen at all, which is the case the ruling came out of:
+   * the player was looking at the town they could not crack.
+   */
+  function encircled() {
+    const state = boardState();
+    // Siegecraft is the gate on cutting a town off at all — stated out loud, as
+    // every siege fixture in `combat.test.ts` states it.
+    state.players[0]!.techsResearched.push('siegecraft');
+    bumpRevision(state);
+    const town = foundCityAt(state, 1, getTileAt(state.map, 8, 4)!);
+    for (const hex of ring(state, town)) createUnit(state, 0, 'warrior', hex.col, hex.row);
+    state.visibility[0]!.fill(VISIBLE);
+    return { state, town };
+  }
+
+  it('is drawn exactly when the simulation says the ring is closed', () => {
+    const { state, town } = encircled();
+    const shut = visibleCityBanners(state, 0, null).find((facts) => facts.cityId === town.id)!;
+    expect(shut.besieged).toBe(true);
+    // The banner's reading and the simulation's are the same reading — never a
+    // second rule about six hexes.
+    expect(shut.besieged).toBe(underSiege(state, town, siegeField(state, town.ownerId)));
+
+    // Lift it: three abreast off the ring, because a ring hex is next door to
+    // the two beside it (`combat.test.ts` makes the same argument).
+    const open = ring(state, town);
+    const road = [open[0]!, open[1]!, open[5]!];
+    state.units = state.units.filter(
+      (unit) => !road.some((hex) => hex.col === unit.col && hex.row === unit.row),
+    );
+    const lifted = visibleCityBanners(state, 0, null).find((facts) => facts.cityId === town.id)!;
+    expect(lifted.besieged).toBe(false);
+    expect(lifted.besieged).toBe(underSiege(state, town, siegeField(state, town.ownerId)));
+  });
+
+  it('never marks a remembered town, whatever is standing round it', () => {
+    const { state, town } = encircled();
+    // Seat 0 remembers the ground and is no longer watching it: a siege twenty
+    // turns stale is the reading a player would march at.
+    state.visibility[0]!.fill(EXPLORED);
+    state.citySightings[0] = [
+      {
+        cityId: town.id,
+        ownerId: town.ownerId,
+        name: town.name,
+        col: town.col,
+        row: town.row,
+      },
+    ];
+    const facts = visibleCityBanners(state, 0, null).find((one) => one.cityId === town.id)!;
+    expect(facts.stale).toBe(true);
+    expect(facts.besieged).toBe(false);
+    // And the town really is cut off — the memory is refusing to say so.
+    expect(underSiege(state, town, siegeField(state, town.ownerId))).toBe(true);
+  });
+
+  it('joins the town-mark alphabet rather than the charge table', () => {
+    // A town mark belongs to the town and is chosen by the rules; a charge
+    // belongs to a seat and is chosen by the player. Appended, never reordered
+    // — an index is a texture coordinate.
+    expect(CITY_MARK_IDS[0]).toBe('puppet');
+    expect(CITY_MARK_IDS).toContain('siege');
+    const mark = cityMark('siege');
+    expect(mark.paths.length).toBeGreaterThan(0);
+    // The serrated foot is what makes a gate a portcullis: three filled teeth.
+    expect(mark.paths.filter((path) => path.fill === true).length).toBe(3);
+    expect(mark.note).toMatch(/portcullis/);
+  });
+
+  it('is a term of the signature, painted inside the gate and nowhere else', () => {
+    const text = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
+    const line = text.split('\n').find((row) => row.includes('const signature = '));
+    expect(line).toBeDefined();
+    // One bit, because the mark has one state — and in the signature, so a ring
+    // closing and a ring lifting each rewrite the plate and nothing else does.
+    expect(text).toMatch(/facts\.besieged \? 1 : 0/);
+    expect(text).toMatch(/paintSiegeMark\(banner\.siege, facts\.besieged\)/);
+    // The field is hoisted once per sweep, per empire — `underSiege` reads
+    // where every army stands, and asking it per banner would sweep the board
+    // once per label.
+    expect(text).toMatch(/const fields = new Map<number, SiegeField>\(\)/);
+    expect(text.match(/siegeField\(state, city\.ownerId\)/g)?.length).toBe(1);
+    // The board is untouched: the mark is DOM on the plate, not a dressing on
+    // the diorama, and a town's sculpt is not rebuilt when a ring closes.
+    const cities3d = Object.values(
+      import.meta.glob('../../src/render3d/cities3d.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    expect(cities3d).not.toMatch(/underSiege|siegeField/);
+  });
+
+  it('shows the shipping mark on flair.html rather than a drawing of one', () => {
+    const gallery = Object.values(
+      import.meta.glob('../../src/flairGallery/flourishes.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>,
+    )[0]!;
+    // The stall is registered, or it exists and nobody sees it.
+    expect(gallery).toMatch(/\bsiegeMarkStall\(into\);/);
+    const at = gallery.indexOf('function siegeMarkStall');
+    expect(at).toBeGreaterThan(0);
+    const body = gallery.slice(at, gallery.indexOf('\n}\n', at));
+    for (const called of ['buildSiegeMark', 'paintSiegeMark', 'cityHealthBar', 'foundCityAt']) {
+      expect(body, called).toMatch(new RegExp(`\\b${called}\\b`));
+    }
+    // Besieged and not, side by side — the pair a running game cannot hold
+    // still for — and the knob the ruling asks for is the mark's size.
+    expect(body).toMatch(/pill\('[^']+', 'quiet', false/);
+    expect(body).toMatch(/pill\('[^']+', 'under siege', true/);
+    expect(body).toMatch(/--siege-size/);
+    // No drawing of its own: a path or a colour written here would be the page
+    // repainting the thing it exists to inspect.
+    expect(body).not.toMatch(/vermilion|mask-image/);
   });
 });

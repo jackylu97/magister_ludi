@@ -117,10 +117,39 @@
  * same order as the city panel's own chip, so the glance and the panel cannot
  * disagree.
  *
- * The siege badge stays on the panel. A besieged town is a *condition* and the
- * bar is a *quantity*; the panel names the condition in a sentence, and a second
- * badge on a pill that already carries a roundel, a ring, a name and a queue is
- * the chip the growth ruling refused.
+ * The siege mark
+ * --------------
+ * The user, 2026-09-10 (`docs/flags.md` (gggg), mid-playtest): *"we need an icon
+ * for when a city is under siege"*. U8 argued the opposite here — that a
+ * condition belongs in the panel's sentence and the plate had carried enough —
+ * and a day of play answered it: the sentence is behind a click, a siege is the
+ * one condition a player has to notice *without* clicking, and the towns it
+ * matters most about are the ones they are not looking at.
+ *
+ * It is the **portcullis** (`src/art/cityMarks.ts`), drawn beside the name in
+ * the alarm ink, in the yoke's place and by the yoke's means: a mask in one
+ * colour over a `data:` URI, so the mark on this pill and the mark traced into
+ * the tile atlas are one drawing. Vermilion because it is the plate's one
+ * remaining voice for *this is going wrong now* — the wound below it already
+ * speaks in that ink, and a siege and a wound are the same emergency in two
+ * tenses.
+ *
+ * `underSiege` is derived and never stored, so the reading is a *field*: one
+ * `siegeField` per owning empire, hoisted once for the whole sweep
+ * (`visibleCityBanners`) exactly as a sim sweep hoists one, never one per
+ * banner. And it is a signature term like every other thing this plate says, so
+ * the DOM under a town is rewritten when a siege closes and when it lifts, and
+ * at no other time — nothing here polls.
+ *
+ * Whose banners carry it: **every watched town, yours and theirs**, which is
+ * the wound's rule and its reason. The pieces that close a ring are pieces on
+ * the board, and the board already draws every one of them this seat can see.
+ *
+ * The panel keeps its sentence. A glance and a sentence are not a duplication:
+ * the mark says *this town is cut off*, and the panel says what it is costing.
+ * The 3D piece is untouched — a town's flag flies its seat and its faith, and a
+ * condition that can change twice in three turns is not a thing to rebuild a
+ * sculpt for.
  *
  * Whose banners carry one: **every watched town, yours and theirs**, which is
  * the size figure's rule and not the ring's. A rival's countdown is that
@@ -252,7 +281,7 @@ import {
   turnsToBuild,
   turnsToFill,
 } from '../sim/cities';
-import { cityBeatenDown, cityMaxHp } from '../sim/combat';
+import { type SiegeField, cityBeatenDown, cityMaxHp, siegeField, underSiege } from '../sim/combat';
 import type { Game } from '../sim/game';
 import { tileIndex } from '../sim/map';
 import { type City, type GameState, type Unit, isBarbarian } from '../sim/state';
@@ -345,6 +374,11 @@ interface Banner {
    * fourth lifecycle in a file that has three.
    */
   yoke: HTMLElement;
+  /**
+   * The portcullis beside the name, drawn iff this town is cut off. The yoke's
+   * lifecycle exactly — one node, shown and hidden. See "The siege mark".
+   */
+  siege: HTMLElement;
   /** The channel on the banner's foot. See "The wound on the foot". */
   health: HealthParts;
   /**
@@ -412,6 +446,16 @@ interface BannerFacts {
    * inside of somebody else's empire, and this banner does not report those.
    */
   puppet: boolean;
+  /**
+   * The town is cut off — `underSiege`, read off a hoisted field. See "The
+   * siege mark".
+   *
+   * Beside the wound rather than behind the `mine` gate, and for the wound's
+   * reason: a ring of enemies round a town is a thing this seat is *looking
+   * at*. False on a remembered one, which keeps no conditions — a siege
+   * twenty turns stale may have been lifted, lost or won.
+   */
+  besieged: boolean;
   mine: boolean;
   /** Drawn from `citySightings` rather than from the city itself. */
   stale: boolean;
@@ -748,6 +792,7 @@ function watchedFacts(
   seat: number,
   garrison: readonly Unit[],
   selectedUnitId: number | null,
+  besieged: boolean,
 ): BannerFacts {
   const facts: BannerFacts = {
     cityId: city.id,
@@ -767,6 +812,9 @@ function watchedFacts(
     garrison: garrisonRow(state, garrison, seat, selectedUnitId),
     production: '',
     puppet: mine && city.puppet === true,
+    // Read off the sweep's own field rather than asked here, so the whole
+    // refresh builds one field per empire — see "The siege mark".
+    besieged,
     mine,
     stale: false,
   };
@@ -830,6 +878,9 @@ function rememberedFacts(state: GameState, sighting: CitySighting, mine: boolean
     // governs a town this seat has not looked at in twenty turns is exactly the
     // kind of figure that would be stale and read as current.
     puppet: false,
+    // Nor whether it is cut off. A siege is where armies are standing *now*,
+    // and a memory of one is the reading a player would march at.
+    besieged: false,
     mine,
     stale: true,
   };
@@ -861,6 +912,20 @@ export function visibleCityBanners(
 ): BannerFacts[] {
   const facts: BannerFacts[] = [];
   const shown = new Set<number>();
+  // One siege field per empire that owns a banner on screen, built the first
+  // time one of its towns is asked about and kept for the rest of the sweep —
+  // `tileOwnerField`'s bargain, one surface up. `underSiege` is derived from
+  // where every army stands, so asking it per banner would flood the map once
+  // per label. Lifetime: this call.
+  const fields = new Map<number, SiegeField>();
+  const besieged = (city: City): boolean => {
+    let field = fields.get(city.ownerId);
+    if (field === undefined) {
+      field = siegeField(state, city.ownerId);
+      fields.set(city.ownerId, field);
+    }
+    return underSiege(state, city, field);
+  };
 
   for (const city of state.cities) {
     if (!isVisibleTo(state, seat, city.col, city.row)) continue;
@@ -874,6 +939,7 @@ export function visibleCityBanners(
         seat,
         garrisons.get(tileIndex(state.map, city.col, city.row)) ?? [],
         selectedUnitId,
+        besieged(city),
       ),
     );
   }
@@ -1006,6 +1072,53 @@ export function paintHealthBar(parts: HealthParts, bar: HealthBar | null): void 
   parts.root.title = bar.label;
   parts.root.setAttribute('role', 'img');
   parts.root.setAttribute('aria-label', bar.label);
+}
+
+// --- the siege mark ---------------------------------------------------------
+
+/**
+ * What the mark is called, everywhere it is said.
+ *
+ * One string rather than two, for the growth label's reason: the hover, the
+ * accessible name and the gallery's caption are the same words, so a rename is
+ * one edit and the surfaces cannot drift. Plain, and about the town rather than
+ * about the rules that produced it — "cut off" and "blockaded" are both true and
+ * neither is what a player would say.
+ */
+export const SIEGE_WORDS = 'Under siege';
+
+/**
+ * The mark as an element: the portcullis, masked in one colour, hidden until a
+ * ring closes.
+ *
+ * The **yoke's** construction to the letter (`cityMarkDataUri`, a mask in
+ * `currentColor`), because the two marks are two sentences in one alphabet on
+ * one plate and the day they are built differently is the day one of them reads
+ * as a sticker. It is *not* the garrison row's construction — a roundel is a
+ * printed canvas because it carries a piece's own two inks, and a condition
+ * carries one.
+ *
+ * Exported with its painter so `flair.html` shows the real mark rather than a
+ * drawing of one — the cabinet's standing bargain (`flairGallery/main.ts`,
+ * "Nothing is reproduced").
+ */
+export function buildSiegeMark(): HTMLElement {
+  const mark = document.createElement('span');
+  mark.className = 'city-banner-siege';
+  // The drawing is a glance and the word is one hover away — the ring's
+  // bargain. `role="img"` is what makes a label on a span reliably the
+  // element's accessible *name* rather than a hint some readers drop.
+  mark.setAttribute('role', 'img');
+  mark.setAttribute('aria-label', SIEGE_WORDS);
+  mark.title = SIEGE_WORDS;
+  mark.style.setProperty('--siege-mark', `url("${cityMarkDataUri('siege')}")`);
+  mark.hidden = true;
+  return mark;
+}
+
+/** Shows the mark, or takes it away. Presence is the whole of its state. */
+export function paintSiegeMark(mark: HTMLElement, besieged: boolean): void {
+  mark.hidden = !besieged;
 }
 
 // --- the garrison row, as elements ------------------------------------------
@@ -1222,6 +1335,9 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     yoke.title = 'Held as a puppet — annex it to govern it';
     yoke.style.setProperty('--yoke-mark', `url("${cityMarkDataUri('puppet')}")`);
     yoke.hidden = true;
+    // The second town mark, in the same hand and on the same terms — see "The
+    // siege mark".
+    const siege = buildSiegeMark();
     const pop = document.createElement('span');
     pop.className = 'city-banner-pop';
     // The badge and the ring share one box and one centre — the ring is *about*
@@ -1242,7 +1358,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // it is what the eye lands on over a town somebody is holding.
     const garrison = buildGarrisonRow();
 
-    root.append(size, name, yoke, production, health.root, garrison);
+    root.append(size, name, yoke, siege, production, health.root, garrison);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -1263,6 +1379,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       pop,
       ring,
       yoke,
+      siege,
       health,
       garrison,
       production,
@@ -1349,15 +1466,23 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // landing on one of them, a seat capturing one, the player picking one up
       // — each moves a term, and a quiet garrison moves none.
       const held = garrisonSignature(facts.garrison);
+      // **The siege is a signature term too**, and this is the whole of "the
+      // mark is a fingerprint, never a frame": a ring closing and a ring
+      // lifting each move it, and a town nobody is besieging moves nothing. It
+      // is one bit rather than a figure because the mark has one state — see
+      // "The siege mark".
       const signature = `${facts.pop}|${arcs}|${growth?.label ?? ''}|${wound}|${held}|${
         facts.name
-      }|${facts.production}|${facts.stale ? 1 : 0}|${facts.puppet ? 1 : 0}`;
+      }|${facts.production}|${facts.stale ? 1 : 0}|${facts.puppet ? 1 : 0}|${
+        facts.besieged ? 1 : 0
+      }`;
       if (signature !== banner.signature) {
         banner.signature = signature;
         // A signature term for the reason every other one is: annexing a town
         // is a thing this banner says, so it is rewritten when that changes and
         // never polled.
         banner.yoke.hidden = !facts.puppet;
+        paintSiegeMark(banner.siege, facts.besieged);
         banner.pop.textContent = facts.pop;
         banner.pop.hidden = facts.pop === '';
         // A memory keeps neither figure, so the whole box goes rather than
