@@ -1471,6 +1471,79 @@ directly to confirm rulings — user marginalia are rulings.
   widened to six. `test/ui/techTreeFigures.test.ts` sweeps every gift
   figure of every tech against a five-town empire (>200 figures, whole).
   (eee)
+- (nnn) **The wager, second look — RULED** (the user, 2026-09-09: *"we
+  need to tune the numbers for some of the wagers way down. The
+  academies is too high, the contented realm is too high. Also — we
+  have too much flavor text in the descriptions, could you tone it down
+  and give a better description for them? I have no idea what bread and
+  iron are referring to. I think i have more balance changes that are
+  needed, i'll go through the doc and science tree in a bit. Could we
+  remove the table of the previous win conditions and remove it from
+  our code? the wager system seems way better to me. In the abacus
+  screen, the abacus is a bit too large compared to the other
+  wagers."*). Four rulings, two batches. **W3 (the deck's words and two
+  bars, the Abacus's stage)**: (1) **bars** — The Academies 4000 · 16000
+  · 20000 → **1500 · 5000 · 7000**, The Contented Realm 650 · 700 · 900
+  → **200 · 250 · 300** (the bench's 1.5× of a bot's mean is a bot's
+  bar; a human at half a bot's science and a third of its slack meets
+  these — ▢ the user's own figures come with their doc pass; the doc's
+  table is sync-tested, both places move); (2) **every wager's note says
+  what is counted, in what span, and nothing else** — no flavour in
+  `note`, the reading first ("Food to spare every turn and a standing
+  army, both on the same turn" for Bread and Iron; "Science, added up
+  over the age" for The Academies); a name that hides its reading keeps
+  its name and ▢ a plainer one is proposed in the doc's Notes for the
+  user; the deal sheet, the Abacus and the Compendium all print the
+  note through the one describer; (3) **the Abacus's stage is a third
+  of the sheet, not the sheet** — the bead rods' 3D stage takes at most
+  about a third of the sheet's height and the wager band the rest, the
+  cards first; the stage is measured after the cap (it projects into
+  its own box). **Q1 (the deeds retire)**: (4) **the old victory
+  conditions leave the game** — feats, quests and endeavours
+  (`data/beads.json` `feats`/`quests`/`endeavours`, the per-age hand,
+  `handSize`, `dealEveryTurns`, `drawAge`/`drawFeats`, the contested
+  register `state.contested` if nothing else reads it, the Beads
+  screen's deed tables and the deed sheet's three doors, the bead chip's
+  count of deeds) — retired the reckonings' way (`retired: true`, rows
+  kept for saves, out of every pool and every screen) where a save
+  holds one, deleted where nothing can; **beads come from the wagers and
+  the grants** (`grants`, the repeatable rows, stay — a wager's own four
+  among them); the four Æra V **bead Orders** that count a deed are
+  retired (they were waiting on deeds); the Beads screen becomes the
+  bead ledger alone (rods, grants, the Opus door) or folds into the
+  Abacus if that leaves it empty — the agent's call, said on the board;
+  (5) **the Opus door** — `rules.threshold` 20 was cut for deeds; with
+  wagers alone a perfect seat takes at most four an age over three
+  ages; the agent measures the bench's top seat by Æra IV's close with
+  deeds gone and sets the threshold at about **two-thirds of it**
+  (▢ the user's figure comes with the balance pass), the doc's figure
+  and `docs/wager.md` §5 following. Schema bumps (Q1). (eee)
+- (ooo) **The garrison above the banner — RULED** (the user, 2026-09-09:
+  *"I'm still unhappy with the city banners and unit visibility. Is it
+  difficult to have the list of units in a city appear _above_ the
+  banner? If thats too hard, could we reposition the unit icon so that
+  it appears in the center of the tile (with the banner moving back to
+  the old position, where it used to sit lower and directly over the
+  city)."*). Not difficult, and the first is the ruling. **U8**: the
+  pieces on a city hex are listed **above the plate** as a row of
+  roundels in the banner layer — DOM, the same drawn badge the atlas
+  paints (`badges3d.ts`'s cell painters into a small canvas, one per
+  unit type, cached), the seat's ink, a hit bar under a wounded piece's
+  roundel, one roundel per piece, centred over the plate with a clear
+  gap so it reads as *standing at* the city and not as part of the
+  plate (the U6 objection), overlapping into a fan past four and "+N"
+  past eight; the selected piece's roundel ringed as the board badge
+  is. The piece's own 3D roundel and bar are **suppressed on a city
+  hex** (U6's suppression, back — one icon in one place); the sculpt
+  stays. The banner returns to the **old rise** — the pole's top
+  (`poleHeight` + clearance), U7's `tallestPieceRise` and its pin
+  retired — since nothing above the pole needs clearing any more. A
+  click on a roundel selects that piece (`selectOnTile`'s path); the
+  row rebuilds off `signUnits` (it is a fingerprint reader like the
+  badge layer) and hides with the banner under fog. The gallery stall
+  drives it. Tests: the row's count and order pin, the fan past four,
+  the "+N", the bar on a wounded piece only, the suppression on the
+  city hex and not beside it, the rise back at the pole. (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
