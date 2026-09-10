@@ -1828,8 +1828,14 @@ directly to confirm rulings — user marginalia are rulings.
   bench needed a `marchOut` verb — nine purchase cases and four others
   had founded the town under its own escort and were refused. **Bot
   fallout**: the want book asks `purchaseError`, so a purchase want
-  vanished in every garrisoned town; the fix in flight keeps the want and
-  steps the blocker one hex before buying, both in one turn's log.
+  vanished in every garrisoned town. **Fixed**: `purchaseHexBlocker`
+  (`purchase.ts`) answers the piece a sale was refused for, so the bot
+  never rebuilds the sentence; `reachOf` keeps the want (out of reach
+  only when the purse is short or the blocker has nowhere to go);
+  `stepAsideFor` (`wants.ts`) picks the blocker's step — `canStopOn`,
+  then friendly ground, then cheapest by `stepCost`, then direction
+  order — and the buy arm issues that `moveUnit` and the purchase in the
+  same turn's log; `undefendedCity` walks a piece back in. Four pins.
 - (gggg) **Auto-explore spends the whole allowance; a siege mark on the
   banner — RULED** (the user, 2026-09-10, mid-playtest: *"units set on
   auto-explore should use all of their movement. Also, we need an icon
