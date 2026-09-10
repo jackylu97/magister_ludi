@@ -19,6 +19,7 @@
 import { isBeadCardId } from './beadData';
 import { isBuildingId, isWonder } from './buildingData';
 import { isGreatPersonId } from './greatPeopleData';
+import { isMaliceId } from './maliceData';
 import { isBeliefId, isConsecrationId, isRiteId } from './religionData';
 import type { CardId } from './statecraftData';
 import { isDoctrineId, isGovernmentId, isOrderId } from './statecraftData';
@@ -60,11 +61,11 @@ export const LEDGER_CLASSES: readonly LedgerClass[] = [
 /**
  * Which class a card-paid line belongs to, by the **id** and never by the label.
  *
- * Ten id spaces, disjoint by construction (`CardId`'s own docblock, and
+ * Eleven id spaces, disjoint by construction (`CardId`'s own docblock, and
  * `test/sim/tech.test.ts` pins the disjointness), so this is a total function
  * over every card the evaluator can hand back:
  *
- *   government · doctrine · order → **deck** — the three classes a player drafts
+ *   government · doctrine · order · malice → **deck** — the three classes a player drafts
  *     and slots are the deck, which is the whole comparison the Ledger makes.
  *   belief · rite · consecration → **religion**.
  *   a great person's legacy → **great people**.
@@ -93,6 +94,13 @@ export const LEDGER_CLASSES: readonly LedgerClass[] = [
 export function classifyCard(card: CardId): LedgerClass {
   if (isBeliefId(card) || isRiteId(card) || isConsecrationId(card)) return 'religion';
   if (isOrderId(card) || isDoctrineId(card) || isGovernmentId(card)) return 'deck';
+  // **A malice is the deck** (batch G3), and it belongs there for the class's own
+  // reason rather than out of tidiness: `deck` answers *"is my council doing
+  // anything?"*, and a card seated in one of its chairs by a missed wager is
+  // exactly the thing that changes the answer. Its lines are negative, so the
+  // slice says what the punishment costs against what the council pays, which is
+  // the comparison a player about to stake the next wager wants.
+  if (isMaliceId(card)) return 'deck';
   if (isBeadCardId(card)) return 'other';
   if (isGreatPersonId(card)) return 'people';
   if (isTechId(card)) return 'other';

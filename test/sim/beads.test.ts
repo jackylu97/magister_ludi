@@ -243,7 +243,9 @@ describe('the bead catalogue', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(104);
+    // 105 since batch G3 (2026-09-09): the malice deck — a missed wager seats
+    // a card in one of the realm's own chairs, drawn at the judgement.
+    expect(SCHEMA_VERSION).toBe(105);
   });
 
   it('puts the beads phase directly after the world clock, itself after renown', () => {

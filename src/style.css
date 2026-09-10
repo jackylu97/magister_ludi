@@ -7976,6 +7976,48 @@ body:has(.city-mode:not([hidden])) #hud-context {
   box-shadow: 0 0 0 2px rgba(200, 144, 31, 0.22);
 }
 
+/* **A chair a malice holds** (batch G3, `docs/wager.md` §4).
+
+   The one office on the sheet that is neither filled nor free, and it has to
+   read as *taken from you* rather than as a card you played. So: the filled
+   office's solid rule and parchment ground, in vermilion — the ink this
+   interface already spends on blood and on the thing you cannot undo — with a
+   vermilion wash behind it and the office's own word struck in the same colour.
+   No emblem, because a malice belongs to no archetype line, and no seal, because
+   nothing sealed it: what sits at the end of the line is a struck mark. Ordered
+   after `sc-slot-filled` and `sc-slot-open` and before `sc-slot-staged`, which
+   is the same reading those three already agree on — a proposal is the loudest
+   thing on the sheet, and a malice is never a proposal. */
+.sc-slot-malice {
+  border-style: solid;
+  border-color: var(--vermilion);
+  background: rgba(212, 80, 46, 0.1);
+  box-shadow: var(--shadow-sm);
+  color: var(--vermilion);
+  cursor: not-allowed;
+}
+
+.sc-slot-malice .sc-slot-card {
+  color: var(--vermilion);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.sc-slot-malice .sc-slot-type {
+  color: var(--vermilion);
+}
+
+/* The struck seal: where a wax stamp would be, at the same size and without the
+   tilt — a seal is pressed on to finish something, and this finished nothing. */
+.sc-slot-struck {
+  flex: none;
+  font-family: var(--face-num);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--vermilion);
+  opacity: 0.75;
+}
+
 .sc-slot-type {
   font-family: var(--face-num);
   font-size: 9px;

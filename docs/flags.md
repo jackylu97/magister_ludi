@@ -615,7 +615,26 @@ directly to confirm rulings — user marginalia are rulings.
   `City.capturedOn` are new verb-written facts. The bot stakes index 0
   until W2. ▢ owed: the Compendium does not yet walk `data/wagers.json`
   (take with G3's malices). t100 (8 seeds): beads 5.8, wagers kept 0.8
-  a seat. (ggg) **The bot's second pass**
+  a seat. **G3 and C1 flew 2026-09-09** (the user: "the malices and
+  census look good — go ahead and start those"; W2, the bots' wager
+  want, held until the orders pass is folded in). G3 takes schema 105,
+  C1 106, both with §11's (rec) defaults; the Compendium's walk of
+  `data/wagers.json` rides G3. **G3 built 2026-09-09, schema 105**: a
+  missed stake is dealt a malice at the judgement (`state.rng`, never
+  one held, drawn before the stacking eviction), seated in the last
+  chair of its flavour (the Order there back to the hand, seal broken,
+  nothing refunded), a wildcard chair failing that, and a **ninth chair
+  nobody has** failing that (`HeldMalice.chair` absent, the slots not
+  grown, the effect paid in full — never refused); `slotOrder`/
+  `unslotOrder` refuse it in one sentence (tooltip, click and reducer
+  alike, byte-identical); stacks to `rules.stack` 2; survives adoption
+  and re-seats; leaves at the next judgement if that stake is kept
+  (`untilAge`, compared, nothing ticks — Æra IV's stands); the eleventh
+  `liveEffects` source, credited "Malice · The Lean Years", classed with
+  the deck in the Ledger; `maliceSeated` in the occasion union; the
+  twelve sync-tested (§4's Broken Levies built as −50% toward units);
+  the Compendium gained the malice **and wager** shelves (G2's debt
+  paid). (ggg) **The bot's second pass**
   (the user, 2026-09-08: "do a pass on the bot considering all the changes
   we've made … squeeze as much performance as possible out of the bots …
   variables that are missing from its evaluation"): the audit is

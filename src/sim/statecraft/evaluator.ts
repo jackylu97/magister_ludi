@@ -2,7 +2,7 @@
  * **The evaluator** — the one switch on `CardEffect.kind`, and every reader
  * that filters its walk.
  *
- * `liveEffects` is the walk: the ten sources a seat's law comes out of, folded
+ * `liveEffects` is the walk: the eleven sources a seat's law comes out of, folded
  * once and remembered on `state.revision` (`liveReading`). Every reader below
  * filters it and returns a **labelled list**; every consumer folds that list
  * into a breakdown it already had — rule 5 read at the scale of a card. Nothing
@@ -146,6 +146,7 @@ import {
 } from '../statecraftData';
 import { type TerrainId, isWaterTerrain } from '../terrainData';
 import { type BeadGrantId, anyBeadDef, isBeadCardId } from '../beadData';
+import { isMaliceId, maliceDef } from '../maliceData';
 import { beadCapEffects } from '../beads';
 import {
   type AbilityId,
@@ -198,6 +199,15 @@ const CLASS_WORD = {
   religion: 'Religion',
   bead: 'Bead',
   tech: 'Technology',
+  /**
+   * **The malice** (batch G3, `docs/wager.md` §4) — a card a missed wager seats
+   * in one of your own chairs. One word, like every other class, because the
+   * whole design of the thing is that it is an Order with a bad face: the Ledger
+   * prints "Malice · The Lean Years" beside "Order · Silk Roads" and the reader
+   * needs no second vocabulary to know which is which. The *red* is the screen's
+   * business; the class is this table's.
+   */
+  malice: 'Malice',
   /**
    * The Cathedral's patron (Entry LV). It is prefixed with the building's own
    * name on the line — "Cathedral · The Choir Loft" — because a player reading a
@@ -260,6 +270,15 @@ function readCardDef(id: CardId): CardDefBase {
   // one id space.
   if (isConsecrationId(id)) return consecrationDef(id);
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
+  // The **eleventh** class (batch G3): a malice. It is already written in this
+  // vocabulary on its own row, so the adaptation is one field — the row's `note`
+  // is its plain-words sentence, exactly as a technology's is — and the arm
+  // exists so that a breakdown line carrying a malice id resolves to a name and
+  // a `describeCard` like every other line.
+  if (isMaliceId(id)) {
+    const def = maliceDef(id);
+    return { name: def.name, flavor: def.flavor, effects: def.effects, note: def.note };
+  }
   // The **seventh** class, and the one that walks: a great person's legacy is a
   // list of effects in this vocabulary on a row of another table
   // (`greatPeopleData.ts`), adapted into the card shape here rather than copied
@@ -495,7 +514,9 @@ export function forgetTheLaw(state: GameState): void {
 /**
  * Every effect currently reaching this empire, in one fixed order: the
  * government's signature, then its Doctrines in the order they were taken, then
- * the slotted Orders in **slot order**, then the pantheon's beliefs, then the
+ * the slotted Orders in **slot order**, then the malices seated among them
+ * (batch G3 — beside the chairs, for the reason the source itself states), then
+ * the pantheon's beliefs, then the
  * wonders this empire's cities hold, then the legacies of the great people it
  * has spent, then what it is carrying that runs out, then the caps its beads
  * pay, then **the technologies it holds** (the tenth source, the tree pass of
@@ -523,7 +544,7 @@ export function liveEffects(state: GameState, playerId: number): readonly LiveCa
 
 /**
  * The walk itself, once. Everything above this line is the memo's bookkeeping;
- * everything below it is the ten sources, in the order the docblock names them.
+ * everything below it is the eleven sources, in the order the docblock names them.
  *
  * It keeps no notebook. Until batch E3a it threaded an `asked` record of every
  * empire condition it consulted out to `liveReading`, which re-asked exactly
@@ -554,6 +575,22 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
     // level — is gone with the ladder, and so is the only line in the whole
     // evaluator that knew a holding could differ from a card.
     push(slot.card, CLASS_WORD.order, orderDef(slot.card).effects);
+  }
+  // **The eleventh source** (batch G3, `docs/wager.md` §4): the malices a missed
+  // wager seated in this realm's chairs. Read off `Player.malices` in seating
+  // order, which is the order they were dealt.
+  //
+  // It is here, immediately after the Orders and not at the foot of the walk
+  // where every later source was added, and that is the one place this file
+  // departs from "each source last in turn". The reason is the chairs: a malice
+  // *occupies* one, the ledger beside it is a column of chairs, and a line
+  // printed forty rows below the council it sits in would divorce the punishment
+  // from the thing it costs. The order still never reshuffles itself — a malice
+  // arrives at a judgement and leaves at one, and nothing moves it in between.
+  const holder = playerById(state, playerId);
+  for (const held of holder?.malices ?? []) {
+    if (!isMaliceId(held.id)) continue;
+    push(held.id, CLASS_WORD.malice, maliceDef(held.id).effects);
   }
   // **The fourth source** (ledger Entry XXVIII), and the whole of what religion
   // adds to this walk: a pantheon belief is a card of this vocabulary, held

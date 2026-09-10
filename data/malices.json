@@ -1,0 +1,174 @@
+{
+  "rules": {
+    "stack": 2
+  },
+  "malices": {
+    "leanYears": {
+      "name": "The Lean Years",
+      "chair": "economic",
+      "voice": "economic",
+      "flavor": "The granary door swings on an empty room.",
+      "note": "Every one of your cities feeds itself worse while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "food": -1
+        }
+      ]
+    },
+    "idleHands": {
+      "name": "The Idle Hands",
+      "chair": "economic",
+      "voice": "economic",
+      "flavor": "The scaffold stands; nobody climbs it.",
+      "note": "Every one of your cities builds more slowly while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": -10
+        }
+      ]
+    },
+    "debasedCoin": {
+      "name": "The Debased Coin",
+      "chair": "economic",
+      "voice": "economic",
+      "flavor": "The same face, and less silver behind it.",
+      "note": "Every one of your cities pays the treasury less while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "gold": -2
+        }
+      ]
+    },
+    "closedSchools": {
+      "name": "The Closed Schools",
+      "chair": "wildcard",
+      "voice": "science",
+      "flavor": "The benches are swept and the door is barred.",
+      "note": "Every one of your cities learns more slowly while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": -10
+        }
+      ]
+    },
+    "silentChoirs": {
+      "name": "The Silent Choirs",
+      "chair": "wildcard",
+      "voice": "culture",
+      "flavor": "A hall built for singing, and nobody sings.",
+      "note": "Every one of your cities makes less culture while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "culture",
+          "percent": -10
+        }
+      ]
+    },
+    "doubtingFlock": {
+      "name": "The Doubting Flock",
+      "chair": "wildcard",
+      "voice": "culture",
+      "flavor": "They keep the feast days and forget the reason.",
+      "note": "Your holy site presses its faith on the world more weakly while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "pressureRule",
+          "rule": "siteStrength",
+          "delta": -3
+        }
+      ]
+    },
+    "restlessCities": {
+      "name": "The Restless Cities",
+      "chair": "wildcard",
+      "voice": "economic",
+      "flavor": "The crowd has not decided what it wants yet.",
+      "note": "Every one of your cities is less content while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "happiness",
+          "amount": -1,
+          "per": "city"
+        }
+      ]
+    },
+    "thinRanks": {
+      "name": "The Thin Ranks",
+      "chair": "military",
+      "voice": "domination",
+      "flavor": "The line is as long as it was, and thinner.",
+      "note": "Every one of your units fights worse, attacking and defending alike, while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": -1,
+          "when": {
+            "test": "always"
+          },
+          "side": "both"
+        }
+      ]
+    },
+    "deserters": {
+      "name": "The Deserters",
+      "chair": "military",
+      "voice": "domination",
+      "flavor": "Paid twice over, and half of them gone by morning.",
+      "note": "Every unit you already pay for costs the treasury more each turn while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "upkeepSurcharge",
+          "amount": 1
+        }
+      ]
+    },
+    "brokenLevies": {
+      "name": "The Broken Levies",
+      "chair": "military",
+      "voice": "domination",
+      "flavor": "The muster roll is read out to an empty square.",
+      "note": "Every one of your cities builds soldiers more slowly while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "productionBonus",
+          "category": "unit",
+          "percent": -50
+        }
+      ]
+    },
+    "shortDraft": {
+      "name": "The Short Draft",
+      "chair": "wildcard",
+      "flavor": "The council meets, and one chair is empty.",
+      "note": "Your Order drafts deal you one card fewer while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "offerRider",
+          "offer": "order",
+          "extra": -1
+        }
+      ]
+    },
+    "heavyWrit": {
+      "name": "The Heavy Writ",
+      "chair": "wildcard",
+      "flavor": "Every clerk holds a seal, and none of them the pen.",
+      "note": "Your realm may govern less than it could while this sits in a chair.",
+      "effects": [
+        {
+          "kind": "authority",
+          "amount": -2
+        }
+      ]
+    }
+  }
+}

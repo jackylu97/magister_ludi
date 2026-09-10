@@ -673,8 +673,33 @@ import {
  * A v103 log does not replay under it, for GP1's reason and not for this
  * field's: a seat loaded from an older log simply starts its ledger at nought,
  * which is the honest reading of a record nobody was keeping.
+ *
+ * v105: **the malice deck** (batch G3, `docs/wager.md` §4; the user,
+ * 2026-09-08: *"the malice be a card that must remain slotted in your government
+ * with a malice effect"*). The half of the wager G2 recorded and did not pay is
+ * built: at an age's judgement a seat whose staked bar went unmet is dealt a
+ * card from `data/malices.json` by `state.rng`, never one it already holds, and
+ * the world **seats** it — in the last chair of its flavour, turning whatever
+ * Order sat there out into the hand with its seal broken and nothing refunded;
+ * in a wildcard chair where the realm has none of that flavour; and, where a
+ * realm has no chair at all, in a ninth chair nobody has, paying its effect all
+ * the same (`HeldMalice.chair` absent). It cannot be unslotted — `slotOrder` and
+ * `unslotOrder` refuse the chair in one plain sentence each — it stacks to
+ * `rules.stack` (two, a third replacing the oldest), it survives an adoption and
+ * re-seats itself into the new spread, and it leaves at the next age's judgement
+ * if that age's stake is kept. A held malice is `liveEffects`' **eleventh**
+ * source, credited to itself by name in every ledger it reaches, and `CardId`
+ * gains its eleventh class. New state: `HeldMalice.chair`, and `Player.malices`
+ * — declared by G2 and written by nothing — now written. A new announced
+ * occasion, `maliceSeated`, joins the union.
+ *
+ * A v104 log does not replay. The judgement now spends a roll of `state.rng` for
+ * every seat that missed its bar, so the first missed wager in a game moves
+ * every draw after it; and from that turn the seat is paying an effect it was
+ * not paying before, which moves its yields, its research and everything priced
+ * against them.
  */
-export const SCHEMA_VERSION = 104;
+export const SCHEMA_VERSION = 105;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1350,12 +1375,13 @@ export interface Player {
    */
   pendingMalices: PendingMalice[];
   /**
-   * The malices seated in this realm's chairs, each until the age it names.
+   * The malices seated in this realm's chairs, each until the age it names —
+   * **in seating order**, which is the order they were dealt (batch G3).
    *
-   * Empty in this build and written by nothing — **batch G3** owns the deck, the
-   * draw and the chair rule (§4). It is declared here because the judgement that
-   * fills it is built and a save written by this batch must already have a shape
-   * for what the next one puts in it.
+   * At most `MALICE_RULES.stack` of them (§4: two); a third failure replaces the
+   * oldest rather than adding, which is why this is a list and the order is part
+   * of the state. It is written in exactly two places — the judgement's seating
+   * and an adoption's re-seating — and read as `liveEffects`' eleventh source.
    */
   malices: HeldMalice[];
 }
@@ -1376,12 +1402,48 @@ export interface PendingMalice {
   wager: string;
 }
 
-/** A malice seated in a chair. Written by nothing until batch G3. */
+/**
+ * A malice seated in a chair (batch G3, `docs/wager.md` §4).
+ *
+ * Written by the judgement (`seatPendingMalices`, `wagers.ts`) and re-written by
+ * an adoption (`reseatMalices`, `statecraft/draft.ts`), and by nothing else.
+ */
 export interface HeldMalice {
   /** The row in `data/malices.json`. */
   id: string;
-  /** The age it leaves at the judgement of. Absolute, never a countdown. */
+  /**
+   * **The age it leaves at the judgement of.** Absolute, never a countdown —
+   * `TimedEffect`'s discipline and `SlottedOrder.sealedUntil`'s, one system over.
+   *
+   * §4's term is *"until the next age's wager is judged"*, so this is the age
+   * after the one that seated it: a seat that keeps that age's bar sheds every
+   * malice this far along, and a seat that misses again re-stamps its survivors
+   * to the age after *that*. Nothing ticks; the judgement compares.
+   *
+   * The last wagering age is the one that never comes round: a malice taken at
+   * Æra IV's judgement names an age the world never judges, so it stands for the
+   * rest of the game — which is what it should be, since there is no next wager
+   * to work it off against.
+   */
   untilAge: number;
+  /**
+   * **Which chair it occupies**, an index into `PlayerStatecraft.slots` — or
+   * **absent**, which is the ninth chair nobody has.
+   *
+   * §4: a realm with no chair of the malice's flavour takes it in a wildcard, and
+   * a realm with no chair at all *still takes it* — the malice is never refused.
+   * So absence is a real state and it means exactly one thing: the punishment is
+   * paid in full and no Order was displaced, because there was nothing to
+   * displace. The slots array is **not** grown for it; a government's spread is a
+   * fact about the government, and a longer array would be a chair the player
+   * could one day put an Order in.
+   *
+   * The chair a malice holds is stored rather than derived because it is a
+   * *placement*: the same malice re-seated after an adoption may land somewhere
+   * else, and a screen that recomputed it per repaint would disagree with the
+   * reducer's refusal on the turn a spread changed.
+   */
+  chair?: number;
 }
 
 /**

@@ -771,7 +771,13 @@ describe('the research queue field', () => {
     // 103 is batch B7's (2026-09-09, item (kkk)): crowding removed — a town's
     // demand is linear in its citizens, so a v102 log's happiness differs from
     // the turn its first town passes the old threshold.
-    expect(SCHEMA_VERSION).toBe(104);
+    // 105 is batch G3's (2026-09-09, `docs/wager.md` §4): the malice deck — a
+    // missed wager seats a card in one of the realm's own chairs, drawn from
+    // `data/malices.json`, never unslottable, stacking to two, surviving an
+    // adoption and leaving when the next age's bar is kept. A v104 log does not
+    // replay: the judgement rolls for every seat that missed, so the first
+    // missed wager moves every draw after it.
+    expect(SCHEMA_VERSION).toBe(105);
   });
 });
 

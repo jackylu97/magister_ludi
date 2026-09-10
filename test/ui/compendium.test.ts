@@ -44,6 +44,8 @@ import { DOCTRINE_IDS, ORDER_IDS } from '../../src/sim/statecraftData';
 import { newGame } from '../../src/sim/state';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
+import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
+import { WAGER_IDS, wagerDef } from '../../src/sim/wagerData';
 import {
   BEAD_DECK_AGES,
   BEAD_ENDEAVOUR_IDS,
@@ -132,6 +134,8 @@ describe('the shelves', () => {
     expect(shelf('rite').entries).toHaveLength(RITE_IDS.length + LEAD);
     expect(shelf('greatPerson').entries).toHaveLength(GREAT_PERSON_IDS.length + LEAD);
     expect(shelf('triumph').entries).toHaveLength(TRIUMPH_IDS.length + LEAD);
+    expect(shelf('wager').entries).toHaveLength(WAGER_IDS.length + LEAD);
+    expect(shelf('malice').entries).toHaveLength(MALICE_IDS.length + LEAD);
 
     // Buildings and wonders come off **one** table and are two shelves: a
     // wonder is a flag on a building row, not a second roster, so the two
@@ -190,14 +194,18 @@ describe('the shelves', () => {
     }
   });
 
-  it('has eighteen of them, every one with something on it', () => {
+  it('has twenty of them, every one with something on it', () => {
     // The index the brief names, plus the Bead Race's — the seventeenth, added
     // with the win condition — plus **Rules**, the eighteenth (batch L1,
     // `docs/audit/legibility.md` §2): the page a technology's named rule points
     // at when its rules will not fit on a node. A shelf that came back empty
     // would be a section heading a reader clicks and learns nothing from, which
     // is what pins the Rules shelf to having a node over the bar.
-    expect(BOOK).toHaveLength(18);
+    // Twenty since batch G3 (`docs/wager.md` §4/§8): **The Wager** and
+    // **Malices**, the two data tables that were walked by no shelf. The deck
+    // was owed one from G2 — every other table in the game has a shelf — and the
+    // malice's arrives with it, which is what made the two one pass.
+    expect(BOOK).toHaveLength(20);
     for (const section of BOOK) {
       expect(section.name.length, section.id).toBeGreaterThan(0);
       expect(section.entries.length, section.id).toBeGreaterThan(0);
@@ -679,6 +687,48 @@ describe('the Bead Race shelf', () => {
     for (const id of BEAD_QUEST_IDS) {
       const entry = shelf.entries.find((one) => one.id === `bead:${id}`)!;
       expect(entry.clauses[0]!.text, id).toBe(beadQuestDef(id).text);
+    }
+  });
+});
+
+/**
+ * **The two shelves batch G3 added** (`docs/wager.md` §4/§8).
+ *
+ * The wager deck was owed a shelf from G2 — every other data table in the game
+ * has one — and the malice deck's arrives beside it. Both are generated: the
+ * sentence on a card is the row's own `note`, and a malice's clauses come out of
+ * the same `describeCard` the chair's hover and the Ledger's line do.
+ */
+describe('the wager and malice shelves', () => {
+  it('lists every row of both decks at a stable anchor', () => {
+    const wagers = BOOK.find((section) => section.id === 'wager')!;
+    expect(wagers.name).toBe('The Wager');
+    expect(wagers.entries[0]!.id).toBe('wager:about');
+    for (const id of WAGER_IDS) {
+      const entry = wagers.entries.find((one) => one.id === `wager:${id}`);
+      expect(entry, id).toBeDefined();
+      expect(entry!.name, id).toBe(wagerDef(id).name);
+      expect(entry!.clauses[0]!.text, id).toBe(wagerDef(id).note);
+    }
+    const malices = BOOK.find((section) => section.id === 'malice')!;
+    expect(malices.name).toBe('Malices');
+    expect(malices.entries[0]!.id).toBe('malice:about');
+    for (const id of MALICE_IDS) {
+      const entry = malices.entries.find((one) => one.id === `malice:${id}`);
+      expect(entry, id).toBeDefined();
+      expect(entry!.name, id).toBe(maliceDef(id).name);
+      // The row's plain sentence leads, and the card's own effects follow it.
+      expect(entry!.clauses[0]!.text, id).toBe(maliceDef(id).note);
+      expect(entry!.clauses.length, id).toBeGreaterThan(1);
+      expect(entry!.flavor, id).toBe(maliceDef(id).flavor);
+    }
+  });
+
+  it('says on every malice which chair it takes', () => {
+    const malices = BOOK.find((section) => section.id === 'malice')!;
+    for (const id of MALICE_IDS) {
+      const entry = malices.entries.find((one) => one.id === `malice:${id}`)!;
+      expect(entry.eyebrow, id).toContain(maliceDef(id).chair);
     }
   });
 });

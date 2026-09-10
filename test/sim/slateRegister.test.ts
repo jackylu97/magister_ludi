@@ -205,6 +205,9 @@ const ANNOUNCING = new Set([
   'greatPeople.ts#chargeBank',
   'empire.ts#collectYields',
   'draft.ts#settleDraft',
+  // G3: a malice turning an Order out of its chair — the chairs the third
+  // source reads and the eleventh source itself both moved.
+  'draft.ts#seatMalice',
   'discoveries.ts#payDiscovery',
   'diplomacy.ts#payLump',
   'cities.ts#refundBeatenWonders',

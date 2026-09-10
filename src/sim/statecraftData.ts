@@ -61,6 +61,12 @@ import type { TerrainId } from './terrainData';
 // are: a technology's row carries ordinary `CardEffect`s and a tech id is a
 // `CardId`, and a *value* import either way would turn a type cycle into a
 // runtime one. See `CardId`'s tenth class.
+// Type-only in both directions for `techData.ts`'s reason exactly: a malice's
+// row carries ordinary `CardEffect`s and a malice id is a `CardId`, while
+// `maliceData.ts` reads `SlotType` and the effect union off this file. A *value*
+// import back the other way would turn a type cycle into a runtime one. See
+// `CardId`'s eleventh class.
+import type { MaliceId } from './maliceData';
 import type { AbilityId, TechAge, TechId } from './techData';
 import type { ModelClass, UnitCategory, UnitStamp, UnitTypeId } from './unitData';
 
@@ -135,7 +141,15 @@ export type CardId =
   // is topped out and is then a fact about that town. Like a wonder, a bead and
   // a technology it is never drafted and never slotted. Ids stay unique across
   // the whole table.
-  | ConsecrationId;
+  | ConsecrationId
+  // **Eleven classes since the wager** (batch G3, `docs/wager.md` §4), and the
+  // eleventh is the only one a player would rather not have: a *malice* is dealt
+  // to a realm that missed the bar it staked, seated in one of its own chairs by
+  // the world, and paid through this evaluator like every other card. It is the
+  // second class that is never drafted and *is* slotted — which is exactly why
+  // it is a class rather than a flag on an Order row (`maliceData.ts`'s
+  // docblock). Ids stay unique across the whole table.
+  | MaliceId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted

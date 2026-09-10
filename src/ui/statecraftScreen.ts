@@ -140,9 +140,12 @@ import {
   describeCard,
   draftCost,
   liveEffects,
+  maliceAt,
+  maliceChairRefusal,
   nextDraftCost,
   sealRemaining,
 } from '../sim/statecraft';
+import { maliceDef } from '../sim/maliceData';
 import {
   type CardDefBase,
   type CardEffect,
@@ -594,6 +597,16 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     const sc = playerById(state, seat)?.statecraft;
     if (!sc) return;
     const arrangement = ensureStaging(sc, seat);
+    // **A chair a malice holds answers even when the hand is empty** (batch G3).
+    // The staged arrangement says the chair is null, so without this a click on
+    // one would do nothing at all and the player would be left guessing why. The
+    // sentence is the reducer's, like every other refusal on this screen.
+    const player = playerById(state, seat);
+    const malice = player === undefined ? null : maliceAt(player, index);
+    if (malice !== null) {
+      options.onRefuse?.(maliceChairRefusal(index, malice));
+      return;
+    }
     if (arrangement[index]) {
       const problem = removeError(state, seat, arrangement, index);
       if (problem !== null) {
@@ -710,6 +723,9 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
   ): HTMLElement {
     const block = element('section', 'sc-slots');
     const layout = slotLayout(sc.government);
+    // The seat itself, for the one thing that is not in the statecraft record: a
+    // malice holds a chair from `Player.malices` (batch G3, `maliceAt`).
+    const player = playerById(state, seat);
     block.append(element('p', 'eyebrow sc-eyebrow', `${layout.length} slots`));
     const row = element('div', 'sc-slot-row');
     // Whether the *position* of an office is a fact anything reads. See
@@ -721,6 +737,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     // office and the column and the sim agree without either being told.
     layout.forEach((type, index) => {
       const filled = arrangement[index] ?? null;
+      // **The chair a malice holds** (batch G3, `docs/wager.md` §4). It is asked
+      // of the *live* seat rather than of the arrangement, because nothing this
+      // session does can move one: a malice is not staged, not slotted and not
+      // unslottable, so the staging layer has nothing to say about it.
+      const malice = player === undefined ? null : maliceAt(player, index);
       const button = document.createElement('button');
       button.type = 'button';
       button.className = `sc-slot sc-slot-${type}`;
@@ -742,7 +763,21 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
       if (positions) {
         text.append(element('span', 'sc-slot-position', slotPositionWord(layout, index)));
       }
-      if (filled) {
+      if (malice !== null) {
+        // **The bad face.** A chair a malice holds is not empty and is not
+        // takeable: it is drawn struck through in vermilion, wears the malice's
+        // own name, and says in the reducer's own sentence why it will not move
+        // (`maliceChairRefusal` — the tooltip and the rejection are one string,
+        // which is this screen's oldest promise).
+        button.classList.add('sc-slot-malice');
+        button.dataset.line = 'none';
+        text.append(element('span', 'sc-slot-card', maliceDef(malice).name));
+        button.append(text);
+        const stamp = element('span', 'sc-slot-struck', '\u2715');
+        stamp.setAttribute('aria-hidden', 'true');
+        button.append(stamp);
+        button.title = `${maliceChairRefusal(index, malice)} \u2014 ${maliceDef(malice).note}`;
+      } else if (filled) {
         // A slotted card keeps its own accent, so the column of offices is the
         // same hand of colours the collection beside it is.
         button.dataset.line = isOrderId(filled.card) ? lineOf(orderDef(filled.card)) : 'none';

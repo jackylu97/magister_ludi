@@ -21,9 +21,10 @@ import {
 } from '../yields/town';
 import {
 } from '../yields/empire';
+import { type MaliceId, MALICE_IDS, MALICE_RULES, isMaliceId, maliceDef } from '../maliceData';
 import { nextFloat } from '../rng';
 import { RULES } from '../rulesData';
-import { type GameState, type Player, playerById, realPlayers } from '../state';
+import { type GameState, type HeldMalice, type Player, playerById, realPlayers } from '../state';
 import {
   type DoctrineId,
   type GovernmentId,
@@ -1238,6 +1239,13 @@ export function slotOrderError(
   if (isSlotted(sc, cardId)) return `${orderDef(cardId).name} is already slotted`;
   const held = sc.slots[index];
   if (held) return `Slot ${index + 1} already holds ${orderDef(held.card).name}`;
+  // **The chair a malice sits in is not empty**, whatever the slots array says
+  // (batch G3). It is asked here rather than left to the `held` line above
+  // because a malice is not a `SlottedOrder` — it holds the chair from
+  // `Player.malices` — and a refusal that said "slot 3 is empty" would be the
+  // reducer contradicting the screen.
+  const malice = maliceAt(player, index);
+  if (malice !== null) return maliceChairRefusal(index, malice);
   const type = layout[index]!;
   if (!orderFitsSlot(cardId, type)) {
     return `${orderDef(cardId).name} is ${SLOT_WORDS[orderDef(cardId).slot]} and slot ${
@@ -1337,6 +1345,11 @@ export function unslotOrderError(
   if (index < 0 || index >= sc.slots.length) {
     return `${governmentDef(sc.government).name} has ${sc.slots.length} slot(s), not ${index + 1}`;
   }
+  // **A malice is never taken out** (§4) — the whole of the punishment is that
+  // it holds the chair. Asked before the emptiness check for `slotOrderError`'s
+  // reason: the slots array says the chair is empty and it is not.
+  const malice = maliceAt(player, index);
+  if (malice !== null) return maliceChairRefusal(index, malice);
   const slot = sc.slots[index];
   if (!slot) return `Slot ${index + 1} is empty`;
   const left = sealRemaining(state, slot);
@@ -1352,6 +1365,205 @@ export function unslotOrderAt(player: Player, slotIndex: number): OrderId | null
   if (!slot) return null;
   player.statecraft.slots[slotIndex] = null;
   return slot.card;
+}
+
+// --- the malice's chair -----------------------------------------------------
+
+/**
+ * **The seating rule** (`docs/wager.md` §4, batch G3), and it lives here rather
+ * than in `wagers.ts` for one reason: it is a rule about *chairs*, and the chairs
+ * are this file's. The wager decides who is punished; this decides where the
+ * punishment sits.
+ *
+ * A malice is an Order with a bad face — it holds a chair, it pays its effect
+ * through `liveEffects` like the Order beside it, and it cannot be moved. What
+ * differs is every verb: nobody drafts one, nobody slots one, nobody takes one
+ * out. So the state it lives in is `Player.malices` rather than
+ * `PlayerStatecraft.slots`, and the chair it occupies is an index recorded on
+ * the held row (`HeldMalice.chair`). Two readings follow from that and they are
+ * the whole interface: `maliceAt` says which chair is taken, and the two slot
+ * evaluators refuse it in one sentence.
+ *
+ * Why not a `SlottedOrder` with a malice id in it? Because `SlottedOrder.card`
+ * is an `OrderId` in a dozen readings — the bot's appraisal, the position cards,
+ * the staging layer, the screen's collection — and every one of them would have
+ * had to learn that a chair might hold something that is not an Order. A chair
+ * that is *taken* by something outside the array is one new question asked in
+ * three places, which is the smaller change and the honest one.
+ */
+
+/** The malice sitting in this chair, or `null`. The one occupancy reading. */
+export function maliceAt(player: Player, slotIndex: number): MaliceId | null {
+  for (const held of player.malices) {
+    if (held.chair !== slotIndex) continue;
+    if (!isMaliceId(held.id)) continue;
+    return held.id;
+  }
+  return null;
+}
+
+/** Every malice this realm carries, in seating order, ids only. */
+export function malicesHeld(player: Player): MaliceId[] {
+  return player.malices.map((held) => held.id).filter(isMaliceId);
+}
+
+/** The refusal both slot verbs answer with. One sentence, one voice. */
+export function maliceChairRefusal(slotIndex: number, malice: MaliceId): string {
+  return `${maliceDef(malice).name} holds slot ${slotIndex + 1} and cannot be moved`;
+}
+
+/**
+ * **Which chair a malice of this flavour takes** — the last one of its own
+ * flavour, else the last wildcard, else nothing (§4).
+ *
+ * *Last* rather than first, and that is the rule the worksheet states: a player
+ * arranges the chairs top-down and the position cards read the first of a
+ * flavour, so taking the last does the least damage to an arrangement somebody
+ * built on purpose. It still displaces whatever Order is sitting there — the
+ * chair is what the punishment costs.
+ *
+ * A chair another malice already holds is not free: two malices are two chairs.
+ * `null` is the ninth chair nobody has — see `HeldMalice.chair`.
+ */
+export function maliceChairFor(player: Player, chair: SlotType): number | null {
+  const layout = slotTypesOf(player.statecraft);
+  for (let index = layout.length - 1; index >= 0; index--) {
+    if (layout[index] !== chair) continue;
+    if (maliceAt(player, index) !== null) continue;
+    return index;
+  }
+  // No chair of that flavour, or every one of them already carries a malice: a
+  // wildcard takes anything, which is the same clause that makes a wildcard
+  // chair worth what it is worth to an Order.
+  for (let index = layout.length - 1; index >= 0; index--) {
+    if (layout[index] !== 'wildcard') continue;
+    if (maliceAt(player, index) !== null) continue;
+    return index;
+  }
+  return null;
+}
+
+/** What seating one did, for the announcement and the screens it re-opens. */
+export interface MaliceSeating {
+  id: MaliceId;
+  /** The chair it took, or `null` for the ninth chair nobody has. */
+  chair: number | null;
+  /** The Order it turned out into the hand, or `null`. Its seal is broken. */
+  displaced: OrderId | null;
+  /** The older malice this one replaced at the stacking cap, or `null`. */
+  replaced: MaliceId | null;
+}
+
+/**
+ * Seats one malice, displacing whatever sits in the chair it takes. Validates
+ * nothing — the *whether* is the judgement's.
+ *
+ * The displaced Order goes back to the collection unsealed and **nothing is
+ * refunded**, which is the ruling word for word: nothing was spent to slot it,
+ * so there is nothing to give back. The seal is simply gone, which means the
+ * player may put the card somewhere else this turn — the only mercy in the rule
+ * and a deliberate one, since a spread wrecked by a card that cannot move is a
+ * spread the player cannot answer.
+ */
+function seatMalice(state: GameState, player: Player, id: MaliceId, untilAge: number): MaliceSeating {
+  const chair = maliceChairFor(player, maliceDef(id).chair);
+  let displaced: OrderId | null = null;
+  if (chair !== null) {
+    const sitting = player.statecraft.slots[chair];
+    if (sitting) {
+      displaced = sitting.card;
+      player.statecraft.slots[chair] = null;
+    }
+  }
+  const held: HeldMalice = { id, untilAge };
+  if (chair !== null) held.chair = chair;
+  player.malices.push(held);
+  // The eleventh source of `liveEffects` just changed, and so did the chairs the
+  // third source is read out of — the same sentence `slotOrderAt` says to the
+  // slate, said for a card nobody chose.
+  bumpEconomy(state);
+  return { id, chair, displaced, replaced: null };
+}
+
+/**
+ * **Deals this realm one malice and seats it** — the judgement's whole payment
+ * (§4, called from `seatPendingMalices` in `wagers.ts`).
+ *
+ * Four rules in one call, in the order they are:
+ *
+ *   1. **the draw**, from `state.rng` over the deck minus everything this seat
+ *      already carries — *"a seat never holds two copies of the same malice"*.
+ *      Asked before the eviction below, deliberately: a card just worked off is
+ *      not a card the same judgement may deal straight back;
+ *   2. **the cap** (`rules.stack`, two): a third failure **replaces the oldest**
+ *      rather than adding, so the punishment has a ceiling a player can see and
+ *      the comeback is never arithmetically out of reach;
+ *   3. **the renewal**: whatever survives is re-stamped to the age this new one
+ *      names, because a seat that missed again has not worked anything off;
+ *   4. **the seating**, `seatMalice` above.
+ *
+ * `null` only when the deck is exhausted — twelve rows against a cap of two, so
+ * unreachable while the table has more rows than the cap, and an honest answer
+ * rather than a throw if a designer ever cuts it to one.
+ */
+export function takeMalice(state: GameState, player: Player, untilAge: number): MaliceSeating | null {
+  const candidates = MALICE_IDS.filter((id) => !player.malices.some((held) => held.id === id));
+  const [drawn] = drawWithoutReplacement(state, candidates, 1);
+  if (drawn === undefined) return null;
+
+  let replaced: MaliceId | null = null;
+  const cap = Math.max(1, Math.floor(MALICE_RULES.stack));
+  while (player.malices.length >= cap) {
+    const oldest = player.malices.shift();
+    if (oldest !== undefined && isMaliceId(oldest.id)) replaced = oldest.id;
+  }
+  for (const held of player.malices) held.untilAge = untilAge;
+
+  return { ...seatMalice(state, player, drawn, untilAge), replaced };
+}
+
+/**
+ * **Sheds every malice whose term is up** — the other half of §4's clause, and
+ * the reason the term is a stamp rather than a counter.
+ *
+ * Called at a judgement for a seat that **kept** what it staked: every malice
+ * naming this age or an earlier one leaves the chair. A seat that missed keeps
+ * its own through `takeMalice`'s renewal instead, so the two paths never both
+ * touch one row.
+ */
+export function shedMalices(state: GameState, player: Player, age: number): MaliceId[] {
+  const gone: MaliceId[] = [];
+  player.malices = player.malices.filter((held) => {
+    if (held.untilAge > age) return true;
+    if (isMaliceId(held.id)) gone.push(held.id);
+    return false;
+  });
+  if (gone.length > 0) bumpEconomy(state);
+  return gone;
+}
+
+/**
+ * **A malice survives an adoption and re-seats itself** (§4, ruled).
+ *
+ * The amnesty is total for *Orders* — a new spread with the old cards pinned in
+ * it would be a spread the player cannot use — and it is deliberately not for
+ * this: the debt is owed to the next wager, not to the government that owed it,
+ * and a realm that could shed a malice by adopting would have found the cheapest
+ * comeback in the game.
+ *
+ * Every chair is forgotten first and then re-taken in seating order, because
+ * `maliceChairFor` reads the chairs already taken and a stale index from the old
+ * spread would either point at a chair that no longer exists or let two malices
+ * claim one. Called by `adoptGovernmentAt` after the array is rebuilt, and by
+ * nothing else.
+ */
+export function reseatMalices(player: Player): void {
+  for (const held of player.malices) delete held.chair;
+  for (const held of player.malices) {
+    if (!isMaliceId(held.id)) continue;
+    const chair = maliceChairFor(player, maliceDef(held.id).chair);
+    if (chair !== null) held.chair = chair;
+  }
 }
 
 // --- adoption ---------------------------------------------------------------
@@ -1441,6 +1653,10 @@ export function adoptGovernmentAt(
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.
   sc.slots = slotLayout(id).map(() => null);
+  // **The amnesty is for Orders and never for a malice** (§4): the debt is owed
+  // to the next wager rather than to the government that owed it, so every one
+  // this realm carries takes a chair in the new spread. See `reseatMalices`.
+  reseatMalices(player);
 
   // The Writ Extends. **Before** the Doctrine draw, so a triumph that fills the
   // renown ladder opens its great-person offer before this empire is handed a

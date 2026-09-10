@@ -112,6 +112,7 @@ import {
 import { describeResourceSignature } from '../sim/resourceEffects';
 import { RULES } from '../sim/rulesData';
 import {
+  SLOT_WORDS,
   describeBuildingRow,
   describeCard,
   describeFamilyVerb,
@@ -169,6 +170,17 @@ import {
   beadHandSize,
 } from '../sim/beadData';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
+import { MALICE_IDS, type MaliceId, maliceDef } from '../sim/maliceData';
+import {
+  WAGER_AGES,
+  WAGER_IDS,
+  type WagerId,
+  wagerAgeIndex,
+  wagerBar,
+  wagerDealtInAge,
+  wagerDef,
+} from '../sim/wagerData';
+import { WAGER_LINE_NAME } from './wagerSheet';
 import { describeBeadBoon } from '../sim/beads';
 import { AXIS_MARK, riteGrantWords } from './religionScreen';
 import { resourceMarkNode } from './resourceMark';
@@ -201,6 +213,13 @@ export type CompendiumSectionId =
   | 'greatPerson'
   | 'triumph'
   | 'bead'
+  // **The wager and the malice** (batch G3, `docs/wager.md` §4/§8). Two shelves
+  // rather than one, and the split is the same one the tables keep: a wager is a
+  // bar you stake on and a malice is what a missed bar seats in your council.
+  // The deck was owed a shelf from G2 — every other data table in the game has
+  // one — and the malice's arrives with it, which is what made the two one pass.
+  | 'wager'
+  | 'malice'
   | 'meter'
   | 'trade';
 
@@ -297,6 +316,8 @@ const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
   ['greatPerson', 'Great People'],
   ['triumph', 'Triumphs'],
   ['bead', 'The Bead Race'],
+  ['wager', 'The Wager'],
+  ['malice', 'Malices'],
   ['meter', 'The Meters'],
   ['trade', 'Trade'],
 ];
@@ -1610,6 +1631,73 @@ function beadEntries(): CompendiumEntry[] {
   ];
 }
 
+/**
+ * One card of the wager deck (batch G3; owed since G2, `docs/wager.md` §8).
+ *
+ * Every other data table in the game has a shelf and this one did not, which is
+ * the whole reason it is here — the rows already carry a `note` written for a
+ * reader and the bars are the balance. Nothing on the page is prose about a
+ * number: the sentence is the row's own, and the figures are the row's own,
+ * interpolated.
+ */
+function wagerEntry(id: WagerId): CompendiumEntry {
+  const def = wagerDef(id);
+  const family = BEAD_FAMILY_MARK[def.family];
+  const clauses: CompendiumClause[] = [{ text: def.note }];
+  for (const line of def.deferred ?? []) clauses.push({ text: line, deferred: true });
+  // A compound card's bar is *how many of its clauses hold at once*, so the ages
+  // carry the clauses' own figures rather than one number that would mean
+  // nothing on its own. Joined the way the worksheet joins them.
+  const barsAt = (age: number): string =>
+    def.reads.shape === 'clauses'
+      ? def.reads.clauses
+          .map((clause) => figure(clause.bars[wagerAgeIndex(age)] ?? 0))
+          .join(' · ')
+      : figure(wagerBar(id, age));
+  const rows: CompendiumRow[] = [{ label: 'Family', figures: family.word }];
+  for (const age of WAGER_AGES) {
+    if (!wagerDealtInAge(id, age)) continue;
+    rows.push({ label: `The bar in ${deckEraWord(age as never)}`, figures: barsAt(age) });
+  }
+  const kindWord = def.kind === 'flow' ? 'counted across the age' : 'read off the board';
+  return {
+    id: compendiumId('wager', id),
+    section: 'wager',
+    name: def.name,
+    eyebrow: `${WAGER_LINE_NAME[def.line]} · a bar ${kindWord}`,
+    mark: { kind: 'glyph', glyph: family.glyph },
+    rows,
+    clauses,
+    flavor: null,
+  };
+}
+
+/**
+ * One malice (batch G3, `docs/wager.md` §4).
+ *
+ * The row's `note` leads — what it does to your realm, in a first-time player's
+ * words — and the clauses under it are the card's own effects through
+ * `describeCard`, the same describer the chair's hover and the Ledger's line
+ * come out of. A malice is a card in every sense the vocabulary cares about, so
+ * its page is built exactly as an Order's is; what its eyebrow says instead of a
+ * pool is the chair it takes, because that is the half of the punishment the
+ * effect does not state.
+ */
+function maliceEntry(id: MaliceId): CompendiumEntry {
+  const def = maliceDef(id);
+  const clauses: CompendiumClause[] = [{ text: def.note }, ...cardClauses(id)];
+  return {
+    id: compendiumId('malice', id),
+    section: 'malice',
+    name: def.name,
+    eyebrow: `a malice, in ${withArticle(SLOT_WORDS[def.chair])} chair`,
+    mark: { kind: 'glyph', glyph: '✕' },
+    rows: [],
+    clauses,
+    flavor: def.flavor,
+  };
+}
+
 function meterEntries(): CompendiumEntry[] {
   const happiness = RULES.meters.happiness;
   const authority = RULES.meters.authority;
@@ -1892,6 +1980,11 @@ export function compendiumSections(): CompendiumSection[] {
   for (const id of GREAT_PERSON_IDS) push(greatPersonEntry(id));
   for (const id of TRIUMPH_IDS) push(triumphEntry(id));
   for (const entry of beadEntries()) push(entry);
+  // **The wager deck and the malice deck** (batch G3): the two tables that were
+  // walked by no shelf. In file order, like every other generated shelf, so the
+  // book's order is the data's own.
+  for (const id of WAGER_IDS) push(wagerEntry(id));
+  for (const id of MALICE_IDS) push(maliceEntry(id));
   for (const entry of meterEntries()) push(entry);
   for (const entry of tradeEntries()) push(entry);
 

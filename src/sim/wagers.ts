@@ -67,6 +67,7 @@ import { explainEmpireGold } from './empireGold';
 import { foldLedgerClass, ledgerBagOfCity, ledgerBagOfEmpire } from './ledgerFold';
 import { authorityOf, happinessOf } from './meters';
 import { readEmpire } from './readings';
+import { type MaliceSeating, shedMalices, takeMalice } from './statecraft';
 import { nextInt } from './rng';
 import {
   type GameState,
@@ -522,6 +523,14 @@ export interface WagerReport {
   wagerDealt?: number;
   /** Claims made this resolution, in sweep order. The Abacus flips on them. */
   wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
+  /**
+   * Malices seated at this resolution's judgement, in sweep order (batch G3).
+   *
+   * `wagerClaims`' opposite number and a **list** for its reason: any number of
+   * seats may miss on the one turn an age closes, and each of them is a card in
+   * a chair somebody has to be told about.
+   */
+  maliceSeatings?: MaliceSeated[];
 }
 
 /**
@@ -616,7 +625,8 @@ export function runWagers(state: GameState, report?: WagerReport): void {
     // the judgement reads the stakes the deal below is about to clear, and it
     // runs after the claims above so that a bar cleared on the very last turn of
     // an age is a bar kept rather than a malice.
-    judgeWagers(state, closing);
+    const seated = judgeWagers(state, closing, awards);
+    if (seated.length > 0 && report) report.maliceSeatings = seated;
     const deal = dealWagers(state, currentWorldAge(state));
     if (deal && report) report.wagerDealt = deal.age;
   }
@@ -644,26 +654,28 @@ function fillDefaultStake(state: GameState, player: Player, deal: WagerDeal): vo
 }
 
 /**
- * **The judgement** — and its whole job is one question (§3b).
+ * **The judgement** — one question asked of every seat, and then paid (§3b, §4).
  *
  * Every card a seat cleared was claimed and paid the turn it was cleared, so
- * nothing is owed here. What is left is the stake: a seat whose own card is
- * still unclaimed takes a **malice**, recorded as a `pendingMalice` on the seat.
+ * nothing is owed for a bar kept. What is left is the stake: a seat whose own
+ * card is still unclaimed takes a **malice**.
  *
- * The malice **deck** is batch G3's (`docs/wager.md` §4: a card that must remain
- * slotted, drawn from `data/malices.json`, taking the last chair of its flavour).
- * What this batch owes is that the judgement be *complete* — every failure
- * recorded, at the right moment, in the right order — so that G3 is a deck and a
- * chair rule and not a second judgement. Until it lands nothing is paid, which
- * is the honest half of a batch boundary rather than a rule quietly missing.
+ * Two beats, and the split is the batch boundary G2 left rather than an
+ * arrangement of convenience. The **mark** is written first — a
+ * `pendingMalice` per failure, append-only and age-stamped — and the **deck**
+ * then reads the marks and seats a card for each (`seatPendingMalices`). The
+ * mark is what a replay carries and what a screen may print; the card is what
+ * the realm pays. Keeping them two beats means the record of *who missed* is
+ * complete before a single die is rolled, which is what makes the seating order
+ * a fact about the roster rather than about the sweep.
  *
  * `judgedOn` is presence-is-state and is the one thing that stops an age being
  * judged twice, which matters on the last age: the Opus pulls the close forward
  * and the backstop would otherwise reach the same age a second time.
  */
-export function judgeWagers(state: GameState, age: number): void {
+export function judgeWagers(state: GameState, age: number, awards?: BeadAward[]): MaliceSeated[] {
   const deal = wagerDealOf(state, age);
-  if (!deal || deal.judgedOn !== undefined) return;
+  if (!deal || deal.judgedOn !== undefined) return [];
   deal.judgedOn = state.turn;
   for (const player of realPlayers(state)) {
     const staked = wagerStakeOf(player, age);
@@ -673,6 +685,72 @@ export function judgeWagers(state: GameState, age: number): void {
     if (id === undefined) continue;
     player.pendingMalices.push({ age, wager: id });
   }
+  return seatPendingMalices(state, age, awards);
+}
+
+/** One malice seated at a judgement — who took it, and what it cost them. */
+export interface MaliceSeated extends MaliceSeating {
+  playerId: number;
+}
+
+/**
+ * **The deck pays the marks** (`docs/wager.md` §4, batch G3).
+ *
+ * Walked in `realPlayers` order, so two seats that miss on the same turn always
+ * draw in the same order — a fact about the roster rather than about which sweep
+ * ran first, which is the tie-break every sweep in this game uses.
+ *
+ * Per seat, one of two things happens and never both:
+ *
+ *   · **it missed** — every mark left by this age's judgement is spent, one card
+ *     drawn and seated for each (`takeMalice`, which owns the chair rule, the
+ *     cap and the renewal of whatever it already carried);
+ *   · **it kept what it staked** — nothing is dealt, and every malice whose term
+ *     names this age or an earlier one **leaves the chair** (`shedMalices`).
+ *     *"The comeback is the point — a malice is a debt the next wager pays."*
+ *
+ * A seat that never staked at all falls in the second arm. That is deliberate
+ * rather than incidental: an age nobody could fail is an age that works a debt
+ * off, and the alternative — a debt outliving every wager it was ever set
+ * against — is a punishment with no door out of it. In practice the phase's own
+ * default gives every real seat a stake, so the arm is reached only by a table
+ * dealt and closed inside one turn.
+ *
+ * The marks are **cleared as they are seated**: `pendingMalices` is the handover
+ * between the two beats and nothing reads it afterwards. Older marks left by a
+ * save written before this batch are spent here too — they name an earlier age,
+ * and a debt recorded and never paid is the one thing a batch boundary must not
+ * leave behind.
+ */
+export function seatPendingMalices(
+  state: GameState,
+  age: number,
+  awards?: BeadAward[],
+): MaliceSeated[] {
+  const seated: MaliceSeated[] = [];
+  for (const player of realPlayers(state)) {
+    if (player.pendingMalices.length === 0) {
+      shedMalices(state, player, age);
+      continue;
+    }
+    const marks = player.pendingMalices.length;
+    player.pendingMalices = [];
+    for (let mark = 0; mark < marks; mark += 1) {
+      // **The term**: until the next age's wager is judged (§4). One age on,
+      // which is an absolute stamp the next judgement compares against — never a
+      // countdown, and never a number anything ticks. Æra IV's judgement names
+      // an age the world never reaches, so a malice taken there stands.
+      const taken = takeMalice(state, player, age + 1);
+      if (taken === null) continue;
+      seated.push({ ...taken, playerId: player.id });
+      // **Announced** (`occasions.ts`), like the claim it is the opposite of: the
+      // deed sheet and the Abacus both want a moment to flip on, and a deed may
+      // one day name it.
+      if (awards) awards.push(...awardBeadOccasion(state, player.id, 'maliceSeated'));
+      else awardBeadOccasion(state, player.id, 'maliceSeated');
+    }
+  }
+  return seated;
 }
 
 // --- what a screen asks -----------------------------------------------------

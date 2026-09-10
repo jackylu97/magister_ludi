@@ -551,6 +551,17 @@ nothing ticks and nothing resets.
 
 ## 4. The malice
 
+**BUILT — batch G3, schema 105** (2026-09-09). The whole of this section is
+code: `data/malices.json` (the twelve rows below), `src/sim/maliceData.ts` (the
+deck), the seating rules in `src/sim/statecraft/draft.ts` (`maliceAt`,
+`maliceChairFor`, `takeMalice`, `shedMalices`, `reseatMalices`), the judgement's
+second beat in `src/sim/wagers.ts` (`seatPendingMalices`), a held malice as
+`liveEffects`' **eleventh** source, `CardId`'s eleventh class, the `maliceSeated`
+occasion, the chair on the Statecraft screen and the Compendium's two new
+shelves — the malices *and* the wager deck G2 left unwalked (§8's owed item).
+`test/sim/malices.test.ts` and `test/sim/wagerDocSync.test.ts` are the register.
+Every ▢ of this section took its (rec) default (§11).
+
 **Ruled** (the user, 2026-09-08): *"the malice be a card that must remain
 slotted in your government with a malice effect."* So a malice is an Order
 with a bad face: it sits in one of your chairs, it cannot be unslotted, and it
@@ -560,45 +571,64 @@ Ledger crediting its lines to it in red. It costs you the chair, which is the
 sharper half of the punishment: a Government III realm with eight chairs
 loses an eighth of its deck.
 
-- **Which chair.** ▢ (rec) the malice names a flavour (military · economic ·
-  wildcard, like an Order) and takes the **last** chair of that flavour; the
-  Order sitting there is unslotted into the hand (its seal broken, no refund
-  needed — nothing was spent). A realm with no chair of that flavour takes it
-  in a wildcard; a realm with no free chair at all still takes it — the malice
-  is never refused.
-- **How long.** ▢ (rec) until the **next age's wager is judged**: met, the
-  malice leaves the chair; missed, the old malice stays and a new one joins
-  it. The comeback is the point — a malice is a debt the next wager pays.
-  Adoption (a new government) rebuilds the slots with total amnesty for
-  Orders' seals, ▢ (rec) but a malice survives adoption and re-seats itself.
-- **Stacking.** ▢ (rec) at most two malices in the chairs at once; a third
-  failure replaces the older one rather than adding.
-- **Drawn how.** From `data/malices.json` by `state.rng` at the judgement,
-  one per failed seat; a seat never holds two copies of the same malice.
-  Announced to every seat (the deed sheet's flip).
+- **Which chair.** **RULED** (rec taken) — the malice names a flavour (military ·
+  economic · wildcard, like an Order) and takes the **last** chair of that
+  flavour; the Order sitting there is unslotted into the hand (its seal broken,
+  no refund needed — nothing was spent). A realm with no chair of that flavour
+  takes it in a wildcard; a realm with no chair at all still takes it — the
+  malice is never refused, and *seated with no chair* is built as the **ninth
+  chair nobody has**: `HeldMalice.chair` is absent, the slots array is not grown,
+  and the card pays its effect in full. Last rather than first because a player
+  arranges the chairs top-down and the position cards read the *first* of a
+  flavour. A chair another malice holds is not free: two malices are two chairs.
+- **How long.** **RULED** (rec taken) — until the **next age's wager is judged**:
+  met, the malice leaves the chair; missed, the old malice stays (its term
+  re-stamped) and a new one joins it. The comeback is the point — a malice is a
+  debt the next wager pays. `HeldMalice.untilAge` is the stamp and the judgement
+  *compares* it; nothing ticks. Æra IV's judgement names an age the world never
+  reaches, so a malice taken at the last wager stands for the rest of the game.
+  Adoption rebuilds the slots with total amnesty for Orders' seals, and a malice
+  **survives adoption and re-seats itself** into the new spread — the debt is
+  owed to the next wager, not to the government that owed it.
+- **Stacking.** **RULED** (rec taken) — at most two (`rules.stack` in
+  `data/malices.json`); a third failure replaces the **oldest** rather than
+  adding.
+- **Drawn how.** From `data/malices.json` by `state.rng` at the judgement, one
+  per failed seat, in `realPlayers` order; the draw excludes everything that seat
+  already holds, so a seat never holds two copies of the same malice — and it is
+  taken *before* the stacking eviction, so a card just worked off is not dealt
+  straight back. Announced as `maliceSeated`.
 - **Bots** take malices like anyone; the bot's appraisal already prices a
-  slotted card, so a malice's negative lines price themselves.
+  slotted card, so a malice's negative lines price themselves. Neither slot arm
+  can loop on one: `slotOrderError` and `unslotOrderError` both refuse the chair,
+  and a refusal is a row in the appraisal rather than a command.
 
-**Example malices** — each one card effect the vocabulary already has, worded
-as a card would be. Numbers are a first cut.
+**The deck** — each one card effect the vocabulary already reads, worded as a
+card would be. The Figure column is the row's own number, which is the whole of
+its balance; `test/sim/wagerDocSync.test.ts` pins this table against the data.
 
-| Malice | Chair | Effect (card vocabulary) | Voice |
-|---|---|---|---|
-| The Lean Years | economic | −1 food in every city (`pays` city flat) | E |
-| The Idle Hands | economic | −10% production in every city (`percentYields`) | E |
-| The Debased Coin | economic | −2 gold in every city | E |
-| The Closed Schools | wildcard | −10% science in every city | S |
-| The Silent Choirs | wildcard | −10% culture in every city | C |
-| The Doubting Flock | wildcard | your religion presses half as hard (`pressureRule`) | C |
-| The Restless Cities | wildcard | −1 happiness in every city (`happiness`) | E |
-| The Thin Ranks | military | −1 combat strength for all your units (`combatLine`) | D |
-| The Deserters | military | your units cost +1 gold a turn in maintenance (`upkeepSurcharge`) | D |
-| The Broken Levies | military | +50% production toward units costs −50% (`productionBonus` −50, units) | D |
-| The Short Draft | wildcard | your Order drafts show one card fewer (`offerRider`) | — |
-| The Heavy Writ | wildcard | −2 authority capacity (`authority`) | — |
+| Malice | Chair | Voice | Effect | Figure | What it does |
+|---|---|---|---|---|---|
+| The Lean Years | economic | E | `pays` | -1 | −1 food in every city |
+| The Idle Hands | economic | E | `percentYields` | -10 | −10% production in every city |
+| The Debased Coin | economic | E | `pays` | -2 | −2 gold in every city |
+| The Closed Schools | wildcard | S | `percentYields` | -10 | −10% science in every city |
+| The Silent Choirs | wildcard | C | `percentYields` | -10 | −10% culture in every city |
+| The Doubting Flock | wildcard | C | `pressureRule` | -3 | your holy site presses half as hard |
+| The Restless Cities | wildcard | E | `happiness` | -1 | −1 happiness in every city |
+| The Thin Ranks | military | D | `combatLine` | -1 | −1 combat strength for all your units |
+| The Deserters | military | D | `upkeepSurcharge` | 1 | every unit you pay for costs +1 gold a turn |
+| The Broken Levies | military | D | `productionBonus` | -50 | −50% production toward units |
+| The Short Draft | wildcard | — | `offerRider` | -1 | your Order drafts deal one card fewer |
+| The Heavy Writ | wildcard | — | `authority` | -2 | −2 authority capacity |
 
-Twelve, three a chair-flavour plus three wildcards; the register test pins
-that every malice's effect kind is one the evaluator reads.
+Twelve, three a chair-flavour plus six wildcards; the register test pins that
+every malice's effect kind is one the evaluator reads and that no row writes a
+figure into its prose. The worksheet's garbled Broken Levies line ("+50% …
+costs −50%") is built as what it plainly meant: −50% production toward units.
+A malice wanting a shape the vocabulary lacks would be **deferred and
+annotated**, never bent — the discipline the cards, the beliefs and the Triumphs
+all keep — and no row needed it.
 
 ## 5. What it replaces, what stays
 
@@ -656,9 +686,11 @@ that every malice's effect kind is one the evaluator reads.
    guarantees three different **lines** (which is the family guarantee and more,
    since three lines are at least two families); §3b's keep list is the deck; and
    **every** wager, standing or flow, is claimed the moment its bar is met.
-5. §4 the malice's chair (rec: the last chair of its flavour, displacing the
-   Order there), its term (rec: until the next wager is judged), stacking (rec:
-   two).
+5. ~~§4 the malice's chair, its term, its stacking~~ — **ruled and built**
+   (batch G3): every ▢ took its (rec) default — the last chair of its flavour
+   displacing the Order there, until the next wager is judged, two at a time,
+   surviving adoption — and "no free chair at all" is built as a ninth chair
+   nobody has, which pays in full and grows no array.
 6. ~~§5 reckonings retire~~ — **ruled yes and built** (batch G2): all eight rows
    carry `retired: true`.
 7. §9 the Horde: the count per seat (rec yes); the grace (rec 15 turns).
@@ -845,9 +877,17 @@ to the player — the countdown lives on the top bar's age card only); no
   reworked as the wager screen. Every bar the bench could measure was measured
   (§3a) rather than only the seven that were marked, because the worksheet's
   first-cut figures for the accumulated readings were cut against *per-turn*
-  means and stood an order of magnitude under the board → **G3** the malice deck
-  (`data/malices.json`, the twelve of §4) → **C1** the census → **W2** the
-  bots' wager want. G1 flies after R1 lands (both touch the reducer).
+  means and stood an order of magnitude under the board → ~~**G3** the malice
+  deck~~ — **landed 2026-09-09, schema 105**: `data/malices.json` (the twelve of
+  §4, `rules.stack` two), `src/sim/maliceData.ts`, the seating rules beside the
+  chairs in `statecraft/draft.ts`, the judgement's second beat
+  (`seatPendingMalices`) spending the `pendingMalice` marks G2 left, a held
+  malice as `liveEffects`' eleventh source and `CardId`'s eleventh class, the
+  `maliceSeated` occasion, the struck vermilion chair on the Statecraft screen
+  (unslottable, and the refusal is the tooltip), and the Compendium's two new
+  shelves — the malices **and** the wager deck §8 flagged as owed → **C1** the
+  census → **W2** the bots' wager want. G1 flies after R1 lands (both touch the
+  reducer).
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 
@@ -876,12 +916,11 @@ sketch below:
 - The beads a kept wager pays are four **repeatable grant rows** in
   `data/beads.json`, one per rod — so nothing new was needed to pay one.
 
-**Owed, and flagged here rather than done quietly**: `data/wagers.json` is not
-yet walked by the **Compendium**. Every other data table in the game has a shelf,
-and the deck should have one — the rows carry a plain `note` written for it — but
-it is a section of its own on a 2 300-line screen and it did not fit this batch.
-`data/malices.json` will want the same shelf, so the two are one small pass, best
-taken with G3.
+~~**Owed, and flagged here rather than done quietly**~~ — **paid by G3**:
+`data/wagers.json` and `data/malices.json` are both walked by the **Compendium**
+now, two generated shelves (`wager:<id>` and `malice:<id>`, each opening on its
+own lead page), built out of the rows' own `note` and the sim's own
+`describeCard`. The two were one small pass, exactly as this paragraph guessed.
 
 Schema. New state — **G1's half is built**: `worldAge`/`currentWorldAge` are
 derived, not stored (`src/sim/worldClock.ts`), and `GameState.ageClose?: {age,

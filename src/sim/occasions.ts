@@ -120,7 +120,23 @@ export type Occasion =
    * has something to flip on — which is the same argument that put `ageClosed`
    * in the shared vocabulary rather than in one module's private signal.
    */
-  | 'wagerClaimed';
+  | 'wagerClaimed'
+  /**
+   * **A malice took a chair** — one seat's staked bar went unmet at an age's
+   * close and the world seated a card in its council (batch G3,
+   * `docs/wager.md` §4). `runWagers`, at the judgement.
+   *
+   * `wagerClaimed`'s opposite number, and it is in this shared vocabulary for
+   * that word's reason exactly: the seating is a *moment*, it happens to one
+   * empire, and the deed sheet and the Abacus both want something to flip on. A
+   * deed or a Triumph may one day name it — "the age you took none" is an
+   * ordinary thing for a deed to ask, and it can only be asked of a word the
+   * world says out loud.
+   *
+   * What it deliberately is **not** is the punishment: the effect is the card in
+   * the chair, read by `liveEffects`, and this is the announcement beside it.
+   */
+  | 'maliceSeated';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -140,4 +156,5 @@ export const OCCASIONS: readonly Occasion[] = [
   'navalUnitBuilt',
   'ageClosed',
   'wagerClaimed',
+  'maliceSeated',
 ];

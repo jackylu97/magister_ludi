@@ -390,7 +390,7 @@ function forceMet(state: GameState, playerId: number, index: number): void {
 // --- 5. the judgement -------------------------------------------------------
 
 describe('the judgement', () => {
-  it('leaves a pending malice on a staker who missed, and on nobody else', () => {
+  it('marks a staker who missed, and nobody else — and pays the mark at once', () => {
     const state = newGame(config());
     dealAgeTwo(state);
     arrange(state);
@@ -400,11 +400,18 @@ describe('the judgement', () => {
     forceMet(state, 0, 0);
     tick(state);
 
-    judgeWagers(state, 2);
+    const seated = judgeWagers(state, 2);
     expect(state.players[0]!.pendingMalices).toEqual([]);
-    expect(state.players[1]!.pendingMalices).toEqual([{ age: 2, wager: openWagerDeal(state)!.dealt[1] }]);
-    // The deck itself is batch G3's: the mark is written and nothing is paid.
-    expect(state.players[1]!.malices).toEqual([]);
+    // **The mark is spent as it is paid** (batch G3): the judgement writes one
+    // `pendingMalice` per failure and the deck seats a card for each in the same
+    // breath, so what is left on the seat afterwards is the card, never the mark.
+    // The rules of the seating are `test/sim/malices.test.ts`'; what this pins is
+    // that the two beats are one judgement and that the seat that kept its bar
+    // takes nothing.
+    expect(state.players[1]!.pendingMalices).toEqual([]);
+    expect(state.players[0]!.malices).toEqual([]);
+    expect(state.players[1]!.malices).toHaveLength(1);
+    expect(seated.map((one) => one.playerId)).toEqual([1]);
   });
 
   it('is taken once — the Opus and the backstop reach the same age', () => {
@@ -412,9 +419,10 @@ describe('the judgement', () => {
     dealAgeTwo(state);
     applyCommand(state, { type: 'chooseWager', playerId: 0, index: 0 });
     judgeWagers(state, 2);
-    const marks = state.players[0]!.pendingMalices.length;
+    const held = state.players[0]!.malices.length;
     judgeWagers(state, 2);
-    expect(state.players[0]!.pendingMalices).toHaveLength(marks);
+    expect(state.players[0]!.pendingMalices).toEqual([]);
+    expect(state.players[0]!.malices).toHaveLength(held);
     expect(wagerDealOf(state, 2)!.judgedOn).toBe(state.turn);
   });
 });
