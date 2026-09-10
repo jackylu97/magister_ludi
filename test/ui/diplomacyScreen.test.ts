@@ -382,11 +382,12 @@ describe('the wiring that spans files', () => {
     const dock = source('hudDock.ts');
     expect(dock).toContain("buildButton(\n    'hud-dock-diplomacy'");
     // Four since batch R2, when the Trade sheet took a door of its own beside
-    // this one (the user's ruling of 2026-09-09). The claim is unchanged and is
-    // about *this* button: the dock mounts the row it built, and a button
-    // constructed and never appended is a door nobody can open.
+    // this one (the user's ruling of 2026-09-09), and five since batch L2b, when
+    // the leader's record took the last. The claim is unchanged and is about
+    // *this* button: the dock mounts the row it built, and a button constructed
+    // and never appended is a door nobody can open.
     expect(dock).toContain(
-      'container.append(statecraftButton, religionButton, diplomacyButton, tradeButton);',
+      'container.append(statecraftButton, religionButton, diplomacyButton, tradeButton, leaderButton);',
     );
   });
 

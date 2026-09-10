@@ -198,6 +198,9 @@ import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type WagerSheet, createWagerSheet, wagerBoards } from './ui/wagerSheet';
+import { type LeaderDraftSheet, createLeaderDraftSheet } from './ui/leaderDraftSheet';
+import { type LeaderSheet, createLeaderSheet } from './ui/leaderSheet';
+import { type LeaderSelect, createLeaderSelect, seatLeaders } from './ui/leaderSelect';
 import { type CensusSheet, censusPage, createCensusSheet } from './ui/censusSheet';
 import { censusBlocker, lastCensus } from './sim/census';
 import { wagerBlocker } from './sim/wagers';
@@ -208,10 +211,12 @@ import { createInfoCard } from './ui/infoCard';
 import {
   DEFAULT_SEAT_MODE,
   FULL_GAME_SIZE,
+  SEATS,
   availableSeatModes,
   modeAsksPersona,
   rosterFor,
 } from './ui/gameSetup';
+import { isLeaderId, leaderDef } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
@@ -289,6 +294,27 @@ document.addEventListener(
   true,
 );
 const startButton = requireElement<HTMLButtonElement>('start-game');
+/**
+ * **The landing's leader half** (batch L2b) — built once at module scope beside
+ * the form, because it is part of the same screen and holds the same kind of
+ * thing: an answer the player gives before a game exists.
+ *
+ * The canton it draws is seat 0's, which is the seat the person at the keyboard
+ * always takes (`rosterFor`). Start's own label follows the pick, so the button
+ * says who it begins as — the mockup's one flourish on this screen.
+ */
+const leaderSelect: LeaderSelect = createLeaderSelect({
+  container: requireElement<HTMLElement>('landing-leaders'),
+  color: SEATS[0]!.color,
+  onPick: (chosen) => setStartLabel(chosen),
+});
+
+/** Start's label: "Start Game", or who it begins as. */
+function setStartLabel(chosen: string): void {
+  startButton.textContent = isLeaderId(chosen)
+    ? `Begin as ${leaderDef(chosen).name}`
+    : 'Start Game';
+}
 const restartButton = requireElement<HTMLButtonElement>('restart');
 const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
 const restartYesButton = requireElement<HTMLButtonElement>('restart-yes');
@@ -383,6 +409,12 @@ const wagerBodyEl = requireElement<HTMLElement>('wager-body');
    clerks have counted, and by nothing else (`docs/wager.md` §10). */
 const censusOverlayEl = requireElement<HTMLElement>('census-overlay');
 const censusBodyEl = requireElement<HTMLElement>('census-body');
+/* The leader's two sheets (batch L2b): the draft, raised by the End Turn
+   blocker, and the record, behind the fifth door on the HUD dock. */
+const leaderDraftOverlayEl = requireElement<HTMLElement>('leader-draft-overlay');
+const leaderDraftBodyEl = requireElement<HTMLElement>('leader-draft-body');
+const leaderOverlayEl = requireElement<HTMLElement>('leader-overlay');
+const leaderBodyEl = requireElement<HTMLElement>('leader-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
 const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
 /* The Compendium: the bar's book button, the overlay, and the body the same
@@ -746,6 +778,10 @@ let trade: TradeScreen | null = null;
 let wagerSheet: WagerSheet | null = null;
 /* The census sheet, built in `boot` for `wagerSheet`'s reason exactly. */
 let censusSheet: CensusSheet | null = null;
+/* The leader's two, built in `boot` for `wagerSheet`'s reason exactly: both ask
+   whose seat this is (batch L2b). */
+let leaderDraft: LeaderDraftSheet | null = null;
+let leaderSheet: LeaderSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
 
@@ -931,6 +967,9 @@ function closePopovers(): boolean {
     (trade?.isOpen ?? false) ||
     (wagerSheet?.isOpen ?? false) ||
     (censusSheet?.isOpen ?? false) ||
+    // The leader's two (batch L2b), on the census sheet's terms exactly.
+    (leaderDraft?.isOpen ?? false) ||
+    (leaderSheet?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
     (ledger?.isOpen ?? false) ||
@@ -956,6 +995,11 @@ function closePopovers(): boolean {
   statecraft?.close();
   religion?.close();
   trade?.close();
+  // The leader's two (batch L2b). Both are counted in `wasOpen` above and both
+  // are taken down here, which is what makes Escape mean "clear the screen" for
+  // them and what keeps either from standing over the landing after a restart.
+  leaderDraft?.close();
+  leaderSheet?.close();
   diplomacy?.close();
   reliquary?.close();
   ledger?.close();
@@ -1051,6 +1095,12 @@ function showLanding(): void {
   // The shelf may have grown since the last time this screen was up — the game
   // that just ended autosaved every turn of it.
   refreshResumeRow();
+  // The seat's half, painted on every showing for the frontispiece's reason: a
+  // player who restarts is choosing again. The pick itself is *kept* — a
+  // restart is usually the same table with a different seed — and the label
+  // follows it.
+  leaderSelect.render();
+  setStartLabel(leaderSelect.chosen);
   // The button, not the seed field: Start is what the player came here to press,
   // and Shift+Tab reaches the two fields above it.
   startButton.focus();
@@ -1167,7 +1217,13 @@ function currentConfig(): GameConfig {
     sizeName: sizeSelect.value,
     // Whose chairs are filled and which of them a person is sitting in. See
     // `rosterFor`: seat 0 is always Crimson and always the human.
-    players: rosterFor(seatsSelect.value, personaSelect.value),
+    //
+    // **And which figure each sits under** (batch L2b). `seatLeaders` writes a
+    // `leader` key only where there is one, so *No leader* — the default —
+    // leaves a roster byte-identical to the one this line has always built,
+    // and the rivals take their figures from the sheet in order behind yours
+    // (`rivalLeaders`, the whole of the rule).
+    players: seatLeaders(rosterFor(seatsSelect.value, personaSelect.value), leaderSelect.chosen),
     // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
     // that a fixture, an inspection page or a pacing measurement gets the quiet
     // world it always had (see that field); a real game played by a person is
@@ -2140,6 +2196,12 @@ async function boot(initial: Game | null): Promise<void> {
     // routes and the towns this pass has just re-read. It draws nothing at all
     // unless it is open, so this costs a boolean when it is not.
     trade?.refresh();
+    // The leader's two, on the Trade screen's terms exactly: both are about the
+    // books this pass has just re-read — the record's ledger changes every time
+    // a yield does, and the draft's "today" line with it — and both draw nothing
+    // at all unless they are open.
+    leaderSheet?.refresh();
+    leaderDraft?.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -3078,6 +3140,9 @@ async function boot(initial: Game | null): Promise<void> {
       // The census sheet, on the same terms: it owns its own Escape while it is
       // up, and End Turn must not fire from underneath a blocker.
       (censusSheet?.isOpen ?? false) ||
+      // The leader's two, on the same terms (batch L2b).
+      (leaderDraft?.isOpen ?? false) ||
+      (leaderSheet?.isOpen ?? false) ||
       // The Reliquary owns its own Escape and its own arrow keys while it is up
       // — the pile is what ‹ › mean there — so the board must not see either
       // from underneath, and neither should `H`, `T` or End Turn.
@@ -3276,6 +3341,8 @@ async function boot(initial: Game | null): Promise<void> {
     onToggleAbacus: () => abacus?.toggle(),
     // The fifth blocker's "there": three bars on a sheet, not a hex.
     onOfferWager: () => wagerSheet?.open(),
+    // The seventh's: a figure's three cards, on a sheet of their own (L2b).
+    onOfferLeaderDraft: () => leaderDraft?.open(),
     // The sixth blocker's "there": a page of figures, not a hex.
     onOfferCensus: () => censusSheet?.open(),
     onToggleBeads: () => beads?.toggle(),
@@ -3922,6 +3989,54 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => censusSheet?.dispose());
 
   /**
+   * **The leader's draft** — the thirteenth sheet on the shell (batch L2b).
+   *
+   * Raised by the End Turn blocker, exactly as the wager's is, and — unlike the
+   * wager's — reopenable, because a figure's row never expires
+   * (`leaderBlocker`'s docblock). The door that reopens it is the leader sheet
+   * beside it, not a hotkey: a row is answered from the record of what it is
+   * for, which is where a player can see what they already hold.
+   *
+   * The pick goes straight through `dispatch` and the result is *checked* for
+   * the Order draft's reason exactly — a refusal nobody says out loud is a
+   * button that silently does nothing.
+   */
+  leaderDraft = createLeaderDraftSheet({
+    overlay: leaderDraftOverlayEl,
+    body: leaderDraftBodyEl,
+    closeButton: requireElement('leader-draft-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    take: (index) => {
+      const seat = controls.localPlayerId();
+      const result = dispatch(game, { type: 'chooseLeaderCard', playerId: seat, index });
+      if (!result.ok) controls.guide(`☞ ${result.error}`);
+      controls.refresh();
+      leaderSheet?.refresh();
+      return result.ok;
+    },
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      wagerSheet?.close();
+      censusSheet?.close();
+      compendium.close();
+      leaderSheet?.close();
+    },
+  });
+
+  gameDisposers.push(() => leaderDraft?.dispose());
+
+  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -4413,6 +4528,53 @@ async function boot(initial: Game | null): Promise<void> {
      Statecraft has had since the dock was built. */
   hudDock.tradeButton.addEventListener('click', () => {
     openScreen(() => trade?.open());
+  });
+
+  /**
+   * **Your leader** — the fourteenth sheet on the shell (batch L2b), and the
+   * only one of the leader's two a player opens for themselves.
+   *
+   * Built *here*, after the dock, rather than beside the other sheets above:
+   * the shell keeps the keyboard's return path on the control that opened it
+   * (`ModalShellOptions.trigger`), and the door has to exist before the sheet
+   * can be told about it. The fifth door on the dock is that control.
+   */
+  leaderSheet = createLeaderSheet({
+    overlay: leaderOverlayEl,
+    body: leaderBodyEl,
+    closeButton: requireElement('leader-close'),
+    trigger: hudDock.leaderButton,
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    // The way back to a decision the seat still owes: a figure's row never
+    // expires, so the record is where it is found again.
+    onOpenDraft: () => leaderDraft?.open(),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      wagerSheet?.close();
+      censusSheet?.close();
+      compendium.close();
+      leaderDraft?.close();
+    },
+  });
+
+  gameDisposers.push(() => leaderSheet?.dispose());
+
+  /* The fifth door, and the one that reopens a decision rather than a document:
+     a figure's row never expires, so the sheet behind this banner is where a
+     seat that walked past the End Turn blocker finds its three cards again. */
+  hudDock.leaderButton.addEventListener('click', () => {
+    openScreen(() => leaderSheet?.open());
   });
 
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its

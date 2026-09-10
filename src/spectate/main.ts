@@ -35,6 +35,7 @@ import { type BotCandidate, type ValueTerm, rankedCandidates } from '../ai/decis
 import { type Game, createGame } from '../sim/game';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
+import { LEADER_IDS, leaderDef } from '../sim/leaderData';
 import { type PlayerSpec, realPlayers } from '../sim/state';
 import {
   foldEmpireRates,
@@ -82,6 +83,14 @@ const SEAT_NAMES = ['Crimson', 'Teal', 'Amber', 'Indigo', 'Moss', 'Slate', 'Rust
 const ROSTER: PlayerSpec[] = Array.from({ length: RULES.game.maxPlayers }, (_, index) => ({
   name: SEAT_NAMES[index] ?? `Seat ${index + 1}`,
   color: seatColor(index),
+  // **A figure a chair, in sheet order** (batch L2b). This page exists to watch
+  // bots decide, and a leader's row is one of the decisions worth watching — a
+  // table of leaderless seats would never raise one. Sheet order rather than a
+  // draw, for `persona`'s reason below: a leader is config, and a spectacle
+  // dealt from `Math.random` is a spectacle a seed does not reproduce. A table
+  // with more chairs than the sheet has figures simply runs out, and the seats
+  // past the end sit under none.
+  ...(LEADER_IDS[index] === undefined ? {} : { leader: LEADER_IDS[index] }),
   // `isHuman` is left off, which is exactly what makes a chair a bot
   // (`normalizeConfig` defaults it to false) — the same absence the landing
   // screen writes for a rival seat.
@@ -244,6 +253,11 @@ function seatRow(playerId: number): HTMLElement {
   row.className = player.eliminated ? 'seat out' : 'seat';
   row.append(swatch(playerId));
   row.append(span('who', player.name));
+  // **Who is playing this chair** (batch L2b). The figure's own name, off the
+  // sheet, so a reader can tell the Æra II row in the feed from the Æra II row
+  // three seats down — and the deck a card came out of from the card's name.
+  // A seat under no figure says nothing, rather than a dash to be read.
+  if (player.leader !== undefined) row.append(span('stat', leaderDef(player.leader).name));
   row.append(span('stat', `${cities}⌂  ${units}⚔`));
   // The pools are exact fractions since batch X; a seat's line rounds them at
   // the eye like every other surface (`src/sim/yieldFormat.ts`).

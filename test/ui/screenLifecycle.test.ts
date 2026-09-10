@@ -68,6 +68,13 @@ describe('the game-screen disposal register', () => {
       // and its capturing Escape would go on swallowing the key for a game that
       // is over.
       'censusSheet?.dispose()',
+      // The leader's two, the thirteenth and fourteenth on the shell (batch
+      // L2b). The draft is raised by the End Turn blocker — `capture?.dispose()`'s
+      // reason exactly — and the record is behind the dock's fifth door; both
+      // bind a capturing Escape that would go on swallowing the key for a game
+      // that is over.
+      'leaderDraft?.dispose()',
+      'leaderSheet?.dispose()',
       'abacus?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);

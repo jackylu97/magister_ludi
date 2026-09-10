@@ -1,7 +1,7 @@
 /**
- * The HUD dock: four square buttons under the research card, top-left, in the
+ * The HUD dock: five square buttons under the research card, top-left, in the
  * same ink/parchment lozenge language — the front door to Statecraft, to
- * Religion, to Diplomacy and to Trade.
+ * Religion, to Diplomacy, to Trade and to the figure at your table.
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -54,7 +54,9 @@
  */
 
 import { diplomacyMarkDataUri, statecraftMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
+import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import type { Game } from '../sim/game';
+import { leaderBlocker } from '../sim/leaders';
 import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
 import { type Player, playerById } from '../sim/state';
@@ -121,6 +123,23 @@ export interface HudDock {
    * pulsed for every idle slot would be pulsing for most of the game.
    */
   readonly tradeButton: HTMLButtonElement;
+  /**
+   * The leader door (batch L2b, `docs/flags.md` (dddd)).
+   *
+   * Fifth and last, and the only one of the five that wears **the seat's own
+   * charge** rather than a drawn mark of its own: the sheet behind it is about
+   * the figure at *your* table, and heraldry is already the game's way of saying
+   * "yours" (`heraldryFor`, and the charge on a parchment canton — never
+   * straight in seat ink). Which means it is the one door whose icon is written
+   * on every `render` rather than once at construction: a hot-seat player
+   * changing chairs changes banners.
+   *
+   * It wears a **waiting badge**, and it is the third of the five to: a figure's
+   * row is a decision the empire owes the game and one that — unlike a wager's —
+   * never expires, so the dot is the only thing on the HUD that says the debt is
+   * still standing after the End Turn blocker has been walked past.
+   */
+  readonly leaderButton: HTMLButtonElement;
   /** Refreshes the badges. */
   render(): void;
 }
@@ -141,7 +160,12 @@ function buildButton(id: string, _label: string, title: string, markUri: string)
   button.setAttribute('aria-label', title);
   const icon = element('span', 'hud-dock-icon');
   icon.setAttribute('aria-hidden', 'true');
-  icon.style.setProperty('--dock-mark', `url("${markUri}")`);
+  // An empty mark is the leader door's, and it is deliberate: its icon is the
+  // *seat's* charge, which is a fact about a game that does not exist yet at
+  // construction, so it is written on the first `render` instead of here. A
+  // `url("")` in the meantime would be a mask that fails rather than one that
+  // has not arrived.
+  if (markUri.length > 0) icon.style.setProperty('--dock-mark', `url("${markUri}")`);
   button.append(icon);
   return button;
 }
@@ -175,13 +199,18 @@ export function createHudDock(options: HudDockOptions): HudDock {
   // hiring one is a standing decision of exactly the kind the other three doors
   // are for (batch R2).
   const tradeButton = buildButton('hud-dock-trade', 'Trade', 'Trade (E)', tradeMarkDataUri());
-  container.append(statecraftButton, religionButton, diplomacyButton, tradeButton);
+  // The banner, fifth: the figure at this table. Its mark is written on every
+  // `render` rather than here, because it is the seat's charge and the seat can
+  // change — see `HudDock.leaderButton`.
+  const leaderButton = buildButton('hud-dock-leader', 'Leader', 'Your leader', '');
+  container.append(statecraftButton, religionButton, diplomacyButton, tradeButton, leaderButton);
 
   return {
     statecraftButton,
     religionButton,
     diplomacyButton,
     tradeButton,
+    leaderButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());
@@ -190,6 +219,23 @@ export function createHudDock(options: HudDockOptions): HudDock {
       // is a decision the empire owes the game, and the front door is where a
       // player is told there is one.
       religionButton.classList.toggle('hud-badge-waiting', religionBadgeWaiting(player));
+      // **The banner, redrawn** — the one door whose icon is a fact about the
+      // seat rather than about the system. A seat with no figure keeps the door:
+      // the sheet behind it says so in a sentence, which is a better answer than
+      // a door that is there in one game and gone in the next.
+      const icon = leaderButton.firstElementChild;
+      if (icon instanceof HTMLElement) {
+        // The mark's own colour is discarded — `.hud-dock-icon` wears it as a
+        // *mask* over `currentColor`, so the charge prints in the dock's ink
+        // like the four doors beside it and never straight in seat ink, which
+        // is the heraldry rule kept by the drawing rather than by discipline.
+        const uri = heraldryMarkDataUri(heraldryFor(localPlayerId(), player?.charge));
+        icon.style.setProperty('--dock-mark', `url("${uri}")`);
+      }
+      leaderButton.classList.toggle(
+        'hud-badge-waiting',
+        player !== undefined && leaderBlocker(state, player.id) !== null,
+      );
     },
   };
 }

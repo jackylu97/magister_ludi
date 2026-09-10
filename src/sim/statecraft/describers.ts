@@ -2041,32 +2041,36 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
 /**
  * What a completion grant hands over, in words. See `CompletionGrant`.
  *
- * "on completion" leads every one of them, because that is the whole difference
+ * A **moment** leads every one of them, because that is the whole difference
  * between a grant and an effect: everything else on a card is true for as long
- * as the card is held, and this is true once.
+ * as the card is held, and this is true once. "on completion" is the moment a
+ * wonder's stones go up and is therefore the default; a leader's boon pays the
+ * same union at a different moment and says so by passing its own (batch L2b) —
+ * one describer with one lead swapped, rather than a second vocabulary for the
+ * same seven arms.
  */
-function grantWords(grant: CompletionGrant): string {
-  if (grant.grant === 'tech') return 'on completion, the technology you are researching is finished';
-  if (grant.grant === 'doctrineDraft') return 'on completion, a Doctrine draft opens';
-  if (grant.grant === 'bead') return 'on completion, a glass bead is yours';
+export function grantWords(grant: CompletionGrant, when = 'on completion'): string {
+  if (grant.grant === 'tech') return `${when}, the technology you are researching is finished`;
+  if (grant.grant === 'doctrineDraft') return `${when}, a Doctrine draft opens`;
+  if (grant.grant === 'bead') return `${when}, a glass bead is yours`;
   // Not "a free rung": a rung is the ladder's word for a threshold the bank
   // crossed, and this is the stones paying instead of the bank. What a player
   // needs is that a god arrives and that it costs them nothing.
-  if (grant.grant === 'faithRung') return 'on completion, a god is named, and your faith is not spent';
+  if (grant.grant === 'faithRung') return `${when}, a god is named, and your faith is not spent`;
   if (grant.grant === 'greatPerson') {
     return grant.family === undefined
-      ? 'on completion, a great person is offered'
-      : `on completion, a great person of the ${grant.family}s is offered`;
+      ? `${when}, a great person is offered`
+      : `${when}, a great person of the ${grant.family}s is offered`;
   }
   if (grant.grant === 'building') {
     const name = buildingDef(grant.building).name;
-    return `on completion, ${indefinite(name)} ${ref('building', grant.building, name)} is raised here as well`;
+    return `${when}, ${indefinite(name)} ${ref('building', grant.building, name)} is raised here as well`;
   }
   const what =
     grant.unit === 'bestMelee'
       ? 'the best melee unit you can build'
       : `${indefinite(unitDef(grant.unit).name)} ${ref('unit', grant.unit, unitDef(grant.unit).name)}`;
-  return `on completion, ${what} joins you`;
+  return `${when}, ${what} joins you`;
 }
 
 function conditionValue(when: EmpireCondition): string {

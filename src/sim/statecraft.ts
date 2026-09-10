@@ -193,6 +193,7 @@ export {
   describeCard,
   describeEffects,
   describeFamilyVerb,
+  grantWords,
   indefinite,
   occasionWords,
   periodicProbe,

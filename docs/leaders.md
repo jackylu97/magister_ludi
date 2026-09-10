@@ -110,6 +110,42 @@ technology prices them. The Compendium walks the six on a `leader:id` shelf, one
 page a figure. The bots appraise the three through `explainEffects`, `explainLump`
 and the row's own appraiser (`src/ai/leader.ts`).
 
+**The screens** (batch L2b, 2026-09-10; the mockup of the same day is the spec of
+record). Three of them, and each walks the table rather than listing it — a
+seventh figure appears on all three with no page edit, and nothing on any of them
+names a leader or a card:
+
+- **The new game** (`src/ui/leaderSelect.ts`, a second card on the landing beside
+  the map's): one button a figure, each with the seat's canton, the leader bonus
+  through `describeCard`, and — for the one chosen — the Æra I row's three cards
+  in the three inks. *No leader* is the default, so the game that was one press of
+  Start away still is and its config is byte-identical to one from before figures
+  existed. The chosen figure goes onto seat 0 and **the rivals take the remaining
+  figures in sheet order** (`rivalLeaders`) — no draw, because a leader rides into
+  `GameConfig` and a table dealt from `Math.random` is a table a save cannot
+  replay. Nobody is seated when you are not.
+- **The age's draft** (`src/ui/leaderDraftSheet.ts`, the thirteenth sheet on
+  `modalShell.ts`): raised by the `leaderDraft` blocker, three cards in the three
+  inks, each with its clauses, what its lump hands over (`describeBeadBoon` and
+  `grantWords` at this card's own moment), the row a unique opens in the row's own
+  figures, and a **"today it would pay"** stamp — `explainCardImpact` with the
+  pick ghosted into `Player.leaderPicks`, which is the empire's own ledger read
+  twice and therefore the figure the turn resolution will bank. A card is picked
+  up and the foot's button spends it: the sheet asks twice, because the two cards
+  beside the one taken are gone. The capital rule speaks in the `.wanting` voice.
+- **Your leader** (`src/ui/leaderSheet.ts`, the fourteenth, behind a fifth door on
+  the HUD dock wearing the seat's own charge): the bonus and one block an age —
+  the card taken, the two left greyed beside it, a locked row's three with a plain
+  sentence naming the technologies that open the age — beside a ledger of **every
+  line in the empire's books carrying the leader's name**, gathered from
+  `readEmpire`'s own lists by the card id on the line (and from the two meters by
+  the evaluator's class word, since `MeterContribution` carries no id). Nothing on
+  it is computed. Because a row never expires, this sheet is also the way back to
+  one the seat still owes.
+
+The spectator page names each seat's leader in its roster and seats one a chair
+in sheet order, so a leader draft is a decision the feed can show.
+
 **One rule the sheet did not name**: a figure's row is on the table from the
 first turn, but nobody may answer it until their realm has a town — three of the
 six opening boons hand over something a *town* receives, and a pick taken before

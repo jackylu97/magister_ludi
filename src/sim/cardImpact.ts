@@ -134,6 +134,15 @@ import {
 } from './statecraft';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { type GreatPersonId, greatPersonDef } from './greatPeopleData';
+// A leaf (`leaderData.ts`'s own docblock), so the ghost below may name a card of
+// a figure's deck without closing a load-time cycle.
+import {
+  type LeaderCardId,
+  isLeaderCardId,
+  leaderCard,
+  leaderCardEffects,
+  leaderCardHome,
+} from './leaderData';
 import { type MeterId, authorityOf, happinessOf } from './meters';
 // The town's own published list, remembered on the revision — the real board's
 // half of every ghost-diff on a screen (batch E2, `docs/audit/evaluations.md`
@@ -165,7 +174,7 @@ function cardFlats(lines: readonly CityYieldLine[]): CityYieldLine[] {
 }
 import { getTileAt } from './map';
 import type { Tile } from './map';
-import { highestAge } from './techData';
+import { type TechAge, highestAge } from './techData';
 import type { City } from './state';
 
 /**
@@ -236,13 +245,20 @@ export interface CardImpactLine {
  * the honoured dead. A card has one face since the levelling ruling of
  * 2026-09-04, so an Order is named by its id alone — there is no level left to
  * ask about.
+ *
+ * **The sixth is a leader's card** (batch L2b): its ghost is one entry in
+ * `Player.leaderPicks`, because that map *is* how a taken card reaches the law
+ * (`liveEffects`' twelfth source). It is the arm the draft sheet's "today it
+ * would be worth" line asks, and it exists so that line is the same reading the
+ * turn resolution banks rather than a second appraisal beside it.
  */
 export type CardImpactSubject =
   | { kind: 'order'; id: OrderId }
   | { kind: 'doctrine'; id: DoctrineId }
   | { kind: 'government'; id: GovernmentId }
   | { kind: 'belief'; id: BeliefId }
-  | { kind: 'legacy'; id: GreatPersonId };
+  | { kind: 'legacy'; id: GreatPersonId }
+  | { kind: 'leaderCard'; id: LeaderCardId };
 
 /** A line paying nothing in any voice, before the occasion fields are read. */
 function emptyLine(source: string, kind: CardImpactKind): CardImpactLine {
@@ -456,6 +472,29 @@ function ghostPair(
         legacies: [...player.legacies, { id: subject.id, age: highestAge(player.techsResearched) }],
       });
     }
+    case 'leaderCard': {
+      // **The pick, and nothing beside it** (batch L2b). A taken card reaches
+      // every ledger through `Player.leaderPicks` (`liveEffects`' twelfth
+      // source), so the ghost is that map with one more entry in it — keyed by
+      // the age of the row the card *sits in*, which is the same key the reducer
+      // writes (`chooseLeaderCardAt`) and never the seat's current age: a figure
+      // holds one card per row of its own sheet.
+      //
+      // The **boon is deliberately not ghosted**, and the omission is the whole
+      // honesty of the figure: a lump is paid once on the pick and this reading
+      // is a *rate*, so a stamp that folded a hundred hammers into "every turn"
+      // would be the one number on the sheet that lies. The sheet prints what
+      // the lump is beside this figure, in its own words.
+      if (!isLeaderCardId(subject.id)) return null;
+      const age = Number(leaderCardHome(subject.id).age) as TechAge;
+      const picks = player.leaderPicks ?? {};
+      if (picks[age] === subject.id) {
+        const without = { ...picks };
+        delete without[age];
+        return backward({ ...player, leaderPicks: without });
+      }
+      return forward({ ...player, leaderPicks: { ...picks, [age]: subject.id } });
+    }
   }
 }
 
@@ -472,6 +511,10 @@ function subjectEffects(subject: CardImpactSubject): readonly CardEffect[] {
       return beliefDef(subject.id).effects;
     case 'legacy':
       return greatPersonDef(subject.id).legacy;
+    // The composed list, so a unique's `unlocksUnit` is read here exactly as the
+    // law reads it (`leaderCardEffects`) rather than off the card's own field.
+    case 'leaderCard':
+      return leaderCardEffects(leaderCard(subject.id));
   }
 }
 
@@ -488,6 +531,8 @@ function subjectName(subject: CardImpactSubject): string {
       return beliefDef(subject.id).name;
     case 'legacy':
       return greatPersonDef(subject.id).name;
+    case 'leaderCard':
+      return leaderCard(subject.id).name;
   }
 }
 

@@ -14383,3 +14383,498 @@ body.compendium-page {
 .abacus-census-mark {
   color: var(--gilt, var(--ink));
 }
+
+/* ============================================================
+   The leaders (batch L2b, `docs/flags.md` (dddd); the mockup of 2026-09-10 is
+   the spec of record)
+
+   Three surfaces in one language, and the language is the specimen's: ink on
+   parchment, every figure tabular mono, and **three inks for the three
+   columns** — a passive is cobalt, a boon is gilt, a unique is vermilion. The
+   ink is set once, on `.leader-ink-*`, and every rule below reads it through
+   `--leader-ink`, so a fourth column would be one custom property rather than a
+   pass over this block.
+   ============================================================ */
+
+.leader-ink-passive {
+  --leader-ink: var(--cobalt);
+}
+
+.leader-ink-boon {
+  --leader-ink: var(--gilt);
+}
+
+.leader-ink-unique {
+  --leader-ink: var(--vermilion);
+}
+
+/* --- the clauses, shared by all three surfaces -------------------------- */
+
+.leader-clause {
+  margin: 0;
+}
+
+/* Struck through, which is this interface's one mark for "declared and not
+   built" — the Statecraft screen's `.sc-clause-deferred` said one screen over. */
+.leader-clause.is-deferred {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+
+.leader-note {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+  max-width: 66ch;
+}
+
+.leader-empty {
+  color: var(--ink-faint);
+}
+
+/* --- the new game's leader card ---------------------------------------- */
+
+/* The stage widens for the second card and stays one column on a narrow
+   window: the map is the decision that cannot be skipped, so it leads. */
+.landing-stage:has(.landing-leaders) {
+  width: min(980px, 100%);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 860px) {
+  .landing-stage:has(.landing-leaders) {
+    grid-template-columns: 380px minmax(0, 1fr);
+    align-items: start;
+  }
+
+  /* The marquee is the page's title and spans both cards under it. */
+  .landing-stage:has(.landing-leaders) > .marquee {
+    grid-column: 1 / -1;
+  }
+}
+
+.hud-card.landing-leaders {
+  position: relative;
+  z-index: auto;
+  padding: 14px 16px 16px;
+  display: block;
+}
+
+.leader-title {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 24px;
+  margin: 2px 0 10px;
+}
+
+.leader-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+}
+
+.leader-face {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 10px 12px;
+  background: var(--parchment);
+  border: var(--border-thin) solid var(--ink);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.leader-face.is-chosen {
+  box-shadow: inset 0 0 0 2px var(--ink);
+  background: #fff9e6;
+}
+
+.leader-face:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+/* The charge on a parchment canton, never straight in seat ink — the heraldry
+   rule, kept by drawing the mark as a mask over a parchment ground. */
+.leader-canton {
+  display: block;
+  width: 34px;
+  height: 40px;
+  background: var(--parchment);
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 2px 2px 16px 16px;
+  position: relative;
+}
+
+.leader-canton::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: var(--ink);
+  mask-image: var(--canton-mark);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-image: var(--canton-mark);
+  -webkit-mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+}
+
+.leader-face-text {
+  display: block;
+  min-width: 0;
+}
+
+.leader-name {
+  display: block;
+  font-family: var(--face-display);
+  font-size: 19px;
+  line-height: 1.1;
+}
+
+.leader-eyebrow {
+  margin: 6px 0 2px;
+}
+
+.leader-bonus,
+.leader-mini-clauses,
+.leader-pick-clauses,
+.leader-pick-boon,
+.leader-hold-clauses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 13px;
+}
+
+.leader-none-note {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.leader-first {
+  margin: 14px 0 0;
+  border-top: var(--border-thin) solid var(--rule);
+  padding-top: 10px;
+}
+
+.leader-first-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.leader-mini {
+  padding: 8px 10px;
+  background: var(--parchment);
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--leader-ink, var(--ink));
+}
+
+.leader-mini-kind {
+  margin: 0 0 2px;
+}
+
+.leader-mini-name {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 16px;
+  margin: 0 0 4px;
+}
+
+/* --- the age's draft --------------------------------------------------- */
+
+.leader-lead {
+  margin: 0 0 14px;
+}
+
+.leader-headline {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 26px;
+  margin: 2px 0 6px;
+}
+
+.leader-lead-text {
+  margin: 0;
+  max-width: 66ch;
+  color: var(--ink-soft);
+}
+
+.leader-waiting {
+  margin: 8px 0 0;
+  max-width: 66ch;
+}
+
+.leader-picks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+}
+
+.leader-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  padding: 12px 14px;
+  background: var(--parchment);
+  border: var(--border) solid var(--ink);
+  border-top: 6px solid var(--leader-ink, var(--ink));
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.leader-pick:disabled {
+  cursor: default;
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+.leader-pick:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+.leader-pick-kind {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.leader-pick-lasts {
+  font-size: 12px;
+  color: var(--ink-faint);
+}
+
+.leader-pick-name {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 21px;
+  margin: 0;
+}
+
+.leader-pick-boon {
+  color: var(--leader-ink, var(--ink));
+}
+
+.leader-pick-today {
+  margin-top: auto;
+  border-top: 1px solid var(--rule);
+  padding-top: 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.leader-pick-row,
+.leader-pick-stamp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.leader-row-label {
+  color: var(--ink-faint);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+.leader-row-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.leader-pick-wanting {
+  margin: 0;
+}
+
+/* --- your leader ------------------------------------------------------- */
+
+.leader-sheet-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .leader-sheet-grid {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  }
+}
+
+.leader-held {
+  display: grid;
+  gap: 10px;
+}
+
+.leader-hold {
+  padding: 10px 12px;
+  background: var(--parchment);
+  border: var(--border-thin) solid var(--ink);
+}
+
+/* A row not yet reached is greyed whole: it is a promise rather than a holding,
+   and the sentence under it says how to reach it. */
+.leader-hold.is-locked {
+  opacity: 0.62;
+}
+
+.leader-hold-name {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 18px;
+  margin: 0 0 4px;
+}
+
+.leader-hold-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.leader-hold-card {
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-top: 4px solid var(--leader-ink, var(--ink));
+}
+
+/* The card taken stands; the two left beside it are greyed. A figure's sheet is
+   the same three every game, so there is nothing to hide — and *what you left*
+   is exactly what a player opens this sheet to see. */
+.leader-hold-card.is-left {
+  opacity: 0.5;
+}
+
+.leader-hold-card.is-taken {
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+
+.leader-ledger {
+  padding: 12px 14px;
+  background: var(--parchment);
+  border: var(--border-thin) solid var(--ink);
+}
+
+.leader-ledger-title {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 20px;
+  margin: 2px 0 8px;
+}
+
+.leader-ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.leader-ledger-table th {
+  text-align: left;
+  font-family: var(--face-num);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom: var(--border-thin) solid var(--ink);
+  padding: 5px 3px;
+}
+
+.leader-ledger-table th.num,
+.leader-ledger-figure {
+  text-align: right;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leader-ledger-table td {
+  padding: 6px 3px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+.leader-ledger-total td {
+  border-bottom: 0;
+  border-top: var(--border-thin) solid var(--ink);
+  font-weight: 600;
+}
+
+/* The way back to a row the seat still owes — the one button on this sheet. */
+.leader-hold-take {
+  margin-top: 8px;
+  font-family: var(--face-ui);
+  font-size: 13px;
+  padding: 5px 12px;
+  border: var(--border-thin) solid var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+  cursor: pointer;
+}
+
+.leader-hold-take:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+/* The draft's foot: what a pick costs, and the press that spends it. The card
+   above says *this one*; this button says *take it* — the sheet asks twice
+   because the two cards beside the one taken are gone. */
+.leader-draft-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.leader-draft-foot-note {
+  margin: 0;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.leader-take {
+  font-family: var(--face-ui);
+  font-size: 14px;
+  padding: 8px 18px;
+  border: var(--border) solid var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.leader-take:disabled {
+  background: transparent;
+  color: var(--ink-faint);
+  box-shadow: none;
+  cursor: default;
+}
+
+.leader-take:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: 3px;
+}
+
+.leader-pick.is-picked {
+  box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-sm);
+  background: #fff9e6;
+}
