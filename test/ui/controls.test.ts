@@ -785,7 +785,14 @@ describe('a hover refreshes the readout, never the panels', () => {
  * suite). What is pinned is the *shape*, and every clause of it is load-bearing:
  * the hook runs before the blocker gate, it goes through `commit` so the choice
  * is a logged command that replays, it asks the bot's own appraisal rather than
- * inventing one, and it only ever touches a puppet whose queue is empty.
+ * inventing one, and it touches a puppet's queue in exactly two situations.
+ *
+ * The second of those is batch PP1 (`docs/flags.md` (qqq)) and it is why the
+ * empty-queue clause is no longer the whole gate: a conversion never leaves the
+ * queue, so a puppet that once chose the tithe never had an empty one again and
+ * this hook had nothing to say about it for the rest of the game. What the
+ * outcomes actually are is `test/sim/aiPuppet.test.ts`' subject; what is pinned
+ * here is that this file asks the bot rather than answering for itself.
  */
 describe('the human seat’s puppet hook', () => {
   const SOURCE = (
@@ -800,11 +807,20 @@ describe('the human seat’s puppet hook', () => {
     SOURCE.indexOf('function endTurn('),
   );
 
-  it('picks for a puppet with an empty queue, and for nothing else', () => {
+  it('picks for a puppet of this seat, and for nothing else', () => {
     expect(body.length).toBeGreaterThan(0);
     expect(body).toContain('city.puppet !== true');
-    expect(body).toContain('city.queue.length > 0');
     expect(body).toContain('city.ownerId !== localPlayerId');
+  });
+
+  it('has one arm for an empty queue and one for a town already deciding', () => {
+    // The empty-queue arm sets the whole queue; the re-decision arm promotes a
+    // row in front of whatever the town is running, through the bot's own
+    // builder — so the command this file writes is the byte-identical twin of
+    // the one `driver.ts` writes for a bot seat.
+    expect(body).toContain('city.queue.length === 0');
+    expect(body).toContain('puppetRedecision(state, player, city)');
+    expect(body).toContain('queueAhead(state, player, city, turn)');
   });
 
   it('issues an ordinary logged command through the funnel', () => {
@@ -819,7 +835,9 @@ describe('the human seat’s puppet hook', () => {
     // profile — so a puppet does not build differently depending on who is
     // sitting in the chair.
     expect(body).toContain('puppetProduction(state, player, city)');
-    expect(SOURCE).toContain("import { puppetProduction } from '../ai/bot'");
+    expect(SOURCE).toContain(
+      "import { puppetProduction, puppetRedecision, queueAhead } from '../ai/bot'",
+    );
   });
 
   it('runs before End Turn reads its blockers', () => {

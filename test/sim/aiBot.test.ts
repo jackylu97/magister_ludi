@@ -1110,6 +1110,11 @@ describe('the bot module', () => {
       // shadow price may move in. It stands where `spending`'s four thresholds
       // used to — see `wants.ts`.
       'priorities',
+      // The puppet block (PP1): one number, and it is not a taste — how much
+      // better a building has to look than the conversion a puppet is already
+      // running before the empire turns the town around. The taste is the sheet
+      // below it; this is when a decision already taken stops being one.
+      'puppet',
       // The puppet profile: the *same* shape as a persona and for the same
       // reason, but folded over whichever persona the seat already plays rather
       // than chosen — a warmonger's puppet is still a warmonger's town.

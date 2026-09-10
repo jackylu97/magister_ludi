@@ -2458,6 +2458,13 @@ function adoptionTable(
  * again, and if the scorer still prefers the conversion, nothing is sent. Two
  * calls of one pure function on one state cannot disagree, so there is no
  * oscillation to guard against.
+ *
+ * **A puppet takes the same arm through a narrower door** (batch PP1): the town
+ * is asked by `puppetRedecisionTable`, which defends the running conversion by
+ * `puppet.switchMargin` and will only displace it with a *building*. That is the
+ * bot seat's half of the ruling, and the human seat's half — `autoPickPuppets`
+ * in `controls.ts` — asks the very same function, so a puppet does not turn on a
+ * different sixpence depending on who is sitting in the chair.
  */
 function projectIdleCommand(
   state: GameState,
@@ -2468,36 +2475,27 @@ function projectIdleCommand(
     if (city.ownerId !== player.id) continue;
     const front = city.queue[0];
     if (front === undefined || front.kind !== 'project') continue;
+    if (city.puppet === true) {
+      const turn = puppetRedecisionTable(state, player, city, sitting);
+      if (turn === null) continue;
+      return puppetTurnDecision(state, player, city, turn.front, turn.wanted, turn.candidates);
+    }
     const table = productionTable(state, player, city, sitting);
     const wanted = table.best;
     if (wanted === null) continue;
     // The scorer still prefers the conversion that is already running: nothing
     // to say.
     if (sameItem(wanted, front)) continue;
-    // **The rest of the queue, minus whatever `wanted` already is.** A town may
-    // be holding two conversions, and the reducer refuses a queue that names one
-    // twice (`validateQueue`) — so a `wanted` the queue already holds is
-    // *promoted* to the front rather than added to it. That is the same command
-    // either way and it keeps the arm's termination argument exact: after it
-    // lands, `wanted` **is** the front, so the guard above silences the arm.
-    //
-    // And minus anything the world has killed since it was queued (2026-09-05):
-    // a wonder a rival finished, a row a lost resource shut. The reducer
-    // validates the WHOLE queue, so one dead row deep in the tail refused this
-    // command every turn for ever — the 200-turn arena caught a seat idling
-    // fifty-six turns behind The Grand Satrapy a rival had already raised. The
-    // reducer's own gate decides what is dead, never a reading of ours.
-    const rest = city.queue.filter(
-      (item) =>
-        !sameItem(item, wanted) && buildError(state, player.id, item.kind, item.id, city) === null,
-    );
+    // The conversion is never cancelled — it waits behind the thing worth
+    // building. Both subtractions that make the command one the reducer will
+    // take are `queueAhead`'s, and its docblock is where they are argued.
     return {
       kind: 'build',
       command: {
         type: 'setCityProduction',
         playerId: player.id,
         cityId: city.id,
-        queue: [wanted, ...rest],
+        queue: queueAhead(state, player, city, wanted),
       },
       subject: townSubject(city),
       summary:
@@ -2508,6 +2506,75 @@ function projectIdleCommand(
     };
   }
   return null;
+}
+
+/**
+ * **The queue with `wanted` at the front of it**, and the two subtractions that
+ * make the command one the reducer will actually take.
+ *
+ * *Minus whatever `wanted` already is.* A town may be holding two conversions,
+ * and the reducer refuses a queue that names one twice (`validateQueue`) — so a
+ * `wanted` the queue already holds is *promoted* to the front rather than added
+ * to it. That is the same command either way and it keeps the caller's
+ * termination argument exact: after it lands, `wanted` **is** the front, so the
+ * guard that asked the question falls silent.
+ *
+ * *And minus anything the world has killed since it was queued* (2026-09-05): a
+ * wonder a rival finished, a row a lost resource shut. The reducer validates the
+ * WHOLE queue, so one dead row deep in the tail refused this command every turn
+ * for ever — the 200-turn arena caught a seat idling fifty-six turns behind The
+ * Grand Satrapy a rival had already raised. The reducer's own gate decides what
+ * is dead, never a reading of ours.
+ *
+ * Two callers, and they are the two halves of one rule: the idling town
+ * (`projectIdleCommand`) and the puppet turning off its tithe
+ * (`puppetTurnDecision`). `controls.ts` sends the puppet's through the same
+ * builder, so a human seat and a bot seat write byte-identical commands.
+ */
+export function queueAhead(
+  state: GameState,
+  player: Player,
+  city: City,
+  wanted: QueueItem,
+): QueueItem[] {
+  const rest = city.queue.filter(
+    (item) =>
+      !sameItem(item, wanted) && buildError(state, player.id, item.kind, item.id, city) === null,
+  );
+  return [wanted, ...rest];
+}
+
+/**
+ * **"Uruk (puppet) · Uruk turns from Tithes to Library."** — the switch as its
+ * own line in the decision feed (batch PP1, clause 4 of the ruling).
+ *
+ * It is a separate sentence from the idling town's because it is a different
+ * event: that one is a town that never re-decided at all, this one is a town
+ * changing its mind about a decision it took and has been running since. A
+ * reader watching a seat's puppets ought to be able to see the moment one turns,
+ * and `townSubject` has already told them whose choice it was not.
+ */
+function puppetTurnDecision(
+  state: GameState,
+  player: Player,
+  city: City,
+  front: QueueItem,
+  wanted: QueueItem,
+  candidates: BotCandidate[],
+): BotDecision {
+  return {
+    kind: 'build',
+    command: {
+      type: 'setCityProduction',
+      playerId: player.id,
+      cityId: city.id,
+      queue: queueAhead(state, player, city, wanted),
+    },
+    subject: townSubject(city),
+    summary: `${city.name} turns from ${itemName(front)} to ${itemName(wanted)}.`,
+    candidates,
+    focus: { col: city.col, row: city.row },
+  };
 }
 
 /** Two queue rows naming the same thing. `validateQueue`'s own reading. */
@@ -4089,6 +4156,89 @@ export function puppetProduction(state: GameState, player: Player, city: City): 
   if (city.puppet !== true) return null;
   if (city.ownerId !== player.id) return null;
   return productionTable(state, player, city).best;
+}
+
+/**
+ * **What a puppet already running a conversion would rather be raising** — the
+ * one door both seats re-decide a puppet through (batch PP1, `docs/flags.md`
+ * (qqq)), and `null` for a town with nothing better to do.
+ *
+ * The bug it closes is a *shape* bug, not an appraisal one. A project never
+ * leaves the queue (Entry XXVI: `settleProduction` banks and returns before the
+ * splice), so a puppet that once chose the tithe has a non-empty queue for the
+ * rest of the game — and both of the doors that give a puppet something to build
+ * only ever fired on an **empty** one. The town was frozen on its first decision
+ * while its empire fell over its authority cap, and a person watching the panel
+ * could not say a word about it. So the question is asked again, every End Turn,
+ * of exactly the towns that can no longer ask it for themselves.
+ *
+ * Four clauses, and each of them is a rule rather than a taste:
+ *
+ *   · **a puppet, and this seat's** — `puppetProduction`'s own gate, for its
+ *     reason: this is not a door onto a queue the player may set themselves;
+ *   · **the queue's front is a conversion**. A building in progress is never
+ *     abandoned — hammers banked are hammers kept, and a town that changed its
+ *     mind halfway would spend a game half-raising things. The empty queue is
+ *     somebody else's arm (`puppetProduction`), and this one is silent on it;
+ *   · **the replacement is a building**. A puppet's list is buildings and
+ *     conversions (`buildCandidates`' filter), and swapping one conversion for
+ *     another is a decision with no build in it at all;
+ *   · **it beats the conversion by `puppet.switchMargin`** of that conversion's
+ *     own worth, so a row a hair better than the coin the town is already
+ *     minting does not cost it a turn of hammers to find out.
+ *
+ * **It terminates**, and by `projectIdleCommand`'s argument exactly: the same
+ * pure scorer on the same state cannot disagree with itself, and once the
+ * command lands the front is a building, which silences the second clause until
+ * that building is finished.
+ */
+export function puppetRedecision(
+  state: GameState,
+  player: Player,
+  city: City,
+  sitting?: BotSitting,
+): QueueItem | null {
+  return puppetRedecisionTable(state, player, city, sitting)?.wanted ?? null;
+}
+
+/**
+ * `puppetRedecision`, with the table it decided on and the conversion it is
+ * displacing — the feed prints both, and the command needs the front row to say
+ * what the town is turning away from.
+ */
+function puppetRedecisionTable(
+  state: GameState,
+  player: Player,
+  city: City,
+  sitting?: BotSitting,
+): { wanted: QueueItem; front: QueueItem; candidates: BotCandidate[] } | null {
+  if (city.puppet !== true) return null;
+  if (city.ownerId !== player.id) return null;
+  const front = city.queue[0];
+  if (front === undefined || front.kind !== 'project') return null;
+  const table = productionTable(state, player, city, sitting);
+  const wanted = table.best;
+  if (wanted === null || wanted.kind !== 'building') return null;
+  if (sameItem(wanted, front)) return null;
+  const challenger = scoreOf(table.candidates, wanted);
+  const incumbent = scoreOf(table.candidates, front);
+  if (challenger === null || incumbent === null) return null;
+  // The margin is taken off the incumbent's **magnitude**, so it defends a
+  // conversion worth −3 exactly as hard as one worth +3. See
+  // `AiConfig.puppet.switchMargin` for why this one adds where the beeline's
+  // multiplies.
+  const margin = Math.max(0, aiFor(player).puppet.switchMargin);
+  if (challenger <= incumbent + Math.abs(incumbent) * margin) return null;
+  return { wanted, front, candidates: table.candidates };
+}
+
+/** One row of a scored table, found by the name the table printed it under. */
+function scoreOf(candidates: readonly BotCandidate[], item: QueueItem): number | null {
+  const name = itemName(item);
+  for (const row of candidates) {
+    if (row.label === name) return row.score;
+  }
+  return null;
 }
 
 /**

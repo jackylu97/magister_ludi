@@ -6780,3 +6780,106 @@ makes the whole of it an arena A/B.
   gap — but it does mean a seat that is knocked out of its bar by a war carries a
   lean toward a bar it will not reach for the rest of the age. The lean is
   bounded by the band, so what that costs is a tilt and never a lock.
+
+## Batch PP1 as shipped — puppets that decide (2026-09-10)
+
+`docs/flags.md` (qqq), and the user's report was one sentence: *"puppeted cities
+right now only work on 'tithe'."* Two causes, one of them a shape and one of them
+a thumb.
+
+### 1 · The shape — a conversion is a queue that never empties
+
+A project never leaves the queue (Entry XXVI: `settleProduction` subtracts,
+banks, and returns before the splice), and **both** doors that give a puppet
+something to build only ever fired on an *empty* one — `autoPickPuppets`
+(`controls.ts`) for a person's seat, the `cityProduction` blocker for a bot's. So
+a puppet that once chose the tithe was frozen on that decision for the rest of
+the game, and its owner is not allowed to say a word about it: the city panel
+locks a puppet by ruling.
+
+The door is `puppetRedecision` (`src/ai/bot.ts`), asked at every End Turn by both
+seats through the same function, and four clauses gate it:
+
+- **a puppet, and this seat's** — `puppetProduction`'s own gate, so this is never
+  a way to set a queue the player is entitled to set themselves;
+- **the queue's front is a conversion**. A building in progress is never
+  abandoned — hammers banked are hammers kept — and the empty queue is still
+  `puppetProduction`'s arm;
+- **the replacement is a building**. A puppet's list is buildings and conversions
+  (`buildCandidates`' filter, ruled 2026-09-03), and one conversion for another
+  is a decision with no build in it;
+- **it beats the conversion by `puppet.switchMargin`** of that conversion's own
+  worth.
+
+It terminates by `projectIdleCommand`'s own argument: two calls of one pure
+function on one state cannot disagree, and once the command lands the front is a
+building, which silences the second clause until that building is finished. The
+command is the ordinary `setCityProduction`, built by `queueAhead` — shared with
+`projectIdleCommand`, so the human seat and the bot seat write byte-identical
+commands and the conversion is *promoted past*, never cancelled.
+
+The feed says so in its own line: **"Uruk (puppet) turns from Tithes to
+Library."** The subject already carried the `(puppet)` mark (`townSubject`).
+
+### 2 · The knob — `puppet.switchMargin`, and why it adds
+
+`priorities.switchMargin` is the empire-scale version of the same idea and it
+*multiplies* (1.1). This one **adds**, at a first cut of **0.1**, and the
+difference is deliberate: a conversion's score can be negative — in a bleeding
+empire it usually is — and a multiplication makes a negative incumbent *easier*
+to displace. That is the right reading for a beeline (a plan that has turned sour
+should be dropped) and the wrong one for a town quietly minting coin. The margin
+is taken off the incumbent's **magnitude**, so it always makes the standing
+decision harder to unseat. Nought shuts it off, which makes it an arena A/B.
+
+It is a block of its own rather than a fifth weight because it is not a taste: a
+weight says what a voice is worth, this says when a decision already taken stops
+being the decision. It reaches the arena panel by the panel walking the sheet.
+
+### 3 · The thumb, re-cut on the bench
+
+`puppetProfile.weights` is folded over whichever persona the seat plays
+(`aiConfigForPuppet`), and it was leaning hard enough to make every *maintained*
+row lose to the conversion — a building's wage is charged at gold's shadow price,
+whose prior is `weights.gold × goldPressure`, so doubling the puppet's gold
+weight doubles what a Library costs it while halving what the Library pays.
+
+| | gold | science | culture |
+|---|---|---|---|
+| the table (every seat) | 3, 3, 4, 4 | 5, 6, 6, 6 | 5, 5, 5, 5 |
+| the puppet, before | 6, 6, 7, 8 | 3, 3, 3, 3 | 1, 1, 1, 1 |
+| the puppet, after | 4, 4, 5, 6 | 4, 5, 5, 5 | 2, 2, 2, 2 |
+
+The lean is kept — gold still above the table at every age, letters and culture
+still below it — and it is a lean rather than a veto. Measured on the hand-built
+bench that is now `test/sim/aiPuppet.test.ts` (a home town, a puppet, five more
+towns where the claim is about the writ):
+
+| the puppet's board | before | after |
+|---|---|---|
+| size 6, nothing raised | Granary | Granary |
+| size 6, the cheap rows up | Library 0.45 · Tithes 0.28 | Library 0.74 · Tithes 0.28 |
+| seven towns, the cheap rows up | **Tithes 0.20** · Library 0.10 | **Library 0.26** · Tithes 0.20 |
+| seven towns, no Monument | Monument beats the tithe | Monument beats the tithe |
+| everything raised, books bleeding | Tithes | Tithes |
+
+The third row is the whole complaint: a puppet in a real empire — one big enough
+that the writ is short and the shadow price of a coin has risen — chose the tithe
+over the only yield row it had left.
+
+### What it did not move, and what is still open
+
+- **The turn-100 bench is unchanged**, to the decimal: 6.1 towns, 41.3 citizens,
+  29.3 buildings, 122.4 food, 73.5 hammers, 37.6 gold, 86.8 beakers, 62.9
+  culture, 20.1 faith, 269.9 in hand, 23.1 nodes, 4.7 contentment. Two balanced
+  seats on a standard map take no towns from each other in a hundred turns, so
+  no puppet exists on that bench to decide anything. The batch's whole surface is
+  a board with a conquest on it.
+- **A Market still prices negative in most towns**, and it is not the puppet's
+  thumb: the gain is discounted by the turns the town needs to raise it and the
+  wage is not, so a row whose whole payoff is a coin a turn cannot win. That is a
+  fold shape every seat reads, not a puppet's opinion, and it belongs to whoever
+  next opens `push`.
+- **The puppet re-decides once a turn**, off one `productionTable` per puppet.
+  Nothing re-walks the empire; the town is asked, and the answer is a command or
+  silence.

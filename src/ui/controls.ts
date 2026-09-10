@@ -329,8 +329,12 @@ import type { DealTerms } from '../sim/deals';
 // **The one thing this interface asks an appraisal for.** A puppet is
 // uncontrollable by ruling, so its queue is chosen by the seat's own appraisal
 // and issued as a logged command by whichever client drives the seat — for a
-// person's seat, that client is this file. See `autoPickPuppets`.
-import { puppetProduction } from '../ai/bot';
+// person's seat, that client is this file. Three names and one decision:
+// `puppetProduction` for a town with an empty queue, `puppetRedecision` for one
+// already minting coin (batch PP1), and `queueAhead` so the command this file
+// writes is the byte-identical twin of the one `driver.ts` writes.
+// See `autoPickPuppets`.
+import { puppetProduction, puppetRedecision, queueAhead } from '../ai/bot';
 // **The second thing this interface owes an appraisal**, and it owes it in the
 // other direction: a paper *this* seat sends back is the fact that stops a bot
 // writing it again next turn (batch X4). See `answerDealOf`.
@@ -7062,7 +7066,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
-   * **Every puppet of this seat with an empty queue, given something to build.**
+   * **Every puppet of this seat, given something to build — and asked again if
+   * what it is building is a conversion.**
    *
    * The ruling (`docs/war-diplomacy.md`, 9b): a puppet's production is *visible
    * but uncontrollable*, chosen by the seat's own appraisal and **issued as
@@ -7075,11 +7080,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *   · it is an **ordinary logged command**, sent through `commit` like a march
    *     — so a save replays a puppet's whole production history, and every
    *     listener that hears an order hears this one;
-   *   · it is the **same appraisal** a bot seat would use (`puppetProduction`),
-   *     under the same profile, so a puppet does not build differently
-   *     depending on who is sitting in the chair;
-   *   · it fires only for a town whose queue is **empty**, so it never overrides
-   *     a decision — least of all one the reducer accepted from somewhere else.
+   *   · it is the **same appraisal** a bot seat would use (`puppetProduction`
+   *     and `puppetRedecision`), under the same profile, so a puppet does not
+   *     build differently depending on who is sitting in the chair;
+   *   · it never overrides a **building in progress** — hammers banked are
+   *     hammers kept, and neither arm below can touch a queue whose front is one.
+   *
+   * The second arm is batch PP1 (`docs/flags.md` (qqq)) and it closes the hole
+   * the first one had for the life of the game: a project never leaves the queue
+   * (Entry XXVI), so a puppet that once chose the tithe never had an empty queue
+   * again and this function had nothing to say about it ever after. It is asked
+   * every End Turn, and `puppetRedecision` — the bot seat's own door — decides
+   * whether a building has beaten the conversion by enough to be worth turning
+   * the town around for.
    *
    * Silent on refusal, deliberately: this is not the player's decision and a
    * toast about it would be a sentence about a town they cannot act on. A
@@ -7092,14 +7105,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const city of state.cities) {
       if (city.ownerId !== localPlayerId) continue;
       if (city.puppet !== true) continue;
-      if (city.queue.length > 0) continue;
-      const item = puppetProduction(state, player, city);
-      if (item === null) continue;
+      if (city.queue.length === 0) {
+        const item = puppetProduction(state, player, city);
+        if (item === null) continue;
+        commit({
+          type: 'setCityProduction',
+          playerId: localPlayerId,
+          cityId: city.id,
+          queue: [item],
+        });
+        continue;
+      }
+      const turn = puppetRedecision(state, player, city);
+      if (turn === null) continue;
       commit({
         type: 'setCityProduction',
         playerId: localPlayerId,
         cityId: city.id,
-        queue: [item],
+        queue: queueAhead(state, player, city, turn),
       });
     }
   }

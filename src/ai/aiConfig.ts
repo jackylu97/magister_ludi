@@ -978,6 +978,39 @@ export interface AiConfig {
      */
     driftWeight: number;
   };
+  /**
+   * **What a town nobody controls decides for itself** (batch PP1,
+   * `docs/flags.md` (qqq)) — one number, and it is the price of changing a
+   * puppet's mind.
+   *
+   * A puppet's *taste* is `puppetProfile`, a persona-shaped override folded over
+   * whichever persona the seat plays. This block is the other half and it is not
+   * a taste at all: it is how much better a building has to look than the
+   * conversion a puppet is already running before the empire spends a turn's
+   * hammers turning the town around. So it is a knob of its own rather than a
+   * fifth weight — a weight says what a voice is worth, and this says when a
+   * decision already taken stops being the decision.
+   */
+  puppet: {
+    /**
+     * **The puppet's switching margin**, as a *fraction* of the conversion's own
+     * score — 0.1 is "a tenth better, or the tithe keeps running".
+     *
+     * `priorities.switchMargin` is the empire-scale version of the same idea and
+     * it *multiplies* (1.1); this one adds, and the difference is deliberate. The
+     * incumbent here can be worth a **negative** number of turns — a conversion
+     * in a bleeding empire often is — and a multiplication makes a negative
+     * incumbent *easier* to displace, which is the right reading for a beeline
+     * (a plan that has turned sour should be dropped) and the wrong one for a
+     * town that is quietly minting coin. The margin is taken off the incumbent's
+     * **magnitude**, so it always makes the standing decision harder to unseat,
+     * whichever side of zero it sits on.
+     *
+     * **Nought shuts the margin off**, which makes it an arena A/B rather than a
+     * rule: a sheet with `switchMargin: 0` re-decides on the bare argmax.
+     */
+    switchMargin: number;
+  };
 }
 
 // --- personas ---------------------------------------------------------------

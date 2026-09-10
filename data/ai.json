@@ -203,25 +203,28 @@
     "leanWeight": 1,
     "driftWeight": 1
   },
+  "puppet": {
+    "switchMargin": 0.1
+  },
   "puppetProfile": {
     "weights": {
       "gold": [
-        6,
-        6,
-        7,
-        8
+        4,
+        4,
+        5,
+        6
       ],
       "science": [
-        3,
-        3,
-        3,
-        3
+        4,
+        5,
+        5,
+        5
       ],
       "culture": [
-        1,
-        1,
-        1,
-        1
+        2,
+        2,
+        2,
+        2
       ]
     }
   },
