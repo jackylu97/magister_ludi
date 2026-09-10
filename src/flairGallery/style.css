@@ -781,6 +781,20 @@ body {
   position: static;
 }
 
+/* --- the garrison row ------------------------------------------------------
+   U8's stall, and the one place the override above has to be taken back: the
+   row is positioned *off the pill*, so a pill returned to the flow would let its
+   row escape to whatever ancestor happened to be positioned. The pill keeps its
+   own containing block here and is pushed down instead, which is the headroom a
+   row of roundels needs when nothing is anchoring the plate over a town.
+
+   Nothing else. The gap, the fan, the ring, the bar and the numeral are the
+   game's own rules, painted by the game's own functions. */
+.garrison-slot .city-banner {
+  position: relative;
+  margin-top: 48px;
+}
+
 /* --- the banner over its town ----------------------------------------------
    U7's stall: the shipping renderer on a canvas, with the shipping banner
    overlay above it. The stage is the positioning context both halves share —

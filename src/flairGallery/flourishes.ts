@@ -26,9 +26,12 @@
 import { EPIGRAPHS } from '../ui/frontispiece';
 import {
   type HealthParts,
+  buildGarrisonRow,
   buildHealthBar,
   cityHealthBar,
   createCityBanners,
+  garrisonRow,
+  paintGarrisonRow,
   paintHealthBar,
 } from '../ui/cityBanners';
 import { CARD_LINE_ACCENT, cardLineMarkUrl } from '../ui/cardLine';
@@ -69,6 +72,7 @@ export function drawFlourishes(into: HTMLElement): void {
   giltFrameStall(into);
   pricePlateStall(into);
   cityBannerStall(into);
+  garrisonRowStall(into);
   bannerAnchorStall(into);
   inscriptionStall(into);
   ledgerStall(into);
@@ -235,12 +239,127 @@ function cityBannerStall(into: HTMLElement): void {
 }
 
 /**
+ * The garrison row over the plate, at four lengths.
+ *
+ * U8's stall (the user, 2026-09-09, `docs/flags.md` (ooo)): the pieces standing
+ * in a town, listed above its banner. It earns a stall for the wound's reason
+ * and one of its own. The wound's: the row is only ever seen floating over a
+ * diorama with the player looking at the ground, which is exactly the condition
+ * under which "is the gap big enough that this reads as standing *at* the town,
+ * are six roundels still countable, does the fan crowd the plate" cannot be
+ * answered. Its own: **a running game will not hold still at four lengths** —
+ * getting ten pieces onto one hex takes a war, and comparing four, six and ten
+ * side by side is the only way to judge where the fan should start and where the
+ * numeral should take over.
+ *
+ * The town and the pieces are a real `GameState` — `newGame`, a flat map,
+ * `foundCityAt`, `createUnit` — for `cityStage.ts`'s reason: a roundel's mark is
+ * `badgeClassFor`'s answer for a real roster row, its rim is that piece's
+ * owner's ink, and its bar is measured against `unitMaxHp`. The row is built and
+ * painted by the shipping functions; nothing on this page knows what a fan, a
+ * ring or a `+N` means.
+ */
+function garrisonRowStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The garrison row',
+    'The pieces standing on a town’s hex, listed above its banner: one roundel each, the board’s own mark in the owner’s own ink, with a clear gap under the row so it reads as standing *at* the town rather than as part of its label. A hurt piece carries the board’s hit bar under its roundel and a whole one carries none. Past four the roundels fan — they overlap rather than widening a row that would outgrow the plate — and past eight the remainder is a numeral. The piece in hand is ringed exactly as the board rings it.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'one, three, six and ten');
+  const ground = element('div', 'banner-ground');
+
+  const state = newGame({
+    seed: 11,
+    sizeName: 'duel',
+    players: [
+      { name: 'Seat 1', color: '#b3402f', isHuman: true },
+      { name: 'Seat 2', color: '#2f6fb3', isHuman: true },
+    ],
+  });
+  state.map = createMap({ width: 24, height: 10, terrain: 'grassland' });
+  state.units.length = 0;
+  state.cities.length = 0;
+  state.camps.length = 0;
+  state.tileOwner = new Array<number | null>(state.map.tiles.length).fill(null);
+  // The grids are sized to the map they were made for, and the table above is
+  // not that map — `cityStage.ts` does the same, for the same reason.
+  resetVisibility(state);
+
+  /** The stack fills in roster order, so ten pieces are ten different marks. */
+  const ROSTER: UnitTypeId[] = [
+    'warrior',
+    'worker',
+    'archer',
+    'spearman',
+    'settler',
+    'horseman',
+    'scout',
+    'catapult',
+    'swordsman',
+    'chariot',
+  ];
+
+  /**
+   * One town with `standing` pieces in it, and its row over a pill.
+   *
+   * `wounded` and `held` name *positions in the stack* rather than states this
+   * page paints: the wound is real hit points through `unitMaxHp`, and the
+   * selection is the unit id the shipping derivation compares against — so both
+   * marks are the game's own, drawn on the page's ground.
+   */
+  const row = (
+    at: number,
+    standing: number,
+    caption: string,
+    wounded: number | null,
+    held: number | null,
+  ): void => {
+    const town = foundCityAt(state, 0, getTileAt(state.map, at, 4)!);
+    let selected: number | null = null;
+    for (let i = 0; i < standing; i += 1) {
+      const unit = createUnit(state, 0, ROSTER[i % ROSTER.length]!, town.col, town.row);
+      if (i === wounded) unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 3));
+      if (i === held) selected = unit.id;
+    }
+    const slot = element('div', 'banner-slot garrison-slot');
+    const banner = element('div', 'city-banner is-mine');
+    banner.style.setProperty('--banner-color', '#b3402f');
+    const size = element('span', 'city-banner-size');
+    size.append(element('span', 'city-banner-pop', '4'));
+    const garrison = buildGarrisonRow();
+    banner.append(
+      size,
+      element('span', 'city-banner-name', town.name),
+      element('span', 'city-banner-production', 'Warrior · 5t'),
+      garrison,
+    );
+    paintGarrisonRow(
+      garrison,
+      garrisonRow(
+        state,
+        state.units.filter((unit) => unit.col === town.col && unit.row === town.row),
+        0,
+        selected,
+      ),
+    );
+    slot.append(banner, element('span', 'banner-caption', caption));
+    ground.append(slot);
+  };
+
+  row(2, 1, 'one', null, null);
+  row(7, 3, 'three', null, null);
+  row(12, 6, 'six · one hurt', 2, null);
+  row(18, 10, 'ten · one in hand', 4, 1);
+  cell.append(ground);
+}
+
+/**
  * The banner over a real board, with real pieces standing under it.
  *
- * The stall U7 needed and the three passes before it did not have: the whole
- * ruling (the user, 2026-09-09, `docs/flags.md` (hhh) 6, "once more, U7") is
- * about **where the plate sits in screen space relative to the pieces on its own
- * hex**, and that is a question no pill laid out on a swatch of green can
+ * The stall U7 needed and the four passes before it did not have, kept for U8
+ * and re-aimed: the ruling is about **what a player sees over the town they are
+ * looking at**, and that is a question no pill laid out on a swatch of green can
  * answer. So this one drives the shipping renderer: a real `Game` on a flat
  * table, `Renderer3D` on a canvas of its own, and `createCityBanners` over it
  * through the very `projectCell` the game positions banners with. What is on
@@ -248,24 +367,24 @@ function cityBannerStall(into: HTMLElement): void {
  *
  * What it is here to show, and what the knobs are for:
  *
- *   the rise      the plate hangs from a world point above the flagpole
- *                 (`BANNER_RISE`), so the pieces' own roundels stand on the
- *                 tile beneath it. Zoom the board and the pair keeps its
- *                 arrangement, which is the property a margin in pixels could
- *                 never have — and is why the old one was wrong.
- *   the stack     one piece, then two, then three. `placePiece` fans them round
- *                 the tile centre, so three tags read as three, which is the
- *                 "it needs to scale with multiple units" half of the ruling.
- *   the wound     a hurt piece carries its hit bar above its roundel, and that
- *                 bar has to clear the plate too. The knob halves the stack's
- *                 hit points; a whole piece draws no bar at all, which is the
- *                 board's own rule (`hpBarFill`) and not this page's.
+ *   the rise      the plate hangs from a world point at the top of the flagpole
+ *                 (`BANNER_RISE`). Zoom the board and the arrangement holds,
+ *                 which is the property a margin in pixels could never have —
+ *                 and is why the one this replaced was wrong.
+ *   the row       the pieces standing in the town are listed *above* the plate,
+ *                 and the sculpts alone stand on the tile: one icon in one
+ *                 place. Take the stack knob up and the row fans, then counts.
+ *   the wound     a hurt piece carries its bar under its roundel in the row, and
+ *                 a whole one carries none — the board's own rule (`hpBarFill`),
+ *                 not this page's. The knob thirds the stack's hit points.
+ *   the selection the piece in hand is ringed in the row the way the board rings
+ *                 it. The knob takes the first piece of the stack.
  */
 function bannerAnchorStall(into: HTMLElement): void {
   const root = block(
     into,
     'The banner over its town',
-    'The plate is anchored at a world point above the town’s flagpole and hung from it, so everything standing on the hex — each piece’s roundel, and the hit bar over a hurt one — reads underneath it at every zoom. Take the zoom knob to the ends and the arrangement holds: it is two world points through one camera, never a margin in pixels. A stack fans out around the tile centre, which is how several pieces in one town stay countable.',
+    'The plate is anchored at a world point at the top of the town’s flagpole and hung from it, and the pieces standing on the hex are listed above it — a roundel each, in the owner’s ink, with the hit bar of a hurt one under its own. The sculpts stay on the tile and their tags do not: one icon in one place. Take the zoom knob to the ends and the arrangement holds, because the plate is a world point through the camera and never a margin in pixels.',
   );
   const grid = stallGrid(root);
   const cell = stall(grid, 'the plate, and what is under it');
@@ -296,11 +415,29 @@ function bannerAnchorStall(into: HTMLElement): void {
   resetVisibility(state);
   const town = foundCityAt(state, 0, getTileAt(state.map, 4, 3)!);
 
-  /** The knobs' whole state: how many pieces are in, and whether they are hurt. */
+  /** The knobs' whole state: how many pieces are in, hurt, and picked up. */
   let standing = 2;
   let wounded = false;
-  /** The stack, in the order it fills: a soldier, a civilian, then a caravan. */
-  const ROSTER: UnitTypeId[] = ['warrior', 'worker', 'trader'];
+  let held = false;
+  /** The piece the row rings, or nothing — an id, because that is what it names. */
+  let selectedId: number | null = null;
+  /**
+   * The stack, in the order it fills: a soldier, a civilian, a caravan, and then
+   * seven more marks, because the row's fan and its numeral are what a stack of
+   * ten is here to show.
+   */
+  const ROSTER: UnitTypeId[] = [
+    'warrior',
+    'worker',
+    'trader',
+    'archer',
+    'spearman',
+    'settler',
+    'horseman',
+    'scout',
+    'catapult',
+    'swordsman',
+  ];
 
   const renderer = new Renderer3D(canvas);
   // The local seat's own eyes, which is the gate the banner's `watched` rule
@@ -316,15 +453,20 @@ function bannerAnchorStall(into: HTMLElement): void {
     // seams are stubs — the pill is here to be looked at, not pressed.
     onOpenCity: () => {},
     openCity: () => null,
+    // The ring on the row is the shipping derivation's, so the knob hands it an
+    // id and lets it decide what a selected roundel looks like.
+    selectedUnitId: () => selectedId,
   });
 
   const restock = (): void => {
     state.units.length = 0;
+    selectedId = null;
     for (let i = 0; i < standing; i += 1) {
-      const unit = createUnit(state, 0, ROSTER[i]!, town.col, town.row);
-      // Halved through the sim's own maximum: a bar is drawn iff a piece is hurt
+      const unit = createUnit(state, 0, ROSTER[i % ROSTER.length]!, town.col, town.row);
+      // Thirded through the sim's own maximum: a bar is drawn iff a piece is hurt
       // (`hpBarFill`), and this page must not invent a fraction of its own.
-      if (wounded) unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 2));
+      if (wounded) unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 3));
+      if (held && i === 0) selectedId = unit.id;
     }
     renderer.setGameState(state);
     banners.refresh();
@@ -346,7 +488,7 @@ function bannerAnchorStall(into: HTMLElement): void {
   slider(
     knobs,
     'standing here',
-    { min: 0, max: 3, step: 1, value: standing },
+    { min: 0, max: 10, step: 1, value: standing },
     (v) => (v === 0 ? 'empty' : `${v} in`),
     (v) => {
       standing = v;
@@ -355,6 +497,12 @@ function bannerAnchorStall(into: HTMLElement): void {
   );
   checkbox(knobs, 'hurt', false, (on) => {
     wounded = on;
+    restock();
+  });
+  // The ring in the row, on the first piece of the stack: what a selection looks
+  // like over a town is the half of U8 the board itself no longer draws.
+  checkbox(knobs, 'first piece in hand', false, (on) => {
+    held = on;
     restock();
   });
   // The knob the whole stall is for. `zoomBy` is relative and the board's own,

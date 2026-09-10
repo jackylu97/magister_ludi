@@ -2476,8 +2476,14 @@ export class TileIcons {
  * nothing on it, and the only way to find out was to notice. It says so on the
  * console now, once per file, because "a mark stopped appearing" is the shape of
  * bug this atlas produces and the console is where somebody is already looking.
+ *
+ * Exported since U8, and for the reason the cell painters below it are: the city
+ * banner's garrison row prints the *same* cells into a small canvas of its own
+ * (`ui/unitRoundels.ts`), and a second loader there would be a second answer to
+ * "where does a badge's artwork come from" — with its own idea of what a missing
+ * file means.
  */
-function loadIcon(url: string): Promise<HTMLImageElement | null> {
+export function loadIcon(url: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const image = new Image();
     // Same-origin out of `public/`, but a canvas that ever reads a cross-origin

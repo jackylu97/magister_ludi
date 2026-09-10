@@ -42,14 +42,27 @@ import { atlasQuad, discRing } from '../../src/render3d/geometry';
 import { RENDER_ORDER } from '../../src/render3d/instances';
 import { wrapWidth } from '../../src/render3d/layout';
 import { VIEW3D } from '../../src/render3d/lookData';
-import { UnitLayer, badgeAnchors, hpBarFillWidth } from '../../src/render3d/pieces';
+import {
+  UnitLayer,
+  badgeAnchors,
+  banneredTownCells,
+  hpBarFillWidth,
+  placePiece,
+  unitStackIndices,
+} from '../../src/render3d/pieces';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { barInstances } from './unitBarHelpers';
 import { foundCityAt } from '../../src/sim/cities';
-import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, barbarianPlayer, createUnit, newGame } from '../../src/sim/state';
+import { createMap, getTileAt, tileIndex } from '../../src/sim/map';
+import {
+  type GameState,
+  barbarianPlayer,
+  bumpRevision,
+  createUnit,
+  newGame,
+} from '../../src/sim/state';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitDef, unitMaxHp } from '../../src/sim/unitData';
-import { resetVisibility } from '../../src/sim/visibility';
+import { EXPLORED, resetVisibility } from '../../src/sim/visibility';
 
 /**
  * The floating unit badges.
@@ -1161,22 +1174,24 @@ describe('badges in the units layer', () => {
 });
 
 /**
- * The piece standing in a town, and the tag over it (U7, `docs/flags.md` (hhh) 6).
+ * The piece standing in a town, and the furniture it does *not* wear (U8,
+ * `docs/flags.md` (ooo)).
  *
- * For a week this layer had a town case: a unit standing in a town whose banner
- * the seat could see wore **no** roundel, because the city banner had taken the
- * badge onto its plate. The user's ruling of 2026-09-09 ended that — *"it makes
- * it look like the unit is part of the city"* — and the plate moved up instead
- * (`ui/cityBanners.ts`, "Where the plate hangs"). So the town case is gone and
- * what is pinned here is that it is gone: every piece wears its own tag, three
- * of them in one town stand in three places, and a hurt one still carries its
- * bar.
+ * The city banner lists the pieces on its hex as a row of roundels above the
+ * plate — the board's own marks, the board's own rims, and the board's own hit
+ * bar under a hurt one (`ui/cityBanners.ts`, "The garrison row"). So a piece
+ * standing in a town whose banner this seat can see wears neither roundel nor
+ * bar: one icon in one place. Its **sculpt stays** — the piece is still standing
+ * on the map — and its click target follows the drawing, which is what this
+ * pins.
  *
- * The geometry that makes the arrangement legible is not this layer's to keep —
- * the rise belongs to the banner — but the figure it is measured against is: the
- * tallest row on the roster, plus everything that row floats.
+ * The rule is the banner's own gate clause for clause (`banneredTownCells`), so
+ * what is asserted here is the two halves that could drift: a piece on the town
+ * hex loses the furniture, a piece on the hex *beside* it keeps every bit of it,
+ * and a remembered town — whose plate carries no row — is not a town for this
+ * purpose at all.
  */
-describe('the piece standing in a town wears its own badge', () => {
+describe('the piece standing in a town wears no roundel', () => {
   /** Two seats, a flat board, nothing on it. */
   function board(): GameState {
     const game = newGame({
@@ -1225,138 +1240,136 @@ describe('the piece standing in a town wears its own badge', () => {
     };
   }
 
-  it('draws the sculpt and the roundel for a piece in a watched town', () => {
+  it('draws the sculpt and no tag for a piece in a watched town', () => {
     const game = board();
     const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
     createUnit(game, 0, 'warrior', town.col, town.row);
     const drawn = draw(game, game.visibility[0]!, 0);
-    // Both halves of the tag — the printed disc and the seat's rim — beside the
-    // piece they name. The banner hangs above the lot (`BANNER_RISE`).
+    // The piece is still standing there — only the floating furniture naming it
+    // has moved onto the banner's row.
+    expect(drawn.sculpts.length).toBeGreaterThan(0);
+    expect(drawn.discs).toHaveLength(0);
+    expect(drawn.rims).toHaveLength(0);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
+  });
+
+  it('keeps both halves of the tag on the hex beside it', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    createUnit(game, 0, 'warrior', town.col + 1, town.row);
+    const drawn = draw(game, game.visibility[0]!, 0);
     expect(drawn.discs.length).toBeGreaterThan(0);
     expect(drawn.rims.length).toBeGreaterThan(0);
-    expect(drawn.sculpts.length).toBeGreaterThan(0);
     drawn.layer.dispose();
     drawn.geometry.dispose();
   });
 
   /**
-   * The bench the user asked for: a soldier, a civilian and a caravan standing
-   * in one town at once. Three anchors, three *places* — `placePiece` fans a
-   * stack round the tile centre, which is what makes several pieces in a town
-   * countable rather than one disc with a numeral bossing it.
+   * The suppression is the **banner's** gate, so a board with no seat — the
+   * galleries' omniscient one — hides nothing: there are no banners over it to
+   * carry what it took away.
    */
-  it('gives three pieces in one town three distinct anchors', () => {
+  it('hides nothing on a board nobody is watching from', () => {
     const game = board();
     const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
-    for (const type of ['warrior', 'worker', 'trader'] as const) {
-      createUnit(game, 0, type, town.col, town.row);
-    }
-    const anchors = badgeAnchors(game, 0, (type) => pieceHeightFor(type));
-    // Three pieces, three wrap copies apiece.
-    expect(anchors).toHaveLength(9);
-    const places = new Set(
-      anchors.map((a) => `${a.x.toFixed(4)},${a.y.toFixed(4)},${a.z.toFixed(4)}`),
-    );
-    expect(places.size).toBe(9);
-    // And the middle copy of each is a place of its own: the fan is a real
-    // displacement, not three tags in one hole.
-    const middle = anchors.filter((a) => Math.abs(a.x) < wrapWidth(game.map) / 2);
-    expect(middle).toHaveLength(3);
-    for (const a of middle) {
-      for (const b of middle) {
-        if (a.unitId === b.unitId) continue;
-        expect(Math.hypot(a.x - b.x, a.z - b.z)).toBeGreaterThan(1e-3);
-      }
-    }
+    createUnit(game, 0, 'warrior', town.col, town.row);
+    const drawn = draw(game, null, null);
+    expect(drawn.discs.length).toBeGreaterThan(0);
+    drawn.layer.dispose();
+    drawn.geometry.dispose();
   });
 
   /**
-   * The click target follows the drawing, and now it follows it **into** a town:
-   * a piece garrisoning one is aimed at exactly as a piece in the open is.
+   * The click target follows the drawing. A badge nobody drew is a badge nobody
+   * may aim at — the click on the hex answers instead, and the roundel over the
+   * plate is the new tag.
    */
-  it('keeps the badge’s click target on a piece standing in a town', () => {
+  it('takes the badge’s click target off a piece standing in a town', () => {
     const game = board();
     const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
     const unit = createUnit(game, 0, 'warrior', town.col, town.row);
-    // Three anchors, one per wrap copy, exactly as the layer emits three.
-    expect(badgeAnchors(game, 0, () => 1)).toHaveLength(3);
+    expect(badgeAnchors(game, 0, () => 1)).toHaveLength(0);
+    // A step off the hex moves `signUnits`, the layer is rebuilt, and the tag
+    // and its target come back together — three anchors, one per wrap copy.
     unit.col = town.col + 1;
     expect(badgeAnchors(game, 0, () => 1)).toHaveLength(3);
   });
 
   /**
-   * The user's acceptance for U7, in as many words: *"verify that it also
-   * displays a health bar if the unit isn't at full health"*. A wounded piece in
-   * a town draws its bar on the tile — six instances, two quads over three wrap
-   * copies — and a whole one draws none, which is the board's standing rule
-   * (`hpBarFill` returns `null` at full health) and not a town rule.
+   * The bar goes with the roundel, and for the same reason: the row draws it
+   * under the roundel of a hurt piece (`hpBarFill`'s own rule, one surface
+   * over), so a second one on the tile would be the same wound twice. Out on the
+   * open board it is untouched — six instances, two quads over three wrap
+   * copies.
    */
-  it('draws a hurt piece’s hit bar in a town, and none over a whole one', () => {
+  it('takes the hit bar off a hurt piece in a town and leaves it beside one', () => {
     const game = board();
     const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
     const unit = createUnit(game, 0, 'warrior', town.col, town.row);
-
-    const whole = draw(game, game.visibility[0]!, 0);
-    expect(barInstances(whole.layer, whole.geometry)).toHaveLength(0);
-    whole.layer.dispose();
-    whole.geometry.dispose();
-
     unit.hp = Math.max(1, Math.round(unitMaxHp(unit) / 2));
-    const hurt = draw(game, game.visibility[0]!, 0);
-    const bars = barInstances(hurt.layer, hurt.geometry);
-    // The backing and its fill, in all three wrap copies.
+
+    const held = draw(game, game.visibility[0]!, 0);
+    expect(barInstances(held.layer, held.geometry)).toHaveLength(0);
+    held.layer.dispose();
+    held.geometry.dispose();
+
+    unit.col = town.col + 1;
+    const afield = draw(game, game.visibility[0]!, 0);
+    const bars = barInstances(afield.layer, afield.geometry);
     expect(bars).toHaveLength(6);
-    // Drawn at the wound: a full-width backing and a fill the length the
-    // drawing rule says. `hpBarFillWidth` is asked rather than restated — a
-    // fraction written here would be a second copy of it, and it carries the pip
-    // floor a bare product does not.
+    // Drawn at the wound: a full-width backing and a fill the length the drawing
+    // rule says. `hpBarFillWidth` is asked rather than restated — a fraction
+    // written here would be a second copy of it, and it carries the pip floor a
+    // bare product does not.
     const widths = [...new Set(bars.map((bar) => Number(bar.width.toFixed(4))))].sort(
       (a, b) => b - a,
     );
     expect(widths).toHaveLength(2);
     expect(widths[0]).toBeCloseTo(VIEW3D.hpBar.width, 4);
     expect(widths[1]).toBeCloseTo(hpBarFillWidth(unit.hp / unitMaxHp(unit)), 4);
-    // And the tag is still there beside it: a hurt garrison shows both.
-    expect(hurt.discs.length).toBeGreaterThan(0);
-    hurt.layer.dispose();
-    hurt.geometry.dispose();
+    afield.layer.dispose();
+    afield.geometry.dispose();
   });
 
   /**
-   * The figure the banner's rise is measured against, held on this side of the
-   * fence: the top of everything the **tallest roster row** floats, on the
-   * screen rather than up the Y axis — a badge and a bar are billboards, so
-   * their whole height shows while a world rise is foreshortened by the
-   * camera's elevation.
-   *
-   * `test/ui/cityBanners.test.ts` holds the other half (that `bannerRise` clears
-   * this). Both are needed: this one would pass on a plate that never moved, and
-   * that one on a roster that had quietly grown.
+   * A stack still fans on the tile, which is what keeps three sculpts in one
+   * town readable as three — the row above the plate counts them, and the ground
+   * shows them standing apart.
    */
-  it('measures the tallest roster row’s furniture, badge and bar together', () => {
-    const facing = 1 / Math.cos((VIEW3D.camera.elevation * Math.PI) / 180);
-    let tallest = 0;
-    let row: UnitTypeId = UNIT_TYPE_IDS[0]!;
-    for (const type of UNIT_TYPE_IDS) {
-      if (pieceHeightFor(type) <= tallest) continue;
-      tallest = pieceHeightFor(type);
-      row = type;
+  it('still fans a stack’s sculpts round the tile centre', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    for (const type of ['warrior', 'worker', 'trader'] as const) {
+      createUnit(game, 0, type, town.col, town.row);
     }
-    expect(tallest).toBeGreaterThan(0);
-    // Every row's badge and bar are under the tallest one's, which is what makes
-    // one figure enough for the whole roster.
-    const top = (height: number): number =>
-      Math.max(
-        badgeCenterY(height) + (VIEW3D.badges.diameter / 2) * facing,
-        hpBarY(height) + (VIEW3D.hpBar.height / 2) * facing,
-      );
-    for (const type of UNIT_TYPE_IDS) {
-      expect(top(pieceHeightFor(type)), type).toBeLessThanOrEqual(top(tallest) + 1e-12);
-    }
-    // The tallest row is a real one and its furniture stands clear of the town's
-    // own flagpole — which is why the plate cannot simply hang at the pole.
-    expect(UNIT_TYPE_IDS).toContain(row);
-    expect(top(tallest)).toBeGreaterThan(VIEW3D.city.poleHeight);
+    const places = new Set(
+      game.units.map((unit) => {
+        const at = placePiece(game.map, unit, unitStackIndices(game).get(unit.id) ?? 0);
+        return `${at.position.x.toFixed(4)},${at.position.z.toFixed(4)}`;
+      }),
+    );
+    expect(places.size).toBe(3);
+  });
+
+  /**
+   * **The gate is watched, never merely explored.** A remembered town's plate
+   * carries no row at all (an army is not something a chart remembers), so a
+   * piece drawn on one keeps the tag naming it — and, since a piece is only
+   * drawn where the seat is watching, the case is unreachable in play and is
+   * pinned as a property of the helper rather than of a build.
+   */
+  it('counts only the towns this seat is watching', () => {
+    const game = board();
+    const town = foundCityAt(game, 0, getTileAt(game.map, 4, 4)!);
+    expect(banneredTownCells(game, 0).has(tileIndex(game.map, town.col, town.row))).toBe(true);
+    // Explored and not watched: no banner facts, so nothing to suppress.
+    const seen = game.visibility[0]!;
+    for (let i = 0; i < seen.length; i += 1) seen[i] = EXPLORED;
+    bumpRevision(game);
+    expect(banneredTownCells(game, 0).has(tileIndex(game.map, town.col, town.row))).toBe(false);
+    // And an omniscient board has no banners over it at all.
+    expect(banneredTownCells(game, null).size).toBe(0);
   });
 
   /**
@@ -1365,11 +1378,10 @@ describe('the piece standing in a town wears its own badge', () => {
    * The three bits in `instances.ts` (fog-hidden, suppressed, veiled) exist
    * because the *board* is built once per game and can only be patched. This
    * layer is rebuilt whenever any unit moves and whenever the fog does, and it
-   * filters at build — a unit out of sight is skipped, never bitted. The town
-   * case that briefly lived here is gone entirely, which is the strongest form
-   * of that rule: no bit, and no filter either.
+   * filters at build — a unit out of sight is skipped, never bitted, and so is a
+   * piece whose label is carrying its tag.
    */
-  it('keeps no town case at all in the layer', () => {
+  it('filters at build rather than growing a fourth bit', () => {
     const sources = import.meta.glob('../../src/render3d/*.ts', {
       query: '?raw',
       import: 'default',
@@ -1378,10 +1390,12 @@ describe('the piece standing in a town wears its own badge', () => {
     const instances = Object.entries(sources).find(([path]) => path.endsWith('/instances.ts'))![1];
     expect(instances).not.toMatch(/banner/i);
     const pieces = Object.entries(sources).find(([path]) => path.endsWith('/pieces.ts'))![1];
-    expect(pieces).not.toContain('banneredTownCells');
-    // The badge is added for every drawn piece, gated on the atlas alone.
-    expect(pieces).toMatch(/if \(badges\) \{/);
-    // And the layer knows nothing about where the label floats.
+    expect(pieces).toContain('banneredTownCells');
+    // One walk over the towns per build, hoisted like any sweep field.
+    expect(pieces).toMatch(/const bannered = banneredTownCells\(state, seat\);/);
+    expect(pieces).toMatch(/if \(badges && !held\) \{/);
+    expect(pieces).toMatch(/if \(!held\) \{\n\s*this\.addHpBar\(/);
+    // And the layer still knows nothing about where the label floats.
     expect(pieces).not.toContain('BANNER_RISE');
   });
 });

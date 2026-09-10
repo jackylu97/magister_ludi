@@ -1529,6 +1529,39 @@ describe('the worker charge badge', () => {
   });
 
   /**
+   * **Who reads this hash**, which is the register a new reader joins.
+   *
+   * Two layers now draw a piece's tag: the 3D unit layer, which rebuilds when
+   * the hash moves (`renderer3d.ts`, pinned in `test/render/unitBars.test.ts`),
+   * and the city banner's garrison row, which lists the pieces standing in a
+   * town above its plate and re-walks them on the same hash (U8,
+   * `ui/cityBanners.ts`, "The garrison row"). A third reader belongs here, and
+   * so does the argument for it: a surface that draws what a piece *is* must
+   * rebuild exactly when a piece changes, and this hash is that question already
+   * answered.
+   */
+  it('is read by the two layers that draw a piece’s tag', () => {
+    const sources = {
+      ...(import.meta.glob('../../src/render3d/renderer3d.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>),
+      ...(import.meta.glob('../../src/ui/cityBanners.ts', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>),
+    };
+    const text = (name: string): string =>
+      Object.entries(sources).find(([path]) => path.endsWith(name))![1];
+    expect(text('/renderer3d.ts')).toMatch(/signUnits\(this\.state\) !== this\.unitsSignature/);
+    const banners = text('/cityBanners.ts');
+    expect(banners).toMatch(/import \{[^}]*signUnits[^}]*\} from '\.\.\/render3d\/pieces'/s);
+    expect(banners).toMatch(/const stamp = signUnits\(state\);/);
+  });
+
+  /**
    * The other side of the fingerprint trap, and the answer to the question the
    * scout's movement buff raises: does a change to what a unit can *do* need a
    * rebuild?

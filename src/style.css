@@ -3096,6 +3096,123 @@ kbd {
   background: var(--vermilion-lit);
 }
 
+/* --- the garrison row ------------------------------------------------------
+   The pieces standing on the town's hex, listed *above* the plate (U8, the
+   user's ruling of 2026-09-09 — `cityBanners.ts`, "The garrison row").
+
+   Absolutely positioned off the pill rather than laid out in it, and that is the
+   whole of the U6 objection answered in one rule: the row hangs over the plate
+   with a clear gap under it, so it reads as standing *at* the town rather than
+   as part of its label. The gap is nine pixels — enough that neither the ink of
+   the pill nor the drop shadow it casts touches a roundel, at the size the
+   roundels are drawn.
+
+   It takes no pointer as a row: the pill is the button, and the roundels take
+   their own back one rule down. */
+.city-banner-garrison {
+  position: absolute;
+  bottom: calc(100% + 9px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  pointer-events: none;
+}
+
+/* Past four, the roundels overlap rather than widening a row that would outgrow
+   the plate under it. A negative margin and not a shrunken gap: a fan is what
+   several pieces in one town look like on a table, and the rims are what keep
+   them countable. Later pieces stand in front, which is DOM order and needs no
+   z-index. */
+.city-banner-garrison.is-fanned .city-banner-piece + .city-banner-piece {
+  margin-left: -9px;
+}
+
+/* One piece: the roundel, and under it the bar if it is hurt. A column so the
+   bar sits beneath the disc it is about, and the discs stay in one line however
+   many of the pieces are wounded. */
+.city-banner-piece {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+/* The disc: the atlas's own printed cell, worn as a background and clipped to a
+   circle, rimmed in the piece's owner's ink exactly as the board rims it. The
+   zoom is written by `buildGarrisonRow` from the atlas's own paper fraction —
+   the element *is* the paper, and the cell is painted with the rim's width
+   outside it. The ground under the mark is ink at a whisper, so a cell that has
+   not printed yet (or failed to) is still a roundel and not a hole. */
+.city-banner-piece-disc {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 2px solid var(--roundel-ink, var(--parchment));
+  background-color: rgba(29, 26, 32, 0.55);
+  background-image: var(--roundel-mark);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: var(--roundel-zoom, 113%) auto;
+  box-shadow: 2px 2px 0 rgba(29, 26, 32, 0.35);
+}
+
+/* The piece in hand, ringed the way the board rings it: the same rim, lifted
+   toward white by `badges.selectedRimShade` (the colour arrives on
+   `--roundel-ink` already lifted — one rule, one place), and thickened so the
+   ring reads at this size against a fan of neighbours. */
+.city-banner-piece.is-selected .city-banner-piece-disc {
+  border-width: 3px;
+  box-shadow: 0 0 0 1px rgba(29, 26, 32, 0.55), 2px 2px 0 rgba(29, 26, 32, 0.35);
+}
+
+/* Your own pieces are controls; everybody else's is a reading. The pill takes
+   the pointer away on a rival's banner, so the roundel claims it back here. */
+.city-banner-piece.is-own {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.city-banner-piece.is-own:hover .city-banner-piece-disc {
+  filter: brightness(1.15);
+}
+
+/* The wound, under the roundel of a hurt piece and under nobody else's — the
+   board's own rule (`hpBarFill`). The channel is the banner's channel ink; the
+   fill's colour and its floor are the board's, written per piece by
+   `paintGarrisonRow` so the two surfaces cannot disagree about a wound. */
+.city-banner-piece-bar {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(247, 242, 225, 0.22);
+  overflow: hidden;
+}
+
+.city-banner-piece-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+/* And what the row could not fit: past eight, the remainder as a numeral in the
+   banner's own mono. A chip rather than a ninth roundel, because a player is
+   counting by then and a count is a figure. */
+.city-banner-piece-more {
+  align-self: center;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--parchment);
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 18px;
+}
+
 .city-banner-name {
   font-family: var(--face-name);
   font-variation-settings: 'opsz' 90;

@@ -2198,6 +2198,18 @@ export interface GameControls {
 
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
+  /**
+   * Selects one named piece, the way a click on its ground or its tag does.
+   * `false` if it is not a piece this seat may command.
+   *
+   * Exposed for the surfaces that float *above* the board and so never reach its
+   * own click handling — the city banner's garrison row (`cityBanners.ts`, "The
+   * garrison row"). The **unit** and not its tile, which is where this parts
+   * company with `selectOnTile`: a row is a list, and a press on its third
+   * roundel means the third piece. Which pieces answer at all is still
+   * `ownUnitsAt`'s rule, asked rather than restated.
+   */
+  selectPiece(unitId: number): boolean;
   /** Whether move mode is armed — the next left click is an order, not a pick. */
   isMoveMode(): boolean;
   /** Arms or disarms move mode. The `M` key; a no-op with nothing selected. */
@@ -6176,6 +6188,25 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * Selects one named piece — `selectOnTile`'s sibling for a surface that can
+   * name one.
+   *
+   * The city banner's garrison row is a *list*, so the roundel the pointer
+   * struck says which piece was meant and there is nothing to cycle: aiming at
+   * the third and getting the first would be the list lying about what it is.
+   * What may be selected is still asked of `ownUnitsAt` rather than re-derived —
+   * your own, and not a caravan walking a route — so the row, the tag and the
+   * ground can never disagree about which pieces answer at all.
+   */
+  function selectPiece(unitId: number): boolean {
+    const unit = unitById(getGame().state, unitId);
+    if (!unit) return false;
+    if (!ownUnitsAt(unit.col, unit.row).some((own) => own.id === unitId)) return false;
+    select(unitId);
+    return true;
+  }
+
+  /**
    * The unit whose badge the pointer is on, or `null`.
    *
    * Ownership is the renderer's filter (see `MapView.pickUnitBadge`), and it is
@@ -7606,6 +7637,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     routeSlotsLine: () => routeSlotsLineOf(getGame().state, localPlayerId),
     reportCommand,
     selectedUnit,
+    /**
+     * Select one named piece — handed out so a surface that floats *above* the
+     * board can take it. See `selectPiece` for why this one names a unit where
+     * the badge's own path names a tile.
+     */
+    selectPiece,
     isMoveMode: () => moveMode,
     isBuyMode: () => buyMode,
     localPlayerId: () => localPlayerId,

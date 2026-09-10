@@ -42,21 +42,33 @@
  * where a unit stands, so nothing else would ever have told this layer to
  * redraw the badge that names it.
  *
- * Every piece wears its badge, a town's hex included
- * --------------------------------------------------
- * For a week in September 2026 a unit standing in a town whose banner the seat
- * could see had **no** roundel: the city banner is a DOM plate anchored at that
- * hex's ground point, it covered the tag, and three passes tried to answer that
- * by drawing the piece's badge on the plate instead. The user's ruling of
- * 2026-09-09 (U7, `docs/flags.md` (hhh) 6) ended it the other way — *"it makes
- * it look like the unit is part of the city"* — and the fix was geometry rather
- * than a badge: the banner now hangs from a point above the flagpole
- * (`ui/cityBanners.ts`, "Where the plate hangs"), so every tag, every hit bar
- * and the stack fan under them stand on the tile beneath it.
+ * The one piece that wears no badge
+ * ---------------------------------
+ * A unit standing **in a town whose banner this seat can see** has neither
+ * roundel nor hit bar, because the banner is carrying both: the city label lists
+ * the pieces on its hex as a row of roundels above the plate, each with the
+ * board's own mark, the board's own rim and — under a hurt one — the board's own
+ * bar (`ui/cityBanners.ts`, "The garrison row"; the user, 2026-09-09,
+ * `docs/flags.md` (ooo), U8). One icon in one place. Its **sculpt stays**: the
+ * piece is still standing on the map, and only the floating furniture naming it
+ * has moved onto the label.
  *
- * So this layer has no town case at all, which is the point worth keeping: what
- * a piece draws is a fact about the piece, and where the label floats is the
- * label's problem.
+ * U7 tried the other order for a day — every piece kept its tag and the plate
+ * was lifted clear above the flagpole so the tags could be read under it — and
+ * the pieces stayed invisible: a forty-pixel disc on a diorama is not a list,
+ * however correctly it is placed. The list moved to the surface that is already
+ * an interface, and the furniture followed it.
+ *
+ * Filtered at build, and not a fourth bit on the instance handle
+ * (`instances.ts` has three — fog-hidden, suppressed, veiled). Those three exist
+ * because the **board** is built once per game and can only be *patched*; this
+ * layer is rebuilt from scratch whenever any unit moves and whenever the fog
+ * does, and it already filters at build for exactly this kind of question (a
+ * unit out of sight is skipped, never bitted). So the roundel comes back the way
+ * it went: the piece steps off the hex, `col`/`row` move `signUnits`, the layer
+ * is rebuilt, and the badge is added again — and a town founded or razed under a
+ * standing piece moves the seat's own eyes (`recomputeVisibility`), which
+ * rebuilds this layer on the same frame the fog is repainted.
  *
  * Two art styles, one layer
  * -------------------------
@@ -139,7 +151,7 @@ import { Group, type Material, Matrix4, Mesh, Quaternion, type Texture, Vector3 
 
 import { GREAT_PERSON_IDS, type GreatPersonId } from '../sim/greatPeopleData';
 import { chargesLeft, isBuilder } from '../sim/improvements';
-import type { GameMap } from '../sim/map';
+import { type GameMap, tileIndex } from '../sim/map';
 import { type GameState, type Unit, isBarbarian } from '../sim/state';
 import type { TerrainId } from '../sim/terrainData';
 import { UNIT_TYPE_IDS, type UnitTypeId, unitMaxHp } from '../sim/unitData';
@@ -169,6 +181,7 @@ import {
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
 import { atWar } from '../sim/wars';
+import { isVisibleTo } from '../sim/visibility';
 import type { BadgeAnchor } from './picking';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
@@ -610,8 +623,15 @@ export function badgeAnchors(
   const period = wrapWidth(state.map);
   const stackIndex = unitStackIndices(state);
   const anchors: BadgeAnchor[] = [];
+  // A piece whose badge the banner is carrying has no badge here to aim at, and
+  // a target nobody can see is not a target — `pickUnitBadge`'s own rule while
+  // the atlas is still loading, read once more for the tags the row replaced.
+  // The click on the hex answers instead, and the roundel over the plate is the
+  // new tag (`ui/cityBanners.ts`, "The garrison row").
+  const bannered = banneredTownCells(state, playerId);
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
+    if (bannered.has(tileIndex(state.map, unit.col, unit.row))) continue;
     const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0);
     const y = placement.position.y + badgeCenterY(visualHeight(unit.type));
     for (const dx of [-period, 0, period]) {
@@ -784,6 +804,38 @@ export function unitColor(state: GameState, unit: Unit): number {
   return routedInk(unit, ink);
 }
 
+/**
+ * The town hexes whose banner this seat is looking at, by tile index.
+ *
+ * A piece standing on one of these wears no roundel and no hit bar — the label
+ * over the hex is carrying both. See the module docblock's "The one piece that
+ * wears no badge".
+ *
+ * The gate is `visibleCityBanners`' own, clause for clause, and that is the
+ * whole correctness argument: **watched**, never merely explored, because a
+ * remembered town's plate carries no garrison at all (an army is not something a
+ * chart remembers), so a piece drawn on one must keep the furniture naming it. A
+ * board with no seat — the galleries' omniscient one — has no banners over it
+ * either, and returns an empty set rather than hiding tags nothing replaced.
+ *
+ * `isVisibleTo` rather than the `levels` grid this layer already carries: the
+ * two agree wherever fog is on, and where it is off (`levels` null, every piece
+ * drawn) the *banner* still answers to the seat's own eyes. One rule, asked of
+ * the one module that owns it.
+ *
+ * One walk over the towns per build, hoisted like any sweep field — never one
+ * `isVisibleTo` per piece.
+ */
+export function banneredTownCells(state: GameState, seat: number | null): Set<number> {
+  const cells = new Set<number>();
+  if (seat === null) return cells;
+  for (const city of state.cities) {
+    if (!isVisibleTo(state, seat, city.col, city.row)) continue;
+    cells.add(tileIndex(state.map, city.col, city.row));
+  }
+  return cells;
+}
+
 export class UnitLayer {
   readonly group = new Group();
 
@@ -902,6 +954,11 @@ export class UnitLayer {
     // common case and costs one `Set.has` per piece.
     const hostileSeats = hostileOwners(state, seat);
     const hostileShellHandles: InstanceHandle[] = [];
+    // The towns whose label is already carrying a roundel and a bar for whatever
+    // is standing in them. Hoisted once for the build, exactly as the hostile
+    // seats are — see `banneredTownCells` and the docblock's "The one piece that
+    // wears no badge".
+    const bannered = banneredTownCells(state, seat);
 
     for (const unit of state.units) {
       // Out of sight. The stack tally above still counted it, and that is right:
@@ -962,7 +1019,13 @@ export class UnitLayer {
       }
 
       const visualHeight = unitVisualHeight(unit.type, sprites);
-      if (badges) {
+      // The city banner over this hex is carrying this piece's roundel and its
+      // hit bar, so the piece carries neither — the charge boss with them, since
+      // a numeral bossing a disc that is not there is a digit floating in the
+      // air. The sculpt below is untouched: the piece is still standing here,
+      // and only the furniture naming it has moved onto the label.
+      const held = bannered.has(tileIndex(map, unit.col, unit.row));
+      if (badges && !held) {
         this.addBadge(
           state,
           unit,
@@ -988,16 +1051,18 @@ export class UnitLayer {
           );
         }
       }
-      this.addHpBar(
-        unit,
-        placement,
-        visualHeight,
-        geometry,
-        collector,
-        faceCamera,
-        slots,
-        routedBarHandles,
-      );
+      if (!held) {
+        this.addHpBar(
+          unit,
+          placement,
+          visualHeight,
+          geometry,
+          collector,
+          faceCamera,
+          slots,
+          routedBarHandles,
+        );
+      }
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);

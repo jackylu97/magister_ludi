@@ -4514,6 +4514,14 @@ async function boot(initial: Game | null): Promise<void> {
     // its ground does — the label floats above the board, so the board's own
     // hover picking never sees it.
     onHoverCity: (cityId) => controls.setHoveredCity(cityId),
+    // The garrison row over the plate (U8): the piece in hand is ringed there
+    // the way the board rings it, and a press on a roundel picks that piece up.
+    // Both are read fresh rather than pushed, exactly as the open city is —
+    // `refresh()` runs on every selection and every accepted command.
+    selectedUnitId: () => controls.selectedUnit()?.id ?? null,
+    onSelectPiece: (unitId) => {
+      controls.selectPiece(unitId);
+    },
   });
 
   /**

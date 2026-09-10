@@ -1657,6 +1657,14 @@ directly to confirm rulings — user marginalia are rulings.
   `rules.naval` keys; sync-tested (`test/sim/unitsDocSync.test.ts`, the
   `techDocSync` pattern with a `UNITS_DOC_WRITE=1` generator); the
   user edits it for balance. (eee)
+  **D2 built** (2026-09-09): `docs/units.md` — 43 live rows (24 military ·
+  12 naval · 6 civilian · 1 trader; the augur out), the rows' own
+  strength lines (the whole naval triangle as data) and every
+  `rules.combat`/`rules.naval` figure beside them; the generated region
+  is asserted byte for byte and the Notes column round-trips. N1's new
+  naval knobs will fail the sync until regenerated — `UNITS_DOC_WRITE=1
+  npx vitest run test/sim/unitsDocSync.test.ts`. Hand-written head must
+  never contain a line beginning `## The roster` (the region anchor).
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
