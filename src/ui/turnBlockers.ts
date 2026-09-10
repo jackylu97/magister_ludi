@@ -113,6 +113,7 @@
  * both, and the answer is the same either way.
  */
 
+import { censusBlocker } from '../sim/census';
 import { greatPersonBlocker } from '../sim/greatPeople';
 import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
@@ -140,7 +141,8 @@ export type TurnBlocker =
   | { kind: 'statecraft'; what: 'order' | 'doctrine' }
   | { kind: 'religion' }
   | { kind: 'greatPerson' }
-  | { kind: 'wager' };
+  | { kind: 'wager' }
+  | { kind: 'census' };
 
 /**
  * Which Statecraft draft this empire owes an answer to, or `null`.
@@ -257,6 +259,19 @@ export function firstBlocker(
   // answered. The rule itself is `wagerBlocker` in the simulation, where the bot
   // reads it.
   if (wagerBlocker(state, playerId) !== null) return { kind: 'wager' };
+
+  // **The sixth, and the only one that is not a decision at all** (batch C1,
+  // `docs/wager.md` §10). The census is *news*: the world has been measured, the
+  // ranking is written and the leader's Triumph is already banked, so this
+  // blocker is dismissed rather than chosen and the sheet has one control on it.
+  //
+  // It blocks anyway, and for the reason the user's ruling gives — "I don't know
+  // if it would be as impactful hidden away in a menu": a sheet a player can end
+  // the turn past is a sheet a player ends the turn past. It is last of the six
+  // because it is the only one that costs nothing to answer late, and because
+  // being *told* something can wait behind every decision that is still open.
+  // The rule itself is `censusBlocker` in the simulation, where the bot reads it.
+  if (censusBlocker(state, playerId) !== null) return { kind: 'census' };
 
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;

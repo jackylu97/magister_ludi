@@ -99,8 +99,13 @@ function landPairs(state: GameState, count: number): [Tile, Tile][] {
 // --- the table --------------------------------------------------------------
 
 describe('the table', () => {
-  it('is the doc’s seventeen, one of them waiting on content', () => {
-    expect(TRIUMPH_IDS).toHaveLength(17);
+  it('is the doc’s seventeen plus the census’s, one waiting on content', () => {
+    // Eighteen since batch C1: the census's leader row is the world's own
+    // measurement paying out, and it is a Triumph like any other — repeatable,
+    // renown-paying, on `Player.triumphs` — with one marker nobody else carries
+    // (`quiet`), because its sheet is the census's rather than the Triumph
+    // modal's.
+    expect(TRIUMPH_IDS).toHaveLength(18);
     const deferred = TRIUMPH_IDS.filter((id) => triumphDef(id).deferred !== undefined);
     // **One** waits now (batch E4a): The First Keel is announced at
     // `realiseItem` and The Long Road is a standing count of the roads the

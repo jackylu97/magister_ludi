@@ -374,6 +374,11 @@
     "countdown": 10,
     "lastAgeTurns": 40
   },
+  "census": {
+    "min": 13,
+    "max": 17,
+    "renown": 5
+  },
   "startingUnits": [
     "settler",
     "scout"

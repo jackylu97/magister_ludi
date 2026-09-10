@@ -48,6 +48,7 @@ import { counterRefusal, counterTerms } from './ai/diplomacy';
 import type { BotDecision } from './ai/decision';
 import { DEFAULT_PERSONA, PERSONA_IDS, personaLabel } from './ai/stepper';
 import {
+  type CensusRecord,
   type GameConfig,
   type GameState,
   type Unit,
@@ -197,6 +198,8 @@ import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type WagerSheet, createWagerSheet, wagerBoards } from './ui/wagerSheet';
+import { type CensusSheet, censusPage, createCensusSheet } from './ui/censusSheet';
+import { censusBlocker, lastCensus } from './sim/census';
 import { wagerBlocker } from './sim/wagers';
 import { type UnitPanel, createUnitPanel, disbandPrompt } from './ui/unitPanel';
 import { YIELD_GLYPH } from './ui/figures';
@@ -376,6 +379,10 @@ const tradeBodyEl = requireElement<HTMLElement>('trade-body');
    age deals its bars, and by nothing else (`docs/wager.md` §2). */
 const wagerOverlayEl = requireElement<HTMLElement>('wager-overlay');
 const wagerBodyEl = requireElement<HTMLElement>('wager-body');
+/* The census sheet — raised by the End Turn blocker on the turn after the
+   clerks have counted, and by nothing else (`docs/wager.md` §10). */
+const censusOverlayEl = requireElement<HTMLElement>('census-overlay');
+const censusBodyEl = requireElement<HTMLElement>('census-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
 const diplomacyBodyEl = requireElement<HTMLElement>('diplomacy-body');
 /* The Compendium: the bar's book button, the overlay, and the body the same
@@ -737,6 +744,8 @@ let religion: ReligionScreen | null = null;
    this is, and `closePopovers` is declared before there is one. */
 let trade: TradeScreen | null = null;
 let wagerSheet: WagerSheet | null = null;
+/* The census sheet, built in `boot` for `wagerSheet`'s reason exactly. */
+let censusSheet: CensusSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
 
@@ -833,11 +842,21 @@ let triumphSheet: TriumphModal | null = null;
 let beadSheet: BeadModal | null = null;
 let pendingBeadNews: BeadNews[] = [];
 let pendingBeadAge: BeadAge | null = null;
+/**
+ * The census waiting for a clear screen (batch C1).
+ *
+ * `pendingBeadAge`'s sibling and queued through the same pump for its reason:
+ * two sheets at once say less than one, and a census is the quietest of the
+ * four things a resolution can raise — so it waits behind the bead you took,
+ * the table it went onto and the age's own bars.
+ */
+let pendingCensus: CensusRecord | null = null;
 
 /** Drops news about a game nobody is playing any more. */
 function clearBeadNews(): void {
   pendingBeadNews = [];
   pendingBeadAge = null;
+  pendingCensus = null;
   beadSheet?.clear();
 }
 
@@ -911,6 +930,7 @@ function closePopovers(): boolean {
     (religion?.isOpen ?? false) ||
     (trade?.isOpen ?? false) ||
     (wagerSheet?.isOpen ?? false) ||
+    (censusSheet?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
     (ledger?.isOpen ?? false) ||
@@ -1555,6 +1575,9 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   religion: 'A god awaits',
   greatPerson: 'A great person awaits',
   wager: 'A wager awaits',
+  // The one label that names a *reading* rather than a decision: nothing is
+  // owed here but a look, and the verb says so.
+  census: 'Read the census',
 };
 
 const PAUSE_LABELS: Record<StatecraftPause, string> = {
@@ -3048,6 +3071,9 @@ async function boot(initial: Game | null): Promise<void> {
       // `H`, `T` or End Turn through from underneath.
       (trade?.isOpen ?? false) ||
       (wagerSheet?.isOpen ?? false) ||
+      // The census sheet, on the same terms: it owns its own Escape while it is
+      // up, and End Turn must not fire from underneath a blocker.
+      (censusSheet?.isOpen ?? false) ||
       // The Reliquary owns its own Escape and its own arrow keys while it is up
       // — the pile is what ‹ › mean there — so the board must not see either
       // from underneath, and neither should `H`, `T` or End Turn.
@@ -3144,6 +3170,16 @@ async function boot(initial: Game | null): Promise<void> {
       pendingBeadAge = null;
       const seat = controls.localPlayerId();
       if (wagerBlocker(game.state, seat) !== null) wagerSheet.open();
+      return;
+    }
+    // **The census, last of the four** (batch C1, `docs/wager.md` §10). Raised
+    // only for a seat that has not read it, which is `censusBlocker`'s own
+    // reading and the wager's rule one sheet over: a hot-seat player walking
+    // past a page they have already closed does not want it again.
+    if (pendingCensus !== null && censusSheet) {
+      pendingCensus = null;
+      const seat = controls.localPlayerId();
+      if (censusBlocker(game.state, seat) !== null) censusSheet.open();
     }
   }
 
@@ -3235,6 +3271,8 @@ async function boot(initial: Game | null): Promise<void> {
     onToggleAbacus: () => abacus?.toggle(),
     // The fifth blocker's "there": three bars on a sheet, not a hex.
     onOfferWager: () => wagerSheet?.open(),
+    // The sixth blocker's "there": a page of figures, not a hex.
+    onOfferCensus: () => censusSheet?.open(),
     onToggleBeads: () => beads?.toggle(),
     // End Turn's research blocker puts the chart up; it never takes it down.
     onOpenTechTree: () => techTree?.open(),
@@ -3342,6 +3380,18 @@ async function boot(initial: Game | null): Promise<void> {
      */
     onBeadAgeOpened: (age) => {
       pendingBeadAge = age;
+      pumpBeadNews();
+    },
+    /**
+     * The clerks have counted: the census sheet, to every seat that has not read
+     * it (batch C1).
+     *
+     * The **record** is carried rather than a flag, and it is carried all the
+     * way to the sheet's own fold: the ranking is the one the clerks wrote down.
+     * Queued behind any award sheet, which is what `pumpBeadNews` is for.
+     */
+    onCensusTaken: (record) => {
+      pendingCensus = record;
       pumpBeadNews();
     },
     onTurnResolved: () => {
@@ -3821,6 +3871,52 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => wagerSheet?.dispose());
 
   /**
+   * **The census sheet** — the twelfth sheet on the shell.
+   *
+   * Raised by the End Turn blocker on the turn after the clerks have counted and
+   * by nothing else (`docs/wager.md` §10): a census is read once and then it is
+   * on the Abacus, so a bar control or a hotkey would be a door onto a page that
+   * is already filed.
+   *
+   * The dismissal goes straight through `dispatch` and the result is **not**
+   * announced when it is refused, which is the one place this differs from the
+   * wager's stake: the sheet's every door sends it, so a seat that has already
+   * closed the book — Shift-ended the turn, changed chairs and come back — would
+   * otherwise be told off for shutting a window twice.
+   */
+  censusSheet = createCensusSheet({
+    overlay: censusOverlayEl,
+    body: censusBodyEl,
+    closeButton: requireElement('census-close'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    dismiss: () => {
+      const seat = controls.localPlayerId();
+      const result = dispatch(game, { type: 'dismissCensus', playerId: seat });
+      controls.refresh();
+      abacus?.refresh();
+      return result.ok;
+    },
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      wagerSheet?.close();
+      compendium.close();
+    },
+  });
+
+  gameDisposers.push(() => censusSheet?.dispose());
+
+  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -3861,6 +3957,14 @@ async function boot(initial: Game | null): Promise<void> {
     // over the live state, for `rows`' reason: the screen knows names, figures
     // and inks, and the fold is somebody else's.
     wagers: () => wagerBoards(game.state, controls.localPlayerId()),
+    // **The last census, still readable** (batch C1, `docs/wager.md` §10). The
+    // same fold the sheet draws, over the same stored record — one reading, so
+    // the page a player dismissed and the page they come back to cannot
+    // disagree. `null` is a world nobody has counted yet.
+    census: () => {
+      const record = lastCensus(game.state);
+      return record ? censusPage(game.state, controls.localPlayerId(), record) : null;
+    },
   });
 
   // The Abacus disposes more than listeners — it holds a WebGL context of its

@@ -62,6 +62,12 @@ describe('the game-screen disposal register', () => {
       'religion?.dispose()',
       'trade?.dispose()',
       'wagerSheet?.dispose()',
+      // The census sheet, the twelfth on the shell (batch C1). Raised by the
+      // End Turn blocker rather than opened from the bar — `capture?.dispose()`'s
+      // reason exactly: nothing on the HUD points at it, so it is easy to forget,
+      // and its capturing Escape would go on swallowing the key for a game that
+      // is over.
+      'censusSheet?.dispose()',
       'abacus?.dispose()',
     ]) {
       expect(main, call).toContain(`gameDisposers.push(() => ${call});`);

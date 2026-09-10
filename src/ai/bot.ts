@@ -338,6 +338,7 @@ import { atWar } from '../sim/wars';
 import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
+import { censusBlocker } from '../sim/census';
 import { type WagerId, wagerDef } from '../sim/wagerData';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
@@ -1163,6 +1164,8 @@ function answerBlocker(
       return greatPersonDecision(state, player, sitting);
     case 'wager':
       return wagerDecision(state, player);
+    case 'census':
+      return censusDecision(state, player);
     case 'idleUnit':
       return unitCommand(state, player, blocker.unitId, sitting);
     // **The cart that came home** (R4, 2026-09-09), and it is the same arm the
@@ -1212,6 +1215,37 @@ function wagerDecision(state: GameState, player: Player): BotDecision | null {
     subject: player.name,
     summary: 'Stakes the first wager on the table — this bot does not appraise a bar yet.',
     candidates: unweighed(deal.dealt.map((id) => wagerDef(id as WagerId).name)),
+  };
+}
+
+/**
+ * **Closes the book on the census, immediately** (`docs/wager.md` §10/§6).
+ *
+ * The one blocker with nothing to appraise, and it never gains one: bots read
+ * the true board every turn, so a page telling them where they stand tells them
+ * nothing they did not already price. What it *is* is a door the driver's loop
+ * must be able to walk through — the answer is strictly monotone (`censusSeen`
+ * only rises, and the census it names is already taken), which is what keeps the
+ * loop finite.
+ *
+ * The line it reports names the figure and this seat's place in it, because the
+ * spectator's feed is the one surface a bot's own reasoning is read off, and
+ * "why did this seat send that" should never be a mystery even when the answer
+ * is "there was nothing to decide".
+ */
+function censusDecision(state: GameState, player: Player): BotDecision | null {
+  const record = censusBlocker(state, player.id);
+  if (record === null) return null;
+  const place = record.rows.findIndex((row) => row.playerId === player.id);
+  return {
+    kind: 'draft',
+    command: { type: 'dismissCensus', playerId: player.id },
+    subject: player.name,
+    summary:
+      place < 0
+        ? 'Files the census away — this bot reads the board itself.'
+        : `Files the census away — it stands ${place + 1} of ${record.rows.length}.`,
+    candidates: unweighed(['Close the book']),
   };
 }
 

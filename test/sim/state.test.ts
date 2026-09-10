@@ -489,6 +489,12 @@ describe('end-of-turn pipeline', () => {
       // every question the wager asks is about the age, and a claim mints beads
       // the sweep directly below reads. See `runWagers` (`docs/wager.md` §2).
       'wagers',
+      // The world, measured (batch C1, `docs/wager.md` §10/§11): every thirteen
+      // to seventeen turns every living empire is ranked on one figure and the
+      // seat at the head takes a Triumph. Directly after the wagers because both
+      // read a board the clock has settled, and directly before the tables
+      // because the Triumph pays renown the sweep below reads. See `runCensus`.
+      'census',
       // The Bead Race's own beat, directly after the clock so the turn's
       // standing Triumphs, this turn's recruitments and the world's age are all
       // on the register before a deed is swept. See `runBeads` (Entry VI).
@@ -771,13 +777,11 @@ describe('the research queue field', () => {
     // 103 is batch B7's (2026-09-09, item (kkk)): crowding removed — a town's
     // demand is linear in its citizens, so a v102 log's happiness differs from
     // the turn its first town passes the old threshold.
-    // 105 is batch G3's (2026-09-09, `docs/wager.md` §4): the malice deck — a
-    // missed wager seats a card in one of the realm's own chairs, drawn from
-    // `data/malices.json`, never unslottable, stacking to two, surviving an
-    // adoption and leaving when the next age's bar is kept. A v104 log does not
-    // replay: the judgement rolls for every seat that missed, so the first
-    // missed wager moves every draw after it.
-    expect(SCHEMA_VERSION).toBe(105);
+    // 104 is batch GP1/GP2's (2026-09-09): the great-person roster re-cut, and
+    // the almoner's ledger beside it. 106 is batch C1's (2026-09-09,
+    // `docs/wager.md` §10/§11): the census — `GameState.census` and
+    // `Player.censusSeen` — over 105, which batch G3's malice deck holds.
+    expect(SCHEMA_VERSION).toBe(106);
   });
 });
 

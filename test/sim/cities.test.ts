@@ -172,7 +172,14 @@ function worked(city: City): string[] {
 
 function endRound(state: GameState): void {
   for (const player of state.players) {
-    expect(applyCommand(state, { type: 'endTurn', playerId: player.id })).toEqual({ ok: true });
+    // **Accepted**, rather than byte-for-byte `{ ok: true }`. A resolution's
+    // result carries whatever news that turn produced, and a bench that ran long
+    // enough started failing the moment a phase had something to say: batch C1's
+    // census lands on turn fifteen of every game and rides the result out
+    // (`CommandResult.censusTaken`). What these rounds are for is the board they
+    // leave behind, which every assertion below reads directly.
+    const result = applyCommand(state, { type: 'endTurn', playerId: player.id });
+    expect(result.ok, result.ok ? '' : result.error).toBe(true);
   }
 }
 
@@ -3359,7 +3366,7 @@ describe('determinism with cities', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    expect(SCHEMA_VERSION).toBe(105);
+    expect(SCHEMA_VERSION).toBe(106);
 
     const loaded = loadGame(json);
     expect(loaded.state).toEqual(game.state);

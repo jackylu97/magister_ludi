@@ -1747,6 +1747,39 @@ export interface WagerRules {
   lastAgeTurns: number;
 }
 
+/**
+ * **The census's calendar and its purse** (`docs/wager.md` §10/§11, batch C1).
+ *
+ * Every so often the world is measured on one figure and every seat is ranked
+ * on it. The two turn numbers here are the whole of "every so often": the exact
+ * gap is drawn uniformly from `state.rng` at each census, so a seed **is** a
+ * calendar and no empire can count the turns to the next one.
+ *
+ * Both are read as *lengths*, never as countdowns — the drawn gap is added to
+ * the turn the census was taken on and stamped as one absolute
+ * `GameState.census.nextTurn`, and nothing anywhere decrements anything. The
+ * `TimedEffect` discipline, three systems over.
+ */
+export interface CensusRules {
+  /** The shortest gap between two censuses, in turns. Thirteen (the user, §11). */
+  min: number;
+  /** The longest gap, in turns. Seventeen (the user, §11). Inclusive. */
+  max: number;
+  /**
+   * What leading the world's ranking is worth, in renown — the census's own
+   * statement of a figure that is actually **banked off the Triumph row**
+   * (`data/triumphs.json`'s `censusLeader`, whose `pays` is what
+   * `settleRenownWindfall` moves).
+   *
+   * Two places for one number, on purpose and held together by a validator
+   * rather than by discipline: a Triumph's pay lives on the Triumph table
+   * because that is where every other Triumph's pay lives, and the census's own
+   * rules block is where a balance pass looks for what a census is worth.
+   * `censusProblems` (`census.ts`) fails the build the day the two disagree.
+   */
+  renown: number;
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -1770,6 +1803,7 @@ export interface RulesConfig {
   production: ProductionRules;
   upkeep: UpkeepRules;
   wager: WagerRules;
+  census: CensusRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
 }

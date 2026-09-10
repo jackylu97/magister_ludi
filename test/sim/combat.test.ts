@@ -1987,9 +1987,11 @@ describe('a war replays exactly', () => {
     // re-aimed from seed 2 to seed 3 on 2026-09-09 (schema 102): retiring the
     // reckonings takes four cards out of each age's deck, so the shuffle at
     // `newGame` spends fewer rolls and the opening pair stand somewhere else
-    // again. The fixture is a *seed that produces the clamp*, not a claim about
+    // again. And from seed 3 to seed 4 on 2026-09-09 (schema 106): the census
+    // draws its first interval at `newGame`, one roll before the opening pair
+    // stand. The fixture is a *seed that produces the clamp*, not a claim about
     // any particular number.
-    const { game, ids } = warGame('warrior', 'warrior', 3);
+    const { game, ids } = warGame('warrior', 'warrior', 4);
 
     let mutualKill: { attacker: number; hp: number } | null = null;
     const swing = (playerId: number, attackerId: number, defenderId: number): void => {

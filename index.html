@@ -1001,6 +1001,42 @@
       </div>
     </div>
 
+    <!-- ================= the Census ==============================
+         The world measured on one figure, and where this seat stands in it.
+         The twelfth sheet on `modalShell.ts` (`docs/wager.md` §10/§11, batch
+         C1; the mock of 2026-09-09 is the spec of record). Raised by the End
+         Turn blocker on the turn after a census is taken, and by nothing else:
+         it is read once and then it is on the Abacus.
+
+         Three absences here are marked rulings: no "flavour" label on the
+         taker's name, no age-progression line in the masthead, and no second
+         Triumph sheet — the leader's Triumph is drawn inside the body.
+         ============================================================ -->
+    <div
+      id="census-overlay"
+      class="statecraft-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="The census"
+      hidden
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">the clerks have counted</p>
+            <h2 class="statecraft-title">The <em>Census</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            close the book &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="census-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="census-body" class="statecraft-body"></div>
+      </div>
+    </div>
+
     <!-- ================= the Diplomacy screen ==================
          Every empire in the world, where this seat stands with each, and the
          two verbs that change it: declare, and offer peace. The third door on

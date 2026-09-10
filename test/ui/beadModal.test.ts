@@ -327,7 +327,7 @@ describe('where the sheet is raised from', () => {
     // The `null`/value distinction is the whole of "is this a resolution", and
     // the holder is emptied on both branches — a bead nobody was shown is the
     // one thing in this game a player is actually playing for.
-    expect(controls).toContain('heldBeadNews = { awards: [], ageOpened: null };');
+    expect(controls).toContain('heldBeadNews = { awards: [], ageOpened: null, census: null };');
     expect(controls).toContain('heldBeadNews = null;');
     const end = controls.slice(controls.indexOf('const beadNews = heldBeadNews'));
     expect(end).toContain('if (beadNews.awards.length > 0) onBeadAwards?.(beadNews.awards);');

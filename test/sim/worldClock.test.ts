@@ -299,7 +299,11 @@ describe('the clock as a register', () => {
     // readers of the clock there are, and a claim mints beads the sweep below
     // them reads on the same turn.
     expect(names[clock + 1]).toBe('wagers');
-    expect(names[clock + 2]).toBe('beads');
+    // And the census between the wagers and the tables since batch C1: it ranks
+    // the world on a board the clock has settled, and the Triumph it pays lands
+    // on the register the sweep below reads.
+    expect(names[clock + 2]).toBe('census');
+    expect(names[clock + 3]).toBe('beads');
     expect(names.indexOf('renown')).toBeLessThan(clock);
   });
 
@@ -331,6 +335,6 @@ describe('the clock as a register', () => {
   });
 
   it('pins the schema this batch moved', () => {
-    expect(SCHEMA_VERSION).toBe(105);
+    expect(SCHEMA_VERSION).toBe(106);
   });
 });

@@ -782,7 +782,21 @@ Batch **H1** after G1 (it reads the same countdown). Knobs in
 `rules.horde`; the arena panel walks `data/ai.json` only, so the surge's
 measured effect on bot seats is read off the arena's per-seat averages.
 
-## 10. The census — a periodic world ranking (proposed, not ruled)
+## 10. The census — a periodic world ranking
+
+**BUILT — batch C1, schema 106** (2026-09-09). The ruled half of this section is
+code: `data/rules.json`'s `census` block (min 13, max 17, renown 5) with
+`CensusRules` in `rulesData.ts`; `src/sim/census.ts` (the closed `CensusStat`
+list of thirteen, the one `switch` that reads them, the ranking, the phase, the
+blocker and its command); `GameState.census` (`nextTurn`, an absolute turn, and
+`taken`, append-only) and `Player.censusSeen`; the `census` phase in
+`END_OF_TURN_PHASES` between `wagers` and `beads`; the `censusTaken` occasion;
+`data/triumphs.json`'s `censusLeader` (repeatable, +5, `quiet`); `dismissCensus`
+in the reducer; `src/ui/censusSheet.ts` (the twelfth sheet on `modalShell.ts`)
+and the Abacus's band beneath the age's bars. `test/sim/census.test.ts` and
+`test/ui/censusSheet.test.ts` are the register. Shape (b) below is retired in
+favour of the user's own ruling: a full-screen sheet, not a tab.
+
 
 The user, 2026-09-09: *"every few turns, a notification is shown of every
 player's yield of a major stat (i.e. Hipparchus has published his census of
@@ -858,9 +872,48 @@ to the player — the countdown lives on the top bar's age card only); no
   The claim-on-met rule still holds per seat — a seat's beads are minted the
   turn its bar is first met.
 - **The Horde (§9) is held** — not in this queue.
-- **The census (§10) is in**, taken every **13–17 turns**, the exact interval
-  drawn uniformly from `state.rng` at each census (`rules.census.min` 13,
-  `rules.census.max` 17); the leader's Triumph inside the sheet, +5 renown.
+- ~~**The census (§10) is in**~~ — **landed 2026-09-09, schema 106** (batch C1).
+  Taken every **13–17 turns**, the exact interval drawn uniformly from
+  `state.rng` at each census (`rules.census.min` 13, `rules.census.max` 17); the
+  leader's Triumph inside the sheet, +5 renown. As shipped:
+  - **Thirteen figures**, one closed union (`CensusStat`): technologies held ·
+    science, culture, food, production, gold and faith a turn · statecraft
+    drafts · the faithful · towns · citizens · army strength · beads. The figure
+    is drawn from `state.rng` out of a bag with the *previous* one removed, so no
+    figure is measured twice running, and the gap is drawn last of the three
+    rolls (figure, taker, gap) so a census that names nobody still moves the
+    calendar. A seed is a calendar: `test/sim/census.test.ts` pins two seeds'
+    first three census turns.
+  - **The user's "followers of each religion" reads as a seat's own faithful** —
+    citizens of this realm who follow the faith its *capital* follows
+    (`cityReligion`, derived). "How many follow Zoroastrianism" is a fact about a
+    religion that two empires would read the same number off, and a census ranks
+    empires; a conquest that takes the palace takes the question with it.
+  - **Ties, and the empty page.** Highest first, ties by seat order (the lower id
+    first), and **a tie for first is still a leader**. What is *not* a leader is a
+    head row reading nought — leading the world at nothing is not a deed, so the
+    earliest censuses of a game pay nobody. Eliminated seats are not counted, the
+    clock's own cut.
+  - **Every figure is a fold the game already prints.** The six voices come off
+    `foldEmpireRates` (one call a seat, the books the top bar reads); towns and
+    army strength go through `wagerCount`, the deck's own door. Nothing is folded
+    twice.
+  - **The blocker is a dismissal, not a choice**, and it survives a reload:
+    `Player.censusSeen` is the absolute turn of the last census this seat
+    acknowledged, written by a new logged command (`dismissCensus`) that a bot
+    answers in `answerBlocker` and a second call refuses byte-identically. It is
+    the **sixth** blocker, last of the six, because it is the only one that asks
+    for nothing. Censuses do not stack: only the last one is ever shown.
+  - **No second sheet.** The Triumph is drawn inside the census sheet; the
+    suppression is a **marker on the row** (`TriumphDef.quiet`) read by
+    `reportTriumphs`, never a name compared in code. The record still lands on
+    `Player.triumphs` and the chronicle still carries its line.
+  - **`rules.census.renown` and the row's `pays` are held together by a
+    validator** (`censusProblems`) rather than by discipline — a Triumph's pay
+    lives on the Triumph table, and the census's rules block is where a balance
+    pass looks.
+  - Known gap: `data/wagers.json`'s Compendium shelf is still owed (§8) and the
+    census's own figures have none either; the two are one small pass.
 - **The open ▢ of §7 take their (rec) defaults** so the batches can fly:
   progress = the mean age of each empire's highest technology, floored; the
   deal guarantees three different lines; a standing wager is claimed the
@@ -885,9 +938,12 @@ to the player — the countdown lives on the top bar's age card only); no
   malice as `liveEffects`' eleventh source and `CardId`'s eleventh class, the
   `maliceSeated` occasion, the struck vermilion chair on the Statecraft screen
   (unslottable, and the refusal is the tooltip), and the Compendium's two new
-  shelves — the malices **and** the wager deck §8 flagged as owed → **C1** the
-  census → **W2** the bots' wager want. G1 flies after R1 lands (both touch the
-  reducer).
+  shelves — the malices **and** the wager deck §8 flagged as owed → ~~**C1** the census~~ — **landed
+  2026-09-09, schema 106**: `rules.census`, `src/sim/census.ts`,
+  `GameState.census` and `Player.censusSeen`, the `census` phase between `wagers`
+  and `beads`, the `censusTaken` occasion, `dismissCensus` and its blocker, the
+  `censusLeader` Triumph, `src/ui/censusSheet.ts` and the Abacus's band → **W2**
+  the bots' wager want. G1 flies after R1 lands (both touch the reducer).
 
 ## 8. Engine notes (the orchestrator's, not decisions)
 

@@ -634,7 +634,29 @@ directly to confirm rulings — user marginalia are rulings.
   the deck in the Ledger; `maliceSeated` in the occasion union; the
   twelve sync-tested (§4's Broken Levies built as −50% toward units);
   the Compendium gained the malice **and wager** shelves (G2's debt
-  paid). (ggg) **The bot's second pass**
+  paid). **C1 built 2026-09-09, schema 106**: thirteen figures in one
+  closed union (technologies · the six voices a turn · drafts · the
+  faithful · towns · citizens · army strength · beads); three rolls a
+  census in a fixed order — the figure (a bag minus the last, none
+  twice running), the taker (a live great person's name, unlabelled),
+  the gap (13–17 inclusive, drawn last so a census naming nobody still
+  moves the calendar); `GameState.census.nextTurn` absolute, drawn at
+  `newGame` after the decks shuffle and at each census. Figures are
+  folds already printed (`foldEmpireRates` once a seat, `wagerCount`);
+  "followers of each religion" read as **a seat's own faithful** (the
+  citizens following its capital's faith — a census ranks empires, and
+  a conquest taking the palace takes the question). Ties by seat order,
+  a tie for first still leads, a head row of nought leads nobody;
+  eliminated seats uncounted. The `census` phase between `wagers` and
+  `beads`; the leader's Triumph (`censusLeader`, +5 through
+  `settleRenownWindfall`) is **quiet** — a `quiet` marker on the row
+  read by `reportTriumphs`, never a name — and shown inside the twelfth
+  sheet (masthead, every living seat ranked with a track, local row
+  lifted); every door sends `dismissCensus {playerId}` which writes
+  `Player.censusSeen` (absolute), the sixth and last blocker, bot
+  answers at once, refused byte-identically twice; only the last census
+  shows, kept on the Abacus in a band off the record. ▢ the census's
+  figures have no Compendium shelf (one small pass). (ggg) **The bot's second pass**
   (the user, 2026-09-08: "do a pass on the bot considering all the changes
   we've made … squeeze as much performance as possible out of the bots …
   variables that are missing from its evaluation"): the audit is

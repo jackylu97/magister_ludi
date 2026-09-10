@@ -154,6 +154,7 @@ import type { RiteId } from './religionData';
 import { planRecruitment, renownThreshold, settleRenownWindfall } from './renown';
 import { type CitizenFocus, RULES, isCitizenFocus } from './rulesData';
 import {
+  type CensusRecord,
   type City,
   type GameState,
   type Player,
@@ -210,6 +211,7 @@ import {
 } from './trade';
 import { type BeadAward, beadMarks, beadsSince } from './beads';
 import { chooseWagerAt, chooseWagerError } from './wagers';
+import { dismissCensusAt, dismissCensusError } from './census';
 import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
 import { runEndOfTurn } from './turn';
@@ -858,6 +860,30 @@ export interface ChooseWagerCommand extends PlayerCommand {
   type: 'chooseWager';
   /** Which of the three, by position in `WagerDeal.dealt`. */
   index: number;
+}
+
+/**
+ * **Closes the book on the census** — the one command in the game that decides
+ * nothing (batch C1, `docs/wager.md` §10).
+ *
+ * The census sheet is an End Turn blocker like a draft, but it is *dismissed*
+ * rather than chosen: the world has already been measured, the ranking is
+ * already written, the leader's Triumph is already banked. What this says is
+ * only that this seat has read it — and it is a **command**, in the log, rather
+ * than a flag in one client's memory, for `sleepUnit`'s reason exactly: a
+ * replay must reach the same board, a save must come back with the sheet down,
+ * and a bot answers the same blocker through the same door a player does.
+ *
+ * It names nothing because there is nothing to name: there is one census on the
+ * table (they do not stack — see `censusBlocker`), and this closes it. It writes
+ * an **absolute turn** to `Player.censusSeen`, so the next census raises the
+ * sheet again with nothing to clear in between.
+ *
+ * Turn-gated like every other act, and not a trap for `chooseWager`'s reason:
+ * the End Turn blocker will not let a seat hand over without reading it.
+ */
+export interface DismissCensusCommand extends PlayerCommand {
+  type: 'dismissCensus';
 }
 
 /**
@@ -1666,6 +1692,7 @@ export type Command =
   | ChooseDiscoveryCommand
   | ChooseOrderCommand
   | ChooseWagerCommand
+  | DismissCensusCommand
   | SkipOrderOfferCommand
   | RerollOfferCommand
   | SlotOrderCommand
@@ -1770,6 +1797,21 @@ export type CommandResult =
        * one turn. The Abacus flips on these the way it flips on a bead.
        */
       wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
+      /**
+       * **The census was taken**, said once, on the resolution that took it
+       * (`docs/wager.md` §10, batch C1).
+       *
+       * `wagerDealt`'s twin and here for its argument exactly: a census happens
+       * on one turn and leaves nothing on the board saying *when* — a moment
+       * later `state.census.taken` simply has the row. It is what raises the
+       * sheet, so an interface that diffed its own copy of the list would put a
+       * decade-old census up on a reload.
+       *
+       * The **record** rather than a flag, because the sheet prints the ranking
+       * as the clerks found it and the board has moved by the time anybody
+       * reads it.
+       */
+      censusTaken?: CensusRecord;
       /**
        * **The Magnum Opus is open to the world**, said once, on the command that
        * opened it (design ledger Entry LVIII).
@@ -2099,6 +2141,10 @@ function applyEndTurn(state: GameState, command: EndTurnCommand): CommandResult 
   if (result.ok && report.wagerClaims !== undefined) {
     result.wagerClaims = [...report.wagerClaims];
   }
+  // And the census, on the dozen turns in a game that take one — `wagerDealt`'s
+  // reason exactly: a moment later there is nothing on the board that says it
+  // happened *now*.
+  if (result.ok && report.censusTaken !== undefined) result.censusTaken = report.censusTaken;
   // Every war the resolution ended, with the columns each peace walked home.
   // Set beside the helper for `beads`' stated reason exactly.
   if (result.ok && report.peaces.length > 0) result.peaces = [...report.peaces];
@@ -3159,6 +3205,29 @@ function applyChooseWager(state: GameState, command: ChooseWagerCommand): Comman
   if (problem) return fail(problem);
 
   chooseWagerAt(state, actor.id, command.index);
+  return ok();
+}
+
+/**
+ * Closes the book on the census. See `DismissCensusCommand`.
+ *
+ * `applyChooseWager`'s twin down to the shape: the seat's two questions here,
+ * everything about the *census* delegated whole to `dismissCensusError`, and
+ * not one line below the validation runs until both have been answered — so a
+ * second dismissal leaves the state byte-identical, exactly as a second stake
+ * does.
+ */
+function applyDismissCensus(state: GameState, command: DismissCensusCommand): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot close the census`);
+  }
+
+  const problem = dismissCensusError(state, actor.id);
+  if (problem) return fail(problem);
+
+  dismissCensusAt(state, actor.id);
   return ok();
 }
 
@@ -4462,6 +4531,9 @@ function orderedUnitId(command: Command): number | undefined {
     case 'chooseOrder':
     // Staking a wager names a card on the world's table, not a piece.
     case 'chooseWager':
+    // Closing the book on the census names a page. There is nothing standing on
+    // the board to wake, and reading is not an order.
+    case 'dismissCensus':
     case 'skipOrderOffer':
     case 'rerollOffer':
     case 'slotOrder':
@@ -4580,6 +4652,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   chooseDiscovery: 'economy',
   chooseOrder: 'economy',
   chooseWager: 'economy',
+  dismissCensus: 'economy',
   skipOrderOffer: 'economy',
   rerollOffer: 'economy',
   slotOrder: 'economy',
@@ -4795,6 +4868,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseOrder(state, command);
     case 'chooseWager':
       return applyChooseWager(state, command);
+    case 'dismissCensus':
+      return applyDismissCensus(state, command);
     case 'skipOrderOffer':
       return applySkipOrderOffer(state, command);
     case 'rerollOffer':

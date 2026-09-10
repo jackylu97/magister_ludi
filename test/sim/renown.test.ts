@@ -488,7 +488,14 @@ describe('the register', () => {
     // XVIII.5) and then hands it straight to `settleRenownWindfall`: it never
     // touches the pool, which is what the register above pins. Nobody else has
     // an opinion about the column.
+    // The sixth (2026-09-09, batch C1) is `census.ts`, and it is the mildest of
+    // the six: it reads a Triumph row's `pays` in `censusProblems` — the
+    // validator that holds `rules.census.renown` and the row that actually pays
+    // to the same figure — and nowhere else. It never touches the pool; the
+    // leader's renown goes through `awardOccasion` → `awardTriumph` →
+    // `settleRenownWindfall`, the one seam.
     expect(offenders).toEqual([
+      'census.ts',
       'cities.ts',
       'renown.ts',
       'statecraft/describers.ts',

@@ -193,6 +193,17 @@
       "pays": 20,
       "scope": "once",
       "family": "engineer"
+    },
+    "censusLeader": {
+      "name": "First in the Census",
+      "epigram": "The clerks counted the world, and set your name at the head of the page.",
+      "text": "You led the world on the figure the census measured.",
+      "when": {
+        "kind": "censusTaken"
+      },
+      "pays": 5,
+      "scope": "perEvent",
+      "quiet": true
     }
   }
 }

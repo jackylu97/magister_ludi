@@ -89,7 +89,19 @@ export type TriumphTrigger =
    * treasury's ledger counts its coin from, so the road that pays gold and the
    * road that earns a Triumph are one answer.
    */
-  | { kind: 'citiesConnected'; count: number };
+  | { kind: 'citiesConnected'; count: number }
+  /**
+   * **A census named this empire first** (batch C1, `docs/wager.md` §10/§11).
+   * Announced by the `census` phase to the leader alone (`censusTaken`).
+   *
+   * An occasion rather than a standing count, and the difference is the whole
+   * of what a census is: "you lead the world in learning" is a fact about the
+   * board at every instant, and nobody would ever be told it. What is worth a
+   * sheet is the *measurement* — one figure, chosen by the world, on one turn —
+   * so the moment is announced and the row is `perEvent`, because the world is
+   * measured again and again.
+   */
+  | { kind: 'censusTaken' };
 
 /** Every trigger kind, for the register test that pins the evaluator's switch. */
 export type TriumphTriggerKind = TriumphTrigger['kind'];
@@ -144,6 +156,20 @@ export interface TriumphDef {
    */
   family?: Family;
   /**
+   * A row that is **shown somewhere else** and must not raise the Triumph sheet
+   * on top of it (batch C1). The census's own row is the only one today: the
+   * user's ruling of 2026-09-09 is that the leader's Triumph appears *inside*
+   * the census sheet and nowhere else — "let's not show both a triumph modal
+   * for winning the census and the census modal".
+   *
+   * A **marker on the row**, never a name compared in code: `reportTriumphs`
+   * (`controls.ts`) reads this field, and keeps its chronicle line either way,
+   * because the log is the record whatever surface announced the moment. The
+   * renown, the record on `Player.triumphs` and the family feed are untouched —
+   * this is a fact about which sheet says so, and nothing else.
+   */
+  quiet?: boolean;
+  /**
    * Why this row cannot be earned in this build, or absent for a live one.
    *
    * A deferred triumph is **never awarded** — `awardTriumph` refuses it — and it
@@ -188,6 +214,7 @@ const TRIGGER_KINDS: readonly TriumphTriggerKind[] = [
   'unitLostThenWon',
   'navalUnitBuilt',
   'citiesConnected',
+  'censusTaken',
 ];
 
 const SCOPES: readonly TriumphScope[] = ['once', 'perAge', 'contested', 'perEvent'];

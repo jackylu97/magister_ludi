@@ -142,6 +142,7 @@ import { reviewLegacies } from './greatPeople';
 import { type GuildReport, runGuilds } from './guilds';
 import { type BeadAward, beadMarks, beadsSince, runBeads, runWorldClock } from './beads';
 import { runWagers } from './wagers';
+import { runCensus } from './census';
 import type { BeadAge } from './beadData';
 import { runRenown, settleRenownWindfall } from './renown';
 import { advanceResearch } from './tech';
@@ -156,7 +157,7 @@ import {
   routeTarget,
 } from './trade';
 import { type TriumphAward, triumphMarks, triumphsSince } from './triumphs';
-import { type GameState, type Unit, bumpRevision, wakeUnit } from './state';
+import { type CensusRecord, type GameState, type Unit, bumpRevision, wakeUnit } from './state';
 import { setSlatePhase } from './slate';
 import { isCombatant, unitDef, unitMaxHp } from './unitData';
 import { fullMovement, isRested } from './units';
@@ -410,6 +411,22 @@ export interface TurnReport {
    * each of them the way it flips on a bead.
    */
   wagerClaims?: { playerId: number; wager: string; index: number; beads: number }[];
+  /**
+   * **The census taken during this resolution**, or absent — which it is on
+   * every turn but a dozen in a whole game (batch C1, `docs/wager.md` §10).
+   *
+   * `wagerDealt`'s twin and news for its reason exactly: a census happens on one
+   * turn and leaves nothing on the board saying *when* — `state.census.taken`
+   * simply has the row afterwards. It is what raises the sheet, so an interface
+   * that had to diff its own copy of the list would put a decade-old census up
+   * on a reload.
+   *
+   * The **record itself** rather than a flag, because the sheet prints the
+   * ranking as it stood when the clerks counted and the board has already moved
+   * on by the time anybody reads it. That is the whole reason the ranking is
+   * stored rather than re-derived (see `CensusRecord.rows`).
+   */
+  censusTaken?: CensusRecord;
   /**
    * Every war that ended during the resolution, in `state.wars` order, with the
    * truce it bought and the armies it sent home (`PeaceOutcome`).
@@ -680,6 +697,24 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // It skips the wild for `runBeads`' reason: the wild is dealt no card and
     // stakes nothing. See `runWagers`.
     run: runWagers,
+  },
+  {
+    name: 'census',
+    // **The world, measured** (batch C1, `docs/wager.md` §10/§11): every
+    // thirteen to seventeen turns the clerks rank every living empire on one
+    // figure, and the seat at the head takes a Triumph.
+    //
+    // Its position is the usual rules decision and it is two sentences.
+    // **Directly after `wagers`**, because a bar cleared on this very turn has
+    // already minted its beads and a census of the rods should count them — and
+    // because both phases are about a board the clock above them has already
+    // settled. **Directly before `beads`**, because the leader's Triumph pays
+    // renown through `settleRenownWindfall` and the deed sweep in the very next
+    // phase reads the register it lands on.
+    //
+    // It skips the wild for `runBeads`' reason: the wild has no page in the
+    // census and nothing to lead. See `runCensus`.
+    run: runCensus,
   },
   {
     name: 'beads',

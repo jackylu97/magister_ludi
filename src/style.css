@@ -13908,3 +13908,266 @@ body.compendium-page {
 .abacus-wager-mark {
   color: var(--wager-ink, var(--ink));
 }
+
+/* ================= the Census =========================================
+   The world measured on one figure, and where this seat stands in it
+   (`docs/wager.md` §10/§11; the mock of 2026-09-09's third and fourth
+   sheets are the spec of record).
+
+   Two surfaces again, one language: the sheet, raised once and closed, and
+   the Abacus's memory of it beneath the age's bars. The masthead is a
+   sentence in the display face with the figure large under it; every row is
+   a rank, a seat, a track and a tabular figure; and the leader's Triumph is
+   a block *inside* the sheet, in the proclamation's own gilt.
+   ====================================================================== */
+
+.census-title {
+  text-align: center;
+  margin: 0 0 18px;
+}
+
+.census-taker {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.census-stat {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--face-display);
+  font-size: 34px;
+  line-height: 1.1;
+  margin: 4px 0 0;
+}
+
+.census-stat-rate {
+  font-size: 20px;
+  color: var(--ink-soft);
+}
+
+.census-ranking {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.census-row {
+  display: grid;
+  grid-template-columns: 34px minmax(90px, 1fr) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border: 1px solid var(--rule);
+  background: var(--parchment);
+}
+
+/* The local seat's row, lifted — the mock's own emphasis, and the one thing
+   on the page that is about *you* rather than about the world. */
+.census-row.is-you {
+  border-color: var(--ink);
+  border-width: var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
+.census-rank {
+  font-family: var(--face-display);
+  font-size: 19px;
+  color: var(--ink-faint);
+}
+
+.census-seat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.census-swatch {
+  width: 10px;
+  height: 10px;
+  border: 1px solid var(--ink);
+}
+
+.census-you {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.census-track {
+  display: block;
+  height: 8px;
+  background: var(--table);
+  border: 1px solid var(--rule);
+}
+
+.census-fill {
+  display: block;
+  height: 100%;
+  background: var(--census-ink, var(--ink));
+}
+
+.census-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 17px;
+}
+
+/* --- the Triumph, inside the sheet ------------------------------------- */
+
+.census-triumph {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+  max-width: 640px;
+  margin: 18px auto 0;
+  padding: 11px 16px;
+  border: var(--border) solid var(--ink);
+  background: var(--table);
+  box-shadow: var(--shadow-sm);
+}
+
+.census-laurel {
+  font-family: var(--face-display);
+  font-size: 28px;
+  line-height: 1;
+  color: var(--gilt, var(--ink));
+}
+
+.census-triumph-name {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 18px;
+  margin: 0;
+}
+
+.census-triumph-text {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.census-triumph-pays {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 19px;
+}
+
+.census-dismiss {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.census-close-book {
+  font-family: var(--face-ui);
+  padding: 7px 16px;
+  border: var(--border) solid var(--ink);
+  background: var(--ink);
+  color: var(--parchment);
+  cursor: pointer;
+}
+
+.census-foot {
+  margin: 14px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--rule);
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.census-empty {
+  color: var(--ink-faint);
+}
+
+/* --- the Abacus's memory of it ----------------------------------------- */
+
+.abacus-census {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border: var(--border) solid var(--ink);
+  background: var(--parchment);
+}
+
+.abacus-census-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+}
+
+.abacus-census-taker {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.abacus-census-stat {
+  font-family: var(--face-display);
+  font-size: 17px;
+}
+
+.abacus-census-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.abacus-census-row {
+  display: grid;
+  grid-template-columns: 22px minmax(56px, 1fr) 2fr auto 14px;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.abacus-census-row.is-you .abacus-census-seat {
+  font-weight: 600;
+}
+
+.abacus-census-rank {
+  font-family: var(--face-display);
+  color: var(--ink-faint);
+}
+
+.abacus-census-seat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.abacus-census-track {
+  display: block;
+  height: 6px;
+  background: var(--table);
+  border: 1px solid var(--rule);
+}
+
+.abacus-census-fill {
+  display: block;
+  height: 100%;
+  background: var(--census-ink, var(--ink));
+}
+
+.abacus-census-at {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+.abacus-census-mark {
+  color: var(--gilt, var(--ink));
+}

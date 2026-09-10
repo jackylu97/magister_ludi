@@ -461,6 +461,11 @@ describe('the phase', () => {
     const wagers = names.indexOf('wagers');
     const beads = names.indexOf('beads');
     expect(wagers).toBe(clock + 1);
-    expect(beads).toBe(wagers + 1);
+    // The census slid in between the two in batch C1 — it pays a Triumph and the
+    // deed sweep reads the register it lands on — so what this pins is the pair
+    // of edges rather than one adjacency: the wagers still sit on the clock, and
+    // the beads still sweep after everything that mints for them.
+    expect(names[wagers + 1]).toBe('census');
+    expect(beads).toBe(wagers + 2);
   });
 });

@@ -136,7 +136,27 @@ export type Occasion =
    * What it deliberately is **not** is the punishment: the effect is the card in
    * the chair, read by `liveEffects`, and this is the announcement beside it.
    */
-  | 'maliceSeated';
+  | 'maliceSeated'
+  /**
+   * **A census named this empire first** — the world measured on one figure,
+   * and this is the seat at the head of it (batch C1, `docs/wager.md` §10/§11).
+   * `runCensus`.
+   *
+   * The census itself is a fact about the world, like `ageClosed` two members
+   * up: it is taken of everybody at once and every seat is ranked in it. What
+   * is announced *about an empire* is the head of that ranking, which is why
+   * this word is announced to the leader alone and to nobody else — a moment
+   * every seat heard would be a deed every seat could name, and "the world was
+   * measured" is not something anybody did.
+   *
+   * It is here rather than inside the census's own module for `wagerClaimed`'s
+   * reason exactly: the Triumph table names it (`censusLeader`, the repeatable
+   * row worth `rules.census.renown`), a deed may one day name it too, and both
+   * of those read this shared vocabulary rather than a private signal. A census
+   * whose head row reads **nought** announces nothing at all — leading the world
+   * at nothing is not a deed.
+   */
+  | 'censusTaken';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -157,4 +177,5 @@ export const OCCASIONS: readonly Occasion[] = [
   'ageClosed',
   'wagerClaimed',
   'maliceSeated',
+  'censusTaken',
 ];

@@ -86,7 +86,7 @@ import {
   type PlayerPantheon,
   newPlayerPantheon,
 } from './religionData';
-import { type Rng, hashSeed, makeRng, shuffle } from './rng';
+import { type Rng, hashSeed, makeRng, nextInt, shuffle } from './rng';
 import { type CitizenFocus, RULES } from './rulesData';
 // Type-only, and deliberately: `wars.ts` imports *values* from this module, so
 // an ordinary import here would be a runtime cycle. Nothing runs across this
@@ -698,8 +698,33 @@ import {
  * every draw after it; and from that turn the seat is paying an effect it was
  * not paying before, which moves its yields, its research and everything priced
  * against them.
+ *
+ * v106: **the census** (batch C1, `docs/wager.md` §10/§11; the user,
+ * 2026-09-09: "every few turns, a notification is shown of every player's yield
+ * of a major stat… I was imagining the notification would be a full modal, and
+ * only take place every 15 turns or so"). Every thirteen to seventeen turns —
+ * the gap drawn uniformly from `state.rng` at each census, so a seed is a
+ * calendar — the world is measured on **one** figure out of a closed list of
+ * thirteen, drawn from the same generator and never the same one twice running,
+ * and every real seat is ranked on it. The seat at the head takes a repeatable
+ * Triumph worth `rules.census.renown`, shown **inside the census sheet** and
+ * never as a Triumph card of its own (the user: "let's not show both"). New
+ * state: `GameState.census` (`nextTurn`, an absolute turn drawn at `newGame`
+ * and again at every census, and `taken`, an append-only list of records) and
+ * `Player.censusSeen` (the turn of the last census this seat acknowledged,
+ * written by the new `dismissCensus` command — presence-is-state, absent means
+ * none). A new `census` phase runs between `wagers` and `beads`, a new
+ * announced occasion (`censusTaken`) joins the union, and `data/triumphs.json`
+ * gains `censusLeader`.
+ *
+ * A v105 log does not replay. The first interval is drawn at `newGame` — after
+ * the two decks are shuffled, deliberately, so the opening hands are exactly
+ * the hands they were — and every roll after that point is one place along:
+ * each census afterwards spends three more (the next gap, the figure, the
+ * taker's name), so every offer, every raid and every draft downstream of the
+ * first census lands differently.
  */
-export const SCHEMA_VERSION = 105;
+export const SCHEMA_VERSION = 106;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1384,6 +1409,26 @@ export interface Player {
    * and an adoption's re-seating — and read as `liveEffects`' eleventh source.
    */
   malices: HeldMalice[];
+  /**
+   * **The turn of the last census this seat has looked at** (`docs/wager.md`
+   * §10, batch C1). Absent means none, which is what a fresh empire has read.
+   *
+   * The census sheet is an End Turn blocker that is *dismissed* rather than
+   * chosen, so something has to remember that this seat has seen it — and the
+   * two obvious places are both wrong. A view-layer flag would be forgotten on
+   * a reload and put the sheet back up over a census a decade old; a boolean on
+   * the register would be one flag for a world of seats. So it is an **absolute
+   * turn on the seat**, written by the `dismissCensus` command, in the register
+   * `SlottedOrder.sealedUntil` and every other timed fact in this game keep: the
+   * blocker is the comparison `censusSeen < the last census's turn`, and nothing
+   * anywhere clears it.
+   *
+   * It is a *command* rather than an interface's memory for the reason
+   * `Unit.sleeping` is: a replay must reach the same board, a bot answers the
+   * same blocker through the same door, and a save that came back with the sheet
+   * still up would be a save that had forgotten a player had read it.
+   */
+  censusSeen?: number;
 }
 
 /** One seat's stake on the table. See `Player.wager`. */
@@ -1578,6 +1623,84 @@ export interface WagerClaim {
   index: number;
   /** The absolute turn the bar was first met. */
   turn: number;
+}
+
+/** One seat's line in a census. See `CensusRecord.rows`. */
+export interface CensusRow {
+  playerId: number;
+  /** What this empire read on the census's figure, in that figure's own units. */
+  figure: number;
+}
+
+/**
+ * **One census** — the world measured on one figure, and everybody's place in
+ * it (`docs/wager.md` §10/§11, batch C1).
+ *
+ * Written once, on the turn it is taken, and never touched again: it is history
+ * in `Player.triumphs`' sense, which is what lets the Abacus print the last one
+ * without a second store and what lets a save carry every census a game ever
+ * took at a few dozen bytes apiece.
+ */
+export interface CensusRecord {
+  /** The absolute turn it was taken on. The blocker's own comparison. */
+  turn: number;
+  /**
+   * Which figure was measured — a `CensusStat`, kept as a string.
+   *
+   * `WagerDeal.dealt`'s bargain exactly: the union lives in `census.ts` and this
+   * module may not import it (the runtime cycle), so the state carries the word
+   * and `isCensusStat` narrows it back at every reader. A row whose stat has
+   * been cut from the list since is a census the sheet skips rather than throws
+   * over.
+   */
+  stat: string;
+  /**
+   * Every real seat, **ranked** — highest figure first, ties by seat order.
+   *
+   * The ranking is stored rather than re-derived because a census is a
+   * measurement *of a moment*: re-sorting it later against a board that has
+   * moved would be a different census wearing this one's turn number.
+   */
+  rows: CensusRow[];
+  /**
+   * The seat at the head of the ranking, or `null` when the census named
+   * nobody.
+   *
+   * A tie for first **is** a leader — the lower seat id, which is the tie-break
+   * every sweep in this game uses. What is not a leader is a head row reading
+   * **nought**: leading the world at nothing is not a deed, so a census taken
+   * before anybody has any of the thing it measured pays nobody.
+   */
+  leaderId: number | null;
+  /**
+   * The great person who took it, by name — **flavour, and unlabelled**.
+   *
+   * A name drawn from the roster's live rows off `state.rng`, so a seed is a
+   * calendar down to who signed the page. It carries no rule at all: the person
+   * is not recruited, not spent and not on anybody's roster, and the mock's own
+   * mark of 2026-09-09 says the masthead prints the name with no "flavour" tag
+   * beside it.
+   */
+  taker: string;
+}
+
+/**
+ * **The census register** — when the next one falls, and every one already
+ * taken (`docs/wager.md` §10/§11, batch C1).
+ *
+ * `nextTurn` is an **absolute turn**, not a countdown: it is drawn at `newGame`
+ * and again at every census (`state.turn + a gap in [min, max]`), and the phase
+ * asks `state.turn >= nextTurn`. The `TimedEffect` discipline — nothing ticks,
+ * so no phase can be skipped, run twice or run in the wrong order and change
+ * when the world is measured.
+ *
+ * `taken` is append-only, `GameState.wagers`' discipline one system over: the
+ * last row *is* what the Abacus prints, so there is no second store and no
+ * "current census" field to fall out of step with the list.
+ */
+export interface CensusRegister {
+  nextTurn: number;
+  taken: CensusRecord[];
 }
 
 /**
@@ -3026,6 +3149,16 @@ export interface GameState {
    */
   wagers: WagerDeal[];
   /**
+   * **The census** — when the world is next measured, and every measurement it
+   * has taken (`docs/wager.md` §10/§11, batch C1). See `CensusRegister`.
+   *
+   * One field rather than two on purpose: the next turn and the history are the
+   * same subject with the same lifecycle, written in the same breath by the same
+   * phase — the census is taken, the record is appended, the next turn is drawn
+   * — and a screen that wants the last one wants the register anyway.
+   */
+  census: CensusRegister;
+  /**
    * The winner, once there is one; `null` while the game is live.
    *
    * **One field, two ways to reach it** (Entry VI.3): the last empire standing
@@ -3161,6 +3294,38 @@ function newBeadTable(rng: Rng): BeadTable {
 }
 
 /**
+ * **How many turns until the next census** — one roll, uniform over
+ * `[rules.census.min, rules.census.max]` inclusive (`docs/wager.md` §11).
+ *
+ * It lives here rather than in `census.ts` because `newGame` draws the first
+ * one and `state.ts` may not import the phase that draws the rest — the runtime
+ * cycle every helper in this file is placed against. `census.ts` reads it back
+ * from here, so there is exactly one expression in the game for "how long until
+ * the world is measured again" and a seed is a calendar on both sides of it.
+ *
+ * `nextInt`'s upper bound is exclusive and this rule's is not, which is the
+ * `+ 1`: the user's ruling says *thirteen to seventeen*, and seventeen is a gap
+ * the world can actually draw.
+ */
+export function drawCensusInterval(rng: Rng): number {
+  const min = Math.max(1, Math.floor(RULES.census.min));
+  const max = Math.max(min, Math.floor(RULES.census.max));
+  return nextInt(rng, min, max + 1);
+}
+
+/**
+ * The world's opening census register: nothing measured yet, and the first
+ * measurement already on the calendar.
+ *
+ * Drawn **after** the two decks are shuffled (see the call site), so a game's
+ * opening hands are exactly the hands they were before this batch and only the
+ * draws downstream of the first census move.
+ */
+function newCensusRegister(rng: Rng, startingTurn: number): CensusRegister {
+  return { nextTurn: startingTurn + drawCensusInterval(rng), taken: [] };
+}
+
+/**
  * Builds the initial state. Deterministic in `config` alone: the same config
  * always produces a byte-identical state.
  */
@@ -3283,6 +3448,10 @@ export function newGame(config: GameConfig): GameState {
     // Append-only, and empty until the first age closes: a world in its first
     // age has been dealt nothing (`docs/wager.md` §2 — no wager in Æra I).
     wagers: [],
+    // **The first census is on the calendar before the first piece is placed**
+    // (batch C1), and it is drawn *here* — after the decks above — so the
+    // opening hands are unmoved and only what follows the first census shifts.
+    census: newCensusRegister(rng, RULES.game.startingTurn),
     winnerId: null,
   };
   placeStartingUnits(state);

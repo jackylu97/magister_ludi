@@ -67,6 +67,7 @@ import { BEAD_FAMILY_MARK, abacusRodSlots, beadHoverText } from './beadsScreen';
 import { figure } from './figures';
 import { element } from './dom';
 import { type WagerBoard, wagerFigure, wagerTrackFraction } from './wagerSheet';
+import type { CensusPage } from './censusSheet';
 
 /**
  * The simulation's four bead families, in the look file's four scoring-family
@@ -147,6 +148,21 @@ export interface AbacusScreenOptions {
    * Æra I — and the band simply is not drawn.
    */
   wagers?: () => readonly WagerBoard[];
+  /**
+   * **The last census, still readable** — the band this screen grew in batch C1
+   * (`docs/wager.md` §10: *"the last census stays readable on the Abacus… so a
+   * player who dismissed it can look again"*).
+   *
+   * A closure over the same fold the sheet itself draws (`censusPage`), for
+   * `wagers`' reason exactly: this screen knows about names, figures and inks
+   * and has never known about the simulation. It is **the record**, not a fresh
+   * reading — the ranking as the clerks found it, which is the whole point of
+   * storing one.
+   *
+   * Answering `null` is a world nobody has counted yet, and the band is simply
+   * not drawn.
+   */
+  census?: () => CensusPage | null;
 }
 
 /** Two DOM labels per rod: the name at the earned end, the tally at the waiting end. */
@@ -330,6 +346,62 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
   }
 
   /**
+   * **The last census, kept where it can be read again** (batch C1,
+   * `docs/wager.md` §10).
+   *
+   * The sheet is raised once and dismissed; this is the copy that stays. It is
+   * the record's own ranking rather than a fresh reading of the board, which is
+   * what makes it a *census* and not a leaderboard: the figures are the ones the
+   * clerks wrote down, on the turn they wrote them.
+   *
+   * The **Triumph mark** rides the leader's row rather than a block of its own —
+   * the sheet is where the Triumph is announced, and this is a memory of the
+   * page, so it names what happened in one mark and does not re-award anything.
+   */
+  function drawCensusBand(): HTMLElement | null {
+    const page = options.census?.() ?? null;
+    if (!page) return null;
+    const band = element('section', 'abacus-census');
+    band.append(element('p', 'eyebrow', 'the last census'));
+
+    const head = element('p', 'abacus-census-head');
+    head.append(element('span', 'abacus-census-taker', page.takerLine));
+    head.append(
+      element(
+        'span',
+        'abacus-census-stat',
+        `${page.statGlyph} ${page.statWord}${page.statRate}`.trim(),
+      ),
+    );
+    band.append(head);
+
+    const list = element('ol', 'abacus-census-rows');
+    for (const row of page.rows) {
+      const line = element('li', 'abacus-census-row');
+      if (row.you) line.classList.add('is-you');
+      line.style.setProperty('--census-ink', row.color);
+      line.append(element('span', 'abacus-census-rank', row.rank));
+      const seat = element('span', 'abacus-census-seat');
+      const swatch = element('span', 'abacus-swatch');
+      swatch.style.background = row.color;
+      seat.append(swatch, element('span', undefined, row.name));
+      line.append(seat);
+      const track = element('span', 'abacus-census-track');
+      const fill = element('span', 'abacus-census-fill');
+      fill.style.width = `${Math.round(row.fraction * 100)}%`;
+      track.append(fill);
+      line.append(track);
+      line.append(element('span', 'abacus-census-at', row.figure));
+      // The Triumph, as a mark on the row that took it. One laurel, no figure:
+      // what it paid was said on the sheet, and this is the memory of a page.
+      line.append(element('span', 'abacus-census-mark', row.leader ? '❧' : ''));
+      list.append(line);
+    }
+    band.append(list);
+    return band;
+  }
+
+  /**
    * The rods in DOM: one row per seat, `threshold` slots long, the golden one
    * last.
    *
@@ -348,6 +420,13 @@ export function createAbacusScreen(options: AbacusScreenOptions): AbacusScreen {
     // different screen.
     const band = drawWagerBand();
     if (band) register.append(band);
+
+    // **The last census, under the age's bars and above the rods** (batch C1).
+    // The order on the sheet is the order of the questions: what the age is
+    // asking, then how the world was last measured, then the score it all adds
+    // up to.
+    const census = drawCensusBand();
+    if (census) register.append(census);
 
     const caption = document.createElement('p');
     caption.className = 'abacus-caption';

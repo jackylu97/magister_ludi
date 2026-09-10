@@ -243,9 +243,9 @@ describe('the bead catalogue', () => {
     // 75 since batch X (2026-09-06): yields are exact — no fold floors, every
     // bank and pool holds the fraction, so a v74 log banks different figures
     // from its second turn on.
-    // 105 since batch G3 (2026-09-09): the malice deck — a missed wager seats
-    // a card in one of the realm's own chairs, drawn at the judgement.
-    expect(SCHEMA_VERSION).toBe(105);
+    // 106 since batch C1 (2026-09-09): the census's register and the seat's own
+    // stamp for the last page it read.
+    expect(SCHEMA_VERSION).toBe(106);
   });
 
   it('puts the beads phase directly after the world clock, itself after renown', () => {
@@ -257,7 +257,11 @@ describe('the bead catalogue', () => {
     // Batch G2 put the `wagers` phase between them: a claim mints beads and the
     // deed sweep below reads the rod they land on.
     expect(names.indexOf('wagers')).toBe(names.indexOf('worldClock') + 1);
-    expect(names.indexOf('beads')).toBe(names.indexOf('wagers') + 1);
+    // And batch C1 put the `census` phase between *those* two, for the same
+    // reason one system over: the leader's Triumph pays renown, and the deed
+    // sweep below reads the register it lands on.
+    expect(names.indexOf('census')).toBe(names.indexOf('wagers') + 1);
+    expect(names.indexOf('beads')).toBe(names.indexOf('census') + 1);
   });
 });
 

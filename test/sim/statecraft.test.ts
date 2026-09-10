@@ -1406,9 +1406,7 @@ describe('determinism', () => {
     // 104 since batch GP1 (2026-09-09): the great-person roster is re-cut —
     // eight names retired out of every draw, six new, five moved age — so a v103
     // log's recruitments deal a different hand from the first one on.
-    // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
-    // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(105);
+    expect(SCHEMA_VERSION).toBe(106);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2105,8 +2103,12 @@ describe('the draw is weighted by rarity', () => {
   it('deals a hand the pity has changed, from the same state', () => {
     // The pity is read at the deal (`drawOrderOffer`), so two empires on the
     // same seeded state with different skip counts are dealt different hands.
-    const clean = game(23);
-    const patient = game(23);
+    // The seed is a bench, and this one is chosen for the property rather than
+    // at random: two hands that the pity happens to leave identical would pass
+    // this test for the wrong reason. Moved from 23 to 22 when batch C1's first
+    // census draw shifted every game's generator by one roll.
+    const clean = game(22);
+    const patient = game(22);
     patient.state.players[0]!.statecraft.orderSkips = 4;
     const a = drawOrderOffer(clean.state, clean.state.players[0]!);
     const b = drawOrderOffer(patient.state, patient.state.players[0]!);

@@ -297,6 +297,11 @@ function standingHolds(state: GameState, playerId: number, id: TriumphId): boole
     case 'cityCaptured':
     // Announced at a seam too — the keel is realised in `realiseItem`.
     case 'navalUnitBuilt':
+    // And the census names its own leader, from the `census` phase (batch C1).
+    // Never swept: a census is a *measurement taken on one turn*, not a state
+    // the board is in, and a sweep would pay the leader every turn between two
+    // of them.
+    case 'censusTaken':
     // Deferred, and refused a rung higher. Here so the switch stays exhaustive.
     case 'unitLostThenWon':
       return false;

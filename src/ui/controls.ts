@@ -248,6 +248,7 @@ import { authorityOf, happinessOf } from '../sim/meters';
 import { findPath, pathTurnMarks, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
+  type CensusRecord,
   type City,
   type GameState,
   type Player,
@@ -302,6 +303,7 @@ import {
 import { highestAge, techDef } from '../sim/techData';
 import type { TileYield } from '../sim/terrainData';
 import type { TriumphAward } from '../sim/triumphs';
+import { triumphDef } from '../sim/triumphData';
 import type { BeadAge } from '../sim/beadData';
 import type { BeadAward } from '../sim/beads';
 import { BEAD_FAMILY_MARK, deckEraWord } from './beadsScreen';
@@ -1586,6 +1588,24 @@ export interface GameControlsOptions {
    */
   onOfferWager?: () => void;
   /**
+   * Raises the census sheet — `main.ts`'s `censusSheet.open()`.
+   *
+   * The sixth blocker's "there", and the only one of the six that is not a
+   * decision: the world has been measured, and this is where it says so
+   * (`docs/wager.md` §10). No camera — the ranking is the world's, not a place
+   * on the board.
+   */
+  onOfferCensus?: () => void;
+  /**
+   * **The clerks have counted** — the census sheet's cue (`censusSheet.ts`,
+   * batch C1). Raised for **every** seat, not only a leader.
+   *
+   * It carries its payload for `onTriumphs`' reason exactly: a census is news
+   * about a moment, and the ranking on it is the one the clerks wrote down
+   * rather than the one the board would answer now.
+   */
+  onCensusTaken?: (record: CensusRecord) => void;
+  /**
    * **A great person was spent** — the ceremony's cue (`greatPersonCeremony.ts`).
    *
    * Fired from `spendGreatPerson` *after* the result has been checked, so a
@@ -2346,6 +2366,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferReligion,
     onOfferGreatPerson,
     onOfferWager,
+    onOfferCensus,
+    onCensusTaken,
     onGreatPersonSpent,
     onCityCaptured,
     onTriumphs,
@@ -2715,6 +2737,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       reportGuilds(result);
       reportTriumphs(result);
       reportAgeOpened(result);
+      reportCensus(result);
       reportOpusOpened(result);
       reportBeads(result);
       checkFirstStatecraftDraft();
@@ -3213,6 +3236,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     for (const triumph of result.triumphs) {
       if (triumph.playerId !== localPlayerId) continue;
       announce(`✦ Triumph — ${triumph.name} · ${signedFigure(triumph.pays)} renown`);
+      // **A row that is shown somewhere else keeps its chronicle line and skips
+      // the sheet** (batch C1, `TriumphDef.quiet`). The census's Triumph is
+      // drawn *inside the census sheet* by the user's ruling of 2026-09-09 —
+      // "let's not show both a triumph modal for winning the census and the
+      // census modal" — and this is where that ruling is kept. It is a **marker
+      // on the row**, never a name compared here: the day a second surface
+      // announces its own Triumph, it sets the same field and needs no edit in
+      // this file. The record on `Player.triumphs` and the renown are untouched.
+      if (triumphDef(triumph.id).quiet === true) continue;
       mine.push(triumph);
     }
     if (mine.length === 0) return;
@@ -3318,6 +3350,30 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * **The clerks have counted.** One line, said once, to every seat — and the
+   * sheet behind it (batch C1, `docs/wager.md` §10).
+   *
+   * `reportAgeOpened`'s sibling down to the shape, and read the same way: off
+   * the reducer's own report (`CommandResult.censusTaken`), never as a diff of
+   * `state.census.taken`. A diff kept up here is a second copy of the register,
+   * and it is the copy that puts a decade-old census on screen after a reload.
+   *
+   * **Not filtered by seat**, like a wonder and unlike a Triumph: a census is
+   * taken of the world, every seat is on the page, and where a rival stands is
+   * exactly the thing it exists to say. Collected like an award: one that lands
+   * in a resolution belongs to the hand-over, behind the card.
+   */
+  function reportCensus(result: CommandResult): void {
+    if (!result.ok || result.censusTaken === undefined) return;
+    const record = result.censusTaken;
+    const mine = record.rows.findIndex((row) => row.playerId === localPlayerId);
+    const place = mine < 0 ? '' : ` — you stand ${figure(mine + 1)} of ${figure(record.rows.length)}`;
+    announce(`❧ ${record.taker} has taken the census of the world${place}`);
+    if (heldBeadNews === null) onCensusTaken?.(record);
+    else heldBeadNews.census = record;
+  }
+
+  /**
    * **The finish line is open.** One line, said once, to every seat.
    *
    * `reportAgeOpened`'s sibling and read the same way — off the reducer's own
@@ -3363,6 +3419,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   interface HeldBeadNews {
     awards: BeadAward[];
     ageOpened: BeadAge | null;
+    /**
+     * The census taken in this resolution, or `null` (batch C1).
+     *
+     * A single value for `ageOpened`'s reason exactly: the world is measured
+     * once a resolution at most, and the record itself is carried because the
+     * ranking is a fact about the moment the clerks counted — a page re-derived
+     * from a board that has since moved would be a different census wearing this
+     * one's turn number.
+     */
+    census: CensusRecord | null;
   }
   let heldBeadNews: HeldBeadNews | null = null;
 
@@ -6670,6 +6736,10 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // you took, then the table it went onto.
       if (beadNews.awards.length > 0) onBeadAwards?.(beadNews.awards);
       if (beadNews.ageOpened !== null) onBeadAgeOpened?.(beadNews.ageOpened);
+      // And the census last of the four, because it is the only one that asks
+      // for nothing: a Triumph, a bead and an age opening are all things this
+      // seat may want to act on, and a page of figures waits behind all three.
+      if (beadNews.census !== null) onCensusTaken?.(beadNews.census);
       // And the loudest thing of all, last of the three, so it stands in front
       // of a Triumph sheet earned on the same turn: the race is over.
       if (decided !== null) onVictory?.(decided);
@@ -6896,6 +6966,16 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         onOfferWager?.();
         return;
       }
+      case 'census': {
+        // No camera for the sixth either, and for the fifth's reason read one
+        // step further out: the ranking is the *world's*, and the page it is
+        // written on is the only place to look. It is also the one blocker that
+        // asks for nothing — the sentence says so, so a player does not go
+        // hunting for the decision.
+        guide('☞ The clerks have counted the world — read the census.');
+        onOfferCensus?.();
+        return;
+      }
     }
   }
 
@@ -7049,7 +7129,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // The Bead Race's news, on exactly the same terms and emptied on both
     // branches below for the same reason: a bead nobody was shown is the one
     // thing in this game a player is actually playing for.
-    heldBeadNews = { awards: [], ageOpened: null };
+    heldBeadNews = { awards: [], ageOpened: null, census: null };
     // Read **before** the dispatch, so the sentence describes the treasury the
     // player was looking at when they pressed the button. Said whether or not
     // the turn resolves and never held for the hand-over: it is not news about
@@ -7064,7 +7144,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const result = commit({ type: 'endTurn', playerId: localPlayerId });
     const earned = heldTriumphs;
     heldTriumphs = null;
-    const beadNews = heldBeadNews ?? { awards: [], ageOpened: null };
+    const beadNews = heldBeadNews ?? { awards: [], ageOpened: null, census: null };
     heldBeadNews = null;
     if (!result.ok) return;
     if (debt !== null) announce(debt);
