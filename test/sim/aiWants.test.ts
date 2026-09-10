@@ -398,15 +398,23 @@ describe('the shadow prices', () => {
     expect(ctx.priceNotes.faith).toContain('capped by the band');
   });
 
-  it('sits on the floor in an empire with nothing left to buy', () => {
-    // The other end. A young seat has no faith-priced row open to it at all, so
-    // there is nothing a point of faith could do and the arms stop chasing it.
+  it('sits on the table’s prior in an empire with nothing left to buy', () => {
+    // The other end — **and it moved in batch X13** (`docs/flags.md` (sss)).
+    // This used to assert the band's *floor*, which said an empire's faith was
+    // worth half what the designer said it was on the strength of the shop
+    // being shut that turn. An empty book is a statement about the shop, not
+    // about the bank: with no want at all the price is the anchor the band is
+    // drawn around, and the swing the audit measured (a coin at 36 one turn and
+    // 6 the next) cannot open. The floor is still reachable — a want worth
+    // almost nothing per coin still clamps there — and the case below walks a
+    // whole game to prove the band holds.
     const game = createGame(CONFIG);
     const player = seat(game.state, 0);
     const ctx = valueContext(game.state, player);
     expect(ctx.wants.faith).toEqual([]);
-    expect(ctx.prices.faith).toBe(yieldWeight(AI, 'faith', ctx.age) * AI.priorities.priceBandLow);
+    expect(ctx.prices.faith).toBe(yieldWeight(AI, 'faith', ctx.age));
     expect(ctx.priceNotes.faith).toContain('nothing this empire could buy');
+    expect(ctx.priceNotes.faith).toContain("at the table's prior");
   });
 
   it('never leaves the band, in either bank, at any point of a game', () => {

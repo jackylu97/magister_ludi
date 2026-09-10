@@ -50,7 +50,9 @@
  * and faith and becomes the **prior**: the board may argue with the designer by
  * a factor of `priceBandHigh`, and no further. Two ends of it are pinned as
  * tests — a live founder want over a thin faith rate rides the ceiling, and an
- * empire with nothing left to buy sits on the floor.
+ * empire whose only wants are poor value sits on the floor. An empire with **no
+ * want at all** skips the clamp entirely and prices at `prior` (batch X13): a
+ * shop with nothing in it says nothing about the coin in the purse.
  *
  * **What the personas do with it.** The zealot used to buy its gods with two
  * lowered thresholds (`spending.faithSpendAbove: 20`, `religion.prophetSpendAbove:
@@ -1717,8 +1719,9 @@ function ritePlan(state: GameState, player: Player, ctx: ValueContext): Want[] {
       // fixed: `riteError` asks about the bank *last*, exactly as `purchaseError`
       // does, so a rite this town could say the moment the faith arrived was
       // falling out of the book entirely. An empire whose every rite was two
-      // turns' faith away therefore had no faith wants at all, priced its bank at
-      // the band's floor, and banked a currency it had told itself was worthless.
+      // turns' faith away therefore had no faith wants at all, priced its bank
+      // off the table with nothing in the book to argue up from, and banked a
+      // currency it had told itself it had no use for.
       const short = refusal !== null && riteOutOfReach(player, id, price, refusal);
       if (refusal !== null && !short) continue;
       const worth = explainRite(id, here);
@@ -2118,9 +2121,10 @@ export interface MeterPrices {
  * with `prior(m) = weights[m]`, the table's own statement about the meter.
  *
  * **The `max(prior, …)` is the one deliberate difference from a bank**, and it is
- * the difference between a stock and a capacity. An empire with nothing left to
- * buy prices a coin at the band's *floor*, and rightly: a coin nobody has a use
- * for is worth little. Headroom on a meter is not like that — it is a standing
+ * the difference between a stock and a capacity. An empire whose only wants are
+ * poor value prices a coin at the band's *floor*, and rightly: a coin whose best
+ * use returns almost nothing is worth little. Headroom on a meter is not like
+ * that — it is a standing
  * tier bonus (`tierPercent`, ±10/20% of every town's production, science and
  * culture) that no empty want book can revoke, and halving what the designer said
  * a point of writ was worth because nothing happens to be blocked on it this turn
@@ -2188,9 +2192,11 @@ function meterPrice(
  *   · **the ceiling** — a live founder want (six hundred points of appetite for
  *     a hundred and twenty faith) prices faith far above anything the table
  *     would say, and the band is what stops it running away with the empire;
- *   · **the floor** — an empire with nothing left to buy and nothing to pay
- *     prices its bank at `priceBandLow` of the table, so the arms stop chasing
- *     a currency that has no use.
+ *   · **the floor** — a want that is worth almost nothing per coin cannot drag
+ *     the price below `priceBandLow` of the table, so the arms stop chasing a
+ *     currency that has no use. An empire with **no want at all** is a
+ *     different sentence and does not touch the floor: it prices at the table's
+ *     own prior (batch X13), because an empty shop says nothing about a coin.
  *
  * The maximum is taken over **every** want including the hold rows, which is
  * the definition rather than a nicety: holding coins against the wages is one
@@ -2230,10 +2236,19 @@ function priceOf(
       chosen = wanted;
     }
   }
-  const price = Math.min(high, Math.max(low, best));
   if (chosen === null) {
-    return { price, note: `nothing this empire could buy — ${currency} at the band's floor` };
+    // **Nothing to buy is not worthless** (batch X13, `docs/flags.md` (sss)).
+    // An empty book used to fall through the clamp below at `best = 0` and come
+    // out at `priceBandLow × prior` — the floor — which said the empire's coin
+    // was worth *half the table's own statement about it* on the strength of
+    // having nothing in the shop today. That is a claim about the shop, not
+    // about the coin, and it moved every gold-paying row and every tech that
+    // unlocks one by a factor of six between one turn and the next. With no
+    // want at all the honest answer is the anchor the band is drawn around:
+    // the table, carrying gold's pressure (`priorPrice`).
+    return { price: prior, note: `nothing this empire could buy — ${currency} at the table's prior` };
   }
+  const price = Math.min(high, Math.max(low, best));
   const capped = best > high ? ', capped by the band' : best < low ? ', lifted to the band' : '';
   return {
     price,

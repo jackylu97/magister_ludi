@@ -55,16 +55,13 @@ import {
 } from '../../src/ai/diplomacy';
 import { type BotCandidate, type BotDecision, type ValueTerm, foldTerms } from '../../src/ai/decision';
 import { explainBuildingRow } from '../../src/ai/value';
-import { driveBots } from '../../src/ai/driver';
-import { hasResource, foundCityAt, resourceCopies } from '../../src/sim/cities';
+import { hasResource, foundCityAt, refreshCityDerived, resourceCopies } from '../../src/sim/cities';
 import { applyCommand } from '../../src/sim/commands';
 import { proposeDealAt } from '../../src/sim/diplomacy';
-import { createGame } from '../../src/sim/game';
 import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import type { TerrainId } from '../../src/sim/terrainData';
 import {
   type City,
-  type GameConfig,
   type GameState,
   type Player,
   createUnit,
@@ -527,32 +524,32 @@ describe('bargains', () => {
 
 // --- 5. the opening book and the escort -------------------------------------
 
-const OPENING: GameConfig = {
-  seed: 20260831,
-  sizeName: 'duel',
-  players: [
-    { name: 'Crimson', color: '#d4502e' },
-    { name: 'Teal', color: '#1f8a85' },
-  ],
-  barbarians: true,
-};
-
 describe('the opening book', () => {
-  it('hard-codes the first build of the first city to a scout', () => {
-    const game = createGame(OPENING);
-    // Play until somebody has founded, then ask that town what it starts.
-    for (let turn = 0; turn < 4; turn++) driveBots(game, { warn: () => {} });
-    const city = game.state.cities[0]!;
-    const owner = seat(game.state, city.ownerId);
-    // The log is the proof: the very first thing that town was told to build.
-    const first = game.log.find(
-      (command) => command.type === 'setCityProduction' && command.cityId === city.id,
-    ) as { queue: { kind: string; id: string }[] } | undefined;
-    expect(first).toBeDefined();
-    expect(first!.queue[0]!.kind).toBe('unit');
-    expect(unitDef(first!.queue[0]!.id as never).ignoresTerrainCost).toBe(true);
-    // And it does not fire twice: the empire has built something now.
-    expect(Object.keys(owner.unitsBuilt).length >= 0).toBe(true);
+  it('hard-codes the first build of a town whose empire has no ranging piece', () => {
+    // **Rewritten in batch X13** (`docs/flags.md` (sss)). This used to play four
+    // turns of a real duel and assert the first build was a scout — which it
+    // was, but *not because the book fired*: every seat starts with a scout
+    // (`rules.startingUnits`), so the book's third clause declines by design,
+    // and what the case was actually measuring was the scored table with the
+    // Warrior row struck out of it by `garrisonWorth`'s old null. The book is
+    // now asked the question it answers, on a bench where the empire really has
+    // no ranger, and the played opening is pinned in `aiGarrison.test.ts` where
+    // the audit's ruling put it.
+    const state = bench(1);
+    const city = foundCityAt(state, 0, at(state.map, 5, 5));
+    city.population = 4;
+    refreshCityDerived(state, city);
+    recomputeAllVisibility(state);
+    const item = chooseProduction(state, seat(state, 0), city);
+    expect(item).not.toBeNull();
+    expect(item!.kind).toBe('unit');
+    expect(unitDef(item!.id as never).ignoresTerrainCost).toBe(true);
+    // And it does not fire twice: a ranger already owned spends the opening.
+    createUnit(state, 0, item!.id as never, city.col, city.row);
+    city.queue = [];
+    const second = chooseProduction(state, seat(state, 0), city);
+    expect(second).not.toBeNull();
+    expect(unitDef(second!.id as never).ignoresTerrainCost ?? false).toBe(false);
   });
 
   it('is a ruling rather than a weight — the second town is scored like any other', () => {

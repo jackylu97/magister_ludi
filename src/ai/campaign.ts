@@ -90,8 +90,58 @@ export function isSiegePiece(def: UnitDef): boolean {
   return isRanged(def) || def.modelClass === 'siege';
 }
 
-/** How many of this empire's soldiers are standing in this town. */
+/**
+ * **How much of a standing garrison this town has** — the pieces that are
+ * *holding* it, not the pieces that happen to be standing on the hex.
+ *
+ * The reading is `isFieldSoldier`, which is this file's own garrison predicate
+ * already: `strikeForce` takes `military.garrisonPerCity` **field soldiers** off
+ * the top per town as the garrisons the empire owes, and the levy counts the
+ * same pieces. A town whose garrison was a scout would be a town the campaign
+ * counts as held and the levy counts as still owing a soldier — two readings of
+ * one word, disagreeing. One predicate, and they cannot.
+ *
+ * **Batch X13** (`docs/flags.md` (sss)): the old reading was bare `isCombatant`,
+ * which a scout passes — a ranger has a combat strength, it can be attacked and
+ * it can defend a hill — so the turn a fresh scout stepped onto the capital the
+ * town read as garrisoned, `garrisonWorth` refused the whole soldier want, the
+ * gold book emptied, and the shadow price of a coin fell to the band's floor on
+ * alternate turns. A ranger is the piece an empire sends *away* from its towns,
+ * which is the sentence `isFieldSoldier`'s own docblock already makes.
+ *
+ * **What this deliberately does not read** is whether the piece is mid-march. A
+ * movement allowance is spent *during* a seat's own turn, so "has it moved yet"
+ * answers differently to the first decision of a turn and to the last — and a
+ * garrison count that changes under the seat's own feet is exactly the
+ * within-turn instability this batch exists to remove. A field soldier standing
+ * in a town holds it; if it marches out, the town reads empty next turn, which
+ * is when the empire can do something about it.
+ *
+ * "Everything an attacker would have to go through" is a different question:
+ * `defendersAt`.
+ */
 export function garrisonAt(state: GameState, playerId: number, city: City): number {
+  let count = 0;
+  for (const unit of state.units) {
+    if (unit.ownerId !== playerId) continue;
+    if (unit.col !== city.col || unit.row !== city.row) continue;
+    if (isFieldSoldier(unitDef(unit.type))) count += 1;
+  }
+  return count;
+}
+
+/**
+ * **Every combatant standing on this town's hex** — the old `garrisonAt`, kept
+ * under the name of the question it actually answers.
+ *
+ * One caller, and it wants this reading rather than the standing one: the target
+ * tie-break (`targetTown`) asks *how hard is this town to take*, and a scout in
+ * a town is a body an attacker still has to go through even though it holds
+ * nothing. Split by name in batch X13 rather than bent, because "what is holding
+ * this town" and "what is standing in it" are two sentences, and one of them was
+ * quietly answering for both.
+ */
+export function defendersAt(state: GameState, playerId: number, city: City): number {
   let count = 0;
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
@@ -382,7 +432,10 @@ export function campaignRoad(
  * going. A target chosen by where this empire's towns are is the same answer for
  * every piece, on every turn, without anybody remembering anything.
  *
- * Ties by the weaker garrison, then by map order — both facts about the board.
+ * Ties by the thinner defence, then by map order — both facts about the board.
+ * `defendersAt` rather than `garrisonAt` (batch X13): the question here is what
+ * an attacker would have to go through, and a scout in the town is a body all
+ * the same.
  *
  * An empire with no towns at all falls back to its pieces, because a seat whose
  * last town has fallen still has an army and still has somewhere to take it.
@@ -416,7 +469,7 @@ export function campaignTarget(
       if (distance < nearest) nearest = distance;
     }
     if (!Number.isFinite(nearest)) continue;
-    const garrison = garrisonAt(state, enemy.id, city);
+    const garrison = defendersAt(state, enemy.id, city);
     if (
       best === null ||
       nearest < best.distance ||

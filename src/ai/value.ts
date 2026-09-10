@@ -832,7 +832,7 @@ export function meterWeight(ctx: ValueContext, meter: PricedMeter): number {
  * so an empire whose engines are starving may value a hammer at three times what
  * the table says and one with nothing waiting values it at half — which is the
  * spec's *"near-zero when nothing rich waits on hammers"* said in the band's own
- * language, and the same floor an empty want book gives a coin.
+ * language, and the same floor a want book of poor bargains gives a coin.
  *
  * **Which is why `hammerTerm` folds the *difference*.** Every candidate in this
  * bot already prices its production delta at `weights.production` through

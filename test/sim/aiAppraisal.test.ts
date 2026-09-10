@@ -2215,12 +2215,23 @@ describe('the wage-aware levy', () => {
    * One town, a levy's worth of soldiers standing in it, and a treasury the test
    * sets by hand. Turn 50 puts the board past `military.scoutEarlyTurns` so the
    * opening book does not answer the town before anything is weighed.
+   *
+   * **The town has already bought its piece this turn** (batch X13). These four
+   * cases are about the *queue's* levy term, and `decisionOfType` plays every
+   * decision the seat reaches before the one it is asked for — so a seat with
+   * four hundred gold and a soldier want that no longer vanishes at the garrison
+   * would buy a warrior before the queue was ever consulted, and the levy the
+   * queue then read would be the test's fixture plus one. The stamp is the
+   * simulation's own one-a-turn rule (`City.purchasedUnitTurns`), which is
+   * exactly the sentence wanted here: the purse has had its go, and what is left
+   * to decide is what the town *builds*.
    */
   function levied(soldiers: number, gold: number): GameState {
     const state = bench(1);
     state.turn = 50;
     const city = foundCityAt(state, 0, at(state.map, 5, 5));
     city.population = 5;
+    city.purchasedUnitTurns = { militaryGold: state.turn, civilianGold: state.turn };
     refreshCityDerived(state, city);
     for (let index = 0; index < soldiers; index++) {
       const piece = createUnit(state, 0, 'warrior', city.col, city.row + index);

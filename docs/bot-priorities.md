@@ -6883,3 +6883,108 @@ over the only yield row it had left.
 - **The puppet re-decides once a turn**, off one `productionTable` per puppet.
   Nothing re-walks the empire; the town is asked, and the answer is a command or
   silence.
+
+## Batch X13 as shipped — the standing garrison (2026-09-10)
+
+`docs/flags.md` (sss). The audit of the bot's build order and tech selection
+found **one root** under three measured symptoms, and it was a predicate:
+`garrisonAt` (`campaign.ts`) counted *any* combatant standing on a town's hex —
+a scout passing through included — and `garrisonWorth` (`bot.ts`) answered
+`null` the moment that count met `military.garrisonPerCity`. A `null` there does
+not rank a row low; it takes the row **out of the want book**. So on the turn a
+fresh ranger stood in the capital a one-town empire had no gold want in the
+world, `priceOf` fell back on "nothing this empire could buy", and the shadow
+price of a coin dropped to the band's floor — six-fold, on alternate turns, with
+every gold-paying row and every technology that unlocks one swinging with it.
+
+### 1 · The reading — `garrisonAt` counts field soldiers
+
+`isFieldSoldier`, which is the campaign's own garrison predicate already:
+`strikeForce` takes `garrisonPerCity` **field soldiers** off the top per town as
+the garrisons the empire owes, and the levy counts the same pieces. A town whose
+garrison was a scout was a town the campaign called held and the levy called
+short — two readings of one word, disagreeing.
+
+The **mid-march** refinement the ruling allowed is deliberately not taken: a
+movement allowance is spent *during* a seat's own turn, so "has it moved yet"
+answers differently to the first decision of a turn and to the last, and a
+garrison count that changes under the seat's own feet is the within-turn
+instability this batch exists to remove.
+
+"Everything an attacker would have to go through" is a different question and is
+now a different name: **`defendersAt`**, the old body, with one caller — the
+campaign's target tie-break, where a scout in a town is a body all the same.
+
+### 2 · The garrison is a term, and the levy is charged beside it
+
+`garrisonWorth` no longer refuses a town that holds its garrison. The shortfall
+is a labelled share of `threat.garrisonValue` that reads **nought** when the
+garrison is met, so the soldier keeps its own field value and the row stays in
+the book to be compared against.
+
+Taking the door away exposed the arm the door had been hiding: the purse was the
+only one of the three soldier-pricing arms with **no levy reading at all**. The
+queue charges the levy surplus (`unitRoleValue`), the faith bank charges it
+(`faithRowTerms` → `levyTerm`, batch X3, *"the count is a charge rather than a
+door"*), and the treasury charged nothing — so the ruling as written alone put
+the mean seat at twice its own levy in standing soldiers by turn 100, with the
+science and the buildings paying for it. The same reading (`levyReading`), the
+same shape and the same printed words now sit in `garrisonWorth`, and the three
+arms cannot disagree about how big an army is.
+
+The remaining `null`s are one predicate — `isFieldSoldier`, the reading
+`garrisonAt` counts by. A civilian, a hull and, new here, a **ranger**: if a
+scout standing in a town is not a garrison, a scout bought for a town is not one
+either, and this fold is `explainSoldier` with none of the three brakes the
+queue's explorer branch puts on a ranger (the opening premium, the decay, the
+glut charge).
+
+### 3 · An empty book prices at the prior, not the floor
+
+`priceOf` with **no want at all** now answers `priorPrice` — the table, carrying
+gold's pressure — rather than falling through the clamp at zero and landing on
+`priceBandLow × prior`. An empty shop is a statement about the shop, not about
+the coin in the purse. The floor is still reachable and still pinned: a want
+worth almost nothing per coin clamps there.
+
+### What it measured
+
+Turn 100, the mean bot seat over eight seeds (1, 2, 3, 42, 101, 999, 31337,
+20260101), standard, two seats and the wild:
+
+| | before | after |
+| --- | --- | --- |
+| towns | 6.1 | 6.2 |
+| citizens | 41.3 | 42.3 |
+| buildings | 29.3 | 30.9 |
+| units · soldiers · rangers | 24.3 · 16.9 · 3.8 | 22.1 · 16.3 · 2.7 |
+| food · hammers · gold | 122.4 · 73.5 · 37.6 | 131.0 · 83.2 · 41.1 |
+| beakers · culture · faith | 86.8 · 62.9 · 20.1 | 89.9 · 69.6 · 18.2 |
+| in hand · nodes · contentment | 269.9 · 23.1 · 4.7 | 320.4 · 23.2 · 12.2 |
+
+Seed 7's research, the audit's own board — the goal the seat is walking toward,
+changing:
+
+- **before**: husbandry, earthenware, husbandry, earthenware, husbandry,
+  earthenware (t1–t6), then divination at t7. Six changes in six turns, on a
+  board that learnt nothing in between.
+- **after**: husbandry, earthenware, husbandry (t1–t3), divination at t7, and
+  then the plan holds — calendar t18, earthenware t19, bronze working t22,
+  sailing t24.
+
+Its opening: **before** scout (t1), scout (t3), worker, settler — three rangers
+standing by t5. **After** warrior (t1), scout (t3), worker (t6), settler (t8).
+
+### What is still open
+
+- **The ruling's "at most one scout beyond the starting one"** is a cap of two,
+  and `military.scoutCap` says **three**. The seat now stops exactly at its dial
+  (it held seven by t66 before), and the pin is written against the sheet
+  rather than against a number in a test. Lowering the cap is a balance
+  decision the ruling did not make.
+- **The opening is warrior · scout · worker · settler**, not the ruled *scout
+  settler settler worker*. The opening book (`openingScout`) declines whenever
+  the empire already owns a ranger, and every seat starts with one
+  (`rules.startingUnits`), so the first build has always been the scored table's
+  answer — it merely used to be a scout by default, because the Warrior row had
+  lost its empty-town premium to the miscounted garrison.

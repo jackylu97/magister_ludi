@@ -765,14 +765,53 @@ function escortAvailable(state: GameState, player: Player): boolean {
 }
 
 /**
- * What a soldier of this type is worth **bought** for this town, or `null` when
- * the empire does not want one there.
+ * What a soldier of this type is worth **bought** for this town — `null` only
+ * for a piece this empire would never buy at all.
  *
- * The one clause of `unitRoleValue`'s soldier branch that a purse cares about: a
- * town standing empty. A bought piece is a wall that walks away and the queue is
- * where an army is raised — what the treasury is for is the emergency, and
- * `threat.garrisonValue` is the number the queue's own branch charges for it. The
- * strength half is `explainSoldier`, the same fold, so the two arms cannot drift.
+ * The clauses of `unitRoleValue`'s soldier branch that a purse cares about: a
+ * town standing empty, and the levy already standing behind it. A bought piece is
+ * a wall that walks away and the queue is where an army is raised — what the
+ * treasury is for is the emergency, and `threat.garrisonValue` is the number the
+ * queue's own branch charges for it. The strength half is `explainSoldier`, the
+ * same fold, so the two arms cannot drift.
+ *
+ * **The garrison is a term, not a door** (batch X13, `docs/flags.md` (sss)).
+ * This used to answer `null` the moment the town held its garrison, and a `null`
+ * here does not merely rank a row low — it takes the row **out of the want
+ * book**, so a one-town empire with a warrior at home had no gold want in the
+ * world and `priceOf` fell back on "nothing this empire could buy". The price of
+ * a coin swung six-fold between the turn the garrison was met and the turn it
+ * was not, and every gold-paying row and every tech that unlocks one swung with
+ * it. So the shortfall is a **labelled share** of `threat.garrisonValue` that
+ * reads nought when the garrison is met: the soldier keeps its own field value,
+ * the row stays in the book to be compared against, and an empire that already
+ * holds its towns simply prefers something else — which is a comparison, and
+ * this bot's whole discipline is that a threshold is a comparison.
+ *
+ * **The levy is charged here too**, and that is the other half of the same
+ * conversion. The faith bank has priced a bought soldier as *its worth less the
+ * levy already standing* since batch X3 (`faithRowTerms` → `levyTerm`), for the
+ * reason its own docblock gives: a soldier's worth is a reading that already
+ * knows how many this empire holds, so the count is a **charge rather than a
+ * door**. The purse was the one arm still using a door, and taking the door away
+ * without putting the charge in its place left the treasury as the only way to
+ * raise an army that nothing at all was counting — measured at twice the levy in
+ * standing soldiers by turn 100, with the science and the buildings paying for
+ * it. Same reading (`levyReading`), same shape, same words the queue and the
+ * bank print, so the three arms cannot disagree about how big an army is.
+ *
+ * The `null`s that remain are feasibility rather than taste, and they are one
+ * predicate: `isFieldSoldier`, the same reading `garrisonAt` counts by. A piece
+ * that cannot hold a town cannot be bought to hold one — a civilian, a hull
+ * (a system this bot has no opinion about at all, and `unitRoleValue` refuses it
+ * in the same words), and, since batch X13, a **ranger**. The ranger is the new
+ * name on that list and it belongs there for the batch's own reason: if a scout
+ * standing in a town is not a garrison, then a scout bought for a town is not a
+ * garrison either. It matters because this fold is `explainSoldier` and nothing
+ * else — none of the three brakes the queue's explorer branch puts on a ranger
+ * (the opening premium, the decay, the glut charge) is here — so a purse that
+ * could answer "scout" would buy the cheapest strength on the roster for ever,
+ * which is symptom (3) of the audit bought with coin instead of hammers.
  */
 function garrisonWorth(
   state: GameState,
@@ -782,11 +821,29 @@ function garrisonWorth(
   ctx: ValueContext,
 ): Appraisal | null {
   const def = unitDef(id);
-  if (!isCombatant(def) || def.category === 'naval') return null;
-  if (garrisonAt(state, player.id, city) >= ctx.ai.military.garrisonPerCity) return null;
+  if (!isFieldSoldier(def)) return null;
+  const wanted = Math.max(0, ctx.ai.military.garrisonPerCity);
+  const held = garrisonAt(state, player.id, city);
+  const short = wanted <= 0 ? 0 : Math.max(0, Math.min(1, (wanted - held) / wanted));
+  const soldier = explainSoldier(id, ctx);
+  const levy = levyReading(ctx);
   return appraise([
-    nest('what this soldier is worth', explainSoldier(id, ctx)),
-    { label: 'its town is standing empty', value: ctx.ai.threat.garrisonValue },
+    nest('what this soldier is worth', soldier),
+    {
+      label:
+        short >= 1
+          ? 'its town is standing empty'
+          : short > 0
+            ? `its town holds ${held} of the ${wanted} it wants`
+            : `its town already holds its garrison (${held} of ${wanted})`,
+      value: ctx.ai.threat.garrisonValue * short,
+    },
+    {
+      label:
+        `this empire wants ${round1(levy.wanted)} soldier${levy.wanted === 1 ? '' : 's'} and holds ` +
+        `${levy.held} — ${round1(levy.standing * 100)}% of a levy already standing (${levy.note})`,
+      value: -soldier.total * levy.standing,
+    },
   ]);
 }
 
