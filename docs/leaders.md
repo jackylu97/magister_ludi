@@ -32,55 +32,65 @@ grant; a unique is a row with `unlockedByCard`-style gating). ▢ every figure.
 
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | workers gain +1 charge (the corvée) | your capital and its nearest town are joined by road at once, and a worker arrives | **Terraces** — farms may be built on hills, +1 food |
-| II | a city joined to the capital by road pays +1 happiness and +1 production | every domestic route running finishes its road this turn | **The Tambo** — +1 route slot; domestic routes from here pay +1 food +1 production |
-| III | roads cost nothing to maintain inside your borders | +10 production in every city joined to the capital | **The Royal Road** — a road step inside your borders costs a fifth for your units |
-| IV | domestic routes pay more for each hill the origin works | a citizen in every city joined to the capital | **The Qollqa** — the city keeps a quarter of its food on growing, +2 production |
+| I | workers gain +1 charge (the corvée) | +3 authority | **Terraces** — farms may be built on hills, +1 food |
+| II | every city joined to the capital by road pays +1 happiness and +1 production | gain a random great engineer | slinger, replaces the age 2 ranged unit. +2 ranged combat strength and take no movement penalty from hills |
+| III | cities connected to your capital cost 1 fewer authority | +10 production in every city joined to the capital | **The Tambo** — +1 route slot; domestic routes to or from here pay +1 food +1 production |
+| IV | +10% science and +10% gold in every city with a mountain tile | a citizen in every city joined to the capital | **The Qollqa** — the city keeps a quarter of its food on growing, +2 production |
 
 ### Emperor Taizong — wide, the imperium (Tang)
 
+leader bonus: melee units +1 combat strength and +1 movement, +2 culture in all cities (gain at the start of the game)
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | melee units +1 combat strength | a spearman musters in every city | **The Fubing** — a spearman line that costs no upkeep while garrisoned |
-| II | garrisoned cities pay +1 production | the Xuanwu Gate: your next Order draft shows one more card and costs nothing | **The Examination Hall** — Orders in military slots pay +1 science each |
-| III | a captured city costs 1 less authority; puppets pay +1 culture each | the Heavenly Khagan: every puppet pays 100 gold at once | **Tang heavy cavalry** — a horseman line, +2 strength, +1 against mounted |
-| IV | melee units +1 more combat strength against mounted | a knight musters in every city with a Barracks | **The Post Road** — routes to the capital pave in half the turns; joined cities +5% production |
+| I | The great yangtze - cities settled next to rivers cost 1 fewer authority | +3 authority | **The Fubing** — a spearman line that costs no upkeep while garrisoned, cheaper to produce |
+| II | garrisoned cities +1 happiness, +15% culture | the Xuanwu Gate: your next Order draft shows one more card and costs nothing | **The Examination Hall** — Orders in military slots pay +1 science each, +1 authority |
+| III | a captured city costs 1 less authority; puppets pay +5 culture each | the Heavenly Khagan: every puppet pays 200 gold at once | **Tang heavy cavalry** — a horseman line, +2 strength, +2 combat strength if adjacent to a melee unit |
+| IV | the great poets: great artist boons +100% culture and give +10% production and +10% culture for 5 turns | a knight musters in every city with a Barracks | **The Post Road** — +1 authority, +20% production in this city if connected to the capital |
 
 ### Modu Chanyu — wide, the steppe (Xiongnu)
 
+leader bonus: mounted units +1 movement on grassland and plains, pillaging +50% yields
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | mounted units +1 movement on grassland and plains | Horses are revealed, and a pasture is laid where your capital's nearest horses stand | **The Whistling Arrow** — a chariot archer line available from Husbandry, +1 range |
-| II | pillaging costs no movement; mounted units heal extra on a hex they pillaged | every rival improvement within 3 hexes of your units is pillaged at once | **The Horde Camp** — a pasture that also hurries mounted units by a quarter in its city |
-| III | puppets pay +10% science and +10% culture | Tribute: every puppet pays a lump of gold | **The Xiongnu horse archer** — a horse archer line, +1 movement, hit and run |
-| IV | units +1 combat strength while a rite is active in your empire | a great general arrives | **The Chanyu's Guard** — a knight line that ignores zone of control |
+| I | +1 prod and +1 faith on pastures | Horses are revealed, and a pasture is laid where your capital's nearest horses stand | **The Whistling Arrow** — a chariot archer line available from Husbandry, +1 range |
+| II | pillaging costs no movement; pillaging gives extra health and +25 faith | every rival improvement within 2 hexes of your units is pillaged at once | **The Horde Camp** — improved pasture: +1 faith, military units regain all movement points when stepping on one |
+| III | units +1 combat strength while a rite is active in your empire | a great general arrives | **The Xiongnu horse archer** — a horse archer line, +1 movement, hit and run |
+| IV | puppets pay +30% science and +30% culture | every puppeted city gives 500 gold | **The Chanyu's Guard** — a stronger knight, +1 movement and +2 combat strength to adjacent ranged cavalry units |
 
 ### Akhenaten — tall, faith and wonders (Egypt)
 
+leader bonus: +1 faith on farms adjacent to a river, cities with a holy site +20% production towards wonders
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | +1 faith on farms adjacent to a river | a prophet arrives with Divination | **The Aten Shrine** — a shrine that pays +2 faith and presses harder |
-| II | holy sites on desert pay +3 faith | Amarna: the capital moves once for nothing and founds a holy site where it lands | **The Khopesh** — a swordsman line, +3 strength in cities of your religion |
-| III | cities with a holy site +20% production toward wonders | a wonder in progress gains a lump of hammers | **The Sun Court** — +3 happiness, +1 faith per 4 citizens |
-| IV | the holy city presses harder for every 3 citizens | every foreign city that follows you converts fully | **The Obelisk** — +2 culture +2 faith; every wonder in the city pays +1 renown |
+| I | cities with an active rite +10% production towards wonders | a prophet arrives with Divination | **Obelisk** — a shrine that pays +2 faith and +2 production |
+| II | holy sites +3 food and +3 faith on desert | gain 2 population in your capital | **The Khopesh** — a swordsman line, +3 strength in cities of your religion |
+| III | cities with a wonder +10% food (total, not surplus) and +5 culture | gain a great engineer | **The Sun Court** — +3 happiness, +1 faith per 4 citizens |
+| IV | cities following your religion -15% happiness cost | every foreign city that follows you converts fully | Valley of Kings - can only be built once in the empire. +10% culture in this city for every wonder in this city. Wonders can be rushed with faith |
 
 ### Al-Ma'mun — tall, science and faith (Abbasid)
 
+leader bonus: faith and science buildings give +2 food, +10% science in cities with an active rite
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | the capital's science buildings pay +1 science per 3 citizens more | the first Library is free | **The Translation Hall** — +2 science, +1 per foreign route ending here |
-| II | faith gained in the capital is gained again as science, at a fifth | the Almagest: a peace signed pays a lump of science | **The Shammasiya** — an observatory an age early: +2 science, +1 renown |
-| III | a scholar great person costs a third less renown | +40 renown | **The Mihna Court** — +2 authority capacity; cities following your religion +10% science |
-| IV | +2 science per trade route ending in the capital | the Great Enquiry: a lump of science | **The Paper Mill** — +3 science +3 culture; routes ending here bring science |
+| I | +1 faith for every 2 population in your capital | your capital starts at 3 popultaion | Needs name: +2 food, gains +1 science for every great person you've recruited |
+| II | +20% renown, faith buildings give +1 renown towards scholars | the Almagest: a peace signed pays a lump of science | **The Mihna Court** — +2 happiness; 10% of the cities faith is gained as science |
+| III | gain +1 science per 5 faith per turn, empire-wide | +40 renown | Camel archer: replaces horse archer, +1 ranged strength for every great person improvement in your capital |
+| IV | your orders that give faith are doubly effective | the Great Enquiry: a lump of science | **The Paper Mill** — +3 science +3 culture; routes ending here bring science |
 
 ### Mithridates VI — tall, defence and growth (Pontus)
 
+leader bonus: +2 combat strength against empires with more cities (your own puppets not counted), +1 food on improved resources
+
 | Æra | Passive | Boon | Unique |
 |---|---|---|---|
-| I | +2 combat strength against empires with more cities (puppets not counted) | the Antidote: a malice seated against you is struck out | **The Pontic peltast** — a spearman line that heals when it kills |
-| II | Gardens pay +2 happiness and +1 authority | the royal physician: every city grows one citizen | **The Mithridatium** — the Garden an age early, +2 food +1 science |
-| III | +1 science for every 2 military units | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
-| IV | +1 food on every hex carrying a resource | the twenty-two tongues: every rival's yields visible for the age, +100 renown | **The Mountain Hold** — a citadel-building: +30 city strength, +2 food |
+| I | +2 food on plantations, camps | your capital starts at 3 population | **The Pontic peltast** — a spearman line that heals when it kills |
+| II | +1 wildcard slot in every government | the royal physician: every city grows one citizen | **The Mithridatium** — replaces the garden, keeps all its effects and gains +2 happiness, +1 science per population in the city |
+| III | internal trade routes supply +2 food and +2 science | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
+| IV | your units heal +5 every turn | the twenty-two tongues: gain +100 renown every time you perform a trade deal | **The Mountain Hold** — a citadel-building: +10 city strength, +2 food |
 
 **Second set** (one per family, for later): Sher Shah Suri, Rajendra Chola,
 Basil II, Sargon, Gwanggaeto, Tomyris, Bumin, Zenobia, Yongle, Emperor Wu,
