@@ -137,11 +137,14 @@
  * unhappy with the city banners and unit visibility. Is it difficult to have the
  * list of units in a city appear above the banner?"* — and it is not. The pieces
  * standing on a town's own hex are listed **above the plate** as a row of
- * roundels, one per piece, centred over the pill with a clear gap under them so
- * the row reads as *standing at* the town rather than as part of its label. That
- * gap is the whole of the U6 objection (*"it makes it look like the unit is part
- * of the city"*), kept as a rule rather than as a taste: nothing in the row
- * touches the plate.
+ * roundels, one per piece, centred over the pill and overlapping its top edge by
+ * a few pixels so the row reads as standing *in* the town (the user, 2026-09-10:
+ * *"so it's clearer that the unit is 'in' the city"* — U8 shipped with a clear
+ * gap, and a day of play said the gap read as floating). The U6 objection
+ * (*"it makes it look like the unit is part of the city"*) was to a badge set
+ * *into* the plate's face; a roundel resting on its edge is a piece at the gate,
+ * not a field of the label, and the overlap is kept small for that reason
+ * (`style.css`, `.city-banner-garrison`).
  *
  * Four passes came before it and each is worth a line, because the failures are
  * all the same failure. U4 hung a mark over the 3D flagpole and the plate

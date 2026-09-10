@@ -263,7 +263,7 @@ function garrisonRowStall(into: HTMLElement): void {
   const root = block(
     into,
     'The garrison row',
-    'The pieces standing on a town’s hex, listed above its banner: one roundel each, the board’s own mark in the owner’s own ink, with a clear gap under the row so it reads as standing *at* the town rather than as part of its label. A hurt piece carries the board’s hit bar under its roundel and a whole one carries none. Past four the roundels fan — they overlap rather than widening a row that would outgrow the plate — and past eight the remainder is a numeral. The piece in hand is ringed exactly as the board rings it.',
+    'The pieces standing on a town’s hex, listed above its banner: one roundel each, the board’s own mark in the owner’s own ink, resting on the top edge of the plate â a few pixels of overlap â so it reads as standing *in* the town rather than floating over its label. A hurt piece carries the board’s hit bar under its roundel and a whole one carries none. Past four the roundels fan — they overlap rather than widening a row that would outgrow the plate — and past eight the remainder is a numeral. The piece in hand is ringed exactly as the board rings it.',
   );
   const grid = stallGrid(root);
   const cell = stall(grid, 'one, three, six and ten');

@@ -1601,6 +1601,14 @@ directly to confirm rulings — user marginalia are rulings.
   `poleHeight + bannerClearance` (1.25). Known gaps: a worker's charge
   numeral goes with its suppressed roundel; a piece mid-march over a
   town hex keeps its walking tag until the walk lands.
+  **U8b — RULED and built by hand** (the user, 2026-09-10: *"the garrison
+  icon placement is sooo close, i like this version a lot better. Could
+  we move the icon down, slightly overlapping with the city banner, so
+  its clearer that the unit is 'in' the city. I'm mostly worried about
+  newer players being able to read this clearly"*): the row's `bottom`
+  goes from `calc(100% + 9px)` (a clear gap) to `calc(100% − 7px)` — the
+  roundels overlap the plate's top edge by about a quarter of their
+  height; the pin allows 1–12px of overlap. One CSS line.
 - (ppp) **Ships, the taking of towns, the capture sheet, the two words —
   RULED** (the user, 2026-09-09: *"create a doc with every unit and their
   combat strengths … melee units should not be able to attack boats

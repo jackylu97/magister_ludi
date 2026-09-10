@@ -991,12 +991,15 @@ describe('the row on the glass', () => {
     return css.slice(at, css.indexOf('}', at));
   }
 
-  it('hangs above the plate with a clear gap under it', () => {
+  it('hangs on the plate’s top edge, overlapping it by a few pixels', () => {
     const row = cssRule('.city-banner-garrison');
     expect(row).toMatch(/position: absolute/);
-    // Above the pill's own top edge, plus the gap — a `bottom` of `100%` alone
-    // would sit the roundels straight on the plate, which is the U6 objection.
-    expect(row).toMatch(/bottom: calc\(100% \+ \d+px\)/);
+    // Just *below* the pill's own top edge — a small overlap, so the roundels
+    // read as standing in the town rather than floating over it (the user,
+    // 2026-09-10, after a day with a clear gap: "so it's clearer that the unit
+    // is 'in' the city"). Small: a `bottom` of `100%` minus more than half a
+    // roundel would sit them on the plate's face, which was the U6 objection.
+    expect(row).toMatch(/bottom: calc\(100% - ([1-9]|1[0-2])px\)/);
     // Centred over it, whatever the town's name does to the pill's width.
     expect(row).toMatch(/left: 50%/);
     expect(row).toMatch(/translateX\(-50%\)/);

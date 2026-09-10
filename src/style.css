@@ -3111,7 +3111,11 @@ kbd {
    their own back one rule down. */
 .city-banner-garrison {
   position: absolute;
-  bottom: calc(100% + 9px);
+  /* Overlapping the plate's top edge by a few pixels, not floating clear of it
+     (the user, 2026-09-10: "move the icon down, slightly overlapping with the
+     city banner, so it's clearer that the unit is 'in' the city"). The row is
+     the pill's last child, so it paints over the border it crosses. */
+  bottom: calc(100% - 7px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
