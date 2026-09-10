@@ -1817,6 +1817,19 @@ directly to confirm rulings — user marginalia are rulings.
   a purchase lands on the hex; a blocked purchase is refused and the
   state unchanged; the panel's sentence; the purchase bucket stamp is not
   spent by a refusal.
+  **P3 built** (2026-09-10), and it too is a **replay change (schema 115,
+  held)**: a v110 log that bought into an occupied hex was accepted then
+  and is refused now. `spawnTileFor` gained `onCityHexOnly` (cuts the
+  neighbour ring in both arms; a *built* unit keeps its spill because the
+  town worked on it for turns and the player was not looking; a bought
+  one is the player's own act on that hex this turn); `purchaseError`
+  names the blocker by category in `state.units` order; the panel's tag
+  splits the refusal (vermilion, italic) from an ended turn (quiet). The
+  bench needed a `marchOut` verb — nine purchase cases and four others
+  had founded the town under its own escort and were refused. **Bot
+  fallout**: the want book asks `purchaseError`, so a purchase want
+  vanished in every garrisoned town; the fix in flight keeps the want and
+  steps the blocker one hex before buying, both in one turn's log.
 - (gggg) **Auto-explore spends the whole allowance; a siege mark on the
   banner — RULED** (the user, 2026-09-10, mid-playtest: *"units set on
   auto-explore should use all of their movement. Also, we need an icon
@@ -1840,7 +1853,25 @@ directly to confirm rulings — user marginalia are rulings.
   banner besieged and not); the city panel already says it — leave it.
   Pins: the banner shows the mark iff `underSiege`; the gallery stall;
   the signature changes when a siege begins and ends.
-- (ffff) **Walls halved back; the chariot's upgrade — RULED and built**
+  **X14 built** (2026-09-10) — and it is a **replay change, so schema
+  114** on the held stack rather than a hot-fix: an explorer that walked
+  one hex a turn now walks two or three, so every ruin, camp and meeting
+  lands on a different turn. The march is `marchExplorers` looping per
+  piece (walk the route → recompute the seat's fog → re-aim → walk) with
+  four honest exits (out of allowance · jammed · nothing to see · aimed
+  but spent); the walk is a closure `turn.ts` hands down (`combat.ts`'s
+  presser pattern) so `advanceAlongPath` stays the one mover and
+  `collectCampBounties` the one camp reporter. The one discovery: a
+  per-leg `recomputeVisibility` was necessary — re-aiming against the
+  stale grid made the scout target the hex under its feet and stand down
+  on an open map. Four seeds, ten turns: 10 → 17 and 12 → 14 hexes of
+  displacement on the open maps, islands unchanged. The mark is a
+  **portcullis** (a barred gate on three teeth, the yoke's construction,
+  vermilion beside the name, "Under siege"), a second `CityMarkId`; the
+  ring of spears was rejected as the `sun` charge at 13px. U8's "the
+  badge stays on the panel" is overturned in the module docblock. The
+  gallery stall shows quiet · besieged · besieged with walls down, one
+  knob (the mark's size). Bots' explorers cover more ground per turn.; the chariot's upgrade — RULED and built**
   (the user, 2026-09-10, mid-playtest: *"i'm finding it very hard to kill
   this city … was a palisade and stone walls always +10? Let's change
   them to be +5"*, then *"castle +5, bastion +5 too. Walls of uruk +10"*,
