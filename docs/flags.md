@@ -1769,6 +1769,37 @@ directly to confirm rulings — user marginalia are rulings.
   from the tithe to a Library"). No schema (the choice is a logged
   command); replay unaffected. Arena: the new knob appears on the panel
   by walking the sheet. Report the t100 row.
+  **PP1 built** (2026-09-10): `puppetRedecision` (one door: `autoPickPuppets`'s
+  second arm and the driver's town pass), `queueAhead` promotes the building
+  in front of the conversion (never cancels it), `ai.puppet.switchMargin`
+  0.1 as a fraction of the incumbent's magnitude. Thumb re-cut on the bench:
+  gold 6,6,7,8 → **4,4,5,6**, science 3 → 4,5,5,5, culture 1 → 2 (the table
+  is 3,3,4,4 / 5,6,6,6 / 5,5,5,5) — the old gold weight doubled what a
+  Library *cost* a puppet (wages at gold's shadow price) while halving what it
+  paid. Bench: seven towns with cheap rows up — Tithes 0.20 · Library 0.10
+  before, Library 0.26 · Tithes 0.20 after; over the cap the Monument wins.
+  Ten pins in `test/sim/aiPuppet.test.ts`; the feed says "Uruk turns from
+  Tithes to Library". City panel unchanged (already shows the queue, locked).
+  Flagged by the agent, every seat's and untouched: a Market prices negative
+  in most towns because `push` discounts a row's gain by build turns but not
+  its wage. **t100 note**: the agent's row (sci 86.8 · cul 62.9 · happiness
+  +4.7 · buildings 29.3) is the post-Q1 baseline, identical with the old
+  thumb — the drop from the W2 row is Q1's; measured next.
+  **The post-Q1 t100 drop, measured** (2026-09-10, same probe, same 8
+  seeds): W2 row sci 112.6 · cul 78.1 · buildings 34.3 · happiness +9.5 →
+  post-Q1 sci **86.8** · cul 62.9 · buildings 29.3 · happiness **+4.7**.
+  Not the Opus door: threshold 7 and 20 give byte-identical rows (the bots'
+  race term is inert at t100 either way). Not the bots' reading of the
+  rows: `src/ai/` never read a deed, and un-retiring all 43 rows without
+  the phase gives sci 86.3 · happiness +5.9. **It is the deeds' boons**:
+  the retired quests and endeavours paid real yields when cleared — 300
+  and 400 science windfalls, a citizen in every city, +5 happiness twice,
+  +10 authority, 200 gold — and every seat, bot or human, was collecting
+  them by t100. Q1 is working as ruled; the game is leaner for everyone.
+  ▢ for the balance pass: the tech ladder (B6) and the happiness figures
+  were fitted with those injections in place; the wagers now carry that
+  weight alone (a wager pays beads, not yields). The **new baseline** is
+  the post-Q1 row above.
 - (rrr) **The two families — worksheet opened** (the user, 2026-09-10, across
   the maritime / wide-land / imperium-and-steppe / land-commerce / tall /
   faith conversation: *"generally i see the game having two predominant
