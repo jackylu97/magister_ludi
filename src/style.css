@@ -5657,11 +5657,24 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* The stage. `position: relative` is load-bearing: the label layer is placed
-   against this box, and `abacusScreen.ts` projects into the same coordinates. */
+   against this box, and `abacusScreen.ts` projects into the same coordinates.
+
+   **A third of the sheet, not the sheet** (the user, 2026-09-09: "the abacus is
+   a bit too large compared to the other wagers"). The counting frame is the
+   object on the table and the wager band is what the age is actually asking, so
+   the frame is capped at about a third of the window and the band and the rods
+   take the rest. The cap is CSS rather than a measurement taken in script for
+   the reason the screen's docblock gives: the stage sizes itself off this box on
+   the first open, so the cap has to be in place *before* the measure — and a
+   rule in the stylesheet always is. The labels project into the same capped box,
+   so they follow it without being told. `test/ui/abacusLayout.test.ts` pins it. */
 .abacus-stage {
   position: relative;
-  flex: 1;
+  /* A basis rather than a grow: the canvas inside is `height: 100%`, so a stage
+     sized off its own content measures nothing at all. */
+  flex: 0 0 33vh;
   min-height: 0;
+  max-height: 33vh;
 }
 
 .abacus-canvas {
@@ -11726,11 +11739,17 @@ body.compendium-page {
 
 /* --- the register under the Abacus ---------------------------------------- */
 
+/* Everything the stage's third leaves. The band of wager cards leads it and the
+   bead rods sit under them, which is the order of the question: what the age is
+   asking, then where everybody stands on it, then the score it adds up to. It
+   scrolls rather than squeezing, because a rod that shrank to nothing would be a
+   score you cannot read. */
 .abacus-register {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  max-height: 34vh;
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   padding-top: 8px;
   border-top: var(--border-thin) solid var(--ink-faint);

@@ -39,7 +39,7 @@
           }
         ]
       },
-      "note": "Your seat of government holds the citizens, the buildings and the wonder, all at once."
+      "note": "Citizens living in your seat of government, buildings standing in it, and wonders among those buildings — all on the same turn."
     },
     "workedLand": {
       "name": "The Worked Land",
@@ -55,7 +55,7 @@
         9000,
         11000
       ],
-      "note": "Everything the land around your seat of government pays you, added up over the age."
+      "note": "Everything the land worked by your seat of government pays you, added up over the age."
     },
     "theHarvest": {
       "name": "The Harvest",
@@ -74,7 +74,7 @@
       "deferred": [
         "The food a farm pays is not yet told apart from the food the ground under it pays, so nothing can read this bar."
       ],
-      "note": "Food paid by your farms, in one turn, across the realm."
+      "note": "Food your farms pay across the realm, on one turn."
     },
     "breadAndIron": {
       "name": "Bread and Iron",
@@ -102,7 +102,7 @@
           }
         ]
       },
-      "note": "The fields and the levy at once: food to spare every turn, and an army in the field."
+      "note": "Food to spare across the realm and the fighting strength of every piece you have in the field — both on the same turn."
     },
     "caravanserai": {
       "name": "The Caravanserai",
@@ -118,7 +118,7 @@
         2500,
         3000
       ],
-      "note": "Everything your roads and your caravans pay you, added up over the age."
+      "note": "Everything your trade routes pay you, added up over the age."
     },
     "kingsRoads": {
       "name": "The King's Roads",
@@ -134,7 +134,7 @@
         900,
         1100
       ],
-      "note": "The gold your towns pay for being joined to your seat of government, added up over the age."
+      "note": "The gold your towns pay you for being joined by road to your seat of government, added up over the age."
     },
     "solventRealm": {
       "name": "The Solvent Realm",
@@ -150,7 +150,7 @@
         8500,
         10000
       ],
-      "note": "Everything your treasury took in over the age, less what the realm cost to keep."
+      "note": "What your treasury takes in each turn once the realm's costs are paid, added up over the age."
     },
     "warChest": {
       "name": "The War Chest",
@@ -178,7 +178,7 @@
           }
         ]
       },
-      "note": "Gold in hand and an army in the field, on the same turn."
+      "note": "Gold sitting in your treasury and the fighting strength of every piece you have in the field — both on the same turn."
     },
     "academies": {
       "name": "The Academies",
@@ -190,11 +190,11 @@
         "count": "science"
       },
       "bars": [
-        4000,
-        16000,
-        20000
+        1500,
+        5000,
+        7000
       ],
-      "note": "Everything your scholars learned over the age, added up."
+      "note": "Learning made across the realm, added up over the age."
     },
     "observatory": {
       "name": "The Observatory",
@@ -210,7 +210,7 @@
         4,
         5
       ],
-      "note": "Learning for each citizen you keep — a wide realm of unschooled towns will not reach it."
+      "note": "Learning made in one turn, shared out over every citizen in the realm."
     },
     "theTithe": {
       "name": "The Tithe",
@@ -227,7 +227,7 @@
         6400,
         8000
       ],
-      "note": "Everything your faith pays the realm, added up over the age."
+      "note": "Everything your religion pays the realm, added up over the age."
     },
     "wonderOfTheAge": {
       "name": "The Wonder of the Age",
@@ -243,7 +243,7 @@
         3,
         3
       ],
-      "note": "Wonders of this very age standing in your towns."
+      "note": "Wonders of the age the world is in now, standing in your towns — held at once."
     },
     "marvelsPay": {
       "name": "The Marvels' Pay",
@@ -275,7 +275,7 @@
         2900,
         3500
       ],
-      "note": "Everything your great people pay you — their works, their boons and their legacies — added up over the age."
+      "note": "Everything your great people pay you — their works, their gifts and their legacies — added up over the age."
     },
     "theRenowned": {
       "name": "The Renowned",
@@ -291,7 +291,7 @@
         5000,
         6000
       ],
-      "note": "All the renown your realm earned over the age, whether or not you spent it."
+      "note": "Renown your realm earns over the age, spent or not, added up."
     },
     "theChronicle": {
       "name": "The Chronicle",
@@ -307,7 +307,7 @@
         14500,
         18000
       ],
-      "note": "All the culture your realm made over the age, added up."
+      "note": "Culture made across the realm, added up over the age."
     },
     "theDeck": {
       "name": "The Deck",
@@ -323,7 +323,7 @@
         11000,
         13000
       ],
-      "note": "Everything the cards in your chairs pay you, added up over the age."
+      "note": "Everything the cards slotted in your government pay you, added up over the age."
     },
     "marcherLords": {
       "name": "The Marcher Lords",
@@ -359,7 +359,7 @@
           }
         ]
       },
-      "note": "A wide realm that is neither discontented nor overstretched."
+      "note": "Towns you hold, contentment at or above nothing, and authority not yet overspent — all on the same turn."
     },
     "theBuilders": {
       "name": "The Builders",
@@ -375,7 +375,7 @@
         240,
         300
       ],
-      "note": "Everything the buildings of your realm pay you in one turn."
+      "note": "Everything the buildings across your realm pay you in one turn."
     },
     "sixVoices": {
       "name": "The Six Voices",
@@ -391,7 +391,7 @@
         85000,
         100000
       ],
-      "note": "Food, work, gold, learning, culture and faith together, added up over the age — nothing neglected."
+      "note": "Food, work, gold, learning, culture and faith, summed every turn and added up over the age."
     },
     "contentedRealm": {
       "name": "The Contented Realm",
@@ -403,11 +403,11 @@
         "count": "happinessSurplus"
       },
       "bars": [
-        650,
-        700,
-        900
+        200,
+        250,
+        300
       ],
-      "note": "Contentment to spare, counted every turn of the age and added up."
+      "note": "Contentment to spare, counted every turn and added up over the age."
     },
     "theArsenal": {
       "name": "The Arsenal",
@@ -426,7 +426,7 @@
       "deferred": [
         "The work a town puts behind a soldier is not counted apart from the rest of its work, so nothing can read this bar."
       ],
-      "note": "Work put into soldiers over the age, across the realm."
+      "note": "Work your towns put into building soldiers, added up over the age."
     },
     "fieldOfGlory": {
       "name": "The Field of Glory",
@@ -442,7 +442,7 @@
         6,
         10
       ],
-      "note": "Rivals' soldiers killed over the age, less your own lost — the exchange, not the body count."
+      "note": "Rivals' soldiers you kill over the age, less your own soldiers lost."
     },
     "takenTown": {
       "name": "The Taken Town",

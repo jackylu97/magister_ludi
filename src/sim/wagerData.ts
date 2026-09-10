@@ -234,7 +234,20 @@ export interface WagerDef {
   fromAge?: number;
   /** Why this row cannot be read in this build. Never dealt while it is set. */
   deferred?: readonly string[];
-  /** What it asks, in a first-time player's words. Hard rule 7. */
+  /**
+   * What it asks, in a first-time player's words — **the reading, the span, and
+   * nothing else** (the user's ruling of 2026-09-09; hard rule 7).
+   *
+   * The thing counted leads, then the window it is counted in: one turn, added
+   * up over the age, or held at once. No flavour, no metaphor, no identifier and
+   * no figure — the bar prints beside the note on every surface that shows one,
+   * so a note that restated it would go stale the turn the row is retuned. There
+   * is deliberately no `flavor` or `epigram` field beside this one: the test of a
+   * note is that a player who has never seen the card knows what to do from it,
+   * and a second string is where the flavour that had to be cut comes back.
+   * `test/sim/wagers.test.ts` pins all of that; `docs/wager.md`'s table carries
+   * the same string and is sync-tested against it.
+   */
   note: string;
 }
 

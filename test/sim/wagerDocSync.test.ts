@@ -4,11 +4,12 @@ import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
 import {
   WAGER_AGES,
   WAGER_IDS,
+  wagerAgeIndex,
   wagerBar,
   wagerDef,
 } from '../../src/sim/wagerData';
 
-/** The §4 and §3b tables both live in one file; read once, split by heading. */
+/** Both tables live in one file; read once, split by heading. */
 const docFiles = import.meta.glob('../../docs/wager.md', {
   eager: true,
   query: '?raw',
@@ -36,30 +37,42 @@ function tableRows(heading: string): Map<string, string[]> {
  * pattern, one system over (CLAUDE.md's spec workflow: *a doc table that mirrors
  * data carries a sync test*).
  *
- * `docs/wager.md` §3b's table is the worksheet the user edits by hand and
+ * `docs/wager.md`'s deck table is the sheet the user edits by hand and
  * `data/wagers.json` is what the game deals. A row edited in one place and not
  * the other is exactly the failure this exists to catch — and it is a failure
  * with teeth here, because the doc's table carries the *bars*, which are the
- * whole balance of the system.
+ * whole balance of the system, **and the notes**, which are the whole of what a
+ * player is told a card asks (the user's ruling of 2026-09-09: the reading
+ * first, the span, and nothing else).
  *
- * Three claims, and each is one direction of the mirror: every data row is in
- * the table by name; every name in the table is a data row; and every row's
- * **figures** match, per age, including the per-clause groups of a compound
- * card. Deferred rows are in the table like the rest — they keep their bodies
- * and their figures, and the doc marks them — which is the one place this
- * differs from the Orders' sync test, where a retired row leaves both sides.
+ * The table was consolidated on 2026-09-09 into the one the user edits: three
+ * separate age columns rather than one `·`-joined cell, so a single bar can be
+ * retuned in place, and the note beside them. The worksheet it was cut from —
+ * the bench every figure was derived on, the cut/keep list, the rulings' history
+ * — is `docs/audit/wager-worksheet.md` and is **not** synced: it is history, and
+ * history that had to be kept current would be a second live table.
+ *
+ * Four claims, each one direction of the mirror: every data row is in the table
+ * by name; every name in the table is a data row; every row's **figures** match,
+ * per age, including the per-clause groups of a compound card; and every row's
+ * **note** matches to the character. Deferred rows are in the table like the rest
+ * — they keep their bodies and their figures, and the doc marks them — which is
+ * the one place this differs from the Orders' sync test, where a retired row
+ * leaves both sides.
  */
 describe('the wager doc mirrors the deck', () => {
-  /** The §3b table's rows, as `{ name → cells }`. */
+  const HEADING =
+    '| Wager | Fam | Line | Reads | Kind | Æra II | Æra III | Æra IV | Note | Notes |';
+
+  /** The deck table's rows, as `{ name → cells }`. */
   function docRows(): Map<string, string[]> {
-    const heading = '| Wager | Fam | Line | Reads | Kind | II · III · IV |';
-    const start = DOC.indexOf(heading);
-    expect(start, 'the §3b table').toBeGreaterThanOrEqual(0);
+    const start = DOC.indexOf(HEADING);
+    expect(start, 'the deck table').toBeGreaterThanOrEqual(0);
     const end = DOC.indexOf('\n\n', start);
     const rows = new Map<string, string[]>();
     for (const line of DOC.slice(start, end).split('\n')) {
       const cells = line.split('|').map((cell) => cell.trim());
-      if (cells.length < 7 || cells[0] !== '' || cells[1] === '') continue;
+      if (cells.length < 11 || cells[0] !== '' || cells[1] === '') continue;
       if (cells[1] === 'Wager' || /^-+$/.test(cells[1]!)) continue;
       // The deferred mark rides on the name in the doc and is not part of it.
       const name = cells[1]!.replace(/\s*\*\(deferred\)\*$/, '');
@@ -68,13 +81,19 @@ describe('the wager doc mirrors the deck', () => {
     return rows;
   }
 
-  /** The figures cell, as the doc writes them: groups of ages, `·`-joined. */
-  function dataFigures(id: (typeof WAGER_IDS)[number]): string {
+  /**
+   * One age column, as the doc writes it: the row's bar at that age, or the
+   * clause row's figures in clause order, or an em dash for an age the row is
+   * not dealt in (`fromAge` — The Tithe's Æra II, and nothing else today).
+   */
+  function dataFigures(id: (typeof WAGER_IDS)[number], age: number): string {
     const def = wagerDef(id);
+    if (def.fromAge !== undefined && age < def.fromAge) return '—';
+    const at = wagerAgeIndex(age);
     if (def.reads.shape === 'clauses') {
-      return def.reads.clauses.map((clause) => clause.bars.join('·')).join(' — ');
+      return def.reads.clauses.map((clause) => String(clause.bars[at] ?? 0)).join(' · ');
     }
-    return (def.bars ?? []).join(' · ');
+    return String(def.bars?.[at] ?? 0);
   }
 
   it('lists every row of the deck, and nothing else', () => {
@@ -108,15 +127,30 @@ describe('the wager doc mirrors the deck', () => {
     }
   });
 
-  it('prints each row’s bars, per age and per clause', () => {
+  it('prints each row’s bars, one column an age and one figure a clause', () => {
     // The half with teeth: the doc's figures *are* the balance, so a bar tuned
-    // in the data and left alone in the worksheet is a design document that
-    // quietly lies about the game.
+    // in the data and left alone in the sheet is a design document that quietly
+    // lies about the game. One column per age is what lets the user retune a
+    // single bar in place, which is the whole reason the table was consolidated.
     const rows = docRows();
     for (const id of WAGER_IDS) {
       const def = wagerDef(id);
-      const cell = rows.get(def.name)![6]!;
-      expect(cell.startsWith(dataFigures(id)), def.name).toBe(true);
+      const cells = rows.get(def.name)!;
+      WAGER_AGES.forEach((age, at) => {
+        expect(cells[6 + at], `${def.name} · age ${age}`).toBe(dataFigures(id, age));
+      });
+    }
+  });
+
+  it('prints each row’s note, to the character', () => {
+    // The other half the user edits. A note is the only thing on any surface
+    // that says what a card asks, so a note rewritten in the doc and not in the
+    // data is a promise the game does not keep — and the reverse is a design
+    // document nobody can read the deck off.
+    const rows = docRows();
+    for (const id of WAGER_IDS) {
+      const def = wagerDef(id);
+      expect(rows.get(def.name)![9], def.name).toBe(def.note);
     }
   });
 
@@ -145,9 +179,9 @@ describe('the wager doc mirrors the deck', () => {
 
 /**
  * **The malice deck's doc↔data sync test** (batch G3) — the same mirror, held up
- * to `docs/wager.md` §4's table.
+ * to `docs/wager.md`'s second table.
  *
- * §4's table is the one the user wrote the punishment in, and it carries the two
+ * That table is the one the user wrote the punishment in, and it carries the two
  * things a retune would move: the **chair** each malice takes, which is the whole
  * of what it costs beyond its effect, and the **figure**, which is the whole of
  * its balance. A row edited in one place and not the other is a design document

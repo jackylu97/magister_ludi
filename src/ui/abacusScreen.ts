@@ -43,6 +43,17 @@
  * between the simulation's family names and the look file's lives here, in
  * `STAGE_FAMILY`, and nowhere else.
  *
+ * **A third of the sheet, not the sheet** (the user, 2026-09-09: *"the abacus is
+ * a bit too large compared to the other wagers"*). The counting frame is the
+ * object; the wager band under it is what the age is actually *asking*, and it
+ * had been given whatever the frame left over. The cap is one rule in
+ * `src/style.css` (`.abacus-stage`, a third of the window) rather than a
+ * measurement taken here, and that is load-bearing rather than tidy: the stage
+ * sizes itself off its host box on the first open, so the cap has to be in place
+ * **before** the measure — a stylesheet rule always is, and a height written from
+ * script after `ensureStage` would have sized the canvas twice. The floating
+ * labels project into the same capped box, so they follow it without being told.
+ *
  * Lifecycle
  * ---------
  * The stage is built on the *first open*, never at boot: five thousand

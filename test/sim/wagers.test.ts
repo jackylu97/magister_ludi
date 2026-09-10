@@ -166,6 +166,68 @@ describe('the deck', () => {
   });
 });
 
+// --- 1b. the words ----------------------------------------------------------
+
+/**
+ * **Every note says what is counted, in what span, and nothing else** — the
+ * user's ruling of 2026-09-09 (`docs/flags.md` (nnn)), pinned.
+ *
+ * The failure this exists against is a real one that shipped: the user read
+ * *Bread and Iron* off the deal sheet and could not tell what it referred to,
+ * because the note beside it was written as flavour. A wager is a bar a player
+ * is asked to aim at, so the one sentence beside it has to be the reading —
+ * the thing counted and the window it is counted in — and nothing else.
+ *
+ * Three claims, and each is a way a note has gone wrong before:
+ *
+ *   · **no figure in the prose** (hard rule 7). The bar prints beside the note
+ *     on every surface that shows one, and a note that restated it would go
+ *     stale the moment the row is retuned — which is a table the user edits.
+ *   · **no keyword ref**. A wager note is not a describer's output and never
+ *     goes through `setDescriptorText`, so a `[[kind:id|Name]]` written into one
+ *     would print raw on the deal sheet.
+ *   · **the span is named.** "Everything your wonders pay you" is half a reading:
+ *     over one turn it is a different card from over an age. The vocabulary is
+ *     the three the deck actually has — a turn, an age, or held at once — and it
+ *     is a closed list on purpose, so a fourth way of saying it is a decision
+ *     rather than a slip.
+ */
+describe('the deck’s words', () => {
+  /** The whole of how a note may state its window. See the docblock. */
+  const SPAN_WORDS = ['turn', 'age', 'at once'];
+
+  it('writes no figure and no keyword ref into a note', () => {
+    for (const id of WAGER_IDS) {
+      const note = wagerDef(id).note;
+      expect(/\d/.test(note), `${id}: ${note}`).toBe(false);
+      expect(note.includes('[['), id).toBe(false);
+      // A note is one plain sentence a first-time player can act on, not a
+      // paragraph: long enough to name the reading, short enough to read.
+      expect(note.length, id).toBeGreaterThan(20);
+      expect(note.endsWith('.'), id).toBe(true);
+    }
+  });
+
+  it('names the span every note counts in', () => {
+    for (const id of WAGER_IDS) {
+      const note = wagerDef(id).note.toLowerCase();
+      const named = SPAN_WORDS.filter((word) => note.includes(word));
+      expect(named.length, `${id} names no span: ${wagerDef(id).note}`).toBeGreaterThan(0);
+    }
+  });
+
+  it('carries no flavour field beside the note', () => {
+    // The wager row has no `flavor`/`epigram` and must not gain one (the
+    // ruling): the deck's whole voice is the note, and a second string beside
+    // it is where the flavour that had to be cut would come back.
+    for (const id of WAGER_IDS) {
+      const row = wagerDef(id) as unknown as Record<string, unknown>;
+      expect('flavor' in row, id).toBe(false);
+      expect('epigram' in row, id).toBe(false);
+    }
+  });
+});
+
 // --- 2. the deal ------------------------------------------------------------
 
 describe('the deal', () => {
