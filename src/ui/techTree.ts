@@ -33,14 +33,39 @@
  * the reducer accepts; a node it dims explains itself with the reducer's own
  * words. There is no second opinion about the rules anywhere in this file.
  *
- * Glanceable numbers (Entry VIII)
- * ------------------------------
+ * Glanceable numbers (Entry VIII, ruled again 2026-09-09)
+ * ------------------------------------------------------
  * Each node carries its cost and "~N turns" at the player's *current* science
- * rate, and each building it unlocks carries what that building would add to
- * this empire's yields today — computed by `buildingYieldDelta`, which asks
- * `foldCity` twice rather than reimplementing it. Both are present-state
- * figures and the screen says so ("now"), because a delta that quietly assumed
- * future growth would be a promise the game never made.
+ * rate, and **a thing a node unlocks carries its price and nothing else** — a
+ * unit's hammers, a building's hammers, a project's rate, an improvement's
+ * charges.
+ *
+ * A building's row used to carry `buildingYieldDelta` instead — "what this
+ * building would add to your empire today, +3🔬 now" — and the user retired it
+ * (`docs/flags.md` (mmm)): *"The buildings don't need yield previews, as they
+ * need to be built in your empire."* A preview of a thing the player cannot
+ * place from this screen was answering a question nobody had asked here, and
+ * the building's own worth is the city panel's to state, beside the queue that
+ * can actually buy it. `buildingYieldDelta` and `cityBaselines` stay in
+ * `src/sim/tech.ts` with their tests; this screen simply stopped asking.
+ *
+ * What is left is **the technology's own yields**, and every one of them is
+ * whole: a renewal's delta (irrigation's food on a farm), an ability that pays,
+ * and a node's `techEffect` rules. Every figure on this screen goes through
+ * `signedYield`/`yieldShows` (`src/sim/yieldFormat.ts`) or is an integer the
+ * data itself carries — a cost in beakers, a cost in hammers, a turn count.
+ * Nothing here prints a raw fold: after batch X a fold is a fraction, and the
+ * user met the consequence on this very screen (*"unformatted floating point
+ * values"*).
+ *
+ * **What that cost, and what it stopped costing.** The delta was the expensive
+ * half of the chart by an order of magnitude — `foldCity` twice per city per
+ * building, forty-odd buildings in the sky, so a dozen cities meant a thousand
+ * folds to draw one screen, and the chart got heavier the longer a game ran.
+ * With it gone an unlock line is a price lookup, so the revision-keyed
+ * carry-over that used to protect it (`unlocksFrom`, `Pass.baselines`) is gone
+ * too: `refreshNodes` rebuilds the little lists outright and the whole repaint
+ * is cheaper than the memo's own bookkeeping used to be.
  *
  * A chart that travels sideways
  * -----------------------------
@@ -113,10 +138,7 @@ import { projectDef, projectRate } from '../sim/projectData';
 import { type GameState, type Player, hasEndedTurn } from '../sim/state';
 import { techRuleClauses } from './techRuleWords';
 import {
-  type CityBaselines,
   availableTechs,
-  buildingYieldDelta,
-  cityBaselines,
   dequeueResearchError,
   playerScience,
   prereqsMet,
@@ -172,20 +194,6 @@ const AGE_NAMES: Record<TechAge, string> = {
   3: 'Empire',
   4: 'Cathedrals',
 };
-
-/**
- * The yield voices, in the order the city panel lists them. The glyphs are the
- * shared set (`figures.ts`) — an unlock line reads `15⚙`, exactly as the city
- * panel's buttons do, because it is literally the same glyph.
- */
-const YIELD_GLYPHS: [keyof ReturnType<typeof buildingYieldDelta>, string][] = [
-  ['food', YIELD_GLYPH.food],
-  ['production', YIELD_GLYPH.production],
-  ['gold', YIELD_GLYPH.gold],
-  ['science', YIELD_GLYPH.science],
-  ['culture', YIELD_GLYPH.culture],
-  ['faith', YIELD_GLYPH.faith],
-];
 
 /** How a gift's mark is drawn: which class the small box beside it wears. */
 const GIFT_MARK: Record<TechGift['kind'], string> = {
@@ -329,6 +337,108 @@ function giftHeading(gift: TechGift): string | null {
   // exactly what a chop is.
   const bearer = isAbilityId(gift.id) ? (abilityDef(gift.id).bearer ?? 'worker') : 'worker';
   return BEARER_HEADING[bearer];
+}
+
+// --- the figures a gift is quoted at ----------------------------------------
+//
+// Four small composers, at module scope and exported, and the export is the
+// point: the UI suite mounts no DOM (`test/ui/controls.test.ts`'s note), so a
+// claim about what this screen *prints* can only be made against the strings it
+// is built out of. These are those strings — the note beside a gift on the
+// hover card, the note beside an unlock on a node's face — and
+// `test/ui/techTreeFigures.test.ts` walks every gift of every technology
+// through them to hold the rule the user gave the screen on 2026-09-09: **every
+// figure on it is whole** (`docs/flags.md` (mmm)).
+//
+// They were closures inside `createTechTree` until that ruling. Nothing in them
+// ever read the closure; they are arithmetic over a gift, the state and a seat.
+
+/**
+ * What a renewal is worth, written as the delta it is: `+1🌾`, and the
+ * condition when it has one.
+ *
+ * **All six voices**, in the order the city panel lists them. It was the three
+ * old ones for as long as a `TileYield` was three numbers, and that stopped
+ * being true two reworks ago: the Long Count's plantation pays a point of
+ * culture and the row printed nothing at all, on a screen whose whole remaining
+ * job is to say what a technology's own yields are (`docs/flags.md` (mmm)). A
+ * hand-written subset of a six-field record is the drift `CITY_YIELD_KEYS`
+ * exists to prevent one layer down; here the fix is simply to say all six.
+ *
+ * Every figure goes through `signedYield`, and a voice that rounds to nothing
+ * is not printed (`yieldShows`) — a delta is exact, a note is whole (batch X).
+ */
+export function tileYieldNote(add: TileYield): string {
+  const voices: [number, string][] = [
+    [add.food, YIELD_GLYPH.food],
+    [add.production, HAMMER],
+    [add.gold, YIELD_GLYPH.gold],
+    [add.science, YIELD_GLYPH.science],
+    [add.culture, YIELD_GLYPH.culture],
+    [add.faith, YIELD_GLYPH.faith],
+  ];
+  return voices
+    .filter(([value]) => yieldShows(value))
+    .map(([value, glyph]) => `${signedYield(value)}${glyph}`)
+    .join(' ');
+}
+
+export function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
+  const delta = tileYieldNote(gift.add);
+  return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
+}
+
+/**
+ * What an ability is worth, in the same voices — with `once` on the end,
+ * because that single word is the whole difference between a chop and a farm
+ * and the card would otherwise read as though the forest paid every turn.
+ */
+export function abilityNote(gift: TechGift & { kind: 'ability' }): string {
+  if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
+  // A verb that banks nothing prints its own summary instead — "Ancestor
+  // Rites" alone told a player nothing about great people (found in live
+  // play, 2026-09-03), and the summary is the data's own plain sentence.
+  return isAbilityId(gift.id) ? abilityDef(gift.id).summary : '';
+}
+
+/**
+ * The figures beside one gift, in the voice its kind is quoted in.
+ *
+ * Units and buildings are priced through the simulation's own evaluators, for
+ * *this* player — a settler quoted here is quoted at what the next one would
+ * actually cost, and a building at what its column has climbed to. A project
+ * quotes its **rate**, because a repeatable item has no total; an improvement
+ * quotes the charges it spends. A reveal costs nothing and says nothing; an
+ * ability and a renewal cost nothing either, so they say what they *pay*.
+ *
+ * A building's line is a price and only a price since the ruling of 2026-09-09
+ * — see the module docblock. `techEffect` is not here at all: a node's own
+ * rules are sentences, one list item each, and `techRuleClauses` composes them.
+ */
+export function giftNote(gift: TechGift, state: GameState, playerId: number): string {
+  switch (gift.kind) {
+    case 'unit':
+      return `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`;
+    case 'building':
+    case 'buildingTileYield':
+      return `${buildingProductionCost(gift.id, state, playerId)}${HAMMER}`;
+    case 'project':
+      return `${projectDef(gift.id).cost}${HAMMER} → ${projectRate(gift.id, PROJECT_GLYPHS)}`;
+    case 'improvement':
+      return `${improvementDef(gift.id).chargeCost} charge`;
+    case 'ability':
+      return abilityNote(gift);
+    case 'renewal':
+      return renewalNote(gift);
+    case 'reveal':
+    case 'techEffect':
+      return '';
+    default: {
+      const unhandled: never = gift;
+      void unhandled;
+      return '';
+    }
+  }
 }
 
 // --- the plan, read four ways ------------------------------------------------
@@ -547,8 +657,8 @@ const TRAILING_AIR = 22;
  * connector and both layout passes and made them again — twice over, since the
  * click's own render is followed by the host's (`onChanged`). It was slow the
  * way a screen is slow when it has to be *redrawn to be read*, and it got slower
- * with every city founded, because most of what a card costs is what it says
- * about the empire (see `unlocksFrom`).
+ * with every city founded, because most of what a card cost was what it said
+ * about the empire — the building delta, retired since (module docblock).
  *
  * So a card is built once and repainted after that. What is in here is exactly
  * what can change without the chart itself changing: the researched star, the
@@ -574,7 +684,7 @@ interface NodeFace {
   refusal: HTMLElement;
   /**
    * The unlock list. Replaced rather than repainted, because it is the one part
-   * of a card whose *shape* changes with the empire — see `unlocksFrom`.
+   * of a card whose *shape* changes with the empire — see `refreshNodes`.
    */
   unlocks: HTMLElement;
   choosable: boolean;
@@ -603,20 +713,6 @@ interface Pass {
   rate: number;
   plan: readonly TechId[];
   ended: boolean;
-  /**
-   * Every city of this seat as things stand, filled in on the first ask.
-   *
-   * The unlock line under a star is `buildingYieldDelta`, which is `foldCity`
-   * asked twice per city — and the first of the two, "as things stand", is the
-   * same answer for every building in the sky. Hoisted, it is read once a render
-   * instead of forty-two times a city.
-   *
-   * Lazy rather than summed in `beginPass` because most renders never look at
-   * it: a repaint that carries the unlock lines over (see `unlocksFrom`) has
-   * nothing to price, and building a baseline for it would put a sweep of the
-   * empire back into the cheap path this pass exists to keep cheap.
-   */
-  baselines?: CityBaselines;
 }
 
 export function createTechTree(options: TechTreeOptions): TechTree {
@@ -693,87 +789,19 @@ export function createTechTree(options: TechTreeOptions): TechTree {
   }
 
   /**
-   * The empire as things stand, priced once for the whole unlock sweep.
+   * Sends one of this screen's commands.
    *
-   * `Pass.baselines`' one filler and one reader. The `??=` is what makes the
-   * claim exact: twenty-seven calls to `renderUnlocks` in a row see one map, and
-   * the render after this one — a different pass — builds its own.
-   */
-  function baselines(): CityBaselines {
-    const at = passNow();
-    at.baselines ??= cityBaselines(at.state, at.playerId);
-    return at.baselines;
-  }
-
-  /**
-   * When the unlock lines under the stars were last priced.
-   *
-   * They are the expensive half of this screen by an order of magnitude: a
-   * building's line is `buildingYieldDelta`, which prices *every city of the
-   * empire twice*, and there are forty-odd building lines in the sky. At a dozen
-   * cities that is a thousand `foldCity` calls, which is the whole of why the
-   * chart got heavier the longer a game ran.
-   *
-   * They are also the half that nothing on this screen can change. So they are
-   * carried across renders, and the question "could they have moved?" is asked
-   * of **`GameState.revision`** rather than of the numbers: the counter is
-   * raised by `applyCommand` on every accepted command and once by
-   * `runEndOfTurn` after each phase, which are the two ways the world moves at
-   * all. That is deliberately the bluntest possible test — it re-prices on a
-   * founding, a build, a turn, a chop, anything at all — because a key that
-   * tried to name what a delta *depends on* would be a second opinion about a
-   * number this screen is forbidden to have one about.
-   *
-   * It was `game.log.length` until batch E3a, which is the same idea one layer
-   * too high: the simulation's own phases move the state without moving the log.
-   * Every memo in the game now reads the one counter.
-   *
-   * The seat is in the key because a hot-seat change is not a command, and the
-   * prices are the seat's own. The state's identity is, because loading a save
-   * hands over a different game whose revision may stand at the same number.
-   *
-   * `keptOwnCommand` is the one exception, and it is narrow on purpose: see
-   * `send`.
-   */
-  let unlocksFrom: { state: GameState; revision: number; playerId: number } | null = null;
-
-  /** Records that the unlock lines are priced for the state as it now stands. */
-  function markUnlocksPriced(): void {
-    const game = getGame();
-    unlocksFrom = { state: game.state, revision: game.state.revision, playerId: localPlayerId() };
-  }
-
-  /** Whether anything at all has happened since the unlock lines were priced. */
-  function unlocksAreStale(): boolean {
-    const game = getGame();
-    return (
-      unlocksFrom === null ||
-      unlocksFrom.state !== game.state ||
-      unlocksFrom.revision !== game.state.revision ||
-      unlocksFrom.playerId !== localPlayerId()
-    );
-  }
-
-  /**
-   * Sends one of this screen's commands, and notes that the log grew by it.
-   *
-   * The **only** place this module dispatches, and that is what makes the note
-   * safe. This screen sends exactly two commands — aim the beakers, drop a row
-   * from the plan — and both change what is *planned* and nothing else: no
-   * citizen moves, nothing is built, no technology completes, so no unlock line
-   * can have changed. Counting the command in rather than re-pricing forty
-   * buildings against every city is the difference between a click that lands in
-   * a frame and one that thinks about it first.
-   *
-   * A command from anywhere else still invalidates the lines, because the
-   * revision will have moved by more than the commands this screen counted (an
-   * accepted command raises it by exactly one). **A third command
-   * added to this screen inherits that claim and must be worth it** — if it can
-   * change what a building would pay, it must not go through here.
+   * The **only** place this module dispatches. It used to also keep a memo
+   * honest — the unlock lines under the stars were carried across renders and
+   * re-priced against `GameState.revision`, and this screen's own two commands
+   * (aim the beakers, drop a row from the plan) were counted in so a click did
+   * not re-price forty buildings against every city. **That memo is gone with
+   * the delta it protected** (the ruling of 2026-09-09, see the module
+   * docblock): an unlock line is a price lookup now, and a bookkeeping entry
+   * for it would cost more than rebuilding the little list.
    */
   function send(command: Command): ReturnType<typeof dispatch> {
     const result = dispatch(getGame(), command);
-    if (result.ok && unlocksFrom) unlocksFrom.revision += 1;
     // This screen dispatches for itself (see above), so it reports for itself
     // too — `controls.reportCommand`, the same seam the board's own funnel
     // ends on. Without it a listener that watches what the player *does*
@@ -861,8 +889,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * lines and then a count.
    *
    * A unit wears its own glyph — the same letter the board draws on its disc —
-   * and a building wears the voice it speaks in, followed by what it would be
-   * worth to this empire right now.
+   * and a building wears the build mark; **both rows say what the thing costs,
+   * and nothing else** (the ruling of 2026-09-09, module docblock). The
+   * building's row carried a live yield delta until then and a preview of a
+   * thing that has to be built somewhere is not what a player is deciding here.
    *
    * **Units first, and that is the ranking rather than the file's order**: a
    * unit is the decision a technology is usually being taken *for*, and a card
@@ -904,18 +934,13 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       const row = element('li');
       row.append(element('span', 'tech-mark is-building', '▣'));
       row.append(element('span', 'tech-unlock-name', def.name));
-
-      // Entry VIII: the actual computed delta, for the cities this player has
-      // today. An empire with nowhere to build it says only what it costs.
-      const delta = buildingYieldDelta(state, playerId, building, baselines());
-      const parts = YIELD_GLYPHS.filter(([key]) => delta[key] !== 0).map(
-        ([key, glyph]) => `${delta[key] > 0 ? '+' : ''}${delta[key]}${glyph}`,
-      );
+      // Its price, for *this* player — the column the unlocking tech stands in
+      // has already climbed by the time a late node is read (`docs/production-costs.md`).
       row.append(
         element(
           'span',
-          parts.length > 0 ? 'tech-unlock-note is-delta' : 'tech-unlock-note',
-          parts.length > 0 ? `${parts.join(' ')} now` : `${buildingProductionCost(building, state, playerId)}${HAMMER}`,
+          'tech-unlock-note',
+          `${buildingProductionCost(building, state, playerId)}${HAMMER}`,
         ),
       );
       list.append(row);
@@ -939,38 +964,6 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * would undo the reason it is dark.
    */
   const info = createInfoCard({ className: 'info-card is-night', sticky: true });
-
-  /**
-   * What a renewal is worth, written as the delta it is: `+1🌾`, and the
-   * condition when it has one. Improvements pay in the three tile yields only,
-   * so the row is those three and never the five.
-   */
-  function tileYieldNote(add: TileYield): string {
-    const parts: string[] = [];
-    // Rounded at the eye (batch X): the delta is exact, the note is whole.
-    if (yieldShows(add.food)) parts.push(`${signedYield(add.food)}${YIELD_GLYPH.food}`);
-    if (yieldShows(add.production)) parts.push(`${signedYield(add.production)}${HAMMER}`);
-    if (yieldShows(add.gold)) parts.push(`${signedYield(add.gold)}${YIELD_GLYPH.gold}`);
-    return parts.join(' ');
-  }
-
-  function renewalNote(gift: TechGift & { kind: 'renewal' }): string {
-    const delta = tileYieldNote(gift.add);
-    return gift.requiresFreshwater ? `${delta} on fresh water` : delta;
-  }
-
-  /**
-   * What an ability is worth, in the same three voices — with `once` on the end,
-   * because that single word is the whole difference between a chop and a farm
-   * and the card would otherwise read as though the forest paid every turn.
-   */
-  function abilityNote(gift: TechGift & { kind: 'ability' }): string {
-    if (gift.pays) return `${tileYieldNote(gift.pays)} once`;
-    // A verb that banks nothing prints its own summary instead — "Ancestor
-    // Rites" alone told a player nothing about great people (found in live
-    // play, 2026-09-03), and the summary is the data's own plain sentence.
-    return isAbilityId(gift.id) ? abilityDef(gift.id).summary : '';
-  }
 
   /**
    * What a node's own rules do, in the words the row itself was written in.
@@ -1031,7 +1024,10 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       figures.append(
         element('span', 'info-card-turns', turnsLabel(turnsToTech(state, playerId, id, rate))),
       );
-      figures.append(element('span', 'info-card-rate', `+${rate}${BEAKER}/t`));
+      // Whole, like every figure on this screen: `playerScience` is a fold and
+      // a fold is a fraction (batch X), so it is printed through `signedYield`
+      // rather than interpolated raw. The user met the raw one here.
+      figures.append(element('span', 'info-card-rate', `${signedYield(rate)}${BEAKER}/t`));
     }
     box.append(figures);
 
@@ -1144,27 +1140,9 @@ export function createTechTree(options: TechTreeOptions): TechTree {
           ? element('span', 'info-card-gift-name', gift.name)
           : nameKeyword(entry, gift.name),
       );
-      // Units are priced through the simulation's own evaluator; buildings
-      // quote their flat cost; a project quotes its *rate*, because a
-      // repeatable item has no total; an improvement quotes the charges it
-      // spends;
-      // a reveal, an ability and a renewal cost nothing at all, so the ability
-      // and the renewal say what they *pay* instead and the reveal says
-      // nothing.
-      const note =
-        gift.kind === 'unit'
-          ? `${unitProductionCost(state, playerId, gift.id)}${HAMMER}`
-          : gift.kind === 'building'
-            ? `${buildingProductionCost(gift.id, state, playerId)}${HAMMER}`
-            : gift.kind === 'project'
-              ? `${projectDef(gift.id).cost}${HAMMER} → ${projectRate(gift.id, PROJECT_GLYPHS)}`
-            : gift.kind === 'improvement'
-              ? `${improvementDef(gift.id).chargeCost} charge`
-              : gift.kind === 'ability'
-                ? abilityNote(gift)
-                : gift.kind === 'renewal'
-                  ? renewalNote(gift)
-                  : '';
+      // One composer for the whole union (`giftNote`), so this card and the
+      // node's own unlock line cannot come to two prices for one building.
+      const note = giftNote(gift, state, playerId);
       if (note) row.append(element('span', 'info-card-gift-note', note));
       list?.append(row);
     }
@@ -1607,9 +1585,6 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       layoutField(built);
       drawLines(drawn);
     });
-    // The unlock lines under these cards are priced for the state that built
-    // them; see `unlocksFrom` for what that buys and when it is given up.
-    markUnlocksPriced();
   }
 
   /**
@@ -1619,9 +1594,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
    * sky is up. Nothing is created and nothing is thrown away: each card is
    * repainted (`paintNode`), and the connectors are re-lit off what is now held.
    *
-   * The unlock lines are the exception, and they are why this is worth doing at
-   * all — they are what a card mostly *costs* (`unlocksFrom`), and they are
-   * rebuilt only when something has actually happened to the empire.
+   * The unlock lines are the one thing rebuilt rather than repainted, because
+   * they are the one part of a card whose *shape* changes with the empire — a
+   * building that has climbed a column, a unit whose escalation ladder has
+   * moved. **They used to be the expensive half of this screen** and were
+   * carried across renders behind a revision-keyed memo for that reason; the
+   * delta that made them expensive is gone (the ruling of 2026-09-09, module
+   * docblock) and so is the memo. Two price lookups a card is cheaper than the
+   * bookkeeping that used to guard them.
    *
    * The lanes are re-spaced and the lines redrawn afterwards because a card's
    * *height* really can change here: the progress bar moves from the star that
@@ -1633,17 +1613,14 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     // An open card would be quoting the state before the command; it is taken
     // down rather than re-derived, exactly as a rebuild used to take it down.
     info.hide();
-    const reprice = unlocksAreStale();
     for (const id of TECH_IDS) {
       const face = faces.get(id);
       if (!face) continue;
       paintNode(id, face);
-      if (!reprice) continue;
       const list = renderUnlocks(id);
       face.card.replaceChild(list, face.unlocks);
       face.unlocks = list;
     }
-    if (reprice) markUnlocksPriced();
     if (field) layoutField(field);
     if (lines) drawLines(lines);
   }
@@ -2116,7 +2093,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
       setYieldText(
         statusFigures,
         prompting
-          ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · +${rate}/t`
+          ? `${Math.floor(player.sciencePool)} ${BEAKER} banked · ${signedYield(rate)}/t`
           : `${player.techsResearched.length}/${TECH_IDS.length} ✦`,
       );
       statusCard.title = prompting
@@ -2148,7 +2125,7 @@ export function createTechTree(options: TechTreeOptions): TechTree {
     setYieldText(statusFigures, `${progress.banked}/${progress.cost} ${BEAKER}`);
     statusCard.title =
       `${def.name}: ${progress.banked} / ${progress.cost} beakers ` +
-      `(+${rate} per turn) — the star chart is T`;
+      `(${signedYield(rate)} per turn) — the star chart is T`;
     statusCard.setAttribute(
       'aria-label',
       `Research: ${def.name}, ${progress.banked} of ${progress.cost} beakers, ` +

@@ -96,7 +96,7 @@ const COMPOSERS: readonly { path: string; what: string }[] = [
   { path: 'src/ui/controls.ts', what: 'the toasts: a raid, a camp’s bounty, a beaten wonder’s refund, a great person’s act, a chop, a survey' },
   { path: 'src/ui/statecraftScreen.ts', what: 'the culture ladder’s banked figure' },
   { path: 'src/ui/religionScreen.ts', what: 'the pressure ledger’s signed lines, and a follower belief’s trickle' },
-  { path: 'src/ui/techTree.ts', what: 'a node’s gifts: a renewal’s tile delta' },
+  { path: 'src/ui/techTree.ts', what: 'a node’s gifts: a renewal’s tile delta, a clearing’s one-off, and the empire’s science rate on the hover card and the HUD research card (the user, 2026-09-09: the star chart was printing that fold raw)' },
   { path: 'src/spectate/main.ts', what: 'the spectator’s seat line: the treasury and the faith pool' },
 ];
 

@@ -5491,11 +5491,9 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: rgba(247, 242, 225, 0.5);
 }
 
-/* The computed delta (Entry VIII) speaks in the food voice's brightness: it is
-   a real number about this empire, not a cost. */
-.tech-unlock-note.is-delta {
-  color: var(--y-food-lit);
-}
+/* `.is-delta` retired 2026-09-09 with the line it lit: an unlock note is a
+   price now and nothing else, so every one of them is quiet mono (the ruling in
+   `docs/flags.md` (mmm); the reasons are in `techTree.ts`'s docblock). */
 
 /* "▸ +3 more" — the rest of the unlock list, counted. It is a pointer at the
    hover card rather than a disclosure (a card that grew when it was clicked

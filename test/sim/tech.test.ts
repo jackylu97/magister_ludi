@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest';
-import { BUILDING_IDS, buildingDef, isBuildingId } from '../../src/sim/buildingData';
+import { describe, expect, it, vi } from 'vitest';
+import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import {
   foundCityAt,
 } from '../../src/sim/cities';
@@ -10,6 +10,9 @@ import {
 import {
   foldCity,
 } from '../../src/sim/yields/town';
+// The namespace as well as the name: `countingCityYields` spies on the live
+// binding `tech.ts` calls through. See its docblock.
+import * as town from '../../src/sim/yields/town';
 import { type Command, applyCommand } from '../../src/sim/commands';
 import {
   dispatch,
@@ -33,6 +36,7 @@ import {
   availableTechs,
   buildError,
   buildingYieldDelta,
+  cityBaselines,
   describeUpgrade,
   isUnlocked,
   playerScience,
@@ -1337,6 +1341,96 @@ describe('glanceable numbers', () => {
     buildingYieldDelta(state, 0, 'library');
     buildingYieldDelta(state, 0, 'monument');
     expect(snapshotState(state)).toBe(before);
+  });
+
+  /**
+   * The hoist, and the obligation it carries.
+   *
+   * These two came here from `test/ui/techTreeCost.test.ts` on 2026-09-09,
+   * when the star chart stopped printing the delta (`docs/flags.md` (mmm)) and
+   * the chart's own cost register stopped being the place a claim about
+   * `cityBaselines` belonged. They are claims about *these two functions* and
+   * they were always sim-level: a suite that reads `src/ui/techTree.ts` as text
+   * had no business owning them, and the hoist would have lost its coverage the
+   * day its one caller went away.
+   */
+  describe('a city is priced “as things stand” once for a whole sweep', () => {
+    /** Every building the tree hands over — the sweep a chart-sized caller takes. */
+    function unlockedBuildings(): BuildingId[] {
+      const all: BuildingId[] = [];
+      for (const id of TECH_IDS) all.push(...(techDef(id).unlocks.buildings ?? []));
+      return all;
+    }
+
+    /** An empire of `count` towns, enough that this is about a sweep. */
+    function towns(count: number): GameState {
+      const state = flatState(30, 20);
+      let placed = 0;
+      for (let row = 2; row < 18 && placed < count; row += 5) {
+        for (let col = 2; col < 28 && placed < count; col += 5) {
+          plant(state, 0, col, row).population = 6;
+          placed += 1;
+        }
+      }
+      expect(state.cities.length).toBe(count);
+      return state;
+    }
+
+    /**
+     * Counts `foldCity`, which is what a delta is made of.
+     *
+     * Restored in a `finally` because the project runs its workers un-isolated
+     * (`vite.config.ts`): a spy left standing would follow the module graph
+     * into the next file.
+     */
+    function countingCityYields<T>(run: () => T): { result: T; count: number } {
+      const spy = vi.spyOn(town, 'foldCity');
+      try {
+        const result = run();
+        return { result, count: spy.mock.calls.length };
+      } finally {
+        spy.mockRestore();
+      }
+    }
+
+    it('prices each city exactly once for the whole sweep', () => {
+      // Build the baselines, then ask every building in the tree what it would
+      // be worth. The baseline reading is the half that does not depend on the
+      // building, and there are forty-odd buildings — taken once per building
+      // per city it was most of what a chart-sized caller cost.
+      const state = towns(12);
+      const buildings = unlockedBuildings();
+      expect(buildings.length).toBeGreaterThan(20);
+
+      const priced = countingCityYields(() => cityBaselines(state, 0));
+      expect(priced.count).toBe(state.cities.length);
+      expect(priced.result.size).toBe(state.cities.length);
+
+      // What is left is irreducible: one reading per building per city that
+      // could still take it — the "with the candidate counted" half of the pair.
+      const hoisted = countingCityYields(() => {
+        for (const id of buildings) buildingYieldDelta(state, 0, id, priced.result);
+      });
+      const plain = countingCityYields(() => {
+        for (const id of buildings) buildingYieldDelta(state, 0, id);
+      });
+      expect(hoisted.count * 2).toBe(plain.count);
+      // And the whole sweep, baselines included, is under half of what it was.
+      expect(priced.count + hoisted.count).toBeLessThan(plain.count / 2 + state.cities.length + 1);
+    });
+
+    it('is the same delta either way, for every building the tree unlocks', () => {
+      // Hard rule 5 across the parameter: the delta is still the subtraction of
+      // the same two folds of `foldCity`, and the baseline is the very reading
+      // `buildingYieldDelta` would have taken itself.
+      const state = towns(6);
+      const baselines = cityBaselines(state, 0);
+      for (const id of unlockedBuildings()) {
+        expect(buildingYieldDelta(state, 0, id, baselines), id).toEqual(
+          buildingYieldDelta(state, 0, id),
+        );
+      }
+    });
   });
 });
 

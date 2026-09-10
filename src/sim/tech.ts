@@ -1852,10 +1852,17 @@ export function queueTurns(
  * The half of `buildingYieldDelta` that is not about the building. A delta is
  * `foldCity` asked twice — once as things stand, once with the candidate
  * counted — and the first of those two readings does not depend on the
- * candidate at all. One caller asks about one building and never notices; the
- * star chart asks about **every** building the tree unlocks and was taking that
+ * candidate at all. A caller asking about one building never notices; the star
+ * chart asked about **every** building the tree unlocks and was taking that
  * same reading forty-two times per city, which was most of what it cost to draw
  * (user, 2026-08-29: "it gets laggier as the game goes on").
+ *
+ * **The chart no longer asks at all** (the ruling of 2026-09-09,
+ * `docs/flags.md` (mmm)): a building's row on the star chart prints its price
+ * and nothing else, so the hoist has no caller in `src/` today. It is kept
+ * beside the delta it belongs to — the pair is the honest way to answer "what
+ * would this be worth", and the next surface that wants the answer wants the
+ * hoist with it rather than a rediscovery of why forty buildings were slow.
  *
  * The map is deliberately the *whole* baseline and not a summary: it holds the
  * very `CityYields` `buildingYieldDelta` would have computed, from the same call
@@ -1885,16 +1892,21 @@ export function cityBaselines(state: GameState, playerId: number): CityBaselines
  * and the difference is reported. It is the same function the simulation banks
  * with, so the preview cannot promise a number the turn will not pay.
  *
- * "Right now" is the whole caveat and the screen labels it as such: the figure
+ * "Right now" is the whole caveat, and it is why **no surface prints this
+ * today**. The star chart did, labelled "now", until the user retired it
+ * (2026-09-09, `docs/flags.md` (mmm)): *"The buildings don't need yield
+ * previews, as they need to be built in your empire."* A preview on a screen
+ * that cannot place the building was answering the wrong question. The figure
  * is present-state (a library is worth more to a bigger city, and this is what
  * it would be worth today), and cities that already have the building
- * contribute nothing.
+ * contribute nothing — which is exactly the shape a *city* panel would want, so
+ * the function stays, with its tests, for the surface that asks next.
  *
  * `baselines` is the first of the two readings, hoisted. It is a parameter
- * because a *screen* asks this question about forty buildings in a row and the
- * "as things stand" half of the pair is the same answer every time — see
- * `cityBaselines`. Handed in or taken here, it is the same call with the same
- * arguments: the delta is still the subtraction of two folds of `foldCity`.
+ * because a screen asking about forty buildings in a row gets the same "as
+ * things stand" half every time — see `cityBaselines`. Handed in or taken here,
+ * it is the same call with the same arguments: the delta is still the
+ * subtraction of two folds of `foldCity`.
  */
 export function buildingYieldDelta(
   state: GameState,

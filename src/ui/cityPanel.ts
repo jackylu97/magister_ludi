@@ -1236,9 +1236,13 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
    *
    * A building's effect is a handful of flat numbers by design (see
    * `buildingData.ts`), so the card is those numbers with their voices on. The
-   * *empire-wide* worth of one — what it would add to the cities this player has
-   * today — is `buildingYieldDelta`'s answer and the star chart's to show; this
-   * card is the smaller, plainer statement of what the building itself is.
+   * *empire-wide* worth of one — what it would add to the cities this player
+   * has today — is `buildingYieldDelta`'s answer, and it is not shown anywhere
+   * today: the star chart printed it until the ruling of 2026-09-09
+   * (`docs/flags.md` (mmm), "the buildings don't need yield previews, as they
+   * need to be built in your empire"), and the panel a building is actually
+   * built from is the place a preview would belong if one comes back. This card
+   * is the smaller, plainer statement of what the building itself is.
    */
   function buildingCard(city: City, id: BuildingId, index: number): Node {
     const def = buildingDef(id);

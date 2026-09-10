@@ -1387,7 +1387,49 @@ directly to confirm rulings — user marginalia are rulings.
   worked example); Pytheas reads "cannot be attacked or plundered";
   Marco Polo "per 2 hexes between the two cities". Every legacy on the
   roster prices off a fold bar the two rules and Leonardo's amplifier
-  (pinned in `aiAppraisal.test.ts`). (eee)
+  (pinned in `aiAppraisal.test.ts`). t100 (8 seeds) after GP3: cities
+  6.4 · citizens 42.3 · buildings 32.2 · food 127 · prod 83.6 · gold
+  48.8 · sci 104.3 · cul 78.4 · faith 20.8 · treasury 304 · techs 23.5 ·
+  happiness +14.4 — inside noise against GP1, as expected at a hundred
+  turns. (eee)
+- (mmm) **The star chart's figures — RULED** (the user, 2026-09-09:
+  *"I'm not sure what the yields next to the rows mean, but they don't
+  seem to be accurate and are unformatted floating point values. Lets
+  keep values there rounded to the nearest integer, and lets only
+  include yields for technologies that supply yields (like irrigation's
+  food on farms). The buildings don't need yield previews, as they need
+  to be built in your empire."*). The figures were Entry VIII's
+  `buildingYieldDelta` — "what this building would add to your empire
+  today", `foldCity` twice per city per building, printed raw. The
+  ruling: (1) **a building row on the chart prints its production cost
+  and nothing else** — the delta leaves the node card and the hover
+  card; `buildingYieldDelta`/`cityBaselines` stay for the city panel
+  (its own caller) and the tests that pin them, and the chart's
+  `Pass.baselines` and its revision-keyed carry-over go with the line
+  (the chart's expensive half, gone); (2) **only a technology's own
+  yields print** — the renewals (`kind: 'renewal'`, irrigation's food
+  on farms), an ability that pays (`kind: 'ability'` with `pays`), and a
+  node's `techEffect` rules where they pay a voice — and every figure
+  on the chart is **whole**: `signedYield`/`yieldShows` (`roundYield`)
+  on every voice, never a raw number in a template; (3) the hover
+  card's unit and building rows keep their cost lines; the "now" word
+  goes with the delta. Batch **T2**; the chart's tests re-aimed
+  (`test/ui/techTree*.test.ts`, `techTreeCost`), a pin that no chart
+  figure prints a non-integer, and one that a building row carries no
+  yield. No schema. **T2 built 2026-09-09**: a building row is its
+  price, node face and hover card through one expression; the delta,
+  `is-delta`, `YIELD_GLYPHS`, `Pass.baselines` and the whole
+  revision-keyed carry-over gone (`refreshNodes` is two price lookups a
+  card); `buildingYieldDelta`/`cityBaselines` stay in `tech.ts` with no
+  caller (the city panel never called them — the ruling's claim was
+  wrong; their pins moved to `tech.test.ts`). Four raw floats found:
+  the delta, and the science rate on the hover card, the HUD research
+  card and its title (all `signedYield` now). One bug in passing:
+  `tileYieldNote` printed three voices of a six-voice `TileYield`, so
+  The Long Count's plantation renewal (+1 culture) rendered empty —
+  widened to six. `test/ui/techTreeFigures.test.ts` sweeps every gift
+  figure of every tech against a five-town empire (>200 figures, whole).
+  (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

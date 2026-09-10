@@ -6,40 +6,35 @@
  * "~N turns", every quote went through `turnsToTech`, and `turnsToTech` summed
  * `foldCity` over every city the empire held — twenty-seven sweeps of the
  * empire per render. Every star also listed what its technology unlocks, and a
- * building's line is `buildingYieldDelta`, which prices *every city twice*: at a
- * dozen cities that is a thousand `foldCity` calls to draw one screen. And the
+ * building's line was `buildingYieldDelta`, which prices *every city twice*: at
+ * a dozen cities that is a thousand `foldCity` calls to draw one screen. And the
  * whole chart was rebuilt — cards, connectors and two layout passes — on every
  * click, twice over, because the click's own render is followed by the host's.
  * All three get worse with each city founded, which is exactly the report.
  *
- * The pass that fixed it is three rules, and this file is the register of them,
- * read out of the source because there is no jsdom in this project (see
- * `techChart.test.ts`, which reads the same file for the same reason):
+ * This file is the register of what fixed it, read out of the source because
+ * there is no jsdom in this project (see `techChart.test.ts`, which reads the
+ * same file for the same reason):
  *
  *   1. **The rate is read once per render** and handed down — `beginPass`.
  *   2. **A card is built once and repainted after that** — `renderChart` on the
  *      way in, `refreshNodes` for everything after.
- *   3. **The unlock lines are re-priced only when something has happened** —
- *      `unlocksFrom`, keyed on the command log.
- *   4. **A city is priced "as things stand" once per render**, not once per
- *      building — `cityBaselines`, hoisted out of `buildingYieldDelta`.
+ *   3. **The expensive line is gone entirely** — a building's row prints its
+ *      price, and the delta, the `cityBaselines` hoist that made it bearable and
+ *      the revision-keyed carry-over that cached it all left with it (the user,
+ *      2026-09-09, `docs/flags.md` (mmm)). Rules 3 and 4 of this register used
+ *      to be those two mechanisms; what is asserted now is their **absence**,
+ *      which is the stronger claim — the chart cannot get slow that way twice.
  *
- * Both hoists carry the same obligation and it is asserted rather than assumed:
- * a rate handed in gives the answer a fetched one gives (`test/sim/tech.test.ts`)
- * and so does a baseline (below). Hard rule 5 does not bend for a parameter.
+ * The rate hoist still carries its obligation and it is asserted rather than
+ * assumed: a rate handed in gives the answer a fetched one gives
+ * (`test/sim/tech.test.ts`). Hard rule 5 does not bend for a parameter. The
+ * baseline's half of that claim moved to `test/sim/tech.test.ts` along with the
+ * two tests that make it, the function it is about having no caller here now.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { braceBody, uiSource } from './sourceHelpers';
-
-import * as cities from '../../src/sim/cities';
-import * as town from '../../src/sim/yields/town';
-import type { BuildingId } from '../../src/sim/buildingData';
-import { createMap, getTileAt } from '../../src/sim/map';
-import { type GameState, newGame } from '../../src/sim/state';
-import { buildingYieldDelta, cityBaselines } from '../../src/sim/tech';
-import { TECH_IDS, techDef } from '../../src/sim/techData';
-import { resetVisibility } from '../../src/sim/visibility';
 
 /** The star chart's own source. See `sourceHelpers.ts` on why the glob is shared. */
 function chartSource(): string {
@@ -57,42 +52,20 @@ function calls(name: string): number {
 }
 
 /**
- * An empire of `count` towns on blank ground — enough of them that the counting
- * below is about a sweep rather than about one city.
+ * The module with its prose taken out — every block and line comment gone.
+ *
+ * For the assertions that say a name is **not** in the file. The names retired
+ * on 2026-09-09 are still written down all over this module, deliberately: a
+ * docblock that says what left and why is the only record a reader has of a
+ * mechanism that no longer exists to be read. A `not.toContain` over the raw
+ * text would forbid exactly that explanation, which is the wrong incentive —
+ * it would make the file forget on purpose. So the absence is asserted against
+ * the code and the memory is left in the comments.
  */
-function empire(count: number): GameState {
-  const width = 30;
-  const height = 20;
-  const state = newGame({
-    seed: 3,
-    sizeName: 'duel',
-    players: [
-      { name: 'A', color: '#a00', isHuman: true },
-      { name: 'B', color: '#00a', isHuman: true },
-    ],
-  });
-  state.map = createMap({ width, height, terrain: 'grassland' });
-  resetVisibility(state);
-  state.tileOwner = new Array<number | null>(width * height).fill(null);
-  state.units = [];
-  let placed = 0;
-  for (let row = 2; row < height - 2 && placed < count; row += 5) {
-    for (let col = 2; col < width - 2 && placed < count; col += 5) {
-      const tile = getTileAt(state.map, col, row);
-      if (!tile) continue;
-      cities.foundCityAt(state, 0, tile).population = 6;
-      placed += 1;
-    }
-  }
-  expect(state.cities.length).toBe(count);
-  return state;
-}
-
-/** Every building the tree hands over — exactly the set the chart draws lines for. */
-function unlockedBuildings(): BuildingId[] {
-  const all: BuildingId[] = [];
-  for (const id of TECH_IDS) all.push(...(techDef(id).unlocks.buildings ?? []));
-  return all;
+function chartCode(): string {
+  return chartSource()
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
 describe('the science rate is summed once a render', () => {
@@ -192,121 +165,55 @@ describe('a click repaints the chart rather than rebuilding it', () => {
   });
 });
 
-describe('the unlock lines are priced against the revision', () => {
-  it('asks whether anything has happened, not what a delta depends on', () => {
-    // `GameState.revision` is what makes this exact: `applyCommand` raises it on
-    // every accepted command and `runEndOfTurn` once after each phase, which are
-    // the two ways the world moves at all, so a counter that has not moved is a
-    // state that has not moved. Deliberately the bluntest test there is — a key
-    // that named what `buildingYieldDelta` reads would be a second opinion
-    // about a number this screen is forbidden to have one about.
-    //
-    // It was `game.log.length` until batch E3a: the same idea one layer too
-    // high, since a phase moves the world without moving the log.
-    const body = chartFunction('function unlocksAreStale(');
-    expect(body).toContain('unlocksFrom.revision !== game.state.revision');
-    // The seat, because a hot-seat change is not a command; the state's
-    // identity, because a loaded save is a different game whose revision may
-    // stand at the same number.
-    expect(body).toContain('unlocksFrom.playerId !== localPlayerId()');
-    expect(body).toContain('unlocksFrom.state !== game.state');
+describe('the expensive line is gone, and cannot come back quietly', () => {
+  it('asks the empire nothing about what a building would be worth', () => {
+    // The ruling of 2026-09-09 in one assertion: the delta and its hoist are
+    // not on this screen at all. They still exist in `src/sim/tech.ts`, with
+    // their tests — what left is the chart's *asking*, which is what the sweep
+    // over forty buildings and a dozen cities actually was.
+    const chart = chartCode();
+    expect(chart).not.toContain('buildingYieldDelta');
+    expect(chart).not.toContain('cityBaselines');
+    // And the pass carries no baseline to hand one, so a caller cannot be added
+    // back without the hoist being rebuilt deliberately.
+    expect(chartFunction('function beginPass(')).not.toContain('baselines');
   });
 
-  it('counts this screen’s own commands in, and only on the ones that land', () => {
-    // This screen sends two commands and both change what is *planned* — no
-    // citizen moves, nothing is built, no technology completes — so re-pricing
-    // forty buildings against every city after one would be work for a number
-    // that cannot have changed.
-    const body = chartFunction('function send(');
-    expect(body).toContain('if (result.ok && unlocksFrom) unlocksFrom.revision += 1;');
+  it('prints a price on a building row and nothing else', () => {
+    // The user's words: "The buildings don't need yield previews, as they need
+    // to be built in your empire." A row is hammers, like the unit row above it,
+    // and the word "now" that labelled the delta as present-state went with it.
+    const body = braceBody(chartCode(), 'function renderUnlocks(');
+    expect(body).toContain('`${buildingProductionCost(building, state, playerId)}${HAMMER}`');
+    expect(body).not.toContain(' now');
+    expect(body).not.toContain('is-delta');
+    // No yield glyph reaches an unlock row: the table that used to spell them
+    // out (`YIELD_GLYPHS`) is gone, and the stylesheet's lit-food rule with it.
+    expect(chartCode()).not.toContain('YIELD_GLYPHS');
+    expect(uiSource('style.css')).not.toContain('.tech-unlock-note.is-delta');
   });
 
-  it('dispatches from that one seam and nowhere else', () => {
-    // What keeps the note above honest: a command sent around `send` would
-    // leave the lines claiming to be priced for a state that had moved. One
-    // call in the whole module, and it is `send`'s.
+  it('carries no memo of the lines any more, because there is nothing to cache', () => {
+    // The revision-keyed carry-over (`unlocksFrom`) existed for one reason and
+    // that reason is retired. A repaint rebuilds every little list outright now,
+    // which is two price lookups a card — cheaper than the bookkeeping was.
+    const chart = chartCode();
+    for (const gone of ['unlocksFrom', 'markUnlocksPriced', 'unlocksAreStale']) {
+      expect(chart, gone).not.toContain(gone);
+    }
+    const body = braceBody(chartCode(), 'function refreshNodes(');
+    expect(body).toContain('const list = renderUnlocks(id);');
+    expect(body).not.toContain('reprice');
+  });
+
+  it('still dispatches from one seam, which is now all `send` is for', () => {
+    // `send` used to count its own commands into the memo's revision. With the
+    // memo gone it is the dispatch and the report, and it is still the only
+    // dispatch in the module — the claim `onCommitted` rests on.
     expect(calls('dispatch')).toBe(1);
-    expect(chartFunction('function send(')).toContain('dispatch(getGame(), command)');
-  });
-
-  it('records the price after a build and after a re-price, never before', () => {
-    expect(chartFunction('function renderChart(')).toContain('markUnlocksPriced();');
-    const body = chartFunction('function refreshNodes(');
-    expect(body).toContain('const reprice = unlocksAreStale();');
-    expect(body).toContain('if (reprice) markUnlocksPriced();');
+    const body = braceBody(chartCode(), 'function send(');
+    expect(body).toContain('dispatch(getGame(), command)');
+    expect(body).toContain('onCommitted?.(command, result)');
+    expect(body).not.toContain('unlocksFrom');
   });
 });
-
-describe('a city is priced “as things stand” once a render', () => {
-  /**
-   * Counts `foldCity`, which is what a delta is made of.
-   *
-   * The one spy in this suite, and it is restored in a `finally` because the
-   * project runs its workers un-isolated (`vite.config.ts`): a spy left standing
-   * would follow the module graph into the next file.
-   */
-  function countingCityYields<T>(run: () => T): { result: T; count: number } {
-    const spy = vi.spyOn(town, 'foldCity');
-    try {
-      const result = run();
-      return { result, count: spy.mock.calls.length };
-    } finally {
-      spy.mockRestore();
-    }
-  }
-
-  it('prices each city exactly once for the whole unlock sweep', () => {
-    // The chart's open, at the sim level: build the baselines, then ask every
-    // building in the tree what it would be worth. The baseline reading is the
-    // half that does not depend on the building, and there are forty-odd
-    // buildings — before this it was taken once per building per city, which was
-    // most of what the star chart cost to draw.
-    const state = empire(12);
-    const buildings = unlockedBuildings();
-    expect(buildings.length).toBeGreaterThan(20);
-
-    const priced = countingCityYields(() => cityBaselines(state, 0));
-    expect(priced.count).toBe(state.cities.length);
-    expect(priced.result.size).toBe(state.cities.length);
-
-    // What is left is irreducible: one reading per building per city that could
-    // still take it — the "with the candidate counted" half of every delta.
-    const hoisted = countingCityYields(() => {
-      for (const id of buildings) buildingYieldDelta(state, 0, id, priced.result);
-    });
-    const plain = countingCityYields(() => {
-      for (const id of buildings) buildingYieldDelta(state, 0, id);
-    });
-    expect(hoisted.count * 2).toBe(plain.count);
-    // And the whole sweep, baselines included, is under half of what it was.
-    expect(priced.count + hoisted.count).toBeLessThan(plain.count / 2 + state.cities.length + 1);
-  });
-
-  it('is the same delta either way, for every building the tree unlocks', () => {
-    // Hard rule 5 across the parameter: the number under a star is still the
-    // subtraction of the same two folds of `foldCity`, and the baseline is the
-    // very reading `buildingYieldDelta` would have taken itself.
-    const state = empire(6);
-    const baselines = cityBaselines(state, 0);
-    for (const id of unlockedBuildings()) {
-      expect(buildingYieldDelta(state, 0, id, baselines), id).toEqual(
-        buildingYieldDelta(state, 0, id),
-      );
-    }
-  });
-
-  it('is built lazily, so a repaint that prices nothing sums nothing', () => {
-    // The cheap path stays cheap: a render that carries the unlock lines over
-    // never asks for a baseline, and `??=` is what makes the twenty-seven asks
-    // of one render into one map.
-    expect(chartFunction('function baselines(')).toContain(
-      'at.baselines ??= cityBaselines(at.state, at.playerId)',
-    );
-    expect(chartFunction('function renderUnlocks(')).toContain(
-      'buildingYieldDelta(state, playerId, building, baselines())',
-    );
-    // One filler, one reader: the pass's field is written nowhere else.
-    expect(calls('cityBaselines')).toBe(1);
-  });
-});
-
