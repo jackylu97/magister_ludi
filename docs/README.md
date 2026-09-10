@@ -20,6 +20,7 @@ data-pointing; each says what it is at the top):
 | `religion-v2.md` | the tide, the clergy, the pools — the machinery |
 | `trade.md` | caravans, roads, connections — the machinery |
 | `luxuries.md` | the resource table and its effect vocabulary |
+| `units.md` | the roster and how a strength is folded (generated; `UNITS_DOC_WRITE=1`) |
 | `yields.md` | the sequence of record — the order every yield is computed in (sync-tested against the source) |
 | `mapgen.md` | the generator, pass by pass, every tunable |
 | `war-diplomacy.md` | the war/diplomacy v1 worksheet (in design) |
