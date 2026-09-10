@@ -105,10 +105,12 @@ describe('defenseRows', () => {
     const rows = defenseRows(state, city);
     expect(rows).toEqual([
       { label: 'Defends with · Warrior', figures: '20', amount: 20 },
-      { label: 'Palisade', figures: '+10', amount: 10 },
+      // Five since 2026-09-10 (the user, mid-playtest: a walled town was too
+      // hard to take under U9's doubled walls) — the row reads the data.
+      { label: 'Palisade', figures: '+5', amount: 5 },
     ]);
     // And the fold moves with the wall, off the same list.
-    expect(defenseTotal(rows)).toBe(30);
+    expect(defenseTotal(rows)).toBe(25);
   });
 });
 

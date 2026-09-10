@@ -134,7 +134,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 10
+        "amount": 5
       },
       "cityHp": 15
     },
@@ -150,7 +150,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 10
+        "amount": 5
       },
       "cityHp": 25,
       "requiresBuilding": "palisade"
