@@ -394,6 +394,12 @@ describe('the scored build list', () => {
       if (u.chargesLeft !== undefined) u.chargesLeft = 0;
       u.movesLeft = 0;
     }
+    // And no draft on the table: since the explorers march their whole
+    // allowance (X14, 2026-09-10) the grown fixture's scout reaches a ruin the
+    // more, and an order offer it opens is a blocker the bot honestly answers
+    // before it looks at the books. The hand is dealt back to the deck here so
+    // the arrears are the only question left.
+    delete player.statecraft.pendingOrder;
     const city = firstCity(game.state, 0);
     // Five spare soldiers standing in the field, well away from the town so the
     // garrison guard is not what is being tested here.
