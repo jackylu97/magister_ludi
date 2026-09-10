@@ -191,6 +191,11 @@ const SURFACES: { file: string; says: string; carries: string }[] = [
   // the clause that made it — the sentence is the same reducer's and it wears
   // the same voice.
   { file: 'tradeScreen.ts', says: 'a route that cannot be sent', carries: "element('span', 'trade-reason-why wanting', entry.sentence)" },
+  // The loan line on a card, in the voice that says the ability is not held yet
+  // (batch R6): "would bring Silk — needs The Silk Road". The *promise* — the
+  // same line once The Silk Road is known — is not a lack and wears nothing,
+  // which is the one class this line switches on.
+  { file: 'tradeScreen.ts', says: 'a luxury a road would bring once The Silk Road is known', carries: "note.known ? 'trade-import' : 'trade-import wanting'" },
   // The Statecraft sheet's arrangement.
   { file: 'statecraftScreen.ts', says: 'an arrangement that will not seal', carries: "element('p', 'sc-commit-problem wanting', problem)" },
   // The Reliquary's rail of calls.
@@ -304,6 +309,11 @@ describe('the wanting voice', () => {
         'the trade row that cannot start',
         [on('trade-candidate', 'is-blocked'), on('trade-candidate-why', 'wanting')],
       ],
+      // The trade card's "would bring Silk — needs The Silk Road" (R6). Its host
+      // sets no ink of its own, so the single class would already win; it is
+      // resolved here with the rest because the claim is that it *is* the voice,
+      // and that claim is only true while nothing later in the sheet outranks it.
+      ['the luxury a road would bring', [on('trade-card'), on('trade-import', 'wanting')]],
       ['the arrangement that will not seal', [on('sc-commit-problem', 'wanting')]],
       ['the call the bank cannot pay for', [on('rel-call-note', 'wanting')]],
       ['the hover card\'s unmet note', [on('info-card-notes'), on('wanting')]],

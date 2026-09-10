@@ -92,11 +92,22 @@ import { cityBlockaded } from '../sim/blockade';
 import { atWar } from '../sim/wars';
 import { hasMetSeat } from '../sim/diplomacy';
 import { RULES } from '../sim/rulesData';
+import { type ResourceId, resourceDef } from '../sim/resourceData';
+import {
+  importRuleTech,
+  routesLendLuxuries,
+  runningRouteImports,
+  wouldImportFor,
+} from '../sim/routeImports';
+import { ref } from '../sim/statecraft';
+import { techDef } from '../sim/techData';
 import { type City, type GameState, playerById } from '../sim/state';
 import { cityDisplayName } from './cityDisplay';
 import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { NO_ROUTE_CAPACITY, hasFreeRouteSlot, routeFigures, tradeFigureRuns } from './tradeLines';
 import { setYieldText } from './yieldMark';
+import { keywordsAllowedIn, setDescriptorText } from './keywords';
+import { resourceMarkNode } from './resourceMark';
 import { createModalShell } from './modalShell';
 import { element } from './dom';
 
@@ -138,6 +149,16 @@ export interface RunningRoute {
   figures: string;
   /** The lines `figures` is the fold of — the hover ledger. */
   lines: RouteYieldLine[];
+  /**
+   * **The luxury this road is fetching home**, or nothing (The Silk Road, R6).
+   *
+   * The rule's own assignment (`runningRouteImports`) and never a second walk:
+   * one kind per road, never a kind the empire digs for itself, never the same
+   * kind on two roads — so the row can say which caravan a cut would cost the
+   * empire its silk. `null` wherever the seat has not learnt the rule, because
+   * without it a road brings nothing.
+   */
+  importId: ResourceId | null;
   /** `expiresTurn − state.turn`, floored at zero. Never a stored countdown. */
   turnsLeft: number;
   autoResend: boolean;
@@ -157,6 +178,15 @@ export interface RunningRoute {
  */
 export function runningRoutes(state: GameState, playerId: number): RunningRoute[] {
   const rows: RunningRoute[] = [];
+  // The loans, asked **once for the sheet** and by unit, because the assignment
+  // is a sweep over every road this seat runs and asking it per row would be
+  // that sweep per row. Empty where the rule is not held: the walk answers what
+  // *would* be fetched, and only the rule decides whether anything is.
+  const lending = routesLendLuxuries(state, playerId);
+  const loans = new Map<number, ResourceId>();
+  if (lending) {
+    for (const claim of runningRouteImports(state, playerId)) loans.set(claim.unitId, claim.id);
+  }
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     const route = unit.trade;
@@ -187,6 +217,7 @@ export function runningRoutes(state: GameState, playerId: number): RunningRoute[
       mode: route.sea === true ? 'sea' : 'land',
       figures,
       lines,
+      importId: loans.get(unit.id) ?? null,
       turnsLeft,
       autoResend: route.autoResend,
       gold: fold.gold,
@@ -295,6 +326,16 @@ export interface TradeContext {
   /** True while the empire has a route slot to spend. */
   slotFree: boolean;
   /**
+   * **Whether a road abroad comes home carrying anything** — The Silk Road's
+   * rule, asked once per paint (R6).
+   *
+   * It is the whole difference between the two sentences the sheet writes about
+   * a loan — "Brings Silk" against "Would bring Silk — needs …" — so it rides
+   * here with everything else the sheet is a function of rather than being
+   * re-asked by every card.
+   */
+  lends: boolean;
+  /**
    * **The carts already bought and standing with no route on them**, by id, in
    * `state.units` order — lowest id first (R4, 2026-09-09).
    *
@@ -322,6 +363,7 @@ export function tradeContext(state: GameState, seat: number): TradeContext {
     gold: playerById(state, seat)?.gold ?? 0,
     connected,
     slotFree: hasFreeRouteSlot(state, seat),
+    lends: routesLendLuxuries(state, seat),
     idleCarts: idleTraders(state, seat).map((unit) => unit.id),
   };
 }
@@ -467,6 +509,78 @@ export function connectionGold(city: City): number {
   return Math.floor(city.population / per);
 }
 
+// --- what a road brings home ------------------------------------------------
+
+/**
+ * The loan line on a card: which luxury this pair would fetch, and in which of
+ * the two voices (batch R6, `docs/flags.md` (zzz)).
+ *
+ * `known` is the whole of the difference. With The Silk Road in hand the line is
+ * a **promise** — the road comes home carrying a kind this empire has never dug
+ * — and without it the same line is a **want**, in the vermilion italic every
+ * missing prerequisite in this game wears, so that a player learns from the
+ * sheet that the ability exists at all. That is the ruling's own instruction and
+ * the reason the note is drawn on every international pair rather than only on
+ * the ones a seat can already use.
+ *
+ * The words carry **no figure**: "half a copy" is what the share is worth said
+ * in words, which is hard rule 7's line about numbers in prose, and the exact
+ * arithmetic is the happiness meter's own list (`explainHappiness` prints the
+ * loan as a line of its own).
+ */
+export interface RouteImportNote {
+  id: ResourceId;
+  /** True once the rule is held — the line is a promise rather than a want. */
+  known: boolean;
+  /** The line's words, with the luxury and the technology as keyword refs. */
+  text: string;
+}
+
+/**
+ * The loan line for one pair, or nothing where a road would fetch nothing.
+ *
+ * One reading of the rule (`wouldImportFor`) and never a walk of this sheet's
+ * own: what the card prints is exactly what the simulation would hand this road
+ * the turn it opened, down to which kind two roads to the same market split
+ * between them.
+ */
+export function routeImportNote(ctx: TradeContext, row: RouteReadingRow): RouteImportNote | null {
+  const id = wouldImportFor(ctx.state, ctx.seat, row.from, row.to);
+  if (id === null) return null;
+  const luxury = ref('resource', id, resourceDef(id).name);
+  if (ctx.lends) return { id, known: true, text: `Brings ${luxury} — half a copy` };
+  const tech = importRuleTech();
+  // No node teaches the rule — a data state no shipped tree is in. There is
+  // nothing to want, so the pair simply carries no line.
+  if (tech === null) return null;
+  return {
+    id,
+    known: false,
+    text: `Would bring ${luxury} — needs ${ref('tech', tech, techDef(tech).name)}`,
+  };
+}
+
+/**
+ * What a borrowed copy is worth to the ranking, in the contentment the meter
+ * pays for one (`explainHappiness`'s own two figures, at the rule's share).
+ *
+ * The **flat** a unique luxury pays and not a walk of the kind's whole
+ * signature, which is the appraisal's bargain for the appraisal's reason
+ * (`src/ai/routes.ts`): a signature is fourteen folds over an empire's towns and
+ * pricing one per candidate would be an empire sweep inside the sheet's sweep.
+ *
+ * The two amplifiers the meter applies — the Grand Bazaar's share and Ea-nāṣir's
+ * step — are deliberately **not** asked here, and it costs the group nothing: an
+ * amplifier moves every kind by the same factor, so it cannot change which of
+ * two roads ranks first. What this term buys is that a road bringing a luxury
+ * outranks one that brings none at all, which is the whole of what the group is
+ * ordering for.
+ */
+export function importedCopyWorth(): number {
+  const each = Math.max(0, RULES.meters.happiness.perUniqueLuxury);
+  return Math.floor((each * Math.max(0, RULES.trade.importedLuxuryPercent)) / 100);
+}
+
 /**
  * A town's growth with a cart's food and without it — the "next citizen"
  * fact's whole arithmetic, and the simulation's own two functions.
@@ -515,6 +629,8 @@ export interface RouteCard {
   /** Every voice of the fold summed — the ranking's own number. */
   total: number;
   facts: TradeFact[];
+  /** The luxury a road here would fetch home, in one of two voices, or nothing. */
+  imports: RouteImportNote | null;
   price: number;
   /** False when the purse cannot pay the price today. */
   affordable: boolean;
@@ -560,6 +676,7 @@ export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMo
     lines,
     total: routeModeTotal(row, mode),
     facts: routeFacts(ctx, row, mode),
+    imports: routeImportNote(ctx, row),
     price: ctx.reading.price,
     affordable: ctx.gold >= ctx.reading.price,
   };
@@ -567,12 +684,26 @@ export function routeCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMo
 
 // --- the recommendations ----------------------------------------------------
 
-/** One purpose group on the Recommended tab. An empty one is never built. */
+/**
+ * One purpose group on the Recommended tab. An empty one is never built —
+ * unless it has a **note**, which is the one group that can stand with no cards
+ * under it (see `recommendedGroups`' luxuries group).
+ */
 export interface PurposeGroup {
-  id: 'richest' | 'paves' | 'feeds' | 'learning';
+  id: 'richest' | 'paves' | 'feeds' | 'learning' | 'luxuries';
   title: string;
   /** The heading's small line — what the group is *for*, in plain words. */
   blurb: string;
+  /**
+   * A line printed **in the cards' place**, or nothing.
+   *
+   * A descriptor string (it names a technology, so it carries a keyword ref) and
+   * the only thing that lets a group with no rows be built at all: "New
+   * luxuries" is a group a player cannot fill until The Silk Road is known, and
+   * a heading that only ever appeared *after* the ability would never teach
+   * anybody the ability exists.
+   */
+  note: string | null;
   /** The pairs, best first. The first is the one that carries the hedera. */
   rows: { row: RouteReadingRow; mode: RouteMode }[];
 }
@@ -623,6 +754,7 @@ export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
     id: 'richest',
     title: 'Richest',
     blurb: 'the routes that pay most a turn',
+    note: null,
     rows: richest.filter((entry) => routeModeTotal(entry.row, entry.mode) > 0),
   });
 
@@ -649,6 +781,7 @@ export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
     id: 'paves',
     title: 'Paves a road',
     blurb: 'routes that lay the road to a town not yet joined to the capital',
+    note: null,
     rows: paves,
   });
 
@@ -677,6 +810,7 @@ export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
     id: 'feeds',
     title: 'Feeds a town',
     blurb: 'the best food into a town still growing',
+    note: null,
     rows: feeds.map((entry) => ({ row: entry.row, mode: entry.mode })),
   });
 
@@ -698,15 +832,66 @@ export function recommendedGroups(ctx: TradeContext): PurposeGroup[] {
     id: 'learning',
     title: 'Most science and culture',
     blurb: 'what a rival’s towns teach',
+    note: null,
     rows: learning,
+  });
+
+  // 5. New luxuries — the roads abroad that come home carrying a kind this
+  //    empire has never dug (The Silk Road, `docs/flags.md` (zzz)).
+  //
+  //    **Unique kinds, one road each**: two markets holding wine are one wine,
+  //    and a group that offered both would be recommending the second cart for
+  //    a contentment it cannot pay twice. The best road to a kind keeps it —
+  //    the candidates are already in score order when the kind is claimed — and
+  //    a kind another road is *already* fetching is not a candidate at all,
+  //    because `wouldImportFor` has taken it out of the reckoning.
+  //
+  //    Ranked by the pair's own pay plus what the loan is worth
+  //    (`importedCopyWorth`), so a road that brings a luxury outranks one that
+  //    brings none and the richest of two loans still comes first.
+  const bringing: { row: RouteReadingRow; mode: RouteMode; id: ResourceId }[] = [];
+  for (const entry of offered) {
+    const id = wouldImportFor(ctx.state, ctx.seat, entry.row.from, entry.row.to);
+    if (id === null) continue;
+    bringing.push({ ...entry, id });
+  }
+  bringing.sort(byScore((entry) => routeModeTotal(entry.row, entry.mode) + importedCopyWorth()));
+  const claimed = new Set<ResourceId>();
+  const luxuries: { row: RouteReadingRow; mode: RouteMode }[] = [];
+  for (const entry of bringing) {
+    if (claimed.has(entry.id)) continue;
+    claimed.add(entry.id);
+    luxuries.push({ row: entry.row, mode: entry.mode });
+  }
+  // **The heading stands before the ability does**, with the hint in the cards'
+  // place: a group that only ever appeared once The Silk Road was known would
+  // never be the thing that told a player The Silk Road exists. It is built only
+  // where a road *would* bring something, so the hint is never advice about an
+  // empire with nowhere to send a cart.
+  const tech = importRuleTech();
+  push(groups, {
+    id: 'luxuries',
+    title: 'New luxuries',
+    blurb: 'roads abroad that bring home a fine good you have none of',
+    note:
+      ctx.lends || tech === null || luxuries.length === 0
+        ? null
+        : `Routes abroad will bring luxuries once ${ref('tech', tech, techDef(tech).name)} is known`,
+    rows: ctx.lends ? luxuries : [],
   });
 
   return groups;
 }
 
-/** Adds a group iff it has a card in it, capped at `PURPOSE_CARDS`. */
+/**
+ * Adds a group iff it has something to say, capped at `PURPOSE_CARDS`.
+ *
+ * A card, or a **note** — the one way a group with no rows is built, and it
+ * exists for the luxuries group's stated reason. Everything else is the rule as
+ * it was: no heading over nothing.
+ */
 function push(groups: PurposeGroup[], group: PurposeGroup): void {
-  if (group.rows.length === 0) return;
+  if (group.rows.length === 0 && group.note === null) return;
   groups.push({ ...group, rows: group.rows.slice(0, PURPOSE_CARDS) });
 }
 
@@ -1375,6 +1560,26 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     return line;
   }
 
+  /**
+   * The loan line — "Brings 🍇 Wine — half a copy", or the same sentence in the
+   * wanting voice before The Silk Road is known.
+   *
+   * The mark leads the line rather than standing inside it, because the words
+   * are **one descriptor string** (`routeImportNote`) and a mark drawn in the
+   * middle of one would mean composing the sentence twice, once for the sheet
+   * and once for a test. The luxury and the technology are keyword refs, so both
+   * print in the marked face and open the book.
+   */
+  function drawImport(note: RouteImportNote, host: HTMLElement): HTMLElement {
+    const line = element('p', note.known ? 'trade-import' : 'trade-import wanting');
+    line.append(resourceMarkNode(note.id));
+    const words = element('span');
+    setDescriptorText(words, note.text, { linked: keywordsAllowedIn(host) });
+    line.append(document.createTextNode(' '));
+    line.append(words);
+    return line;
+  }
+
   function drawCard(ctx: TradeContext, row: RouteReadingRow, mode: RouteMode, best: boolean): HTMLElement {
     const card = routeCard(ctx, row, mode);
     const node = element('article', best ? 'trade-card is-best' : 'trade-card');
@@ -1393,6 +1598,7 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
     node.append(chips);
 
     node.append(drawFacts(card.facts));
+    if (card.imports !== null) node.append(drawImport(card.imports, node));
     node.append(drawSend(ctx, row, mode));
     return node;
   }
@@ -1418,6 +1624,13 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
       title.append(element('small', '', group.blurb));
       head.append(title);
       block.append(head);
+      // The note stands **in the cards' place** — a group that has one has no
+      // rows, which is the only shape `push` lets through with an empty list.
+      if (group.note !== null) {
+        const hint = element('p', 'trade-purpose-note');
+        setDescriptorText(hint, group.note, { linked: keywordsAllowedIn(hint) });
+        block.append(hint);
+      }
       const grid = element('div', 'trade-cards');
       group.rows.forEach((entry, index) => {
         grid.append(drawCard(ctx, entry.row, chosenModeIn(entry), index === 0));
@@ -1483,6 +1696,17 @@ export function createTradeScreen(options: TradeScreenOptions): TradeScreen {
         close();
       });
       name.append(open);
+      // **What this road is carrying home** (R6): the mark and the kind, on the
+      // row of the caravan fetching it, so a player deciding which route to
+      // cancel can see which contentment the cancelling would cost. The name is
+      // beside the mark because a mark alone names nothing.
+      if (route.importId !== null) {
+        const brings = element('span', 'trade-import is-row');
+        brings.append(resourceMarkNode(route.importId));
+        brings.append(document.createTextNode(` ${resourceDef(route.importId).name}`));
+        brings.title = `This road brings ${resourceDef(route.importId).name} home — half a copy`;
+        name.append(brings);
+      }
       tr.append(name);
       // A running route's mode is settled: one chip, not a control offering a
       // choice that cannot be made.

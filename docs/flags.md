@@ -1839,6 +1839,21 @@ directly to confirm rulings — user marginalia are rulings.
   (the Knight's drift narrows). No schema (109 already says a v108 log
   does not replay; ▢ if the user wants the exact figures replay-safe,
   bump — rec: no, U9 has not been played).
+  **U9b built** (2026-09-10): every figure as ruled, naval included;
+  Knights Templar mirror 60. Register pins hold unweakened (bows under
+  the era's best *closer* — Æra I's is the War Chariot at 33, so the
+  Chariot Archer's 26 is inside it); a third pin holds the anti-cavalry
+  line at +10 everywhere and folds it on the ledger; the light-hull-on-
+  gun-deck one-blow kill pinned as design (52+10 vs 40−10). Matchups
+  (midpoint): Chariot → Chariot Archer 50/23 back; Swordsman → Bowman
+  55/23; War Elephant → Catapult **55**/22 (the Catapult no longer
+  folds to one charge); Trebuchet → Fire Lance 8; Fire Lance kills a
+  Swordsman, **67** into a Knight. Bot fixture drift: land mean +13.6%
+  (inside the band, `data/ai.json` untouched; the Knight −29% → +20%);
+  hulls unpriced by the bot. **t100** (same probe, U9 → U9b): sci 86.4
+  → **104.3**, food 125 → 141, prod 78.5 → 88.9, cul 70.5 → 75.0,
+  buildings 30.3 → 33.0, citizens 41 → 45.5, happiness +7.1 → **+10.4**,
+  units 23.2 → 25.7, treasury 348 → 332 (more standing army). No schema.
 - (xxx) **The orders and doctrines pass — RULED, to fold** (the user,
   2026-09-10: *"i've made my changes to the orders/doctrines doc"*). The
   spec of record is the user's marks in the MAIN tree's
