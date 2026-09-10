@@ -25,8 +25,9 @@
  * number *is* ("Combat strength", not "Strength"); an eyebrow says what kind of
  * thing the card is ("civilian unit", not "civilian"). What this file may **not**
  * do is restate a describer: `describeCard` is the game's own words and feeds the
- * in-game hover cards too, so where a card says "writ" the Compendium *glosses*
- * the word on its shelf's lead page and leaves the card alone.
+ * in-game hover cards too, so where a card says "authority capacity" the
+ * Compendium *glosses* the word on its shelf's lead page and leaves the card
+ * alone.
  *
  * Every generated shelf opens on a page of prose (`compendiumShelves.ts`) that
  * says what that kind of thing is, how you come by one, and where you use it —
@@ -1758,7 +1759,7 @@ function meterEntries(): CompendiumEntry[] {
       ],
       clauses: [
         {
-          text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. While it is positive your empire gets a percentage bonus, in the steps listed above; while it is negative it gets a penalty. Some cards call it your writ.',
+          text: 'Authority is one figure for your whole empire: your capacity to govern, minus what your cities cost to govern. While it is positive your empire gets a percentage bonus, in the steps listed above; while it is negative it gets a penalty.',
         },
         {
           text: 'A coastal city costs less than an inland one, but it still costs something. A city you captured always counts as captured, coastal or not.',

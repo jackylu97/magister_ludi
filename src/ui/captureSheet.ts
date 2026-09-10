@@ -16,7 +16,8 @@
  *   **Annex**   the town joins the empire. `annexCity`, and the docblock on the
  *               command says it: anytime and irreversible, no window, no verb
  *               that turns it back. What it costs is not a price the reducer
- *               charges but two reliefs it stops giving — see below.
+ *               charges but two reliefs it stops giving, which is why the sheet
+ *               prints the town's whole bill under each outcome — see below.
  *   **Puppet**  nothing is sent. A captured town *is* a puppet until it is
  *               annexed, so this choice is the sheet closing, which is also
  *               what Escape and the × do. There is no `puppetCity` command and
@@ -28,14 +29,27 @@
  *
  * Every figure is the simulation's own
  * ------------------------------------
- * Nothing on this sheet is a number this file knows. The writ each choice moves
- * is read off `explainAuthority`'s own line for this town, the contentment off
- * `explainHappiness`'s — the same two lists the meters' ledgers print, matched
- * by the source label the meter itself wrote. What **annexing** costs is the one
- * figure that cannot be read as a line, because the line for an annexed town
- * does not exist while the town is a puppet: it is `rules.war`'s own relief, the
- * field `cityCosts` subtracts. Asking `meters.ts` for the annexed price directly
- * would be better and needs `cityCosts` exported; it is module-private today.
+ * Nothing on this sheet is a number this file knows, and since 2026-09-09
+ * (`docs/flags.md` item (ppp) 6) nothing on it is a *line* either. Each answer
+ * prints **the whole of what this town would cost under that outcome**, folded:
+ * `explainAuthority` and `explainHappiness` asked on a what-if realm where the
+ * town's puppet flag is cleared (Annex) or set (Puppet), and every line naming
+ * the town summed. Two folds a meter, one subtraction apart.
+ *
+ * That replaces the reading this sheet shipped with, which picked lines out of
+ * the two lists and mixed baselines: both Annex and Puppet printed
+ * `rules.war.puppetAuthorityRelief` — the *difference* between the outcomes —
+ * with a minus in front of it, Puppet's happiness was the relief signed against
+ * Annex's, and nothing on the sheet said what the town cost at all. A player
+ * choosing between two outcomes is owed the price of each, not the gap.
+ *
+ * **The what-if is a ghost, never a write** — `cardImpact.ts`'s discipline
+ * exactly: a shallow copy of the state with `cities` *replaced* (and the one
+ * town copied into it), so no array on the real board is reachable through it.
+ * A ghost is also its own key in the slate's `WeakMap` (`src/sim/slate.ts`), so
+ * a fold taken on one is remembered against the ghost and thrown away with it —
+ * the real board's remembered readings are neither read nor poisoned by this
+ * sheet, and a fold taken before and after opening it is the same number.
  *
  * Split for the suite that has no jsdom
  * -------------------------------------
@@ -63,10 +77,9 @@
 import { type City, type GameState, cityById } from '../sim/state';
 import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
 import { type ModalShell, createModalShell } from './modalShell';
-import { RULES } from '../sim/rulesData';
 import { cityDisplayName } from './cityDisplay';
 import { element } from './dom';
-import { meterFigure } from './figures';
+import { meterFigure, signedMeterFigure } from './figures';
 import { razeCityError } from '../sim/diplomacy';
 
 /** The three answers a conquest offers. `puppet` sends nothing — see the docblock. */
@@ -76,30 +89,26 @@ export type CaptureChoice = 'annex' | 'puppet' | 'raze';
 export const CAPTURE_CHOICES: readonly CaptureChoice[] = ['annex', 'puppet', 'raze'];
 
 /**
- * What this town is worth to its captor, in the meters' own figures.
+ * What this town would cost its captor under each outcome, in the meters' own
+ * figures.
  *
- * Read once, off the two lists the ledgers print, so a figure on this sheet and
- * the same figure on the authority card can never be two different readings of
- * the same turn.
+ * **Whole costs, not the difference between them.** Each pair below is one fold
+ * of one meter's whole list, on a realm where the town is held that way — so the
+ * two answers are comparable by subtraction and each of them is a price a player
+ * can go and check against the meter's own ledger. Negative is a cost; a town
+ * whose own buildings pay more happiness than its citizens ask for reads
+ * positive, and that is a true thing to print.
  */
 export interface CaptureFigures {
-  /** The writ this town costs today, as a puppet. `explainAuthority`'s own line. */
-  puppetWrit: number;
-  /**
-   * The writ annexing adds — `rules.war.puppetAuthorityRelief`, the relief a
-   * puppet is given and an annexed town is not. The one figure here that is a
-   * rules field rather than a meter line; see the module docblock.
-   */
-  annexWrit: number;
-  /**
-   * The contentment a puppet's citizens are forgiven —
-   * `explainHappiness`'s own gain line. Annexing gives it back; razing takes the
-   * whole town, and with it everything it asked for.
-   */
-  puppetRelief: number;
-  /** What this town's citizens ask for, net of every relief. The fold of its lines. */
-  demand: number;
-  /** How many stand in it. */
+  /** Every authority line naming this town, folded, on the realm that annexed it. */
+  annexAuthority: number;
+  /** Every happiness line naming this town, folded, on the realm that annexed it. */
+  annexHappiness: number;
+  /** The same fold on the realm that holds it as a puppet. */
+  puppetAuthority: number;
+  /** The same fold on the realm that holds it as a puppet. */
+  puppetHappiness: number;
+  /** How many stand in it — what razing kills, and what neither other answer costs. */
   population: number;
   /** How many hexes answer to it, and would answer to nobody if it came down. */
   hexes: number;
@@ -110,15 +119,40 @@ function namesCity(line: MeterContribution, city: City): boolean {
   return line.source === city.name || line.source.startsWith(`${city.name} `);
 }
 
-/** One town's lines out of a meter's whole list. */
-function linesFor(list: readonly MeterContribution[], city: City): MeterContribution[] {
-  return list.filter((line) => namesCity(line, city));
+/** One town's whole share of a meter, folded — rule 5's sum of a labelled list. */
+function foldTown(list: readonly MeterContribution[], city: City): number {
+  let sum = 0;
+  for (const line of list) if (namesCity(line, city)) sum += line.value;
+  return sum;
 }
 
-/** A named line's magnitude, or zero where the meter drew none. */
-function magnitudeOf(list: readonly MeterContribution[], source: string): number {
-  const line = list.find((row) => row.source === source);
-  return line === undefined ? 0 : Math.abs(line.value);
+/**
+ * **The realm as it would be, holding this town that way** — a ghost, and every
+ * word of `cardImpact.ts`'s rule about ghosts applies here.
+ *
+ * Shallow: every field not named is shared with the real board, and `cities` is
+ * *replaced* rather than written into, with one town copied out of it. Nothing
+ * downstream can reach the real array through it, and the meters take no
+ * argument that could let them.
+ *
+ * A ghost is also a fresh key for the slate's `WeakMap`, so whatever the two
+ * folds remember is remembered against the ghost and dies with it. The board's
+ * own readings are untouched — which is the whole reason this is a copy of the
+ * state and not two writes and a restore.
+ */
+function heldAs(state: GameState, city: City, puppet: boolean): GameState {
+  return {
+    ...state,
+    cities: state.cities.map((row) => {
+      if (row.id !== city.id) return row;
+      const copy: City = { ...row };
+      // Cleared the way `annexCity` clears it, so the ghost is the state the
+      // reducer would actually leave behind rather than a near-miss of it.
+      if (puppet) copy.puppet = true;
+      else delete copy.puppet;
+      return copy;
+    }),
+  };
 }
 
 /**
@@ -126,25 +160,22 @@ function magnitudeOf(list: readonly MeterContribution[], source: string): number
  *
  * Pure and exported so the readings can be pinned by a test with no DOM: the
  * failure this sheet is most exposed to is a number composed here instead of
- * asked for, and that is visible in which list a value came out of.
+ * asked for, and that is visible in whether the value moves when the meter does.
  */
 export function captureFigures(
   state: GameState,
   playerId: number,
   city: City,
 ): CaptureFigures {
-  const writ = explainAuthority(state, playerId);
-  const content = explainHappiness(state, playerId);
-  const townLines = linesFor(content, city);
+  const annexed = heldAs(state, city, false);
+  const held = heldAs(state, city, true);
   let hexes = 0;
   for (const owner of state.tileOwner) if (owner === city.id) hexes += 1;
   return {
-    puppetWrit: magnitudeOf(writ, `${city.name} · puppet`),
-    annexWrit: Math.max(0, RULES.war.puppetAuthorityRelief),
-    puppetRelief: magnitudeOf(content, `${city.name} · puppet`),
-    // The town's own lines, folded — costs are negative, the two reliefs
-    // positive, and what is left is what holding it actually asks of the realm.
-    demand: Math.abs(townLines.reduce((sum, line) => sum + line.value, 0)),
+    annexAuthority: foldTown(explainAuthority(annexed, playerId), city),
+    annexHappiness: foldTown(explainHappiness(annexed, playerId), city),
+    puppetAuthority: foldTown(explainAuthority(held, playerId), city),
+    puppetHappiness: foldTown(explainHappiness(held, playerId), city),
     population: city.population,
     hexes,
   };
@@ -188,13 +219,17 @@ export interface CaptureFace {
  */
 export function captureFace(state: GameState, playerId: number, city: City): CaptureFace {
   const figures = captureFigures(state, playerId, city);
-  const writ = (value: number, sign: '+' | '−'): CaptureFigureLine => ({
-    label: 'Writ',
-    value: `${sign}${meterFigure(value)}⚜`,
+  // The fold's own sign, printed as the meters print theirs: a cost reads with a
+  // minus, a town that pays its own way reads with a plus, and nought reads
+  // `0` — which is what razing costs on both meters and is worth saying rather
+  // than leaving off the face.
+  const authority = (value: number): CaptureFigureLine => ({
+    label: 'Authority',
+    value: `${signedMeterFigure(value)}⚜`,
   });
-  const content = (value: number, sign: '+' | '−'): CaptureFigureLine => ({
-    label: 'Contentment',
-    value: `${sign}${meterFigure(value)}☺`,
+  const happiness = (value: number): CaptureFigureLine => ({
+    label: 'Happiness',
+    value: `${signedMeterFigure(value)}☺`,
   });
   return {
     cityId: city.id,
@@ -206,7 +241,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
         body:
           'The town joins your empire and obeys you like any other: you choose what' +
           ' it builds, you may buy in it and buy its ground. There is no way back.',
-        figures: [writ(figures.annexWrit, '−'), content(figures.puppetRelief, '−')],
+        figures: [authority(figures.annexAuthority), happiness(figures.annexHappiness)],
         blocked: null,
       },
       {
@@ -217,7 +252,7 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
           ' buy nothing — no unit, no building, no ground — and its citizens work' +
           ' where they please. Everything it makes is still yours, and you may annex' +
           ' it whenever you like.',
-        figures: [writ(figures.puppetWrit, '−'), content(figures.puppetRelief, '+')],
+        figures: [authority(figures.puppetAuthority), happiness(figures.puppetHappiness)],
         blocked: null,
       },
       {
@@ -227,9 +262,16 @@ export function captureFace(state: GameState, playerId: number, city: City): Cap
           'The town is pulled down and its ground answers to nobody. Nothing is paid' +
           ' for its stones.',
         figures: [
-          writ(figures.puppetWrit, '+'),
+          // Nought on both meters, and printed rather than omitted: a town that
+          // is gone asks nothing of either, and that is the *comparison* the
+          // other two answers are being made against.
+          authority(0),
+          happiness(0),
           { label: 'Citizens', value: meterFigure(figures.population) },
-          { label: 'Ground', value: `${meterFigure(figures.hexes)}⬡` },
+          // What the ground does, said as the verb `razeCityAt` performs: every
+          // hex that answered to this town answers to nobody, and is there to
+          // be settled or taken by whoever reaches it first.
+          { label: 'Territory released', value: `${meterFigure(figures.hexes)}⬡` },
         ],
         blocked: razeCityError(state, playerId, city.id),
       },

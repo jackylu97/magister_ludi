@@ -1396,7 +1396,7 @@
           "count": "cities"
         }
       ],
-      "note": "The extra writ is asked of every city you hold, however long you have held it."
+      "note": "The extra authority is asked of every city you hold, however long you have held it."
     },
     "theScatteredHearths": {
       "name": "The Scattered Hearths",
@@ -3740,7 +3740,7 @@
       "rarity": "common",
       "flavor": "No plough, no boundary, no quarrel.",
       "text": "+1 happiness for each unimproved hex your cities work.",
-      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid a wide realm far more contentment than any other card of its age.",
+      "note": "Retired: this Order is no longer offered in a draft. A saved game that already holds it keeps it. It paid a wide realm far more happiness than any other card of its age.",
       "effects": [
         {
           "kind": "pays",

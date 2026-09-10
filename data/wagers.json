@@ -359,7 +359,7 @@
           }
         ]
       },
-      "note": "Towns you hold, contentment at or above nothing, and authority not yet overspent — all on the same turn."
+      "note": "Towns you hold, happiness at or above nothing, and authority not yet overspent — all on the same turn."
     },
     "theBuilders": {
       "name": "The Builders",
@@ -407,7 +407,7 @@
         250,
         300
       ],
-      "note": "Contentment to spare, counted every turn and added up over the age."
+      "note": "Happiness to spare, counted every turn of the age and added up."
     },
     "theArsenal": {
       "name": "The Arsenal",

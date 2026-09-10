@@ -17,7 +17,7 @@
  * to a describer it may not edit: the simulation's card vocabulary is the game's
  * own (`describeCard` in `src/sim/statecraft.ts`, the single place a card effect
  * becomes words, and it feeds the in-game hover cards too), so where a card says
- * "writ" or "camp" the Compendium **explains the word** rather than rewriting
+ * "authority capacity" or "camp" the Compendium **explains the word** rather than rewriting
  * it. One vocabulary, glossed once.
  *
  * `compendium.ts`'s digit rule holds here, and for the same reason: nothing on

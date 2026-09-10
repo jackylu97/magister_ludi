@@ -979,7 +979,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
       element(
         'p',
         'hint',
-        'This town is held rather than governed. It asks less of your writ and ' +
+        'This town is held rather than governed. It asks less of your authority and ' +
           'less of your people\u2019s patience, and it chooses for itself what to ' +
           'build. Annex it to govern it as your own \u2014 and to pay for it in full.',
       ),
@@ -999,7 +999,7 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
             title: `Annex ${cityDisplayName(getGame().state, city)}?`,
             body:
               'It becomes an ordinary town of your empire: you set what it builds, ' +
-              'and it costs your writ and your people what any of your cities does. ' +
+              'and it costs your authority and your people what any of your cities does. ' +
               'This cannot be undone.',
             confirmLabel: 'Annex',
             cancelLabel: 'Leave it held',

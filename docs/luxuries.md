@@ -150,7 +150,7 @@ deal. `resourceCopies` is the whole of it — opened tiles, less the copies
 promised away, floored at nothing, plus the copies somebody lent you — and
 `hasResource`, `controlledHoldings` and a town's own `cityResources` are three
 readings of that one figure. So an empire with two amber that lends one keeps
-amber, and an empire that lends its only amber keeps neither the contentment nor
+amber, and an empire that lends its only amber keeps neither the happiness nor
 the line amber pays in the town that digs it. **The ground is untouched**: a lent
 seam is a caravan leaving, and the tile goes on paying its owner exactly what its
 row prints. Lending your last copy is legal — the signature simply moves.

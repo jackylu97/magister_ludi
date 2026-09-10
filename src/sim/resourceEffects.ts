@@ -830,7 +830,7 @@ export function resourceAuthority(state: GameState, playerId: number): ResourceA
     const towns = effect.per === 'city' ? cityCount(state, playerId, false) : 1;
     const amount = effect.amount * copies * towns;
     if (amount === 0) continue;
-    const note = effect.per === 'city' ? `cities ×${towns}` : 'writ';
+    const note = effect.per === 'city' ? `cities ×${towns}` : 'authority';
     list.push({ resource: id, source: lineLabel(id, note, copies), amount });
   }
   return list;
@@ -885,7 +885,7 @@ export function resourceTierBoost(state: GameState, playerId: number): {
     const amount = effect.points * copies;
     if (amount === 0) continue;
     points += amount;
-    lines.push({ resource: id, source: lineLabel(id, 'contentment', copies), amount });
+    lines.push({ resource: id, source: lineLabel(id, 'happiness', copies), amount });
   }
   return { lines, points };
 }

@@ -1591,6 +1591,16 @@ directly to confirm rulings — user marginalia are rulings.
   drives it. Tests: the row's count and order pin, the fan past four,
   the "+N", the bar on a wounded piece only, the suppression on the
   city hex and not beside it, the rise back at the pole. (eee)
+  **U8 built** (2026-09-09): `src/ui/unitRoundels.ts` prints the atlas
+  cell into a 96px canvas (one loader, `badges3d.loadIcon` exported);
+  the row is a signature term on the banner, the walk cached behind
+  `signUnits`; 26px roundels, fan past four (pitch 21px), "+N" past
+  eight; a press on your own roundel → `controls.selectPiece` (asks
+  `ownUnitsAt`). The board suppresses badge + charge boss + hit bar on a
+  watched town's hex (`banneredTownCells`; sculpt stays); plate rise =
+  `poleHeight + bannerClearance` (1.25). Known gaps: a worker's charge
+  numeral goes with its suppressed roundel; a piece mid-march over a
+  town hex keeps its walking tag until the walk lands.
 - (ppp) **Ships, the taking of towns, the capture sheet, the two words —
   RULED** (the user, 2026-09-09: *"create a doc with every unit and their
   combat strengths … melee units should not be able to attack boats

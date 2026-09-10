@@ -136,7 +136,7 @@ Bazaar). The natural **wide-play happiness engine** — it already half-exists.
 - State: **half-built** — capped by map scarcity by design; the duplicate-copies rule is
   the lever to extend it.
 - tags: caravan(part) · green(part)
-- **Wins by:** no race of its own — it is the wide player's ceiling-lifter, and its reckoning is contentment (see 17).
+- **Wins by:** no race of its own — it is the wide player's ceiling-lifter, and its reckoning is happiness (see 17).
 
 ## 7. The Land Rush
 Ground itself as the payoff: cheaper hexes, faster borders, cheaper settlers, cities born
@@ -256,7 +256,7 @@ real costs, not just foregone bonuses.
   - Cross-play: Faith Engine (the druid lean), Tall Hearth (culture lean), Cartographers
     (wilderness is where the secrets are), and *deliberate* anti-synergy with the
     Stoneworks — the argument the theme exists to have.
-- **Wins by:** the quiet races — a contentment reckoning, the Grove as a wonder bead, and an unimproved-ground standing count; it wins by refusing the Stoneworks' race, visibly.
+- **Wins by:** the quiet races — a happiness reckoning, the Grove as a wonder bead, and an unimproved-ground standing count; it wins by refusing the Stoneworks' race, visibly.
 
 ## 15. The Steppes
 **User's proposal, fleshed out.** Wide play that synergizes with war: the horse empire.
@@ -310,7 +310,7 @@ Mandate of Heaven (happy cities pay more). Proposed: **The Games** as a repeatab
 project (spend hammers+gold → an empire happiness step and a culture lump, each grander
 than the last), festival rites for the augur, and a reckoning for the most content
 realm. Cross-play: Tall (big cities host), Caravans (fund it), the Court (artists
-headline it). Distinct because its input — happiness itself — is nothing else's input. **Wins by:** the contentment reckoning and ever-grander Games — the festival calendar *is* a bead schedule.
+headline it). Distinct because its input — happiness itself — is nothing else's input. **Wins by:** the happiness reckoning and ever-grander Games — the festival calendar *is* a bead schedule.
 
 ## 18. The Magistracy
 The law as an engine: authority and the Statecraft apparatus itself paying yields.

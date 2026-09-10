@@ -76,30 +76,73 @@ function capture(): { state: GameState; city: City } {
   return { state, city };
 }
 
-describe('the figures beside each answer', () => {
-  it('reads the writ off the authority meter’s own line for this town', () => {
-    const { state, city } = capture();
-    const line = explainAuthority(state, 0).find((row) => row.source === `${city.name} · puppet`);
-    expect(line, 'the meter draws a puppet line').toBeDefined();
-    expect(captureFigures(state, 0, city).puppetWrit).toBe(Math.abs(line!.value));
-  });
+/** One town's whole share of a meter, folded — the reading the sheet prints. */
+function foldTown(list: readonly { source: string; value: number }[], name: string): number {
+  let sum = 0;
+  for (const line of list) {
+    if (line.source === name || line.source.startsWith(`${name} `)) sum += line.value;
+  }
+  return sum;
+}
 
-  it('reads the contentment off the happiness meter’s own relief line', () => {
+describe('the figures beside each answer', () => {
+  /**
+   * The whole cost, not a line out of the list: what a player is choosing
+   * between is two prices, and each of them is the fold of everything the meter
+   * says about this town on the realm that holds it that way.
+   */
+  it('folds the town’s whole share of both meters, on the realm that annexed it', () => {
     const { state, city } = capture();
-    const line = explainHappiness(state, 0).find((row) => row.source === `${city.name} · puppet`);
-    expect(line, 'the meter draws a puppet relief').toBeDefined();
-    expect(line!.part).toBe('gain');
-    expect(captureFigures(state, 0, city).puppetRelief).toBeCloseTo(Math.abs(line!.value), 6);
+    const figures = captureFigures(state, 0, city);
+    // The real board still holds it as a puppet, so the *puppet* pair is the
+    // fold of the live meters and can be checked against them directly.
+    expect(figures.puppetAuthority).toBeCloseTo(foldTown(explainAuthority(state, 0), city.name), 6);
+    expect(figures.puppetHappiness).toBeCloseTo(foldTown(explainHappiness(state, 0), city.name), 6);
+    // Both are costs: a captured town of four asks for more than it supplies.
+    expect(figures.puppetAuthority).toBeLessThan(0);
+    expect(figures.puppetHappiness).toBeLessThan(0);
   });
 
   /**
-   * The one figure that is a rules field rather than a meter line, and the
-   * module docblock says why: the annexed town's writ line does not exist while
-   * the town is a puppet, because `cityCosts` is module-private in `meters.ts`.
+   * The pin the ruling asks for: annexing costs the relief on **both** meters,
+   * and the sheet's own two folds are exactly that far apart — which is only
+   * true if each of them was taken on its own outcome rather than shared.
    */
-  it('prices the annexation at the relief a puppet is given', () => {
+  it('prices annexation above the puppet by the relief, on both meters', () => {
     const { state, city } = capture();
-    expect(captureFigures(state, 0, city).annexWrit).toBe(RULES.war.puppetAuthorityRelief);
+    city.population = 8;
+    const figures = captureFigures(state, 0, city);
+    expect(figures.annexAuthority).toBeLessThan(figures.puppetAuthority);
+    expect(figures.annexHappiness).toBeLessThan(figures.puppetHappiness);
+    // Authority: the relief the rules name, exactly (`rules.war`).
+    expect(figures.puppetAuthority - figures.annexAuthority).toBeCloseTo(
+      RULES.war.puppetAuthorityRelief,
+      6,
+    );
+    // Happiness: the share of its citizens' demand a puppet is forgiven — the
+    // meter's own gain line, and the sheet never types the percentage.
+    const relief = explainHappiness(state, 0).find((row) => row.source === `${city.name} · puppet`);
+    expect(relief, 'the meter draws a puppet relief').toBeDefined();
+    expect(figures.puppetHappiness - figures.annexHappiness).toBeCloseTo(relief!.value, 6);
+  });
+
+  /**
+   * The what-if is a ghost. Nothing about the real board moves, and the slate's
+   * remembered readings are neither read nor poisoned — a fold before and a fold
+   * after are the same number.
+   */
+  it('leaves the board byte-identical, and the memo unpoisoned', () => {
+    const { state, city } = capture();
+    const before = JSON.stringify(state);
+    const authorityBefore = foldTown(explainAuthority(state, 0), city.name);
+    const happinessBefore = foldTown(explainHappiness(state, 0), city.name);
+
+    captureFigures(state, 0, city);
+
+    expect(JSON.stringify(state)).toBe(before);
+    expect(city.puppet).toBe(true);
+    expect(foldTown(explainAuthority(state, 0), city.name)).toBeCloseTo(authorityBefore, 6);
+    expect(foldTown(explainHappiness(state, 0), city.name)).toBeCloseTo(happinessBefore, 6);
   });
 
   it('counts the citizens and the ground, which is what razing takes', () => {
@@ -110,13 +153,13 @@ describe('the figures beside each answer', () => {
     expect(figures.hexes).toBeGreaterThan(0);
   });
 
-  it('moves with the meter — a bigger town asks for more', () => {
+  it('moves with the meter — a bigger town costs more, held either way', () => {
     const { state, city } = capture();
     const small = captureFigures(state, 0, city);
     city.population = 9;
     const large = captureFigures(state, 0, city);
-    expect(large.demand).toBeGreaterThan(small.demand);
-    expect(large.puppetRelief).toBeGreaterThan(small.puppetRelief);
+    expect(large.annexHappiness).toBeLessThan(small.annexHappiness);
+    expect(large.puppetHappiness).toBeLessThan(small.puppetHappiness);
   });
 });
 
@@ -135,16 +178,45 @@ describe('the three answers', () => {
     }
   });
 
-  /** The figures are the meter's, so each one prints in the meter's own voice. */
-  it('prints the writ each way round — annex costs it, razing hands it back', () => {
+  /**
+   * The two words, and the three prices. Every option prints both meters in the
+   * player's own vocabulary (`docs/flags.md` (ppp) 7), each as a cost under that
+   * outcome — and razing, which takes the town out of the realm entirely, prints
+   * nought on both rather than leaving them off.
+   */
+  it('prints both meters on every answer, and nought on the raze', () => {
     const { state, city } = capture();
     const face = captureFace(state, 0, city);
-    const writOf = (choice: string): string =>
+    const valueOf = (choice: string, label: string): string =>
       face.options.find((option) => option.choice === choice)!.figures
-        .find((line) => line.label === 'Writ')!.value;
-    expect(writOf('annex').startsWith('−')).toBe(true);
-    expect(writOf('puppet').startsWith('−')).toBe(true);
-    expect(writOf('raze').startsWith('+')).toBe(true);
+        .find((line) => line.label === label)!.value;
+    for (const choice of ['annex', 'puppet', 'raze']) {
+      expect(valueOf(choice, 'Authority'), choice).toContain('⚜');
+      expect(valueOf(choice, 'Happiness'), choice).toContain('☺');
+    }
+    expect(valueOf('annex', 'Authority').startsWith('−')).toBe(true);
+    expect(valueOf('annex', 'Happiness').startsWith('−')).toBe(true);
+    expect(valueOf('puppet', 'Authority').startsWith('−')).toBe(true);
+    expect(valueOf('puppet', 'Happiness').startsWith('−')).toBe(true);
+    expect(valueOf('raze', 'Authority')).toBe('0⚜');
+    expect(valueOf('raze', 'Happiness')).toBe('0☺');
+    // Neither retired word survives anywhere on the face.
+    const printed = JSON.stringify(face);
+    expect(/\bwrits?\b/i.test(printed)).toBe(false);
+    expect(/\bcontentment\b|\bcheer(s|ful)?\b/i.test(printed)).toBe(false);
+  });
+
+  /** What razing releases, said as the verb performs it: the ground goes unowned. */
+  it('says what razing releases, in hexes', () => {
+    const { state, city } = capture();
+    const raze = captureFace(state, 0, city).options.find((row) => row.choice === 'raze')!;
+    const ground = raze.figures.find((line) => line.label === 'Territory released');
+    expect(ground, 'the raze names the ground it releases').toBeDefined();
+    const held = state.tileOwner.filter((owner) => owner === city.id).length;
+    expect(ground!.value).toBe(`${held}⬡`);
+    expect(raze.figures.find((line) => line.label === 'Citizens')!.value).toBe(
+      String(city.population),
+    );
   });
 
   it('greys razing with the reducer’s own sentence, and never hides it', () => {
@@ -232,10 +304,29 @@ describe('the sheet itself', () => {
 
   it('reads every figure off the simulation and types none of its own', () => {
     const sheet = source('captureSheet.ts');
-    expect(sheet).toContain('explainAuthority(state, playerId)');
-    expect(sheet).toContain('explainHappiness(state, playerId)');
+    // Both meters, on both ghosts — four folds and no fifth reading.
+    expect(sheet).toContain('explainAuthority(annexed, playerId)');
+    expect(sheet).toContain('explainHappiness(annexed, playerId)');
+    expect(sheet).toContain('explainAuthority(held, playerId)');
+    expect(sheet).toContain('explainHappiness(held, playerId)');
     expect(sheet).toContain('razeCityError(state, playerId, city.id)');
-    expect(sheet).toContain('RULES.war.puppetAuthorityRelief');
+    // No rules field is read here any more: the relief the sheet used to print
+    // is the *difference* between two folds, and it comes out of the subtraction.
+    expect(sheet).not.toContain('RULES.war');
+  });
+
+  /**
+   * **The what-if writes nothing.** `cities` is replaced rather than pushed to
+   * and the one town is copied out of it, so the real board is unreachable
+   * through the ghost — `cardImpact.ts`'s rule, read off this file's own source.
+   */
+  it('builds its what-if as a ghost and never writes the board', () => {
+    const sheet = source('captureSheet.ts');
+    expect(sheet).toContain('cities: state.cities.map(');
+    expect(sheet).toContain('const copy: City = { ...row };');
+    // Nothing in the file assigns through the live state.
+    expect(sheet).not.toContain('city.puppet =');
+    expect(sheet).not.toContain('state.cities[');
   });
 
   it('draws every number in the tabular mono the specimen asks for', () => {

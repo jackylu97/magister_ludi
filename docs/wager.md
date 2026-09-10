@@ -86,10 +86,10 @@ deal sheet, the Abacus and the Compendium print. The last column is the user's.
 | The Renowned | C | 🏛 Marble Court | `renown` | flow | 1000 | 5000 | 6000 | Renown your realm earns over the age, spent or not, added up. |  |
 | The Chronicle | C | 🏛 Marble Court | `culture` | flow | 3700 | 14500 | 18000 | Culture made across the realm, added up over the age. |  |
 | The Deck | S | 📜 Charter | `deckYields` | flow | 2800 | 11000 | 13000 | Everything the cards slotted in your government pay you, added up over the age. | ▢ plainer name: *The Cards in Your Chairs* |
-| The Marcher Lords | E | 📜 Charter | `clauses: cities, happiness, authority` | standing | 5 · 0 · 0 | 9 · 0 · 0 | 18 · 0 · 0 | Towns you hold, contentment at or above nothing, and authority not yet overspent — all on the same turn. | ▢ plainer name: *The Wide and Quiet Realm* |
+| The Marcher Lords | E | 📜 Charter | `clauses: cities, happiness, authority` | standing | 5 · 0 · 0 | 9 · 0 · 0 | 18 · 0 · 0 | Towns you hold, happiness at or above nothing, and authority not yet overspent — all on the same turn. | ▢ plainer name: *The Wide and Quiet Realm* |
 | The Builders | E | 📜 Charter | `buildingYields` | standing | 120 | 240 | 300 | Everything the buildings across your realm pay you in one turn. |  |
 | The Six Voices | E | 📜 Charter | `allVoices` | flow | 25000 | 85000 | 100000 | Food, work, gold, learning, culture and faith, summed every turn and added up over the age. | ▢ plainer name: *The Whole Yield* |
-| The Contented Realm | E | 📜 Charter | `happinessSurplus` | flow | 200 | 250 | 300 | Contentment to spare, counted every turn and added up over the age. |  |
+| The Contented Realm | E | 📜 Charter | `happinessSurplus` | flow | 200 | 250 | 300 | Happiness to spare, counted every turn of the age and added up. |  |
 | The Arsenal *(deferred)* | D | ⚒ Forge Levy | `unitHammers` | flow | 150 | 600 | 1800 | Work your towns put into building soldiers, added up over the age. |  |
 | The Field of Glory | D | 🎖 Banner | `killsMinusLosses` | flow | 3 | 6 | 10 | Rivals' soldiers you kill over the age, less your own soldiers lost. |  |
 | The Taken Town | D | 🎖 Banner | `capturedThisAge` | standing | 1 | 3 | 5 | Towns you took by force this age and still hold. |  |
@@ -105,7 +105,7 @@ put behind a *soldier* told apart from its other work. Neither line exists in
 `docs/yields.md`'s sequence today; both keep their bodies and their figures, so
 shipping either is deleting a `deferred`.
 
-**The Marcher Lords**' contentment and authority clauses ask for nought — *at or
+**The Marcher Lords**' happiness and authority clauses ask for nought — *at or
 above nothing* — which is what "none unhappy, authority in surplus" is as a
 number.
 

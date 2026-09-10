@@ -214,7 +214,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Epic Poetry** † Verse measured against the fallen soldier — a greater loss sung longer — waits until a one-time grant can be sized by the piece that earned it. — not built yet
 - **Epic Poetry** — *When one of your units falls, the nearest city of yours records the loss in verse and gains culture. Until the poets keep the roll of names, renown gathers but no great person will come.*
 - **Code of Laws** — +3 authority capacity
-- **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's writ reaches further too: your realm may hold more cities in hand than it could.*
+- **Code of Laws** — *A city may put its labour into pageants, and what it raises is celebration rather than stone. The crown's authority reaches further too: your realm may hold more cities in hand than it could.*
 - **Irrigation** — *A farm standing beside fresh water feeds its city better than it did.*
 
 ### Æra III — The Age of Empire (14 nodes, 360–1150🔬)
@@ -252,7 +252,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **The Civil Service** — +5 percentage points to the bonus your positive happiness pays
 - **The Civil Service** — +5 authority capacity
 - **The Civil Service** — +1 food, +1 production on every hex carrying a great person's work
-- **The Civil Service** — *A realm that is content or well governed is rewarded more generously, and the crown's writ reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.*
+- **The Civil Service** — *A realm that is content or well governed is rewarded more generously, and the crown's authority reaches further than it did. The ministry also puts the works your great people leave behind to use: each of them feeds and supplies its city better.*
 - **Daughter Cities** — settlers cost 33% less production
 - **Daughter Cities** — new cities are founded with a Town Charter
 - **Daughter Cities** — *Settlers are trained faster, and every city you found is founded with its charter already granted.*

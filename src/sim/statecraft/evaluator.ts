@@ -3865,7 +3865,7 @@ export function cardTierBoost(state: GameState, playerId: number): {
     const amount = effect.points;
     if (amount === 0) continue;
     points += amount;
-    lines.push({ card, source: label(source, 'contentment'), amount });
+    lines.push({ card, source: label(source, 'happiness'), amount });
   }
   return { lines, points };
 }

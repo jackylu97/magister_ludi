@@ -393,7 +393,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Muses' Call** — Renown banks from the first turn whether or not anybody answers it. This opens the door early, and opens it with somebody already through.
 - **Mountain Hold** — The mountain has to stand inside the city’s own borders. A peak the bounds have not reached yet shelters nobody.
 - **The Burning Way** — The axes are free, but the ground keeps no memory of the woods: land you have cleared pays what bare land pays.
-- **The Gentle Yoke** — The extra writ is asked of every city you hold, however long you have held it.
+- **The Gentle Yoke** — The extra authority is asked of every city you hold, however long you have held it.
 - **The Great Warring Tribes** — The courthouse clause did nothing — there is no courthouse in the game — and is struck.
 - **Hegemony** — A city you take costs one authority — the least any law can make it.
 - **The Pilgrim Ways** — Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.

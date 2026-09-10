@@ -7048,7 +7048,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const lines: string[] = [];
     if (before.happiness >= 0 && after.happiness < 0) lines.push('Your people murmur.');
     if (before.authority >= 0 && after.authority < 0) {
-      lines.push("The Magister's writ grows thin.");
+      lines.push("The Magister's authority grows thin.");
     }
     return lines;
   }
