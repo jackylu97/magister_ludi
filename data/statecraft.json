@@ -917,22 +917,22 @@
     "manifestOfTheSteppe": {
       "name": "Manifest of the Steppe",
       "tier": 18,
-      "line": "none",
-      "flavor": "There is always more land. There is never enough rest.",
-      "text": "Settlers cost 40% less to train and have +2 movement.",
+      "line": "forge",
+      "flavor": "The grass ends where the horses stop, and the horses do not stop.",
+      "text": "Mounted units gain +1 movement. Pillaging pays double.",
       "effects": [
-        {
-          "kind": "rulePercent",
-          "rule": "settlerCost",
-          "percent": -40
-        },
         {
           "kind": "unitStat",
           "stat": "movement",
-          "amount": 2,
+          "amount": 1,
           "class": {
-            "modelClass": "settler"
+            "modelClass": "mounted"
           }
+        },
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "percent": 100
         }
       ]
     },
@@ -1143,17 +1143,29 @@
       ]
     },
     "theSeaCharter": {
-      "name": "The Sea Charter",
+      "name": "The Merchant Scholars",
       "tier": 29,
       "line": "caravan",
-      "flavor": "Sign here, and the tide is yours.",
-      "text": "Trade routes pay 50% more.",
-      "note": "The clause about founding coastal cities with a Harbour is struck: nothing founds a city with a building it has not built.",
+      "flavor": "The ledger travels with the caravan and comes home the fuller of the two.",
+      "text": "+2% science and +2% culture in every city for each trade route you run.",
       "effects": [
         {
-          "kind": "effectAmplifier",
-          "target": "routeYields",
-          "percent": 50
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "percent": 2,
+          "stage": "empire",
+          "count": "tradeRoutes"
+        },
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "percent": 2,
+          "stage": "empire",
+          "count": "tradeRoutes"
         }
       ]
     },
@@ -1291,21 +1303,24 @@
       "tier": 45,
       "line": "caravan",
       "flavor": "They call it a sea. We call it the middle of the country.",
-      "text": "+1 food and +1 gold on every water hex you own. Coastal cities cost no authority.",
+      "text": "+1 food and +2 gold on every water hex you own. +15% science in coastal cities.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "food": 1,
-          "gold": 1,
+          "gold": 2,
           "on": {
             "test": "water"
           }
         },
         {
-          "kind": "meterRule",
-          "rule": "coastalCityCost",
-          "value": 0
+          "kind": "percentYields",
+          "yield": "science",
+          "percent": 15,
+          "scope": {
+            "test": "coastal"
+          }
         }
       ]
     },
@@ -1719,13 +1734,13 @@
       ]
     },
     "theLongWatch": {
-      "name": "The Long Watch",
+      "name": "Martial Law",
       "pool": "governmentI",
       "slot": "military",
       "line": "none",
       "rarity": "common",
-      "flavor": "A sleepless wall is a comfort to those inside it.",
-      "text": "+1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built.",
+      "flavor": "The garrison is the government, and the town sleeps for it.",
+      "text": "+1 happiness for each military unit standing in one of your cities, and +1 more for each fortification a city has built.",
       "effects": [
         {
           "kind": "pays",
@@ -1733,7 +1748,10 @@
           "basis": "count",
           "to": "happiness",
           "amount": 1,
-          "count": "garrison"
+          "count": "garrison",
+          "class": {
+            "fieldSoldier": true
+          }
         },
         {
           "kind": "pays",
@@ -3779,12 +3797,13 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The first of everything is set aside. The rest feeds us.",
-      "text": "+2 food on every hex carrying a resource.",
+      "text": "+1 food and +1 gold on every hex carrying a resource.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 2,
+          "food": 1,
+          "gold": 1,
           "on": {
             "test": "hasResource"
           }
@@ -5223,12 +5242,24 @@
       "line": "caravan",
       "rarity": "uncommon",
       "flavor": "The harbour keeps its own hours and the city keeps to them.",
-      "text": "+1 trade route · +2 gold on every fishing boat.",
-      "note": "A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.",
+      "text": "+1 trade route in every coastal city with a Harbour · +2 gold on every fishing boat.",
+      "note": "The harbour has to be built. A coastal town without one sends no more caravans than it did before.",
       "effects": [
         {
           "kind": "routeRider",
-          "extra": 1
+          "extra": 1,
+          "scope": {
+            "test": "all",
+            "of": [
+              {
+                "test": "coastal"
+              },
+              {
+                "test": "hasBuilding",
+                "building": "harbour"
+              }
+            ]
+          }
         },
         {
           "kind": "pays",
@@ -5269,16 +5300,11 @@
       "line": "none",
       "rarity": "uncommon",
       "flavor": "The judge rides a circuit, and the writ rides with him.",
-      "text": "+1 authority capacity for each 2 cities you hold · a captured city costs 1 authority.",
+      "text": "+6 authority capacity · a captured city costs 1 authority.",
       "effects": [
         {
-          "kind": "pays",
-          "where": "empire",
-          "basis": "count",
-          "to": "authority",
-          "amount": 1,
-          "count": "cities",
-          "per": 2
+          "kind": "authority",
+          "amount": 6
         },
         {
           "kind": "meterRule",
@@ -5294,7 +5320,7 @@
       "line": "green",
       "rarity": "rare",
       "flavor": "The corn comes in by water, and the water never tires.",
-      "text": "+6 food in every coastal city · +50% growth surplus there.",
+      "text": "+6 food in every coastal city · +1 gold for each 3 citizens in your coastal cities.",
       "effects": [
         {
           "kind": "pays",
@@ -5305,9 +5331,14 @@
           }
         },
         {
-          "kind": "rulePercent",
-          "rule": "growthSurplus",
-          "percent": 50,
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "per": 3,
           "scope": {
             "test": "coastal"
           }
@@ -6427,17 +6458,179 @@
       "line": "tide",
       "rarity": "common",
       "flavor": "The tide brings them in twice a day and asks nothing back.",
-      "text": "+1 food on every fishing boat.",
-      "note": "The hex has to carry the boats already. Open water with nothing built on it feeds no better.",
+      "text": "+1 gold on every fishing boat.",
+      "note": "The hex has to carry the boats already. Open water with nothing built on it pays no better.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
-          "food": 1,
+          "gold": 1,
           "on": {
             "test": "improvement",
             "improvement": "fishingBoats"
           }
+        }
+      ]
+    },
+    "tribute": {
+      "name": "Tribute",
+      "pool": "governmentIII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "uncommon",
+      "flavor": "They keep their king. We keep the ledger.",
+      "text": "+1 gold for each 2 citizens living in your puppets.",
+      "note": "A puppet spends nothing of its own, so the coin is the realm's: annex the town and the tribute stops with the bowing.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "puppetPopulation",
+          "per": 2
+        }
+      ]
+    },
+    "ridersOfTheSteppe": {
+      "name": "Riders of the Steppe",
+      "pool": "governmentIII",
+      "slot": "military",
+      "line": "forge",
+      "rarity": "rare",
+      "flavor": "A wall is a thing to ride around.",
+      "text": "Mounted units ignore enemy zone of control and pillage without spending movement.",
+      "note": "A raid still needs a horseman with something left to spend: what the law withholds is the point, not the price of admission.",
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "ignored",
+          "class": {
+            "modelClass": "mounted"
+          }
+        },
+        {
+          "kind": "rule",
+          "rule": "freePillage",
+          "class": {
+            "modelClass": "mounted"
+          }
+        }
+      ]
+    },
+    "tolls": {
+      "name": "Tolls",
+      "pool": "governmentII",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "common",
+      "flavor": "Every gate is a small customs house, and the realm has many gates.",
+      "text": "+1 gold for each 4 road hexes you have laid.",
+      "note": "It counts the paving your own workers laid, wherever the borders have since moved to.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "roadHexes",
+          "per": 4
+        }
+      ]
+    },
+    "mercenaries": {
+      "name": "Mercenaries",
+      "pool": "governmentIV",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "rare",
+      "flavor": "Loyalty by the season, and the season is paid in advance.",
+      "text": "Newly created military units bought with gold gain +2 combat strength. All units cost 20% less to buy.",
+      "note": "The blooding is written on the soldier at the moment the coin changes hands, and stays with them for life; a levy the countryside raised is a levy like any other.",
+      "effects": [
+        {
+          "kind": "unitStamp",
+          "strength": 2,
+          "class": {
+            "fieldSoldier": true
+          },
+          "bought": "gold"
+        },
+        {
+          "kind": "purchaseRider",
+          "class": {},
+          "on": "unit",
+          "percent": -20
+        }
+      ]
+    },
+    "theEntrepot": {
+      "name": "The Entrepôt",
+      "pool": "governmentIV",
+      "slot": "economic",
+      "line": "caravan",
+      "rarity": "uncommon",
+      "flavor": "The goods change hands twice on the quay, and pay duty each time.",
+      "text": "+1 gold for each 5 citizens in every city of yours that a foreign trade route ends in.",
+      "note": "It is the host that is paid, whoever sent the caravan: a road your own cities run between them pays nothing here.",
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "population",
+          "within": "city",
+          "per": 5,
+          "scope": {
+            "test": "routeEndsHere",
+            "crossing": "international"
+          }
+        }
+      ]
+    },
+    "patronage": {
+      "name": "Patronage",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "court",
+      "rarity": "uncommon",
+      "flavor": "The city keeps the poets, and the poets keep the city.",
+      "text": "+1 renown per turn for each 4 citizens in your capital.",
+      "effects": [
+        {
+          "kind": "renown",
+          "amount": 1,
+          "count": "capitalPopulation",
+          "countPer": 4
+        }
+      ]
+    },
+    "pilgrims": {
+      "name": "Pilgrims",
+      "pool": "governmentIII",
+      "slot": "wildcard",
+      "line": "procession",
+      "rarity": "uncommon",
+      "flavor": "They walk because the road is the prayer.",
+      "text": "Your capital carries its faith +6 hexes. +1 gold for each citizen of another empire who follows you.",
+      "note": "The seat of a faith held itself and drifted nowhere until this: now the towns around your capital hear it too.",
+      "effects": [
+        {
+          "kind": "pressureRule",
+          "rule": "capitalRange",
+          "delta": 6
+        },
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "gold",
+          "amount": 1,
+          "count": "followingForeignPop"
         }
       ]
     }

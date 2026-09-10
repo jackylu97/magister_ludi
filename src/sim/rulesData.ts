@@ -1689,6 +1689,13 @@ export interface ReligionRules {
   /** What a founder's own capital presses for its own faith. A seat does not drift. */
   capitalStrength: number;
   /**
+   * How far the seat of a faith carries, in hexes. **Zero** as shipped: the
+   * capital holds its own hex and nothing further, which is exactly the line
+   * `explainPressure` printed before this number existed. A card that gives the
+   * seat a reach shifts it (`PressureRuleId`'s `capitalRange`, Pilgrims').
+   */
+  capitalRange: number;
+  /**
    * What a Temple does to the pressure on the town it stands in, in whole
    * percent: `templeOwnPercent` to the faith the town already keeps and
    * `templeForeignPercent` to everybody else's. Twice for its own, and a

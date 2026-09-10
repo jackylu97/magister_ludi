@@ -1007,11 +1007,21 @@ export function purchaseItemAt(
   const born =
     item.kind === 'building'
       ? realiseItem(state, city, { kind: 'building', id: item.id })
-      : realiseItem(state, city, {
-          kind: 'unit',
-          id: item.id,
-          tile: spawnTileFor(state, city, item.id)!,
-        });
+      : realiseItem(
+          state,
+          city,
+          {
+            kind: 'unit',
+            id: item.id,
+            tile: spawnTileFor(state, city, item.id)!,
+          },
+          // **Which bank paid**, handed down to the one writer of `Unit.stamp`
+          // — Mercenaries' hired sword (`CardUnitStampEffect.bought`). Passed
+          // rather than read back out of the cards here: this module may not
+          // switch on a `CardEffect.kind`, and the till is the only place that
+          // knows.
+          { bought: price.currency },
+        );
 
   // A bought thing leaves the queue. Only the **first** copy: a queue may not
   // hold two of a building anyway, and a player who queued two warriors and

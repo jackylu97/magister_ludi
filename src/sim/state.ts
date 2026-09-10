@@ -3685,6 +3685,20 @@ export function createUnit(
    * carries both marks.
    */
   gift?: UnitStamp,
+  /**
+   * **Which bank paid for this piece**, where one did — Mercenaries' hired
+   * sword (`CardUnitStampEffect.bought`).
+   *
+   * `gift`'s neighbour and the same argument for a parameter: it cannot be
+   * derived from anything this routine can see (the roster row, the town and the
+   * hex are identical whether a warrior was mustered or bought), and the module
+   * that *does* know may not read the cards back — `statecraft/evaluator.ts` is
+   * the only switch on a `CardEffect.kind`. So the fact travels down from
+   * `purchaseItemAt` through `RealiseOptions.bought` and is handed to
+   * `cardUnitStamp` here. Absent is a birth nobody paid a till for, which is
+   * every completion, every grant and every escort out of a ruin.
+   */
+  bought?: 'gold' | 'faith',
 ): Unit {
   const def = unitDef(type);
   // **The stamp is decided before the piece exists**, because the maximum it is
@@ -3697,7 +3711,7 @@ export function createUnit(
   // existence — so "built in this city" is asked exactly where it can be
   // answered. A creation on open ground has no town and a scoped stamp is silent
   // there; see `CardUnitStampEffect.scope`.
-  const stamp = cardUnitStamp(state, ownerId, { col, row });
+  const stamp = cardUnitStamp(state, ownerId, { col, row }, type, bought);
   // The caller's own mark, folded into the law's before anything is read off it:
   // one field, one writer, and a piece that is a veteran twice over carries the
   // sum. Voice by voice, because a mark on a levy and a mark on the whole army

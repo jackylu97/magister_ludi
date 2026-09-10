@@ -16,6 +16,7 @@ import type { Command } from "../../src/sim/commands";
 import {
   buildingProductionCost,
   growthThreshold,
+  isCoastalCity,
   ownedTiles,
   refreshCityDerived,
   settleGrowthWindfall,
@@ -96,6 +97,7 @@ import {
   foldCardYields,
   cardOfferRule,
   cardUnitStat,
+  cardUnitStamp as stampOf,
   cardRenownLines,
   countOf,
   describeBuildingRow,
@@ -1612,31 +1614,35 @@ describe("every hook family, end to end", () => {
     expect(after.value).toBe(-1);
   });
 
-  it("rulePercent — Manifest of the Steppe cheapens settlers and stops the ladder", () => {
+  it("rulePercent — Colonial Charters cheapens settlers", () => {
+    // The fixture was Manifest of the Steppe until the orders pass of
+    // 2026-09-10 re-themed that Doctrine to the horse (`docs/flags.md` (xxx)
+    // mark 1). The **shape** is what this arm pins, and the tree's own row is
+    // the live carrier of `settlerCost` now — a node's effects are
+    // `liveEffects`' tenth source, so the hook is read end to end either way.
     const g = game();
     const player = g.state.players[0]!;
     player.unitsBuilt.settler = 3;
     const before = unitProductionCost(g.state, 0, "settler");
-    player.statecraft.doctrines.push("manifestOfTheSteppe");
+    player.techsResearched.push("colonialCharters" as never);
     bumpRevision(g.state);
     const after = unitProductionCost(g.state, 0, "settler");
     expect(after).toBeLessThan(before);
-    // The ladder is **not** stopped any more (the 2026-09-02 pass dropped that
-    // clause for two points of settler movement), so the discount lands on the
-    // escalated price rather than on the base one.
-    expect(after).toBe(Math.max(1, Math.floor((before * 60) / 100)));
+    // The ladder is not stopped, so the discount lands on the escalated price
+    // rather than on the base one.
+    expect(after).toBe(Math.max(1, Math.floor((before * 67) / 100)));
   });
 
-  it("unitStat — Manifest of the Steppe puts two points of movement under a settler", () => {
+  it("unitStat — Manifest of the Steppe puts a point of movement under a horseman", () => {
     const g = game();
     const seat = g.state.units[0]!;
-    const settler = createUnit(g.state, 0, "settler", seat.col, seat.row);
+    const horseman = createUnit(g.state, 0, "horseman", seat.col, seat.row);
     const warrior = createUnit(g.state, 0, "warrior", seat.col, seat.row);
-    const before = fullMovement(settler, g.state);
+    const before = fullMovement(horseman, g.state);
     g.state.players[0]!.statecraft.doctrines.push("manifestOfTheSteppe");
     bumpRevision(g.state);
-    expect(fullMovement(settler, g.state)).toBe(before + 2);
-    // And nothing else: the filter names the settler's own silhouette.
+    expect(fullMovement(horseman, g.state)).toBe(before + 1);
+    // And nothing else: the filter names the horse's own silhouette.
     expect(cardUnitStat(g.state, warrior, "movement")).toBe(0);
   });
 });
@@ -3334,8 +3340,11 @@ describe("the master-list cut of 2026-08-28", () => {
     ]);
     expect(said("theLongWatch")).toEqual([
       // 2026-08-28: the user's correction — a unit standing in the city, whatever
-      // its fortification, is the watch.
-      "+1 happiness per combat unit standing in your cities",
+      // its fortification, is the watch. Narrowed to a **field soldier** by the
+      // orders pass of 2026-09-10, when the row became Martial Law
+      // (`docs/flags.md` (xxx) mark 4): a scout parked in the square is not a
+      // garrison, and neither is a hull tied up at the quay.
+      "+1 happiness per military unit standing in your cities",
       "+1 happiness per fortification in your cities",
     ]);
     expect(said("theWidowsLevy")).toEqual([
@@ -4660,8 +4669,11 @@ describe("the balance pass of 2026-08-31", () => {
     expect(said("theQuietFields")).toEqual([
       "+1 happiness per unimproved hex worked in your cities",
     ]);
+    // The orders pass of 2026-09-10 (`docs/flags.md` (xxx) mark 5) moved half
+    // the row into coin: the plantation pays gold now, so a card about seams
+    // that only fed read against the grain of the board.
     expect(said("firstFruits")).toEqual([
-      "+2 food on every hex carrying a resource",
+      "+1 food, +1 gold on every hex carrying a resource",
     ]);
     expect(said("theOldWays")).toEqual([
       // Built 2026-09-02 (the user: "this is the payoff card"): a percentage on
@@ -6776,7 +6788,15 @@ describe("the cards pass of 2026-09-05", () => {
     expect(said("thePhilosophersStone")).toEqual([
       "+25% production toward The Magnum Opus",
     ]);
-    expect(said("theSeaCharter")).toEqual(["trade routes pay +50%"]);
+    // Renamed and rewritten by the orders pass of 2026-09-10 (`docs/flags.md`
+    // (xxx) mark 2): the row was one of four generic route multipliers and is
+    // The Merchant Scholars now — the caravan feeding the star chart. The id is
+    // forever; the name follows the data.
+    expect(doctrineDef("theSeaCharter").name).toBe("The Merchant Scholars");
+    expect(said("theSeaCharter")).toEqual([
+      "+2% science in every city per trade route you run",
+      "+2% culture in every city per trade route you run",
+    ]);
   });
 });
 
@@ -9592,8 +9612,14 @@ describe("the Orders balance pass of 2026-09-08", () => {
     ).toEqual([]);
   });
 
-  /** **Fish Weirs** — Government I's food, read off the works on the water. */
-  it("Fish Weirs — the boats feed better, and open water does not", () => {
+  /**
+   * **Fish Weirs** — Government I's coin, read off the works on the water.
+   *
+   * It paid food until the orders pass of 2026-09-10 (`docs/flags.md` (xxx)
+   * mark 6): the sea's food identity went with the Grain Fleet's, and the boats
+   * pay in coin like everything else on the water now.
+   */
+  it("Fish Weirs — the boats pay better, and open water does not", () => {
     const g = game(936);
     const city = found(g.state, 0);
     slot(g.state, 0, "fishWeirs" as never);
@@ -9601,7 +9627,7 @@ describe("the Orders balance pass of 2026-09-08", () => {
     const ours = (): number =>
       explainTileYield(tile, yieldContextFor(g.state, 0))
         .filter((line) => line.source.includes("Fish Weirs"))
-        .reduce((sum, line) => sum + (line.food ?? 0), 0);
+        .reduce((sum, line) => sum + (line.gold ?? 0), 0);
     delete tile.improvement;
     expect(ours()).toBe(0);
     tile.improvement = "farm";
@@ -9615,7 +9641,7 @@ describe("the Orders balance pass of 2026-09-08", () => {
       "+1 production in every coastal city",
     ]);
     expect(said("fishWeirs")).toEqual([
-      "+1 food on every hex with a Fishing Boat",
+      "+1 gold on every hex with a Fishing Boat",
     ]);
     expect(orderDef("boatwrights" as never).line).toBe("tide");
     expect(orderDef("fishWeirs" as never).line).toBe("tide");
@@ -10191,5 +10217,265 @@ describe("the deferred rows of batch E4b", () => {
     const paid = foldRouteYield(explainRouteYieldBetween(g.state, from, to));
     expect(paid.science).toBe(plain.science + 2);
     expect(paid.culture).toBe(plain.culture + 2);
+  });
+});
+
+// --- the orders and doctrines pass, batch O2 --------------------------------
+
+/**
+ * **The user's marks of 2026-09-10** (`docs/flags.md` (xxx), and the bracketed
+ * lines in `docs/orders-and-doctrines.md`): nine rows re-cut, seven rows
+ * written, one ability moved off a card and onto a building.
+ *
+ * The printed *words* of all seventeen are pinned by `cardTextSnapshot` and by
+ * the worksheet's own sync test, so what this block pins is the half neither can
+ * see: the **shapes** the marks needed, each read end to end on a board.
+ */
+describe("the orders and doctrines pass of 2026-09-10", () => {
+  const said = (id: string): string[] =>
+    describeCard(id as never).map((c) => stripRefs(c.text));
+
+  /**
+   * **Martial Law counts field soldiers** (mark 4), which is the rules' own
+   * `isFieldSoldier` said as a `UnitFilter` — a scout parked in the square is
+   * not a garrison, and the bot's levy counts the same pieces.
+   */
+  it("Martial Law — the scout in the square is not the watch", () => {
+    const g = game(6101);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "theLongWatch" as never);
+    const happy = (): number => foldMeter(explainHappiness(g.state, 0));
+    const bare = happy();
+    createUnit(g.state, 0, "scout", city.col, city.row);
+    bumpRevision(g.state);
+    expect(happy()).toBe(bare);
+    createUnit(g.state, 0, "warrior", city.col, city.row);
+    bumpRevision(g.state);
+    expect(happy()).toBe(bare + 1);
+    expect(said("theLongWatch")[0]).toBe(
+      "+1 happiness per military unit standing in your cities",
+    );
+  });
+
+  /**
+   * **Riders of the Steppe** (mark 12) — one `rule` shape, two rules, both
+   * narrowed to one silhouette. The picket is priced in `stepCost` and nowhere
+   * else, so the free ride is asked there.
+   */
+  it("Riders of the Steppe — the horse walks past the picket, the spearman pays", () => {
+    const g = game(6102);
+    const seat = g.state.units[0]!;
+    const horse = createUnit(g.state, 0, "horseman", seat.col, seat.row);
+    const foot = createUnit(g.state, 0, "warrior", seat.col, seat.row);
+    const from = getTileAt(g.state.map, seat.col, seat.row)!;
+    const to = getTileAt(g.state.map, seat.col + 1, seat.row)!;
+    // A rival picket touching both hexes, which is what a toll asks for.
+    createUnit(g.state, 1, "spearman", seat.col, seat.row - 1);
+    createUnit(g.state, 1, "spearman", seat.col + 1, seat.row - 1);
+    bumpRevision(g.state);
+    const priced = (unit: typeof horse): boolean =>
+      stepCost(
+        g.state.map,
+        from,
+        to,
+        moveProfile(g.state, unit),
+        zocField(g.state, unit.ownerId),
+      )!.zoc;
+    // The toll binds both of them before the law is passed.
+    expect(priced(horse)).toBe(true);
+    expect(priced(foot)).toBe(true);
+    slot(g.state, 0, "ridersOfTheSteppe" as never);
+    expect(priced(horse)).toBe(false);
+    // And the filter names the horse: the foot goes on paying.
+    expect(priced(foot)).toBe(true);
+    // The raid's point, the same way — Tyranny's rule, narrowed.
+    expect(cardBehaviorRule(g.state, 0, "freePillage", "horseman")).toBe(true);
+    expect(cardBehaviorRule(g.state, 0, "freePillage", "warrior")).toBe(false);
+    // A caller with no piece in hand is asking the empire's question, and a row
+    // that named a silhouette has nothing to say to it.
+    expect(cardBehaviorRule(g.state, 0, "freePillage")).toBe(false);
+  });
+
+  /** **Tribute** (mark 11) — a new count, and it counts only the towns that bow. */
+  it("Tribute — the puppet pays, the annexed town does not", () => {
+    const g = game(6103);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "tribute" as never);
+    city.population = 8;
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    const paid = (): number =>
+      explainCardEmpireYields(g.state, 0)
+        .filter((line) => line.card === "tribute")
+        .reduce((sum, line) => sum + (line.gold ?? 0), 0);
+    expect(paid()).toBe(0);
+    city.puppet = true;
+    bumpRevision(g.state);
+    expect(paid()).toBe(4);
+    delete city.puppet;
+    bumpRevision(g.state);
+    expect(paid()).toBe(0);
+  });
+
+  /** **Tolls** (mark 13) — the builder's own paving, on the count that reads it. */
+  it("Tolls — four hexes of road buy a coin", () => {
+    const g = game(6104);
+    found(g.state, 0);
+    slot(g.state, 0, "tolls" as never);
+    const paid = (): number =>
+      explainCardEmpireYields(g.state, 0)
+        .filter((line) => line.card === "tolls")
+        .reduce((sum, line) => sum + (line.gold ?? 0), 0);
+    expect(paid()).toBe(0);
+    let laid = 0;
+    for (const tile of g.state.map.tiles) {
+      if (laid >= 8) break;
+      tile.road = 0;
+      laid += 1;
+    }
+    bumpRevision(g.state);
+    expect(paid()).toBe(2);
+  });
+
+  /**
+   * **Mercenaries** (mark 14) — a stamp that reaches one bank and one
+   * silhouette, plus a discount every purchase reads.
+   */
+  it("Mercenaries — the hired sword is blooded, the levy is not", () => {
+    const g = game(6105);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "mercenaries" as never);
+    const born = { col: city.col, row: city.row };
+    // The stamp is written at the birth, so it is asked of the reader the birth
+    // asks — with the bank, with the silhouette, and with neither.
+    expect(stampOf(g.state, 0, born, "warrior", "gold").strength).toBe(2);
+    // A levy the queue paid for is a levy like any other.
+    expect(stampOf(g.state, 0, born, "warrior").strength).toBeUndefined();
+    // And a worker bought with the same coin is not a soldier.
+    expect(stampOf(g.state, 0, born, "worker", "gold").strength).toBeUndefined();
+    // The discount is one labelled line in the bank every surface reads.
+    const bank = explainPurchaseCost(
+      g.state,
+      0,
+      city.id,
+      { kind: "unit", id: "warrior" },
+      "gold",
+    )!;
+    expect(bank.lines.some((line) => line.source.includes("Mercenaries"))).toBe(true);
+  });
+
+  /**
+   * **The Entrepôt** (mark 15) — the host is paid, and only for a cart that
+   * crossed a border. The scope's own new narrowing.
+   */
+  it("The Entrepôt — the foreign cart pays the quay, the domestic one does not", () => {
+    const g = game(6106);
+    // The bench opens at war (`statecraftHelpers`), and a caravan to an empire
+    // you are fighting is not a live route at all (`routeCities`) — so the two
+    // seats keep the peace for this one.
+    g.state.wars.length = 0;
+    const mine = found(g.state, 0);
+    const theirs = found(g.state, 1);
+    slot(g.state, 0, "theEntrepot" as never);
+    mine.population = 10;
+    refreshCityDerived(g.state, mine);
+    bumpRevision(g.state);
+    const paid = (): number =>
+      explainCardCityYields(g.state, mine)
+        .filter((line) => line.card === "theEntrepot")
+        .reduce((sum, line) => sum + (line.gold ?? 0), 0);
+    expect(paid()).toBe(0);
+    // A cart of somebody else's, ending here.
+    const cart = createUnit(g.state, 1, "trader", theirs.col, theirs.row);
+    cart.trade = {
+      from: theirs.id,
+      to: mine.id,
+      expiresTurn: g.state.turn + 20,
+      outbound: true,
+      autoResend: false,
+    };
+    bumpRevision(g.state);
+    expect(paid()).toBe(2);
+    // The same cart sent from a town of this empire's is a domestic road, and
+    // the clause does not admit it.
+    theirs.ownerId = 0;
+    bumpRevision(g.state);
+    expect(paid()).toBe(0);
+  });
+
+  /** **Patronage** (mark 16) — the renown trickle, counted. */
+  it("Patronage — four citizens in the capital buy a point of renown", () => {
+    const g = game(6107);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "patronage" as never);
+    const paid = (): number =>
+      cardRenownLines(g.state, 0)
+        .filter((line) => line.card === "patronage")
+        .reduce((sum, line) => sum + line.amount, 0);
+    city.population = 3;
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(paid()).toBe(0);
+    city.population = 9;
+    refreshCityDerived(g.state, city);
+    bumpRevision(g.state);
+    expect(paid()).toBe(2);
+  });
+
+  /**
+   * **Harbourmasters** (mark 8) — the slot is the coast's now, one per town that
+   * has raised the harbour, and the fold prints the town.
+   */
+  it("Harbourmasters — a slot per harbour, not one for the realm", () => {
+    const g = game(6109);
+    const city = found(g.state, 0);
+    slot(g.state, 0, "harbourmasters" as never);
+    const ours = (): number =>
+      explainRouteSlots(g.state, 0)
+        .filter((line) => line.source.includes("Harbourmasters"))
+        .reduce((sum, line) => sum + line.slots, 0);
+    // No harbour, no slot — the scope is asked of the town.
+    expect(ours()).toBe(0);
+    city.buildings.push("harbour" as never);
+    bumpRevision(g.state);
+    // A coastal town with the stones is one slot; a landlocked one is none, and
+    // the composite scope is what says which.
+    if (isCoastalCity(g.state, city)) {
+      expect(ours()).toBe(1);
+      expect(
+        explainRouteSlots(g.state, 0).some((line) => line.source.includes(city.name)),
+      ).toBe(true);
+    } else {
+      expect(ours()).toBe(0);
+    }
+  });
+
+  /**
+   * **The Merchant Scholars** (mark 2) — the caravan feeding the star chart, at
+   * the empire stage, once per road.
+   */
+  it("The Merchant Scholars — every road is two points of the realm's percentages", () => {
+    const g = game(6111);
+    g.state.wars.length = 0;
+    const mine = found(g.state, 0);
+    const theirs = found(g.state, 1);
+    playerById(g.state, 0)!.statecraft.doctrines.push("theSeaCharter" as never);
+    bumpRevision(g.state);
+    const share = (voice: "science" | "culture"): number =>
+      explainCardPercentYields(g.state, mine)
+        .filter((line) => line.card === "theSeaCharter" && line.yield === voice)
+        .reduce((sum, line) => sum + line.percent, 0);
+    expect(share("science")).toBe(0);
+    const cart = createUnit(g.state, 0, "trader", mine.col, mine.row);
+    cart.trade = {
+      from: mine.id,
+      to: theirs.id,
+      expiresTurn: g.state.turn + 20,
+      outbound: true,
+      autoResend: false,
+    };
+    bumpRevision(g.state);
+    expect(share("science")).toBe(2);
+    expect(share("culture")).toBe(2);
   });
 });

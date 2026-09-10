@@ -1322,7 +1322,16 @@ function describeEffect(
       // Terracotta Army's "units built in this city". The same sentence-builder
       // every other scoped clause uses, so a stamp and a yield say "in every
       // city with a Cathedral" the same way.
-      const born = effect.scope === undefined ? 'units' : `units in ${cityScopeWords(effect.scope)}`;
+      // **Which pieces**, and **which till** (Mercenaries). The silhouette is
+      // the roster's own word (`filterWords`) so "military units" and "mounted
+      // units" are one clause; the bank trails, because a player reads *what is
+      // stamped* first and *how it was paid for* second.
+      const who = effect.class === undefined ? 'units' : filterWords(effect.class);
+      const paid = effect.bought === undefined ? '' : ` bought with ${effect.bought}`;
+      const born =
+        effect.scope === undefined
+          ? `${who}${paid}`
+          : `${who}${paid} in ${cityScopeWords(effect.scope)}`;
       if (hp !== 0) {
         out.push({ text: `newly created ${born} gain ${signed(hp)} maximum health` });
       }
@@ -1331,9 +1340,20 @@ function describeEffect(
       }
       return;
     }
-    case 'rule':
-      out.push({ text: FLAG_RULE_WORDS[effect.rule] });
+    case 'rule': {
+      // A rule of the whole realm reads as itself; a rule of one line of
+      // soldiers is said **of that line**, because "mounted units: pillaging
+      // costs your units no movement" is the plumbing showing through a sentence
+      // that ought to be about horsemen. See `FLAG_RULE_CLASS_WORDS`.
+      if (effect.class === undefined) {
+        out.push({ text: FLAG_RULE_WORDS[effect.rule] });
+        return;
+      }
+      const who = filterWords(effect.class);
+      const narrowed = FLAG_RULE_CLASS_WORDS[effect.rule];
+      out.push({ text: narrowed ? narrowed(who) : `${who}: ${FLAG_RULE_WORDS[effect.rule]}` });
       return;
+    }
     case 'windfallRider': {
       // The occasion, narrowed where the row narrows it — "killing a barbarian
       // unit" rather than "killing a unit". See `occasionWords`.
@@ -1520,7 +1540,13 @@ function describeEffect(
       // A figure, and a figure is a thing a player has to be told — "+1 trade
       // route". `offerRider`'s widening half, read the same way.
       const extra = (effect.extra ?? 1);
-      out.push({ text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}` });
+      // **Where the slot is opened**, when the row opens one per town rather
+      // than one per realm (Harbourmasters). The same sentence-builder every
+      // other scoped clause uses, so a route and a yield say "in every coastal
+      // city with a Harbour" the same way.
+      const where =
+        effect.scope === undefined ? '' : ` in ${scopeWordsFor(subject, effect.scope)}`;
+      out.push({ text: `+${extra} trade ${extra === 1 ? 'route' : 'routes'}${where}` });
       return;
     }
     case 'effectAmplifier': {
@@ -1739,7 +1765,13 @@ function describeEffect(
               ? // The shelf names itself, because "per building" would not say
                 // which — Patrons pays for the culture houses and nothing else.
                 ` per ${effect.category ?? ''} building you hold`
-              : '';
+              : // **A counted trickle** (Patronage's capital citizens), said
+                // through the count's own noun — the same table a `pays` count
+                // and a counted wall print through, so three surfaces name one
+                // count one way.
+                effect.count !== undefined
+                ? ` per ${countWords(effect.countPer, countNoun({ kind: 'pays', where: 'empire', basis: 'count', count: effect.count }, ''))}`
+                : '';
       const family = effect.family === undefined ? '' : `, favouring ${effect.family}s`;
       out.push({
         text: `${signed(effect.amount)} renown per turn${where}${family}`,
@@ -1751,13 +1783,22 @@ function describeEffect(
       out.push({ text: PRESSURE_RULE_WORDS[effect.rule](delta) });
       return;
     }
-    case 'pressure':
+    case 'pressure': {
+      // **What buys one helping**, where the stones press by the count — the
+      // High Temple's citizens. `cityStat`'s clause exactly, and through the
+      // same noun table, so a wall counted per citizen and a tide counted per
+      // citizen read as one sentence.
+      const each =
+        effect.count === undefined
+          ? ''
+          : ` per ${countWords(effect.per, countNoun({ kind: 'pays', where: 'city', basis: 'count', count: effect.count, within: 'city' }, ''))}`;
       out.push({
         text:
-          `spreads your religion ${signed(effect.amount)} faith ` +
+          `spreads your religion ${signed(effect.amount)} faith${each} ` +
           `to every city within ${effect.range} hexes`,
       });
       return;
+    }
     case 'upkeepRebate': {
       const who = effect.class ? filterWords(effect.class) : 'all units';
       const where = WHERE_WORDS[effect.where ?? 'anywhere'];
@@ -1982,6 +2023,10 @@ const PRESSURE_RULE_WORDS: Record<PressureRuleId, (delta: number) => string> = {
   roadStrength: (delta) => `roads carry ${signed(delta)} faith`,
   routeStrength: (delta) => `caravans carry ${signed(delta)} faith`,
   capitalStrength: (delta) => `your capital holds ${signed(delta)} faith of its own`,
+  // The seat's reach. It says *carries* rather than "reaches further", because
+  // the capital had no reach at all before a card gave it one — "further" would
+  // be an increment on a distance the player has never been told about.
+  capitalRange: (delta) => `your capital carries its faith ${signed(delta)} hexes`,
   templeOwnPercent: (delta) => `a Temple holds its own faith ${signed(delta)}% harder`,
   templeForeignPercent: (delta) =>
     delta < 0
@@ -2093,6 +2138,15 @@ function slotFlavourWords(flavour: SlotType): PluralWords {
  * Barracks" and "per Temple" are one shape, one table entry and two data rows.
  */
 function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
+  // **The filtered garrison** — Martial Law's field soldiers, said in the words
+  // the filter uses everywhere else. Asked before the town table below, because
+  // the filter *replaces* that entry's noun ("combat unit standing …") rather
+  // than qualifying it, and the place is composed in here the same way.
+  if (effect.count === 'garrison' && effect.class !== undefined) {
+    const at = place === '' || place === 'in this city' ? 'in the city' : place;
+    const many = `${filterWords(effect.class)} standing ${at}`;
+    return { one: many.replace(/\bunits\b/, 'unit'), many };
+  }
   // **The town the count is taken in, where the noun carries one** (batch L1).
   // Eight counts can only ever be asked of a town, and each of them wrote the
   // town into its own words — "building in this city", "combat unit standing in
@@ -2422,8 +2476,17 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'routeEndsHere':
       // The plain words: what the town has is caravans arriving, which is the
-      // sentence the trade screen itself uses.
-      into.qualifiers.push('a trade route ends at');
+      // sentence the trade screen itself uses. **Whose** caravan, where the row
+      // asks (The Entrepôt) — "another empire's", not "international", because
+      // that is the word the rest of this table uses for the far side of a
+      // border.
+      into.qualifiers.push(
+        scope.crossing === undefined
+          ? 'a trade route ends at'
+          : scope.crossing === 'international'
+            ? "another empire's trade route ends at"
+            : 'one of your own trade routes ends at',
+      );
       return;
     default: {
       const unhandled: never = test;
@@ -2587,6 +2650,12 @@ function filterWords(filter: UnitFilter): string {
   // happens to give it.
   if (filter.explores === true) return 'scouts';
   if (filter.explores === false) return 'units other than scouts';
+  // **"Military units"**, which is what a player calls the pieces an empire
+  // levies and garrisons with — the roster spells it as a combatant that is
+  // neither a scout nor a hull, and none of those three words belongs on a card.
+  // Asked before the silhouette for `consecrates`' reason.
+  if (filter.fieldSoldier === true) return 'military units';
+  if (filter.fieldSoldier === false) return 'units other than soldiers';
   // **Ships**, and the plain word is the point (hard rule 7): the roster calls
   // them a `'naval'` category and three `navalLight`/`navalHeavy`/`navalRanged`
   // model classes, and none of those is a thing a first-time player has ever
@@ -3066,6 +3135,12 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
     one: 'citizen in your capital',
     many: 'citizens in your capital',
   },
+  // "In a puppet", because that is the whole of what the card is about: a town
+  // you took and never took in. Never "population" — the citizens' own word.
+  puppetPopulation: {
+    one: 'citizen living in a puppet of yours',
+    many: 'citizens living in your puppets',
+  },
   // `garrisonOf` keeps only combatants, and the words say so.
   garrison: { one: 'combat unit standing in the city', many: 'combat units standing in the city' },
   garrisonWatch: {
@@ -3172,6 +3247,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   followingPop: {
     one: 'citizen in the cities that follow you',
     many: 'citizens in the cities that follow you',
+  },
+  // The congregation abroad, counted in people. "Another empire's" rather than
+  // "foreign", because a player reads whose the town is before they read what it
+  // is called — `followingForeign`'s own words one scale down.
+  followingForeignPop: {
+    one: "citizen of another empire who follows you",
+    many: 'citizens of other empires who follow you',
   },
   followingEmpires: { one: 'empire that follows you', many: 'empires that follow you' },
   followingWithBuilding: {
@@ -3390,8 +3472,25 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   routesImportLuxuries:
     'a trade route ending in another empire’s city lends you one luxury resource that ' +
     'city has improved, worth a share of your own',
-  // The zone of control, and the only rule of it there is. `ZocRuleId`.
+  // The zone of control, both rules of it. `ZocRuleId`. The second is written
+  // for the whole army, and `FLAG_RULE_CLASS_WORDS` says it of a line.
   borders: 'every hex you own exerts zone of control on enemy units, as a unit of yours would',
+  ignored: 'your units ignore enemy zone of control',
+};
+
+/**
+ * The rules that read differently **of a line of soldiers** — the class-narrowed
+ * half of `FLAG_RULE_WORDS` (`CardRuleEffect.class`, Riders of the Steppe).
+ *
+ * A second, partial table rather than a formatter on every entry, because only
+ * two rules in the union take a filter at all: the rest are facts about the
+ * *empire* and have no piece to be said of. A row that narrows a rule with no
+ * entry here still prints — the class leads and the sentence follows — so a
+ * narrowing added tomorrow is never silent, only plain.
+ */
+const FLAG_RULE_CLASS_WORDS: Partial<Record<CardFlagRuleId, (who: string) => string>> = {
+  freePillage: (who) => `${who} pillage without spending movement`,
+  ignored: (who) => `${who} ignore enemy zone of control`,
 };
 
 const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {

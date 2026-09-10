@@ -3069,9 +3069,18 @@ export function explainPressure(
     // it is made (`pressLump`), not a source that presses every turn until it
     // fades. The tide is the standing world; a bomb is an event.
 
-    // **A founder's capital does not drift.** The seat of the faith holds itself.
-    if (capitalCityOf(state, founder)?.id === city.id) {
-      say('Your capital', rule('capitalStrength', rules.capitalStrength));
+    // **A founder's capital does not drift.** The seat of the faith holds
+    // itself — and, where a law gives it a reach, carries out to the towns
+    // around it (Pilgrims, `capitalRange`). The base range is **0**, which is
+    // the capital's own hex and nothing further, so an empire holding no such
+    // card reads exactly the line it always read.
+    const seat = capitalCityOf(state, founder);
+    if (seat) {
+      const seatTile = getTileAt(state.map, seat.col, seat.row);
+      const capitalRange = rule('capitalRange', rules.capitalRange);
+      if (seatTile && wrappedDistance(state.map, eye, tileHex(seatTile)) <= capitalRange) {
+        say('Your capital', rule('capitalStrength', rules.capitalStrength));
+      }
     }
 
     // The stones. `cardPressureSources` keeps the town each one presses from,

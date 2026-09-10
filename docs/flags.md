@@ -1990,6 +1990,34 @@ directly to confirm rulings — user marginalia are rulings.
   its shape already is (a new count joins `wantsOf`/`explainEffects` the
   way W2's did). Schema only if a stored field is added (Tribute and
   Tolls are readings; none expected).
+  **O2 built** (2026-09-10, no schema): every mark as ruled — Manifest of
+  the Steppe re-themed to the horse (mounted +1 movement, pillage ×2),
+  **The Merchant Scholars** (+2% science and culture per route, empire
+  stage), Mare Nostrum (+1🌾 +2💰 on water, +15% science coastal; no live
+  row carries `coastalCityCost` now — the base relief stands unnamed),
+  **Martial Law** (the `garrison` count narrowed by `fieldSoldier`, no
+  cap), First Fruits, Fish Weirs (gold), Assize Courts (+6 capacity,
+  captured city 1), Harbourmasters (a slot per coastal town with a
+  Harbour), The Grain Fleet (+6🌾 coastal, gold per 3 coastal citizens).
+  New cards: Tribute (Gov III, count `puppetPopulation`), Riders of the
+  Steppe (Gov III; `ZocRuleId.ignored` + `freePillage`, mounted-scoped
+  by the new `CardRuleEffect.class`), Tolls (Gov II, `roadHexes`),
+  Mercenaries (Gov IV; a `unitStamp` narrowed by `bought: 'gold'` +2, a
+  −20% purchase rider — "+20% purchasing power" read as "20% cheaper"),
+  The Entrepôt (Gov IV; `routeEndsHere` gained `crossing`), Patronage
+  (Gov III; `CardRenownEffect` gained a count), the High Temple's
+  per-4-citizens pressure line (`CardPressureEffect` gained a count),
+  Pilgrims (Gov III; `PressureRuleId.capitalRange` — the capital had NO
+  range before, so the card grants a holy site's 6 over a base of 0, and
+  `followingForeignPop`). `isFieldSoldier` moved to `unitData.ts` (the
+  card and the levy count one thing). A silence closed: the counted
+  arms of the city-yield folds now ask `scope`. Docs regenerated;
+  `docs/playstyles.md` §10 marked. Flagged: `growthSurplus` and
+  `coastalCityCost` have no live carrier (readers stand). t100 (this
+  batch alone, vs T5's row): gold 61 → 51, prod 83 → 85.5, sci 90 → 87,
+  cul 76 → 72, happiness +9.7 → +6.4 — ▢ the Merchant Scholars /
+  Martial Law swap and the four "keep" rows are the likely movers; the
+  playtest reads it.
 - (www) **Sunk progress, and the Ministry of Works — RULED** (the user,
   2026-09-10: *"the pool of yields shouldn't swap over when reselecting
   something, i.e. science is placed into a tech, and that tech is

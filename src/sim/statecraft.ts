@@ -88,6 +88,7 @@ export {
   cardBeadOccasions,
   cardBehaviorRule,
   cardBorderZoc,
+  cardZocIgnored,
   cardBuildingHappiness,
   cardBuildingPercents,
   cardCityRenownShares,

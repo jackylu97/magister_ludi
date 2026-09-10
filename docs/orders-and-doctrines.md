@@ -105,7 +105,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Doctrine | Line | Effect |
 |---|---|---|
 | The Iron Price | ⚒ | Killing a unit grants +20 culture · pillaging pays double. |
-| Manifest of the Steppe | — | Settlers cost 40% less to train and have +2 movement. |
+| Manifest of the Steppe | ⚒ | Mounted units gain +1 movement. Pillaging pays double. |
 | The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +2 authority capacity. |
 | The Grand Bazaar | 🐫 | Happiness from unique luxuries +50%. A second or later copy of a luxury pays 30% of its bonus instead of nothing. +2 gold for each unique luxury. |
 | Master of Maps | 🧭 | All units +1 sight and +1 movement, all units −4 combat strength. |
@@ -122,7 +122,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 |---|---|---|
 | The Academy | — | −10% culture and +20% science. Great scholar drafts can be bought with faith. |
 | The Standing Army | ⚒ | +1 authority capacity for each 5 units you have in the field. −1 happiness in every city. Units cost no upkeep. |
-| The Sea Charter | 🐫 | Trade routes pay 50% more. |
+| The Merchant Scholars | 🐫 | +2% science and +2% culture in every city for each trade route you run. |
 | The Renaissance Court | — | Great-person offers show one more card. |
 | Cuius Regio | 🕯 | In cities that follow your religion, 15% of the faith they gain is gained again as science. |
 | The Yeomanry | 🌱 | +1 production on every hex with a Farm. Cities of 10 or more population −1 happiness. |
@@ -135,7 +135,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Blitz | ⚒ | Units that kill may move again that turn. Units cannot fortify. |
 | The Philosopher's Stone | — | The Magnum Opus is built 25% faster. |
 | The Grand Tour | — | +3 renown per turn for each wonder you hold. +1 culture for each wonder in the world, seen or not. |
-| Mare Nostrum | 🐫 | +1 food and +1 gold on every water hex you own. Coastal cities cost no authority. |
+| Mare Nostrum | 🐫 | +1 food and +2 gold on every water hex you own. +15% science in coastal cities. |
 | Pax Magistri | 🌱 | +3 happiness in every city. +5 science and +5 culture in every city of 12 or more population. |
 | The Encyclopaedia | ✶ | +1 science for each building in a city. Science buildings cost −50% production. |
 | The Triumphal Way | ⚒ | Capturing a city grants +5 happiness in every city for 10 turns. |
@@ -171,7 +171,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| The Long Watch | M | — | ● | P | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. |
+| Martial Law | M | — | ● | P | +1 happiness for each military unit standing in one of your cities, and +1 more for each fortification a city has built. |
 | Border Wardens | M | — | ● | E | +2 combat strength inside your territory, and +2 more for each military Order you have in a slot, at most +6 more. |
 | Conscription | M | ⚒ | ◆ | S | +50% production toward units · −2 happiness. |
 | Spoils of the Wild | M | 🏹 | ◆ | S | Clearing a barbarian camp pays +100%. |
@@ -203,7 +203,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Census | E | 📜 | ◆ | P | +1 authority capacity for each 2 cities you hold. |
 | The Scribes' Hall | E | ✶ | ◆ | P | +1 science in every city for each 3 citizens living there. |
 | The Lamp Kept Lit | W | ✶ | ○ | P | +25% science in your capital. |
-| Fish Weirs | E | ⚓ | ● | S | +1 food on every fishing boat. |
+| Fish Weirs | E | ⚓ | ● | S | +1 gold on every fishing boat. |
 
 ### Government II pool (49)
 
@@ -228,6 +228,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Star-Gazers | W | ✶ | ● | P | +15% science in every city with a mountain hex inside its borders. |
 | Cistern Works | E | 🌾 | ◆ | S | Every city of yours counts as standing on fresh water. |
 | Ledger-Keepers | E | 🐫 | ● | S | +1 science and +1 culture on every trade route sent from a city with a Market, and +1 trade route. |
+| Tolls | E | 🐫 | ● | P | +1 gold for each 4 road hexes you have laid. |
 | Drums of War | M | ⚒ | ◆ | S | While this Order is in a slot, units created from now on are born with +4 combat strength, and keep it for life. |
 | The Cartographers | W | 🧭 | ◆ | P | +1 science for each 40 hexes you have revealed. |
 | The Oath-Bound | M | ⚒ | ○ | S | Killing a unit heals the unit that struck the blow by 15. |
@@ -258,7 +259,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The High Chancery | W | 🏛 | ○ | E | Your Orders pay half again in your capital. |
 | The Votive Tally | W | 🕯 | ◆ | E | +1 faith for each Order draft you have asked again while this stands in a slot. |
 
-### Government III pool (42)
+### Government III pool (46)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -266,15 +267,19 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Skirmishers' Creed | M | ⚒ | ○ | S | Ranged units gain +1 range. |
 | The Standing Levy | M | — | ○ | S | Every 12 turns, a free melee unit musters in your capital. · *neutral* |
 | Client Kings | E | — | ● | S | +4 authority capacity · a captured city costs one less authority. |
+| Tribute | E | 🐫 | ◆ | P | +1 gold for each 2 citizens living in your puppets. |
+| Riders of the Steppe | M | ⚒ | ○ | S | Mounted units ignore enemy zone of control and pillage without spending movement. |
 | Provincial Mints | E | 🐫 | ● | P | +10% gold in every city holding an improved luxury resource. |
 | Quarrymen's Guild | E | ⚒ | ● | P | +4 production in every city with a quarry, and +1 production on every quarry. |
 | The Grain Dole | E | 🌱 | ● | S | +2 happiness in every city of 6 or more population. |
 | Mandate of Heaven | W | 🕯 | ◆ | P | The science and culture your happy cities pay rises 8 percentage points · +1 happiness for each 150 banked faith. |
 | The Lyceum | W | ✶ | ◆ | S | Completing a technology grants an extra turn of culture. |
 | Census of Souls | W | 🕯 | ◆ | P | +1 faith for each citizen in your capital. |
+| Patronage | W | 🏛 | ◆ | S | +1 renown per turn for each 4 citizens in your capital. |
+| Pilgrims | W | 🕯 | ◆ | P | Your capital carries its faith +6 hexes. +1 gold for each citizen of another empire who follows you. |
 | Toleration Edicts | W | — | ● | S | −15% happiness demanded per citizen. |
 | The Old Ways | W | 🌱 | ◆ | P | The yields of unimproved hexes are doubled. |
-| First Fruits | E | 🌱 | ● | S | +2 food on every hex carrying a resource. |
+| First Fruits | E | 🌱 | ● | S | +1 food and +1 gold on every hex carrying a resource. |
 | The War Chest | E | ⚒ | ● | S | Military units cost 2 less gold in maintenance. |
 | Forced Marches | M | ⚒ | ● | S | Melee units gain +1 movement, and +2 instead inside your own territory. |
 | The Escorted Roads | E | 🐫 | ● | P | Trade routes pay 30% more. |
@@ -305,7 +310,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Exchange Charter | E | 🐫 | ○ | P | Your gold buildings give half again their yield, counted after every other share. |
 | The Triumph | W | 🏛 | ● | P | Every 12 turns, gain culture equal to the production your empire makes in a turn. |
 
-### Government IV pool (18)
+### Government IV pool (20)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -313,22 +318,24 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Field Hospitals | M | ⚒ | ◆ | S | Units resting inside your own territory mend completely each turn. |
 | Decisive Blows | M | ⚒ | ○ | S | +10 combat strength when attacking a unit below half strength. |
 | The Marshals' Purse | M | ⚒ | ○ | S | Military units cost 25% less to buy. |
+| Mercenaries | E | 🐫 | ○ | S | Newly created military units bought with gold gain +2 combat strength. All units cost 20% less to buy. |
 | Knightly Orders | M | ⚒ | ○ | S | Mounted units gain +10 combat strength inside your territory, and cities put 25% less production behind them. |
 | The Siege Train | M | ⚒ | ◆ | S | Siege units gain +1 movement. +12 combat strength against cities for units standing beside a siege engine. |
 | Patrons | E | 🏛 | ◆ | P | +10 culture for each wonder you hold. +3 renown per turn for each culture building you hold. |
 | The Guild of Masons | E | 🏛 | ● | S | +50% production toward wonders · −15% production toward units. |
-| Harbourmasters | E | 🐫 | ◆ | S | +1 trade route · +2 gold on every fishing boat. |
-| Assize Courts | E | — | ◆ | P | +1 authority capacity for each 2 cities you hold · a captured city costs 1 authority. |
-| The Grain Fleet | E | 🌱 | ○ | P | +6 food in every coastal city · +50% growth surplus there. |
+| Harbourmasters | E | 🐫 | ◆ | S | +1 trade route in every coastal city with a Harbour · +2 gold on every fishing boat. |
+| Assize Courts | E | — | ◆ | S | +6 authority capacity · a captured city costs 1 authority. |
+| The Grain Fleet | E | 🌱 | ○ | P | +6 food in every coastal city · +1 gold for each 3 citizens in your coastal cities. |
 | Cathedral Chapters | E | 🕯 | ◆ | P | +2 culture and +2 faith in every city with a Cathedral. |
 | The Consistory | W | 🕯 | ○ | P | Your faith buildings pay double, counted after every other share. |
 | Scholastics | W | ✶ | ◆ | P | +5 science for each University you hold · completing a technology grants +40 faith. |
 | The Scholars’ Rule | W | ✶ | ◆ | E | Your Orders that give science give an additional science. |
+| The Entrepôt | E | 🐫 | ◆ | P | +1 gold for each 5 citizens in every city of yours that a foreign trade route ends in. |
 | The Exchequer | E | 🐫 | ● | P | Your trade routes pay double. |
 | The Assay | E | 🐫 | ○ | P | Every 20 turns, gain science equal to the gold your empire makes in a turn. |
 | The Broad Acres | E | 🌱 | ○ | P | Every farm pays double what it makes. |
 
-### Government V pool (18)
+### Government V pool (14)
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
@@ -353,7 +360,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **Fire-Keepers** — The faith is paid in your capital, so anything that raises what your capital receives raises this with it.
 - **The Founding Oath** — It counts the buildings standing in your capital rather than the first three ever raised there, and the third is the last that pays.
 - **Boatwrights** — A city counts as coastal when it stands on the water itself, not merely near it.
-- **Fish Weirs** — The hex has to carry the boats already. Open water with nothing built on it feeds no better.
+- **Fish Weirs** — The hex has to carry the boats already. Open water with nothing built on it pays no better.
 - **Conscription** — The unhappiness is a flat charge on the realm, not a charge per city: nothing can count only the cities past a fourth one.
 - **Spoils of the Wild** — It adds to Camp Followers rather than replacing it: a camp cleared under both pays both.
 - **Silk Roads** — The coin rides on the road itself, so anything that raises what a route pays raises this with it.
@@ -363,6 +370,12 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Reckless Levy** — The coin is charged on each soldier the empire is already paying for, so a settler, a scout or a caravan is no dearer than it was.
 - **Cistern Works** — It answers what is asked of a city — whether the town can drink. A hex out in the fields is still watered by the river or by nothing.
 - **Ledger-Keepers** — A road is read from the town that sent the caravan, so a Market at the far end of it pays nothing here.
+- **Tolls** — It counts the paving your own workers laid, wherever the borders have since moved to.
+- **Tribute** — A puppet spends nothing of its own, so the coin is the realm's: annex the town and the tribute stops with the bowing.
+- **Riders of the Steppe** — A raid still needs a horseman with something left to spend: what the law withholds is the point, not the price of admission.
+- **Pilgrims** — The seat of a faith held itself and drifted nowhere until this: now the towns around your capital hear it too.
+- **Mercenaries** — The blooding is written on the soldier at the moment the coin changes hands, and stays with them for life; a levy the countryside raised is a levy like any other.
+- **The Entrepôt** — It is the host that is paid, whoever sent the caravan: a road your own cities run between them pays nothing here.
 - **The Synod** — A faith building is any building of yours that pays faith at all, and the share is taken last — after everything else that raised it.
 - **The Harvest Songs** — It reads the whole harvest rather than what is left after the citizens eat: a city's surplus is decided after every percentage on it, and a card that read the surplus would be reading a figure that reads the card back.
 - **The Votive Tally** — Only Order drafts you paid faith to see again are counted, and only while this sits in a chair. A doctrine, a name or a hand of gods asked again counts for nothing here.
@@ -374,7 +387,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The King's Road** — The realm's towns are stages on a march: a column that reaches one is fed, remounted and out of the gate the same day. Its allowance is filled back up, never added to, so walking in and out again banks nothing.
 - **Field Hospitals** — A piece mends only where it rests: one that moved or struck this turn heals nothing, here or anywhere.
 - **Decisive Blows** — A fight is decided by points on one ledger rather than by a share of the blow, so what was written as extra damage is printed as a strength line.
-- **Harbourmasters** — A trade route belongs to the empire rather than to a town, so the extra route is the realm’s and not the coast’s.
+- **Harbourmasters** — The harbour has to be built. A coastal town without one sends no more caravans than it did before.
 - **The Consistory** — A faith building is any building of yours that pays faith at all, and the doubling is taken last — after everything else that raised it.
 - **Forced March** — The march is quicker and costs nothing: nothing remembers how far a piece walked this turn.
 - **Admiralty** — A landing is the fleet's business, and the men who make one are still the fleet's for a few days afterwards. Wading *out* still ends the turn; only coming ashore is free.
@@ -388,7 +401,6 @@ line under Notes, where the words after the dagger are what the row does *not* d
 - **The Great Warring Tribes** — The courthouse clause did nothing — there is no courthouse in the game — and is struck.
 - **Hegemony** — A city you take costs one authority — the least any law can make it.
 - **The Pilgrim Ways** — Nothing yet marks the turn a city changes its faith, so the foreign congregation is counted rather than paid for at the moment it is won.
-- **The Sea Charter** — The clause about founding coastal cities with a Harbour is struck: nothing founds a city with a building it has not built.
 - **The Renaissance Court** — The clause about stronger legacies is struck: nothing makes a legacy stronger.
 - **The Philosopher's Stone** — The clause about distilleries is struck: there is no distillery in the game.
 - **The Closed Realm** — Not built, both halves. Nothing in this game can hold a meter at a number instead of adding to it, and nothing can refuse an attack for where it is being made. † your happiness is held at +5 whatever your cities ask for · your units cannot attack outside your own territory

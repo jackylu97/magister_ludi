@@ -55,7 +55,7 @@ import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
-import { effectsOfKind } from './evaluator';
+import { cityScopeAdmits, effectsOfKind } from './evaluator';
 import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
@@ -759,6 +759,13 @@ export function explainOfferSize(
  * hands `trade.ts` a list it folds into `explainRouteSlots` beside the lines the
  * *buildings* supply. A market's slot and the Great Lighthouse's are one number
  * with two sources, exactly as authority capacity is.
+ *
+ * **A scoped rider lines up once per town that admits it** (Harbourmasters,
+ * `docs/flags.md` (xxx) mark 8). One line each rather than one line multiplied,
+ * for `explainRouteSlots`' own reason: a market's slot is printed with the town
+ * that raised it, and a player watching four routes appear is owed the four
+ * harbours. The towns are walked in `state.cities` order, which is what that fold
+ * already walks, so the two halves of the list are one ordering.
  */
 export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLine[] {
   const lines: OfferSizeLine[] = [];
@@ -767,7 +774,16 @@ export function cardRouteSlots(state: GameState, playerId: number): OfferSizeLin
     // say only that it widens the fold.
     const extra = (effect.extra ?? 1);
     if (extra === 0) continue;
-    lines.push({ source, delta: extra });
+    const scope = effect.scope;
+    if (scope === undefined) {
+      lines.push({ source, delta: extra });
+      continue;
+    }
+    for (const city of state.cities) {
+      if (city.ownerId !== playerId) continue;
+      if (!cityScopeAdmits(state, city, scope, playerId)) continue;
+      lines.push({ source: `${source} · ${city.name}`, delta: extra });
+    }
   }
   return lines;
 }

@@ -39,7 +39,7 @@ import type { ValueContext } from './value';
 import { type Tile, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } from '../sim/map';
 import { type Cell, type MoveProfile, canStopOn, findPath, moveProfile } from '../sim/pathfind';
 import { type City, type GameState, type Player, type Unit, realPlayers } from '../sim/state';
-import { type UnitDef, isCombatant, isExplorer, isRanged, unitDef } from '../sim/unitData';
+import { type UnitDef, isCombatant, isFieldSoldier, isRanged, unitDef } from '../sim/unitData';
 import { atWar } from '../sim/wars';
 
 /**
@@ -68,10 +68,14 @@ import { atWar } from '../sim/wars';
  *
  * It lives here rather than in `bot.ts` because the declaration asks it too, and
  * `diplomacy.ts` may not import `bot.ts`. See the module docblock.
+ *
+ * **It moved into the rules** on 2026-09-10 (the orders pass): Martial Law
+ * counts the same pieces, and a card and a levy that each spelled "an army" for
+ * themselves would drift. The definition is `unitData.ts`' now and this is the
+ * name the bot has always called it — re-exported rather than re-implemented, so
+ * every reading in `src/ai/` is untouched and there is still exactly one answer.
  */
-export function isFieldSoldier(def: UnitDef): boolean {
-  return isCombatant(def) && !isExplorer(def) && def.category !== 'naval';
-}
+export { isFieldSoldier };
 
 /**
  * **The piece that opens a town**: one that shoots, or one whose whole trade is

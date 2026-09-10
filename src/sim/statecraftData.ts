@@ -574,7 +574,20 @@ export type CityScope =
    * `routeIsLive`'s, so the scope stops admitting on the turn the caravan's own
    * expiry passes, exactly as the yield it is scoped over does.
    */
-  | { test: 'routeEndsHere' }
+  | {
+      test: 'routeEndsHere';
+      /**
+       * **Which side of a border the road had to cross** — The Entrepôt's, whose
+       * whole subject is the foreign cart in your market.
+       *
+       * `CardPaysEffect.crossing`'s field one shape over and the same reading
+       * (`routeIsInternational`, `routes.ts`), so a card asked about a *caravan*
+       * and a card asked about the *town it comes to* cannot disagree about what
+       * a foreign road is. Absent admits any live route ending here, which is
+       * what every row written before it meant.
+       */
+      crossing?: 'domestic' | 'international';
+    }
   | { test: 'all'; of: CityScope[] }
   /**
    * **Any one of these** holds — the Stable's pasture *or* camp.
@@ -919,6 +932,22 @@ export interface UnitFilter {
    */
   explores?: boolean;
   /**
+   * True: only the pieces an empire **levies, garrisons with and marches** —
+   * `isFieldSoldier` (`unitData.ts`), Martial Law's count.
+   *
+   * The one member of this filter that says a thing the others cannot compose:
+   * "a combatant that is neither a scout nor a hull" is three clauses and a
+   * negation, and there is no `not` in this vocabulary and will not be — a
+   * filter that can say anything is a filter nobody can print. So the roster's
+   * own predicate earns a member, exactly as `consecrates` and `explores` did.
+   *
+   * It is deliberately the **rules'** reading and not a second one: the bot's
+   * levy, its mix and its strike force have counted these pieces since 2026-09-05
+   * and re-export the same function, so a card that pays for a garrison and a
+   * bot that decides it has one cannot disagree about what a soldier is.
+   */
+  fieldSoldier?: boolean;
+  /**
    * One **named** roster row, and nothing else — State Workforce's cheaper
    * worker (tree revision 4, 2026-09-02).
    *
@@ -1141,6 +1170,20 @@ export type CountKind =
   | 'population'
   /** Citizens in the capital. */
   | 'capitalPopulation'
+  /**
+   * Citizens living in this empire's **puppets** — Tribute's, and the tax a
+   * conqueror takes instead of taking a town into the realm proper.
+   *
+   * `population` narrowed to the towns that chose nothing for themselves
+   * (`City.puppet`, the flag `annexCity` deletes), and a member of its own
+   * rather than a filter on that count for `improvedStrategicResources`' reason
+   * exactly: "per citizen" and "per citizen in a puppet" read differently on a
+   * card, and a member each is what lets `COUNT_WORDS` write the words. It is
+   * **never** narrowed by `within: 'city'` — a puppet spends nothing, so a line
+   * paid *in* one would be a payout the town could not use; the tribute is the
+   * realm's, which is the whole sentence the card makes.
+   */
+  | 'puppetPopulation'
   /** Combat units standing in this city (city-scoped). */
   | 'garrison'
   /** Fortified garrison, each worth 1 + its fortification level (city-scoped). */
@@ -1413,6 +1456,18 @@ export type CountKind =
   | 'followingForeign'
   /** Citizens summed across every following city, yours and foreign. */
   | 'followingPop'
+  /**
+   * Citizens summed across the following cities **somebody else owns** —
+   * Pilgrims', whose whole subject is the congregation beyond your own borders.
+   *
+   * `followingPop` is to `followingCities` what this is to `followingForeign`,
+   * and it is a member of its own for that count's stated reason: "per citizen
+   * who follows you" and "per foreign citizen who follows you" read differently
+   * on a card, and a member each is what lets the words be written without a
+   * second table. Answered by the same sweep, which is what keeps the four
+   * readings of the tide from disagreeing about who is in it.
+   */
+  | 'followingForeignPop'
   /** Empires with at least one following city. The reach of the faith. */
   | 'followingEmpires'
   /**
@@ -3071,6 +3126,35 @@ export interface CardUnitStampEffect {
    * quiet default to everywhere.
    */
   scope?: CityScope;
+  /**
+   * **Which pieces are stamped** — Mercenaries' military line (the user's orders
+   * pass, `docs/flags.md` (xxx) mark 14).
+   *
+   * The day `cardUnitStamp`'s docblock said would come: the ratified rows all
+   * said *newly created units* until one said *military units bought with gold*,
+   * so the ordinary `UnitFilter` joins the shape and is asked beside
+   * `unitMatches` like every other narrowing. Absent stamps every piece, which
+   * is what The Muster Roll and Drums of War have always meant.
+   */
+  class?: UnitFilter;
+  /**
+   * **Only a piece bought out of this bank** — Mercenaries' hired sword, which
+   * is a different animal from a levy the countryside raised.
+   *
+   * `scope` narrows *where* a piece was raised and this narrows *how it was paid
+   * for*, which is the one fact about a birth that the town, the roster and the
+   * hex all fail to carry. It travels the way `scope`'s town does — handed down
+   * from the seam that knows (`purchaseItemAt` → `RealiseOptions.bought` →
+   * `createUnit` → `cardUnitStamp`) — rather than being read back out of the
+   * cards at the purchase seam, because `statecraft/evaluator.ts` is the only
+   * module that may switch on a `CardEffect.kind`.
+   *
+   * A row naming a bank is silent at every other birth: a completion, a wonder's
+   * grant, a ruin's escort and a purchase out of the *other* bank all leave it
+   * unstamped, which is the honest reading of "bought with gold". Absent stamps
+   * every birth, bought or built.
+   */
+  bought?: 'gold' | 'faith';
 }
 
 /**
@@ -3293,6 +3377,20 @@ export interface CardRouteRiderEffect {
   kind: 'routeRider';
   /** How many extra routes. Absent means one. */
   extra?: number;
+  /**
+   * **Once for every town that admits it** — Harbourmasters' *"+1 trade route in
+   * every coastal city with a Harbour"* (the user's orders pass, `docs/flags.md`
+   * (xxx) mark 8).
+   *
+   * The ordinary `CityScope`, and it turns the rider from a fact about the realm
+   * into the sea build's own slots-by-count: the fold walks this empire's towns
+   * and lines up one entry per admitting town, exactly as `explainRouteSlots`
+   * lines up one entry per market. Absent is the realm-wide reading every row
+   * written before it meant — the Great Lighthouse grants one route to the
+   * empire, not one to each harbour — and the note on Harbourmasters' own row
+   * is what stopped saying so.
+   */
+  scope?: CityScope;
 }
 
 /**
@@ -3365,6 +3463,24 @@ export interface CardConditionRuleEffect {
 export interface CardRuleEffect {
   kind: 'rule';
   rule: CardFlagRuleId;
+  /**
+   * **Which pieces the rule is true of** — Riders of the Steppe's mounted line,
+   * which ignores a picket and burns a farm for nothing while the rest of the
+   * army does neither.
+   *
+   * The ordinary `UnitFilter`, asked through `unitMatches` exactly as every
+   * other narrowing on this vocabulary is, and **absent means every piece** —
+   * which is what every row written before it meant, so Tyranny's free raid is
+   * byte-identical without being touched.
+   *
+   * It is meaningful only where the seam asking has a piece in hand: the two
+   * rules that admit one today are `freePillage` (asked in `pillageAt` of the
+   * raider) and `ignored` (resolved once per sweep onto `MoveProfile`). A rule
+   * about the *empire* — a free chop, a passive wild, a bank that sells
+   * libraries — is asked with no piece at all, and a filter on such a row is
+   * simply never consulted rather than silently narrowing it to nothing.
+   */
+  class?: UnitFilter;
 }
 
 /**
@@ -3626,7 +3742,26 @@ export interface CardPurchaseRiderEffect {
  * Said as `CardRuleEffect` (`"kind": "rule"`) since batch H6, with the other
  * three flag kinds. The union below is the typed door `cardBorderZoc` knocks on.
  */
-export type ZocRuleId = 'borders';
+export type ZocRuleId =
+  | 'borders'
+  /**
+   * `'ignored'`: the pieces this card names **walk past a picket for nothing** —
+   * Riders of the Steppe's, and the horse's whole argument against the phalanx.
+   *
+   * `'borders'`' opposite number, and the second rule of the zone of control
+   * there is: that one *adds* a source, this one excuses a mover from the toll.
+   * Resolved once per sweep onto `MoveProfile.ignoresZoc` (`moveProfile`,
+   * `pathfind.ts`) for the reason every other empire-wide fact on that struct is
+   * — a step's price is asked tens of thousands of times inside one search — and
+   * read in `stepCost`, so the highlight, the estimate and the march quote the
+   * free ride by construction. The unit sheet's own reading
+   * (`inZoneOfControl`) asks the same question, or a rider would be told it was
+   * pinned by a line it does not pay.
+   *
+   * Which pieces is `CardRuleEffect.class`; a row naming none excuses the whole
+   * army, which is the filter's own reading everywhere else.
+   */
+  | 'ignored';
 
 /**
  * More out of one turn of a **project** — the Water Clock of Su Song's beakers
@@ -3699,6 +3834,35 @@ export interface CardRenownEffect {
    * the honest answer for a row that never said which shelf.
    */
   category?: BuildingCategory;
+  /**
+   * **What the empire is counted for** — Patronage's *"+1 renown per 4 citizens
+   * in your capital"* (the user's orders pass, `docs/flags.md` (xxx) mark 16).
+   *
+   * `per`'s wider sibling, and it is a second field rather than three more
+   * members on that one because the question is different: `per` names a *thing
+   * the trickle is multiplied by* out of a list of three, and this asks the
+   * simulation's own counting question (`countOf`, the very reading the yields
+   * ask) with a divisor of its own. So a card counting citizens for renown and a
+   * card counting them for beakers cannot disagree about how many there are —
+   * `CardCityStatEffect.count`'s bargain one ledger over.
+   *
+   * A row carrying both is a row asking two questions; `per` is read first and
+   * this is ignored there, because a multiplier and a count are not composable
+   * into a sentence anybody would print.
+   */
+  count?: CountKind;
+  /**
+   * How many of `count` buy one helping of `amount`. Default 1.
+   *
+   * Named apart from `per` because `per` is this shape's older word for *what
+   * the trickle is multiplied by* and the two would read as one field with two
+   * meanings — which is exactly the confusion `CardPaysEffect`'s three
+   * double-duty fields are documented into being safe from, and there is no
+   * (`where`, `basis`) pair here to make it disjoint.
+   */
+  countPer?: number;
+  /** The most helpings that ever pay. `count` only. */
+  max?: number;
   /** Which family this feeds. Absent feeds the pool and no family. */
   family?: Family;
 }
@@ -3725,6 +3889,20 @@ export type PressureRuleId =
   | 'roadStrength'
   | 'routeStrength'
   | 'capitalStrength'
+  /**
+   * **How far the seat of the faith carries** — Pilgrims' (the user's orders
+   * pass, `docs/flags.md` (xxx) mark 18).
+   *
+   * `capitalStrength`'s missing twin. Every other source in the tide is a pair —
+   * a strength and a reach — and the founder's capital had only the first: it
+   * held *itself* and drifted nowhere, which is `explainPressure`'s "a founder's
+   * capital does not drift". So `rules.religion.capitalRange` is **0** in every
+   * game nothing says otherwise, meaning the capital's own hex and nothing
+   * further, and the fold is byte-identical to the day before this existed.
+   * A card that shifts it gives the seat a reach, which is the whole of what
+   * Pilgrims is.
+   */
+  | 'capitalRange'
   | 'templeOwnPercent'
   | 'templeForeignPercent'
   | 'bombRange'
@@ -3754,6 +3932,27 @@ export interface CardPressureEffect {
   kind: 'pressure';
   amount: number;
   range: number;
+  /**
+   * **What the town is counted for** — the High Temple's *"presses its faith
+   * harder for every 4 citizens it holds"* (the user's orders pass,
+   * `docs/flags.md` (xxx) mark 17, where the ability came off a card and onto
+   * the stones).
+   *
+   * `CardCityStatEffect.count`'s trio said a third time, and here for that
+   * shape's reason exactly: what a wall is worth per citizen and what a shrine
+   * presses per citizen are the same *counting* question, and a second
+   * implementation of "how many people live here" beside `countOf` is how two
+   * rows start disagreeing about one number. Asked with `within: 'city'` of the
+   * town the stones stand in — `cardPressureSources` is the one fold that has
+   * kept the town, which is why this is expressible here and nowhere else.
+   *
+   * Absent pays the flat once, which is what every row written before it meant.
+   */
+  count?: CountKind;
+  /** How many of the thing counted buy one helping of `amount`. Default 1. */
+  per?: number;
+  /** The most helpings that ever press. */
+  max?: number;
 }
 
 /**

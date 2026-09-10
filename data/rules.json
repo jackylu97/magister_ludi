@@ -303,6 +303,7 @@
     "roadStrength": 4,
     "routeStrength": 3,
     "capitalStrength": 4,
+    "capitalRange": 0,
     "templeOwnPercent": 200,
     "templeForeignPercent": 75,
     "bombRange": 10,

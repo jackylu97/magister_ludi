@@ -2828,8 +2828,25 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     quality, and stay at the rate this arm has always read them at. The
       //     day one of them wants a reading of its own it takes a case here.
       return unitStatPoints(effect.stat, effect.amount, ctx) * (1 + ctx.threat);
-    case 'renown':
-      return effect.amount * ctx.ai.weights.renown;
+    case 'renown': {
+      // **A counted trickle is worth what it counts today** — Patronage's
+      // citizens (batch O2). `countProbe` is the simulation's own reading, the
+      // same door every counted `pays` goes through, so a card paying renown per
+      // citizen and a card paying gold per citizen cannot disagree about how
+      // many there are. A row with no count is the flat this arm always read;
+      // `per` (the three older multipliers) is left where it was, which is a
+      // standing under-read of the Council of Elders and not this batch's.
+      const helpings =
+        effect.count === undefined
+          ? 1
+          : Math.floor(
+              countProbe(ctx, effect.count) /
+                (effect.countPer === undefined || effect.countPer <= 0 ? 1 : effect.countPer),
+            );
+      const capped =
+        effect.max === undefined ? helpings : Math.min(helpings, Math.max(0, effect.max));
+      return effect.amount * capped * ctx.ai.weights.renown;
+    }
     case 'upkeepRebate':
       // A rebate is gold that never leaves, priced at the same pressure-adjusted
       // rate the bill is charged at — so a card that pays the army's wages
@@ -2953,7 +2970,15 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // shelf that grants one cannot disagree about what a slot is worth. It
       // answers nothing while this empire has a slot going spare, which is the
       // reading and not a silence: a second key to an empty room.
-      const slot = routeSlotTerm(effect.extra ?? 1, ctx);
+      //
+      // **Once per town that admits it**, where the row is scoped
+      // (Harbourmasters, batch O2): the fold lines up one slot per admitting
+      // town, so the appraisal counts the same towns — `townsAdmitting`, the
+      // scope reading batch X2 gave every other arm — and a realm with no
+      // harbour is offered a card worth nothing, which is what it is.
+      const towns = effect.scope === undefined ? 1 : townsAdmitting(ctx, effect.scope);
+      if (towns === 0) return 0;
+      const slot = routeSlotTerm((effect.extra ?? 1) * towns, ctx);
       return slot === null ? 0 : slot.value;
     }
     case 'effectAmplifier':
@@ -3100,7 +3125,16 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       // does — the same points on the same ledger, paid to pieces not yet built.
       // **Hit points have no reading in this currency**: a hit point is a
       // fraction of a piece and a stamp names no piece, so that half is named.
-      const strength = (effect.strength ?? 0) * ctx.ai.weights.military * (1 + ctx.threat);
+      //
+      // **A stamp that only reaches a bank reaches a fraction of the levy**
+      // (Mercenaries, batch O2): a seat that builds most of its army is paid for
+      // the part of it the treasury buys, and this bot keeps no estimate of that
+      // split. Half is written down as the stand-in it is — an honest halving of
+      // a line whose other half is the plan's arithmetic — rather than the full
+      // reading, which would price a hired sword as a standing army.
+      const bought = effect.bought === undefined ? 1 : 0.5;
+      const strength =
+        (effect.strength ?? 0) * bought * ctx.ai.weights.military * (1 + ctx.threat);
       return strength + (effect.hp === undefined ? 0 : ctx.ai.score.unknownEffect);
     }
     case 'rule':
@@ -3124,6 +3158,11 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     card's. Named, and a debt on H3 rather than here.
       //   · the world's rules — the wild converting its killers, a realm's roads
       //     laid free. Neither is a rate and neither has a fold. Named.
+      //   · `ignored` (Riders of the Steppe, O2) — a picket walked past for
+      //     nothing. Its worth is the difference between two marches, which is
+      //     the plan's arithmetic and not a card's: this bot does not price a
+      //     toll it has not yet decided to pay, exactly as `freePillage` below
+      //     is not priced. Named, and left at the stand-in.
       //   · `freePillage` (Tyranny, 2026-09-08) — a movement point given back on
       //     a raid this bot decides to make. Its worth is the difference between
       //     two marches, which is the plan's arithmetic and not a card's, and it

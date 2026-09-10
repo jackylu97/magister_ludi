@@ -363,12 +363,12 @@
   ],
   "manifestOfTheSteppe": [
    {
-    "raw": "settlers cost 40% less production",
-    "text": "settlers cost 40% less production"
+    "raw": "mounted units: +1 movement",
+    "text": "mounted units: +1 movement"
    },
    {
-    "raw": "settler units: +2 movement",
-    "text": "settler units: +2 movement"
+    "raw": "pillaging pays +100%",
+    "text": "pillaging pays +100%"
    }
   ],
   "gildedCourt": [
@@ -480,8 +480,12 @@
   ],
   "theSeaCharter": [
    {
-    "raw": "trade routes pay +50%",
-    "text": "trade routes pay +50%"
+    "raw": "+2% science in every city per trade route you run",
+    "text": "+2% science in every city per trade route you run"
+   },
+   {
+    "raw": "+2% culture in every city per trade route you run",
+    "text": "+2% culture in every city per trade route you run"
    }
   ],
   "theRenaissanceCourt": [
@@ -544,12 +548,12 @@
   ],
   "mareNostrum": [
    {
-    "raw": "+1 food, +1 gold on every water hex",
-    "text": "+1 food, +1 gold on every water hex"
+    "raw": "+1 food, +2 gold on every water hex",
+    "text": "+1 food, +2 gold on every water hex"
    },
    {
-    "raw": "the authority a coastal city costs is 0",
-    "text": "the authority a coastal city costs is 0"
+    "raw": "+15% science in every coastal city",
+    "text": "+15% science in every coastal city"
    }
   ],
   "theLeveeEnMasse": [
@@ -716,8 +720,8 @@
   ],
   "theLongWatch": [
    {
-    "raw": "+1 happiness per combat unit standing in your cities",
-    "text": "+1 happiness per combat unit standing in your cities"
+    "raw": "+1 happiness per military unit standing in your cities",
+    "text": "+1 happiness per military unit standing in your cities"
    },
    {
     "raw": "+1 happiness per fortification in your cities",
@@ -1361,8 +1365,8 @@
   ],
   "firstFruits": [
    {
-    "raw": "+2 food on every hex carrying a resource",
-    "text": "+2 food on every hex carrying a resource"
+    "raw": "+1 food, +1 gold on every hex carrying a resource",
+    "text": "+1 food, +1 gold on every hex carrying a resource"
    }
   ],
   "theQuartermasters": [
@@ -1805,8 +1809,8 @@
   ],
   "harbourmasters": [
    {
-    "raw": "+1 trade route",
-    "text": "+1 trade route"
+    "raw": "+1 trade route in every coastal city with a [[building:harbour|Harbour]]",
+    "text": "+1 trade route in every coastal city with a Harbour"
    },
    {
     "raw": "+2 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
@@ -1821,8 +1825,8 @@
   ],
   "assizeCourts": [
    {
-    "raw": "+1 authority capacity per 2 cities you hold",
-    "text": "+1 authority capacity per 2 cities you hold"
+    "raw": "+6 authority capacity",
+    "text": "+6 authority capacity"
    },
    {
     "raw": "the authority a captured city costs is 1",
@@ -1835,8 +1839,8 @@
     "text": "+6 food in every coastal city"
    },
    {
-    "raw": "+50% food surplus stored toward growth, in every coastal city",
-    "text": "+50% food surplus stored toward growth, in every coastal city"
+    "raw": "+1 gold in every coastal city per 3 citizens there",
+    "text": "+1 gold in every coastal city per 3 citizens there"
    }
   ],
   "cathedralChapters": [
@@ -2214,8 +2218,62 @@
   ],
   "fishWeirs": [
    {
-    "raw": "+1 food on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
-    "text": "+1 food on every hex with a Fishing Boat"
+    "raw": "+1 gold on every hex with a [[improvement:fishingBoats|Fishing Boat]]",
+    "text": "+1 gold on every hex with a Fishing Boat"
+   }
+  ],
+  "tribute": [
+   {
+    "raw": "+1 gold per 2 citizens living in your puppets",
+    "text": "+1 gold per 2 citizens living in your puppets"
+   }
+  ],
+  "ridersOfTheSteppe": [
+   {
+    "raw": "mounted units ignore enemy zone of control",
+    "text": "mounted units ignore enemy zone of control"
+   },
+   {
+    "raw": "mounted units pillage without spending movement",
+    "text": "mounted units pillage without spending movement"
+   }
+  ],
+  "tolls": [
+   {
+    "raw": "+1 gold per 4 road hexes you have laid",
+    "text": "+1 gold per 4 road hexes you have laid"
+   }
+  ],
+  "mercenaries": [
+   {
+    "raw": "newly created military units bought with gold gain +2 combat strength",
+    "text": "newly created military units bought with gold gain +2 combat strength"
+   },
+   {
+    "raw": "all units cost −20% to buy",
+    "text": "all units cost −20% to buy"
+   }
+  ],
+  "theEntrepot": [
+   {
+    "raw": "+1 gold in every city another empire's trade route ends at per 5 citizens there",
+    "text": "+1 gold in every city another empire's trade route ends at per 5 citizens there"
+   }
+  ],
+  "patronage": [
+   {
+    "raw": "+1 renown per turn per 4 citizens in your capital",
+    "text": "+1 renown per turn per 4 citizens in your capital"
+   }
+  ],
+  "pilgrims": [
+   {
+    "raw": "your capital carries its faith +6 hexes",
+    "text": "your capital carries its faith +6 hexes"
+   },
+   {
+    "raw": "+1 gold per citizen of another empire who follows you",
+    "text": "+1 gold per citizen of another empire who follows you"
    }
   ]
  },
@@ -3308,6 +3366,10 @@
    {
     "raw": "spreads your religion +6 faith to every city within 6 hexes",
     "text": "spreads your religion +6 faith to every city within 6 hexes"
+   },
+   {
+    "raw": "spreads your religion +1 faith per 4 citizens to every city within 6 hexes",
+    "text": "spreads your religion +1 faith per 4 citizens to every city within 6 hexes"
    },
    {
     "raw": "+25% faith in every city with a [[building:highTemple|High Temple]]",

@@ -2558,6 +2558,13 @@
           "range": 6
         },
         {
+          "kind": "pressure",
+          "amount": 1,
+          "range": 6,
+          "count": "population",
+          "per": 4
+        },
+        {
           "kind": "percentYields",
           "yield": "faith",
           "percent": 25,
@@ -2571,7 +2578,7 @@
         "family": "artist",
         "perTurn": 1
       },
-      "note": "Your faith carries from here as far and as strongly as it does from a holy site."
+      "note": "Your faith carries from here as far and as strongly as it does from a holy site, and the bigger the city that keeps it the harder it carries."
     },
     "mosque": {
       "name": "Mosque",

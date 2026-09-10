@@ -98,6 +98,7 @@ import {
   cardBehaviorRule,
   cardBorderZoc,
   cardRulePercent,
+  cardZocIgnored,
   foldCardRulePercent,
 } from './statecraft';
 import { type GameState, type Unit, playerById } from './state';
@@ -403,6 +404,24 @@ export interface MoveProfile {
    */
   freeLanding?: boolean;
   /**
+   * True when this piece **walks past a picket for nothing** — Riders of the
+   * Steppe's (`cardZocIgnored`, the `ignored` zone-of-control rule).
+   *
+   * `freeLanding`'s sibling in every respect and hoisted for its reason: the
+   * answer is a walk of this seat's whole card table *and* a question about the
+   * mover's own silhouette, which is not a lookup to repeat tens of thousands of
+   * times inside one search. Read in `stepCost`, where the toll is added, so the
+   * highlight, the estimate and the march quote the free ride by construction —
+   * a mover excused anywhere but there is a mover two of the four readers would
+   * disagree about.
+   *
+   * It excuses the **toll** and nothing else: the picket is a price and never a
+   * wall (the 2026-08-28 ruling), so there is nothing else here to excuse.
+   * Written only when it is true, `freeLanding`'s bargain, so a profile from a
+   * world with no such card in it is the object it always was.
+   */
+  ignoresZoc?: boolean;
+  /**
    * What one step **along a road** costs this mover — `roadStepCost`, with the
    * mover's empire's own `roadStepCost` percentage on it (Machinery's −40, a
    * third becoming a fifth).
@@ -630,6 +649,14 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     owner !== undefined && cardBehaviorRule(state, owner.id, 'freeLanding')
       ? { freeLanding: true as const }
       : {};
+  // Riders of the Steppe's, asked once for the sweep beside the landing and for
+  // its reason — a fact about the empire *and* this piece's silhouette, and a
+  // step's price is asked tens of thousands of times inside one search. Written
+  // only when it is true, `freeLanding`'s bargain one field over.
+  const ignoresZoc =
+    owner !== undefined && cardZocIgnored(state, owner.id, unit.type)
+      ? { ignoresZoc: true as const }
+      : {};
   if (isNaval(def)) {
     // Spread rather than assigned, so a mover nothing bars has *no key* and a
     // profile from a world with no diplomacy in it is the object it always was.
@@ -641,6 +668,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
       full,
       roadStep,
       ...freeLanding,
+      ...ignoresZoc,
       ports: navalPorts(state),
       ...(closed === undefined ? {} : { closed }),
     };
@@ -667,6 +695,7 @@ export function moveProfile(state: GameState, unit: Unit): MoveProfile {
     full,
     roadStep,
     ...freeLanding,
+    ...ignoresZoc,
     ...(closed === undefined ? {} : { closed }),
   };
 }
@@ -1055,6 +1084,11 @@ export function zocBinds(map: GameMap, field: ZocField, from: Tile, to: Tile): b
  * sidestep along the line.
  */
 export function inZoneOfControl(state: GameState, unit: Unit): boolean {
+  // A piece whose law excuses it from the toll is not pinned by anything, so the
+  // sheet does not say it is: `stepCost` charges it nothing, and a panel that
+  // warned about a price nobody pays would be the interface disagreeing with the
+  // march.
+  if (cardZocIgnored(state, unit.ownerId, unit.type)) return false;
   const field = zocField(state, unit.ownerId);
   if (field.sources.length === 0) return false;
   const here = getTileAt(state.map, unit.col, unit.row);
@@ -1165,7 +1199,11 @@ export function stepCost(
   // Like the road, it *replaces* the ground's price rather than discounting it.
   let base = isRoadStep(from, to) ? (mover?.roadStep ?? roadStepCost) : ground;
   if (mover !== undefined && isShoreStep(from, to, mover)) base = shoreStepCost(mover, from, to);
-  const zoc = zocBinds(map, field, from, to);
+  // **Riders of the Steppe walk past the picket for nothing.** Asked here, where
+  // the toll is added, so the four readers cannot disagree about one step — and
+  // asked of the resolved profile rather than of the cards, because a step is
+  // priced thousands of times a search (`MoveProfile.ignoresZoc`).
+  const zoc = mover?.ignoresZoc === true ? false : zocBinds(map, field, from, to);
   // Snapped for `snapMovement`'s reason: the base may be a road's third and the
   // toll is a whole point, and a sum of the two has to compare equal to itself
   // in the searches' `best` arrays.

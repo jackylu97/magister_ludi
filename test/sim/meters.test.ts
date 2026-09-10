@@ -1048,23 +1048,25 @@ describe('what founding a city here would cost', () => {
     expect(lines.some((line) => line.source.includes('Palace'))).toBe(false);
   });
 
-  it('follows the empire\'s own law rather than the printed price', () => {
+  it('prices the coast by the base rules, and the preview says so', () => {
     const state = flatState();
     foundCityAt(state, 0, at(state.map, 4, 4));
+    const inland = foldMeter(
+      foundingCostLines(explainFoundingCost(state, 0, at(state.map, 8, 7)), 'authority'),
+    );
     const site = coastalSite(state);
-    const printed = foldMeter(foundingCostLines(explainFoundingCost(state, 0, site), 'authority'));
-
-    // Mare Nostrum shifts what a coastal town costs — to nothing at all; the
-    // preview must move with it, through the same `cardMeterRule` call the meter
-    // makes. (It was Thalassocracy's clause until the user's card pass of
-    // 2026-09-03 rewrote that row into a yield conversion; the rule and the two
-    // readings of it are unchanged, and this is the card that still says it.)
-    playerById(state, 0)!.statecraft.doctrines.push('mareNostrum');
-    bumpRevision(state);
-    const legislated = foldMeter(
+    const coast = foldMeter(
       foundingCostLines(explainFoundingCost(state, 0, site), 'authority'),
     );
-    expect(legislated).toBeGreaterThan(printed);
+    // A coastal town is cheaper to govern than an inland one, and it is the
+    // **base rules** that say so (`rules.authority.coastalCity`). Mare Nostrum
+    // carried a `coastalCityCost` clause on top of that until the orders pass of
+    // 2026-09-10 (`docs/flags.md` (xxx) mark 3), and the ruling was that it
+    // duplicated the relief every empire already has — so the Doctrine bought
+    // science with the clause and this is what is left, which is what was always
+    // doing the work. The rule itself is untouched and read where it always was;
+    // the pin on a *card* moving a founding price is Hill Forts', below.
+    expect(coast).toBeGreaterThan(inland);
 
     // The happiness half is the citizen, and nothing else.
     // `cityHappinessDemand` — a flat surcharge on governing one more town, and

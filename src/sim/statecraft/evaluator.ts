@@ -164,6 +164,7 @@ import {
   UNIT_TYPE_IDS,
   isCombatant,
   isExplorer,
+  isFieldSoldier,
   unitDef,
   unitMaxHp,
 } from '../unitData';
@@ -1593,16 +1594,31 @@ export function cityScopeAdmits(
       }
       return false;
     }
-    case 'routeEndsHere':
+    case 'routeEndsHere': {
       // **`Unit.trade` is the route** — there is no register — so the question
       // is asked of the pieces, and only of the ones still paying: a lapsed
       // route is inert (`routeIsLive`) and a town it once ended at is not a
       // town caravans come to. Whoever *sent* it is not asked, exactly as
       // `cityRouteYields` does not ask: a foreign caravan in your market is a
       // caravan in your market.
-      return state.units.some(
-        (unit) => unit.trade?.to === city.id && routeIsLive(state, unit),
-      );
+      //
+      // **Unless the row names a crossing** (The Entrepôt): then the sender is
+      // exactly the question, and it is asked through `routeIsInternational` —
+      // the same reading a route `pays` row's own `crossing` takes — so the two
+      // cannot disagree about what a foreign road is. A caravan whose origin has
+      // left the board is no road at all and admits nothing.
+      const wanted = scope.crossing;
+      for (const unit of state.units) {
+        const route = unit.trade;
+        if (route?.to !== city.id) continue;
+        if (!routeIsLive(state, unit)) continue;
+        if (wanted === undefined) return true;
+        const origin = state.cities.find((town) => town.id === route.from);
+        if (!origin) continue;
+        if (routeIsInternational(origin, city) === (wanted === 'international')) return true;
+      }
+      return false;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1675,7 +1691,9 @@ function scopeNote(scope?: CityScope): string | null {
     case 'follows':
       return 'follows this faith';
     case 'routeEndsHere':
-      return 'a route ends here';
+      return scope.crossing === undefined
+        ? 'a route ends here'
+        : `a ${scope.crossing === 'international' ? 'foreign' : 'domestic'} route ends here`;
     case 'all':
       return scope.of.map((inner) => scopeNote(inner)).filter((note) => note !== null).join(' + ');
     case 'any':
@@ -1790,8 +1808,37 @@ export function countOf(
     }
     case 'capitalPopulation':
       return capitalCityOf(state, playerId)?.population ?? 0;
-    case 'garrison':
-      return city ? garrisonOf(state, city).length : 0;
+    case 'puppetPopulation': {
+      // `population`'s sweep with the one clause that makes it a tribute: the
+      // towns that chose nothing for themselves. `within: 'city'` is
+      // deliberately not read — see the count's docblock; a puppet spends
+      // nothing, so the coin is the realm's or it is nowhere.
+      let total = 0;
+      for (const town of state.cities) {
+        if (town.ownerId !== playerId) continue;
+        if (town.puppet !== true) continue;
+        total += town.population;
+      }
+      return total;
+    }
+    case 'garrison': {
+      // **Narrowed by the row's own filter**, since Martial Law (the orders
+      // pass, `docs/flags.md` (xxx) mark 4): "a military unit standing in one of
+      // your cities" is `{ category: 'military', explores: false }` — a field
+      // soldier, which is `isFieldSoldier`'s reading said in the vocabulary the
+      // simulation already has, rather than a second predicate that would drift
+      // from the campaign's. `class` is the field `unitsInField` already takes,
+      // so a row narrows a garrison the way it narrows an army. Absent counts
+      // every combatant, which is what The Long Watch meant before it was cut.
+      if (!city) return 0;
+      const watch = garrisonOf(state, city);
+      if (effect.class === undefined) return watch.length;
+      let total = 0;
+      for (const unit of watch) {
+        if (unitMatches(unit.type, effect.class)) total += 1;
+      }
+      return total;
+    }
     case 'garrisonWatch': {
       if (!city) return 0;
       // A fortified unit is worth 1, plus 1 more per turn it has been dug in —
@@ -2179,14 +2226,15 @@ export function countOf(
     case 'followingCities':
     case 'followingForeign':
     case 'followingPop':
+    case 'followingForeignPop':
     case 'followingEmpires':
     case 'followingWithBuilding':
     case 'followingCitiesWithWonder':
     case 'followingBuildingsOfCategory':
-      // **The tide, counted, in one sweep** (`docs/religion-v2.md`). Seven
+      // **The tide, counted, in one sweep** (`docs/religion-v2.md`). Eight
       // readings of one question — which cities in the *world* follow the
       // religion this empire founded — so they share a body rather than
-      // repeating the walk seven times with one line different. An empire that
+      // repeating the walk eight times with one line different. An empire that
       // has founded nothing counts nothing, which is the honest answer and not
       // a guard.
       return followingCount(state, playerId, count, effect);
@@ -2199,7 +2247,7 @@ export function countOf(
 }
 
 /**
- * The seven `following…` counts, over one sweep of `state.cities`.
+ * The eight `following…` counts, over one sweep of `state.cities`.
  *
  * `cityReligion` is derived from the citizens, so this cannot disagree with the
  * banner a town flies; `state.cities` is founding order, which is what makes the
@@ -2229,6 +2277,7 @@ function followingCount(
   let cities = 0;
   let foreign = 0;
   let population = 0;
+  let foreignPopulation = 0;
   let withBuilding = 0;
   let withWonder = 0;
   let shelved = 0;
@@ -2237,7 +2286,13 @@ function followingCount(
     if (!follows(city)) continue;
     cities += 1;
     population += city.population;
-    if (city.ownerId !== playerId) foreign += 1;
+    if (city.ownerId !== playerId) {
+      foreign += 1;
+      // **The congregation beyond your own borders**, counted in people rather
+      // than in towns — Pilgrims'. The same clause as the line above, because it
+      // is the same question asked at the other scale.
+      foreignPopulation += city.population;
+    }
     if (effect.building !== undefined && city.buildings.includes(effect.building)) {
       withBuilding += 1;
     }
@@ -2258,6 +2313,7 @@ function followingCount(
   }
   if (count === 'followingForeign') return foreign;
   if (count === 'followingPop') return population;
+  if (count === 'followingForeignPop') return foreignPopulation;
   if (count === 'followingEmpires') return empires.length;
   if (count === 'followingWithBuilding') return effect.building === undefined ? 0 : withBuilding;
   if (count === 'followingCitiesWithWonder') return withWonder;
@@ -2531,6 +2587,13 @@ export function explainCardCityYields(state: GameState, city: City): CardYieldLi
     // are the first row to want one, so the seat of government is where they
     // land — one town, counted once, exactly as the card's own words say.
     if (effect.where === 'capital' && capitalCityOf(state, owner)?.id !== city.id) continue;
+    // **Which towns admit it**, exactly as the flat arm above asks. It was
+    // unasked here until batch O2 wrote the first counted row with a scope on it
+    // (The Grain Fleet's coin per three citizens *in a coastal city*, and The
+    // Entrepôt's per five *where a foreign road ends*) — the field was on the
+    // shape and this arm was quietly paying every town. A silence rather than a
+    // decision, and it is closed the way the flat line already said it.
+    if (!cityScopeAdmits(state, city, effect.scope, owner)) continue;
     const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const line = emptyLine(card, label(source, `×${times}`));
@@ -3366,6 +3429,10 @@ export function explainCardPercentYields(state: GameState, city: City): CardPerc
     // `stage` is the discriminant between a count's two payout forms — present
     // iff the helping pays a percentage (`CardPaysEffect`).
     if (effect.basis !== 'count' || effect.stage === undefined || effect.to === undefined) continue;
+    // The scope, asked here for the flat count's reason exactly — the field is on
+    // the shape and a percentage arm that ignored it would pay every town for a
+    // clause written about one kind of them.
+    if (!cityScopeAdmits(state, city, effect.scope, owner)) continue;
     const times = helpings(countOf(state, owner, card, effect, city), effect.per, effect.max);
     if (times === 0) continue;
     const percent = (effect.percent ?? 0) * times;
@@ -4315,6 +4382,12 @@ export function unitMatches(type: UnitTypeId, filter?: UnitFilter): boolean {
   // name — Wolf-Runners reaches the commando a later age adds without its row
   // being touched, exactly as `consecrates` reaches the prophet.
   if (filter.explores !== undefined && isExplorer(def) !== filter.explores) return false;
+  // "Military units" in the sense an army is counted in — the roster's own
+  // `isFieldSoldier`, the very predicate the bot's levy reads, so Martial Law
+  // and a bot deciding whether it has a garrison count one thing.
+  if (filter.fieldSoldier !== undefined && isFieldSoldier(def) !== filter.fieldSoldier) {
+    return false;
+  }
   // The named row, asked last because it is the narrowest thing the filter can
   // say — see `UnitFilter.type`. The *data* names a type here; no rule in
   // `src/sim/` does, which is the claim that has never moved.
@@ -4424,11 +4497,19 @@ export function cardExtraCharges(
  * while the Order sat in its slot; unslotting it next year does not un-blood
  * them, and a bonus read live would have.
  *
- * It is deliberately **not** filtered by a `UnitFilter`: the ratified rows say
- * *newly created units*, and a stamp narrowed to a silhouette would be a
- * different card ("your spearmen are veterans") that nobody has ratified. The
- * day one is, the filter joins `CardUnitStampEffect` and is asked here beside
- * `unitMatches` like every other.
+ * It **is** filtered by a `UnitFilter` since the orders pass of 2026-09-10, and
+ * that is the day this docblock said would come: the ratified rows all said
+ * *newly created units* until Mercenaries said *military units bought with
+ * gold*, so the filter joined `CardUnitStampEffect` and is asked here beside
+ * every other narrowing. A row naming none stamps every piece.
+ *
+ * And by **which bank paid**, where a row names one (`bought`). That fact
+ * belongs to no town, no hex and no roster row, so it travels down from the seam
+ * that knows it — `purchaseItemAt` through `RealiseOptions.bought` and
+ * `createUnit` — rather than being read back out of the cards at the till, which
+ * would put a second switch on `CardEffect.kind` in `purchase.ts`. A caller
+ * handing over nothing is a birth that was not bought, and a row naming a bank
+ * is silent there.
  *
  * It *is* narrowed by **where the piece was raised**, which is a different
  * question and the one the Terracotta Army asks ("units built in this city").
@@ -4443,6 +4524,8 @@ export function cardUnitStamp(
   state: GameState,
   playerId: number,
   at?: { col: number; row: number },
+  type?: UnitTypeId,
+  bought?: 'gold' | 'faith',
 ): UnitStamp {
   let hp = 0;
   let strength = 0;
@@ -4454,6 +4537,13 @@ export function cardUnitStamp(
       if (!born) continue;
       if (!cityScopeAdmits(state, born, effect.scope, playerId)) continue;
     }
+    // The silhouette, and the bank. A caller that named neither is every caller
+    // written before Mercenaries, and every unfiltered row still answers it.
+    if (effect.class !== undefined) {
+      if (type === undefined) continue;
+      if (!unitMatches(type, effect.class)) continue;
+    }
+    if (effect.bought !== undefined && effect.bought !== bought) continue;
     if (effect.hp !== undefined) hp += effect.hp;
     if (effect.strength !== undefined) strength += effect.strength;
   }
@@ -5325,9 +5415,25 @@ export function payWindfallGrants(
  * ask whether the wild is passive, and a sub-union each is what refuses it at
  * compile time. Every one of them is one line onto this walk.
  */
-function cardRuleHolds(state: GameState, playerId: number, rule: CardFlagRuleId): boolean {
+function cardRuleHolds(
+  state: GameState,
+  playerId: number,
+  rule: CardFlagRuleId,
+  type?: UnitTypeId,
+): boolean {
   for (const { effect } of effectsOfKind(state, playerId, 'rule')) {
-    if (effect.rule === rule) return true;
+    if (effect.rule !== rule) continue;
+    // **A filtered row is asked only where a piece is in hand.** A caller with
+    // no `type` is asking the empire's question ("is a chop free here"), and a
+    // row that named a silhouette has nothing to say to it — so it is skipped
+    // rather than admitted, which is the honest reading of a narrowing nobody
+    // can evaluate. A row naming no class answers every caller, which is what
+    // every rule written before `CardRuleEffect.class` meant.
+    if (effect.class !== undefined) {
+      if (type === undefined) continue;
+      if (!unitMatches(type, effect.class)) continue;
+    }
+    return true;
   }
   return false;
 }
@@ -5337,13 +5443,21 @@ export function cardActionRule(state: GameState, playerId: number, rule: ActionR
   return cardRuleHolds(state, playerId, rule);
 }
 
-/** Does this empire hold a card declaring this behaviour rule? */
+/**
+ * Does this empire hold a card declaring this behaviour rule?
+ *
+ * `type` is the **piece the rule is being asked about**, for the rows that name
+ * a silhouette (`CardRuleEffect.class` — Riders of the Steppe's free raid). A
+ * seam asking about the empire rather than about a piece leaves it out, and only
+ * the unfiltered rows answer it: see `cardRuleHolds`.
+ */
 export function cardBehaviorRule(
   state: GameState,
   playerId: number,
   rule: BehaviorRuleId,
+  type?: UnitTypeId,
 ): boolean {
-  return cardRuleHolds(state, playerId, rule);
+  return cardRuleHolds(state, playerId, rule, type);
 }
 
 /**
@@ -5629,10 +5743,37 @@ export function cardPressureSources(state: GameState, playerId: number): CardPre
       for (const effect of buildingDef(id).effects ?? []) {
         if (effect.kind !== 'pressure') continue;
         const pressure: CardPressureEffect = effect;
+        // **A counted source presses per helping** (the High Temple's citizens).
+        // `countOf` with `within: 'city'`, so the stones' reach and a card's
+        // coin are counting one thing; the flat is the reading of a row that
+        // names no count, which is every row written before this one. A row that
+        // counts and comes to nothing presses nothing at all — a temple in a
+        // village is a temple in a village.
+        const times =
+          pressure.count === undefined
+            ? 1
+            : helpings(
+                countOf(
+                  state,
+                  playerId,
+                  id,
+                  {
+                    kind: 'pays',
+                    where: 'city',
+                    basis: 'count',
+                    count: pressure.count,
+                    within: 'city',
+                  },
+                  city,
+                ),
+                pressure.per,
+                pressure.max,
+              );
+        if (times === 0) continue;
         out.push({
           source: `${isWonder(id) ? CLASS_WORD.wonder : CLASS_WORD.building} · ${buildingDef(id).name}`,
           city,
-          amount: pressure.amount,
+          amount: pressure.amount * times,
           range: pressure.range,
         });
       }
@@ -5643,6 +5784,22 @@ export function cardPressureSources(state: GameState, playerId: number): CardPre
 
 export function cardBorderZoc(state: GameState, playerId: number): boolean {
   return cardRuleHolds(state, playerId, 'borders');
+}
+
+/**
+ * Does this empire's law excuse **this piece** from a rival's picket? Riders of
+ * the Steppe's, and `cardBorderZoc`'s opposite number.
+ *
+ * The type is required rather than optional, unlike the behaviour door: every
+ * live row of this rule names a silhouette, and a caller with no piece in hand
+ * has no business asking a question about how one moves.
+ */
+export function cardZocIgnored(
+  state: GameState,
+  playerId: number,
+  type: UnitTypeId,
+): boolean {
+  return cardRuleHolds(state, playerId, 'ignored', type);
 }
 
 /**
@@ -5716,7 +5873,7 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
     const each = effect.amount;
     if (each === 0) continue;
     const per = effect.per;
-    const helpings =
+    const times =
       per === 'city'
         ? cityCount(state, playerId)
         : per === 'wonder'
@@ -5740,16 +5897,44 @@ export function cardRenownLines(state: GameState, playerId: number): CardRenownL
                   count: 'buildingsOfCategory',
                   category: effect.category,
                 })
-            : 1;
-    const amount = each * helpings;
+            : // **A counted trickle** (Patronage's capital citizens), and the
+              // last arm because `per` is read first: a row asking both
+              // questions is asking one of them, and the older field wins so no
+              // row written before this changes its figure. The divisor and the
+              // cap are the counts' own (`helpings`), so a renown line and a
+              // yield line round the same way.
+              effect.count !== undefined
+              ? helpings(
+                  countOf(state, playerId, card, {
+                    kind: 'pays',
+                    basis: 'count',
+                    ...RENOWN_PROBE,
+                    count: effect.count,
+                  }),
+                  effect.countPer,
+                  effect.max,
+                )
+              : 1;
+    const amount = each * times;
     if (amount === 0) continue;
     // The multiplicand and the count, printed into the label — a hover that said
     // only the total would be the one thing `explainRenown` exists to prevent.
-    // A shelf names itself, because "per building" would not say which.
-    const word = per === 'buildingOfCategory' ? `${effect.category ?? ''} building` : per;
+    // A shelf names itself, because "per building" would not say which. A
+    // **counted** trickle says "helping", the word the counted walls already use
+    // in a forecast: the noun itself belongs to the describers' tables and a
+    // second copy of it here is how two surfaces start naming one count twice.
+    const word =
+      per === 'buildingOfCategory'
+        ? `${effect.category ?? ''} building`
+        : per === undefined
+          ? 'helping'
+          : per;
     list.push({
       card,
-      source: per === undefined ? source : `${source} · ${each} per ${word} × ${helpings}`,
+      source:
+        per === undefined && effect.count === undefined
+          ? source
+          : `${source} · ${each} per ${word} × ${times}`,
       family: effect.family ?? null,
       amount,
     });

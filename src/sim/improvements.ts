@@ -1471,7 +1471,11 @@ export function pillageAt(state: GameState, unit: Unit, tile: Tile): PillageRepo
   // here rather than a second pillage verb. The gate is untouched: a column
   // with nothing left still cannot burn a farm (`pillageError`), because what
   // the law withholds is the point, not the price of admission.
-  if (!cardBehaviorRule(state, unit.ownerId, 'freePillage')) {
+  //
+  // The **raider's own row** travels with the question since Riders of the
+  // Steppe (`CardRuleEffect.class`): Tyranny names no silhouette and excuses
+  // everybody exactly as it did, and the horse Order excuses the horse alone.
+  if (!cardBehaviorRule(state, unit.ownerId, 'freePillage', unit.type)) {
     unit.movesLeft = Math.max(0, unit.movesLeft - 1);
   }
   const player = playerById(state, unit.ownerId);

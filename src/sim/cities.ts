@@ -3269,6 +3269,17 @@ export interface RealiseOptions {
    * has none.
    */
   stamp?: UnitStamp;
+  /**
+   * **Which bank paid**, for a purchase — Mercenaries' hired sword
+   * (`CardUnitStampEffect.bought`).
+   *
+   * `stamp`'s sibling and here for its stated reason: it cannot be derived from
+   * anything this routine can see, so it is a parameter. Handed straight to
+   * `createUnit`, which is still the one writer of `Unit.stamp`; ignored for a
+   * building, which carries no stamp at all. Absent is a completion, a grant or
+   * an escort — every birth that no till rang up.
+   */
+  bought?: 'gold' | 'faith';
 }
 
 export interface RealisedItem {
@@ -3409,6 +3420,7 @@ export function realiseItem(
     item.tile.row,
     undefined,
     options.stamp,
+    options.bought,
   );
   // The maintenance mark, and the *only* thing `options` is for. A gift is a
   // gift: a Levy's spearman and Camp Followers' stray cost their empire nothing

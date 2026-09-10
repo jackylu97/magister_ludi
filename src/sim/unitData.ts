@@ -834,6 +834,32 @@ export function isExplorer(def: UnitDef): boolean {
 }
 
 /**
+ * **A soldier in the field** — the piece an empire levies, garrisons with and
+ * marches. Not a settler, not a scout, not a hull.
+ *
+ * A scout has a combat strength (it can be attacked and it can hold a hill), so
+ * `isCombatant` is true of it, and it is nevertheless not a soldier in the sense
+ * an army is counted in: it is the piece an empire sends *away* from its towns.
+ * A ship is excluded from the other side — it can reach no inland town, and a
+ * garrison counted in hulls would be a wall a landlocked rival could not see.
+ *
+ * It lived in `src/ai/campaign.ts` until the orders pass of 2026-09-10, when
+ * Martial Law asked the *rules* the question the bot had been asking itself
+ * (`docs/flags.md` (xxx) mark 4, "counts field soldiers"). It belongs here for
+ * the reason every other marker does: it is a fact about a roster row, read off
+ * two markers the roster already carries, and two implementations of it are how
+ * a card and a levy start disagreeing about what an army is. `campaign.ts`
+ * re-exports this one rather than keeping a copy.
+ *
+ * Said in a card by `UnitFilter.fieldSoldier`, which is the only vocabulary the
+ * data has for a *negation* — there is no `not` in a filter, and "a combatant
+ * that is neither a scout nor a ship" is three clauses no row can spell.
+ */
+export function isFieldSoldier(def: UnitDef): boolean {
+  return isCombatant(def) && !isExplorer(def) && def.category !== 'naval';
+}
+
+/**
  * What an empire's **law** stamped on a piece at the moment it was created —
  * The Muster Roll's ten hit points, Drums of War's point of strength.
  *

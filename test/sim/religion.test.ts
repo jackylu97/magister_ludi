@@ -1961,6 +1961,62 @@ describe("the pressure ledger", () => {
     expect(beside.find((line) => line.source === "Nearby city")?.amount).toBe(
       RULES.religion.cityStrength,
     );
+    // **And the seat drifts nowhere** — `capitalRange` is 0 as shipped, which is
+    // the capital's own hex and nothing further. The number exists so a card can
+    // give the seat a reach (Pilgrims, `docs/flags.md` (xxx) mark 18); with no
+    // such card the line is exactly the line it always was.
+    expect(RULES.religion.capitalRange).toBe(0);
+    expect(beside.some((line) => line.source === "Your capital")).toBe(false);
+  });
+
+  /**
+   * **Pilgrims** (batch O2, mark 18) — the seat of a faith gains a reach it
+   * never had, and the neighbour hears it.
+   */
+  it("Pilgrims — the capital carries its faith to the towns around it", () => {
+    const g = game();
+    const capital = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    capital.followers = { [religion.id]: capital.population };
+    const near = town(g.state, 0, 7, 6);
+    const carried = (): number =>
+      explainPressure(g.state, near)
+        .filter((line) => line.source === "Your capital")
+        .reduce((sum, line) => sum + line.amount, 0);
+    expect(carried()).toBe(0);
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.orders.push("pilgrims" as never);
+    sc.slots.push({ card: "pilgrims" as never, sealedUntil: 0 });
+    bumpRevision(g.state);
+    expect(carried()).toBe(RULES.religion.capitalStrength);
+  });
+
+  /**
+   * **The High Temple** (batch O2, mark 17) — the card was struck and the
+   * ability went on the stones: the holy city presses harder for the citizens it
+   * holds, counted through `countOf` like every other card's count.
+   */
+  it("the High Temple presses harder for the citizens the town holds", () => {
+    const g = game();
+    const seat = town(g.state, 0, 6, 6);
+    const religion = faith(g.state, 0);
+    seat.followers = { [religion.id]: seat.population };
+    seat.buildings.push("highTemple");
+    const near = town(g.state, 0, 7, 6);
+    // The stones' line is labelled "Wonder" whatever raised it — `explainPressure`
+    // folds every located source into one, which is the ledger's own shape.
+    const pressed = (): number =>
+      explainPressure(g.state, near)
+        .filter((line) => line.source === "Wonder")
+        .reduce((sum, line) => sum + line.amount, 0);
+    seat.population = 4;
+    bumpRevision(g.state);
+    const small = pressed();
+    seat.population = 8;
+    bumpRevision(g.state);
+    // Four more citizens buy exactly one more helping of the counted line.
+    expect(pressed()).toBe(small + 1);
+    expect(small).toBeGreaterThan(0);
   });
 
   it("doubles a town’s own faith at its temple and halves everybody else’s", () => {
