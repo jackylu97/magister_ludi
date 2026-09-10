@@ -562,6 +562,20 @@ the common camp). It costs the deal nothing it does not already do, it is
 deterministic, and it reads on the mapgen page as "furnished for Mithridates:
 Wine, Deer". ▢ rec: yes — his Æra I passive (+2 food on plantations and camps)
 then always has something to stand on.
+  **Against the continent's deal** (the user's question): today's start
+  guarantee (`ensureStartLuxuries`) prefers the continent's dealt hand but
+  **falls through to the whole table** when no dealt kind suits the ground
+  near the start — so it can plant a kind the continent was never dealt —
+  and its copies are **extra** tiles beyond `luxuryCopiesPerKind`, placed
+  without the spacing rule (the documented exception). The continent cap
+  (`maxContinentsPerLuxury`) is not consulted by the guarantee. A leader
+  furnishing would ride the same seam and inherit the same looseness. ▢
+  rec: make the furnishing **hand-only** — a plantation kind is drawn from
+  the continent's dealt kinds or not at all (a wine or an olive is dealt
+  nearly everywhere, so the miss is rare), and the copy counts against the
+  kind's copies on that continent; and, while there, ▢ whether the base
+  guarantee should be tightened the same way, since it is the one pass that
+  can put a kind where the deal said none grows.
 
 ## Notes for the system
 
