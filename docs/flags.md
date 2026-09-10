@@ -1800,6 +1800,83 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (zzz) **The trade sheet knows the Silk Road — RULED** (the user,
+  2026-09-10: *"in the trade route menu: please note any luxury
+  resources that can be gained once that ability is unlocked. Also -
+  add a new recommendation section with routes to new unique luxuries
+  once its unlocked"*). **R6 builds** in `src/ui/tradeScreen.ts` /
+  `tradeLines.ts`: (1) every international pair whose destination holds
+  an **improved luxury the sender does not control** carries a line on
+  its card — "brings Silk (half a copy)" — with the luxury's own mark,
+  read through the sim's one import reading (`importedLuxuries` /
+  `resourceEffects.ts`'s rule, the destination's improved luxuries
+  minus the sender's controlled kinds, one per route, unique kinds
+  only), never a second walk in the UI; **before** The Silk Road is
+  held the line still prints, in the `.wanting` voice: "would bring
+  Silk — needs The Silk Road", so a player learns the ability exists
+  from the sheet; (2) a new **Recommended** purpose group, **"New
+  luxuries"**, listing routes whose import is a kind the sender lacks,
+  best first (the half-copy's contentment priced by the existing route
+  card score plus the luxury's line), shown only once The Silk Road is
+  held (and a one-line hint in its place before: "Routes abroad will
+  bring luxuries once The Silk Road is known"); a route already
+  importing a kind excludes other routes to the same kind from the
+  group (unique kinds only). The running-routes ledger shows the
+  imported kind on the route's row. Sim untouched except a reader if
+  one is missing (e.g. `wouldImportFor(state, seat, from, to)` beside
+  `importedLuxuries`, the rule's own test). Pins: the card line with and
+  without the tech; the group's membership and its uniqueness; the
+  running row's mark; `test/ui/tradeScreen.test.ts`'s pattern. (the user, 2026-09-10,
+  after U9's chart: *"chariot -> 33, chariot archer -> 20, 26, legionary
+  -> 45, spear wall -> 42, composite bowman-> 30, 39, horseman -> 48,
+  horse archer -> 32, 42, war elephant -> 50, catapult -> 35, 42,
+  longswordsman: 55, pikeman: 52, knight: 60, crossbowman -> 45, 50"*;
+  then *"all anti-cav should have +10 against mounted across the board.
+  war chariot should be seen as an in-between age 1/2 unit, so it's
+  positioned fine"*). **U9b builds** in `data/units.json`: War Chariot
+  **33**, Chariot Archer **20/26** (stays — the chariots are the I/II
+  bridge, so the archer's 26 over the Spearman's 25 is accepted);
+  Legionary **45**, Spear Wall **42**, Composite Bowman **30/39**,
+  Horseman **48**, Horse Archer **32/42**, War Elephant **50**, Catapult
+  **35/42**; Longswordsman **55**, Pikeman **52**, Knight **60**,
+  Crossbowman **45/50**; unchanged: Warrior 20, Scout 10, Archer 15/20,
+  Spearman 25, Swordsman 35, Phalanx 30, Bowman 20/28, The Fire Lance
+  80 (one-shots a Swordsman; 67 into a Knight now), naval as U9.
+  **Every anti-cav line is +10 vs mounted**: the Spearman gains one,
+  Phalanx 10, Spear Wall 12 → 10, Pikeman 15 → 10. **Trebuchet 40/48**
+  (+20 vs cities) — **confirmed** (the user: "the trebuchet strength
+  recommendation is good"): at 28/45 the Catapult → Trebuchet chain fell
+  in melee and its bombard sat under the Crossbowman's 50. Knights
+  Templar mirror (60 in Æra IV). **Naval, commensurate** (the user,
+  minutes later: *"naval units should be stronger than the strongest
+  land unit of its era (mounted units). This makes them very strong
+  against embarked units and better against cities"*): the era's heavy
+  hull stands above the era's best land unit (I 33 · II 35 · III 50 ·
+  IV 60), the light hull beside it, the ranged hull's bombard under the
+  heavy — light (hit and run, +10 vs ranged ships): Trireme **36** ·
+  Bireme **40** · Galley **52** · Caravel **65** · Corvette **78**; heavy
+  (blockade): War Galley **45** · Tower Ship **58** · Carrack **72** ·
+  Ship of the Line **88**; ranged (fragile hull −10): Fire Ship **40/50**
+  · Gun Galley **52/62** · Frigate **66/80** (+20 bombardment). An
+  embarked Knight (60 − 20 at sea = 40) against a Carrack at 72 is a
+  32-point gap — a kill, as asked. The era register
+  and the monotone-chain pins stand; the matchup table re-pinned to the
+  new figures; `docs/units.md` regenerated; the bot fixture re-checked
+  (the Knight's drift narrows). No schema (109 already says a v108 log
+  does not replay; ▢ if the user wants the exact figures replay-safe,
+  bump — rec: no, U9 has not been played).
+  **R6 built** (2026-09-10): the readers live in a new leaf
+  `src/sim/routeImports.ts` (`wouldImportFor`, `runningRouteImports`
+  memoised on the revision clock, `routesLendLuxuries`, `importRuleTech`
+  found by scanning the tree — no surface names the rule or the node);
+  the card line "Brings Silk — half a copy" / "Would bring Silk — needs
+  The Silk Road" (refs, the `.wanting` voice, registered); the
+  Recommended group **New luxuries** (one route per kind, best first)
+  with its pre-tech hint; the running row's mark; fourteen pins in
+  `test/ui/tradeImports.test.ts`. Follow-up: fold `importedLuxuries`
+  onto the leaf once O2 lands (the sweep is duplicated, pinned kind for
+  kind), and `src/ai/routes.ts`'s `importedLuxuryWorth` can ask
+  `wouldImportFor`.
 - (yyy) **The ladder, the user's figures — RULED** (the user, 2026-09-10,
   after U9's chart: *"chariot -> 33, chariot archer -> 20, 26, legionary
   -> 45, spear wall -> 42, composite bowman-> 30, 39, horseman -> 48,
