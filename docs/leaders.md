@@ -17,6 +17,40 @@ civ's) so a leader shades a playstyle rather than dictating it. A leader would
 take two or three of the bullets under it, not all. Each fits one of
 `docs/playstyles.md`'s families first and a sub-identity second.
 
+## The starting six (decided 2026-09-10, after the user's pass)
+
+One per family, each drafting across at least two systems, on a spectrum from
+"the game as usual, a little better" to "a different game". The user's own
+bullets under each entry below are the deck; nothing is cut from them here.
+
+| # | Leader | Family | Spectrum | Dimensions |
+|---|---|---|---|---|
+| 1 | **Djoser** | tall — the wonder city | generically strong | wonders, quarries and mines, river farms, growth |
+| 2 | **Basil II** | wide — the imperium | generically strong | soldiers' upkeep, religion → strength and hurry, authority from gold, the cataphract and the galleass |
+| 3 | **Mithridates VI** | tall — defensive, the come-back | middle | strength against wider realms, gardens (happiness, authority), science from soldiers, food |
+| 4 | **Zenobia** | wide — land commerce that fights | middle | bought units, captured cities' gold, routes on capture, luxury hexes, the capital's markets |
+| 5 | **Ezana of Aksum** | wide — sea commerce and faith | situational | gold buildings → faith, sea routes → faith, sea resources, Monuments |
+| 6 | **Modu Chanyu** | wide — the steppe | situationally very strong | pillage and mobility, tribute (puppets pay science and culture), rites → strength, mounted archers per age |
+
+Why these: Djoser and Basil are the two "play as usual" seats, one tall and one
+wide, so a first-time player has a safe pick in each family. Mithridates and
+Zenobia bend the game without breaking it (defence and science; commerce that
+turns to war). Ezana needs a coast and a faith; Modu needs horses, grassland
+and rivals to bleed, and never holds what he takes. Between them they touch
+war, faith, trade, science, wonders, growth and diplomacy, and no two share a
+primary axis.
+
+**First alternates** (the second set, one per family): Sher Shah Suri (land
+commerce without the war), Al-Ma'mun (tall science — the peace-pays-science
+line is the strongest diplomacy hook in the file, and the only reason it is not
+in the six is that a science seat overlaps Mithridates' science line and the
+six needed a wonder seat more), Jayavarman VII, Justinian and Theodora,
+Akhenaten, Tomyris, Bumin Qaghan, Sargon, Rajendra Chola, Dandolo, Teuta,
+Hanno, Ulugh Beg, Abd al-Rahman III. **Joan of Arc** belongs with the deferred
+set below — hers is the faith-buys-an-army seat, the most game-warping of the
+faith figures, which is what the user asked that set to be. **Cut**: Tigranes,
+Amanirenas (the user's marks); Mansa Musa stays ▢.
+
 ## The one the user named
 
 - **Mithridates VI of Pontus** (r. 120–63 BC) — the Poison King. Fought Rome
@@ -37,12 +71,13 @@ take two or three of the bullets under it, not all. Each fits one of
   thousand kilometres of road, and ruled through it; every province owed
   labour, and the roads carried runners, armies and grain.
 
-  themes: wide/imperium, roads
+  themes: wide/imperium, roads, growth
   possible bonuses:
-  - domestic trade routes pave their road in half the turns
+  - domestic trade routes more effective for each hill in the origin city
   - a city joined to the capital by road pays +1 happiness and +1 production
   - roads cost nothing to maintain inside your borders
   - workers gain +1 charge (the corvée)
+  - bonus to hills/farms on hills
 
 - **Sargon of Akkad** (c. 2334–2279 BC) — the first empire, the first standing
   army ("5,400 men ate bread daily before him"), garrisons in every conquered
@@ -59,12 +94,14 @@ take two or three of the bullets under it, not all. Each fits one of
   married, campaigned every year for forty, and left the treasury so full the
   floor had to be dug out to hold it.
 
-  themes: wide/imperium, the hoard
+  themes: wide/imperium, the hoard, religion
   possible bonuses:
-  - military units cost no upkeep while the treasury holds more than a bar
-  - +10% production toward units in every city with walls
-  - a city you capture keeps its walls
-  - +1 authority capacity for each 500 gold in the treasury, at most +3
+  - military units -1 upkeep.
+  - +20% production towards units in cities that follow your religion
+  - +1 combat strength to all units after religion founded, +1 after enhancing, +1 after high temple is built
+  - +1 authority capacity for each 50gpt empire-wide, no cap
+  - unique unit: cataphracts
+  - unique unit: better fire ships, galleass
 
 - **Tigranes the Great** (Armenia, r. 95–55 BC) — Mithridates' son-in-law and
   the King of Kings for a decade; he emptied a dozen Greek cities to people his
@@ -76,6 +113,7 @@ take two or three of the bullets under it, not all. Each fits one of
   - annexed cities demand less happiness while your capital is the largest city in the world
   - puppets pay +1 authority capacity each, at most +4
   - +2 culture in the capital for each city you have annexed
+[less compelling, cut]
 
 ## Wide — the steppe
 
@@ -83,23 +121,27 @@ take two or three of the bullets under it, not all. Each fits one of
   trained his horsemen to shoot wherever his whistling arrow flew, killed his
   father with it, and made the Han pay tribute for sixty years.
 
-  themes: steppe, the horde, tribute
+  themes: steppe, the horde, tribute, religion
   possible bonuses:
-  - mounted units heal fully on a hex they pillaged this turn
-  - a puppet pays +1 gold per 2 citizens instead of its authority relief (Tribute, built in)
+  - mounted units heal extra on hexes they pillage, pillaging requires no movement
+  - +10% science and +10% culture in puppeted cities
   - mounted units gain +1 movement on grassland and plains
   - killing a unit with a mounted unit pays +10 culture
+  - unique mounted archer units per age
+  - pastures and camps +1 faith
+  - units +1 combat strength when there is a rite active in your empire
 
 - **Tomyris** (Massagetae, 6th c. BC) — the queen who refused Cyrus the
   Great's marriage offer, lost her son to his trick, then killed him in battle
   and, in Herodotus, put his head in a skin of blood.
 
-  themes: steppe, defence, vengeance
+  themes: steppe, aggression
   possible bonuses:
-  - killing a unit inside your borders pays its production cost in culture
-  - mounted units +2 combat strength inside your borders
-  - +1 happiness in every city for each war you did not declare
+  - killing a unit pays its production cost in culture
+  - mounted units +2 combat strength
+  - +2 happiness in all cities for 10 turns upon capturing a city (does not stack)
   - pastures pay +1 food
+  - extra production towards mounted units
 
 - **Bumin Qaghan** (Göktürks, d. 552) — the blacksmith vassal who forged for
   his overlords, then overthrew them and founded the first Turkic khaganate
@@ -108,9 +150,10 @@ take two or three of the bullets under it, not all. Each fits one of
   themes: steppe, the forge
   possible bonuses:
   - pastures pay +1 production
-  - Iron is revealed one technology early
+  - +2 combat strength on units that require strategic resources
   - mounted units cost 15% less production
   - the Smithy pays +1 production on pastures as well as mines
+  - connected cities +10% production
 
 ## Wide — land commerce
 
@@ -120,19 +163,20 @@ take two or three of the bullets under it, not all. Each fits one of
 
   themes: land commerce, caravans, roads, tolls
   possible bonuses:
-  - every Caravanserai pays +1 gold for each 4 road hexes the city owns
-  - the Caravanserai costs half as much production
-  - trade routes cannot be plundered on a road inside your borders
+  - Caravanserai pays +1 gold for each 4 road hexes the city owns [caraanserai is 1 time building per empire]
+  - faster travel along roads
+  - trade routes cannot be plundered
   - +1 trade route slot in every city with a Market
 
 - **Zenobia** (Palmyra, r. 267–72) — the caravan queen of the desert crossroads
   who took Egypt and half of Anatolia from Rome, minted her own coin, and was
   carried to Rome in golden chains.
 
-  themes: land commerce that turns to war
+  themes: commerce, war
   possible bonuses:
-  - trade routes running from a city you captured this age pay double
-  - capturing a city grants a trade route slot there for the age
+  - purchased units gain +2 combat strength
+  - +50% gold in captured cities
+  - +1 trade route when capturing a city
   - +2 gold on every luxury hex
   - the capital's Caravanserai and Bazaar pay half again
 
@@ -143,9 +187,9 @@ take two or three of the bullets under it, not all. Each fits one of
   themes: gold and faith together
   possible bonuses:
   - a proclamation pays gold to every city it reaches
-  - +1 faith for each 100 gold in the treasury, at most +5
-  - mines on gold and salt pay +2 gold
-  - faith buildings may be bought with gold
+  - +1 faith and +1 gold on trade routes
+  - +2 gold on mines on resources
+  - gain +1 faith per 5gpt
   ▢ (famous; the user may prefer lesser-known)
 
 - **Amanirenas** (Kush, r. c. 40–10 BC) — the one-eyed kandake who fought
@@ -158,6 +202,7 @@ take two or three of the bullets under it, not all. Each fits one of
   - a peace signed while you hold a captured city keeps the city
   - +3 combat strength for units defending within 2 hexes of a holy site
   - Iron and gold are revealed together
+  [remove]
 
 ## Wide — sea commerce
 
@@ -259,12 +304,13 @@ take two or three of the bullets under it, not all. Each fits one of
   Code of law, the walls that held for a thousand years, and an empress who
   told the emperor that purple makes a fine shroud.
 
-  themes: tall, the walled city, law
+  themes: tall, the walled city, law, faith
   possible bonuses:
   - the capital's combat strength per citizen doubles
   - the Order in your first wildcard slot pays twice (the Code)
-  - walls in the capital cost half as much
+  - faith buildings grant +2 city strength and +1 additional faith
   - a city with walls demands −1 happiness
+  - defensive buildings grant +2 food per age they're unlocked
 
 - **Djoser** (Egypt, c. 2670 BC) — the first pyramid, the first great building
   in cut stone anywhere, with Imhotep (already a great person) as his vizier;
@@ -273,9 +319,10 @@ take two or three of the bullets under it, not all. Each fits one of
   themes: tall, the wonder city
   possible bonuses:
   - the first wonder of every age costs a quarter less
-  - quarries pay +1 production
-  - an engineer great person's work pays +2 production
-  - a wonder completed grants +10 renown
+  - quarries and mines pay +1 production
+  - an engineer great person's work pays +2 production, +20% production towards wonders in cities with an engineer's great person work
+  - +1 production on farms adjacent to a river
+  - cities with a wonder +30% growth surplus
 
 ## Faith — the holy city
 
@@ -283,12 +330,14 @@ take two or three of the bullets under it, not all. Each fits one of
   new capital for it in the desert, and was chiselled out of every monument by
   his successors.
 
-  themes: faith, the wandering court
+  themes: faith, the wandering court, wonder building (egypt)
   possible bonuses:
-  - founding a religion founds a holy site in your capital as well
-  - moving the capital is free once
+  - unlocks prophets early with divination
+  - holy sites +3 faith if built on desert
+  - cities with a holy site gain +20% production towards wonders
   - the holy city presses its faith harder for every 3 citizens (the High Temple's line, from the start)
-  - −25% pressure from every foreign faith
+  - +1 faith on farms adjacent to a river (the nile)
+  - khopesh, unique swordsman. combat strength when fighting in cities with your religion
 
 - **Ezana of Aksum** (r. c. 320–60) — the first Christian king in Africa, whose
   obelisks still stand, whose coins carried the cross, and whose ports on the
@@ -297,22 +346,21 @@ take two or three of the bullets under it, not all. Each fits one of
   themes: faith and sea trade
   possible bonuses:
   - every gold building supplies +1 faith
-  - a foreign route ending in a city that follows your religion pays +2 faith
-  - Monuments supply +1 faith
-  - a Harbour in the holy city presses your faith along its routes
+  - trade routes +1 faith, +3 if they're by sea
+  - Monuments supply +1 faith and cheaper to build
+  - +1 faith on sea resources, an additional +1 in cities following your religion
 
-- **Olga of Kiev** (r. 945–60) — avenged her husband on the Drevlians four times
-  over, once by burning their town with sparrows; then converted at
-  Constantinople and became a saint.
-
-  themes: faith by force
-  possible bonuses:
-  - a captured city converts to your religion and its old faith's pressure is purged
-  - killing a unit presses your faith on the towns around the field (The Crusade's clause)
-  - +1 combat strength inside cities that follow your religion
-  - a proclamation costs no charge in a captured city
+- joan of arc:
+  themes faith and war:
+  - units gain combat strength in cities following your religion
+  - +1 combat strength from every holy site in your lands
+  - gain faith every time a unit engages in combat
+  - military units can be purchased with faith
+  - killing units spreads your faith
 
 ## The occult and the late game (Æra IV/V flavour)
+
+defer these for later - these should have the most unique/game-warping abilities, i think. like 'the watcher' in slay the spire
 
 - **Rudolf II** (Holy Roman Emperor, r. 1576–1612) — the alchemists' emperor,
   patron of Kepler, Tycho and John Dee, keeper of the Wunderkammer, who let the
@@ -336,25 +384,6 @@ take two or three of the bullets under it, not all. Each fits one of
   - the Ornithopter and the Armoured Cart come one node early
   - an artist or engineer great person costs a third less renown
   - +15% production toward wonders in the capital
-
-## The draft (the user's direction, 2026-09-10 — not yet ruled)
-
-- **One pick per age, when *you* enter the age** (your own tech age, not the
-  world clock's turn — so it never lands on the wager's deal turn and it rewards
-  teching). Three cards from the leader's own deck, one of each kind, take one:
-  - a **passive** that lasts the game,
-  - a **one-time boon** that fits the leader,
-  - a **unique unit or building** for that age.
-  The bullets under each figure above are the raw deck; ▢ sort each into the
-  three kinds and add the missing kind where a figure lacks one.
-- **Player progression is PARKED for the first cut** (the user: "lets just not
-  have player progression be a thing"). When it returns it unlocks **breadth,
-  never depth** — more leaders, portraits, charges — so no seat at a table holds
-  a stronger card; it lives in the profile, outside the sim, the way heraldry
-  does. Storage when it returns: a local profile with export/import first; an
-  anonymous account with a claim code and passkey recovery once the netcode
-  exists; a finished game is a `{config, log}` and the server can replay it to
-  verify an unlock.
 
 ## Notes for the system
 
