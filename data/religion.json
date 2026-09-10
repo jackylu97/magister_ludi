@@ -356,7 +356,7 @@
       "name": "God of the Forge",
       "axis": "war",
       "flavor": "He was lamed by his own work and never once stopped.",
-      "text": "Barracks supply +1 production. All your units gain +1 combat strength.",
+      "text": "Barracks supply +1 production. All your units gain +2 combat strength.",
       "effects": [
         {
           "kind": "pays",
@@ -369,7 +369,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "when": {
             "test": "always"
           },
@@ -781,11 +781,11 @@
       "name": "Warrior Monks",
       "axis": "war",
       "flavor": "They keep the fast, and they keep the gate.",
-      "text": "+5 combat strength for units defending a city that follows.",
+      "text": "+10 combat strength for units defending a city that follows.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "inCity"
           },
@@ -1034,7 +1034,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "side": "both",
           "when": {
             "test": "followingTerritory"
@@ -1128,11 +1128,11 @@
       "name": "The Crusade",
       "axis": "war",
       "flavor": "They took the long road, and every town along it fed them.",
-      "text": "+3 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field.",
+      "text": "+6 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "side": "both",
           "when": {
             "test": "followingTerritory",
@@ -1277,7 +1277,7 @@
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 5
+          "amount": 10
         }
       ],
       "note": "The rite holds the walls and nothing else: a soldier standing inside them mends at the ordinary pace."

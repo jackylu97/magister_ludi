@@ -342,17 +342,19 @@ describe('a row shipped ahead of its age', () => {
     const port = foundCityAt(state, 0, at(state, 5, 4));
     state.players[0]!.gold = 9999;
     const waiting = UNIT_TYPE_IDS.filter((id) => unitDef(id).awaitsTech === true);
-    // Four now, and the fourth is not a hull: tree revision 4 (2026-09-02) gave
-    // The Saddle the *horseman* and left the cataphract with no node at all, so
-    // the row wears the same marker the Æra V hulls do. It is a genuine orphan
-    // rather than a row waiting for an age, and the marker is what makes it a
-    // safe one — without it, "no tech gates it" would have put a cataphract in
-    // every opening build list.
+    // Four rows wear the marker, and the fourth is not a hull: tree revision 4
+    // (2026-09-02) gave The Saddle the *horseman* and left the cataphract with
+    // no node at all. Batch U9 retired that row outright (the user, 2026-09-10:
+    // "we replaced cataphracts with horsemen"), so it keeps the marker and the
+    // retirement answers first — which is why the sentence is read off the row
+    // rather than written once for all four.
     expect(waiting.sort()).toEqual(['cataphract', 'corvette', 'frigate', 'shipOfTheLine'].sort());
     for (const id of waiting) {
-      expect(buildError(state, 0, 'unit', id, port), id).toBe(
-        `${unitDef(id).name} waits on a technology this age has not reached`,
-      );
+      const sentence =
+        unitDef(id).retired === true
+          ? `${unitDef(id).name}s are no longer called`
+          : `${unitDef(id).name} waits on a technology this age has not reached`;
+      expect(buildError(state, 0, 'unit', id, port), id).toBe(sentence);
       expect(purchaseError(state, 0, port.id, { kind: 'unit', id }, 'gold'), id).not.toBeNull();
     }
     // And every hull that *does* have a home is buildable in a port, which is
@@ -449,7 +451,8 @@ describe('the triangle', () => {
     if (!plan.ok) return;
     const line = plan.attackerLines.find((l) => l.source === 'Against ranged ships');
     expect(line, 'the light hull’s own row line').toBeDefined();
-    expect(line!.amount).toBe(5);
+    // U9 doubled the row's own line with the ladder.
+    expect(line!.amount).toBe(10);
     // Hard rule 5: the headline is the fold of the list and never a second sum.
     const fold = plan.attackerLines.reduce((sum, l) => sum + l.amount, 0);
     expect(plan.attackerStrength).toBeCloseTo(fold, 9);
@@ -471,7 +474,7 @@ describe('the triangle', () => {
     if (!melee.ok) return;
     const fragile = melee.defenderLines.find((l) => l.source === 'Fragile hull');
     expect(fragile, 'the ranged hull’s malus').toBeDefined();
-    expect(fragile!.amount).toBe(-5);
+    expect(fragile!.amount).toBe(-10);
 
     // A shot answers no counter at all, so the malus never gets a chance to
     // matter — asserted here so the narrowing is a *rule* and not a happy
@@ -530,10 +533,12 @@ describe('the triangle', () => {
       const shooting = duel(rank.shooter, rank.light, 2);
       const light = blowsToKill(closing.state, closing.a, closing.b);
       const ranged = blowsToKill(shooting.state, shooting.a, shooting.b);
-      // Two strikes, which is the doc's own figure — the light hull's +5 against
-      // a gun deck and the gun deck's own −5 fragility are a ten-point swing,
-      // and that is what buys the kill a rank early.
-      expect(light.blows).toBe(2);
+      // **One** strike since U9's ladder: the light hull's +10 against a gun
+      // deck and the gun deck's own −10 fragility are a twenty-point swing on
+      // top of a ten-point gap in the hulls themselves, and thirty points is a
+      // kill on this curve. The triangle is sharper than it was and the corner
+      // it favours is the same one.
+      expect(light.blows).toBe(1);
       expect(light.blows).toBeLessThan(ranged.blows);
     });
 

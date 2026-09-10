@@ -762,8 +762,26 @@ import {
  * decks off `state.rng` and now draws nothing at all, so every generator-fed
  * decision in the game — the first great person offered, the first Order dealt,
  * the malice — moves by the rolls the deal used to spend.
+ *
+ * v109 (batch U9, `docs/flags.md` (ttt); the user, 2026-09-10: *"There should be
+ * a larger gap between units in combat strength … i'd love for the fire lancer
+ * to end as an 80 strength unit"*): **the strength ladder**. Every
+ * `combatStrength` and `rangedStrength` in `data/units.json` is re-cut on Civ 6's
+ * magnitudes — the curve here has always been Civ 6's (`baseDamage` 30 ×
+ * e^(0.04 × difference)), so a gap of ten is half again the damage and a gap of
+ * thirty is a kill, and the old figures were packed too tightly for either to
+ * mean anything. With them go every flat line that shares the ledger: terrain,
+ * fortification, the general's aura, the walls, the naval column, the citadel,
+ * and every card, belief, rite, wonder and great person that adds strength
+ * points. The Cataphract's row retires with the ladder (no node has opened it
+ * since tree revision 4).
+ *
+ * No new state again — a strength is a data figure and none of it is stored on a
+ * piece — but **a v108 log does not replay**: every battle rolls against
+ * different numbers, so the damage, the deaths and the dice spent after the
+ * first blow all move.
  */
-export const SCHEMA_VERSION = 108;
+export const SCHEMA_VERSION = 109;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

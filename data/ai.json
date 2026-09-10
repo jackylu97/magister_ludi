@@ -145,7 +145,8 @@
     "victory": 1500,
     "tech": 14,
     "city": 200,
-    "military": 5,
+    "military": 2,
+    "unitEdge": 5,
     "happiness": 12,
     "authority": 10,
     "renown": 2,
@@ -168,7 +169,7 @@
     "nominalCount": 3,
     "nominalTiles": 3,
     "synergyBonus": 14,
-    "combatScale": 3,
+    "combatScale": 7.5,
     "patienceTurns": 10,
     "lumpTurns": 20,
     "tallyForecast": {
@@ -304,7 +305,7 @@
         "tributeFloor": -55
       },
       "weights": {
-        "military": 9,
+        "military": 3.6,
         "city": 227
       },
       "military": {

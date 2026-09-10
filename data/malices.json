@@ -110,7 +110,7 @@
       "effects": [
         {
           "kind": "combatLine",
-          "amount": -1,
+          "amount": -2,
           "when": {
             "test": "always"
           },

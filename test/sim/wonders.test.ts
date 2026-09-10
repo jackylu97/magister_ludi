@@ -1359,7 +1359,7 @@ describe('a wonder in words', () => {
 
   it('names who a filtered combat line is for, and whose ground a tile line is on', () => {
     expect(describeCard('alhambra').map((c) => c.text)).toContain(
-      '+2 combat strength for mounted units',
+      '+4 combat strength for mounted units',
     );
     expect(describeCard('petra').map((c) => stripRefs(c.text))).toContain(
       '+1 food, +1 production on every desert hex, in every city with Petra',
@@ -1408,7 +1408,7 @@ describe('the building rows of batch E4a', () => {
       tile: at(g.state.map, home.col, home.row),
     });
     const born = g.state.units.find((u) => u.id === veteran.unitId)!;
-    expect(born.stamp?.strength).toBe(1);
+    expect(born.stamp?.strength).toBe(2);
 
     // Raised anywhere else: an ordinary soldier. The scope is the wonder naming
     // itself, which is the same sentence its yield clauses say.

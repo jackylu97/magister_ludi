@@ -585,7 +585,8 @@ describe("a belief is an effect source, not a second evaluator", () => {
     const before = forecast(g.state, mine.id, theirs.col, theirs.row);
     keep(g.state, 0, "godOfTheForge");
     const after = forecast(g.state, mine.id, theirs.col, theirs.row);
-    expect(after.attackerStrength).toBe(before.attackerStrength + 1);
+    // Two points since U9's ladder.
+    expect(after.attackerStrength).toBe(before.attackerStrength + 2);
     expect(
       after.bonuses.some((line) => line.source.includes("God of the Forge")),
     ).toBe(true);
@@ -968,7 +969,7 @@ describe("rites", () => {
     const before = foldCityStat(cardCityStat(g.state, city, "defense"));
     performRiteAt(g.state, player, city, "blessingOfArms");
     expect(foldCityStat(cardCityStat(g.state, city, "defense"))).toBe(
-      before + 5,
+      before + 10,
     );
     // And it runs out on the turn it names, like everything else timed.
     g.state.turn += 10;
@@ -2355,7 +2356,7 @@ describe("what a religion pays whom", () => {
       })
         .filter((line) => line.source.includes("Warrior Monks"))
         .reduce((sum, line) => sum + line.amount, 0);
-    expect(monks(defender, seat)).toBe(5);
+    expect(monks(defender, seat)).toBe(10);
     // Not out in the field, and not in a town that keeps no faith.
     const field = getTileAt(g.state.map, theirs.col + 2, theirs.row)!;
     expect(monks(defender, field)).toBe(0);
@@ -3174,7 +3175,7 @@ describe("the ratified religion rows", () => {
     // Two since the rework of batch E4b (the user's own words): the belief
     // bought the spread with the difference. **Three since batch B3** — the
     // user's second marking of `docs/beliefs.md`, the number and nothing else.
-    expect(crusading.attackerStrength - before).toBe(3);
+    expect(crusading.attackerStrength - before).toBe(6);
 
     // **The banner, not the border.** The same fight over a town that has since
     // stopped following pays nothing at all.
@@ -3380,7 +3381,7 @@ describe("the ratified religion rows", () => {
     // strength half bought the spread with the difference. Raised to three in
     // batch B3, the user's second marking of the worksheet.
     expect(said("theCrusade")).toEqual([
-      "+3 combat strength inside foreign cities that follow your religion",
+      "+6 combat strength inside foreign cities that follow your religion",
       "killing a unit spreads your religion to every city within 3 hexes",
     ]);
     // Withdrawn on 2026-09-07 (the user: *remove, not needed* — a new town is
@@ -3782,7 +3783,7 @@ describe("the Knights Templar", () => {
       })
         .filter((line) => line.source.includes("Holy Order"))
         .reduce((sum, line) => sum + line.amount, 0);
-    expect(holy(templar, home)).toBe(3);
+    expect(holy(templar, home)).toBe(6);
     // Out on open ground, where no town keeps the faith: nothing.
     expect(holy(templar, away)).toBe(0);
     // And the line names the row, so the empire's other soldiers are untouched.

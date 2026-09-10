@@ -3775,7 +3775,12 @@ arithmetic rather than by design. Forty rows across five tables carry a
   half of one;
 - **`movement` · `sight` · `range` · `charges`** are points of a piece's own
   quality and stay at the rate this arm has always read them at. The day one of
-  them earns a reading of its own it takes a case there.
+  them earns a reading of its own it takes a case there. **Since batch U9** that
+  rate is its own knob, `weights.unitEdge`: it held the same figure as
+  `weights.military` while a hex of movement and a point of combat strength
+  happened to be worth the same, and the strength ladder moved one of them.
+  `weights.unitEdge` also prices the border toll's screened town, for the same
+  reason.
 
 ### The sweep
 

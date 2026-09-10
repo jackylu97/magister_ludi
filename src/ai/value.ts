@@ -1958,6 +1958,11 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
  * `combatScale`'s worth of military weight is what this file already means by
  * "a piece" (`unlocksUnit`, the completion grant), so the two readings that need
  * one ask the same number.
+ *
+ * The last arm asks `weights.unitEdge` rather than `weights.military`, and the
+ * split is batch U9's: a hex of movement is not a point of combat strength, and
+ * while the two knobs happened to hold the same figure nothing had to say so.
+ * The strength ladder moved one of them and not the other.
  */
 function unitStatPoints(
   stat: 'movement' | 'sight' | 'heal' | 'charges' | 'range' | 'combatPercent',
@@ -1967,7 +1972,7 @@ function unitStatPoints(
   const piece = ctx.ai.weights.military * ctx.ai.score.combatScale;
   if (stat === 'combatPercent') return (amount / 100) * piece;
   if (stat === 'heal') return (Math.min(Math.abs(amount), pieceBar()) / pieceBar()) * Math.sign(amount) * piece;
-  return amount * ctx.ai.weights.military;
+  return amount * ctx.ai.weights.unitEdge;
 }
 
 /**
@@ -3123,8 +3128,12 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       //     the faith bank would otherwise have bought, against a library
       //     arriving several turns sooner — which is `wants.ts`' arithmetic and
       //     not a card's. Named, and a debt on the purchase arm rather than here.
+      // A border's toll is a *screen*, not a strength: it is priced per town it
+      // covers, so it asks `unitEdge` — batch U9's split, for the reason on that
+      // knob. Before it, this read `military` and the strength ladder would have
+      // halved what a screened town is worth without anybody deciding to.
       return effect.rule === 'borders'
-        ? ctx.ai.weights.military * (1 + ctx.threat) * ctx.cities
+        ? ctx.ai.weights.unitEdge * (1 + ctx.threat) * ctx.cities
         : ctx.ai.score.unknownEffect;
     case 'metaRule':
       // A rule of Statecraft itself — how long a chair is sealed. What a seal

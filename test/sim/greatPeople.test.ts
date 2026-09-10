@@ -971,9 +971,9 @@ describe('the legacies this pass built', () => {
     tile.feature = 'none';
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
     tile.feature = 'forest';
-    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    expect(fight(g.state, unit, tile, 'defend')).toBe(10);
     tile.feature = 'jungle';
-    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    expect(fight(g.state, unit, tile, 'defend')).toBe(10);
     // Defending only — the forty-year war was fought from the trees.
     expect(fight(g.state, unit, tile, 'attack')).toBe(0);
   });
@@ -1006,7 +1006,7 @@ describe('the legacies this pass built', () => {
     const tile = getTileAt(g.state.map, unit.col, unit.row)!;
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
     unit.fortifiedTurns = 0;
-    expect(fight(g.state, unit, tile, 'defend')).toBe(5);
+    expect(fight(g.state, unit, tile, 'defend')).toBe(10);
     // Defence only. A fort that charged would not be a fort.
     expect(fight(g.state, unit, tile, 'attack')).toBe(0);
   });
@@ -1019,8 +1019,8 @@ describe('the legacies this pass built', () => {
     const tile = getTileAt(g.state.map, city.col, city.row)!;
     expect(fight(g.state, unit, tile, 'defend')).toBe(0);
     city.captured = true;
-    expect(fight(g.state, unit, tile, 'defend')).toBe(3);
-    expect(fight(g.state, unit, tile, 'attack')).toBe(3);
+    expect(fight(g.state, unit, tile, 'defend')).toBe(6);
+    expect(fight(g.state, unit, tile, 'attack')).toBe(6);
   });
 
   it('Tycho Brahe reads the sky off the ground, and wants both halves of it', () => {
@@ -1101,8 +1101,8 @@ describe('the legacies this pass built', () => {
     // Against a warrior the line is silent; against a horseman it pays 3, and
     // it pays it whichever posture this piece is in — `side: 'both'`.
     expect(fight(g.state, mine, tile, 'attack', 'warrior')).toBe(0);
-    expect(fight(g.state, mine, tile, 'attack', 'horseman')).toBe(3);
-    expect(fight(g.state, mine, tile, 'defend', 'horseman')).toBe(3);
+    expect(fight(g.state, mine, tile, 'attack', 'horseman')).toBe(6);
+    expect(fight(g.state, mine, tile, 'defend', 'horseman')).toBe(6);
     // A town has no silhouette, so a `vsClass` line does not fire at walls.
     expect(fight(g.state, mine, tile, 'attack', undefined)).toBe(0);
   });
@@ -1142,15 +1142,15 @@ describe('the legacies this pass built', () => {
     expect(printed('murasakiShikibu')).toEqual(['+10 culture per melee unit in the field']);
     expect(printed('shenKuo')).toEqual(['+2 science per improved strategic resource']);
     expect(printed('nzingaOfNdongo')).toEqual([
-      '+5 combat strength in forest',
-      '+5 combat strength in jungle',
+      '+10 combat strength in forest',
+      '+10 combat strength in jungle',
     ]);
     expect(printed('hanXin')).toEqual([
       '+2 combat strength beside fresh water',
       '+2 combat strength on the coast',
     ]);
-    expect(printed('janZizka')).toEqual(['+5 combat strength while fortified']);
-    expect(printed('elCid')).toEqual(['+3 combat strength in a city you captured']);
+    expect(printed('janZizka')).toEqual(['+10 combat strength while fortified']);
+    expect(printed('elCid')).toEqual(['+6 combat strength in a city you captured']);
     expect(printed('assurIdi')).toEqual(['+1 gold in every city but your capital']);
     expect(printed('amenhotepSonOfHapu')).toEqual([
       '+15% production toward wonders, in your capital',
@@ -1161,7 +1161,7 @@ describe('the legacies this pass built', () => {
     // and the strength line pays in every fight rather than only at walls.
     expect(printed('archimedes')).toEqual([
       'siege units: +1 movement',
-      '+3 combat strength for siege units',
+      '+6 combat strength for siege units',
     ]);
     // **The revocation prints, and it is not struck through** (2026-08-28): it
     // is a promise the game *does* make now, so it reads as an ordinary clause
@@ -1173,7 +1173,7 @@ describe('the legacies this pass built', () => {
       'lost the first turn your happiness goes negative',
     ]);
     expect(printed('boudica')).toEqual([
-      '+4 combat strength inside your territory',
+      '+8 combat strength inside your territory',
       'lost when the age it was earned in closes',
     ]);
     expect(printed('tychoBrahe')).toEqual([
@@ -1211,7 +1211,7 @@ describe('the legacies this pass built', () => {
     expect(printed('jakobFugger')).toContain('all units and buildings cost −20% to buy');
     // And the other side of a fight, which `combatLine` could not say until
     // `vsClass` existed.
-    expect(printed('lautaro')).toEqual(['+3 combat strength against mounted units']);
+    expect(printed('lautaro')).toEqual(['+6 combat strength against mounted units']);
   });
 
   // --- batch GP1 ------------------------------------------------------------
@@ -1279,8 +1279,8 @@ describe('the legacies this pass built', () => {
     expect(fullMovement(foot, g.state)).toBe(unitDef('warrior').movement);
     // A flat line on one ledger, in every fight and in either posture — where
     // the old row only paid the attacker and only at walls.
-    expect(fight(g.state, engine, here, 'attack')).toBe(3);
-    expect(fight(g.state, engine, here, 'defend')).toBe(3);
+    expect(fight(g.state, engine, here, 'attack')).toBe(6);
+    expect(fight(g.state, engine, here, 'defend')).toBe(6);
     expect(fight(g.state, foot, here, 'attack')).toBe(0);
   });
 
@@ -1568,11 +1568,12 @@ describe('the one-row shapes, built generically', () => {
     const city = found(g.state, 0);
     bear(g.state, 0, 'deborah');
     const unit = g.state.units.find((u) => u.ownerId === 0)!;
-    // The hex the town stands on is trivially within two of it.
-    expect(fight(g.state, unit, getTileAt(g.state.map, city.col, city.row), 'attack')).toBe(4);
+    // The hex the town stands on is trivially within two of it. Eight points
+    // since U9's ladder.
+    expect(fight(g.state, unit, getTileAt(g.state.map, city.col, city.row), 'attack')).toBe(8);
     // A distance rather than a border: unclaimed ground two hexes out still
     // pays, and ground far away does not.
-    expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 2, city.row), 'attack')).toBe(4);
+    expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 2, city.row), 'attack')).toBe(8);
     expect(fight(g.state, unit, getTileAt(g.state.map, city.col + 9, city.row), 'attack')).toBe(0);
   });
 
@@ -1609,7 +1610,7 @@ describe('the one-row shapes, built generically', () => {
     // A second town for them, and the blow carries three.
     g.state.cities.push({ ...theirs, id: theirs.id + 500, name: 'Second' });
     bumpRevision(g.state);
-    expect(against('attack')).toBe(3);
+    expect(against('attack')).toBe(6);
     // The posture is the row's own: standing your ground pays nothing.
     expect(against('defend')).toBe(0);
   });
@@ -1778,7 +1779,7 @@ describe('the one-row shapes, built generically', () => {
     const hull = createUnit(g.state, 0, 'trireme', city.col, city.row);
     const foot = g.state.units.find((u) => u.ownerId === 0 && u.type !== 'trireme')!;
     bumpRevision(g.state);
-    expect(fight(g.state, hull, hex, 'attack')).toBe(5);
+    expect(fight(g.state, hull, hex, 'attack')).toBe(10);
     expect(fight(g.state, foot, hex, 'attack')).toBe(0);
   });
 

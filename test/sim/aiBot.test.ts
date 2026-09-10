@@ -38,9 +38,9 @@ import {
   realPlayers,
   bumpRevision,
 } from '../../src/sim/state';
-import { getTileAt, mapRange, tileHex, tileNeighbors } from '../../src/sim/map';
+import { getTileAt, mapRange, tileHex, tileIndex, tileNeighbors } from '../../src/sim/map';
 import { findPath, isPassable } from '../../src/sim/pathfind';
-import { foundCityAt, foundingErrorAt } from '../../src/sim/cities';
+import { foundCityAt, foundingErrorAt, tileOwnerPlayerId } from '../../src/sim/cities';
 import { buildImprovementAt, improvementErrorAt } from '../../src/sim/improvements';
 import { IMPROVEMENT_IDS, improvementDef } from '../../src/sim/improvementData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
@@ -933,6 +933,17 @@ describe('the march is re-asked (batch X7)', () => {
     const laid = IMPROVEMENT_IDS.find((id) => improvementDef(id).name === wanted);
     expect(laid, `no improvement is named "${wanted}"`).not.toBeUndefined();
     const tile = getTileAt(game.state.map, aim.col, aim.row)!;
+    // The plan aims at ground within reach of a town, owned or not
+    // (`groundInReach`, `plan.ts`), and on this bench since batch U9 the arm's
+    // pick is a pasture one hex past the border. The test is about a second
+    // spade laying the row, not about who owns the hex, so the fixture claims
+    // it — the precondition said plainly rather than a seed hunted for.
+    if (tileOwnerPlayerId(game.state, tile.col, tile.row) !== 0) {
+      // `tileOwner` holds the owning *city*, not the seat.
+      const town = game.state.cities.find((city) => city.ownerId === 0)!;
+      game.state.tileOwner[tileIndex(game.state.map, tile.col, tile.row)] = town.id;
+      bumpRevision(game.state);
+    }
     expect(improvementErrorAt(game.state, 0, tile, laid!)).toBeNull();
     const other = createUnit(game.state, 0, 'worker', tile.col, tile.row);
     buildImprovementAt(game.state, other, tile, laid!);

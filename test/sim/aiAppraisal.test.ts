@@ -3900,9 +3900,10 @@ describe('a unitStat is read by which stat it is (batch X8)', () => {
     const percent: CardEffect[] = [{ kind: 'unitStat', stat: 'combatPercent', amount: 25 }];
     expect(scoreEffects(percent, ctx)).toBeCloseTo(0.25 * piece * (1 + ctx.threat), 9);
     // The four points of a piece's own quality are untouched: the reading this
-    // arm has always taken.
+    // arm has always taken, off `weights.unitEdge` since batch U9 split a hex of
+    // movement from a point of combat strength (see the knob).
     const reach: CardEffect[] = [{ kind: 'unitStat', stat: 'movement', amount: 1 }];
-    expect(scoreEffects(reach, ctx)).toBeCloseTo(aiJson.weights.military * (1 + ctx.threat), 9);
+    expect(scoreEffects(reach, ctx)).toBeCloseTo(aiJson.weights.unitEdge * (1 + ctx.threat), 9);
   });
 
   it('is no longer the arithmetic accident the audit named', () => {

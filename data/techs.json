@@ -1038,7 +1038,7 @@
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "always"
           },

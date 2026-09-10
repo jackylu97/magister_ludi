@@ -66,7 +66,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "both",
           "when": {
             "test": "always"
@@ -91,7 +91,7 @@
           "perSlottedOrder": true
         }
       ],
-      "text": "+3 authority capacity. +2 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot."
+      "text": "+3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot."
     },
     "priestKing": {
       "name": "Priest-King",
@@ -155,7 +155,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "both",
           "when": {
             "test": "always"
@@ -176,7 +176,7 @@
           "percent": -30
         }
       ],
-      "text": "+5 authority capacity. +2 combat strength. Pillaging pays +50% and costs no movement."
+      "text": "+5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement."
     },
     "theocracy": {
       "name": "Theocracy",
@@ -452,7 +452,7 @@
         "economic": 3,
         "wildcard": 4
       },
-      "text": "+6 authority capacity. +1 combat strength for each great general you have earned this game.",
+      "text": "+6 authority capacity. +2 combat strength for each great general you have earned this game.",
       "effects": [
         {
           "kind": "authority",
@@ -460,7 +460,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -748,7 +748,7 @@
       "tier": 10,
       "line": "forge",
       "flavor": "The peaks are a wall nobody had to build.",
-      "text": "+15% production in every city with a mountain tile · +5 city defence there.",
+      "text": "+15% production in every city with a mountain tile · +10 city defence there.",
       "effects": [
         {
           "kind": "percentYields",
@@ -762,7 +762,7 @@
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 5,
+          "amount": 10,
           "scope": {
             "test": "terrainInBorders",
             "terrain": "mountain"
@@ -995,7 +995,7 @@
       "tier": 18,
       "line": "wayfarers",
       "flavor": "We see everything. We fear it a little.",
-      "text": "All units +1 sight and +1 movement, all units −2 combat strength.",
+      "text": "All units +1 sight and +1 movement, all units −4 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
@@ -1009,7 +1009,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": -2,
+          "amount": -4,
           "side": "both",
           "when": {
             "test": "always"
@@ -1616,7 +1616,7 @@
       "tier": 10,
       "line": "forge",
       "flavor": "They were never conquered. They were hired.",
-      "text": "Mounted units gain +1 movement and +1 combat strength.",
+      "text": "Mounted units gain +1 movement and +2 combat strength.",
       "effects": [
         {
           "kind": "unitStat",
@@ -1628,7 +1628,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -1648,11 +1648,11 @@
       "line": "hunt",
       "rarity": "common",
       "flavor": "The wild taught us. We took notes.",
-      "text": "+1 combat strength, and +2 more against barbarians.",
+      "text": "+2 combat strength, and +4 more against barbarians.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -1660,7 +1660,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "both",
           "when": {
             "test": "vsBarbarians"
@@ -1921,11 +1921,11 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Home ground fights beside you — and fights harder the more of us there are.",
-      "text": "+1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more.",
+      "text": "+2 combat strength inside your territory, and +2 more for each military Order you have in a slot, at most +6 more.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "ownTerritory"
@@ -1933,7 +1933,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "ownTerritory"
@@ -1942,7 +1942,7 @@
             "count": "slottedOrdersOfSlot",
             "slot": "military",
             "per": 1,
-            "max": 3
+            "max": 6
           }
         }
       ]
@@ -2387,11 +2387,11 @@
       "line": "forge",
       "rarity": "common",
       "flavor": "Walls are patient. We are less so.",
-      "text": "+4 combat strength when attacking cities.",
+      "text": "+8 combat strength when attacking cities.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 8,
           "side": "attack",
           "when": {
             "test": "vsCity"
@@ -2775,11 +2775,11 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Shoulder to shoulder, the line is one animal.",
-      "text": "+2 combat strength for each adjacent friendly combat unit (at most +4).",
+      "text": "+4 combat strength for each adjacent friendly combat unit (at most +8).",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "both",
           "when": {
             "test": "always"
@@ -2787,7 +2787,7 @@
           "scaled": {
             "count": "adjacentFriendlies",
             "per": 1,
-            "max": 4
+            "max": 8
           }
         }
       ]
@@ -3157,7 +3157,7 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "Ten thousand men who march as one, and dig the ditch as one.",
-      "text": "Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them.",
+      "text": "Melee units gain +1 movement and +2 combat strength, and cities put 15% more production behind them.",
       "effects": [
         {
           "kind": "unitStat",
@@ -3169,7 +3169,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -3404,11 +3404,11 @@
       "line": "highlands",
       "rarity": "uncommon",
       "flavor": "Uphill, every stone is a soldier.",
-      "text": "+2 combat strength when defending on hills, and a city on hills costs 1 less authority.",
+      "text": "+4 combat strength when defending on hills, and a city on hills costs 1 less authority.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "side": "defend",
           "when": {
             "test": "onHills"
@@ -3558,11 +3558,11 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "They learn the step before they learn the spear.",
-      "text": "While this Order is in a slot, units created from now on are born with +2 combat strength, and keep it for life.",
+      "text": "While this Order is in a slot, units created from now on are born with +4 combat strength, and keep it for life.",
       "effects": [
         {
           "kind": "unitStamp",
-          "strength": 2
+          "strength": 4
         }
       ]
     },
@@ -4228,11 +4228,11 @@
       "line": "none",
       "rarity": "common",
       "flavor": "Three old soldiers, one map, and a great deal of shouting.",
-      "text": "+1 combat strength for each military Order you have in a slot.",
+      "text": "+2 combat strength for each military Order you have in a slot.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 1,
+          "amount": 2,
           "side": "both",
           "when": {
             "test": "always"
@@ -4564,7 +4564,7 @@
       "line": "forge",
       "rarity": "rare",
       "flavor": "The grievance is old, the parchment is new, and the smiths were told a week ago.",
-      "text": "Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns.",
+      "text": "Declaring war grants +4 combat strength to all your units and +10% production in every city, for 10 turns.",
       "effects": [
         {
           "kind": "windfallRider",
@@ -4575,7 +4575,7 @@
               "effects": [
                 {
                   "kind": "combatLine",
-                  "amount": 2,
+                  "amount": 4,
                   "side": "both",
                   "when": {
                     "test": "always"
@@ -5071,12 +5071,12 @@
       "line": "forge",
       "rarity": "rare",
       "flavor": "Wait for the stumble. Then do not wait.",
-      "text": "+5 combat strength when attacking a unit below half strength.",
+      "text": "+10 combat strength when attacking a unit below half strength.",
       "note": "A fight is decided by points on one ledger rather than by a share of the blow, so what was written as extra damage is printed as a strength line.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "side": "attack",
           "when": {
             "test": "targetBelowHalf"
@@ -5110,11 +5110,11 @@
       "line": "forge",
       "rarity": "rare",
       "flavor": "They swore to the order first and to you second.",
-      "text": "Mounted units gain +5 combat strength inside your territory, and cities put 25% less production behind them.",
+      "text": "Mounted units gain +10 combat strength inside your territory, and cities put 25% less production behind them.",
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "side": "both",
           "when": {
             "test": "ownTerritory"
@@ -5138,7 +5138,7 @@
       "line": "forge",
       "rarity": "uncommon",
       "flavor": "The engines set out a week before the army does.",
-      "text": "Siege units gain +1 movement. +6 combat strength against cities for units standing beside a siege engine.",
+      "text": "Siege units gain +1 movement. +12 combat strength against cities for units standing beside a siege engine.",
       "effects": [
         {
           "kind": "unitStat",
@@ -5150,7 +5150,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 6,
+          "amount": 12,
           "side": "attack",
           "when": {
             "test": "all",
@@ -5429,7 +5429,7 @@
       "line": "caravan",
       "rarity": "rare",
       "flavor": "The fleet is the frontier.",
-      "text": "Your units come ashore from the water without spending movement, and gain +5 combat strength for 3 turns when they land.",
+      "text": "Your units come ashore from the water without spending movement, and gain +10 combat strength for 3 turns when they land.",
       "note": "A landing is the fleet's business, and the men who make one are still the fleet's for a few days afterwards.",
       "effects": [
         {
@@ -5442,7 +5442,7 @@
           "effects": [
             {
               "kind": "combatLine",
-              "amount": 5,
+              "amount": 10,
               "side": "both",
               "when": {
                 "test": "always"

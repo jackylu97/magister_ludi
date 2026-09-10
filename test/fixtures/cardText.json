@@ -17,8 +17,8 @@
     "text": "+3 authority capacity"
    },
    {
-    "raw": "+2 combat strength",
-    "text": "+2 combat strength"
+    "raw": "+4 combat strength",
+    "text": "+4 combat strength"
    },
    {
     "raw": "killing a unit grants +5 science for each Order you have in a slot",
@@ -51,8 +51,8 @@
     "text": "+5 authority capacity"
    },
    {
-    "raw": "+2 combat strength",
-    "text": "+2 combat strength"
+    "raw": "+4 combat strength",
+    "text": "+4 combat strength"
    },
    {
     "raw": "pillaging pays +50%",
@@ -181,8 +181,8 @@
     "text": "+6 authority capacity"
    },
    {
-    "raw": "+1 combat strength per great general earned this game",
-    "text": "+1 combat strength per great general earned this game"
+    "raw": "+2 combat strength per great general earned this game",
+    "text": "+2 combat strength per great general earned this game"
    },
    {
     "raw": "capturing a city with a wonder in it heals every one of your units",
@@ -305,8 +305,8 @@
     "text": "+15% production in every city with a mountain hex inside its borders"
    },
    {
-    "raw": "every city with a mountain hex inside its borders: +5 city defence",
-    "text": "every city with a mountain hex inside its borders: +5 city defence"
+    "raw": "every city with a mountain hex inside its borders: +10 city defence",
+    "text": "every city with a mountain hex inside its borders: +10 city defence"
    }
   ],
   "theSacredPath": [
@@ -409,8 +409,8 @@
     "text": "all units: +1 movement"
    },
    {
-    "raw": "-2 combat strength",
-    "text": "-2 combat strength"
+    "raw": "-4 combat strength",
+    "text": "-4 combat strength"
    }
   ],
   "hegemony": [
@@ -678,20 +678,20 @@
     "text": "mounted units: +1 movement"
    },
    {
-    "raw": "+1 combat strength for mounted units",
-    "text": "+1 combat strength for mounted units"
+    "raw": "+2 combat strength for mounted units",
+    "text": "+2 combat strength for mounted units"
    }
   ]
  },
  "order": {
   "bloodedSpears": [
    {
-    "raw": "+1 combat strength",
-    "text": "+1 combat strength"
+    "raw": "+2 combat strength",
+    "text": "+2 combat strength"
    },
    {
-    "raw": "+2 combat strength against barbarians",
-    "text": "+2 combat strength against barbarians"
+    "raw": "+4 combat strength against barbarians",
+    "text": "+4 combat strength against barbarians"
    }
   ],
   "campFollowers": [
@@ -784,8 +784,8 @@
   ],
   "borderWardens": [
    {
-    "raw": "+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)",
-    "text": "+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)"
+    "raw": "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)",
+    "text": "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)"
    }
   ],
   "vanguard": [
@@ -934,8 +934,8 @@
   ],
   "siegeDoctrine": [
    {
-    "raw": "+4 combat strength against cities",
-    "text": "+4 combat strength against cities"
+    "raw": "+8 combat strength against cities",
+    "text": "+8 combat strength against cities"
    }
   ],
   "scorchedEarth": [
@@ -1054,8 +1054,8 @@
   ],
   "theMarshals": [
    {
-    "raw": "+2 combat strength per adjacent friendly combat unit (at most +4)",
-    "text": "+2 combat strength per adjacent friendly combat unit (at most +4)"
+    "raw": "+4 combat strength per adjacent friendly combat unit (at most +8)",
+    "text": "+4 combat strength per adjacent friendly combat unit (at most +8)"
    }
   ],
   "garrisonState": [
@@ -1174,8 +1174,8 @@
     "text": "melee units: +1 movement"
    },
    {
-    "raw": "+1 combat strength for melee units",
-    "text": "+1 combat strength for melee units"
+    "raw": "+2 combat strength for melee units",
+    "text": "+2 combat strength for melee units"
    },
    {
     "raw": "+15% production toward melee units",
@@ -1246,8 +1246,8 @@
   ],
   "hillForts": [
    {
-    "raw": "+2 combat strength on hills",
-    "text": "+2 combat strength on hills"
+    "raw": "+4 combat strength on hills",
+    "text": "+4 combat strength on hills"
    },
    {
     "raw": "the authority a city on hills costs falls by 1",
@@ -1300,8 +1300,8 @@
   ],
   "drumsOfWar": [
    {
-    "raw": "newly created units gain +2 combat strength",
-    "text": "newly created units gain +2 combat strength"
+    "raw": "newly created units gain +4 combat strength",
+    "text": "newly created units gain +4 combat strength"
    }
   ],
   "theCartographers": [
@@ -1506,8 +1506,8 @@
   "theAuspiciousSeal": [],
   "theWarCouncil": [
    {
-    "raw": "+1 combat strength per military Order you have in a slot",
-    "text": "+1 combat strength per military Order you have in a slot"
+    "raw": "+2 combat strength per military Order you have in a slot",
+    "text": "+2 combat strength per military Order you have in a slot"
    }
   ],
   "theGuildCharter": [
@@ -1602,8 +1602,8 @@
   ],
   "theCasusBelli": [
    {
-    "raw": "declaring war grants +2 combat strength; +10% production in every city for 10 turns",
-    "text": "declaring war grants +2 combat strength; +10% production in every city for 10 turns"
+    "raw": "declaring war grants +4 combat strength; +10% production in every city for 10 turns",
+    "text": "declaring war grants +4 combat strength; +10% production in every city for 10 turns"
    }
   ],
   "ritesCharter": [
@@ -1753,8 +1753,8 @@
   ],
   "decisiveBlows": [
    {
-    "raw": "+5 combat strength against units below half strength",
-    "text": "+5 combat strength against units below half strength"
+    "raw": "+10 combat strength against units below half strength",
+    "text": "+10 combat strength against units below half strength"
    }
   ],
   "theMarshalsPurse": [
@@ -1765,8 +1765,8 @@
   ],
   "knightlyOrders": [
    {
-    "raw": "+5 combat strength for mounted units inside your territory",
-    "text": "+5 combat strength for mounted units inside your territory"
+    "raw": "+10 combat strength for mounted units inside your territory",
+    "text": "+10 combat strength for mounted units inside your territory"
    },
    {
     "raw": "-25% production toward mounted units",
@@ -1779,8 +1779,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+6 combat strength against cities and while standing beside siege units",
-    "text": "+6 combat strength against cities and while standing beside siege units"
+    "raw": "+12 combat strength against cities and while standing beside siege units",
+    "text": "+12 combat strength against cities and while standing beside siege units"
    }
   ],
   "patrons": [
@@ -1879,8 +1879,8 @@
     "text": "your units come ashore from the water without spending movement"
    },
    {
-    "raw": "a unit of yours that comes ashore from the water gains +5 combat strength for 3 turns",
-    "text": "a unit of yours that comes ashore from the water gains +5 combat strength for 3 turns"
+    "raw": "a unit of yours that comes ashore from the water gains +10 combat strength for 3 turns",
+    "text": "a unit of yours that comes ashore from the water gains +10 combat strength for 3 turns"
    }
   ],
   "theSalon": [
@@ -2310,8 +2310,8 @@
     "text": "+1 production in every city with a Barracks"
    },
    {
-    "raw": "+1 combat strength",
-    "text": "+1 combat strength"
+    "raw": "+2 combat strength",
+    "text": "+2 combat strength"
    }
   ],
   "ritesOfBlood": [
@@ -2446,8 +2446,8 @@
   ],
   "warriorMonks": [
    {
-    "raw": "+5 combat strength while standing in one of your cities",
-    "text": "+5 combat strength while standing in one of your cities"
+    "raw": "+10 combat strength while standing in one of your cities",
+    "text": "+10 combat strength while standing in one of your cities"
    }
   ],
   "harvestBlessing": [
@@ -2558,8 +2558,8 @@
     "text": "unlocks the Knights Templar, called with faith"
    },
    {
-    "raw": "+3 combat strength for knights templars inside cities that follow your religion",
-    "text": "+3 combat strength for knights templars inside cities that follow your religion"
+    "raw": "+6 combat strength for knights templars inside cities that follow your religion",
+    "text": "+6 combat strength for knights templars inside cities that follow your religion"
    }
   ],
   "theocraticMandate": [
@@ -2595,8 +2595,8 @@
   ],
   "theCrusade": [
    {
-    "raw": "+3 combat strength inside foreign cities that follow your religion",
-    "text": "+3 combat strength inside foreign cities that follow your religion"
+    "raw": "+6 combat strength inside foreign cities that follow your religion",
+    "text": "+6 combat strength inside foreign cities that follow your religion"
    },
    {
     "raw": "killing a unit spreads your religion to every city within 3 hexes",
@@ -2651,8 +2651,8 @@
   ],
   "blessingOfArms": [
    {
-    "raw": "this city: +5 city defence",
-    "text": "this city: +5 city defence"
+    "raw": "this city: +10 city defence",
+    "text": "this city: +10 city defence"
    }
   ],
   "riteOfPlenty": [
@@ -2818,12 +2818,12 @@
   ],
   "wallsOfUruk": [
    {
-    "raw": "your capital: +10 city defence",
-    "text": "your capital: +10 city defence"
+    "raw": "your capital: +20 city defence",
+    "text": "your capital: +20 city defence"
    },
    {
-    "raw": "+2 combat strength inside your capital’s borders",
-    "text": "+2 combat strength inside your capital’s borders"
+    "raw": "+4 combat strength inside your capital’s borders",
+    "text": "+4 combat strength inside your capital’s borders"
    },
    {
     "raw": "+2 authority capacity",
@@ -2910,12 +2910,12 @@
   ],
   "terracottaArmy": [
    {
-    "raw": "+3 combat strength while standing in one of your cities",
-    "text": "+3 combat strength while standing in one of your cities"
+    "raw": "+6 combat strength while standing in one of your cities",
+    "text": "+6 combat strength while standing in one of your cities"
    },
    {
-    "raw": "newly created units in every city with [[wonder:terracottaArmy|The Terracotta Army]] gain +1 combat strength",
-    "text": "newly created units in every city with The Terracotta Army gain +1 combat strength"
+    "raw": "newly created units in every city with [[wonder:terracottaArmy|The Terracotta Army]] gain +2 combat strength",
+    "text": "newly created units in every city with The Terracotta Army gain +2 combat strength"
    },
    {
     "raw": "+2 authority capacity",
@@ -2928,8 +2928,8 @@
     "text": "every hex you own exerts zone of control on enemy units, as a unit of yours would"
    },
    {
-    "raw": "this city: +5 city defence",
-    "text": "this city: +5 city defence"
+    "raw": "this city: +10 city defence",
+    "text": "this city: +10 city defence"
    }
   ],
   "theatreOfDionysus": [
@@ -3051,8 +3051,8 @@
   ],
   "alhambra": [
    {
-    "raw": "+2 combat strength for mounted units",
-    "text": "+2 combat strength for mounted units"
+    "raw": "+4 combat strength for mounted units",
+    "text": "+4 combat strength for mounted units"
    },
    {
     "raw": "+1 happiness",
@@ -3213,8 +3213,8 @@
     "text": "all units: +5 healing per turn while dug in"
    },
    {
-    "raw": "+3 combat strength",
-    "text": "+3 combat strength"
+    "raw": "+6 combat strength",
+    "text": "+6 combat strength"
    },
    {
     "raw": "on completion, a glass bead is yours",
@@ -3420,8 +3420,8 @@
   ],
   "piyamaradu": [
    {
-    "raw": "+3 combat strength outside your territory",
-    "text": "+3 combat strength outside your territory"
+    "raw": "+6 combat strength outside your territory",
+    "text": "+6 combat strength outside your territory"
    },
    {
     "raw": "-2 authority capacity",
@@ -3436,8 +3436,8 @@
   ],
   "deborah": [
    {
-    "raw": "+4 combat strength within 2 hexes of one of your cities",
-    "text": "+4 combat strength within 2 hexes of one of your cities"
+    "raw": "+8 combat strength within 2 hexes of one of your cities",
+    "text": "+8 combat strength within 2 hexes of one of your cities"
    }
   ],
   "sappho": [
@@ -3484,8 +3484,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+3 combat strength for siege units",
-    "text": "+3 combat strength for siege units"
+    "raw": "+6 combat strength for siege units",
+    "text": "+6 combat strength for siege units"
    }
   ],
   "hypatia": [
@@ -3600,12 +3600,12 @@
   ],
   "hannibal": [
    {
-    "raw": "+5 combat strength outside your territory",
-    "text": "+5 combat strength outside your territory"
+    "raw": "+10 combat strength outside your territory",
+    "text": "+10 combat strength outside your territory"
    },
    {
-    "raw": "-4 combat strength inside your territory",
-    "text": "-4 combat strength inside your territory"
+    "raw": "-8 combat strength inside your territory",
+    "text": "-8 combat strength inside your territory"
    }
   ],
   "hanXin": [
@@ -3626,8 +3626,8 @@
   ],
   "boudica": [
    {
-    "raw": "+4 combat strength inside your territory",
-    "text": "+4 combat strength inside your territory"
+    "raw": "+8 combat strength inside your territory",
+    "text": "+8 combat strength inside your territory"
    },
    {
     "raw": "lost when the age it was earned in closes",
@@ -3636,8 +3636,8 @@
   ],
   "spartacus": [
    {
-    "raw": "+3 combat strength against an empire with more cities than you",
-    "text": "+3 combat strength against an empire with more cities than you"
+    "raw": "+6 combat strength against an empire with more cities than you",
+    "text": "+6 combat strength against an empire with more cities than you"
    }
   ],
   "ibnSina": [
@@ -3776,14 +3776,14 @@
   ],
   "janZizka": [
    {
-    "raw": "+5 combat strength while fortified",
-    "text": "+5 combat strength while fortified"
+    "raw": "+10 combat strength while fortified",
+    "text": "+10 combat strength while fortified"
    }
   ],
   "elCid": [
    {
-    "raw": "+3 combat strength in a city you captured",
-    "text": "+3 combat strength in a city you captured"
+    "raw": "+6 combat strength in a city you captured",
+    "text": "+6 combat strength in a city you captured"
    }
   ],
   "mimarSinan": [
@@ -3952,24 +3952,24 @@
   ],
   "nzingaOfNdongo": [
    {
-    "raw": "+5 combat strength in forest",
-    "text": "+5 combat strength in forest"
+    "raw": "+10 combat strength in forest",
+    "text": "+10 combat strength in forest"
    },
    {
-    "raw": "+5 combat strength in jungle",
-    "text": "+5 combat strength in jungle"
+    "raw": "+10 combat strength in jungle",
+    "text": "+10 combat strength in jungle"
    }
   ],
   "yiSunSin": [
    {
-    "raw": "+5 combat strength for ships",
-    "text": "+5 combat strength for ships"
+    "raw": "+10 combat strength for ships",
+    "text": "+10 combat strength for ships"
    }
   ],
   "lautaro": [
    {
-    "raw": "+3 combat strength against mounted units",
-    "text": "+3 combat strength against mounted units"
+    "raw": "+6 combat strength against mounted units",
+    "text": "+6 combat strength against mounted units"
    }
   ]
  },
@@ -4131,8 +4131,8 @@
   ],
   "feudalism": [
    {
-    "raw": "+5 combat strength against ranged units",
-    "text": "+5 combat strength against ranged units"
+    "raw": "+10 combat strength against ranged units",
+    "text": "+10 combat strength against ranged units"
    }
   ],
   "theHolyOffice": [],

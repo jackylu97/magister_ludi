@@ -56,10 +56,10 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | 0 | Chiefdom | 1/1/1 | Grants nothing of its own. |
 | 4 | Council of Elders | 0/2/3 | +3 happiness. +1 renown per turn for each city you hold. |
 |  | Priest-King | 1/2/2 | +2 faith in every city. |
-|  | War Chief | 3/1/1 | +3 authority capacity. +2 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
+|  | War Chief | 3/1/1 | +3 authority capacity. +4 combat strength. Killing a unit grants +5 science and +5 culture for each Order you have in a slot. |
 | 10 | Republic | 1/3/3 | +1 culture for each 5 population in a city. −5% happiness demanded per citizen. |
 |  | Theocracy | 1/2/4 | +2 faith in every city. Your capital's faith is gained again as science and as culture, at a fifth of the rate. |
-|  | Tyranny | 3/1/3 | +5 authority capacity. +2 combat strength. Pillaging pays +50% and costs no movement. |
+|  | Tyranny | 3/1/3 | +5 authority capacity. +4 combat strength. Pillaging pays +50% and costs no movement. |
 | 18 | Divine Mandate | 2/2/4 | +1 faith and +1 culture in your capital for each wildcard Order you have in a slot · +10% faith in every city of 6 or more population. |
 |  | Imperium | 4/2/2 | +1 production in every city for each military Order you have in a slot · all units +1 movement · capturing a city pays +50 gold and heals every one of your units. |
 |  | Merchant League | 1/4/3 | +2 gold for each economic Order you have in a slot · trade routes pay 50% more · +1 trade route. |
@@ -67,7 +67,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 |  | The Estates | 2/4/4 | +1 happiness in every city. +2 culture in every city of 8 or more population. |
 |  | The Sultanate | 5/2/3 | All units +1 movement, and cities put 25% more production behind units — a fifth off their price. Captured cities +10% science and +10% culture. |
 | 45 | The Commonwealth | 2/5/5 | Great people may be bought with gold. Great-person improvements pay +50% more. |
-|  | The Empire | 5/3/4 | +6 authority capacity. +1 combat strength for each great general you have earned this game. |
+|  | The Empire | 5/3/4 | +6 authority capacity. +2 combat strength for each great general you have earned this game. |
 |  | The Magisterium | 3/4/5 | Every offer of every kind shows one more card. +3 renown per turn for each wonder you hold. |
 
 ## Doctrines
@@ -90,14 +90,14 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Doctrine | Line | Effect |
 |---|---|---|
 | Thalassocracy | 🐫 | Coastal cities gain 10% of their food yield as production. |
-| Mountain Hold | ⚒ | +15% production in every city with a mountain tile · +5 city defence there. |
+| Mountain Hold | ⚒ | +15% production in every city with a mountain tile · +10 city defence there. |
 | The Burning Way | ⚒ | Clearing a forest or jungle costs no worker charge. |
 | The Sacred Path | ⚒ | +1 faith on every forest hex · +1 culture on every jungle hex. |
 | Bread and Circuses | 🌱 | While your authority is positive: +2 happiness in every city of 6 or more population. −2 gold in every city, always. |
 | The Tithe | 🕯 | +1 gold for each faith you gain per turn. |
 | The Gentle Yoke | 🌱 | −15% happiness demanded per citizen · every city costs 2 more authority. |
 | The Scattered Hearths | 🌱 | The first 2 citizens in every city demand no happiness · −4 happiness in your capital. |
-| The Horse-Tribes | ⚒ | Mounted units gain +1 movement and +1 combat strength. |
+| The Horse-Tribes | ⚒ | Mounted units gain +1 movement and +2 combat strength. |
 | The Great Warring Tribes | ⚒ | +10% production toward units. Captured cities pay +5 science and +5 culture per turn. |
 
 ### Pool III (tier 18)
@@ -108,7 +108,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Manifest of the Steppe | — | Settlers cost 40% less to train and have +2 movement. |
 | The Gilded Court | 🐫 | Unlocks the Gilded Hall, a building that is bought with gold and never built. +1 science and +1 culture on every hex that yields gold. +2 authority capacity. |
 | The Grand Bazaar | 🐫 | Happiness from unique luxuries +50%. A second or later copy of a luxury pays 30% of its bonus instead of nothing. +2 gold for each unique luxury. |
-| Master of Maps | 🧭 | All units +1 sight and +1 movement, all units −2 combat strength. |
+| Master of Maps | 🧭 | All units +1 sight and +1 movement, all units −4 combat strength. |
 | Hegemony | ⚒ | A captured city costs 1 authority · capturing a city grants +5% production in every city for 10 turns. |
 | Pax Imperia | 🌱 | +3 happiness and +10% culture in every city of 8 or more population. |
 | The Wandering Court | 🌱 | −15% to every yield in your capital · +3 food, production, science, culture and faith, and +3 happiness, in every city but your capital. |
@@ -153,7 +153,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| Blooded Spears | M | 🏹 | ● | S | +1 combat strength, and +2 more against barbarians. |
+| Blooded Spears | M | 🏹 | ● | S | +2 combat strength, and +4 more against barbarians. |
 | Camp Followers | M | 🏹 | ◆ | S | Clearing a barbarian camp grants +25 food and a random military unit. |
 | Far Runners | M | 🧭 | ● | S | All your units gain +1 sight. Claiming a ruin grants +10 culture. |
 | The Widow's Levy | M | — | ◆ | S | When a unit of yours dies, its nearest city gains +10 production and you gain +40 gold. |
@@ -172,7 +172,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
 | The Long Watch | M | — | ● | P | +1 happiness for each unit standing in one of your cities, and +1 more for each fortification a city has built. |
-| Border Wardens | M | — | ● | E | +1 combat strength inside your territory, and +1 more for each military Order you have in a slot, at most +3 more. |
+| Border Wardens | M | — | ● | E | +2 combat strength inside your territory, and +2 more for each military Order you have in a slot, at most +6 more. |
 | Conscription | M | ⚒ | ◆ | S | +50% production toward units · −2 happiness. |
 | Spoils of the Wild | M | 🏹 | ◆ | S | Clearing a barbarian camp pays +100%. |
 | Weights & Measures | E | 🐫 | ● | S | +1 gold in every city. |
@@ -186,10 +186,10 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Festival Days | W | 🌱 | ● | S | +4 happiness in your capital, and +2 culture in every city. |
 | Rites of Passage | W | 🕯 | ◆ | S | Buying or completing a unit grants +10 faith. |
 | The Laureate | W | 🏛 | ○ | S | +2 renown per turn. Every great-person improvement pays +3 more of its own yield. |
-| The Legion | M | ⚒ | ◆ | S | Melee units gain +1 movement and +1 combat strength, and cities put 15% more production behind them. |
+| The Legion | M | ⚒ | ◆ | S | Melee units gain +1 movement and +2 combat strength, and cities put 15% more production behind them. |
 | The Almanac | W | ✶ | ● | P | +2 science in your capital, and +2 science in every city with a Library. |
 | Village Fairs | W | 🌱 | ◆ | P | +1 happiness for each luxury you hold two or more copies of. |
-| Hill Forts | M | ⛰ | ◆ | S | +2 combat strength when defending on hills, and a city on hills costs 1 less authority. |
+| Hill Forts | M | ⛰ | ◆ | S | +4 combat strength when defending on hills, and a city on hills costs 1 less authority. |
 | Wayside Shrines | W | 🕯 | ● | P | +1 faith in your capital for every city you hold. |
 | The Unbroken Land | E | 🌱 | ◆ | S | +1 food and +1 production on every unimproved forest or jungle hex. |
 | The Ballad-Weavers | W | 🏹 | ◆ | P | +2 culture per turn for each barbarian you have killed while this Order stands in a slot. |
@@ -211,7 +211,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 |---|---|---|---|---|---|
 | Field Surgeons | M | ⚒ | ● | S | All units heal +10 more per turn, anywhere. |
 | March Discipline | M | ⚒ | ◆ | S | Military units gain +1 movement. |
-| Siege Doctrine | M | ⚒ | ● | S | +4 combat strength when attacking cities. |
+| Siege Doctrine | M | ⚒ | ● | S | +8 combat strength when attacking cities. |
 | Scorched Earth | M | — | ◆ | S | Pillaging heals a further 25 and pays a further +10 gold. |
 | Sumptuary Laws | E | 🐫 | ● | P | +1 happiness for each unique luxury. |
 | Chartered Companies | E | 🐫 | ◆ | S | Buying a hex pays +5 science · buying a hex costs 15% less. |
@@ -228,14 +228,14 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Star-Gazers | W | ✶ | ● | P | +15% science in every city with a mountain hex inside its borders. |
 | Cistern Works | E | 🌾 | ◆ | S | Every city of yours counts as standing on fresh water. |
 | Ledger-Keepers | E | 🐫 | ● | S | +1 science and +1 culture on every trade route sent from a city with a Market, and +1 trade route. |
-| Drums of War | M | ⚒ | ◆ | S | While this Order is in a slot, units created from now on are born with +2 combat strength, and keep it for life. |
+| Drums of War | M | ⚒ | ◆ | S | While this Order is in a slot, units created from now on are born with +4 combat strength, and keep it for life. |
 | The Cartographers | W | 🧭 | ◆ | P | +1 science for each 40 hexes you have revealed. |
 | The Oath-Bound | M | ⚒ | ○ | S | Killing a unit heals the unit that struck the blow by 15. |
 | The Orchard Tithe | E | 🌱 | ● | S | +2 food on every hex carrying a luxury resource. |
 | The Last Hunt | W | 🏹 | ○ | P | +4 culture and +4 science for each barbarian camp you have cleared this game. |
 | The Shipwright Shores | E | 🐫 | ● | P | +3 production in every coastal city · +30% production toward ships there. |
 | The Archives | W | — | ● | E | +2 culture for each Order you have placed in a slot. |
-| The War Council | M | — | ● | E | +1 combat strength for each military Order you have in a slot. |
+| The War Council | M | — | ● | E | +2 combat strength for each military Order you have in a slot. |
 | The Guild Charter | E | — | ● | E | +3 gold for each economic Order you have in a slot, and +2 production in your capital for each. |
 | The Synod | W | — | ● | P | Your faith buildings give half again their yield, counted after every other share. |
 | The Harvest Songs | W | 🌱 | ● | P | Every city gains 15% of its food yield again as culture. |
@@ -263,7 +263,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
-| The Marshals | M | ⚒ | ◆ | S | +2 combat strength for each adjacent friendly combat unit (at most +4). |
+| The Marshals | M | ⚒ | ◆ | S | +4 combat strength for each adjacent friendly combat unit (at most +8). |
 | Skirmishers' Creed | M | ⚒ | ○ | S | Ranged units gain +1 range. |
 | The Standing Levy | M | — | ○ | S | Every 12 turns, a free melee unit musters in your capital. · *neutral* |
 | Client Kings | E | — | ● | S | +4 authority capacity · a captured city costs one less authority. |
@@ -291,7 +291,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | The Drafting Halls | E | ✶ | ● | P | Cities with a Library gain 20% of their production again as science. |
 | The Golden Scales | E | 🐫 | ● | P | Every city gains 20% of its gold yield again as science. |
 | The Arsenal Law | M | ⚒ | ○ | S | While you are at war, cities with a Barracks gain 15% of their production again as gold. |
-| The Casus Belli | M | ⚒ | ○ | S | Declaring war grants +2 combat strength to all your units and +10% production in every city, for 10 turns. |
+| The Casus Belli | M | ⚒ | ○ | S | Declaring war grants +4 combat strength to all your units and +10% production in every city, for 10 turns. |
 | The Mint Charter | E | 🐫 | ◆ | S | Unlocks the Coinworks. |
 | The Almshouse Charter | W | 🕯 | ◆ | S | Unlocks the Almshouse. |
 | The Stargazers' Charter | W | ✶ | ◆ | S | Unlocks the Orrery. |
@@ -312,10 +312,10 @@ line under Notes, where the words after the dagger are what the row does *not* d
 |---|---|---|---|---|---|
 | The King's Road | M | ⚒ | ◆ | S | A unit that stops in one of your cities gets its movement back. |
 | Field Hospitals | M | ⚒ | ◆ | S | Units resting inside your own territory mend completely each turn. |
-| Decisive Blows | M | ⚒ | ○ | S | +5 combat strength when attacking a unit below half strength. |
+| Decisive Blows | M | ⚒ | ○ | S | +10 combat strength when attacking a unit below half strength. |
 | The Marshals' Purse | M | ⚒ | ○ | S | Military units cost 25% less to buy. |
-| Knightly Orders | M | ⚒ | ○ | S | Mounted units gain +5 combat strength inside your territory, and cities put 25% less production behind them. |
-| The Siege Train | M | ⚒ | ◆ | S | Siege units gain +1 movement. +6 combat strength against cities for units standing beside a siege engine. |
+| Knightly Orders | M | ⚒ | ○ | S | Mounted units gain +10 combat strength inside your territory, and cities put 25% less production behind them. |
+| The Siege Train | M | ⚒ | ◆ | S | Siege units gain +1 movement. +12 combat strength against cities for units standing beside a siege engine. |
 | Patrons | E | 🏛 | ◆ | P | +10 culture for each wonder you hold. +3 renown per turn for each culture building you hold. |
 | The Guild of Masons | E | 🏛 | ● | S | +50% production toward wonders · −15% production toward units. |
 | Harbourmasters | E | 🐫 | ◆ | S | +1 trade route · +2 gold on every fishing boat. |
@@ -334,7 +334,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Order | Slot | Line | Rarity | Role | Effect |
 |---|---|---|---|---|---|
 | Forced March | M | ⚒ | ○ | S | Military units gain +1 movement outside your own territory. |
-| Admiralty | M | 🐫 | ○ | S | Your units come ashore from the water without spending movement, and gain +5 combat strength for 3 turns when they land. |
+| Admiralty | M | 🐫 | ○ | S | Your units come ashore from the water without spending movement, and gain +10 combat strength for 3 turns when they land. |
 | The Salon | E | 🏛 | ● | P | Every great person’s work pays double what it makes. |
 | The Silk Exchange | E | 🐫 | ◆ | P | +1 culture on every trade route you run, and your trade routes pay double science and culture. |
 | Printing Houses | E | ✶ | ◆ | P | +3 culture for each Library you hold · +10% science in every city. |

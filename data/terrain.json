@@ -182,7 +182,7 @@
         "gold": 0
       },
       "freshwater": false,
-      "defenseBonus": 2,
+      "defenseBonus": 5,
       "glyph": "▲▲",
       "glyphColor": "#2f4a24"
     },
@@ -195,7 +195,7 @@
         "gold": 0
       },
       "freshwater": false,
-      "defenseBonus": 2,
+      "defenseBonus": 5,
       "glyph": "♣♣",
       "glyphColor": "#1f4a1f"
     },
@@ -234,7 +234,7 @@
       "production": 2,
       "gold": 0
     },
-    "defenseBonus": 3,
+    "defenseBonus": 6,
     "glyph": "︿︿",
     "glyphColor": "#5c513c"
   },

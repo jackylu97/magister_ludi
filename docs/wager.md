@@ -93,11 +93,11 @@ deal sheet, the Abacus and the Compendium print. The last column is the user's.
 | The Capital of the World | C | 🌱 Green Belt | `clauses: capitalCitizens, capitalBuildings, capitalWonders` | standing | 10 · 5 · 1 | 16 · 11 · 2 | 25 · 16 · 3 | Citizens living in your seat of government, buildings standing in it, and wonders among those buildings — all on the same turn. |  |
 | The Worked Land | E | 🌱 Green Belt | `capitalTileYields` | flow | 4500 | 9000 | 11000 | Everything the land worked by your seat of government pays you, added up over the age. | ▢ plainer name: *The Capital’s Fields* |
 | The Harvest *(deferred)* | E | 🌾 Ploughshare | `farmFood` | standing | 20 | 60 | 140 | Food your farms pay across the realm, on one turn. |  |
-| Bread and Iron | D | 🌾 Ploughshare | `clauses: foodSurplus, armyStrength` | standing | 60 · 150 | 150 · 480 | 265 · 1000 | Food to spare across the realm and the fighting strength of every piece you have in the field — both on the same turn. | ▢ plainer name: *Full Fields and a Standing Army* |
+| Bread and Iron | D | 🌾 Ploughshare | `clauses: foodSurplus, armyStrength` | standing | 60 · 375 | 150 · 1200 | 265 · 2500 | Food to spare across the realm and the fighting strength of every piece you have in the field — both on the same turn. | ▢ plainer name: *Full Fields and a Standing Army* · ▢ the army bars ×2.5 with the U9 strength ladder |
 | The Caravanserai | E | 🐫 Long Caravan | `tradeYields` | flow | 50 | 2500 | 3000 | Everything your trade routes pay you, added up over the age. |  |
 | The King's Roads | E | 🐫 Long Caravan | `connectionGold` | flow | 40 | 900 | 1100 | The gold your towns pay you for being joined by road to your seat of government, added up over the age. |  |
 | The Solvent Realm | E | 🐫 Long Caravan | `gold` | flow | 1600 | 8500 | 10000 | What your treasury takes in each turn once the realm's costs are paid, added up over the age. |  |
-| The War Chest | E | 🐫 Long Caravan | `clauses: treasury, armyStrength` | standing | 300 · 150 | 1000 · 480 | 2500 · 1000 | Gold sitting in your treasury and the fighting strength of every piece you have in the field — both on the same turn. |  |
+| The War Chest | E | 🐫 Long Caravan | `clauses: treasury, armyStrength` | standing | 300 · 375 | 1000 · 1200 | 2500 · 2500 | Gold sitting in your treasury and the fighting strength of every piece you have in the field — both on the same turn. | ▢ the army bars ×2.5 with the U9 strength ladder |
 | The Academies | S | ✶ Star Chart | `science` | flow | 1500 | 5000 | 7000 | Learning made across the realm, added up over the age. |  |
 | The Observatory | S | ✶ Star Chart | `sciencePerCitizen` | standing | 3 | 4 | 5 | Learning made in one turn, shared out over every citizen in the realm. | ▢ plainer name: *Learning for Each Citizen* |
 | The Tithe | C | ☽ Cloister | `religionYields` | flow | — | 6400 | 8000 | Everything your religion pays the realm, added up over the age. |  |
@@ -145,7 +145,7 @@ balance.
 | The Silent Choirs | wildcard | C | `percentYields` | -10 | −10% culture in every city |
 | The Doubting Flock | wildcard | C | `pressureRule` | -3 | your holy site presses half as hard |
 | The Restless Cities | wildcard | E | `happiness` | -1 | −1 happiness in every city |
-| The Thin Ranks | military | D | `combatLine` | -1 | −1 combat strength for all your units |
+| The Thin Ranks | military | D | `combatLine` | -2 | −2 combat strength for all your units |
 | The Deserters | military | D | `upkeepSurcharge` | 1 | every unit you pay for costs +1 gold a turn |
 | The Broken Levies | military | D | `productionBonus` | -50 | −50% production toward units |
 | The Short Draft | wildcard | — | `offerRider` | -1 | your Order drafts deal one card fewer |

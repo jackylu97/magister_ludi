@@ -460,7 +460,8 @@ describe('the three great works pay what their rows say', () => {
     bumpRevision(g.state);
     const lines = cardCombatLines(g.state, situation);
     expect(lines).toHaveLength(1);
-    expect(lines[0]!.amount).toBe(3);
+    // Six points since U9's ladder.
+    expect(lines[0]!.amount).toBe(6);
   });
 
   it('The Alchemical Codex mends a piece that has dug in, and only one that has', () => {

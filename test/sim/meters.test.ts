@@ -953,7 +953,7 @@ describe('a captured city, end to end', () => {
     // 103 since batch B7 (2026-09-09): crowding is removed — a town's demand is
     // linear in its citizens, so a v102 log's every empire pays a different
     // happiness from the turn its first town passes the old threshold.
-    expect(SCHEMA_VERSION).toBe(108);
+    expect(SCHEMA_VERSION).toBe(109);
     const { game } = conquest();
     const reloaded = loadGame(saveGame(game));
     expect(snapshotState(reloaded.state)).toBe(snapshotState(game.state));

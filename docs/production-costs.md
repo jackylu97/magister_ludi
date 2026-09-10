@@ -274,7 +274,6 @@ table, with no second figure anywhere. See `docs/trade.md`.
 | `phalanx` | Phalanx | line | 4 | 31 |
 | `legionary` | Legionary | line | 6 | 54 |
 | `horseArcher` | Horse Archer | heavy | 7 | 101 |
-| `cataphract` | Cataphract | heavy | 7 | 101 |
 | `spearWall` | Spear Wall | line | 6 | 54 |
 | `warElephant` | War Elephant | heavy | 7 | 101 |
 | `fireLance` | The Fire Lance | heavy | 12 | 389 |

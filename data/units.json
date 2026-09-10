@@ -6,7 +6,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 8,
+      "combatStrength": 20,
       "size": "light",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -21,7 +21,7 @@
       "movement": 2,
       "sight": 3,
       "maxHp": 100,
-      "combatStrength": 5,
+      "combatStrength": 10,
       "size": "light",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -83,8 +83,8 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 7,
-      "rangedStrength": 7,
+      "combatStrength": 15,
+      "rangedStrength": 20,
       "range": 2,
       "size": "light",
       "foundsCity": false,
@@ -100,8 +100,8 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 9,
-      "rangedStrength": 9,
+      "combatStrength": 20,
+      "rangedStrength": 28,
       "range": 2,
       "size": "line",
       "foundsCity": false,
@@ -117,7 +117,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 11,
+      "combatStrength": 25,
       "size": "line",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -132,7 +132,7 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 12,
+      "combatStrength": 38,
       "size": "heavy",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -149,7 +149,7 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 14,
+      "combatStrength": 28,
       "size": "heavy",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -164,8 +164,8 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 9,
-      "rangedStrength": 9,
+      "combatStrength": 18,
+      "rangedStrength": 22,
       "range": 2,
       "size": "heavy",
       "foundsCity": false,
@@ -182,7 +182,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 16,
+      "combatStrength": 35,
       "size": "line",
       "requiresResource": "iron",
       "foundsCity": false,
@@ -198,8 +198,8 @@
       "movement": 1,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 14,
-      "rangedStrength": 14,
+      "combatStrength": 20,
+      "rangedStrength": 35,
       "range": 2,
       "size": "engine",
       "foundsCity": false,
@@ -211,7 +211,7 @@
       "combatLines": [
         {
           "label": "Against cities",
-          "amount": 10,
+          "amount": 15,
           "side": "attack",
           "vsCity": true
         }
@@ -223,8 +223,8 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 11,
-      "rangedStrength": 11,
+      "combatStrength": 25,
+      "rangedStrength": 33,
       "range": 2,
       "size": "line",
       "foundsCity": false,
@@ -240,7 +240,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 20,
+      "combatStrength": 45,
       "size": "line",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -250,7 +250,7 @@
       "combatLines": [
         {
           "label": "Against mounted",
-          "amount": 8,
+          "amount": 15,
           "vsModelClass": "mounted"
         }
       ]
@@ -261,8 +261,8 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 110,
-      "combatStrength": 18,
-      "rangedStrength": 18,
+      "combatStrength": 32,
+      "rangedStrength": 42,
       "range": 2,
       "size": "line",
       "foundsCity": false,
@@ -277,7 +277,7 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 28,
+      "combatStrength": 50,
       "size": "heavy",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -292,7 +292,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 23,
+      "combatStrength": 48,
       "size": "heavy",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -307,8 +307,8 @@
       "movement": 1,
       "sight": 2,
       "maxHp": 110,
-      "combatStrength": 22,
-      "rangedStrength": 20,
+      "combatStrength": 28,
+      "rangedStrength": 45,
       "range": 2,
       "size": "engine",
       "foundsCity": false,
@@ -319,7 +319,7 @@
       "combatLines": [
         {
           "label": "Against cities",
-          "amount": 15,
+          "amount": 20,
           "side": "attack",
           "vsCity": true
         }
@@ -331,13 +331,13 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 10,
+      "combatStrength": 22,
       "size": "line",
       "hitAndRun": true,
       "combatLines": [
         {
           "label": "Against ranged ships",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "navalRanged"
         }
       ],
@@ -356,13 +356,13 @@
       "movement": 5,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 13,
+      "combatStrength": 28,
       "size": "line",
       "hitAndRun": true,
       "combatLines": [
         {
           "label": "Against ranged ships",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "navalRanged"
         }
       ],
@@ -381,13 +381,13 @@
       "movement": 5,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 16,
+      "combatStrength": 35,
       "size": "line",
       "hitAndRun": true,
       "combatLines": [
         {
           "label": "Against ranged ships",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "navalRanged"
         }
       ],
@@ -406,13 +406,13 @@
       "movement": 6,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 22,
+      "combatStrength": 45,
       "size": "heavy",
       "hitAndRun": true,
       "combatLines": [
         {
           "label": "Against ranged ships",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "navalRanged"
         }
       ],
@@ -431,14 +431,14 @@
       "movement": 6,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 28,
+      "combatStrength": 55,
       "size": "heavy",
       "column": 11,
       "hitAndRun": true,
       "combatLines": [
         {
           "label": "Against ranged ships",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "navalRanged"
         }
       ],
@@ -457,7 +457,7 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 16,
+      "combatStrength": 35,
       "size": "heavy",
       "blockades": true,
       "masts": 2,
@@ -475,7 +475,7 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 24,
+      "combatStrength": 45,
       "size": "engine",
       "blockades": true,
       "masts": 3,
@@ -493,7 +493,7 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 32,
+      "combatStrength": 60,
       "size": "engine",
       "blockades": true,
       "masts": 4,
@@ -511,7 +511,7 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 44,
+      "combatStrength": 75,
       "size": "engine",
       "column": 12,
       "blockades": true,
@@ -530,14 +530,14 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 12,
-      "rangedStrength": 18,
+      "combatStrength": 25,
+      "rangedStrength": 35,
       "range": 2,
       "size": "heavy",
       "combatLines": [
         {
           "label": "Fragile hull",
-          "amount": -5,
+          "amount": -10,
           "side": "defend",
           "vsKind": "melee"
         }
@@ -557,14 +557,14 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 18,
-      "rangedStrength": 26,
+      "combatStrength": 35,
+      "rangedStrength": 50,
       "range": 2,
       "size": "engine",
       "combatLines": [
         {
           "label": "Fragile hull",
-          "amount": -5,
+          "amount": -10,
           "side": "defend",
           "vsKind": "melee"
         }
@@ -584,8 +584,8 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 28,
-      "rangedStrength": 38,
+      "combatStrength": 50,
+      "rangedStrength": 65,
       "range": 2,
       "size": "engine",
       "column": 12,
@@ -593,13 +593,13 @@
       "combatLines": [
         {
           "label": "Fragile hull",
-          "amount": -5,
+          "amount": -10,
           "side": "defend",
           "vsKind": "melee"
         },
         {
           "label": "Bombardment",
-          "amount": 10,
+          "amount": 20,
           "side": "attack",
           "vsCity": true
         }
@@ -728,12 +728,12 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 110,
-      "combatStrength": 14,
+      "combatStrength": 30,
       "size": "line",
       "combatLines": [
         {
           "label": "Against mounted",
-          "amount": 5,
+          "amount": 10,
           "vsModelClass": "mounted"
         }
       ],
@@ -750,7 +750,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 110,
-      "combatStrength": 17,
+      "combatStrength": 40,
       "size": "line",
       "requiresResource": "iron",
       "upgradesTo": "longswordsman",
@@ -766,8 +766,8 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 100,
-      "combatStrength": 12,
-      "rangedStrength": 14,
+      "combatStrength": 25,
+      "rangedStrength": 32,
       "range": 2,
       "size": "heavy",
       "requiresResource": "horses",
@@ -783,19 +783,20 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 22,
+      "combatStrength": 42,
       "size": "heavy",
       "column": 7,
       "combatLines": [
         {
           "label": "Against ranged",
-          "amount": 3,
+          "amount": 5,
           "vsKind": "ranged"
         }
       ],
       "requiresResource": "horses",
       "modelClass": "mounted",
       "awaitsTech": true,
+      "retired": true,
       "note": "Rides where there are horses. No technology opens it: tree revision 4 gave The Saddle the horseman instead, and this row is kept so a save that trained one replays.",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -809,12 +810,12 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 110,
-      "combatStrength": 15,
+      "combatStrength": 35,
       "size": "line",
       "combatLines": [
         {
           "label": "Against mounted",
-          "amount": 8,
+          "amount": 12,
           "vsModelClass": "mounted"
         }
       ],
@@ -831,7 +832,7 @@
       "movement": 3,
       "sight": 2,
       "maxHp": 130,
-      "combatStrength": 24,
+      "combatStrength": 44,
       "size": "heavy",
       "requiresResource": "ivory",
       "modelClass": "mounted",
@@ -842,7 +843,7 @@
       "combatLines": [
         {
           "label": "Against cities",
-          "amount": 5,
+          "amount": 8,
           "side": "attack",
           "vsCity": true
         }
@@ -854,7 +855,7 @@
       "movement": 2,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 26,
+      "combatStrength": 80,
       "size": "heavy",
       "requiresResource": "niter",
       "foundsCity": false,
@@ -869,7 +870,7 @@
       "movement": 4,
       "sight": 2,
       "maxHp": 120,
-      "combatStrength": 12,
+      "combatStrength": 38,
       "size": "heavy",
       "column": 11,
       "mirrors": {

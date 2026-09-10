@@ -130,7 +130,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 5
+        "amount": 10
       },
       "cityHp": 15
     },
@@ -146,7 +146,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 4
+        "amount": 10
       },
       "cityHp": 25,
       "requiresBuilding": "palisade"
@@ -587,14 +587,14 @@
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 10,
+          "amount": 20,
           "scope": {
             "test": "capital"
           }
         },
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "when": {
             "test": "capitalTerritory"
           },
@@ -909,7 +909,7 @@
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "inCity"
           },
@@ -917,7 +917,7 @@
         },
         {
           "kind": "unitStamp",
-          "strength": 1,
+          "strength": 2,
           "scope": {
             "test": "hasBuilding",
             "building": "terracottaArmy"
@@ -951,7 +951,7 @@
         {
           "kind": "cityStat",
           "stat": "defense",
-          "amount": 5
+          "amount": 10
         }
       ],
       "renown": {
@@ -1317,7 +1317,7 @@
       "effects": [
         {
           "kind": "combatLine",
-          "amount": 2,
+          "amount": 4,
           "when": {
             "test": "always"
           },
@@ -1663,7 +1663,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 5
+        "amount": 10
       },
       "cityHp": 25,
       "renown": {
@@ -1925,7 +1925,7 @@
       "sciencePerPop": 0,
       "cityStat": {
         "stat": "defense",
-        "amount": 10
+        "amount": 20
       },
       "cityHp": 30,
       "awaitsTech": true,
@@ -2061,7 +2061,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "always"
           },

@@ -123,6 +123,16 @@ function theSiege(): SiegeStory {
   // not a siege, it is a walk-in.
   createUnit(game.state, 0, 'warrior', ours.col, ours.row);
   createUnit(game.state, 1, 'warrior', theirs.col, theirs.row);
+  // Since batch U9 (the strength ladder) six warriors and two bows took a
+  // one-warrior town outright inside the horizon, and a war won is not a war
+  // signed — the loop this bench is about needs a defender that holds. A
+  // palisade, three spearmen and an even purse (below) keep the town standing
+  // long enough for the policy to offer and the other seat to sign; the war
+  // still opens on turn 2 and closes by turn 8.
+  theirs.buildings.push('palisade');
+  createUnit(game.state, 1, 'spearman', theirs.col + 1, theirs.row);
+  createUnit(game.state, 1, 'spearman', theirs.col - 1, theirs.row);
+  createUnit(game.state, 1, 'spearman', theirs.col, theirs.row + 1);
   createUnit(game.state, 1, 'archer', theirs.col + 1, theirs.row);
   // The strike force, in the field: eight spears and three bows, one to a hex.
   let placed = 0;
@@ -302,8 +312,8 @@ function theWarLoop(): LoopStory {
       createUnit(game.state, 0, placed < 6 ? 'warrior' : 'archer', 7 + dc, 6 + dr);
     }
   }
-  game.state.players[0]!.gold = 2000;
-  game.state.players[1]!.gold = 200;
+  game.state.players[0]!.gold = 600;
+  game.state.players[1]!.gold = 600;
   bumpRevision(game.state);
 
   const warnings: string[] = [];

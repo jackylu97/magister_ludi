@@ -42,7 +42,7 @@ redrafted. The pantheon IS the religion’s identity.
 | Spirits of the Wood | wild | Clearing a forest or jungle pays +15 faith. +1 culture on every forest hex. |
 | River Mother | water | +2 food in every city on fresh water. Those cities' shrines supply +1 happiness. |
 | Lord of the Sea | water | +1 production and +1 gold on every hex with a Fishing Boat. |
-| God of the Forge | war | Barracks supply +1 production. All your units gain +1 combat strength. |
+| God of the Forge | war | Barracks supply +1 production. All your units gain +2 combat strength. |
 | Rites of Blood | war | Killing a unit pays +25 faith, once for each age you have reached. |
 | Oracle of the Crossroads | road | +3 faith for each ruin you claim. Scouts see one hex further. |
 | Sacred Fire | none | +1 faith in every city. |
@@ -76,7 +76,7 @@ row for whoever owns a following city; the town is where the rule is asked.
 | Choirs | none | +1 culture for every 4 citizens of a city that follows. |
 | Tithe Houses | none | +1 gold for every 3 citizens of a city that follows. |
 | The Quiet Hours | frost | +1 faith and +1 culture for every city that follows. |
-| Warrior Monks | war | +5 combat strength for units defending a city that follows. |
+| Warrior Monks | war | +10 combat strength for units defending a city that follows. |
 | Harvest Blessing | hearth | +1 food on every farm worked by a city that follows. |
 | Guild of the Faithful | stone | +10% production toward buildings in every city that follows. |
 | Common Table | hearth | A city that follows keeps a quarter of its stored food when it grows. |
@@ -107,7 +107,7 @@ world-scale counts live here.
 | Pilgrims' Coin | road | +4 gold for every city in the world that follows. |
 | World Church | none | +15% culture for every empire in the world that follows you. |
 | The Long Prayer | sun | +1 culture for every 4 citizens in the world who follow you. |
-| The Crusade | war | +3 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field. |
+| The Crusade | war | +6 combat strength inside foreign cities that follow your religion. Killing a unit presses your faith on the towns around the field. |
 | Marvels of the Faith | none | +5 science and +5 culture for every city in the world that follows you and holds a wonder. |
 | The Scriptoria | sky | +1 science for every faith building in a city that follows you. |
 

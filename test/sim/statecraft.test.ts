@@ -370,7 +370,7 @@ describe("the card table", () => {
     // playtest ruling settled.
     expect(describeCard("warChief").map((clause) => clause.text)).toEqual([
       "+3 authority capacity",
-      "+2 combat strength",
+      "+4 combat strength",
       "killing a unit grants +5 science for each Order you have in a slot",
       "killing a unit grants +5 culture for each Order you have in a slot",
     ]);
@@ -1311,14 +1311,14 @@ describe("every hook family, end to end", () => {
     });
     expect(after.ok).toBe(true);
     if (!after.ok) return;
-    // **Two** lines since the 2026-08-28 cut: +1 always, and +2 more against the
-    // wild — which is the card's own sentence, and three points in this fight.
+    // **Two** lines since the 2026-08-28 cut: +2 always, and +4 more against the
+    // wild — the card's own sentence at U9's ladder, and six points in this fight.
     const lines = after.bonuses.filter(
       (b) => b.source === "Order · Blooded Spears",
     );
-    expect(lines.map((b) => b.amount).sort((a, b) => a - b)).toEqual([1, 2]);
+    expect(lines.map((b) => b.amount).sort((a, b) => a - b)).toEqual([2, 4]);
     expect(lines.every((b) => b.side === "attacker")).toBe(true);
-    expect(after.attackerStrength).toBe(before.attackerStrength + 3);
+    expect(after.attackerStrength).toBe(before.attackerStrength + 6);
   });
 
   it("unitStat — Far Runners reaches the one evaluator for each stat", () => {
@@ -1726,7 +1726,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(108);
+    expect(SCHEMA_VERSION).toBe(109);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -2744,7 +2744,7 @@ describe("the master-list cut of 2026-08-28", () => {
     expect(after.ok).toBe(true);
     if (!after.ok) return;
     const line = after.bonuses.find((b) => b.source.includes("The Empire"))!;
-    expect(line.amount).toBe(1);
+    expect(line.amount).toBe(2);
     // A scholar is not a general — the family is the whole of the rule.
     player.legacies.push({ id: "imhotep", age: 1 });
     bumpRevision(g.state);
@@ -2755,7 +2755,7 @@ describe("the master-list cut of 2026-08-28", () => {
     if (third.ok) {
       expect(
         third.bonuses.find((b) => b.source.includes("The Empire"))!.amount,
-      ).toBe(1);
+      ).toBe(2);
     }
   });
 
@@ -3197,7 +3197,7 @@ describe("the master-list cut of 2026-08-28", () => {
     // costs the column nothing.
     expect(said("tyranny")).toEqual([
       "+5 authority capacity",
-      "+2 combat strength",
+      "+4 combat strength",
       "pillaging pays +50%",
       "pillaging costs your units no movement",
       // Built by the 2026-08-28 pass: unit maintenance exists now (`upkeep.ts`),
@@ -3269,7 +3269,7 @@ describe("the master-list cut of 2026-08-28", () => {
     ]);
     expect(said("theEmpire")).toEqual([
       "+6 authority capacity",
-      "+1 combat strength per great general earned this game",
+      "+2 combat strength per great general earned this game",
       // Built by the 2026-08-28 pass: a `windfallRider` narrowed by what stood
       // in the town (`WindfallOccasionFacts.capturedWonder`).
       "capturing a city with a wonder in it heals every one of your units",
@@ -3318,8 +3318,8 @@ describe("the master-list cut of 2026-08-28", () => {
     ]);
 
     expect(said("bloodedSpears")).toEqual([
-      "+1 combat strength",
-      "+2 combat strength against barbarians",
+      "+2 combat strength",
+      "+4 combat strength against barbarians",
     ]);
     expect(said("campFollowers")).toEqual([
       "clearing a barbarian camp grants +25 food",
@@ -3900,14 +3900,14 @@ describe("the master-list cut of 2026-08-28, second pass", () => {
     player.statecraft.doctrines.push("masterOfMaps" as never);
     bumpRevision(g.state);
     const maps = lines().find((l) => l.source.includes("Master of Maps"));
-    expect(maps?.value).toBe(-2);
+    expect(maps?.value).toBe(-4);
 
     // And The Legion's point reaches the melee row and nothing else, through the
     // same shape with a class filter.
     player.statecraft.doctrines = [];
     bumpRevision(g.state);
     slot(g.state, 0, "theLegion");
-    expect(lines().find((l) => l.source.includes("Legion"))?.value).toBe(1);
+    expect(lines().find((l) => l.source.includes("Legion"))?.value).toBe(2);
   });
 
   it("The Legion's hammers are a labelled line of the melee row's own modifiers", () => {
@@ -3942,14 +3942,14 @@ describe("the master-list cut of 2026-08-28, second pass", () => {
       // and the legs again, bought with the strength.
       // Flat points on the one ledger (Entry XXXVII), where it used to be the
       // only percentage a card put on a strength.
-      "-2 combat strength",
+      "-4 combat strength",
     ]);
     expect(said("theStandingLevy")).toEqual([
       "every 12 turns, the best melee unit you can build musters in your capital",
     ]);
     expect(said("theLegion")).toEqual([
       "melee units: +1 movement",
-      "+1 combat strength for melee units",
+      "+2 combat strength for melee units",
       "+15% production toward melee units",
     ]);
     expect(said("breadAndCircuses")).toEqual([
@@ -4291,7 +4291,7 @@ describe("the Orders pass of 2026-08-29", () => {
       "newly created units gain +10 maximum health",
     ]);
     expect(said("hillForts")).toEqual([
-      "+2 combat strength on hills",
+      "+4 combat strength on hills",
       "the authority a city on hills costs falls by 1",
     ]);
     expect(said("thePilgrimsPurse")).toEqual([
@@ -4317,7 +4317,7 @@ describe("the Orders pass of 2026-08-29", () => {
       "+1 trade route",
     ]);
     expect(said("drumsOfWar")).toEqual([
-      "newly created units gain +2 combat strength",
+      "newly created units gain +4 combat strength",
     ]);
     expect(said("theCartographers")).toEqual([
       "+1 science per 40 hexes you have revealed",
@@ -4614,7 +4614,7 @@ describe("the balance pass of 2026-08-31", () => {
     // one grade wider.
     expect(said("mountainHold")).toEqual([
       "+15% production in every city with a mountain hex inside its borders",
-      "every city with a mountain hex inside its borders: +5 city defence",
+      "every city with a mountain hex inside its borders: +10 city defence",
     ]);
     // Re-aimed by the synergy pass of 2026-09-05: the row reads the council's
     // wildcards now, and the reader is the card's second clause.
@@ -5257,9 +5257,11 @@ describe("the balance pass of 2026-09-02", () => {
     // gave it a second, scaled line and folded Vanguard into it — a lone
     // Wardens is still the +2 this pass ratified. Vanguard's own row is
     // retired and keeps the number it was set to here.
-    expect(amountOf("borderWardens")).toBe(1);
+    expect(amountOf("borderWardens")).toBe(2);
+    // Vanguard is retired: it keeps the figure it was set to here, and U9's
+    // ladder passed over it with every other retired row.
     expect(amountOf("vanguard")).toBe(2);
-    expect(amountOf("siegeDoctrine")).toBe(4);
+    expect(amountOf("siegeDoctrine")).toBe(8);
     expect(said("weightsAndMeasures")).toEqual(["+1 gold in every city"]);
     expect(said("theTaxFarm")).toEqual(["+1 gold per 3 citizens"]);
     expect(said("publicGranaries")).toEqual([
@@ -5932,17 +5934,17 @@ describe("the card-shapes pass of 2026-09-04", () => {
     expect(spears()).toBe(0);
     // It counts itself, exactly as the ledger's readers do.
     slot(g.state, 0, "theWarCouncil");
-    expect(spears()).toBe(1);
-    slot(g.state, 0, "farRunners");
     expect(spears()).toBe(2);
+    slot(g.state, 0, "farRunners");
+    expect(spears()).toBe(4);
     slot(g.state, 0, "theLongWatch");
-    expect(spears()).toBe(3);
+    expect(spears()).toBe(6);
     // **No cap since batch F** (`docs/history/orders-pass-3.md` §9: the caps come off
     // Ore Tithes and the War Council), so a fourth soldier on the council is a
     // fourth point.
     slot(g.state, 0, "militiaLevies");
     expect(slottedOrdersOfFlavour(g.state, 0, "military")).toBe(4);
-    expect(spears()).toBe(4);
+    expect(spears()).toBe(8);
   });
 
   it("atWar — The Arsenal Law opens the yards on a declaration and closes them on a peace", () => {
@@ -6146,7 +6148,7 @@ describe("the card-shapes pass of 2026-09-04", () => {
     const said = (id: string): string[] =>
       describeCard(id as never).map((c) => stripRefs(c.text));
     expect(said("theWarCouncil")).toEqual([
-      "+1 combat strength per military Order you have in a slot",
+      "+2 combat strength per military Order you have in a slot",
     ]);
     expect(said("theGuildCharter")).toEqual([
       "+3 gold per economic Order you have in a slot",
@@ -6282,16 +6284,17 @@ describe("the synergy-density pass of 2026-09-05", () => {
     // Alone on the council it is the +2 the row printed before the merge: one
     // flat point and one helping of the ladder, because a reader counts itself.
     slot(g.state, 0, "borderWardens");
-    expect(wardens()).toBe(2);
-    slot(g.state, 0, "bloodedSpears");
-    expect(wardens()).toBe(3);
-    slot(g.state, 0, "militiaLevies");
     expect(wardens()).toBe(4);
+    slot(g.state, 0, "bloodedSpears");
+    expect(wardens()).toBe(6);
+    slot(g.state, 0, "militiaLevies");
+    expect(wardens()).toBe(8);
     // The cap is on the scaled line's own points, so a fourth soldier on the
-    // council is a soldier on the council and nothing more.
+    // council is a soldier on the council and nothing more. U9's ladder moved
+    // the cap with the amount: two flat and six of ladder, and no more.
     slot(g.state, 0, "horseLords");
     expect(slottedOrdersOfFlavour(g.state, 0, "military")).toBe(4);
-    expect(wardens()).toBe(4);
+    expect(wardens()).toBe(8);
     // Vanguard is out of the bag and keeps its face for the saves that hold it.
     expect(orderDef("vanguard").retired).toBe(true);
     expect(poolOrders("governmentI").includes("vanguard" as never)).toBe(false);
@@ -6469,7 +6472,7 @@ describe("the synergy-density pass of 2026-09-05", () => {
     // strength inside your territory, and +1 more for each military Order you
     // have in a slot, at most +3 more" — and this is now that sentence.
     expect(said("borderWardens")).toEqual([
-      "+1 combat strength inside your territory, +1 more per military Order you have in a slot (at most +3)",
+      "+2 combat strength inside your territory, +2 more per military Order you have in a slot (at most +6)",
     ]);
     expect(said("harbourDues")).toEqual([
       "5% of the gold in every coastal city is gained again as culture",
@@ -6726,7 +6729,7 @@ describe("the cards pass of 2026-09-05", () => {
     // is what the strength ledger can say — and dropped the stable with it.
     expect(said("theHorseTribes")).toEqual([
       "mounted units: +1 movement",
-      "+1 combat strength for mounted units",
+      "+2 combat strength for mounted units",
     ]);
     // **The deferred half became the card** (the user's ruling of 2026-09-06):
     // the levy is a coin on each soldier now rather than a share of the payroll,
@@ -8981,7 +8984,8 @@ describe("the order pass of 2026-09-06", () => {
     expect(capped("oreTithes")).toEqual([undefined]);
     expect(capped("theWarCouncil")).toEqual([undefined]);
     // The three readers that keep theirs.
-    expect(capped("borderWardens")).toEqual([3]);
+    // The cap is in **points**, so U9's ladder moved it with the amount.
+    expect(capped("borderWardens")).toEqual([6]);
     expect(capped("provincialGovernors")).toEqual([4]);
     expect(capped("theGuildCharter")).toEqual([undefined, undefined]);
   });
@@ -9754,7 +9758,7 @@ describe("the Governments marks of 2026-09-08", () => {
         (effect) => effect.kind === "combatLine" && effect.scaled !== undefined,
       ),
     ).toBe(false);
-    expect(combatLines(5, "warChief")).toBe(2);
+    expect(combatLines(5, "warChief")).toBe(4);
   });
 
   it("War Chief — three points of writ, and the kill riders still stand", () => {
@@ -9789,7 +9793,7 @@ describe("the Governments marks of 2026-09-08", () => {
     playerById(g.state, 0)!.statecraft.government = "tyranny";
     bumpRevision(g.state);
     expect(foldMeter(explainAuthority(g.state, 0))).toBe(before + 5);
-    expect(combatLines(5, "tyranny")).toBe(2);
+    expect(combatLines(5, "tyranny")).toBe(4);
     // The upkeep rebate was not part of the mark and rides along untouched.
     expect(
       governmentDef("tyranny").effects.some(
@@ -9988,7 +9992,7 @@ describe("the deferred rows of batch E4b", () => {
       cardCombatLines(g.state, situation)
         .filter((line) => line.card === "admiralty")
         .reduce((sum, line) => sum + line.amount, 0),
-    ).toBe(5);
+    ).toBe(10);
     // **A second landing refreshes, never stacks**: the piece carries exactly one
     // copy of the card, so a soldier hopping in and out of the surf is worth
     // what the card says and not twice it.

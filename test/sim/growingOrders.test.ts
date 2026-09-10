@@ -422,7 +422,7 @@ describe('The Casus Belli', () => {
     });
     const strength = lines.find((line) => line.card === 'theCasusBelli');
     expect(strength).toBeDefined();
-    expect(strength!.amount).toBe(2);
+    expect(strength!.amount).toBe(4);
     expect(strength!.source).toContain('Casus Belli');
 
     // The production half is a **staged** percentage (Entry XVII), on the city

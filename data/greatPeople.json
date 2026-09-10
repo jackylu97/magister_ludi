@@ -351,7 +351,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "foreignTerritory"
           },
@@ -388,7 +388,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 8,
           "side": "both",
           "when": {
             "test": "withinOfCity",
@@ -515,7 +515,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "always"
           },
@@ -872,7 +872,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "foreignTerritory"
           },
@@ -880,7 +880,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": -4,
+          "amount": -8,
           "when": {
             "test": "ownTerritory"
           },
@@ -941,7 +941,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 4,
+          "amount": 8,
           "when": {
             "test": "ownTerritory"
           },
@@ -960,7 +960,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "side": "attack",
           "when": {
             "test": "vsWiderEmpire"
@@ -1375,7 +1375,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "fortified"
           },
@@ -1393,7 +1393,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "capturedCity"
           },
@@ -1833,7 +1833,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "onFeature",
             "feature": "forest"
@@ -1842,7 +1842,7 @@
         },
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "onFeature",
             "feature": "jungle"
@@ -1861,7 +1861,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 5,
+          "amount": 10,
           "when": {
             "test": "always"
           },
@@ -1882,7 +1882,7 @@
       "legacy": [
         {
           "kind": "combatLine",
-          "amount": 3,
+          "amount": 6,
           "when": {
             "test": "always"
           },

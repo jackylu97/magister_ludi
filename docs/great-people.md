@@ -208,10 +208,10 @@ blank for the balance pass.
 | `artistHappiness` | 2 | Happiness an artist’s act hangs on the town it stands in. |  |
 | `artistTurns` | 10 | How many turns that happiness lasts. |  |
 | `generalRadius` | 2 | How far a general’s act reaches, in hexes. |  |
-| `generalCombat` | 3 | Strength that act hangs on every friendly piece in reach. |  |
+| `generalCombat` | 6 | Strength that act hangs on every friendly piece in reach. |  |
 | `generalTurns` | 5 | How many turns that strength lasts. |  |
 | `generalAuraRange` | 2 | How far a great general’s standing aura reaches while the piece is alive. |  |
-| `generalAuraStrength` | 3 | Strength every friendly soldier inside that aura fights with. |  |
+| `generalAuraStrength` | 5 | Strength every friendly soldier inside that aura fights with. |  |
 | `citadelClaimRadius` | 1 | How far a citadel claims ground around itself, in hexes. |  |
 | `offerPriceGold` | 1000 | What The Commonwealth charges in gold to fill the threshold early. |  |
 | `offerPriceFaith` | 750 | The same out of the faith bank — The Magisterium’s price. |  |
@@ -250,10 +250,10 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Bezalel | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +1 production in every city with a Temple |  |
 | Ea-nāṣir | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | -1 production, +3 gold on every hex with a Mine |  |
 | Lamassī | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold on every hex with a Pasture |  |
-| Ahmose son of Ebana | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +10% combat strength for melee units |  |
-| Piyamaradu | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength outside your territory · -2 authority capacity |  |
-| Sinuhe | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | all units: +5 healing per turn |  |
-| Deborah | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength within 2 hexes of one of your cities |  |
+| Ahmose son of Ebana | General | ◆ strong | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +10% combat strength for melee units |  |
+| Piyamaradu | General | ● defining | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +6 combat strength outside your territory · -2 authority capacity |  |
+| Sinuhe | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | all units: +5 healing per turn |  |
+| Deborah | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +8 combat strength within 2 hexes of one of your cities |  |
 | Sappho | Artist | ◆ strong | `actGainTurns` 8 turns of culture · +2 happiness ×10 | **Landmark** +3🎵 | +3 culture in your capital · +1 happiness |  |
 
 ### Æra III — The Age of Empire
@@ -266,7 +266,7 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Aristotle | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | your buildings that supply science pay +50% | proposed name, family and tier (fold-in 2026-09-09) — yours to change |
 | Hemiunu | Engineer | ● defining | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +10% production toward wonders · -2 happiness in every city while it is building a wonder |  |
 | Ptahhotep | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 authority capacity per 2 Libraries |  |
-| Archimedes | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | siege units: +1 movement · +3 combat strength for siege units |  |
+| Archimedes | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | siege units: +1 movement · +6 combat strength for siege units |  |
 | Hypatia | Scholar | ● defining | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +10% science in every city · lost the first turn your happiness goes negative |  |
 | Zhang Heng | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science in every city with a Library |  |
 | Eratosthenes | Scholar | ○ situational | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 science per 80 hexes you have revealed |  |
@@ -281,10 +281,10 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Hippalus | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold on every hex with a Fishing Boat |  |
 | Crassus | Merchant | ● defining | `merchantGold` 60💰 × age | **Customs House** +3💰 | all units and buildings cost −30% to buy · buying anything costs your empire -1 happiness for 10 turns |  |
 | Pytheas | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | trader units: +1 sight · your trade units cannot be attacked or plundered |  |
-| Hannibal | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength outside your territory · -4 combat strength inside your territory |  |
-| Gaius Marius | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | all units: +1 movement inside your territory | proposed name (fold-in 2026-09-09) — yours to change |
-| Boudica | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +4 combat strength inside your territory · lost when the age it was earned in closes |  |
-| Spartacus | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against an empire with more cities than you |  |
+| Hannibal | General | ● defining | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +10 combat strength outside your territory · -8 combat strength inside your territory |  |
+| Gaius Marius | General | ◆ strong | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | all units: +1 movement inside your territory | proposed name (fold-in 2026-09-09) — yours to change |
+| Boudica | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +8 combat strength inside your territory · lost when the age it was earned in closes |  |
+| Spartacus | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +6 combat strength against an empire with more cities than you |  |
 | Ibn Sīnā | Scholar | ◆ strong | `actGainTurns` 8 turns of science | **Academy** +3🔬 | +1 happiness in every city |  |
 
 ### Æra IV — The Age of Cathedrals
@@ -307,10 +307,10 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Ibn Baṭṭūṭa | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +5% culture per other empire you trade with |  |
 | Marco Polo | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per 2 hexes between the two cities |  |
 | Francesco Datini | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold on every hex carrying a resource, in every city with a Bank |  |
-| Subutai | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | mounted units: +1 movement · +25% combat strength for mounted units |  |
-| Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
-| Jan Žižka | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength while fortified |  |
-| El Cid | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength in a city you captured |  |
+| Subutai | General | ● defining | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | mounted units: +1 movement · +25% combat strength for mounted units |  |
+| Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +15% combat strength for mounted units · +15% combat strength for ranged units |  |
+| Jan Žižka | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +10 combat strength while fortified |  |
+| El Cid | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +6 combat strength in a city you captured |  |
 | Mimar Sinan | Engineer | ○ situational | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +2 production, +2 culture in every city with a Temple · +30% production toward Temples · +30% production toward Cathedrals |  |
 
 ### Æra V — The Magister
@@ -334,10 +334,10 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Willem Beukelszoon | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | the works on every hex with a Fishing Boat pay +100% · the ground of every hex with a Fishing Boat pays double | proposed name (fold-in 2026-09-09) — yours to change |
 | Gracia Mendes Nasi | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +8 authority capacity · +1 happiness per spare authority · +10 gold per spare authority |  |
 | Cosimo de' Medici | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 culture per 100 gold you have spent buying |  |
-| Gustavus Adolphus | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for ranged units · siege units: +1 movement |  |
-| Nzinga of Ndongo | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength in forest · +5 combat strength in jungle |  |
-| Yi Sun-sin | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +5 combat strength for ships |  |
-| Lautaro | General | ○ situational | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +3 combat strength against mounted units |  |
+| Gustavus Adolphus | General | ◆ strong | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +15% combat strength for ranged units · siege units: +1 movement |  |
+| Nzinga of Ndongo | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +10 combat strength in forest · +10 combat strength in jungle |  |
+| Yi Sun-sin | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +10 combat strength for ships |  |
+| Lautaro | General | ○ situational | heal + `generalCombat` +6 within 2 ×5 | **Citadel** +2⚙, +20 defence, claims its ring | +6 combat strength against mounted units |  |
 
 ## Extension rules
 

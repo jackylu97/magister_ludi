@@ -292,7 +292,7 @@ What the nodes say (the rules the chart prints, then each node's own note in *it
 - **Machinery** — roads carry units 40% further
 - **Machinery** — *Cranks, rollers and a good axle: an army marches further along your paving in a day than it used to.*
 - **Paper Money** — *Notes, ledgers and a floor to shout them across: the realm's coin can be turned into song at the Bourse.*
-- **Castellany** — +5 combat strength against ranged units
+- **Castellany** — +10 combat strength against ranged units
 - **Castellany** — *A castle may be raised, and pikemen called. Your soldiers also stand better against anything that shoots at them.*
 - **Steel** — melee units: +1 movement
 - **Steel** — *Every soldier of the sword line marches one hex further.*

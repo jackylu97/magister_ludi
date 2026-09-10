@@ -90,11 +90,11 @@ describe('defenseRows', () => {
     // No tech at all: the roster's own floor unit, the warrior, is exactly at
     // `combat.cityMinStrength` — deterministic without unlocking anything.
     const rows = defenseRows(state, city);
-    expect(rows).toEqual([{ label: 'Defends with · Warrior', figures: '8', amount: 8 }]);
+    expect(rows).toEqual([{ label: 'Defends with · Warrior', figures: '20', amount: 20 }]);
     // The disclosure's summary is the fold of this list and never a second
-    // count — the mode collapsed the section behind "Defence · 8" and that
+    // count — the mode collapsed the section behind "Defence · 20" and that
     // figure has to be these rows added up (rule 5, one grade down).
-    expect(defenseTotal(rows)).toBe(8);
+    expect(defenseTotal(rows)).toBe(20);
   });
 
   it('adds the wall as its own row, in points, beneath the garrison', () => {
@@ -104,11 +104,11 @@ describe('defenseRows', () => {
     bumpRevision(state);
     const rows = defenseRows(state, city);
     expect(rows).toEqual([
-      { label: 'Defends with · Warrior', figures: '8', amount: 8 },
-      { label: 'Palisade', figures: '+5', amount: 5 },
+      { label: 'Defends with · Warrior', figures: '20', amount: 20 },
+      { label: 'Palisade', figures: '+10', amount: 10 },
     ]);
     // And the fold moves with the wall, off the same list.
-    expect(defenseTotal(rows)).toBe(13);
+    expect(defenseTotal(rows)).toBe(30);
   });
 });
 

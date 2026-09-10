@@ -656,6 +656,21 @@ export interface AiConfig {
     city: number;
     /** One point of combat strength. */
     military: number;
+    /**
+     * **One point of a piece's *edge* that is not strength** — a movement point,
+     * a hex of sight, a worker's charge, a hex of reach, a town screened by a
+     * border toll.
+     *
+     * Its own knob since batch U9 (`docs/flags.md` (ttt)), and the split is the
+     * whole reason it exists. Every reading of this shape used to borrow
+     * `military`, which was fine while a strength point and a movement point
+     * happened to be worth the same; the strength ladder then re-cut every
+     * figure in `data/units.json` upward and `military` came down to meet it, at
+     * which point a movement point would have quietly lost half its worth for no
+     * reason anybody decided. A strength point and a movement point are two
+     * different things and now say so.
+     */
+    unitEdge: number;
     /** One point of happiness. */
     happiness: number;
     /** One point of authority (capacity or supply). */

@@ -50,7 +50,7 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import { openWar } from '../../src/sim/wars';
-import { techDef } from '../../src/sim/techData';
+import { UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
 import { UNIT_TYPE_IDS, unitDef, unitMaxHp } from '../../src/sim/unitData';
 import { fullMovement } from '../../src/sim/units';
 import { techsGrant } from '../../src/sim/techData';
@@ -186,11 +186,13 @@ describe('the damage curve', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'warrior', 4, 3);
 
-    // Two warriors on flat ground: strength 8 against strength 8, so the
-    // exponent is e^0 = 1 and the midpoint is the base damage itself.
+    // Two warriors on flat ground: the row's own strength against itself, so
+    // the exponent is e^0 = 1 and the midpoint is the base damage itself. The
+    // figure is read off the row rather than written here — U9 re-cut the whole
+    // ladder and this test is about the exponent, not about what a warrior is.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.attackerStrength).toBe(8);
-    expect(view.defenderStrength).toBe(8);
+    expect(view.attackerStrength).toBe(unitDef('warrior').combatStrength);
+    expect(view.defenderStrength).toBe(unitDef('warrior').combatStrength);
     expect(view.damageToDefender).toBe(COMBAT.baseDamage);
     expect(view.damageToAttacker).toBe(COMBAT.baseDamage);
   });
@@ -200,10 +202,16 @@ describe('the damage curve', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'archer', 4, 3);
 
-    // 8 against 7: 30 · e^0.04 = 31.22 → 31 dealt, and 30 · e^-0.04 = 28.82 → 29 taken.
+    // 20 against 15 (U9's ladder): 30 · e^0.2 = 36.6 → 37 dealt, and
+    // 30 · e^-0.2 = 24.6 → 25 taken. Both sides of the same exponent, which is
+    // the point: a five-point edge is the same multiplier wherever it sits.
+    const warrior = unitDef('warrior').combatStrength;
+    const archer = unitDef('archer').combatStrength;
     const view = forecast(state, a.id, 4, 3);
-    expect(view.damageToDefender).toBe(31);
-    expect(view.damageToAttacker).toBe(29);
+    expect(view.damageToDefender).toBe(expectedDamage(warrior, archer, 1));
+    expect(view.damageToAttacker).toBe(expectedDamage(archer, warrior, 1));
+    expect(view.damageToDefender).toBe(37);
+    expect(view.damageToAttacker).toBe(25);
   });
 
   it('reports a band the applied roll always lands inside', () => {
@@ -227,9 +235,9 @@ describe('the damage curve', () => {
     const state = flatState();
     const a = createUnit(state, 0, 'scout', 3, 3);
     createUnit(state, 1, 'knight', 4, 3);
-    // Strength 5 against 20: the curve gives 30 · e^-0.6 = 16.5, which is not
-    // small enough to test the floor — so check the floor where it bites, on
-    // the rounding of a genuinely tiny number.
+    // A scout against a knight: the curve gives something small but nowhere
+    // near small enough to test the floor — so check the floor where it bites,
+    // on the rounding of a genuinely tiny number.
     const view = forecast(state, a.id, 4, 3);
     expect(view.damageToDefender).toBeGreaterThanOrEqual(1);
     expect(expectedDamage(1, 200, 1)).toBe(1);
@@ -579,8 +587,12 @@ describe('ranged', () => {
 
     const view = forecast(state, a.id, 5, 3);
     expect(view.kind).toBe('ranged');
-    // Ranged strength 7 against strength 8: 30 · e^-0.04 = 28.8 → 29.
-    expect(view.damageToDefender).toBe(29);
+    // Ranged strength 20 against strength 20 (U9's ladder): the exponent is
+    // e^0, so an even shot is the base damage exactly.
+    expect(view.damageToDefender).toBe(
+      expectedDamage(unitDef('archer').rangedStrength ?? 0, unitDef('warrior').combatStrength, 1),
+    );
+    expect(view.damageToDefender).toBe(30);
     expect(view.damageToAttacker).toBe(0);
 
     expect(applyCommand(state, attack(a.id, 5, 3))).toEqual({ ok: true });
@@ -669,12 +681,13 @@ describe('terrain and fortification', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'archer', 4, 3);
 
-    // Forest (+2) and hills (+3) stack as **points**: an archer of 7 defends at
-    // 12, so 30 · e^(0.04 · (8 − 12)) = 25.6 → 26.
+    // Forest (+5) and hills (+6) stack as **points** — U9 rescaled the ground
+    // with the ladder: an archer of 15 defends at 26, so
+    // 30 · e^(0.04 · (20 − 26)) = 23.6 → 24.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.terrainBonus).toBe(5);
-    expect(view.defenderStrength).toBe(12);
-    expect(view.damageToDefender).toBe(26);
+    expect(view.terrainBonus).toBe(11);
+    expect(view.defenderStrength).toBe(26);
+    expect(view.damageToDefender).toBe(24);
   });
 
   it('itemises the ground one line per reason, never one summed "terrain"', () => {
@@ -687,14 +700,14 @@ describe('terrain and fortification', () => {
 
     const view = forecast(state, a.id, 4, 3);
     // The table's own names, in the table's own order, and both of them flat.
-    expect(view.defenderLines).toContainEqual({ source: 'Forest', amount: 2 });
-    expect(view.defenderLines).toContainEqual({ source: 'Hills', amount: 3 });
+    expect(view.defenderLines).toContainEqual({ source: 'Forest', amount: 5 });
+    expect(view.defenderLines).toContainEqual({ source: 'Hills', amount: 6 });
     expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
     // And the table agrees with the fight about what the hex is worth.
-    expect(defenseBonus('grassland', 'forest', true)).toBe(5);
+    expect(defenseBonus('grassland', 'forest', true)).toBe(11);
     expect(
       explainTerrainDefense('grassland', 'forest', true).reduce((sum, l) => sum + l.amount, 0),
-    ).toBe(5);
+    ).toBe(11);
     // Bare ground says nothing at all rather than saying zero.
     expect(explainTerrainDefense('grassland', 'none', false)).toEqual([]);
   });
@@ -708,9 +721,9 @@ describe('terrain and fortification', () => {
 
     const view = forecast(state, a.id, 4, 3);
     expect(view.acrossRiver).toBe(true);
-    // Strength 8 × 0.8 = 6.4 against 8: 30 · e^(0.04 · −1.6) = 28.1 → 28.
-    expect(view.attackerStrength).toBeCloseTo(6.4, 10);
-    expect(view.damageToDefender).toBe(28);
+    // Strength 20 × 0.8 = 16 against 20: 30 · e^(0.04 · −4) = 25.6 → 26.
+    expect(view.attackerStrength).toBeCloseTo(16, 10);
+    expect(view.damageToDefender).toBe(26);
   });
 
   it('charges no river penalty to an archer shooting over it', () => {
@@ -722,7 +735,7 @@ describe('terrain and fortification', () => {
     const view = forecast(state, a.id, 4, 3);
     expect(view.kind).toBe('ranged');
     expect(view.acrossRiver).toBe(false);
-    expect(view.attackerStrength).toBe(7);
+    expect(view.attackerStrength).toBe(unitDef('archer').rangedStrength);
   });
 
   it('grows the fortify bonus each turn and caps it', () => {
@@ -735,7 +748,8 @@ describe('terrain and fortification', () => {
     expect(fortifyBonus(d)).toBe(0);
 
     advanceFortify(state);
-    // Strength **points**, since 2026-08-28: +2 a turn, capped at +4.
+    // Strength **points**, since 2026-08-28: +3 a turn, capped at +6 (U9's
+    // figures, Civ 6's, rescaled with the ladder).
     expect(fortifyBonus(d)).toBe(COMBAT.fortifyBonusPerTurn);
     advanceFortify(state);
     expect(fortifyBonus(d)).toBe(COMBAT.fortifyMax);
@@ -753,13 +767,13 @@ describe('terrain and fortification', () => {
     advanceFortify(state);
     advanceFortify(state);
 
-    // 8 + 4 = 12 defending against 8: 30 · e^(0.04 · −4) = 25.6 → 26.
+    // 20 + 6 = 26 defending against 20: 30 · e^(0.04 · −6) = 23.6 → 24.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.fortifyBonus).toBe(4);
-    expect(view.defenderStrength).toBe(12);
-    expect(view.damageToDefender).toBe(26);
+    expect(view.fortifyBonus).toBe(6);
+    expect(view.defenderStrength).toBe(26);
+    expect(view.damageToDefender).toBe(24);
     // One line, named for the trench and not for a percentage of anything.
-    expect(view.defenderLines).toContainEqual({ source: 'Fortified', amount: 4 });
+    expect(view.defenderLines).toContainEqual({ source: 'Fortified', amount: 6 });
   });
 
   it('breaks fortification when the unit moves', () => {
@@ -2019,6 +2033,123 @@ describe('the unit roster carries the combat data the rules need', () => {
   });
 });
 
+// --- the strength ladder (batch U9) -----------------------------------------
+
+/**
+ * **The ladder, as rules rather than as a list of figures** — batch U9
+ * (`docs/flags.md` (ttt); the user, 2026-09-10: *"There should be a larger gap
+ * between units in combat strength … i'd love for the fire lancer to end as an
+ * 80 strength unit"*).
+ *
+ * Every claim below is derived from the rows and from the tree, never written
+ * out: the era a piece belongs to is **the age of the node that unlocks it**,
+ * read at test time, so the tech pass that moves a unit from one node to another
+ * moves this test's own reading with it and the shape of the ladder is what is
+ * pinned. A row no node opens (the wild's, the hulls that await an age, a
+ * retired orphan) is skipped rather than guessed at — it has no era to be in.
+ */
+describe('the strength ladder', () => {
+  /** Live rows only: a retired row keeps its figures for saves and is nobody's rung. */
+  const live = UNIT_TYPE_IDS.filter((id) => unitDef(id).retired !== true);
+
+  /** The age of the node that unlocks this row, or `null` when no node names it. */
+  function eraOf(id: (typeof UNIT_TYPE_IDS)[number]): number | null {
+    const tech = UNIT_UNLOCK_TECH.get(id);
+    return tech === undefined ? null : techDef(tech).age;
+  }
+
+  it('keeps every era’s bows under its best melee or horse', () => {
+    const CLOSES = new Set(['melee', 'mounted']);
+    const SHOOTS = new Set(['ranged', 'mountedRanged', 'siege']);
+    const byEra = new Map<number, { closes: number; shoots: number }>();
+    for (const id of live) {
+      const era = eraOf(id);
+      if (era === null) continue;
+      const def = unitDef(id);
+      const row = byEra.get(era) ?? { closes: 0, shoots: 0 };
+      if (CLOSES.has(def.modelClass)) row.closes = Math.max(row.closes, def.combatStrength);
+      if (SHOOTS.has(def.modelClass)) row.shoots = Math.max(row.shoots, def.rangedStrength ?? 0);
+      byEra.set(era, row);
+    }
+    // The four ages that have a roster at all — a guard against the walk finding
+    // nothing and the loop below passing vacuously.
+    expect([...byEra.keys()].sort()).toEqual([1, 2, 3, 4]);
+    for (const [era, row] of byEra) {
+      expect(row.closes, `era ${era} has something that closes`).toBeGreaterThan(0);
+      expect(row.shoots, `era ${era} has something that shoots`).toBeGreaterThan(0);
+      // The user's rule, in one line: a bow is never the best piece of its age.
+      expect(row.shoots, `era ${era}: the best bow under the best sword`).toBeLessThan(row.closes);
+    }
+  });
+
+  it('never lets an upgrade be weaker than the piece it replaces', () => {
+    let chains = 0;
+    for (const id of live) {
+      const def = unitDef(id);
+      const next = def.upgradesTo;
+      if (next === undefined) continue;
+      const to = unitDef(next);
+      // A retired successor is not a rung anybody climbs, but the data has none
+      // today and a silent skip would hide one.
+      expect(to.retired, `${id} upgrades to a retired row`).not.toBe(true);
+      chains += 1;
+      expect(to.combatStrength, `${id} → ${next}`).toBeGreaterThanOrEqual(def.combatStrength);
+      if (def.rangedStrength !== undefined && to.rangedStrength !== undefined) {
+        expect(to.rangedStrength, `${id} → ${next} (shooting)`).toBeGreaterThanOrEqual(
+          def.rangedStrength,
+        );
+      }
+    }
+    expect(chains).toBeGreaterThan(10);
+  });
+});
+
+/**
+ * **The matchup table** — what a blow is actually worth once the ladder is Civ
+ * 6's, at the midpoint roll, on flat ground, nobody dug in.
+ *
+ * The curve is an exponential in the *difference* of two strengths, so the only
+ * way to know whether a ladder is any good is to read the damage off it. These
+ * are the figures the user's ruling asked to see, and they are what makes the
+ * gap between rungs mean something: a bow that used to trade evenly with the
+ * sword of its own age now loses that trade, and the age's capstone one-shots
+ * the age before it.
+ */
+describe('the matchup table of the strength ladder', () => {
+  /** Damage at the midpoint roll from `a` closing on (or shooting) `b`. */
+  function blow(attacker: string, defender: string, apart = 1): number {
+    const state = flatState();
+    const a = createUnit(state, 0, attacker as never, 3, 3);
+    createUnit(state, 1, defender as never, 3 + apart, 3);
+    return forecast(state, a.id, 3 + apart, 3).damageToDefender;
+  }
+
+  it('prints the era premieres against the bows of their own age', () => {
+    // Æra I — the War Chariot against the Chariot Archer, and the shot back.
+    expect(blow('chariot', 'chariotArcher')).toBe(45);
+    expect(blow('chariotArcher', 'chariot', 2)).toBe(24);
+    // Æra II — the Swordsman against the Bowman.
+    expect(blow('swordsman', 'bowman')).toBe(55);
+    expect(blow('bowman', 'swordsman', 2)).toBe(23);
+    // Æra III — the War Elephant against the Catapult.
+    expect(blow('warElephant', 'catapult')).toBe(78);
+    expect(blow('catapult', 'warElephant', 2)).toBe(21);
+    // Æra IV — The Fire Lance against the Trebuchet, which is barely a fight.
+    expect(blow('trebuchet', 'fireLance', 2)).toBe(7);
+  });
+
+  it('lets The Fire Lance kill a Swordsman outright and all but kill a Knight', () => {
+    // The capstone the user asked for by name: *"should one-shot a swordsman,
+    // or nearly"*. Thirty points is a kill on this curve and the gap is
+    // forty-five, so the forecast is the defender's whole bar.
+    const swordsman = unitDef('swordsman').maxHp;
+    expect(blow('fireLance', 'swordsman')).toBe(swordsman);
+    // And a Knight, thirty points below it, comes within a hair of the same.
+    expect(blow('fireLance', 'knight')).toBeGreaterThanOrEqual(90);
+    expect(blow('fireLance', 'knight')).toBeLessThan(unitDef('knight').maxHp);
+  });
+});
+
 // --- determinism ------------------------------------------------------------
 
 describe('a war replays exactly', () => {
@@ -2512,11 +2643,12 @@ describe('the strength breakdown', () => {
     const walled = forecast(state, a.id, 8, 4);
     // Two fields, two questions: `cityStat.defense` is what it fights with and
     // `cityHp` is what a besieger has to spend.
-    expect(walled.defenderStrength).toBe(bare.defenderStrength + 5);
-    expect(walled.defenderLines).toContainEqual({ source: 'Palisade', amount: 5 });
+    const stat = buildingDef('palisade').cityStat!.amount;
+    expect(walled.defenderStrength).toBe(bare.defenderStrength + stat);
+    expect(walled.defenderLines).toContainEqual({ source: 'Palisade', amount: stat });
     // The palisade's own row, read off the table rather than written down here:
-    // the user's 2026-08-28 ruling moved it (health 15, strength 5) and this
-    // test is about the *two channels*, not about either figure.
+    // the user's 2026-08-28 ruling moved it and U9 moved it again with the
+    // ladder, and this test is about the *two channels*, not about either figure.
     const walls = buildingDef('palisade').cityHp!;
     expect(cityMaxHp(city)).toBe(COMBAT.cityBaseHp + walls);
     expect(explainCityMaxHp(city)).toContainEqual({ source: 'Palisade', amount: walls });
@@ -2913,7 +3045,8 @@ describe('cards and stamps on the strength ledger', () => {
     at(state.map, 4, 3).hills = true;
     const hill = forecast(state, a.id, 4, 3);
     const line = hill.defenderLines.find((l) => l.source.includes('Hill Forts'))!;
-    expect(line.amount).toBe(2);
+    // U9 doubled the card's own points with the ladder.
+    expect(line.amount).toBe(4);
     // The fold is the sum of the list, hills bonus and all.
     expect(hill.defenderStrength).toBe(
       foldCombatStrength(hill.defenderLines),
@@ -2928,17 +3061,18 @@ describe('cards and stamps on the strength ledger', () => {
     // Created *after* the card is slotted, so the stamp is written at the birth.
     const a = createUnit(state, 0, 'warrior', 3, 3);
     const d = createUnit(state, 1, 'warrior', 4, 3);
-    expect(a.stamp).toEqual({ strength: 2 });
+    // U9 doubled the stamp with the ladder (Drums of War: +4).
+    expect(a.stamp).toEqual({ strength: 4 });
 
     const attacking = forecast(state, a.id, 4, 3);
     const mine = attacking.attackerLines.find((l) => l.source === 'Veteran')!;
-    expect(mine.amount).toBe(2);
+    expect(mine.amount).toBe(4);
     expect(attacking.defenderLines.some((l) => l.source === 'Veteran')).toBe(false);
     expect(attacking.attackerStrength).toBe(foldCombatStrength(attacking.attackerLines));
 
     // The same point defends. `d` swings at the veteran and finds it steadier.
     const defending = forecast(state, d.id, 3, 3);
-    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(2);
+    expect(defending.defenderLines.find((l) => l.source === 'Veteran')!.amount).toBe(4);
   });
 
   it('The Muster Roll raises the bar a heal fills, not just the number on it', () => {
@@ -3050,10 +3184,10 @@ describe('the strength conditions of batch E4a', () => {
 
     // At the wall with nobody beside it: the escort half of the composite fails.
     expect(paid(8, 3)).toBe(0);
-    // An engine next door, and the line is worth its six.
+    // An engine next door, and the line is worth its twelve (U9's ladder).
     createUnit(state, 0, 'catapult', 7, 2);
     bumpRevision(state);
-    expect(paid(8, 3)).toBe(6);
+    expect(paid(8, 3)).toBe(12);
     // And the wall half: an engine beside a soldier storming a *piece* pays
     // nothing, because `all` asks for both. The escort is placed on a hex the
     // board itself calls adjacent, so the case is never vacuously true.
@@ -3083,7 +3217,8 @@ describe('the strength conditions of batch E4a', () => {
     const shot = forecast(state, archer.id, 4, 3);
     const line = shot.defenderLines.find((entry) => entry.source.includes('Castellany'))!;
     expect(line).toBeDefined();
-    expect(line.amount).toBe(5);
+    // U9 doubled the node's own line with the ladder.
+    expect(line.amount).toBe(10);
     // A piece that closes is not an arrow: `vsClass` names the *other* side, and
     // for a defender's line that is whoever charged in.
     const beside = neighborTiles(state.map, tileHex(at(state.map, 4, 3)))
