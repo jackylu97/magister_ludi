@@ -656,7 +656,14 @@ directly to confirm rulings — user marginalia are rulings.
   `Player.censusSeen` (absolute), the sixth and last blocker, bot
   answers at once, refused byte-identically twice; only the last census
   shows, kept on the Abacus in a band off the record. ▢ the census's
-  figures have no Compendium shelf (one small pass). (ggg) **The bot's second pass**
+  figures have no Compendium shelf (one small pass). t100 (8 seeds)
+  with G3 + C1: cities 5.9 · citizens 42.1 · buildings 31.8 · food 130
+  · prod 88.5 · gold 40.5 · sci 104.3 · cul **61.6** (was 78.4) · faith
+  23.4 · treasury 349 · techs 24.2 · happiness **+7.4** (was +14.4) —
+  the malices bite: a bot stakes index 0 and mostly misses, so the
+  Æra II judgement seats The Silent Choirs / The Restless Cities in
+  most bot councils. **W2 flies now** for that reason (a bot-only
+  fence): the bots' wager want. (ggg) **The bot's second pass**
   (the user, 2026-09-08: "do a pass on the bot considering all the changes
   we've made … squeeze as much performance as possible out of the bots …
   variables that are missing from its evaluation"): the audit is
@@ -1470,6 +1477,22 @@ directly to confirm rulings — user marginalia are rulings.
   The Long Count's plantation renewal (+1 culture) rendered empty —
   widened to six. `test/ui/techTreeFigures.test.ts` sweeps every gift
   figure of every tech against a five-town empire (>200 figures, whole).
+  **T3 built 2026-09-09** (the user: "update the tech tree md file too,
+  with the latest technologies"): `docs/tech-tree.md` Part 2 is
+  generated at last — `TECH_DOC_WRITE=1 npx vitest run
+  test/sim/techDocSync.test.ts` rewrites it from the rows and the
+  tree's own describers, and without the env the test asserts the
+  region byte-for-byte (names, costs, prereqs, all three unlock
+  columns, the rule bullets, a verbs table). The regeneration surfaced
+  a whole unprinted class of gift (the nine improvements a worker may
+  lay), the Bourse's ‡, the Trader's R1 status, a stale culture glyph,
+  three † marks built out in E4a/E4b, and that the bullets had been the
+  numberless note rather than the node's rules (now the rules with
+  figures, the note in italics). Three Part 1 sentences corrected where
+  the data had moved (seventeen effect-carrying techs; no hand-tuned
+  prices since P1; `ageEntryDice` is gone — ▢ `docs/beads.md:61` still
+  names it). Renewals: the *improvement* renewals stand (five rows on
+  four improvements); the building renewals went 2026-09-04.
   (eee)
 - (nnn) **The wager, second look — RULED** (the user, 2026-09-09: *"we
   need to tune the numbers for some of the wagers way down. The
@@ -1517,7 +1540,31 @@ directly to confirm rulings — user marginalia are rulings.
   ages; the agent measures the bench's top seat by Æra IV's close with
   deeds gone and sets the threshold at about **two-thirds of it**
   (▢ the user's figure comes with the balance pass), the doc's figure
-  and `docs/wager.md` §5 following. Schema bumps (Q1). (eee)
+  and `docs/wager.md` §5 following. Schema bumps (Q1). **W3 built
+  2026-09-09**: the two bars cut (data and doc together, ▢ pending the
+  user's pass); all 24 notes rewritten from the `WagerCount` docblocks
+  and `wagerCount`'s arms — four corrected a real inaccuracy (The
+  Caravanserai reads trade only, not roads; The Solvent Realm is the
+  per-turn *net* take accumulated; The Worked Land the capital's worked
+  tiles; The Marcher Lords' two meters at or above nought); the note
+  contract on `WagerDef.note` (reading · span · nothing else; a
+  `flavor`/`epigram` field on a wager row fails the build); one path
+  confirmed (deal sheet, Abacus band, Compendium all read `wagerDef
+  (id).note`); ▢ plainer names proposed in the doc's Notes column
+  (Bread and Iron → Full Fields and a Standing Army, The Six Voices →
+  The Whole Yield, …), names unchanged in data. The Abacus's stage is
+  `flex: 0 0 33vh` and the register takes the rest, cap in CSS because
+  the stage measures its box on first open; the frame still leads the
+  sheet at a third, the wager band above the rods inside the register
+  (▢ cards above the frame too is a DOM move if wanted). **The user's
+  doc consolidated** (the user: "consolidate the wagers.md file into
+  just the list of final wagers … I'd like to modify it directly"):
+  `docs/wager.md` is now Rules (twelve current-state bullets, each
+  naming its data key) · The Opus door (Q1's line) · The deck (one
+  table, Æra II/III/IV as three editable columns, Note, Notes —
+  sync-tested on bars **and** notes) · The malice deck (G3's table);
+  the worksheet moved whole to `docs/audit/wager-worksheet.md` (the
+  ~30 `§N` citations in src/test mean the worksheet's sections).
 - (ooo) **The garrison above the banner — RULED** (the user, 2026-09-09:
   *"I'm still unhappy with the city banners and unit visibility. Is it
   difficult to have the list of units in a city appear _above_ the
@@ -1544,6 +1591,72 @@ directly to confirm rulings — user marginalia are rulings.
   drives it. Tests: the row's count and order pin, the fan past four,
   the "+N", the bar on a wounded piece only, the suppression on the
   city hex and not beside it, the rise back at the pole. (eee)
+- (ppp) **Ships, the taking of towns, the capture sheet, the two words —
+  RULED** (the user, 2026-09-09: *"create a doc with every unit and their
+  combat strengths … melee units should not be able to attack boats
+  from land (a warrior cannot attack a water tile). Boats should take
+  reduced damage from ranged attacks from land (archers, mounted
+  archers) but should take increased damage from siege (catapults,
+  trebuchet, etc). Boats should also take reduced damage when attacking
+  embarked units, and embarked units should not be able to attack
+  boats. Also, a melee unit attacking and killing the unit protecting a
+  city should take the city. In the raze/annex/puppet screen: are you
+  sure you're calculating the authority and happiness costs from
+  absorbing the city correctly? I also dont understand why the raze
+  option has a 'land' statistic, what is that referring to? Let's also
+  use happiness and authority as the correct terminology instead of
+  writ and cheer, its confusing to players to use multiple words."*).
+  Three batches. **N1 — the naval rules** (`combat.ts`, `rules.naval`):
+  (1) a **land melee or mounted** piece may not attack a target on a
+  water hex (`attackTargetAt` refuses; the tint, the forecast and the
+  reducer say one sentence: "a warrior cannot strike at the water");
+  land ranged and siege may shoot at water within range as today;
+  (2) **a ship struck from land**: a land ranged/mounted-ranged attacker
+  fights at **−50%** against a naval target, a land siege attacker at
+  **+50%** (`rules.naval.landRangedVsShipPercent` −50,
+  `rules.naval.landSiegeVsShipPercent` 50 — attacker-side percentages,
+  the ledger's one allowed kind, labelled lines; ▢ the figures are
+  first cuts for the user's pass); (3) **a ship striking an embarked
+  piece** takes half the counter-blow (`rules.naval.embarkedCounterPercent`
+  50 — read where the defender's return strike is priced; state in the
+  docblock how it composes with the at-sea penalty); (4) **an embarked
+  piece may not attack a ship** (refused as (1), "a column afloat cannot
+  fight a hull"); (5) **the taking of a town**: today walls → garrison →
+  capture is three beats; now a **melee/mounted** blow that kills the
+  garrison **takes the town in the same blow** (the winner advances
+  through `arriveOnTile`, the capture off the plan) — the walls beat
+  stays first where walls stand (▢ if the user meant walls too, say so);
+  a ranged kill of the garrison still leaves the town to be walked into.
+  `docs/war-diplomacy.md` §combat updated; the Compendium's rules through
+  the describers. Schema bump (a replay's battles change). **K1 — the
+  capture sheet and the two words**: (6) **every option prints the
+  town's whole cost under that outcome, folded, never picked** — for
+  Annex and Puppet, `explainAuthority`/`explainHappiness` evaluated on
+  the outcome (the puppet flag set or cleared on a copy of the town — a
+  pure what-if, no state written; rule 5's fold, twice), the lines
+  named by the town summed: "Authority −N · Happiness −M"; Raze:
+  "Authority 0 · Happiness 0" and the citizens lost; the "Ground" line
+  becomes **"Territory released N⬡"** (the hexes the town holds that go
+  unowned) or is dropped if the agent finds it says nothing a player
+  acts on — say which; (7) **the words**: every player-facing "writ"
+  and "cheer"/"contentment" becomes **authority** and **happiness** —
+  the describers' word tables, `figures.ts`' meter names, the capture
+  sheet, the city panel, the top bar, the unit sheet, the card stamps,
+  the Compendium's written shelves (`compendiumText.ts`), the dock and
+  meter marks' labels, the docs (`docs/*.md` current-state prose; not
+  history) and the data rows' `note` prose; identifiers may keep their
+  names (`puppetWrit` is code), and a `test/ui/vocabulary.test.ts`
+  sweeps every player-facing string source for the two retired words.
+  **D2 — the units doc**: `docs/units.md`, generated from
+  `data/units.json` and the sim's own readers (`unitDef`, `unitMaxHp`,
+  `unitRosterCost`, the unlocking tech via `worldUnlockTech`): one table
+  per category — name · class · strength · ranged strength · range ·
+  movement · hp · sight · size (cost) · escalation · unlocked by ·
+  upgrades to · marks (`routeOnly`, `requiresResource`, `retired` off) —
+  and the naval rules of N1 as a short rules section pointing at
+  `rules.naval` keys; sync-tested (`test/sim/unitsDocSync.test.ts`, the
+  `techDocSync` pattern with a `UNITS_DOC_WRITE=1` generator); the
+  user edits it for balance. (eee)
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
