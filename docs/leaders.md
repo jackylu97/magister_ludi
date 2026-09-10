@@ -547,6 +547,22 @@ grassland (the Yangtze passive); Modu Chanyu — grassland and plains, away from
 hills; Akhenaten — river, floodplain, oasis; Al-Ma'mun — river, with a mild
 coast; Mithridates — coast and hills (the Black Sea and the Pontic mountains).
 
+**A bias toward improvements — plantations and camps — is possible, but it is
+a furnishing, not a site** (the user, 2026-09-10: "mithridates: plantations and
+camps, is that possible?"). The chooser scores the *ground* with resources
+stripped, deliberately, because the fairness passes plant resources **at** the
+starts afterwards; so "near plantations" cannot be a site score without the
+guarantee chasing itself around the map. It can be a **start guarantee** in the
+same seam that already promises every capital its strategics
+(`ensureStartStrategics`, `resources.ts`): Mithridates' start is furnished with
+one plantation-kind luxury and one camp-kind resource within the rings, drawn
+from what the continent can host (the hostability filter never relaxes — a wine
+grows on any grassland, so a plantation kind is near-certain; deer on forest is
+the common camp). It costs the deal nothing it does not already do, it is
+deterministic, and it reads on the mapgen page as "furnished for Mithridates:
+Wine, Deer". ▢ rec: yes — his Æra I passive (+2 food on plantations and camps)
+then always has something to stand on.
+
 ## Notes for the system
 
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for
