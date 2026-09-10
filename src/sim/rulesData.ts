@@ -246,15 +246,17 @@ export interface CombatRules {
 }
 
 /**
- * The four numbers the naval line spends, and there are deliberately only four.
+ * The seven numbers the naval line spends, and there are deliberately only
+ * seven.
  *
  * Every *other* fact about a ship is on its roster row — the strengths, the
  * movement, the range, the labelled lines the triangle is made of — because they
  * describe *a hull* rather than the system, which is the same split `combat`
  * makes with `data/units.json` and the reason a thirteenth ship is a JSON row.
  * What is left here is what the **rules** say about being at sea at all: what an
- * attack costs a hull that keeps going, what a line of battle is worth, and what
- * a soldier caught on the water loses.
+ * attack costs a hull that keeps going, what a line of battle is worth, what a
+ * soldier caught on the water loses, and — since the shore pass of 2026-09-09 —
+ * what it costs to fight across the waterline in either direction.
  */
 export interface NavalRules {
   /**
@@ -274,6 +276,33 @@ export interface NavalRules {
    * sea", in the defender's fold.
    */
   atSeaPenalty: number;
+  /**
+   * What a **land bow** loses shooting at a hull — an attacker-side percentage,
+   * whole percent, negative for the malus it is (the user, 2026-09-09: "boats
+   * should take reduced damage from ranged attacks from land").
+   *
+   * Read for a land piece of `modelClass` `ranged` or `mountedRanged` against a
+   * target of `category: 'naval'`, in `planCombat` and nowhere else: an arrow
+   * loosed at a hull is an arrow loosed at armoured timber a bowshot out to sea.
+   */
+  landRangedVsShipPercent: number;
+  /**
+   * What a **land siege engine** gains shooting at a hull — the same shape, the
+   * other sign (the user, same ruling: "should take increased damage from siege").
+   * Read for `modelClass: 'siege'` against `category: 'naval'`.
+   */
+  landSiegeVsShipPercent: number;
+  /**
+   * What share of its ordinary counter-blow a **hull boarding a column at sea**
+   * takes, in whole percent — 50 is half (the user, same ruling: "boats should
+   * also take reduced damage when attacking embarked units").
+   *
+   * The one percentage in this file that scales *damage* rather than strength,
+   * because the ruling is about what comes back rather than about who is
+   * stronger; `atSeaPenalty` is already the strength half of the same picture
+   * and the two are deliberately not folded (see `planCombat`'s counter clause).
+   */
+  embarkedCounterPercent: number;
 }
 
 /**

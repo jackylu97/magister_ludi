@@ -59,6 +59,55 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - ▢ Does anything happen at the WORLD level when war breaks out (a
   triumph, a bead-family hook, the chronicle)? definitely a notification for players that have met both players at war. What is an annal?
 
+## 5b. Combat — the waterline and the taking of a town (as built, batch N1, schema 107)
+
+Ruled 2026-09-09 (`docs/flags.md` (ppp)). Every rule below is a clause of
+`planCombat` in `src/sim/combat.ts` — one evaluator, so the attackable tint, the
+forecast card and the reducer refuse and price as one. The three new numbers are
+in `data/rules.json` under `rules.naval`.
+
+**Across the waterline**
+
+- A **land piece that closes** (melee, mounted, the scout) may not attack a
+  target on a water hex at all — refused in `attackTargetAt`, one sentence:
+  "Warrior cannot strike at the water". A land **bow** or **siege engine** still
+  shoots at the water within its range.
+- An **embarked piece** — a land unit standing on water — may not attack a ship,
+  whether it would close or shoot: "Spearman is afloat and cannot fight a ship".
+  It may still attack a **land** target, exactly as before.
+- A **land bow or horse-bow** fights a naval target at
+  `rules.naval.landRangedVsShipPercent` (−50); a **land siege engine** at
+  `rules.naval.landSiegeVsShipPercent` (+50). Attacker-side percentages — the
+  ledger's one allowed kind — printed as one named line, "Against a hull −50%",
+  in the forecast's `attackerLines`. Read off `modelClass` / `category`, never a
+  unit name.
+- A **ship attacking an embarked piece** takes `rules.naval.embarkedCounterPercent`
+  (50) of the counter-blow, named on the forecast's `counterPercents` as
+  "Boarding at sea".
+- That last one **composes with** `rules.naval.atSeaPenalty` and does not replace
+  it: the at-sea penalty is a *strength* line on the defender (making the
+  passenger both easier to kill and weaker in return, and cancelled by a light
+  hull escort); the boarding share then halves what counter is left. Two labelled
+  prices, either dialable to nothing without touching the other.
+- ▢ The three figures are first cuts for the user's balance pass.
+
+**The taking of a town**
+
+- The beats are still **walls → garrison → capture**, in that order, and the
+  walls still come first wherever walls stand (`cityAttackPhase`).
+- At the **garrison** beat, a **melee or mounted** blow that kills the defender
+  **takes the town in the same blow**: the town changes hands through
+  `captureCity` and the winner advances into it through `arriveOnTile`, the one
+  "came to rest here" seam. The forecast promises it as `capturesCityOnKill` —
+  conditional on the kill, which is the one beat a die decides.
+- A **ranged** kill of the garrison takes no town: it empties the gate and leaves
+  the **capture** beat for somebody who can walk in.
+- The wild never takes a town, at either beat. A winner that dies to the counter
+  takes nothing.
+- ▢ The user may have meant the walls too (one blow from full health to taken);
+  as built the walls beat is unchanged, so this shortens a siege from three blows
+  to two and never from two to one.
+
 ## 6. War costs
 
 - ▢ War weariness in v1: (a) none, defer for later after playtesting if needed

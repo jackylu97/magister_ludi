@@ -116,10 +116,12 @@
  * bounty and take the worker in one command. The two halves of "taking a
  * civilian" are therefore one half: the ground. See `capturesUnit` in
  * `planCombat`, which for that reason asks `canAdvanceOnto` *before* it promises
- * a capture — a civilian on ground the attacker could never stand on (an
- * embarked worker on the coast) is ridden down like anything else, because a
- * capture that could not be walked into would be a capture with nowhere to
- * happen.
+ * a capture — a civilian on ground the attacker could never stand on is ridden
+ * down like anything else, because a capture that could not be walked into would
+ * be a capture with nowhere to happen. The example this clause used to be
+ * written around, a swordsman and an embarked worker across a coastline, is no
+ * longer one of them: since 2026-09-09 a sword may not strike at the water at
+ * all (*Across the waterline*), so what is left is a full hex and the town clause.
  *
  * No mutual death
  * ---------------
@@ -175,7 +177,16 @@
  *   · **`garrison`** — the walls are down (`cityBeatenDown`) and a foreign
  *     combatant is still standing there. Ordinary unit-against-unit combat: the
  *     soldier's own strength and its own `inCity` lines, and the town has nothing
- *     further to add — it is already beaten.
+ *     further to add — it is already beaten. **And a melee blow that kills him
+ *     takes the town with him** (user, 2026-09-09: "a melee unit attacking and
+ *     killing the unit protecting a city should take the city"). That is the
+ *     one beat of the siege the *die* decides rather than the board, so it is
+ *     `capturesCityOnKill` on the forecast — a promise conditional on the kill,
+ *     which `applyCombat` honours the instant the garrison falls, walking the
+ *     winner in through `arriveOnTile` like any other advance. A **ranged** kill
+ *     takes no town: it leaves the gate empty and the beat below for somebody
+ *     who can walk. The walls still come first wherever walls stand, so this
+ *     shortens a siege from three blows to two and never from two to one.
  *   · **`capture`** — the walls are down and nothing that can swing back is left.
  *     A **melee** blow walks in (`capturesCity`), taking every civilian on the hex
  *     with the ground exactly as a blow on a lone civilian does. A ranged shot
@@ -191,6 +202,49 @@
  * and a garrison still on its feet makes the second act *impossible* rather than
  * merely expensive. That is the whole of the ruling: a defended city is a siege
  * in the order a siege actually happens.
+ *
+ * Across the waterline
+ * --------------------
+ * Four rules, all of them the user's of 2026-09-09 ("melee units should not be
+ * able to attack boats from land … boats should take reduced damage from ranged
+ * attacks from land … but should take increased damage from siege … boats
+ * should also take reduced damage when attacking embarked units, and embarked
+ * units should not be able to attack boats"), and every one of them lands on a
+ * seam that was already there.
+ *
+ *   · **A sword cannot reach a hull.** A land piece that closes — melee,
+ *     mounted, the scout — may not attack anything standing on water at all.
+ *     `waterlineError` is the sentence and `attackTargetAt` is where it is
+ *     asked, so the attackable tint, the forecast card and the reducer refuse
+ *     as one. A land **bow** or **siege engine** still shoots at the water
+ *     within its range, which is the other half of the ruling and the reason
+ *     the clause asks what the piece *does* rather than where it stands.
+ *   · **A column afloat cannot fight a hull.** The mirror, and the same
+ *     refusal: an embarked piece — a land unit standing on water, which is all
+ *     `isEmbarked` means — may not aim at a ship, whether it would close or
+ *     shoot. It may still attack a **land** target exactly as it could before
+ *     this ruling; a bow in a boat still looses at the shore, and nothing here
+ *     changes that.
+ *   · **A ship struck from land** pays or is paid as an *attacker-side
+ *     percentage* — the ledger's one allowed kind — and prints as a labelled
+ *     line like everything else: `rules.naval.landRangedVsShipPercent` for a
+ *     bow or a horse-bow, `rules.naval.landSiegeVsShipPercent` for a siege
+ *     engine. Read off `modelClass` and `category`, never off a name.
+ *   · **A hull boarding a column at sea takes half the blow back**:
+ *     `rules.naval.embarkedCounterPercent` of the counter, and it is the one
+ *     percentage in this file that scales *damage* rather than strength.
+ *
+ * That last one **composes** with the at-sea penalty rather than replacing it,
+ * and the two are kept apart deliberately. `atSeaPenalty` is a **strength** line
+ * on the defender's side (`seaDefenceLines`), so one number does two jobs: the
+ * passenger is easier to kill, and — through the same difference of strengths —
+ * its return blow is already smaller. That is a fact about a column that cannot
+ * form up, and an escort cancels it. `embarkedCounterPercent` then takes half of
+ * whatever counter is left, and it is a fact about the *hull*: a galley standing
+ * off a raft is not somewhere a spear reaches. Both are labelled — "At sea" in
+ * the defender's fold, "Boarding at sea" among `counterPercents` — so a player
+ * can see the two prices separately, and dialling either to nothing leaves the
+ * other exactly as it was.
  *
  * Siege
  * -----
@@ -218,7 +272,11 @@
  *     standing on two tiles away.
  *   · **Diplomacy and war declaration.** Every player is hostile to every other
  *     from turn one. There is nothing to declare and no peace to break.
- *   · **Embarkation.** Land units cannot cross water, so no naval combat.
+ *   · **Boarding.** A hull never *carries* a passenger as cargo: an embarked
+ *     piece is a piece standing on a water hex with its own bar and its own
+ *     fight, so there is no capacity, no loading, and no hold to sink. What
+ *     crossing the waterline costs either side is *Across the waterline* above,
+ *     and it is four clauses rather than a transport system.
  *   · **War weariness**, and every other happiness consequence of fighting.
  *   · **Damage scaling with health.** A unit at 10 hit points hits exactly as
  *     hard as one at full, so a fight is a grind rather than an avalanche.
@@ -525,6 +583,24 @@ export function attackTargetAt(
   col: number,
   row: number,
   ownerId: number,
+  attacker?: Unit,
+): AttackTarget | null {
+  const target = boardTargetAt(state, col, row, ownerId);
+  if (target === null || attacker === undefined) return target;
+  // **The waterline**, asked here so that one refusal serves the tint, the
+  // forecast and the reducer (module docblock, *Across the waterline*). The
+  // attacker is optional because most readers of this function are asking a
+  // question about the *hex* — "is there anything of anybody else's here" —
+  // and a caller that has a piece in hand gets the piece's own answer.
+  return waterlineError(state, attacker, target, col, row) === null ? target : null;
+}
+
+/** The priority above, with nothing asked about who is swinging. */
+function boardTargetAt(
+  state: GameState,
+  col: number,
+  row: number,
+  ownerId: number,
 ): AttackTarget | null {
   const foreign = unitsOnTile(state, col, row).filter(
     (unit) => unit.ownerId !== ownerId && !tradeIsShielded(state, unit),
@@ -544,6 +620,120 @@ export function attackTargetAt(
   const civilian = foreign[0];
   if (civilian) return { unit: civilian, city: null };
   return null;
+}
+
+/**
+ * **Is this piece afloat?** — a land unit standing on a water hex, and nothing
+ * else means anything by "embarked" in this simulation.
+ *
+ * There is no cargo, no capacity and no hold: a passenger is an ordinary piece
+ * with its own bar, on ground it could only reach because its empire holds the
+ * ability (`pathfind.ts`). So the question is two readings and both of them are
+ * already the register's — `isNaval` for "does it belong out here", the terrain
+ * table for "is this water" — and this exists so the four rules of the waterline
+ * (module docblock) ask it in one voice rather than writing the pair out four
+ * times.
+ */
+export function isEmbarked(def: UnitDef, tile: Tile): boolean {
+  return !isNaval(def) && isWaterTerrain(tile.terrain);
+}
+
+/**
+ * Why this piece may not fight across the waterline, or `null` when it may —
+ * the user's ruling of 2026-09-09, both halves of it, in the one place a target
+ * is chosen.
+ *
+ * Two refusals, and the order between them is the rule and not a preference.
+ * The **afloat** clause is asked first because it is the more specific true
+ * sentence: an embarked warrior aiming at a trireme is refused by both, and the
+ * one a player needs to read is the one about the boat they are standing in.
+ *
+ *   · **A column afloat cannot fight a hull.** Asked of the attacker's own hex
+ *     through `isEmbarked`, and of the target's `category`, so it holds for the
+ *     bow in the boat as well as for the spear — a passenger has nothing to
+ *     fight a ship *with*, whatever its roster row says it could do ashore. It
+ *     is deliberately silent about a **land** target: an embarked piece attacks
+ *     the shore exactly as it did before this ruling.
+ *   · **A sword cannot strike at the water.** A land piece that closes may not
+ *     attack a hex of water at all, whoever is on it — asked of the *ground*
+ *     rather than of the target, because the refusal is that there is nothing to
+ *     stand on and swing from, and it is as true of an embarked worker as of a
+ *     galley. `isRanged` is what excuses the bow and the siege engine, which is
+ *     the ruling's own other half: they still shoot at the water in range.
+ *
+ * Asked of `category` and of the terrain table, never of a name or a model
+ * class: the second is what the *percentages* read (`landVsShipPercent`), and
+ * a rule about where a piece may be is `category`'s question by the roster's own
+ * docblock.
+ */
+function waterlineError(
+  state: GameState,
+  attacker: Unit,
+  target: AttackTarget,
+  col: number,
+  row: number,
+): string | null {
+  const def = unitDef(attacker.type);
+  const onto = getTileAt(state.map, col, row);
+  if (!onto) return null;
+  const from = getTileAt(state.map, attacker.col, attacker.row);
+  // Both sentences name the piece **without an article**, the way "Warrior must
+  // be adjacent to attack" does one refusal up: a roster row is a proper name
+  // and `a`/`an` is a rule about the next letter that no data row should have to
+  // know. Same reason `fortifyError` says "Warrior is already fortified".
+  if (from && isEmbarked(def, from) && target.unit !== null && isNaval(unitDef(target.unit.type))) {
+    return `${def.name} is afloat and cannot fight a ship`;
+  }
+  if (!isNaval(def) && !isRanged(def) && isWaterTerrain(onto.terrain)) {
+    return `${def.name} cannot strike at the water`;
+  }
+  return null;
+}
+
+/**
+ * **What a land piece's blow at a hull is worth**, as a whole-percent
+ * attacker-side share — a malus for a bow, a bonus for a siege engine, and zero
+ * for everything else and every fight that is not one.
+ *
+ * The ledger takes flat points and one exception (module docblock): a percentage
+ * is allowed on the *attacker's* side, where it is a fact about that army rather
+ * than about the ground somebody else is standing on. An arrow that skips off
+ * armoured timber and a stone that goes through it are exactly that kind of
+ * fact, so they are shares of the shooter's own strength and they print as one
+ * named line each in `attackerLines`.
+ *
+ * Read off `modelClass` — the **second** deliberate exception to "the model
+ * class is art" (`unitData.ts` names `UnitCombatLine.vsModelClass` as the
+ * first), and it earns the exception for the same reason that one does: the
+ * roster's own word for "this piece looses arrows" is the silhouette, and the
+ * alternative is a list of unit names in the combat evaluator. The target is
+ * asked of `category`, which is the register for where a piece may be, and the
+ * attacker is excused if it is naval — a fight between two hulls is the
+ * triangle's business (`rowCombatLines`) and not this.
+ */
+export function landVsShipPercent(def: UnitDef, target: AttackTarget): number {
+  if (isNaval(def)) return 0;
+  if (target.unit === null || !isNaval(unitDef(target.unit.type))) return 0;
+  const { modelClass } = def;
+  if (modelClass === 'ranged' || modelClass === 'mountedRanged') {
+    return RULES.naval.landRangedVsShipPercent;
+  }
+  if (modelClass === 'siege') return RULES.naval.landSiegeVsShipPercent;
+  return 0;
+}
+
+/**
+ * **Is this blow a hull boarding a column at sea?** — the counter-blow's own
+ * halving, and the one question it turns on.
+ *
+ * A ship attacking a piece that does not belong on the water takes
+ * `rules.naval.embarkedCounterPercent` of what would otherwise come back. See
+ * the module docblock for how it composes with the at-sea penalty and why the
+ * two stay two numbers.
+ */
+function boardsAtSea(attacker: UnitDef, target: AttackTarget, tile: Tile): boolean {
+  if (!isNaval(attacker) || target.unit === null) return false;
+  return isEmbarked(unitDef(target.unit.type), tile);
 }
 
 /**
@@ -604,18 +794,24 @@ function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
   /**
    * **And a town somebody else still holds is not ground you may stand on.**
    *
-   * The clause the three-beat siege needed (2026-08-28). Killing the garrison of
-   * a beaten town is the *second* beat, not the third: the walls are down and the
-   * defender is dead, but the town has not changed hands, and a winner that
-   * walked in anyway would be occupying a city it does not own — which then
-   * blocks its own side's capture, because the hex has no military slot left and
-   * nobody may attack the tile they are standing on.
+   * The clause the three-beat siege needed (2026-08-28): a winner that walked
+   * into a town it does not own would be occupying a city that is somebody
+   * else's — which then blocks its own side's capture, because the hex has no
+   * military slot left and nobody may attack the tile they are standing on.
    *
    * Asked here rather than in `applyCombat` so the *forecast* obeys it too, and
    * asked of the board as it stands: by the time the advance runs, a town this
    * blow captured is already the attacker's own and this clause waves it through.
    * That is why the capture rule asks `canHoldTakenGround` instead — it is the
    * one caller for which the foreign town is the thing being taken.
+   *
+   * Since 2026-09-09 that is **two** captures rather than one, and the reason
+   * this clause did not have to change is exactly the sentence above: a melee
+   * blow that kills the garrison takes the town *before* the advance runs
+   * (`capturesCityOnKill`), so the gate it walks into is its own. What is still
+   * refused is what was always meant — a winner with no claim on the town, which
+   * today is the wild and a bow that emptied the gate without being able to walk
+   * through it.
    */
   const town = cityAt(state, tile.col, tile.row);
   return town === undefined || town.ownerId === attacker.ownerId;
@@ -629,8 +825,20 @@ function canAdvanceOnto(state: GameState, attacker: Unit, tile: Tile): boolean {
  * Split out for exactly one caller, `capturesCity`, which is asking about a hex
  * whose foreign town is the thing it is about to take. Every other reading wants
  * the town clause and gets it above.
+ *
+ * `dyingId` is the second caller's, `capturesCityOnKill`: that one asks about a
+ * hex the blow has not landed on yet, so the garrison it is about to kill has to
+ * be counted as gone or the answer would refuse every taking the rule exists
+ * for. One argument rather than a second predicate, because it is the same
+ * question about the same three things — the ground, the cap, and what is left
+ * standing — asked of a board one death along.
  */
-function canHoldTakenGround(state: GameState, attacker: Unit, tile: Tile): boolean {
+function canHoldTakenGround(
+  state: GameState,
+  attacker: Unit,
+  tile: Tile,
+  dyingId = -1,
+): boolean {
   /**
    * **The winner's own passability, not the land's.**
    *
@@ -648,8 +856,14 @@ function canHoldTakenGround(state: GameState, attacker: Unit, tile: Tile): boole
    */
   if (tileMoveCost(tile, moveProfile(state, attacker)) === null) return false;
   const { category } = unitDef(attacker.type);
-  if (!hasStackingRoom(state, tile.col, tile.row, category, attacker.id)) return false;
+  // The cap counts a piece this blow is about to remove as already gone. One
+  // exception is enough for both: an attacker is never standing on the hex it is
+  // attacking (`planCombat` refuses its own tile), so `attacker.id` is the
+  // defensive reading and `dyingId` displaces nothing when it is given.
+  const except = dyingId >= 0 ? dyingId : attacker.id;
+  if (!hasStackingRoom(state, tile.col, tile.row, category, except)) return false;
   for (const unit of unitsOnTile(state, tile.col, tile.row)) {
+    if (unit.id === dyingId) continue;
     if (unit.ownerId === attacker.ownerId) continue;
     if (isCombatant(unitDef(unit.type))) return false;
   }
@@ -839,6 +1053,28 @@ export interface CombatStrengthLine {
   source: string;
   /** Strength points this line contributes. Signed: a river takes points away. */
   amount: number;
+}
+
+/**
+ * One named percentage of a **damage** figure, with the reason.
+ *
+ * The third and last line shape in this file, and it exists because the
+ * waterline pass needed one thing the other two cannot say: a share of the
+ * counter-blow (`rules.naval.embarkedCounterPercent`). A `CombatStrengthLine`
+ * folds into a strength and a `CombatBonusLine` is a flat point total on one
+ * side; neither is true of "half of whatever comes back", and writing it as one
+ * of them would have put a number into a sum it does not belong in.
+ *
+ * It carries the **percentage** rather than the hit points, unlike a strength
+ * line's "paid in points" rule, and for that rule's own reason: what a strength
+ * line prints is worth a fixed number of points *here*, where damage is a band
+ * the die has not been thrown for yet. Half of it is the honest thing to print.
+ */
+export interface CombatPercentLine {
+  /** Display label — "Boarding at sea". */
+  source: string;
+  /** Whole percent of the figure that remains. 50 is half. */
+  percent: number;
 }
 
 /**
@@ -1081,8 +1317,9 @@ export function seaDefenceLines(
   tile: Tile,
 ): CombatStrengthLine[] {
   const def = unitDef(defender.type);
-  if (isNaval(def)) return [];
-  if (!isWaterTerrain(tile.terrain)) return [];
+  // Both halves of "afloat" in one reading — see `isEmbarked`, which the four
+  // waterline rules share so that "a land piece on water" is one sentence.
+  if (!isEmbarked(def, tile)) return [];
   for (const other of state.units) {
     if (other.id === defender.id) continue;
     if (other.ownerId !== defender.ownerId) continue;
@@ -1160,6 +1397,32 @@ export interface CombatForecast {
    * `capturesCity` clause in `planCombat`).
    */
   capturesCity: boolean;
+  /**
+   * **Melee on the garrison of a beaten town: kill him and the town is yours in
+   * the same blow** (user, 2026-09-09).
+   *
+   * `capturesCity`'s conditional twin, and the split is the honest one: that one
+   * is a promise the board can keep on its own, this one is a promise about a
+   * *roll* — everything but the kill is already decided here, and the kill is
+   * the die. A card printing it says "and takes the town if it falls", which is
+   * exactly what the player is being asked to gamble on.
+   *
+   * False for a bow, for the wild, and for a winner that could not stand in the
+   * gate it just emptied. See the `capturesCityOnKill` clause in `planCombat`.
+   */
+  capturesCityOnKill: boolean;
+  /**
+   * Percentages applied to the **counter-blow itself**, named — empty in every
+   * fight but a hull boarding a column at sea.
+   *
+   * The one list in this file that is not strength points, and it is a separate
+   * list for exactly that reason: `attackerLines` and `defenderLines` fold to
+   * the two strengths (rule 5), and a share of the *damage coming back* is not a
+   * term in either sum. Kept as the percentage rather than as the hit points it
+   * removes, because the hit points are a band and the rule is a flat share of
+   * whatever the die produces.
+   */
+  counterPercents: CombatPercentLine[];
   /**
    * Which beat of the siege this attack is — present **only** when the attacked
    * hex holds a foreign city, absent for every fight on open ground.
@@ -1258,6 +1521,19 @@ function planCombat(
   if (!target) {
     return { ok: false, error: `Nothing to attack on (${tile.col}, ${tile.row})` };
   }
+  /**
+   * **The waterline**, asked of the piece rather than of the hex (module
+   * docblock, *Across the waterline*).
+   *
+   * `attackTargetAt` above is the reading with no attacker in hand, so the
+   * sentence itself is asked here — one clause, one evaluator, and the tint
+   * (`previewCombat`), the forecast card and the reducer refuse together. It
+   * comes immediately after the target for the war clause's reason exactly: the
+   * refusal names what is being aimed at, so there has to be something aimed at
+   * first, and no strength is folded for a fight that may not happen.
+   */
+  const waterline = waterlineError(state, attacker, target, tile.col, tile.row);
+  if (waterline !== null) return { ok: false, error: waterline };
 
   /**
    * **The one big reversal**: an empire may not strike another empire it is not
@@ -1358,8 +1634,11 @@ function planCombat(
    * `takesByWalking` is asked rather than "is the target a civilian" because the
    * refusal has to be true: it is `canStopOn` underneath, so a bow aimed at an
    * embarked worker on the coast — ground no landsman may stand on — still
-   * shoots, exactly as a swordsman still rides it down (`capturesUnit` below
-   * asks `canAdvanceOnto` for this same reason).
+   * shoots. Since 2026-09-09 the bow is the *only* thing that reaches it: a
+   * sword may not strike at the water at all (*Across the waterline*), where it
+   * used to ride the worker down under `capturesUnit`'s `canAdvanceOnto` clause.
+   * The two rules are still the same idea read from either end — a hex you
+   * cannot stand on is not a hex you can take.
    *
    * Asked **last of the gates**, after the fog clause above, and that placement
    * is the rule and not a preference: this sentence names the piece standing on
@@ -1603,10 +1882,21 @@ function planCombat(
   const attackerPercent = cardCombatPercent(state, attacker, situationFor(attacker, 'attacker'));
   const attackerStat = kind === 'ranged' ? def.rangedStrength! : def.combatStrength;
   const attackerBase = Math.floor((attackerStat * (100 + attackerPercent)) / 100);
+  /**
+   * **The shot at a hull**, and it is an attacker-side percentage for the same
+   * reason the two above it are: an arrow skipping off armoured timber and a
+   * stone going through it are facts about *this army*, not discounts on the
+   * water somebody else is floating on. Applied to the base the cards left,
+   * floored once like every other share in this file, and printed as its own
+   * named line so the two percentages never fold into an unexplained number.
+   * See `landVsShipPercent`, which is the whole rule.
+   */
+  const shipPercent = landVsShipPercent(def, target);
+  const attackerAfloat = Math.floor((attackerBase * (100 + shipPercent)) / 100);
   // Flat, and **after** the river multiplier — see `CombatBonusLine` for why a
   // fact about the opponent must not scale with the ground.
   const riverFactor = acrossRiver ? 1 - COMBAT.riverAttackPenalty : 1;
-  const attackerStrength = attackerBase * riverFactor + bonusFor('attacker');
+  const attackerStrength = attackerAfloat * riverFactor + bonusFor('attacker');
 
   /**
    * The attacker's arithmetic, written down in the order it happened — hard rule
@@ -1622,10 +1912,18 @@ function planCombat(
       amount: attackerBase - attackerStat,
     });
   }
+  if (attackerAfloat !== attackerBase) {
+    // Named for what it *is* rather than for the knob it came from: a player
+    // reads "Against a hull −50%" and knows both the rule and what it cost.
+    attackerLines.push({
+      source: `Against a hull ${signedPercent(shipPercent)}`,
+      amount: attackerAfloat - attackerBase,
+    });
+  }
   if (acrossRiver) {
     attackerLines.push({
       source: `Across a river ${signedPercent(-COMBAT.riverAttackPenalty * 100)}`,
-      amount: attackerBase * riverFactor - attackerBase,
+      amount: attackerAfloat * riverFactor - attackerAfloat,
     });
   }
   for (const line of bonuses) {
@@ -1731,9 +2029,11 @@ function planCombat(
    * advance would be.
    *
    * `canAdvanceOnto` is the last clause rather than a separate gate in
-   * `applyCombat` because the forecast has to tell the truth: a warrior facing an
-   * embarked worker across a coastline is shown a *fight*, not a taking, and the
-   * reducer then deals the damage the card promised. Every other case answers
+   * `applyCombat` because the forecast has to tell the truth: a taking the
+   * reducer would then refuse is a card that lied, so the promise is made only
+   * where the step is legal, and the blow is shown as the *fight* it will be.
+   * (The case it was written around — a warrior and an embarked worker across a
+   * coastline — is now refused a hex earlier, at the waterline.) Every other case answers
    * yes trivially — a hex holding only foreign civilians has room for a soldier
    * by construction (the cap is counted across owners, so the civilian slot the
    * prisoner occupies is the same slot it occupies once it is yours) — which is
@@ -1783,6 +2083,34 @@ function planCombat(
     !isBarbarian(state, attacker.ownerId) &&
     canHoldTakenGround(state, attacker, tile);
 
+  /**
+   * **Kill the man in the gate and the gate is yours** (user, 2026-09-09: "a
+   * melee unit attacking and killing the unit protecting a city should take the
+   * city").
+   *
+   * `capturesCity`'s conditional twin: the same three clauses about the attacker
+   * — melee, not the wild, able to stand where it is about to stand — asked one
+   * beat earlier, at `garrison`, where the town does not change hands unless the
+   * die says so. Everything except the kill is settled here, which is what lets
+   * the card promise it honestly.
+   *
+   * **Melee is the whole of "melee or mounted"**: a horseman closes and a horse
+   * archer shoots, so `kind` already sorts the ruling's two words from the two
+   * it excludes, and nothing here reads a model class.
+   *
+   * The standing test is `canHoldTakenGround` asked **as if the garrison were
+   * already gone** — it is the piece this blow is about to kill, so counting it
+   * would refuse every capture this rule exists for. `applyCombat` asks the
+   * ordinary reading afterwards, on the board the kill actually left, and the
+   * two agree in every case that can arise: nothing else on that hex moved.
+   */
+  const capturesCityOnKill =
+    target.unit !== null &&
+    kind === 'melee' &&
+    cityPhase === 'garrison' &&
+    !isBarbarian(state, attacker.ownerId) &&
+    canHoldTakenGround(state, attacker, tile, target.unit.id);
+
   // No dice on any of the one-sided blows: a civilian taken, a caravan ridden
   // down and a beaten town walked into are all decided by arriving, not by a
   // roll. The city's would clamp to nothing anyway — it is already on the floor
@@ -1816,7 +2144,29 @@ function planCombat(
     !capturesUnit &&
     !plundersUnit &&
     (cityPhase === 'walls' || (target.city === null && isCombatant(unitDef(target.unit!.type))));
-  const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) : 0;
+  /**
+   * **A hull boarding a column at sea takes half the blow back** (user,
+   * 2026-09-09), and this is the one place in the file a percentage touches
+   * *damage* rather than strength.
+   *
+   * It is priced here, on the counter and only on the counter, because that is
+   * exactly what the ruling says: the ship's own blow is unchanged, and so is
+   * everything the two sides are worth. `atSeaPenalty` is the other half of the
+   * picture and is deliberately still a strength line on the defender — see the
+   * module docblock for how the two compose and why they are not one number.
+   *
+   * Named rather than folded: the share travels to the card as a
+   * `CombatPercentLine`, so a player who sees a counter smaller than the
+   * strengths would predict can read why.
+   */
+  const counterPercents: CombatPercentLine[] = [];
+  let counterFactor = 1;
+  if (counters && boardsAtSea(def, target, tile)) {
+    const percent = RULES.naval.embarkedCounterPercent;
+    counterPercents.push({ source: 'Boarding at sea', percent });
+    counterFactor = percent / 100;
+  }
+  const baseToAttacker = counters ? curve(defenderStrength - attackerStrength) * counterFactor : 0;
 
   const band = COMBAT.rollBand;
   const dealt = (roll: number): number =>
@@ -1872,6 +2222,8 @@ function planCombat(
     capturesUnit,
     plundersUnit,
     capturesCity,
+    capturesCityOnKill,
+    counterPercents,
     cityPhase,
   };
 
@@ -2014,6 +2366,15 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
   // city both end this function owned by the attacker, and the empire that just
   // *lost* them is the one whose map most needs redrawing.
   const defenderOwnerBefore = target.unit?.ownerId ?? target.city?.ownerId ?? null;
+  /**
+   * And the same reading for a town taken at the **garrison** beat, where the
+   * thing that changed hands is not the thing that was aimed at (4b below).
+   * `defenderOwnerBefore` names the soldier's empire, which is the town's in
+   * every case that can arise — but the two are different questions, and the map
+   * of the empire that lost a city must be redrawn whether or not it also lost
+   * the man.
+   */
+  let townOwnerBefore: number | null = null;
 
   const outcome: CombatOutcome = {
     kind: forecast.kind,
@@ -2239,6 +2600,54 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // would be the unit deciding to walk into whatever is still standing there.
     delete attacker.path;
 
+    /**
+     * **4b — the gate falls with the man in it** (user, 2026-09-09: "a melee
+     * unit attacking and killing the unit protecting a city should take the
+     * city").
+     *
+     * The garrison beat's own capture, and everything about it was decided in
+     * `planCombat` except the kill: `capturesCityOnKill` is the promise, and
+     * `defenderDied` is the die answering it. The town changes hands through
+     * `captureCity`, the one path by which a town changes hands, and it is
+     * charged the same `capture` riders a walked-in town is — the beat is
+     * different, the taking is not.
+     *
+     * **Placed here, after the counter and inside the attacker-survived
+     * branch**, and both halves of that are the rule. A winner that died to the
+     * counter-blow takes nothing: the ruling is that the killer *walks in*, and
+     * a town cannot be entered by a corpse. And it must land before step 5, so
+     * that the gate the advance asks about (`canAdvanceOnto`) is already this
+     * empire's — which is how a captured town has always been walked into.
+     *
+     * `canHoldTakenGround` is asked again on the board the kill actually left.
+     * It is the same question `planCombat` asked with the garrison counted as
+     * gone, and it agrees in every case that can arise; asking it twice is what
+     * keeps "the town changed hands" and "somebody is standing in it" one event
+     * rather than two that could come apart.
+     */
+    if (
+      forecast.capturesCityOnKill &&
+      defenderDied &&
+      // And he *fell*: a garrison that changed sides under Wolf-Mother's Pact is
+      // standing in the gate, not lying in it. Unreachable today — nothing of the
+      // wild's may stand in a nation's town — and kept rather than assumed away.
+      outcome.capturedUnitId === null &&
+      canHoldTakenGround(state, attacker, tile)
+    ) {
+      const town = cityAt(state, tile.col, tile.row);
+      if (town && town.ownerId !== attacker.ownerId) {
+        // Read before the stones change hands, exactly as the walls beat reads
+        // it: a moment later nothing can tell a captured wonder from a built one.
+        const heldWonder = town.buildings.some((id) => isWonder(id));
+        townOwnerBefore = town.ownerId;
+        captureCity(state, town, attacker.ownerId);
+        outcome.capturedCityId = town.id;
+        payBattleRiders(state, attacker.ownerId, 'capture', tile, {
+          capturedWonder: heldWonder,
+        });
+      }
+    }
+
     // 5 — the advance. Only melee, only into a tile this attack *took*, and only
     // when the ground is actually takeable — see `canAdvanceOnto`, which is
     // `canStopOn` with the one clause a victory changes.
@@ -2312,6 +2721,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     ...(target.unit ? [target.unit.ownerId] : []),
     ...(target.city ? [target.city.ownerId] : []),
     ...(defenderOwnerBefore === null ? [] : [defenderOwnerBefore]),
+    ...(townOwnerBefore === null ? [] : [townOwnerBefore]),
   ]);
   return { ok: true, outcome };
 }
@@ -2579,11 +2989,21 @@ function tallyFall(state: GameState, killerId: number | null, fallenId: number):
  * landed. Everything else prints the trade and then names the beat of the siege
  * it was, which is the one thing a bare damage figure cannot say — a player who
  * reads "the walls hold" knows the garrison was never touched.
+ *
+ * The **garrison beat's** taking (2026-09-09) is the one line that has to say
+ * two things at once, and it is the one blow where a fight and a taking are the
+ * same act: the numbers are real, the man is dead, and the town went with him.
+ * It is told in that order, and the town is not named — `defenderName` is the
+ * soldier's, and the outcome carries the town as an id because everything else
+ * about it is read off the board.
  */
 export function describeCombat(outcome: CombatOutcome): string {
   const verb = outcome.kind === 'ranged' ? 'shoots' : 'attacks';
   if (outcome.capturedUnitId !== null) {
     return `${outcome.attackerName} captures ${outcome.defenderName}`;
+  }
+  if (outcome.capturedCityId !== null && outcome.defenderUnitId !== null) {
+    return `${outcome.attackerName} kills ${outcome.defenderName} and takes the city`;
   }
   if (outcome.capturedCityId !== null) {
     return `${outcome.attackerName} captures ${outcome.defenderName}`;
@@ -2601,7 +3021,9 @@ export function describeCombat(outcome: CombatOutcome): string {
  * The `capture` arm is reached by a ranged shot alone — a melee blow in that beat
  * took the town and `describeCombat` returned before it got here — and it says
  * the same thing the `garrison` arm does, because it is the same fact: the walls
- * are down and this weapon is not the one that finishes it.
+ * are down and this weapon is not the one that finishes it. The `garrison` arm
+ * is likewise only reached by a blow that did **not** take the town, for the
+ * same reason: since 2026-09-09 a melee kill there returns above.
  */
 function siegeTail(outcome: CombatOutcome): string {
   if (outcome.cityPhase === 'walls') return ' · battering the walls';

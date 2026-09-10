@@ -1675,6 +1675,18 @@ directly to confirm rulings — user marginalia are rulings.
   naval knobs will fail the sync until regenerated — `UNITS_DOC_WRITE=1
   npx vitest run test/sim/unitsDocSync.test.ts`. Hand-written head must
   never contain a line beginning `## The roster` (the region anchor).
+  **K1 built** (2026-09-09): `captureFigures` folds `explainAuthority`/
+  `explainHappiness` on two what-if realms (`heldAs`, the puppet flag set
+  or cleared on a copy of the town) — Annex and Puppet print the town's
+  whole bill, signed, exactly the relief apart; Raze prints nought on
+  both, the citizens, and **"Territory released N⬡"** (kept: `razeCityAt`
+  really releases the hexes). The words: every player-facing writ/cheer/
+  contentment → authority/happiness across screens, popovers, meter
+  lines, data notes and the reference docs; `test/ui/vocabulary.test.ts`
+  is the register (titles, flavour and identifiers keep their names).
+  Held back for other fences: `data/beads.json`'s two "contentment" rows
+  (Q1) and the bot's appraisal words in `src/ai/value.ts`/`citizen.ts`
+  (swept at W2's merge).
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,

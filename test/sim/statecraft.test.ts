@@ -1406,7 +1406,7 @@ describe('determinism', () => {
     // 104 since batch GP1 (2026-09-09): the great-person roster is re-cut —
     // eight names retired out of every draw, six new, five moved age — so a v103
     // log's recruitments deal a different hand from the first one on.
-    expect(SCHEMA_VERSION).toBe(106);
+    expect(SCHEMA_VERSION).toBe(107);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {

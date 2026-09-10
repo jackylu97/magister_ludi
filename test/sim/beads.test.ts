@@ -245,7 +245,7 @@ describe('the bead catalogue', () => {
     // from its second turn on.
     // 106 since batch C1 (2026-09-09): the census's register and the seat's own
     // stamp for the last page it read.
-    expect(SCHEMA_VERSION).toBe(106);
+    expect(SCHEMA_VERSION).toBe(107);
   });
 
   it('puts the beads phase directly after the world clock, itself after renown', () => {

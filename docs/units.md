@@ -230,3 +230,6 @@ trench). This is the whole of the naval triangle in the simulation.
 | `lineBonusPerHull` | 2 |
 | `lineBonusMax` | 4 |
 | `atSeaPenalty` | 10 |
+| `landRangedVsShipPercent` | -50 |
+| `landSiegeVsShipPercent` | 50 |
+| `embarkedCounterPercent` | 50 |

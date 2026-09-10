@@ -1086,16 +1086,26 @@ export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolea
  * itself is `undefined` — every other forecast sentence in this module reads
  * that way too (`pillagedThing`'s `null`, not a fourth branch).
  *
- * A pure formatter over the phase alone, on the same shape as `pillageSentence`
- * and its neighbours: `main.ts` reads `preview.cityPhase` and prints whatever
- * comes back, never switching on the phase itself a second time.
+ * A pure formatter over the phase and one promise, on the same shape as
+ * `pillageSentence` and its neighbours: `main.ts` reads `preview.cityPhase`
+ * and `preview.capturesCityOnKill` and prints whatever comes back, never
+ * switching on the phase itself a second time. The promise is N1's (the user,
+ * 2026-09-09: "a melee unit attacking and killing the unit protecting a city
+ * should take the city"): on the garrison beat a melee blow that kills takes
+ * the town in the same blow, and the sentence says so, since a player deciding
+ * whether to strike is deciding whether to walk in.
  */
-export function cityPhaseLine(cityPhase: CityAttackPhase | undefined): string | null {
+export function cityPhaseLine(
+  cityPhase: CityAttackPhase | undefined,
+  takesTownOnKill = false,
+): string | null {
   switch (cityPhase) {
     case 'walls':
       return 'Beats the walls down — the garrison holds';
     case 'garrison':
-      return 'The walls are down — attacking the garrison';
+      return takesTownOnKill
+        ? 'The walls are down — kill the garrison and the city falls'
+        : 'The walls are down — attacking the garrison';
     case 'capture':
       return 'Captures the city';
     default:

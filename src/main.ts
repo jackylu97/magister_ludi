@@ -1371,7 +1371,7 @@ function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>)
    * fixture rather than through this DOM card — so this file only prints
    * whatever it returns and never switches on the phase a second time.
    */
-  const phaseLine = cityPhaseLine(preview.cityPhase);
+  const phaseLine = cityPhaseLine(preview.cityPhase, preview.capturesCityOnKill);
   if (phaseLine !== null) {
     const phase = document.createElement('p');
     phase.className = 'combat-phase';

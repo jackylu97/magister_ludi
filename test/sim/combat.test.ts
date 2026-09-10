@@ -42,6 +42,7 @@ import { findPath } from '../../src/sim/pathfind';
 import { type Rng, cloneRng, makeRng, nextRange } from '../../src/sim/rng';
 import { RULES } from '../../src/sim/rulesData';
 import {
+  type City,
   type GameState,
   createUnit,
   newGame,
@@ -874,14 +875,19 @@ describe('civilians', () => {
     expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
   });
 
-  it('rides the ground down instead when the ground cannot be taken', () => {
+  it('shoots the ground down instead when the ground cannot be taken', () => {
     // The one case the ruling cannot mean literally: an embarked civilian stands
     // on water no land unit can advance onto, so `capturesUnit` is false and the
     // forecast promises a *fight*. A capture with nowhere to happen would be a
     // card that lied — see `canAdvanceOnto`, asked in `planCombat`.
+    //
+    // **Re-pinned, 2026-09-09.** The sword used to be what rode it down. It may
+    // not strike at the water at all any more, so the bow is what reaches it —
+    // the same rule read from the other end, and the capture clause still says
+    // "a fight, not a taking".
     const state = flatState();
     at(state.map, 4, 3).terrain = 'coast';
-    const a = createUnit(state, 0, 'warrior', 3, 3);
+    const a = createUnit(state, 0, 'archer', 3, 3);
     const worker = createUnit(state, 1, 'worker', 4, 3);
     worker.hp = 1;
 
@@ -1387,25 +1393,103 @@ describe('cities in combat', () => {
     expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
   });
 
-  it('walks in the moment the last defender falls', () => {
+  it('takes the town with the blow that kills the garrison', () => {
+    // **Re-pinned, 2026-09-09** (the user: "a melee unit attacking and killing
+    // the unit protecting a city should take the city"). This test was called
+    // "walks in the moment the last defender falls" and needed two swordsmen:
+    // one to kill the garrison and a neighbour to walk in the beat after. The
+    // kill and the taking are one blow now.
     const state = citiedState();
     const city = state.cities[0]!;
     const garrison = createUnit(state, 1, 'spearman', 4, 3);
     garrison.hp = 1;
     city.hp = 1;
     const a = createUnit(state, 0, 'swordsman', 3, 3);
-    const b = createUnit(state, 0, 'swordsman', 5, 3);
 
-    // Beat two kills the garrison. The swordsman advances onto the hex, so the
-    // town is *its* neighbour's to take — one attack per unit per turn.
+    // The card promises it *conditionally*: the beat is still the garrison's,
+    // and the taking rides on the kill.
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.cityPhase).toBe('garrison');
+    expect(view.capturesCity).toBe(false);
+    expect(view.capturesCityOnKill).toBe(true);
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toMatchObject({ ok: true });
+    expect(state.units.find((unit) => unit.id === garrison.id)).toBeUndefined();
+    expect(city.ownerId).toBe(0);
+    // And the winner is standing in the gate: the capture is an advance, made
+    // through `arriveOnTile` like every other one.
+    expect({ col: a.col, row: a.row }).toEqual({ col: 4, row: 3 });
+    expect(city.hp).toBe(Math.round(COMBAT.cityBaseHp * COMBAT.cityCaptureHpFraction));
+  });
+
+  it('keeps the walls beat first: a garrison behind standing walls is unreachable', () => {
+    // The half of the ruling that did *not* change. A siege of a walled town is
+    // still two acts at least — the walls, then the man — so this shortens a
+    // siege from three blows to two and never from two to one.
+    const state = citiedState();
+    const city = state.cities[0]!;
+    const garrison = createUnit(state, 1, 'spearman', 4, 3);
+    garrison.hp = 1;
+    const a = createUnit(state, 0, 'swordsman', 3, 3);
+
+    const view = forecast(state, a.id, 4, 3);
+    expect(view.cityPhase).toBe('walls');
+    expect(view.capturesCityOnKill).toBe(false);
+    expect(view.defenderCityId).toBe(city.id);
+
+    expect(applyCommand(state, attack(a.id, 4, 3))).toMatchObject({ ok: true });
+    // The walls took it; the man behind them is untouched and the town is still
+    // its owner's.
+    expect(garrison.hp).toBe(1);
+    expect(city.ownerId).toBe(1);
+    expect({ col: a.col, row: a.row }).toEqual({ col: 3, row: 3 });
+  });
+
+  it('leaves the town standing when a bow kills the garrison', () => {
+    // The other half of the ruling in the user's own words: it is a *melee*
+    // unit that takes the city. An archer that empties the gate has emptied the
+    // gate, and somebody still has to walk through it.
+    const state = citiedState();
+    const city = state.cities[0]!;
+    const garrison = createUnit(state, 1, 'spearman', 4, 3);
+    garrison.hp = 1;
+    city.hp = 1;
+    const a = createUnit(state, 0, 'archer', 3, 3);
+    const b = createUnit(state, 0, 'warrior', 5, 3);
+
+    expect(forecast(state, a.id, 4, 3).capturesCityOnKill).toBe(false);
     expect(applyCommand(state, attack(a.id, 4, 3))).toMatchObject({ ok: true });
     expect(state.units.find((unit) => unit.id === garrison.id)).toBeUndefined();
     expect(city.ownerId).toBe(1);
-
-    // Beat three.
+    // And the beat after is the capture beat, which is what it always was.
     expect(forecast(state, b.id, 4, 3).cityPhase).toBe('capture');
     expect(applyCommand(state, attack(b.id, 4, 3))).toMatchObject({ ok: true });
     expect(city.ownerId).toBe(0);
+  });
+
+  it('refuses the taking to the wild, garrison or no garrison', () => {
+    // `capturesCityOnKill` carries the barbarian clause `capturesCity` has
+    // carried since the wild was excused from taking towns: the raider's blow
+    // lands and the town stays the owner's.
+    const state = flatState(16, 8, 2, true);
+    foundCityAt(state, 1, at(state.map, 4, 3));
+    const city = state.cities[0]!;
+    const garrison = createUnit(state, 1, 'spearman', 4, 3);
+    garrison.hp = 1;
+    city.hp = 1;
+    const wildId = state.players.findIndex((player) => player.barbarian === true);
+    expect(wildId).toBeGreaterThan(0);
+    const raider = createUnit(state, wildId, 'warrior', 3, 3);
+
+    const view = previewCombat(state, raider.id, { col: 4, row: 3 });
+    expect(view.ok).toBe(true);
+    if (!view.ok) return;
+    expect(view.cityPhase).toBe('garrison');
+    expect(view.capturesCityOnKill).toBe(false);
+
+    expect(applyCombat(state, raider.id, { col: 4, row: 3 }).ok).toBe(true);
+    expect(state.units.find((unit) => unit.id === garrison.id)).toBeUndefined();
+    expect(city.ownerId).toBe(1);
   });
 
   it('hands over the civilians inside the town it captures', () => {
@@ -1500,6 +1584,25 @@ describe('cities in combat', () => {
     expect(taken.outcome.cityPhase).toBe('capture');
   });
 
+  it('tells the garrison beat’s taking as the two things it is', () => {
+    // The one blow that is a fight *and* a taking (2026-09-09): the man is named
+    // because he is what was fought, and the town is not, because
+    // `defenderName` is his.
+    const state = citiedState();
+    const city = state.cities[0]!;
+    city.hp = 1;
+    const garrison = createUnit(state, 1, 'spearman', 4, 3);
+    garrison.hp = 1;
+    const a = createUnit(state, 0, 'swordsman', 3, 3);
+
+    const won = applyCombat(state, a.id, { col: 4, row: 3 });
+    expect(won.ok).toBe(true);
+    if (!won.ok) return;
+    expect(won.outcome.cityPhase).toBe('garrison');
+    expect(won.outcome.capturedCityId).toBe(city.id);
+    expect(describeCombat(won.outcome)).toBe('Swordsman kills Spearman and takes the city');
+  });
+
   it('heals every city a fixed amount per turn, up to full', () => {
     const state = citiedState();
     const city = state.cities[0]!;
@@ -1511,6 +1614,185 @@ describe('cities in combat', () => {
     city.hp = COMBAT.cityBaseHp - 1;
     endRound(state);
     expect(city.hp).toBe(COMBAT.cityBaseHp);
+  });
+});
+
+// --- the waterline ----------------------------------------------------------
+
+/**
+ * The four rules of fighting across the waterline (batch N1, the user's ruling
+ * of 2026-09-09; `docs/war-diplomacy.md` §5b). They live here rather than in
+ * `naval.test.ts` because every one of them is a clause of `planCombat` — a
+ * refusal, two attacker-side percentages and a share of the counter — and this
+ * is the file that holds the evaluator still.
+ *
+ * The bench is `flatState` with a strip of coast down column 4, so a hull and a
+ * landsman can stand a hex apart with the waterline between them.
+ */
+describe('fighting across the waterline', () => {
+  /** Grassland with column 4 flooded: (4, 3) is water, (3, 3) is dry. */
+  function shoreState(): GameState {
+    const state = flatState();
+    for (let row = 0; row < 8; row++) at(state.map, 4, row).terrain = 'coast';
+    return state;
+  }
+
+  it('refuses a land melee piece the water, whoever is floating on it', () => {
+    const state = shoreState();
+    const warrior = createUnit(state, 0, 'warrior', 3, 3);
+    const hull = createUnit(state, 1, 'trireme', 4, 3);
+
+    // The board still says there is something there — that reading is about the
+    // *hex* — and the reading with a piece in hand says this piece cannot reach it.
+    expect(attackTargetAt(state, 4, 3, 0)?.unit?.id).toBe(hull.id);
+    expect(attackTargetAt(state, 4, 3, 0, warrior)).toBeNull();
+
+    const view = previewCombat(state, warrior.id, { col: 4, row: 3 });
+    expect(view.ok).toBe(false);
+    if (view.ok) return;
+    expect(view.error).toBe('Warrior cannot strike at the water');
+
+    // And the refusal leaves the state byte-identical, like every other one.
+    const before = snapshotState(state);
+    expect(applyCommand(state, attack(warrior.id, 4, 3))).toEqual({
+      ok: false,
+      error: 'Warrior cannot strike at the water',
+    });
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('refuses it the water even when a worker is what is floating there', () => {
+    // Asked of the *ground*, not of the target: there is nothing to stand on and
+    // swing from, whoever happens to be out there.
+    const state = shoreState();
+    const rider = createUnit(state, 0, 'horseman', 3, 3);
+    createUnit(state, 1, 'worker', 4, 3);
+    const view = previewCombat(state, rider.id, { col: 4, row: 3 });
+    expect(view.ok).toBe(false);
+    if (view.ok) return;
+    expect(view.error).toBe('Horseman cannot strike at the water');
+  });
+
+  it('lets a bow shoot at a hull, at half strength, on a named line', () => {
+    const state = shoreState();
+    const archer = createUnit(state, 0, 'archer', 3, 3);
+    createUnit(state, 1, 'trireme', 4, 3);
+
+    const view = forecast(state, archer.id, 4, 3);
+    const stat = unitDef('archer').rangedStrength!;
+    const share = RULES.naval.landRangedVsShipPercent;
+    const line = view.attackerLines.find((one) => one.source.startsWith('Against a hull'));
+    expect(line, 'the shot at a hull').toBeDefined();
+    expect(line!.source).toBe('Against a hull -50%');
+    expect(line!.amount).toBe(Math.floor((stat * (100 + share)) / 100) - stat);
+    // Rule 5: the headline is the fold of the list and never a second sum.
+    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 9);
+  });
+
+  it('lets a siege engine shoot at a hull, at half again', () => {
+    const state = shoreState();
+    const catapult = createUnit(state, 0, 'catapult', 3, 3);
+    createUnit(state, 1, 'trireme', 4, 3);
+
+    const view = forecast(state, catapult.id, 4, 3);
+    const stat = unitDef('catapult').rangedStrength!;
+    const share = RULES.naval.landSiegeVsShipPercent;
+    const line = view.attackerLines.find((one) => one.source.startsWith('Against a hull'));
+    expect(line!.source).toBe('Against a hull +50%');
+    expect(line!.amount).toBe(Math.floor((stat * (100 + share)) / 100) - stat);
+    expect(line!.amount).toBeGreaterThan(0);
+    expect(foldCombatStrength(view.attackerLines)).toBeCloseTo(view.attackerStrength, 9);
+  });
+
+  it('pays neither share against anything that is not a hull', () => {
+    // The clause reads the *target's* category, so a bow against a soldier on a
+    // beach is an ordinary shot.
+    const state = shoreState();
+    const archer = createUnit(state, 0, 'archer', 3, 3);
+    createUnit(state, 1, 'spearman', 2, 3);
+    const view = forecast(state, archer.id, 2, 3);
+    expect(view.attackerLines.some((one) => one.source.startsWith('Against a hull'))).toBe(false);
+  });
+
+  it('halves the counter a hull takes from a column at sea, and names it', () => {
+    const state = shoreState();
+    const hull = createUnit(state, 0, 'trireme', 4, 4);
+    createUnit(state, 1, 'spearman', 4, 3);
+
+    const view = forecast(state, hull.id, 4, 3);
+    const share = RULES.naval.embarkedCounterPercent;
+    expect(view.counterPercents).toEqual([{ source: 'Boarding at sea', percent: share }]);
+    // The at-sea penalty is the *other* half of the picture and is still a
+    // strength line on the defender — the two compose, neither replaces the other.
+    expect(view.defenderLines.some((one) => one.source === 'At sea')).toBe(true);
+
+    // Half of the blow the same strengths would otherwise have sent back.
+    const whole = expectedDamage(view.defenderStrength, view.attackerStrength, 1);
+    expect(view.damageToAttacker).toBe(
+      expectedDamage(view.defenderStrength, view.attackerStrength, share / 100),
+    );
+    expect(view.damageToAttacker).toBeLessThan(whole);
+  });
+
+  it('leaves the counter whole when the piece it boards is ashore', () => {
+    // Same two pieces, dry ground: nothing is boarding anything, so the counter
+    // is the ordinary one and the list is empty.
+    const state = shoreState();
+    const hull = createUnit(state, 0, 'trireme', 4, 4);
+    createUnit(state, 1, 'spearman', 5, 4);
+    const view = forecast(state, hull.id, 5, 4);
+    expect(view.counterPercents).toEqual([]);
+    expect(view.damageToAttacker).toBe(
+      expectedDamage(view.defenderStrength, view.attackerStrength, 1),
+    );
+  });
+
+  it('refuses an embarked piece a hull, whether it would close or shoot', () => {
+    const state = shoreState();
+    const spearman = createUnit(state, 0, 'spearman', 4, 3);
+    const bowman = createUnit(state, 0, 'archer', 4, 5);
+    const hull = createUnit(state, 1, 'trireme', 4, 4);
+
+    expect(attackTargetAt(state, 4, 4, 0)?.unit?.id).toBe(hull.id);
+    expect(attackTargetAt(state, 4, 4, 0, spearman)).toBeNull();
+    expect(attackTargetAt(state, 4, 4, 0, bowman)).toBeNull();
+
+    const closing = previewCombat(state, spearman.id, { col: 4, row: 4 });
+    expect(closing.ok).toBe(false);
+    if (closing.ok) return;
+    expect(closing.error).toBe('Spearman is afloat and cannot fight a ship');
+
+    const shooting = previewCombat(state, bowman.id, { col: 4, row: 4 });
+    expect(shooting.ok).toBe(false);
+    if (shooting.ok) return;
+    expect(shooting.error).toBe('Archer is afloat and cannot fight a ship');
+
+    const before = snapshotState(state);
+    expect(applyCommand(state, attack(spearman.id, 4, 4)).ok).toBe(false);
+    expect(snapshotState(state)).toBe(before);
+  });
+
+  it('still lets an embarked piece attack the shore, exactly as before', () => {
+    // Stated rather than assumed: the ruling is about hulls, and nothing in it
+    // touches a bow in a boat looking at dry land.
+    const state = shoreState();
+    const bowman = createUnit(state, 0, 'archer', 4, 3);
+    const prey = createUnit(state, 1, 'spearman', 3, 3);
+    const view = forecast(state, bowman.id, 3, 3);
+    expect(view.defenderUnitId).toBe(prey.id);
+    expect(applyCommand(state, attack(bowman.id, 3, 3)).ok).toBe(true);
+    expect(prey.hp).toBeLessThan(unitDef('spearman').maxHp);
+  });
+
+  it('leaves a fight between two hulls to the triangle', () => {
+    // The percentages are a *land* piece's, and a fight at sea is the roster's
+    // own lines — nothing here should have joined it.
+    const state = shoreState();
+    const mine = createUnit(state, 0, 'trireme', 4, 3);
+    createUnit(state, 1, 'galley', 4, 4);
+    const view = forecast(state, mine.id, 4, 4);
+    expect(view.attackerLines.some((one) => one.source.startsWith('Against a hull'))).toBe(false);
+    expect(view.counterPercents).toEqual([]);
   });
 });
 
@@ -1823,11 +2105,12 @@ describe('a war replays exactly', () => {
     return { game, ids: { mine: mine.id, theirs: theirs.id } };
   }
 
-  it('reproduces a siege in three beats, dice included, from the command log', () => {
-    // The ruling's own shape, fought in a real game: the walls, the garrison,
-    // the taking. Three different code paths — a counter-attacking city, an
-    // ordinary unit fight, and a capture that strikes no blow at all — and the
-    // one thing they all have to agree on is the die sequence.
+  /**
+   * A town of player 1's with a ring of hexes to camp on, at war with player 0 —
+   * everything placed by logged commands so a siege fought on it replays from
+   * `{config, log}` alone.
+   */
+  function siegeGame(): { game: Game; city: City; camps: Tile[] } {
     const game = createGame({
       seed: 909,
       sizeName: 'duel',
@@ -1846,8 +2129,6 @@ describe('a war replays exactly', () => {
     // A logged declaration, so the siege replays from `{config, log}` alone.
     expect(dispatch(game, { type: 'declareWar', playerId: 0, targetId: 1 }).ok).toBe(true);
 
-    // Two besiegers and a garrison, all placed by logged commands so the whole
-    // thing replays from `{config, log}`.
     const ring = neighborTiles(game.state.map, tileHex(at(game.state.map, city.col, city.row)));
     const camps = ring.filter((tile) => {
       if (tile.terrain === 'mountain') return false;
@@ -1857,6 +2138,38 @@ describe('a war replays exactly', () => {
       return !game.state.units.some((unit) => unit.col === tile.col && unit.row === tile.row);
     });
     expect(camps.length).toBeGreaterThanOrEqual(4);
+    return { game, city, camps };
+  }
+
+  /** Everybody of player 0's swings at the town, every turn, until it falls. */
+  function hammer(game: Game, city: { col: number; row: number; ownerId: number }): Set<string> {
+    const beats = new Set<string>();
+    for (let turn = 0; turn < 40 && city.ownerId === 1; turn++) {
+      for (const besieger of game.state.units.filter((unit) => unit.ownerId === 0)) {
+        const seen = previewCombat(game.state, besieger.id, { col: city.col, row: city.row });
+        if (seen.ok && seen.cityPhase !== undefined) beats.add(seen.cityPhase);
+        dispatch(game, {
+          type: 'attack',
+          playerId: 0,
+          unitId: besieger.id,
+          target: { col: city.col, row: city.row },
+        });
+      }
+      for (const player of game.state.players) {
+        dispatch(game, { type: 'endTurn', playerId: player.id });
+      }
+    }
+    return beats;
+  }
+
+  it('reproduces a garrisoned siege, dice included, from the command log', () => {
+    // **Re-pinned, 2026-09-09.** This was "a siege in three beats" and asserted
+    // all three of them out of one fixture. A melee blow that kills the garrison
+    // now takes the town in the same blow, so a *defended* town falls in two
+    // beats — the walls, then the man — and the third has its own fixture below.
+    // Two code paths here, a counter-attacking city and an ordinary unit fight,
+    // and the one thing they have to agree on is the die sequence.
+    const { game, city, camps } = siegeGame();
     for (const spot of camps.slice(0, 5)) {
       expect(
         dispatch(game, {
@@ -1888,38 +2201,73 @@ describe('a war replays exactly', () => {
         }).ok,
       ).toBe(true);
     }
-    expect(
-      game.state.units.some(
-        (unit) =>
-          unit.ownerId === 1 &&
-          unit.col === city.col &&
-          unit.row === city.row &&
-          unitDef(unit.type).category === 'military',
-      ),
-    ).toBe(true);
 
-    // Hammer the place until it changes hands, or until the besiegers are dead.
-    const beats = new Set<string>();
-    for (let turn = 0; turn < 40 && city.ownerId === 1; turn++) {
-      for (const besieger of game.state.units.filter((unit) => unit.ownerId === 0)) {
-        const seen = previewCombat(game.state, besieger.id, { col: city.col, row: city.row });
-        if (seen.ok && seen.cityPhase !== undefined) beats.add(seen.cityPhase);
+    const beats = hammer(game, city);
+    // The fixture has to have produced the thing under test before the replay is
+    // asked to reproduce it: the walls, then the man, and the town with him.
+    expect([...beats].sort()).toEqual(['garrison', 'walls']);
+    expect(city.ownerId).toBe(0);
+
+    const replayed = replay(game.config, game.log);
+    expect(snapshotState(replayed)).toBe(snapshotState(game.state));
+    expect(replayed.rng).toEqual(game.state.rng);
+  });
+
+  it('reproduces an undefended siege — the walls, then the taking', () => {
+    // The third code path, and the one the ruling left exactly where it was: a
+    // capture that strikes no blow at all. The gate is held by a **worker**, who
+    // is not a defender, so the beat after the walls is the taking — and the
+    // worker changes hands with the ground like any other civilian.
+    const { game, city, camps } = siegeGame();
+    // The opening escort out of the gate first, onto a hex nobody is camped on.
+    const escort = game.state.units.find(
+      (unit) =>
+        unit.ownerId === 1 &&
+        unit.col === city.col &&
+        unit.row === city.row &&
+        unitDef(unit.type).category === 'military',
+    );
+    const yard = camps[0]!;
+    if (escort) {
+      expect(
         dispatch(game, {
-          type: 'attack',
+          type: 'moveUnit',
+          playerId: 1,
+          unitId: escort.id,
+          target: { col: yard.col, row: yard.row },
+        }).ok,
+      ).toBe(true);
+      expect(escort.col).toBe(yard.col);
+      expect(escort.row).toBe(yard.row);
+    }
+    expect(
+      dispatch(game, {
+        type: 'spawnUnit',
+        playerId: 0,
+        ownerId: 1,
+        unitType: 'worker',
+        at: { col: city.col, row: city.row },
+      }).ok,
+    ).toBe(true);
+    for (const spot of camps.slice(1, 5)) {
+      expect(
+        dispatch(game, {
+          type: 'spawnUnit',
           playerId: 0,
-          unitId: besieger.id,
-          target: { col: city.col, row: city.row },
-        });
-      }
-      for (const player of game.state.players) {
-        dispatch(game, { type: 'endTurn', playerId: player.id });
-      }
+          ownerId: 0,
+          unitType: 'swordsman',
+          at: { col: spot.col, row: spot.row },
+        }).ok,
+      ).toBe(true);
     }
 
-    // The fixture has to have produced the thing under test — all three beats,
-    // in a real game, before the replay is asked to reproduce them.
-    expect([...beats].sort()).toEqual(['capture', 'garrison', 'walls']);
+    const beats = hammer(game, city);
+    expect([...beats].sort()).toEqual(['capture', 'walls']);
     expect(city.ownerId).toBe(0);
+    // The people in the town went with it.
+    expect(
+      game.state.units.some((unit) => unitDef(unit.type).category === 'civilian' && unit.ownerId === 0),
+    ).toBe(true);
 
     const replayed = replay(game.config, game.log);
     expect(snapshotState(replayed)).toBe(snapshotState(game.state));

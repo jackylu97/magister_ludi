@@ -457,6 +457,16 @@ describe('cityPhaseLine', () => {
     }
   });
 
+  it('says the town falls with the garrison when the blow would take it (N1)', () => {
+    // The garrison beat's promise: a melee kill walks in. Only that beat reads
+    // the flag — the walls hold whatever the blow, and a capture is a capture.
+    expect(cityPhaseLine('garrison', true)).toBe(
+      'The walls are down — kill the garrison and the city falls',
+    );
+    expect(cityPhaseLine('walls', true)).toBe('Beats the walls down — the garrison holds');
+    expect(cityPhaseLine('capture', true)).toBe('Captures the city');
+  });
+
   it('is null for a fight on open ground, where the field is undefined', () => {
     expect(cityPhaseLine(undefined)).toBeNull();
   });

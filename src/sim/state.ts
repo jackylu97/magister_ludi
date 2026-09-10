@@ -723,8 +723,30 @@ import {
  * each census afterwards spends three more (the next gap, the figure, the
  * taker's name), so every offer, every raid and every draft downstream of the
  * first census lands differently.
+ *
+ * v107: **the waterline, and the taking of a town** (batch N1,
+ * `docs/war-diplomacy.md` §5b; the user, 2026-09-09: "melee units should not be
+ * able to attack boats from land… boats should take reduced damage from ranged
+ * attacks from land… but should take increased damage from siege… Boats should
+ * also take reduced damage when attacking embarked units, and embarked units
+ * should not be able to attack boats. Also, a melee unit attacking and killing
+ * the unit protecting a city should take the city"). Five rules, all of them in
+ * `combat.ts` and three new numbers in `rules.naval`: a land piece that closes
+ * may not attack a water hex and an embarked piece may not attack a ship (both
+ * refused in `attackTargetAt`, so the tint, the forecast and the reducer say one
+ * sentence); a land bow fights a hull at `landRangedVsShipPercent` and a land
+ * siege engine at `landSiegeVsShipPercent`, attacker-side percentages on named
+ * lines; a hull boarding a column at sea takes `embarkedCounterPercent` of the
+ * counter; and a **melee blow that kills a town's garrison takes the town in the
+ * same blow**, the winner walking in through `arriveOnTile`.
+ *
+ * No new state — every one of them is a rule read off the board — but **a v106
+ * log does not replay**: battles resolve differently. A blow refused where it
+ * used to land spends no dice at all, a shot at a hull rolls against a different
+ * strength, and a garrison's death now ends a siege one blow earlier, so every
+ * draw downstream of the first fight is one place along.
  */
-export const SCHEMA_VERSION = 106;
+export const SCHEMA_VERSION = 107;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

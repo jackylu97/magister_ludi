@@ -160,7 +160,14 @@ be renamed — it would change every seeded outcome. No further rename passes.
   max hp = `cityMaxHp` (never compare against `cityBaseHp`). `siegeField` ≠
   `zocField` (Great Wall's `rule: 'borders'` would besiege by nobody); `underSiege`
   derived, never stored. Cities are attacked in three beats (walls → garrison →
-  capture off the plan); `canAdvanceOnto`/`canStopOn` refuse foreign city hexes.
+  capture off the plan), and a **melee kill on the garrison beat takes the town
+  in the same blow** (`capturesCityOnKill`, step 4b of `applyCombat`; a ranged
+  kill leaves it to be walked into); `canAdvanceOnto`/`canStopOn` refuse
+  foreign city hexes. The waterline (N1, `rules.naval`): a land piece that
+  closes may not strike a water hex, an embarked piece may not strike a ship
+  (`waterlineError`, one clause for tint/forecast/reducer), land bows fight a
+  hull at `landRangedVsShipPercent`, land siege at `landSiegeVsShipPercent`,
+  a hull boarding a column takes `embarkedCounterPercent` of the counter.
   The wild never captures. A unit's escalation ladder is its row's
   (`UnitDef.escalation`, `Player.unitsBuilt`, raised in `realiseItem`, never for
   a free unit). A chop's printed base is `chopBaseFor` (aged before

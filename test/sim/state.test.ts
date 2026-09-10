@@ -781,7 +781,12 @@ describe('the research queue field', () => {
     // the almoner's ledger beside it. 106 is batch C1's (2026-09-09,
     // `docs/wager.md` §10/§11): the census — `GameState.census` and
     // `Player.censusSeen` — over 105, which batch G3's malice deck holds.
-    expect(SCHEMA_VERSION).toBe(106);
+    // 107 is batch N1's (2026-09-09, `docs/war-diplomacy.md` §5b): the waterline
+    // and the taking of a town. No new state at all — five rules read off the
+    // board — but a v106 log does not replay, because battles do: a blow now
+    // refused spends no dice, a shot at a hull rolls against a different
+    // strength, and a garrison's death ends a siege one blow earlier.
+    expect(SCHEMA_VERSION).toBe(107);
   });
 });
 
