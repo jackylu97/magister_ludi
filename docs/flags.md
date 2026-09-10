@@ -1800,6 +1800,104 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (yyy) **The ladder, the user's figures — RULED** (the user, 2026-09-10,
+  after U9's chart: *"chariot -> 33, chariot archer -> 20, 26, legionary
+  -> 45, spear wall -> 42, composite bowman-> 30, 39, horseman -> 48,
+  horse archer -> 32, 42, war elephant -> 50, catapult -> 35, 42,
+  longswordsman: 55, pikeman: 52, knight: 60, crossbowman -> 45, 50"*;
+  then *"all anti-cav should have +10 against mounted across the board.
+  war chariot should be seen as an in-between age 1/2 unit, so it's
+  positioned fine"*). **U9b builds** in `data/units.json`: War Chariot
+  **33**, Chariot Archer **20/26** (stays — the chariots are the I/II
+  bridge, so the archer's 26 over the Spearman's 25 is accepted);
+  Legionary **45**, Spear Wall **42**, Composite Bowman **30/39**,
+  Horseman **48**, Horse Archer **32/42**, War Elephant **50**, Catapult
+  **35/42**; Longswordsman **55**, Pikeman **52**, Knight **60**,
+  Crossbowman **45/50**; unchanged: Warrior 20, Scout 10, Archer 15/20,
+  Spearman 25, Swordsman 35, Phalanx 30, Bowman 20/28, The Fire Lance
+  80 (one-shots a Swordsman; 67 into a Knight now), naval as U9.
+  **Every anti-cav line is +10 vs mounted**: the Spearman gains one,
+  Phalanx 10, Spear Wall 12 → 10, Pikeman 15 → 10. **Trebuchet 40/48**
+  (+20 vs cities) — **confirmed** (the user: "the trebuchet strength
+  recommendation is good"): at 28/45 the Catapult → Trebuchet chain fell
+  in melee and its bombard sat under the Crossbowman's 50. Knights
+  Templar mirror (60 in Æra IV). **Naval, commensurate** (the user,
+  minutes later: *"naval units should be stronger than the strongest
+  land unit of its era (mounted units). This makes them very strong
+  against embarked units and better against cities"*): the era's heavy
+  hull stands above the era's best land unit (I 33 · II 35 · III 50 ·
+  IV 60), the light hull beside it, the ranged hull's bombard under the
+  heavy — light (hit and run, +10 vs ranged ships): Trireme **36** ·
+  Bireme **40** · Galley **52** · Caravel **65** · Corvette **78**; heavy
+  (blockade): War Galley **45** · Tower Ship **58** · Carrack **72** ·
+  Ship of the Line **88**; ranged (fragile hull −10): Fire Ship **40/50**
+  · Gun Galley **52/62** · Frigate **66/80** (+20 bombardment). An
+  embarked Knight (60 − 20 at sea = 40) against a Carrack at 72 is a
+  32-point gap — a kill, as asked. The era register
+  and the monotone-chain pins stand; the matchup table re-pinned to the
+  new figures; `docs/units.md` regenerated; the bot fixture re-checked
+  (the Knight's drift narrows). No schema (109 already says a v108 log
+  does not replay; ▢ if the user wants the exact figures replay-safe,
+  bump — rec: no, U9 has not been played).
+- (xxx) **The orders and doctrines pass — RULED, to fold** (the user,
+  2026-09-10: *"i've made my changes to the orders/doctrines doc"*). The
+  spec of record is the user's marks in the MAIN tree's
+  `docs/orders-and-doctrines.md` (uncommitted; agents read
+  `/Users/jacky/code/webciv/docs/orders-and-doctrines.md` directly and
+  never write it). **Reading the diff**: the bracketed `[...]` lines and
+  the three unbracketed edits below are the marks; every other
+  plus/minus pair is U9's doubled combat figure against the user's older
+  copy and is NOT a mark (the doc regenerates from data at the fold).
+  **O2 builds**, each mark → data (`data/statecraft.json` unless said):
+  (1) **Manifest of the Steppe** (doctrine) → *mounted units +1 movement,
+  and pillaging pays double* (the settler clause goes); (2) **The Sea
+  Charter** (doctrine) → *+2% science and +2% culture empire-wide for
+  every trade route you run* (an empire-stage percent on the
+  `activeRoutes` count — `percentYields` with a count, or the nearest
+  shape; **renamed The Merchant Scholars** — the user, 2026-09-10: "sea
+  charter you can just pick a name"); (3) **Mare
+  Nostrum** → *+1 food and +2 gold on every water hex you own · +15%
+  science in coastal cities* (the authority clause goes); (4) **The Long
+  Watch** → renamed **Martial Law**: *+1 happiness for each military
+  unit standing in one of your cities, and +1 more for each
+  fortification a city has built* — counts field soldiers (X13's
+  `isFieldSoldier`), **no cap**; (5) **First Fruits** → *+1 food and +1
+  gold on every hex carrying a resource*; (6) **Fish Weirs** → *+1 gold
+  on every fishing boat* (the orchestrator's (rec), unanswered = stands);
+  (7) **Assize Courts** (the Order) → *+6 authority capacity · a
+  captured city costs 1 authority*; (8) **Harbourmasters** → *+1 trade
+  route in every coastal city with a Harbour · +2 gold on every fishing
+  boat* (a `routeSlots` line scoped coastal-with-Harbour — the sea
+  build's slots-by-count as a card); (9) **The Grain Fleet** → *+6 food
+  in every coastal city · +1 gold per 3 citizens in your coastal
+  cities*; kept as they are: Common Granary, The Orchard Tithe, The
+  Escorted Roads, The Exchequer; (10) **The Toolmakers' Charter** is
+  S2's (the Vizierate — not this batch). **New cards** (the user's
+  texts): (11) **Tribute** (E ◆) *a puppet pays +1 gold per 2 citizens
+  to you* — a `pays` on a count of puppet citizens, no relief clause;
+  (12) **Riders of the Steppe** (M ○) *mounted units ignore zone of
+  control and can pillage for zero movement cost* (a `zoc` flag rule +
+  a pillage-cost rule, both mounted-scoped; Tyranny's "pillaging costs
+  no movement" is the shape); (13) **Tolls** (E ●) *+1 gold for every 4
+  road hexes you own* (new count `roadHexes`); (14) **Mercenaries** (E ○)
+  *military units bought with gold gain +2 combat strength, and units
+  cost 20% less gold to buy* (a `unitStamp` on purchase + a purchase
+  discount rule — The Marshal's Purse's shape); (15) **The Entrepôt** (E
+  ◆) *international routes ending in your cities pay the host +1 gold
+  per 5 host citizens*; (16) **Patronage** (W ◆) *+1 renown per 4
+  citizens in your capital*; (17) **The Holy City card is struck — the
+  ability goes on the High Temple building**: *the holy city presses its
+  faith harder for every 4 citizens it holds* (`data/buildings.json`, a
+  pressure rule on the holy site, read where `spreadReligion` prices the
+  tide); (18) **Pilgrims** (W ◆) *doubles the religious pressure range of
+  your capital · +1 gold for every foreign citizen following your
+  religion* (range rule + a `pays` on the foreign-followers count). Doc
+  regenerated at the fold (its sync test), the card text snapshot,
+  `docs/playstyles.md` §10 rows marked built, the Compendium by
+  construction; bots: each new count/rule read by the appraisal where
+  its shape already is (a new count joins `wantsOf`/`explainEffects` the
+  way W2's did). Schema only if a stored field is added (Tribute and
+  Tolls are readings; none expected).
 - (www) **Sunk progress, and the Ministry of Works — RULED** (the user,
   2026-09-10: *"the pool of yields shouldn't swap over when reselecting
   something, i.e. science is placed into a tech, and that tech is
@@ -1960,6 +2058,32 @@ directly to confirm rulings — user marginalia are rulings.
   Shipyard slot-less and slots coming from Market/Caravanserai by size,
   a wide-and-thin sea empire runs few routes — the sea build's identity
   was foreign routes.
+  **T5 built** (2026-09-10, schema **110**): all nineteen marks and the
+  three answers, in data; Barracks/Stable/Shipyard +25% by class (a new
+  `UnitFilter.modelClasses`); Garden (`cityRenownPercent` 15 — the shape
+  existed, nothing deferred); Public Bath scoped `connected`; **The Silk
+  Road** (`silkRoad`) in Raised Fields' slot — `raisedFields` deleted
+  from `TechId` (no `retired` on a tech; Floating Gardens moved to
+  Irrigation), the Caravanserai off Mathematics, `+3 gold` on
+  `crossing: 'international'` routes (new `CardPaysEffect.crossing`),
+  and the import rule `routesImportLuxuries`: `importedLuxuries` joins
+  the one luxury walk with an `imported` mark and `copiesFor` returns
+  `rules.trade.importedLuxuryPercent / 100` — every luxury fold halves
+  without knowing the rule; Market/Caravanserai
+  `routeSlotsPerPopulation` 8; Siegecraft `cityStat defense` on a
+  population count (new `count`/`per`/`max` on `CardCityStatEffect`);
+  The Saddle's pillage riders (15 science, 15 culture through the
+  settle verbs); the Smithy in the tree, Toolmakers' Charter retired;
+  plantations +2 gold. Judgement calls: Lighthouse kept its base 2
+  gold beside the +2 food (▢ if the mark meant *instead*); Floating
+  Gardens one age earlier. **t100** (8 seeds, before → after, this
+  batch alone): gold 37.6 → **61.2**, treasury 270 → 400, cul 62.9 →
+  76.4, prod 73.5 → 82.9, sci 86.8 → 90.4, happiness +4.7 → +9.7, faith
+  20.1 → 16.0; the mean bot seat holds **0.25** imported luxuries at
+  t100 (a late, occasional thing at this pacing). `docs/tech-tree.md`
+  regenerated — the user's marks folded and gone (the clean slate).
+  Merged behind U9 with the schema renumbered 109 → 110 and one bench
+  re-pinned (the X7 worker at 36 turns).
   **Three answers** (the user, 2026-09-10): (a) *"rename the forge to
   smithy"* — the new Æra II building is the **Smithy**. A Smithy already
   exists as a charter building (`smithy`, unlocked by the Toolmakers'
