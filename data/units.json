@@ -162,6 +162,7 @@
       "haltsGrowth": false,
       "minCityPop": 0,
       "requiresResource": "horses",
+      "upgradesTo": "horseman",
       "modelClass": "mounted",
       "glyph": "C"
     },
