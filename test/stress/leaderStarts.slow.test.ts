@@ -130,6 +130,19 @@ const CRITERIA: Criterion[] = [
       countTerrain(map, start, 1, (tile) => tile.feature === 'floodplain') > 0,
   },
   {
+    leader: 'akhenaten',
+    label: 'desert or oasis within 2',
+    backed: true,
+    holds: (map, start) =>
+      countTerrain(
+        map,
+        start,
+        2,
+        (tile) =>
+          tile.terrain === 'desert' || tile.feature === 'oasis' || tile.feature === 'floodplain',
+      ) > 0,
+  },
+  {
     leader: 'almamun',
     label: 'a river within 2',
     backed: true,

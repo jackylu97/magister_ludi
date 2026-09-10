@@ -26,8 +26,8 @@
     "akhenaten": {
       "name": "Akhenaten",
       "startBias": {
-        "terrain": { "river": 6, "floodplain": 2.5, "oasis": 3 },
-        "wants": { "riverOrFloodplainWithin": 1 }
+        "terrain": { "river": 6, "floodplain": 2.5, "oasis": 3, "desert": 0.5 },
+        "wants": { "riverOrFloodplainWithin": 1, "aridWithin": 2 }
       }
     },
     "almamun": {

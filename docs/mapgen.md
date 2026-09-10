@@ -1117,9 +1117,16 @@ and the ceiling would not let it be worth more.
 
 So a row may carry **`startBias.wants`** — a closed vocabulary of predicates, each
 a radius: `mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`,
-`grasslandWithin`, `pastureGroundWithin` (one such hex in reach, the site's own
-included; `pastureGroundWithin` asks the improvement table what ground a pasture
-stands on rather than naming terrain here). A seat takes its best-scoring
+`aridWithin`, `grasslandWithin`, `pastureGroundWithin` (one such hex in reach,
+the site's own included; `pastureGroundWithin` asks the improvement table what
+ground a pasture stands on rather than naming terrain here, and `aridWithin`
+counts a desert hex or an oasis or a floodplain — the three faces of one place).
+
+`aridWithin` is the clearest case of what a filter over *accepted* sites buys.
+Desert is `hostileTerrain`, so a site on it is refused outright and a site with
+more than `maxHostileRingShare` of its rings in sand is refused too. What
+Akhenaten's want can therefore ever find is a liveable hex **beside** the sand —
+which, beside his `riverOrFloodplainWithin 1`, is the Nile. A seat takes its best-scoring
 **accepted** site that meets *every* want it carries; if the map offers none it
 takes the best-scoring accepted site outright, then a refused one, then gives up
 the spacing floor — the cascade the chooser always had. A want is therefore a
@@ -1167,6 +1174,7 @@ seated:
 | Modu | horses within 4 | 83% | 100% | furnishing |
 | Modu | two pasture hexes within 3 | 100% | 100% | want |
 | Akhenaten | river or floodplain within 1 | 100% | 100% | want |
+| Akhenaten | desert, oasis or floodplain within 2 | 38% | 100% | want |
 | Al-Ma'mun | a river within 2 | 75% | 100% | want |
 | Mithridates | a river within 2 | 50% | 100% | want |
 | Mithridates | a camp kind within 3 | 29% | 100% | furnishing |
@@ -1177,11 +1185,13 @@ floor under each rather than merely "no worse than an empty chair". Before the
 wants (M1, the capped score alone) the same table read 21%, 92%, 88%, 83% and
 42% down that column — which is the measurement the wants exist because of.
 
-The price is the other half of it: the seats' **unbiased** site scores move by
-at most a couple of points of a mean around forty, against a cap of about nine —
-Pachacuti pays the most (46.7 → 44.3) because a mountain within two hexes is the
-rarest thing any figure asks for, and Modu and Mithridates come out *ahead*,
-because being served early is worth more than the ground they gave up.
+The price is the other half of it: the seats' **unbiased** site scores move by at
+most a couple of points of a mean around forty, against a cap of about nine —
+46.7 → 44.3, 45.0 → 43.6, 43.4 → 42.3, 41.4 → 43.7, 36.7 → 38.1, 33.4 → 33.7 down
+the roster. Pachacuti pays the most, because a mountain within two hexes is the
+rarest thing any figure asks for; Akhenaten and Al-Ma'mun come out *ahead*,
+because where a chair sits in the serving order is worth more than the ground it
+gives up — which is the whole argument for ordering by need.
 
 The **luxury guarantee's fallthrough stays**. `ensureStartLuxuries` prefers the
 continent's hand and falls through to the rest of the table when nothing dealt

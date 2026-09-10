@@ -55,10 +55,18 @@
 import './style.css';
 
 import { type Game, createGame, dispatch } from '../sim/game';
-import { LEADER_IDS, leaderDef } from '../sim/leaderData';
+import {
+  LOBBY_CHOICES,
+  MAX_SEATS,
+  MIN_SEATS,
+  type LobbySeat,
+  emptyLobby,
+  rosterFor,
+  withSeatAdded,
+  withSeatRemoved,
+  withSeatSet,
+} from './lobby';
 import { MAPGEN_CONFIG, type MapgenOverrides } from '../sim/mapgenData';
-import type { PlayerSpec } from '../sim/state';
-import { RULES } from '../sim/rulesData';
 import { unitDef } from '../sim/unitData';
 import { tileIndex } from '../sim/map';
 import { isWaterTerrain } from '../sim/terrainData';
@@ -82,7 +90,10 @@ const seedInput = requireElement<HTMLInputElement>('seed');
 const seedPrevButton = requireElement<HTMLButtonElement>('seed-prev');
 const seedNextButton = requireElement<HTMLButtonElement>('seed-next');
 const seedRandomButton = requireElement<HTMLButtonElement>('seed-random');
-const seatsSelect = requireElement<HTMLSelectElement>('seats');
+const lobbySeatsEl = requireElement<HTMLElement>('lobby-seats');
+const lobbyCountEl = requireElement<HTMLElement>('lobby-count');
+const lobbyAddButton = requireElement<HTMLButtonElement>('lobby-add');
+const lobbyRemoveButton = requireElement<HTMLButtonElement>('lobby-remove');
 const regenerateButton = requireElement<HTMLButtonElement>('regenerate');
 const capitalPrevButton = requireElement<HTMLButtonElement>('capital-prev');
 const capitalNextButton = requireElement<HTMLButtonElement>('capital-next');
@@ -95,7 +106,6 @@ const tuningStatusEl = requireElement<HTMLElement>('tuning-status');
 const continentsToggle = requireElement<HTMLInputElement>('continents-toggle');
 const yieldsToggle = requireElement<HTMLInputElement>('yields-toggle');
 const resourcesToggle = requireElement<HTMLInputElement>('resources-toggle');
-const leadersToggle = requireElement<HTMLInputElement>('leaders-toggle');
 const timingEl = requireElement<HTMLElement>('timing');
 const sectionsEl = requireElement<HTMLElement>('sections');
 const tileCardEl = requireElement<HTMLElement>('tile-card');
@@ -148,37 +158,47 @@ function seatColor(index: number): string {
   );
 }
 
-const ROSTER: PlayerSpec[] = Array.from({ length: RULES.game.maxPlayers }, (_, index) => ({
-  name: `Seat ${index + 1}`,
-  color: seatColor(index),
-  isHuman: true,
-}));
+/**
+ * Who is sitting down, chair by chair — the page's whole roster state.
+ *
+ * The count *is* this array's length: a lobby with five chairs is a five-player
+ * game, so there is one number and not two to keep in step. Empty on load,
+ * because the page's first question is still whether the generator is making
+ * good ground, which wants nobody's thumb on the scale (see `emptyLobby`).
+ */
+let lobby: LobbySeat[] = emptyLobby(DEFAULT_SEATS);
 
 /**
- * The roster with the figures dealt to it, seat by seat in sheet order and
- * wrapping when there are more chairs than leaders.
+ * Draws the chairs.
  *
- * Behind a switch rather than always on, because the two questions this page
- * answers are different questions: *is the generator making good ground* wants
- * nobody's thumb on the scale, and *does a leader get the ground it asks for*
- * wants exactly one. A seat's name says which figure it carries so the start
- * table below can be read against the map.
+ * Rebuilt whole whenever the count changes rather than patched, because it is
+ * a dozen elements and a page that rebuilds is a page that cannot drift from
+ * its state. Every option comes from `LOBBY_CHOICES`, which walks the leader
+ * table — nothing on this page names a figure.
  */
-function rosterFor(seats: number, leaders: boolean): PlayerSpec[] {
-  return ROSTER.slice(0, seats).map((spec, index) => {
-    if (!leaders || LEADER_IDS.length === 0) return spec;
-    const leader = LEADER_IDS[index % LEADER_IDS.length]!;
-    return { ...spec, leader, name: leaderDef(leader).name };
+function renderLobby(): void {
+  lobbySeatsEl.replaceChildren();
+  lobby.forEach((seat, index) => {
+    lobbySeatsEl.append(swatchNode(playerPieceColor('', index), true));
+    const select = document.createElement('select');
+    select.title = `Seat ${index + 1}`;
+    for (const choice of LOBBY_CHOICES) {
+      const option = document.createElement('option');
+      option.value = choice.id;
+      option.textContent = choice.name;
+      select.append(option);
+    }
+    select.value = seat;
+    select.addEventListener('change', () => {
+      lobby = withSeatSet(lobby, index, select.value as LobbySeat);
+      generate();
+    });
+    lobbySeatsEl.append(select);
   });
+  lobbyCountEl.textContent = `${lobby.length} seats`;
+  lobbyAddButton.disabled = lobby.length >= MAX_SEATS;
+  lobbyRemoveButton.disabled = lobby.length <= MIN_SEATS;
 }
-
-for (let seats = RULES.game.minPlayers; seats <= RULES.game.maxPlayers; seats++) {
-  const option = document.createElement('option');
-  option.value = String(seats);
-  option.textContent = `${seats}`;
-  seatsSelect.append(option);
-}
-seatsSelect.value = String(DEFAULT_SEATS);
 
 const renderer = new Renderer3D(canvas);
 // No seat: the spectator board every gallery already draws. Nothing is fogged,
@@ -575,7 +595,6 @@ function foundCapitals(session: Game): FoundingReport {
  * Only the first is a number anybody tuning `mapgen.json` cares about.
  */
 function generate(): void {
-  const seats = Number(seatsSelect.value) || DEFAULT_SEATS;
   // The panel's sheet goes into the **config**, which is what makes a tuned map
   // a legitimate game rather than a picture: this config and an empty log
   // replay to exactly this world, on this machine and any other. See
@@ -583,7 +602,10 @@ function generate(): void {
   const overrides = tuningOverrides();
 
   const startedGen = performance.now();
-  const roster = rosterFor(seats, leadersToggle.checked);
+  // The lobby, as the config a real game is started from. Same specs, same
+  // `createGame`, same `generateMap(seed, size, overrides, seats)` — the world
+  // on the canvas is the world that roster would have played.
+  const roster = rosterFor(lobby, (index) => seatColor(index));
   const session = createGame({
     seed: currentSeed(),
     sizeName: SIZE_NAME,
@@ -628,7 +650,7 @@ function generate(): void {
     : '';
   timingEl.textContent =
     `${reading.width}×${reading.height} · ${land} land · ${water} sea · ` +
-    `${reading.continents.count} continents · ${founding.founded}/${seats} capitals${tuned}\n` +
+    `${reading.continents.count} continents · ${founding.founded}/${roster.length} capitals${tuned}\n` +
     `generate ${genMs.toFixed(0)} ms · found ${foundMs.toFixed(0)} ms · ` +
     `report ${reportMs.toFixed(0)} ms`;
   // The assertion, said out loud. See `foundCapitals`.
@@ -1189,13 +1211,20 @@ seedRandomButton.addEventListener('click', () => {
   seedInput.value = String(Math.floor(Math.random() * 1_000_000));
   generate();
 });
-seatsSelect.addEventListener('change', generate);
+lobbyAddButton.addEventListener('click', () => {
+  lobby = withSeatAdded(lobby);
+  renderLobby();
+  generate();
+});
+lobbyRemoveButton.addEventListener('click', () => {
+  lobby = withSeatRemoved(lobby);
+  renderLobby();
+  generate();
+});
 regenerateButton.addEventListener('click', generate);
 continentsToggle.addEventListener('change', applyContinentOverlay);
 yieldsToggle.addEventListener('change', applyLens);
 resourcesToggle.addEventListener('change', applyLens);
-// Not a lens: the figures change the world, so the world is made again.
-leadersToggle.addEventListener('change', generate);
 
 capitalPrevButton.addEventListener('click', () => stepCapital(-1));
 capitalNextButton.addEventListener('click', () => stepCapital(1));
@@ -1296,8 +1325,9 @@ window.addEventListener('keydown', (event) => {
 
 window.addEventListener('resize', () => renderer.resize());
 
-// The panel before the first map: its fields are read by `generate`, and a
-// panel built afterwards would mean the opening world was generated by a
+// The panel and the lobby before the first map: both are read by `generate`,
+// and either built afterwards would mean the opening world was generated by a
 // different code path from every one after it.
 buildTuningPanel();
+renderLobby();
 generate();

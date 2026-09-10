@@ -233,6 +233,22 @@ body {
   box-shadow: none;
 }
 
+/*
+  The lobby's chairs: one row per seat, the seat's ink beside its select. A grid
+  rather than flex so every select lines up however long a figure's name is —
+  the table below reads seat by seat and the control above it should too.
+*/
+.lobby-seats {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 7px;
+}
+
+.lobby-seats .seat-swatch {
+  margin: 0;
+}
+
 #controls .switches {
   gap: 12px;
   flex-wrap: wrap;

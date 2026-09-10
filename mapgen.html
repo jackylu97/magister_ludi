@@ -73,13 +73,22 @@
           <button type="button" id="seed-next" class="quiet" title="Seed + 1">▶</button>
           <button type="button" id="seed-random" class="quiet">Randomise</button>
         </div>
+        <!--
+          The lobby. A leader biases where its seat stands, what grows near it
+          and what the fairness pass furnishes it with, so the only honest way
+          to look at a figure is to seat it and generate the world it makes.
+          The chairs and their options are built in `src/mapgenPage/lobby.ts` —
+          nothing here may name a leader, so a seventh row in
+          `data/leaders.json` appears in this lobby with no edit to this file.
+        -->
         <div class="row">
-          <label class="field">
-            <span class="field-label">Seats</span>
-            <select id="seats"></select>
-          </label>
+          <span class="field-label">Lobby</span>
+          <button type="button" id="lobby-remove" class="quiet" title="One seat fewer">−</button>
+          <span id="lobby-count" class="coords">—</span>
+          <button type="button" id="lobby-add" class="quiet" title="One seat more">+</button>
           <button type="button" id="regenerate">Generate</button>
         </div>
+        <div id="lobby-seats" class="lobby-seats"></div>
         <!--
           The capital walk. A generated map is judged seat by seat, and the
           slowest part of doing that by hand was finding the seats: four flags

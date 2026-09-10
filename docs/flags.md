@@ -1800,6 +1800,43 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (dddd) **Leaders — the system and the screens — RULED, queued** (the
+  user, 2026-09-10: *"please queue up the leader and start screen
+  implementation"*). Specs of record: `docs/leaders.md` (the six decks —
+  Æra I–IV × passive · boon · unique, and each seat's **leader bonus** from
+  turn one; the draft's shape: three cards when *you* enter an age, take
+  one, the other two gone; player progression PARKED), the mockup
+  (https://claude.ai/code/artifact/f38e46e5-e89a-4c77-9405-ffce47ff5364 —
+  a new-game screen with the map card and the leader select, the age's
+  draft sheet, the leader sheet with what each pick is giving you), and
+  `data/leaders.json` (M1 — the rows exist with `startBias`; the decks
+  join them). **Two batches, in order.** **L2a — the sim**: `LeaderDef`
+  gains `bonus` (card effects, live from turn one — `liveEffects`'
+  twelfth source) and `deck` (four rows × three cards, each a card with
+  `kind: passive | boon | unique` and effects in the card vocabulary — a
+  passive is a doctrine-weight effect list; a boon is a windfall/grant
+  paid on the pick; a unique is `unlocksUnit`/`unlocksBuilding` of a row
+  carrying `unlockedByLeader` — the rows for the uniques added to
+  `units.json`/`buildings.json` with their sizes; a line the vocabulary
+  cannot carry is **deferred and annotated** on the row, never bent);
+  `Player.leader`, `Player.leaderPicks` (the card taken per age, absolute
+  age keys), `Player.leaderOffer` (the three dealt when the seat's own
+  tech age turned — drawn at the moment the age is entered, an announced
+  occasion, an End Turn blocker `leaderDraft` like the wager's);
+  `chooseLeaderCard {playerId, index}`; the bots appraise the three
+  through `explainEffects` (W2's pattern) and pick; the Compendium walks
+  the leaders (a `leader:id` shelf, every card from its row); schema
+  bump. The six leaders' full decks as written in `docs/leaders.md` are
+  the data; ▢ every figure. **L2b — the screens**, on L2a: the landing
+  form becomes the mockup's new-game screen (the map card: seed, size,
+  seats, the wild; the leader select with cantons, family, leader bonus
+  and the Æra I row; Begin), the draft sheet on `modalShell.ts` (three
+  cards in the three inks, "today it would be worth" lines folded from
+  the sim, Take), the leader sheet (held picks with their live figures,
+  the next age's three locked, the ledger of every line carrying the
+  leader's name) behind a top-bar door, the spectator page naming the
+  seat's leader. Both batches build on the held stack (S2 · F2 · M1) —
+  the agent merges the gate clone's main into its worktree first.
 - (cccc) **Start biases in three stages — RULED** (the user, 2026-09-10:
   *"queue up the mapgen changes, and then verify that we can have
   satisfactory starts for the new leaders (the steppe leader is useless
@@ -1850,7 +1887,47 @@ directly to confirm rulings — user marginalia are rulings.
   and after**, and the mean unbiased site score of every seat before and
   after (a bias must not cost a seat more than the cap). Rule 2: every
   stage on the map's stream; same seed and roster, same world; the seed
-  sweeps that prove every roster seats legally re-run with biases on. (the user, 2026-09-10: *"Prophets
+  sweeps that prove every roster seats legally re-run with biases on.
+  **M1 + M1b built** (2026-09-10; stacked on S2/F2 in the gate and
+  **held**): `data/leaders.json` + `leaderData.ts`;
+  `GameConfig.players[i].leader`; `chooseStartPositionsFor` (bias lines
+  appended to `scoreSite`'s list, a **soft** cap `starts.biasCap` 0.2 —
+  a hard clamp flattened every good site onto the cap and the bias did
+  nothing; measured); **`startBias.wants`** — a closed vocabulary
+  (`mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`,
+  `grasslandWithin`, `pastureGroundWithin`) read off the *ground*, a
+  filter over the order in `seatOne`'s first arm (accepted + wants →
+  accepted → refused → spacing floor), never a rejection; the needy seats
+  choose first (`wantCount` desc, ties by roster index); stage 2's
+  `resourcePull` field and `handBias` on the deal; stage 3's
+  `ensureStartFurnishing` (an improvement kind or a resource row by name
+  — Modu `horses`, Mithridates `plantation` + `camp`), hand first then
+  the table (hand-only left Mithridates' camp at 22/24: flat plains'
+  only camp row is ivory); the base luxury guarantee's fallthrough
+  **kept** (hand-or-nothing left 4% of the max roster short). **24-seed
+  verification, unseated → seated**: Pachacuti mountain 17 → **100%**,
+  river 83 → 100%; Taizong grassland 79 → 100%; Modu horses 83 → 100%;
+  Al-Ma'mun river 75 → 100%; Mithridates river 50 → 100%, camp 29 →
+  100%, plantation 88 → 100%. Score cost (cap 9.3): Pachacuti −2.4
+  (the mountain is the rarest ask), Taizong −0.2, Al-Ma'mun −0.1, Modu
+  +0.9, Akhenaten +0.2, Mithridates +1.8. Legality on every seed. A
+  leaderless roster draws exactly the old world (pinned). No
+  `Player.leader` in state yet (S2's fence) — the mirror for an in-game
+  surface is one field.
+  **M1c** (the user, 2026-09-10: *"akhenaten should have a desert (or
+  oasis/floodplain) spawn"*): a want `aridWithin 2` (desert terrain, or an
+  oasis or floodplain feature) beside his river want, a filter over
+  accepted sites so the hostile-ring rejection still holds — the Nile's
+  edge, not the Sahara; in flight on the same worktree.
+  **M1d** (the user: *"wire up these changes for inspection in mapgen.html.
+  Allow me to toggle a lobby with specific leaders, add/subtract leaders
+  and see how their spawns look"*): the page's Leaders switch becomes a
+  **lobby** — seats added and removed, each a select over no leader + the
+  leader table (walked, never listed), regenerating the seed through the
+  game's own generator and chooser, each start row printing the seat's
+  leader, bias lines, wants with ticks and furnishing; roster in the
+  page's query state so a lobby is a link; queued on the same worktree
+  after M1c. (the user, 2026-09-10: *"Prophets
   should have only two charges (i feel like i've said this before).
   Proclamations and empire-wide rites each take 1 charge. Founding a
   religion creates a holy site and consumes two charges. Drawing a new

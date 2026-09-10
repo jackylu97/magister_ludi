@@ -129,6 +129,19 @@ export interface StartWants {
   riverWithin?: number;
   /** A river hex **or** a floodplain — the valley, either way it was made. */
   riverOrFloodplainWithin?: number;
+  /**
+   * Dry country in reach: a desert hex, or an oasis or a floodplain.
+   *
+   * The three faces of one place, which is why they are one want. Desert is
+   * `hostileTerrain` and a site *on* it is refused outright, and a site with too
+   * much of it in the rings is refused too (`maxHostileRingShare`) — so what
+   * this can ever find is a liveable hex **beside** the sand, which is the Nile
+   * and is exactly the ask (the user, of Akhenaten: "should spawn by desert").
+   * The floodplain and the oasis are here beside the sand because both are what
+   * desert becomes where there is water, and a figure who wants the one wants
+   * the others.
+   */
+  aridWithin?: number;
   /** Grassland in reach. */
   grasslandWithin?: number;
   /** A hex a pasture could ever stand on: flat grassland or plains. */
@@ -140,6 +153,7 @@ export const START_WANT_KEYS: readonly (keyof StartWants)[] = [
   'mountainWithin',
   'riverWithin',
   'riverOrFloodplainWithin',
+  'aridWithin',
   'grasslandWithin',
   'pastureGroundWithin',
 ];

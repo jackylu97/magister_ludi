@@ -454,6 +454,8 @@ function hexAnswers(key: keyof StartWants, tile: Tile): boolean {
       return tile.riverEdges !== 0;
     case 'riverOrFloodplainWithin':
       return tile.riverEdges !== 0 || tile.feature === 'floodplain';
+    case 'aridWithin':
+      return tile.terrain === 'desert' || tile.feature === 'oasis' || tile.feature === 'floodplain';
     case 'grasslandWithin':
       return tile.terrain === 'grassland';
     case 'pastureGroundWithin':
