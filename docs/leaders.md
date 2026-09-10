@@ -17,39 +17,29 @@ civ's) so a leader shades a playstyle rather than dictating it. A leader would
 take two or three of the bullets under it, not all. Each fits one of
 `docs/playstyles.md`'s families first and a sub-identity second.
 
-## The starting six (decided 2026-09-10, after the user's pass)
+## The starting six (re-decided 2026-09-10 on the user's second pass)
 
 One per family, each drafting across at least two systems, on a spectrum from
-"the game as usual, a little better" to "a different game". The user's own
-bullets under each entry below are the deck; nothing is cut from them here.
+"the game as usual, a little better" to "a different game"; one eastern and one
+Middle Eastern seat among them. The user's own bullets under each entry below
+are the deck; nothing is cut from them here.
 
 | # | Leader | Family | Spectrum | Dimensions |
 |---|---|---|---|---|
-| 1 | **Djoser** | tall — the wonder city | generically strong | wonders, quarries and mines, river farms, growth |
-| 2 | **Basil II** | wide — the imperium | generically strong | soldiers' upkeep, religion → strength and hurry, authority from gold, the cataphract and the galleass |
+| 1 | **Pachacuti** | wide — the imperium | generically strong | roads, road-joined towns, the corvée, hills and growth |
+| 2 | **Akhenaten** | tall — faith and wonders | generically strong | early prophets, desert holy sites, wonders in holy cities, the Nile's farms, the khopesh |
 | 3 | **Mithridates VI** | tall — defensive, the come-back | middle | strength against wider realms, gardens (happiness, authority), science from soldiers, food |
-| 4 | **Zenobia** | wide — land commerce that fights | middle | bought units, captured cities' gold, routes on capture, luxury hexes, the capital's markets |
-| 5 | **Ezana of Aksum** | wide — sea commerce and faith | situational | gold buildings → faith, sea routes → faith, sea resources, Monuments |
-| 6 | **Modu Chanyu** | wide — the steppe | situationally very strong | pillage and mobility, tribute (puppets pay science and culture), rites → strength, mounted archers per age |
+| 4 | **Ulugh Beg** | tall — science and renown (the Middle Eastern seat; the user is reworking him) | middle | the Observatory, science buildings' culture, renown from technologies, the Turning Heavens |
+| 5 | **Yongle** ▢ (rec) | wide — sea commerce (the eastern seat) | situational | the treasure fleet, tributary trade, the canal, the Forbidden City — entry below |
+| 6 | **Modu Chanyu** | wide — the steppe | situationally very strong | pillage and mobility, tribute, rites → strength, mounted archers per age |
 
-Why these: Djoser and Basil are the two "play as usual" seats, one tall and one
-wide, so a first-time player has a safe pick in each family. Mithridates and
-Zenobia bend the game without breaking it (defence and science; commerce that
-turns to war). Ezana needs a coast and a faith; Modu needs horses, grassland
-and rivals to bleed, and never holds what he takes. Between them they touch
-war, faith, trade, science, wonders, growth and diplomacy, and no two share a
-primary axis.
-
-**First alternates** (the second set, one per family): Sher Shah Suri (land
-commerce without the war), Al-Ma'mun (tall science — the peace-pays-science
-line is the strongest diplomacy hook in the file, and the only reason it is not
-in the six is that a science seat overlaps Mithridates' science line and the
-six needed a wonder seat more), Jayavarman VII, Justinian and Theodora,
-Akhenaten, Tomyris, Bumin Qaghan, Sargon, Rajendra Chola, Dandolo, Teuta,
-Hanno, Ulugh Beg, Abd al-Rahman III. **Joan of Arc** belongs with the deferred
-set below — hers is the faith-buys-an-army seat, the most game-warping of the
-faith figures, which is what the user asked that set to be. **Cut**: Tigranes,
-Amanirenas (the user's marks); Mansa Musa stays ▢.
+Djoser and Basil II step down to the second set (the user: faith + wonders is
+the more interesting tall seat; Pachacuti the imperium). ▢ the Chinese wide
+sea-commerce seat: **Yongle** (rec — the emperor behind Zheng He's treasure
+fleets, the Grand Canal reopened, the capital moved to Beijing) or **Emperor
+Wu of Han** (the Silk Road's opener and the Xiongnu's enemy — land commerce
+and war, and a historical foil to Modu at the same table); both entries are
+below. Joan of Arc joins the deferred set. Cut: Tigranes, Amanirenas.
 
 ## The one the user named
 
@@ -205,6 +195,34 @@ Amanirenas (the user's marks); Mansa Musa stays ▢.
   [remove]
 
 ## Wide — sea commerce
+
+- **The Yongle Emperor** (Ming, r. 1402–24) — took the throne from his nephew,
+  sent Zheng He's treasure fleets to Calicut, Hormuz and Mogadishu with ships
+  five times the length of a caravel, reopened the Grand Canal, moved the
+  capital to Beijing and built the Forbidden City. Trade as tribute: the
+  world came to him.
+
+  themes: wide, sea commerce, tributary trade, the capital
+  possible bonuses:
+  - unique unit: the Treasure Ship — a heavy hull that runs a trade route while it sails, and every foreign harbour it visits pays gold once
+  - foreign routes ending in your capital pay the host double (the tributary court)
+  - a domestic route that crosses water pays +2 food and +2 production (the canal)
+  - +1 authority capacity for every 3 foreign routes running
+  - the capital's wonders cost 15% less while the capital is coastal
+  ▢ (rec for the eastern seat)
+
+- **Emperor Wu of Han** (r. 141–87 BC) — sent Zhang Qian west to find allies
+  against the Xiongnu and opened the Silk Road instead; fought the steppe for
+  forty years, took the Hexi corridor, monopolised salt and iron to pay for it.
+
+  themes: wide, land commerce and war against the steppe
+  possible bonuses:
+  - international routes pay +1 science and +1 culture (Zhang Qian's road)
+  - mines and quarries on salt and iron pay +2 gold (the monopolies)
+  - +3 combat strength against mounted units inside your borders
+  - a captured city on a route's road pays the route once more
+  - unique unit: the Han crossbowman, a stronger bowman line
+  ▢ (the alternative eastern seat; a foil to Modu at the same table)
 
 - **Rajendra Chola I** (r. 1014–44) — the only Indian king to send a fleet
   across the Bay of Bengal, took Srivijaya's ports on the Malacca strait, and
