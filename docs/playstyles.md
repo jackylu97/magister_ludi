@@ -272,3 +272,74 @@ Read off `data/religion.json` (live rows):
 Each is data plus at most one new reading; none needs a new civ system — a
 player becomes the steppe or the hub by the cards they take and the ground they
 settle.
+
+## 10. Orders and doctrines — what still fits, what is owed (2026-09-10)
+
+Read off `data/statecraft.json` (169 live Orders, 48 doctrines, 16
+governments) against §0–§9 and the user's tree pass (`docs/flags.md` (uuu)).
+Nothing here is built; the user marks `docs/orders-and-doctrines.md` by hand.
+
+**Well served already** (no new card needed):
+- Imperium: The Legion, Forced Marches, The Standing Levy / Levée en Masse, The
+  King's Road, Field Hospitals, The Standing Army (doctrine), the Imperium and
+  Sultanate governments, The Empire; **The Long Watch** (+1 happiness per unit
+  standing in a city, +1 per fortification) *is* martial law — (rec) make it
+  the imperium's centrepiece: rename *Martial Law*, cap at 3 per town.
+- Spoils (steppe): Iron Price (kill +20 culture, pillage ×2), Scorched Earth,
+  Tyranny's pillage, The Triumphal Way (capture → +5 happiness 10 turns), The
+  Saddle's new pillage rider.
+- Commerce: Silk Roads, The Wayhouses, Ledger Keepers, The Silk Exchange, The
+  Provisioners (+1 happiness per domestic route — the imperium's road payoff),
+  The Marshal's Purse (units 25% cheaper to buy — mercenaries-lite).
+- Tall: Hermit Crown (≤4 towns, capital +30%), Census Rolls (+1 happiness per
+  2 capital citizens), The Founding Oath, The Lamp Kept Lit, The High Chancery,
+  The Gentle Yoke (less demand per citizen, more authority per city — the
+  right trade), Pax Imperia / Pax Magistri / The Grain Dole (per-size towns);
+  wonders: Guild of Masons, Wonder Feasts, Master Builders, Magister's Court,
+  The Grand Tour, Patrons; great people: The Laureate, The Salon,
+  Groundskeepers, Master's Presence.
+
+**No longer fit, or fit the old identities** (▢ each):
+- **Mare Nostrum** — "coastal cities cost no authority" duplicates the base
+  coastal relief (`rules.authority.coastalCity`); (rec) drop that clause, keep
+  the water yields (now gold-leaning per §1).
+- **The Orchard Tithe** (+2 food on luxury hexes), **First Fruits** (+2 food on
+  resource hexes), **Common Granary** (+2 food in towns with an improved
+  luxury) — the plantation's old food identity; with plantations paying gold
+  (mark 12) these read against the grain. (rec) Orchard Tithe → +2 gold on
+  luxury hexes; the other two stay as the farm-belt's.
+- **The Grain Fleet** (+6 food coastal, +50% growth) and **Fish Weirs** (+1
+  food on boats) — the sea-as-food identity. (rec) Grain Fleet → the
+  entrepôt (below); Fish Weirs → +1 gold on boats or retire.
+- **Manifest of the Steppe** (settlers cheaper and faster) is wide-founding,
+  not the steppe. (rec) re-theme: mounted units +1 movement on open ground
+  and pay no upkeep outside your borders.
+- **Four generic route multipliers** — The Sea Charter (×1.5), Merchant
+  League's ×1.5, The Escorted Roads (+30%), The Exchequer (×2). (rec) keep
+  two (the government's and The Exchequer as the rare), retire the other two
+  in favour of tolls and the hub.
+- **Harbourmasters** (+1 route, +2 gold on boats) — with the Harbour and
+  Shipyard slot-less (marks 8, 16), this card is the sea build's *only* route
+  source and should say so: (rec) "+1 trade route in every coastal city with
+  a Harbour" — the sea chooses slots-by-count as a card.
+
+**Payoff cards owed** (each one JSON row on an existing shape unless noted):
+1. **Tribute** (steppe, economic, uncommon): a puppet pays +1 gold per 2
+   citizens to you *instead of* its authority relief. New rule kind.
+2. **Riders of the Steppe** (military, rare): mounted units ignore zone of
+   control. New flag rule (`zoc` kind exists).
+3. **Tolls** (land commerce, economic, common): +1 gold per 4 road hexes you
+   own. New `count: roadHexes`.
+4. **Mercenaries** (commerce ↔ imperium, economic, rare): units bought with
+   gold do not raise the escalation ladder. New rule.
+5. **The Entrepôt** (sea and tall, economic, uncommon): international routes
+   ending in your cities pay the host +1 gold per 5 host citizens. New
+   `count` on the host's population at `routeEndsHere`.
+6. **Patronage** (tall, wildcard, uncommon): +1 renown per 4 citizens in your
+   capital. `pays … to: renown` on a capital population count — the shape
+   exists.
+7. **The Holy City** (faith, tall, wildcard, rare): your holy city presses its
+   faith harder for every 4 citizens it holds. A belief-side rule (§8).
+8. **Pilgrims** (faith, tall): every foreign city that follows you pays +1 gold
+   to your holy city. `pays where: city` on the `followingForeign` count,
+   scoped to the holy site.
