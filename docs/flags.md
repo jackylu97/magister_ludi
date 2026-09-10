@@ -1730,6 +1730,62 @@ directly to confirm rulings — user marginalia are rulings.
   treasury 322 · techs 24.6 · happiness +9.5 (C1's row: cul 61.6,
   happiness +7.4 — the wager want and W3's lower bars recovered the
   culture the malices had been costing).
+- (qqq) **Puppets that decide — RULED** (the user, 2026-09-10: *"puppeted
+  cities right now only work on 'tithe'. Could you give puppeted cities
+  actual logic, you can re-use the bot logic so that they produce
+  actually useful things (i.e. they should build monuments when
+  authority is negative, prioritize buildings with the highest yields,
+  etc)"*). Diagnosis: `puppetProduction` already runs the seat's own
+  `productionTable` under `aiConfigForPuppet` (buildings only, no
+  wonders/units/settlers, ruled 2026-09-03), and the appraisal already
+  prices a row's `authorityCapacity` at the meter's live price — but
+  **(a)** `autoPickPuppets` (`controls.ts`) fires only on an *empty*
+  queue and a project never leaves the queue, so a puppet that once
+  chose the tithe is frozen on it for the game; **(b)** the puppet
+  profile's gold thumb (`puppetProfile.weights.gold` 6–8 vs science 3)
+  makes the tithe win that first choice. **PP1** builds: (1) **a puppet
+  re-decides** — at every End Turn (human seat: `autoPickPuppets`; bot
+  seat: the same door from the driver's town pass) a puppet whose queue
+  head is a **project** is re-appraised against the same table, and a
+  building that outscores the conversion by `puppet.switchMargin`
+  (a new `data/ai.json` knob, first cut 10%) replaces it through the
+  ordinary `setCityProduction` command; a building **in progress is
+  never abandoned** for a project or another building (hammers banked
+  are hammers kept), and a completed building empties the queue as
+  today; (2) **the thumb is measured, not guessed** — the agent re-cuts
+  `puppetProfile.weights` on the bench so a puppet with unbuilt yield
+  buildings raises them and falls back to the tithe only when nothing
+  worth raising is left (the gold lean stays; it is the puppet's
+  character); (3) **pinned behaviours**, each a core test on a fixture
+  puppet: an empire over its authority capacity → the Monument (or
+  whichever row carries `authorityCapacity`) beats the tithe; a town
+  with a library/market available and the yields to feed it → the
+  highest-yield row beats the tithe; a town with nothing left to raise
+  → the tithe; a project-headed puppet re-decides the next turn a
+  better row appears; a building mid-build is kept; (4) **visible** —
+  the puppet's city panel shows what it is raising and the decision
+  feed's "Uruk (puppet)" line carries the table (already the case;
+  verify, add the switch as its own decision line "Uruk (puppet) turns
+  from the tithe to a Library"). No schema (the choice is a logged
+  command); replay unaffected. Arena: the new knob appears on the panel
+  by walking the sheet. Report the t100 row.
+- (rrr) **The two families — worksheet opened** (the user, 2026-09-10, across
+  the maritime / wide-land / imperium-and-steppe / land-commerce / tall /
+  faith conversation: *"generally i see the game having two predominant
+  playstyles: wide, with synergies for either melee or cavalry dominated
+  militaries and support for land or sea commerce"* … *"the natural
+  identity for taller cities is science/culture and wonder building"*).
+  `docs/playstyles.md` is the worksheet of record: §1 improvements pay
+  their voice (boats, plantations, Harbour, Lighthouse), §2–§5 the wide
+  sub-identities, §6 tall's levers (`cityStrengthPerPop` is 0 today;
+  happiness has no per-citizen row; renown and route slots scale by
+  count), §7 routes by size and the luxuries-by-route rule (NOT in the
+  game today, bounded: foreign, half a copy, one per route, unique kinds),
+  §8 faith (the holy city presses by size, pilgrimage to the holy city,
+  per-follower rows), §9 the proposed cut Y1 · R5 · L1 · T4 · F1. Every ▢
+  is the user's, during their balance pass; nothing flies until marked.
+  Corrections made in conversation: the Amphitheatre *already* pays
+  culture per two citizens; luxuries do not travel by route today.
 - (iii) **The trade screen** (the user, 2026-09-09): *"drastically
   improve the trade screen. The trade screen should have an icon next to
   the statecraft/religion/diplomacy buttons. Instead of building traders,
