@@ -2169,10 +2169,22 @@ describe('The Imperial Post', () => {
     // under test is `roadsBuiltBy`'s reading of the rule, and that reading is
     // exactly as live as it ever was — which is the whole reason the rule is
     // kept rather than deleted with the card that used to say it.
+    //
+    // Hung **in place** rather than by swapping the array: `anyCardDef`
+    // (`statecraft/evaluator.ts`) memoises the row it is first asked for, and
+    // with the workers keeping their module graph between files
+    // (`vite.config.ts`, `isolate: false`) a swapped-in array would be the one
+    // the memo holds for every file after this one — the Compendium's bar test
+    // saw Satrapies carrying a clause it does not (2026-09-10). Pushing onto the
+    // authored array and splicing it back out leaves every holder of the
+    // reference reading the row as written.
     const def = techDef('theImperialPost');
+    const hadNone = def.effects === undefined;
+    if (def.effects === undefined) def.effects = [];
     const authored = def.effects;
+    const before = authored.length;
     try {
-      def.effects = [...(authored ?? []), { kind: 'rule', rule: 'freeCityRoads' }];
+      authored.push({ kind: 'rule', rule: 'freeCityRoads' });
       post(state, 0);
       const posted = roadsBuiltBy(state, 0);
       // Both towns are on row 4 and the road runs between them, so the reach of
@@ -2188,7 +2200,8 @@ describe('The Imperial Post', () => {
       far.road = 0;
       expect(roadsBuiltBy(state, 0)).toBe(posted + 1);
     } finally {
-      def.effects = authored;
+      authored.splice(before);
+      if (hadNone) delete def.effects;
       bumpRevision(state);
     }
   });
