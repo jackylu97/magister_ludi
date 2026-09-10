@@ -39,6 +39,7 @@ import { type OrderId, orderDef } from '../../src/sim/statecraftData';
 import { isUnlocked } from '../../src/sim/tech';
 import { cityYieldPercents } from '../../src/sim/yields/town';
 import { game } from './purchaseHelpers';
+import { marchOut } from './statecraftHelpers';
 
 // --- the bench --------------------------------------------------------------
 
@@ -221,6 +222,10 @@ describe('a purchase is allowed, and the floor still holds', () => {
     const { state } = game();
     const city = found(state);
     raise(state, city);
+    // The escort out of the town first (P3, 2026-09-10): a bought piece stands
+    // on the city hex or is not sold, and the refusal this bench is about is
+    // the floor's, not the garrison's.
+    marchOut(state, city);
     city.queue = [
       { kind: 'unit', id: 'warrior' },
       { kind: 'unit', id: 'worker' },
@@ -237,6 +242,10 @@ describe('a purchase is allowed, and the floor still holds', () => {
     const { state } = game();
     const city = found(state);
     raise(state, city);
+    // The escort out of the town first (P3, 2026-09-10): a bought piece stands
+    // on the city hex or is not sold, and the refusal this bench is about is
+    // the floor's, not the garrison's.
+    marchOut(state, city);
     city.queue = [
       { kind: 'unit', id: 'warrior' },
       { kind: 'unit', id: 'worker' },
@@ -251,6 +260,10 @@ describe('a purchase is allowed, and the floor still holds', () => {
     const { state } = game();
     const city = found(state);
     raise(state, city);
+    // The escort out of the town first (P3, 2026-09-10): a bought piece stands
+    // on the city hex or is not sold, and the refusal this bench is about is
+    // the floor's, not the garrison's.
+    marchOut(state, city);
     city.queue = [
       { kind: 'unit', id: 'warrior' },
       { kind: 'unit', id: 'worker' },
