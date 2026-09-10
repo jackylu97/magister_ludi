@@ -3712,8 +3712,28 @@ function payCompletionGrants(
   city: City,
   building: BuildingId,
 ): CompletionGrantReport[] {
-  const grants = buildingDef(building).onComplete;
-  if (!grants || grants.length === 0) return [];
+  return payGrants(state, city, buildingDef(building).onComplete ?? []);
+}
+
+/**
+ * **The one place a `CompletionGrant` is handed over**, whatever handed it.
+ *
+ * Split out of `payCompletionGrants` (batch L2a) the day a second thing granted
+ * one: a leader's boon hands over a prophet, a knight or a great person, and
+ * those are this union's own arms word for word. The building half above is now
+ * a two-line wrapper that answers "what does this row grant" and delegates the
+ * "how" — which is the same split `realiseItem` and `settleProduction` keep, one
+ * scale up, and it is what stops a second way to mint a granted piece existing.
+ *
+ * `city` is where a piece stands and a granted building is raised; an empire-wide
+ * arm (a technology, a draft, a name) ignores it and reads the owner.
+ */
+export function payGrants(
+  state: GameState,
+  city: City,
+  grants: readonly CompletionGrant[],
+): CompletionGrantReport[] {
+  if (grants.length === 0) return [];
   const player = playerById(state, city.ownerId);
   if (!player) return [];
   const reports: CompletionGrantReport[] = [];

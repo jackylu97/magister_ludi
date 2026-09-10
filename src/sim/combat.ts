@@ -2591,7 +2591,13 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
      * merely wounded ends the turn as it always did, which is what the card's
      * own words say.
      */
-    if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill')) {
+    // The **piece** is handed over (batch L2a), because a row may narrow the
+    // rule to one silhouette — the Xiongnu horse archer's own card does, and a
+    // filtered row asked without a type in hand is skipped by `cardRuleHolds`
+    // rather than admitted, so the card would have been a line that never fires.
+    // Blitz names no class and still answers every piece, which is that
+    // function's own rule for every row written before the filter existed.
+    if (defenderDied && cardBehaviorRule(state, attacker.ownerId, 'moveAfterKill', attacker.type)) {
       attacker.movesLeft = fullMovement(attacker, state);
     }
     attacker.hasAttacked = true;

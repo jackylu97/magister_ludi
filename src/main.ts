@@ -1574,6 +1574,10 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   statecraft: 'A card awaits',
   religion: 'A god awaits',
   greatPerson: 'A great person awaits',
+  // The figure's own row (batch L2a). It names the leader rather than the card,
+  // because the three have not been read yet and the seat is being told *who*
+  // is waiting on it.
+  leaderDraft: 'Your leader awaits',
   wager: 'A wager awaits',
   // The one label that names a *reading* rather than a decision: nothing is
   // owed here but a look, and the verb says so.

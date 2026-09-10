@@ -138,7 +138,14 @@ import {
   orderDef,
 } from '../sim/statecraftData';
 import { gatingTech } from '../sim/tech';
-import { TECH_IDS, type TechId, techDef } from '../sim/techData';
+import { TECH_IDS, type TechId, eraNumeral, techDef } from '../sim/techData';
+import {
+  LEADER_DECK_AGES,
+  LEADER_IDS,
+  type LeaderCardKind,
+  type LeaderId,
+  leaderDef,
+} from '../sim/leaderData';
 import { type TechGift, techGifts } from '../sim/techUnlocks';
 import { TILE_YIELD_KEYS, type TileYieldSpec, readTileYield } from '../sim/terrainData';
 import { TRIUMPH_IDS, type TriumphId, triumphDef } from '../sim/triumphData';
@@ -219,6 +226,11 @@ export type CompendiumSectionId =
   // one — and the malice's arrives with it, which is what made the two one pass.
   | 'wager'
   | 'malice'
+  // **The leaders** (batch L2a, `docs/flags.md` (dddd)). One shelf rather than
+  // two: a figure's own line and the twelve cards of its deck are the same
+  // choice made at the same moment, and a reader deciding who to play needs them
+  // on one page.
+  | 'leader'
   | 'meter'
   | 'trade';
 
@@ -317,6 +329,7 @@ const SECTION_NAMES: readonly (readonly [CompendiumSectionId, string])[] = [
   ['bead', 'The Bead Race'],
   ['wager', 'The Wager'],
   ['malice', 'Malices'],
+  ['leader', 'Leaders'],
   ['meter', 'The Meters'],
   ['trade', 'Trade'],
 ];
@@ -601,6 +614,14 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   if (def.unlockedByCard === true) {
     out.push({
       text: 'No research reaches this. Something your empire has adopted opens it, and nothing else does.',
+    });
+  }
+  // The same sentence one table over (batch L2a): a figure's unique stands on no
+  // node at all, and a player told to go looking in the tree for it would be
+  // looking for something only a leader's own deck holds.
+  if (def.unlockedByLeader === true) {
+    out.push({
+      text: 'No research reaches this. Your leader opens it, with a card from their own deck, and nothing else does.',
     });
   }
   if (def.mirrors !== undefined) {
@@ -930,6 +951,15 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
         gate === null
           ? 'You can build this only while the Order that opens it is in one of your slots. Anything you have already built stays.'
           : `You can build this while the Order that opens it is in one of your slots, or once you have researched ${techDef(gate).name}. Anything you have already built stays.`,
+      note: true,
+    });
+  }
+  // A row a *figure* opens (batch L2a), and it differs from the clause above in
+  // the one way that matters to a reader: a card taken from a leader's deck is
+  // never given back, so there is no "while it is slotted" to warn about.
+  if (def.unlockedByLeader === true) {
+    clauses.push({
+      text: 'Only a leader whose deck holds the card that opens this can build it. Once that card is taken, it is yours for the rest of the game.',
       note: true,
     });
   }
@@ -1683,6 +1713,57 @@ function wagerEntry(id: WagerId): CompendiumEntry {
   };
 }
 
+/** What a card's column is called, in the words the draft sheet uses. */
+const LEADER_KIND_WORD: Record<LeaderCardKind, string> = {
+  passive: 'kept',
+  boon: 'taken now',
+  unique: 'opened',
+};
+
+/**
+ * One leader (batch L2a, `docs/leaders.md`).
+ *
+ * **One page a figure, not one a card**, and that is the shelf's whole shape: a
+ * leader is chosen once, at the table, and what a player needs in front of them
+ * at that moment is the *whole* of what the figure will ever offer — the line
+ * they hold from the first turn and all twelve cards they will be asked to
+ * choose between. Twelve pages a leader would be seventy-two entries nobody
+ * could compare.
+ *
+ * Every clause comes out of `describeCard`, the same describer the Ledger's own
+ * lines come out of, so nothing here is hand-written prose about a number
+ * (CLAUDE.md's rule for this file). The only words this function writes are the
+ * headings that say which age a row belongs to and which column of it a card
+ * sits in — and those carry no figures, which is why they may be written at all.
+ */
+function leaderEntry(id: LeaderId): CompendiumEntry {
+  const def = leaderDef(id);
+  const clauses: CompendiumClause[] = [
+    { text: 'What this leader gives you from the first turn:', note: true },
+    ...cardClauses(id),
+  ];
+  for (const age of LEADER_DECK_AGES) {
+    clauses.push({
+      text: `Æra ${eraNumeral(Number(age))} — three cards, one taken:`,
+      note: true,
+    });
+    for (const card of def.deck[age]) {
+      clauses.push({ text: `${card.name} — ${LEADER_KIND_WORD[card.kind]}:`, note: true });
+      clauses.push(...cardClauses(card.id));
+    }
+  }
+  return {
+    id: compendiumId('leader', id),
+    section: 'leader',
+    name: def.name,
+    eyebrow: 'a leader, and the deck they bring',
+    mark: { kind: 'glyph', glyph: '♛' },
+    rows: [],
+    clauses,
+    flavor: null,
+  };
+}
+
 /**
  * One malice (batch G3, `docs/wager.md` §4).
  *
@@ -1996,6 +2077,10 @@ export function compendiumSections(): CompendiumSection[] {
   // book's order is the data's own.
   for (const id of WAGER_IDS) push(wagerEntry(id));
   for (const id of MALICE_IDS) push(maliceEntry(id));
+  // **The leaders** (batch L2a): one page a figure, carrying its own line and
+  // all twelve cards of its deck. In sheet order, like every other generated
+  // shelf, so the book's order is the data's own.
+  for (const id of LEADER_IDS) push(leaderEntry(id));
   for (const entry of meterEntries()) push(entry);
   for (const entry of tradeEntries()) push(entry);
 

@@ -45,6 +45,7 @@ import { newGame } from '../../src/sim/state';
 import { TECH_IDS, type TechId, techDef } from '../../src/sim/techData';
 import { TRIUMPH_IDS, triumphDef } from '../../src/sim/triumphData';
 import { MALICE_IDS, maliceDef } from '../../src/sim/maliceData';
+import { LEADER_IDS } from '../../src/sim/leaderData';
 import { WAGER_IDS, wagerDef } from '../../src/sim/wagerData';
 import {
   BEAD_ENDEAVOUR_IDS,
@@ -135,6 +136,10 @@ describe('the shelves', () => {
     expect(shelf('triumph').entries).toHaveLength(TRIUMPH_IDS.length + LEAD);
     expect(shelf('wager').entries).toHaveLength(WAGER_IDS.length + LEAD);
     expect(shelf('malice').entries).toHaveLength(MALICE_IDS.length + LEAD);
+    // One page a **figure**, not one a card: a leader is chosen once and the
+    // whole of what they will ever offer belongs on the page that choice is made
+    // from. Seventy-two pages would be seventy-two things nobody could compare.
+    expect(shelf('leader').entries).toHaveLength(LEADER_IDS.length + LEAD);
 
     // Buildings and wonders come off **one** table and are two shelves: a
     // wonder is a flag on a building row, not a second roster, so the two
@@ -193,7 +198,7 @@ describe('the shelves', () => {
     }
   });
 
-  it('has twenty of them, every one with something on it', () => {
+  it('has twenty-one of them, every one with something on it', () => {
     // The index the brief names, plus the Bead Race's — the seventeenth, added
     // with the win condition — plus **Rules**, the eighteenth (batch L1,
     // `docs/audit/legibility.md` §2): the page a technology's named rule points
@@ -204,7 +209,10 @@ describe('the shelves', () => {
     // **Malices**, the two data tables that were walked by no shelf. The deck
     // was owed one from G2 — every other table in the game has a shelf — and the
     // malice's arrives with it, which is what made the two one pass.
-    expect(BOOK).toHaveLength(20);
+    // Twenty-one since batch L2a (`docs/flags.md` (dddd)): **Leaders**, one page
+    // a figure carrying its own line and all twelve cards of its deck — a
+    // decision a player makes before the first turn and has nowhere else to read.
+    expect(BOOK).toHaveLength(21);
     for (const section of BOOK) {
       expect(section.name.length, section.id).toBeGreaterThan(0);
       expect(section.entries.length, section.id).toBeGreaterThan(0);

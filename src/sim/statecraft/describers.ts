@@ -72,7 +72,7 @@ import {
 } from '../statecraftData';
 import { beadGrantDef } from '../beadData';
 import { ABILITY_TECH, abilityDef, techDef } from '../techData';
-import { unitDef } from '../unitData';
+import { type ModelClass, unitDef } from '../unitData';
 import { SLOT_WORDS } from './draft';
 import { anyCardDef } from './evaluator';
 import { CITY_SCOPED_COUNTS, PERIODIC_FLOOR, PERIODIC_PROBE, VOICES, oneOfAKind } from './evaluator';
@@ -2687,6 +2687,7 @@ function filterWords(filter: UnitFilter): string {
   // happens to give it.
   if (filter.explores === true) return 'scouts';
   if (filter.explores === false) return 'units other than scouts';
+  // See `modelClassWord` below.
   // **"Military units"**, which is what a player calls the pieces an empire
   // levies and garrisons with — the roster spells it as a combatant that is
   // neither a scout nor a hull, and none of those three words belongs on a card.
@@ -2703,19 +2704,42 @@ function filterWords(filter: UnitFilter): string {
   if (filter.modelClass === 'navalLight') return 'light warships';
   if (filter.modelClass === 'navalHeavy') return 'heavy warships';
   if (filter.modelClass === 'navalRanged') return 'ships that fire at a distance';
+  // **The horse archer**, the one land silhouette whose id is two words run
+  // together (batch L2a). It is here for the hulls' reason exactly: `mounted`,
+  // `melee` and `ranged` are all words a player already uses, and
+  // "mountedRanged units" is precisely the sentence this table exists to
+  // prevent. Asked before the fall-through, and named again in the list arm
+  // below, because a row may say it either way.
+  if (filter.modelClass === 'mountedRanged') return 'mounted archers';
   if (filter.modelClass !== undefined) return `${filter.modelClass} units`;
   // **Two silhouettes said once** — the Barracks' foot soldiers. The list is
   // read out in the row's own order, because the row's order is the order a
   // designer wrote the sentence in, and the noun is singular-plural exactly as
   // the one-silhouette arm above spells it ("melee and ranged units").
   if (filter.modelClasses !== undefined && filter.modelClasses.length > 0) {
-    return `${listWords(filter.modelClasses)} units`;
+    return `${listWords(filter.modelClasses.map(modelClassWord))} units`;
   }
   if (filter.ranged === true) return 'ranged units';
   if (filter.ranged === false) return 'melee units';
   if (filter.category !== undefined) return `${filter.category} units`;
   if (filter.consecrates === false) return 'units other than augurs';
   return 'all units';
+}
+
+/**
+ * One silhouette, in a word a player has been told.
+ *
+ * The list arm's half of the table above: `melee`, `ranged`, `mounted`, `siege`
+ * and `scout` are already words, and the two that are not — the mounted archer
+ * and the three hulls — are named here rather than printed as their ids. Hard
+ * rule 7 at the scale of one noun.
+ */
+function modelClassWord(id: ModelClass): string {
+  if (id === 'mountedRanged') return 'mounted archer';
+  if (id === 'navalLight') return 'light warship';
+  if (id === 'navalHeavy') return 'heavy warship';
+  if (id === 'navalRanged') return 'firing ship';
+  return id;
 }
 
 /**

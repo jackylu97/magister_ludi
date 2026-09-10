@@ -216,6 +216,7 @@ import {
 } from './trade';
 import { type BeadAward, beadMarks, beadsSince } from './beads';
 import { chooseWagerAt, chooseWagerError } from './wagers';
+import { chooseLeaderCardAt, chooseLeaderCardError } from './leaders';
 import { dismissCensusAt, dismissCensusError } from './census';
 import type { BeadAge } from './beadData';
 import { type TriumphAward, triumphsAwarded } from './triumphs';
@@ -864,6 +865,30 @@ export interface ChooseOrderCommand extends PlayerCommand {
 export interface ChooseWagerCommand extends PlayerCommand {
   type: 'chooseWager';
   /** Which of the three, by position in `WagerDeal.dealt`. */
+  index: number;
+}
+
+/**
+ * **Takes one of the three cards this seat's figure dealt it** (batch L2a,
+ * `docs/leaders.md` "The draft").
+ *
+ * An **index rather than an id**, for `chooseOrder`'s reason: the offer is on
+ * the state (`Player.leaderOffer`) and both halves are in the log, so a replay
+ * deals the same three and takes the same one — and a log that named the card
+ * would be a log that could disagree with the row it answers.
+ *
+ * There is **no way back and no pass**. A card taken is held for the rest of the
+ * game and the other two are gone, which is the draft the sheet describes; the
+ * Order draft's skip has no counterpart here, because a figure's row is dealt
+ * once an age and passing it would be passing on the age. The whole of the gate
+ * is `chooseLeaderCardError`, so the sheet offers exactly what the reducer takes.
+ *
+ * Turn-gated like every other act, and not a trap: the End Turn blocker will not
+ * let a seat hand the turn over with a row still on the table.
+ */
+export interface ChooseLeaderCardCommand extends PlayerCommand {
+  type: 'chooseLeaderCard';
+  /** Which of the three, by position in `LeaderOffer.cards`. */
   index: number;
 }
 
@@ -1697,6 +1722,7 @@ export type Command =
   | ChooseDiscoveryCommand
   | ChooseOrderCommand
   | ChooseWagerCommand
+  | ChooseLeaderCardCommand
   | DismissCensusCommand
   | SkipOrderOfferCommand
   | RerollOfferCommand
@@ -3229,6 +3255,41 @@ function applyChooseWager(state: GameState, command: ChooseWagerCommand): Comman
 }
 
 /**
+ * Takes a card from the figure's row. See `ChooseLeaderCardCommand`.
+ *
+ * `applyChooseWager`'s shape, refusal for refusal: the seat's two questions
+ * here, everything about the *row* delegated whole to `chooseLeaderCardError`,
+ * and not one byte moves until both have been answered — so a rejected index
+ * leaves the state byte-identical, which is hard rule 1 and is pinned.
+ *
+ * The law changes under this call — a passive joins `liveEffects` and a unique
+ * opens a row — so the remembered reading is dropped (`forgetTheLaw`) and the
+ * meters are bumped (`bumpEconomy`) before the boon is paid, which is
+ * `applyChooseDoctrine`'s order exactly and for its reason: a boon that grows a
+ * town settles on a board whose law already carries the card that paid for it.
+ * What the boon handed over goes out on `CommandResult.grants`, the same field a
+ * wonder's completion reports through.
+ */
+function applyChooseLeaderCard(
+  state: GameState,
+  command: ChooseLeaderCardCommand,
+): CommandResult {
+  const actor = resolveActor(state, command.playerId);
+  if (typeof actor === 'string') return fail(actor);
+  if (hasEndedTurn(state, actor.id)) {
+    return fail(`Player ${actor.id} has ended turn ${state.turn} and cannot take a card`);
+  }
+
+  const problem = chooseLeaderCardError(state, actor.id, command.index);
+  if (problem) return fail(problem);
+
+  const taken = chooseLeaderCardAt(state, actor.id, command.index);
+  forgetTheLaw(state);
+  bumpEconomy(state);
+  return ok(undefined, undefined, undefined, undefined, taken?.grants);
+}
+
+/**
  * Closes the book on the census. See `DismissCensusCommand`.
  *
  * `applyChooseWager`'s twin down to the shape: the seat's two questions here,
@@ -4551,6 +4612,8 @@ function orderedUnitId(command: Command): number | undefined {
     case 'chooseOrder':
     // Staking a wager names a card on the world's table, not a piece.
     case 'chooseWager':
+    // Taking a card from a figure's row names a card on your own table.
+    case 'chooseLeaderCard':
     // Closing the book on the census names a page. There is nothing standing on
     // the board to wake, and reading is not an order.
     case 'dismissCensus':
@@ -4672,6 +4735,7 @@ export const COMMAND_CLOCKS: Record<CommandType, CommandClock> = {
   chooseDiscovery: 'economy',
   chooseOrder: 'economy',
   chooseWager: 'economy',
+  chooseLeaderCard: 'economy',
   dismissCensus: 'economy',
   skipOrderOffer: 'economy',
   rerollOffer: 'economy',
@@ -4888,6 +4952,8 @@ function runCommand(state: GameState, command: Command): CommandResult {
       return applyChooseOrder(state, command);
     case 'chooseWager':
       return applyChooseWager(state, command);
+    case 'chooseLeaderCard':
+      return applyChooseLeaderCard(state, command);
     case 'dismissCensus':
       return applyDismissCensus(state, command);
     case 'skipOrderOffer':

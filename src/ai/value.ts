@@ -1950,6 +1950,7 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   retired: 'off the buildable set — `buildError` refuses it before the fold',
   awaitsTech: 'not yet in the world — `buildError` refuses it before the fold',
   unlockedByCard: 'availability, asked by `isUnlocked` before the fold',
+  unlockedByLeader: 'availability again, one table over — the figure’s deck, asked by `isUnlocked` before the fold',
   worldUnlockTech: 'availability, asked by `isUnlocked` before the fold',
   followingOnly: 'availability, asked of the congregation by `purchaseError` before the fold',
   requiresBuilding: 'the chain’s one link, refused by `buildError` in the parent’s own name',

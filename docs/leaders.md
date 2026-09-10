@@ -94,6 +94,68 @@ leader bonus: +2 combat strength against empires with more cities (your own pupp
 | III | internal trade routes supply +2 food and +2 science | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
 | IV | your units heal +5 every turn | the twenty-two tongues: gain +100 renown every time you perform a trade deal | **The Mountain Hold** — a citadel-building: +10 city strength, +2 food |
 
+**Built** (batch L2a, 2026-09-10; `docs/flags.md` (dddd), schema 113). The six
+decks above are `data/leaders.json` beside each figure's `startBias`: a `bonus`
+of ordinary card effects, live from the turn the seat sits down, and a `deck` of
+four rows of three cards. `Player.leader` carries the figure, `Player.leaderPicks`
+the card taken per age and `Player.leaderOffer` the three on the table now. The
+row is dealt in a `leaders` phase directly after `advanceResearch` — the seat's
+**own** age, `highestAge`, never the world's clock — Æra I's with the board;
+`chooseLeaderCard {playerId, index}` takes one and the other two are gone. A
+taken passive is `liveEffects`' twelfth source beside the bonus, a taken boon
+pays once through the bead's `payWindfall` and the wonder's `payGrants`, and a
+taken unique opens a row carrying `unlockedByLeader` — twenty-four new rows in
+`units.json` and `buildings.json`, each with its own `column` because no
+technology prices them. The Compendium walks the six on a `leader:id` shelf, one
+page a figure. The bots appraise the three through `explainEffects`, `explainLump`
+and the row's own appraiser (`src/ai/leader.ts`).
+
+**One rule the sheet did not name**: a figure's row is on the table from the
+first turn, but nobody may answer it until their realm has a town — three of the
+six opening boons hand over something a *town* receives, and a pick taken before
+the capital exists would pay them into nothing. The row waits; it is never lost.
+
+**Every line the vocabulary could not carry**, deferred and annotated on the card
+(never bent — CLAUDE.md rule 7). Three cards are deferred **whole** and do
+nothing at all: Modu's *The Horse Lords* (nothing reveals a resource or lays an
+improvement), Modu's *The Great Raid* and Akhenaten's *The Great Conversion*
+(no shape empties or converts a neighbourhood at a stroke), and Mithridates'
+*The King's Friends* (no card widens a government's slots). The rest are halves:
+
+- **Pachacuti** — the bonus pays a farm once however many mountains ring it;
+  Terraces do not make a hillside farmable that would otherwise refuse a farm;
+  the Slinger is not quickened on hills; The Tribute Road makes *every* town
+  cheaper to hold rather than only those joined by road, and The Storehouses
+  Opened and The Levy of Hands likewise reach every town.
+- **Taizong** — The Great Yangtze makes every town cheaper to hold rather than
+  only those beside a river; the Fubing is free to keep anywhere in your own
+  lands rather than only while garrisoned; The Xuanwu Gate widens every Order
+  draft from now on rather than the next one alone, and does not make it free;
+  The Heavenly Khagan's puppets send no culture; The Tribute of the Khaganate
+  and The Muster of the Provinces each pay once at the seat rather than once per
+  puppet or per barracks; The Great Poets lift every great person's act rather
+  than the artists' alone, and hang no timed quickening.
+- **Modu** — the bonus keeps its extra pace on any ground; the Horde Camp gives
+  a column no marching back; The Rite of the Sky is kept whether or not a rite
+  burns; The Tribute of the Han pays per puppet *citizen* rather than as a share
+  of what puppets make; The Silk Tribute pays once at the seat; the Chanyu's
+  Guard emboldens nobody beside it.
+- **Akhenaten** — the bonus pays a farm beside any fresh water, lake or river;
+  the prophet comes at once rather than with Divination; the Khopesh is stronger
+  anywhere your faith is kept rather than only inside a town; The House of
+  Millions of Years counts only a great work that pays culture; the Valley of
+  Kings counts the realm's great works rather than its own town's, and cannot
+  hurry one along with faith.
+- **Al-Ma'mun** — The New City adds two citizens rather than setting the seat at
+  three; the House of Learning does not read the great people you have called;
+  The Almagest pays its science now rather than at the next peace; the camel
+  archer's arrows do not sharpen for a great person's work.
+- **Mithridates** — The King's Court adds two citizens rather than setting the
+  seat at three; the Pontic peltast's mending on a kill is given to every piece
+  rather than to the peltast alone; The Army Restored calls a general and mends
+  nothing; The Twenty-Two Tongues pays its renown once rather than at every
+  bargain struck.
+
 **Second set** (one per family, for later): Sher Shah Suri, Rajendra Chola,
 Basil II, Sargon, Gwanggaeto, Tomyris, Bumin, Zenobia, Yongle, Emperor Wu,
 Dandolo, Teuta, Hanno, Ulugh Beg, Abd al-Rahman III, Jayavarman VII, Justinian

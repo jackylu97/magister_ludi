@@ -1040,6 +1040,14 @@ describe('the bot module', () => {
     // already stand on one another (`bot.ts` sends the command, `wants.ts` puts
     // the stock in the book, `value.ts` holds the two levers the lean is spent
     // through), so a reading all three ask can live in none of them.
+    //
+    // Seventeen since L2a (2026-09-10): `leader.ts` is the eighth leaf — which
+    // of the three cards a figure's row this seat takes. It is a leaf for
+    // `wager.ts`' first reason and not its second: only `bot.ts` folds it today,
+    // and it is a module of its own because the appraisal is three different
+    // exchanges in one place (a passive as a rate, a boon as a stock converted
+    // by `lumpTurns`, a unique as the row it opens) and an arm of the policy
+    // file is not where three exchanges belong.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1051,6 +1059,7 @@ describe('the bot module', () => {
       'diplomacy.ts',
       'driver.ts',
       'ground.ts',
+      'leader.ts',
       'plan.ts',
       'routes.ts',
       'stepper.ts',

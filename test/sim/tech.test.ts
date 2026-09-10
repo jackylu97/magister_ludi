@@ -239,6 +239,12 @@ describe('tech data integrity', () => {
       // that clause an ungated row would be for sale from turn one — which is
       // exactly what the field exists to prevent.
       if (unitDef(id).unlockedByCard === true) continue;
+      // **And the row a *figure* opens** (batch L2a, `UnitDef.unlockedByLeader`
+      // — the leaders' ten uniques): the clause directly above, one table over.
+      // No node hangs it, `isUnlocked` asks the leader's own taken cards, and
+      // the row carries a `column` of its own because there is no unlocking
+      // technology to price it by.
+      if (unitDef(id).unlockedByLeader === true) continue;
       expect(UNIT_UNLOCK_TECH.has(id), id).toBe(true);
     }
     for (const id of BUILDING_IDS) {
@@ -248,6 +254,10 @@ describe('tech data integrity', () => {
       // asking the tree. Without this clause an ungated row would be buildable
       // from turn one, which is exactly what that field exists to prevent.
       if (buildingDef(id).unlockedByCard === true) continue;
+      // **And the same one table over** (batch L2a, `unlockedByLeader` — the
+      // leaders' fourteen uniques): no node hangs it, `isUnlocked` asks the
+      // figure's own taken cards, and the row carries its own `column`.
+      if (buildingDef(id).unlockedByLeader === true) continue;
       // **And the third exception, temporary by construction**: a row shipped
       // ahead of the age that opens it (`BuildingDef.awaitsTech` — the
       // cathedral, the mint and the armoury, which the Æra IV endeavours race
@@ -1518,7 +1528,7 @@ describe('research in the log', () => {
     // ladder is re-run from the first paid column's 10, so every column above
     // the second charges fewer beakers and a v90 log pays a price this build
     // does not ask for from its second technology on.
-    expect(SCHEMA_VERSION).toBe(112);
+    expect(SCHEMA_VERSION).toBe(113);
     const game = researchingGame();
     for (let turn = 0; turn < 20; turn++) {
       for (const player of game.state.players) dispatch(game, { type: 'endTurn', playerId: player.id });

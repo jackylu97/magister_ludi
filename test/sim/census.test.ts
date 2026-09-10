@@ -308,9 +308,11 @@ describe("the phase", () => {
 
   it("announces the moment in the world’s one vocabulary", () => {
     expect(OCCASIONS).toContain("censusTaken");
-    // Last, because the list's order is `BEAD_OCCASIONS`' own and a member
-    // inserted rather than appended would move a register for no reason.
-    expect(OCCASIONS[OCCASIONS.length - 1]).toBe("censusTaken");
+    // **Appended, never inserted**: the list's order is `BEAD_OCCASIONS`' own,
+    // and a member put in the middle would move a register for no reason. It
+    // was last until batch L2a put `leaderOffered` behind it, on exactly that
+    // rule — so what is pinned is the position it has, not the end of the list.
+    expect(OCCASIONS.indexOf("censusTaken")).toBe(OCCASIONS.length - 2);
   });
 
   it("writes the record into the report, once, on the turn it is taken", () => {
@@ -447,6 +449,6 @@ describe("the blocker", () => {
 
 describe("the schema", () => {
   it("is bumped for the register the census added", () => {
-    expect(SCHEMA_VERSION).toBe(112);
+    expect(SCHEMA_VERSION).toBe(113);
   });
 });

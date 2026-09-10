@@ -443,6 +443,26 @@ export type BuildingId =
   | 'wat'
   | 'gurdwara'
   | 'darEMehr'
+  // --- the leaders' uniques -------------------------------------------------
+  //
+  // Fourteen (batch L2a, `docs/leaders.md`): rows no node names, opened by the
+  // figure that owns them when it takes the card that hands them over
+  // (`unlockedByLeader`). Each carries a `column` of its own, because every
+  // other row is priced by the technology that opens it and these have none.
+  | 'terraces'
+  | 'tambo'
+  | 'qollqa'
+  | 'examinationCourt'
+  | 'postStation'
+  | 'hordeCamp'
+  | 'obelisk'
+  | 'sunCourt'
+  | 'valleyOfKings'
+  | 'houseOfLearning'
+  | 'mihnaCourt'
+  | 'paperMill'
+  | 'mithridatium'
+  | 'ponticHold'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -998,6 +1018,19 @@ export interface BuildingDef {
    * card is what arrives.
    */
   unlockedByCard?: boolean;
+  /**
+   * Nothing in the tech tree opens this row and **a leader's deck does** — the
+   * fourteen unique buildings of `data/leaders.json` (batch L2a).
+   *
+   * `unlockedByCard`'s sibling directly above, read in the same one place
+   * (`isUnlocked`) through the same one question: a taken leader card puts an
+   * ordinary `unlocksBuilding` into `liveEffects`, so `cardUnlocksBuilding`
+   * answers it and nothing learns a second word for availability. It is a second
+   * marker rather than a second value of the first because the Compendium tells
+   * a player *where a row comes from*, and a doctrine and a figure are different
+   * places to go looking.
+   */
+  unlockedByLeader?: boolean;
   /**
    * What finishing this hands its owner, once. See `CompletionGrant`.
    *

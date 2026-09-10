@@ -2726,6 +2726,329 @@
         }
       ],
       "note": "Bought with faith, and only in a city that keeps the faith that opened it. The flame is never let out, and everything offered here goes further."
+    },
+    "terraces": {
+      "name": "Terraces",
+      "category": "food",
+      "size": "medium",
+      "column": 2,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "tileYields": [
+        {
+          "on": { "test": "all", "of": [{ "test": "improvement", "improvement": "farm" }, { "test": "hills" }] },
+          "add": { "food": 1 }
+        }
+      ],
+      "note": "Steps cut into the hillside. Every farm this town works on high ground feeds it better."
+    },
+    "tambo": {
+      "name": "The Tambo",
+      "category": "gold",
+      "size": "large",
+      "column": 8,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "routeSlots": 1,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "origin": { "test": "hasBuilding", "building": "tambo" },
+          "food": 1,
+          "production": 1
+        },
+        {
+          "kind": "pays",
+          "where": "route",
+          "crossing": "domestic",
+          "destination": { "test": "hasBuilding", "building": "tambo" },
+          "food": 1,
+          "production": 1
+        }
+      ],
+      "note": "A way station on the royal road, with room for another caravan. Every road of your own that runs to or from this town carries grain and timber as well as coin."
+    },
+    "qollqa": {
+      "name": "The Qollqa",
+      "category": "food",
+      "size": "large",
+      "column": 11,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "rulePercent",
+          "rule": "growthCarryover",
+          "percent": 25,
+          "scope": { "test": "hasBuilding", "building": "qollqa" }
+        }
+      ],
+      "note": "Round stone granaries on a cold hillside. The town keeps a share of its stores when it grows instead of eating them all."
+    },
+    "examinationCourt": {
+      "name": "The Examination Court",
+      "category": "science",
+      "size": "large",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 1,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "slottedOrdersOfSlot",
+          "slot": "military",
+          "scope": { "test": "hasBuilding", "building": "examinationCourt" }
+        }
+      ],
+      "note": "Clerks sit the examinations here. Every order your armies keep is studied as well as obeyed, and the court widens what a ruler may hold together."
+    },
+    "postStation": {
+      "name": "The Post Station",
+      "category": "production",
+      "size": "large",
+      "column": 11,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "authorityCapacity": 1,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "percentYields",
+          "yield": "production",
+          "percent": 20,
+          "scope": {
+            "test": "all",
+            "of": [{ "test": "hasBuilding", "building": "postStation" }, { "test": "connected" }]
+          }
+        }
+      ],
+      "note": "Fresh horses, a bed and a bag of letters. It is worth a great deal to a town the road from your seat has reached, and nothing at all to one it has not."
+    },
+    "hordeCamp": {
+      "name": "The Horde Camp",
+      "category": "military",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "tileYields": [
+        { "on": { "test": "improvement", "improvement": "pasture" }, "add": { "faith": 1 } }
+      ],
+      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing."
+    },
+    "obelisk": {
+      "name": "The Obelisk",
+      "category": "faith",
+      "size": "small",
+      "column": 2,
+      "food": 0,
+      "production": 2,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "faith": 2,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "note": "One stone, cut whole and stood upright, with the sun on its tip at noon. Cutting it teaches the town to cut everything else."
+    },
+    "sunCourt": {
+      "name": "The Sun Court",
+      "category": "faith",
+      "size": "large",
+      "column": 8,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 3,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "faith",
+          "amount": 1,
+          "count": "population",
+          "per": 4,
+          "within": "city",
+          "scope": { "test": "hasBuilding", "building": "sunCourt" }
+        }
+      ],
+      "note": "An open court with no roof over the altar. The town is glad of it, and the larger the town the more it offers."
+    },
+    "valleyOfKings": {
+      "name": "The Valley of Kings",
+      "category": "culture",
+      "size": "large",
+      "column": 11,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "oncePerEmpire": true,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "culture",
+          "percent": 10,
+          "stage": "city",
+          "count": "wonders",
+          "scope": { "test": "hasBuilding", "building": "valleyOfKings" }
+        }
+      ],
+      "note": "Shafts cut into the rock of a dry valley, one for each great house your realm has raised. One realm, one valley.",
+      "deferred": ["The great works of your realm cannot be hurried along with faith."]
+    },
+    "houseOfLearning": {
+      "name": "The House of Learning",
+      "category": "science",
+      "size": "medium",
+      "column": 2,
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "note": "Rooms for copyists, a kitchen and a courtyard with a well. Those who read here are fed here.",
+      "deferred": ["It does not yet learn from the great people your realm has called."]
+    },
+    "mihnaCourt": {
+      "name": "The Mihna Court",
+      "category": "faith",
+      "size": "large",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "happiness": 2,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "share",
+          "to": "science",
+          "percent": 10,
+          "from": "faith",
+          "scope": { "test": "hasBuilding", "building": "mihnaCourt" }
+        }
+      ],
+      "note": "Where the creed is argued rather than recited. A share of everything this town offers is written down and studied."
+    },
+    "paperMill": {
+      "name": "The Paper Mill",
+      "category": "science",
+      "size": "large",
+      "column": 11,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 3,
+      "culture": 3,
+      "sciencePerPop": 0,
+      "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "destination": { "test": "hasBuilding", "building": "paperMill" },
+          "science": 2
+        }
+      ],
+      "note": "Rag, water and a screen. Every caravan that ends its road here arrives carrying something worth reading."
+    },
+    "mithridatium": {
+      "name": "The Mithridatium",
+      "category": "culture",
+      "size": "medium",
+      "column": 5,
+      "food": 0,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 1,
+      "happiness": 2,
+      "unlockedByLeader": true,
+      "renown": { "family": "artist", "perTurn": 1 },
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "empire",
+          "basis": "count",
+          "to": "happiness",
+          "amount": 1,
+          "count": "population",
+          "per": 5,
+          "within": "city"
+        },
+        { "kind": "cityRenownPercent", "percent": 15 }
+      ],
+      "note": "A physic garden, and a king who takes a little of everything grown in it. The town walks here in the evening, and what it learns of the plants it writes down."
+    },
+    "ponticHold": {
+      "name": "The Mountain Hold",
+      "category": "military",
+      "size": "large",
+      "column": 11,
+      "food": 2,
+      "production": 0,
+      "gold": 0,
+      "science": 0,
+      "culture": 0,
+      "sciencePerPop": 0,
+      "cityStat": { "stat": "defense", "amount": 10 },
+      "unlockedByLeader": true,
+      "note": "A fastness above the town, with its own cistern and its own terraces. The town is worth a great deal more to storm."
     }
   },
   "projects": {

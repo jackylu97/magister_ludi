@@ -1800,6 +1800,89 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (hhhh) **A bought unit stands on the city hex, or is not sold — RULED**
+  (the user, 2026-09-10, mid-playtest: *"purchased units should spawn on
+  the city tile. If a unit of it's type is already occupying the city
+  tile, it should block purchasing"*). **P3 builds**: a unit bought with
+  gold or faith is placed **on the city hex** and nowhere else; if the
+  city hex already holds a unit of the same stacking category (the
+  stacking rule's own reading — `hasStackingRoom`; a military piece
+  blocks a military purchase, a worker a civilian one, a trader a
+  trader), `purchaseError` refuses with one plain sentence ("A Warrior
+  already stands in Uruk — move it first") **before** any coin moves
+  (validate fully; a refused purchase is byte-identical); the city
+  panel's buy buttons wear the `.wanting` voice with that sentence; the
+  bots read the same gate (they already ask `purchaseError`). Production
+  completion is untouched (a built unit keeps today's placement). Pins:
+  a purchase lands on the hex; a blocked purchase is refused and the
+  state unchanged; the panel's sentence; the purchase bucket stamp is not
+  spent by a refusal.
+- (gggg) **Auto-explore spends the whole allowance; a siege mark on the
+  banner — RULED** (the user, 2026-09-10, mid-playtest: *"units set on
+  auto-explore should use all of their movement. Also, we need an icon
+  for when a city is under siege"*). **X14 builds**: (1) an auto-exploring
+  unit (`src/sim/explore.ts`, the standing order the End Turn runs)
+  keeps stepping toward its aim while it has movement and a reachable
+  unrevealed hex — a march, not a single step per turn; re-aim when the
+  aim is reached or blocked; it never ends a turn with movement it could
+  have spent (a hex it cannot enter, an enemy zone or fog with nothing
+  left to see are the honest stops); pinned: a scout with 2 movement on
+  open ground reveals more than one hex's worth per turn, and a march
+  through the whole allowance costs the same as the equivalent moves
+  (`stepCost`, no fifth pricer); (2) **a siege mark**: `underSiege` is
+  derived (`siegeField`, never stored); the city banner (`cityBanners.ts`)
+  shows a drawn mark on the plate when the town is besieged — a small
+  vermilion ring of spears / a portcullis glyph in the atlas's own
+  language (path data, never fetched), on the pill beside the name, with
+  a hover word "Under siege"; the mark is a signature term (fingerprint,
+  not per-frame); the 3D piece untouched; **the new mark joins the flair
+  gallery in the same pass** (`src/flairGallery/`, a stall with the
+  banner besieged and not); the city panel already says it — leave it.
+  Pins: the banner shows the mark iff `underSiege`; the gallery stall;
+  the signature changes when a siege begins and ends.
+- (ffff) **Walls halved back; the chariot's upgrade — RULED and built**
+  (the user, 2026-09-10, mid-playtest: *"i'm finding it very hard to kill
+  this city … was a palisade and stone walls always +10? Let's change
+  them to be +5"*, then *"castle +5, bastion +5 too. Walls of uruk +10"*,
+  and *"war chariots should upgrade into horseman"*). U9 had doubled the
+  walls with the ladder (Palisade 5 → 10, Stone Walls 4 → 10, Castle 5 →
+  10, Bastion 10 → 20, Uruk 10 → 20). Now **every wall line +5**, the
+  Walls of Uruk **+10**; the War Chariot `upgradesTo: horseman`
+  (`docs/units.md` regenerated). Data only, **no schema bump** (a playtest
+  hot-fix: the user's current save keeps loading; the replay note rides
+  with the held stack's next entry). Pushed f89d72b. Why a town felt like
+  a fortress: the city's base is the *best unit its owner could train*
+  (45 at Iron Working, 60 at Militant Orders), plus stacked walls (+20
+  before this), 140 hp healing 20 a turn, and the garrison beat only
+  below a quarter — ▢ the heal (`cityHealPerTurn` 20) and the capture
+  fraction (0.25) are the next levers if towns stay stubborn.
+- (eeee) **The Patronage reads the works — RULED** (the user, 2026-09-10,
+  mid-playtest: *"does The Patronage not factor legacies from previous
+  ages? my reading shows zero"*). Probed: legacies DO count — the ledger's
+  `people` class (`ledgerClass.ts`, `classifyCard` → `isGreatPersonId`)
+  takes every yield line whose card is a great person, and a legacy's
+  lines carry the person's card (Enheduanna's +1 culture read as
+  `people.culture` 1). **What does not count is the works themselves**: a
+  great work's own tile yield (the academy's science, the landmark's
+  culture, the manufactory's hammers) is a tile line and files under
+  `tiles`, so a realm whose great people mostly stand as works reads near
+  nought — against the doc's note ("their works, their gifts and their
+  legacies"). **W4 builds**: the ledger classes a tile line whose
+  improvement is a great person's work (`workForFamily`'s ids —
+  academy, landmark, manufactory, customs house, citadel, holy site's?
+  no, the prophet's is the faith's) as `people`; the works' card riders
+  (Homer's "+2 on academies") already do; `docs/wager.md`'s note and
+  `docs/yields.md`'s class table follow; pins: a work's tile line lands
+  in `people`, a farm's still in `tiles`, The Patronage's standing moves
+  when a work is placed. Also said plainly on the Abacus card: "since
+  the deal" — a flow's opening is subtracted (`openingOf`).
+  **W4 built** (2026-09-10, pushed 44ba14a, no schema): `classifyImprovement`
+  in `ledgerClass.ts` reads `ImprovementDef.greatPerson` (the marker, never
+  a name); step 2 of `explainCity` files a work's hex line under `people`;
+  the prophet's holy site stays with the land; The Patronage's note now
+  says "counted from the age's deal" (▢ the other flow rows' notes say
+  "added up over the age" — the same thing, worded differently; the
+  user's notes). Seven pins in `test/sim/patronage.test.ts`.
 - (dddd) **Leaders — the system and the screens — RULED, queued** (the
   user, 2026-09-10: *"please queue up the leader and start screen
   implementation"*). Specs of record: `docs/leaders.md` (the six decks —

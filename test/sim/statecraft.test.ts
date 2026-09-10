@@ -1732,7 +1732,7 @@ describe("determinism", () => {
     // log's recruitments deal a different hand from the first one on.
     // 105 since batch G3 (2026-09-09): a malice takes a chair, which is a
     // card class of its own and a draw at every age's judgement.
-    expect(SCHEMA_VERSION).toBe(112);
+    expect(SCHEMA_VERSION).toBe(113);
     const g = game(19);
     const player = g.state.players[0]!;
     for (let turn = 0; turn < 12; turn++) {
@@ -8678,6 +8678,14 @@ describe("the engine shapes", () => {
       // earns in renown, and the first ordinary building to.
       "garden · cityRenownPercent",
       "heroicEpic · cityRenownPercent",
+      // Batch L2a — the leaders' unique buildings (`docs/leaders.md`). The Tambo
+      // pays a caravan at both ends of the road, which is two rows of one shape
+      // and not one row read twice; the Mithridatium is the Garden's row with
+      // two lines added, so it carries the Garden's own renown share.
+      "tambo · routeYield",
+      "tambo · routeYield",
+      "paperMill · routeYield",
+      "mithridatium · cityRenownPercent",
       // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
       "theLongCount · periodic",
       "theLongCount · buildingsOfCategories",

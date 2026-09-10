@@ -879,7 +879,13 @@ export function purchaseError(
     // over. Asked through `isUnlocked`, the single source of truth for
     // availability, so the belief's gate and the tree's are one question — and
     // asked here because a `purchase.exclusive` row has no other door.
-    if (bought.kind === 'unit' && unitDef(bought.id).unlockedByCard === true) {
+    // A figure's uniques are asked on exactly the same terms (batch L2a): ten
+    // of them are soldiers standing on no node, so a seat that has not taken the
+    // card that opens one must not be able to buy its way past the deck.
+    if (
+      bought.kind === 'unit' &&
+      (unitDef(bought.id).unlockedByCard === true || unitDef(bought.id).unlockedByLeader === true)
+    ) {
       if (!isUnlocked(state, playerId, 'unit', bought.id)) {
         return `${name} is not open to ${player.name} yet`;
       }

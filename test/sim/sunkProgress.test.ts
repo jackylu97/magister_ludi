@@ -85,7 +85,7 @@ describe('the schema says so', () => {
   it('bumps to the version the changelog writes the rule down at', () => {
     // 111 is this batch's; 112 landed on top of it the same evening (F2, the
     // prophet's charges), so the constant reads the later number.
-    expect(SCHEMA_VERSION).toBe(112);
+    expect(SCHEMA_VERSION).toBe(113);
   });
 
   it('says in the changelog what a v110 log does now', () => {

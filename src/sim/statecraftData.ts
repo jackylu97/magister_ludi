@@ -52,6 +52,9 @@ import type { BuildingCategory, BuildingId, ProductionCategory } from './buildin
 // Type-only in both directions, exactly as `religionData.ts` is. See `CardId`.
 import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
+// Type-only in both directions, exactly as `beadData.ts` is: a leader's bonus
+// and its deck's cards carry ordinary `CardEffect`s, and both are `CardId`s.
+import type { LeaderCardId, LeaderId } from './leaderData';
 import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
@@ -149,7 +152,17 @@ export type CardId =
   // second class that is never drafted and *is* slotted — which is exactly why
   // it is a class rather than a flag on an Order row (`maliceData.ts`'s
   // docblock). Ids stay unique across the whole table.
-  | MaliceId;
+  | MaliceId
+  // **Thirteen classes since the leaders** (batch L2a, `docs/flags.md` (dddd)),
+  // and they arrive as a pair because a figure gives a seat two different
+  // things: `LeaderId` is the **bonus**, the one line a seat holds from the turn
+  // it sits down, and `LeaderCardId` is a **card of its deck**, taken in a draft
+  // when the seat's own age turns. Both are read through `liveEffects`' twelfth
+  // source and described by the same describers as an Order, which is the whole
+  // argument for writing a leader in the card vocabulary at all. Ids stay unique
+  // across the whole table, and `test/sim/leaders.test.ts` pins that.
+  | LeaderId
+  | LeaderCardId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted

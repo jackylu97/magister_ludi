@@ -3404,7 +3404,105 @@
     "raw": "+10% faith in every city with a [[building:darEMehr|Dar-e Mehr]]",
     "text": "+10% faith in every city with a Dar-e Mehr"
    }
-  ]
+  ],
+  "terraces": [],
+  "tambo": [
+   {
+    "raw": "+1 food, +1 production on every trade route sent from every city with [[building:tambo|The Tambo]] and between two of your own cities",
+    "text": "+1 food, +1 production on every trade route sent from every city with The Tambo and between two of your own cities"
+   },
+   {
+    "raw": "+1 food, +1 production on every trade route between two of your own cities and that ends in a city with [[building:tambo|The Tambo]]",
+    "text": "+1 food, +1 production on every trade route between two of your own cities and that ends in a city with The Tambo"
+   }
+  ],
+  "qollqa": [
+   {
+    "raw": "+25% of the stored food kept when a city grows, in every city with [[building:qollqa|The Qollqa]]",
+    "text": "+25% of the stored food kept when a city grows, in every city with The Qollqa"
+   }
+  ],
+  "examinationCourt": [
+   {
+    "raw": "+1 science per military Order you have in a slot",
+    "text": "+1 science per military Order you have in a slot"
+   },
+   {
+    "raw": "+1 authority capacity",
+    "text": "+1 authority capacity"
+   }
+  ],
+  "postStation": [
+   {
+    "raw": "+20% production in every city with [[building:postStation|The Post Station]] joined to your capital by road",
+    "text": "+20% production in every city with The Post Station joined to your capital by road"
+   },
+   {
+    "raw": "+1 authority capacity",
+    "text": "+1 authority capacity"
+   }
+  ],
+  "hordeCamp": [],
+  "obelisk": [],
+  "sunCourt": [
+   {
+    "raw": "+1 faith per 4 citizens in this city",
+    "text": "+1 faith per 4 citizens in this city"
+   },
+   {
+    "raw": "+3 happiness",
+    "text": "+3 happiness"
+   }
+  ],
+  "valleyOfKings": [
+   {
+    "raw": "+10% culture per wonder you hold",
+    "text": "+10% culture per wonder you hold"
+   },
+   {
+    "raw": "The great works of your realm cannot be hurried along with faith. — not built yet",
+    "text": "The great works of your realm cannot be hurried along with faith. — not built yet",
+    "deferred": true
+   }
+  ],
+  "houseOfLearning": [
+   {
+    "raw": "It does not yet learn from the great people your realm has called. — not built yet",
+    "text": "It does not yet learn from the great people your realm has called. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mihnaCourt": [
+   {
+    "raw": "10% of the faith in every city with [[building:mihnaCourt|The Mihna Court]] is gained again as science",
+    "text": "10% of the faith in every city with The Mihna Court is gained again as science"
+   },
+   {
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
+   }
+  ],
+  "paperMill": [
+   {
+    "raw": "+2 science on every trade route that ends in a city with [[building:paperMill|The Paper Mill]]",
+    "text": "+2 science on every trade route that ends in a city with The Paper Mill"
+   }
+  ],
+  "mithridatium": [
+   {
+    "raw": "+1 happiness per 5 citizens in this city",
+    "text": "+1 happiness per 5 citizens in this city"
+   },
+   {
+    "raw": "+15% renown in this city",
+    "text": "+15% renown in this city"
+   },
+   {
+    "raw": "+2 happiness",
+    "text": "+2 happiness"
+   }
+  ],
+  "ponticHold": []
  },
  "greatPerson": {
   "imhotep": [
@@ -4247,6 +4345,663 @@
   ],
   "physics": [],
   "militantOrders": []
+ },
+ "leader": {
+  "pachacuti": [
+   {
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a mountain",
+    "text": "+1 food on every hex with a Farm beside a mountain"
+   },
+   {
+    "raw": "A farm with more than one mountain around it is paid for one of them. — not built yet",
+    "text": "A farm with more than one mountain around it is paid for one of them. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizong": [
+   {
+    "raw": "+1 combat strength for melee units",
+    "text": "+1 combat strength for melee units"
+   },
+   {
+    "raw": "melee units: +1 movement",
+    "text": "melee units: +1 movement"
+   },
+   {
+    "raw": "+2 culture in every city",
+    "text": "+2 culture in every city"
+   }
+  ],
+  "modu": [
+   {
+    "raw": "mounted units: +1 movement",
+    "text": "mounted units: +1 movement"
+   },
+   {
+    "raw": "mounted archers: +1 movement",
+    "text": "mounted archers: +1 movement"
+   },
+   {
+    "raw": "pillaging pays +50%",
+    "text": "pillaging pays +50%"
+   },
+   {
+    "raw": "The extra pace is kept on any ground rather than only on the grass and the plains. — not built yet",
+    "text": "The extra pace is kept on any ground rather than only on the grass and the plains. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenaten": [
+   {
+    "raw": "+1 faith on every hex with a [[improvement:farm|Farm]] beside fresh water",
+    "text": "+1 faith on every hex with a Farm beside fresh water"
+   },
+   {
+    "raw": "+20% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
+    "text": "+20% production toward wonders, in every city with a Holy Site"
+   },
+   {
+    "raw": "A farm that drinks from a lake is paid as one that drinks from the river. — not built yet",
+    "text": "A farm that drinks from a lake is paid as one that drinks from the river. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamun": [
+   {
+    "raw": "+2 food in every city per faith or science building",
+    "text": "+2 food in every city per faith or science building"
+   },
+   {
+    "raw": "+10% science in every city while it is keeping a rite",
+    "text": "+10% science in every city while it is keeping a rite"
+   }
+  ],
+  "mithridates": [
+   {
+    "raw": "+2 combat strength against an empire with more cities than you",
+    "text": "+2 combat strength against an empire with more cities than you"
+   },
+   {
+    "raw": "+1 food on every improved hex carrying a resource",
+    "text": "+1 food on every improved hex carrying a resource"
+   }
+  ]
+ },
+ "leaderCard": {
+  "pachacutiCorvee": [
+   {
+    "raw": "newly created worker units gain +1 charge",
+    "text": "newly created worker units gain +1 charge"
+   }
+  ],
+  "pachacutiMita": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   }
+  ],
+  "pachacutiTerraces": [
+   {
+    "raw": "unlocks the [[building:terraces|Terraces]] — +1 food on every hill hex with a [[improvement:farm|Farm]]",
+    "text": "unlocks the Terraces — +1 food on every hill hex with a Farm"
+   },
+   {
+    "raw": "Farms still cannot be cut into a hillside that would otherwise refuse one. — not built yet",
+    "text": "Farms still cannot be cut into a hillside that would otherwise refuse one. — not built yet",
+    "deferred": true
+   }
+  ],
+  "pachacutiQhapaqNan": [
+   {
+    "raw": "+1 happiness in every city joined to your capital by road",
+    "text": "+1 happiness in every city joined to your capital by road"
+   },
+   {
+    "raw": "+1 production in every city joined to your capital by road",
+    "text": "+1 production in every city joined to your capital by road"
+   }
+  ],
+  "pachacutiMaster": [],
+  "pachacutiSlinger": [
+   {
+    "raw": "unlocks the [[unit:slinger|Slinger]]",
+    "text": "unlocks the Slinger"
+   },
+   {
+    "raw": "The hills do not slow it. — not built yet",
+    "text": "The hills do not slow it. — not built yet",
+    "deferred": true
+   }
+  ],
+  "pachacutiTribute": [
+   {
+    "raw": "+1 authority capacity per city",
+    "text": "+1 authority capacity per city"
+   },
+   {
+    "raw": "Only the towns joined to your seat by road should be cheaper to hold; every town is. — not built yet",
+    "text": "Only the towns joined to your seat by road should be cheaper to hold; every town is. — not built yet",
+    "deferred": true
+   }
+  ],
+  "pachacutiStorehouses": [
+   {
+    "raw": "Every town takes the hammers, not only those joined to your seat. — not built yet",
+    "text": "Every town takes the hammers, not only those joined to your seat. — not built yet",
+    "deferred": true
+   }
+  ],
+  "pachacutiTambo": [
+   {
+    "raw": "unlocks [[building:tambo|The Tambo]] — +1 trade route for your empire; +1 food, +1 production on every trade route sent from every city with [[building:tambo|The Tambo]] and between two of your own cities; +1 food, +1 production on every trade route between two of your own cities and that ends in a city with [[building:tambo|The Tambo]]",
+    "text": "unlocks The Tambo — +1 trade route for your empire; +1 food, +1 production on every trade route sent from every city with The Tambo and between two of your own cities; +1 food, +1 production on every trade route between two of your own cities and that ends in a city with The Tambo"
+   }
+  ],
+  "pachacutiHighlands": [
+   {
+    "raw": "+10% science in every city with a mountain hex inside its borders",
+    "text": "+10% science in every city with a mountain hex inside its borders"
+   },
+   {
+    "raw": "+10% gold in every city with a mountain hex inside its borders",
+    "text": "+10% gold in every city with a mountain hex inside its borders"
+   }
+  ],
+  "pachacutiLevy": [
+   {
+    "raw": "Every town gains the citizen, not only those joined to your seat. — not built yet",
+    "text": "Every town gains the citizen, not only those joined to your seat. — not built yet",
+    "deferred": true
+   }
+  ],
+  "pachacutiQollqa": [
+   {
+    "raw": "unlocks [[building:qollqa|The Qollqa]] — +2 production; +25% of the stored food kept when a city grows, in every city with [[building:qollqa|The Qollqa]]",
+    "text": "unlocks The Qollqa — +2 production; +25% of the stored food kept when a city grows, in every city with The Qollqa"
+   }
+  ],
+  "taizongYangtze": [
+   {
+    "raw": "+1 authority capacity per city",
+    "text": "+1 authority capacity per city"
+   },
+   {
+    "raw": "Only towns raised beside a river should be cheaper to hold; every town is. — not built yet",
+    "text": "Only towns raised beside a river should be cheaper to hold; every town is. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongMandate": [
+   {
+    "raw": "+3 authority capacity",
+    "text": "+3 authority capacity"
+   }
+  ],
+  "taizongFubing": [
+   {
+    "raw": "fubings cost no gold in maintenance inside your territory",
+    "text": "fubings cost no gold in maintenance inside your territory"
+   },
+   {
+    "raw": "unlocks the [[unit:fubing|Fubing]]",
+    "text": "unlocks the Fubing"
+   },
+   {
+    "raw": "It is kept for nothing anywhere in your own lands rather than only while it garrisons a town. — not built yet",
+    "text": "It is kept for nothing anywhere in your own lands rather than only while it garrisons a town. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongGarrisons": [
+   {
+    "raw": "+1 happiness in every city with a unit standing in it",
+    "text": "+1 happiness in every city with a unit standing in it"
+   },
+   {
+    "raw": "+15% culture in every city with a unit standing in it",
+    "text": "+15% culture in every city with a unit standing in it"
+   }
+  ],
+  "taizongXuanwu": [
+   {
+    "raw": "+1 card in every Statecraft draft",
+    "text": "+1 card in every Statecraft draft"
+   },
+   {
+    "raw": "It widens every draft from now on rather than the next one alone. — not built yet",
+    "text": "It widens every draft from now on rather than the next one alone. — not built yet",
+    "deferred": true
+   },
+   {
+    "raw": "The draft it widens is not free of charge. — not built yet",
+    "text": "The draft it widens is not free of charge. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongExamination": [
+   {
+    "raw": "unlocks [[building:examinationCourt|The Examination Court]] — +1 science per military Order you have in a slot; +1 authority capacity",
+    "text": "unlocks The Examination Court — +1 science per military Order you have in a slot; +1 authority capacity"
+   }
+  ],
+  "taizongKhagan": [
+   {
+    "raw": "the authority a captured city costs falls by 1",
+    "text": "the authority a captured city costs falls by 1"
+   },
+   {
+    "raw": "Your puppets do not yet send culture of their own. — not built yet",
+    "text": "Your puppets do not yet send culture of their own. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongTribute": [
+   {
+    "raw": "One payment reaches your seat rather than one from each puppet. — not built yet",
+    "text": "One payment reaches your seat rather than one from each puppet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongCavalry": [
+   {
+    "raw": "+2 combat strength for tang heavy cavalrys while standing beside melee units",
+    "text": "+2 combat strength for tang heavy cavalrys while standing beside melee units"
+   },
+   {
+    "raw": "unlocks the [[unit:tangCavalry|Tang Heavy Cavalry]]",
+    "text": "unlocks the Tang Heavy Cavalry"
+   }
+  ],
+  "taizongPoets": [
+   {
+    "raw": "a great person's act pays +100%",
+    "text": "a great person's act pays +100%"
+   },
+   {
+    "raw": "It lifts every great person's act rather than the artists' alone. — not built yet",
+    "text": "It lifts every great person's act rather than the artists' alone. — not built yet",
+    "deferred": true
+   },
+   {
+    "raw": "The quickened years of work and song that should follow are not yet given. — not built yet",
+    "text": "The quickened years of work and song that should follow are not yet given. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongMuster": [
+   {
+    "raw": "One rider musters at your seat rather than one in every town with a barracks. — not built yet",
+    "text": "One rider musters at your seat rather than one in every town with a barracks. — not built yet",
+    "deferred": true
+   }
+  ],
+  "taizongPostRoad": [
+   {
+    "raw": "unlocks [[building:postStation|The Post Station]] — +20% production in every city with [[building:postStation|The Post Station]] joined to your capital by road; +1 authority capacity",
+    "text": "unlocks The Post Station — +20% production in every city with The Post Station joined to your capital by road; +1 authority capacity"
+   }
+  ],
+  "moduHerds": [
+   {
+    "raw": "+1 production, +1 faith on every hex with a [[improvement:pasture|Pasture]]",
+    "text": "+1 production, +1 faith on every hex with a Pasture"
+   }
+  ],
+  "moduHorseLords": [
+   {
+    "raw": "The horses are not revealed. — not built yet",
+    "text": "The horses are not revealed. — not built yet",
+    "deferred": true
+   },
+   {
+    "raw": "No pasture is laid. — not built yet",
+    "text": "No pasture is laid. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduWhistlingArrow": [
+   {
+    "raw": "unlocks the [[unit:whistlingArrow|The Whistling Arrow]]",
+    "text": "unlocks the The Whistling Arrow"
+   }
+  ],
+  "moduRaiders": [
+   {
+    "raw": "pillaging costs your units no movement",
+    "text": "pillaging costs your units no movement"
+   },
+   {
+    "raw": "pillaging heals a further 25",
+    "text": "pillaging heals a further 25"
+   },
+   {
+    "raw": "pillaging grants +25 faith",
+    "text": "pillaging grants +25 faith"
+   }
+  ],
+  "moduGreatRaid": [
+   {
+    "raw": "Nothing is burnt: the stroke that empties a neighbour's fields is not built. — not built yet",
+    "text": "Nothing is burnt: the stroke that empties a neighbour's fields is not built. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduHordeCamp": [
+   {
+    "raw": "unlocks [[building:hordeCamp|The Horde Camp]] — +1 faith on every hex with a [[improvement:pasture|Pasture]]",
+    "text": "unlocks The Horde Camp — +1 faith on every hex with a Pasture"
+   },
+   {
+    "raw": "The herds do not yet give a column its marching back. — not built yet",
+    "text": "The herds do not yet give a column its marching back. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduSkyRite": [
+   {
+    "raw": "+1 combat strength",
+    "text": "+1 combat strength"
+   },
+   {
+    "raw": "It is kept whether or not a rite is burning in your empire. — not built yet",
+    "text": "It is kept whether or not a rite is burning in your empire. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduGeneral": [],
+  "moduHorseArcher": [
+   {
+    "raw": "xiongnu horse archers: a unit that kills gets its movement back for the rest of the turn",
+    "text": "xiongnu horse archers: a unit that kills gets its movement back for the rest of the turn"
+   },
+   {
+    "raw": "unlocks the [[unit:xiongnuHorseArcher|Xiongnu Horse Archer]]",
+    "text": "unlocks the Xiongnu Horse Archer"
+   }
+  ],
+  "moduTribute": [
+   {
+    "raw": "+1 science per citizen living in a puppet of yours",
+    "text": "+1 science per citizen living in a puppet of yours"
+   },
+   {
+    "raw": "+1 culture per citizen living in a puppet of yours",
+    "text": "+1 culture per citizen living in a puppet of yours"
+   },
+   {
+    "raw": "It is paid for each citizen your puppets hold rather than as a share of what they make. — not built yet",
+    "text": "It is paid for each citizen your puppets hold rather than as a share of what they make. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduSilk": [
+   {
+    "raw": "One payment reaches your seat rather than one from each puppet. — not built yet",
+    "text": "One payment reaches your seat rather than one from each puppet. — not built yet",
+    "deferred": true
+   }
+  ],
+  "moduGuard": [
+   {
+    "raw": "unlocks the [[unit:chanyuGuard|The Chanyu's Guard]]",
+    "text": "unlocks the The Chanyu's Guard"
+   },
+   {
+    "raw": "The horse archers riding beside it are not yet emboldened. — not built yet",
+    "text": "The horse archers riding beside it are not yet emboldened. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenatenRites": [
+   {
+    "raw": "+10% production toward wonders, in every city while it is keeping a rite",
+    "text": "+10% production toward wonders, in every city while it is keeping a rite"
+   }
+  ],
+  "akhenatenVoice": [
+   {
+    "raw": "The prophet comes at once rather than waiting on the study of omens. — not built yet",
+    "text": "The prophet comes at once rather than waiting on the study of omens. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenatenObelisk": [
+   {
+    "raw": "unlocks [[building:obelisk|The Obelisk]] — +2 production, +2 faith",
+    "text": "unlocks The Obelisk — +2 production, +2 faith"
+   }
+  ],
+  "akhenatenDesert": [
+   {
+    "raw": "+3 food, +3 faith on every desert hex with a [[improvement:holySite|Holy Site]]",
+    "text": "+3 food, +3 faith on every desert hex with a Holy Site"
+   }
+  ],
+  "akhenatenCourt": [],
+  "akhenatenKhopesh": [
+   {
+    "raw": "+3 combat strength for the khopeshs inside cities that follow your religion",
+    "text": "+3 combat strength for the khopeshs inside cities that follow your religion"
+   },
+   {
+    "raw": "unlocks the [[unit:khopesh|The Khopesh]]",
+    "text": "unlocks the The Khopesh"
+   },
+   {
+    "raw": "It is stronger anywhere your faith is kept rather than only inside a town. — not built yet",
+    "text": "It is stronger anywhere your faith is kept rather than only inside a town. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenatenMillions": [
+   {
+    "raw": "+10% food in every city holding a wonder that supplies culture",
+    "text": "+10% food in every city holding a wonder that supplies culture"
+   },
+   {
+    "raw": "+5 culture in every city holding a wonder that supplies culture",
+    "text": "+5 culture in every city holding a wonder that supplies culture"
+   },
+   {
+    "raw": "A great work that pays no culture is not counted. — not built yet",
+    "text": "A great work that pays no culture is not counted. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenatenWorks": [],
+  "akhenatenSunCourt": [
+   {
+    "raw": "unlocks [[building:sunCourt|The Sun Court]] — +1 faith per 4 citizens in this city; +3 happiness",
+    "text": "unlocks The Sun Court — +1 faith per 4 citizens in this city; +3 happiness"
+   }
+  ],
+  "akhenatenFaithful": [
+   {
+    "raw": "-15% happiness demanded per citizen, in every city that follows the religion",
+    "text": "-15% happiness demanded per citizen, in every city that follows the religion"
+   }
+  ],
+  "akhenatenConversion": [
+   {
+    "raw": "Nothing turns: the stroke that converts a leaning town is not built. — not built yet",
+    "text": "Nothing turns: the stroke that converts a leaning town is not built. — not built yet",
+    "deferred": true
+   }
+  ],
+  "akhenatenValley": [
+   {
+    "raw": "unlocks [[building:valleyOfKings|The Valley of Kings]] — +10% culture per wonder you hold",
+    "text": "unlocks The Valley of Kings — +10% culture per wonder you hold"
+   },
+   {
+    "raw": "It counts every great work your realm holds rather than only those raised in its own town. — not built yet",
+    "text": "It counts every great work your realm holds rather than only those raised in its own town. — not built yet",
+    "deferred": true
+   },
+   {
+    "raw": "Great works cannot be hurried along with faith. — not built yet",
+    "text": "Great works cannot be hurried along with faith. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamunDevotion": [
+   {
+    "raw": "+1 faith in your capital per 2 citizens there",
+    "text": "+1 faith in your capital per 2 citizens there"
+   }
+  ],
+  "almamunNewCity": [
+   {
+    "raw": "It adds two citizens to your seat rather than setting it at three. — not built yet",
+    "text": "It adds two citizens to your seat rather than setting it at three. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamunHouse": [
+   {
+    "raw": "unlocks [[building:houseOfLearning|The House of Learning]] — +2 food",
+    "text": "unlocks The House of Learning — +2 food"
+   },
+   {
+    "raw": "It does not yet learn from the great people your realm has called. — not built yet",
+    "text": "It does not yet learn from the great people your realm has called. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamunTranslators": [
+   {
+    "raw": "+20% renown",
+    "text": "+20% renown"
+   },
+   {
+    "raw": "+1 renown per turn per faith building you hold, favouring scholars",
+    "text": "+1 renown per turn per faith building you hold, favouring scholars"
+   }
+  ],
+  "almamunAlmagest": [
+   {
+    "raw": "It is paid now rather than at the next peace you sign. — not built yet",
+    "text": "It is paid now rather than at the next peace you sign. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamunMihna": [
+   {
+    "raw": "unlocks [[building:mihnaCourt|The Mihna Court]] — 10% of the faith in every city with [[building:mihnaCourt|The Mihna Court]] is gained again as science; +2 happiness",
+    "text": "unlocks The Mihna Court — 10% of the faith in every city with The Mihna Court is gained again as science; +2 happiness"
+   }
+  ],
+  "almamunMutazila": [
+   {
+    "raw": "+1 science per 5 faith gained per turn",
+    "text": "+1 science per 5 faith gained per turn"
+   }
+  ],
+  "almamunPurse": [],
+  "almamunCamel": [
+   {
+    "raw": "unlocks the [[unit:camelArcher|Camel Archer]]",
+    "text": "unlocks the Camel Archer"
+   },
+   {
+    "raw": "Its arrows do not yet grow keener for the works your great people have planted. — not built yet",
+    "text": "Its arrows do not yet grow keener for the works your great people have planted. — not built yet",
+    "deferred": true
+   }
+  ],
+  "almamunOrdinance": [
+   {
+    "raw": "what your other Orders pay in faith is +100% more",
+    "text": "what your other Orders pay in faith is +100% more"
+   }
+  ],
+  "almamunEnquiry": [],
+  "almamunPaperMill": [
+   {
+    "raw": "unlocks [[building:paperMill|The Paper Mill]] — +3 science, +3 culture; +2 science on every trade route that ends in a city with [[building:paperMill|The Paper Mill]]",
+    "text": "unlocks The Paper Mill — +3 science, +3 culture; +2 science on every trade route that ends in a city with The Paper Mill"
+   }
+  ],
+  "mithridatesGroves": [
+   {
+    "raw": "+2 food on every hex with a [[improvement:plantation|Plantation]] or [[improvement:camp|Camp]]",
+    "text": "+2 food on every hex with a Plantation or Camp"
+   }
+  ],
+  "mithridatesCourt": [
+   {
+    "raw": "It adds two citizens to your seat rather than setting it at three. — not built yet",
+    "text": "It adds two citizens to your seat rather than setting it at three. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mithridatesPeltast": [
+   {
+    "raw": "killing a unit heals 25",
+    "text": "killing a unit heals 25"
+   },
+   {
+    "raw": "unlocks the [[unit:ponticPeltast|The Pontic Peltast]]",
+    "text": "unlocks the The Pontic Peltast"
+   },
+   {
+    "raw": "Every one of your pieces mends on a kill rather than the peltast alone. — not built yet",
+    "text": "Every one of your pieces mends on a kill rather than the peltast alone. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mithridatesFriends": [
+   {
+    "raw": "No chair is opened: a card that widens a government's slots is not built. — not built yet",
+    "text": "No chair is opened: a card that widens a government's slots is not built. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mithridatesPhysician": [],
+  "mithridatesMithridatium": [
+   {
+    "raw": "unlocks [[building:mithridatium|The Mithridatium]] — +1 science for every citizen; +1 happiness per 5 citizens in this city; +15% renown in this city; +2 happiness; +1 renown per turn, favouring artists",
+    "text": "unlocks The Mithridatium — +1 science for every citizen; +1 happiness per 5 citizens in this city; +15% renown in this city; +2 happiness; +1 renown per turn, favouring artists"
+   }
+  ],
+  "mithridatesRoads": [
+   {
+    "raw": "+2 food, +2 science on every trade route between two of your own cities",
+    "text": "+2 food, +2 science on every trade route between two of your own cities"
+   }
+  ],
+  "mithridatesGeneral": [
+   {
+    "raw": "Your armies are not mended by it. — not built yet",
+    "text": "Your armies are not mended by it. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mithridatesChariot": [
+   {
+    "raw": "unlocks the [[unit:scythedChariot|The Scythed Chariot]]",
+    "text": "unlocks the The Scythed Chariot"
+   }
+  ],
+  "mithridatesPoison": [
+   {
+    "raw": "all units: +5 healing per turn",
+    "text": "all units: +5 healing per turn"
+   }
+  ],
+  "mithridatesTongues": [
+   {
+    "raw": "It is paid once rather than at every bargain you strike. — not built yet",
+    "text": "It is paid once rather than at every bargain you strike. — not built yet",
+    "deferred": true
+   }
+  ],
+  "mithridatesHold": [
+   {
+    "raw": "unlocks [[building:ponticHold|The Mountain Hold]] — +2 food; +10 to the city’s defence strength",
+    "text": "unlocks The Mountain Hold — +2 food; +10 to the city’s defence strength"
+   }
+  ]
  },
  "bead": {
   "firstIntoTheAge": [],

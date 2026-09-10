@@ -6988,8 +6988,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         onOfferGreatPerson?.();
         return;
       }
+      case 'leaderDraft': {
+        // No camera for the fifth either, for the fourth's reason: a figure's
+        // row is the empire's and not a place on the board.
+        //
+        // **No sheet yet.** The draft's own screen is batch L2b's; until it is
+        // built the sentence is the whole of the steering, and a seat with no
+        // way to answer would be a locked button — so the guide says where the
+        // decision lives rather than opening something that does not exist.
+        guide('☞ Your leader offers three cards — take one.');
+        return;
+      }
       case 'wager': {
-        // No camera for the fifth either: the three bars are the *world's* and
+        // No camera for the sixth either: the three bars are the *world's* and
         // the chair is the empire's. It is the shortest-lived of the five —
         // the table is answered on the turn it is dealt (`docs/wager.md` §2) —
         // which is why the sentence names the age rather than the card.

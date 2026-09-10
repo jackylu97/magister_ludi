@@ -2028,6 +2028,14 @@ describe('the unit roster carries the combat data the rules need', () => {
         'fireShip',
         'gunGalley',
         'frigate',
+        // And the four bows of the leaders' decks (batch L2a): each shadows a
+        // rung of one of the lines above — the slinger the bowman's, the
+        // whistling arrow the chariot archer's, the Xiongnu and the camel the
+        // horse archer's — and shoots by the same pair of fields.
+        'slinger',
+        'whistlingArrow',
+        'xiongnuHorseArcher',
+        'camelArcher',
       ].sort(),
     );
   });

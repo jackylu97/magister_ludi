@@ -95,6 +95,21 @@ export type UnitTypeId =
   // (`unlockedByCard`) and the faith bank buys it, priced and armed off
   // whatever horse the empire can raise (`mirrors`).
   | 'knightsTemplar'
+  // The leaders' ten uniques (batch L2a, `docs/leaders.md`): rows no node names
+  // and no queue takes until the figure that owns them has taken the card that
+  // hands them over (`unlockedByLeader`). Each carries a `column` of its own,
+  // because the tree prices every other row by the technology that opens it and
+  // these have none.
+  | 'slinger'
+  | 'fubing'
+  | 'tangCavalry'
+  | 'whistlingArrow'
+  | 'xiongnuHorseArcher'
+  | 'chanyuGuard'
+  | 'khopesh'
+  | 'camelArcher'
+  | 'ponticPeltast'
+  | 'scythedChariot'
   | 'greatPerson';
 
 /**
@@ -592,6 +607,24 @@ export interface UnitDef {
    * particular row has.
    */
   unlockedByCard?: boolean;
+  /**
+   * True when **a leader's deck opens this row and nothing else does** — the ten
+   * uniques of `data/leaders.json` (batch L2a).
+   *
+   * `unlockedByCard`'s field one line up, and it says the same sentence about a
+   * different table: a row no node names is otherwise available from turn one,
+   * which is precisely wrong for a row a figure is supposed to hand over. Read
+   * in the same one place (`isUnlocked`), through the same one question — a
+   * leader's taken card puts an ordinary `unlocksUnit` into `liveEffects`
+   * (`leaderCardEffects`), so `cardUnlocksUnit` answers it without learning the
+   * word "leader".
+   *
+   * Two markers rather than one because the two answer different questions for
+   * a *reader*: the Compendium tells a player where a row comes from, and "an
+   * Order opens it" and "a figure opens it" are different sentences and
+   * different places to go looking.
+   */
+  unlockedByLeader?: boolean;
   /**
    * True when every passable hex costs this unit exactly `minStepCost` to
    * enter, whatever grows on it or however steep it is — or the field is

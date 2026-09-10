@@ -72,7 +72,16 @@ import type { TriumphId } from "./triumphData";
 import { bumpEconomy } from "./slate";
 import type { GameMap } from "./map";
 import { generateMap, getMapSize } from "./mapgen";
-import { type LeaderId, isLeaderId } from "./leaderData";
+import {
+  type LeaderCardId,
+  type LeaderDeckAge,
+  type LeaderId,
+  isLeaderId,
+  leaderDef,
+} from "./leaderData";
+
+/** The row every seat is dealt with the board. See `newGame`. */
+const FIRST_LEADER_DECK_AGE: LeaderDeckAge = "1";
 import { type MapgenOverrides, resolveMapgenConfig } from "./mapgenData";
 import {
   type BeliefId,
@@ -98,7 +107,7 @@ import {
 } from "./statecraft";
 import type { CardEffect, CardId } from "./statecraftData";
 import { chooseStartPositionsFor, planStartingUnits } from "./startPositions";
-import type { TechId } from "./techData";
+import type { TechAge, TechId } from "./techData";
 import {
   type UnitStamp,
   type UnitTypeId,
@@ -833,8 +842,29 @@ import {
  * prophet that had spent a charge speaking could found a faith or draw a belief
  * before this, and is refused now, so a log whose prophet did that diverges at
  * the command and every draw after it moves with the generator.
+ *
+ * v113 (batch L2a, `docs/flags.md` (dddd); the user, 2026-09-10: *"please queue
+ * up the leader and start screen implementation"*): **a leader is a bonus and a
+ * deck.** `data/leaders.json` gains a `bonus` — card effects live for the seat
+ * from turn one — and a `deck` of four rows of three cards, one passive, one
+ * boon and one unique an age, written from `docs/leaders.md`. Three fields join
+ * the seat: `Player.leader` (the runtime copy of the spec's figure),
+ * `Player.leaderPicks` (the card taken per age, keyed by the age it was dealt
+ * in) and `Player.leaderOffer` (the three in front of it now). The offer opens
+ * in a `leaders` phase when **this seat's own** age turns — Æra I's in `newGame`
+ * — blocks End Turn until `chooseLeaderCard` answers it, and the other two are
+ * gone. A taken passive joins `liveEffects` as its twelfth source, a taken boon
+ * pays once through the bead's `payWindfall` and the wonder's `payGrants`, and
+ * a taken unique opens a row carrying `unlockedByLeader` through the same
+ * `unlocksUnit` / `unlocksBuilding` clause a belief opens the Templars with.
+ *
+ * All three fields are **presence-is-state**, so a v112 log whose roster names
+ * no figure replays byte for byte: no key is written, no phase does anything,
+ * and no blocker is raised. A log whose roster *does* name a figure does not
+ * replay — the seat is now owed a decision on turn one that it was not owed
+ * before, so the command log is a different log.
  */
-export const SCHEMA_VERSION = 112;
+export const SCHEMA_VERSION = 113;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit
@@ -1539,6 +1569,45 @@ export interface Player {
    */
   wager?: PlayerWager;
   /**
+   * **The figure this seat plays**, or absent for a seat that named none.
+   *
+   * The runtime copy of `PlayerSpec.leader`, written once in `newGame` and never
+   * again: a leader is chosen at the table and does not change hands. It is on
+   * the `Player` as well as on the spec because the *map* reads the spec (the
+   * three stages run before there is a state at all) and the *rules* read the
+   * seat — `liveEffects` asks it once per law, and a walk over `state.players`
+   * should not have to go back to the config to find out who is sitting there.
+   *
+   * Presence-is-state, exactly as `charge` and `persona` are: a seat with no
+   * figure has no key, so a leaderless game serialises byte for byte as a game
+   * from before leaders existed.
+   */
+  leader?: LeaderId;
+  /**
+   * **Which card this seat took in each age**, keyed by the age it was dealt in.
+   *
+   * A record rather than a list because the question every reader asks is "what
+   * did this seat take in Æra II" — and because a seat is dealt one row an age
+   * and answers it once, so the age *is* the key. Written by
+   * `chooseLeaderCardAt` and by nothing else; absent until the first pick, for
+   * `leader`'s reason.
+   *
+   * Walked through `TECH_AGES`, never through its own keys (hard rule 2): the
+   * passives a seat holds are folded into the law in age order.
+   */
+  leaderPicks?: Partial<Record<TechAge, LeaderCardId>>;
+  /**
+   * **The three cards on the table**, and the age that dealt them.
+   *
+   * There is no draw: a leader's row for an age is the same three cards every
+   * game, so the "offer" is a record that the seat has been *shown* them and
+   * owes an answer — which is what the End Turn blocker reads. Opened by
+   * `openLeaderOffers` when the seat's own age turns, spent by
+   * `chooseLeaderCardAt`, and deleted rather than emptied (presence-is-state,
+   * `researchPlan`'s discipline one system over).
+   */
+  leaderOffer?: LeaderOffer;
+  /**
    * The lifetime totals a **flow** wager subtracts against, one per accumulator
    * (`WAGER_ACCUMULATORS`, `wagerData.ts`).
    *
@@ -1592,6 +1661,26 @@ export interface Player {
    * still up would be a save that had forgotten a player had read it.
    */
   censusSeen?: number;
+}
+
+/**
+ * The three cards a leader's deck has put in front of one seat. See
+ * `Player.leaderOffer`.
+ *
+ * **Ids rather than indices**, which is the wager's decision the other way
+ * round and for the stated reason: a wager's three are the *world's* — the same
+ * three for every seat — so a stake is a chair at a shared table, while these
+ * three are read straight off this seat's own figure's row and are simply the
+ * cards. The command still names one by index (`chooseLeaderCard`), because the
+ * offer is what the index indexes and both halves are in the log.
+ */
+export interface LeaderOffer {
+  /** The age whose row was dealt. `Player.leaderPicks`' key. */
+  age: TechAge;
+  /** The row, in the sheet's own order: the passive, the boon, the unique. */
+  cards: [LeaderCardId, LeaderCardId, LeaderCardId];
+  /** The absolute turn the row was put in front of this seat. */
+  turn: number;
 }
 
 /** One seat's stake on the table. See `Player.wager`. */
@@ -3542,6 +3631,10 @@ export function newGame(config: GameConfig): GameState {
       // a charge-less config serialises identically to one from before the field.
       ...(spec.charge === undefined ? {} : { charge: spec.charge }),
       ...(spec.persona === undefined ? {} : { persona: spec.persona }),
+      // The figure, on exactly the same terms and for the same reason: a seat
+      // that named none has no key, so a leaderless game is byte-identical to a
+      // game from before leaders existed (pinned, `test/sim/leaders.test.ts`).
+      ...(spec.leader === undefined ? {} : { leader: spec.leader }),
       isHuman: spec.isHuman ?? false,
       gold: 0,
       sciencePool: 0,
@@ -3652,6 +3745,28 @@ export function newGame(config: GameConfig): GameState {
   // nobody's — but seated *nothing*, leaving an ownerIndex the roster never
   // filled. Appended here it costs the real seats nothing at all.
   if (normalized.barbarians === true) seatBarbarians(state);
+  // **The opening row of every figure's deck**, dealt with the board (batch
+  // L2a). Every seat begins in Æra I, owes its first decision on turn one, and
+  // there is no end-of-turn before that for the `leaders` phase to run in — so
+  // the first row is written here and every row after it by the phase
+  // (`runLeaderDraft`, `leaders.ts`, which sweeps for exactly this shape and
+  // would deal this one too if the game were somehow saved without it).
+  //
+  // Written from `leaderData.ts` — a leaf — rather than by calling the phase,
+  // because this module is the one every other one imports and an import of the
+  // draft's verbs would close a load-time cycle through the seams a boon is paid
+  // through. A seat with no figure is untouched: no key, no debt, and a
+  // leaderless game byte-identical to one from before leaders existed.
+  for (const player of state.players) {
+    const leader = player.leader;
+    if (leader === undefined || player.barbarian) continue;
+    const row = leaderDef(leader).deck[FIRST_LEADER_DECK_AGE];
+    player.leaderOffer = {
+      age: 1,
+      cards: [row[0].id, row[1].id, row[2].id],
+      turn: state.turn,
+    };
+  }
   // The opening scouting report. `createUnit` has already refreshed each seat as
   // its pieces landed, but a seat whose roster is empty — a scenario, a future
   // spectator — would otherwise start with no grid computed at all, and a state

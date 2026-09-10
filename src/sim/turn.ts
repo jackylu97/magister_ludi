@@ -149,6 +149,7 @@ import { reviewLegacies } from "./greatPeople";
 import { type GuildReport, runGuilds } from "./guilds";
 import { type BeadAward, beadMarks, beadsSince, runWorldClock } from "./beads";
 import { runWagers } from "./wagers";
+import { runLeaderDraft } from "./leaders";
 import { runCensus } from "./census";
 import type { BeadAge } from "./beadData";
 import { runRenown, settleRenownWindfall } from "./renown";
@@ -614,6 +615,27 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // Spends `Player.sciencePool` on the tech it is aimed at, and marches the
     // army up its upgrade chains the moment one lands.
     run: advanceResearch,
+  },
+  {
+    name: "leaders",
+    // **The figure's own row** (batch L2a, `docs/leaders.md` "The draft"): a seat
+    // that has entered an age it has not been dealt three cards for is dealt
+    // them, and owes an answer before it may hand over another turn.
+    //
+    // Its position is the usual rules decision and it is one sentence:
+    // **directly after `advanceResearch`**, because a seat's age is its highest
+    // technology and that is the phase where a technology lands — a sweep above
+    // it would be reading the age the seat had at the top of the resolution and
+    // would deal the row a turn late. Everything below it that reads the law is
+    // then reading a law the seat has been *offered* a card into, which is the
+    // honest order: the card is not in the law until the seat takes it.
+    //
+    // It draws nothing from `state.rng` — a leader's row for an age is written
+    // on its own sheet — so a leader draft cannot move a seed. It skips the wild
+    // for `runStatecraft`'s reason. Æra I's row is dealt with the board, in
+    // `newGame`, because a seat owes that decision on turn one and there is no
+    // resolution before it. See `runLeaderDraft` (`leaders.ts`).
+    run: runLeaderDraft,
   },
   {
     name: "periodicBoons",

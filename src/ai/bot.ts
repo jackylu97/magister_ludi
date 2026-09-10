@@ -344,6 +344,7 @@ import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
 import { appraiseWagers, wagerLeanOf } from './wager';
+import { appraiseLeaderCards } from './leader';
 import { censusBlocker } from '../sim/census';
 import { round as round1 } from './decision';
 import { hasFoundedReligion } from './ground';
@@ -1204,7 +1205,11 @@ function isOfferBlocker(blocker: TurnBlocker): boolean {
     blocker.kind === 'discovery' ||
     blocker.kind === 'statecraft' ||
     blocker.kind === 'religion' ||
-    blocker.kind === 'greatPerson'
+    blocker.kind === 'greatPerson' ||
+    // The figure's row is the fifth offer and joins the four for their reason
+    // exactly: it sits on the seat until it is spent, nobody else can answer it,
+    // and a card taken early is a card paying for the rest of the turn.
+    blocker.kind === 'leaderDraft'
   );
 }
 
@@ -1233,6 +1238,8 @@ function answerBlocker(
       return beliefDecision(state, player, sitting);
     case 'greatPerson':
       return greatPersonDecision(state, player, sitting);
+    case 'leaderDraft':
+      return leaderDecision(state, player, sitting);
     case 'wager':
       return wagerDecision(state, player, sitting);
     case 'census':
@@ -1308,6 +1315,52 @@ function wagerDecision(state: GameState, player: Player, sitting?: BotSitting): 
       `Stakes ${best.name} — ${round1(best.standing)} of ${round1(best.bar)} today and ` +
       `${round1(best.projected)} by the close in ${stake.turnsLeft} turns, which is ` +
       `${Math.round(best.margin * 100)}% of the bar; a malice would cost ${round1(stake.malice)}.`,
+    candidates,
+  };
+}
+
+/**
+ * **Takes the card its figure's row is worth most of** (batch L2a,
+ * `docs/leaders.md` "The draft").
+ *
+ * The whole appraisal is `appraiseLeaderCards` (`src/ai/leader.ts`) and this arm
+ * is the command it comes out as: a passive priced as a rate, a boon converted
+ * into one by the same `lumpTurns` every gift in the game is converted by, and a
+ * unique priced as the row it opens — highest wins, ties by the column the sheet
+ * wrote first.
+ *
+ * A card the rules refuse is never proposed, which is the driver's standing rule
+ * that a refusal is a bug. If every card is somehow refused the arm answers
+ * `null` — and unlike the wager there is no phase default behind it, because a
+ * card taken is held for the rest of the game and nothing may take one on a
+ * seat's behalf. A bot that answered `null` here would simply still owe the
+ * decision, which is what the driver reports rather than swallows.
+ */
+function leaderDecision(state: GameState, player: Player, sitting?: BotSitting): BotDecision | null {
+  const plan = appraiseLeaderCards(state, player, seatContext(state, player, sitting));
+  if (plan === null || plan.best === null) return null;
+  const best = plan.best;
+  const candidates: BotCandidate[] = plan.options.map((option) =>
+    option.rejected !== null
+      ? refused(option.name, option.rejected)
+      : {
+          label: option.name,
+          score: option.score,
+          chosen: option.index === best.index,
+          terms: option.terms,
+        },
+  );
+  return {
+    kind: 'draft',
+    command: { type: 'chooseLeaderCard', playerId: player.id, index: best.index },
+    subject: player.name,
+    summary:
+      `Takes ${best.name} from the ${best.kind} column of its leader's ` +
+      `Æra ${plan.age} row, worth ${round1(best.score)} against ` +
+      `${plan.options
+        .filter((option) => option.index !== best.index)
+        .map((option) => `${option.name} at ${round1(option.score)}`)
+        .join(' and ')}.`,
     candidates,
   };
 }

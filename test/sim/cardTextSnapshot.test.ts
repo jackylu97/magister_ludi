@@ -40,6 +40,7 @@ import { describe, expect, it } from 'vitest';
 import { BEAD_ENDEAVOUR_IDS, BEAD_FEAT_IDS, BEAD_GRANT_IDS, BEAD_QUEST_IDS, BEAD_RECKONING_IDS } from '../../src/sim/beadData';
 import { BUILDING_IDS } from '../../src/sim/buildingData';
 import { GREAT_PERSON_IDS } from '../../src/sim/greatPeopleData';
+import { LEADER_CARD_IDS, LEADER_IDS } from '../../src/sim/leaderData';
 import { ALL_BELIEF_IDS, CONSECRATION_IDS, RITE_IDS } from '../../src/sim/religionData';
 import { RESOURCE_IDS } from '../../src/sim/resourceData';
 import { describeResourceSignature } from '../../src/sim/resourceEffects';
@@ -71,6 +72,12 @@ const CLASSES: readonly { class: string; ids: readonly string[] }[] = [
   { class: 'building', ids: BUILDING_IDS },
   { class: 'greatPerson', ids: GREAT_PERSON_IDS },
   { class: 'tech', ids: TECH_IDS },
+  // Batch L2a's two classes, and they are two rather than one for the reason
+  // `CardId` gives: a figure's own line and a card of its deck are different
+  // things a seat holds, and a reader diffing this fixture wants to see which
+  // moved.
+  { class: 'leader', ids: LEADER_IDS },
+  { class: 'leaderCard', ids: LEADER_CARD_IDS },
   {
     class: 'bead',
     ids: [

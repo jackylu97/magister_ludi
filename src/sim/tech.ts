@@ -599,6 +599,23 @@ export function isUnlocked(
   // arrives by an act (`BuildingDef.placed`). Asked here rather than left to
   // fall through the tree's silence for `unlockedByCard`'s stated reason: a
   // building no technology names is otherwise buildable from turn one.
+  // **A row a figure opens is asked of the figure's cards**, on exactly the
+  // clause above's terms (batch L2a). Same shape, same question, same fall
+  // through to the tree: a leader's taken unique puts an ordinary `unlocksUnit`
+  // or `unlocksBuilding` into `liveEffects` (`leaderCardEffects`), so what
+  // answers here is `cardUnlocksUnit` — the same reader a belief's Templars go
+  // through — and nothing in this file compares a row against a name. The
+  // marker is separate from `unlockedByCard` because the two say different
+  // things to a *reader* (see `UnitDef.unlockedByLeader`); to this function they
+  // are one rule asked twice.
+  if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByLeader === true) {
+    if (cardUnlocksUnit(state, playerId, id)) return true;
+    if (gatingTech(kind, id) === null) return false;
+  }
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByLeader === true) {
+    if (cardUnlocksBuilding(state, playerId, id)) return true;
+    if (gatingTech(kind, id) === null) return false;
+  }
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).placed === true) return false;
   // **A race project is asked of the table**, before the tree, for the clause
   // above's reason exactly one kind over: an endeavour has no gate in the tree
@@ -814,6 +831,18 @@ export function buildError(
       return gate === null
         ? `${itemName(kind, id)} needs the Order that opens it in one of your slots`
         : `${itemName(kind, id)} needs ${techDef(gate).name}, or the Order that opens it in one of your slots`;
+    }
+    // **A row a figure opens says so too** (batch L2a), and this one covers both
+    // kinds where the charters' clause covers only buildings: ten of the
+    // leaders' uniques are soldiers, and a player told a slinger "needs a
+    // technology you do not have" has been sent to the tree for something only
+    // Pachacuti's deck holds. It names the deck rather than the card, because a
+    // player who has not taken the card has not been shown its name.
+    const figureOpens =
+      (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByLeader === true) ||
+      (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByLeader === true);
+    if (figureOpens) {
+      return `${itemName(kind, id)} needs the card your leader's own deck opens it with`;
     }
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
     return `${itemName(kind, id)} needs ${needs}`;

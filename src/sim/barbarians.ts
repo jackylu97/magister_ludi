@@ -177,7 +177,17 @@ export function barbarianTier(state: GameState): readonly TechId[] {
  */
 function isBasicMelee(id: UnitTypeId): boolean {
   const def = unitDef(id);
-  return def.category === 'military' && def.modelClass === 'melee';
+  if (def.category !== 'military' || def.modelClass !== 'melee') return false;
+  // **And nothing somebody else's table hands over.** A row no node names is
+  // available from turn one — the right default for content and exactly wrong
+  // for a row a doctrine or a *figure* opens (`unlockedByCard`,
+  // `unlockedByLeader`). The wild holds no cards and plays no leader, so those
+  // are not ungated to it, they are unreachable; without this clause the ladder
+  // would walk past the roster and muster the strongest sword any leader's deck
+  // contains, out of the first camp of the game. `isUnlocked` is an empire's
+  // reading of the same rule, and the wild is not an empire — which is why the
+  // clause is stated here rather than shared.
+  return def.unlockedByCard !== true && def.unlockedByLeader !== true;
 }
 
 /** Does this tier unlock this type? Ungated types are unlocked for everybody. */

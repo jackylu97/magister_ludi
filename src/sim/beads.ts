@@ -776,8 +776,14 @@ function windfallCities(state: GameState, player: Player, where: string): City[]
  *
  * Gold and faith are the two that accumulate and are read where they lie, which
  * is `payProject`'s own reading, so they are added and nothing else is owed.
+ *
+ * **Exported for the leaders** (batch L2a), who are its second caller: a leader
+ * card's boon is a lump of a voice landing in a named set of this realm's towns,
+ * which is this question word for word, and a second implementation of it would
+ * be a second place the citizen a card promises could fail to arrive. It is the
+ * one `switch` on a lump, and it stays one.
  */
-function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): boolean {
+export function payWindfall(state: GameState, player: Player, windfall: BeadWindfall): boolean {
   const amount = Math.max(0, Math.floor(windfall.amount));
   if (amount === 0) return false;
   const cities = windfallCities(state, player, windfall.where);
