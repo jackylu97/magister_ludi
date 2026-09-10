@@ -80,6 +80,34 @@ below. Joan of Arc joins the deferred set. Cut: Tigranes, Amanirenas.
   - melee units +1 combat strength inside your borders
   - the first city you capture each age founds a holy site of your religion
 
+- **Emperor Taizong of Tang** (Li Shimin, r. 626–49) — the Tang's real
+  founder: killed his brothers at the Xuanwu Gate, took the throne from his
+  father, crushed the Eastern Türks and was named Heavenly Khagan by the
+  steppe, then ruled through a meritocratic bureaucracy, the fubing
+  soldier-farmers and a road-and-post network; the East's Rome.
+
+  themes: wide, the imperium, generically strong with a military bend (the eastern seat)
+  possible bonuses:
+  - garrisoned cities pay +1 production (the fubing — soldiers who farm)
+  - a captured city costs 1 less authority, and puppets pay +1 culture each (the Heavenly Khagan's vassals)
+  - melee units +1 combat strength; +1 more against mounted (the Türks broken)
+  - Orders in military slots pay +1 science each (the examination court)
+  - unique unit: the Tang heavy cavalry, a stronger horseman line
+  ▢ (rec for the eastern wide seat)
+
+- **Gwanggaeto the Great** (Goguryeo, r. 391–413) — the name means "broad
+  expander of territory": doubled the kingdom in twenty years, took the
+  Liaodong and the Han river, drove back Baekje and the Wa, and his stele
+  still stands in Ji'an.
+
+  themes: wide, conquest, the marches (the Korean alternative)
+  possible bonuses:
+  - a captured city keeps its walls and its garrison
+  - +1 authority capacity for every 2 cities you captured
+  - units heal fully inside your borders
+  - +2 culture in every city for each war you have won
+  ▢ (the alternative eastern wide seat)
+
 - **Basil II** (Byzantium, r. 976–1025) — the soldier-emperor who never
   married, campaigned every year for forty, and left the treasury so full the
   floor had to be dug out to hold it.
@@ -276,8 +304,13 @@ below. Joan of Arc joins the deferred set. Cut: Tigranes, Amanirenas.
   translators in gold by the weight of the book, and sent astronomers to
   measure the earth.
 
-  themes: tall, science by patronage
+  themes: tall, science AND faith — the Mu'tazila caliph
+  (accuracy: exact — he made rationalist theology the state's creed, ran the
+  Mihna to enforce it, and the House of Wisdom was its instrument; faith and
+  science were one policy under him)
   possible bonuses:
+  - faith is gained again as science in the capital, at a fifth of the rate (the Mu'tazila)
+  - a proclamation in a city with a Library pays science as well as pressure
   - a peace signed pays science
   - the capital's science buildings pay +1 science per 3 citizens more
   - a scholar great person costs a third less renown
@@ -288,6 +321,9 @@ below. Joan of Arc joins the deferred set. Cut: Tigranes, Amanirenas.
   for two centuries; murdered by his son a year after taking the throne.
 
   themes: tall, science, renaissance-punk
+  (accuracy: science, not faith — Ulugh Beg's madrasa taught astronomy against
+  the clerics' wishes, and the Naqshbandi establishment backed the son who
+  murdered him; a science-and-faith seat is Al-Ma'mun's, above)
   possible bonuses:
   - the Observatory pays +3 renown a turn
   - science buildings in the capital pay +1 culture each
