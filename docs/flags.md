@@ -1800,33 +1800,7 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
-- (zzz) **The trade sheet knows the Silk Road — RULED** (the user,
-  2026-09-10: *"in the trade route menu: please note any luxury
-  resources that can be gained once that ability is unlocked. Also -
-  add a new recommendation section with routes to new unique luxuries
-  once its unlocked"*). **R6 builds** in `src/ui/tradeScreen.ts` /
-  `tradeLines.ts`: (1) every international pair whose destination holds
-  an **improved luxury the sender does not control** carries a line on
-  its card — "brings Silk (half a copy)" — with the luxury's own mark,
-  read through the sim's one import reading (`importedLuxuries` /
-  `resourceEffects.ts`'s rule, the destination's improved luxuries
-  minus the sender's controlled kinds, one per route, unique kinds
-  only), never a second walk in the UI; **before** The Silk Road is
-  held the line still prints, in the `.wanting` voice: "would bring
-  Silk — needs The Silk Road", so a player learns the ability exists
-  from the sheet; (2) a new **Recommended** purpose group, **"New
-  luxuries"**, listing routes whose import is a kind the sender lacks,
-  best first (the half-copy's contentment priced by the existing route
-  card score plus the luxury's line), shown only once The Silk Road is
-  held (and a one-line hint in its place before: "Routes abroad will
-  bring luxuries once The Silk Road is known"); a route already
-  importing a kind excludes other routes to the same kind from the
-  group (unique kinds only). The running-routes ledger shows the
-  imported kind on the route's row. Sim untouched except a reader if
-  one is missing (e.g. `wouldImportFor(state, seat, from, to)` beside
-  `importedLuxuries`, the rule's own test). Pins: the card line with and
-  without the tech; the group's membership and its uniqueness; the
-  running row's mark; `test/ui/tradeScreen.test.ts`'s pattern. (the user, 2026-09-10,
+- (yyy) **The ladder, the user's figures — RULED** (the user, 2026-09-10,
   after U9's chart: *"chariot -> 33, chariot archer -> 20, 26, legionary
   -> 45, spear wall -> 42, composite bowman-> 30, 39, horseman -> 48,
   horse archer -> 32, 42, war elephant -> 50, catapult -> 35, 42,

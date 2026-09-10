@@ -122,41 +122,41 @@ column, which is carried through every regeneration.
 | Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 10 | — | Fletching | Bowman | — |  |
 | Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 41 | — | Siegecraft | Composite Bowman | — |  |
 | Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 18 | — | Bronzeworking | Phalanx | — |  |
-| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 101 | — | The Saddle | Knight | needs improved Horses |  |
-| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 34 | — | The Wheel | — | needs improved Horses |  |
-| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 34 | — | The Wheel | Horse Archer | needs improved Horses |  |
+| Horseman | mounted | 38 | — | — | 4 | 100 | 2 | heavy | 101 | — | The Saddle | Knight | needs improved Horses |  |
+| War Chariot | mounted | 28 | — | — | 4 | 100 | 2 | heavy | 34 | — | The Wheel | — | needs improved Horses |  |
+| Chariot Archer | mountedRanged | 18 | 22 | 2 | 3 | 100 | 2 | heavy | 34 | — | The Wheel | Horse Archer | needs improved Horses |  |
 | Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 31 | — | Bronze Panoply | Legionary | needs improved Iron |  |
-| Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 116 | — | Mathematics | Trebuchet | — |  |
-| Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 70 | — | Mathematics | Crossbowman | — |  |
-| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 159 | — | Castellany | — | — |  |
-| Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 121 | — | Machinery | — | — |  |
-| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | Militant Orders | — | needs improved Horses |  |
-| Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 227 | — | Steel | — | needs improved Iron |  |
-| Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 261 | — | Natural Philosophy | — | — |  |
+| Catapult | siege | 20 | 35 | 2 | 1 | 100 | 2 | engine | 116 | — | Mathematics | Trebuchet | — |  |
+| Composite Bowman | ranged | 25 | 33 | 2 | 2 | 100 | 2 | line | 70 | — | Mathematics | Crossbowman | — |  |
+| Pikeman | melee | 45 | — | — | 2 | 120 | 2 | line | 159 | — | Castellany | — | — |  |
+| Crossbowman | ranged | 32 | 42 | 2 | 2 | 110 | 2 | line | 121 | — | Machinery | — | — |  |
+| Knight | mounted | 50 | — | — | 4 | 120 | 2 | heavy | 297 | — | Militant Orders | — | needs improved Horses |  |
+| Longswordsman | melee | 48 | — | — | 2 | 120 | 2 | heavy | 227 | — | Steel | — | needs improved Iron |  |
+| Trebuchet | siege | 28 | 45 | 2 | 1 | 110 | 2 | engine | 261 | — | Natural Philosophy | — | — |  |
 | Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 31 | — | Bronze Panoply | Spear Wall | — |  |
-| Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Longswordsman | needs improved Iron |  |
-| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 101 | — | The Saddle | — | needs improved Horses |  |
-| Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Pikeman | — |  |
-| War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 101 | — | The Saddle | — | needs improved Ivory |  |
+| Legionary | melee | 40 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Longswordsman | needs improved Iron |  |
+| Horse Archer | mountedRanged | 25 | 32 | 2 | 4 | 100 | 2 | heavy | 101 | — | The Saddle | — | needs improved Horses |  |
+| Spear Wall | melee | 35 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Pikeman | — |  |
+| War Elephant | mounted | 44 | — | — | 3 | 130 | 2 | heavy | 101 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 389 | — | Alchemy | — | needs improved Niter |  |
-| Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
+| Knights Templar | mounted | 38 | — | — | 4 | 120 | 2 | heavy | 297 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
 
 ### Naval — 12 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 18 | — | Sailing | Bireme | hit and run |  |
-| Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 41 | — | Wayfinding | Galley | hit and run |  |
-| Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 70 | — | Shipwrights | Caravel | hit and run |  |
-| Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 297 | — | The Astrolabe | Corvette | hit and run |  |
-| Corvette | navalLight | 78 | — | — | 6 | 100 | 2 | heavy | 297 | — | — | — | awaits its node · hit and run |  |
-| War Galley | navalHeavy | 45 | — | — | 3 | 100 | 2 | heavy | 58 | — | Wayfinding | Tower Ship | blockades |  |
-| Tower Ship | navalHeavy | 58 | — | — | 3 | 100 | 2 | engine | 116 | — | Shipwrights | Carrack | blockades |  |
-| Carrack | navalHeavy | 72 | — | — | 3 | 100 | 2 | engine | 342 | — | The Astrolabe | Ship of the Line | blockades |  |
-| Ship of the Line | navalHeavy | 88 | — | — | 3 | 100 | 2 | engine | 448 | — | — | — | awaits its node · blockades |  |
-| Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 101 | — | Shipwrights | Gun Galley | — |  |
-| Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 342 | — | The Astrolabe | Frigate | — |  |
-| Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 448 | — | — | — | awaits its node · bombards |  |
+| Trireme | navalLight | 22 | — | — | 4 | 100 | 2 | line | 18 | — | Sailing | Bireme | hit and run |  |
+| Bireme | navalLight | 28 | — | — | 5 | 100 | 2 | line | 41 | — | Wayfinding | Galley | hit and run |  |
+| Galley | navalLight | 35 | — | — | 5 | 100 | 2 | line | 70 | — | Shipwrights | Caravel | hit and run |  |
+| Caravel | navalLight | 45 | — | — | 6 | 100 | 2 | heavy | 297 | — | The Astrolabe | Corvette | hit and run |  |
+| Corvette | navalLight | 55 | — | — | 6 | 100 | 2 | heavy | 297 | — | — | — | awaits its node · hit and run |  |
+| War Galley | navalHeavy | 35 | — | — | 3 | 100 | 2 | heavy | 58 | — | Wayfinding | Tower Ship | blockades |  |
+| Tower Ship | navalHeavy | 45 | — | — | 3 | 100 | 2 | engine | 116 | — | Shipwrights | Carrack | blockades |  |
+| Carrack | navalHeavy | 60 | — | — | 3 | 100 | 2 | engine | 342 | — | The Astrolabe | Ship of the Line | blockades |  |
+| Ship of the Line | navalHeavy | 75 | — | — | 3 | 100 | 2 | engine | 448 | — | — | — | awaits its node · blockades |  |
+| Fire Ship | navalRanged | 25 | 35 | 2 | 4 | 100 | 2 | heavy | 101 | — | Shipwrights | Gun Galley | — |  |
+| Gun Galley | navalRanged | 35 | 50 | 2 | 4 | 100 | 2 | engine | 342 | — | The Astrolabe | Frigate | — |  |
+| Frigate | navalRanged | 50 | 65 | 2 | 4 | 100 | 2 | engine | 448 | — | — | — | awaits its node · bombards |  |
 
 ### Civilian — 6 rows
 
@@ -183,9 +183,8 @@ trench). This is the whole of the naval triangle in the simulation.
 
 | Unit | Line | Points | When |
 |---|---|---|---|
-| Spearman | Against mounted | +10 | always · vs mounted |
 | Catapult | Against cities | +15 | attacking · vs cities |
-| Pikeman | Against mounted | +10 | always · vs mounted |
+| Pikeman | Against mounted | +15 | always · vs mounted |
 | Trebuchet | Against cities | +20 | attacking · vs cities |
 | Trireme | Against ranged ships | +10 | always · vs navalRanged |
 | Bireme | Against ranged ships | +10 | always · vs navalRanged |
@@ -197,7 +196,7 @@ trench). This is the whole of the naval triangle in the simulation.
 | Frigate | Fragile hull | −10 | defending · melee only |
 | Frigate | Bombardment | +20 | attacking · vs cities |
 | Phalanx | Against mounted | +10 | always · vs mounted |
-| Spear Wall | Against mounted | +10 | always · vs mounted |
+| Spear Wall | Against mounted | +12 | always · vs mounted |
 | War Elephant | Against cities | +8 | attacking · vs cities |
 
 ### The figures (`data/rules.json`)

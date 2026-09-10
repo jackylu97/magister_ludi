@@ -24,6 +24,7 @@ data-pointing; each says what it is at the top):
 | `yields.md` | the sequence of record — the order every yield is computed in (sync-tested against the source) |
 | `mapgen.md` | the generator, pass by pass, every tunable |
 | `war-diplomacy.md` | the war/diplomacy v1 worksheet (in design) |
+| `late-game.md` | Æra IV and V — the four stages, the closing actions, Leonardo's future; every ▢ the user's (worksheet) |
 | `playstyles.md` | the two families — wide (imperium · steppe · land/sea commerce) and tall — every lever, with ▢ for the balance pass (worksheet) |
 | `codex.md` | generated card-pool grid (`npm run codex`; never hand-edit) |
 | `city-screen.md` | the city screen's usability pass (spec of record) |

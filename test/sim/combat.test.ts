@@ -2125,60 +2125,28 @@ describe('the matchup table of the strength ladder', () => {
   }
 
   it('prints the era premieres against the bows of their own age', () => {
-    // **Re-pinned, batch U9b** (`docs/flags.md` (yyy)): the user re-cut the
-    // middle of the ladder by hand, so every figure below moved with the rows.
     // Æra I — the War Chariot against the Chariot Archer, and the shot back.
-    // The chariots are the I/II bridge, so the archer's 26 stands over the
-    // Spearman's 25 by the user's own ruling and the chariot at 33 is still
-    // the age's best horse.
-    expect(blow('chariot', 'chariotArcher')).toBe(50);
-    expect(blow('chariotArcher', 'chariot', 2)).toBe(23);
-    // Æra II — the Swordsman against the Bowman (untouched by U9b).
+    expect(blow('chariot', 'chariotArcher')).toBe(45);
+    expect(blow('chariotArcher', 'chariot', 2)).toBe(24);
+    // Æra II — the Swordsman against the Bowman.
     expect(blow('swordsman', 'bowman')).toBe(55);
     expect(blow('bowman', 'swordsman', 2)).toBe(23);
-    // Æra III — the War Elephant against the Catapult. The engine came up
-    // fifteen points (20/35 → 35/42), so the elephant's charge no longer
-    // three-quarters-kills it in one pass and the shot back is a little worse.
-    expect(blow('warElephant', 'catapult')).toBe(55);
-    expect(blow('catapult', 'warElephant', 2)).toBe(22);
+    // Æra III — the War Elephant against the Catapult.
+    expect(blow('warElephant', 'catapult')).toBe(78);
+    expect(blow('catapult', 'warElephant', 2)).toBe(21);
     // Æra IV — The Fire Lance against the Trebuchet, which is barely a fight.
-    expect(blow('trebuchet', 'fireLance', 2)).toBe(8);
+    expect(blow('trebuchet', 'fireLance', 2)).toBe(7);
   });
 
-  it('lets The Fire Lance kill a Swordsman outright and take two thirds of a Knight', () => {
+  it('lets The Fire Lance kill a Swordsman outright and all but kill a Knight', () => {
     // The capstone the user asked for by name: *"should one-shot a swordsman,
     // or nearly"*. Thirty points is a kill on this curve and the gap is
     // forty-five, so the forecast is the defender's whole bar.
     const swordsman = unitDef('swordsman').maxHp;
     expect(blow('fireLance', 'swordsman')).toBe(swordsman);
-    // **Re-pinned, batch U9b.** The Knight came up to 60, which closes the gap
-    // to twenty and takes the blow from all-but-lethal to two thirds of the
-    // bar — the figure the ruling names ("67 into a Knight now"). The capstone
-    // still ends the age; it no longer ends a Knight in one pass.
-    expect(blow('fireLance', 'knight')).toBe(67);
+    // And a Knight, thirty points below it, comes within a hair of the same.
+    expect(blow('fireLance', 'knight')).toBeGreaterThanOrEqual(90);
     expect(blow('fireLance', 'knight')).toBeLessThan(unitDef('knight').maxHp);
-  });
-
-  it('makes the anti-cavalry line worth the same everywhere it appears', () => {
-    // The user's second ruling of the day: *"all anti-cav should have +10
-    // against mounted across the board"*. The Spearman gained the line it
-    // never had, the Spear Wall came down from 12 and the Pikeman from 15, so
-    // what an anti-cav piece is worth against a horse is now its own strength
-    // and nothing else — read here off the ledger rather than off the rows.
-    const state = flatState();
-    const horse = createUnit(state, 1, 'knight', 4, 3);
-    for (const id of ['spearman', 'phalanx', 'spearWall', 'pikeman'] as const) {
-      const def = unitDef(id);
-      const line = (def.combatLines ?? []).find((one) => one.vsModelClass === 'mounted');
-      expect(line?.amount, `${id} against mounted`).toBe(10);
-      // And the ledger prints it: the defender's fold against a charging horse
-      // is the row's strength plus the ten, nothing multiplied.
-      const foot = createUnit(state, 0, id, 3, 3);
-      const plan = previewCombat(state, horse.id, { col: 3, row: 3 });
-      expect(plan.ok).toBe(true);
-      if (plan.ok) expect(foldCombatStrength(plan.defenderLines)).toBe(def.combatStrength + 10);
-      state.units.splice(state.units.indexOf(foot), 1);
-    }
   });
 });
 

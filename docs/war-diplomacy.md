@@ -91,8 +91,7 @@ in `data/rules.json` under `rules.naval`.
   prices, either dialable to nothing without touching the other.
 - ▢ The three figures are first cuts for the user's balance pass.
 - **The scale everything here is measured on is the strength ladder** (batch U9,
-  `docs/flags.md` (ttt); re-cut at the user's own figures by U9b, (yyy), which
-  also raised every hull): every `combatStrength` and `rangedStrength` is Civ 6's
+  `docs/flags.md` (ttt)): every `combatStrength` and `rangedStrength` is Civ 6's
   magnitudes, and so is every flat line beside them — the ground, the trench, the
   general's aura, the walls, the naval column, the at-sea penalty. `docs/units.md`
   is the roster and the figures table; nothing in this file prints one of them.
