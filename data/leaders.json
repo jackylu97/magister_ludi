@@ -1106,8 +1106,8 @@
         ]
       },
       "startBias": {
-        "terrain": { "river": 6, "floodplain": 2.5, "oasis": 3, "desert": 0.5 },
-        "wants": { "riverOrFloodplainWithin": 1, "aridWithin": 2 }
+        "terrain": { "river": 4, "floodplain": 3, "oasis": 3, "desert": 2 },
+        "wants": { "riverOrFloodplainWithin": 1, "aridBeside": 3 }
       }
     },
     "almamun": {

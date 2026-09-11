@@ -34,7 +34,7 @@
  */
 
 import type { GameMap, Tile } from '../sim/map';
-import { mapRange, tileHex, tileIndex, tileNeighbors } from '../sim/map';
+import { mapRange, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../sim/map';
 import { mapgenFor } from '../sim/mapgenData';
 import {
   RESOURCE_IDS,
@@ -55,7 +55,8 @@ import { carveContinents, landTileCount } from '../sim/resources';
 import {
   type StartScoreContribution,
   type StartSeat,
-  chooseStartPositionsFor,
+  type StartShortfall,
+  planStartPositionsFor,
   landmassFacts,
   scoreStartSite,
   siteMeetsWants,
@@ -76,6 +77,28 @@ import { hasFreshWater, isCoastal } from '../sim/water';
  */
 function resourcesOf(map: GameMap) {
   return mapgenFor(map).resources;
+}
+
+/** The start tunables for the map being read. `resourcesOf`' sibling, same reason. */
+function startsOf(map: GameMap) {
+  return mapgenFor(map).starts;
+}
+
+/**
+ * Hexes from one seat to the nearest other, wrap-aware — the (rrrr) figure.
+ *
+ * `null` for a lone seat: a board with one chair on it has no crowding to
+ * report, and a page that printed a dash-shaped nought there would be inventing
+ * a rival.
+ */
+function nearestRivalTo(map: GameMap, seated: readonly Tile[], seat: number): number | null {
+  let nearest: number | null = null;
+  for (let other = 0; other < seated.length; other++) {
+    if (other === seat) continue;
+    const apart = wrappedDistance(map, tileHex(seated[seat]!), tileHex(seated[other]!));
+    if (nearest === null || apart < nearest) nearest = apart;
+  }
+  return nearest;
 }
 
 /** The three kinds, in the order the sidebar groups them. */
@@ -262,6 +285,16 @@ export interface StartRow {
   strategicsMissing: ResourceId[];
   freshwater: boolean;
   coast: boolean;
+  /**
+   * Hexes to the nearest other seat, wrap-aware — the one figure the (rrrr)
+   * ruling is about, printed so the user can judge example starts by looking at
+   * them rather than by trusting a sweep.
+   *
+   * `null` for a lone seat, which has no rival to be near. A figure under the
+   * floor (`starts.minDistance`) is a seat the board let down, and the row says
+   * so in the refusal ink beside it — see `StartReport.shortfall`.
+   */
+  nearestRival: number | null;
   /** The figure in this chair, or absent for a seat under nobody. */
   leader?: LeaderId;
   /** That figure's name, as the page prints it. */
@@ -318,6 +351,17 @@ export interface StartReport {
    * the lines under each seat were clamped to. Nought when nobody is seated.
    */
   biasCap: number;
+  /**
+   * The floor every pair of starts was promised (`starts.minDistance`), so the
+   * page can name the number a shortfall fell short of.
+   */
+  minDistance: number;
+  /**
+   * The seats the board could not give that floor to, straight off the chooser
+   * (`planStartPositionsFor`). Empty is the promise kept, which is every board
+   * that is not a dev harness — see `startPositions.ts`' seating ladder.
+   */
+  shortfall: StartShortfall[];
   rows: StartRow[];
 }
 
@@ -349,7 +393,8 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
   // asks exactly the question it always asked — `chooseStartPositionsFor`
   // delegates a leaderless roster to the unbiased chooser.
   const chairs: StartSeat[] = state.players.map((_, index) => seats[index] ?? {});
-  const seated = chooseStartPositionsFor(map, chairs);
+  const plan = planStartPositionsFor(map, chairs);
+  const seated = plan.starts;
   const anyLeader = chairs.some((chair) => startBiasOf(chair.leader) !== undefined);
   // One walk of the land for the whole table. `scoreStartSite` would otherwise
   // recompute the landmass floor's components — and the strategic dilation —
@@ -387,6 +432,7 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
       ),
       freshwater: hasFreshWater(tile),
       coast: isCoastal(map, tile),
+      nearestRival: nearestRivalTo(map, seated, seat),
       ...(leader === undefined ? {} : { leader, leaderName: leaderDef(leader).name }),
       bias: scored.entries.filter((entry) => entry.bias === true),
       furnish: furnishNear(map, tile, furnishRadius, bias?.furnish ?? []),
@@ -399,6 +445,8 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
     furnishRadius,
     seatsMissingStrategics: rows.filter((row) => row.strategicsMissing.length > 0).length,
     biasCap: cap,
+    minDistance: startsOf(map).minDistance,
+    shortfall: plan.shortfall,
     rows,
   };
 }
@@ -406,20 +454,24 @@ export function startReport(state: GameState, seats: readonly StartSeat[] = []):
 /**
  * Each want this figure carries, asked of the hex it actually got.
  *
- * The label is the key's own words with the code word taken off the front —
- * "mountainWithin: 2" reads "mountain within 2" — so the page names no want it
- * does not read from the sheet.
+ * The label is the key's own words, split at its capitals and read back —
+ * "mountainWithin: 2" reads "mountain within 2", "aridBeside: 3" reads "arid
+ * beside 3" — so the page names no want it does not read from the sheet, and a
+ * want added to the vocabulary prints itself.
  */
 function wantChecks(map: GameMap, tile: Tile, wants: StartWants | undefined): WantCheck[] {
   if (!wants) return [];
   const checks: WantCheck[] = [];
   for (const key of START_WANT_KEYS) {
-    const within = wants[key];
-    if (within === undefined) continue;
-    const what = key.replace('Within', '').replace(/([A-Z])/g, (m) => ` ${m.toLowerCase()}`);
+    const asked = wants[key];
+    if (asked === undefined) continue;
+    // The last word of the key is its preposition ("within", "beside") and the
+    // rest is the ground; both are the sheet's own words.
+    const words = key.replace(/([A-Z])/g, (m) => ` ${m.toLowerCase()}`).split(' ');
+    const how = words.pop() ?? '';
     checks.push({
-      label: `${what} within ${within}`,
-      met: siteMeetsWants(map, tile, { [key]: within }),
+      label: `${words.join(' ')} ${how} ${asked}`,
+      met: siteMeetsWants(map, tile, { [key]: asked }),
     });
   }
   return checks;

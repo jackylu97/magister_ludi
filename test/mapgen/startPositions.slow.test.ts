@@ -19,6 +19,7 @@ import { MAPGEN_CONFIG, MAP_SIZE_NAMES } from '../../src/sim/mapgen';
 import { tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import {
   chooseStartPositions,
+  planStartPositions,
   scoreStartSite,
   startSpacing,
 } from '../../src/sim/startPositions';
@@ -105,17 +106,46 @@ describe('start-site scoring', () => {
     }
   });
 
-  it('keeps a duel map’s starts apart even when it has to relax', () => {
+  it('seats a duel map’s four anyway, and reports every seat it could not keep apart', () => {
+    // **The duel board cannot hold the floor, and that is now said out loud.**
+    // Until 2026-09-11 the floor was 5 and a 40×25 board could hold it, so this
+    // asked for it outright; the floor is 10 now (`docs/flags.md` (rrrr),
+    // (tttt)) and four capitals on 432 land tiles will not fit at ten. The
+    // ruling's answer is not to fail and not to pretend: seat everybody at the
+    // best distance the board has, and hand back a `shortfall` row for each seat
+    // inside the floor. So the claim is the shortfall's own honesty — every row
+    // names a real distance, and every seat *not* on a row really is clear.
     for (const seed of SEEDS) {
       const map = mapFor(seed, 'duel');
-      const starts = chooseStartPositions(map, 4);
-      for (let i = 0; i < starts.length; i++) {
-        for (let j = i + 1; j < starts.length; j++) {
-          const distance = wrappedDistance(map, tileHex(starts[i]!), tileHex(starts[j]!));
-          expect(`${seed}: ${distance}`).toBe(
-            `${seed}: ${Math.max(distance, MAPGEN_CONFIG.starts.minDistance)}`,
+      const plan = planStartPositions(map, 4);
+      expect(plan.starts).toHaveLength(4);
+      const floor = MAPGEN_CONFIG.starts.minDistance;
+      for (let seat = 0; seat < plan.starts.length; seat++) {
+        let nearest = Infinity;
+        for (let other = 0; other < plan.starts.length; other++) {
+          if (other === seat) continue;
+          nearest = Math.min(
+            nearest,
+            wrappedDistance(map, tileHex(plan.starts[seat]!), tileHex(plan.starts[other]!)),
           );
         }
+        const row = plan.shortfall.find((entry) => entry.seat === seat);
+        expect(`${seed}/${seat}: nearest ${nearest}, reported ${row?.distance ?? 'clear'}`).toBe(
+          `${seed}/${seat}: nearest ${nearest}, reported ${nearest < floor ? nearest : 'clear'}`,
+        );
+      }
+    }
+  });
+
+  it('holds the floor on every size the product actually plays', () => {
+    // The other half of the same claim. Six seats is the shipped roster and
+    // `standard` up is where the game is played; there the floor is not a
+    // fallback, it is kept, and no seat is ever reported short.
+    for (const size of MAP_SIZE_NAMES.filter((name) => name !== 'duel')) {
+      for (const seed of SEEDS) {
+        const map = mapFor(seed, size);
+        const plan = planStartPositions(map, 6);
+        expect(`${size}/${seed}: ${plan.shortfall.length} short`).toBe(`${size}/${seed}: 0 short`);
       }
     }
   });

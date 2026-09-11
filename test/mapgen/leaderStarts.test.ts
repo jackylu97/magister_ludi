@@ -20,7 +20,7 @@ import {
   startBiasOf,
   wantCount,
 } from '../../src/sim/leaderData';
-import { mapRange, tileHex, tileIndex } from '../../src/sim/map';
+import { mapRange, tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
 import { generateMap } from '../../src/sim/mapgen';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { type GameConfig, type PlayerSpec, newGame, normalizeConfig } from '../../src/sim/state';
@@ -31,6 +31,7 @@ import {
   scoreStartSite,
   siteMeetsWants,
   startBiasCap,
+  startSpacing,
 } from '../../src/sim/startPositions';
 
 const SEATS: StartSeat[] = LEADER_IDS.map((leader) => ({ leader }));
@@ -127,16 +128,36 @@ describe('a roster with figures in it', () => {
     expect(Math.abs(biased)).toBeLessThanOrEqual(cap);
   });
 
-  it('gives every figure that carries wants a site that answers them', () => {
+  it('gives every figure that carries wants a site that answers them, or had none to give', () => {
+    // **The M2 claim, and it is weaker than M1's on purpose** (`docs/flags.md`
+    // (rrrr)). A want used to pull the map's spacing down a hex at a time until
+    // something answered it, which is how a rival ended up eight tiles away; now
+    // the want gives way first and the spacing holds. So a figure whose ground
+    // is all taken by the time its chair is served goes without — lawfully — and
+    // what is still true is the thing worth pinning: it went without only
+    // because there was nothing left to take.
     const map = generateMap(11, 'standard', undefined, SEATS);
     const seated = chooseStartPositionsFor(map, SEATS);
+    const spacing = startSpacing(map);
+    const taken = new Set(seated.map((tile) => tileIndex(map, tile.col, tile.row)));
     for (let seat = 0; seat < SEATS.length; seat++) {
       const wants = startBiasOf(SEATS[seat]!.leader)?.wants;
       if (wants === undefined) continue;
-      // The fallback is lawful — a map with none of this going seats the figure
-      // anyway — so this is a claim about *this* map, which has plenty.
-      expect(`${SEATS[seat]!.leader}: ${siteMeetsWants(map, seated[seat]!, wants)}`).toBe(
-        `${SEATS[seat]!.leader}: true`,
+      if (siteMeetsWants(map, seated[seat]!, wants)) continue;
+      // Nothing free, accepted, and far enough from every other chair answered
+      // what this figure asked for — the fallback's own condition, asked of the
+      // board rather than trusted.
+      const going = map.tiles.filter((tile) => {
+        if (taken.has(tileIndex(map, tile.col, tile.row))) return false;
+        if (scoreStartSite(map, tile).reject !== null) return false;
+        if (!siteMeetsWants(map, tile, wants)) return false;
+        return seated.every(
+          (other, index) =>
+            index === seat || wrappedDistance(map, tileHex(tile), tileHex(other)) >= spacing,
+        );
+      });
+      expect(`${SEATS[seat]!.leader}: ${going.length} sites it could have had`).toBe(
+        `${SEATS[seat]!.leader}: 0 sites it could have had`,
       );
     }
   });

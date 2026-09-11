@@ -205,7 +205,9 @@
   "starts": {
     "spacingFactor": 0.55,
     "minDistance": 10,
-    "maxDistance": 16,
+    "maxDistance": 20,
+    "contactPenalty": 6,
+    "contactRadius": 26,
     "ringWeights": [
       1.0,
       0.55

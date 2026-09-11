@@ -83,6 +83,35 @@ export interface StartsConfig {
   minDistance: number;
   maxDistance: number;
   /**
+   * What a candidate loses for each start already chosen within
+   * `contactRadius` — the *preference* for distance, under the hard floor that
+   * `minDistance` is.
+   *
+   * Ruled 2026-09-11 (`docs/flags.md` (rrrr), the user: *"another leader spawned
+   * 8 tiles from me — ideally we should have some distance between players"*).
+   * The floor alone cannot say this, because a floor is a yes-or-no and the
+   * chooser's whole vocabulary above it is score: every site the sweep will
+   * accept is already at or beyond the spacing, so without a line like this one
+   * a site hugging the floor and a site twice as far are the same site to the
+   * scorer, and it takes whichever has the better ground by a tenth of a point.
+   *
+   * A labelled line on `scoreStartSite`'s list like everything else (rule 5), so
+   * a seat's breakdown says in words that it was pushed off a hex by a rival
+   * rather than by the terrain. Negative by construction: the line is a loss.
+   */
+  contactPenalty: number;
+  /**
+   * How near a chosen start has to be to cost a candidate `contactPenalty`.
+   *
+   * Counted **at or within**, which is what gives the line any bite at all: a
+   * candidate the sweep will consider is already `spacing` hexes off every
+   * chosen start, so a radius under the spacing can only ever fire once the
+   * spacing has relaxed onto it. At the floor — and below it, in the last-resort
+   * sweep a cramped map needs — that is exactly where the preference is wanted:
+   * of two sites the floor allows, the one not hugging it wins.
+   */
+  contactRadius: number;
+  /**
    * What a ring of tiles is worth relative to the site itself, ring 1 first.
    * Two entries today; the length of the list *is* how many rings are scored,
    * so a third ring is a data edit.

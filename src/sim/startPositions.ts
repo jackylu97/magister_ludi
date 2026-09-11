@@ -78,12 +78,45 @@
  * resource fairness passes seat the maximum roster once and cover every real
  * game (see `ensureStartFood`).
  *
- * When no site satisfies the spacing the requirement drops by one and the sweep
- * repeats, down to a floor of 1; when the *accepted* sites run out entirely the
- * refused ones are swept the same way, best first. A duel map with twelve
- * players therefore still seats everyone — badly, but everyone — instead of
- * throwing, and a map made entirely of tundra seats them on tundra rather than
- * nowhere.
+ * Distance is asked for **twice**, and the two are different questions
+ * (`docs/flags.md` (rrrr), 2026-09-11). `minDistance` is the floor: a yes or a
+ * no, and the sweep may only go under it on a map with nowhere left to stand.
+ * `contactPenalty` is the preference above it: a labelled line that costs a
+ * candidate points for every start already standing within `contactRadius`, so
+ * that of two legal hexes the sweep prefers the one that is not hugging the
+ * floor. A floor alone cannot express that, because every site the sweep will
+ * look at has already cleared it.
+ *
+ * The concessions, in the order they are made — **the seating ladder**, and its
+ * order is the whole of the (rrrr) ruling. Per chair, over the sites this map
+ * stands behind: at each spacing from the map's own down to the floor, the
+ * figure's wants and then the wants dropped; and only when no spacing at all can
+ * be honoured does the floor itself give way, down to 1. **A want gives way
+ * before a hex does**, which is the bug that ruling was written about: a want
+ * with nothing answering it at the map's spacing used to pull the spacing down
+ * hex by hex until something did, and seated a rival eight tiles off. The sites
+ * the map does not stand behind come last of all, on the same ladder — see
+ * `seatChair` for why the pool is the outer question.
+ *
+ * The relaxation is **per chair**, not shared: a chair that had to come down to
+ * thirteen does not spend the rest of the sweep's spacing with it, and the next
+ * chair starts again at the map's own. It is the weakly better rule by
+ * construction — every chair's ladder starts at least as high as it would under
+ * a shared relaxation, so the set of hexes a chair may reach is a superset of
+ * the shared sweep's at every rung, and the minimum pairwise distance can only
+ * be helped. Measured, the two agree everywhere today (24 standard seeds with
+ * the six figures, and the cramped rosters beside them, hex for hex), because
+ * the boards that relax at all relax all the way: a standard board seats six at
+ * its own spacing and a duel board asked for twelve is under the floor by the
+ * second chair either way. Per chair is kept for the argument rather than for
+ * the measurement — the measurement says only that today's maps never make the
+ * two differ.
+ *
+ * A chair the ladder cannot seat inside the floor is still seated — no start is
+ * a crash — and **says so**: `planStartPositionsFor` returns a `shortfall` list
+ * beside the tiles, one row per seat left closer to a rival than the floor
+ * promises, and the lobby prints it. A duel map with twelve players therefore
+ * seats everyone, badly and out loud.
  *
  * Ties are broken by tile index, so the result is a pure function of the map.
  *
@@ -123,6 +156,7 @@ import { improvementForResource } from './improvementData';
 import {
   START_BIAS_KEYS,
   START_WANT_KEYS,
+  START_WANT_MEASURE,
   type LeaderId,
   type StartBias,
   type StartBiasKey,
@@ -380,8 +414,62 @@ export function scoreStartSite(
   landmass?: LandmassFacts,
   arms?: StrategicGround,
   bias?: BiasReading,
+  chosen?: readonly Tile[],
 ): StartSiteScore {
-  return scoreSite(map, startsFor(map), tile, ground, landmass, arms, bias);
+  return scoreSite(map, startsFor(map), tile, ground, landmass, arms, bias, chosen);
+}
+
+/**
+ * The crowding line: what a candidate loses for the rivals already seated near
+ * it (`starts.contactPenalty` × `starts.contactRadius`, ruled in
+ * `docs/flags.md` (rrrr)).
+ *
+ * `null` rather than a nought line, so a site nobody is near carries no line at
+ * all and every seat's breakdown stays as short as what is true about it.
+ *
+ * Counted at *or* within the radius — see `StartsConfig.contactRadius` for why
+ * the inclusive end is the whole of the line's bite.
+ */
+function contactEntry(
+  map: GameMap,
+  STARTS: StartsConfig,
+  tile: Tile,
+  chosen: readonly Tile[],
+): StartScoreContribution | null {
+  const penalty = STARTS.contactPenalty;
+  const radius = STARTS.contactRadius;
+  if (penalty <= 0 || radius <= 0 || chosen.length === 0) return null;
+  const hex = tileHex(tile);
+  let rivals = 0;
+  for (const other of chosen) {
+    if (wrappedDistance(map, hex, tileHex(other)) <= radius) rivals += 1;
+  }
+  if (rivals === 0) return null;
+  return { source: `Rivals within ${radius}`, value: -penalty * rivals };
+}
+
+/**
+ * One scored site, re-read against a board that has moved on.
+ *
+ * The sweep scores every candidate once per chair and then picks one chair's
+ * hex at a time, and the crowding line is the only part of a site's score that
+ * changes between those picks. So it is **appended and re-folded** rather than
+ * recomputed: the ring walk, the floors and the refusals are the same facts they
+ * were, and the total is still the fold of the list the seat is shown (rule 5).
+ */
+function withContact(
+  map: GameMap,
+  STARTS: StartsConfig,
+  score: StartSiteScore,
+  tile: Tile,
+  chosen: readonly Tile[],
+): StartSiteScore {
+  const line = contactEntry(map, STARTS, tile, chosen);
+  if (line === null) return score;
+  const entries = [...score.entries, line];
+  let total = 0;
+  for (const entry of entries) total += entry.value;
+  return { ...score, entries, total };
 }
 
 /**
@@ -455,6 +543,10 @@ function hexAnswers(key: keyof StartWants, tile: Tile): boolean {
     case 'riverOrFloodplainWithin':
       return tile.riverEdges !== 0 || tile.feature === 'floodplain';
     case 'aridWithin':
+    case 'aridBeside':
+      // One ground, asked two ways: `aridWithin` wants any of it in reach and
+      // `aridBeside` wants this much of it touching. What counts as dry country
+      // is the same sentence either way, so it is written once.
       return tile.terrain === 'desert' || tile.feature === 'oasis' || tile.feature === 'floodplain';
     case 'grasslandWithin':
       return tile.terrain === 'grassland';
@@ -466,18 +558,32 @@ function hexAnswers(key: keyof StartWants, tile: Tile): boolean {
 /**
  * Does this site meet **every** want the figure carries?
  *
- * One hex in reach per want, the site's own included, and the walk stops at the
- * first hex that answers. Read off the *ground* like everything else in this
- * file — a want may not ask about a resource, because resources are planted at
- * the starts afterwards and a want that chased one would be the guarantee
- * chasing itself around the map (see the module docblock).
+ * Two shapes, and `START_WANT_MEASURE` says which each key is. A *radius* want
+ * asks for one such hex in reach, the site's own included, and the walk stops at
+ * the first hex that answers. A *count* want asks how many of the six hexes
+ * touching the site answer — the site's own deliberately not among them, because
+ * the ground a count want is written about (dry country) is ground a start is
+ * refused on (`docs/flags.md` (uuuu)).
+ *
+ * Read off the *ground* like everything else in this file — a want may not ask
+ * about a resource, because resources are planted at the starts afterwards and a
+ * want that chased one would be the guarantee chasing itself around the map (see
+ * the module docblock).
  */
 export function siteMeetsWants(map: GameMap, tile: Tile, wants: StartWants): boolean {
   const from = tileHex(tile);
   for (const key of START_WANT_KEYS) {
-    const within = wants[key];
-    if (within === undefined) continue;
-    const radius = Math.max(0, Math.round(within));
+    const asked = wants[key];
+    if (asked === undefined) continue;
+    if (START_WANT_MEASURE[key] === 'count') {
+      let found = 0;
+      for (const near of tileNeighbors(map, tile)) {
+        if (hexAnswers(key, near)) found += 1;
+      }
+      if (found < Math.max(0, Math.round(asked))) return false;
+      continue;
+    }
+    const radius = Math.max(0, Math.round(asked));
     let found = false;
     for (const near of mapRange(map, from, radius)) {
       if (!hexAnswers(key, near)) continue;
@@ -509,6 +615,7 @@ function scoreSite(
   landmass?: LandmassFacts,
   arms?: StrategicGround,
   reading?: BiasReading,
+  chosen?: readonly Tile[],
 ): StartSiteScore {
   const yieldAt = (target: Tile): TileYield =>
     ground ? ground[tileIndex(map, target.col, target.row)]! : foldTile(groundOf(target));
@@ -602,6 +709,16 @@ function scoreSite(
     if (held !== biased) entries.push({ source: 'Bias cap', value: held - biased, bias: true });
   }
 
+  // Last of all, the rivals already on the board: a fact about the *sweep*
+  // rather than about the ground, and so the one line that can differ between
+  // two readings of the same hex. Under the cap deliberately — crowding is not a
+  // figure's preference and a ceiling on a figure's preferences may not soften
+  // it.
+  if (chosen !== undefined) {
+    const line = contactEntry(map, STARTS, tile, chosen);
+    if (line !== null) entries.push(line);
+  }
+
   let total = 0;
   for (const entry of entries) total += entry.value;
 
@@ -672,52 +789,228 @@ export function startSpacing(map: GameMap, starts: StartsConfig = startsFor(map)
 }
 
 /**
- * Greedy sweep: best first, ties by tile index, relaxing spacing when stuck.
+ * A seat the map could not give the floor to.
  *
- * `floor` is where the relaxation stops. The two ordinary sweeps stop at
- * `minDistance`, which is what makes that number mean what it says: a *floor*
- * on how close two capitals may be, and not merely the lower clamp on the
- * spacing derived from the map's size. Only the last-resort sweep passes 1, and
- * a map that needs it is a map with nowhere left to stand.
+ * The honest half of "never fail to seat" (`docs/flags.md` (rrrr)). A duel board
+ * asked for twelve capitals has nowhere to put the last of them, and the choice
+ * is between throwing, seating them silently on top of each other, and seating
+ * them at whatever the board has left while **saying so**. This is the saying.
  */
-function seat(
-  map: GameMap,
-  ordered: readonly Tile[],
-  chosen: Tile[],
-  taken: Set<number>,
-  count: number,
-  fromSpacing: number,
-  floor: number,
-): void {
-  let spacing = Math.max(floor, fromSpacing);
-  while (chosen.length < count && ordered.length > 0) {
-    let placedThisSweep = false;
-    for (const tile of ordered) {
-      if (chosen.length >= count) break;
-      const index = tileIndex(map, tile.col, tile.row);
-      if (taken.has(index)) continue;
-      const hex = tileHex(tile);
-      const clear = chosen.every((other) => wrappedDistance(map, hex, tileHex(other)) >= spacing);
-      if (!clear) continue;
-      chosen.push(tile);
-      taken.add(index);
-      placedThisSweep = true;
-    }
-    // Nothing fits at this spacing (or the list simply ran out).
-    if (!placedThisSweep) {
-      if (spacing <= floor) return;
-      spacing -= 1;
-    }
-  }
+export interface StartShortfall {
+  /** Roster index of the seat — the same index its tile has in `starts`. */
+  seat: number;
+  /** Hexes to its nearest rival: the best distance the board had left. */
+  distance: number;
+  /** What the floor promised it — `starts.minDistance`. */
+  wanted: number;
+}
+
+/** Where the seats went, and which of them the board let down. */
+export interface StartPlan {
+  /** One tile per seat, in roster order. The reading every caller indexes. */
+  starts: Tile[];
+  /** A row per seat seated inside the floor, in roster order. Empty is the promise kept. */
+  shortfall: StartShortfall[];
 }
 
 /**
- * One start tile per player, in player order. Fewer than `count` tiles come back
- * only when the map has fewer passable land tiles than players.
+ * The board as one chair sees it: the two pools, and the score that ordered
+ * them.
+ *
+ * One object because the three travel together and always have: which sites
+ * this map stands behind is the same question for every chair (a bias is a score
+ * and never a rejection), and only the *order* changes from chair to chair.
  */
-export function chooseStartPositions(map: GameMap, count: number): Tile[] {
+interface SiteRanking {
+  /** Sites the chooser stands behind, best first, ties by tile index. */
+  accepted: readonly Tile[];
+  /** The refused ones, ordered the same way. Swept only when the others run out. */
+  refused: readonly Tile[];
+  /**
+   * Each candidate's score **before** the crowding line, by tile index.
+   *
+   * Before, because the crowding line is the one part of a site's score that
+   * moves while the sweep runs; `withContact` folds it back on at the moment a
+   * chair is asking, and the rest of the ledger is read once.
+   */
+  scores: ReadonlyMap<number, StartSiteScore>;
+}
+
+/**
+ * The best site in one pool at **exactly** this spacing, or `null`.
+ *
+ * A full walk of the pool rather than "the first one that fits", because the
+ * crowding line means the ordering the pool arrived in is no longer the ordering
+ * the chair is choosing by: a site two rivals crowd may sit above a site nobody
+ * is near. The walk is the price of asking the question honestly, and it is a
+ * few thousand hexes.
+ *
+ * Ties by tile index, so the pick is a pure function of the board (rule 2).
+ */
+function bestAt(
+  map: GameMap,
+  STARTS: StartsConfig,
+  rank: SiteRanking,
+  pool: readonly Tile[],
+  chosen: readonly Tile[],
+  taken: ReadonlySet<number>,
+  spacing: number,
+  meets?: Uint8Array,
+): Tile | null {
+  let best: Tile | null = null;
+  let bestTotal = 0;
+  let bestAtIndex = 0;
+  for (const tile of pool) {
+    const at = tileIndex(map, tile.col, tile.row);
+    if (taken.has(at)) continue;
+    // The wants, when there are any: a filter over the pool, never a change to
+    // it. The site that comes back is still the best-scoring one the seat could
+    // have had — of those that answer what the figure asked for.
+    if (meets && meets[at] !== 1) continue;
+    const hex = tileHex(tile);
+    if (!chosen.every((other) => wrappedDistance(map, hex, tileHex(other)) >= spacing)) continue;
+    const total = withContact(map, STARTS, rank.scores.get(at)!, tile, chosen).total;
+    if (best === null || total > bestTotal || (total === bestTotal && at < bestAtIndex)) {
+      best = tile;
+      bestTotal = total;
+      bestAtIndex = at;
+    }
+  }
+  return best;
+}
+
+/**
+ * One chair's pick, down **the seating ladder** — the order of the (rrrr)
+ * ruling, and the one thing in this file that is about fairness rather than
+ * about ground.
+ *
+ * At every spacing from `fromSpacing` down to `floor`, in this order: the sites
+ * that answer the figure's wants, then the wants dropped. **A want gives way
+ * before a hex does** — before the ruling, a want with nothing answering it at
+ * the map's spacing pulled the spacing down a hex at a time until something did,
+ * and seated a rival eight tiles off.
+ *
+ * Dropping the *bias* is the rung the ladder does not have, and deliberately: a
+ * bias reorders a pool and never filters one, so a rung that dropped it would
+ * sweep the same sites at the same spacing and could only ever return what the
+ * rung above it already returned. What the bias gives way to is the crowding
+ * line inside the score, which is a comparison and not a rung.
+ */
+function seatOne(
+  map: GameMap,
+  STARTS: StartsConfig,
+  rank: SiteRanking,
+  pool: readonly Tile[],
+  chosen: readonly Tile[],
+  taken: ReadonlySet<number>,
+  fromSpacing: number,
+  floor: number,
+  meets?: Uint8Array,
+): Tile | null {
+  for (let spacing = Math.max(floor, fromSpacing); spacing >= floor; spacing--) {
+    const pick =
+      (meets ? bestAt(map, STARTS, rank, pool, chosen, taken, spacing, meets) : null) ??
+      bestAt(map, STARTS, rank, pool, chosen, taken, spacing);
+    if (pick !== null) return pick;
+  }
+  return null;
+}
+
+/**
+ * The whole ladder for one chair: the floor, the floor giving way, and only then
+ * the sites this map does not stand behind.
+ *
+ * **The pool is the outer question and the spacing the inner one**, which is the
+ * one ordering decision here worth arguing about. A board that cannot seat
+ * everybody at the floor has two ways to fail a chair — put it on ground the
+ * chooser refuses, or put it nearer a rival than promised — and the (rrrr)
+ * ruling asks for the second: *seat the remainder at the best available distance
+ * and report it*. A capital on snow is a game nobody can play and nothing says
+ * so; a capital eleven hexes from its neighbour is a game with a note on it, and
+ * `shortfallsIn` writes the note. So every accepted site is tried at every
+ * spacing, floor included and then floor broken, before a refused one is tried
+ * at all.
+ *
+ * It is also what keeps the fairness passes' promises true on a crowded roster:
+ * the strategic guarantee is backed by a site *refusal*, so a sweep that reached
+ * for refused sites to hold the floor would hand back seats with no ground for
+ * the horses every capital is promised.
+ */
+function seatChair(
+  map: GameMap,
+  STARTS: StartsConfig,
+  rank: SiteRanking,
+  chosen: readonly Tile[],
+  taken: ReadonlySet<number>,
+  spacing: number,
+  meets?: Uint8Array,
+): Tile | null {
+  const floor = Math.max(1, Math.round(STARTS.minDistance));
+  for (const pool of [rank.accepted, rank.refused]) {
+    const pick =
+      seatOne(map, STARTS, rank, pool, chosen, taken, spacing, floor, meets) ??
+      seatOne(map, STARTS, rank, pool, chosen, taken, Math.max(1, floor - 1), 1, meets);
+    if (pick !== null) return pick;
+  }
+  return null;
+}
+
+/**
+ * Which seats the board let down, read off the finished plan.
+ *
+ * Off the plan rather than recorded as the sweep goes, for the reason every
+ * derived reading in this codebase is derived: a chair seated legally at
+ * thirteen can still end up inside the floor when a *later* chair has nowhere
+ * better to stand, and a flag written at the moment of its own pick would not
+ * know that yet. The pairwise distances at the end are the whole truth.
+ */
+function shortfallsIn(
+  map: GameMap,
+  STARTS: StartsConfig,
+  starts: readonly Tile[],
+): StartShortfall[] {
+  const wanted = Math.max(1, Math.round(STARTS.minDistance));
+  const shortfall: StartShortfall[] = [];
+  for (let seat = 0; seat < starts.length; seat++) {
+    let nearest = Infinity;
+    for (let other = 0; other < starts.length; other++) {
+      if (other === seat) continue;
+      nearest = Math.min(
+        nearest,
+        wrappedDistance(map, tileHex(starts[seat]!), tileHex(starts[other]!)),
+      );
+    }
+    if (nearest < wanted) shortfall.push({ seat, distance: nearest, wanted });
+  }
+  return shortfall;
+}
+
+/** The candidate pools, ordered by one chair's reading of the board. */
+function rankSites(
+  map: GameMap,
+  candidates: readonly Tile[],
+  scores: ReadonlyMap<number, StartSiteScore>,
+): SiteRanking {
+  const byScore = (a: Tile, b: Tile): number => {
+    const ia = tileIndex(map, a.col, a.row);
+    const ib = tileIndex(map, b.col, b.row);
+    return scores.get(ib)!.total - scores.get(ia)!.total || ia - ib;
+  };
+  const accepted = candidates.filter((t) => scores.get(tileIndex(map, t.col, t.row))!.reject === null);
+  const refused = candidates.filter((t) => scores.get(tileIndex(map, t.col, t.row))!.reject !== null);
+  accepted.sort(byScore);
+  refused.sort(byScore);
+  return { accepted, refused, scores };
+}
+
+/**
+ * One start tile per player, in player order, and which of them the board let
+ * down. Fewer than `count` tiles come back only when the map has fewer passable
+ * land tiles than players.
+ */
+export function planStartPositions(map: GameMap, count: number): StartPlan {
   const chosen: Tile[] = [];
-  if (count <= 0) return chosen;
+  if (count <= 0) return { starts: chosen, shortfall: [] };
 
   const STARTS = startsFor(map);
 
@@ -739,38 +1032,27 @@ export function chooseStartPositions(map: GameMap, count: number): Tile[] {
       scoreSite(map, STARTS, tile, ground, landmass, arms),
     );
   }
-  const byScore = (a: Tile, b: Tile): number => {
-    const ia = tileIndex(map, a.col, a.row);
-    const ib = tileIndex(map, b.col, b.row);
-    return scores.get(ib)!.total - scores.get(ia)!.total || ia - ib;
-  };
+  const rank = rankSites(map, candidates, scores);
 
-  const accepted = candidates.filter((t) => scores.get(tileIndex(map, t.col, t.row))!.reject === null);
-  accepted.sort(byScore);
-
+  // One chair at a time, each down the whole ladder from the map's own spacing
+  // — **per chair**, so a board that made one seat come down to thirteen does
+  // not spend the rest of the sweep there. A pick reads only the picks before
+  // it, which is what keeps a two-player game's starts an exact prefix of a
+  // twelve-player game's (see the module docblock, and `ensureStartFood`).
   const spacing = startSpacing(map, STARTS);
   const taken = new Set<number>();
-  seat(map, accepted, chosen, taken, count, spacing, STARTS.minDistance);
-
-  // Still short: the map cannot honour its own standards, so the refused sites
-  // are swept too, best first. A start on snow is a bad start; no start is a
-  // crash.
-  const refused = candidates.filter(
-    (t) => scores.get(tileIndex(map, t.col, t.row))!.reject !== null,
-  );
-  refused.sort(byScore);
-  if (chosen.length < count) {
-    seat(map, refused, chosen, taken, count, spacing, STARTS.minDistance);
+  for (let seat = 0; seat < count; seat++) {
+    const pick = seatChair(map, STARTS, rank, chosen, taken, spacing);
+    if (pick === null) break;
+    chosen.push(pick);
+    taken.add(tileIndex(map, pick.col, pick.row));
   }
+  return { starts: chosen, shortfall: shortfallsIn(map, STARTS, chosen) };
+}
 
-  // And still short: there is genuinely nowhere left at `minDistance`. Only now
-  // does the floor itself give way, accepted sites first — a duel map seating
-  // twelve players is the case, and seating them badly beats throwing.
-  if (chosen.length < count) {
-    seat(map, accepted, chosen, taken, count, spacing, 1);
-    if (chosen.length < count) seat(map, refused, chosen, taken, count, spacing, 1);
-  }
-  return chosen;
+/** The tiles alone — `planStartPositions`' reading for the callers that only seat. */
+export function chooseStartPositions(map: GameMap, count: number): Tile[] {
+  return planStartPositions(map, count).starts;
 }
 
 /** The best score among the sites this map stands behind. Nought if it has none. */
@@ -812,39 +1094,8 @@ export function startBiasCap(map: GameMap): number {
 }
 
 /**
- * The best remaining site for **one** seat, or `null` when nothing fits.
- *
- * `seat`'s single-chair sibling, and it exists because a biased roster cannot
- * use `seat`: every seat orders the board differently, so there is no one list
- * to sweep. The relaxation is the same rule read one chair at a time — the
- * spacing gives way by one when nothing fits, down to `floor`.
- */
-function seatOne(
-  map: GameMap,
-  ordered: readonly Tile[],
-  chosen: readonly Tile[],
-  taken: ReadonlySet<number>,
-  fromSpacing: number,
-  floor: number,
-  meets?: Uint8Array,
-): Tile | null {
-  for (let spacing = Math.max(floor, fromSpacing); spacing >= floor; spacing--) {
-    for (const tile of ordered) {
-      const at = tileIndex(map, tile.col, tile.row);
-      if (taken.has(at)) continue;
-      // The wants, when there are any: a filter over the order, never a change
-      // to it. The site that comes back is still the best-scoring one the seat
-      // could have had — of those that answer what the figure asked for.
-      if (meets && meets[at] !== 1) continue;
-      const hex = tileHex(tile);
-      if (chosen.every((other) => wrappedDistance(map, hex, tileHex(other)) >= spacing)) return tile;
-    }
-  }
-  return null;
-}
-
-/**
- * One start per **seat**, each scoring the board its own leader's way.
+ * One start per **seat**, each scoring the board its own leader's way, and which
+ * of them the board let down.
  *
  * Stage one of the three (`docs/flags.md` (cccc), `docs/leaders.md`): a leader's
  * bias is extra labelled lines on the same score the chooser already sorts —
@@ -859,27 +1110,25 @@ function seatOne(
  * what everybody else has left. Nothing else about a figure moves its turn, so
  * the order is a fact about the roster and reads off it.
  *
- * Each chair takes its best-scoring **accepted** site that meets every want it
- * carries; where the map offers none it takes the best-scoring accepted site
- * outright, then a refused one, then gives up the spacing floor. A want is
- * therefore never a rejection and never a guarantee — see `StartBias.wants`.
+ * Each chair goes down the seating ladder — see `seatOne`, whose order is the
+ * whole of the (rrrr) ruling: at every spacing from the map's own down to the
+ * floor, the wants first and then the wants dropped; the sites the map does not
+ * stand behind under that; and the floor itself last of all. A want is therefore
+ * never a rejection and never a guarantee, and it gives way before a hex of
+ * distance does.
  *
- * **A roster with no leaders is today's map, exactly.** The unbiased case is
- * delegated to `chooseStartPositions` rather than reimplemented here, so the
- * batch sweep's relaxation cascade (all seats through the accepted sites before
- * any refused one) is the one that runs, and a game without figures is
- * byte-identical to a game from before they existed. The per-seat cascade below
- * differs in exactly that: a seat that cannot be seated at all falls to the
- * refused sites on its own account, because there is no shared ordering left to
- * fall through together.
+ * **A roster with no leaders is the unbiased chooser, exactly.** The unbiased
+ * case is delegated to `planStartPositions` rather than reimplemented here, so a
+ * game without figures is the game it was — the two ladders are now the same
+ * ladder, and the delegation is what keeps them provably so.
  */
-export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[]): Tile[] {
+export function planStartPositionsFor(map: GameMap, seats: readonly StartSeat[]): StartPlan {
   const biases = seats.map((seat) => {
     const bias = startBiasOf(seat.leader);
     return biasIsEmpty(bias) ? undefined : bias;
   });
   if (biases.every((bias) => bias === undefined)) {
-    return chooseStartPositions(map, seats.length);
+    return planStartPositions(map, seats.length);
   }
 
   const STARTS = startsFor(map);
@@ -895,14 +1144,7 @@ export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[
     plain.set(tileIndex(map, tile.col, tile.row), scoreSite(map, STARTS, tile, ground, landmass, arms));
   }
   const cap = capFrom(STARTS, bestAccepted(plain.values()));
-
-  // Whether a site is *allowed* is the same question for every seat — a bias is
-  // a score and never a rejection — so the two pools are built once and only
-  // their order changes from chair to chair.
-  const rejected = (tile: Tile): boolean =>
-    plain.get(tileIndex(map, tile.col, tile.row))!.reject !== null;
-  const accepted = candidates.filter((tile) => !rejected(tile));
-  const refused = candidates.filter(rejected);
+  const plainRank = rankSites(map, candidates, plain);
   const spacing = startSpacing(map, STARTS);
 
   // **The needy choose first.** Seats are served in order of how many wants
@@ -920,49 +1162,35 @@ export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[
   const seatOf = new Array<Tile | undefined>(seats.length).fill(undefined);
   for (const index of order) {
     const bias = biases[index];
-    const scores = new Map<number, number>();
-    for (const tile of candidates) {
-      const at = tileIndex(map, tile.col, tile.row);
-      scores.set(
-        at,
-        bias === undefined
-          ? plain.get(at)!.total
-          : scoreSite(map, STARTS, tile, ground, landmass, arms, { bias, cap }).total,
-      );
+    // Whether a site is *allowed* is the same question for every seat — a bias
+    // is a score and never a rejection — so only the order changes from chair to
+    // chair, and a chair with no figure in it is handed the unbiased ordering
+    // rather than a copy of it.
+    let rank = plainRank;
+    if (bias !== undefined) {
+      const scores = new Map<number, StartSiteScore>();
+      for (const tile of candidates) {
+        const at = tileIndex(map, tile.col, tile.row);
+        scores.set(at, scoreSite(map, STARTS, tile, ground, landmass, arms, { bias, cap }));
+      }
+      rank = rankSites(map, candidates, scores);
     }
-    const byScore = (a: Tile, b: Tile): number => {
-      const ia = tileIndex(map, a.col, a.row);
-      const ib = tileIndex(map, b.col, b.row);
-      return scores.get(ib)! - scores.get(ia)! || ia - ib;
-    };
-    const wanted = [...accepted].sort(byScore);
-    const rest = [...refused].sort(byScore);
 
     // The wants, asked once over the sites this map stands behind. A field
-    // rather than a predicate in the loop because the cascade sweeps the list
+    // rather than a predicate in the loop because the ladder sweeps the pool
     // once per spacing it relaxes to, and the answer cannot change between
     // sweeps — the ground does not move.
     let meets: Uint8Array | undefined;
     const asks = bias?.wants;
     if (asks !== undefined && wantCount(bias) > 0) {
       meets = new Uint8Array(map.tiles.length);
-      for (const tile of wanted) {
+      for (const tile of rank.accepted) {
         if (siteMeetsWants(map, tile, asks)) meets[tileIndex(map, tile.col, tile.row)] = 1;
       }
     }
 
-    // The cascade one chair at a time: what the figure asked for, then the best
-    // ground going, then the sites this map does not stand behind, then the
-    // floor itself giving way. **The want is the first arm and never the last**,
-    // which is the whole of "a hard want with a fallback": a map with no
-    // mountain going seats Pachacuti anyway, on the best hex he could have had.
-    const pick =
-      (meets ? seatOne(map, wanted, chosen, taken, spacing, STARTS.minDistance, meets) : null) ??
-      seatOne(map, wanted, chosen, taken, spacing, STARTS.minDistance) ??
-      seatOne(map, rest, chosen, taken, spacing, STARTS.minDistance) ??
-      seatOne(map, wanted, chosen, taken, spacing, 1) ??
-      seatOne(map, rest, chosen, taken, spacing, 1);
-    if (!pick) continue;
+    const pick = seatChair(map, STARTS, rank, chosen, taken, spacing, meets);
+    if (pick === null) continue;
     chosen.push(pick);
     seatOf[index] = pick;
     taken.add(tileIndex(map, pick.col, pick.row));
@@ -971,14 +1199,19 @@ export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[
   // Back into **roster** order: the seating order is an implementation detail of
   // who was served first, and every caller indexes this by seat. A chair with
   // nothing under it can only happen on a map with fewer standable hexes than
-  // players, which is `chooseStartPositions`' own "fewer than count" case, so
+  // players, which is `planStartPositions`' own "fewer than count" case, so
   // the prefix is where the list ends — exactly as it does there.
   const seated: Tile[] = [];
   for (const tile of seatOf) {
     if (tile === undefined) break;
     seated.push(tile);
   }
-  return seated;
+  return { starts: seated, shortfall: shortfallsIn(map, STARTS, seated) };
+}
+
+/** The tiles alone — `planStartPositionsFor`' reading for the callers that only seat. */
+export function chooseStartPositionsFor(map: GameMap, seats: readonly StartSeat[]): Tile[] {
+  return planStartPositionsFor(map, seats).starts;
 }
 
 /**

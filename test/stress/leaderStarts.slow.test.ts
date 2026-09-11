@@ -25,13 +25,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { mapRange, tileHex, wrappedDistance } from '../../src/sim/map';
+import { tileHex, wrappedDistance } from '../../src/sim/map';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
-import type { GameMap, Tile } from '../../src/sim/map';
 import { generateMap } from '../../src/sim/mapgen';
-import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
-import { improvementForResource } from '../../src/sim/improvementData';
-import { resourceDef, tileSuitsResource } from '../../src/sim/resourceData';
+import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
+import { CRITERIA, RATES } from '../mapgen/leaderCriteria';
 import {
   type StartSeat,
   chooseStartPositions,
@@ -45,128 +43,13 @@ import {
 const SEEDS = 24;
 const SIZE = 'standard';
 
-/** Hexes within `radius` of a start, the start itself included. */
-function near(map: GameMap, start: Tile, radius: number): Tile[] {
-  return mapRange(map, tileHex(start), radius);
-}
-
-function hasRiver(map: GameMap, start: Tile, radius: number): boolean {
-  return near(map, start, radius).some((tile) => tile.riverEdges !== 0);
-}
-
-function countTerrain(map: GameMap, start: Tile, radius: number, what: (tile: Tile) => boolean): number {
-  return near(map, start, radius).filter(what).length;
-}
-
-/** A hex a pasture could ever stand on — the ground Modu's herds need. */
-function pastureGround(tile: Tile): boolean {
-  return ['horses', 'cattle', 'bison'].some((id) =>
-    tileSuitsResource(tile, resourceDef(id as never)),
-  );
-}
-
-/** Is a resource opened by this improvement kind standing in reach? */
-function hasKind(map: GameMap, start: Tile, radius: number, kind: string): boolean {
-  return near(map, start, radius).some(
-    (tile) => tile.resource !== undefined && improvementForResource(tile.resource) === kind,
-  );
-}
-
-/** One measurable claim about a seat's ground. */
-interface Criterion {
-  leader: LeaderId;
-  label: string;
-  /**
-   * True when the row's own sheet **backs** this claim with a hard want
-   * (`startBias.wants`) or a furnishing — the two halves of M1b. A backed claim
-   * is held on all but a seed or two and is asserted at `BACKED`; an unbacked
-   * one rides the soft score alone and is only asked to improve.
-   */
-  backed?: true;
-  holds(map: GameMap, start: Tile): boolean;
-}
-
-const CRITERIA: Criterion[] = [
-  {
-    leader: 'pachacuti',
-    label: 'a mountain within 2',
-    backed: true,
-    holds: (map, start) => countTerrain(map, start, 2, (tile) => tile.terrain === 'mountain') > 0,
-  },
-  {
-    leader: 'pachacuti',
-    label: 'three hills within 2',
-    holds: (map, start) => countTerrain(map, start, 2, (tile) => tile.hills) >= 3,
-  },
-  {
-    leader: 'pachacuti',
-    label: 'a river within 1',
-    backed: true,
-    holds: (map, start) => hasRiver(map, start, 1),
-  },
-  {
-    leader: 'taizong',
-    label: 'grassland within 2',
-    backed: true,
-    holds: (map, start) => countTerrain(map, start, 2, (tile) => tile.terrain === 'grassland') > 0,
-  },
-  {
-    leader: 'modu',
-    label: 'horses within 4',
-    backed: true,
-    holds: (map, start) => near(map, start, 4).some((tile) => tile.resource === 'horses'),
-  },
-  {
-    leader: 'modu',
-    label: 'two pasture hexes within 3',
-    holds: (map, start) => countTerrain(map, start, 3, pastureGround) >= 2,
-  },
-  {
-    leader: 'akhenaten',
-    label: 'river or floodplain within 1',
-    backed: true,
-    holds: (map, start) =>
-      hasRiver(map, start, 1) ||
-      countTerrain(map, start, 1, (tile) => tile.feature === 'floodplain') > 0,
-  },
-  {
-    leader: 'akhenaten',
-    label: 'desert or oasis within 2',
-    backed: true,
-    holds: (map, start) =>
-      countTerrain(
-        map,
-        start,
-        2,
-        (tile) =>
-          tile.terrain === 'desert' || tile.feature === 'oasis' || tile.feature === 'floodplain',
-      ) > 0,
-  },
-  {
-    leader: 'almamun',
-    label: 'a river within 2',
-    backed: true,
-    holds: (map, start) => hasRiver(map, start, 2),
-  },
-  {
-    leader: 'mithridates',
-    label: 'a river within 2',
-    backed: true,
-    holds: (map, start) => hasRiver(map, start, 2),
-  },
-  {
-    leader: 'mithridates',
-    label: 'a camp kind within 3',
-    backed: true,
-    holds: (map, start) => hasKind(map, start, 3, 'camp'),
-  },
-  {
-    leader: 'mithridates',
-    label: 'a plantation kind within 3',
-    backed: true,
-    holds: (map, start) => hasKind(map, start, 3, 'plantation'),
-  },
-];
+/**
+ * The claims themselves live in `test/mapgen/leaderCriteria.ts`, beside the M2
+ * sweep that measures the same list after the seating ladder changed
+ * (`docs/flags.md` (rrrr)). One list, two questions: a criterion edited in one
+ * sweep and not the other would be two measurements that look comparable and are
+ * not.
+ */
 
 /** The six figures, one a seat, in sheet order. */
 const SEATS: StartSeat[] = LEADER_IDS.map((leader) => ({ leader }));
@@ -277,27 +160,29 @@ describe('the leaders" start biases', () => {
       `held ${Math.max(biasedHeld, plainHeld)} of ${CRITERIA.length * SEEDS}`,
     );
 
-    // A criterion the sheet **backs** — with a hard want, or with a furnishing —
-    // is a need, and a need is held on nearly every seed: the seat takes the
-    // best accepted site that answers it, and only a map with no such site going
-    // anywhere it may sit falls through to the soft score. `BACKED` is where
-    // that floor sits.
+    // Every criterion is held at the rate the sheet **measures today**, and that
+    // rate lives beside the criteria (`RATES`, `test/mapgen/leaderCriteria.ts`)
+    // with the rate it had before M2 next to it.
     //
-    // A criterion nothing backs rides the capped score alone, and the capped
-    // score was measured to move the odds by a handful of points, not to
-    // deliver. Those are asked only to hold up — **loosely**, because the
-    // seating is a queue: a chair with fewer wants picks later, and a criterion
-    // an unseated seat happened to hold on every seed has nowhere to go but
-    // sideways. `SLACK` is the width of that, in seeds.
-    const BACKED = 0.95;
-    const SLACK = 3;
+    // It used to be a flat share for the backed rows — a need is a need, held on
+    // all but a seed or two — and M2 retired that shape rather than loosened it
+    // (`docs/flags.md` (rrrr)). The seating ladder now drops a want before it
+    // drops a hex of distance, so a chair served late genuinely goes without,
+    // and "nearly always" stopped being true of two of these rows. A floor that
+    // was still nearly-always would have had to be lowered to the worst row and
+    // would then have measured nothing about the rest; a table of the real
+    // numbers holds every row to what it actually delivers and shows what M2
+    // cost in the same glance.
     for (const criterion of CRITERIA) {
       const row = held.get(criterion.label + '|' + criterion.leader)!;
-      const floor = criterion.backed
-        ? Math.ceil(BACKED * SEEDS)
-        : Math.max(row.biased, row.plain - SLACK);
+      const rate = RATES[`${criterion.leader} · ${criterion.label}`];
+      expect(`${criterion.leader} · ${criterion.label} · rated`).toBe(
+        rate === undefined
+          ? `${criterion.leader} · ${criterion.label} · unrated`
+          : `${criterion.leader} · ${criterion.label} · rated`,
+      );
       expect(`${criterion.leader} · ${criterion.label} · ${row.biased} of ${SEEDS}`).toBe(
-        `${criterion.leader} · ${criterion.label} · ${Math.max(row.biased, floor)} of ${SEEDS}`,
+        `${criterion.leader} · ${criterion.label} · ${Math.max(row.biased, rate!.m2)} of ${SEEDS}`,
       );
     }
 

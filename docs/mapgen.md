@@ -981,6 +981,7 @@ is a wheat somewhere else.
 | Coast | `coastBonus` if the site is coastal |
 | *one per ground a leader asked for* | its weight × the matching hexes, each worth its ring — see [the three stages](#the-leaders-three-stages) |
 | Bias cap | whatever of those the map's ceiling will not allow, taken back |
+| Rivals within *r* | `−contactPenalty` per start already chosen within `contactRadius`. The only line that is a fact about the *sweep* rather than about the ground, and so the only one that differs between two readings of one hex |
 
 A tile's worth is `food × foodWeight + production × productionWeight + gold ×
 goldWeight`. How many rings are scored is **the length of `ringWeights`** — a
@@ -1014,11 +1015,72 @@ That is deliberate and load-bearing: it makes an *n*-player game's starts an exa
 prefix of a 12-player game's, which is what lets the resource guarantees below
 seat the maximum roster once and have it cover every real game.
 
-Seating is a greedy sweep, best score first, ties by tile index, relaxing spacing
-by one when a sweep places nothing — down to `minDistance`, which is what makes
-that number mean a *floor* rather than merely a clamp. Still short: the refused
-sites are swept too (a start on snow is a bad start; no start is a crash). Still
-short: only then does the floor itself give way to 1.
+Measured: `duel` reads 11 and gets 11; every size from `standard` up reads 23, 29,
+36 and 51 and so gets the **ceiling**, 20. Raising `maxDistance` from 16 to 20
+(ruled 2026-09-11) therefore raised the standard board's spacing with it — the
+ruling's parenthetical "standard still aims at 16" is arithmetic `spacingFactor`
+0.55 cannot honour, and the pin in `startPositions.test.ts` says 20.
+
+Distance is asked for **twice**, and the two are different questions:
+
+- `minDistance` is the **floor** — a yes or a no. The ladder below may only go
+  under it on a board with nowhere left to stand, and when it does it says so;
+- `contactPenalty` is the **preference** above it — a labelled score line, so
+  that of two legal hexes the sweep prefers the one not hugging the floor. See
+  the caveat in the tunables table: a radius under the board's spacing cannot
+  fire at all, because every candidate the sweep looks at has already cleared it.
+  At the shipped 12 it is inert on every size but `duel`; measured at 26 on 24
+  standard boards it lifts the mean minimum pairwise distance from 15.3 to 15.8
+  and halves the boards under 15.
+
+#### The seating ladder
+
+Ruled 2026-09-11, `docs/flags.md` (rrrr), from the user's *"another leader spawned
+8 tiles from me"*. One chair at a time, in the order the fairness section below
+describes, each going down this ladder and stopping at the first rung that
+answers:
+
+1. over the sites the chooser **accepts**, at each spacing from the board's own
+   down to `minDistance`: the hexes answering the figure's wants, then the wants
+   dropped. **A want gives way before a hex of distance does** — which is the
+   whole ruling. Before it, a want with nothing answering it at the board's
+   spacing pulled the spacing down a hex at a time until something did;
+2. the same, with the floor itself giving way, down to 1;
+3. only then the sites the chooser **refuses**, on the same two rungs.
+
+Dropping the *bias* is a rung the ladder deliberately does not have: a bias
+reorders a pool and never filters one, so a rung that dropped it would sweep the
+same hexes at the same spacing and could only return what the rung above already
+returned. What the bias gives way to is the crowding line inside the score.
+
+The pool is the outer question and the spacing the inner one, and that ordering
+is load-bearing twice over. A board that cannot seat everybody has two ways to
+fail a chair — bad ground, or a near neighbour — and the ruling asks for the
+second, because a capital on snow is a game nobody can play and nothing says so.
+It is also what keeps the strategic guarantee below true on a crowded roster:
+that guarantee is backed by a site *refusal*, so a sweep reaching for refused
+sites to hold the floor would hand back capitals with no ground for their horses.
+
+Relaxation is **per chair**: a chair that had to come down to thirteen does not
+spend the rest of the sweep there. It is the weakly better rule by construction
+(every chair's ladder starts at least as high), and measured the two agree
+everywhere today — the boards that relax at all relax all the way.
+
+#### The shortfall
+
+A chair the ladder could not seat inside the floor is still seated — no start is
+a crash — and `planStartPositions` / `planStartPositionsFor` return a
+**`shortfall`** row for it beside the tiles: the seat, the distance it got, and
+the floor it was promised. `chooseStartPositions` / `chooseStartPositionsFor` are
+the tile-only readings over those, for the callers that only seat. The mapgen
+lobby prints each seat's distance to its nearest rival and that sentence under it.
+Empty is the promise kept, which is every board that is not a dev harness.
+
+Measured over 24 standard boards with the six figures
+(`test/mapgen/startSpacing.slow.test.ts`): the minimum pairwise distance runs
+12–19, median 16, mean 15.5, nothing under the floor and no shortfall rows. A
+`duel` board asked for twelve capitals is under the floor from the second chair
+and reports every one of them.
 
 ### The four guarantees
 
@@ -1115,12 +1177,22 @@ A capped weight moves the odds and cannot deliver a need. Measured over the same
 or not, because a mountain is worth the same handful of points wherever it stands
 and the ceiling would not let it be worth more.
 
-So a row may carry **`startBias.wants`** — a closed vocabulary of predicates, each
-a radius: `mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`,
-`aridWithin`, `grasslandWithin`, `pastureGroundWithin` (one such hex in reach,
-the site's own included; `pastureGroundWithin` asks the improvement table what
-ground a pasture stands on rather than naming terrain here, and `aridWithin`
-counts a desert hex or an oasis or a floodplain — the three faces of one place).
+So a row may carry **`startBias.wants`** — a closed vocabulary of predicates in
+two shapes, and `START_WANT_MEASURE` (`src/sim/leaderData.ts`) says which each is:
+
+- a **radius**, `…Within`: one such hex in reach, the site's own included —
+  `mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`, `aridWithin`,
+  `grasslandWithin`, `pastureGroundWithin`. (`pastureGroundWithin` asks the
+  improvement table what ground a pasture stands on rather than naming terrain
+  here, and `aridWithin` counts a desert hex or an oasis or a floodplain — the
+  three faces of one place.)
+- a **count**, `…Beside`: this many of the six hexes *touching* the site —
+  `aridBeside`, the only one today. Ruled 2026-09-11, `docs/flags.md` (uuuu),
+  from the user's *"i notice akhenaten rarely spawns in desert"*. A radius asks
+  *is there any of this near me*; a count of neighbours asks *am I standing in
+  it*, and nothing about a radius can say the second without saying it further
+  away. The site's own hex is deliberately not counted, because the ground these
+  are written about is ground a start is refused on.
 
 `aridWithin` is the clearest case of what a filter over *accepted* sites buys.
 Desert is `hostileTerrain`, so a site on it is refused outright and a site with
@@ -1161,29 +1233,44 @@ byte-identical to a game from before they existed — and the resource passes ta
 uniform tile draw is kept as its own arm, because `nextInt` and `nextFloat` are
 different draws off one stream).
 
-Measured over 24 seeds at `standard`, six seats, one figure each — the share of
-starts meeting each figure's own criterion, with nobody seated and with everybody
-seated:
+Measured over 24 seeds at `standard`, six seats, one figure each — seeds out of
+24 on which each figure's own criterion held, when the wants shipped (M1) and
+after the seating ladder changed (M2, `docs/flags.md` (rrrr)). The table is
+`RATES` in `test/mapgen/leaderCriteria.ts`, which both sweeps pin against:
 
-| Figure | Criterion | Unseated | Seated | Backed by |
+| Figure | Criterion | M1 | M2 | Backed by |
 |---|---|---|---|---|
-| Pachacuti | a mountain within 2 | 17% | 100% | want |
-| Pachacuti | three hills within 2 | 100% | 100% | score |
-| Pachacuti | a river within 1 | 83% | 100% | want |
-| Taizong | grassland within 2 | 79% | 100% | want |
-| Modu | horses within 4 | 83% | 100% | furnishing |
-| Modu | two pasture hexes within 3 | 100% | 100% | want |
-| Akhenaten | river or floodplain within 1 | 100% | 100% | want |
-| Akhenaten | desert, oasis or floodplain within 2 | 38% | 100% | want |
-| Al-Ma'mun | a river within 2 | 75% | 100% | want |
-| Mithridates | a river within 2 | 50% | 100% | want |
-| Mithridates | a camp kind within 3 | 29% | 100% | furnishing |
-| Mithridates | a plantation kind within 3 | 88% | 100% | furnishing |
+| Pachacuti | a mountain within 2 | 24 | 24 | want |
+| Pachacuti | three hills within 2 | 24 | 24 | score |
+| Pachacuti | a river within 1 | 24 | 24 | want |
+| Taizong | grassland within 2 | 24 | 24 | want |
+| Modu | horses within 4 | 24 | 24 | furnishing |
+| Modu | two pasture hexes within 3 | 24 | 24 | want |
+| Akhenaten | river or floodplain within 1 | 24 | 23 | want |
+| Akhenaten | three arid neighbours | 0 | 11 | want (new, (uuuu)) |
+| Al-Ma'mun | a river within 2 | 24 | 20 | want |
+| Mithridates | a river within 2 | 24 | 19 | want |
+| Mithridates | a camp kind within 3 | 24 | 24 | furnishing |
+| Mithridates | a plantation kind within 3 | 24 | 24 | furnishing |
 
-Every backed claim holds on every seed of the sweep; the slow test asserts a
-floor under each rather than merely "no worse than an empty chair". Before the
-wants (M1, the capped score alone) the same table read 21%, 92%, 88%, 83% and
-42% down that column — which is the measurement the wants exist because of.
+**Two rows fell, and the fall is the ruling working.** M1 pulled the board's
+spacing down a hex at a time to keep a want, so a river was always found and a
+rival was sometimes eight hexes off; M2 holds the spacing and lets a chair served
+late go without. What is still pinned on every seed is the honest version: a
+figure went without only because nothing free, accepted and far enough away
+answered — never because the sweep preferred a closer hex that did.
+
+Akhenaten's row is the (uuuu) add-on read the same way. The old claim was one
+arid hex within two rings, which a river valley with a dune in sight answers and
+which he held on essentially every board while standing in no sand at all: under
+the old sheet he had three arid neighbours on **0 of 24** boards, mean 0.9. Under
+`aridBeside 3` he has them on 11, mean 1.9. The rest is the spacing spending
+them — 19 of the 24 boards grow a site that answers him and only 4 still have one
+free at a spacing of twenty by the time his chair is served.
+
+Before the wants existed at all (the capped score alone) the seated column read
+21%, 92%, 88%, 83% and 42% down the first five rows — which is the measurement
+the wants exist because of.
 
 The price is the other half of it: the seats' **unbiased** site scores move by at
 most a couple of points of a mean around forty, against a cap of about nine —
@@ -1449,8 +1536,10 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `spacingFactor` | 0.55 | × √land, then clamped — start spacing |
-| `minDistance` | 10 | clamp floor, and the floor the greedy sweep relaxes to (5 until 2026-09-11, `docs/flags.md` (tttt)) |
-| `maxDistance` | 16 | clamp ceiling |
+| `minDistance` | 10 | clamp floor, and **the floor the seating ladder relaxes to** (5 until 2026-09-11, `docs/flags.md` (tttt) and (rrrr)) — see [spacing and seating](#spacing-and-seating) |
+| `maxDistance` | 20 | clamp ceiling (16 until 2026-09-11). At `spacingFactor` 0.55 every size from `standard` up reads above it, so this *is* their spacing |
+| `contactPenalty` | 6 | what a candidate loses per start already standing within `contactRadius` — the preference for distance above the floor |
+| `contactRadius` | 12 | how near counts, at-or-within. **Under the board's spacing it cannot fire**: every candidate the sweep sees is already `spacing` hexes off every chosen start, so raise it above the spacing to give the line bite (measured below) |
 | `ringWeights` | [1.0, 0.55] | what each ring is worth; **its length is how many rings are scored** |
 | `workedTiles` | 6 | how many ring tiles are scored — the best this many, not all |
 | `centreWeight` | 2.0 | what the site's own tile is worth against a ring tile's 1 |

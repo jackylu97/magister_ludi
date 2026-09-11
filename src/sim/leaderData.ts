@@ -132,13 +132,21 @@ export interface StartBias {
 export type FurnishEntry = ImprovementId | ResourceId;
 
 /**
- * The wants vocabulary: what may be asked for, and how far away it may be.
+ * The wants vocabulary: what may be asked for, and how much of it.
  *
- * A closed set of keys, each a **radius** — "a mountain within two hexes" — for
- * `START_BIAS_KEYS`' reason: a typo is a load error rather than a need that
- * silently never fires. Each asks for *one* such hex in reach, the site's own
- * included; a figure that needs a whole neighbourhood of something states that
- * with a terrain weight, which is what weights are for.
+ * A closed set of keys for `START_BIAS_KEYS`' reason: a typo is a load error
+ * rather than a need that silently never fires. Each carries one number, and
+ * `START_WANT_MEASURE` says what that number counts — a **radius** for the
+ * `…Within` keys ("a mountain within two hexes", one such hex in reach and the
+ * site's own counts), a **count** for the `…Beside` ones ("three arid hexes of
+ * the six touching this one").
+ *
+ * The two shapes are two different asks and neither says the other. A radius is
+ * *is there any of this near me*; a count of neighbours is *am I standing in
+ * it*. A figure that wants a whole neighbourhood of something can still say so
+ * with a terrain weight, which is what weights are for — but a weight is capped
+ * and a need is not, which is the whole reason wants exist (`docs/flags.md`
+ * (cccc), and (uuuu) for the counting half).
  */
 export interface StartWants {
   /** A mountain in reach — the terraces' own ground. */
@@ -160,6 +168,25 @@ export interface StartWants {
    * the others.
    */
   aridWithin?: number;
+  /**
+   * This many of the **six hexes touching the site** are dry country — the same
+   * three faces `aridWithin` reads, asked as "am I standing in it" rather than
+   * as "is there any of it about".
+   *
+   * Ruled 2026-09-11 (`docs/flags.md` (uuuu), the user: *"i notice akhenaten
+   * rarely spawns in desert, could we give him a desert start bias?"*). The
+   * radius want could not deliver that and the measurement said so: one arid hex
+   * anywhere in two rings satisfies `aridWithin 2`, which is a river valley with
+   * a dune in sight — the seat Akhenaten kept getting. Nothing about a radius
+   * can ask for more without asking for it further away, so the count is a
+   * second shape rather than a bigger number.
+   *
+   * The ring rather than the site itself, because the site itself may not be
+   * desert: desert is `hostileTerrain` and a start on it is refused outright.
+   * What a figure of the sand can have is the last liveable hex before it, which
+   * is the Nile, and "three of my six neighbours are sand" is how a map says so.
+   */
+  aridBeside?: number;
   /** Grassland in reach. */
   grasslandWithin?: number;
   /** A hex a pasture could ever stand on: flat grassland or plains. */
@@ -172,9 +199,31 @@ export const START_WANT_KEYS: readonly (keyof StartWants)[] = [
   'riverWithin',
   'riverOrFloodplainWithin',
   'aridWithin',
+  'aridBeside',
   'grasslandWithin',
   'pastureGroundWithin',
 ];
+
+/** What a want's one number counts: how far away, or how many of them. */
+export type StartWantMeasure = 'radius' | 'count';
+
+/**
+ * Which of the two each want is — declared beside the vocabulary rather than
+ * switched on where it is read.
+ *
+ * One table, three readers: the chooser (`siteMeetsWants`), the lobby's tick
+ * line, and the reference's own sync test. A want added without a row here fails
+ * to compile, which is the same bargain `START_WANT_KEYS` makes about spelling.
+ */
+export const START_WANT_MEASURE: Readonly<Record<keyof StartWants, StartWantMeasure>> = {
+  mountainWithin: 'radius',
+  riverWithin: 'radius',
+  riverOrFloodplainWithin: 'radius',
+  aridWithin: 'radius',
+  aridBeside: 'count',
+  grasslandWithin: 'radius',
+  pastureGroundWithin: 'radius',
+};
 
 /**
  * How many wants a seat carries — the key to the seating order.

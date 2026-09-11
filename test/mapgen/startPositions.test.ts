@@ -1,13 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { generateMap, MAPGEN_CONFIG } from '../../src/sim/mapgen';
-import { tileHex, tileIndex, wrappedDistance } from '../../src/sim/map';
+import { createMap, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
 import {
+  type StartSeat,
   chooseStartPositions,
+  chooseStartPositionsFor,
+  planStartPositions,
   planStartingUnits,
   scoreStartSite,
+  siteMeetsWants,
   startScore,
   startSpacing,
 } from '../../src/sim/startPositions';
+import { startBiasOf } from '../../src/sim/leaderData';
 import { RULES } from '../../src/sim/rulesData';
 import { type GameConfig, newGame } from '../../src/sim/state';
 import { moveCost } from '../../src/sim/terrainData';
@@ -84,6 +89,118 @@ describe('chooseStartPositions', () => {
     for (const start of starts) {
       expect(startScore(map, start)).toBeGreaterThanOrEqual(median);
     }
+  });
+});
+
+/**
+ * How far apart the chooser puts people, and what it gives up first when it
+ * cannot (`docs/flags.md` (rrrr), 2026-09-11: *"another leader spawned 8 tiles
+ * from me"*). The sweep over many seeds is `startSpacing.slow.test.ts`; what one
+ * board answers is here.
+ */
+describe('the spacing, the ladder and the shortfall', () => {
+  const STARTS = MAPGEN_CONFIG.starts;
+
+  it('aims a standard board at its ceiling, inside the ruled clamp', () => {
+    expect([STARTS.minDistance, STARTS.maxDistance]).toEqual([10, 20]);
+    const map = mapFor(4242, 'standard');
+    // `round(0.55 × √1813)` is 23 on a standard board, so the ceiling is what it
+    // gets: raising `maxDistance` from 16 to 20 raised the standard board's aim
+    // with it, and the parenthetical in the ruling ("standard still aims at 16")
+    // is arithmetic the sheet cannot honour at `spacingFactor` 0.55. Pinned as
+    // the number rather than as the intent, because the number is what seats
+    // people.
+    expect(startSpacing(map)).toBe(20);
+    expect(startSpacing(map)).toBeGreaterThanOrEqual(STARTS.minDistance);
+    expect(startSpacing(map)).toBeLessThanOrEqual(STARTS.maxDistance);
+  });
+
+  it('drops a want before it drops a hex', () => {
+    // **The ladder, proved on a board built to make the two answers differ.**
+    // Two identical figures, and the only ground either of them asks for is one
+    // mountain-and-river cluster and a second one eight hexes from it. The first
+    // chair takes a cluster. The second chair can have what it asked for at
+    // eight hexes, or plain grass at the board's own sixteen — and the ruling
+    // says the plain grass, where the old ladder relaxed the spacing to eight
+    // rather than give up the want, which is the seat the user complained about.
+    const map = createMap({
+      width: 44,
+      height: 30,
+      terrain: 'grassland',
+      mapgenOverrides: {
+        // A floor of 1 so the ladder *could* come all the way down — the point
+        // is that it does not — and the refusals switched off so the board is
+        // nothing but the question being asked.
+        starts: {
+          minDistance: 1,
+          maxDistance: 16,
+          minRingFood: 0,
+          minRingProduction: 0,
+          minLandmassShare: 0,
+          minLandmassTiles: 0,
+        },
+        resources: { startStrategics: [] },
+      },
+    });
+    const put = (col: number, row: number): void => {
+      const at = map.tiles[tileIndex(map, col, row)]!;
+      at.terrain = 'mountain';
+      for (const near of tileNeighbors(map, at)) near.riverEdges = 1;
+    };
+    put(5, 5);
+    put(13, 5);
+    expect(startSpacing(map)).toBe(16);
+
+    const wants = startBiasOf('pachacuti')!.wants!;
+    const seats: StartSeat[] = [{ leader: 'pachacuti' }, { leader: 'pachacuti' }];
+    const seated = chooseStartPositionsFor(map, seats);
+    expect(seated).toHaveLength(2);
+    const apart = wrappedDistance(map, tileHex(seated[0]!), tileHex(seated[1]!));
+
+    // The first chair got what it asked for; the second is at the board's own
+    // spacing on ground that answers nothing.
+    expect(siteMeetsWants(map, seated[0]!, wants)).toBe(true);
+    expect(`second chair ${apart} hexes off, wants met ${siteMeetsWants(map, seated[1]!, wants)}`).toBe(
+      `second chair ${Math.max(apart, 16)} hexes off, wants met false`,
+    );
+    // And the site it turned down was really there: a free hex that answers
+    // every want, inside the spacing. That is the whole of the trade.
+    const taken = seated.map((tile) => tileIndex(map, tile.col, tile.row));
+    const nearer = map.tiles.filter(
+      (tile) =>
+        !taken.includes(tileIndex(map, tile.col, tile.row)) &&
+        moveCost(tile.terrain, tile.feature, tile.hills) !== null &&
+        siteMeetsWants(map, tile, wants) &&
+        wrappedDistance(map, tileHex(tile), tileHex(seated[0]!)) < 16,
+    );
+    expect(nearer.length).toBeGreaterThan(0);
+  });
+
+  it('seats everybody on a board that cannot hold the floor, and reports who it let down', () => {
+    // The honest half of "never fail to seat". A duel board asked for the
+    // maximum roster has nowhere to put them, so the floor gives way — and the
+    // plan says which chairs paid and by how much, which is what the lobby
+    // prints under the seat.
+    const map = mapFor(4242, 'duel');
+    const plan = planStartPositions(map, RULES.game.maxPlayers);
+    expect(plan.starts).toHaveLength(RULES.game.maxPlayers);
+    expect(plan.shortfall.length).toBeGreaterThan(0);
+    for (const row of plan.shortfall) {
+      expect(row.wanted).toBe(STARTS.minDistance);
+      expect(row.distance).toBeLessThan(row.wanted);
+      // The distance on the row is the board's own answer, not a flag written
+      // when the chair was seated.
+      const nearest = Math.min(
+        ...plan.starts
+          .filter((_, index) => index !== row.seat)
+          .map((other) =>
+            wrappedDistance(map, tileHex(plan.starts[row.seat]!), tileHex(other)),
+          ),
+      );
+      expect(row.distance).toBe(nearest);
+    }
+    // And a board that can hold the floor says nothing at all.
+    expect(planStartPositions(mapFor(4242, 'standard'), 4).shortfall).toEqual([]);
   });
 });
 
@@ -191,6 +308,44 @@ describe('start-site scoring', () => {
         );
       }
     }
+  });
+
+  it('costs a candidate a labelled line for each rival already standing near it', () => {
+    // The crowding line (`docs/flags.md` (rrrr)): the preference for distance
+    // that sits above the floor, and a line on the same ledger as everything
+    // else rather than a thumb on the sort.
+    const map = mapFor(4242, 'standard');
+    const here = chooseStartPositions(map, 1)[0]!;
+    const label = `Rivals within ${STARTS.contactRadius}`;
+    const beside = map.tiles.find(
+      (tile) =>
+        moveCost(tile.terrain, tile.feature, tile.hills) !== null &&
+        tileIndex(map, tile.col, tile.row) !== tileIndex(map, here.col, here.row) &&
+        wrappedDistance(map, tileHex(tile), tileHex(here)) <= STARTS.contactRadius,
+    )!;
+    const away = map.tiles.find(
+      (tile) =>
+        moveCost(tile.terrain, tile.feature, tile.hills) !== null &&
+        wrappedDistance(map, tileHex(tile), tileHex(here)) > STARTS.contactRadius,
+    )!;
+
+    const crowded = scoreStartSite(map, beside, undefined, undefined, undefined, undefined, [here]);
+    const line = crowded.entries.find((entry) => entry.source === label);
+    expect(line?.value).toBe(-STARTS.contactPenalty);
+    // And the total is still the fold of the list it is shown (rule 5), with
+    // the line the whole of the difference from the uncrowded reading.
+    let fold = 0;
+    for (const entry of crowded.entries) fold += entry.value;
+    expect(crowded.total).toBeCloseTo(fold, 9);
+    expect(crowded.total).toBeCloseTo(
+      scoreStartSite(map, beside).total - STARTS.contactPenalty,
+      9,
+    );
+
+    // A hex nobody is near carries no line at all — the score says only what is
+    // true about it.
+    const lonely = scoreStartSite(map, away, undefined, undefined, undefined, undefined, [here]);
+    expect(lonely.entries.map((entry) => entry.source)).not.toContain(label);
   });
 
   it('chooses the ground, so a resource landing next door cannot move a start', () => {

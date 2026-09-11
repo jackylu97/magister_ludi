@@ -1800,6 +1800,50 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (uuuu) **Akhenaten starts in the desert — RULED** (the user,
+  2026-09-11: *"i notice akhetaten rarely spawns in desert, could we
+  give him a desert start bias?"*). He has one (M1c) but it is weak by
+  construction: `startBias.terrain.desert` is **0.5** — a *penalty* on
+  desert ground under the site score — and the want `aridWithin: 2` is
+  met by a single desert, oasis or floodplain hex anywhere within two
+  rings, so he sits on a river with one dune in sight. **Ruling**: the
+  capital stands **beside the desert** — the want becomes a count in
+  the first ring (`aridBeside: 3`: at least three desert/oasis/floodplain
+  hexes among the six neighbours, a new want kind in the M1 vocabulary,
+  data-declared), `riverOrFloodplainWithin: 1` kept so the town drinks;
+  `terrain.desert` **2** (a preference, not a penalty), `floodplain` 3,
+  `oasis` 3, `river` 4; the M1 fallback order stands (want met → want
+  dropped → plain). M2's agent builds it with its measurement: the
+  24-seed sweep prints Akhenaten's arid-neighbour count per seed and
+  pins ≥3 wherever a standard map has such a site at all. `docs/leaders.md`
+  start-bias section follows.
+- (tttt) **New mapgen defaults — RULED** (the user, 2026-09-11: *"new
+  defaults for mapgen: water minlength 5 minspringelevation 0.65
+  pitlakemintiles 3500 maxSize 15, luxuriesmincopiespercontinent 4,
+  mindistance 10"*). Set in `data/mapgen.json` by the orchestrator:
+  `rivers.minLength` 4 → **5**, `rivers.minSpringElevation` 0.8 →
+  **0.65**, `rivers.pitLakeMinTiles` 5000 → **3500**, `lakes.maxSize` 8 →
+  **15**, `resources.luxuryMinCopiesPerContinent` 2 → **4**,
+  `starts.minDistance` → **10** (this supersedes (rrrr)'s 12 as the
+  floor; the ceiling 20 and the contact radius stand; M2 told). Every
+  seeded map moves, so seeded fixtures re-pin where they must; a replay
+  change on the held stack (schema stays 115). `docs/mapgen.md` follows
+  the figures.
+  **Set** (held `1688273`, on :5199). The full gate showed **21 seeded
+  pins moved**: the orchestrator re-aimed two (pit lakes pool on
+  standard now — the shape pinned; the forest deal's by-one invariant
+  measured with ponds held still, since `traceRivers` runs after
+  `assignFeatures` and a pond drowns a forest hex); an agent re-derives
+  the seeded fixtures (statecraft's coastal towns, aiBot's grown game,
+  the explore digests, the religion and finish-line replays, "the ground
+  did not move" ×3) and re-examines three river claims (springs "on
+  range ground" at 0.65; a too-short trace kept; the quota); M2's agent
+  owns the start-side four (twelve seats at a floor of 10 on standard no
+  longer all fit the mainland — the honest answer is the `shortfall`
+  report, the pin narrowing to rosters the map can seat).
+  ▢ **the twelve-seat roster at floor 10**: the floor is ruled for six;
+  what a twelve-seat standard game does (relax with a report, or refuse
+  the count in the stepper) is the user's — M2 reports the measurement.
 - (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
   *"another leader spawned 8 tiles from me -- ideally we should have some
   distance between players, maybe 15 tiles?"* → the diagnosis below →
@@ -1886,8 +1930,23 @@ directly to confirm rulings — user marginalia are rulings.
   chosen piece's hex wore the data file's terracotta; it now takes the
   seat's primary (`OverlayState.selectionColor`, handed down beside
   `lockedColor`), the hover ring keeping the accent — a cursor belongs
-  to nobody; pinned in `overlays3d.test.ts`. (3) (4) (5) are an agent's,
-  in flight.
+  to nobody; pinned in `overlays3d.test.ts`. **(3) (4) (5) built** (held):
+  `ageThatOpens(type)` in `leaderData.ts` — the deck row's age, else the
+  row's own column's age band — read by `unitUpkeep` after the tree's
+  own clause; the ten uniques' deck ages and columns agree exactly, so
+  the Fubing costs a spearman's keep and the Khopesh a swordsman's; the
+  Templars (belief-opened) price off their column too; `awaitsTech`/
+  retired hulls unchanged; ten pins. The Horde Camp's card and note say
+  the refill plainly — and say **a soldier of yours**, not a mounted one:
+  the built rule (`arriveOnTile`) is `isCombatant`, as `docs/leaders.md`'s
+  row rules ("military units regain all movement") — ▢ if the user meant
+  mounted only, that is a rule change. The Mosque's line became two
+  (`type: prophet`, `type: apostle`); the walk-every-table pin carries a
+  key path and grants the exception to those two lines alone, and
+  nothing reaches an inquisitor. **Found beside it** — ▢ **the Great
+  Ziggurat's `purchaseRider`** also targets `consecrates: true`: a −25%
+  on the retired augur alone, dead the same way; needs a ruling (prophets
+  and apostles too?).
 - (pppp) **A figure's cities carry its empire's names — RULED** (the
   user, 2026-09-11: *"let's also create a list of ~15 names with
   historically accurate cities from the civ's empire (in order of
@@ -2118,10 +2177,9 @@ directly to confirm rulings — user marginalia are rulings.
   guard excludes nothing; two (Tinkers' Guild, Vaucanson's legacy) had
   no guard at all. Every "workers +1 charge" line now names the worker
   row (`class: {type: 'worker'}`), the Corvée included; pinned for each.
-  ▢ **The Great Mosque of Djenné** pays "+1 charge" to `consecrates:
-  true` — the retired augur alone — so the line is dead; with the
-  prophet fixed at two charges by ruling, it wants a new gift (an
-  apostle's charge? a rite's price?) — the user's call. (2) **Planting a holy site for a
+  **The Great Mosque of Djenné** paid "+1 charge" to `consecrates: true`
+  — the retired augur alone — so the line was dead; ruled and built
+  under (qqqq): it reaches prophets and apostles. (2) **Planting a holy site for a
   faith already founded is unreachable by design** — Entry LVIII made
   planting *the* founding, `plantHolySiteError` asks `foundReligionError`
   unconditionally, and F2 priced the second arm (`plantHolySite` 2)

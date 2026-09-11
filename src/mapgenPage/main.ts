@@ -1085,7 +1085,9 @@ function startSection(reading: MapReport): HTMLElement {
     `Rings 1–2 workable food and production, read off the start scorer itself. ` +
       `Luxuries are the kinds within ${reading.starts.luxuryRadius} hexes — the ` +
       `radius the guarantee pass works to. Strategics are the guaranteed rows ` +
-      `within ${reading.starts.strategicRadius}; a seat short of one says so in red.` +
+      `within ${reading.starts.strategicRadius}; a seat short of one says so in red. ` +
+      `Rival is the hexes to the nearest other seat — the floor is ` +
+      `${reading.starts.minDistance}, and a seat under it says so.` +
       (reading.starts.biasCap > 0
         ? ` With figures seated, each seat's own bias lines follow its hand — ` +
           `the score the seat was chosen by, held under ${reading.starts.biasCap.toFixed(1)} — ` +
@@ -1096,6 +1098,7 @@ function startSection(reading: MapReport): HTMLElement {
     { label: 'Seat' },
     { label: 'Food', className: 'num tight' },
     { label: 'Prod', className: 'num tight' },
+    { label: 'Rival', className: 'num tight' },
   ]);
 
   for (const start of reading.starts.rows) {
@@ -1109,11 +1112,23 @@ function startSection(reading: MapReport): HTMLElement {
     at.className = 'coords';
     at.textContent = ` ${start.col},${start.row}`;
     who.append(at);
+    // The (rrrr) figure, in the same tabular mono as the two floors beside it:
+    // how many hexes to the nearest other seat. Under the floor it wears the
+    // refusal ink, which is this page's voice for a promise not kept.
+    const rival = cell(
+      'td',
+      'num tight',
+      start.nearestRival === null ? '—' : String(start.nearestRival),
+    );
+    if (start.nearestRival !== null && start.nearestRival < reading.starts.minDistance) {
+      rival.classList.add('reject');
+    }
     body.append(
       row(
         who,
         cell('td', 'num tight', String(start.ringFood)),
         cell('td', 'num tight', String(start.ringProduction)),
+        rival,
       ),
     );
 
@@ -1121,7 +1136,7 @@ function startSection(reading: MapReport): HTMLElement {
     // loudly — the scorer's refusal if it had one.
     const detail = document.createElement('tr');
     const holder = document.createElement('td');
-    holder.colSpan = 3;
+    holder.colSpan = 4;
     // It is the row's first cell, and the first cell never wraps — but this one
     // is a paragraph of hand and flags, so it says otherwise for itself.
     holder.className = 'wrap';
@@ -1174,6 +1189,17 @@ function startSection(reading: MapReport): HTMLElement {
       why.className = 'reject';
       why.textContent = `refused site: ${start.reject}`;
       holder.append(why);
+    }
+    // The shortfall, said in words under the seat it happened to: the board had
+    // nowhere left to stand and this chair paid for it (`docs/flags.md` (rrrr)).
+    const short = reading.starts.shortfall.find((entry) => entry.seat === start.playerId);
+    if (short !== undefined) {
+      const note = document.createElement('span');
+      note.className = 'reject';
+      note.textContent =
+        `the board could not seat this player ${short.wanted} hexes from a rival; ` +
+        `the best it had was ${short.distance}`;
+      holder.append(note);
     }
     detail.append(holder);
     body.append(detail);
