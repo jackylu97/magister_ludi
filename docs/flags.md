@@ -1877,7 +1877,24 @@ directly to confirm rulings — user marginalia are rulings.
   ring of spears was rejected as the `sun` charge at 13px. U8's "the
   badge stays on the panel" is overturned in the module docblock. The
   gallery stall shows quiet · besieged · besieged with walls down, one
-  knob (the mark's size). Bots' explorers cover more ground per turn.; the chariot's upgrade — RULED and built**
+  knob (the mark's size). Bots' explorers cover more ground per turn.
+  **Cost checked** (2026-09-10): a reported 144 → 206 ms/turn did not
+  reproduce — the whole march is ~7 ms of a turn (fog 1.05, search 5.5,
+  path 0.3) and identical code varies ±14 ms cold-vs-warm on a loaded
+  box; the search was still made 48% cheaper (what a hex is *for* asked
+  before whether the piece may stand there; transit memoised per sweep)
+  with byte-identical outcomes, pinned by two seeded 20-turn digests.
+  The turn-100 happiness move (10.8 → 8.3 → 2.4 across X14 and P3 at
+  eight seeds) was **sampling noise**: per-seat happiness has a standard
+  deviation near 13, so sixteen seats read the mean to ±6.5; at 32 seeds
+  pre-P3 and P3 sit at 10.1 and 8.3 (0.8σ), buys 1223 vs 1209, every
+  step-aside followed by its purchase in the same turn, towns garrisoned
+  99.5%. P3's `reachOf` was tidied into three ordered arms (money · the
+  piece in the hex · everything else strikes the row as before), play
+  byte-identical; two pins that the once-per-turn stamp and a standing
+  shelf still strike the row. **Rule for the probe**: eight seeds cannot
+  read happiness; a happiness question needs 32 seeds or a per-seat
+  spread beside the mean.; the chariot's upgrade — RULED and built**
   (the user, 2026-09-10, mid-playtest: *"i'm finding it very hard to kill
   this city … was a palisade and stone walls always +10? Let's change
   them to be +5"*, then *"castle +5, bastion +5 too. Walls of uruk +10"*,
