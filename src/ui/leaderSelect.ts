@@ -35,6 +35,7 @@ import {
 } from '../sim/leaderData';
 import { type CardClause, describeCard } from '../sim/statecraft';
 import type { PlayerSpec } from '../sim/state';
+import { type SeatInks, seatInks } from '../art/seatInks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { hash3 } from '../render3d/hash';
 import { element } from './dom';
@@ -109,6 +110,10 @@ export interface LeaderCardFace {
 export interface LeaderFace {
   id: LeaderId;
   name: string;
+  /** The two inks this figure's seat will wear — field, then device. */
+  colors: SeatInks;
+  /** The pair said in words, for a roster that prints them (the book's shelf). */
+  colorWords: [string, string];
   /** The line held from the first turn, in the game's own words. */
   bonus: CardClause[];
   /** The Æra I row: what the first draft will offer. */
@@ -135,12 +140,19 @@ function cardFace(id: LeaderCardId): LeaderCardFace {
  * writing one in the card vocabulary at all.
  */
 export function leaderFaces(): LeaderFace[] {
-  return LEADER_IDS.map((id) => ({
-    id,
-    name: leaderDef(id).name,
-    bonus: describeCard(id),
-    first: leaderDef(id).deck['1'].map((card) => cardFace(card.id)),
-  }));
+  return LEADER_IDS.map((id) => {
+    const def = leaderDef(id);
+    return {
+      id,
+      name: def.name,
+      // Through `seatInks` rather than off the row, so the picker and the board
+      // read a figure's pair through the same one door (batch H7).
+      colors: seatInks({ color: def.colors.primary, secondary: def.colors.secondary }),
+      colorWords: [...def.colors.names] as [string, string],
+      bonus: describeCard(id),
+      first: def.deck['1'].map((card) => cardFace(card.id)),
+    };
+  });
 }
 
 /**
@@ -191,11 +203,19 @@ export function rivalLeaders(chosen: string, rivals: number, seed = 0): (LeaderI
 }
 
 /**
- * The roster with its figures written on, and **nothing else changed**.
+ * The roster with its figures written on, **and the colours they bring**.
  *
  * A key is written only where there is one, exactly as `normalizeConfig` writes
- * a charge: a seat under no figure carries no `leader` and normalises byte for
- * byte as a spec from before leaders existed.
+ * a charge: a seat under no figure carries no `leader`, keeps the palette's ink
+ * and names no `secondary`, and normalises byte for byte as a spec from before
+ * leaders existed.
+ *
+ * A seat *under* a figure takes the figure's pair (batch H7, `docs/flags.md`
+ * (oooo)): `colors.primary` onto `color` and `colors.secondary` onto
+ * `secondary`, which is the whole of how a figure's colours reach a game. They
+ * ride into `GameConfig` here and are read from there by every surface
+ * (`seatInks`) — there is no second table anywhere mapping a seat to a pair, and
+ * that is what makes a save fly the banners it was started with.
  *
  * The `seed` is the landing's own — the number in the Seed field — so the cast
  * travels with the world rather than beside it.
@@ -209,7 +229,9 @@ export function seatLeaders(
   const mine: LeaderId | undefined = chosen === NO_LEADER ? undefined : (chosen as LeaderId);
   return players.map((spec, seat) => {
     const leader = seat === 0 ? mine : rivals[seat - 1];
-    return leader === undefined ? { ...spec } : { ...spec, leader };
+    if (leader === undefined) return { ...spec };
+    const colors = leaderDef(leader).colors;
+    return { ...spec, leader, color: colors.primary, secondary: colors.secondary };
   });
 }
 
@@ -230,8 +252,13 @@ export interface LeaderSelectOptions {
    * (`heraldryFor`) — which is what the landing's roster always leaves it at.
    */
   charge?: string;
-  /** The seat's ink, for the canton's mark. */
+  /** The seat's ink, for the canton's field. */
   color: string;
+  /**
+   * The seat's second ink, for the canton's device. Absent falls back through
+   * `seatInks` — which is what a plain seat on the landing always leaves it at.
+   */
+  secondary?: string;
   /** Raised on every pick, so the Start button can say who it begins as. */
   onPick?: (chosen: string) => void;
 }
@@ -247,13 +274,30 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
   const { container } = options;
   let chosen: string = NO_LEADER;
 
-  /** The seat's banner, as a canton: the charge on parchment, never in seat ink. */
-  function canton(): HTMLElement {
+  /**
+   * The seat's banner, as a canton: **the field in the primary and the device in
+   * the secondary** (batch H7, `docs/flags.md` (oooo)).
+   *
+   * The heraldry rule kept, one ink over: a charge is never printed *in the
+   * field's own colour*, which is what a parchment canton was buying and what a
+   * second ink buys better — a figure's canton now says which figure it is twice
+   * over, by the drawing and by the pair. A face wears the figure's own colours;
+   * the *No leader* face wears the seat's, which is the palette's ink with the
+   * board's own ink for a device (`seatInks`, the one door into that fallback).
+   */
+  function canton(inks: SeatInks): HTMLElement {
     const mark = element('span', 'leader-canton');
     mark.setAttribute('aria-hidden', 'true');
-    const uri = heraldryMarkDataUri(heraldryFor(0, options.charge), options.color);
+    const uri = heraldryMarkDataUri(heraldryFor(0, options.charge), inks.secondary);
     mark.style.setProperty('--canton-mark', `url("${uri}")`);
+    mark.style.setProperty('--canton-field', inks.primary);
+    mark.style.setProperty('--canton-device', inks.secondary);
     return mark;
+  }
+
+  /** The seat's own pair, for the face that takes no figure at all. */
+  function seatCanton(): HTMLElement {
+    return canton(seatInks({ color: options.color, ...(options.secondary === undefined ? {} : { secondary: options.secondary }) }));
   }
 
   /** A list of clauses, drawn through the descriptor writer (a raw `[[` never). */
@@ -274,7 +318,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     button.type = 'button';
     button.setAttribute('aria-pressed', String(chosen === face.id));
     if (chosen === face.id) button.classList.add('is-chosen');
-    button.append(canton());
+    button.append(canton(face.colors));
     const text = element('span', 'leader-face-text');
     text.append(element('span', 'leader-name', face.name));
     // No eyebrow over the clauses: what the line is, and when it is live, is the
@@ -294,7 +338,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     button.type = 'button';
     button.setAttribute('aria-pressed', String(chosen === NO_LEADER));
     if (chosen === NO_LEADER) button.classList.add('is-chosen');
-    button.append(canton());
+    button.append(seatCanton());
     const text = element('span', 'leader-face-text');
     text.append(element('span', 'leader-name', 'No leader'));
     text.append(element('p', 'leader-none-note', NO_LEADER_NOTE));

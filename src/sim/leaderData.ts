@@ -299,6 +299,41 @@ export interface LeaderBonus {
   deferred?: string[];
 }
 
+/**
+ * **The two colours a figure wears** (batch H7, `docs/flags.md` (oooo); the table
+ * "## The colours" in `docs/leaders.md` is the spec of record and a sync test
+ * holds the two together).
+ *
+ * Civ's reading, and it is the whole of what the pair means: the **primary** is
+ * the *field* — the territory line, the sculpt of a piece, a banner's rim, a
+ * canton's ground — and the **secondary** is the *device and the trim* — the
+ * charge on the canton, a piece's outline, the border's inner stitch. Nothing
+ * else in the game decides which of the two a surface takes; a surface asks
+ * `seatInks` (`src/art/seatInks.ts`) and paints the answer.
+ *
+ * `names` is the pair said in words, for the shelf that prints "Its colours are
+ * maroon and sun gold". It is carried on the row rather than derived from the
+ * hexes because "sun gold" is not a thing arithmetic can recover from `#e0b21a`,
+ * and the words are the doc's own first cell — sync-tested beside the hexes.
+ *
+ * **Presentational, all the way down.** The simulation never reads either hex:
+ * a figure's pair reaches a game by being copied onto the seat's spec at the
+ * table (`seatLeaders`), exactly as a charge is, and `PlayerSpec.color` /
+ * `PlayerSpec.secondary` are what every surface then reads. See the Heraldry
+ * trap in `CLAUDE.md`: config, never state.
+ */
+export interface LeaderColors {
+  /** The field. A `#rrggbb` string; validated at load. */
+  primary: string;
+  /** The device and the trim. A `#rrggbb` string; validated at load. */
+  secondary: string;
+  /** The pair in words, primary first — the doc table's own first cells. */
+  names: [string, string];
+}
+
+/** A `#rrggbb` string and nothing else. The one shape a colour row may take. */
+const HEX_COLOR = /^#[0-9a-f]{6}$/;
+
 export interface LeaderDef {
   /** The figure's name, as every surface prints it. */
   name: string;
@@ -317,6 +352,8 @@ export interface LeaderDef {
    * strings and no edit here.
    */
   cities: readonly string[];
+  /** The two inks this figure's seat wears. See `LeaderColors`. */
+  colors: LeaderColors;
   startBias: StartBias;
   /** The one line this seat holds from turn one, whatever it drafts. */
   bonus: LeaderBonus;
@@ -571,6 +608,29 @@ for (const id of LEADER_IDS) {
     }
     if (seen.has(city)) throw new Error(`${where} names the city "${city}" twice`);
     seen.add(city);
+  }
+  // The pair, checked here for the same reason a terrain key is: a colour that
+  // is not a colour reaches the board as `NaN` and paints black, and nobody
+  // would find it. Lower-cased hex only — `playerPieceColor`'s table is keyed
+  // that way, and a `#ABC` or a `rebeccapurple` would fall silently through to
+  // the seat's palette ink and look like the figure had no colours at all.
+  const colors = def.colors;
+  if (!colors || typeof colors !== 'object') throw new Error(`${where} wears no colours`);
+  for (const half of ['primary', 'secondary'] as const) {
+    const hex = colors[half];
+    if (typeof hex !== 'string' || !HEX_COLOR.test(hex)) {
+      throw new Error(`${where} wears "${String(hex)}" as its ${half}, which is no colour`);
+    }
+  }
+  if (colors.primary === colors.secondary) {
+    throw new Error(`${where} wears one colour twice — a device in the field's own ink`);
+  }
+  if (
+    !Array.isArray(colors.names) ||
+    colors.names.length !== 2 ||
+    colors.names.some((word) => typeof word !== 'string' || word.length === 0)
+  ) {
+    throw new Error(`${where} does not say its colours in words`);
   }
   const bias = def.startBias ?? {};
   for (const key of Object.keys(bias.terrain ?? {})) {

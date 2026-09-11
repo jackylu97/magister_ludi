@@ -289,6 +289,8 @@ import { unitDef, unitMaxHp } from '../sim/unitData';
 import { type CitySighting, isExploredBy, isVisibleTo } from '../sim/visibility';
 import { cityDisplayName } from './cityDisplay';
 import { cityMarkDataUri } from '../art/cityMarks';
+import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { seatInks } from '../art/seatInks';
 import { type BadgeClass, cssHex } from '../render3d/badges3d';
 import { badgeClassFor } from '../render3d/board3d';
 import { VIEW3D, shade } from '../render3d/lookData';
@@ -362,6 +364,13 @@ export interface CityBanners {
 
 interface Banner {
   root: HTMLElement;
+  /**
+   * The seat's canton at the head of the plate: its charge, the field in the
+   * owner's primary and the device in its secondary. One node, repainted when
+   * the town changes hands — a captured town flies the new owner's banner, and
+   * that is the only thing that ever moves it.
+   */
+  canton: HTMLElement;
   name: HTMLElement;
   /** The badge and its ring, one box: what carries the growth tooltip. */
   size: HTMLElement;
@@ -1322,6 +1331,18 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     const root = document.createElement('div');
     root.className = 'city-banner';
 
+    // **The canton**, first on the plate and first in the reading: whose town
+    // this is, said in the seat's own two inks (batch H7, `docs/flags.md`
+    // (oooo)) — the **field** in the primary and the **device** in the
+    // secondary. The heraldry rule kept one ink over: a charge is never printed
+    // in the colour of the ground it stands on, which is what a parchment canton
+    // was buying. Same drawing as the flag on the board flies (`heraldryMarks`),
+    // masked here rather than fetched, which is the whole bargain of a mark that
+    // is data: ink on parchment in one surface, gold on maroon in the next.
+    const canton = document.createElement('span');
+    canton.className = 'city-banner-canton';
+    canton.setAttribute('aria-hidden', 'true');
+
     const name = document.createElement('span');
     name.className = 'city-banner-name';
     // The town's own mark, in the same hand as the flag's — one drawing, two
@@ -1358,7 +1379,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // it is what the eye lands on over a town somebody is holding.
     const garrison = buildGarrisonRow();
 
-    root.append(size, name, yoke, siege, production, health.root, garrison);
+    root.append(canton, size, name, yoke, siege, production, health.root, garrison);
     // The banner sits inside the viewport, and the viewport turns a pointer
     // press into a pan or a move order. Without this, clicking a banner would
     // also send the selected unit to whichever tile happened to be under the
@@ -1374,6 +1395,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     container.append(root);
     return {
       root,
+      canton,
       name,
       size,
       pop,
@@ -1430,7 +1452,21 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
       // colour, so the styling of "remembered" is one rule in the stylesheet and
       // applies to the name, the flag rim and the whole card at once.
       banner.root.classList.toggle('is-stale', facts.stale);
+      // **The seat's pair**, through the one door (batch H7): the primary is the
+      // plate's rim and the size roundel's ground, the secondary the canton's
+      // device. Written outside the signature gate beside the classes above, for
+      // the classes' reason — a property costs nothing to re-apply, and a colour
+      // that only *sometimes* took part in the signature is how a captured town
+      // keeps its old owner's ink until its name or its queue happens to move.
+      const inks = seatInks(player);
       banner.root.style.setProperty('--banner-color', player?.color ?? '#9fb0c2');
+      banner.root.style.setProperty('--banner-trim', inks.secondary);
+      banner.canton.style.setProperty('--canton-field', player?.color ?? '#9fb0c2');
+      banner.canton.style.setProperty('--canton-device', inks.secondary);
+      banner.canton.style.setProperty(
+        '--canton-mark',
+        `url("${heraldryMarkDataUri(heraldryFor(facts.ownerId, player?.charge))}")`,
+      );
 
       // The alarm ink is a class and is toggled outside the signature gate,
       // beside the other two: a class costs nothing to re-apply and a flag that

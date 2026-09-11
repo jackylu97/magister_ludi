@@ -575,7 +575,11 @@ describe('the wound’s fingerprint, and its stall', () => {
 
   it('lets the gallery place the banner and repaint nothing', () => {
     const local = source('flairGallery/style.css');
-    const banner = local.slice(local.indexOf('--- the city banner'));
+    // Bounded at the next section's own banner, not run to the end of the file:
+    // this sheet grows a stall every time the gallery does (batch H7 added one),
+    // and an unbounded slice would start reading somebody else's rules.
+    const at = local.indexOf('--- the city banner');
+    const banner = local.slice(at, local.indexOf('/* ---', at + 1));
     // The one override, and the reason: the pill is `position: absolute` and
     // lifted clear of its tile because `projectCell` anchors it every frame,
     // and nothing anchors it here.

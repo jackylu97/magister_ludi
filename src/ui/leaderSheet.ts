@@ -47,6 +47,8 @@ import { type GameState, playerById } from '../sim/state';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import { isLeaderCardId, isLeaderId } from '../sim/leaderData';
 import { LEADER_KIND_WORD } from './leaderSelect';
+import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { seatInks } from '../art/seatInks';
 import { element } from './dom';
 import { YIELD_GLYPH, eraWord, figure, signedFigure } from './figures';
 import { setDescriptorText } from './keywords';
@@ -329,10 +331,36 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     return list;
   }
 
-  function drawBonus(leader: LeaderId): HTMLElement {
+  /**
+   * **The seat's canton**, on the block that names the figure (batch H7,
+   * `docs/flags.md` (oooo)).
+   *
+   * The landing's canton exactly — the same drawing, the same class, the same
+   * two custom properties — so the card a player chose a figure on and the sheet
+   * they read it on afterwards wear one banner. The pair comes off the *seat*
+   * rather than off the figure's row: a seat is what carries colours into a
+   * game, and asking the row here would be the second source `seatInks` exists
+   * to prevent.
+   */
+  function canton(state: GameState, seat: number): HTMLElement {
+    const player = playerById(state, seat);
+    const inks = seatInks(player);
+    const mark = element('span', 'leader-canton');
+    mark.setAttribute('aria-hidden', 'true');
+    const uri = heraldryMarkDataUri(heraldryFor(seat, player?.charge), inks.secondary);
+    mark.style.setProperty('--canton-mark', `url("${uri}")`);
+    mark.style.setProperty('--canton-field', inks.primary);
+    mark.style.setProperty('--canton-device', inks.secondary);
+    return mark;
+  }
+
+  function drawBonus(state: GameState, seat: number, leader: LeaderId): HTMLElement {
     const hold = element('article', 'leader-hold');
     hold.append(element('p', 'eyebrow', 'from the first turn'));
-    hold.append(element('h3', 'leader-hold-name', leaderDef(leader).name));
+    const head = element('div', 'leader-hold-head');
+    head.append(canton(state, seat));
+    head.append(element('h3', 'leader-hold-name', leaderDef(leader).name));
+    hold.append(head);
     hold.append(clauseList(leaderBonusClauses(leader), 'leader-hold-clauses'));
     return hold;
   }
@@ -414,7 +442,7 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     const sheet = element('div', 'leader-sheet-grid');
 
     const held = element('section', 'leader-held');
-    held.append(drawBonus(leader));
+    held.append(drawBonus(state, seat, leader));
     // Which row is actually owed, asked once of the simulation rather than
     // guessed from the row's own standing: `offered` says the seat has reached
     // the age, and `leaderBlocker` says whether the game is waiting on it.

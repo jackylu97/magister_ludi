@@ -161,6 +161,7 @@ import {
   type TileIcons,
   type UnitBadges,
   badgeCenterY,
+  badgeDiameter,
   hpBarY,
 } from './badges3d';
 import {
@@ -182,6 +183,7 @@ import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
 import { atWar } from '../sim/wars';
 import { isVisibleTo } from '../sim/visibility';
+import { DERIVED_SECONDARY, seatInks } from '../art/seatInks';
 import type { BadgeAnchor } from './picking';
 import type { UnitSprites } from './sprites3d';
 import { type MaterialLibrary, computeHullNormals } from './toon';
@@ -387,7 +389,7 @@ export function buildBadge(
   const disc = new Mesh(geometry.badgeIcons[badgeClass], badges.material);
   disc.position.y = height;
   disc.quaternion.copy(faceCamera);
-  disc.scale.set(BADGE.diameter, BADGE.diameter, 1);
+  disc.scale.set(badgeDiameter(), badgeDiameter(), 1);
   disc.frustumCulled = false;
   disc.castShadow = false;
   disc.receiveShadow = false;
@@ -400,7 +402,7 @@ export function buildBadge(
   const rim = new Mesh(geometry.badgeRim, materials.overlay(rimColor, 1));
   rim.position.set(0, height, 0).addScaledVector(forward, RIM_NUDGE);
   rim.quaternion.copy(faceCamera);
-  rim.scale.set(BADGE.diameter, BADGE.diameter, 1);
+  rim.scale.set(badgeDiameter(), badgeDiameter(), 1);
   rim.frustumCulled = false;
   rim.castShadow = false;
   rim.receiveShadow = false;
@@ -800,9 +802,34 @@ function routedInk(unit: Unit, ink: number): number {
  */
 export function unitColor(state: GameState, unit: Unit): number {
   const player = state.players[unit.ownerId];
-  const ink = playerPieceColor(player?.color ?? '', unit.ownerId);
+  const ink = playerPieceColor(seatInks(player).primary, unit.ownerId);
   return routedInk(unit, ink);
 }
+
+/**
+ * **The trim a piece is outlined in** — `unitColor`'s twin (batch H7).
+ *
+ * The seat's second ink through the same two doors and in the same order:
+ * `seatInks` decides which string, `playerPieceColor` which number. No routed
+ * wash: the outline shell is one shared material and the wash on it is decided
+ * at the seam after `flush` (see `UnitLayer.build`), where a caravan's route and
+ * a declared war both outrank a seat's colours.
+ */
+export function unitTrimColor(state: GameState, unit: Unit): number {
+  const player = state.players[unit.ownerId];
+  return playerPieceColor(seatInks(player).secondary, unit.ownerId);
+}
+
+/**
+ * The trim a seat that names none wears, as a number: the board's own ink.
+ *
+ * `seatInks`' fallback put through the diorama's door, resolved once — the
+ * outline shell is already drawn in this, so a seat whose trim *is* this is
+ * asking for the line it already has. See `UnitLayer.build`, which writes no
+ * wash at all for one. Index-free by construction: `DERIVED_SECONDARY` is a
+ * literal hex, so `playerPieceColor` reads it rather than the fallback order.
+ */
+const DEFAULT_TRIM = playerPieceColor(DERIVED_SECONDARY, 0);
 
 /**
  * The town hexes whose banner this seat is looking at, by tile index.
@@ -954,6 +981,25 @@ export class UnitLayer {
     // common case and costs one `Set.has` per piece.
     const hostileSeats = hostileOwners(state, seat);
     const hostileShellHandles: InstanceHandle[] = [];
+    // **The outline in the seat's second ink** (batch H7, `docs/flags.md`
+    // (oooo)): the sculpt is the primary and the line round it is the trim, so a
+    // figure's pair is legible on the piece itself and not only on its banner.
+    // Carried as pairs rather than one list because the colour is the *seat's*
+    // and the shell is one material shared by every outlined piece on the board
+    // — the same reason the enemy glow waits for `flush`.
+    //
+    // **Last in precedence, and deliberately**: a caravan carrying a route reads
+    // as busy and a piece belonging to somebody you have declared on reads as
+    // dangerous, and both of those are things that changed *this turn*. A seat's
+    // colours never change, so they yield.
+    //
+    // And **nothing is written for a seat wearing `DEFAULT_TRIM`** — the board's
+    // own ink, which is what `seatInks` hands a seat that names no second colour
+    // and is the very ink the outline shell is already drawn in. So a roster
+    // with no figures in it paints the board it painted before the pair existed,
+    // down to the instance colours, and a figure's gold is the only thing that
+    // ever touches an outline.
+    const trimShellHandles: { handle: InstanceHandle; ink: number }[] = [];
     // The towns whose label is already carrying a roundel and a bar for whatever
     // is standing in them. Hoisted once for the build, exactly as the hostile
     // seats are — see `banneredTownCells` and the docblock's "The one piece that
@@ -1016,6 +1062,12 @@ export class UnitLayer {
         // busy; a hostile *soldier* reads as dangerous — so the two lists never
         // hold the same handle and neither overwrites the other.
         if (hostile && !unitIsRouted(unit)) hostileShellHandles.push(pieceHandle);
+        // …and the seat's own trim, where neither of those two has claimed the
+        // shell and the seat asks for something other than the board's ink.
+        else if (!unitIsRouted(unit)) {
+          const trim = unitTrimColor(state, unit);
+          if (trim !== DEFAULT_TRIM) trimShellHandles.push({ handle: pieceHandle, ink: trim });
+        }
       }
 
       const visualHeight = unitVisualHeight(unit.type, sprites);
@@ -1083,6 +1135,12 @@ export class UnitLayer {
     for (const handle of hostileShellHandles) {
       InstanceCollector.setShellWash(handle, HOSTILE_GLOW, VIEW3D.units.hostileGlowMix);
     }
+    // And the seat's trim, on the same seam and for the same reason. Full mix:
+    // the outline *is* the second colour, where the two washes above are a
+    // situation laid over one.
+    for (const { handle, ink } of trimShellHandles) {
+      InstanceCollector.setShellWash(handle, ink, 1);
+    }
     for (const unitId of this.hidden) this.applyHide(unitId);
   }
 
@@ -1133,7 +1191,7 @@ export class UnitLayer {
     const anchor = placement.position
       .clone()
       .setY(placement.position.y + badgeCenterY(visualHeight));
-    const size = new Vector3(BADGE.diameter, BADGE.diameter, 1);
+    const size = new Vector3(badgeDiameter(), badgeDiameter(), 1);
     const wild = isBarbarian(state, unit.ownerId);
 
     slots.push(
@@ -1220,8 +1278,8 @@ export class UnitLayer {
     const right = new Vector3(1, 0, 0).applyQuaternion(faceCamera);
     const up = new Vector3(0, 1, 0).applyQuaternion(faceCamera);
     const forward = new Vector3(0, 0, 1).applyQuaternion(faceCamera);
-    const corner = BADGE.diameter * BADGE.chargeOffsetX;
-    const rise = BADGE.diameter * BADGE.chargeOffsetY;
+    const corner = badgeDiameter() * BADGE.chargeOffsetX;
+    const rise = badgeDiameter() * BADGE.chargeOffsetY;
     const position = anchor
       .clone()
       .addScaledVector(right, corner)

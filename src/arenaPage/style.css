@@ -160,6 +160,10 @@ code {
   border: 1.5px solid var(--ink);
   border-radius: 50%;
   background: var(--seat-ink, var(--crimson));
+  /* The seat's **trim**, ringed inside its field (batch H7): a chip says the
+     pair, not the colour. `--seat-trim` is written beside `--seat-ink` by
+     `main.ts`, both through `seatInks`. */
+  box-shadow: inset 0 0 0 2px var(--seat-trim, transparent);
   vertical-align: baseline;
 }
 

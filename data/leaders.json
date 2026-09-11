@@ -19,6 +19,11 @@
         "Choquequirao",
         "Raqchi"
       ],
+      "colors": {
+        "primary": "#8b2635",
+        "secondary": "#e0b21a",
+        "names": ["maroon", "sun gold"]
+      },
       "bonus": {
         "text": "Farms pay +1 food for every mountain standing beside them.",
         "effects": [
@@ -263,6 +268,11 @@
         "Xiangyang",
         "Fuzhou"
       ],
+      "colors": {
+        "primary": "#2e8b6e",
+        "secondary": "#f3ecd8",
+        "names": ["jade", "ivory"]
+      },
       "bonus": {
         "text": "Melee units gain +1 combat strength and +1 movement. Every city pays +2 culture.",
         "effects": [
@@ -558,6 +568,11 @@
         "Duurlig Nars",
         "Yanran"
       ],
+      "colors": {
+        "primary": "#3a78b5",
+        "secondary": "#efe6d2",
+        "names": ["sky blue", "bone"]
+      },
       "bonus": {
         "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
         "effects": [
@@ -843,6 +858,11 @@
         "Buhen",
         "Napata"
       ],
+      "colors": {
+        "primary": "#e0852a",
+        "secondary": "#234b9a",
+        "names": ["sun orange", "lapis"]
+      },
       "bonus": {
         "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike. Cities with a holy site make wonders 20% faster.",
         "effects": [
@@ -1109,6 +1129,11 @@
         "Aleppo",
         "Bukhara"
       ],
+      "colors": {
+        "primary": "#1c1a1a",
+        "secondary": "#d4a934",
+        "names": ["black", "gold"]
+      },
       "bonus": {
         "text": "+2 food for every faith or science building a city holds. +10% science in cities keeping a rite.",
         "effects": [
@@ -1358,6 +1383,11 @@
         "Laodicea",
         "Gaziura"
       ],
+      "colors": {
+        "primary": "#6b2d7a",
+        "secondary": "#d8d8e0",
+        "names": ["Tyrian purple", "silver"]
+      },
       "bonus": {
         "text": "+2 combat strength against an empire holding more cities than yours. +1 food on every improved resource.",
         "effects": [

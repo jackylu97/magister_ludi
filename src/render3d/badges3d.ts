@@ -130,6 +130,8 @@ import type { ModelClass } from '../sim/unitData';
 import { type MarkerPaperStyle, VIEW3D, mixColor } from './lookData';
 
 const BADGE = VIEW3D.badges;
+/** The pieces' own two dials over the badge grid — see `badgeDiameter`. */
+const PIECES = VIEW3D.pieces;
 const HP = VIEW3D.hpBar;
 const ICONS = VIEW3D.icons;
 const LENS = VIEW3D.lens;
@@ -670,6 +672,56 @@ export function rimInnerFraction(): number {
 }
 
 /**
+ * The **unit badge's** rim, which is a thicker band than the atlas grid's.
+ *
+ * `rimInnerFraction`'s sibling and deliberately not the same function (batch
+ * H7). That one is the *grid* — it is what `paperRadiusFraction` is derived
+ * from, and through it every parchment disc in the tile atlas: a resource pin, a
+ * charge, a belief's sign, the turn counter's field. Thickening the ring round a
+ * unit's roundel is a statement about *pieces* (`pieces.badgeRing`), and pushing
+ * it through the grid would have shrunk the paper under every mark on the board
+ * to pay for it.
+ *
+ * So the piece's ring is built from this and the atlas keeps its own. The paper
+ * printed in the cell then reaches a little *further* under the wider band than
+ * it strictly must, which is the harmless direction: `paperOverlap` exists to
+ * keep the disc's soft edge behind opaque geometry, and a wider band covers more
+ * of it, never less.
+ */
+export function badgeRimInnerFraction(): number {
+  const radius = badgeDiameter() / 2;
+  return Math.max(0.05, Math.min(0.95, (radius - badgeRimWidth()) / radius));
+}
+
+/**
+ * **How wide a unit's roundel is drawn**, and the one reading of it.
+ *
+ * `badges.diameter` is the grid every roundel on the board is built on — the
+ * resource pin, the numeral boss, the medallion — and `pieces.badgeScale` is the
+ * *pieces'* own multiplier over it (batch H7, the user: the tags over units "are
+ * a bit hard to see currently"). Written as one function rather than spent at
+ * six call sites because everything the badge positions — its lift, the hit
+ * target a click answers to, the hit bar riding above it — is measured off this
+ * number, and a badge that grew without them would sit inside its own piece's
+ * head with a bar through it.
+ */
+export function badgeDiameter(): number {
+  return BADGE.diameter * PIECES.badgeScale;
+}
+
+/**
+ * The ring of seat colour's thickness, in the same units.
+ *
+ * Grows *with* the disc (`badgeScale`) and then again on its own
+ * (`pieces.badgeRing`), which is the difference between a bigger badge and a
+ * badge whose owner is easier to read: scaling alone keeps the ring the same
+ * fraction of a wider disc, and the ring is the half that says whose piece it is.
+ */
+export function badgeRimWidth(): number {
+  return BADGE.rimWidth * PIECES.badgeRing * PIECES.badgeScale;
+}
+
+/**
  * The parchment disc's radius as a fraction of the atlas cell — i.e. in the same
  * units as the quad, which spans the badge's whole diameter.
  *
@@ -693,7 +745,7 @@ export function paperRadiusFraction(): number {
  * as over a knight, and neither is hidden by its own hardware.
  */
 export function badgeCenterY(visualHeight: number): number {
-  return visualHeight + BADGE.lift + BADGE.diameter / 2;
+  return visualHeight + BADGE.lift + badgeDiameter() / 2;
 }
 
 /**
@@ -716,12 +768,12 @@ export function badgeCenterY(visualHeight: number): number {
  * plainly landed on it.
  */
 export function badgeHitRadius(): number {
-  return (BADGE.diameter / 2) * Math.max(1, BADGE.hitboxScale);
+  return (badgeDiameter() / 2) * Math.max(1, BADGE.hitboxScale);
 }
 
 /** The top of the badge disc, above the unit's feet. */
 export function badgeTopY(visualHeight: number): number {
-  return visualHeight + BADGE.lift + BADGE.diameter;
+  return visualHeight + BADGE.lift + badgeDiameter();
 }
 
 /**

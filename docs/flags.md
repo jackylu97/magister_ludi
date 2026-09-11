@@ -1824,6 +1824,16 @@ directly to confirm rulings — user marginalia are rulings.
   once no standing town wears it; a plain seat's first town is the plain
   list's first and a second plain seat's is its second; the fallback
   numbers as today; doc ↔ data; the replay pin.
+  **L5 built** (2026-09-11, held): `LeaderDef.cities` (fifteen a row,
+  validated non-empty, no blanks, no duplicates); `nextCityName` walks
+  the figure's list, then the plain list, then numbers — each skipping
+  any name a standing town wears (a `Set` as a membership test only,
+  never iterated); the number counts the seat's towns past both lists,
+  floored at one (new and load-bearing — under the skip the fallback can
+  be reached early) and walks past any standing "<seat> <n>"; the
+  Compendium's leader shelf says "Its towns are named …, in that order".
+  `test/sim/cities.test.ts`' old pin that two seats twin on the first
+  name was reworked to the new rule. Ten pins incl. a six-figure replay.
 - (oooo) **Two colours a figure, and the board wears both — RULED** (the
   user, 2026-09-11: *"every leader should have a different color to
   differentiate them. Could we have them be two colors like civ 5/6 and

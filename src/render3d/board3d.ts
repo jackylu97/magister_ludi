@@ -69,7 +69,7 @@ import {
   YIELD_KEYS,
   type YieldKey,
   badgeCellRect,
-  rimInnerFraction,
+  badgeRimInnerFraction,
   tileIconRect,
 } from './badges3d';
 import { hashDisc, hashSigned, hashUnit } from './hash';
@@ -1325,7 +1325,7 @@ export class BoardGeometry {
     this.floodWash = hexDecal(BOARD.hexRadius * DECOR.floodplain.scale);
     this.pieces = buildUnitPieces();
     this.badgeIcons = buildBadgeQuads();
-    this.badgeRim = discRing(rimInnerFraction(), VIEW3D.badges.rimSegments);
+    this.badgeRim = discRing(badgeRimInnerFraction(), VIEW3D.badges.rimSegments);
     this.houseBody = cityHouseBody(CITY.house);
     this.houseRoof = cityHouseRoof(CITY.house);
     this.houseGableRoof = cityGableRoof({ ...CITY.house, ...CITY.gable });

@@ -1763,6 +1763,14 @@ const LEADER_KIND_WORD: Record<LeaderCardKind, string> = {
 function leaderEntry(id: LeaderId): CompendiumEntry {
   const def = leaderDef(id);
   const clauses: CompendiumClause[] = [
+    // **The colours, said in words** (batch H7, `docs/flags.md` (oooo)). The
+    // shelf is the one surface where a figure's pair cannot be *shown* — an
+    // entry is prose and a keyword ref, not a swatch — so it is named instead,
+    // off the row's own `colors.names`, which is the doc table's first cell.
+    // A book that printed a hex here would be printing an identifier at a
+    // reader (hard rule 7); a book that said nothing would leave the one fact
+    // about a figure a player will see every single turn off its page.
+    { text: `Its colours are ${def.colors.names[0]} and ${def.colors.names[1]}.`, note: true },
     { text: 'What this leader gives you from the first turn:', note: true },
     ...cardClauses(id),
   ];

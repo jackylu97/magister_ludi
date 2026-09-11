@@ -278,6 +278,26 @@ export interface PiecesSpec {
    * See `unitColor` in `pieces.ts` for where it is spent.
    */
   routedWash: number;
+  /**
+   * How much bigger the roundel over a piece is drawn than `badges.diameter`
+   * (batch H7, the user: *"the unit banners … are a bit hard to see"*).
+   *
+   * A multiplier here rather than a bigger `badges.diameter` because that number
+   * is also the *resource* roundel's and the tile marker's grid — one figure
+   * over there would grow every disc on the board. This one is the pieces' own,
+   * spent in `badgeDiameter()`, and the badge's lift, its hit target and the bar
+   * above it all follow it because all three are measured off that one reading.
+   */
+  badgeScale: number;
+  /**
+   * How much thicker the ring of seat colour around that roundel is drawn than
+   * `badges.rimWidth`, **on top of** growing with `badgeScale`.
+   *
+   * The ring is the half of a badge that says *whose*, and at a badge's shipping
+   * size it was a hairline. Its own dial rather than a wider `rimWidth` for
+   * `badgeScale`'s reason one field over: `rimWidth` is the medallion grid's too.
+   */
+  badgeRing: number;
   base: { radius: number; thickness: number };
   /** Shoulder radius of the abstract humanoid token. */
   tokenRadius: number;
@@ -607,6 +627,18 @@ export interface TerritorySpec {
    * built rather than covered, so the overhang has no work left to do.
    */
   borderWidth: number;
+  /**
+   * **The inner stitch**: a second, thinner band lying just inside the border
+   * line, in the seat's *secondary* (batch H7, `docs/flags.md` (oooo)).
+   *
+   * A fraction of the hex radius, in `borderWidth`'s own units, and it is
+   * measured *inward from the line* rather than being part of it — so a country's
+   * edge is still exactly `borderWidth` of primary where it meets its neighbour,
+   * and the second colour is a trim on the home side, which is what a border
+   * stitch is. Set it to `0` and no stitch instance is collected at all, which
+   * is how a board with one-colour borders is asked for.
+   */
+  stitchWidth: number;
   /** An auto-assigned citizen's ring: bone white, the board's quiet voice. */
   workedColor: number;
   workedOpacity: number;
@@ -2237,6 +2269,12 @@ export const VIEW3D: View3DData = {
     // both failure modes — no fade at all, or a caravan bleached past legible
     // — read as the renderer being broken rather than as a bad number.
     routedWash: Math.max(0, Math.min(1, viewJson.pieces.routedWash)),
+    // Floored just above zero rather than clamped to a range: a badge scaled to
+    // nothing is a board with no tags on it and a ring of no width is a piece
+    // with no owner, and both read as the renderer being broken. There is no
+    // ceiling — a gallery slider is meant to be able to go too far.
+    badgeScale: Math.max(0.05, viewJson.pieces.badgeScale),
+    badgeRing: Math.max(0.05, viewJson.pieces.badgeRing),
     base: viewJson.pieces.base,
     tokenRadius: viewJson.pieces.tokenRadius,
     heights: viewJson.pieces.heights,
@@ -2299,6 +2337,9 @@ export const VIEW3D: View3DData = {
     tintOpacity: viewJson.territory.tintOpacity,
     borderOpacity: viewJson.territory.borderOpacity,
     borderWidth: viewJson.territory.borderWidth,
+    // Floored at zero and nowhere else: a negative width turns a quad inside
+    // out (`bandEnd`'s note), and "no stitch" is a real thing to ask for.
+    stitchWidth: Math.max(0, viewJson.territory.stitchWidth),
     workedColor: named(viewJson.territory.workedColor, 'territory.workedColor'),
     workedOpacity: viewJson.territory.workedOpacity,
     lockedColor: named(viewJson.territory.lockedColor, 'territory.lockedColor'),
@@ -2681,10 +2722,26 @@ export function saturate(color: number, factor: number): number {
  * painted the exact colour of the grass under it and read as an empty pole.
  * Nobody had failed to found anything; the flags were camouflage.
  * `test/lookData.test.ts` holds both halves.
+ *
+ * **A literal `#rrggbb` is taken at its word**, between the two (batch H7,
+ * `docs/flags.md` (oooo)). A figure's colours are chosen *for the diorama* —
+ * maroon, jade, Tyrian purple, all of them muted the way this palette is muted —
+ * and there is no name in `byColor` to map them onto, so without this clause a
+ * seat playing Pachacuti would fly the palette ink its *chair* happens to hold
+ * and the board would be the one surface in the game disagreeing about what
+ * colour that empire is. It changes nothing that shipped before it: the twelve
+ * seat inks in `SEATS` either sit in `byColor` (the first two) or *are* the
+ * palette hex their fallback slot names, so every one of them resolves to the
+ * number it always resolved to — pinned, `test/render/seatInks.test.ts`.
+ *
+ * The fallback stays last and stays load-bearing: a seat with no honest colour
+ * at all still gets one, and it still gets a different one from its neighbour.
  */
 export function playerPieceColor(playerColor: string, playerIndex: number): number {
-  const explicit = VIEW3D.players.byColor[playerColor.toLowerCase()];
+  const lower = playerColor.toLowerCase();
+  const explicit = VIEW3D.players.byColor[lower];
   if (explicit !== undefined) return explicit;
+  if (/^#[0-9a-f]{6}$/.test(lower)) return Number.parseInt(lower.slice(1), 16);
   const order = VIEW3D.players.fallbackOrder;
   return order[((playerIndex % order.length) + order.length) % order.length]!;
 }

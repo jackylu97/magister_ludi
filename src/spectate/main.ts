@@ -42,6 +42,7 @@ import {
 } from '../sim/yields/empire';
 import { Renderer3D } from '../render3d/renderer3d';
 import { playerPieceColor } from '../render3d/lookData';
+import { seatInks } from '../art/seatInks';
 
 // --- the furniture ------------------------------------------------------------
 
@@ -82,7 +83,18 @@ const SEAT_NAMES = ['Crimson', 'Teal', 'Amber', 'Indigo', 'Moss', 'Slate', 'Rust
 
 const ROSTER: PlayerSpec[] = Array.from({ length: RULES.game.maxPlayers }, (_, index) => ({
   name: SEAT_NAMES[index] ?? `Seat ${index + 1}`,
-  color: seatColor(index),
+  // **A figure brings its own two colours** (batch H7), exactly as the landing
+  // writes them onto a seat it casts: a chair under a figure wears the figure's
+  // pair, and a chair past the end of the sheet keeps the page's own ink and
+  // names no second one. Written here rather than looked up at draw time for
+  // `seatLeaders`' reason — a seat's pair is config, and config is what every
+  // surface reads.
+  ...(LEADER_IDS[index] === undefined
+    ? { color: seatColor(index) }
+    : {
+        color: leaderDef(LEADER_IDS[index]!).colors.primary,
+        secondary: leaderDef(LEADER_IDS[index]!).colors.secondary,
+      }),
   // **A figure a chair, in sheet order** (batch L2b). This page exists to watch
   // bots decide, and a leader's row is one of the decisions worth watching — a
   // table of leaderless seats would never raise one. Sheet order rather than a
@@ -267,10 +279,21 @@ function seatRow(playerId: number): HTMLElement {
   return row;
 }
 
+/**
+ * One seat's mark: **the pair, not the colour** (batch H7, `docs/flags.md`
+ * (oooo)).
+ *
+ * The primary is the ground and the secondary is a ring inside it — the same
+ * field-and-trim reading the board gives a piece, at the size a list can afford.
+ * A plain seat's trim is the board's own ink (`seatInks`), so a leaderless table
+ * still reads as the plain swatches it always was.
+ */
 function swatch(playerId: number): HTMLElement {
   const mark = document.createElement('span');
   mark.className = 'swatch';
-  mark.style.background = game?.state.players[playerId]?.color ?? '#000';
+  const inks = seatInks(game?.state.players[playerId]);
+  mark.style.background = inks.primary || '#000';
+  mark.style.boxShadow = `inset 0 0 0 2px ${inks.secondary}`;
   return mark;
 }
 

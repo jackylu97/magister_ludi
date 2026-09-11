@@ -44,6 +44,7 @@ import type { ArenaMessage, ArenaTask } from './protocol';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
 import { playerPieceColor } from '../render3d/lookData';
+import { seatInks } from '../art/seatInks';
 import { element } from '../ui/dom';
 
 // --- the furniture ------------------------------------------------------------
@@ -117,7 +118,14 @@ function buildSeatPickers(): void {
   for (let index = 0; index < wanted; index++) {
     const field = element('label', 'field seat-field');
     const label = element('span', 'field-label', seatName(index));
-    (label as HTMLElement).style.setProperty('--seat-ink', seatColor(index));
+    // **The pair, not the colour** (batch H7): the chip before a seat's name is
+    // its primary with its secondary ringed inside, through the one door that
+    // decides what a seat with no second ink of its own wears. The arena seats
+    // nobody's figures, so today that trim is the board's own ink — and it will
+    // be the figure's the day this page casts one, with no edit here.
+    const inks = seatInks({ color: seatColor(index) });
+    (label as HTMLElement).style.setProperty('--seat-ink', inks.primary);
+    (label as HTMLElement).style.setProperty('--seat-trim', inks.secondary);
     label.classList.add('seat-label');
     const select = element('select');
     // The persona ids, in the data file's own order — this page reads the sheet
@@ -470,7 +478,10 @@ function table(readings: readonly GameReading[], header: RunHeader): HTMLElement
 function seatCell(name: string, persona: string, color: string): HTMLElement {
   const cell = element('td', 'seat-cell');
   const swatch = element('span', 'swatch');
-  swatch.style.background = color;
+  // The run bar's chip one table over, and the same reading (batch H7).
+  const inks = seatInks({ color });
+  swatch.style.background = inks.primary;
+  swatch.style.boxShadow = `inset 0 0 0 2px ${inks.secondary}`;
   cell.append(swatch, document.createTextNode(name));
   cell.append(element('span', 'persona', persona));
   return cell;

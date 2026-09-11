@@ -20,7 +20,7 @@
 import { describe, expect, it } from 'vitest';
 import { Vector3 } from 'three';
 
-import { badgeCenterY, badgeHitRadius } from '../../src/render3d/badges3d';
+import { badgeCenterY, badgeDiameter, badgeHitRadius } from '../../src/render3d/badges3d';
 import { pieceHeightFor } from '../../src/render3d/board3d';
 import { DioramaCamera, rayPlaneHit } from '../../src/render3d/camera3d';
 import {
@@ -439,7 +439,10 @@ describe('badge hit testing', () => {
     const project = projectionOf(camera);
     const centre = project(anchor)!;
     const scale = pixelsPerWorldUnit(camera);
-    const drawn = (VIEW3D.badges.diameter / 2) * scale;
+    // The *drawn* disc, which is `badgeDiameter()` since batch H7 — the pieces'
+    // own dial over the atlas grid — and not the grid's own figure, or this
+    // would be forgiving a click by the wrong margin the day the badge grew.
+    const drawn = (badgeDiameter() / 2) * scale;
     const target = badgeHitRadius() * scale;
 
     // Between the ink and the edge of the target: a click that missed the disc

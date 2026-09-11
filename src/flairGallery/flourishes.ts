@@ -24,6 +24,9 @@
  */
 
 import { EPIGRAPHS } from '../ui/frontispiece';
+import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { leaderFaces } from '../ui/leaderSelect';
+import { VIEW3D } from '../render3d/lookData';
 import {
   type HealthParts,
   buildGarrisonRow,
@@ -77,8 +80,124 @@ export function drawFlourishes(into: HTMLElement): void {
   siegeMarkStall(into);
   garrisonRowStall(into);
   bannerAnchorStall(into);
+  seatInksStall(into);
   inscriptionStall(into);
   ledgerStall(into);
+}
+
+/**
+ * **The seats' two inks**: every figure's pair on the three surfaces that carry
+ * it (batch H7, `docs/flags.md` (oooo); the palette is `docs/leaders.md`).
+ *
+ * It earns a stall for a reason none of the others has. A pair is a *relation* —
+ * whether a device reads on its field, whether a stitch is visible against its
+ * own line, whether a ring of maroon says "mine" at forty pixels — and a running
+ * game shows you exactly one seat's pair at a time, on a board, at whatever zoom
+ * you happen to be at. Six of them in a row on one ground is the only condition
+ * under which "does Al-Ma'mun's black disappear into the ink" can be answered,
+ * and it is the question the user's ruling actually asks.
+ *
+ * Three surfaces a figure, and each is the shipping reading rather than a
+ * drawing of one: the **canton** is the landing's own class with the landing's
+ * own two properties, the **border** is the line and the stitch at the ratio
+ * `data/view3d.json` ships them at, and the **badge** is a disc rimmed in the
+ * primary and outlined in the secondary — the piece's own two halves, flattened
+ * onto one mark because a piece's sculpt and its outline cannot be two elements.
+ *
+ * The knobs are the three the ruling asks for, and every one of them opens at
+ * the number the game ships (`pieces.badgeScale`, `pieces.badgeRing`,
+ * `territory.stitchWidth`) — so an untouched page is a picture of the product
+ * and a slider is a proposal, which is this section's bargain throughout.
+ */
+function seatInksStall(into: HTMLElement): void {
+  const root = block(
+    into,
+    'The seats’ two inks',
+    'A figure wears two colours: the **primary** is the field — the territory line, the sculpt of a piece, a banner’s rim, a canton’s ground — and the **secondary** is the device and the trim — the charge on the canton, a piece’s outline, the border’s inner stitch. A plain seat keeps the palette’s ink and takes the board’s own for a trim, which is the outline and the charge the board has always drawn. Nothing here chooses: every pair comes off `data/leaders.json` through `seatInks`, the one door that decides what a seat with no second ink of its own wears.',
+  );
+  const grid = stallGrid(root);
+  const cell = stall(grid, 'six figures, three surfaces each', 'stall-inks');
+  const row = element('div', 'seat-inks-grid');
+
+  // The gallery's own display sizes. The *ratios* below are the data's; these
+  // two say how big a page an inch of it is drawn at, which is a thing only a
+  // specimen page has an opinion about.
+  const BADGE_PX = 54;
+  const LINE_PX = 92;
+
+  const badgeRatio = VIEW3D.badges.rimWidth / VIEW3D.badges.diameter;
+  const lineRatio = VIEW3D.territory.borderWidth;
+
+  const painters: ((scale: number, ring: number, stitch: number) => void)[] = [];
+
+  for (const face of leaderFaces()) {
+    const cellRoot = element('div', 'seat-inks-cell');
+    const marks = element('div', 'seat-inks-row');
+
+    const canton = element('span', 'leader-canton');
+    canton.setAttribute('aria-hidden', 'true');
+    canton.style.setProperty(
+      '--canton-mark',
+      `url("${heraldryMarkDataUri(heraldryFor(0), face.colors.secondary)}")`,
+    );
+    canton.style.setProperty('--canton-field', face.colors.primary);
+    canton.style.setProperty('--canton-device', face.colors.secondary);
+
+    const badge = element('span', 'seat-inks-badge');
+    const border = element('span', 'seat-inks-border');
+    const line = element('span', 'seat-inks-line');
+    const stitchBar = element('span', 'seat-inks-stitch');
+    border.append(line, stitchBar);
+
+    marks.append(canton, badge, border);
+    cellRoot.append(marks);
+    cellRoot.append(element('span', 'seat-inks-name', face.name));
+    cellRoot.append(
+      element('span', 'seat-inks-words', `${face.colorWords[0]} · ${face.colorWords[1]}`),
+    );
+    row.append(cellRoot);
+
+    painters.push((scale, ring, stitch) => {
+      const size = BADGE_PX * scale;
+      badge.style.width = `${size}px`;
+      badge.style.height = `${size}px`;
+      // The rim is `rimWidth` of a `diameter`-wide disc, thickened by the ring
+      // dial and grown with the disc — `badgeRimWidth`'s arithmetic, in pixels.
+      badge.style.borderWidth = `${size * badgeRatio * ring}px`;
+      badge.style.borderColor = face.colors.primary;
+      // The outline round the piece the badge names, standing in for a sculpt
+      // this page has no room to draw: the seat's trim, a hairline out.
+      badge.style.boxShadow = `0 0 0 2px ${face.colors.secondary}`;
+      line.style.height = `${LINE_PX * lineRatio}px`;
+      line.style.background = face.colors.primary;
+      stitchBar.style.height = `${LINE_PX * stitch}px`;
+      stitchBar.style.background = face.colors.secondary;
+    });
+  }
+
+  cell.append(row);
+
+  let scale = VIEW3D.pieces.badgeScale;
+  let ring = VIEW3D.pieces.badgeRing;
+  let stitch = VIEW3D.territory.stitchWidth;
+  const repaint = (): void => {
+    for (const paint of painters) paint(scale, ring, stitch);
+  };
+  repaint();
+
+  const knobs = controls(root);
+  slider(knobs, 'badge size', { min: 0.5, max: 3, step: 0.05, value: scale }, (v) => `×${v.toFixed(2)}`, (v) => {
+    scale = v;
+    repaint();
+  });
+  slider(knobs, 'badge ring', { min: 0.5, max: 4, step: 0.05, value: ring }, (v) => `×${v.toFixed(2)}`, (v) => {
+    ring = v;
+    repaint();
+  });
+  slider(knobs, 'border stitch', { min: 0, max: 0.14, step: 0.005, value: stitch }, (v) => v.toFixed(3), (v) => {
+    stitch = v;
+    repaint();
+  });
 }
 
 /**

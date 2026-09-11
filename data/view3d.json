@@ -227,6 +227,8 @@
   "pieces": {
     "stackSpread": 0.34,
     "routedWash": 0.45,
+    "badgeScale": 1.35,
+    "badgeRing": 1.6,
     "base": {
       "radius": 0.27,
       "thickness": 0.055
@@ -382,6 +384,7 @@
     "tintOpacity": 0.03,
     "borderOpacity": 0.92,
     "borderWidth": 0.13,
+    "stitchWidth": 0.045,
     "workedColor": "bone",
     "workedOpacity": 0.9,
     "lockedColor": "crimson",

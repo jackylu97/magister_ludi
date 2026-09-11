@@ -17,6 +17,9 @@ import {
   badgeCellOrigin,
   badgeCellRect,
   badgeCenterY,
+  badgeDiameter,
+  badgeRimInnerFraction,
+  badgeRimWidth,
   badgeDiscFlags,
   badgeHitRadius,
   badgeTopY,
@@ -88,6 +91,16 @@ function fakeBadges(): UnitBadges {
     materialFor: (wild: boolean) => (wild ? wildMaterial : material),
   } as unknown as UnitBadges;
 }
+
+/** `badges3d.ts`'s own text, for the pins that read what the file says. */
+const BADGES_SOURCE = (() => {
+  const files = import.meta.glob('../../src/render3d/badges3d.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+  return Object.values(files)[0] ?? '';
+})();
 
 describe('every named badge cell exists (the trireme bug of 2026-08-30)', () => {
   // `badges.byUnitType` mapped the hulls to cell ids that were never in
@@ -564,6 +577,52 @@ describe('the badge atlas layout', () => {
     expect(badgeCellRect(BADGE_CELLS[layout.columns]!).v1).toBeLessThan(1);
   });
 
+  /**
+   * **The two dials the pieces' badges grew on** (batch H7, `docs/flags.md`
+   * (oooo); the user: the tags over units "are a bit hard to see currently").
+   *
+   * Three claims, and each is one the arithmetic could quietly stop keeping:
+   * the knobs are read from `data/view3d.json` and not written in code; the
+   * badge really is bigger and its ring really is thicker than the atlas grid's
+   * own figures; and **the grid itself did not move** — `rimInnerFraction` and
+   * everything derived from it (`paperRadiusFraction`, and through it every
+   * parchment disc in the tile atlas) answer exactly what they answered before
+   * the dials existed, or a wider ring round a unit would have shrunk the paper
+   * under every resource pin on the board to pay for it.
+   */
+  it('grows the piece badge on its own two dials, and leaves the atlas grid alone', () => {
+    expect(VIEW3D.pieces.badgeScale).toBeGreaterThan(1);
+    expect(VIEW3D.pieces.badgeRing).toBeGreaterThan(1);
+    expect(badgeDiameter()).toBeCloseTo(BADGE.diameter * VIEW3D.pieces.badgeScale, 12);
+    expect(badgeRimWidth()).toBeCloseTo(
+      BADGE.rimWidth * VIEW3D.pieces.badgeRing * VIEW3D.pieces.badgeScale,
+      12,
+    );
+    // Noticeably bigger, which is the whole of the ask.
+    expect(badgeDiameter()).toBeGreaterThan(BADGE.diameter);
+    expect(badgeRimWidth()).toBeGreaterThan(BADGE.rimWidth);
+
+    // The piece's ring, against its own disc.
+    const inner = badgeRimInnerFraction();
+    expect(inner).toBeGreaterThan(0);
+    expect(inner).toBeLessThan(1);
+    expect((1 - inner) * (badgeDiameter() / 2)).toBeCloseTo(badgeRimWidth(), 10);
+    // …and it is a *thicker* band than the grid's, as a fraction of the disc.
+    expect(1 - inner).toBeGreaterThan(1 - rimInnerFraction());
+
+    // The grid, untouched: still the data's own two figures, nothing else.
+    expect((1 - rimInnerFraction()) * (BADGE.diameter / 2)).toBeCloseTo(BADGE.rimWidth, 10);
+
+    // Both dials are *read* from the sheet: a figure written here would be a
+    // tuned constant in code (CLAUDE.md's layout rule for `data/*.json`).
+    const source = BADGES_SOURCE.slice(
+      BADGES_SOURCE.indexOf('export function badgeDiameter'),
+      BADGES_SOURCE.indexOf('// --- where a badge floats'),
+    );
+    expect(source).toMatch(/PIECES\.badgeScale/);
+    expect(source).toMatch(/PIECES\.badgeRing/);
+  });
+
   it('keeps the parchment inside the rim and the rim inside the disc', () => {
     const inner = rimInnerFraction();
     expect(inner).toBeGreaterThan(0);
@@ -613,9 +672,12 @@ describe('where a badge floats', () => {
   it('stacks the disc clear of the unit and the bar clear of the disc', () => {
     const h = pieceHeightFor('warrior');
     expect(badgeCenterY(h)).toBeGreaterThan(h);
-    // The disc's underside clears the sculpt by exactly the data's lift.
-    expect(badgeCenterY(h) - BADGE.diameter / 2).toBeCloseTo(h + BADGE.lift, 10);
-    expect(badgeTopY(h)).toBeCloseTo(badgeCenterY(h) + BADGE.diameter / 2, 10);
+    // The disc's underside clears the sculpt by exactly the data's lift — and
+    // it is `badgeDiameter()` the three heights are measured off, not the atlas
+    // grid's own figure, so a badge dialled up by `pieces.badgeScale` takes its
+    // lift and its bar up with it (batch H7).
+    expect(badgeCenterY(h) - badgeDiameter() / 2).toBeCloseTo(h + BADGE.lift, 10);
+    expect(badgeTopY(h)).toBeCloseTo(badgeCenterY(h) + badgeDiameter() / 2, 10);
     expect(hpBarY(h)).toBeGreaterThan(badgeTopY(h));
     expect(hpBarY(h)).toBeCloseTo(badgeTopY(h) + VIEW3D.hpBar.lift, 10);
   });
@@ -966,7 +1028,7 @@ describe('badges in the units layer', () => {
     layer.restore(1);
     // Back at full size, and at the diameter the data asks for: the badge is
     // built from a unit-sized quad and scaled by the instance matrix.
-    expect(Math.abs(xScale(disc, 0))).toBeCloseTo(BADGE.diameter, 6);
+    expect(Math.abs(xScale(disc, 0))).toBeCloseTo(badgeDiameter(), 6);
     layer.dispose();
     board.dispose();
   });
@@ -1166,8 +1228,8 @@ describe('badges in the units layer', () => {
       // The knob a mis-aimed click is forgiven by. It is a world radius, not a
       // pixel one — see `badgeHitRadius` — so this is the whole of what the data
       // decides; how many pixels that is at this zoom is the projection's answer.
-      expect(badgeHitRadius()).toBeCloseTo((BADGE.diameter / 2) * BADGE.hitboxScale, 12);
-      expect(badgeHitRadius()).toBeGreaterThanOrEqual(BADGE.diameter / 2);
+      expect(badgeHitRadius()).toBeCloseTo((badgeDiameter() / 2) * BADGE.hitboxScale, 12);
+      expect(badgeHitRadius()).toBeGreaterThanOrEqual(badgeDiameter() / 2);
       expect(BADGE.hitboxScale).toBeGreaterThanOrEqual(1);
     });
   });

@@ -3166,7 +3166,11 @@ kbd {
   align-items: center;
   gap: 7px;
   padding: 3px 12px 3px 3px;
-  border: var(--border-thin) solid var(--ink);
+  /* The rim in the owner's **primary** (batch H7, `docs/flags.md` (oooo)): the
+     plate's ground stays ink so the name keeps the contrast it was drawn for,
+     and the one edge of the card that touches the board carries whose town it
+     is. Thicker than a hairline because it is now a *reading* and not a rule. */
+  border: 2px solid var(--banner-color, var(--ink));
   border-radius: 999px;
   background: var(--ink);
   color: var(--parchment);
@@ -3180,6 +3184,40 @@ kbd {
      (`cityBanners.ts`, "Where the plate hangs") — so the foot of the pill sits
      where the camera says it sits, at every zoom. */
   box-shadow: 3px 3px 0 rgba(29, 26, 32, 0.4);
+}
+
+/* The seat's canton at the head of the plate (batch H7): the **field** in the
+   owner's primary, the **device** — the same charge the flag on the board flies
+   — masked in its secondary. A mask rather than an image, for the yoke's reason
+   one rule down: a mark that is data can be gold on maroon here and ink on
+   parchment on the landing, and a mark that is a file cannot. The little banner
+   shape (square shoulders, rounded foot) is the landing canton's, so a seat's
+   two surfaces are one drawing. */
+.city-banner-canton {
+  --canton-field: var(--ink);
+  --canton-device: var(--parchment);
+  position: relative;
+  flex: 0 0 auto;
+  width: 14px;
+  height: 17px;
+  border-radius: 2px 2px 7px 7px;
+  background: var(--canton-field);
+  box-shadow: 0 0 0 1px rgba(247, 242, 225, 0.45);
+}
+
+.city-banner-canton::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  background: var(--canton-device);
+  -webkit-mask-image: var(--canton-mark);
+  mask-image: var(--canton-mark);
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
 }
 
 /* The size, inside its ring: a hair smaller than it used to be and rimmed a
@@ -14824,13 +14862,18 @@ body.compendium-page {
   outline-offset: 3px;
 }
 
-/* The charge on a parchment canton, never straight in seat ink — the heraldry
-   rule, kept by drawing the mark as a mask over a parchment ground. */
+/* The charge, never in the field's own ink — the heraldry rule, kept one ink
+   over (batch H7, `docs/flags.md` (oooo)): the canton's **field** is the seat's
+   primary and its **device** the secondary, so a mark is still never lost in the
+   ground it stands on. Both are written by `leaderSelect.ts`; the parchment and
+   the ink below are what a surface that sets neither falls back to. */
 .leader-canton {
+  --canton-field: var(--parchment);
+  --canton-device: var(--ink);
   display: block;
   width: 34px;
   height: 40px;
-  background: var(--parchment);
+  background: var(--canton-field);
   border: var(--border-thin) solid var(--ink);
   border-radius: 2px 2px 16px 16px;
   position: relative;
@@ -14840,7 +14883,7 @@ body.compendium-page {
   content: '';
   position: absolute;
   inset: 4px;
-  background: var(--ink);
+  background: var(--canton-device);
   mask-image: var(--canton-mark);
   mask-size: contain;
   mask-repeat: no-repeat;
@@ -15097,11 +15140,26 @@ body.compendium-page {
   opacity: 0.62;
 }
 
+/* The figure's name with the seat's canton beside it (batch H7): the landing's
+   canton, at the landing's size, on the sheet that reads the choice back. */
+.leader-hold-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 4px;
+}
+
+.leader-hold-head .leader-canton {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 28px;
+}
+
 .leader-hold-name {
   font-family: var(--face-display);
   font-weight: 400;
   font-size: 18px;
-  margin: 0 0 4px;
+  margin: 0;
 }
 
 .leader-hold-cards {

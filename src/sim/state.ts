@@ -927,6 +927,24 @@ export interface PlayerSpec {
   /** CSS colour string. The simulation never interprets it; the UI does. */
   color: string;
   /**
+   * The seat's **second** ink — the device and the trim, where `color` is the
+   * field (batch H7, `docs/flags.md` (oooo)).
+   *
+   * `charge`'s sibling in every respect, and deliberately so: a CSS string the
+   * simulation never interprets, **config** rather than state, written only when
+   * it is named. A seat under a figure takes the figure's pair
+   * (`LeaderColors`, copied on at the table by `seatLeaders`); a plain seat
+   * carries the palette's ink here and **no key at all** there, and every
+   * surface falls back through the one door that decides it (`seatInks` in
+   * `src/art/seatInks.ts`).
+   *
+   * **No schema bump**, and the argument is `charge`'s exactly: `normalizeConfig`
+   * writes the key only when it is there, so a roster from before the pair
+   * existed normalises byte-identically, and nothing in `src/sim/` reads the
+   * field, so no outcome can turn on it.
+   */
+  secondary?: string;
+  /**
    * The seat's heraldic charge — a crescent, a stag, a key — as a plain string.
    * The simulation never interprets it; the renderer and the interface do (see
    * `src/art/heraldryMarks.ts`, which owns the twelve ids and the drawings).
@@ -1026,6 +1044,14 @@ export interface Player {
   id: number;
   name: string;
   color: string;
+  /**
+   * The seat's second ink, copied from its spec. Absent means *the board's own
+   * ink* — see `PlayerSpec.secondary`, and `seatInks`, which is the one place
+   * that fallback is decided.
+   *
+   * Uninterpreted here for `color`'s reason, and it must stay that way.
+   */
+  secondary?: string;
   /**
    * The seat's heraldic charge, copied from its spec. Absent means *by seat
    * order* — see `PlayerSpec.charge`, which carries the whole argument.
@@ -3501,6 +3527,10 @@ export function normalizeConfig(config: GameConfig): GameConfig {
       // sheet are: a seat that took its charge by seat order normalises to *no*
       // key at all and is byte-identical to a spec from before heraldry existed.
       if (spec.charge !== undefined) player.charge = spec.charge;
+      // The second ink, on exactly the same terms and for the same reason: a
+      // plain seat writes no key, so a roster from before the pair existed
+      // normalises byte-identically (`PlayerSpec.secondary`).
+      if (spec.secondary !== undefined) player.secondary = spec.secondary;
       // The persona, on exactly the same terms: written only when it is named,
       // so a roster from before personas existed normalises byte-identically.
       if (spec.persona !== undefined) player.persona = spec.persona;
@@ -3651,6 +3681,10 @@ export function newGame(config: GameConfig): GameState {
       // same shape `normalizeConfig` just produced, and the reason a state from
       // a charge-less config serialises identically to one from before the field.
       ...(spec.charge === undefined ? {} : { charge: spec.charge }),
+      // The second ink, on exactly the same terms: presence is the state, so a
+      // seat that named none has no key and a game with no figures in its
+      // roster serialises exactly as it did before the pair existed.
+      ...(spec.secondary === undefined ? {} : { secondary: spec.secondary }),
       ...(spec.persona === undefined ? {} : { persona: spec.persona }),
       // The figure, on exactly the same terms and for the same reason: a seat
       // that named none has no key, so a leaderless game is byte-identical to a

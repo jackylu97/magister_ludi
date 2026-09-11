@@ -81,6 +81,7 @@
 import { Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { heraldryFor } from '../art/heraldryMarks';
+import { seatInks } from '../art/seatInks';
 import { religionDevice } from '../art/pantheonMarks';
 import { type BuildingId, isWonder } from '../sim/buildingData';
 import { capitalCityOf } from '../sim/cities';
@@ -131,10 +132,25 @@ export interface CellRef {
   row: number;
 }
 
-/** The colour a player's flags and borders are drawn in. */
+/** The colour a player's flags and borders are drawn in — the **field**. */
 export function playerColor(state: GameState, playerId: number): number {
   const player = state.players[playerId];
-  return playerPieceColor(player?.color ?? '', playerId);
+  return playerPieceColor(seatInks(player).primary, playerId);
+}
+
+/**
+ * The colour a player's **trim** is drawn in — the border's inner stitch, a
+ * piece's outline (batch H7, `docs/flags.md` (oooo)).
+ *
+ * `playerColor`'s twin, through the same two doors and in that order: `seatInks`
+ * decides *which string* (the seat's own second ink, or the board's own where it
+ * names none) and `playerPieceColor` decides *which number* — so the trim is
+ * mapped onto the diorama's palette by exactly the rule the field is, and a
+ * figure's gold reaches a border stitch the same way its maroon reaches the line.
+ */
+export function playerSecondaryColor(state: GameState, playerId: number): number {
+  const player = state.players[playerId];
+  return playerPieceColor(seatInks(player).secondary, playerId);
 }
 
 // --- the towns --------------------------------------------------------------
@@ -942,6 +958,11 @@ export class TerritoryLayer {
     const identity = new Quaternion();
     const unit = new Vector3(1, 1, 1);
     const ownerOf = playerLookup(state);
+    // The two strips a border is made of, asked once for the whole sweep: they
+    // are the same for every tile on the board, and `stitchBand` answering
+    // `null` is how a board with one-colour borders is drawn.
+    const line = primaryBand();
+    const stitch = stitchBand();
     // Which of a tile's six edges face somebody else, refilled per tile rather
     // than reallocated: on the largest map this loop runs tens of thousands of
     // times and the array never outlives the iteration that fills it.
@@ -969,6 +990,7 @@ export class TerritoryLayer {
       const faded = level === EXPLORED ? TERRITORY_FADE : 1;
 
       const color = playerColor(state, playerId);
+      const trim = playerSecondaryColor(state, playerId);
       const centre = cellCenter(tile.col, tile.row);
       const at = new Vector3(centre.x, tileTopY(tile) + OVERLAY.lift, centre.z);
 
@@ -999,17 +1021,36 @@ export class TerritoryLayer {
       }
 
       const ink = { overlay: true, opacity: TERRITORY.borderOpacity * faded };
-      for (let direction = 0; direction < DIRECTION_COUNT; direction++) {
-        if (!borders[direction]) continue;
-        collector.add(geometry.borderBand, [color], borderBandMatrix(tile, direction, borders), ink);
-      }
-      // …and the mitres. Corner `k` is the hex vertex between edges `k` and
-      // `k + 1`, so a corner is turned exactly when both of those are borders;
-      // anywhere else the line runs on into the next tile of the same country
-      // and there is nothing to turn.
-      for (let corner = 0; corner < DIRECTION_COUNT; corner++) {
-        if (!borders[corner] || !borders[(corner + 1) % DIRECTION_COUNT]) continue;
-        collector.add(geometry.borderCorner, [color], borderCornerMatrix(tile, corner), ink);
+      // **The line, and then the stitch behind it** (batch H7): the same six
+      // answers walked twice, the second strip inset and in the seat's second
+      // ink. Twice rather than a wider band carrying two colours because an
+      // instanced strip is one matrix and one entry in a bucket keyed on its
+      // ink — so the stitch costs a second bucket per seat and nothing per tile,
+      // and a board asked for no stitch (`stitchWidth: 0`) collects none at all.
+      for (const strip of stitch === null ? [line] : [line, stitch]) {
+        const paint = strip === line ? color : trim;
+        for (let direction = 0; direction < DIRECTION_COUNT; direction++) {
+          if (!borders[direction]) continue;
+          collector.add(
+            geometry.borderBand,
+            [paint],
+            borderBandMatrix(tile, direction, borders, strip),
+            ink,
+          );
+        }
+        // …and the mitres. Corner `k` is the hex vertex between edges `k` and
+        // `k + 1`, so a corner is turned exactly when both of those are borders;
+        // anywhere else the line runs on into the next tile of the same country
+        // and there is nothing to turn.
+        for (let corner = 0; corner < DIRECTION_COUNT; corner++) {
+          if (!borders[corner] || !borders[(corner + 1) % DIRECTION_COUNT]) continue;
+          collector.add(
+            geometry.borderCorner,
+            [paint],
+            borderCornerMatrix(tile, corner, strip),
+            ink,
+          );
+        }
       }
     }
 
@@ -1036,6 +1077,55 @@ export class TerritoryLayer {
  * band's width, and any other number is either a gap or a double-blend.
  */
 const MITRE_SETBACK = 1 / Math.sqrt(3);
+
+/**
+ * One of the two strips a border is made of: how thick it is, and how far its
+ * outer lip lies in from the edge of the hex face.
+ *
+ * Two strips since batch H7 (`docs/flags.md` (oooo)) — **the line in the seat's
+ * primary and an inner stitch in its secondary** — and they are the same
+ * arithmetic twice rather than a second geometry, which is the whole reason this
+ * is a parameter and not a copy of `borderBandMatrix`. The stitch lies *inside*
+ * the line, on the home side, so a contested edge still meets its neighbour with
+ * exactly `borderWidth` of primary against `borderWidth` of primary and the
+ * second colour never reaches the seam.
+ */
+export interface BandSpec {
+  /** The strip's thickness, in world units. */
+  width: number;
+  /** How far the strip's outer lip sits in from the face's own edge. */
+  inset: number;
+}
+
+/** The border line itself: the band this layer has always drawn. */
+export function primaryBand(): BandSpec {
+  return { width: BOARD.hexRadius * TERRITORY.borderWidth, inset: 0 };
+}
+
+/**
+ * The stitch: `territory.stitchWidth` of secondary, tucked in behind the line.
+ *
+ * `null` when the width is zero, because "no stitch" is asked for by not
+ * collecting an instance rather than by collecting one of no size — the same
+ * rule the territory tint keeps two fields up, and for the same reason: a
+ * zero-width quad is still a matrix and a slot in a bucket.
+ */
+export function stitchBand(): BandSpec | null {
+  const width = BOARD.hexRadius * TERRITORY.stitchWidth;
+  if (width <= 0) return null;
+  return { width, inset: BOARD.hexRadius * TERRITORY.borderWidth };
+}
+
+/**
+ * How far a mitre is pulled back along its bisector for a strip inset by
+ * `inset`: `inset / sin 60°`.
+ *
+ * The corner is where two edges meet at 120°, so a strip lying `inset` in from
+ * *both* of them has its own corner that much further from the vertex measured
+ * along the bisector — which is the one place the stitch's geometry is not
+ * simply the band's with two numbers changed.
+ */
+const BISECTOR_INSET = 2 / Math.sqrt(3);
 
 /**
  * Where one border band lies: along one edge of one tile, on *that tile's* side
@@ -1094,12 +1184,13 @@ export function borderBandMatrix(
   tile: Tile,
   direction: number,
   borders?: readonly boolean[],
+  band: BandSpec = primaryBand(),
 ): Matrix4 {
   const centre = cellCenter(tile.col, tile.row);
   const delta = directionDelta(direction);
   const yaw = tileYaw(tile);
   const face = tileScale(tile) * (1 - BOARD.tileGap);
-  const width = BOARD.hexRadius * TERRITORY.borderWidth;
+  const width = band.width;
 
   // Local +x runs toward the corner shared with `direction + 1`; −x toward the
   // one shared with `direction - 1`. (A hexagon's side equals its circumradius,
@@ -1110,7 +1201,7 @@ export function borderBandMatrix(
   const shift = (ahead - behind) / 2;
 
   const span = Math.hypot(delta.x, delta.z);
-  const reach = (span / 2) * face - width / 2;
+  const reach = (span / 2) * face - band.inset - width / 2;
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);
   const nx = delta.x / span;
@@ -1165,16 +1256,26 @@ function bandEnd(turns: boolean, face: number, width: number): number {
  * bisector with it, and asking the result which way it points cannot drift out
  * of step with the position the way two parallel derivations can.
  */
-export function borderCornerMatrix(tile: Tile, corner: number): Matrix4 {
+export function borderCornerMatrix(
+  tile: Tile,
+  corner: number,
+  band: BandSpec = primaryBand(),
+): Matrix4 {
   const centre = cellCenter(tile.col, tile.row);
   const a = directionDelta(corner);
   const b = directionDelta((corner + 1) % DIRECTION_COUNT);
   const yaw = tileYaw(tile);
   const face = tileScale(tile) * (1 - BOARD.tileGap);
-  const width = BOARD.hexRadius * TERRITORY.borderWidth;
+  const width = band.width;
 
-  const vx = ((a.x + b.x) / 3) * face;
-  const vz = ((a.z + b.z) / 3) * face;
+  // The vertex, then pulled back down its own bisector by whatever this strip is
+  // inset — see `BISECTOR_INSET`. A strip with no inset lands exactly where the
+  // border line has always landed, which is what keeps this a generalisation
+  // rather than a change.
+  const vertex = BOARD.hexRadius * face;
+  const pull = vertex <= 0 ? 0 : (band.inset * BISECTOR_INSET) / vertex;
+  const vx = ((a.x + b.x) / 3) * face * (1 - pull);
+  const vz = ((a.z + b.z) / 3) * face * (1 - pull);
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);
   const ox = vx * cos + vz * sin;

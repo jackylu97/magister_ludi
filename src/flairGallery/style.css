@@ -834,3 +834,72 @@ body {
   text-transform: uppercase;
   color: rgba(29, 26, 32, 0.6);
 }
+
+/* --- the seats' two inks ---------------------------------------------------
+   Batch H7. Six figures in a row, each showing the pair on the three surfaces
+   that carry it: the canton (the landing's own class, unchanged and undecorated
+   here — this page must never repaint the thing it exists to inspect), the unit
+   badge, and the border line with its inner stitch. Every colour, every width
+   and every ratio on these three is written by `flourishes.ts` off the data;
+   what is here is layout and nothing else. */
+.seat-inks-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px 18px;
+  width: 100%;
+}
+
+.seat-inks-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.seat-inks-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 46px;
+}
+
+/* The roundel over a piece: parchment ground, a rim of the seat's primary, and
+   a hairline of its secondary standing in for the outline round the sculpt the
+   badge names. Width and colours are the data's; the shape is the board's. */
+.seat-inks-badge {
+  display: block;
+  flex: 0 0 auto;
+  border-style: solid;
+  border-radius: 50%;
+  box-sizing: border-box;
+  background: var(--parchment, #f7f2e1);
+}
+
+/* The border: the line, and the stitch tucked in behind it on the home side.
+   Stacked rather than side by side because that is how they lie on the board —
+   the stitch is *inside* the country, not beside the line. */
+.seat-inks-border {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  width: 92px;
+}
+
+.seat-inks-line,
+.seat-inks-stitch {
+  display: block;
+  width: 100%;
+}
+
+.seat-inks-name {
+  font-family: var(--face-display);
+  font-size: 14px;
+  line-height: 1.15;
+}
+
+.seat-inks-words {
+  font-family: var(--face-mono);
+  font-size: 11px;
+  color: var(--ink-soft, #56505a);
+}

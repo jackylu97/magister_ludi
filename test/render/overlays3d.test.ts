@@ -19,6 +19,8 @@ import { BoardGeometry } from '../../src/render3d/board3d';
 import {
   TerritoryLayer,
   borderBandMatrix,
+  playerColor,
+  playerSecondaryColor,
   borderCornerMatrix,
 } from '../../src/render3d/cities3d';
 import { RENDER_ORDER } from '../../src/render3d/instances';
@@ -53,6 +55,17 @@ import type { LensView } from '../../src/ui/mapView';
  * because every instance count in this file is a multiple of it.
  */
 const WRAP_COPIES = 3;
+
+/**
+ * How many strips a border edge is drawn with: the line, and the inner stitch
+ * behind it where the sheet asks for one (batch H7, `docs/flags.md` (oooo)).
+ *
+ * Read off the data rather than written as two, because `territory.stitchWidth`
+ * at zero is a real thing to ask for and this file's counts are the register
+ * that the second strip costs exactly *one* more instance per edge — never one
+ * per frame, and never a second sweep.
+ */
+const BORDER_STRIPS = VIEW3D.territory.stitchWidth > 0 ? 2 : 1;
 
 /**
  * The fraction of the ideal hex a prism's top face actually covers: a `tileGap`
@@ -707,7 +720,7 @@ describe('board overlays draw over the board', () => {
     const edges = ownershipEdges(state, 0);
     expect(edges).toBeGreaterThan(0);
     expect(edges).toBeLessThan(6 * state.tileOwner.filter((id) => id !== null).length);
-    expect(bandCount(layer.group, geometry)).toBe(edges * WRAP_COPIES);
+    expect(bandCount(layer.group, geometry)).toBe(edges * WRAP_COPIES * BORDER_STRIPS);
     layer.dispose();
   });
 
@@ -728,13 +741,20 @@ describe('board overlays draw over the board', () => {
     const layer = new TerritoryLayer();
     layer.build(state, geometry, materials);
 
-    // Two inks on the board, and both of them drew bands.
+    // Two seats' **primaries** on the board, and both of them drew bands — plus
+    // the one trim they share, since neither seat names a second ink of its own
+    // and both fall back through `seatInks` to the board's (batch H7). A third
+    // bucket rather than a third sweep: the stitch is collected in the same walk
+    // and keys on its own colour, exactly as the line does.
     const inks = new Set(
       decals(layer.group)
         .filter(({ mesh }) => mesh.geometry === geometry.borderBand)
         .map(({ material }) => material.color.getHex()),
     );
-    expect(inks.size).toBe(2);
+    expect(inks.has(playerColor(state, 0))).toBe(true);
+    expect(inks.has(playerColor(state, 1))).toBe(true);
+    expect(inks.has(playerSecondaryColor(state, 0))).toBe(true);
+    expect(inks.size).toBe(BORDER_STRIPS === 1 ? 2 : 3);
 
     // The shared edge is drawn twice, once from each side, and the two bands sit
     // on opposite sides of the edge itself — each inside its own hex, meeting in
@@ -869,8 +889,8 @@ describe('board overlays draw over the board', () => {
 
     // A country of one hex: all six edges face the world, so the line turns at
     // all six of its vertices.
-    expect(bandCount(layer.group, geometry)).toBe(6 * WRAP_COPIES);
-    expect(cornerCount(layer.group, geometry)).toBe(6 * WRAP_COPIES);
+    expect(bandCount(layer.group, geometry)).toBe(6 * WRAP_COPIES * BORDER_STRIPS);
+    expect(cornerCount(layer.group, geometry)).toBe(6 * WRAP_COPIES * BORDER_STRIPS);
     layer.dispose();
 
     // A domino. Each hex now has one *interior* edge, and the two vertices at
@@ -882,8 +902,8 @@ describe('board overlays draw over the board', () => {
     claim(state, [lone, partner]);
     const both = new TerritoryLayer();
     both.build(state, geometry, materials);
-    expect(bandCount(both.group, geometry)).toBe(10 * WRAP_COPIES);
-    expect(cornerCount(both.group, geometry)).toBe(8 * WRAP_COPIES);
+    expect(bandCount(both.group, geometry)).toBe(10 * WRAP_COPIES * BORDER_STRIPS);
+    expect(cornerCount(both.group, geometry)).toBe(8 * WRAP_COPIES * BORDER_STRIPS);
     both.dispose();
   });
 

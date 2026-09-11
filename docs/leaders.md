@@ -600,6 +600,14 @@ stitch. Every row is a proposal the user may retune here; `data/leaders.json`'s
 primaries may sit within the palette's hue distance of each other or of a
 plain seat's ink.
 
+The **hue distance is forty**, measured as `inkDistance` measures it
+(`src/art/seatInks.ts`): a weighted RGB separation rather than a hue angle,
+because two of these inks are greys and a grey has no hue. The register that
+holds it is `test/render/seatInks.test.ts`, which names the offending pair.
+A plain seat's second ink is **the board's own ink** (`palette.ink`), which is
+what a charge is inked in today — so a roster with no figures in it wears the
+colours it always wore.
+
 | Leader | Primary | Secondary | Why |
 |---|---|---|---|
 | Pachacuti | maroon `#8b2635` | sun gold `#e0b21a` | the Sapa Inca's red fringe; the sun |
