@@ -1837,6 +1837,21 @@ directly to confirm rulings — user marginalia are rulings.
   colours** — the orchestrator checks the in-game inks against the doc's
   hexes (toon shading and the parchment wash may be the difference; if
   the data differs from the doc the sync test would have said so).
+  **Done by the orchestrator** (2026-09-11): (1) the badge back to the
+  grid's size with the ring a shade thicker (`badgeScale` 1 ·
+  `badgeRing` 1.15 — the user: *"make them what they were before but a
+  tiny smidge thicker"*), the pin re-aimed at the dials rather than a
+  figure; (2) the border overdraw was a save from before H7 — the user
+  confirmed the borders read right on a fresh board; nothing changed;
+  (6) the data carries the doc's hexes exactly (the sync test holds; the
+  literal hex reaches the board through `playerPieceColor`) — what
+  differs in game is the toon shading and the line's opacity over
+  vellum, not the ink. **And a sixth**: the **selection ring** on a
+  chosen piece's hex wore the data file's terracotta; it now takes the
+  seat's primary (`OverlayState.selectionColor`, handed down beside
+  `lockedColor`), the hover ring keeping the accent — a cursor belongs
+  to nobody; pinned in `overlays3d.test.ts`. (3) (4) (5) are an agent's,
+  in flight.
 - (pppp) **A figure's cities carry its empire's names — RULED** (the
   user, 2026-09-11: *"let's also create a list of ~15 names with
   historically accurate cities from the civ's empire (in order of
