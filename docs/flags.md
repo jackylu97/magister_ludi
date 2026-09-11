@@ -1844,6 +1844,31 @@ directly to confirm rulings — user marginalia are rulings.
   ▢ **the twelve-seat roster at floor 10**: the floor is ruled for six;
   what a twelve-seat standard game does (relax with a report, or refuse
   the count in the stepper) is the user's — M2 reports the measurement.
+  **The fixtures followed** (held): seed 905's capital came up on the
+  coast, so statecraft's inland bench moved to seed 943; the explore
+  digests re-taken with the reason; the bot fixtures re-sited (a scout
+  now reaches a ruin; the besieged town's turn count); a strength pin
+  that had passed for the wrong reason (both pieces on water, the
+  waterline refusing) now asserts the forecast is honest; the religion
+  replay found a real bot fault — the reserved prophet stepped onto
+  unowned ground and ping-ponged for two hundred turns — fixed (stays on
+  owned ground, bounded tries), and **the bot's second-site cap is now
+  one further site a game** (the new boards afford two prophets in 340
+  turns, so a per-town cap ate them all); the finish-line horizon 6500 →
+  10500 (the Opus opens t7754). **Rivers re-examined**: springs at 0.65
+  admit five sixths of the land (0.80 was the hill cut, the lowest hill
+  at 0.807) — the pin now asserts the data's own threshold exactly and
+  the doc row carries the land scale; a lake is a legitimate mouth on a
+  board that pools; `minLength` 5 discards correctly (shortest trace 5
+  everywhere). ▢ **Duel's river quota fell to half** (7/14 at seed
+  31337; 14/14 on six of eight seeds): standard, large, huge and giant
+  fill theirs; the cause is `minLength` 4 → 5 alone (isolated per knob —
+  the lower springs helped), because on 386 land tiles many traces reach
+  the sea in four edges and duel is under `pitLakeMinTiles`; if duel
+  should stay riverine the knob is a per-size `minLength` or letting
+  duel pool. The "switched off" fixtures reproduce the pre-ruling world
+  byte for byte with the two new numbers added to the sheet — the dice
+  did not move.
 - (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
   *"another leader spawned 8 tiles from me -- ideally we should have some
   distance between players, maybe 15 tiles?"* → the diagnosis below →
