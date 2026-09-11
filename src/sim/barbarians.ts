@@ -239,26 +239,78 @@ export function campHasHorses(state: GameState, camp: BarbarianCamp): boolean {
 }
 
 /**
+ * Is this unit type a mount the wild may ride?
+ *
+ * A military row of the `mounted` model **that a technology names**. The tech
+ * gate is the whole of the filter, and it is stricter than `isBasicMelee`'s on
+ * purpose: every mount a card, a belief or a *figure* opens has no unlocking
+ * node (it is opened by the thing that hands it over), so "named by a node"
+ * excludes the Templars, the Tang cavalry and the Chanyu's Guard without this
+ * file naming any of them — and excludes a retired row twice over, since a
+ * retired row leaves the tree. Nothing here compares a type against a name.
+ */
+function isWildMount(id: UnitTypeId): boolean {
+  const def = unitDef(id);
+  if (def.category !== 'military' || def.modelClass !== 'mounted') return false;
+  if (def.retired === true) return false;
+  return UNIT_UNLOCK_TECH.has(id);
+}
+
+/**
+ * The strongest mount the median tier has reached — and where the tier has
+ * reached none, the **weakest** mount the tree names at all.
+ *
+ * `barbarianMeleeType`'s shape exactly, and for its reason: a camp in horse
+ * country used to muster the *first* mounted row in the table whatever the
+ * age, and that row is the horseman, an Æra III piece — so a herd beside a
+ * camp put cavalry on the board in the first age (the user, 2026-09-11:
+ * *"i see barbarian horseman spawning in age 1 … if anything it should be a
+ * war chariot"*). The fallback is the weakest mount because the turn gate in
+ * `barbarianUnitType` is what says "there are riders now"; what kind of rider
+ * is the tier's to say, and a tier that has reached no mount gets the mildest
+ * one the roster holds, which on today's table is the chariot of The Wheel.
+ */
+export function barbarianMountType(state: GameState): UnitTypeId | null {
+  const tier = barbarianTier(state);
+  const mounts = UNIT_TYPE_IDS.filter(isWildMount);
+  if (mounts.length === 0) return null;
+
+  let best: UnitTypeId | null = null;
+  for (const id of mounts) {
+    if (!tierUnlocks(tier, id)) continue;
+    if (best === null || unitDef(id).combatStrength > unitDef(best).combatStrength) best = id;
+  }
+  if (best !== null) return best;
+
+  let weakest = mounts[0]!;
+  for (const id of mounts) {
+    if (unitDef(id).combatStrength < unitDef(weakest).combatStrength) weakest = id;
+  }
+  return weakest;
+}
+
+/**
  * What this camp musters right now.
  *
  * The horse rule sits on top of the footmen ladder rather than inside it: a camp
- * within `horsesRadius` of a herd fields horsemen from `horsemanFromTurn`, and
- * the **turn gate is the tier check** for that one type. The wild does not
- * research Husbandry, so asking whether the median empire has is asking the wrong
- * question — a herd on the steppe is not waiting for anybody's permission. What
- * the gate is really for is the early game: without it, whether an empire meets
- * cavalry on turn ten would be decided by where a camp happened to land, which is
- * a coin flip rather than a difficulty. See `BarbarianRules.horsemanFromTurn`.
+ * within `horsesRadius` of a herd fields riders from `horsemanFromTurn`, and
+ * the **turn gate is the tier check** for *whether there are riders*. The wild
+ * does not research Husbandry, so asking whether the median empire has is
+ * asking the wrong question — a herd on the steppe is not waiting for anybody's
+ * permission. What the gate is really for is the early game: without it,
+ * whether an empire meets cavalry on turn ten would be decided by where a camp
+ * happened to land, which is a coin flip rather than a difficulty. See
+ * `BarbarianRules.horsemanFromTurn`.
  *
- * A world whose roster has no horseman at all falls back to the footman, so the
- * rule survives a `units.json` that never heard of cavalry.
+ * *Which* rider is the tier's question, answered by `barbarianMountType` the
+ * way the footman is: the strongest the median has reached, else the mildest
+ * the tree names. A world whose tree names no mount at all falls back to the
+ * footman, so the rule survives a `units.json` that never heard of cavalry.
  */
 export function barbarianUnitType(state: GameState, camp: BarbarianCamp): UnitTypeId | null {
   if (state.turn >= BARB.horsemanFromTurn && campHasHorses(state, camp)) {
-    const mounted = UNIT_TYPE_IDS.find(
-      (id) => unitDef(id).modelClass === 'mounted' && unitDef(id).category === 'military',
-    );
-    if (mounted !== undefined) return mounted;
+    const mounted = barbarianMountType(state);
+    if (mounted !== null) return mounted;
   }
   return barbarianMeleeType(state);
 }

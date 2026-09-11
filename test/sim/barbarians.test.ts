@@ -6,6 +6,7 @@ import {
   barbarianRoles,
   barbarianTier,
   barbarianTurn,
+  barbarianMountType,
   barbarianUnitType,
   campHasHorses,
   nearestTarget,
@@ -54,9 +55,9 @@ import {
   bumpRevision,
 } from '../../src/sim/state';
 import { advanceResearch } from '../../src/sim/tech';
-import { TECH_IDS, type TechId } from '../../src/sim/techData';
+import { TECH_IDS, type TechId, UNIT_UNLOCK_TECH } from '../../src/sim/techData';
 import { END_OF_TURN_PHASES, emptyTurnReport, runEndOfTurn } from '../../src/sim/turn';
-import { isRanged, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, isRanged, unitDef } from '../../src/sim/unitData';
 import { fullMovement, hasStackingRoom } from '../../src/sim/units';
 import {
   VISIBLE,
@@ -473,10 +474,55 @@ describe('the horse rule', () => {
     state.turn = BARB.horsemanFromTurn - 1;
     expect(barbarianUnitType(state, camp)).toBe(barbarianMeleeType(state));
     state.turn = BARB.horsemanFromTurn;
-    expect(barbarianUnitType(state, camp)).toBe('horseman');
-    // And the turn gate *is* the tier check for that one type: the wild never
-    // researched Husbandry, and a herd on the steppe is not waiting for anybody.
+    // The turn gate says *there are riders*; the tier says which. A first-age
+    // world has reached no mount, so it meets the mildest one the tree names —
+    // the chariot of The Wheel, never the horseman of the third age (the user,
+    // 2026-09-11: "i see barbarian horseman spawning in age 1").
+    const rider = barbarianUnitType(state, camp)!;
+    expect(unitDef(rider).modelClass).toBe('mounted');
+    expect(rider).toBe(barbarianMountType(state));
+    expect(rider).not.toBe('horseman');
+    const mildest = UNIT_TYPE_IDS.filter(
+      (id) =>
+        unitDef(id).category === 'military' &&
+        unitDef(id).modelClass === 'mounted' &&
+        unitDef(id).retired !== true &&
+        UNIT_UNLOCK_TECH.has(id),
+    ).reduce((a, b) => (unitDef(b).combatStrength < unitDef(a).combatStrength ? b : a));
+    expect(rider).toBe(mildest);
+    // And the turn gate *is* the tier check for whether riders exist: the wild
+    // never researched Husbandry, and a herd on the steppe is not waiting.
     expect(realPlayers(state)[0]!.techsResearched).not.toContain('husbandry');
+  });
+
+  it('rides the strongest mount the median tier has reached, and nothing a figure opens', () => {
+    const state = wildState();
+    at(state, 9, 9).resource = 'horses';
+    const camp = { col: 9, row: 10, foundedTurn: 1 };
+    state.turn = BARB.horsemanFromTurn;
+    // Hand every seat the horseman's node: the median tier now reaches it.
+    const gate = UNIT_UNLOCK_TECH.get('horseman')!;
+    for (const seat of realPlayers(state)) seat.techsResearched.push(gate);
+    // Not "the horseman" by name: the node opens more than one mount (the war
+    // elephant rides beside it), and the ladder's word is *strongest reached*,
+    // resource gating ignored exactly as the footman's is.
+    const reached = barbarianUnitType(state, camp)!;
+    expect(UNIT_UNLOCK_TECH.get(reached)).toBe(gate);
+    expect(unitDef(reached).combatStrength).toBeGreaterThanOrEqual(unitDef('horseman').combatStrength);
+    // The whole tree: the strongest mount a node names, and never a row a
+    // leader's deck or a belief hands over (those have no node), nor a retired
+    // one — the wild holds no cards and plays no leader.
+    for (const seat of realPlayers(state)) seat.techsResearched = [...TECH_IDS];
+    const late = barbarianUnitType(state, camp)!;
+    expect(UNIT_UNLOCK_TECH.has(late)).toBe(true);
+    expect(unitDef(late).unlockedByLeader).not.toBe(true);
+    expect(unitDef(late).unlockedByCard).not.toBe(true);
+    expect(unitDef(late).retired).not.toBe(true);
+    for (const id of UNIT_TYPE_IDS) {
+      if (unitDef(id).modelClass !== 'mounted' || !UNIT_UNLOCK_TECH.has(id)) continue;
+      if (unitDef(id).retired === true) continue;
+      expect(unitDef(late).combatStrength).toBeGreaterThanOrEqual(unitDef(id).combatStrength);
+    }
   });
 
   it('leaves a camp out of horse country on foot, however late it is', () => {
