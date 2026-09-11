@@ -1800,6 +1800,46 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (nnnn) **Six seats by default; a stepper, not a mode list; every
+  rival plays a figure — RULED** (the user, 2026-09-11: *"how are bot
+  games constructed now? do they choose a leader when the player does? We
+  should have 6 players default on the standard map (revise the options
+  panel to add/subtract players instead of the current dropdown listing
+  out all options, default to 6 players including the player on a
+  standard map)"*). **Today**: the Seats control is a mode list (`You vs
+  one bot` · `Full game (you and three bots)` · `Solo` · `Sandbox`),
+  default one bot; the palette (`SEATS`, `gameSetup.ts`) is four inks;
+  rivals in a full game cycle three personas; and rivals take a leader
+  **only when the human does** (`rivalLeaders`: the rest of the sheet in
+  order — *No leader* leaves every seat plain). **L4 builds**: (1) the
+  Seats row is a **stepper** — `−  6  +` — counting players in total,
+  you included, from the rules' `minPlayers` to `min(maxPlayers, the
+  palette)`; **default 6**, and the default size **standard** (the
+  landing's size select starts there); the `seats` select's id is kept on
+  a hidden input or the stepper's value element so `currentConfig` and
+  the tests read one place; (2) **one palette**: the six-plus inks the
+  mapgen lobby already carries (`src/mapgenPage/main.ts`'s roster — pine,
+  wheat beside the four) move to `gameSetup.ts`'s `SEATS` and the lobby
+  reads them there (one roster, two pages); seat inks and charges by
+  index (`heraldryFor`); (3) **every rival plays a figure**: rivals draw
+  **distinct** leaders from the sheet minus the human's pick, in an order
+  hashed from the seed (a pure hash in UI land — `hash3`/`hashUnit`'s
+  family, never the sim's `Rng`, never the `webciv:gameplay:` separator),
+  so a seed is a cast; with more rivals than figures the extras sit under
+  none; *No leader* for the human still leaves the rivals their figures;
+  (4) rivals' personas cycle the full game's three (wide · tall ·
+  warmonger) then balanced; the single-opponent persona select shows only
+  at two seats; (5) **hot-seat** (every seat human) stays reachable as a
+  small labelled checkbox in the map card's fine print — a dev harness,
+  not a mode in the list; solo is the stepper at one. `rosterFor` keeps
+  its name and takes the count; `seatRoster.test.ts` (reads the UI
+  sources for `realPlayers`), `gameSetup.test.ts`, `leaderScreens.test.ts`
+  follow; the config's `players` array is the only output. Pins: default
+  config is six seats on standard with six distinct figures; the stepper
+  clamps; the same seed casts the same figures; a different seed may cast
+  differently; the human's *No leader* writes no key on seat 0 and figures
+  on the rest; hot-seat writes `isHuman` on every seat; the spectator and
+  arena pages untouched.
 - (mmmm) **The wild's mount follows the tier — built** (the user,
   2026-09-11, on :5199: *"i see barbarian horseman spawning in age 1 …
   if anything it should be a war chariot"*). A camp in horse country
