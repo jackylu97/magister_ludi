@@ -1886,8 +1886,23 @@ directly to confirm rulings — user marginalia are rulings.
   chosen piece's hex wore the data file's terracotta; it now takes the
   seat's primary (`OverlayState.selectionColor`, handed down beside
   `lockedColor`), the hover ring keeping the accent — a cursor belongs
-  to nobody; pinned in `overlays3d.test.ts`. (3) (4) (5) are an agent's,
-  in flight.
+  to nobody; pinned in `overlays3d.test.ts`. **(3) (4) (5) built** (held):
+  `ageThatOpens(type)` in `leaderData.ts` — the deck row's age, else the
+  row's own column's age band — read by `unitUpkeep` after the tree's
+  own clause; the ten uniques' deck ages and columns agree exactly, so
+  the Fubing costs a spearman's keep and the Khopesh a swordsman's; the
+  Templars (belief-opened) price off their column too; `awaitsTech`/
+  retired hulls unchanged; ten pins. The Horde Camp's card and note say
+  the refill plainly — and say **a soldier of yours**, not a mounted one:
+  the built rule (`arriveOnTile`) is `isCombatant`, as `docs/leaders.md`'s
+  row rules ("military units regain all movement") — ▢ if the user meant
+  mounted only, that is a rule change. The Mosque's line became two
+  (`type: prophet`, `type: apostle`); the walk-every-table pin carries a
+  key path and grants the exception to those two lines alone, and
+  nothing reaches an inquisitor. **Found beside it** — ▢ **the Great
+  Ziggurat's `purchaseRider`** also targets `consecrates: true`: a −25%
+  on the retired augur alone, dead the same way; needs a ruling (prophets
+  and apostles too?).
 - (pppp) **A figure's cities carry its empire's names — RULED** (the
   user, 2026-09-11: *"let's also create a list of ~15 names with
   historically accurate cities from the civ's empire (in order of
@@ -2118,10 +2133,9 @@ directly to confirm rulings — user marginalia are rulings.
   guard excludes nothing; two (Tinkers' Guild, Vaucanson's legacy) had
   no guard at all. Every "workers +1 charge" line now names the worker
   row (`class: {type: 'worker'}`), the Corvée included; pinned for each.
-  ▢ **The Great Mosque of Djenné** pays "+1 charge" to `consecrates:
-  true` — the retired augur alone — so the line is dead; with the
-  prophet fixed at two charges by ruling, it wants a new gift (an
-  apostle's charge? a rite's price?) — the user's call. (2) **Planting a holy site for a
+  **The Great Mosque of Djenné** paid "+1 charge" to `consecrates: true`
+  — the retired augur alone — so the line was dead; ruled and built
+  under (qqqq): it reaches prophets and apostles. (2) **Planting a holy site for a
   faith already founded is unreachable by design** — Entry LVIII made
   planting *the* founding, `plantHolySiteError` asks `foundReligionError`
   unconditionally, and F2 priced the second arm (`plantHolySite` 2)
