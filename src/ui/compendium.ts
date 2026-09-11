@@ -86,6 +86,7 @@ import {
 } from '../sim/greatPeopleData';
 import {
   IMPROVEMENT_IDS,
+  type HillsWaiver,
   type ImprovementDef,
   type ImprovementId,
   improvementDef,
@@ -419,6 +420,21 @@ function words(parts: readonly string[]): string {
 function eitherWords(parts: readonly string[]): string {
   return joined(parts, 'or');
 }
+
+/**
+ * Why a row's `requiresHills` may be waived, in a first-time player's words —
+ * one phrase per reason, and the whole union.
+ *
+ * A table rather than the ternary this used to be, because the third reason
+ * (batch L3c, the Terraces) is about the *town* holding the hex and not about
+ * the hex at all, and an `else` arm would have printed the resource's sentence
+ * for it. Each phrase completes "Hills are allowed where the hex …".
+ */
+const HILLS_WAIVER_WORDS: Record<HillsWaiver, string> = {
+  freshwater: 'is beside fresh water',
+  ownResource: 'carries a resource this improvement gives access to',
+  townTerraces: 'belongs to a town that has cut steps into its hillsides',
+};
 
 /**
  * The badge class a unit's piece wears.
@@ -1035,11 +1051,10 @@ function improvementEntry(id: ImprovementId): CompendiumEntry {
   if (def.hillsIf !== undefined && def.hillsIf.length > 0) {
     clauses.push({
       text: `Hills are allowed where the hex ${eitherWords(
-        def.hillsIf.map((why) =>
-          why === 'freshwater'
-            ? 'is beside fresh water'
-            : 'carries a resource this improvement gives access to',
-        ),
+        // One phrase per waiver, off the union rather than off a ternary: a
+        // third reason arrived with the Terraces (batch L3c) and an `else`
+        // would have printed the resource's sentence for it.
+        def.hillsIf.map((why) => HILLS_WAIVER_WORDS[why]),
       )}.`,
     });
   }

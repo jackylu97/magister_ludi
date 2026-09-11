@@ -94,7 +94,12 @@ import {
   isBuildingId,
   isWonder,
 } from './buildingData';
-import { buildingPurchaseDiscount, cityQueueFloor, queueFloorRefusal } from './buildingEffects';
+import {
+  buildingPurchaseDiscount,
+  cityBuysWondersWithFaith,
+  cityQueueFloor,
+  queueFloorRefusal,
+} from './buildingEffects';
 import { RULES } from './rulesData';
 import {
   cardActionRule,
@@ -319,9 +324,12 @@ function rosterBank(item: PurchaseSubject): PurchaseCurrency | undefined {
  * augur's faith and would be a strange rule that stopped at the treasury's door.
  * **And it is asked of a building too** (2026-08-28): Crassus and Jakob Fugger
  * both discount "units and buildings", so a rider names the *kind* it rides on
- * (`CardPurchaseRiderEffect.on`) beside the unit filter it always had. The one
+ * (`CardPurchaseRiderEffect.on`) beside the unit filter it always had. The
  * building nobody may buy is still the one a card would most want to discount —
- * `purchaseError` refuses a wonder before a price is ever asked for.
+ * `purchaseError` refuses a wonder before a price is ever asked for, everywhere
+ * but the one town that has been cut to hurry one along in faith (the Valley of
+ * Kings, `BuildingDef.faithBuysWonders`), where it is priced by this branch like
+ * any other building and the rider rides on it like any other price.
  *
  * `cityId` is taken because a purchase is always *somewhere* — the price is
  * asked of a real town of this empire's or it is not asked at all — and because
@@ -540,6 +548,20 @@ function faithBankOpen(
    * matched against the currency by the caller.
    */
   if (item.kind === 'building') {
+    /**
+     * **A sixth narrowing, and the first that is a shelf in *this* town** — the
+     * Valley of Kings' *"wonders can be rushed with faith"*
+     * (`BuildingDef.faithBuysWonders`, batch L3c).
+     *
+     * Asked before the science clause because a wonder is not a science
+     * building and would otherwise be refused by it. The two are disjoint —
+     * al-Khwārizmī's law names the *libraries* of a realm and this names the
+     * *marvels* of one town — and the refusal `purchaseError` lifts for the same
+     * marker is the one that would have stopped this branch ever being reached.
+     * The rate is the ordinary `faithPerHammer`: which bank may pay is what a
+     * shelf decides, never what a thing costs.
+     */
+    if (isWonder(item.id)) return cityBuysWondersWithFaith(city);
     if (!buildingPaysVoice(item.id, 'science')) return false;
     return cardActionRule(state, city.ownerId, 'faithBuysScienceBuildings');
   }
@@ -840,7 +862,20 @@ export function purchaseError(
   // through to gold's ordinary gates, which would happily sell one. A wonder
   // that could be bought would make "one per world" a question of who is
   // richest on the turn it unlocks.
-  if (bought.kind === 'building' && isWonder(bought.id)) {
+  //
+  // **Unless this town has been cut to hurry one along in faith** — the Valley
+  // of Kings (`BuildingDef.faithBuysWonders`, batch L3c). The one narrow lift of
+  // the rule, and it is narrow in both dimensions on purpose: *faith* and *this
+  // town*, so the treasury still buys no marvels anywhere and "one per world"
+  // stays a question of who built it. Every gate below is then asked unchanged
+  // — `buildError` still refuses a wonder somebody else has claimed and one
+  // whose site the ground does not hold — and the price is the ordinary
+  // conversion of the row's own hammers at `faithPerHammer`.
+  if (
+    bought.kind === 'building' &&
+    isWonder(bought.id) &&
+    !(currency === 'faith' && cityBuysWondersWithFaith(city))
+  ) {
     return `${name} is a wonder — it must be built, not bought`;
   }
   // **A great person is never for sale either**, and for the wonder's reason
@@ -1189,11 +1224,14 @@ export function purchaseItemAt(
 
   refreshCityDerived(state, city);
   // **The whole report, not just the piece's id** — the day an ordinary building
-  // had something to say arrived with the Cathedral (Entry LV). A purchase can
-  // never claim a wonder (`purchaseError` refuses one outright) and no
-  // purchasable row carries `onComplete` today, so `wonder` and `grants` are
-  // still always absent on this path; `consecration` is not, because a cathedral
-  // bought with gold is dedicated by the same line that dedicates a built one.
+  // had something to say arrived with the Cathedral (Entry LV). A purchase could
+  // never claim a wonder until the Valley of Kings was cut (batch L3c), and now
+  // it can in exactly one town and one bank — `claimWonder` is `realiseItem`'s
+  // own line either way, so `wonder` comes back on this path for the same reason
+  // it comes back on the built one, and the register is written once. No
+  // purchasable row carries `onComplete` today, so `grants` is still always
+  // absent; `consecration` is not, because a cathedral bought with gold is
+  // dedicated by the same line that dedicates a built one.
   // Widening the return rather than adding a second out-parameter is
   // `RealisedItem`'s own discipline, read from the caller's end.
   return born;

@@ -105,6 +105,7 @@ import {
   recordScalingOccasion,
   settleCultureWindfall,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
@@ -1001,15 +1002,7 @@ export function greatPersonActAt(
  */
 function payActRiders(state: GameState, player: Player, family: Family): void {
   const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, { family });
-  if (
-    payout.grants.length === 0 &&
-    payout.units.length === 0 &&
-    !payout.healAll &&
-    payout.timed.length === 0 &&
-    payout.renown.length === 0
-  ) {
-    return;
-  }
+  if (windfallPayoutIsEmpty(payout)) return;
   const seat = capitalCityOf(state, player.id);
   const at = seat ? { col: seat.col, row: seat.row } : undefined;
   for (const city of payWindfallGrants(state, player, payout, at)) {

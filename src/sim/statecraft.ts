@@ -160,6 +160,7 @@ export {
   timedTurnsLeft,
   unitMatches,
   windfallPayout,
+  windfallPayoutIsEmpty,
 } from './statecraft/evaluator';
 export type {
   CardBuildingHappinessLine,

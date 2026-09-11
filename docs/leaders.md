@@ -94,104 +94,6 @@ leader bonus: +2 combat strength against empires with more cities (your own pupp
 | III | internal trade routes supply +2 food and +2 science | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
 | IV | your units heal +5 every turn | the twenty-two tongues: gain +100 renown every time you perform a trade deal | **The Mountain Hold** — a citadel-building: +10 city strength, +2 food |
 
-**Built** (batch L2a, 2026-09-10; `docs/flags.md` (dddd), schema 113). The six
-decks above are `data/leaders.json` beside each figure's `startBias`: a `bonus`
-of ordinary card effects, live from the turn the seat sits down, and a `deck` of
-four rows of three cards. `Player.leader` carries the figure, `Player.leaderPicks`
-the card taken per age and `Player.leaderOffer` the three on the table now. The
-row is dealt in a `leaders` phase directly after `advanceResearch` — the seat's
-**own** age, `highestAge`, never the world's clock — Æra I's with the board;
-`chooseLeaderCard {playerId, index}` takes one and the other two are gone. A
-taken passive is `liveEffects`' twelfth source beside the bonus, a taken boon
-pays once through the bead's `payWindfall` and the wonder's `payGrants`, and a
-taken unique opens a row carrying `unlockedByLeader` — twenty-four new rows in
-`units.json` and `buildings.json`, each with its own `column` because no
-technology prices them. The Compendium walks the six on a `leader:id` shelf, one
-page a figure. The bots appraise the three through `explainEffects`, `explainLump`
-and the row's own appraiser (`src/ai/leader.ts`).
-
-**The screens** (batch L2b, 2026-09-10; the mockup of the same day is the spec of
-record). Three of them, and each walks the table rather than listing it — a
-seventh figure appears on all three with no page edit, and nothing on any of them
-names a leader or a card:
-
-- **The new game** (`src/ui/leaderSelect.ts`, a second card on the landing beside
-  the map's): one button a figure, each with the seat's canton, the leader bonus
-  through `describeCard`, and — for the one chosen — the Æra I row's three cards
-  in the three inks. *No leader* is the default, so the game that was one press of
-  Start away still is and its config is byte-identical to one from before figures
-  existed. The chosen figure goes onto seat 0 and **the rivals take the remaining
-  figures in sheet order** (`rivalLeaders`) — no draw, because a leader rides into
-  `GameConfig` and a table dealt from `Math.random` is a table a save cannot
-  replay. Nobody is seated when you are not.
-- **The age's draft** (`src/ui/leaderDraftSheet.ts`, the thirteenth sheet on
-  `modalShell.ts`): raised by the `leaderDraft` blocker, three cards in the three
-  inks, each with its clauses, what its lump hands over (`describeBeadBoon` and
-  `grantWords` at this card's own moment), the row a unique opens in the row's own
-  figures, and a **"today it would pay"** stamp — `explainCardImpact` with the
-  pick ghosted into `Player.leaderPicks`, which is the empire's own ledger read
-  twice and therefore the figure the turn resolution will bank. A card is picked
-  up and the foot's button spends it: the sheet asks twice, because the two cards
-  beside the one taken are gone. The capital rule speaks in the `.wanting` voice.
-- **Your leader** (`src/ui/leaderSheet.ts`, the fourteenth, behind a fifth door on
-  the HUD dock wearing the seat's own charge): the bonus and one block an age —
-  the card taken, the two left greyed beside it, a locked row's three with a plain
-  sentence naming the technologies that open the age — beside a ledger of **every
-  line in the empire's books carrying the leader's name**, gathered from
-  `readEmpire`'s own lists by the card id on the line (and from the two meters by
-  the evaluator's class word, since `MeterContribution` carries no id). Nothing on
-  it is computed. Because a row never expires, this sheet is also the way back to
-  one the seat still owes.
-
-The spectator page names each seat's leader in its roster and seats one a chair
-in sheet order, so a leader draft is a decision the feed can show.
-
-**One rule the sheet did not name**: a figure's row is on the table from the
-first turn, but nobody may answer it until their realm has a town — three of the
-six opening boons hand over something a *town* receives, and a pick taken before
-the capital exists would pay them into nothing. The row waits; it is never lost.
-
-**Every line the vocabulary could not carry**, deferred and annotated on the card
-(never bent — CLAUDE.md rule 7). Three cards are deferred **whole** and do
-nothing at all: Modu's *The Horse Lords* (nothing reveals a resource or lays an
-improvement), Modu's *The Great Raid* and Akhenaten's *The Great Conversion*
-(no shape empties or converts a neighbourhood at a stroke), and Mithridates'
-*The King's Friends* (no card widens a government's slots). The rest are halves:
-
-- **Pachacuti** — the bonus pays a farm once however many mountains ring it;
-  Terraces do not make a hillside farmable that would otherwise refuse a farm;
-  the Slinger is not quickened on hills; The Tribute Road makes *every* town
-  cheaper to hold rather than only those joined by road, and The Storehouses
-  Opened and The Levy of Hands likewise reach every town.
-- **Taizong** — The Great Yangtze makes every town cheaper to hold rather than
-  only those beside a river; the Fubing is free to keep anywhere in your own
-  lands rather than only while garrisoned; The Xuanwu Gate widens every Order
-  draft from now on rather than the next one alone, and does not make it free;
-  The Heavenly Khagan's puppets send no culture; The Tribute of the Khaganate
-  and The Muster of the Provinces each pay once at the seat rather than once per
-  puppet or per barracks; The Great Poets lift every great person's act rather
-  than the artists' alone, and hang no timed quickening.
-- **Modu** — the bonus keeps its extra pace on any ground; the Horde Camp gives
-  a column no marching back; The Rite of the Sky is kept whether or not a rite
-  burns; The Tribute of the Han pays per puppet *citizen* rather than as a share
-  of what puppets make; The Silk Tribute pays once at the seat; the Chanyu's
-  Guard emboldens nobody beside it.
-- **Akhenaten** — the bonus pays a farm beside any fresh water, lake or river;
-  the prophet comes at once rather than with Divination; the Khopesh is stronger
-  anywhere your faith is kept rather than only inside a town; The House of
-  Millions of Years counts only a great work that pays culture; the Valley of
-  Kings counts the realm's great works rather than its own town's, and cannot
-  hurry one along with faith.
-- **Al-Ma'mun** — The New City adds two citizens rather than setting the seat at
-  three; the House of Learning does not read the great people you have called;
-  The Almagest pays its science now rather than at the next peace; the camel
-  archer's arrows do not sharpen for a great person's work.
-- **Mithridates** — The King's Court adds two citizens rather than setting the
-  seat at three; the Pontic peltast's mending on a kill is given to every piece
-  rather than to the peltast alone; The Army Restored calls a general and mends
-  nothing; The Twenty-Two Tongues pays its renown once rather than at every
-  bargain struck.
-
 **Second set** (one per family, for later): Sher Shah Suri, Rajendra Chola,
 Basil II, Sargon, Gwanggaeto, Tomyris, Bumin, Zenobia, Yongle, Emperor Wu,
 Dandolo, Teuta, Hanno, Ulugh Beg, Abd al-Rahman III, Jayavarman VII, Justinian
@@ -688,37 +590,18 @@ then always has something to stand on.
   Rule 2 holds: every stage draws from the map's own stream and the bias is
   config, so the same seed and roster draw the same world.
 
-**Built** (batch M1). The six rows are `data/leaders.json` (`leaderData.ts`), one
-`startBias` each: ground weights, resource and luxury multipliers, furnishing
-kinds. A seat names its figure in the game config (`PlayerSpec.leader`,
-refused by `validateConfig` if the sheet does not carry it), which makes the
-roster a fourth input to the map beside the seed, the size and the override
-sheet — and a roster with no figures in it generates the map it always
-generated, tile for tile. Stage one is `chooseStartPositionsFor`
-(`startPositions.ts`), stage two the scatter's tile draw and the continent's hand
-(`resources.ts`), stage three `ensureStartFurnishing` beside the other
-guarantees. The cap is `starts.biasCap` and it is **approached, never reached**:
-a hard clamp was measured to flatten every good site onto one number and hand the
-choice back to the unbiased score. The reference is `docs/mapgen.md`, "The
-leaders' three stages" — the knobs, the measured before-and-after table, and the
-one ▢ that came back the other way: the luxury guarantee's fallthrough **stays**,
-because hand-or-nothing left four per cent of the possible starts short of the
-kinds they are promised. The mapgen page seats the six behind its Leaders switch
-and prints each seat's bias lines and its furnishing.
-
-**M1b — the wants.** The capped score was measured and it moves the odds a few
-points; it cannot deliver a need. So a row may also carry `startBias.wants` — a
-mountain within two, a river within one — and the chooser gives that seat the
-best **accepted** site that answers all of them, falling back to the soft-scored
-best where the map has none (never a rejection, so the legality sweeps hold).
-The seats with the most wants are served first, ties by roster index. With the
-wants and one furnishing that names a row rather than a kind (Modu's horses),
-every criterion in the sweep holds on every one of twenty-four seeds, and the
-seats pay at most a couple of points of site quality for it. Nothing else of a
-leader is built: no deck, no passive, no boon, no unique.
-
 ## Notes for the system
 
+- **Built state** (2026-09-10, batches L2a → L3c, `docs/flags.md` (dddd)
+  and (iiii)): every **leader bonus**, **passive** and **unique** line in
+  the six tables above is whole in `data/leaders.json` and read by the
+  sim; the **boons** are built where a windfall or grant could say them,
+  and sixteen boon halves stand as a plain "not yet" line on the card
+  (three boons do nothing yet: The Horse Lords, The Great Raid, The
+  Great Conversion). ▢ the boons as a column
+  at all is the user's open question. Two readings the tables left
+  open were settled by the doc's own words: the Camel Archer counts the
+  works **in the capital**; Pachacuti's farms pay **per** mountain.
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for
   bots) and a **charge and colour** in heraldry; each bonus is one card effect
   on the seat, read by the same evaluator as a doctrine.

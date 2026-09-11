@@ -422,9 +422,10 @@ describe('noise primitives', () => {
  *
  * `computeFreshwater`'s sibling one terrain over, and it earns a test for that
  * function's reason: it is *derived* output that nothing rolls for, read later
- * by a predicate that holds a tile and no map (`Tile.mountainAdjacent`, and
- * `TileCondition`'s `adjacentMountain` reading it). A derivation nobody checks
- * is a card that quietly pays on the wrong hexes.
+ * by a predicate that holds a tile and no map (`Tile.mountainsBeside`, and
+ * `TileCondition`'s `adjacentMountain` reading presence of it). A derivation
+ * nobody checks is a card that quietly pays on the wrong hexes — and since batch
+ * L3c the mark is a **count**, because Pachacuti's farms are paid once per peak.
  */
 describe('mountain adjacency', () => {
   it('marks the ring of six and never the peak itself', () => {
@@ -435,31 +436,61 @@ describe('mountain adjacency', () => {
 
     // The peak is not beside itself. "A farm beside a mountain" is a sentence
     // about the field, and nothing grows on the summit.
-    expect(peak.mountainAdjacent).toBeUndefined();
+    expect(peak.mountainsBeside).toBeUndefined();
     const ring = tileNeighbors(map, peak);
     expect(ring.length).toBe(6);
     for (const neighbour of ring) {
-      expect(neighbour.mountainAdjacent, `${neighbour.col},${neighbour.row}`).toBe(true);
+      expect(neighbour.mountainsBeside, `${neighbour.col},${neighbour.row}`).toBe(1);
     }
     // And nothing else on the board: absence is the state, so a map with no
-    // mountains carries no flags at all.
-    const marked = map.tiles.filter((tile) => tile.mountainAdjacent === true);
+    // mountains carries no marks at all.
+    const marked = map.tiles.filter((tile) => (tile.mountainsBeside ?? 0) > 0);
     expect(marked.length).toBe(6);
+  });
+
+  it('counts the peaks, so a hex in a range is marked for each of them', () => {
+    // Two mountains sharing a neighbour: the shared hex carries a two and each
+    // of the others carries a one. The count is the whole of what Pachacuti's
+    // line is paid per, so a mark that said only "yes" would pay one farm the
+    // food of one peak when the board gave it two.
+    const map = createMap({ width: 8, height: 8, terrain: 'grassland' });
+    const first = getTileAt(map, 4, 4)!;
+    first.terrain = 'mountain';
+    const ring = tileNeighbors(map, first);
+    const second = ring[0]!;
+    second.terrain = 'mountain';
+    markMountainAdjacency(map);
+
+    const shared = tileNeighbors(map, first).filter((tile) =>
+      tileNeighbors(map, second).some((other) => other.col === tile.col && other.row === tile.row),
+    );
+    expect(shared.length).toBeGreaterThan(0);
+    for (const tile of shared) {
+      if (tile.terrain === 'mountain') continue;
+      expect(tile.mountainsBeside, `${tile.col},${tile.row}`).toBe(2);
+    }
+    // And a hex beside one peak only still carries a one.
+    const alone = tileNeighbors(map, first).find(
+      (tile) =>
+        tile.terrain !== 'mountain' &&
+        !tileNeighbors(map, second).some((o) => o.col === tile.col && o.row === tile.row),
+    )!;
+    expect(alone.mountainsBeside).toBe(1);
   });
 
   it('is idempotent, and clears a mark the ground no longer earns', () => {
     const map = createMap({ width: 8, height: 8, terrain: 'grassland' });
     getTileAt(map, 4, 4)!.terrain = 'mountain';
     markMountainAdjacency(map);
-    const once = map.tiles.map((tile) => tile.mountainAdjacent === true);
+    const once = map.tiles.map((tile) => tile.mountainsBeside ?? 0);
     markMountainAdjacency(map);
-    expect(map.tiles.map((tile) => tile.mountainAdjacent === true)).toEqual(once);
+    expect(map.tiles.map((tile) => tile.mountainsBeside ?? 0)).toEqual(once);
 
     // A broom rather than a one-way stamp: run it on ground that has lost its
     // mountain and the stale marks go, which is what makes it safe to re-derive.
     getTileAt(map, 4, 4)!.terrain = 'grassland';
     markMountainAdjacency(map);
-    expect(map.tiles.some((tile) => tile.mountainAdjacent === true)).toBe(false);
+    expect(map.tiles.some((tile) => (tile.mountainsBeside ?? 0) > 0)).toBe(false);
   });
 
   it('is what a generated map arrives already carrying', () => {
@@ -469,7 +500,7 @@ describe('mountain adjacency', () => {
       if (tile.terrain !== 'mountain') continue;
       peaks += 1;
       for (const neighbour of tileNeighbors(map, tile)) {
-        expect(neighbour.mountainAdjacent, `${neighbour.col},${neighbour.row}`).toBe(true);
+        expect(neighbour.mountainsBeside, `${neighbour.col},${neighbour.row}`).toBeGreaterThan(0);
       }
     }
     // The sweep is not vacuous — a duel map has mountains on it.

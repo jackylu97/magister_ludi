@@ -1042,18 +1042,22 @@ function assignOases(map: GameMap, config: MapgenConfig, fields: TerrainFields):
  * for itself, because "a farm beside a mountain" is a sentence about the field
  * and nothing grows on the peak.
  *
- * The mark is written only where it is true (`Tile.mountainAdjacent` is absent
- * otherwise, `resource`'s convention), so a map with no mountains carries no
- * flags at all — and re-running this on a map that already has them clears the
- * stale ones, which is what makes it idempotent rather than merely repeatable.
+ * The mark is **how many**, written only where there is one (`Tile.mountainsBeside`
+ * is absent otherwise, `resource`'s convention), so a map with no mountains
+ * carries no marks at all — and re-running this on a map that already has them
+ * clears the stale ones, which is what makes it idempotent rather than merely
+ * repeatable. A count rather than a flag since batch L3c, because Pachacuti's
+ * farms are paid once per peak and the predicate that reads this has a tile and
+ * no map; presence is still the adjacency question, asked of the number.
  */
 export function markMountainAdjacency(map: GameMap): void {
   for (const tile of map.tiles) {
-    const beside = tileNeighbors(map, tile).some(
-      (neighbour) => neighbour.terrain === 'mountain',
-    );
-    if (beside) tile.mountainAdjacent = true;
-    else delete tile.mountainAdjacent;
+    let beside = 0;
+    for (const neighbour of tileNeighbors(map, tile)) {
+      if (neighbour.terrain === 'mountain') beside += 1;
+    }
+    if (beside > 0) tile.mountainsBeside = beside;
+    else delete tile.mountainsBeside;
   }
 }
 

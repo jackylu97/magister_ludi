@@ -537,6 +537,11 @@ function liveReading(state: GameState, playerId: number): LiveReading {
  * canonical print of every board that ever finished a building. A cache-drop
  * moves nothing at all — which is what a cache is allowed to do.
  *
+ *   · **`adoptGovernmentAt` (`draft.ts`)** — since The King's Friends (batch
+ *     L3a) the chair count reads the law between the government changing and
+ *     the chairs being rebuilt, so the slate warmed there must not outlive the
+ *     rebuild.
+ *
  * A new seam that changes a seat's holdings and then reads them **in the same
  * call** joins this register. One that merely changes them needs nothing: the
  * command or the phase it sits in announces it on the way out.
@@ -2113,7 +2118,21 @@ export function countOf(
       }
       return total;
     }
-    case 'wonders':
+    case 'wonders': {
+      // **Narrowed to the town, where the row says so** (`within: 'city'`, batch
+      // L3c): the Valley of Kings is paid for the great houses standing in *its
+      // own* valley, which is `buildingsOfCategory`'s narrowing asked of the one
+      // class the data already declares. `isWonder` is that class's one reading,
+      // so the shelf a town is paid for and the shelf `wondersHeldBy` sweeps
+      // cannot disagree.
+      if (effect.within === 'city') {
+        if (!city) return 0;
+        let here = 0;
+        for (const id of city.buildings) {
+          if (isWonder(id)) here += 1;
+        }
+        return here;
+      }
       // `wondersHeldBy` (`state.ts`) since batch H6 — `beadCount` asked the same
       // three loops for a feat and a count that disagreed with itself between a
       // card and a bead is drift nothing would have caught. A wonder is one per
@@ -2121,6 +2140,7 @@ export function countOf(
       // captured wonder joins this count the turn the town changes hands (what a
       // wonder pays follows the stones).
       return wondersHeldBy(state, playerId);
+    }
     case 'revealedTiles': {
       // The seat's own monotone grid, counted whole. Anything above `HIDDEN`
       // has been walked past once, which is what "revealed" means everywhere
@@ -2161,6 +2181,11 @@ export function countOf(
       // the first age has closed nothing, so the floor at zero is the meaning
       // rather than a guard.
       return Math.max(0, highestAge(playerById(state, playerId)?.techsResearched ?? []) - 1);
+    case 'greatPeopleCalled':
+      // The ledger kept where a person is *picked* (`Player.greatPeopleRecruited`),
+      // never a walk of the pieces still standing: a house that learnt from the
+      // scholar goes on learning after her academy is planted. See the count.
+      return playerById(state, playerId)?.greatPeopleRecruited ?? 0;
     case 'unitsInField': {
       let total = 0;
       for (const unit of state.units) {
@@ -3235,6 +3260,18 @@ export interface TileLine {
    * breakdown, computed off the entries that came before the works.
    */
   basePercent?: number;
+  /**
+   * **Paid once for every mountain standing beside the hex** — Pachacuti's
+   * farms (`CardPaysEffect.perAdjacentMountain`), carried through rather than
+   * resolved for `perEndpointLuxury`'s reason exactly: the thing counted is a
+   * fact about *the hex*, and this module has a tile only where a line is being
+   * pushed, which is in `explainTileYield`.
+   *
+   * A multiplier on this line's own bag, so the breakdown still reads as one
+   * labelled entry and still folds to the total. Absent on every producer but a
+   * card, and on all but one of those.
+   */
+  perAdjacentMountain?: true;
   food: number;
   production: number;
   gold: number;
@@ -3320,10 +3357,12 @@ export function tileConditionHolds(
     case 'freshwater':
       return tile.freshwater;
     case 'adjacentMountain':
-      // Off the ground's own baked answer (`Tile.mountainAdjacent`), never off a
+      // Off the ground's own baked answer (`Tile.mountainsBeside`), never off a
       // walk of the neighbours: this predicate has a tile and no map, which is
-      // exactly why the mark exists. Absence is `false`, `resource`'s reading.
-      return tile.mountainAdjacent === true;
+      // exactly why the mark exists. The mark is a **count** since batch L3c
+      // (Pachacuti's farms are paid once per peak) and presence is still the
+      // question asked here. Absence is nought, `resource`'s reading.
+      return (tile.mountainsBeside ?? 0) > 0;
     case 'yields':
       // **Off the breakdown the caller already built**, never off a second
       // reading of the ground. A caller with nothing to hand in answers no —
@@ -3572,6 +3611,10 @@ function tileLinesFrom(
     if (effect.basePercent !== undefined && effect.basePercent !== 0) {
       line.basePercent = effect.basePercent;
     }
+    // Carried, never resolved — see `TileLine.perAdjacentMountain`. Written only
+    // when the row says so, so every line the game has ever held serialises and
+    // compares exactly as it did before Pachacuti sat down.
+    if (effect.perAdjacentMountain === true) line.perAdjacentMountain = true;
     if (
       VOICES.some((key) => line[key] !== 0) ||
       line.percent !== undefined ||
@@ -5026,6 +5069,25 @@ export interface WindfallOccasionFacts {
    * nothing.
    */
   family?: Family;
+}
+
+
+/**
+ * Whether a composed payout would change anything at all — every list empty
+ * and no heal — so a caller can skip the delivery without reading the lists
+ * itself. Here rather than beside the caller because the renown list is one
+ * of them, and the register (`test/sim/renown.test.ts`) keeps the readers of
+ * that column to the files that own it: this module already composes the
+ * figure, so the emptiness question is its to answer.
+ */
+export function windfallPayoutIsEmpty(payout: WindfallPayout): boolean {
+  return (
+    payout.grants.length === 0 &&
+    payout.units.length === 0 &&
+    !payout.healAll &&
+    payout.timed.length === 0 &&
+    payout.renown.length === 0
+  );
 }
 
 /**

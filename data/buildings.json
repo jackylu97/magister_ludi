@@ -2739,13 +2739,14 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByLeader": true,
+      "terraces": true,
       "tileYields": [
         {
           "on": { "test": "all", "of": [{ "test": "improvement", "improvement": "farm" }, { "test": "hills" }] },
           "add": { "food": 1 }
         }
       ],
-      "note": "Steps cut into the hillside. Every farm this town works on high ground feeds it better."
+      "note": "Steps cut into the hillside. Farms may be cut into the high ground this town holds, and every farm it works up there feeds it better."
     },
     "tambo": {
       "name": "The Tambo",
@@ -2867,10 +2868,11 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByLeader": true,
+      "restoresMovementOn": "pasture",
       "tileYields": [
         { "on": { "test": "improvement", "improvement": "pasture" }, "add": { "faith": 1 } }
       ],
-      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing."
+      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing, and a soldier of yours that halts on one of its pastures is given a fresh horse."
     },
     "obelisk": {
       "name": "The Obelisk",
@@ -2928,6 +2930,7 @@
       "sciencePerPop": 0,
       "oncePerEmpire": true,
       "unlockedByLeader": true,
+      "faithBuysWonders": true,
       "effects": [
         {
           "kind": "pays",
@@ -2937,11 +2940,11 @@
           "percent": 10,
           "stage": "city",
           "count": "wonders",
+          "within": "city",
           "scope": { "test": "hasBuilding", "building": "valleyOfKings" }
         }
       ],
-      "note": "Shafts cut into the rock of a dry valley, one for each great house your realm has raised. One realm, one valley.",
-      "deferred": ["The great works of your realm cannot be hurried along with faith."]
+      "note": "Shafts cut into the rock of a dry valley, one for each great house raised in this town. A wonder may be hurried along here with faith. One realm, one valley."
     },
     "houseOfLearning": {
       "name": "The House of Learning",
@@ -2955,8 +2958,18 @@
       "culture": 0,
       "sciencePerPop": 0,
       "unlockedByLeader": true,
-      "note": "Rooms for copyists, a kitchen and a courtyard with a well. Those who read here are fed here.",
-      "deferred": ["It does not yet learn from the great people your realm has called."]
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "city",
+          "basis": "count",
+          "to": "science",
+          "amount": 1,
+          "count": "greatPeopleCalled",
+          "scope": { "test": "hasBuilding", "building": "houseOfLearning" }
+        }
+      ],
+      "note": "Rooms for copyists, a kitchen and a courtyard with a well. Those who read here are fed here, and the house learns from every great person your realm has called."
     },
     "mihnaCourt": {
       "name": "The Mihna Court",

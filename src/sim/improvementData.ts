@@ -240,10 +240,14 @@ export interface ImprovementUpgrade {
  * A closed union rather than a free string, so a typo in the JSON is a load
  * error and not an exception that silently never fires.
  */
-export type HillsWaiver = 'freshwater' | 'ownResource';
+export type HillsWaiver = 'freshwater' | 'ownResource' | 'townTerraces';
 
 /** Every waiver word, for the load validator. Iteration order is the union's. */
-export const HILLS_WAIVERS: readonly HillsWaiver[] = ['freshwater', 'ownResource'];
+export const HILLS_WAIVERS: readonly HillsWaiver[] = [
+  'freshwater',
+  'ownResource',
+  'townTerraces',
+];
 
 /**
  * The **third seam** in the constraint shape: terrains a row may *also* be built
@@ -342,6 +346,13 @@ export interface ImprovementDef {
    *     names). Wheat on a hill wants a farm and can take no other improvement,
    *     so a rule that refused the farm made the seam unimprovable, which is the
    *     bug the user hit.
+   *   · `townTerraces` — the town whose borders the hex lies in has **cut steps
+   *     into its hillsides** (`BuildingDef.terraces`, read through
+   *     `buildingsTerrace`). Pachacuti's Terraces, batch L3c, and the third
+   *     reason a hill is farmland rather than a fact about farms: a hillside
+   *     nobody has terraced refuses the farm in the very next town, which is the
+   *     pin the card is worth anything for. Asked of the *building* and never of
+   *     the leader who drafted it, so a second row that terraces inherits this.
    */
   hillsIf?: HillsWaiver[];
   /**

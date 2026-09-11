@@ -1044,13 +1044,13 @@ describe('the legacies this pass built', () => {
     };
 
     tile.hills = false;
-    tile.mountainAdjacent = false;
+    tile.mountainsBeside = 0;
     const bare = science();
     // A hill alone is not enough, and a peak next door alone is not either.
     tile.hills = true;
     expect(science()).toBe(bare);
     tile.hills = false;
-    tile.mountainAdjacent = true;
+    tile.mountainsBeside = 1;
     expect(science()).toBe(bare);
     // Both, and the sky opens. Two since batch GP1 (it was one).
     tile.hills = true;

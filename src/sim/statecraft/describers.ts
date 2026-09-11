@@ -1004,7 +1004,16 @@ function describePays(
     // and the sentence has to say so without turning the hex into a
     // possessive nobody can parse.
     const whose = effect.scope === undefined ? '' : `, in ${cityScopeWords(effect.scope)}`;
-    if (words) out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}` });
+    // **And once for each of them**, where the row is paid per peak
+    // (`perAdjacentMountain`). A tail rather than a word inside the hex's own
+    // phrase: the condition already says *which* hexes ("every farm beside a
+    // mountain") and this says how many helpings one of them is worth, which is
+    // a different sentence and reads as one — "on every farm beside a mountain,
+    // once for each mountain".
+    const perPeak = effect.perAdjacentMountain === true ? ', once for each mountain' : '';
+    if (words) {
+      out.push({ text: `${words} on every ${tileConditionWords(on)}${whose}${perPeak}` });
+    }
     // The percentage is its own clause, because it is a share of a *different*
     // number: the flat is what the card pays and this is what the works pay
     // half again of. Said as "the works on" so a player knows which half moved.
@@ -2202,6 +2211,16 @@ function countNoun(effect: CardPaysEffect, place = ''): PluralWords {
   if (effect.count === 'capitalPopulation' && effect.where === 'capital') {
     return { one: 'citizen there', many: 'citizens there' };
   }
+  // **The valley's own marvels** — `wonders` narrowed to the town it is paid in
+  // (`within: 'city'`, batch L3c). Said here rather than in `TOWN_COUNT_WORDS`
+  // because the place is *"in this city"* on a building's own page, which that
+  // table is never asked for, and "per wonder you hold in this city" reads as
+  // two claims about two places. Standing, not held: the count is what is on
+  // this town's shelf.
+  if (effect.count === 'wonders' && effect.within === 'city') {
+    const at = place === '' ? 'in this city' : place;
+    return { one: `wonder standing ${at}`, many: `wonders standing ${at}` };
+  }
   if (effect.count === 'buildingsOfKind' && effect.building !== undefined) {
     // Marked in **both** numbers: the plural is composed off the plain name and
     // then wrapped, so "per Library" and "per Libraries" are one link with two
@@ -2305,6 +2324,13 @@ const TOWN_COUNT_WORDS: Partial<Record<CountKind, (at: string) => PluralWords>> 
     many: `fortification levels among the units ${at}`,
   }),
   defensiveBuildings: (at) => ({ one: `fortification ${at}`, many: `fortifications ${at}` }),
+  // The ninth, and the only one that is *not* a count that can only be asked of
+  // a town: `wonders` is a realm's question narrowed to one town by `within`
+  // (batch L3c). It is here so `countNamesItsTown` answers yes for the narrowed
+  // row and the place is not printed twice — the noun `countNoun` builds for it
+  // already carries one. An unnarrowed `wonders` row never reaches this table,
+  // because a line that is not city-scoped has no place to hand in.
+  wonders: (at) => ({ one: `wonder standing ${at}`, many: `wonders standing ${at}` }),
 };
 
 /**
@@ -3356,6 +3382,13 @@ const COUNT_WORDS: Record<CountKind, PluralWords> = {
   roadHexes: { one: 'road hex you have laid', many: 'road hexes you have laid' },
   sightedCities: { one: 'foreign city you have sighted', many: 'foreign cities you have sighted' },
   agesClosed: { one: 'age that has closed', many: 'ages that have closed' },
+  // "Called", the great people's own verb everywhere else — they are called,
+  // never built or bought — and "you have" rather than "your realm has" because
+  // every other count on this table speaks to the player directly.
+  greatPeopleCalled: {
+    one: 'great person you have called',
+    many: 'great people you have called',
+  },
   // The filter is not in these words: `countNoun` prints it, so that "per melee
   // unit" and "per ranged unit" are one entry — `buildingsOfKind`'s bargain.
   unitsInField: { one: 'unit in the field', many: 'units in the field' },

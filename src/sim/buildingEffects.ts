@@ -32,6 +32,7 @@
  */
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
+import type { ImprovementId } from './improvementData';
 import { CITY_YIELD_KEYS } from './resourceData';
 import type { City, GameState } from './state';
 import type { CardBuildingHappinessLine, TileLine } from './statecraft';
@@ -199,6 +200,72 @@ export function cityIsWatered(city: City): boolean {
 export function buildingsIrrigate(buildings: readonly BuildingId[]): boolean {
   for (const id of buildings) {
     if (buildingDef(id).irrigates === true) return true;
+  }
+  return false;
+}
+
+/**
+ * **Does a building standing in this town terrace the high ground it works** —
+ * the Terraces', and nothing else today (batch L3c, `docs/flags.md` (iiii)).
+ *
+ * `buildingsIrrigate`'s twin one marker over, and the third of the three
+ * questions a town answers about its own hinterland: that one vouches for the
+ * *water* a farm out in the fields has no river for, and this vouches for the
+ * *ground* a farm has no flat to stand on. See `BuildingDef.terraces`.
+ *
+ * Asked of a **list** for `buildingsIrrigate`'s reason exactly — the what-if a
+ * build list prices a row with — and a boolean because it is a gate: the reason
+ * is printed by the refusal it removes ("A farm needs flat ground", gone the
+ * turn the steps are cut).
+ */
+export function buildingsTerrace(buildings: readonly BuildingId[]): boolean {
+  for (const id of buildings) {
+    if (buildingDef(id).terraces === true) return true;
+  }
+  return false;
+}
+
+/**
+ * **Which ground this town's herds are kept on** — the Horde Camp's pastures,
+ * and nothing else today (batch L3c, `docs/flags.md` (iiii)).
+ *
+ * `cityIsWatered`'s shape with an answer that is a *row* rather than a flag, for
+ * `BuildingDef.restoresMovementOn`'s stated reason: which hex remounts a column
+ * is the building's own fact, so a second stable names its own ground and the
+ * arrival seam is not touched. `undefined` where the town keeps no herds, which
+ * is every town in the game until the card is drafted, and the **first** such
+ * row when it somehow holds two — a walk in `BUILDING_IDS` order, the table's
+ * own, so two stables never resolve by `City.buildings`' insertion order.
+ */
+export function buildingRestoresMovementOn(city: {
+  buildings: readonly BuildingId[];
+}): ImprovementId | undefined {
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    const ground = buildingDef(id).restoresMovementOn;
+    if (ground !== undefined) return ground;
+  }
+  return undefined;
+}
+
+/**
+ * **Does a building standing in this town let a wonder be hurried along with
+ * faith** — the Valley of Kings', and nothing else today (batch L3c).
+ *
+ * `cityIsWatered`'s shape one marker over (`BuildingDef.faithBuysWonders`), and
+ * a boolean for its reason: it is a gate, and the reason is printed by the
+ * refusal it removes ("The Pyramids is a wonder — it must be built, not
+ * bought", gone the turn the valley is cut).
+ *
+ * Read by the two functions that gate every purchase surface — `purchaseError`'s
+ * wonder clause and `faithBankOpen`'s building branch — and by nothing else, so
+ * the bank that opens and the refusal that lifts cannot disagree about which
+ * town has the shafts.
+ */
+export function cityBuysWondersWithFaith(city: { buildings: readonly BuildingId[] }): boolean {
+  for (const id of BUILDING_IDS) {
+    if (!city.buildings.includes(id)) continue;
+    if (buildingDef(id).faithBuysWonders === true) return true;
   }
   return false;
 }

@@ -8,8 +8,10 @@
  * ground (Entry XX.H — the rule that hands a stolen laborer back when its camp
  * is stormed), a **laden caravan on that hex is plundered** rather than taken,
  * a **road is laid** under a caravan of one's own that has come to rest here
- * (the trade pass), and — under The King's Road — a piece that comes to rest in
- * one of its **own towns has its allowance filled back up** (batch E4b). All are
+ * (the trade pass), — under The King's Road — a piece that comes to rest in
+ * one of its **own towns has its allowance filled back up** (batch E4b), and —
+ * under the Horde Camp — a soldier that comes to rest on **its own town's
+ * pastures** has the same (batch L3c). All are
  * consequences of the foot landing, and all have
  * exactly two ways to happen — an ordinary march (`advanceAlongPath` in
  * `movement.ts`, which is itself the one implementation of a walk, whether the
@@ -41,6 +43,9 @@
  * replay, inside an AI's turn and inside a test, none of which have a notice bar.
  */
 
+// A leaf over `buildingData.ts` alone — the same bargain `roads.ts` strikes, so
+// this edge cannot make a cycle.
+import { buildingRestoresMovementOn } from './buildingEffects';
 import { type CampBounty, hasCampAt, removeCampAt, settleCampBounty } from './camps';
 import { capitalCityOf, cityAt, tileOwnerCityId } from './cities';
 import { revokeLegacies } from './greatPeople';
@@ -315,6 +320,50 @@ export function arriveOnTile(state: GameState, unit: Unit, tile: Tile): ArrivalR
   if (cardBehaviorRule(state, unit.ownerId, 'cityRestoresMovement')) {
     const here = cityAt(state, tile.col, tile.row);
     if (here && here.ownerId === unit.ownerId) unit.movesLeft = fullMovement(unit, state);
+  }
+
+  /**
+   * **The Horde Camp's herds** — a soldier that comes to rest on the pastures of
+   * one of its own towns has its allowance filled back up
+   * (`BuildingDef.restoresMovementOn`, batch L3c).
+   *
+   * The sixth thing that happens because a piece arrived, and it is The King's
+   * Road's clause said of a hex out in the fields instead of of the gate: same
+   * seam, same `fullMovement`, and the allowance is *set* and never added to, so
+   * nothing accumulates within one arrival.
+   *
+   * **It reaches further than the gate does**, and that is stated rather than
+   * guarded: `arriveOnTile` fires per *step* of a march, and a town may hold
+   * several pastures where it holds one city hex — so a column walking from one
+   * of its herds to the next is refilled at each, exactly as the ruled text says
+   * ("regain all movement points when stepping on one", `docs/leaders.md`). The
+   * King's Road carries the same shape at one hex; if the reach is to be capped
+   * — once a turn, or only where the march comes to rest — that is a ruling
+   * about what the herds are worth and it lands in `docs/flags.md` first,
+   * never as a clause invented here.
+   *
+   * Three narrowings, each the doc's own sentence (`docs/leaders.md`):
+   *
+   *   · a **soldier**. "Military units" is `isCombatant`, the same predicate the
+   *     capital clause above asks — a settler that wandered onto the grazing is
+   *     not a column being remounted;
+   *   · the hex carries the **row the building names**, never a pasture written
+   *     into this file;
+   *   · the town whose **borders** the hex lies in holds the building and is the
+   *     piece's owner's. A rival riding through your pastures waters no horses,
+   *     and a hex outside anybody's borders has no herds on it at all.
+   */
+  if (isCombatant(unitDef(unit.type))) {
+    const holder = tileOwnerCityId(state, tile.col, tile.row);
+    const town = holder === null ? undefined : cityById(state, holder);
+    if (
+      town &&
+      town.ownerId === unit.ownerId &&
+      tile.improvement !== undefined &&
+      buildingRestoresMovementOn(town) === tile.improvement
+    ) {
+      unit.movesLeft = fullMovement(unit, state);
+    }
   }
 
   report.discovery = claimDiscoveryAt(state, unit, tile);

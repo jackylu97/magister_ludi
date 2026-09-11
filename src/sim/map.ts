@@ -99,7 +99,7 @@ export interface Tile {
    */
   freshwater: boolean;
   /**
-   * True when one of this tile's six neighbours is a mountain, or the key is
+   * **How many** of this tile's six neighbours are mountains, or the key is
    * **absent** — which it is on most of the map. Computed once at the end of
    * generation by `markMountainAdjacency` (`mapgen.ts`).
    *
@@ -111,12 +111,20 @@ export interface Tile {
    * ground is what lets Raised Fields' clause be a card like every other card
    * rather than a second reading of the board.
    *
+   * A **count** rather than a flag since batch L3c, and the widening is the
+   * whole of what Pachacuti's line needed: *"farms gain +1 food for each
+   * adjacent mountain"* (`docs/leaders.md`) is paid once per peak, and the
+   * predicate that would have to count them has a tile and no map. Presence is
+   * still the adjacency question — `adjacentMountain` asks whether the number is
+   * above nought — so one derived field answers both and no second reading of
+   * the ring of six comes into existence.
+   *
    * Safe to bake because **mountains never move**: nothing in the game writes
    * `Tile.terrain` after generation, so this is derived output that is correct
-   * for the life of the map. Absence rather than a stored `false`, which is
+   * for the life of the map. Absence rather than a stored `0`, which is
    * `resource`'s convention and keeps a bare hex bare.
    */
-  mountainAdjacent?: boolean;
+  mountainsBeside?: number;
   /**
    * The resource sitting on this tile, or the key is **absent** when there is
    * none. Placed once, at the end of generation, by `placeResources`

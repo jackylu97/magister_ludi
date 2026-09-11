@@ -87,6 +87,9 @@ import {
   isImprovementId,
   prospectDef,
 } from './improvementData';
+// A leaf over `buildingData.ts` alone, so this edge cannot make a cycle — the
+// same bargain the `roads.ts` and `unitData.ts` imports strike.
+import { buildingsTerrace } from './buildingEffects';
 import { type Tile, getTileAt, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
@@ -449,6 +452,15 @@ function hasAdjacentImprovement(
  * few lines down and is here for that rule's reason: a hill that quietly became
  * farmable would be the map leaking through a button. No farm-opened resource is
  * tech-gated today, so the clause changes nothing now and cannot leak later.
+ *
+ * `townTerraces` is the third reason and the first that is a **building** rather
+ * than the ground (batch L3c, Pachacuti's Terraces). The town asked is the one
+ * whose borders the hex lies in, which is the only town this function can
+ * honestly ask: `improvementGroundError` has already refused every hex outside
+ * this empire's territory two clauses up, so a waived hill is always a hill some
+ * town of this empire's holds. Read through `buildingsTerrace`, so nothing here
+ * names a building — and a town that has not raised the steps refuses the farm
+ * exactly as it always did.
  */
 function hillsWaived(
   state: GameState,
@@ -469,6 +481,11 @@ function hillsWaived(
       ) {
         return true;
       }
+    }
+    if (waiver === 'townTerraces') {
+      const holder = tileOwnerCityId(state, tile.col, tile.row);
+      const town = holder === null ? undefined : cityById(state, holder);
+      if (town && town.ownerId === ownerId && buildingsTerrace(town.buildings)) return true;
     }
   }
   return false;

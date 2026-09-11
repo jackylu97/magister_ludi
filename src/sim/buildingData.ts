@@ -100,6 +100,9 @@ import type { CityYieldKey } from './resourceData';
 import type { CardEffect, CityScope, TileCondition, UnitFilter } from './statecraftData';
 // Type-only for `TechId`'s reason: `unitData.ts` imports nothing from here.
 import type { UnitTypeId } from './unitData';
+// Type-only for the same reason, and one table over: `improvementData.ts` names
+// nothing of this file's.
+import type { ImprovementId } from './improvementData';
 
 /**
  * The kinds of thing a city can be building, and therefore the kinds a
@@ -1258,6 +1261,75 @@ export interface BuildingDef {
    * against `"cistern"`, so a second row that irrigates is a JSON flag.
    */
   irrigates?: boolean;
+  /**
+   * **This building terraces the high ground the town works** — the Terraces,
+   * and Pachacuti's whole reason for drafting them (`docs/leaders.md`: *"farms
+   * may be built on hills"*).
+   *
+   * `irrigates`' third sibling, and a marker for that field's reason exactly:
+   * `waters` ends the town's thirst, `irrigates` vouches for its fields' water,
+   * and this cuts steps into its hillsides. Three questions, three readings, and
+   * nothing in `src/sim/` compares a building id against `"terraces"`.
+   *
+   * Read in **one place** — `buildingsTerrace` (`buildingEffects.ts`), asked by
+   * the one rule that decides whether a row's `requiresHills` is waived
+   * (`hillsWaived`, `improvements.ts`, the `townTerraces` reason). It is
+   * therefore a *placement* fact rather than a yield: what the terraced farm
+   * then pays is the row's own food plus whatever the town's `tileYields` say,
+   * which for this building is the second half of the same card.
+   *
+   * The town asked is the one whose borders the hex lies in
+   * (`tileOwnerCityId`), because a farm is cut into the hillside by whoever
+   * holds the hillside — the same reading `improvementGroundError` opens with.
+   */
+  terraces?: boolean;
+  /**
+   * **The ground this town's herds are kept on**, on which a soldier of its
+   * owner's that comes to rest has its whole allowance back — the Horde Camp's
+   * pastures (`docs/leaders.md`: *"military units regain all movement points
+   * when stepping on one"*).
+   *
+   * The improvement rather than a flag, for `AdjacentImprovement.improvement`'s
+   * reason exactly: *which* ground remounts a column is a fact about the row,
+   * and a second building that stabled its horses somewhere else names its own
+   * hex with nothing in `arrival.ts` touched. Nothing in `src/sim/` compares a
+   * building id against `"hordeCamp"` or an improvement against `"pasture"`.
+   *
+   * Read in **one place** — `buildingRestoresMovementOn` (`buildingEffects.ts`)
+   * — and asked at the one seam a piece comes to rest (`arriveOnTile`), which is
+   * where The King's Road's own refill is written and for its reason: there is
+   * exactly one moment a position changes, so there is exactly one place that
+   * can forget what standing there means.
+   *
+   * The hex is asked of the town whose **borders** it lies in, and that town
+   * must hold the building and belong to the piece's owner: a rival riding
+   * through your pastures does not water his horses at your well.
+   */
+  restoresMovementOn?: ImprovementId;
+  /**
+   * **A wonder may be hurried along with faith in the town this stands in** —
+   * the Valley of Kings' (`docs/leaders.md`: *"wonders can be rushed with
+   * faith"*), and nothing else.
+   *
+   * `faithPurchases`' sibling and deliberately a **second** marker rather than a
+   * word on it: that one widens which *bank* pays for the rows the treasury
+   * already sells, and this lifts the one refusal that is about *what the thing
+   * is* — `purchaseError`'s "a wonder must be built, not bought", asked before
+   * the currency, the gates and the price. One flag could not have served both,
+   * because the Reliquary must go on selling no wonders at all.
+   *
+   * The narrowing is the whole of why the rule is safe to have at all: it is
+   * **faith and one town**, so "one per world" stays a question of who *built*
+   * it rather than of who is richest on the turn it unlocks — the treasury is
+   * untouched, the Valley is raised once in an empire, and the hammers are still
+   * priced by the cost standard and merely paid in another coin at
+   * `faithPerHammer`. Every other gate is asked unchanged: `buildError` still
+   * refuses a wonder somebody else has claimed and one whose site is missing.
+   *
+   * Read in **one place** — `cityBuysWondersWithFaith` (`buildingEffects.ts`) —
+   * so nothing in `src/sim/` compares a building id against `"valleyOfKings"`.
+   */
+  faithBuysWonders?: boolean;
   /**
    * **The fewest things a town holding this may be left with to build** — The
    * Vizier's Hall's law (`docs/flags.md` (www); the user, 2026-09-10: *"the

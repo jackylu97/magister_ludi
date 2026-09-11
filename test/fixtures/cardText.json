@@ -3456,20 +3456,14 @@
   ],
   "valleyOfKings": [
    {
-    "raw": "+10% culture per wonder you hold",
-    "text": "+10% culture per wonder you hold"
-   },
-   {
-    "raw": "The great works of your realm cannot be hurried along with faith. — not built yet",
-    "text": "The great works of your realm cannot be hurried along with faith. — not built yet",
-    "deferred": true
+    "raw": "+10% culture per wonder standing in this city",
+    "text": "+10% culture per wonder standing in this city"
    }
   ],
   "houseOfLearning": [
    {
-    "raw": "It does not yet learn from the great people your realm has called. — not built yet",
-    "text": "It does not yet learn from the great people your realm has called. — not built yet",
-    "deferred": true
+    "raw": "+1 science per great person you have called",
+    "text": "+1 science per great person you have called"
    }
   ],
   "mihnaCourt": [
@@ -4349,13 +4343,8 @@
  "leader": {
   "pachacuti": [
    {
-    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a mountain",
-    "text": "+1 food on every hex with a Farm beside a mountain"
-   },
-   {
-    "raw": "A farm with more than one mountain around it is paid for one of them. — not built yet",
-    "text": "A farm with more than one mountain around it is paid for one of them. — not built yet",
-    "deferred": true
+    "raw": "+1 food on every hex with a [[improvement:farm|Farm]] beside a mountain, once for each mountain",
+    "text": "+1 food on every hex with a Farm beside a mountain, once for each mountain"
    }
   ],
   "taizong": [
@@ -4394,11 +4383,6 @@
    {
     "raw": "+20% production toward wonders, in every city with a [[improvement:holySite|Holy Site]]",
     "text": "+20% production toward wonders, in every city with a Holy Site"
-   },
-   {
-    "raw": "A farm that drinks from a lake is paid as one that drinks from the river. — not built yet",
-    "text": "A farm that drinks from a lake is paid as one that drinks from the river. — not built yet",
-    "deferred": true
    }
   ],
   "almamun": [
@@ -4439,11 +4423,6 @@
    {
     "raw": "unlocks the [[building:terraces|Terraces]] — +1 food on every hill hex with a [[improvement:farm|Farm]]",
     "text": "unlocks the Terraces — +1 food on every hill hex with a Farm"
-   },
-   {
-    "raw": "Farms still cannot be cut into a hillside that would otherwise refuse one. — not built yet",
-    "text": "Farms still cannot be cut into a hillside that would otherwise refuse one. — not built yet",
-    "deferred": true
    }
   ],
   "pachacutiQhapaqNan": [
@@ -4658,11 +4637,6 @@
    {
     "raw": "unlocks [[building:hordeCamp|The Horde Camp]] — +1 faith on every hex with a [[improvement:pasture|Pasture]]",
     "text": "unlocks The Horde Camp — +1 faith on every hex with a Pasture"
-   },
-   {
-    "raw": "The herds do not yet give a column its marching back. — not built yet",
-    "text": "The herds do not yet give a column its marching back. — not built yet",
-    "deferred": true
    }
   ],
   "moduSkyRite": [
@@ -4777,18 +4751,8 @@
   ],
   "akhenatenValley": [
    {
-    "raw": "unlocks [[building:valleyOfKings|The Valley of Kings]] — +10% culture per wonder you hold",
-    "text": "unlocks The Valley of Kings — +10% culture per wonder you hold"
-   },
-   {
-    "raw": "It counts every great work your realm holds rather than only those raised in its own town. — not built yet",
-    "text": "It counts every great work your realm holds rather than only those raised in its own town. — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "Great works cannot be hurried along with faith. — not built yet",
-    "text": "Great works cannot be hurried along with faith. — not built yet",
-    "deferred": true
+    "raw": "unlocks [[building:valleyOfKings|The Valley of Kings]] — +10% culture per wonder standing in this city",
+    "text": "unlocks The Valley of Kings — +10% culture per wonder standing in this city"
    }
   ],
   "almamunDevotion": [
@@ -4806,13 +4770,8 @@
   ],
   "almamunHouse": [
    {
-    "raw": "unlocks [[building:houseOfLearning|The House of Learning]] — +2 food",
-    "text": "unlocks The House of Learning — +2 food"
-   },
-   {
-    "raw": "It does not yet learn from the great people your realm has called. — not built yet",
-    "text": "It does not yet learn from the great people your realm has called. — not built yet",
-    "deferred": true
+    "raw": "unlocks [[building:houseOfLearning|The House of Learning]] — +2 food; +1 science per great person you have called",
+    "text": "unlocks The House of Learning — +2 food; +1 science per great person you have called"
    }
   ],
   "almamunTranslators": [

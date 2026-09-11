@@ -524,10 +524,19 @@ describe('determinism', () => {
    * moves, the change moved the game and it is the change that is wrong (hard
    * rule 2); only a ruling about how the march decides may edit them, and the
    * ruling lands in `docs/flags.md` first.
+   *
+   * **Re-taken once, batch L3c**, and the reason is written here because the
+   * rule above says it must be: `Tile.mountainAdjacent` (a flag) became
+   * `Tile.mountainsBeside` (a count), so the *serialised map* is shorter and the
+   * number over it is different. Nothing on either board moved — the proof is
+   * that the old literals are recovered exactly by rewriting every
+   * `"mountainsBeside":<n>` back to `"mountainAdjacent":true` in the very
+   * snapshot these were taken from. No piece, no ruin, no camp and no roll
+   * changed hands; a derived field of the ground was renamed under them.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '4eaaee50:187926',
-    2026: '6dd775b3:188191',
+    11: '88b3d3d2:187374',
+    2026: '149fe089:187671',
   };
 
   for (const seed of [11, 2026]) {

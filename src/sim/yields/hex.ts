@@ -465,13 +465,24 @@ export function explainTileYield(
     // the hover that explains nothing — the same reading `paysSomething` takes
     // of a card's city yields one ledger over.
     if (!TILE_YIELD_KEYS.some((voice) => line[voice] !== 0)) return;
+    // **Once for every peak beside the hex** — Pachacuti's farms
+    // (`TileLine.perAdjacentMountain`). A multiplier on the line's own bag and
+    // the only thing in this fold that is, which is what keeps it one labelled
+    // entry: a hex with three mountains around it reads "+3🌾, Pachacuti"
+    // rather than three rows a player has to add up. The count is the ground's
+    // own baked mark, the same number `adjacentMountain` asks presence of, so
+    // the condition that let the line through and the helping it is paid cannot
+    // disagree. Nought peaks is nought food and the line says nothing at all —
+    // though `adjacentMountain` will normally have refused it one line above.
+    const helpings = line.perAdjacentMountain === true ? (tile.mountainsBeside ?? 0) : 1;
+    if (helpings === 0) return;
     const clamped = {
-      food: clampTakeBack('food', line.food),
-      production: clampTakeBack('production', line.production),
-      gold: clampTakeBack('gold', line.gold),
-      science: clampTakeBack('science', line.science),
-      culture: clampTakeBack('culture', line.culture),
-      faith: clampTakeBack('faith', line.faith),
+      food: clampTakeBack('food', line.food * helpings),
+      production: clampTakeBack('production', line.production * helpings),
+      gold: clampTakeBack('gold', line.gold * helpings),
+      science: clampTakeBack('science', line.science * helpings),
+      culture: clampTakeBack('culture', line.culture * helpings),
+      faith: clampTakeBack('faith', line.faith * helpings),
     };
     // A taking-back line whose whole bag was already empty says nothing.
     if (!TILE_YIELD_KEYS.some((voice) => clamped[voice] !== 0)) return;

@@ -3,12 +3,13 @@
     "pachacuti": {
       "name": "Pachacuti",
       "bonus": {
-        "text": "Farms standing beside a mountain pay +1 food.",
+        "text": "Farms pay +1 food for every mountain standing beside them.",
         "effects": [
           {
             "kind": "pays",
             "where": "hex",
             "food": 1,
+            "perAdjacentMountain": true,
             "on": {
               "test": "all",
               "of": [
@@ -22,9 +23,6 @@
               ]
             }
           }
-        ],
-        "deferred": [
-          "A farm with more than one mountain around it is paid for one of them."
         ]
       },
       "deck": {
@@ -64,13 +62,10 @@
             "name": "Terraces",
             "kind": "unique",
             "flavor": "The mountain is made to lie flat, one step at a time.",
-            "text": "Opens the Terraces: every farm the town works on high ground pays +1 food.",
+            "text": "Opens the Terraces: farms may be cut into the high ground the town holds, and every farm it works up there pays +1 food.",
             "unlocks": {
               "building": "terraces"
-            },
-            "deferred": [
-              "Farms still cannot be cut into a hillside that would otherwise refuse one."
-            ]
+            }
           }
         ],
         "2": [
@@ -627,13 +622,10 @@
             "name": "The Horde Camp",
             "kind": "unique",
             "flavor": "A city that can be folded up and carried.",
-            "text": "Opens the Horde Camp: every pasture the town works pays +1 faith.",
+            "text": "Opens the Horde Camp: every pasture the town works pays +1 faith, and a soldier of yours that halts on one of its pastures has its whole movement back.",
             "unlocks": {
               "building": "hordeCamp"
-            },
-            "deferred": [
-              "The herds do not yet give a column its marching back."
-            ]
+            }
           }
         ],
         "3": [
@@ -784,7 +776,7 @@
     "akhenaten": {
       "name": "Akhenaten",
       "bonus": {
-        "text": "+1 faith on farms that drink fresh water. Cities with a holy site make wonders 20% faster.",
+        "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike. Cities with a holy site make wonders 20% faster.",
         "effects": [
           {
             "kind": "pays",
@@ -812,9 +804,6 @@
               "improvement": "holySite"
             }
           }
-        ],
-        "deferred": [
-          "A farm that drinks from a lake is paid as one that drinks from the river."
         ]
       },
       "deck": {
@@ -1021,14 +1010,10 @@
             "name": "The Valley of Kings",
             "kind": "unique",
             "flavor": "Doors cut into a dry cliff, and a guard on each.",
-            "text": "Opens the Valley of Kings, raised once in an empire: +10% culture for every great work your realm holds.",
+            "text": "Opens the Valley of Kings, raised once in an empire: +10% culture for every wonder standing in its own town, where a wonder may also be hurried along with faith.",
             "unlocks": {
               "building": "valleyOfKings"
-            },
-            "deferred": [
-              "It counts every great work your realm holds rather than only those raised in its own town.",
-              "Great works cannot be hurried along with faith."
-            ]
+            }
           }
         ]
       },
@@ -1106,13 +1091,10 @@
             "name": "The House of Learning",
             "kind": "unique",
             "flavor": "Paid by the weight of the book.",
-            "text": "Opens the House of Learning: +2 food.",
+            "text": "Opens the House of Learning: +2 food, and +1 science for every great person you have called.",
             "unlocks": {
               "building": "houseOfLearning"
-            },
-            "deferred": [
-              "It does not yet learn from the great people your realm has called."
-            ]
+            }
           }
         ],
         "2": [

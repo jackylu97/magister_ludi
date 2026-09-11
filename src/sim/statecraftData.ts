@@ -1370,6 +1370,11 @@ export type CountKind =
    * row. A wonder is one per world, so counting across the empire's towns is
    * exact — and a wonder that changes hands changes this count with it, which is
    * the wonders framework's own rule (what a wonder *pays* follows the stones).
+   *
+   * **Narrowed to one town by `within: 'city'`** (batch L3c): the Valley of
+   * Kings is paid for the great houses standing in its own valley and not for
+   * the realm's. The same narrowing `improvedBonusResources` takes, and for its
+   * reason — it is the same sweep, asked of different ground.
    */
   | 'wonders'
   /**
@@ -1401,6 +1406,23 @@ export type CountKind =
    * each in the shape its cards want.
    */
   | 'agesClosed'
+  /**
+   * Great people this empire has **called** — the House of Learning's, and the
+   * doc's own sentence (`docs/leaders.md`: *"+1 science for every great person
+   * you've recruited"*).
+   *
+   * `Player.greatPeopleRecruited`, which is the count kept where a person is
+   * *picked* rather than where it is spent — so a house that learnt from the
+   * scholar goes on learning from her after the academy is planted and the
+   * piece is gone, which is what "the realm has called" means. Nothing lowers
+   * it, so a card written on it can never be farmed by spending one.
+   *
+   * Deliberately not `legacies.length` and not a walk of the living pieces, for
+   * the field's own stated reason: a person is recruited when it is picked and
+   * leaves its legacy only when it is spent, and an empire holding an unspent
+   * great person has already paid for it.
+   */
+  | 'greatPeopleCalled'
   /**
    * This empire's **living pieces**, narrowed by `CardPaysEffect.class`.
    *
@@ -2783,6 +2805,30 @@ export interface CardPaysEffect extends CardYieldBag {
    * exactly as the works' percentage is.
    */
   basePercent?: number;
+  /**
+   * **Paid once for every mountain standing beside the hex** — Pachacuti's
+   * *"farms gain +1 food for each adjacent mountain"* (`docs/leaders.md`).
+   * `where: 'hex'` only.
+   *
+   * A multiplier on this row's own bag rather than a count of its own, and it is
+   * `perEndpointLuxury`'s bargain read one ground over: the thing counted is a
+   * fact about *the hex*, and nothing in the count vocabulary can see a hex's
+   * six neighbours — a `CountKind` is asked of an empire or of a town, and
+   * `TileCondition` answers yes or no about ground it holds without a map.
+   *
+   * Read off the ground's own baked mark (`Tile.mountainsBeside`, written once
+   * at generation), so the peak is counted where the adjacency is already
+   * decided and no second walk of the ring of six comes into existence. The bag
+   * is multiplied where the line is pushed (`explainTileYield`, `yields/hex.ts`)
+   * and lands as **one** labelled entry, so the breakdown still folds to the
+   * total; a hex with no peak beside it carries the row at nought and the line
+   * simply says nothing, exactly as a zero bag does.
+   *
+   * The two hex percentages are untouched by it: `percent` and `basePercent` are
+   * shares of what the hex *already* pays, and a card that multiplied a share by
+   * the mountains would be paying interest on the land twice.
+   */
+  perAdjacentMountain?: true;
   /** Which of Entry XVII's stages a counted percentage joins. Its discriminant. */
   stage?: ModifierStage;
 

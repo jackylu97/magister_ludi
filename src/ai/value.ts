@@ -1941,6 +1941,9 @@ export const BUILDING_ROW_SILENT: Readonly<Record<string, string>> = {
   sciencePerPop: 'the caller’s `foldCity` hypothetical pays it, floored per building as the sim floors it',
   tileYields: 'the caller’s hypothetical reaches the ground: `cityContext` hands the candidate to `buildingTileLines`, so the harbour’s water is already in the yield delta',
   irrigates: 'the same hypothetical: `cityContext` asks `buildingsIrrigate` of the town plus this row, so the farms it waters are in the yield delta',
+  terraces: 'it widens *where a farm may stand* (`hillsWaived`), which is the worker book’s question about ground and not a shelf’s yield; the food the terraced farms then pay is `tileYields` above, and already in the delta',
+  restoresMovementOn: 'it hands a piece its allowance back on one hex — tempo on the ground, and this appraisal prices no march at all (`waters`’ finding, one channel over)',
+  faithBuysWonders: 'it lifts a refusal and opens a bank, `faithPurchases`’ reading exactly: what the bank would buy is the faith book’s, and the book cannot be asked of a town that does not hold the row yet',
   waters: 'the dry-settle penalty is a percentage on the **growth surplus**, and this appraisal prices no growth channel at all (batch X5’s finding (c), queued for a ruling)',
   productionBonus: 'a row that *grants* a percentage — the audit’s Part 2 row 3, which wants the town’s own base and is its own batch',
   faithPurchases: 'it opens a bank; what the bank would buy is the faith book’s reading (`faithPlan`), and the book cannot be asked of a town that does not hold the row yet',
@@ -2708,6 +2711,13 @@ function scorePays(effect: CardPaysEffect, ctx: ValueContext): number {
     // percentage is priced against the nominal yield like every other rate.
     // **How many hexes** was `score.nominalTiles` — one flat guess, three — and
     // is now the ground the clause actually lands on (batch X2).
+    //
+    // A row paid **once per peak** (`perAdjacentMountain`, Pachacuti's farms) is
+    // read here at **one helping**, and deliberately: every hex the condition
+    // admits has at least one mountain beside it, so this is an honest floor
+    // rather than a guess, and there is no board-free stand-in for "how many
+    // peaks" that would not be a tuned constant. It costs nothing today — a
+    // leader's own line is never drafted, so this arm never prices one.
     return (
       (valueOfYields(bagOf(effect), ctx) +
         ((effect.percent ?? 0) / 100) * nominal * voiceWeight(ctx, 'production')) *

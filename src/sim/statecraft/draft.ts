@@ -55,7 +55,7 @@ import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
-import { cardExtraChairs, cityScopeAdmits, effectsOfKind } from './evaluator';
+import { cardExtraChairs, cityScopeAdmits, effectsOfKind, forgetTheLaw } from './evaluator';
 import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
@@ -1731,22 +1731,31 @@ export function adoptGovernmentAt(
     if (slot) amnestied.push(slot.card);
   }
   sc.government = id;
-  // A government is the first source of `liveEffects` and the amnesty below
-  // empties every slot — two writes the meters fold, announced together (batch
-  // M3, `slate.ts`).
-  bumpEconomy(state);
   // Rebuilt rather than resized: the new layout's slot 2 is not the old one's,
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.
   //
   // **To `chairCount` and not to `slotLayout`**, so a law that opens chairs of
   // its own (The King's Friends) opens them under every government this realm
-  // ever adopts — which is the whole sentence that card makes.
+  // ever adopts — which is the whole sentence that card makes. `chairCount`
+  // reads the live law, which the memo below answers — so the announcement
+  // comes **after** the rebuild, not before it: a bump in front of this line
+  // would have the memo record the old slots as this government's first
+  // reading, and a benched card would go on paying (found 2026-09-10, the
+  // growing-orders pin).
   sc.slots = new Array<SlottedOrder | null>(chairCount(state, player.id, id)).fill(null);
   // **The amnesty is for Orders and never for a malice** (§4): the debt is owed
   // to the next wager rather than to the government that owed it, so every one
   // this realm carries takes a chair in the new spread. See `reseatMalices`.
   reseatMalices(player);
+  // A government is the first source of `liveEffects` and the amnesty above
+  // emptied every slot — two writes the meters fold, announced together (batch
+  // M3, `slate.ts`). **And the slate dropped** (`forgetTheLaw`'s register): the
+  // chair count above read the law with the new government and the *old*
+  // chairs, and a memo warmed mid-rebuild answered for a benched Order as if
+  // it still sat — the growing-orders pin caught it, 2026-09-10.
+  forgetTheLaw(state);
+  bumpEconomy(state);
 
   // The Writ Extends. **Before** the Doctrine draw, so a triumph that fills the
   // renown ladder opens its great-person offer before this empire is handed a
