@@ -1,11 +1,12 @@
 # Religion — reference
 
-The shipped system (v2 + the one-charge clergy rework, Entries XXVIII/XL and
-the Themes Build P2). Sources of truth: `data/religion.json` (pools, names,
+The shipped system (v2 + the clergy rework, Entries XXVIII/XL and
+the Themes Build P2, with the prophet's charge prices of batch F2 and its
+second holy site of batch F3). Sources of truth: `data/religion.json` (pools, names,
 trickle), `rules.religion` in `data/rules.json` (the tide's numbers),
 `src/sim/religion.ts` (the phase and the verbs), `statecraft.ts` (the one
 effect evaluator). Draft history and superseded designs: git and
-`docs/design-history.md`. Every belief, rite and consecration as a row — the
+`docs/history/design-history.md`. Every belief, rite and consecration as a row — the
 balance worksheet, sync-tested against the data — is `docs/beliefs.md`.
 
 ## Principles
@@ -24,14 +25,46 @@ balance worksheet, sync-tested against the data — is `docs/beliefs.md`.
 | Unit | Called with | Acts |
 |---|---|---|
 | **Augur** | — | **Retired** (`UnitDef.retired`, row kept for replay). Its rites are a town's verbs and its consecration the faith ladder's; `buildError`, `purchaseError` and `consecrateError` all refuse it. |
-| **Prophet** (The High Temple) | faith ladder 120 +60, own ladder | **TWO charges.** Both, whole: `plantHolySite` (founds the religion, raises the site, opens the founding drafts) · `gainBelief` (one belief rung, pool by `nextBeliefPool` — followers to 3, then enhancers to 2, enhancers gated on Theology). One charge each: `proclaim` · `empireRite` (one of the five city rites said over **every** town at once, one price). |
+| **Prophet** (The High Temple) | faith ladder 120 +60, own ladder | **TWO charges**, priced per act (see below). Both charges: `plantHolySite` (with no faith, founds the religion, raises the site, opens the founding drafts; with a faith, raises a **further** site — see Founding) · `gainBelief` (one belief rung, pool by `nextBeliefPool` — followers to 3, then enhancers to 2, enhancers gated on Theology). One charge each: `proclaim` · `empireRite` (one of the five city rites said over **every** town at once, one price). |
 | **Apostle** (Theology) | faith ladder 90 +40 | **TWO charges**, movement 4, marker `proclaims`. One charge each: `proclaim` at half a prophet's lump within 6 hexes · `healAdjacent` (25 to every friendly piece on its hex and the six touching it) · `placeRelic` (one per town holding a cathedral). |
 | **Inquisitor** (The Holy Office) | flat 200 faith | Purge: a negative lump vs rival pressure (range 5, `purgeLump` 60; unconverted go to **nobody**) + a standing +2 adjacency aura (the general-aura twin). |
 
-`spendProphet` spends a whole piece and `spendCharge` spends one; which an act
-uses is the whole of the two-charge rule. `plantingHandOf` says who may plant
-what (worker → improvements, great person → its family's work, prophet → the
-holy site, augur and apostle → nothing).
+`plantingHandOf` says who may plant what (worker → improvements, great person →
+its family's work, prophet → the holy site, augur and apostle → nothing).
+
+### A prophet's charges (schema 112)
+
+Every act costs its own number of charges — `rules.religion.prophetCosts`, the
+user's ruling of 2026-09-10 (`docs/flags.md` (bbbb)). The table is the spec of
+record and is sync-tested against the data.
+
+| Act | Charges |
+|---|---|
+| `foundReligion` | 2 |
+| `plantHolySite` | 2 |
+| `gainBelief` | 2 |
+| `proclaim` | 1 |
+| `empireRite` | 1 |
+
+- Read in ONE place: `chargeCostOf(verb)` (`religion.ts`). Spent in ONE:
+  `spendCharge(state, unit, verb)` — which removes the piece when the act empties
+  it and takes its day (`movesLeft = 0`) when it does not. There is no
+  `spendProphet` any more: the split between "spends the piece" and "spends a
+  charge" *was* the price ladder, and it is a figure now.
+- Refused in ONE: `agentProblem`, so the verb's own `…Error` carries the
+  sentence — "A prophet with one charge left cannot found a faith" — and the
+  reducer, the greyed row and the bots' feed all say it.
+- `foundReligion` vs `plantHolySite`: one verb, two acts, and `plantingCost`
+  (exported) picks the key by whether the empire holds a faith — the founding's
+  price with none, the later planting's with one. The founding refusals are
+  asked on the founding arm only. Both are live figures.
+- The apostle (2 charges) and the inquisitor (1) are unchanged: their acts are
+  one charge each, by construction rather than by a data row.
+- So a prophet either founds a faith **or** draws a belief and is spent, or it
+  proclaims / says a rite **twice**.
+- Printed by ONE formatter, `chargeCostWords(verb)` → "2 charges" / "1 charge",
+  on the unit sheet's rows and on the city panel's card for a clergy row. The
+  Compendium's religion shelf says the rule in words and carries no figures.
 
 ## Rites (schema 74)
 
@@ -110,8 +143,18 @@ The skip's pity, the culture meter and the tier are untouched by any of them.
   (+2🕯 +1🎵, one hex, `WorkFamily 'prophet'`), and drafts the first two rungs
   of the belief ladder. Refusals are player-plain ("You have no gods…",
   "The world has all the religions it will hold").
+- `plantHolySite` on a prophet of an empire that **already holds a faith**
+  (batch F3, `docs/flags.md` (kkkk)): raises a further site on any own hex the
+  ground rules take, off the city centre, for `prophetCosts.plantHolySite`. It
+  founds nothing, drafts nothing and moves nothing — `HolySitePlanting.founded`
+  is `false` and `offer` is `null`. The ground's half is `improvementErrorAt`'s
+  whole, so a hex that already carries a site is refused there.
 - `Religion.holySite` is written once (`??=`) — a later site extends the tide
   but never moves the seat of the faith.
+- The tide's sources are **every holy site on the board**, derived each sweep by
+  `holySites(state)` walking the improvement; `siteStrength` is counted once per
+  site in range. There is no register, so a second site presses the instant the
+  stones are written and a captured one changes sides with its hex.
 - A finished religion: pantheon (2–4, empire-native) + up to 3 followers + up
   to 2 enhancers. `pools: { followerSlots, enhancerSlots }` is the dial.
 

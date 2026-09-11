@@ -2,7 +2,7 @@
 
 What this is: **the order every yield in the game is computed in**, step by
 step, with what each step reads, what may land there, and whether it adds or
-multiplies. Current state; the history is `docs/design-history.md` (Entries XVII
+multiplies. Current state; the history is `docs/history/design-history.md` (Entries XVII
 and XVIII) and `docs/audit/evaluations.md` §2. The ruling behind this document
 is `docs/flags.md` (pp).
 
@@ -48,7 +48,7 @@ Two stated shapes inside those rules, each because the layer is what it is:
   a total could be computed. The bare sum of the list, with no stage on it, is
   `foldCityFlats`, which is what `explainCity` fills `flats` with.
 
-### The slate, and the two tenants beneath the verb (batch M1)
+### The slate, and the two tenants beneath the verb
 
 The **machinery** the third verb sits on lives in `src/sim/slate.ts`: one
 `WeakMap` on the state, one slate in two halves, each thrown away whole when its
@@ -64,16 +64,9 @@ The verb rule is unchanged — every `read…` is still in `readings.ts` and now
 else (`test/sim/verbs.test.ts`) — and the memos are still **one** cache with one
 lifetime, because they are on the same slate rather than in a second `WeakMap`.
 
-**Nothing is suspended any more (batch M3).** M1 and M2 raised their clocks
-*after* the fact — `applyCommand` after the handler, the phase loop after each
-phase — so a reading taken inside one was a reading of a world halfway moved, and
-the slate answered that by suspending itself for the length of every handler and
-every phase. Measured, that window was 8% of a 150-turn bot game, and 99.8% of
-the asks inside it wanted the answer the ask before them had computed.
-
-So the window is gone and one rule replaces it: **a write announces itself at the
-write.** Every mutation in the reducer and in the phases that changes what a
-tenant folds calls `bumpEconomy(state)` on the line it happens.
+**Nothing is suspended: a write announces itself at the write.** Every mutation
+in the reducer and in the phases that changes what a tenant folds calls
+`bumpEconomy(state)` on the line it happens.
 `test/sim/slateRegister.test.ts` is the register — it sweeps `src/sim` for every
 write to such a field and fails unless the enclosing function announces or is
 excused by name with the reason — and `setSlateShadow` is the proof: with it on,
@@ -81,7 +74,7 @@ every **hit** recomputes and asserts deep equality, naming the bucket, key,
 clock, turn and phase when it does not. A bench that pokes the state by hand is a
 writer and calls `bumpRevision`, exactly as before.
 
-### The two clocks (batch M2)
+### The two clocks
 
 `GameState.revision` moves on **every** accepted command, and a seat sends dozens
 a turn that move a piece and nothing else. So a tenant now names the clock it is
@@ -89,7 +82,7 @@ a reading *of*, and the slate keeps a half per clock:
 
 | tenant | clock | why |
 |---|---|---|
-| `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the garrisons standing in them and the banks behind them (see the correction below) |
+| `meterEffects` | economy | walks towns, buildings, luxuries and law — and, through the card evaluator, the garrisons standing in them and the banks behind them |
 | `controlledHoldings` | economy | walks the ground |
 | `readEmpirePercents` | economy | those, plus the treasury |
 | `readCity` | revision | step 6 is the caravans arriving, and a caravan is cut by a hull in the harbour mouth (`cityBlockaded`) — a **unit position** |
@@ -97,16 +90,15 @@ a reading *of*, and the slate keeps a half per clock:
 
 The split is a claim about what each walk can *see*, not a taxonomy of yields.
 
-**Two rows of that claim were wrong, and M3's shadow run found them.**
-`meters.ts` never opens `state.units` — but the card evaluator it folds does:
-The Long Watch pays "+1 happiness for each unit standing in one of your cities"
-(`count: 'garrison'`), and Pilgrim Roads pays "+1 happiness for each 50 banked
-faith" (`count: 'bankedFaith'`, with `bankedGold` beside it). So a piece created,
-killed, taken or **moved**, and a bank that was paid into, are writes the empire
-walks fold. Every such seam announces since M3, and the register lists them; what
-the economy clock still buys is the four orders that move nobody — a
-fortification, a sleep, an auto-explore, a cancellation — and the phases that
-write nothing a walk reads.
+**An economy walk sees pieces and banks too.** `meters.ts` never opens
+`state.units`, but the card evaluator it folds does: The Long Watch pays "+1
+happiness for each unit standing in one of your cities" (`count: 'garrison'`) and
+Pilgrim Roads "+1 happiness for each 50 banked faith" (`count: 'bankedFaith'`,
+with `bankedGold` beside it). So a piece created, killed, taken or **moved**, and
+a bank paid into, are writes the empire walks fold; every such seam announces,
+and the register lists them. What the economy clock still buys is the four orders
+that move nobody — a fortification, a sleep, an auto-explore, a cancellation —
+and the phases that write nothing a walk reads.
 
 - **The economy clock is not a field of `GameState`.** The state is
   `JSON.stringify`d into every save hash, so a second counter on it would be a
@@ -124,43 +116,14 @@ write nothing a walk reads.
   `arriveOnTile` on every step, and arriving is how a ruin is claimed, a camp
   burnt out, a civilian taken and a caravan plundered — each reported in
   `CommandResult`. The rule is the report: a movement command whose result says
-  anything beyond `ok` is an economy command. Since M3 the five `movement` rows
-  are a **floor** rather than a promise: a march announces itself where the piece
+  anything beyond `ok` is an economy command. The five `movement` rows are a
+  **floor** rather than a promise — a march announces itself where the piece
   moves, so a `moveUnit` that walked anywhere has already moved the economy clock
-  by the time the result is classified. `noteEconomyWrite` retired with the
-  window — `revokeLegacies` announces its own mark, and no economy-clock walk
-  folds `Tile.road`.
+  by the time the result is classified.
 - **`bumpRevision` moves both clocks** and is what every writer outside
   `applyCommand` calls, benches included. The narrow door (`bumpPiecesOnly`) has
   one caller, holding a command and its result. Wrong in the broad direction is a
   miss; wrong in the narrow one is a stale reading.
-
-### What was renamed (E3b)
-
-| was | is | why |
-|---|---|---|
-| `cityQuote` | `explainCity` | it returns the town's labelled list |
-| `CityQuote` / `CityQuoteLine` | `CityReading` / `CityYieldLine` | the nouns follow the verb |
-| `foldQuoteLines` | `foldCityFlats` | the sum of that list (`foldCityLines` was taken by `combat.ts`) |
-| `cityYields` | `foldCity` | the town's total — the fold plus step 12 |
-| `cityStageSums` | `foldCityStages` | the percent list folded into Entry XVII's two stages, per voice |
-| `stageSumsFor` | `foldStageSums` | the same for one voice |
-| `centreYield` | `foldCentre` | the fold of `explainCentreYield` |
-| `tileYieldOf` | `foldTile` | the fold of `explainTileYield` |
-| `foldTileYield` | `foldTileLines` | it takes the list, so it says so |
-| `cardCityYields` · `cardBuildingYields` · `cardEmpireYields` · `cardPercentYields` | `explainCard…` | each returns a list |
-| `empireRateReading` + private `empireRates` | `foldEmpireRates` | two spellings of one fold; the wrapper is gone |
-| `RateReading` | `EmpireRates` | `…Reading` is the memo's word |
-| `civYields` (`topBar.ts`) | **deleted** → `readEmpire(state, seat).totals` | it was `readEmpire`'s own fold with a second name |
-| `ledgerReading` | `explainLedger` | it returns the six voices as a list |
-| `deckAggregate` · `deckAggregateLine` · `DECK_AGGREGATE_LABEL` | `foldDeck` · `deckCaption` · `DECK_LABEL` | the deck's slice of that list, folded |
-
-Two exports keep a retired suffix, each for a stated reason, and
-`test/sim/verbs.test.ts` carries both as exceptions: **`emptyCityYields`** is a
-constructor of the six-voice bag rather than a reading of anything, and
-**`collectYields`** is the turn phase that *banks* — a mutation, not a reading.
-Types are nouns and are out of the rule (`CityYields`, `EmpireYieldLine`,
-`TileYieldContribution`, …) — what the three verbs govern is the functions.
 
 ---
 
@@ -310,7 +273,7 @@ lands. The `where · basis` cell is blank for the kinds that are still one thing
 
 | kind | where · basis | steps | additive or multiplicative |
 |---|---|---|---|
-| `pays` | hex · flat | 2 | additive; `percent`/`basePercent` are the hex's two shares |
+| `pays` | hex · flat | 2 | additive; `percent`/`basePercent` are the hex's two shares, and `perAdjacentMountain` multiplies the **bag** into one line, as `perEndpointLuxury` does on a road |
 | `pays` | city · flat | 3 | additive |
 | `pays` | city · count | 3, 11 | additive at 3; a helping's percentage (a row with `stage`) is gathered at 11 |
 | `pays` | capital · count | 3 | additive — once, in one town, because an empire line has no basket for a hammer |

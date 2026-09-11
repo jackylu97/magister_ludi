@@ -26,7 +26,7 @@ or `src/ai/`.
   register in `aiAppraisal.test.ts` already lists which; the finding stands as
   "one constant for half the vocabulary".
 - `dead-code.md`'s cut of the schema changelog: the changelog is *history*,
-  and history lives in `docs/design-history.md` by this repo's own rule — but
+  and history lives in `docs/history/design-history.md` by this repo's own rule — but
   the **current** entry must stay in `state.ts` beside `SAVE_SCHEMA`, because
   the next bump is written by whoever reads it there.
 - `simplify.md`'s "fold luxuries into cards" (900 lines, one evaluator): right

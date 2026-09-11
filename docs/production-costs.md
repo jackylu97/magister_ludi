@@ -181,6 +181,7 @@ reading for a once-per-empire row.
 | `assayHouse` | Assay House | large | 4 | 134 |
 | `cistern` | Cistern | medium | 4 | 89 |
 | `assemblyHall` | Assembly Hall | large | 4 | 134 |
+| `viziersHall` | The Vizier's Hall | large | 4 | 134 |
 | `smithy` | Smithy | medium | 4 | 89 |
 | `coinworks` | Coinworks | large | 6 | 231 |
 | `almshouse` | Almshouse | large | 6 | 231 |
@@ -194,6 +195,20 @@ reading for a once-per-empire row.
 | `wat` | Wat | medium | 5 | 117 |
 | `gurdwara` | Gurdwara | medium | 5 | 117 |
 | `darEMehr` | Dar-e Mehr | medium | 5 | 117 |
+| `terraces` | Terraces | medium | 2 | 52 |
+| `tambo` | The Tambo | large | 8 | 397 |
+| `qollqa` | The Qollqa | large | 11 | 893 |
+| `examinationCourt` | The Examination Court | large | 5 | 176 |
+| `postStation` | The Post Station | large | 11 | 893 |
+| `hordeCamp` | The Horde Camp | medium | 5 | 117 |
+| `obelisk` | The Obelisk | small | 2 | 39 |
+| `sunCourt` | The Sun Court | large | 8 | 397 |
+| `valleyOfKings` | The Valley of Kings | large | 11 | 893 |
+| `houseOfLearning` | The House of Learning | medium | 2 | 52 |
+| `mihnaCourt` | The Mihna Court | large | 5 | 176 |
+| `paperMill` | The Paper Mill | large | 11 | 893 |
+| `mithridatium` | The Mithridatium | medium | 5 | 117 |
+| `ponticHold` | The Mountain Hold | large | 11 | 893 |
 
 ### Wonders
 
@@ -280,3 +295,13 @@ table, with no second figure anywhere. See `docs/trade.md`.
 | `warElephant` | War Elephant | heavy | 7 | 101 |
 | `fireLance` | The Fire Lance | heavy | 12 | 389 |
 | `knightsTemplar` | Knights Templar | heavy | 11 | 297 |
+| `slinger` | Slinger | line | 5 | 41 |
+| `fubing` | Fubing | light | 2 | 13 |
+| `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 101 |
+| `whistlingArrow` | The Whistling Arrow | heavy | 3 | 34 |
+| `xiongnuHorseArcher` | Xiongnu Horse Archer | heavy | 7 | 101 |
+| `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 297 |
+| `khopesh` | The Khopesh | line | 4 | 31 |
+| `camelArcher` | Camel Archer | heavy | 7 | 101 |
+| `ponticPeltast` | The Pontic Peltast | line | 2 | 18 |
+| `scythedChariot` | The Scythed Chariot | heavy | 8 | 132 |

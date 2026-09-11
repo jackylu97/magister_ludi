@@ -13,7 +13,7 @@ See [The experimental loop](#the-experimental-loop).
 
 Companion files: `data/mapgen.json` (the numbers), `src/sim/mapgenData.ts` (their
 types and the override seam), `docs/luxuries.md` (the resource table itself),
-`docs/design-history.md` and git (why any of it is the way it is).
+`docs/history/design-history.md` and git (why any of it is the way it is).
 
 ---
 
@@ -1495,9 +1495,9 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 |-----|---------|---------|
 | `countPer1000Tiles` | 14 | river quota, scaled by map area |
 | `minCount` | 3 | floor on that quota — a duel map is never riverless |
-| `minSpringElevation` | 0.65 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
+| `minSpringElevation` | 0.65 | lowest corner altitude a spring may sit at. Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. **What the figure means on the land scale**: land runs 0.58…1.00 with its median at 0.79, and on the shipped field the lowest hill hex sits at 0.807 — so 0.80 was the hill cut and admitted only the upper half of the land (52% lies below it), which is why the row used to read "range ground, hill country or above". 0.65 lies a sixth of the way up the band: only a sixth of land tiles are below it, so five sixths of the land is now spring ground and a river may rise on rolling lowland, not just on a range. Springs still *read* as high country — measured across a twelve-map sweep the mean spring sits 0.03–0.10 above the average land and two in three to all of them open on a hex of hills or mountain (96% at 0.80). 0.65 is the user's figure, 2026-09-11, `docs/flags.md` (tttt) |
 | `minSpringSpacing` | 1 | hexes between springs; 1 means "not the same hex" |
-| `minLength` | 5 | traces shorter than this many edges are discarded |
+| `minLength` | 5 | traces shorter than this many edges are discarded (4 until 2026-09-11). **The one size it bites**: on `duel` (386 land tiles) a great many traces reach the sea in four edges, so the extra edge takes the board from its whole quota to about half of it on an unlucky seed — measured 7/14 and 8/14 on two seeds of eight, where the old figure seated 14/14 — and duel is under `pitLakeMinTiles`, so it has no basin to flood instead. Every board from standard up seats its whole quota |
 | `maxLength` | 80 | hard cap on one trace |
 | `backtrackSteps` | 64 | forks one trace may retry before it is abandoned; 0 is the plain greedy walk |
 | `attemptsPerRiver` | 120 | springs examined per river asked for. **Not the lever it looks like on a big board**: about 3,900 corners clear `minSpringElevation` on a huge map against a budget of 17,160, so every candidate is already tried and a larger number buys nothing |

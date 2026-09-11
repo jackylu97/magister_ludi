@@ -113,7 +113,7 @@ blow read the same plan.
 Generated — do not hand-edit anything below this line except the **Notes**
 column, which is carried through every regeneration.
 
-### Military — 23 rows
+### Military — 33 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -140,6 +140,16 @@ column, which is carried through every regeneration.
 | War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 101 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 389 | — | Alchemy | — | needs improved Niter |  |
 | Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
+| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 41 | — | — | Composite Bowman | unslowed by hills |  |
+| Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 13 | — | — | Spear Wall | — |  |
+| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 101 | — | — | Knight | needs improved Horses |  |
+| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 34 | — | — | Horse Archer | needs improved Horses |  |
+| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 101 | — | — | — | needs improved Horses |  |
+| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 297 | — | — | — | needs improved Horses |  |
+| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 31 | — | — | Longswordsman | needs improved Iron |  |
+| Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 101 | — | — | — | — |  |
+| The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 18 | — | — | Spear Wall | — |  |
+| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 132 | — | — | — | needs improved Horses |  |
 
 ### Naval — 12 rows
 
@@ -199,6 +209,9 @@ trench). This is the whole of the naval triangle in the simulation.
 | Phalanx | Against mounted | +10 | always · vs mounted |
 | Spear Wall | Against mounted | +10 | always · vs mounted |
 | War Elephant | Against cities | +8 | attacking · vs cities |
+| Fubing | Against mounted | +10 | always · vs mounted |
+| The Pontic Peltast | Against mounted | +10 | always · vs mounted |
+| The Scythed Chariot | Against foot | +3 | always · vs melee |
 
 ### The figures (`data/rules.json`)
 
