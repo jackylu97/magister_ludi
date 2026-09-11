@@ -1800,6 +1800,53 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (oooo) **Two colours a figure, and the board wears both — RULED** (the
+  user, 2026-09-11: *"every leader should have a different color to
+  differentiate them. Could we have them be two colors like civ 5/6 and
+  update the banners/borders accordingly to accomodate two colors? Lets
+  also make the unit banners show the colors with a larger/thicker
+  accent, they're a bit hard to see currently. Try to make each civ's
+  colors somewhat historically accurate."*). **Today** a seat has one
+  ink (`PlayerSpec.color`, the palette's by index) and a charge on a
+  parchment canton; a leader carries no colour. **H7 builds, after L4**
+  (it reads L4's `SEATS` and `seatLeaders`): (1) `LeaderDef.colors:
+  {primary, secondary}` in `data/leaders.json`, the table below the spec
+  of record in `docs/leaders.md` (doc rows ↔ data rows, sync-tested);
+  a seat under a figure takes the figure's pair, a plain seat the
+  palette's ink with a derived secondary (ink on parchment); **two seats
+  never share a primary** (the cast is distinct already; the palette's
+  inks stay clear of the six primaries — pinned by a hue distance);
+  (2) `PlayerSpec.secondary?` beside `color` (config, never state — the
+  Heraldry trap), `heraldryFor` unchanged (the charge is a string),
+  the canton draws the charge in the **secondary** on a **primary**
+  field (Civ's reading: primary = the field/fill, secondary = the
+  device/trim); (3) **borders**: the territory line in the primary with
+  an inner stitch in the secondary (one extra instanced strip in
+  `territory`'s layer, the width in `data/view3d.json`); (4) **city
+  banners** (`cityBanners.ts`): the plate's rim in the primary, the name
+  in ink as today, the canton primary-field/secondary-charge; (5) **unit
+  pieces** (`pieces.ts`, three meshes over one buffer): the sculpt in
+  the primary, the outline in the secondary — and the **roundel/badge
+  over the piece larger and its ring thicker** (the user's ask; tunables
+  `pieceBadgeScale`, `pieceBadgeRing` in `view3d.json`, the flair gallery
+  gets a stall with both sliders and every figure's pair side by side);
+  the hit bar untouched; (6) every roster surface (landing canton, leader
+  sheet, spectator, arena seat labels, compendium leader shelf) prints
+  the pair; (7) `signUnits`/`CityLook` unchanged — colours ride the
+  owner. Determinism untouched (render only). **The palette** (the
+  user: "somewhat historically accurate"; every figure is a proposal
+  the user may retune in the doc — the sync test follows the doc):
+  Pachacuti **maroon / sun gold** (the Sapa Inca's red fringe, the
+  sun); Taizong **jade / ivory** (Tang jade, court white); Modu
+  Chanyu **sky blue / bone** (Tengri's eternal blue sky, felt and
+  bone); Akhenaten **sun orange / lapis** (the Aten's disc, Egyptian
+  blue); Al-Ma'mun **black / gold** (the Abbasid black banner, gilt);
+  Mithridates **Tyrian purple / silver** (a Hellenistic king's purple,
+  the star-and-crescent in silver). Pins: doc ↔ data; six distinct
+  primaries and none within the palette's hue distance; a seat's pair
+  in `GameConfig` is what every surface reads (no second source); the
+  canton's field and device inks; the border stitch instanced once per
+  game; the badge tunables read from data; `signUnits`' list unchanged.
 - (nnnn) **Six seats by default; a stepper, not a mode list; every
   rival plays a figure — RULED** (the user, 2026-09-11: *"how are bot
   games constructed now? do they choose a leader when the player does? We

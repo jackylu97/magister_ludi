@@ -590,6 +590,25 @@ then always has something to stand on.
   Rule 2 holds: every stage draws from the map's own stream and the bias is
   config, so the same seed and roster draw the same world.
 
+## The colours (2026-09-11, `docs/flags.md` (oooo))
+
+Two a figure, Civ's reading: the **primary** is the field — the territory
+line, the sculpt of a piece, the plate's rim; the **secondary** is the device
+and the trim — the charge on the canton, a piece's outline, the border's inner
+stitch. Every row is a proposal the user may retune here; `data/leaders.json`'s
+`colors` mirrors this table and a sync test holds the two together. No two
+primaries may sit within the palette's hue distance of each other or of a
+plain seat's ink.
+
+| Leader | Primary | Secondary | Why |
+|---|---|---|---|
+| Pachacuti | maroon `#8b2635` | sun gold `#e0b21a` | the Sapa Inca's red fringe; the sun |
+| Emperor Taizong | jade `#2e8b6e` | ivory `#f3ecd8` | Tang jade; court white |
+| Modu Chanyu | sky blue `#3a78b5` | bone `#efe6d2` | Tengri's eternal blue sky; felt and bone |
+| Akhenaten | sun orange `#e0852a` | lapis `#234b9a` | the Aten's disc; Egyptian blue |
+| Al-Ma'mun | black `#1c1a1a` | gold `#d4a934` | the Abbasid black banner; gilt |
+| Mithridates VI | Tyrian purple `#6b2d7a` | silver `#d8d8e0` | a Hellenistic king's purple; the star and crescent |
+
 ## Notes for the system
 
 - **Built state** (2026-09-10, batches L2a → L3c, `docs/flags.md` (dddd)
