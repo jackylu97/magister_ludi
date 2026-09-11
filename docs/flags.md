@@ -1869,6 +1869,45 @@ directly to confirm rulings — user marginalia are rulings.
   unread; a half that truly cannot be said stays deferred with the
   reason. Pins per card: the rule fires where it should and not where it
   should not.
+  **L3a built** (2026-09-10, held): all eight whole. `CityScope`
+  `riverside` (the centre's river edges — a lake is not the Yangtze) and
+  `puppet`; `CardAuthorityEffect.scope` (the Tribute Road narrowed to
+  road-joined towns, the Yangtze to river towns — kept as L2a's
+  *capacity* reading, since a cost cut is a scope-less `meterRule`);
+  the Khagan's puppets pay culture as a puppet-scoped city line, the Han
+  tribute two `city/share` rows scoped to puppets; `effectAmplifier`
+  gained `family` (the Poets lift the artists alone) and the quickened
+  years are a new `greatPersonAct` occasion with a family-narrowed rider
+  hanging five turns of +10% production and culture; `EmpireCondition`
+  `keepingRite` (absolute stamps) wraps the Rite of the Sky; the House of
+  Millions' reading fixed — a wonder singing only through a clause
+  (Hagia Sophia in temple towns) counted as silent; **The King's
+  Friends** is a `slotRider` read once by `chairCount` (`draft.ts`),
+  `refitSlots` resizing on the pick without an adoption's amnesty. Eleven
+  pins in `test/sim/leaderHalves.test.ts`. **L3b built**: `UnitDef.
+  ignoresHillCost` (the Slinger, priced as the flat land under the climb
+  in `tileMoveCost`, the one place); `upkeepRebate where: 'garrison'`
+  (the Fubing); the Khopesh's reach was already whole (stale note; a
+  `null`-vs-`undefined` slip in `followingTerritory` fixed); the Guard's
+  aura was sayable already (`combatLine` + `beside`); the Camel Archer
+  +1 per great work **in the capital** (`CombatScaleCount
+  capitalGreatWorks`, the doc's row over the board's paraphrase);
+  `windfallRider.class` narrows a rider to the actor's row (the
+  Peltast); `unitStat where: 'grassOrPlains'` (Modu's pace, an allowance
+  read like the ship's — a point spendable only on some steps would be a
+  second currency and a fifth pricer). Twenty-one pins in
+  `test/sim/leaderUnits.test.ts`. `docs/leaders.md`'s deferred bullets
+  for these fifteen are stale — ▢ the orchestrator's doc pass when L3c
+  lands.
+  **Found by L3b, needs a ruling** — ▢ **every leader-unlocked unit costs
+  zero maintenance**: `unitUpkeep` prices a piece off its *unlocking
+  tech's* age, and no tech names a leader unique (ten rows), so the
+  Fubing's "kept for nothing while garrisoning" is true of every unique
+  today. Recommendation: price a row the tree names nothing for off its
+  own `column` — the standard `docs/production-costs.md` already uses
+  for its hammers — so a unique costs what a same-column unit costs; a
+  one-line change in `unitUpkeep` plus a pin. The user's call, since it
+  is a balance figure landing on ten rows at once.
 - (hhhh) **A bought unit stands on the city hex, or is not sold — RULED**
   (the user, 2026-09-10, mid-playtest: *"purchased units should spawn on
   the city tile. If a unit of it's type is already occupying the city
