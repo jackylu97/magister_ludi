@@ -1800,6 +1800,42 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
+  *"another leader spawned 8 tiles from me -- ideally we should have some
+  distance between players, maybe 15 tiles?"* → the diagnosis below →
+  *"lets raise the floor to 12 and ceiling to 20, i can mess with the
+  mapgen settings once i see some example starts at 12"*). **Today**
+  `starts.spacingFactor` 0.55 × √land clamped to [`minDistance` 5,
+  `maxDistance` 16] — the standard map aims at 16 — but the greedy sweep
+  relaxes the spacing a hex at a time down to the floor whenever nothing
+  fits, and a leader's want (M1: mountain, river, pasture, desert) is
+  seated first, so a want with no hex at 16 pulled the spacing down
+  before the want gave way; hence a rival at 8. **M2 builds**: (1)
+  `minDistance` **12**, `maxDistance` **20** (standard still aims at 16
+  and never accepts under 12; the user retunes from the lobby); (2)
+  **wants yield before distance does** — the seating order of relaxation
+  is: the want's criteria first (`meets` dropped, then the bias), and
+  only then the spacing, never below the floor; (3) a **contact
+  penalty** in the site score: a candidate loses `starts.contactPenalty`
+  per rival start already chosen within `starts.contactRadius` (12)
+  hexes, so distance is preferred before it is forced — a labelled line
+  in `scoreStartSite`'s list (rule 5's shape), shown in the lobby's start
+  rows; (4) **measured**: a slow sweep over 24 seeds × 6 figures on
+  standard prints the minimum pairwise start distance per seed and its
+  distribution, pinned to a floor of 12 everywhere the map can seat six
+  at all; the mapgen lobby's start rows print each seat's distance to
+  its nearest rival so the user sees the example starts. `docs/mapgen.md`
+  follows the knobs.
+- (ssss) **The city banner's canton loses its shield — RULED** (the
+  user, 2026-09-11: *"remove the banner from the left of the city
+  screen, it looks awkward. Maybe just the icon (and not the outline of
+  the shield motif) will do"*). The plate's canton (`.city-banner-canton`,
+  H7: a shield-shaped field in the primary with the charge in the
+  secondary) becomes the **charge alone** — no field, no shield shape —
+  inked in the seat's **primary** on the plate's parchment; the plate's
+  rim keeps the primary. The Heraldry trap's "never straight in seat
+  ink" is amended: the *plate* is the parchment the charge sits on.
+  Orchestrator's, small.
 - (qqqq) **After the first look at H7 — five rulings** (the user,
   2026-09-11, on :5199: *"the unit icons are way too thick -- also the
   borders look off, the line border around the accent overdraws past
