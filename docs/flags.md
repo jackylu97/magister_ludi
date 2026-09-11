@@ -1800,6 +1800,35 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (uuuu) **Akhenaten starts in the desert — RULED** (the user,
+  2026-09-11: *"i notice akhetaten rarely spawns in desert, could we
+  give him a desert start bias?"*). He has one (M1c) but it is weak by
+  construction: `startBias.terrain.desert` is **0.5** — a *penalty* on
+  desert ground under the site score — and the want `aridWithin: 2` is
+  met by a single desert, oasis or floodplain hex anywhere within two
+  rings, so he sits on a river with one dune in sight. **Ruling**: the
+  capital stands **beside the desert** — the want becomes a count in
+  the first ring (`aridBeside: 3`: at least three desert/oasis/floodplain
+  hexes among the six neighbours, a new want kind in the M1 vocabulary,
+  data-declared), `riverOrFloodplainWithin: 1` kept so the town drinks;
+  `terrain.desert` **2** (a preference, not a penalty), `floodplain` 3,
+  `oasis` 3, `river` 4; the M1 fallback order stands (want met → want
+  dropped → plain). M2's agent builds it with its measurement: the
+  24-seed sweep prints Akhenaten's arid-neighbour count per seed and
+  pins ≥3 wherever a standard map has such a site at all. `docs/leaders.md`
+  start-bias section follows.
+- (tttt) **New mapgen defaults — RULED** (the user, 2026-09-11: *"new
+  defaults for mapgen: water minlength 5 minspringelevation 0.65
+  pitlakemintiles 3500 maxSize 15, luxuriesmincopiespercontinent 4,
+  mindistance 10"*). Set in `data/mapgen.json` by the orchestrator:
+  `rivers.minLength` 4 → **5**, `rivers.minSpringElevation` 0.8 →
+  **0.65**, `rivers.pitLakeMinTiles` 5000 → **3500**, `lakes.maxSize` 8 →
+  **15**, `resources.luxuryMinCopiesPerContinent` 2 → **4**,
+  `starts.minDistance` → **10** (this supersedes (rrrr)'s 12 as the
+  floor; the ceiling 20 and the contact radius stand; M2 told). Every
+  seeded map moves, so seeded fixtures re-pin where they must; a replay
+  change on the held stack (schema stays 115). `docs/mapgen.md` follows
+  the figures.
 - (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
   *"another leader spawned 8 tiles from me -- ideally we should have some
   distance between players, maybe 15 tiles?"* → the diagnosis below →
