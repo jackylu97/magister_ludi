@@ -36,7 +36,9 @@ const CROWDED = 'duel';
  * why they are named rather than tolerated.
  */
 const KNOWN_SHORT: Record<string, string[]> = {
-  standard: ['standard/7 (52,8) iron'],
+  // Two since M2's crowding radius went to 26 (the orchestrator, 2026-09-11):
+  // the capitals moved once more, and each of these has legal ground in reach.
+  standard: ['standard/7 (53,8) iron', 'standard/90210 (21,21) iron'],
 };
 
 describe('every capital is armed', () => {

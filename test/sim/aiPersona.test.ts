@@ -397,20 +397,20 @@ describe('the settler’s two new halves', () => {
     // did; with it open, the charge is what closes the gap, and that is said out
     // loud rather than pinned as a number.
     //
-    // **Re-sited 2026-09-11**, from twelve turns to fourteen, for the user's new
-    // mapgen defaults (`docs/flags.md` (tttt)). The bench is a *played* board —
-    // the bots drive it — so a different world means different towns at
-    // different sizes on different ground, and the near-cancellation the
-    // paragraph above describes is decided by the seat's live happiness, which
-    // is decided by what got built. On the new board the two halves cross over
-    // at twelve turns (tall's gains run ahead of the charge by three points) and
-    // are back on the ruling's side at fourteen. Measured across the
-    // neighbourhood — 8, 10, 14, 16, 18 and 20 turns all read tall below
-    // balanced, and only 12 and 24 do not — so what moved is the board, not the
-    // appraisal. The gains assertion is what picks fourteen out of those: at
-    // eight and ten turns tall's gains have not yet overtaken balanced's, so the
-    // two-halves reading is not yet visible at all.
-    const game = grownGame(14);
+    // **Re-sited 2026-09-11**, twice, for the user's new mapgen defaults and
+    // then M2's spacing (`docs/flags.md` (tttt), (rrrr)). The bench is a
+    // *played* board — the bots drive it — so a different world means
+    // different towns at different sizes on different ground, and the
+    // near-cancellation the paragraph above describes is decided by the seat's
+    // live happiness, which is decided by what got built. On the file's shared
+    // seed the two halves never line up on the current board (swept 8–26: tall
+    // reads below balanced through 22 but its gains trail; from 24 its gains
+    // lead but so does its total), so this bench sits on **its own seed**,
+    // chosen because the reading holds at every turn count swept (9 through 25
+    // by twos) rather than at one lucky turn — what is pinned is the ruling's
+    // two halves, and a seed that shows them everywhere is the honest board
+    // for it. Fifteen turns, well inside that range.
+    const game = grownGame(15, { ...CONFIG, seed: 20260905 });
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
 

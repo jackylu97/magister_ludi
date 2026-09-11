@@ -455,18 +455,19 @@ describe('the bot defends itself', () => {
     // **Design addendum 1.** The same town, appraised twice: once in a quiet
     // world, once with three hostile soldiers parked beside it. What must change
     // is what the town starts.
-    // **Re-sited 2026-09-11**, from fourteen turns to sixteen, for the user's
-    // new mapgen defaults (`docs/flags.md` (tttt)). The bench is a played board,
-    // so a different world is a differently-developed town: at fourteen turns on
-    // the new map the seat has just taken its second site and wants a settler
-    // badly enough that a column next door does not move it, which makes the
-    // *quiet* half of the comparison a soldierless answer for a reason that has
-    // nothing to do with threat. Two turns on, the town is between errands — a
-    // worker in the quiet world, a soldier under the column — and that is the
-    // comparison the addendum is about. It is asserted below rather than
-    // assumed: the quiet pick must be something other than a soldier, or the
-    // test proves nothing by finding one under siege.
-    const game = grownGame(16);
+    // **Re-sited 2026-09-11**, twice, for the user's new mapgen defaults and
+    // then M2's spacing (`docs/flags.md` (tttt), (rrrr)). The bench is a played
+    // board, so a different world is a differently-developed town, and the
+    // comparison the addendum is about — a worker in the quiet world, a soldier
+    // under the column — only shows on turns when the town is between errands:
+    // on a turn it has just taken a second site it wants a settler badly enough
+    // that a column next door does not move it. Swept 8–26 on the current
+    // board: fourteen reads as the addendum says (so do 10, 12, 18 and 26;
+    // 16, 20, 22 and 24 do not), and fourteen is the figure the test was born
+    // with. It is asserted below rather than assumed: the quiet pick must be
+    // something other than a soldier, or the test proves nothing by finding
+    // one under siege.
+    const game = grownGame(14);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned

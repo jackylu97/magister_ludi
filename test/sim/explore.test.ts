@@ -548,8 +548,8 @@ describe('determinism', () => {
    * for a re-take.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'acb35af7:187685',
-    2026: '68cb3ec1:187538',
+    11: 'd8f5a676:187628',
+    2026: '1413bb21:187513',
   };
 
   for (const seed of [11, 2026]) {
