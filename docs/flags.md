@@ -52,11 +52,16 @@ The letter is the item the question came out of; the item's full history is in
 ### The map and the starts
 
 - **(rrrr) · (tttt) Spacing, and a crowded roster.** Starts are
-  `spacingFactor` 0.55 × √land, clamped to a floor of 12 and a ceiling of 20.
+  `spacingFactor` 0.55 × √land, clamped to a floor of 10 and a ceiling of 20.
   The floor is ruled for **six** seats; what a **twelve**-seat standard game
   should do — relax the floor with a report, or refuse the count in the stepper —
   is open. `spacingFactor` itself is the lever if the user wants standard at 16
   rather than 20.
+- **(tttt) Duel's river quota fell to half.** `rivers.minLength` 4 → 5 alone
+  did it (isolated per knob): on 386 land tiles many traces reach the sea in
+  four edges, and duel is under `pitLakeMinTiles` so it has no basin to flood.
+  Standard, large, huge and giant fill their quotas. If duel should stay
+  riverine the knob is a per-size `minLength` or letting duel pool.
 - **(cccc) The luxury guarantee's fallthrough.** A leader's base luxury guarantee
   was tightened to hand-or-nothing, its whole-table fallthrough removed. If a
   seed sweep shows that starves a start, the fallthrough comes back.
@@ -71,13 +76,6 @@ The letter is the item the question came out of; the item's full history is in
   passive, or keep and finish it. Until that is answered the "not yet" lines
   stay, and `docs/leaders.md`'s deferred bullets for the fifteen L3c rows are
   stale.
-- **(iiii) A leader's unique costs no maintenance.** `unitUpkeep` prices a piece
-  off its **unlocking tech's** age, and no technology names a leader's unique
-  (ten rows), so every one of them is free to keep. A rule, not a bug to patch
-  quietly.
-- **(iiii) Pachacuti's pasture refill fires per step.** A column hopping pasture
-  to pasture is refilled at each one; the doc says "when stepping on one", so no
-  cap was invented. Once a turn instead is the user's call.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.
