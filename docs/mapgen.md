@@ -1539,7 +1539,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `minDistance` | 10 | clamp floor, and **the floor the seating ladder relaxes to** (5 until 2026-09-11, `docs/flags.md` (tttt) and (rrrr)) — see [spacing and seating](#spacing-and-seating) |
 | `maxDistance` | 20 | clamp ceiling (16 until 2026-09-11). At `spacingFactor` 0.55 every size from `standard` up reads above it, so this *is* their spacing |
 | `contactPenalty` | 6 | what a candidate loses per start already standing within `contactRadius` — the preference for distance above the floor |
-| `contactRadius` | 12 | how near counts, at-or-within. **Under the board's spacing it cannot fire**: every candidate the sweep sees is already `spacing` hexes off every chosen start, so raise it above the spacing to give the line bite (measured below) |
+| `contactRadius` | 26 | how near counts, at-or-within. Shipped at 26 because **under the board's spacing a radius of 12 cannot fire**: every candidate the sweep sees is already `spacing` hexes off every chosen start, so raise it above the spacing to give the line bite (measured below) |
 | `ringWeights` | [1.0, 0.55] | what each ring is worth; **its length is how many rings are scored** |
 | `workedTiles` | 6 | how many ring tiles are scored — the best this many, not all |
 | `centreWeight` | 2.0 | what the site's own tile is worth against a ring tile's 1 |
