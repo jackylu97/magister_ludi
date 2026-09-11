@@ -200,6 +200,16 @@ export interface OverlayState {
    */
   lockedColor?: number;
   /**
+   * The seat's **primary** ink for the selection ring (the user, 2026-09-11,
+   * `docs/flags.md` (qqqq): *"the unit outline on the tile when it's selected
+   * is still using the old colors, please update to use the primary color of
+   * the civ"*). The ring names *whose* piece is chosen, and since H7 a seat has
+   * a colour worth naming; the data-file accent stands in where there is no
+   * seat, exactly as `lockedColor`'s does. The hover ring keeps the accent —
+   * a cursor belongs to nobody.
+   */
+  selectionColor?: number;
+  /**
    * Move mode is armed (see `MapView.setMoveModeHighlight`): the selection ring
    * is drawn at full strength with a wider halo outside it, so the piece that is
    * about to take an order looks live.
@@ -432,7 +442,7 @@ export class OverlayLayer {
     // own tile, the hover ring is the one that should be visible, because it is
     // the one that tracks the mouse.
     for (const [cell, color] of [
-      [state.selection, OVERLAY.selectionColor] as const,
+      [state.selection, state.selectionColor ?? OVERLAY.selectionColor] as const,
       [state.hover, OVERLAY.hoverColor] as const,
     ]) {
       if (!cell) continue;

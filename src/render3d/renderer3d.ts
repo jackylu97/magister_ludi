@@ -920,6 +920,16 @@ export class Renderer3D implements MapView {
                 this.state?.players[this.fogSeat]?.color ?? '',
                 this.fogSeat,
               ),
+        // And the selection ring in the same ink: the piece chosen is the
+        // seat's, so the ring round it is the seat's primary (H7, then the
+        // user's note of 2026-09-11 that it still wore the old accent).
+        selectionColor:
+          this.fogSeat === null
+            ? undefined
+            : playerPieceColor(
+                this.state?.players[this.fogSeat]?.color ?? '',
+                this.fogSeat,
+              ),
         moveMode: this.moveMode,
       },
       this.geometry,

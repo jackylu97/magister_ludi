@@ -273,6 +273,39 @@ describe('board overlays draw over the board', () => {
     layer.dispose();
   });
 
+  it('rings the selected hex in the seat’s own primary, and the hovered one in the accent', () => {
+    // H7 gave a seat a colour worth naming, and the user found the selection
+    // ring still wearing the data file's terracotta (2026-09-11, (qqqq)). The
+    // ring says *whose piece is chosen*, so it takes the seat's primary where
+    // the renderer hands one down — `lockedColor`'s arrangement exactly — and
+    // the accent only where there is no seat. The hover ring is the cursor's
+    // and belongs to nobody, so it keeps the accent either way.
+    const state = flatState();
+    const bare = {
+      reachable: [],
+      attackable: [],
+      path: [],
+      committed: [],
+      hover: { col: 4, row: 1 },
+      selection: { col: 5, row: 1 },
+      worked: [],
+      locked: [],
+    };
+    const seat = 0x8b2635;
+    const withSeat = new OverlayLayer();
+    withSeat.build(state.map, { ...bare, selectionColor: seat }, geometry, materials);
+    const inks = colorsOf(withSeat.group);
+    expect(inks).toContain(seat);
+    expect(inks).toContain(VIEW3D.overlay.hoverColor);
+    expect(inks).not.toContain(VIEW3D.overlay.selectionColor);
+    withSeat.dispose();
+
+    const noSeat = new OverlayLayer();
+    noSeat.build(state.map, bare, geometry, materials);
+    expect(colorsOf(noSeat.group)).toContain(VIEW3D.overlay.selectionColor);
+    noSeat.dispose();
+  });
+
   /**
    * The reachable set is a wash *and* a rim, and the rim is the load-bearing
    * half.
