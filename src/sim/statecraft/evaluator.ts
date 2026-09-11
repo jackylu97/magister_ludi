@@ -1286,6 +1286,24 @@ function cityCount(state: GameState, playerId: number): number {
 }
 
 /**
+ * How many of this empire's towns a scope admits — `cityCount` narrowed.
+ *
+ * The one reading behind a *scoped* per-city figure (`CardAuthorityEffect.scope`
+ * today), and it is `cityCount` with the one predicate every scoped clause in
+ * this file already goes through rather than a second walk with a second idea of
+ * what "joined by road" means. An absent scope is the whole roster, which is
+ * what every unscoped row has always counted.
+ */
+function scopedCityCount(state: GameState, playerId: number, scope?: CityScope): number {
+  if (!scope) return cityCount(state, playerId);
+  let count = 0;
+  for (const city of citiesOf(state, playerId)) {
+    if (cityScopeAdmits(state, city, scope, playerId)) count += 1;
+  }
+  return count;
+}
+
+/**
  * Does this empire condition hold? See the module docblock for the recursion
  * cut that makes the two meter arms terminate.
  */
@@ -1332,6 +1350,18 @@ function empireConditionHolds(
       // Law's forges on turn one and never closed them. A war is one row per
       // unordered pair, so "am I at war" is "does a row name me".
       return state.wars.some((war) => war.a === playerId || war.b === playerId);
+    case 'keepingRite': {
+      // Through `cityRite`, the one reading of "what is this town keeping" —
+      // the same predicate `CityScope`'s own `keepingRite` arm goes through, so
+      // the gate and the scope cannot disagree about whether a fire is lit. A
+      // comparison against `City.timed`'s absolute stamps, so the condition
+      // closes on the turn the last rite's expiry passes and nothing ticks.
+      for (const city of state.cities) {
+        if (city.ownerId !== playerId) continue;
+        if (cityRite(state, city) !== null) return true;
+      }
+      return false;
+    }
     default: {
       const unhandled: never = test;
       void unhandled;
@@ -1447,6 +1477,66 @@ function hasAdjacentGreatWork(state: GameState, city: City): boolean {
 }
 
 /**
+ * **Does this building supply this voice in this town?** `hasBuildingYielding`'s
+ * whole reading.
+ *
+ * Two ways a row pays a voice and the scope has to know both, which is what the
+ * House of Millions of Years found: a Theatre of Dionysus carries its culture in
+ * the `culture` column of its own row, and the Hagia Sophia carries hers in a
+ * `pays` clause that lands in the towns with a temple in them. Asking the column
+ * alone said that the second one sings nowhere — a wonder built to be sung in,
+ * counted silent — and a card whose whole subject is *a work that sings* cannot
+ * be written on half the question.
+ *
+ * The clause half is deliberately narrow, and each narrowing is the honest
+ * reading rather than a simplification:
+ *
+ *   · **a flat town line** (`where: 'city'`, or `'capital'` in the capital) and
+ *     nothing else. A share of the town's own fold pays *because* something else
+ *     already paid, an empire line has no town, a hex line is the ground's and a
+ *     caravan's is the road's — none of those is a building supplying a voice
+ *     *here*;
+ *   · **a positive figure**, so a row that takes culture away is not a row that
+ *     supplies it;
+ *   · **the clause's own scope admits this town**, which is what makes the
+ *     answer local: the Hagia Sophia sings in the towns with a temple and is
+ *     quiet in the rest, and a scope that ignored her condition would have been
+ *     the opposite mistake to the one it fixes.
+ *
+ * The depth guard is `conditionDepth`'s idiom one question over: a wonder whose
+ * own clause were scoped on `hasBuildingYielding` would otherwise ask this
+ * function for the answer it is computing. No row does that today; the cut is
+ * what makes writing one a quiet no rather than a stack overflow.
+ */
+let suppliesDepth = 0;
+
+function buildingSupplies(
+  state: GameState,
+  city: City,
+  id: BuildingId,
+  voice: CityYieldKey,
+): boolean {
+  const def = buildingDef(id);
+  if ((def[voice] ?? 0) > 0) return true;
+  if (suppliesDepth > 0) return false;
+  const isCapital = capitalCityOf(state, city.ownerId)?.id === city.id;
+  suppliesDepth += 1;
+  try {
+    for (const effect of def.effects ?? []) {
+      if (effect.kind !== 'pays') continue;
+      if ((effect.basis ?? 'flat') !== 'flat') continue;
+      if (effect.where !== 'city' && !(effect.where === 'capital' && isCapital)) continue;
+      if ((effect[voice] ?? 0) <= 0) continue;
+      if (!cityScopeAdmits(state, city, effect.scope, city.ownerId)) continue;
+      return true;
+    }
+  } finally {
+    suppliesDepth -= 1;
+  }
+  return false;
+}
+
+/**
  * **THE** question "can this town drink" — the board's answer, or a card's.
  *
  * The one predicate `cityScopeAdmits`' `freshwater` and `notFreshwater` arms go
@@ -1525,6 +1615,11 @@ export function cityScopeAdmits(
       return cityHasFreshwater(state, city);
     case 'notFreshwater':
       return !cityHasFreshwater(state, city);
+    case 'riverside':
+      // The centre's own hex and the **mask itself**, never the derived
+      // `freshwater` beside it: a river is an edge, a lake is not, and a card in
+      // the law may declare the drinking and may not dig a river. See the scope.
+      return cityTile(state.map, city).riverEdges !== 0;
     case 'mountainAdjacent':
       return isMountainAdjacent(state, city, scope.radius);
     case 'adjacentImprovement':
@@ -1558,6 +1653,11 @@ export function cityScopeAdmits(
       return isFrontierCity(state, city, scope.radius ?? FRONTIER_RADIUS);
     case 'captured':
       return city.captured;
+    case 'puppet':
+      // **Presence is the state** (`City.puppet`), so the question is asked of
+      // the key and never of `captured`: a conquest the captor annexed is a
+      // province and owes no tribute, and it is `captured` forever.
+      return city.puppet === true;
     case 'capital':
       return capitalCityOf(state, city.ownerId)?.id === city.id;
     case 'notCapital':
@@ -1601,7 +1701,7 @@ export function cityScopeAdmits(
       return city.buildings.some(
         (id) =>
           (scope.wonder !== true || isWonder(id)) &&
-          (buildingDef(id)[scope.yields] ?? 0) > 0,
+          buildingSupplies(state, city, id, scope.yields),
       );
     case 'onTerrain':
       // The centre's own hex and nothing wider. See the scope's docblock.
@@ -1733,6 +1833,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'fresh water';
     case 'notFreshwater':
       return 'no fresh water';
+    case 'riverside':
+      return 'on a river';
     case 'mountainAdjacent':
       return scope.radius !== undefined && scope.radius > 1
         ? `mountain within ${scope.radius}`
@@ -1751,6 +1853,8 @@ function scopeNote(scope?: CityScope): string | null {
       return 'near a rival';
     case 'captured':
       return 'captured city';
+    case 'puppet':
+      return 'puppet';
     case 'capital':
       return 'capital';
     case 'notCapital':
@@ -4006,11 +4110,18 @@ export function cardAuthority(state: GameState, playerId: number): CardMeterLine
   for (const { source, card, effect } of effectsOfKind(state, playerId, 'authority')) {
     const each = effect.amount;
     if (each === 0) continue;
-    const towns = effect.per === 'city' ? cityCount(state, playerId) : 1;
+    // **The towns the row admits**, which is every one of them where the row
+    // names no scope — the reading every line written before the field had. The
+    // scope narrows the *count* and never the meter: capacity is capacity, and a
+    // card that wants a town cheaper to hold says so with a `meterRule`.
+    const towns = effect.per === 'city' ? scopedCityCount(state, playerId, effect.scope) : 1;
     if (towns === 0) continue;
     list.push({
       card,
-      source: effect.per === 'city' ? label(source, `${towns} cities`) : source,
+      source:
+        effect.per === 'city'
+          ? label(source, `${towns} ${scopeNote(effect.scope) ?? 'cities'}`)
+          : source,
       amount: each * towns,
     });
   }
@@ -4904,6 +5015,17 @@ export interface WindfallOccasionFacts {
    * that would then have to decide what to do with one on a chop.
    */
   population?: number;
+  /**
+   * The **family** of the great person who just acted — The Great Poets'
+   * artists.
+   *
+   * Passed for `population`'s reason rather than for `capturedWonder`'s: the
+   * payout is asked of an empire and an occasion, and an act's whole subject is
+   * one piece which is consumed a moment later. Carried only by the
+   * `greatPersonAct` occasion, so a rider asking for it on any other pays
+   * nothing.
+   */
+  family?: Family;
 }
 
 /**
@@ -4988,6 +5110,9 @@ export function windfallPayout(
     // And the fourth: Dinocrates pays for a wonder raised, not for a granary.
     // An occasion that carries no such fact never satisfies it.
     if (effect.wonder === true && facts.wonder !== true) continue;
+    // And the fifth: The Great Poets pay for an artist's afternoon, not for a
+    // general's. An occasion that carries no family never satisfies it.
+    if (effect.family !== undefined && facts.family !== effect.family) continue;
     if (effect.perAge === true) {
       ageMultiplied = true;
       if (era > 1) payout.lines.push({ card, source, note: `×${era} (Æra ${eraNumeral(era)})` });
@@ -6390,14 +6515,48 @@ export function cardAmplifier(
   state: GameState,
   playerId: number,
   target: AmplifierTarget,
+  /**
+   * **Whose act**, where the caller holds one (`greatPersonActAt`, and nothing
+   * else today). A row that names a family is dropped when the family does not
+   * match **and when the caller named none** — see the field's own docblock: a
+   * clause that reaches one of five must not be read by a seam that cannot tell
+   * which.
+   */
+  family?: Family,
 ): number {
   let percent = 0;
   for (const { effect } of effectsOfKind(state, playerId, 'effectAmplifier')) {
     if (effect.target !== target) continue;
+    if (effect.family !== undefined && effect.family !== family) continue;
     if (effect.percent === undefined) continue;
     percent += effect.percent;
   }
   return percent;
+}
+
+/**
+ * **How many extra chairs this empire's law opens**, on top of whatever its
+ * government lays out — The King's Friends' one (`CardSlotRiderEffect`).
+ *
+ * The card reading and nothing else: it answers *how many*, and what a council
+ * is then shaped like is `chairCount`'s in `draft.ts`, which is the one consumer
+ * and the one thing that ever writes `PlayerStatecraft.slots`. Here for
+ * `cardAmplifier`'s reason — a walk of the live list belongs in the module that
+ * knows what a card effect is — and read from there for the module boundary's:
+ * a government's layout is the draft's business, not this file's.
+ *
+ * Never negative. A row that wrote a negative figure would be a card taking a
+ * chair away, which is a punishment nobody has designed and which a council
+ * already full would answer by dropping a card somebody slotted.
+ */
+export function cardExtraChairs(state: GameState, playerId: number): number {
+  let extra = 0;
+  for (const { effect } of effectsOfKind(state, playerId, 'slotRider')) {
+    // A rider with no figure opens the ordinary one chair, exactly as a route
+    // rider with none grants the ordinary one road.
+    extra += effect.extra ?? 1;
+  }
+  return Math.max(0, Math.floor(extra));
 }
 
 /**

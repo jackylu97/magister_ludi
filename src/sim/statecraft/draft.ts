@@ -55,7 +55,7 @@ import { awardOrderBeads } from '../beads';
 import { awardOccasion } from '../triumphs';
 import { type TechAge, highestAge } from '../techData';
 import { sealTurnsFor } from './evaluator';
-import { cityScopeAdmits, effectsOfKind } from './evaluator';
+import { cardExtraChairs, cityScopeAdmits, effectsOfKind } from './evaluator';
 import { bumpEconomy } from '../slate';
 
 const METER = STATECRAFT.meter;
@@ -511,7 +511,77 @@ function orderWatches(id: OrderId, occasion: TallyOccasion): boolean {
  * order for that reason.
  */
 export function slotTypesOf(sc: PlayerStatecraft): SlotType[] {
-  return slotLayout(sc.government);
+  const layout = slotLayout(sc.government);
+  // **The array is the standing fact about how many chairs there are**, and the
+  // government is the fact about what *kind* each of the first ones is. A card
+  // may open more (`CardSlotRiderEffect`), and those are wildcards by
+  // construction and appended at the end — so the contract above survives
+  // untouched: chair *i* is still the same chair it was before the card was
+  // taken, and no position card renumbers. Padded here rather than asked of the
+  // law, because this function holds no state and no seat: `chairCount` is where
+  // the card is read, and this is the one reading of what is already written
+  // down.
+  while (layout.length < sc.slots.length) layout.push('wildcard');
+  return layout;
+}
+
+/**
+ * **How many chairs this empire's council has** — its government's layout plus
+ * whatever its law adds (`cardExtraChairs`).
+ *
+ * The one figure `PlayerStatecraft.slots` is ever built to, and therefore the
+ * one place the card is read. Every other reading in the game asks the array:
+ * `slotTypesOf` pads to its length, `slotOrderError` bounds on it, the screen
+ * draws it. That is what makes a widened council a *fact about the state* rather
+ * than a figure four readers have to remember to add.
+ */
+export function chairCount(state: GameState, playerId: number, government: GovernmentId): number {
+  return slotCount(government) + cardExtraChairs(state, playerId);
+}
+
+/**
+ * **Re-fits a council to the chairs its law now opens**, keeping what is sitting
+ * in the chairs that survive.
+ *
+ * The seam a card that widens a government has to have, and the one thing that
+ * separates it from `adoptGovernmentAt`'s rebuild: an adoption is a *chapter
+ * break* and amnesties every card by design (the new spread's chair 2 is not the
+ * old one's), while a chair opened mid-reign changes nothing about the chairs
+ * already occupied — the flavours are the same government's, index for index,
+ * and the new one is appended. So this is a resize and not a rebuild, and a
+ * player who takes The King's Friends does not lose the council they arranged.
+ *
+ * **Shrinking returns cards to the collection**, which is what an amnesty does
+ * one seam over: a card cannot sit in a chair that no longer exists, and
+ * `PlayerStatecraft.orders` is the collection it came from, so the row is still
+ * held and still slottable the moment there is somewhere to put it. Nothing is
+ * lost and nothing is sealed — a seal is a promise about a chair.
+ *
+ * Called wherever the law that opens chairs changes: `adoptGovernmentAt` builds
+ * to `chairCount` directly, and a leader's pick calls this (`chooseLeaderCardAt`,
+ * on the far side of `forgetTheLaw`, so the card it just took is in the law it
+ * reads). Any future seam that grants or withdraws a `slotRider` calls it too —
+ * that is the whole register, and it is short on purpose.
+ */
+export function refitSlots(state: GameState, player: Player): OrderId[] {
+  const sc = player.statecraft;
+  const want = chairCount(state, player.id, sc.government);
+  if (want === sc.slots.length) return [];
+  const returned: OrderId[] = [];
+  while (sc.slots.length > want) {
+    const dropped = sc.slots.pop();
+    if (dropped && isOrderId(dropped.card)) returned.push(dropped.card);
+  }
+  while (sc.slots.length < want) sc.slots.push(null);
+  // **And the malices take their chairs again**, for `adoptGovernmentAt`'s
+  // reason exactly: a chair index is read off the seating, and a council that
+  // shrank under a malice would leave one pointing at a chair that no longer
+  // exists. Cheap and idempotent on a council that only grew.
+  reseatMalices(player);
+  // A chair opened or closed is a chair the meters read through — an Order's
+  // lines come and go with it (batch M3, `slate.ts`).
+  bumpEconomy(state);
+  return returned;
 }
 
 /**
@@ -1668,7 +1738,11 @@ export function adoptGovernmentAt(
   // Rebuilt rather than resized: the new layout's slot 2 is not the old one's,
   // so carrying anything across by index would seal the wrong card in the wrong
   // kind of slot. The amnesty is total by construction.
-  sc.slots = slotLayout(id).map(() => null);
+  //
+  // **To `chairCount` and not to `slotLayout`**, so a law that opens chairs of
+  // its own (The King's Friends) opens them under every government this realm
+  // ever adopts — which is the whole sentence that card makes.
+  sc.slots = new Array<SlottedOrder | null>(chairCount(state, player.id, id)).fill(null);
   // **The amnesty is for Orders and never for a malice** (§4): the debt is owed
   // to the next wager rather than to the government that owed it, so every one
   // this realm carries takes a chair in the new spread. See `reseatMalices`.

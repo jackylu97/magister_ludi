@@ -144,6 +144,7 @@ import {
   maliceChairRefusal,
   nextDraftCost,
   sealRemaining,
+  slotTypesOf,
 } from '../sim/statecraft';
 import { maliceDef } from '../sim/maliceData';
 import {
@@ -160,7 +161,6 @@ import {
   isOrderId,
   orderDef,
   orderFitsSlot,
-  slotLayout,
 } from '../sim/statecraftData';
 import {
   cardStampNode,
@@ -722,7 +722,11 @@ export function createStatecraftScreen(options: StatecraftScreenOptions): Statec
     arrangement: StagedSlots,
   ): HTMLElement {
     const block = element('section', 'sc-slots');
-    const layout = slotLayout(sc.government);
+    // **`slotTypesOf` and never `slotLayout`**: the government lays out the
+    // chairs it opens and the *law* may open more (`CardSlotRiderEffect`), which
+    // `PlayerStatecraft.slots`' own length carries. A column drawn from the
+    // government alone would simply not draw The King's Friends' chair.
+    const layout = slotTypesOf(sc);
     // The seat itself, for the one thing that is not in the statecraft record: a
     // malice holds a chair from `Player.malices` (batch G3, `maliceAt`).
     const player = playerById(state, seat);

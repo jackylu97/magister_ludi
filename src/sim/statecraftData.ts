@@ -279,6 +279,25 @@ export type CityScope =
   /** Its negation, which River Kings needs as its own line rather than as a sign. */
   | { test: 'notFreshwater' }
   /**
+   * The town's **own hex has a river running along one of its edges** — The
+   * Great Yangtze, whose provinces are the ones the river reaches.
+   *
+   * `freshwater`'s narrow half and a member of its own rather than a flag on
+   * it, for `terrainBeside`'s reason exactly: the two are different
+   * measurements of the same ground. That one asks *can this town drink*, which
+   * a lake next door answers and a card in the law (Cistern Works) can declare
+   * outright; this asks *was this town planted on a river*, which is a fact
+   * about where the settler stopped that nothing later can grant. A figure who
+   * pays for river towns is paying for the founding decision, so a cistern must
+   * not buy the bonus and a lakeside town must not collect it.
+   *
+   * Read off `Tile.riverEdges` — the mask itself, the field `water.ts` is the
+   * only writer of — because a river in this game runs along an *edge* and "any
+   * edge at all" is the whole question. Never `Tile.freshwater`, which is the
+   * derived answer to the other question.
+   */
+  | { test: 'riverside' }
+  /**
    * A mountain stands within `radius` hexes of the town — one by default, which
    * is the town's own hex plus the ring of six, the reach every other "beside
    * this town" clause in the game takes.
@@ -293,6 +312,27 @@ export type CityScope =
   | { test: 'frontier'; radius?: number }
   /** The town was taken by force, ever (`City.captured`). */
   | { test: 'captured' }
+  /**
+   * The town is a **puppet** — taken and never taken in (`City.puppet`) — The
+   * Heavenly Khagan's vassals and The Tribute of the Han's.
+   *
+   * `captured`'s neighbour and emphatically not a reading of it: that one is
+   * sticky and says *whether ever*, so a conquest the captor annexed is still
+   * `captured` forever, while this is the **standing arrangement** the captor
+   * may end at any turn by annexing. A tribute is owed by a vassal and not by a
+   * province, which is exactly the difference, and it is the difference a player
+   * can act on — annex the town and the tribute stops.
+   *
+   * Asked of the **town's owner**, exactly as `capital` and `captured` are: a
+   * puppet is somebody's puppet, and a card read of another empire's town means
+   * that empire's arrangement.
+   *
+   * The scope beside `CountKind`'s `puppetPopulation`, and the two are two
+   * questions: that counts the citizens a tribute is quoted per, and this admits
+   * the towns a line is paid *in*. A card that wants a share of what a vassal
+   * makes can only say it here, because a share is a fact about one town's fold.
+   */
+  | { test: 'puppet' }
   /** The town is this empire's capital (`capitalCityOf`). */
   | { test: 'capital' }
   /** The town is at least this large. */
@@ -689,7 +729,25 @@ export type EmpireCondition =
    * fact about the *empire*, and the clause it opens lands wherever the clause
    * says it lands.
    */
-  | { test: 'atWar' };
+  | { test: 'atWar' }
+  /**
+   * **A rite is burning somewhere in this realm** — The Rite of the Sky, whose
+   * riders are bolder while the fires are lit.
+   *
+   * A gate and not a scope, which is the distinction this union keeps:
+   * `CityScope`'s `keepingRite` asks whether *this town* is keeping one and
+   * lands the clause in the towns that are, and this asks whether *anybody* is
+   * and opens a clause that has nothing to do with a town at all — a strength
+   * line on an army in the field, which no city scope could ever reach.
+   *
+   * Read through `cityRite` over this empire's towns, the one reading of "what
+   * is this place keeping", so the gate closes on the turn the last rite's own
+   * absolute expiry passes and nothing ticks (`TimedEffect`'s rule). The
+   * condition is evaluated ignoring condition-gated effects (`conditionDepth`,
+   * the one stated cut), which costs nothing here: a rite is stamped on a city
+   * and no card can grant one by being read.
+   */
+  | { test: 'keepingRite' };
 
 /**
  * When a strength line applies. The whole of `combatCardLine`'s generality.
@@ -2448,7 +2506,28 @@ export type WindfallOccasion =
    * Fired once per firing slot, so an empire holding two periodic Orders that
    * come round on the same turn pays two windfalls — the riders ride each.
    */
-  | 'periodic';
+  | 'periodic'
+  /**
+   * **A great person was spent on its family's boon** (`greatPersonActAt`) —
+   * The Great Poets' quickened years of work and song.
+   *
+   * `declareWar`'s shape rather than a chop's: the act has no figure of its own
+   * here — what a scholar's beakers or an artist's culture come to is composed
+   * inside the act itself, ageing and Leonardo's share included (Entry XVIII.5),
+   * and banked through that family's own seam — so this occasion pays the
+   * **riders and nothing else**, with a base of nought. A card that wanted to
+   * scale the act's own figure says `effectAmplifier` at `greatPersonAct`, which
+   * is the reading that reaches the arithmetic; this is the moment beside it.
+   *
+   * Narrowed by `CardWindfallRiderEffect.family`, so "when one of your artists
+   * finishes a work" is one row on one occasion rather than five occasions.
+   *
+   * It fires for the **act** and never for the **work**: a citadel is a thing on
+   * the ground and a boon is a moment, which is the same split the amplifier's
+   * own docblock states, and `TallyOccasion`'s `greatPersonSpent` already counts
+   * both for the cards that mean to.
+   */
+  | 'greatPersonAct';
 
 /** What a rider adds on top of the occasion's own payout. */
 export interface WindfallGrantSpec {
@@ -3017,6 +3096,23 @@ export interface CardAuthorityEffect {
   kind: 'authority';
   amount: number;
   per?: 'city';
+  /**
+   * **Which towns are counted**, on a `per: 'city'` line — The Tribute Road's
+   * provinces at the end of a road, and The Great Yangtze's on the water.
+   *
+   * The ordinary `CityScope`, read by the ordinary evaluator, so "the towns a
+   * road reaches" means here exactly what it means in the treasury and on a
+   * yield line. It is a narrowing of the **count** and nothing else: capacity is
+   * still capacity (`cardAuthority`'s own rule — a card that wants cities
+   * *cheaper* says so with a `meterRule`), and a figure paid per admitted town
+   * is the honest way to say "these ones cost you less to hold" without
+   * inventing a second discount on the meter.
+   *
+   * Meaningless without `per: 'city'`, and ignored there: a flat capacity is a
+   * fact about the realm and has no town to ask about. Absent counts every town,
+   * which is what every row written before it meant.
+   */
+  scope?: CityScope;
 }
 
 /** Percentage points on the positive happiness rungs. Amber's shape. */
@@ -3385,6 +3481,19 @@ export interface CardWindfallRiderEffect {
    * wrong occasion honest.
    */
   wonder?: boolean;
+  /**
+   * The rider fires only when the great person who acted was of this **family**
+   * — The Great Poets' quickened years, which follow an artist and nobody else.
+   *
+   * `vsBarbarians`', `capturedWonder`'s, `atPopulation`'s and `wonder`'s fifth
+   * sibling, and a filter on the *occasion* for their reason exactly: a great
+   * person acting and an artist acting are one moment asked two ways, and the
+   * seam that fires it (`payActRiders`) is the one thing holding the person.
+   * Read off `WindfallOccasionFacts.family`, so a rider written onto an occasion
+   * that carries no such fact is simply never on that payout — silent rather
+   * than universal.
+   */
+  family?: Family;
 }
 
 /** What a newly founded city is founded *with*. */
@@ -3481,6 +3590,37 @@ export interface CardRouteRiderEffect {
 }
 
 /**
+ * **Chairs at the council**, on top of whatever government this empire keeps —
+ * The King's Friends, who kept the men who had nowhere else to go.
+ *
+ * `CardRouteRiderEffect`'s sibling one system over and deliberately its shape: a
+ * number of extra somethings, read by one fold, printed as one line. What it
+ * says is a fact about the *realm* rather than about a government — "every
+ * government opens one more free chair" — which is why it is not a number on a
+ * government's own `slots` spread: a row there would have had to be written six
+ * times and re-written every time a seventh government is added.
+ *
+ * **The extra chair is a wildcard**, and that is a ruling rather than a
+ * convenience: `slotLayout` groups a government's chairs by flavour, military
+ * first, and the index of a chair is a position a player arranges cards in and a
+ * card may be paid for (`slotTypesOf`'s contract). A typed chair inserted into
+ * the middle of that layout would renumber every position card in the game; one
+ * appended at the end takes anything, which is what a free chair means. A row
+ * that wants a *typed* chair is a design decision and earns its own field then.
+ *
+ * Read in exactly one place — `chairCount` (`statecraft/draft.ts`), which every
+ * rebuild of `PlayerStatecraft.slots` goes through — and the array's **length**
+ * is the standing fact it produces, so a card taken mid-government widens the
+ * council the moment it is taken (`refitSlots`) and a card that stopped being
+ * held narrows it again on the next refit.
+ */
+export interface CardSlotRiderEffect {
+  kind: 'slotRider';
+  /** How many extra chairs. Absent means one. */
+  extra?: number;
+}
+
+/**
  * A percentage on somebody else's effect. The Grand Bazaar's whole identity.
  *
  * **Two dials, and a row turns one of them.** `percent` is a share of the figure
@@ -3505,6 +3645,23 @@ export interface CardEffectAmplifierEffect {
   percent?: number;
   /** A flat step on it, applied before the share. See the docblock. */
   amount?: number;
+  /**
+   * **Whose act** — The Great Poets, whose hundred percent is the artists' and
+   * nobody else's.
+   *
+   * A narrowing on the `greatPersonAct` target and meaningless on every other,
+   * for `CardWindfallRiderEffect.vsBarbarians`' reason exactly: an act and an
+   * artist's act are one moment asked two ways, and a second target
+   * (`greatArtistAct`, `greatEngineerAct`, …) would have been five targets for
+   * one reading. Read where the amplifier is (`greatPersonActAt`, which holds
+   * the person), and a reader with no family in hand — every other target's —
+   * **drops** a narrowed row rather than applying it, which is the safe reading
+   * for a clause whose whole point is that it reaches one of five.
+   *
+   * Absent reaches every family, which is what Leonardo's row means and what
+   * every row written before this field meant.
+   */
+  family?: Family;
 }
 
 /** A constant of the meters, replaced (`value`) or shifted (`delta`). */
@@ -4597,6 +4754,9 @@ export type CardEffect =
   | CardFoundingRiderEffect
   | CardOfferRiderEffect
   | CardRouteRiderEffect
+  // Batch L3a: the route rider's sibling, and the one shape that widens a
+  // council. See `CardSlotRiderEffect`.
+  | CardSlotRiderEffect
   | CardEffectAmplifierEffect
   | CardMeterRuleEffect
   | CardConditionRuleEffect

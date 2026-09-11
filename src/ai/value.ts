@@ -137,9 +137,10 @@ import { renownPerTurn } from '../sim/renown';
 // The pair resolution and a road's own length, off the leaf every fold reads
 // them from — so an appraisal and a caravan cannot disagree about which roads
 // are running or how far apart their two towns are.
+import { FAMILIES } from '../sim/greatPeopleData';
 import { routeCities, routeHexes, routeIsLive } from '../sim/routes';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
-import { availableRites } from '../sim/religion';
+import { availableRites, cityRite } from '../sim/religion';
 import { LIVE_RITE_IDS, riteDef } from '../sim/religionData';
 import { RULES } from '../sim/rulesData';
 import {
@@ -2983,6 +2984,18 @@ function scoreEffect(effect: CardEffect, ctx: ValueContext): number {
       const slot = routeSlotTerm((effect.extra ?? 1) * towns, ctx);
       return slot === null ? 0 : slot.value;
     }
+    case 'slotRider':
+      // **A chair is a card put to work**, so it is priced exactly as one more
+      // card in a draft is (`offerRider` above): the same stand-in, because the
+      // two are the same promise from opposite ends — that one deals a row this
+      // empire does not hold, and this opens a chair for a row it does. Anything
+      // sharper would have to be `scoreCard` on the best benched Order, and that
+      // lives in `bot.ts`, which reads this file and may not be read back.
+      //
+      // Never discounted for an empty chair. A council with a free seat still
+      // fills it at the next draft, and a card held for the rest of the game is
+      // not worth nothing because of what happens to be slotted this turn.
+      return ctx.ai.score.unknownEffect * ctx.ai.score.nominalCount * (effect.extra ?? 1);
     case 'effectAmplifier':
       return scoreAmplifier(effect, ctx);
     case 'unlocksBuilding': {
@@ -3413,6 +3426,19 @@ function occasionRate(occasion: WindfallOccasion, ctx: ValueContext): number {
       const span = Math.max(1, riteDef(LIVE_RITE_IDS[0]!).duration ?? 1);
       return ctx.cities / span;
     }
+    case 'greatPersonAct':
+      // **A great person is called and spent once in a long while**, and there
+      // is no honest per-turn figure for it without this bot predicting its own
+      // renown — which is exactly the thing `beadPerOccasion`'s arm refuses to
+      // do one table down. So the tempo is the seat's own **exchange rate for a
+      // one-off** (`score.lumpTurns`, the rate that already turns a great
+      // person's purse into a per-turn figure), read as one act a span: rare,
+      // and rare in the same currency every other lump in this file is rare in.
+      //
+      // A row that names a family divides this by the roster — see
+      // `scoreWindfallRider`, which is where the narrowing belongs because it is
+      // the only reader holding the row.
+      return 1 / Math.max(1, ctx.ai.score.lumpTurns);
     default:
       return unreadOccasion(occasion);
   }
@@ -3476,7 +3502,13 @@ function scoreWindfallRider(
   effect: Extract<CardEffect, { kind: 'windfallRider' }>,
   ctx: ValueContext,
 ): number {
-  const rate = occasionRate(effect.occasion, ctx);
+  let rate = occasionRate(effect.occasion, ctx);
+  // **A family is one of five**, and unlike the three flags above it really does
+  // narrow a rate the forecast gives whole: a great person is called and spent
+  // whatever family they belong to, so a rider written on the artists fires on a
+  // fifth of those moments. Read off the roster rather than as a constant, so a
+  // sixth family the day a great admiral lands moves the discount with it.
+  if (effect.family !== undefined) rate /= Math.max(1, FAMILIES.length);
   if (rate <= 0) return 0;
   let each = 0;
   if (effect.percent !== undefined) {
@@ -3931,6 +3963,16 @@ function conditionIsLive(
       // the wild is never in it, so raiders cannot open a war clause.
       for (const war of ctx.state.wars) {
         if (war.a === ctx.playerId || war.b === ctx.playerId) return true;
+      }
+      return false;
+    }
+    case 'keepingRite': {
+      // Through `cityRite`, the simulation's own reading of what a town is
+      // keeping — the same predicate the gate itself goes through, so the bot
+      // prices The Rite of the Sky by exactly the fires the rule will see.
+      for (const city of ctx.state.cities) {
+        if (city.ownerId !== ctx.playerId) continue;
+        if (cityRite(ctx.state, city) !== null) return true;
       }
       return false;
     }

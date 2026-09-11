@@ -83,6 +83,7 @@ export {
   buildingMatchesYieldPercent,
   cardActionRule,
   cardAmplifier,
+  cardExtraChairs,
   cardAmplifierFlat,
   cardAuthority,
   cardBeadOccasions,
@@ -210,6 +211,7 @@ export type {
 export {
   adoptGovernmentAt,
   cardRouteSlots,
+  chairCount,
   doctrineChoiceError,
   draftCost,
   draftSettledBy,
@@ -241,6 +243,7 @@ export {
   rarityDrawWeight,
   recordScalingOccasion,
   recordWorldScalingOccasion,
+  refitSlots,
   reseatMalices,
   runStatecraft,
   sealRemaining,

@@ -54,7 +54,7 @@ import {
   realPlayers,
 } from './state';
 import { bumpEconomy } from './slate';
-import { forgetTheLaw } from './statecraft';
+import { forgetTheLaw, refitSlots } from './statecraft';
 import { TECH_AGES, type TechAge, highestAge } from './techData';
 
 /**
@@ -263,6 +263,13 @@ export function chooseLeaderCardAt(
   // them. `realiseItem`'s own note is the precedent, and `forgetTheLaw`'s
   // docblock is the register of every seam that does this.
   forgetTheLaw(state);
+  // **And the council is re-fitted under the law that just changed** (batch
+  // L3a): a card may open a chair (`CardSlotRiderEffect`), and a chair is a fact
+  // about `PlayerStatecraft.slots` rather than a figure four readers add up — so
+  // the array has to grow the moment the card is taken, on the far side of
+  // `forgetTheLaw` so the reading includes the card that paid for it. A resize
+  // and not an adoption's rebuild: nothing the player already arranged moves.
+  refitSlots(state, player);
   bumpEconomy(state);
 
   const card = leaderCard(id);

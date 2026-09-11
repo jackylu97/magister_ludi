@@ -320,6 +320,10 @@ describe('docs/yields.md mirrors the sequence the sim runs', () => {
     'rule',
     'rulePercent',
     'slotPosition',
+    // Batch L3a: a chair at the council (The King's Friends). It pays no voice
+    // at all — what a chair is worth is whatever Order the player puts in it —
+    // so it sits here beside `offerRider`'s sibling rather than in the register.
+    'slotRider',
     'unitStamp',
     'unitStat',
     'unlocksBuilding',

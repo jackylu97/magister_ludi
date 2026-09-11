@@ -4465,13 +4465,8 @@
   ],
   "pachacutiTribute": [
    {
-    "raw": "+1 authority capacity per city",
-    "text": "+1 authority capacity per city"
-   },
-   {
-    "raw": "Only the towns joined to your seat by road should be cheaper to hold; every town is. — not built yet",
-    "text": "Only the towns joined to your seat by road should be cheaper to hold; every town is. — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per city joined to your capital by road",
+    "text": "+1 authority capacity per city joined to your capital by road"
    }
   ],
   "pachacutiStorehouses": [
@@ -4512,13 +4507,8 @@
   ],
   "taizongYangtze": [
    {
-    "raw": "+1 authority capacity per city",
-    "text": "+1 authority capacity per city"
-   },
-   {
-    "raw": "Only towns raised beside a river should be cheaper to hold; every town is. — not built yet",
-    "text": "Only towns raised beside a river should be cheaper to hold; every town is. — not built yet",
-    "deferred": true
+    "raw": "+1 authority capacity per city on a river",
+    "text": "+1 authority capacity per city on a river"
    }
   ],
   "taizongMandate": [
@@ -4575,9 +4565,8 @@
     "text": "the authority a captured city costs falls by 1"
    },
    {
-    "raw": "Your puppets do not yet send culture of their own. — not built yet",
-    "text": "Your puppets do not yet send culture of their own. — not built yet",
-    "deferred": true
+    "raw": "+5 culture in every puppet city",
+    "text": "+5 culture in every puppet city"
    }
   ],
   "taizongTribute": [
@@ -4599,18 +4588,12 @@
   ],
   "taizongPoets": [
    {
-    "raw": "a great person's act pays +100%",
-    "text": "a great person's act pays +100%"
+    "raw": "a great artist's act pays +100%",
+    "text": "a great artist's act pays +100%"
    },
    {
-    "raw": "It lifts every great person's act rather than the artists' alone. — not built yet",
-    "text": "It lifts every great person's act rather than the artists' alone. — not built yet",
-    "deferred": true
-   },
-   {
-    "raw": "The quickened years of work and song that should follow are not yet given. — not built yet",
-    "text": "The quickened years of work and song that should follow are not yet given. — not built yet",
-    "deferred": true
+    "raw": "a great artist spending themselves on their boon grants +10% production in every city; +10% culture in every city for 5 turns",
+    "text": "a great artist spending themselves on their boon grants +10% production in every city; +10% culture in every city for 5 turns"
    }
   ],
   "taizongMuster": [
@@ -4684,13 +4667,8 @@
   ],
   "moduSkyRite": [
    {
-    "raw": "+1 combat strength",
-    "text": "+1 combat strength"
-   },
-   {
-    "raw": "It is kept whether or not a rite is burning in your empire. — not built yet",
-    "text": "It is kept whether or not a rite is burning in your empire. — not built yet",
-    "deferred": true
+    "raw": "while a rite is being kept anywhere in your empire: +1 combat strength",
+    "text": "while a rite is being kept anywhere in your empire: +1 combat strength"
    }
   ],
   "moduGeneral": [],
@@ -4706,17 +4684,12 @@
   ],
   "moduTribute": [
    {
-    "raw": "+1 science per citizen living in a puppet of yours",
-    "text": "+1 science per citizen living in a puppet of yours"
+    "raw": "30% of the science in every puppet city is gained again as science",
+    "text": "30% of the science in every puppet city is gained again as science"
    },
    {
-    "raw": "+1 culture per citizen living in a puppet of yours",
-    "text": "+1 culture per citizen living in a puppet of yours"
-   },
-   {
-    "raw": "It is paid for each citizen your puppets hold rather than as a share of what they make. — not built yet",
-    "text": "It is paid for each citizen your puppets hold rather than as a share of what they make. — not built yet",
-    "deferred": true
+    "raw": "30% of the culture in every puppet city is gained again as culture",
+    "text": "30% of the culture in every puppet city is gained again as culture"
    }
   ],
   "moduSilk": [
@@ -4780,11 +4753,6 @@
    {
     "raw": "+5 culture in every city holding a wonder that supplies culture",
     "text": "+5 culture in every city holding a wonder that supplies culture"
-   },
-   {
-    "raw": "A great work that pays no culture is not counted. — not built yet",
-    "text": "A great work that pays no culture is not counted. — not built yet",
-    "deferred": true
    }
   ],
   "akhenatenWorks": [],
@@ -4925,9 +4893,8 @@
   ],
   "mithridatesFriends": [
    {
-    "raw": "No chair is opened: a card that widens a government's slots is not built. — not built yet",
-    "text": "No chair is opened: a card that widens a government's slots is not built. — not built yet",
-    "deferred": true
+    "raw": "every government opens one more free chair",
+    "text": "every government opens one more free chair"
    }
   ],
   "mithridatesPhysician": [],

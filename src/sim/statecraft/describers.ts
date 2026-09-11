@@ -1248,7 +1248,13 @@ function describeEffect(
       out.push({
         text:
           `${signed(effect.amount)} authority capacity` +
-          (effect.per === 'city' ? ' per city' : ''),
+          // **The scope replaces the noun rather than trailing after it**: "per
+          // city joined to your capital by road" is the sentence, and "per city,
+          // in every city joined to your capital by road" is that sentence said
+          // twice. Built off `cityScopeWords` — the one sentence-builder — with
+          // its leading promise taken off, so an adjective still sits before the
+          // noun ("per puppet city") and a qualifier after it.
+          (effect.per === 'city' ? ` per ${eachWords(effect.scope)}` : ''),
       });
       return;
     case 'happinessTierBoost':
@@ -1371,6 +1377,7 @@ function describeEffect(
           effect.vsBarbarians === true,
           effect.capturedWonder === true,
           effect.wonder === true,
+          effect.family,
         );
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
@@ -1561,12 +1568,28 @@ function describeEffect(
     case 'effectAmplifier': {
       // Two dials, one clause each, and a row that turns both says both — the
       // flat step first, because that is the order the arithmetic takes it in.
+      //
+      // **A family narrows the noun inside the sentence**, which is why the
+      // table takes it rather than a qualifier being glued on the end: "a great
+      // artist's act pays +100%" is the sentence, and "a great person's act pays
+      // +100%, for artists" is that sentence apologising for itself.
+      const who = effect.family;
       if (effect.amount !== undefined) {
-        out.push({ text: AMPLIFIER_FLAT_WORDS[effect.target](effect.amount) });
+        out.push({ text: familyNarrowed(AMPLIFIER_FLAT_WORDS[effect.target](effect.amount), who) });
       }
       if (effect.percent !== undefined) {
-        out.push({ text: AMPLIFIER_WORDS[effect.target](effect.percent) });
+        out.push({ text: familyNarrowed(AMPLIFIER_WORDS[effect.target](effect.percent), who) });
       }
+      return;
+    }
+    case 'slotRider': {
+      // A figure, and a figure is a thing a player has to be told — the route
+      // rider's own reading one council over. "Free" is the word the design uses
+      // for a chair a government did not have to pay for.
+      const extra = (effect.extra ?? 1);
+      out.push({
+        text: `every government opens ${extra === 1 ? 'one more free chair' : `${extra} more free chairs`}`,
+      });
       return;
     }
     case 'meterRule': {
@@ -2345,6 +2368,11 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
     case 'notFreshwater':
       into.qualifiers.push('without fresh water');
       return;
+    case 'riverside':
+      // "On a river", which is where the settler stopped — not "with fresh
+      // water", which is the neighbouring scope and includes a lake.
+      into.qualifiers.push('on a river');
+      return;
     case 'mountainAdjacent':
       // A named radius says so in hexes; the default is "beside", which is the
       // word the ring of six has always been printed as.
@@ -2387,6 +2415,13 @@ function scopePhrase(scope: CityScope, into: ScopePhrase): void {
       return;
     case 'captured':
       into.adjectives.push('captured');
+      return;
+    case 'puppet':
+      // The game's own word for the arrangement, and the one a player reads on
+      // the city panel. An adjective, because "every puppet city" is the phrase
+      // — never "captured", which is the sticky fact next door and stays true
+      // after the town has been annexed.
+      into.adjectives.push('puppet');
       return;
     case 'connected':
       // A qualifier and not an adjective: "connected city" is a word the game
@@ -2669,6 +2704,27 @@ export function cityScopeWords(scope?: CityScope): string {
  * The two scopes that already name a single town read right unchanged ("your
  * capital", "your newest city"), so they are handed back as they are.
  */
+/**
+ * A scope said as **one town of the class** — "city", "puppet city", "city
+ * joined to your capital by road" — for a clause quoted *per* town.
+ *
+ * `scopeCondition`'s sibling and the second of `cityScopeWords`' transforms,
+ * kept a transform for that function's own reason: there is one sentence-builder
+ * for what a scope means, and a second list of adjectives and qualifiers is
+ * exactly the drift it exists to prevent. Where `scopeCondition` drops the noun
+ * to leave the test behind, this drops only the leading "every" — so the noun
+ * keeps its adjectives in front of it, which is where English puts them.
+ *
+ * The two scopes that name a single town are handed back as they are, for that
+ * transform's reason: "per your capital" is not a rate anybody would write, and
+ * a row that tried would at least print a sentence a reader can see is wrong.
+ */
+function eachWords(scope?: CityScope): string {
+  if (!scope) return 'city';
+  const said = cityScopeWords(scope);
+  return said.startsWith('every ') ? said.slice('every '.length) : said;
+}
+
 function scopeCondition(scope: CityScope): string {
   const said = cityScopeWords(scope);
   if (!said.startsWith('every ')) return said;
@@ -3141,6 +3197,7 @@ const OCCASION_WORDS: Record<WindfallOccasion, string> = {
   purchase: 'buying anything',
   declareWar: 'declaring war',
   periodic: 'a boon coming round',
+  greatPersonAct: 'a great person spending themselves on their boon',
 };
 
 /**
@@ -3196,7 +3253,21 @@ export function occasionWords(
   vsBarbarians: boolean,
   capturedWonder = false,
   wonderBuilt = false,
+  /**
+   * The **family** the row narrows the moment to — The Great Poets' artists.
+   * `vsBarbarians`' fourth sibling, and narrowed inside the sentence for that
+   * table's reason: the person belongs in the middle of "a great person
+   * spending themselves on their boon", not glued to the end of it.
+   */
+  family?: Family,
 ): string {
+  if (family !== undefined) {
+    // The same substitution `familyNarrowed` makes one table over, on the only
+    // phrase any occasion uses for a person: an occasion with nobody in it comes
+    // back untouched, which is the honest answer for a row that narrowed a
+    // moment that has no family.
+    return OCCASION_WORDS[occasion].replace('a great person', `a great ${family}`);
+  }
   if (wonderBuilt) {
     return WONDER_BUILT_WORDS[occasion] ?? `${OCCASION_WORDS[occasion]}, where it is a wonder`;
   }
@@ -3438,6 +3509,24 @@ const OFFER_DRAFT_WORDS: Record<OfferRiderScope, string> = {
  * `+`; a duplicate counting at thirty percent is a *share* of what a first copy
  * pays, and "+30%" read as thirty points more than nothing.
  */
+/**
+ * One amplifier's sentence, narrowed to a **family** — "a great artist's act
+ * pays +100%".
+ *
+ * A rewrite of the printed phrase rather than a second table, and it is the one
+ * place in this file that edits a sentence another table wrote. The bargain is
+ * `scopeCondition`'s exactly: there is one set of words for what an amplifier
+ * does, and a second `Record<AmplifierTarget, …>` keyed by family would have
+ * been forty entries of which five could ever be written. The substitution is on
+ * the only phrase any target uses for a person — "a great person's" — so a
+ * target that never names one comes back untouched, which is the honest answer
+ * for a row that narrowed something with no family in it.
+ */
+function familyNarrowed(text: string, family?: Family): string {
+  if (family === undefined) return text;
+  return text.replace("a great person's", `a great ${family}'s`);
+}
+
 const AMPLIFIER_WORDS: Record<AmplifierTarget, (percent: number) => string> = {
   luxuryHappiness: (percent) => `happiness from unique luxuries ${signed(percent)}%`,
   luxuryDuplicates: (percent) => `duplicate luxury copies count at ${percent}%`,
@@ -3599,4 +3688,5 @@ const CONDITION_WORDS: Record<EmpireCondition['test'], string> = {
   // in any city and a building in the capital are one entry and two rows.
   queueHolds: 'while',
   atWar: 'while you are at war',
+  keepingRite: 'while a rite is being kept anywhere in your empire',
 };

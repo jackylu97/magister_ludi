@@ -101,8 +101,10 @@ import {
   cardActionRule,
   cardAmplifier,
   offerSize,
+  payWindfallGrants,
   recordScalingOccasion,
   settleCultureWindfall,
+  windfallPayout,
 } from './statecraft';
 import type { ActionRuleId, CardEffect } from './statecraftData';
 import { settleResearchWindfall } from './tech';
@@ -877,7 +879,11 @@ export function greatPersonActAt(
   // is banked, so the preview and the payout are one number. It reaches what an
   // act *pays* and never a duration or a radius — a general's aura is not a
   // figure, which is the honest split rather than a silence.
-  const boost = cardAmplifier(state, player.id, 'greatPersonAct');
+  // **Whose act**, handed in since batch L3a: The Great Poets lift the artists'
+  // afternoons and nobody else's, and this is the one seam in the game that
+  // knows which family is being spent. A row that names no family reaches all
+  // five, exactly as Leonardo's always has.
+  const boost = cardAmplifier(state, player.id, 'greatPersonAct', def.family);
   // The act ages with the tree (user, 2026-08-30): every *flat* figure pays
   // ×(1 + actPerTech × techs) — composed here, once, before Leonardo's boost
   // and before anything is banked, so the preview and the payout stay one
@@ -966,8 +972,51 @@ export function greatPersonActAt(
     }
   }
 
+  // **The riders on the moment, after the act's own boon** — The Great Poets'
+  // quickened years of work and song. Last, so a card that hangs a share of
+  // production on the realm hangs it on a board where the engineer's hammers
+  // have already been poured: a rider is what the *law* adds to an occasion, and
+  // an occasion is over before anybody adds to it (Entry XVIII.5 keeps the act's
+  // own figure composed once, upstream of this, which is why nothing here can
+  // change what was banked).
+  payActRiders(state, player, def.family);
   spendGreatPerson(state, player, unit, id);
   return done;
+}
+
+/**
+ * Pays one empire's riders on the moment one of its great people acted.
+ *
+ * `payDeclarationRiders`' twin one system over (`diplomacy.ts`) and deliberately
+ * its shape, for that function's stated reason: the occasion has **no figure of
+ * its own** — an act's payout is composed and banked inside the act, aged and
+ * amplified, before this is called — so everything a card may hang on the moment
+ * is `windfallPayout`'s to compose and `payWindfallGrants`' to deliver. A second
+ * rider that granted coin or beakers needs no edit here, which is the whole
+ * reason it is written this way.
+ *
+ * The **family travels as a fact about the occasion** (`WindfallOccasionFacts`),
+ * because a moment later the piece is spent and nothing on the board can say who
+ * it was.
+ */
+function payActRiders(state: GameState, player: Player, family: Family): void {
+  const payout = windfallPayout(state, player.id, 'greatPersonAct', 0, 0, { family });
+  if (
+    payout.grants.length === 0 &&
+    payout.units.length === 0 &&
+    !payout.healAll &&
+    payout.timed.length === 0 &&
+    payout.renown.length === 0
+  ) {
+    return;
+  }
+  const seat = capitalCityOf(state, player.id);
+  const at = seat ? { col: seat.col, row: seat.row } : undefined;
+  for (const city of payWindfallGrants(state, player, payout, at)) {
+    settleProductionWindfall(state, city);
+  }
+  settleCultureWindfall(state, player);
+  settleResearchWindfall(state, player);
 }
 
 /**

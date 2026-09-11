@@ -130,16 +130,16 @@
             "name": "The Tribute Road",
             "kind": "passive",
             "flavor": "What the road carries, the road may be asked for.",
-            "text": "+1 authority for every city you hold.",
+            "text": "+1 authority capacity per city joined to your capital by road.",
             "effects": [
               {
                 "kind": "authority",
                 "amount": 1,
-                "per": "city"
+                "per": "city",
+                "scope": {
+                  "test": "connected"
+                }
               }
-            ],
-            "deferred": [
-              "Only the towns joined to your seat by road should be cheaper to hold; every town is."
             ]
           },
           {
@@ -270,16 +270,16 @@
             "name": "The Great Yangtze",
             "kind": "passive",
             "flavor": "A river is a border until somebody bridges it.",
-            "text": "+1 authority for every city you hold.",
+            "text": "+1 authority capacity per city on a river.",
             "effects": [
               {
                 "kind": "authority",
                 "amount": 1,
-                "per": "city"
+                "per": "city",
+                "scope": {
+                  "test": "riverside"
+                }
               }
-            ],
-            "deferred": [
-              "Only towns raised beside a river should be cheaper to hold; every town is."
             ]
           },
           {
@@ -376,16 +376,21 @@
             "name": "The Heavenly Khagan",
             "kind": "passive",
             "flavor": "The steppe named him, which is worth more than a crown.",
-            "text": "A captured city costs 1 less authority.",
+            "text": "A captured city costs 1 less authority, and every puppet city pays +5 culture.",
             "effects": [
               {
                 "kind": "meterRule",
                 "rule": "capturedCityCost",
                 "delta": -1
+              },
+              {
+                "kind": "pays",
+                "where": "city",
+                "culture": 5,
+                "scope": {
+                  "test": "puppet"
+                }
               }
-            ],
-            "deferred": [
-              "Your puppets do not yet send culture of their own."
             ]
           },
           {
@@ -438,17 +443,36 @@
             "name": "The Great Poets",
             "kind": "passive",
             "flavor": "The empire is remembered in eight lines.",
-            "text": "Everything your great people do is worth twice as much.",
+            "text": "A great artist's boon pays twice over, and is followed by years of quickened work and song.",
             "effects": [
               {
                 "kind": "effectAmplifier",
                 "target": "greatPersonAct",
-                "percent": 100
+                "percent": 100,
+                "family": "artist"
+              },
+              {
+                "kind": "windfallRider",
+                "occasion": "greatPersonAct",
+                "family": "artist",
+                "grant": {
+                  "timed": {
+                    "turns": 5,
+                    "effects": [
+                      {
+                        "kind": "percentYields",
+                        "yield": "production",
+                        "percent": 10
+                      },
+                      {
+                        "kind": "percentYields",
+                        "yield": "culture",
+                        "percent": 10
+                      }
+                    ]
+                  }
+                }
               }
-            ],
-            "deferred": [
-              "It lifts every great person's act rather than the artists' alone.",
-              "The quickened years of work and song that should follow are not yet given."
             ]
           },
           {
@@ -618,19 +642,24 @@
             "name": "The Rite of the Sky",
             "kind": "passive",
             "flavor": "The sky is the only roof worth praying under.",
-            "text": "+1 combat strength.",
+            "text": "While a rite is being kept anywhere in your empire, +1 combat strength.",
             "effects": [
               {
-                "kind": "combatLine",
-                "amount": 1,
-                "side": "both",
+                "kind": "conditionRule",
                 "when": {
-                  "test": "always"
-                }
+                  "test": "keepingRite"
+                },
+                "then": [
+                  {
+                    "kind": "combatLine",
+                    "amount": 1,
+                    "side": "both",
+                    "when": {
+                      "test": "always"
+                    }
+                  }
+                ]
               }
-            ],
-            "deferred": [
-              "It is kept whether or not a rite is burning in your empire."
             ]
           },
           {
@@ -674,27 +703,30 @@
             "name": "The Tribute of the Han",
             "kind": "passive",
             "flavor": "Silk, grain, a princess, and peace until spring.",
-            "text": "+1 science and +1 culture for every citizen your puppets hold.",
+            "text": "Every puppet city pays 30% of its science and 30% of its culture over again.",
             "effects": [
               {
                 "kind": "pays",
-                "where": "empire",
-                "basis": "count",
+                "where": "city",
+                "basis": "share",
+                "from": "science",
                 "to": "science",
-                "amount": 1,
-                "count": "puppetPopulation"
+                "percent": 30,
+                "scope": {
+                  "test": "puppet"
+                }
               },
               {
                 "kind": "pays",
-                "where": "empire",
-                "basis": "count",
+                "where": "city",
+                "basis": "share",
+                "from": "culture",
                 "to": "culture",
-                "amount": 1,
-                "count": "puppetPopulation"
+                "percent": 30,
+                "scope": {
+                  "test": "puppet"
+                }
               }
-            ],
-            "deferred": [
-              "It is paid for each citizen your puppets hold rather than as a share of what they make."
             ]
           },
           {
@@ -906,7 +938,7 @@
             "name": "The House of Millions of Years",
             "kind": "passive",
             "flavor": "Built for the length of time, not the length of a reign.",
-            "text": "+10% food and +5 culture in every city holding a great work that sings.",
+            "text": "+10% food and +5 culture in every city holding a wonder that supplies culture.",
             "effects": [
               {
                 "kind": "percentYields",
@@ -928,9 +960,6 @@
                   "wonder": true
                 }
               }
-            ],
-            "deferred": [
-              "A great work that pays no culture is not counted."
             ]
           },
           {
@@ -1344,8 +1373,11 @@
             "kind": "passive",
             "flavor": "He kept the men who had nowhere else to go.",
             "text": "Every government opens one more free chair.",
-            "deferred": [
-              "No chair is opened: a card that widens a government's slots is not built."
+            "effects": [
+              {
+                "kind": "slotRider",
+                "extra": 1
+              }
             ]
           },
           {
