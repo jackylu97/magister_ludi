@@ -10,6 +10,7 @@ import {
   tileNeighbors,
 } from '../../src/sim/map';
 import { MAPGEN_CONFIG, generateMap, getMapSize } from '../../src/sim/mapgen';
+import { MAP_SIZE_NAMES } from '../../src/sim/mapgenData';
 import { detailFor, mapFor } from './fixtures';
 import { makeRng } from '../../src/sim/rng';
 import { isWaterTerrain } from '../../src/sim/terrainData';
@@ -426,19 +427,24 @@ describe('pit lakes', () => {
     expect(spurned.tiles.some((t) => t.terrain === 'lake')).toBe(false);
   });
 
-  it('pools on the boards above standard, and on no smaller one', () => {
-    // The shipped gate, read off the data rather than restated: `standard` is
-    // the size the balance is tuned against and every pinned fixture is measured
-    // at, so the rule starts at `large`. `docs/mapgen.md` records lowering this
-    // to 0 as the follow-up.
+  it('pools on standard and every board above it, and on no smaller one', () => {
+    // The gate, read off the data rather than restated. It shipped at a figure
+    // that started the rule at `large`; the user lowered it to 3500 on
+    // 2026-09-11 (`docs/flags.md` (tttt)) so the standard board pools too —
+    // which is where the balance is tuned, so the fixtures measured there now
+    // carry the lakes. What is pinned is the *shape*: standard is in, and
+    // nothing smaller than standard is.
     const config = MAPGEN_CONFIG.rivers;
     expect(config.pitLakes).toBe(true);
     const area = (name: string): number => {
       const size = getMapSize(name);
       return size.width * size.height;
     };
-    expect(area('standard')).toBeLessThan(config.pitLakeMinTiles);
+    expect(area('standard')).toBeGreaterThanOrEqual(config.pitLakeMinTiles);
     expect(area('large')).toBeGreaterThanOrEqual(config.pitLakeMinTiles);
+    for (const name of MAP_SIZE_NAMES) {
+      if (area(name) < area('standard')) expect(area(name)).toBeLessThan(config.pitLakeMinTiles);
+    }
   });
 
   it('switches off whole, leaving the old map behind', () => {

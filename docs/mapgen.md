@@ -1380,7 +1380,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `maxSize` | 8 | water bodies of at most this many tiles become lakes |
+| `maxSize` | 15 | water bodies of at most this many tiles become lakes (8 until 2026-09-11; the user raised it with the river pass) |
 
 ### pangaea
 
@@ -1408,14 +1408,14 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 |-----|---------|---------|
 | `countPer1000Tiles` | 14 | river quota, scaled by map area |
 | `minCount` | 3 | floor on that quota — a duel map is never riverless |
-| `minSpringElevation` | 0.80 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
+| `minSpringElevation` | 0.65 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
 | `minSpringSpacing` | 1 | hexes between springs; 1 means "not the same hex" |
-| `minLength` | 4 | traces shorter than this many edges are discarded |
+| `minLength` | 5 | traces shorter than this many edges are discarded |
 | `maxLength` | 80 | hard cap on one trace |
 | `backtrackSteps` | 64 | forks one trace may retry before it is abandoned; 0 is the plain greedy walk |
 | `attemptsPerRiver` | 120 | springs examined per river asked for. **Not the lever it looks like on a big board**: about 3,900 corners clear `minSpringElevation` on a huge map against a budget of 17,160, so every candidate is already tried and a larger number buys nothing |
 | `pitLakes` | true | may a trace that runs out of downhill flood the basin it stopped in and count as landed? See [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn). `false` switches the rule off whole and reproduces the pre-ruling map byte for byte (`OLD_FIXTURES`) |
-| `pitLakeMinTiles` | 5000 | smallest board, in tiles, that pools — "the boards above standard" (standard is 4,160, large 6,656). **0 pools on every size**, which is the intended follow-up; standard is excluded today only because it is the size the balance is tuned against and the size every pinned fixture is measured at |
+| `pitLakeMinTiles` | 3500 | smallest board, in tiles, that pools — standard (4,160) and above since 2026-09-11 (it shipped at 5,000, "the boards above standard"). **0 pools on every size**, which remains the intended follow-up |
 
 ### resources
 
@@ -1426,7 +1426,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `luxuryKindsPerContinent` | 4 | kinds in one continent's hand |
 | `maxContinentsPerLuxury` | 2 | continents one kind may appear on (relaxes upward if the arithmetic demands) |
 | `luxuryCopiesPerKind.min` / `.max` | 3 / 6 | tiles of a dealt kind placed on its continent |
-| `luxuryMinCopiesPerContinent` | 2 | tiles a continent must be able to seat before it is dealt a kind; also the seam floor |
+| `luxuryMinCopiesPerContinent` | 4 | tiles a continent must be able to seat before it is dealt a kind; also the seam floor (2 until 2026-09-11) |
 | `luxuryPer1000LandTiles` | 75 | luxury density the settle pass reconciles to |
 | `luxuryDensityTolerance` | 0.1 | how far the settled total may sit from that budget |
 | `luxuryScarcityBias` | 1.5 | exponent on `continents/hosts` in the draw weight; 0 = frequency alone |
@@ -1449,7 +1449,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `spacingFactor` | 0.55 | × √land, then clamped — start spacing |
-| `minDistance` | 5 | clamp floor, and the floor the greedy sweep relaxes to |
+| `minDistance` | 10 | clamp floor, and the floor the greedy sweep relaxes to (5 until 2026-09-11, `docs/flags.md` (tttt)) |
 | `maxDistance` | 16 | clamp ceiling |
 | `ringWeights` | [1.0, 0.55] | what each ring is worth; **its length is how many rings are scored** |
 | `workedTiles` | 6 | how many ring tiles are scored — the best this many, not all |

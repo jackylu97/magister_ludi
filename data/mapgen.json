@@ -133,7 +133,7 @@
     "clearingMinPatch": 8
   },
   "lakes": {
-    "maxSize": 8
+    "maxSize": 15
   },
   "coast": {
     "rings": 2
@@ -141,14 +141,14 @@
   "rivers": {
     "countPer1000Tiles": 14,
     "minCount": 3,
-    "minSpringElevation": 0.8,
+    "minSpringElevation": 0.65,
     "minSpringSpacing": 1,
-    "minLength": 4,
+    "minLength": 5,
     "maxLength": 80,
     "backtrackSteps": 64,
     "attemptsPerRiver": 120,
     "pitLakes": true,
-    "pitLakeMinTiles": 5000
+    "pitLakeMinTiles": 3500
   },
   "resources": {
     "continentTargetTiles": 200,
@@ -159,7 +159,7 @@
       "min": 3,
       "max": 6
     },
-    "luxuryMinCopiesPerContinent": 2,
+    "luxuryMinCopiesPerContinent": 4,
     "luxuryPer1000LandTiles": 75,
     "luxuryDensityTolerance": 0.1,
     "luxuryScarcityBias": 1.5,
@@ -204,7 +204,7 @@
   },
   "starts": {
     "spacingFactor": 0.55,
-    "minDistance": 5,
+    "minDistance": 10,
     "maxDistance": 16,
     "ringWeights": [
       1.0,

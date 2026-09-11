@@ -82,9 +82,23 @@ describe('the grain', () => {
     // The claim the deal is built on: both fields are percentiles inside the
     // candidate set, so `Math.round(candidates.length * forestShare)` is the
     // same number at every weight and only the ordering changes.
-    const off = woodStats(generateMap(11, 'standard', OFF)).forest;
+    //
+    // Measured with the pit lakes off: the rivers run *after* the feature deal
+    // (`generateMap`: `assignFeatures`, then `traceRivers`), and a stranded
+    // trace floods one hex clean — so on a board where ponds pool, a pond that
+    // lands on a forest at one grain and on bare ground at another moves the
+    // count by one after the deal has done its exact work. Since the user
+    // lowered `pitLakeMinTiles` to 3500 (2026-09-11, (tttt)) the standard board
+    // pools, which is what turned a green pin red by one hex at grain 0.55.
+    // The deal's own claim is what this pins, so the pass that edits the board
+    // afterwards is held still.
+    const still: MapgenOverrides = { rivers: { pitLakes: false } };
+    const off = woodStats(generateMap(11, 'standard', { ...OFF, ...still })).forest;
     for (const grain of [0.25, 0.55, 0.9, 1]) {
-      const map = generateMap(11, 'standard', { woodland: { grain, clearingChance: 0 } });
+      const map = generateMap(11, 'standard', {
+        ...still,
+        woodland: { grain, clearingChance: 0 },
+      });
       expect(`grain ${grain}: ${woodStats(map).forest}`).toBe(`grain ${grain}: ${off}`);
     }
   });
