@@ -592,6 +592,16 @@ then always has something to stand on.
 
 ## Notes for the system
 
+- **Built state** (2026-09-10, batches L2a → L3c, `docs/flags.md` (dddd)
+  and (iiii)): every **leader bonus**, **passive** and **unique** line in
+  the six tables above is whole in `data/leaders.json` and read by the
+  sim; the **boons** are built where a windfall or grant could say them,
+  and sixteen boon halves stand as a plain "not yet" line on the card
+  (three boons do nothing yet: The Horse Lords, The Great Raid, The
+  Great Conversion). ▢ the boons as a column
+  at all is the user's open question. Two readings the tables left
+  open were settled by the doc's own words: the Camel Archer counts the
+  works **in the capital**; Pachacuti's farms pay **per** mountain.
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for
   bots) and a **charge and colour** in heraldry; each bonus is one card effect
   on the seat, read by the same evaluator as a doctrine.

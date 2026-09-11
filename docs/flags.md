@@ -1899,6 +1899,28 @@ directly to confirm rulings — user marginalia are rulings.
   `test/sim/leaderUnits.test.ts`. `docs/leaders.md`'s deferred bullets
   for these fifteen are stale — ▢ the orchestrator's doc pass when L3c
   lands.
+  **L3c built** (2026-09-10, held): Pachacuti's farms pay **per adjacent
+  mountain** — the doc's row ("for each adjacent mountain") over this
+  board's paraphrase, `Tile.mountainAdjacent` → `Tile.mountainsBeside`
+  (a count; the seeded digests moved by the field name alone, proved by
+  rewriting it back), `CardPaysEffect.perAdjacentMountain` multiplying
+  the bag into ONE labelled hex line; Akhenaten's lake farm was already
+  paid (the note was wrong — `computeFreshwater` marks lakes); the
+  Terraces are a `BuildingDef.terraces` marker → `HillsWaiver
+  'townTerraces'` in `hillsWaived`, asked of the town whose borders hold
+  the hex; the Horde Camp is `BuildingDef.restoresMovementOn: 'pasture'`,
+  a sixth clause in `arriveOnTile` beside The King's Road (a combatant
+  of the town's owner resting on a pasture inside its borders is set to
+  full movement) — ▢ **it fires per step**, so a column hopping pasture
+  to pasture is refilled at each; the doc says "when stepping on one",
+  so no cap was invented — the user's call whether once a turn; the
+  Valley of Kings counts `wonders within: 'city'` and
+  `BuildingDef.faithBuysWonders` lifts the wonder refusal for faith in
+  that town alone (priced by the ordinary faith-per-hammer fold); the
+  House of Learning pays +1 science per great person the realm has
+  called (`CountKind greatPeopleCalled`, monotone). Thirty-two pins in
+  `test/sim/leaderGround.test.ts`. With L3a and L3b: every passive,
+  unique and bonus line is whole; the sixteen boon lines stand.
   **Found by L3b, needs a ruling** — ▢ **every leader-unlocked unit costs
   zero maintenance**: `unitUpkeep` prices a piece off its *unlocking
   tech's* age, and no tech names a leader unique (ten rows), so the
