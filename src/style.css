@@ -489,7 +489,7 @@ body {
      window shorter than the card, centring by alignment pushes the top of the
      card above the scroll origin, where it cannot be reached. */
   display: flex;
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
   /* The tabletop, lit from where the board's own sun is: a wash of parchment in
      the middle falling off to the table colour at the edges. Two gradients and
@@ -507,11 +507,17 @@ body {
   display: none;
 }
 
+/* The leaf: a masthead across the top and the two cards under it — the world on
+   the left, the seat on the right — with the one strong action at the foot of
+   the seat's column. The grid is declared here and the columns are split at the
+   breakpoint in the leaders block below, where the second card is described. */
 .landing-stage {
   display: grid;
-  gap: 20px;
+  gap: 15px;
   margin: auto;
-  width: min(430px, 100%);
+  width: min(1240px, 100%);
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
 }
 
 /* The specimen's marquee card, at HUD scale. */
@@ -530,7 +536,7 @@ body {
   margin: 0;
   font-family: var(--face-display);
   font-weight: 400;
-  font-size: clamp(2.4rem, 7vw, 3.4rem);
+  font-size: clamp(2rem, 4.4vw, 2.6rem);
   letter-spacing: 0.005em;
   line-height: 1.02;
 }
@@ -541,7 +547,7 @@ body {
 }
 
 .marquee-sub {
-  margin: 9px 0 0;
+  margin: 7px 0 0;
   font-family: var(--face-display);
   font-style: italic;
   font-size: 1.05rem;
@@ -578,22 +584,124 @@ body {
      It cancels the fixed positioning the same way and anchors the corner star. */
   position: relative;
   z-index: auto;
-  padding: 14px 16px 16px;
+  padding: 16px 18px 18px;
+  display: block;
+  font-size: 13px;
 }
 
-.landing-actions {
+/* Both cards say what they are for: the eyebrow, the display-face title, and —
+   at the foot — the hint that states the rule the fields do not. The pattern is
+   the specimen's, and it is why the two cards read as siblings. */
+.landing-title {
+  margin: 2px 0 12px;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.landing-hint {
   margin: 12px 0 0;
-  gap: 9px;
+  max-width: 62ch;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink-soft);
 }
 
-/* Start is the biggest button on the page while the page is this page. */
-.btn-start {
-  flex: 2;
-  padding: 10px 16px 11px;
+/* --- the setup card's ruled fields ---
+   The mockup's field row: the name at the left in the working face, the control
+   at the right, a hairline under each but the last. A grid rather than the HUD's
+   flex row, because the HUD's fixed 34px label column is a column sized for
+   "Seed" and it clipped "Opponent"; here the label sizes to its own word and the
+   control takes what is left. Specificity carries `.hud-card .row`'s two-class
+   weight so this wins wherever it sits in the file. */
+.landing-card .row.field {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+  padding: 7px 0;
+  border-bottom: var(--border-thin) solid var(--rule);
+}
+
+/* The last ruled field carries no rule: a ledger closes on the last entry, it
+   does not underline it. `:last-of-type` cannot see the class, so the checkbox
+   row below takes the rule off whichever field precedes it. */
+.landing-card .row.field:has(+ .row.check),
+.landing-card .row.field:has(+ .row.field[hidden]),
+.landing-card .row.field:last-of-type {
+  border-bottom: 0;
+}
+
+/* Sentence case in the working face, not the HUD's mono inscription: on a title
+   page these are the names of things being asked for, and a row of shouted
+   abbreviations is what made the old card read as a debug panel. The guide's
+   checkbox is one of them and takes the same voice. */
+.landing-card .row.field > label,
+.landing-card .row.check label {
+  width: auto;
+  font-family: var(--face-ui);
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+
+.landing-card .row.field > select,
+.landing-card .row.field .field-control {
+  justify-self: end;
+  width: min(100%, 230px);
+}
+
+/* The seed and the die that rerolls it, one control: a seed is a value *and* a
+   verb, and the verb belongs beside the value rather than in the button row at
+   the bottom of the card, where it used to sit next to Start and read as a
+   second way to begin. */
+.landing-card .field-control {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.landing-card .field-control > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.btn-reseed {
+  flex: 0 0 auto;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* --- the one strong action ---
+   The mockup's Begin button: an ink pill, alone at the foot of the seat's
+   column, saying who the game begins as (`setStartLabel` in main.ts). Ink and
+   not the usual vermilion primary, because on this page the vermilion is the
+   title's own accent and the stamp under it — a third one would be a page with
+   no accent at all. */
+.landing-begin {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.landing-begin .btn-start {
+  flex: 0 0 auto;
+  padding: 11px 30px 12px;
   border-width: var(--border);
-  border-radius: var(--radius);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--parchment);
   font-size: 15px;
   box-shadow: var(--shadow);
+}
+
+.landing-begin .btn-start:hover:not(:disabled) {
+  background: #2c2830;
 }
 
 .btn-start:active:not(:disabled) {
@@ -7410,7 +7518,9 @@ body:has(.city-mode:not([hidden])) #hud-context {
 /* --- the landing's resume row --- */
 
 .landing-resume {
-  margin: 9px 0 0;
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: var(--border-thin) solid var(--rule);
   gap: 9px;
 }
 
@@ -9743,14 +9853,40 @@ body:has(.city-mode:not([hidden])) #hud-context {
 }
 
 /* --- the frontispiece -----------------------------------------------------
-   The landing screen as a title page (art pass A2).
+   The landing screen as a title page (art pass A2), laid out as a **masthead**
+   (the design pass of 2026-09-10, against the mockup).
 
-   Generous margins, a hairline double rule under the title, the printer's
-   device beneath it and an epigraph in the margin. Every word on the page is
-   the one that was already there; the device and the epigraph are the additions
-   and the epigraph is the only new copy. */
+   A hairline double rule, the printer's device, an epigraph in the margin: the
+   furniture of a title page, unchanged. What changed is the arrangement. A
+   centred plate is right for a leaf with one thing on it, and this leaf has
+   two cards — the world and the seat — that both have to be readable without
+   scrolling. So the title takes the left, the device the right, the rule runs
+   the full measure under both, and the epigraph and the stamp sit on the line
+   below it: the same five marks, banded, in a third of the height.
+
+   Four columns, because the two middle ones are the air the rule crosses:
+   name · (gap) · device, with the rule, the epigraph and the stamp under them. */
 .marquee {
-  padding: 38px 30px 28px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 26px;
+  padding: 18px 26px 15px;
+  text-align: left;
+}
+
+.marquee-name {
+  grid-column: 1;
+  min-width: 0;
+}
+
+/* The rule crosses the whole measure rather than a proportion of one column:
+   under a masthead it is a *rule across the leaf*, which is the mark a page of
+   this shape wants. `.double-rule` itself is untouched — the flair gallery
+   prints it at its own width. */
+.marquee > .double-rule {
+  grid-column: 1 / -1;
+  width: 100%;
 }
 
 /* The double rule: two hairlines with air between them, the frontispiece's own
@@ -9768,6 +9904,10 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .marquee-rule {
   margin-top: 16px;
+}
+
+.marquee > .marquee-rule {
+  margin-top: 14px;
 }
 
 /* The printer's device: an astrolabe, drawn as path data and worn as a mask, so
@@ -9806,6 +9946,58 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .marquee-epigraph:empty {
   display: none;
+}
+
+/* The masthead's three placements. The device rides the title's own line at the
+   right; under the rule the epigraph takes the margin at the left and the stamp
+   the far right, so the band closes on the same two edges it opened on. */
+.marquee > .marquee-device {
+  grid-column: 2;
+  grid-row: 1;
+  width: 42px;
+  height: 42px;
+  margin: 0;
+  align-self: center;
+}
+
+/* Wide enough that every motto in `frontispiece.ts` sits on one line of the
+   band — a masthead's margin is a line, not a paragraph. */
+.marquee > .marquee-epigraph {
+  grid-column: 1;
+  margin: 9px 0 0;
+  max-width: none;
+}
+
+.marquee > .marquee-stamp {
+  grid-column: 2;
+  justify-self: end;
+  align-self: center;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+
+/* A narrow window has no margin to put a device or a stamp in, so the masthead
+   goes back to being a plate: one column, centred, exactly as it was. */
+@media (max-width: 620px) {
+  .marquee {
+    grid-template-columns: minmax(0, 1fr);
+    text-align: center;
+  }
+
+  .marquee > .marquee-device {
+    grid-column: 1;
+    grid-row: auto;
+    margin: 12px auto 0;
+  }
+
+  .marquee > .marquee-epigraph {
+    margin-inline: auto;
+  }
+
+  .marquee > .marquee-stamp {
+    grid-column: 1;
+    justify-self: center;
+  }
 }
 
 /* --- the pantheon wheel ---------------------------------------------------
@@ -12633,6 +12825,12 @@ body.compendium-page {
   color: var(--ink-soft);
 }
 
+/* Quieter than a field's name: the guide is an option, not a thing being asked
+   for. It takes the landing's sentence-case voice and the row's own soft ink. */
+.landing-card .row.check.landing-tutorial label {
+  color: inherit;
+}
+
 /* --- the pamphlet ---------------------------------------------------------
    The five-minute read (src/ui/pamphlet.ts): a first-run overlay a brand-new
    player skims before the tutorial's first card, and the same body mounted as
@@ -14446,43 +14644,52 @@ body.compendium-page {
 
 /* --- the new game's leader card ---------------------------------------- */
 
-/* The stage widens for the second card and stays one column on a narrow
-   window: the map is the decision that cannot be skipped, so it leads. */
-.landing-stage:has(.landing-leaders) {
-  width: min(980px, 100%);
-  grid-template-columns: minmax(0, 1fr);
-}
-
-@media (min-width: 860px) {
-  .landing-stage:has(.landing-leaders) {
-    grid-template-columns: 380px minmax(0, 1fr);
-    align-items: start;
+/* The two cards, side by side under the masthead, with the one strong action at
+   the foot of the seat's own column — the mockup's composition. One column on a
+   narrow window, and the map leads there: it is the decision that cannot be
+   skipped. */
+@media (min-width: 900px) {
+  .landing-stage {
+    grid-template-columns: 340px minmax(0, 1fr);
   }
 
-  /* The marquee is the page's title and spans both cards under it. */
-  .landing-stage:has(.landing-leaders) > .marquee {
+  /* The masthead is the page's title and spans both cards under it. */
+  .landing-stage > .marquee {
     grid-column: 1 / -1;
+  }
+
+  /* Begin belongs under the seat it begins as, not under the map. */
+  .landing-stage > .landing-begin {
+    grid-column: 2;
   }
 }
 
 .hud-card.landing-leaders {
   position: relative;
   z-index: auto;
-  padding: 14px 16px 16px;
+  padding: 16px 18px 18px;
   display: block;
+  font-size: 13px;
 }
 
 .leader-title {
   font-family: var(--face-display);
   font-weight: 400;
   font-size: 24px;
-  margin: 2px 0 10px;
+  margin: 2px 0 6px;
 }
 
+/* What a figure is, said once (see `LEADER_LEDE`) — so no face repeats it. */
+.leader-lede {
+  margin: 0 0 10px;
+}
+
+/* A roster of figures, as wide as the card allows and never fewer than two
+   across: the mockup's row of faces, and a seventh figure simply joins it. */
 .leader-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  gap: 9px;
 }
 
 .leader-face {
@@ -14490,16 +14697,24 @@ body.compendium-page {
   grid-template-columns: 34px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
+  align-content: start;
   text-align: left;
   font: inherit;
   color: inherit;
-  padding: 10px 12px;
+  padding: 9px 10px 10px;
   background: var(--parchment);
   border: var(--border-thin) solid var(--ink);
   border-radius: var(--radius-sm);
   cursor: pointer;
+  transition: background 120ms ease-out;
 }
 
+.leader-face:hover:not(.is-chosen) {
+  background: #fffdf4;
+}
+
+/* The chosen face: the inset ring the mockup draws, and the cream ground every
+   picked card in this interface takes. */
 .leader-face.is-chosen {
   box-shadow: inset 0 0 0 2px var(--ink);
   background: #fff9e6;
@@ -14544,6 +14759,7 @@ body.compendium-page {
 
 .leader-name {
   display: block;
+  margin-bottom: 5px;
   font-family: var(--face-display);
   font-size: 19px;
   line-height: 1.1;
@@ -14566,41 +14782,76 @@ body.compendium-page {
   font-size: 13px;
 }
 
+/* A face carries its line at reading size and its unbuilt halves under it, a
+   size down: the strike-through is the mark that says "declared, not built",
+   and at the roster's scale it has to be an aside rather than a second
+   paragraph competing with the line it qualifies. */
+.leader-bonus {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.leader-bonus > .leader-clause.is-deferred {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
 .leader-none-note {
-  margin: 4px 0 0;
-  font-size: 13px;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
 
+/* --- the chosen figure's first row ---
+   What taking this figure puts on the table, in the three column inks. Set off
+   from the roster by a rule and a breath, exactly as the mockup sets it off:
+   it is about *one* face, and the row above it is about all of them. */
 .leader-first {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   border-top: var(--border-thin) solid var(--rule);
   padding-top: 10px;
 }
 
 .leader-first-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px;
-  margin-top: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+  gap: 9px;
+  margin-top: 7px;
 }
 
 .leader-mini {
-  padding: 8px 10px;
+  padding: 9px 11px 10px;
   background: var(--parchment);
   border: 1px solid var(--rule);
   border-top: 4px solid var(--leader-ink, var(--ink));
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
 }
 
+/* The column's own word in the column's own ink: three minis, three inks, and
+   the kind is legible before the name is read. */
 .leader-mini-kind {
-  margin: 0 0 2px;
+  margin: 0 0 3px;
+  color: var(--leader-ink, var(--ink-soft));
 }
 
 .leader-mini-name {
   font-family: var(--face-display);
   font-weight: 400;
   font-size: 16px;
-  margin: 0 0 4px;
+  line-height: 1.15;
+  margin: 0 0 5px;
+}
+
+.leader-mini-clauses {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.leader-first > .leader-note {
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 
 /* --- the age's draft --------------------------------------------------- */

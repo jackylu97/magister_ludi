@@ -1102,8 +1102,15 @@ function showLanding(): void {
   leaderSelect.render();
   setStartLabel(leaderSelect.chosen);
   // The button, not the seed field: Start is what the player came here to press,
-  // and Shift+Tab reaches the two fields above it.
-  startButton.focus();
+  // and Shift+Tab reaches the fields above it.
+  //
+  // `preventScroll`, because Begin is now the last thing on the leaf (the design
+  // pass of 2026-09-10) and focusing it on a window shorter than the leaf would
+  // scroll the title off the top — the player would arrive at a page that had
+  // already scrolled past its own masthead. The landing opens at its top; the
+  // focus ring is reached by scrolling, exactly as the button is.
+  landingEl.scrollTop = 0;
+  startButton.focus({ preventScroll: true });
 }
 
 function hideLanding(): void {

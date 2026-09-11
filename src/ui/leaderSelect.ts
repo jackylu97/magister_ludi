@@ -79,6 +79,20 @@ export const LEADER_FIRST_ROW_NOTE =
 export const NO_LEADER_NOTE =
   'Every seat plays the plain rules, and the world is drawn without anybody pulling on it.';
 
+/**
+ * **What a figure is**, said once under the title (the design pass of
+ * 2026-09-10).
+ *
+ * It was said six times before, as an eyebrow over every face's clauses, which
+ * is the same sentence repeated until it stops being read — and it made each
+ * face twice as tall as the mockup's, so the roster ran off the bottom of the
+ * screen. Said once, at the top, it is the card's own lead and the faces below
+ * it are what they should be: a name, a canton and the line it holds.
+ */
+export const LEADER_LEDE =
+  'A figure holds the line printed under it from its first turn, and lays a row of cards ' +
+  'on the table at the turn of every age. The world is drawn around the seat it is given.';
+
 /** One card of a row, as this screen prints it. Words and flags, no sim types. */
 export interface LeaderCardFace {
   id: LeaderCardId;
@@ -232,10 +246,9 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     button.append(canton());
     const text = element('span', 'leader-face-text');
     text.append(element('span', 'leader-name', face.name));
-    if (face.bonus.length > 0) {
-      text.append(element('p', 'eyebrow leader-eyebrow', 'from the first turn'));
-      text.append(clauseList(face.bonus, 'leader-bonus'));
-    }
+    // No eyebrow over the clauses: what the line is, and when it is live, is the
+    // card's lead above the roster (`LEADER_LEDE`) and is said once.
+    if (face.bonus.length > 0) text.append(clauseList(face.bonus, 'leader-bonus'));
     button.append(text);
     button.addEventListener('click', () => {
       chosen = chosen === face.id ? NO_LEADER : face.id;
@@ -284,6 +297,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     container.replaceChildren();
     container.append(element('p', 'eyebrow', 'the seat'));
     container.append(element('h2', 'leader-title', 'Choose a leader'));
+    container.append(element('p', 'landing-hint leader-lede', LEADER_LEDE));
     const grid = element('div', 'leader-grid');
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', 'Leaders');

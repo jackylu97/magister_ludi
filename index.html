@@ -57,31 +57,56 @@
 
              Dressed as a **frontispiece** (art pass A2): the engraved title
              page of a book, with the hairline double rule under the title, the
-             printer's device beneath it and an epigraph in the margin. Every
+             printer's device beside it and an epigraph in the margin. Every
              word here is unchanged — the device and the epigraph are the only
              two things that were added, and the epigraph is the only new copy
              on the screen. Both are filled in by src/ui/frontispiece.ts on each
              showing of the landing; the device is a drawn mark (an astrolabe,
              src/ui/deviceMarks.ts) worn as a mask, so it takes the page's ink
-             like every other mark in the game. -->
-        <div class="marquee">
-          <h1 class="marquee-title">Magister <em>Ludi</em></h1>
-          <p class="marquee-sub">a game of everything mankind has thought</p>
-          <div class="double-rule marquee-rule" aria-hidden="true"></div>
+             like every other mark in the game.
+
+             It is laid out as a **masthead** rather than a centred plate (the
+             design pass of 2026-09-10, against the mockup): the title page of a
+             book is the whole leaf, and this leaf has two cards on it. Banding
+             the frontispiece across the top is what gets both of them — the
+             world and the seat — onto one screen, which is the mockup's whole
+             composition. The order of the words is unchanged; only the
+             arrangement is. -->
+        <header class="marquee">
+          <div class="marquee-name">
+            <h1 class="marquee-title">Magister <em>Ludi</em></h1>
+            <p class="marquee-sub">a game of everything mankind has thought</p>
+          </div>
           <span id="landing-device" class="marquee-device" aria-hidden="true"></span>
+          <div class="double-rule marquee-rule" aria-hidden="true"></div>
           <p id="landing-epigraph" class="marquee-epigraph"></p>
           <span class="marquee-stamp">one seed · one world</span>
-        </div>
+        </header>
 
         <!-- A form, so Enter submits from either field without a keystroke
-             handler of its own. -->
+             handler of its own. It carries the eyebrow/title/hint the mockup
+             gives it, so the two cards under the masthead are siblings that
+             say what they are for rather than a bare stack of fields beside a
+             titled one. -->
         <form id="landing-setup" class="hud-card landing-card">
-          <div class="row">
+          <p class="eyebrow">the map</p>
+          <h2 class="landing-title">Draw a world</h2>
+
+          <!-- Every setup row is a ruled field: the name at the left in the
+               working face, the control at the right. The label sizes to its
+               own word rather than to the HUD's 34px eyebrow column, which is
+               what used to clip the longest of them. -->
+          <div class="row field">
             <label for="seed">Seed</label>
-            <input id="seed" type="text" value="1" spellcheck="false" />
+            <span class="field-control">
+              <input id="seed" type="text" value="1" spellcheck="false" />
+              <button id="random-seed" class="btn btn-quiet btn-reseed" type="button">
+                Random
+              </button>
+            </span>
           </div>
 
-          <div class="row">
+          <div class="row field">
             <label for="size">Size</label>
             <select id="size"></select>
           </div>
@@ -92,7 +117,7 @@
                multi-seat sandbox is still here further down, which is how a
                single tester drives both sides from the seat chips. The options
                and what each of them seats are `src/ui/gameSetup.ts`. -->
-          <div class="row">
+          <div class="row field">
             <label for="seats">Seats</label>
             <select id="seats"></select>
           </div>
@@ -102,7 +127,7 @@
                reloaded next year is played by the same opponent rather than
                by whatever the default has become. Hidden in the modes that
                seat no bot. -->
-          <div class="row" id="persona-row">
+          <div class="row field" id="persona-row">
             <label for="bot-persona">Opponent</label>
             <select id="bot-persona"></select>
           </div>
@@ -116,12 +141,10 @@
             <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
           </div>
 
-          <div class="row landing-actions">
-            <button id="start-game" class="btn btn-primary btn-start" type="submit">
-              Start Game
-            </button>
-            <button id="random-seed" class="btn btn-quiet" type="button">Random</button>
-          </div>
+          <p class="landing-hint">
+            A seed is a world: the same seed and the same seats draw the same map, the
+            same neighbours and the same opening hands.
+          </p>
 
           <!-- Picking up where you left off. Continue is the newest save of any
                kind — autosave or a named one, whichever is later — and it hides
@@ -154,6 +177,25 @@
           class="hud-card landing-card landing-leaders"
           aria-label="Choose a leader"
         ></section>
+
+        <!-- The one strong action on the page, under the seat it begins as —
+             the mockup's Begin button. It sits *outside* both cards because the
+             leader card is wiped and redrawn on every pick (see
+             src/ui/leaderSelect.ts), and a button inside it would be a button
+             that stopped existing between renders; `form=` keeps it the setup
+             form's submit button all the same, so Enter in the seed field still
+             starts the game. Its words are set by `setStartLabel` in main.ts,
+             which is what makes it name the chosen figure. -->
+        <div class="landing-begin">
+          <button
+            id="start-game"
+            class="btn btn-primary btn-start"
+            type="submit"
+            form="landing-setup"
+          >
+            Start Game
+          </button>
+        </div>
       </div>
     </div>
 
