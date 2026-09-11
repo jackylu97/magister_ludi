@@ -38,6 +38,7 @@ import {
   cardAmplifier,
   cardAuthority,
   cardCombatLines,
+  cardExtraCharges,
   chairCount,
   cityScopeAdmits,
   refitSlots,
@@ -428,3 +429,26 @@ function songFrom(g: { state: GameState }, person: string): number {
   act(g.state, player, g.state.cities[0]!, person);
   return player.culturePool - before;
 }
+
+describe("the Corvée gives the worker its charge and nobody else theirs", () => {
+  // The prophet, the apostle, the augur and the inquisitor all wear the
+  // worker's *model* — the same silhouette on the board — and the card's first
+  // cut narrowed by that model, so every religious agent under Pachacuti was
+  // dealt a charge over its row and the sheet read "3/2" (the user, 2026-09-11,
+  // `docs/flags.md` (kkkk)). The line names the worker row now, and this pins
+  // that the model is not the row.
+  it('deals the worker one more and the prophet none', () => {
+    const g = game('pachacuti');
+    hold(g.state, 0, '1', 'pachacutiCorvee');
+    expect(cardExtraCharges(g.state, 0, 'worker')).toBe(1);
+    expect(cardExtraCharges(g.state, 0, 'prophet')).toBe(0);
+    expect(cardExtraCharges(g.state, 0, 'apostle')).toBe(0);
+    expect(cardExtraCharges(g.state, 0, 'inquisitor')).toBe(0);
+    // And a prophet born under the card carries exactly its row's charges.
+    const capital = g.state.cities[0]!;
+    const prophet = createUnit(g.state, 0, 'prophet', capital.col, capital.row);
+    expect(prophet.chargesLeft).toBe(unitDef('prophet').charges);
+    drop(g.state, 0, 1);
+    expect(cardExtraCharges(g.state, 0, 'worker')).toBe(0);
+  });
+});

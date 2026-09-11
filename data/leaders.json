@@ -39,7 +39,7 @@
                 "stat": "charges",
                 "amount": 1,
                 "class": {
-                  "modelClass": "worker"
+                  "type": "worker"
                 }
               }
             ]
