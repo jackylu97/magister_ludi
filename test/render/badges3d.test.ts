@@ -590,16 +590,21 @@ describe('the badge atlas layout', () => {
    * the dials existed, or a wider ring round a unit would have shrunk the paper
    * under every resource pin on the board to pay for it.
    */
-  it('grows the piece badge on its own two dials, and leaves the atlas grid alone', () => {
-    expect(VIEW3D.pieces.badgeScale).toBeGreaterThan(1);
-    expect(VIEW3D.pieces.badgeRing).toBeGreaterThan(1);
+  it('draws the piece badge on its own two dials, and leaves the atlas grid alone', () => {
+    // The dials are the user's to turn: the first cut grew the disc by a third
+    // and doubled the ring, and the user sent it back — "make them what they
+    // were before but a tiny smidge thicker" (2026-09-11, `docs/flags.md`
+    // (qqqq)). So the disc is the grid's own size and only the ring is a shade
+    // wider; what this pins is that both are *read* off the sheet and compose
+    // as the sheet says, not any particular figure.
+    expect(VIEW3D.pieces.badgeScale).toBeGreaterThan(0);
+    expect(VIEW3D.pieces.badgeRing).toBeGreaterThanOrEqual(1);
     expect(badgeDiameter()).toBeCloseTo(BADGE.diameter * VIEW3D.pieces.badgeScale, 12);
     expect(badgeRimWidth()).toBeCloseTo(
       BADGE.rimWidth * VIEW3D.pieces.badgeRing * VIEW3D.pieces.badgeScale,
       12,
     );
-    // Noticeably bigger, which is the whole of the ask.
-    expect(badgeDiameter()).toBeGreaterThan(BADGE.diameter);
+    // The ring is the half the user kept: a shade thicker than the grid's.
     expect(badgeRimWidth()).toBeGreaterThan(BADGE.rimWidth);
 
     // The piece's ring, against its own disc.
