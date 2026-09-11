@@ -1829,6 +1829,21 @@ directly to confirm rulings — user marginalia are rulings.
   seeded map moves, so seeded fixtures re-pin where they must; a replay
   change on the held stack (schema stays 115). `docs/mapgen.md` follows
   the figures.
+  **Set** (held `1688273`, on :5199). The full gate showed **21 seeded
+  pins moved**: the orchestrator re-aimed two (pit lakes pool on
+  standard now — the shape pinned; the forest deal's by-one invariant
+  measured with ponds held still, since `traceRivers` runs after
+  `assignFeatures` and a pond drowns a forest hex); an agent re-derives
+  the seeded fixtures (statecraft's coastal towns, aiBot's grown game,
+  the explore digests, the religion and finish-line replays, "the ground
+  did not move" ×3) and re-examines three river claims (springs "on
+  range ground" at 0.65; a too-short trace kept; the quota); M2's agent
+  owns the start-side four (twelve seats at a floor of 10 on standard no
+  longer all fit the mainland — the honest answer is the `shortfall`
+  report, the pin narrowing to rosters the map can seat).
+  ▢ **the twelve-seat roster at floor 10**: the floor is ruled for six;
+  what a twelve-seat standard game does (relax with a report, or refuse
+  the count in the stepper) is the user's — M2 reports the measurement.
 - (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
   *"another leader spawned 8 tiles from me -- ideally we should have some
   distance between players, maybe 15 tiles?"* → the diagnosis below →
