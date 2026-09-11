@@ -1800,6 +1800,30 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (pppp) **A figure's cities carry its empire's names — RULED** (the
+  user, 2026-09-11: *"let's also create a list of ~15 names with
+  historically accurate cities from the civ's empire (in order of
+  importance/size) so that when new cities are founded, they take on
+  historically accurate names"*). **Today** `nextCityName` hands every
+  seat the same invented list (`rules.cities.cityNames`, twenty-four
+  names) indexed by how many towns the seat holds — so two seats' first
+  towns share a name, and a razed town's name comes round again. **L5
+  builds**: `LeaderDef.cities: string[]` (about fifteen a figure, in
+  order of importance; the table in `docs/leaders.md` "The cities" is
+  the spec of record, doc ↔ data sync-tested, the user's to retune);
+  `nextCityName(state, ownerId)` becomes: the seat's figure's list in
+  order, **skipping any name a standing city anywhere already wears**,
+  then the plain list the same way, then the numbered fallback — a pure
+  function of the state as today, the result still stored on the city.
+  A plain seat (no figure) walks the plain list with the same skip, so
+  two plain seats no longer twin. Deterministic (array order, no dice);
+  a replay change on the held stack (schema stays 115). The Compendium's
+  leader shelf lists the figure's cities under the deck. Pins: a
+  Pachacuti seat's first town is Cusco and its second Quito; a name a
+  rival already wears is skipped; a razed town's name is reused only
+  once no standing town wears it; a plain seat's first town is the plain
+  list's first and a second plain seat's is its second; the fallback
+  numbers as today; doc ↔ data; the replay pin.
 - (oooo) **Two colours a figure, and the board wears both — RULED** (the
   user, 2026-09-11: *"every leader should have a different color to
   differentiate them. Could we have them be two colors like civ 5/6 and

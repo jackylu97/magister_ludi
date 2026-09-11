@@ -609,6 +609,33 @@ plain seat's ink.
 | Al-Ma'mun | black `#1c1a1a` | gold `#d4a934` | the Abbasid black banner; gilt |
 | Mithridates VI | Tyrian purple `#6b2d7a` | silver `#d8d8e0` | a Hellenistic king's purple; the star and crescent |
 
+## The cities (2026-09-11, `docs/flags.md` (pppp))
+
+About fifteen a figure, in order of importance, from the empire the figure
+ruled or the age it ruled in; a founded town takes the next name no standing
+town anywhere wears, then the plain list, then a number. `data/leaders.json`'s
+`cities` mirrors this table and a sync test holds the two together; the rows
+are the user's to retune. Names are separated by ` · `.
+
+| Leader | Cities, in order |
+|---|---|
+| Pachacuti | Cusco · Quito · Tumebamba · Cajamarca · Vilcashuamán · Huánuco Pampa · Hatun Xauxa · Machu Picchu · Ollantaytambo · Pisac · Pachacamac · Chan Chan · Vilcabamba · Choquequirao · Raqchi |
+| Emperor Taizong | Chang'an · Luoyang · Yangzhou · Chengdu · Guangzhou · Taiyuan · Jiangling · Bianzhou · Hangzhou · Suzhou · Youzhou · Dunhuang · Liangzhou · Xiangyang · Fuzhou |
+| Modu Chanyu | Longcheng · Ordos · Ivolga · Noin-Ula · Gol Mod · Terelzhiin Dörvölzhin · Boroo · Loulan · Turfan · Karashahr · Kucha · Barkol · Hami · Duurlig Nars · Yanran |
+| Akhenaten | Akhetaten · Thebes · Memphis · Heliopolis · Abydos · Hermopolis · Elephantine · Thinis · Sais · Bubastis · Coptos · Edfu · Swenett · Buhen · Napata |
+| Al-Ma'mun | Baghdad · Merv · Kufa · Basra · Raqqa · Damascus · Samarra · Mosul · Wasit · Rayy · Nishapur · Isfahan · Fustat · Aleppo · Bukhara |
+| Mithridates VI | Sinope · Amaseia · Amisos · Trapezus · Cabira · Pharnacia · Eupatoria · Zela · Comana · Themiscyra · Panticapaeum · Phanagoria · Chersonesus · Laodicea · Gaziura |
+
+Notes on the choices: Akhetaten leads Egypt's list because it is the city
+Akhenaten built and ruled from, with Thebes and Memphis behind it. The
+Xiongnu were a horse people with no cities of their own: Longcheng was their
+gathering place, Ivolga and Terelzhiin Dörvölzhin their walled settlements,
+Noin-Ula, Gol Mod and Duurlig Nars their great tomb grounds, and the Tarim
+towns (Loulan, Turfan, Karashahr, Kucha, Hami) paid them tribute — ▢ the
+user may prefer a shorter list here. Mithridates' list crosses to the
+Bosporan kingdom he held (Panticapaeum, Phanagoria, Chersonesus). Al-Ma'mun
+ruled first from Merv and then Baghdad; Samarra is the later Abbasid seat.
+
 ## Notes for the system
 
 - **Built state** (2026-09-10, batches L2a → L3c, `docs/flags.md` (dddd)
