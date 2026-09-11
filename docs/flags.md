@@ -1877,7 +1877,15 @@ directly to confirm rulings — user marginalia are rulings.
   ring of spears was rejected as the `sun` charge at 13px. U8's "the
   badge stays on the panel" is overturned in the module docblock. The
   gallery stall shows quiet · besieged · besieged with walls down, one
-  knob (the mark's size). Bots' explorers cover more ground per turn.; the chariot's upgrade — RULED and built**
+  knob (the mark's size). Bots' explorers cover more ground per turn.
+  **Cost checked** (2026-09-10): a reported 144 → 206 ms/turn did not
+  reproduce — the whole march is ~7 ms of a turn (fog 1.05, search 5.5,
+  path 0.3) and identical code varies ±14 ms cold-vs-warm on a loaded
+  box; the search was still made 48% cheaper (what a hex is *for* asked
+  before whether the piece may stand there; transit memoised per sweep)
+  with byte-identical outcomes, pinned by two seeded 20-turn digests.
+  The happiness move at turn 100 is real (the bots see far more ground
+  far sooner) and compounds with P3's bot half — under investigation.; the chariot's upgrade — RULED and built**
   (the user, 2026-09-10, mid-playtest: *"i'm finding it very hard to kill
   this city … was a palisade and stone walls always +10? Let's change
   them to be +5"*, then *"castle +5, bastion +5 too. Walls of uruk +10"*,

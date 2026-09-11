@@ -716,6 +716,14 @@ function blockedByPieceSentence(blocker: Unit, city: City): string {
  * has already spent its afternoon (`purchasedUnitTurns`) is refused *before*
  * the room clause, and that refusal is not a piece anyone can move out of the
  * way, so it correctly comes back `null` here.
+ *
+ * **`said` is the gate's answer the caller already holds** (batch P3b). The want
+ * book asks `purchaseError` for every row in every town and then asks this about
+ * the refusal it got back; without this parameter that is the whole gate —
+ * `buildError` and all — walked a second time for every row the rules struck.
+ * Handing the sentence in changes no answer: the comparison, and the sentence it
+ * is made against, both stay in this module, which is the whole reason the
+ * function lives here. Omit it and the gate is asked here as before.
  */
 export function purchaseHexBlocker(
   state: GameState,
@@ -723,8 +731,9 @@ export function purchaseHexBlocker(
   cityId: number,
   item: unknown,
   currency: unknown,
+  said?: string,
 ): Unit | null {
-  const refusal = purchaseError(state, playerId, cityId, item, currency);
+  const refusal = said ?? purchaseError(state, playerId, cityId, item, currency);
   if (refusal === null) return null;
   const city = cityById(state, cityId);
   const bought = readPurchasableItem(item);

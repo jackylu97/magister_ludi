@@ -3031,3 +3031,75 @@ describe('the piece walks itself back in, by the arm that already did that', () 
     expect(source).toContain('const step = stepAsideFor(');
   });
 });
+
+/**
+ * **Item (hhhh) added one answer to `reachOf`, and may not add a second**
+ * (batch P3b).
+ *
+ * The ruling's clause is narrow: *a piece of this seat's standing in the town's
+ * own hex* is a thing that can be walked one step, so the row is kept. Every
+ * other refusal `purchaseError` makes is what it always was — a sentence that
+ * strikes the row out of the book entirely, so nothing prices it, nothing saves
+ * toward it and no shadow price is raised by it.
+ *
+ * Two of those are asserted here because they are the two the ruling's own
+ * clause stands next to and could plausibly have swallowed:
+ *
+ *   · the **once-per-class-per-turn stamp** (`City.purchasedUnitTurns`), which
+ *     `purchaseError` asks *in front of* the room clause — so a garrisoned town
+ *     that has already taken delivery today is refused for the stamp, and the
+ *     piece in its hex is beside the point;
+ *   · a **shelf already standing**, which is the commonest refusal the book
+ *     meets at all: the plan walks every building in every town, and most of
+ *     those rows come back refused for exactly this.
+ *
+ * The assertion is *absence from the book*, not `outOfReach` — the difference
+ * between the two is the whole of what a saving row does, and a want that
+ * cannot be bought at any price must not pull coins toward itself.
+ */
+describe('every refusal that is not the piece in the hex strikes the row, as before P3', () => {
+  it('drops a soldier a town has already bought its afternoon’s worth of', () => {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    player.gold = 4000;
+    const city = state.cities.find((town) => town.ownerId === player.id)!;
+    // A piece in the hex *and* the stamp: the ruling's own clause is live, and
+    // the stamp still has to win, because it is the refusal the gate makes.
+    createUnit(state, player.id, 'warrior', city.col, city.row);
+    bumpRevision(state);
+    expect(
+      valueContext(state, player).wants.gold.some((row) => row.label.startsWith('Warrior at ')),
+    ).toBe(true);
+
+    city.purchasedUnitTurns = { militaryGold: state.turn };
+    bumpRevision(state);
+    // The gate's own words, so the pin fails the day the clause moves rather
+    // than the day the book quietly empties.
+    expect(
+      purchaseError(state, player.id, city.id, { kind: 'unit', id: 'warrior' }, 'gold'),
+    ).toContain('already bought');
+    expect(
+      valueContext(state, player).wants.gold.some((row) => row.label.startsWith('Warrior at ')),
+    ).toBe(false);
+  });
+
+  it('drops a shelf the town is already standing on', () => {
+    const state = benchState(1);
+    const player = seat(state, 0);
+    player.gold = 4000;
+    const city = state.cities.find((town) => town.ownerId === player.id)!;
+    const built = 'library';
+    grant(state, player, gatingTech('building', built) ?? undefined);
+    bumpRevision(state);
+    const label = `${buildingDef(built).name} at ${city.name}`;
+    expect(valueContext(state, player).wants.gold.some((row) => row.label === label)).toBe(true);
+
+    city.buildings.push(built);
+    refreshCityDerived(state, city);
+    bumpRevision(state);
+    expect(
+      purchaseError(state, player.id, city.id, { kind: 'building', id: built }, 'gold'),
+    ).not.toBe(null);
+    expect(valueContext(state, player).wants.gold.some((row) => row.label === label)).toBe(false);
+  });
+});

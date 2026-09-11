@@ -175,7 +175,7 @@ import {
 import { RULES } from '../sim/rulesData';
 import { canStopOn, moveProfile, stepCost, zocField } from '../sim/pathfind';
 import { type TileOwnerField, playerById, tileOwnerField } from '../sim/state';
-import type { City, GameState, Player } from '../sim/state';
+import type { City, GameState, Player, Unit } from '../sim/state';
 import { isExploredBy } from '../sim/visibility';
 import {
   anyCardDef,
@@ -2298,6 +2298,48 @@ export function priorPrice(ctx: ValueContext, currency: WantCurrency): number {
  * a test that constructs a poor empire and asserts the book still holds the
  * want — so the day the sentence changes, the suite says so rather than the
  * book quietly emptying.
+ *
+ * **The three answers, in the order they are asked** (batch P3b re-ordered them,
+ * and the order is the whole of what keeps item (hhhh) from widening the book).
+ * A refusal is *one* sentence, so the arms below are exclusive whichever way
+ * round they stand — but only one order is cheap, and only one order makes the
+ * reading plain:
+ *
+ *   1. **the money clause**, exactly the reading this had before P3;
+ *   2. **the piece in the town's own hex**, which is a thing this seat can move
+ *      rather than a reason to stop wanting a soldier (item (hhhh), the ruling
+ *      of 2026-09-10). The row is kept and priced *exactly as before* — the step
+ *      costs no coin and changes nothing about what the piece is worth — and the
+ *      spend arm asks `stepAsideFor` again at the moment it fires, walks the
+ *      blocker one hex, and buys in the same turn. Turns are simultaneous, so
+ *      both commands land in one resolution and the town is garrisoned again by
+ *      the end of it. A blocker with nowhere to go is the honest `outOfReach`:
+ *      the want stands, a saving row comes of it, and nothing is refused;
+ *   3. **every other refusal is struck from the book, exactly as it was before
+ *      P3** — the once-per-class-per-turn stamp, a shelf already standing, a
+ *      boxed-in town with no piece in it to move, a row the tree has not opened.
+ *      Item (hhhh) added *one* answer to this reading and may not add a second.
+ *
+ * **The purse is asked again in arm 2, and it has to be.** The room clause sits
+ * in front of the money clause, so a blocked hex hides whether this empire could
+ * have paid at all — and a book that answered "within reach" for a want a
+ * penniless seat cannot buy would have the spend arm marching a garrison about
+ * for nothing. It is the same comparison `outOfReachFor` recognises, made rather
+ * than parsed, and it is sound because the money clause is the *last* thing
+ * `purchaseError` asks: past the room there is nothing else left to refuse for.
+ * A seat that cannot pay is short whatever the blocker does, so the walk that
+ * looks for somewhere to put it is not taken at all.
+ *
+ * **The order also stops the work being done twice.** The book prices every
+ * building in every town and most of those rows come back refused (a shelf
+ * already standing, a tech not yet held); asking `purchaseHexBlocker` in front
+ * of the money clause spent a second whole `purchaseError` — `buildError` and
+ * all — on every one of them, and `stepAsideFor` a whole-map `zocField` on top
+ * of that. The expensive question is now asked only of the rows it is *about*:
+ * a unit, refused, whose town has a piece of its own category standing in it.
+ * Measured, the saving is inside the noise — a book costs some sixty
+ * milliseconds on a played board either way, and the yield folds are all of it —
+ * so this is redundancy removed rather than a hot loop cooled.
  */
 function reachOf(
   state: GameState,
@@ -2310,42 +2352,37 @@ function reachOf(
   if (price === null) return null;
   const refusal = purchaseError(state, player.id, city.id, item, currency);
   if (refusal === null) return { price: price.total, outOfReach: false };
-  // **A piece in the town's own hex is a thing this seat can move**, not a
-  // reason to stop wanting a soldier (item (hhhh), the ruling of 2026-09-10).
-  // The row is kept and priced *exactly as before* — the step costs no coin and
-  // changes nothing about what the piece is worth — and the spend arm asks
-  // `stepAsideFor` again at the moment it fires, walks the blocker one hex, and
-  // buys in the same turn. Turns are simultaneous, so both commands land in one
-  // resolution and the town is garrisoned again by the end of it.
-  //
-  // A blocker with nowhere to go is the honest `outOfReach`: the want stands, a
-  // saving row comes of it, and nothing is refused.
-  //
-  // **The purse is asked again here, and it has to be.** The room clause sits in
-  // front of the money clause, so a blocked hex hides whether this empire could
-  // have paid at all — and a book that answered "within reach" for a want a
-  // penniless seat cannot buy would have the spend arm marching a garrison
-  // about for nothing. It is the same comparison `outOfReachFor` recognises,
-  // made rather than parsed, and it is sound because the money clause is the
-  // *last* thing `purchaseError` asks: past the room there is nothing else left
-  // to refuse for.
-  if (purchaseHexBlocker(state, player.id, city.id, item, currency) !== null) {
-    const short = bankOf(player, currency) < price.total;
-    const stuck = stepAsideFor(state, player, city, item, currency) === null;
-    return { price: price.total, outOfReach: short || stuck };
+  // 1 — the money clause, the reading this had before P3.
+  if (outOfReachFor(player, item, currency, price.total, refusal)) {
+    return { price: price.total, outOfReach: true };
   }
-  if (!outOfReachFor(player, item, currency, price.total, refusal)) return null;
-  return { price: price.total, outOfReach: true };
+  // 2 — the one refusal this seat can act on: a piece of its own in the way.
+  // Only a unit is ever refused for it, and the gate's answer is handed down
+  // rather than asked for a second time (see `purchaseHexBlocker`) — the
+  // sentence is still composed and compared inside the simulation.
+  if (item.kind === 'unit') {
+    const blocker = purchaseHexBlocker(state, player.id, city.id, item, currency, refusal);
+    if (blocker !== null) {
+      // A seat that cannot pay is short whatever the blocker does, so the walk
+      // that looks for somewhere to put it is never taken for one.
+      if (bankOf(player, currency) < price.total) return { price: price.total, outOfReach: true };
+      const stuck = stepAsideForBlocker(state, player, city, blocker) === null;
+      return { price: price.total, outOfReach: stuck };
+    }
+  }
+  // 3 — every other refusal strikes the row, exactly as it always did.
+  return null;
 }
 
 /**
  * **Where the piece in the way would step**, or `null` when there is nowhere.
  *
  * One reading, asked twice: the book asks it to decide whether a blocked want is
- * still within reach, and the spend arm asks it again at the moment it fires to
- * get the command. Deliberately *not* stored on the `Want` — a book is built
- * once a turn (`BotSitting`) and a hex the blocker could step to three decisions
- * ago is exactly the sort of fact that goes stale while nobody is looking.
+ * still within reach (through `stepAsideForBlocker`, with the piece the gate has
+ * just named), and the spend arm asks it here at the moment it fires to get the
+ * command. Deliberately *not* stored on the `Want` — a book is built once a turn
+ * (`BotSitting`) and a hex the blocker could step to three decisions ago is
+ * exactly the sort of fact that goes stale while nobody is looking.
  *
  * The choice, in the ruling's own order:
  *
@@ -2377,7 +2414,27 @@ export function stepAsideFor(
   currency: BankCurrency,
 ): { unitId: number; col: number; row: number } | null {
   const blocker = purchaseHexBlocker(state, player.id, city.id, item, currency);
-  if (blocker === null || blocker.ownerId !== player.id || blocker.movesLeft <= 0) return null;
+  return blocker === null ? null : stepAsideForBlocker(state, player, city, blocker);
+}
+
+/**
+ * The walk itself, taken with the piece already named — `reachOf`'s door into
+ * `stepAsideFor` (batch P3b).
+ *
+ * Two callers and one reading: the arm about to act asks `stepAsideFor`, which
+ * asks the gate who is in the way and then comes here; the book has *just* asked
+ * the gate for its own reasons and comes straight here with the answer. Nothing
+ * about the choice differs between them — which is the point of it being one
+ * function rather than two — and what is saved is a second walk of the whole of
+ * `purchaseError` for every row the book prices.
+ */
+function stepAsideForBlocker(
+  state: GameState,
+  player: Player,
+  city: City,
+  blocker: Unit,
+): { unitId: number; col: number; row: number } | null {
+  if (blocker.ownerId !== player.id || blocker.movesLeft <= 0) return null;
   const centre = getTileAt(state.map, city.col, city.row);
   if (!centre) return null;
   const mover = moveProfile(state, blocker);
