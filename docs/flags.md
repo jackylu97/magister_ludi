@@ -1960,6 +1960,18 @@ directly to confirm rulings — user marginalia are rulings.
   not besieged → the spill still happens; the head keeps its hammers
   across the wait; the panel's sentence. A replay change on the held
   stack (schema stays 115).
+  **P4 built** (2026-09-11, held; gate 244 files / 6399): `foreignUnitAt`
+  inside `spawnTileFor`'s ring walk, both arms — a skip, not a refusal,
+  so every spawner (production, purchase, gifts, beads, great people)
+  gets the contested-hex rule; `builtSpawnTileFor` passes `onCityHexOnly:
+  underSiege(...)` for the completion alone (P3's option reused, the
+  siege field built only on the turn a unit finishes); `payableUnitAt` +
+  `productionAwaitingRoom` (the front row's finished-but-unplaced
+  reading, one caller: the panel's "<Name> is waiting for room" in
+  `--ink-faint`). **The bot needed nothing**: the `cityProduction`
+  blocker fires on an empty queue only and both re-decision arms require
+  a project at the front, so a waiting unit is progress already — pinned
+  by a source register. Twelve core pins + a 120-turn replay.
 - (kkkk) **The prophet's third charge, and the site it cannot plant —
   RULED** (the user, 2026-09-11, on :5199: *"it says my prophet has 3/2
   charges and i dont have the ability to plant a holy site"*). Two
