@@ -1803,11 +1803,20 @@ directly to confirm rulings — user marginalia are rulings.
 - (kkkk) **The prophet's third charge, and the site it cannot plant —
   RULED** (the user, 2026-09-11, on :5199: *"it says my prophet has 3/2
   charges and i dont have the ability to plant a holy site"*). Two
-  causes. (1) **Pachacuti's Corvée** ("workers gain +1 charge") filtered
-  by *model class*, and the prophet, apostle, augur and inquisitor all
-  wear the worker's model — so every religious agent was dealt a charge
-  over its row. Fixed in data: the line names the worker row
-  (`class: {type: 'worker'}`); pinned. (2) **Planting a holy site for a
+  causes. (1) **"Workers gain +1 charge" reached the prophet** — the
+  user was Akhenaten, so not the Corvée (a bot's card) but the same
+  slip in four older rows: the prophet, apostle and inquisitor wear the
+  worker's *model class*, and the worker-charge lines filtered by that
+  model. Two of them (The Pyramids, State Workforce) carried a
+  `consecrates: false` guard written when the augur was the consecrator
+  — but the augur retired and the prophet never took the marker, so the
+  guard excludes nothing; two (Tinkers' Guild, Vaucanson's legacy) had
+  no guard at all. Every "workers +1 charge" line now names the worker
+  row (`class: {type: 'worker'}`), the Corvée included; pinned for each.
+  ▢ **The Great Mosque of Djenné** pays "+1 charge" to `consecrates:
+  true` — the retired augur alone — so the line is dead; with the
+  prophet fixed at two charges by ruling, it wants a new gift (an
+  apostle's charge? a rite's price?) — the user's call. (2) **Planting a holy site for a
   faith already founded is unreachable by design** — Entry LVIII made
   planting *the* founding, `plantHolySiteError` asks `foundReligionError`
   unconditionally, and F2 priced the second arm (`plantHolySite` 2)
