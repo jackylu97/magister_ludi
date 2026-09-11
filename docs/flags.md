@@ -1800,6 +1800,43 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (qqqq) **After the first look at H7 — five rulings** (the user,
+  2026-09-11, on :5199: *"the unit icons are way too thick -- also the
+  borders look off, the line border around the accent overdraws past
+  where they meet. Could you take a look and fix yourself? Leader
+  unlocked units should cost maintenance based on the age they're
+  unlocked (which is how normal unit maintenance works, right?), horde
+  camp should refill every time, please make sure to tell the user its
+  ability in the selection. Great mosque of djenne should give an extra
+  charge to prophets and apostles. barbarian war elephents are fine,
+  xiongnu city list is fine. did the agent use the same colors as you
+  listed, they look different in game"*). (1) **Badge** — the
+  orchestrator retunes `pieces.badgeScale`/`badgeRing` by eye on :5199
+  (thinner ring, a touch smaller). (2) **Border stitch overdraw** — the
+  inner strip runs past the corner where two edges meet; the orchestrator
+  fixes the strip's end caps in `cities3d.ts` (`stitchBand`) so the
+  stitch stops where the line does (mitred or shortened by its own half
+  width). (3) **Uniques' upkeep — RULED**: a unit no technology names is
+  priced by **the age of the row that opens it** — for a leader's unique
+  the age of its deck row (`leaderCardHome(card).age`), for a card's or a
+  belief's the age its opener sits in where one is known, else the row's
+  own `column`'s age — so a unique costs what a same-age unit costs
+  (`unitUpkeep` reads one more source; `explainEmpireGold` untouched;
+  pinned on the Fubing, the Khopesh and a plain spearman of the same
+  age). (4) **Horde Camp — refills every time**, as built; the card's
+  `text` and the building's `note` say it plainly ("a mounted unit that
+  steps onto one of this town's pastures has its full movement again,
+  every time") so the draft sheet and the leader sheet tell the player
+  what they are taking. (5) **Great Mosque of Djenné**: its "+1 charge"
+  reaches **prophets and apostles** — the class filter names the two
+  rows (or the marker both carry and nobody else does, if one exists —
+  never the model class); the walk-every-table pin in
+  `test/sim/religion.test.ts` gains the exception (this one line may
+  reach a prophet and an apostle, and only it). **Ruled fine**: barbarian
+  war elephants in the third age; the Xiongnu city list. (6) **The
+  colours** — the orchestrator checks the in-game inks against the doc's
+  hexes (toon shading and the parchment wash may be the difference; if
+  the data differs from the doc the sync test would have said so).
 - (pppp) **A figure's cities carry its empire's names — RULED** (the
   user, 2026-09-11: *"let's also create a list of ~15 names with
   historically accurate cities from the civ's empire (in order of
