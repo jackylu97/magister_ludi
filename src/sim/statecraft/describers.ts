@@ -1357,12 +1357,21 @@ function describeEffect(
     case 'windfallRider': {
       // The occasion, narrowed where the row narrows it — "killing a barbarian
       // unit" rather than "killing a unit". See `occasionWords`.
-      const occasion = occasionWords(
-        effect.occasion,
-        effect.vsBarbarians === true,
-        effect.capturedWonder === true,
-        effect.wonder === true,
-      );
+      // The rider narrowed to **whose piece did it**, as a leading clause rather
+      // than a suffix on each grant: the narrowing belongs to the rider and a
+      // row may carry three of them (War Chief does), so a suffix would say it
+      // three times. Glued to the occasion because every clause below opens
+      // with the occasion — one seam, and a grant shape added later inherits
+      // the narrowing without this arm being touched.
+      const only = effect.class === undefined ? '' : `for ${filterWords(effect.class)} alone, `;
+      const occasion =
+        only +
+        occasionWords(
+          effect.occasion,
+          effect.vsBarbarians === true,
+          effect.capturedWonder === true,
+          effect.wonder === true,
+        );
       // The **grant first**, then the riders on it. Rites of Blood pays fifteen
       // faith and the age multiplies it; leading with the multiplier said the
       // second half of a sentence whose first half had not been printed yet.
@@ -3049,11 +3058,26 @@ const SCALE_WORDS: Record<CombatScaleCount, PluralWords> = {
     one: 'Order you have in a slot',
     many: 'Orders you have in a slot',
   },
+  // **"Work"**, the word the Reliquary and the Compendium already use for the
+  // thing a great person leaves behind (hard rule 7): "great person
+  // improvement" is the improvement table's phrase for it, and no player has
+  // ever said it. The capital is named because it is the whole of the count's
+  // reach and the half a player plans around — where to plant the next one.
+  capitalGreatWorks: {
+    one: 'great person’s work in your capital',
+    many: 'great people’s works in your capital',
+  },
 };
 
 /** Where a `unitStat` applies, in words. `'anywhere'` is the absent field. */
 const WHERE_WORDS: Record<
-  'anywhere' | 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified',
+  | 'anywhere'
+  | 'ownTerritory'
+  | 'foreignTerritory'
+  | 'embarked'
+  | 'fortified'
+  | 'grassOrPlains'
+  | 'garrison',
   string
 > = {
   anywhere: '',
@@ -3061,6 +3085,13 @@ const WHERE_WORDS: Record<
   foreignTerritory: ' outside your territory',
   embarked: ' while embarked',
   fortified: ' while dug in',
+  // The two terrains said as the country they are, which is what a player sees
+  // when they look at the map — "on grassland and plains" is a rules cell, and
+  // the open country is the ground a horse runs on.
+  grassOrPlains: ' on grassland and plains',
+  // "Standing in", the words `inCity`'s condition already uses, so the two
+  // readings of the same hex read as one sentence to a player.
+  garrison: ' while standing in one of your cities',
 };
 
 /**

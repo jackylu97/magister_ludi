@@ -4374,21 +4374,16 @@
   ],
   "modu": [
    {
-    "raw": "mounted units: +1 movement",
-    "text": "mounted units: +1 movement"
+    "raw": "mounted units: +1 movement on grassland and plains",
+    "text": "mounted units: +1 movement on grassland and plains"
    },
    {
-    "raw": "mounted archers: +1 movement",
-    "text": "mounted archers: +1 movement"
+    "raw": "mounted archers: +1 movement on grassland and plains",
+    "text": "mounted archers: +1 movement on grassland and plains"
    },
    {
     "raw": "pillaging pays +50%",
     "text": "pillaging pays +50%"
-   },
-   {
-    "raw": "The extra pace is kept on any ground rather than only on the grass and the plains. — not built yet",
-    "text": "The extra pace is kept on any ground rather than only on the grass and the plains. — not built yet",
-    "deferred": true
    }
   ],
   "akhenaten": [
@@ -4466,11 +4461,6 @@
    {
     "raw": "unlocks the [[unit:slinger|Slinger]]",
     "text": "unlocks the Slinger"
-   },
-   {
-    "raw": "The hills do not slow it. — not built yet",
-    "text": "The hills do not slow it. — not built yet",
-    "deferred": true
    }
   ],
   "pachacutiTribute": [
@@ -4539,17 +4529,12 @@
   ],
   "taizongFubing": [
    {
-    "raw": "fubings cost no gold in maintenance inside your territory",
-    "text": "fubings cost no gold in maintenance inside your territory"
+    "raw": "fubings cost no gold in maintenance while standing in one of your cities",
+    "text": "fubings cost no gold in maintenance while standing in one of your cities"
    },
    {
     "raw": "unlocks the [[unit:fubing|Fubing]]",
     "text": "unlocks the Fubing"
-   },
-   {
-    "raw": "It is kept for nothing anywhere in your own lands rather than only while it garrisons a town. — not built yet",
-    "text": "It is kept for nothing anywhere in your own lands rather than only while it garrisons a town. — not built yet",
-    "deferred": true
    }
   ],
   "taizongGarrisons": [
@@ -4743,13 +4728,12 @@
   ],
   "moduGuard": [
    {
-    "raw": "unlocks the [[unit:chanyuGuard|The Chanyu's Guard]]",
-    "text": "unlocks the The Chanyu's Guard"
+    "raw": "+2 combat strength for mounted archers while standing beside the chanyu's guards",
+    "text": "+2 combat strength for mounted archers while standing beside the chanyu's guards"
    },
    {
-    "raw": "The horse archers riding beside it are not yet emboldened. — not built yet",
-    "text": "The horse archers riding beside it are not yet emboldened. — not built yet",
-    "deferred": true
+    "raw": "unlocks the [[unit:chanyuGuard|The Chanyu's Guard]]",
+    "text": "unlocks the The Chanyu's Guard"
    }
   ],
   "akhenatenRites": [
@@ -4786,11 +4770,6 @@
    {
     "raw": "unlocks the [[unit:khopesh|The Khopesh]]",
     "text": "unlocks the The Khopesh"
-   },
-   {
-    "raw": "It is stronger anywhere your faith is kept rather than only inside a town. — not built yet",
-    "text": "It is stronger anywhere your faith is kept rather than only inside a town. — not built yet",
-    "deferred": true
    }
   ],
   "akhenatenMillions": [
@@ -4900,13 +4879,12 @@
   "almamunPurse": [],
   "almamunCamel": [
    {
-    "raw": "unlocks the [[unit:camelArcher|Camel Archer]]",
-    "text": "unlocks the Camel Archer"
+    "raw": "+1 combat strength for camel archers per great person’s work in your capital",
+    "text": "+1 combat strength for camel archers per great person’s work in your capital"
    },
    {
-    "raw": "Its arrows do not yet grow keener for the works your great people have planted. — not built yet",
-    "text": "Its arrows do not yet grow keener for the works your great people have planted. — not built yet",
-    "deferred": true
+    "raw": "unlocks the [[unit:camelArcher|Camel Archer]]",
+    "text": "unlocks the Camel Archer"
    }
   ],
   "almamunOrdinance": [
@@ -4937,17 +4915,12 @@
   ],
   "mithridatesPeltast": [
    {
-    "raw": "killing a unit heals 25",
-    "text": "killing a unit heals 25"
+    "raw": "for the pontic peltasts alone, killing a unit heals 25",
+    "text": "for the pontic peltasts alone, killing a unit heals 25"
    },
    {
     "raw": "unlocks the [[unit:ponticPeltast|The Pontic Peltast]]",
     "text": "unlocks the The Pontic Peltast"
-   },
-   {
-    "raw": "Every one of your pieces mends on a kill rather than the peltast alone. — not built yet",
-    "text": "Every one of your pieces mends on a kill rather than the peltast alone. — not built yet",
-    "deferred": true
    }
   ],
   "mithridatesFriends": [

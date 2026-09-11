@@ -909,6 +909,7 @@
       "size": "line",
       "column": 5,
       "unlockedByLeader": true,
+      "ignoresHillCost": true,
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,

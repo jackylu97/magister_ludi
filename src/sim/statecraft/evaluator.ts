@@ -3651,6 +3651,16 @@ export function cardUpkeepRebateLines(
         // borders, which is what makes a campaign the thing the card pays for.
         if (tileOwnerPlayerId(state, unit.col, unit.row) === playerId) continue;
       }
+      if (effect.where === 'garrison') {
+        // **In the town, not on the town's ground.** The Fubing's whole bargain
+        // is that the soldier-farmers fed themselves inside the walls, so this
+        // asks the same `cityAt` lookup the `inCity` combat condition asks — one
+        // reading of "standing in one of your cities", so a card that pays a
+        // garrison and a card that fights in one cannot disagree about which
+        // hexes those are. A town somebody else owns is not your garrison.
+        const town = cityAt(state, unit.col, unit.row);
+        if (!town || town.ownerId !== playerId) continue;
+      }
       const cost = costOf(unit);
       if (cost <= 0) continue;
       gold += off === null ? cost : Math.min(off, cost);
@@ -4203,7 +4213,13 @@ function combatConditionHolds(
       // conquered holy city moves this line with it. A hex nobody owns has no
       // congregation and never satisfies it.
       const cityId = tileOwnerCityId(state, situation.tile.col, situation.tile.row);
-      if (cityId === undefined) return false;
+      // `null`, which is what the reading answers for unclaimed ground — and it
+      // is the whole of the rule's reach: the Khopesh is worth its three points
+      // on **every hex a following town owns**, third ring included, and on no
+      // hex at all out in the wild. (It was written `undefined` here, which
+      // fell through to a `find` that could never match and refused the same
+      // hexes by accident; the sentence is the same and now it says so.)
+      if (cityId === null) return false;
       const town = state.cities.find((entry) => entry.id === cityId);
       if (!town) return false;
       if (when.foreign === true && town.ownerId === situation.unit.ownerId) return false;
@@ -4369,6 +4385,8 @@ function combatScaleCount(
       // (`slottedOrdersOfFlavour`), so the spears a fight is worth and the coin
       // a Guild Charter pays are counting one council.
       return slottedOrdersOfFlavour(state, playerId, scale.slot);
+    case 'capitalGreatWorks':
+      return capitalGreatWorks(state, playerId);
     default: {
       const unhandled: never = count;
       void unhandled;
@@ -4409,6 +4427,35 @@ function greatPeopleEarned(state: GameState, playerId: number, family?: Family):
     const person = unit.person;
     if (person === undefined) continue;
     if (admits(person)) total += 1;
+  }
+  return total;
+}
+
+/**
+ * **Great people's works standing in the capital's own lands** — the Camel
+ * Archer's count.
+ *
+ * `greatPeopleEarned`'s sibling and deliberately the other question: that one
+ * counts the names an empire was handed and this counts the stones they left,
+ * so a citadel pillaged or lost with the town that owned its hex stops paying.
+ * The marker is `ImprovementDef.greatPerson` (presence is the marker), read
+ * through `isGreatPersonWork` — the same predicate `TileCondition`'s
+ * `greatWork` and the Commonwealth's adjacency ask, so the five works and the
+ * sixth one day have one answer.
+ *
+ * **The capital alone**, which is the sheet's own wording and the reason the
+ * scale needs no `max`: a seat's territory is finite, so the line is capped by
+ * the ground rather than by a figure nobody could point at. `capitalCityOf` is
+ * the one reading of which town that is and `ownedTiles` is the one town walk,
+ * so a seat moved by conquest moves the count with it and a realm with no
+ * capital counts nothing.
+ */
+function capitalGreatWorks(state: GameState, playerId: number): number {
+  const seat = capitalCityOf(state, playerId);
+  if (!seat) return 0;
+  let total = 0;
+  for (const tile of ownedTiles(state, seat)) {
+    if (tile.improvement !== undefined && isGreatPersonWork(tile.improvement)) total += 1;
   }
   return total;
 }
@@ -4536,6 +4583,16 @@ export function cardUnitStat(
       // replacing it — a unit that dug in this turn spent no movement, so the
       // two agree by construction.
       if (unit.fortifiedTurns === undefined) continue;
+    }
+    if (effect.where === 'grassOrPlains') {
+      // The open country, asked of the hex the piece is standing on — the
+      // ship's reading one terrain over, and the only reading a per-turn
+      // allowance has (see `CardUnitStatEffect.where`). The two terrains and
+      // nothing else: a hilled grassland is still grassland, because a hill is
+      // a flag on a hex rather than a ground of its own, and the card says
+      // where a horse *runs* rather than how flat the running is.
+      const here = getTileAt(state.map, unit.col, unit.row);
+      if (!here || (here.terrain !== 'grassland' && here.terrain !== 'plains')) continue;
     }
     total += effect.amount;
   }
@@ -4804,6 +4861,22 @@ export interface WindfallPayout {
 export interface WindfallOccasionFacts {
   vsBarbarians?: boolean;
   /**
+   * **Whose piece did it** — the type of the unit whose act opened the occasion,
+   * where one did.
+   *
+   * `vsBarbarians`' mirror and passed for its reason exactly: that one says who
+   * was on the other side of the moment and this says who was on this one, and
+   * by the time the riders are composed the fight is over and the board no
+   * longer holds either. A `CardWindfallRiderEffect.class` is asked against it,
+   * so the Pontic peltast mends on its own kills and on nobody else's.
+   *
+   * The **type** rather than the piece, because a filter is a fact about a row
+   * (`UnitFilter`'s own rule) and the piece may already be off the board.
+   * Absent on every occasion whose subject is a town rather than a soldier, and
+   * a rider that asks for a filter and is handed no actor simply does not ride.
+   */
+  actor?: UnitTypeId;
+  /**
    * True when the town just taken held a wonder — The Empire's clause.
    *
    * `vsBarbarians`' sibling, passed for its reason exactly: the caller is the
@@ -4896,6 +4969,14 @@ export function windfallPayout(
     // asks for the wild and did not get it is simply not on this payout — the
     // same reading `combatLine`'s conditions take, one system over.
     if (effect.vsBarbarians === true && facts.vsBarbarians !== true) continue;
+    // The same narrowing from the other side: the Pontic peltast mends on the
+    // kills **it** made. An occasion with no actor at all never satisfies it,
+    // which is what keeps a row written onto a growth silent rather than
+    // universal — `atPopulation`'s bargain, one fact over.
+    if (effect.class !== undefined) {
+      if (facts.actor === undefined) continue;
+      if (!unitMatches(facts.actor, effect.class)) continue;
+    }
     // The same narrowing, one fact over: The Empire pays for a town with a
     // wonder in it and not for a town.
     if (effect.capturedWonder === true && facts.capturedWonder !== true) continue;

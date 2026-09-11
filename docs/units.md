@@ -140,7 +140,7 @@ column, which is carried through every regeneration.
 | War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 101 | — | The Saddle | — | needs improved Ivory |  |
 | The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 389 | — | Alchemy | — | needs improved Niter |  |
 | Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
-| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 41 | — | — | Composite Bowman | — |  |
+| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 41 | — | — | Composite Bowman | unslowed by hills |  |
 | Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 13 | — | — | Spear Wall | — |  |
 | Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 101 | — | — | Knight | needs improved Horses |  |
 | The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 34 | — | — | Horse Archer | needs improved Horses |  |

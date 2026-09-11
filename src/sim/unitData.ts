@@ -648,6 +648,32 @@ export interface UnitDef {
    * compare a unit type against the string `"scout"`.
    */
   ignoresTerrainCost?: boolean;
+  /**
+   * True when a **hill** costs this unit what the flat ground under it costs —
+   * or the field is **absent** for everything that pays the climb.
+   *
+   * `ignoresTerrainCost`'s narrow sibling, and a second marker rather than a
+   * degree of that one because the two say different things about the same
+   * piece. A scout is quick over *everything* — the wood, the marsh and the
+   * climb alike — and Pachacuti's Slinger is quick over exactly one of them: it
+   * grew up on the terraces, so a hillside is the ground it walks on and a
+   * forest still slows it down like anybody else. A row that could only say
+   * "ignores the ground" would have had to hand the slinger the woods as well.
+   *
+   * It buys **movement and nothing else**, which is `ignoresTerrainCost`'s
+   * bargain word for word: passability is untouched (a mountain is not a hill),
+   * defence is untouched (a slinger on a hill still gets the height), and the
+   * height's own yield and cover are facts about the hex rather than about who
+   * is standing on it. Read in `tileMoveCost` (`pathfind.ts`) and nowhere else,
+   * which is the one place pathing, reachability and the walk can agree — and
+   * *before* `ignoresTerrainCost`, because the two compose the obvious way and
+   * the scout's floor already swallows the climb.
+   *
+   * Absent rather than `false` for `ignoresTerrainCost`' reason: presence of the
+   * field *is* the marker, so nothing in `src/sim/` compares a type against the
+   * string `"slinger"`.
+   */
+  ignoresHillCost?: boolean;
   /** True when the unit can be spent to found a city. See the docblock. */
   foundsCity: boolean;
   /**

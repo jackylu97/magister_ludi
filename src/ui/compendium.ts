@@ -527,6 +527,15 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   if (def.ignoresTerrainCost === true) {
     out.push({ text: 'Rough ground does not slow it: every hex it can enter costs it the same.' });
   }
+  if (def.ignoresHillCost === true) {
+    // Its own clause beside the scout's rather than a softer wording of it: one
+    // says the ground never slows this piece and the other says the *climb*
+    // does not, and a player reading the two rows should be able to see the
+    // difference. Marker, never a name (the roster's own discipline).
+    out.push({
+      text: 'It was raised on the heights: a hill costs it no more to enter than the flat land under it. What grows there still slows it like anybody else.',
+    });
+  }
   /**
    * The ship's clauses, in the order a player meets them: where it may be, then
    * what its own line does that the others do not.

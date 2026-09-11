@@ -751,7 +751,15 @@ function openWater(terrain: TerrainId, mover?: MoveProfile): boolean {
 }
 
 export function tileMoveCost(tile: Tile, mover?: MoveProfile): number | null {
-  const ground = moveCost(tile.terrain, tile.feature, tile.hills);
+  // **The hills do not slow a slinger** (`UnitDef.ignoresHillCost`, batch L3b).
+  // Asked of the *ground's own price* rather than as a discount on the answer,
+  // and that is the whole of what the marker means: the hex is priced as the
+  // flat land under the climb, so a wooded hill still costs the wood and a
+  // mountain is still a mountain. Read here beside `ignoresTerrainCost` for that
+  // flag's stated reason — one place the price of a step is decided, and
+  // therefore one place the highlight, the estimate and the march agree.
+  const climbs = tile.hills && mover?.def?.ignoresHillCost !== true;
+  const ground = moveCost(tile.terrain, tile.feature, climbs);
   if (ground === null) {
     // A ship's water is the *same* water an embarked settler crosses, and that
     // is deliberate: `isEmbarkableTerrain` is the one reading of "which sea is

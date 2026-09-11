@@ -118,13 +118,10 @@
             "name": "The Slinger",
             "kind": "unique",
             "flavor": "A stone, a strap, and the whole hillside for a wall.",
-            "text": "Opens the Slinger, a shooter of the second age with +2 ranged strength.",
+            "text": "Opens the Slinger, a shooter of the second age with +2 ranged strength. A hill costs it no more than the flat land under it.",
             "unlocks": {
               "unit": "slinger"
-            },
-            "deferred": [
-              "The hills do not slow it."
-            ]
+            }
           }
         ],
         "3": [
@@ -303,7 +300,7 @@
             "name": "The Fubing",
             "kind": "unique",
             "flavor": "Soldiers who plough, and ploughmen who muster.",
-            "text": "Opens the Fubing, a cheap spear line kept for nothing inside your own lands.",
+            "text": "Opens the Fubing, a cheap spear line that costs no gold in maintenance while it stands in one of your cities.",
             "unlocks": {
               "unit": "fubing"
             },
@@ -314,11 +311,8 @@
                 "class": {
                   "type": "fubing"
                 },
-                "where": "ownTerritory"
+                "where": "garrison"
               }
-            ],
-            "deferred": [
-              "It is kept for nothing anywhere in your own lands rather than only while it garrisons a town."
             ]
           }
         ],
@@ -495,7 +489,7 @@
     "modu": {
       "name": "Modu Chanyu",
       "bonus": {
-        "text": "Mounted units gain +1 movement. Pillaging pays half again.",
+        "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
         "effects": [
           {
             "kind": "unitStat",
@@ -503,7 +497,8 @@
             "amount": 1,
             "class": {
               "modelClass": "mounted"
-            }
+            },
+            "where": "grassOrPlains"
           },
           {
             "kind": "unitStat",
@@ -511,16 +506,14 @@
             "amount": 1,
             "class": {
               "modelClass": "mountedRanged"
-            }
+            },
+            "where": "grassOrPlains"
           },
           {
             "kind": "windfallRider",
             "occasion": "pillage",
             "percent": 50
           }
-        ],
-        "deferred": [
-          "The extra pace is kept on any ground rather than only on the grass and the plains."
         ]
       },
       "deck": {
@@ -726,12 +719,25 @@
             "name": "The Chanyu's Guard",
             "kind": "unique",
             "flavor": "The ones who ride nearest the whistling arrow.",
-            "text": "Opens the Chanyu's Guard, a heavier and faster horse than any knight.",
+            "text": "Opens the Chanyu's Guard, a heavier and faster horse than any knight. Your mounted archers standing beside one fight at +2 strength.",
             "unlocks": {
               "unit": "chanyuGuard"
             },
-            "deferred": [
-              "The horse archers riding beside it are not yet emboldened."
+            "effects": [
+              {
+                "kind": "combatLine",
+                "amount": 2,
+                "side": "both",
+                "class": {
+                  "modelClass": "mountedRanged"
+                },
+                "when": {
+                  "test": "beside",
+                  "class": {
+                    "type": "chanyuGuard"
+                  }
+                }
+              }
             ]
           }
         ]
@@ -875,7 +881,7 @@
             "name": "The Khopesh",
             "kind": "unique",
             "flavor": "A sickle for a harvest nobody sowed.",
-            "text": "Opens the Khopesh, a sword line worth +3 more in lands that keep your faith.",
+            "text": "Opens the Khopesh, a sword line worth +3 more on every hex held by a city that follows your religion.",
             "unlocks": {
               "unit": "khopesh"
             },
@@ -891,9 +897,6 @@
                   "type": "khopesh"
                 }
               }
-            ],
-            "deferred": [
-              "It is stronger anywhere your faith is kept rather than only inside a town."
             ]
           }
         ],
@@ -1171,12 +1174,26 @@
             "name": "The Camel Archer",
             "kind": "unique",
             "flavor": "It drinks once and rides for a week.",
-            "text": "Opens the camel archer, a strengthened bow on the march.",
+            "text": "Opens the camel archer, a strengthened bow on the march. It shoots at +1 strength for every great person's work standing in your capital.",
             "unlocks": {
               "unit": "camelArcher"
             },
-            "deferred": [
-              "Its arrows do not yet grow keener for the works your great people have planted."
+            "effects": [
+              {
+                "kind": "combatLine",
+                "amount": 1,
+                "side": "attack",
+                "class": {
+                  "type": "camelArcher"
+                },
+                "when": {
+                  "test": "always"
+                },
+                "scaled": {
+                  "count": "capitalGreatWorks",
+                  "per": 1
+                }
+              }
             ]
           }
         ],
@@ -1302,7 +1319,7 @@
             "name": "The Pontic Peltast",
             "kind": "unique",
             "flavor": "Light on the foot, and quick to come back.",
-            "text": "Opens the Pontic peltast, a spear line that mends when it kills.",
+            "text": "Opens the Pontic peltast, a spear line that mends itself whenever it makes a kill. No other piece of yours does.",
             "unlocks": {
               "unit": "ponticPeltast"
             },
@@ -1310,13 +1327,13 @@
               {
                 "kind": "windfallRider",
                 "occasion": "kill",
+                "class": {
+                  "type": "ponticPeltast"
+                },
                 "grant": {
                   "heal": 25
                 }
               }
-            ],
-            "deferred": [
-              "Every one of your pieces mends on a kill rather than the peltast alone."
             ]
           }
         ],

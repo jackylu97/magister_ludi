@@ -882,7 +882,30 @@ export type CombatScaleCount =
    * the council a player can see on the Statecraft screen is the council that
    * shows up in the combat preview.
    */
-  | 'slottedOrdersOfSlot';
+  | 'slottedOrdersOfSlot'
+  /**
+   * **Great people's works standing in the capital's own lands** — Al-Ma'mun's
+   * Camel Archer, whose arrows grow keener for every academy, manufactory and
+   * citadel the House of Wisdom has planted around Baghdad.
+   *
+   * `greatPeopleOfFamily`'s sibling one step down the chain and deliberately a
+   * different question: that one counts the *names* an empire has ever been
+   * handed, and this counts the *stones* they left behind — a work pillaged, or
+   * lost with the town that owned the hex, stops paying. Read off
+   * `ImprovementDef.greatPerson` (presence is the marker), which is what
+   * `TileCondition`'s `greatWork` reads one scale down, so the sixth work added
+   * the day a great admiral lands joins this count with nothing touched.
+   *
+   * **The capital and no other town** (`docs/leaders.md`: "for every great
+   * person improvement in your capital"), walked through `capitalCityOf` ×
+   * `ownedTiles` — the one seat reading and the one town walk. That narrowness
+   * is the design rather than an economy: it is what caps the line without a
+   * `max` on the scale, it is what makes the choice of *where* to plant a work
+   * a decision, and a work out in a colony or out in the wild belongs to no
+   * count at all. A realm with no capital counts nothing, which is the honest
+   * answer for an empire that has just lost its seat rather than a silence.
+   */
+  | 'capitalGreatWorks';
 
 /** A strength line that scales with a count, capped where the design caps it. */
 export interface CombatScale {
@@ -3062,12 +3085,25 @@ export interface CardUnitStatEffect {
    *   · `'fortified'` — the piece has dug in (`Unit.fortifiedTurns`, presence is
    *     the state). The Alchemical Codex's extra mending, and the only one of
    *     the three that is a fact about the *posture* rather than the ground.
+   *   · `'grassOrPlains'` — **the open country**: flat or hilled grassland and
+   *     plains, the two terrains a horse runs on. Modu Chanyu's extra pace,
+   *     which `docs/leaders.md` gives as "+1 movement on grassland and plains".
    *
-   * All three are asked of the piece where it stands, in `cardUnitStat`, which
+   * All four are asked of the piece where it stands, in `cardUnitStat`, which
    * is the only reading a per-turn allowance can have: a ship is quick because
    * it set out from the water, and the allowance is refilled where it stands.
+   *
+   * That reading is also the **answer to the obvious other one** — an extra
+   * point that may only be spent *entering* the open country. There is no such
+   * thing in this game and there must not be: `stepCost` returns one number,
+   * the four readers subtract it from one purse, and `snapMovement` keeps that
+   * purse a whole number of fifteenths. A point that could only be spent on
+   * some steps would be a second currency and a fifth pricer, which is exactly
+   * what the movement trap forbids. So the steppe is read where the ship's
+   * water is read: a column that sets out across the grass rides further that
+   * turn, and one that wakes up in the hills does not.
    */
-  where?: 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified';
+  where?: 'ownTerritory' | 'foreignTerritory' | 'embarked' | 'fortified' | 'grassOrPlains';
   /**
    * Narrows the stat to *the town the piece was trained in*. Absent means every
    * one. Cuius Regio's augurs, raised in the cities that keep his faith.
@@ -3279,6 +3315,27 @@ export interface CardWindfallRiderEffect {
    * a rule here.
    */
   vsBarbarians?: boolean;
+  /**
+   * The rider fires only when **this empire's own piece** was the one that did
+   * it — Mithridates' Pontic peltast, which mends on a kill where the rest of
+   * the army does not.
+   *
+   * `vsBarbarians`' mirror: that one narrows the occasion by who was on the
+   * *other* side and this narrows it by who was on *this* one, and both are
+   * filters on one moment rather than a second occasion. The same `UnitFilter`
+   * every "which units" question in this file asks, read by the same
+   * `unitMatches` predicate — so a rider written for one row keeps meaning what
+   * it said, and a rider written for a silhouette reaches whatever the roster
+   * draws that way.
+   *
+   * Read against `WindfallOccasionFacts.actor`, which the caller passes for
+   * `vsBarbarians`' reason exactly: by the time the riders are composed the
+   * fight is over and the board no longer says whose blow it was. An occasion
+   * that carries no actor at all — a growth, a town founded — never satisfies
+   * it, which is what keeps a row written onto the wrong occasion silent rather
+   * than universal.
+   */
+  class?: UnitFilter;
   /**
    * The rider fires only when the town taken **held a wonder** — The Empire's
    * "capturing a city with a wonder heals all your units".
@@ -4056,8 +4113,22 @@ export interface CardUpkeepRebateEffect {
   free?: boolean;
   /** Which pieces. Absent reaches every one this empire pays for. */
   class?: UnitFilter;
-  /** Where the piece must be standing. Absent means anywhere. */
-  where?: 'ownTerritory' | 'foreignTerritory';
+  /**
+   * Where the piece must be standing. Absent means anywhere.
+   *
+   *   · `'ownTerritory'` / `'foreignTerritory'` — the border, read the way
+   *     `CardUnitStatEffect.where` reads it: a hex nobody owns is abroad.
+   *   · `'garrison'` — **standing in one of your own towns**, which is a
+   *     narrower thing than standing on your own ground and is exactly what
+   *     Taizong's Fubing says (`docs/leaders.md`: "costs no upkeep while
+   *     garrisoned"). A named value rather than a `CityScope`, for
+   *     `foreignTerritory`'s reason: a scope is a question about a *town's*
+   *     ledger and this is a question about a hex a soldier is standing on.
+   *     The soldier-farmers of the fubing system fed themselves in the
+   *     garrison town and cost the treasury nothing there; in the field they
+   *     were an army like any other.
+   */
+  where?: 'ownTerritory' | 'foreignTerritory' | 'garrison';
 }
 
 /**

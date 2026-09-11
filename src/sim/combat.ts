@@ -2421,10 +2421,10 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
       attacker.ownerId,
       'kill',
       tile,
-      { vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true },
+      { vsBarbarians: playerById(state, fromOwnerId)?.barbarian === true, actor: attacker.type },
       attacker,
     );
-    payBattleRiders(state, fromOwnerId, 'death', tile);
+    payBattleRiders(state, fromOwnerId, 'death', tile, { actor: caravan.type });
   } else if (!forecast.capturesUnit) {
     /**
      * Everything below is the *fight*, and a capture is not one.
@@ -2471,6 +2471,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         defenderDied = true;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
+          actor: attacker.type,
         });
       }
     } else {
@@ -2519,8 +2520,20 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
           // Two riders on one death, and they belong to two empires: the killer's
           // `kill` and the fallen's `death`. Both are paid, in that order, because
           // a battle is one event that two laws have something to say about.
-          payBattleRiders(state, attacker.ownerId, 'kill', tile, { vsBarbarians: fromWild }, attacker);
-          payBattleRiders(state, fallenOwner, 'death', tile);
+          payBattleRiders(
+            state,
+            attacker.ownerId,
+            'kill',
+            tile,
+            // **Whose blow it was** (`WindfallOccasionFacts.actor`, batch L3b):
+            // the Pontic peltast mends on the kills it made, and a moment from
+            // now the fight is over and nothing on the board still says who
+            // struck. Passed beside the other side's fact, which is the same
+            // moment asked from the opposite end.
+            { vsBarbarians: fromWild, actor: attacker.type },
+            attacker,
+          );
+          payBattleRiders(state, fallenOwner, 'death', tile, { actor: defender.type });
         }
       }
     }
@@ -2546,7 +2559,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
     // the kill, and a city that broke a charge is nobody's seat, so a hex with
     // no defending empire records the loss alone.
     tallyFall(state, defenderOwner ?? null, fallenOwner);
-    payBattleRiders(state, fallenOwner, 'death', tile);
+    payBattleRiders(state, fallenOwner, 'death', tile, { actor: attacker.type });
     // The counter-attack killed somebody, so the defending empire got a kill —
     // which is the only reading under which The Iron Price is a card about
     // *combat* rather than a card about attacking.
@@ -2559,7 +2572,12 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         defenderOwner,
         'kill',
         tile,
-        { vsBarbarians: playerById(state, fallenOwner)?.barbarian === true },
+        {
+          vsBarbarians: playerById(state, fallenOwner)?.barbarian === true,
+          // The **counter-attacker**, where one is a piece at all: a city that
+          // broke a charge is not a soldier and has no row a filter could name.
+          ...(target.unit ? { actor: target.unit.type } : {}),
+        },
         target.unit ?? undefined,
       );
     }
@@ -2650,6 +2668,7 @@ export function applyCombat(state: GameState, attackerId: number, cell: Cell): C
         outcome.capturedCityId = town.id;
         payBattleRiders(state, attacker.ownerId, 'capture', tile, {
           capturedWonder: heldWonder,
+          actor: attacker.type,
         });
       }
     }

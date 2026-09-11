@@ -154,6 +154,7 @@ function marks(def: UnitDef): string {
   if (def.blockades === true) out.push('blockades');
   if (def.bombard === true) out.push('bombards');
   if (def.ignoresTerrainCost === true) out.push('ignores terrain');
+  if (def.ignoresHillCost === true) out.push('unslowed by hills');
   if (def.haltsGrowth) out.push('halts growth');
   if (def.minCityPop > 0) out.push(`needs ${plural(def.minCityPop, 'citizen')}`);
   return out.length === 0 ? '—' : out.join(' · ');
