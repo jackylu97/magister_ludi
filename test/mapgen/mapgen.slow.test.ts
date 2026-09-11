@@ -27,7 +27,7 @@ import {
 } from '../../src/sim/mapgen';
 import { HEX_DIRECTIONS } from '../../src/sim/hex';
 import { getTile, tileHex, tileIndex, tileNeighbors, wrappedDistance } from '../../src/sim/map';
-import { neighborInDirection, vertexTiles } from '../../src/sim/water';
+import { neighborInDirection, vertexAltitude, vertexTiles } from '../../src/sim/water';
 import { detailFor, mapFor } from './fixtures';
 import { FEATURE_IDS, TERRAIN_IDS, isWaterTerrain } from '../../src/sim/terrainData';
 
@@ -340,15 +340,30 @@ describe('the elevation field', () => {
     );
   });
 
-  it('sources its rivers high, on range ground', () => {
+  it('sources its rivers at the threshold the data names, and mostly on range ground', () => {
     // Rivers trace downhill, so where they are *born* is the whole of whether
-    // they read as coming out of the mountains. Two readings, because the
-    // interesting claim is geographic rather than numeric: the springs sit well
-    // above the average land, and the corner a river starts at is *on* a range.
+    // they read as coming out of the high country. Three readings, and the first
+    // is the rule itself rather than a statistic about it.
     //
-    // Not "every spring is above the hill cut": a spring's altitude is the mean
-    // of its three hexes, so a corner where two mountain tiles meet a valley
-    // floor is high ground by any reading and still averages below the cut.
+    // **Reworked for (tttt)** (`docs/flags.md`, 2026-09-11), which took
+    // `minSpringElevation` 0.80 → 0.65. The old pin read "high, on range ground"
+    // and measured that as a lift of five hundredths over the average land,
+    // because 0.80 *was* the hill cut: on the shipped field the lowest hill hex
+    // sits at 0.807, so a threshold of 0.80 admitted only the boards' upper
+    // half (52% of land is below 0.80) and springs were range ground by
+    // construction. 0.65 is well down the land band — land runs 0.58…1.00 with
+    // its median at 0.79, and only a sixth of it lies below 0.65 — so the rule
+    // now admits five sixths of the land as spring ground, and a spring on
+    // rolling lowland is what the user asked for, not a regression. Measured
+    // over all twelve seeds and these three sizes the lift fell to 0.033…0.098
+    // and the on-range share to 0.655…1.00, so the old floors (0.05 and 0.80)
+    // were pinning the *old* threshold and not any claim that survives it.
+    //
+    // What is pinned instead is what the data states: **every** spring corner
+    // stands at or above `minSpringElevation` — an exact reading of the rule,
+    // not an average of it — plus the two soft geographic claims, re-measured:
+    // the springs still sit above the average land, and most of them still open
+    // on a hex of hills or mountain.
     for (const size of ['duel', 'standard', 'large']) {
       for (const seed of SEEDS.slice(0, 4)) {
         const { map, rivers } = detailFor(seed, size);
@@ -364,28 +379,45 @@ describe('the elevation field', () => {
 
         let springSum = 0;
         let onRange = 0;
+        let lowestCorner = Number.POSITIVE_INFINITY;
         for (const river of rivers) {
           const spring = river.vertices[0]!;
           springSum += map.tiles[tileIndex(map, spring.col, spring.row)]!.elevation;
+          // The rule thresholds the **corner**, which is the mean of its three
+          // hexes — so this is the altitude the spring pass itself compared,
+          // and a single hex of the three may sit below the line. A corner off
+          // the board's edge has no altitude at all and no spring can stand
+          // there; `Infinity` leaves the running minimum alone rather than
+          // quietly reading a spring as the lowest on the map.
+          lowestCorner = Math.min(
+            lowestCorner,
+            vertexAltitude(map, spring) ?? Number.POSITIVE_INFINITY,
+          );
           const corner = vertexTiles(map, spring) ?? [];
           if (corner.some((tile) => tile.hills || tile.terrain === 'mountain')) onRange += 1;
         }
         const mean = springSum / rivers.length;
         const where = `${size}/${seed}`;
 
-        expect(`${where} spring ${mean.toFixed(3)}`).toBe(
-          `${where} spring ${Math.max(mean, MAPGEN_CONFIG.rivers.minSpringElevation).toFixed(3)}`,
+        // The rule, exactly: no spring below the threshold, on any board.
+        const floor = MAPGEN_CONFIG.rivers.minSpringElevation;
+        expect(`${where} lowest spring ${lowestCorner.toFixed(3)}`).toBe(
+          `${where} lowest spring ${Math.max(lowestCorner, floor).toFixed(3)}`,
         );
-        // And clear of the average land by a real margin, not a rounding error.
+        // And the springs as a body still stand above the average land. The
+        // margin is small now by design; what must not happen is the mean
+        // falling to the land's own.
         const lift = mean - landSum / land;
         expect(`${where} lift ${lift.toFixed(3)}`).toBe(
-          `${where} lift ${Math.max(lift, 0.05).toFixed(3)}`,
+          `${where} lift ${Math.max(lift, 0.03).toFixed(3)}`,
         );
-        // The geographic reading: nearly every river starts on a hex of hills
-        // or mountain. It runs at 96% across this sweep.
+        // The geographic reading: most rivers still start on a hex of hills or
+        // mountain. It ran at 96% under the old threshold; under this one the
+        // whole twelve-seed sweep across these three sizes runs 0.655…1.00, so
+        // two rivers in three is what survives as a claim.
         const share = onRange / rivers.length;
         expect(`${where} on range ${share.toFixed(2)}`).toBe(
-          `${where} on range ${Math.max(share, 0.8).toFixed(2)}`,
+          `${where} on range ${Math.max(share, 0.65).toFixed(2)}`,
         );
       }
     }

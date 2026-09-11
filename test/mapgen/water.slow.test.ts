@@ -153,20 +153,37 @@ describe('rivers on generated maps', () => {
     }
   });
 
-  it('ends every river at water or at another river, and keeps none too short', () => {
+  it('ends every river at water, at a pond of its own, or at another river, and keeps none too short', () => {
     // `'lake'` is the third ending since 2026-09-04 and it is a *mouth* like the
     // first: the trace stopped at a corner touching water, and the water is the
-    // pond it made (`RiverConfig.pitLakes`). It cannot appear on these two sizes —
-    // both are under `pitLakeMinTiles` — which the sweep below asserts by name.
+    // pond it made (`RiverConfig.pitLakes`).
+    //
+    // It used to be unreachable on both of these sizes, because both were under
+    // `pitLakeMinTiles`. Since (tttt) (`docs/flags.md`, 2026-09-11) the gate is
+    // 3500 and **standard pools**, so a lake mouth is now an ordinary ending
+    // there — sixteen to nineteen of the fifty-eight rivers on the seeds swept
+    // here. `duel` is still under the gate and still makes none, and that pair
+    // is the shape worth pinning: the ending follows the gate rather than the
+    // weather.
+    const pools = (size: string): boolean => {
+      const map = mapFor(seeds[0]!, size);
+      return map.width * map.height >= MAPGEN_CONFIG.rivers.pitLakeMinTiles;
+    };
     for (const size of sizes) {
+      const mayPool = pools(size);
       for (const seed of seeds) {
         const { rivers } = detailFor(seed, size);
         expect(rivers.length).toBeGreaterThan(0);
+        let lakes = 0;
         for (const river of rivers) {
-          expect(['water', 'river']).toContain(river.ending);
+          expect(['water', 'lake', 'river']).toContain(river.ending);
+          if (river.ending === 'lake') lakes += 1;
           expect(river.edges.length).toBeGreaterThanOrEqual(MAPGEN_CONFIG.rivers.minLength);
           expect(river.edges.length).toBeLessThanOrEqual(MAPGEN_CONFIG.rivers.maxLength);
         }
+        // A board under the gate floods nothing, so it can have no lake mouth
+        // at all; a board over it is where the ending comes from.
+        if (!mayPool) expect(`${size}/${seed} lake mouths ${lakes}`).toBe(`${size}/${seed} lake mouths 0`);
       }
     }
   });
@@ -236,9 +253,30 @@ describe('rivers on generated maps', () => {
     // measurement — 0.95 leaves room for a seed whose basins are all mountain or
     // all shoreline, which is the only way a pooling board can still come short.
     //
-    // `duel` and `standard` are untouched by the rule (`pitLakeMinTiles` gates it
-    // at the boards above standard) and keep the floors they were measured at.
-    // The day standard is let in, its floor is the one to re-measure.
+    // **Standard was let in** by (tttt) (`docs/flags.md`, 2026-09-11), which
+    // took `pitLakeMinTiles` to 3500 — and the comment above said the day that
+    // happened its floor was the one to re-measure. Re-measured over eight seeds
+    // (1, 7, 1234, 31337, 2024, 99, 555, 8080) with the whole of the new sheet
+    // in place, standard seats its **whole** quota on every one of them, as
+    // large, huge and giant do, so it joins them at 0.95.
+    //
+    // **`duel` is the one that moved the wrong way, and it is `minLength`.** The
+    // same sweep reads duel 14/14 on six seeds and 7/14 and 8/14 on two, a floor
+    // of 0.50 where the pin said 0.65. Held at the new spring threshold and
+    // re-run with the *old* `minLength` 4, seed 31337 goes 7 → 14; held at the
+    // new `minLength` 5 and re-run with the old threshold 0.80 it goes 7 → 6. So
+    // the lower springs helped and the extra edge is what costs the rivers: on
+    // 386 land tiles a great many traces reach the sea in four edges, and
+    // discarding them is `minLength` doing exactly what it is for. Duel is
+    // under `pitLakeMinTiles` too, so it has no basin-flooding fallback to
+    // recover them with.
+    //
+    // ▢ for the user: this is a shipped consequence of the ruling rather than a
+    // fault — a duel board simply has less watershed than five edges of river
+    // needs — but it means the smallest board now runs at about half its river
+    // quota on an unlucky seed. If duel should stay riverine, the knob is
+    // `minLength` (a per-size floor), or `pitLakeMinTiles` low enough to let
+    // duel pool as well. The floor below records what ships, not what is wanted.
     //
     // `attemptsPerRiver` is still the tunable this test would notice being
     // reverted — at the old flat cap every one of these floors halves. What it is
@@ -246,8 +284,8 @@ describe('rivers on generated maps', () => {
     // corners clear `minSpringElevation` and the budget is 17,160, so every
     // candidate was already being tried and no larger budget could have helped.
     const floor: Record<string, number> = {
-      duel: 0.65,
-      standard: 0.9,
+      duel: 0.5,
+      standard: 0.95,
       large: 0.95,
       huge: 0.95,
       giant: 0.95,

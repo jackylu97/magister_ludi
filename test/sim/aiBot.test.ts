@@ -402,6 +402,15 @@ describe('the scored build list', () => {
     // before it looks at the books. The hand is dealt back to the deck here so
     // the arrears are the only question left.
     delete player.statecraft.pendingOrder;
+    // And the ruin's own card with it, for exactly the same reason and by the
+    // same hand. The mapgen defaults of (tttt) (`docs/flags.md`, 2026-09-11)
+    // moved every seeded board — rivers, ponds, coast and the starts ten hexes
+    // apart — so this fixture's scout now reaches a *ruin* inside its ten turns
+    // where before it reached only an order offer. A `pendingDiscovery` is a
+    // blocker the bot answers before it looks at the books (`chooseDiscovery`),
+    // which is honest behaviour and not what this test is about. Presence is
+    // the whole of the state, so deleting the key is spending the offer.
+    delete player.pendingDiscovery;
     const city = firstCity(game.state, 0);
     // Five spare soldiers standing in the field, well away from the town so the
     // garrison guard is not what is being tested here.
@@ -446,17 +455,33 @@ describe('the bot defends itself', () => {
     // **Design addendum 1.** The same town, appraised twice: once in a quiet
     // world, once with three hostile soldiers parked beside it. What must change
     // is what the town starts.
-    const game = grownGame(14);
+    // **Re-sited 2026-09-11**, from fourteen turns to sixteen, for the user's
+    // new mapgen defaults (`docs/flags.md` (tttt)). The bench is a played board,
+    // so a different world is a differently-developed town: at fourteen turns on
+    // the new map the seat has just taken its second site and wants a settler
+    // badly enough that a column next door does not move it, which makes the
+    // *quiet* half of the comparison a soldierless answer for a reason that has
+    // nothing to do with threat. Two turns on, the town is between errands — a
+    // worker in the quiet world, a soldier under the column — and that is the
+    // comparison the addendum is about. It is asserted below rather than
+    // assumed: the quiet pick must be something other than a soldier, or the
+    // test proves nothing by finding one under siege.
+    const game = grownGame(16);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned
-    // sheet the fourteen-turn bench already has wild pieces wandering inside the
-    // threat radius of the first town, so the wild is cleared off the board
-    // before the quiet appraisal — the test's own column is placed below.
+    // sheet the grown bench already has wild pieces wandering inside the threat
+    // radius of the first town, so the wild is cleared off the board before the
+    // quiet appraisal — the test's own column is placed below.
     game.state.units = game.state.units.filter((unit) => unit.ownerId === player.id);
 
     const quiet = chooseProduction(game.state, player, city);
     expect(quiet).not.toBeNull();
+    // The other half of "what must change": with no column in sight the town is
+    // building for its economy, not for its walls.
+    expect(
+      quiet!.kind === 'unit' && isCombatant(unitDef((quiet as { id: 'warrior' }).id)),
+    ).toBe(false);
     expect(valueContext(game.state, player).threat).toBe(0);
 
     // The wild's own pieces, standing one hex off the town. `threatLevel` reads

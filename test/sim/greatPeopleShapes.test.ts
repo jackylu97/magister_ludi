@@ -215,10 +215,23 @@ describe('a strength line against a wider empire', () => {
         // One town each: nobody is wider, so the line is silent.
         const home = found(g.state, 0);
         const theirs = found(g.state, 1);
-        const mine = createUnit(g.state, 0, 'warrior', home.col + 2, home.row);
+        // **West of the town, not east** (2026-09-11). The user's new mapgen
+        // defaults (`docs/flags.md` (tttt)) moved every seeded board, and this
+        // bench's capital came up on the shore with open water two hexes to its
+        // east — where these two pieces used to stand. A land piece may not
+        // strike at a water hex (the waterline, N1), so the preview refused
+        // before any card line was folded and the pin passed its first
+        // assertion for the wrong reason and failed its second. The blow is the
+        // subject here, not the ground, so the pair moved to the dry side.
+        const mine = createUnit(g.state, 0, 'warrior', home.col - 2, home.row);
         const target = createUnit(g.state, 1, 'warrior', mine.col + 1, mine.row);
         bumpRevision(g.state);
         const even = previewCombat(g.state, mine.id, { col: target.col, row: target.row });
+        // Asserted rather than assumed, so a board that moves under this bench
+        // again says so instead of silently proving nothing: a refused preview
+        // carries no lines at all, and `lineOf` cannot tell that from a line
+        // the card did not pay.
+        expect(even.ok).toBe(true);
         expect(lineOf(even, 'attacker')).toBe(false);
 
         // A second town for them, and the same blow now carries it.

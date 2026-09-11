@@ -533,10 +533,23 @@ describe('determinism', () => {
    * `"mountainsBeside":<n>` back to `"mountainAdjacent":true` in the very
    * snapshot these were taken from. No piece, no ruin, no camp and no roll
    * changed hands; a derived field of the ground was renamed under them.
+   *
+   * **Re-taken a second time, 2026-09-11**, and by the same rule: a ruling in
+   * `docs/flags.md` first. Item **(tttt)** set six new mapgen defaults — among
+   * them `rivers.minLength` 4 → 5, `rivers.minSpringElevation` 0.80 → 0.65,
+   * `rivers.pitLakeMinTiles` 5000 → 3500 and `lakes.maxSize` 8 → 15 — so both
+   * seeds now generate a **different board**: different rivers, different
+   * ponds, different coast, and a start placement (`starts.minDistance` 5 → 10)
+   * that seats the two seats further apart. Every scout in this sweep therefore
+   * ranges over ground that did not exist when the previous literals were
+   * taken, and the digest is a reading of the world these orders ran on, not of
+   * the orders. The march itself is untouched by the ruling; what moved is what
+   * it was marching across, which is precisely the case this docblock reserves
+   * for a re-take.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '88b3d3d2:187374',
-    2026: '149fe089:187671',
+    11: 'acb35af7:187685',
+    2026: '68cb3ec1:187538',
   };
 
   for (const seed of [11, 2026]) {

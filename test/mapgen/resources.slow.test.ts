@@ -378,12 +378,26 @@ describe('the ground did not move', () => {
   // the pass draws from streams keyed on the seed, never from `rng` — and
   // `OLD_FIXTURES` below reproduces the pre-ruling world through its own switch,
   // exactly as every ruling before it does.
+  // Re-measured an eighth time on 2026-09-11 for **the user's new mapgen
+  // defaults** (`docs/flags.md` (tttt)). Three of the six figures reach this
+  // hash: `rivers.minLength` 4 → 5 discards traces the old floor kept,
+  // `rivers.minSpringElevation` 0.80 → 0.65 opens five sixths of the land to
+  // springs where it used to open half, and `rivers.pitLakeMinTiles` 5000 →
+  // 3500 lets the standard board pool — so river edges moved on every row and
+  // terrain moved wherever a tarn was flooded. `lakes.maxSize` 8 → 15
+  // reclassifies bigger water bodies as lake, which moves terrain again. The
+  // other two figures (`resources.luxuryMinCopiesPerContinent`,
+  // `starts.minDistance`) reach nothing this hash covers, by construction:
+  // it is taken before the resource pass and knows nothing of starts.
+  // **Nothing about the dice moved** — `OLD_FIXTURES` below still comes back
+  // byte for byte, with the two new numbers added to the sheet that sets the
+  // world back.
   const FIXTURES: [number, string, string][] = [
-    [1234, 'duel', '89b2ce76'],
-    [7, 'duel', '32364642'],
-    [31337, 'standard', 'f225d718'],
-    [99, 'large', 'ba958114'],
-    [2024, 'huge', '3978407c'],
+    [1234, 'duel', '9ae363'],
+    [7, 'duel', 'c64f59eb'],
+    [31337, 'standard', '6270fa5b'],
+    [99, 'large', '1ef8deca'],
+    [2024, 'huge', '7746b67f'],
   ];
 
   it('reproduces the pre-resource generator exactly', () => {
@@ -408,6 +422,14 @@ describe('the ground did not move', () => {
   // zero, so what comes back is not merely a similar world but the identical one,
   // tile for tile. A pass that quietly moved the ground on the way past, or spent
   // one draw of `rng` it did not have to, would show up here and nowhere else.
+  //
+  // **`rivers.minLength: 4` and `lakes.maxSize: 8` joined the sheet on
+  // 2026-09-11** for the same reason every number above is in it: (tttt) moved
+  // them (4 → 5 and 8 → 15), so setting the world back means setting them back
+  // too. The five hashes below are **unchanged** — they are the roster this
+  // game shipped with, and the whole point of the pin is that they never move.
+  // A retune that could not be undone this way would show up as a hash that
+  // will not come home, and that would be the finding, not a number to re-take.
   const OLD_FIXTURES: [number, string, string][] = [
     [1234, 'duel', 'b684b4fe'],
     [7, 'duel', 'b853ac9'],
@@ -422,7 +444,8 @@ describe('the ground did not move', () => {
         coast: { rings: 1 },
         pangaea: { enabled: false, shelfChains: false },
         elevation: { ridgeBreakStrength: 0, seaLevel: 0.62, mountainShare: 0.1 },
-        rivers: { minSpringElevation: 0.84, pitLakes: false },
+        rivers: { minSpringElevation: 0.84, pitLakes: false, minLength: 4 },
+        lakes: { maxSize: 8 },
         woodland: { grain: 0, clearingChance: 0 },
       });
       expect(`${seed}/${size}: ${hashTerrain(map)}`).toBe(`${seed}/${size}: ${expected}`);
@@ -451,10 +474,21 @@ describe('the ground did not move', () => {
     // die in the interior now end in a tarn. `lakeCount` is unmoved on every row
     // because it counts what `classifyLakes` reclassified two passes earlier; a
     // pit lake is not one of those, and `water.slow.test.ts` counts those.
+    //
+    // Re-measured for the user's new defaults (2026-09-11, (tttt)), and both
+    // readings moved for figures the ruling names. `lakeCount` is the
+    // `lakes.maxSize` 8 → 15 row: a water body of nine to fifteen tiles is a
+    // lake now where it used to stay ocean, so duel/1234 goes 1 → 3 and
+    // huge/2024 2 → 3 — still `classifyLakes`' own count, still taken two
+    // passes before any tarn. Standard's river count goes 57 → 58 (its whole
+    // quota) because `pitLakeMinTiles` 5000 → 3500 let the board pool, which is
+    // the same reading `huge` gave when the rule first shipped. What is still
+    // being guarded is the **ordering** — rivers before resources, lakes before
+    // either — not the numbers themselves.
     const counts: [number, string, number, number][] = [
-      [1234, 'duel', 14, 1],
-      [31337, 'standard', 57, 0],
-      [2024, 'huge', 143, 2],
+      [1234, 'duel', 14, 3],
+      [31337, 'standard', 58, 0],
+      [2024, 'huge', 143, 3],
     ];
     for (const [seed, size, rivers, lakes] of counts) {
       const detail = detailFor(seed, size);

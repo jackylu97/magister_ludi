@@ -5627,10 +5627,16 @@ describe("the user's card pass of 2026-09-03", () => {
   });
 
   it("yieldConversion — the scope is the whole of it: an inland town mints nothing", () => {
-    // Seed 905: inland on the H9 board (seed 901's capital moved to the coast
-    // when the start chooser learned to seat every capital near horses and
-    // iron, 2026-09-06). The assertion below is what makes the seed honest.
-    const g = game(905);
+    // Seed 943: inland on this board. It is the third seed to hold this bench —
+    // 901's capital moved to the coast when the start chooser learned to seat
+    // every capital near horses and iron (2026-09-06), and 905's moved with the
+    // user's new mapgen defaults (`docs/flags.md` (tttt), 2026-09-11: longer
+    // rivers off lower springs, ponds on the standard board, lakes to fifteen,
+    // and the seats ten hexes apart at the least). The assertion below is what
+    // makes the seed honest, and it is why the re-siting is a one-line change
+    // rather than an investigation: the claim is about the *scope*, and any
+    // inland town proves it.
+    const g = game(943);
     const city = found(g.state, 0);
     farmTown(g.state, city);
     playerById(g.state, 0)!.statecraft.doctrines.push("thalassocracy");
@@ -6065,9 +6071,11 @@ describe("the card-shapes pass of 2026-09-04", () => {
   });
 
   it("yieldConversion — the four new pairs, each with its own gate", () => {
-    // Seed 905's town is inland, which The Salting Houses' half needs — the
-    // same bench the Thalassocracy test uses, and for its reason.
-    const g = game(905);
+    // Seed 943's town is inland, which The Salting Houses' half needs — the
+    // same bench the Thalassocracy test uses, and for its reason. (It was 905
+    // until the mapgen defaults of (tttt) put that capital on the water,
+    // 2026-09-11; the scope assertion below is what caught it.)
+    const g = game(943);
     const city = found(g.state, 0);
     const player = playerById(g.state, 0)!;
     const paid = (
@@ -9616,9 +9624,10 @@ describe("the Orders balance pass of 2026-09-08", () => {
     expect(cityScopeAdmits(g.state, city, { test: "coastal" })).toBe(true);
     expect(ours(city)).toBe(1);
 
-    // Seed 905's capital is inland on this board — the same bench the
+    // Seed 943's capital is inland on this board — the same bench the
     // Thalassocracy scope test stands on, and asserted for the same reason.
-    const inland = game(905);
+    // (905 until (tttt) moved it to the coast, 2026-09-11.)
+    const inland = game(943);
     const dry = found(inland.state, 0);
     slot(inland.state, 0, "boatwrights" as never);
     expect(cityScopeAdmits(inland.state, dry, { test: "coastal" })).toBe(false);

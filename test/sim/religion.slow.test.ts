@@ -39,7 +39,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Command } from '../../src/sim/commands';
-import { foundingErrorAt } from '../../src/sim/cities';
+import { foundingErrorAt, tileOwnerPlayerId } from '../../src/sim/cities';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, neighborTiles, tileHex } from '../../src/sim/map';
 import { isPassable } from '../../src/sim/pathfind';
@@ -408,10 +408,46 @@ function playTwoFaiths(maxTurns: number): {
   // silently strand the script on a refused chooseResearch again.
   const ROAD: TechId[] = closureOf('theHighTemple' as TechId);
   let bombs = 0;
-  // **One further site a seat** (batch F3): the second planting is in the log so
-  // the replay has to reproduce it, and it is capped at one apiece so the script
-  // still spends most of its prophets on the bombs this game is named after.
+  // **One further site in the game** (batch F3): the second planting is in the
+  // log so the replay has to reproduce it, and it is capped so the script still
+  // spends its remaining prophets on the bombs this game is named after.
+  //
+  // The cap was one *apiece* until 2026-09-11. The user's new mapgen defaults
+  // (`docs/flags.md` (tttt)) moved every seeded board, and on this one the faith
+  // economy affords each seat exactly **two** prophets in three hundred and
+  // forty turns — measured, and unchanged at five hundred. Two plantings a seat
+  // is two prophets a seat, so with a per-seat cap every prophet in the game
+  // went into stones and the proclamation this file is named for never happened.
+  // One further site is all the `secondSites` claim ever asked for; the cap is
+  // now on the game rather than the seat, and the seat that does not raise it
+  // spends its second prophet on the bomb.
   const secondSiteBySeat = [0, 0];
+  const secondSiteTaken = (): boolean => secondSiteBySeat[0]! + secondSiteBySeat[1]! > 0;
+  // **And a seat gives up on it** (2026-09-11). The clause below reserves the
+  // first prophet after the founding for a second set of stones and steps it off
+  // the city centre until the ground takes them — a policy with no exit, which
+  // only ever mattered once the ground stopped cooperating. The user's new
+  // mapgen defaults (`docs/flags.md` (tttt)) moved every seeded board, and on
+  // this one the capital's ring runs straight off the border: the prophet took
+  // the first passable neighbour, landed on unowned ground, was refused with
+  // "is not in your territory", stepped to the next, was refused again, and
+  // ping-ponged between two foreign hexes for two hundred turns while its two
+  // charges went unspent. Two religions were founded and not one proclamation
+  // was made — a determinism test over a game with no bomb in it, which is the
+  // thing this file's own comments say it must never be.
+  //
+  // So the reservation is bounded. After this many refusals the seat writes the
+  // second site off and spends the prophet on the proclamation instead, which is
+  // a *policy* decision inside a script and not a rule: every command it issues
+  // still lands in the log the replay walks. One seat's stones still go down, so
+  // the `secondSites` claim is carried by whichever seat's ground allows it.
+  // The giving-up is its own flag rather than a mark on `secondSiteBySeat`,
+  // because that array is the *count* the test reads back: a seat that gave up
+  // planted nothing, and writing a one there would report a set of stones that
+  // never went down and take the cap away from the other seat as well.
+  const SITE_ATTEMPT_BUDGET = 24;
+  const siteTriesBySeat = [0, 0];
+  const siteGaveUp = [false, false];
 
   for (let turn = 0; turn < maxTurns; turn++) {
     for (const seat of [0, 1]) {
@@ -526,35 +562,55 @@ function playTwoFaiths(maxTurns: number): {
         ) {
           continue;
         }
-        if (hasFaith && secondSiteBySeat[seat] === 0) {
+        if (hasFaith && !secondSiteTaken() && !siteGaveUp[seat]) {
           if (dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok) {
             secondSiteBySeat[seat] = 1;
             continue;
           }
-          // **Reserved for the stones**, and it has to keep its charges to spend
-          // them: a bought prophet spawns on the city centre, where a holy site
-          // may not stand, and a prophet that proclaimed on the way has one
-          // charge where the planting wants two. So the first prophet after the
-          // founding steps off and says nothing until it has planted.
-          //
-          // The step is tried hex by hex until the reducer takes one, because a
-          // capital's ring is full of this script's own warriors and settlers
-          // and `canStopOn` refuses a hex that is occupied — a policy that
-          // picked one neighbour and gave up stood on the centre for ever.
-          for (const tile of neighborTiles(
-            g.state.map,
-            tileHex(getTileAt(g.state.map, unit.col, unit.row)!),
-          )) {
-            if (!isPassable(tile)) continue;
-            const moved = dispatch(g, {
-              type: 'moveUnit',
-              playerId: seat,
-              unitId: unit.id,
-              target: { col: tile.col, row: tile.row },
-            } as Command);
-            if (moved.ok) break;
+          // The budget, spent here: a refusal costs a try, and when the tries
+          // run out the seat stops reserving this prophet and falls through to
+          // the proclamation below with its charges intact.
+          siteTriesBySeat[seat] += 1;
+          if (siteTriesBySeat[seat] < SITE_ATTEMPT_BUDGET) {
+            // **Reserved for the stones**, and it has to keep its charges to
+            // spend them: a bought prophet spawns on the city centre, where a
+            // holy site may not stand, and a prophet that proclaimed on the way
+            // has one charge where the planting wants two. So the first prophet
+            // after the founding steps off and says nothing until it has
+            // planted.
+            //
+            // The step is tried hex by hex until the reducer takes one, because
+            // a capital's ring is full of this script's own warriors and
+            // settlers and `canStopOn` refuses a hex that is occupied — a policy
+            // that picked one neighbour and gave up stood on the centre for
+            // ever.
+            //
+            // **Owned ground only** (2026-09-11): planting refuses outside the
+            // seat's own territory, so a step that leaves it is a step the
+            // prophet has to take back. The filter is why the budget above is
+            // rarely spent at all — it is the ping-pong's actual cure, and the
+            // budget is the guard for the board where even owned ground has
+            // nowhere to put a second set of stones.
+            for (const tile of neighborTiles(
+              g.state.map,
+              tileHex(getTileAt(g.state.map, unit.col, unit.row)!),
+            )) {
+              if (!isPassable(tile)) continue;
+              if (tileOwnerPlayerId(g.state, tile.col, tile.row) !== seat) continue;
+              const moved = dispatch(g, {
+                type: 'moveUnit',
+                playerId: seat,
+                unitId: unit.id,
+                target: { col: tile.col, row: tile.row },
+              } as Command);
+              if (moved.ok) break;
+            }
+            continue;
           }
-          continue;
+          // Budget spent: this seat stops reserving prophets for stones and the
+          // one in hand answers the proclamation clause below. The cap is left
+          // open, so the other seat may still raise the game's further site.
+          siteGaveUp[seat] = true;
         }
         if (dispatch(g, { type: 'proclaim', playerId: seat, unitId: unit.id } as Command).ok) {
           bombs += 1;

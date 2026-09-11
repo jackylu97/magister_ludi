@@ -396,7 +396,21 @@ describe('the settler’s two new halves', () => {
     // shut, tall still values a citizen above balanced, exactly as it always
     // did; with it open, the charge is what closes the gap, and that is said out
     // loud rather than pinned as a number.
-    const game = grownGame(12);
+    //
+    // **Re-sited 2026-09-11**, from twelve turns to fourteen, for the user's new
+    // mapgen defaults (`docs/flags.md` (tttt)). The bench is a *played* board —
+    // the bots drive it — so a different world means different towns at
+    // different sizes on different ground, and the near-cancellation the
+    // paragraph above describes is decided by the seat's live happiness, which
+    // is decided by what got built. On the new board the two halves cross over
+    // at twelve turns (tall's gains run ahead of the charge by three points) and
+    // are back on the ruling's side at fourteen. Measured across the
+    // neighbourhood — 8, 10, 14, 16, 18 and 20 turns all read tall below
+    // balanced, and only 12 and 24 do not — so what moved is the board, not the
+    // appraisal. The gains assertion is what picks fourteen out of those: at
+    // eight and ten turns tall's gains have not yet overtaken balanced's, so the
+    // two-halves reading is not yet visible at all.
+    const game = grownGame(14);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
 

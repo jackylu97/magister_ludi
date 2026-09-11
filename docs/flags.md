@@ -1870,6 +1870,38 @@ directly to confirm rulings — user marginalia are rulings.
   at all; the mapgen lobby's start rows print each seat's distance to
   its nearest rival so the user sees the example starts. `docs/mapgen.md`
   follows the knobs.
+  **M2 built** (2026-09-11, held). Findings first: (a) **standard aims at
+  20, not 16** — `spacingFactor` 0.55 × √1813 land = 23, clamped to the
+  new ceiling; 16 back would need `spacingFactor` ≈ 0.376, unruled;
+  (b) the **crowding line is inert at radius 12**, because every
+  candidate is already ≥ spacing (20) from every chosen start — measured
+  0/6/12 penalty identical; the radius is what buys distance (12 → 15.33
+  mean, 22 → 15.58, 26 → 15.83), so the orchestrator shipped
+  `contactRadius` **26** with `contactPenalty` 6. **Distribution,
+  standard × six figures × 24 seeds (min pairwise)**: before — min 10,
+  median 14, three seeds under 12, thirteen under 15; after — **min 12,
+  median 16**, none under 12, five under 15; no shortfall. The ladder:
+  per chair, pool outer (accepted, then refused) and spacing inner
+  (board's own → floor, wants met → wants dropped, then the floor gives
+  way to 1 and the near neighbour is reported) — "bias kept → plain" is
+  the rung the ladder deliberately lacks (a bias reorders, never filters,
+  so it cannot fire); relaxation per chair (measured identical to shared).
+  `planStartPositions`/`planStartPositionsFor` return `{starts,
+  shortfall}`; the lobby's start table gains a **Rival** column and the
+  shortfall sentence. **Akhenaten**: `aridBeside: 3` (a new want kind in
+  `START_WANT_MEASURE`), terrain {river 4, floodplain 3, oasis 3, desert
+  2}: three arid neighbours on **0 → 11 of 24** seeds, mean 0.9 → 1.9 —
+  19 boards grow such a site, the spacing spends most before his chair.
+  **Want rates the distance cost** (of 24): Al-Ma'mun river-within-2
+  24 → 20, Mithridates 24 → 19, Akhenaten's river 24 → 23; every other
+  criterion 24 → 24. Pins: core (spacing 20 and the clamp; the crowding
+  line's value/fold/absence; "drops a want before it drops a hex" on a
+  synthetic board; duel × 12 seats everyone with honest shortfalls), the
+  slow distribution sweep (`startSpacing.slow.test.ts`), `leaderCriteria.ts`
+  shared with the stress sweep (M1's flat 95% floor retired for a rate
+  table). Duel × 4 cannot hold a floor of 10 (432 land) — its pin is the
+  shortfall's honesty. ▢ `spacingFactor` if the user wants standard at
+  16 rather than 20.
 - (ssss) **The city banner's canton loses its shield — RULED** (the
   user, 2026-09-11: *"remove the banner from the left of the city
   screen, it looks awkward. Maybe just the icon (and not the outline of

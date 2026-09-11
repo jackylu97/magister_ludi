@@ -161,7 +161,7 @@ function playToTheFinish(maxTurns: number): Played {
 
 describe('the finish line in a played game', () => {
   it('opens, is paid for, and settles the race', () => {
-    const { game, opened, finished } = playToTheFinish(6500);
+    const { game, opened, finished } = playToTheFinish(10500);
     const player = game.state.players[0]!;
 
     // **It arrives inside a game.** A gate that is correct and unreachable is
@@ -261,6 +261,28 @@ describe('the finish line in a played game', () => {
     // this file has reported since 2026-09-06, only louder: a lone capital
     // needs several times what a five-town empire does, and a chart that nearly
     // doubled is paid for out of the thinnest science economy the suite plays.
+    //
+    // **Re-measured 2026-09-11 — the user's new mapgen defaults**
+    // (`docs/flags.md` (tttt)). Nothing in the tree, the costs or the machinery
+    // moved; the **ground** did. Seed 4242's standard board is a different world
+    // under longer rivers off lower springs, ponds on the standard size, lakes
+    // to fifteen and four luxury copies a continent, so this seat's lone capital
+    // stands on a different site with different hexes to work — and this harness
+    // is the one in the suite with no second town to make a poorer site up in.
+    // It now opens the Opus on **t7754** and finishes it on 7755, against
+    // t4833/4834 before the retune, and at the old horizon of 6500 it was still
+    // two technologies short of the chart's end (48 of 50, researching, treasury
+    // under water the whole way). The horizon grows 6500 → **10500** with it, to
+    // keep roughly the headroom every re-aim above insisted on: a harness that
+    // stops before the chart runs out measures nothing at all. The run is still
+    // a few seconds of the slow tier — it stops the turn the work is finished,
+    // so a higher ceiling costs nothing on a board that gets there.
+    //
+    // The pacing finding this pin reports is unchanged in kind and worth the
+    // user's attention in its own right: a map retune with no balance number in
+    // it moved a lone capital's road to the finish by three thousand turns,
+    // which is a measure of how much of this seat's science comes off the six
+    // hexes it happens to be standing on.
     console.info(`[pacing] the one-city seat opens the Magnum Opus on t${opened}`);
     expect(player.techsResearched).toContain(buildingDef(OPUS).worldUnlockTech!);
 
