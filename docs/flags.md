@@ -1881,6 +1881,27 @@ directly to confirm rulings — user marginalia are rulings.
   in `GameConfig` is what every surface reads (no second source); the
   canton's field and device inks; the border stitch instanced once per
   game; the badge tunables read from data; `signUnits`' list unchanged.
+  **H7 built** (2026-09-11, held): `LeaderColors {primary, secondary,
+  names}` validated at load (lower-case hex, the halves distinct, two
+  words); `PlayerSpec.secondary?`/`Player.secondary?` copied iff present
+  (a roster without it snapshots byte-for-byte); `src/art/seatInks.ts`
+  the ONE fallback (`secondary ?? palette.ink` — the outline shell's own
+  ink, so a plain seat's board is the board it was; a source sweep
+  refuses a second `secondary ??` anywhere); the territory stitch a
+  `stitchBand` strip hoisted once per board build (`territory.
+  stitchWidth`); the plate's rim `--banner-color`, the canton
+  `--canton-field`/`--canton-device`; the piece's outline washed in the
+  trim; the badge **0.40 → 0.54** across, its rim **0.042 → 0.091**
+  (`pieces.badgeScale` 1.35 · `pieces.badgeRing` 1.6), hit target and
+  lift following; `playerPieceColor` gained a literal-hex clause below
+  the named table (a figure's maroon could not otherwise reach the
+  diorama — every palette ink pinned unchanged). **"Hue distance" is a
+  weighted-RGB separation** (redmean), not a hue angle — a grey has no
+  hue and the Abbasid black against the palette's ink is the pair that
+  matters; `MIN_INK_DISTANCE` 40, tightest live pair Taizong/Teal at
+  44.6, the doc's colours section says so. Twenty-one pins in
+  `test/render/seatInks.test.ts`; the gallery stall "the seats' two
+  inks" with three sliders. Not browser-checked.
 - (nnnn) **Six seats by default; a stepper, not a mode list; every
   rival plays a figure — RULED** (the user, 2026-09-11: *"how are bot
   games constructed now? do they choose a leader when the player does? We
