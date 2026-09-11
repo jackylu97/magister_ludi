@@ -1800,6 +1800,60 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (iiii) **The leaders' deferred halves — RULED** (the user, 2026-09-10,
+  on seeing the decks on :5199: *"it looks like many of the leader
+  abilities aren't implemented?"* … *"let's implement every effect that
+  isn't a one-time boon. I'm not sure about the one time boons, to be
+  honest"*). L2a built 39 of the 72 cards whole, 29 with a half the
+  evaluator could not say (printed on the card as a plain "not yet"
+  line), 4 doing nothing, and three of the six bonuses short a clause.
+  **Ruling**: every deferred line on a **passive**, a **unique** or a
+  **leader bonus** is built — the design is the card's row in
+  `docs/leaders.md` (the spec of record; `data/leaders.json`'s `text` was
+  trimmed to what was built and is rewritten to the whole rule as each
+  lands, the `deferred` line struck). The **boons' deferred lines are
+  not built** — ▢ the user doubts one-time boons as a column at all
+  (replace with a second passive? keep and finish? their call), so their
+  sixteen "not yet" lines stand until that ruling. **L3, three fences on
+  the held stack** (schema stays 115 — nothing on it has landed):
+  **L3a — the evaluator's shapes** (`statecraft/evaluator.ts`,
+  `describers.ts`, the types, `draft.ts`, the counts): a `CityScope` for
+  *joined to the seat by road* (Pachacuti's Tribute Road) and *beside a
+  river* (Taizong's Great Yangtze) so only those towns are cheaper to
+  hold; puppets sending culture of their own (The Heavenly Khagan); the
+  Tribute of the Han paid as a **share of what the puppets make** rather
+  than per citizen; The Great Poets lifting the **artists'** acts alone
+  and the quickened years of work and song the doc promises; The Rite of
+  the Sky kept **only while a rite burns** in the empire; The House of
+  Millions of Years counting a work only where it **sings** (pays
+  culture); **The King's Friends** — every government opens one more
+  free chair (a card rule widening the slots, read by `draft.ts`'s slot
+  rebuild). **L3b — the unit rules** (`combat.ts`, `movement.ts`,
+  `unitData.ts`, `data/units.json`): the Slinger unslowed by hills; the
+  Khopesh's +3 **anywhere the seat's faith is kept** (every following
+  hex, not only towns); the Fubing kept for nothing **only while it
+  garrisons a town**; the Chanyu's Guard emboldening the horse archers
+  beside it (an aura line, the general's shape); the Camel Archer's
+  arrows keener per great work the realm has planted; the Pontic
+  Peltast's mend on a kill **for the peltast alone** (the rider scoped to
+  the row); Modu's +1 pace **on grass and plains only**. **L3c — the
+  ground and the halls** (`yields/hex.ts`, `improvements.ts`,
+  `buildingEffects.ts`, `data/buildings.json`, `purchase.ts`):
+  Pachacuti's bonus paying a farm once for its mountains however many;
+  Akhenaten's lake farm paid as a river farm; the Terraces letting a farm
+  be cut into a hillside that refuses one; the Horde Camp's herds giving
+  a column its marching back; the Valley of Kings counting only the works
+  raised in **its own town** and letting works be hurried with faith; the
+  House of Learning learning from the great people the realm has called.
+  Each agent: merge the gate's `held` first; touch only its own rows in
+  `data/leaders.json` (and `data/units.json`/`buildings.json` rows it
+  opens); rewrite each landed card's `text` to the whole rule through the
+  describers, strike the `deferred` line, regenerate
+  `test/fixtures/cardText.json` only for its rows; every new shape is a
+  JSON row read by ONE evaluator and fails the register test if declared
+  unread; a half that truly cannot be said stays deferred with the
+  reason. Pins per card: the rule fires where it should and not where it
+  should not.
 - (hhhh) **A bought unit stands on the city hex, or is not sold — RULED**
   (the user, 2026-09-10, mid-playtest: *"purchased units should spawn on
   the city tile. If a unit of it's type is already occupying the city
