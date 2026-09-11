@@ -3937,6 +3937,18 @@ body:has(.city-mode:not([hidden])) #hud-context {
   color: var(--ink-soft);
 }
 
+/* The head item's "waiting for room" line (item (llll)). The faintest ink on
+   the card, one step quieter than `.city-prod-idle`: an idle town is a decision
+   a player owes, a town holding a finished piece owes nothing at all and the
+   line is there to stop the full bar reading as a bug. Never `.wanting` — see
+   the comment in `renderProduction`. */
+.city-prod-waiting {
+  margin: 4px 0 0;
+  font-family: var(--face-display);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
 /* --- the add-list's shelves ------------------------------------------------
    All, then the four shelves, in the order the one long list used to print its
    rows. Sentence case at the panel's own control size: an eyebrow may shout, a

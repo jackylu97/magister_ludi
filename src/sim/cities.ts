@@ -193,6 +193,18 @@ import {
   unitDef,
 } from './unitData';
 import { hasStackingRoom } from './units';
+/**
+ * The siege reading, for `builtSpawnTileFor` alone — item (llll)'s second rule.
+ *
+ * A **function-level cycle** and the documented kind: `combat.ts` imports three
+ * names from this file and this file now imports two from it, but neither reads
+ * a value from the other while the modules are being evaluated — both are called
+ * from inside function bodies — so whichever is pulled in first finishes fine.
+ * `meters.ts`, `tech.ts`, `statecraft.ts` and `religion.ts` sit on the same
+ * bargain with this file, and `test/mapgen/moduleCycles.test.ts` is what keeps
+ * the claim honest.
+ */
+import { siegeField, underSiege } from './combat';
 import { recomputeVisibility } from './visibility';
 import { isCoastal } from './water';
 import { borderFactor, borderPercent, bordersFrozen, growthPercent, meterEffects } from './meters';
@@ -2774,9 +2786,41 @@ function ejectUnbuildableQueue(city: City): string[] {
 }
 
 /**
+ * Is a piece of some **other** empire standing on this hex?
+ *
+ * The one contested-hex reading, shared by both arms of `spawnTileFor`'s ring
+ * walk (`docs/flags.md` item (llll)), and deliberately *not* folded into
+ * `hasStackingRoom`: that is the **stacking** rule and it counts pieces of the
+ * same category without ever asking whose they are. Which is right for a hex a
+ * unit *marches* onto — an enemy hex is refused by the movement rules long
+ * before stacking is asked — and wrong for a hex a unit is conjured onto. Until
+ * this clause a spearman finishing in a town could land on top of the enemy
+ * settler beside it, and a built worker on top of an enemy warrior; under siege
+ * the whole ring is where the attackers stand, so the town was handing the
+ * besiegers' hexes back to itself one completion at a time. This is a
+ * **placement** rule and it lives beside the placement walk.
+ *
+ * Walked over `state.units` in array order, never a map — the sweep order is
+ * what makes two runs agree (rule 2), and this walk is a spawn's, not a frame's.
+ *
+ * The **city's own centre needs no such clause and never gets one**: a foreign
+ * piece cannot stand on a town's hex at all (`canAdvanceOnto`/`canStopOn` refuse
+ * a foreign city hex, and a melee kill on the garrison beat takes the town
+ * rather than sharing it), so the first beat of the walk is contested only in a
+ * board state the combat rules do not produce.
+ */
+function foreignUnitAt(state: GameState, ownerId: number, col: number, row: number): boolean {
+  for (const unit of state.units) {
+    if (unit.ownerId === ownerId) continue;
+    if (unit.col === col && unit.row === row) return true;
+  }
+  return false;
+}
+
+/**
  * Where a unit built in this city can stand: the city tile if its category has
- * room, otherwise the first neighbour in `HEX_DIRECTIONS` order that is passable
- * and has room. `null` when the city is completely boxed in.
+ * room, otherwise the first neighbour in `HEX_DIRECTIONS` order that is passable,
+ * uncontested and has room. `null` when the city is completely boxed in.
  *
  * Exported since M9's purchases: a bought piece stands where a built one would,
  * which is the whole of "same completion routine" applied to the one question a
@@ -2792,6 +2836,11 @@ function ejectUnbuildableQueue(city: City): string[] {
  * pressed the tag to put a defender in the town — so a spearman that turns up
  * outside the walls is the opposite of what was paid for. When the centre is
  * taken the sale is refused instead, in `purchaseError`, before any coin moves.
+ *
+ * **And a hex another empire is standing on is never a spawn hex** (item
+ * (llll)) — `foreignUnitAt` above, asked of every neighbour in both arms. It is
+ * a skip rather than a refusal: the walk goes on to the next hex, and only a
+ * ring with no clear hex in it leaves the piece waiting.
  */
 export function spawnTileFor(
   state: GameState,
@@ -2841,6 +2890,7 @@ export function spawnTileFor(
     if (opts.onCityHexOnly === true) return null;
     for (const tile of neighborTiles(state.map, tileHex(centre))) {
       if (tileMoveCost(tile, mover) === null) continue;
+      if (foreignUnitAt(state, city.ownerId, tile.col, tile.row)) continue;
       if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
     }
     return null;
@@ -2849,9 +2899,38 @@ export function spawnTileFor(
   if (opts.onCityHexOnly === true) return null;
   for (const tile of neighborTiles(state.map, tileHex(centre))) {
     if (!isPassable(tile)) continue;
+    if (foreignUnitAt(state, city.ownerId, tile.col, tile.row)) continue;
     if (hasStackingRoom(state, tile.col, tile.row, category)) return tile;
   }
   return null;
+}
+
+/**
+ * Where a unit this town has **finished building** may stand — `spawnTileFor`
+ * with the siege cut applied (`docs/flags.md` item (llll)).
+ *
+ * **Under siege, nothing spills.** A besieged town is one whose every landward
+ * neighbour is denied to it, which is precisely the ring `spawnTileFor` walks:
+ * without this the completion would put a fresh spearman down among the army
+ * that has closed the road — the piece appears *behind enemy lines*, dead the
+ * moment the turn resolves, and in the worst case it landed there because the
+ * besieger's own hex still had room under the stacking caps. So the walk stops
+ * at the centre and the piece takes the town hex or waits.
+ *
+ * Reusing `onCityHexOnly` rather than growing a third option, because it is the
+ * same cut for a different reason and a second flag would be two names for one
+ * beat of the walk. The *reasons* differ and both are written down: a purchase
+ * stops at the centre because that is what the player paid for (item (hhhh)); a
+ * completion stops there because the ring is a battlefield.
+ *
+ * The siege field is built **here, at the completion**, and nothing hoists it:
+ * `planQueueItem` asks only after the hammers have covered the cost, so this
+ * runs on the turn a unit actually finishes and not once per town per turn.
+ */
+function builtSpawnTileFor(state: GameState, city: City, type: UnitTypeId): Tile | null {
+  return spawnTileFor(state, city, type, {
+    onCityHexOnly: underSiege(state, city, siegeField(state, city.ownerId)),
+  });
 }
 
 /**
@@ -2916,6 +2995,69 @@ export function planProduction(
   return null;
 }
 
+/**
+ * One queue position's **unit row, paid for** — its id and its price — or `null`
+ * when that position is not a unit, or is one this town may not raise, or is one
+ * the basket does not yet cover.
+ *
+ * Every hold a unit has **except the hex**, in one place, because two readings
+ * want exactly that list and must not be allowed to disagree about it:
+ * `planQueueItem` below, which goes on to ask where the piece would stand, and
+ * `productionAwaitingRoom`, which is the panel's "this thing is finished and has
+ * nowhere to go". A town short of hammers is not waiting for room; a town short
+ * of a hex is, and the difference is one call apart rather than two copies of
+ * the same four clauses.
+ */
+function payableUnitAt(
+  state: GameState,
+  city: City,
+  hammers: number,
+  index: number,
+): { id: UnitTypeId; cost: number } | null {
+  const item = city.queue[index];
+  if (!item || item.kind !== 'unit') return null;
+  if (!isUnitTypeId(item.id)) return null;
+  const id: UnitTypeId = item.id;
+  const def = unitDef(id);
+  if (city.population < def.minCityPop) return null;
+  if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
+    return null;
+  }
+  const cost = unitProductionCost(state, city.ownerId, id);
+  if (hammers < cost) return null;
+  return { id, cost };
+}
+
+/**
+ * **The piece this town has finished and cannot put down** — its type, or `null`
+ * for a town whose front row is doing anything else.
+ *
+ * The reading behind the panel's "waiting for room" line (`docs/flags.md` item
+ * (llll)). A town that has covered a unit's whole cost and has no hex for it
+ * keeps its hammers and its place in the queue — nothing is lost and nothing
+ * completes — and that is a **state**, not a lack: it ends the turn a besieger
+ * marches off, or the turn the garrison steps out, with no decision owed by the
+ * player at all. So the panel is entitled to say so, and it says so in the quiet
+ * voice rather than the vermilion one every refusal wears.
+ *
+ * Here rather than in the interface for rule 5's reason applied one system over:
+ * the panel *reads*, it never decides. Both clauses below are the completion's
+ * own — `payableUnitAt` is the list of holds `planQueueItem` asks, and
+ * `builtSpawnTileFor` is the very walk it asks it with, siege cut and all — so
+ * the sentence cannot drift from the behaviour it describes.
+ *
+ * The front row only. The Standing Levy's jump is a *completion* mechanism and
+ * not a thing to narrate: a town holding that card whose front is a granary and
+ * whose second row is a boxed-in spearman is building the granary, and saying
+ * otherwise on the head item would be the card explaining itself in the wrong
+ * place.
+ */
+export function productionAwaitingRoom(state: GameState, city: City): UnitTypeId | null {
+  const payable = payableUnitAt(state, city, city.hammerBasket, 0);
+  if (!payable) return null;
+  return builtSpawnTileFor(state, city, payable.id) === null ? payable.id : null;
+}
+
 /** One queue position, planned. The whole of what `planProduction` used to be. */
 function planQueueItem(
   state: GameState,
@@ -2927,18 +3069,11 @@ function planQueueItem(
   if (!item) return null;
 
   if (item.kind === 'unit') {
-    if (!isUnitTypeId(item.id)) return null;
-    const id: UnitTypeId = item.id;
-    const def = unitDef(id);
-    if (city.population < def.minCityPop) return null;
-    if (def.requiresResource !== undefined && !hasResource(state, city.ownerId, def.requiresResource)) {
-      return null;
-    }
-    const cost = unitProductionCost(state, city.ownerId, id);
-    if (hammers < cost) return null;
-    const tile = spawnTileFor(state, city, id);
+    const payable = payableUnitAt(state, city, hammers, index);
+    if (!payable) return null;
+    const tile = builtSpawnTileFor(state, city, payable.id);
     if (!tile) return null;
-    return { kind: 'unit', item, index, id, cost, tile };
+    return { kind: 'unit', item, index, id: payable.id, cost: payable.cost, tile };
   }
 
   // A project is the plainest of the three: hammers, and nothing else. No

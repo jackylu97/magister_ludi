@@ -1800,6 +1800,142 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (oooo) **Two colours a figure, and the board wears both — RULED** (the
+  user, 2026-09-11: *"every leader should have a different color to
+  differentiate them. Could we have them be two colors like civ 5/6 and
+  update the banners/borders accordingly to accomodate two colors? Lets
+  also make the unit banners show the colors with a larger/thicker
+  accent, they're a bit hard to see currently. Try to make each civ's
+  colors somewhat historically accurate."*). **Today** a seat has one
+  ink (`PlayerSpec.color`, the palette's by index) and a charge on a
+  parchment canton; a leader carries no colour. **H7 builds, after L4**
+  (it reads L4's `SEATS` and `seatLeaders`): (1) `LeaderDef.colors:
+  {primary, secondary}` in `data/leaders.json`, the table below the spec
+  of record in `docs/leaders.md` (doc rows ↔ data rows, sync-tested);
+  a seat under a figure takes the figure's pair, a plain seat the
+  palette's ink with a derived secondary (ink on parchment); **two seats
+  never share a primary** (the cast is distinct already; the palette's
+  inks stay clear of the six primaries — pinned by a hue distance);
+  (2) `PlayerSpec.secondary?` beside `color` (config, never state — the
+  Heraldry trap), `heraldryFor` unchanged (the charge is a string),
+  the canton draws the charge in the **secondary** on a **primary**
+  field (Civ's reading: primary = the field/fill, secondary = the
+  device/trim); (3) **borders**: the territory line in the primary with
+  an inner stitch in the secondary (one extra instanced strip in
+  `territory`'s layer, the width in `data/view3d.json`); (4) **city
+  banners** (`cityBanners.ts`): the plate's rim in the primary, the name
+  in ink as today, the canton primary-field/secondary-charge; (5) **unit
+  pieces** (`pieces.ts`, three meshes over one buffer): the sculpt in
+  the primary, the outline in the secondary — and the **roundel/badge
+  over the piece larger and its ring thicker** (the user's ask; tunables
+  `pieceBadgeScale`, `pieceBadgeRing` in `view3d.json`, the flair gallery
+  gets a stall with both sliders and every figure's pair side by side);
+  the hit bar untouched; (6) every roster surface (landing canton, leader
+  sheet, spectator, arena seat labels, compendium leader shelf) prints
+  the pair; (7) `signUnits`/`CityLook` unchanged — colours ride the
+  owner. Determinism untouched (render only). **The palette** (the
+  user: "somewhat historically accurate"; every figure is a proposal
+  the user may retune in the doc — the sync test follows the doc):
+  Pachacuti **maroon / sun gold** (the Sapa Inca's red fringe, the
+  sun); Taizong **jade / ivory** (Tang jade, court white); Modu
+  Chanyu **sky blue / bone** (Tengri's eternal blue sky, felt and
+  bone); Akhenaten **sun orange / lapis** (the Aten's disc, Egyptian
+  blue); Al-Ma'mun **black / gold** (the Abbasid black banner, gilt);
+  Mithridates **Tyrian purple / silver** (a Hellenistic king's purple,
+  the star-and-crescent in silver). Pins: doc ↔ data; six distinct
+  primaries and none within the palette's hue distance; a seat's pair
+  in `GameConfig` is what every surface reads (no second source); the
+  canton's field and device inks; the border stitch instanced once per
+  game; the badge tunables read from data; `signUnits`' list unchanged.
+- (nnnn) **Six seats by default; a stepper, not a mode list; every
+  rival plays a figure — RULED** (the user, 2026-09-11: *"how are bot
+  games constructed now? do they choose a leader when the player does? We
+  should have 6 players default on the standard map (revise the options
+  panel to add/subtract players instead of the current dropdown listing
+  out all options, default to 6 players including the player on a
+  standard map)"*). **Today**: the Seats control is a mode list (`You vs
+  one bot` · `Full game (you and three bots)` · `Solo` · `Sandbox`),
+  default one bot; the palette (`SEATS`, `gameSetup.ts`) is four inks;
+  rivals in a full game cycle three personas; and rivals take a leader
+  **only when the human does** (`rivalLeaders`: the rest of the sheet in
+  order — *No leader* leaves every seat plain). **L4 builds**: (1) the
+  Seats row is a **stepper** — `−  6  +` — counting players in total,
+  you included, from the rules' `minPlayers` to `min(maxPlayers, the
+  palette)`; **default 6**, and the default size **standard** (the
+  landing's size select starts there); the `seats` select's id is kept on
+  a hidden input or the stepper's value element so `currentConfig` and
+  the tests read one place; (2) **one palette**: the six-plus inks the
+  mapgen lobby already carries (`src/mapgenPage/main.ts`'s roster — pine,
+  wheat beside the four) move to `gameSetup.ts`'s `SEATS` and the lobby
+  reads them there (one roster, two pages); seat inks and charges by
+  index (`heraldryFor`); (3) **every rival plays a figure**: rivals draw
+  **distinct** leaders from the sheet minus the human's pick, in an order
+  hashed from the seed (a pure hash in UI land — `hash3`/`hashUnit`'s
+  family, never the sim's `Rng`, never the `webciv:gameplay:` separator),
+  so a seed is a cast; with more rivals than figures the extras sit under
+  none; *No leader* for the human still leaves the rivals their figures;
+  (4) rivals' personas cycle the full game's three (wide · tall ·
+  warmonger) then balanced; the single-opponent persona select shows only
+  at two seats; (5) **hot-seat** (every seat human) stays reachable as a
+  small labelled checkbox in the map card's fine print — a dev harness,
+  not a mode in the list; solo is the stepper at one. `rosterFor` keeps
+  its name and takes the count; `seatRoster.test.ts` (reads the UI
+  sources for `realPlayers`), `gameSetup.test.ts`, `leaderScreens.test.ts`
+  follow; the config's `players` array is the only output. Pins: default
+  config is six seats on standard with six distinct figures; the stepper
+  clamps; the same seed casts the same figures; a different seed may cast
+  differently; the human's *No leader* writes no key on seat 0 and figures
+  on the rest; hot-seat writes `isHuman` on every seat; the spectator and
+  arena pages untouched.
+- (mmmm) **The wild's mount follows the tier — built** (the user,
+  2026-09-11, on :5199: *"i see barbarian horseman spawning in age 1 …
+  if anything it should be a war chariot"*). A camp in horse country
+  mustered the **first** `mounted` military row in the unit table from
+  `horsemanFromTurn` whatever the age — and that row is the horseman, an
+  Æra III piece (The Cataphract's node). Now `barbarianMountType` mirrors
+  `barbarianMeleeType`: the strongest mount **a technology names** that
+  the median tier has reached, else the mildest the tree names (today the
+  chariot of The Wheel); "named by a node" excludes every leader-,
+  card- and belief-opened mount and every retired row without this file
+  naming one. The turn gate still says *whether* there are riders; the
+  tier says which. Note: the horseman's node also opens the war elephant
+  (stronger), so a third-age camp rides elephants, resource gating
+  ignored exactly as the footman ladder ignores iron — ▢ if the user
+  would rather the wild never ride an elephant, a marker on the row.
+  Pinned: Æ1 tier → the mildest tech-named mount, never the horseman;
+  the median at the horseman's node → the strongest that node names; the
+  whole tree → tech-named, unretired, no leader's or card's row. On the
+  held stack.
+- (llll) **A built unit's spill: never onto a contested hex, never
+  under siege — RULED** (the user, 2026-09-11, on :5199: *"i see units
+  still being spawned outside the city when there's a city garrison. The
+  biggest issue with this is when the city is sieged, it can overwrite an
+  attacking unit"* → offered three, chose *"1 and 2"*). Today
+  `spawnTileFor`'s ring walk asks `hasStackingRoom`, which counts pieces
+  of the **same category** and never asks whose — so a built spearman
+  cannot land on an enemy spearman's hex but can on an enemy settler's,
+  and a built worker on an enemy warrior's; under siege that ring is
+  where the attackers stand. When no hex has room the unit already
+  **waits** (the head item keeps its hammers until room appears). **P4
+  builds**: (1) **a contested hex is never a spawn hex** — the ring walk
+  skips any hex holding a unit of another owner, whatever its category
+  (one reading, in `spawnTileFor`, shared by the naval and land arms;
+  the city hex itself is never contested — a foreign piece cannot stand
+  there); (2) **under siege, nothing spills** — when `underSiege(city)`
+  (the derived reading, never stored) a built unit takes the city hex or
+  waits; the purchase path is untouched (P3: the hex or refused). The
+  city panel's head item says "waiting for room" in the quiet voice
+  while a completed unit waits (production banked, no overflow lost, the
+  turn the hex clears it lands); the bots' production chooser must not
+  thrash on a waiting head (`chooseProduction` treats a waiting unit as
+  progress, not a stall). Vanilla spill in peacetime stands (option 3,
+  no spill ever, declined for daily play). Pins: a hex with an enemy
+  civilian is skipped for a military spawn and vice versa; a hex with an
+  own unit of another category is still taken; besieged → the unit waits
+  with the centre garrisoned and lands the turn the garrison steps out;
+  not besieged → the spill still happens; the head keeps its hammers
+  across the wait; the panel's sentence. A replay change on the held
+  stack (schema stays 115).
 - (kkkk) **The prophet's third charge, and the site it cannot plant —
   RULED** (the user, 2026-09-11, on :5199: *"it says my prophet has 3/2
   charges and i dont have the ability to plant a holy site"*). Two
@@ -1841,6 +1977,22 @@ directly to confirm rulings — user marginalia are rulings.
   standing and pressing; the seat unchanged; the city centre refused; a
   foreign hex refused. A replay change on the held stack (schema stays
   115).
+  **Both built** (2026-09-11, held). (1) the five charge lines name the
+  worker row; a walk over all five tables pins that no charge line
+  reaches a prophet, apostle or inquisitor; the Tinkers' Guild pin keeps
+  "newly created" and reads "workers". (2) **F3**: the tide never read
+  `Religion.holySite` — `spreadReligion` walks the map for the
+  `holySite` improvement per sweep, so a second site pressed the moment
+  its stones were written and no register was needed; `plantHolySiteError`
+  asks `foundReligionError` only on the founding arm, `plantHolySiteAt`
+  has two arms (the drafts and the owed rung are the founding's alone,
+  `holySite ??=` now load-bearing), `HolySitePlanting.founded` is
+  two-valued and `CommandResult.planted` carries a later planting out
+  for its own toast; the unit sheet's one row reads "Found religion" or
+  "Plant holy site" by `plantingCost`; bots raise at most one site per
+  town (`townWantingSite`), after founding and deepening; `explainStones`
+  prices the want. Nine pins incl. a measured pressure rise and a
+  byte-identical replay with second plantings in the log.
 - (jjjj) **The landing screen composed to the mock — built** (the user,
   2026-09-10: *"could you do a design pass on the landing page? It's
   very different than the mock"*). On the held stack: the frontispiece

@@ -34,6 +34,7 @@ import {
   growthSurplus,
   growthThreshold,
   hasResource,
+  productionAwaitingRoom,
   queueItemCost,
   queueItemName,
   turnsToBuild,
@@ -2187,6 +2188,26 @@ export function createCityPanel(options: CityPanelOptions): CityPanel {
     what.append(drop);
     box.append(what);
     box.append(bar(city.hammerBasket, cost, 'is-production'));
+    // **"Waiting for room"** (item (llll)): a full bar with nothing coming off
+    // it is the one reading on this card a player cannot get from the figures.
+    // The town has finished the piece and has nowhere to put it — every hex
+    // around it is taken, or an army has closed the ring and a completion may
+    // not spill into a siege — so the hammers stay banked and the piece lands
+    // the turn a hex clears.
+    //
+    // The **quiet voice**, and that is the whole ruling in one class name: this
+    // is a *state* the board is in, not a lack the player is short of, and the
+    // vermilion italic `.wanting` would be the panel telling them off for a
+    // besieger's decision. Nothing is owed here and nothing is being refused.
+    //
+    // The sentence is `productionAwaitingRoom`'s answer and not a condition
+    // composed here: the panel reads, the simulation decides.
+    const waiting = productionAwaitingRoom(getGame().state, city);
+    if (waiting !== null) {
+      const held = element('p', 'city-prod-waiting', `${queueItemName(item)} is waiting for room`);
+      held.title = 'Finished, with nowhere to stand — the work is kept until a hex beside the town clears.';
+      box.append(held);
+    }
     // The rate the bar fills at, on the card's hover rather than on a line of
     // its own — the rails' rule, and the figure is the ⚙ chip in the band.
     box.title = `+${roundYield(perTurn)} a turn · ${roundYield(city.hammerBasket)} of ${cost} banked`;

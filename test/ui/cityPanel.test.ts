@@ -320,6 +320,50 @@ describe('the buy tag carries the reducer’s refusal', () => {
 });
 
 /**
+ * **The head item says it is waiting** — item (llll), the other half of the
+ * spawn ruling and the one a player can see.
+ *
+ * A full bar with nothing coming off it is the one reading on this card the
+ * figures cannot give: the town finished the piece and has nowhere to put it,
+ * either because every hex is taken or because an army has closed the ring and a
+ * completion may not spill into a siege. So the card says so.
+ *
+ * Two claims, and the split is `priceTag`'s above. The **condition** is the
+ * simulation's — `productionAwaitingRoom`, asserted against the real reading in
+ * `test/sim/spawnRoom.test.ts` — so what is left here is the panel's own half:
+ * that it asks that function rather than composing a condition of its own, and
+ * that the line wears the **quiet** voice. Read off the source for this suite's
+ * usual reason: with no jsdom, a line that quietly went vermilion still draws.
+ */
+describe('the head item says when a finished piece is waiting for room', () => {
+  it('asks the simulation, and never decides for itself', () => {
+    const body = braceBody(uiSource('cityPanel.ts'), 'function renderProduction(');
+    expect(body).toContain('const waiting = productionAwaitingRoom(getGame().state, city);');
+    expect(body).toContain('if (waiting !== null) {');
+    // The words name the piece the player is looking at, off the same row the
+    // rest of this card prints.
+    expect(body).toMatch(/`\$\{queueItemName\(item\)\} is waiting for room`/);
+  });
+
+  it('wears the quiet voice and never the wanting one', () => {
+    const body = braceBody(uiSource('cityPanel.ts'), 'function renderProduction(');
+    expect(body).toContain("'city-prod-waiting'");
+    // The whole of the ruling in one assertion: a besieger's decision is a state
+    // the board is in, not a lack this player is short of, and `.wanting` is the
+    // voice reserved for the second (`test/ui/wantingVoice.test.ts`).
+    expect(body).not.toContain("'wanting'");
+
+    // And the class the line wears is a real one, in the faintest ink on the
+    // card — a sentence styled by nothing would print at the panel's own weight
+    // and read as an alarm.
+    const css = uiSource('style.css');
+    const at = css.indexOf('.city-prod-waiting {');
+    expect(at).toBeGreaterThan(0);
+    expect(css.slice(at, css.indexOf('}', at))).toContain('var(--ink-faint)');
+  });
+});
+
+/**
  * The Specialists row (ledger Entry XLVIII), through the three printers the DOM
  * builder lays out — `previewLineText`'s split for the same reason: this suite
  * has no jsdom, and a row that is merely *wrong* throws nothing.
