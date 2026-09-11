@@ -1800,6 +1800,25 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (mmmm) **The wild's mount follows the tier — built** (the user,
+  2026-09-11, on :5199: *"i see barbarian horseman spawning in age 1 …
+  if anything it should be a war chariot"*). A camp in horse country
+  mustered the **first** `mounted` military row in the unit table from
+  `horsemanFromTurn` whatever the age — and that row is the horseman, an
+  Æra III piece (The Cataphract's node). Now `barbarianMountType` mirrors
+  `barbarianMeleeType`: the strongest mount **a technology names** that
+  the median tier has reached, else the mildest the tree names (today the
+  chariot of The Wheel); "named by a node" excludes every leader-,
+  card- and belief-opened mount and every retired row without this file
+  naming one. The turn gate still says *whether* there are riders; the
+  tier says which. Note: the horseman's node also opens the war elephant
+  (stronger), so a third-age camp rides elephants, resource gating
+  ignored exactly as the footman ladder ignores iron — ▢ if the user
+  would rather the wild never ride an elephant, a marker on the row.
+  Pinned: Æ1 tier → the mildest tech-named mount, never the horseman;
+  the median at the horseman's node → the strongest that node names; the
+  whole tree → tech-named, unretired, no leader's or card's row. On the
+  held stack.
 - (llll) **A built unit's spill: never onto a contested hex, never
   under siege — RULED** (the user, 2026-09-11, on :5199: *"i see units
   still being spawned outside the city when there's a city garrison. The
