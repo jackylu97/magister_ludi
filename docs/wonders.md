@@ -2,7 +2,7 @@
 
 Shipped framework (Entries XXX/XXXIII). The rows themselves live in
 `data/buildings.json` (`wonder: true`) and print in the Compendium — this file
-is the rules, not the list. Proposal history: `docs/design-history.md`.
+is the rules, not the list. Proposal history: `docs/history/design-history.md`.
 
 ## Framework (see also CLAUDE.md's wonder trap)
 

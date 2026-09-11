@@ -6,7 +6,7 @@ second holy site of batch F3). Sources of truth: `data/religion.json` (pools, na
 trickle), `rules.religion` in `data/rules.json` (the tide's numbers),
 `src/sim/religion.ts` (the phase and the verbs), `statecraft.ts` (the one
 effect evaluator). Draft history and superseded designs: git and
-`docs/design-history.md`. Every belief, rite and consecration as a row — the
+`docs/history/design-history.md`. Every belief, rite and consecration as a row — the
 balance worksheet, sync-tested against the data — is `docs/beliefs.md`.
 
 ## Principles

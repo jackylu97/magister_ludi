@@ -1,9 +1,12 @@
 # Magister Ludi (repo `magister_ludi`; formerly "WebCiv")
 
 Browser Civ V-style 4X. TypeScript + Vite. Deterministic simulation, procedural
-toon-shaded 3D renderer, data-driven balance. Design state: `docs/design-notes.md`
-(condensed; the unabridged entry history is `docs/design-history.md` — cited
-entry numbers refer to it). Open rulings: `docs/flags.md`.
+toon-shaded 3D renderer, data-driven balance. **Every live system in one place:
+`docs/README.md`** — the briefing, and the first thing to read. Design state:
+`docs/design-notes.md`
+(condensed; the unabridged entry history is `docs/history/design-history.md` — cited
+entry numbers refer to it). Open rulings: `docs/flags.md`
+(the log of rulings already made is `docs/history/flags-log.md`).
 UI language: `docs/design-specimen.html` (ink/parchment; every number tabular mono).
 
 "Magister Ludi" is the product name; internal code keeps "webciv" in identifiers.
@@ -20,7 +23,7 @@ be renamed — it would change every seeded outcome. No further rename passes.
   `test/sim/statecraftDocSync.test.ts` pattern): doc rows ↔ data rows, retired
   rows excluded. A row edited in one place and not the other fails core.
 - Reference docs read as technical documents: bulleted, concise, current-state;
-  history lives in `docs/design-history.md` and git.
+  history lives in `docs/history/design-history.md` and git.
 
 ## Commands & test discipline
 - `npm run dev` · `npm run typecheck` · `npm run test` (core tier) · `npm run build`.
@@ -104,7 +107,7 @@ be renamed — it would change every seeded outcome. No further rename passes.
    against `explainCity`'s and `explainEmpireLines`'s own source. **Three verbs,
    and only three** (E3b): `explainX` returns a labelled list, `foldX` is its one
    sum, `readX` is the memo and lives in `src/sim/readings.ts` alone; the table
-   of what each was called is `docs/yields.md`, the register is
+   of what each was called is `docs/history/yields-history.md`, the register is
    `test/sim/verbs.test.ts`.
 6. Docblock comments explain *why*, in the existing files' voice.
 7. **Player-facing words are plain**: rules stated in a first-time player's terms

@@ -15,7 +15,7 @@ generated row is caught by core rather than discovered a batch later.
 Companions: `docs/wonders.md`,
 `docs/trade.md`, `docs/religion-v2.md`, `docs/great-people.md`. The design
 history (proposals, re-cuts, the five-age plan) lives in git and
-`docs/design-history.md`.
+`docs/history/design-history.md`.
 
 ## Standing determinations
 

@@ -4,7 +4,7 @@ Shipped (Entry XXXV + later rulings). Sources of truth: `data/rules.json`
 (`rules.trade`, `rules.movement`), `src/sim/roads.ts` (leaf — `layRoad`,
 `connectedCities`), `src/sim/routeYields.ts` (leaf — the route fold),
 `src/sim/empireGold.ts` (connections + maintenance fold), `src/sim/trade.ts`.
-History and the original proposal: `docs/design-history.md`.
+History and the original proposal: `docs/history/design-history.md`.
 
 ## The trader
 
@@ -204,25 +204,6 @@ gold/economy'"*); the tab rule is ink alone, with no gilt hairline under it.
   (`TRADE_MARK`, `src/art/dockMarks.ts` — a bale on two wheels, drawn rather than
   vendored, in the flair gallery's dock cabinet). `E` opens the sheet, beside
   `C`/`H`/`W`; its listener is in `gameDisposers`.
-
-### Measured (batch R2)
-
-A twelve-town late board (eight of this seat's, four of a rival's, six buildings
-apiece, **88 ordered pairs**), warm, median of five interleaved runs:
-
-| | open | redraw (tab, filter, sort, toggle) |
-|---|---|---|
-| the old screen | 33.5ms | **33.5ms** — every redraw re-walked every pair |
-| the sheet | 67.1ms | **0.29ms** |
-
-The open costs about twice as much because the reading carries about twice as
-much: a fold *per mode* with the sea premium in it, the paving count, the march's
-turn count and the post's reach, where the old screen took one fold and the gate.
-What it buys is the second column. The old screen paid its whole walk again for a
-sort chip; opening the sheet and pressing three tabs was 134ms and is now 68ms,
-and an idle `refresh` is **free** — `draw` fingerprints the revision plus every
-control on the sheet and returns without touching the DOM when nothing moved.
-Cold (first open of a session, before the JIT warms) the two are 83ms and 129ms.
 
 ## Land or sea
 

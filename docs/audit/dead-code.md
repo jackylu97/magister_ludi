@@ -228,7 +228,7 @@ row or asks only its name. **Do this against the register tests, in one pass.**
 entries plus the numbered milestones back to `3:` (`:118`). Entries v3 through
 v77 describe migrations that cannot happen: `loadGame` refuses those saves.
 
-Verdict: **move `:118`–`:1525` to `docs/design-history.md`, keep the header
+Verdict: **move `:118`–`:1525` to `docs/history/design-history.md`, keep the header
 (`:113-117`) and the v78 entry (`:1526-1555`).** −1408 lines from the sim's
 largest-but-one file. Nothing reads a docblock; no test pins it.
 

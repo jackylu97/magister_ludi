@@ -13,7 +13,7 @@ See [The experimental loop](#the-experimental-loop).
 
 Companion files: `data/mapgen.json` (the numbers), `src/sim/mapgenData.ts` (their
 types and the override seam), `docs/luxuries.md` (the resource table itself),
-`docs/design-history.md` and git (why any of it is the way it is).
+`docs/history/design-history.md` and git (why any of it is the way it is).
 
 ---
 
