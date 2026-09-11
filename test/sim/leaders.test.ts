@@ -17,6 +17,8 @@
  *   · the bots answer, and never stall;
  *   · every card's declared effects are read by the evaluator, and every card
  *     that declares nothing says why (the deck register);
+ *   · the sheet and the doc agree — the four rows of three, and (batch L5) the
+ *     towns the figure founds, name for name and in order;
  *   · the book has a shelf.
  */
 
@@ -560,6 +562,43 @@ describe('the sheet and the data', () => {
     for (const row of rows) {
       // Three columns between the age and the end of the line.
       expect(row[2]!.split('|').filter((cell) => cell.trim().length > 0)).toHaveLength(3);
+    }
+  });
+
+  /**
+   * **The towns** (batch L5, `docs/flags.md` (pppp)). Here the sync *is* on the
+   * words: a city's name is the whole of the design, so the doc's row and the
+   * sheet's `cities` must agree name for name and in order — diacritics and
+   * apostrophes included. A name retuned in one place and not the other fails
+   * core, which is the point: the table is the user's to edit.
+   */
+  it('names the same towns, in the same order, as the doc’s table', () => {
+    const doc = (
+      import.meta.glob('../../docs/leaders.md', {
+        query: '?raw',
+        import: 'default',
+        eager: true,
+      }) as Record<string, string>
+    )['../../docs/leaders.md']!;
+    const start = doc.indexOf('## The cities');
+    expect(start).toBeGreaterThan(0);
+    const section = doc.slice(start, doc.indexOf('\n## ', start));
+
+    // One row a figure, keyed by the name the doc prints — the cells are
+    // separated by ` · `, which is the table's own separator.
+    const rows = new Map<string, string[]>();
+    for (const row of section.matchAll(/^\| (.+?) \| (.+?) \|$/gm)) {
+      const leader = row[1]!.trim();
+      if (leader === 'Leader' || /^-+$/.test(leader)) continue;
+      rows.set(
+        leader,
+        row[2]!.split(' · ').map((name) => name.trim()),
+      );
+    }
+    expect([...rows.keys()].sort()).toEqual(LEADER_IDS.map((id) => leaderDef(id).name).sort());
+    for (const id of LEADER_IDS) {
+      const def = leaderDef(id);
+      expect(rows.get(def.name), id).toEqual([...def.cities]);
     }
   });
 });

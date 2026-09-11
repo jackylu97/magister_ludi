@@ -102,6 +102,10 @@ import {
   resourceIsVisibleTo,
 } from './resourceData';
 import { type ProjectId, isProjectId, projectDef, projectFinishes } from './projectData';
+// The figure's own town names, for `nextCityName`. `leaderData.ts` is a leaf —
+// it imports the data tables and stops — so the largest module in the
+// simulation may read a row without a shape of cycle.
+import { leaderDef } from './leaderData';
 import { governmentDef } from './statecraftData';
 import { isBeadEndeavourId } from './beadData';
 import { CONSECRATION_IDS, type ConsecrationId, consecrationDef } from './religionData';
@@ -832,20 +836,43 @@ export function ownedTiles(state: GameState, city: City): Tile[] {
 // --- founding ---------------------------------------------------------------
 
 /**
- * The name a player's next city gets: the rules list in order, then a numbered
- * fallback so a prolific empire never runs out.
+ * The name a player's next city gets: **the seat's figure's own towns** in order
+ * of importance, then the plain list, then a numbered fallback so a prolific
+ * empire never runs out — and at every step, the first name **no standing city
+ * anywhere already wears** (`docs/flags.md` (pppp), the table in
+ * `docs/leaders.md`).
  *
- * Counted from the cities the player already has rather than stored, so it is a
- * pure function of the state — but the *result* is stored on the city (see
- * `City.name`), because two cities must not swap names when one is destroyed.
+ * **Why a skip and not an index.** The old reading took the list's *n*th name
+ * for the seat's *n*th town, and that is two bugs wearing one coat: two seats
+ * walking the same list twinned their first towns (there was one list and
+ * everybody started at the top of it), and a razed town's name came round again
+ * the moment the count fell back — an empire could hold two Elmsgates, one
+ * remembered and one standing. Asking the board instead of the count answers
+ * both at once, and it stays a pure function of the state: the towns standing
+ * *are* the state. The *result* is still stored on the city (see `City.name`),
+ * because two cities must not swap names when one is destroyed.
+ *
+ * The seat's own count survives in one place only — **the number**. `n` counts
+ * the seat's towns past both lists (`owned + 1 −` the figure's list `−` the
+ * plain list, and never below one), so a plain empire that grew past the
+ * twenty-fourth name numbers exactly as it always did; past that the number
+ * walks up like every other name, so the fallback cannot collide either.
+ *
+ * The lookup is a Set of what is standing, which is a membership test and never
+ * iterated — the order that decides the outcome is the lists' own (rule 2).
  */
 export function nextCityName(state: GameState, ownerId: number): string {
-  const owned = state.cities.filter((city) => city.ownerId === ownerId).length;
-  const names = CITIES.cityNames;
-  const fromList = names[owned];
-  if (fromList !== undefined) return fromList;
   const player = playerById(state, ownerId);
-  return `${player?.name ?? `Player ${ownerId}`} ${owned + 1 - names.length}`;
+  const standing = new Set(state.cities.map((city) => city.name));
+  const figure = player?.leader === undefined ? [] : leaderDef(player.leader).cities;
+  for (const name of figure) if (!standing.has(name)) return name;
+  const names = CITIES.cityNames;
+  for (const name of names) if (!standing.has(name)) return name;
+  const owned = state.cities.filter((city) => city.ownerId === ownerId).length;
+  const stem = player?.name ?? `Player ${ownerId}`;
+  let n = Math.max(1, owned + 1 - figure.length - names.length);
+  while (standing.has(`${stem} ${n}`)) n += 1;
+  return `${stem} ${n}`;
 }
 
 /**

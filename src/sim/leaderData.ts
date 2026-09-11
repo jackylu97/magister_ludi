@@ -302,6 +302,21 @@ export interface LeaderBonus {
 export interface LeaderDef {
   /** The figure's name, as every surface prints it. */
   name: string;
+  /**
+   * **The towns this figure founds**, in order of importance — the empire it
+   * ruled, or the age it ruled in (`docs/flags.md` (pppp)).
+   *
+   * Fifteen or so a figure, and the table in `docs/leaders.md` "The cities" is
+   * the spec of record: the rows are the user's to retune and a sync test holds
+   * the doc and the sheet together. Read by `nextCityName` alone, which walks
+   * this list ahead of the plain one and skips any name a standing town already
+   * wears — so an empire under a figure is named after the empire, and the
+   * invented list is the fallback for a seat sitting under nobody.
+   *
+   * Data, like everything else on a row: a seventh figure is fifteen more
+   * strings and no edit here.
+   */
+  cities: readonly string[];
   startBias: StartBias;
   /** The one line this seat holds from turn one, whatever it drafts. */
   bonus: LeaderBonus;
@@ -539,6 +554,23 @@ for (const id of LEADER_IDS) {
   const where = `leaders.json: ${id}`;
   if (typeof def.name !== 'string' || def.name.length === 0) {
     throw new Error(`${where} has no name`);
+  }
+  // **The towns.** A figure with no list would silently fall through to the
+  // invented names and twin with every other leaderless seat, which is the very
+  // thing (pppp) ruled against — so an empty list is a boot error. A name twice
+  // in one row is the same failure quieter: `nextCityName` skips a name already
+  // standing, so the duplicate could never be reached and the row would read as
+  // fifteen towns while founding fourteen.
+  if (!Array.isArray(def.cities) || def.cities.length === 0) {
+    throw new Error(`${where} names no cities`);
+  }
+  const seen = new Set<string>();
+  for (const city of def.cities) {
+    if (typeof city !== 'string' || city.length === 0) {
+      throw new Error(`${where} names a city that is not a name`);
+    }
+    if (seen.has(city)) throw new Error(`${where} names the city "${city}" twice`);
+    seen.add(city);
   }
   const bias = def.startBias ?? {};
   for (const key of Object.keys(bias.terrain ?? {})) {

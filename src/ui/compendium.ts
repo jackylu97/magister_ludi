@@ -1776,6 +1776,13 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
       clauses.push(...cardClauses(card.id));
     }
   }
+  // **The towns** (batch L5, `docs/flags.md` (pppp)). Under the deck, because it
+  // is the last thing a player choosing at the table wants and the first thing
+  // they will see on the board. One plain clause off the row itself: the names
+  // are the sheet's, in the sheet's order, and nothing here interprets them.
+  clauses.push({
+    text: `Its towns are named ${joined([...def.cities], 'and')}, in that order.`,
+  });
   return {
     id: compendiumId('leader', id),
     section: 'leader',

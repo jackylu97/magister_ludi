@@ -297,17 +297,19 @@ describe('founding', () => {
     expect(second.id).not.toBe(first.id);
   });
 
-  it('names cities from the rules list, in order, per player', () => {
+  it('names cities from the rules list, skipping any name already standing', () => {
     const state = flatState();
     expect(nextCityName(state, 0)).toBe(CITIES.cityNames[0]);
     const a = plant(state, 0, 3, 3);
     const b = plant(state, 0, 3, 9);
-    // Player 1 starts at the top of the same list: names are per player.
+    // Player 1 walks the same list and takes the first name nobody is wearing:
+    // one list for the board, not one a seat (batch L5, `docs/flags.md` (pppp)).
+    // The whole of the rule, figures included, is `test/sim/cityNames.test.ts`.
     const c = plant(state, 1, 12, 3);
     expect([a.name, b.name, c.name]).toEqual([
       CITIES.cityNames[0],
       CITIES.cityNames[1],
-      CITIES.cityNames[0],
+      CITIES.cityNames[2],
     ]);
   });
 

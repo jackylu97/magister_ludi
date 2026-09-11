@@ -1911,6 +1911,20 @@ directly to confirm rulings — user marginalia are rulings.
   differently; the human's *No leader* writes no key on seat 0 and figures
   on the rest; hot-seat writes `isHuman` on every seat; the spectator and
   arena pages untouched.
+  **L4 built** (2026-09-11, held): `SEATS` grows to twelve inks, each
+  the exact hex of its seat-order fallback in `view3d.json` (Grape ·
+  Brook · Timber · Steel · Ink · Brass · Sky · Earth join the four),
+  pinned to `playerPieceColor`; `MIN_SEATS`/`MAX_SEATS`/`DEFAULT_SEATS`
+  (6)/`clampSeats`, `DEFAULT_SIZE` standard, `rosterFor(count, {persona?,
+  hotSeat?})`, `seatsAskPersona` (two seats alone); the mode list, its
+  four names and `FULL_GAME_SIZE` gone (nothing else read them); the
+  Seats row an `<output id="seats">` between two buttons, arrow/Home/End
+  keys; the hot-seat checkbox in the fine print; rivals' figures sorted
+  by `hash3(seed, sheetIndex, salt)` with sheet order the tie-break — a
+  source pin holds it off the sim's `Rng`, the gameplay separator and
+  `Math.random`; the mapgen lobby reads `SEATS` (its own palette
+  deleted). Not browser-checked. ▢ `lobby.ts`'s `MAX_SEATS` is still the
+  rules' figure (agrees at twelve today).
 - (mmmm) **The wild's mount follows the tier — built** (the user,
   2026-09-11, on :5199: *"i see barbarian horseman spawning in age 1 …
   if anything it should be a war chariot"*). A camp in horse country

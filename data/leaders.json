@@ -2,6 +2,23 @@
   "leaders": {
     "pachacuti": {
       "name": "Pachacuti",
+      "cities": [
+        "Cusco",
+        "Quito",
+        "Tumebamba",
+        "Cajamarca",
+        "Vilcashuamán",
+        "Huánuco Pampa",
+        "Hatun Xauxa",
+        "Machu Picchu",
+        "Ollantaytambo",
+        "Pisac",
+        "Pachacamac",
+        "Chan Chan",
+        "Vilcabamba",
+        "Choquequirao",
+        "Raqchi"
+      ],
       "bonus": {
         "text": "Farms pay +1 food for every mountain standing beside them.",
         "effects": [
@@ -229,6 +246,23 @@
     },
     "taizong": {
       "name": "Emperor Taizong",
+      "cities": [
+        "Chang'an",
+        "Luoyang",
+        "Yangzhou",
+        "Chengdu",
+        "Guangzhou",
+        "Taiyuan",
+        "Jiangling",
+        "Bianzhou",
+        "Hangzhou",
+        "Suzhou",
+        "Youzhou",
+        "Dunhuang",
+        "Liangzhou",
+        "Xiangyang",
+        "Fuzhou"
+      ],
       "bonus": {
         "text": "Melee units gain +1 combat strength and +1 movement. Every city pays +2 culture.",
         "effects": [
@@ -507,6 +541,23 @@
     },
     "modu": {
       "name": "Modu Chanyu",
+      "cities": [
+        "Longcheng",
+        "Ordos",
+        "Ivolga",
+        "Noin-Ula",
+        "Gol Mod",
+        "Terelzhiin Dörvölzhin",
+        "Boroo",
+        "Loulan",
+        "Turfan",
+        "Karashahr",
+        "Kucha",
+        "Barkol",
+        "Hami",
+        "Duurlig Nars",
+        "Yanran"
+      ],
       "bonus": {
         "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
         "effects": [
@@ -775,6 +826,23 @@
     },
     "akhenaten": {
       "name": "Akhenaten",
+      "cities": [
+        "Akhetaten",
+        "Thebes",
+        "Memphis",
+        "Heliopolis",
+        "Abydos",
+        "Hermopolis",
+        "Elephantine",
+        "Thinis",
+        "Sais",
+        "Bubastis",
+        "Coptos",
+        "Edfu",
+        "Swenett",
+        "Buhen",
+        "Napata"
+      ],
       "bonus": {
         "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike. Cities with a holy site make wonders 20% faster.",
         "effects": [
@@ -1024,6 +1092,23 @@
     },
     "almamun": {
       "name": "Al-Ma'mun",
+      "cities": [
+        "Baghdad",
+        "Merv",
+        "Kufa",
+        "Basra",
+        "Raqqa",
+        "Damascus",
+        "Samarra",
+        "Mosul",
+        "Wasit",
+        "Rayy",
+        "Nishapur",
+        "Isfahan",
+        "Fustat",
+        "Aleppo",
+        "Bukhara"
+      ],
       "bonus": {
         "text": "+2 food for every faith or science building a city holds. +10% science in cities keeping a rite.",
         "effects": [
@@ -1256,6 +1341,23 @@
     },
     "mithridates": {
       "name": "Mithridates VI",
+      "cities": [
+        "Sinope",
+        "Amaseia",
+        "Amisos",
+        "Trapezus",
+        "Cabira",
+        "Pharnacia",
+        "Eupatoria",
+        "Zela",
+        "Comana",
+        "Themiscyra",
+        "Panticapaeum",
+        "Phanagoria",
+        "Chersonesus",
+        "Laodicea",
+        "Gaziura"
+      ],
       "bonus": {
         "text": "+2 combat strength against an empire holding more cities than yours. +1 food on every improved resource.",
         "effects": [
