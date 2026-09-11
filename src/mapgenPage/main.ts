@@ -84,6 +84,7 @@ import {
 import { type TileTint, partitionColor } from '../render3d/tint3d';
 import { playerPieceColor } from '../render3d/lookData';
 import { requireElement } from '../ui/dom';
+import { SEATS } from '../ui/gameSetup';
 
 const canvas = requireElement<HTMLCanvasElement>('gl');
 const seedInput = requireElement<HTMLInputElement>('seed');
@@ -130,31 +131,24 @@ const SIZE_NAME = 'standard';
 const DEFAULT_SEATS = 4;
 
 /**
- * A roster deep enough for the rules' maximum. The game itself seats two named
- * players (`src/main.ts`); this page needs twelve chairs to ask what a crowded
- * map does, and their names are ordinals because nobody is role-playing here.
+ * **The seat inks are the game's own** — `SEATS` in `src/ui/gameSetup.ts`, the
+ * one roster the whole product seats from (batch L4, `docs/flags.md` (nnnn)).
  *
- * Every seat's colour is **derived from the ink it will actually be drawn in**,
- * and that is a correction rather than a tidy-up. This page used to hand each
- * seat a hand-picked CSS hex, none of which `players.byColor` knew — so all
- * twelve fell through to `playerPieceColor`'s index fallback, the twelve hexes
- * were decoration, and the seat swatch in the ledger agreed with the flag on the
- * board only by coincidence. Worse, two of the hexes chosen *were* the fallback
- * inks for their own seats, and those inks were `pine` and `wheat`: seats 3 and
- * 4 flew flags the exact colour of forest and plains, which is why four founded
- * capitals looked like two. The inks are fixed in `data/view3d.json` (see
- * `playerPieceColor`); what is fixed here is that there is one source for them.
+ * This page kept its own list until then, and the list had drifted twice: first
+ * into hand-picked CSS hexes none of which `players.byColor` knew — so every
+ * seat fell through to `playerPieceColor`'s index fallback and the swatch in the
+ * ledger agreed with the flag on the board only by coincidence — and then into a
+ * derivation that agreed with the inks but not with the *names* the game shows.
+ * Two pages asking the same question deserve one answer, and the answer is the
+ * landing's, because that is the one a player sees on the way into a real game.
  *
- * The first two seats keep the game's own CSS colours, because those *are* in
- * `byColor` and resolve to the same first two inks — so seats 1 and 2 are the
- * crimson and teal every other surface in the product shows them in.
+ * A seat past the roster's end cannot happen (`MAX_SEATS` is clamped to it), but
+ * the fallback is kept honest anyway: the seat's own index ink, which is what
+ * `playerPieceColor` would have given it.
  */
-const GAME_SEAT_COLORS: readonly string[] = ['#d4502e', '#1f8a85'];
-
 function seatColor(index: number): string {
   return (
-    GAME_SEAT_COLORS[index] ??
-    `#${playerPieceColor('', index).toString(16).padStart(6, '0')}`
+    SEATS[index]?.color ?? `#${playerPieceColor('', index).toString(16).padStart(6, '0')}`
   );
 }
 
@@ -179,7 +173,9 @@ let lobby: LobbySeat[] = emptyLobby(DEFAULT_SEATS);
 function renderLobby(): void {
   lobbySeatsEl.replaceChildren();
   lobby.forEach((seat, index) => {
-    lobbySeatsEl.append(swatchNode(playerPieceColor('', index), true));
+    // The chair's swatch is the seat's *own* ink resolved the way the board
+    // resolves it, so the chip here and the flag over its capital cannot differ.
+    lobbySeatsEl.append(swatchNode(playerPieceColor(seatColor(index), index), true));
     const select = document.createElement('select');
     select.title = `Seat ${index + 1}`;
     for (const choice of LOBBY_CHOICES) {

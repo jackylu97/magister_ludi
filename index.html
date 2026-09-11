@@ -112,21 +112,42 @@
           </div>
 
           <!-- Seats at one table, not a rotation: turns are simultaneous.
-               One bot is the default because one bot is the quickest way into a
-               game; the full four-seat game is the option under it, and the
-               multi-seat sandbox is still here further down, which is how a
-               single tester drives both sides from the seat chips. The options
-               and what each of them seats are `src/ui/gameSetup.ts`. -->
+               A count and not a list of named shapes (batch L4, docs/flags.md
+               (nnnn)): you, and the rivals behind you, from the rules' floor to
+               the palette's ceiling. The <output> is the value — one element
+               carries both the figure on the screen and what `currentConfig`
+               reads, so the two cannot drift. It is a spinbutton, so the arrow
+               keys work on it; the two ends and the roster each count deals are
+               `src/ui/gameSetup.ts`. -->
           <div class="row field">
             <label for="seats">Seats</label>
-            <select id="seats"></select>
+            <span class="field-control seats-stepper">
+              <button
+                id="seats-fewer"
+                class="btn btn-quiet btn-step"
+                type="button"
+                aria-label="One seat fewer"
+              >
+                −
+              </button>
+              <output id="seats" class="seats-count" role="spinbutton" tabindex="0"></output>
+              <button
+                id="seats-more"
+                class="btn btn-quiet btn-step"
+                type="button"
+                aria-label="One seat more"
+              >
+                +
+              </button>
+            </span>
           </div>
 
           <!-- How the seat nobody is sitting in plays. It is config, not a
                setting: it rides into the save with the roster, so a game
                reloaded next year is played by the same opponent rather than
-               by whatever the default has become. Hidden in the modes that
-               seat no bot. -->
+               by whatever the default has become. Shown only where there is one
+               opponent to ask about — a larger table deals its rivals their own
+               postures (`rivalPersona`). -->
           <div class="row field" id="persona-row">
             <label for="bot-persona">Opponent</label>
             <select id="bot-persona"></select>
@@ -139,6 +160,15 @@
           <div class="row check landing-tutorial">
             <input id="tutorial-toggle" type="checkbox" checked />
             <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
+          </div>
+
+          <!-- The hot-seat harness, in the fine print where a dev tool belongs
+               (CLAUDE.md, Direction: single-player-vs-AI and remote multiplayer
+               are the product; hot-seat is a harness). Off by default, so the
+               chairs behind yours are driven unless a tester says otherwise. -->
+          <div class="row check landing-hotseat">
+            <input id="hot-seat" type="checkbox" />
+            <label for="hot-seat">Hot-seat — every seat is a person</label>
           </div>
 
           <p class="landing-hint">

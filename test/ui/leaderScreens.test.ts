@@ -54,7 +54,7 @@ import {
   leaderLedgerLines,
   leaderRowReach,
 } from '../../src/ui/leaderSheet';
-import { rosterFor } from '../../src/ui/gameSetup';
+import { DEFAULT_SEATS, rosterFor } from '../../src/ui/gameSetup';
 import { uiSource } from './sourceHelpers';
 
 const EVALUATOR = (
@@ -142,33 +142,83 @@ describe('the new game screen', () => {
     expect(LEADER_FIRST_ROW_NOTE).not.toMatch(/[0-9]/);
   });
 
-  it('seats the rivals from the remaining figures, in sheet order', () => {
-    expect(rivalLeaders(FIRST, 3)).toEqual([LEADER_IDS[1], LEADER_IDS[2], LEADER_IDS[3]]);
-    expect(rivalLeaders(SECOND, 2)).toEqual([LEADER_IDS[0], LEADER_IDS[2]]);
+  it('seats every rival under a distinct figure from the sheet minus yours', () => {
+    const cast = rivalLeaders(FIRST, 5, 1234);
+    expect(cast).toHaveLength(5);
+    expect(cast.every((id) => id !== undefined)).toBe(true);
+    expect(new Set(cast).size).toBe(cast.length);
+    expect(cast).not.toContain(FIRST);
+    for (const id of cast) expect(LEADER_IDS, String(id)).toContain(id);
     // A table with more chairs than the sheet has figures runs out rather than
     // repeating: the seats past the end sit under none.
-    expect(rivalLeaders(FIRST, LEADER_IDS.length + 2).slice(-2)).toEqual([undefined, undefined]);
+    const overfull = rivalLeaders(FIRST, LEADER_IDS.length + 2, 1234);
+    expect(overfull.slice(-3)).toEqual([undefined, undefined, undefined]);
+    expect(new Set(overfull.filter((id) => id !== undefined)).size).toBe(LEADER_IDS.length - 1);
+  });
+
+  it('makes a seed a cast: the same seed deals the same figures, another may not', () => {
+    expect(rivalLeaders(FIRST, 5, 99)).toEqual(rivalLeaders(FIRST, 5, 99));
+    // Not a promise that every pair of seeds differs — a promise that the seed
+    // is read at all. Two known-different casts, so a hash that ignored its seed
+    // would fail here rather than passing on sheet order forever.
+    const seeds = [1, 2, 3, 4, 5, 6, 7, 8].map((seed) => rivalLeaders(FIRST, 5, seed).join(','));
+    expect(new Set(seeds).size).toBeGreaterThan(1);
+  });
+
+  it('gives the rivals their figures even when you take none', () => {
+    // *No leader* is an answer about your own seat, not about the world: it used
+    // to empty the whole table, which drew a world with nobody in it.
+    const seated = seatLeaders(rosterFor(6), NO_LEADER, 4242);
+    expect('leader' in seated[0]!).toBe(false);
+    const rivals = seated.slice(1).map((spec) => spec.leader);
+    expect(rivals.every((id) => id !== undefined)).toBe(true);
+    expect(new Set(rivals).size).toBe(rivals.length);
+  });
+
+  it('deals the default table six seats and six figures, no two the same', () => {
+    // The board's own pin (`docs/flags.md` (nnnn)): the game the landing opens
+    // on, with a figure taken, is six empires each under one of their own.
+    const seated = seatLeaders(rosterFor(DEFAULT_SEATS), FIRST, 2026);
+    expect(seated).toHaveLength(6);
+    const figures = seated.map((spec) => spec.leader);
+    expect(figures.every((id) => id !== undefined)).toBe(true);
+    expect(new Set(figures).size).toBe(figures.length);
+    expect(figures[0]).toBe(FIRST);
   });
 
   it('writes the chosen figure onto seat 0 and the rest behind it', () => {
-    const seated = seatLeaders(rosterFor('full'), FIRST);
+    const seated = seatLeaders(rosterFor(4), FIRST, 7);
     expect(seated[0]!.leader).toBe(FIRST);
-    expect(seated.slice(1).map((spec) => spec.leader)).toEqual(rivalLeaders(FIRST, 3));
+    expect(seated.slice(1).map((spec) => spec.leader)).toEqual(rivalLeaders(FIRST, 3, 7));
     // And nothing else on a spec moved.
-    expect(seated.map((spec) => spec.name)).toEqual(rosterFor('full').map((spec) => spec.name));
+    expect(seated.map((spec) => spec.name)).toEqual(rosterFor(4).map((spec) => spec.name));
   });
 
-  it('leaves a leaderless roster byte-identical to one from before leaders', () => {
-    const plain = rosterFor('bot', 'balanced');
-    expect(seatLeaders(plain, NO_LEADER)).toEqual(plain);
-    for (const spec of seatLeaders(plain, NO_LEADER)) {
+  it('leaves a seat under no figure byte-identical to one from before leaders', () => {
+    // The solo table: one chair, nobody chosen, and therefore no `leader` key
+    // anywhere in the config.
+    const plain = rosterFor(1);
+    expect(seatLeaders(plain, NO_LEADER, 5)).toEqual(plain);
+    for (const spec of seatLeaders(plain, NO_LEADER, 5)) {
       expect('leader' in spec).toBe(false);
     }
   });
 
+  it('draws its cast in the interface own arithmetic, never the sim seeded stream', () => {
+    const source = uiSource('leaderSelect.ts');
+    expect(source).toContain('hash3');
+    expect(source).not.toContain('webciv:gameplay:');
+    expect(source).not.toContain('hashSeed');
+    expect(source).not.toMatch(/\bstate\.rng\b/);
+    expect(source).not.toContain('Math.random');
+  });
+
   it('is wired into the config and repainted on every showing of the landing', () => {
     const main = uiSource('main.ts');
-    expect(main).toContain('seatLeaders(rosterFor(seatsSelect.value, personaSelect.value), leaderSelect.chosen)');
+    expect(main).toContain('players: seatLeaders(');
+    expect(main).toContain('leaderSelect.chosen,');
+    // The seed the world is drawn from is the seed the cast is dealt from.
+    expect(main).toContain('const seed = parseSeed(seedInput.value);');
     expect(main).toContain('leaderSelect.render();');
   });
 });

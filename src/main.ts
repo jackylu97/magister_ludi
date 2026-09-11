@@ -209,12 +209,14 @@ import { YIELD_GLYPH } from './ui/figures';
 import type { HoverInfo, LensMode, MapView } from './ui/mapView';
 import { createInfoCard } from './ui/infoCard';
 import {
-  DEFAULT_SEAT_MODE,
-  FULL_GAME_SIZE,
+  DEFAULT_SEATS,
+  DEFAULT_SIZE,
+  MAX_SEATS,
+  MIN_SEATS,
   SEATS,
-  availableSeatModes,
-  modeAsksPersona,
+  clampSeats,
   rosterFor,
+  seatsAskPersona,
 } from './ui/gameSetup';
 import { isLeaderId, leaderDef } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
@@ -236,9 +238,14 @@ createStaleDeployNotice();
 
 const seedInput = requireElement<HTMLInputElement>('seed');
 const sizeSelect = requireElement<HTMLSelectElement>('size');
-const seatsSelect = requireElement<HTMLSelectElement>('seats');
+/* The Seats stepper. The `<output>` is the value *and* the figure on the screen
+   — one element, so `currentConfig` and the tests read one place (batch L4). */
+const seatsValue = requireElement<HTMLOutputElement>('seats');
+const seatsFewerButton = requireElement<HTMLButtonElement>('seats-fewer');
+const seatsMoreButton = requireElement<HTMLButtonElement>('seats-more');
 const personaSelect = requireElement<HTMLSelectElement>('bot-persona');
 const personaRow = requireElement<HTMLElement>('persona-row');
+const hotSeatToggle = requireElement<HTMLInputElement>('hot-seat');
 const randomSeedButton = requireElement<HTMLButtonElement>('random-seed');
 const endTurnButton = requireElement<HTMLButtonElement>('end-turn');
 const endTurnLabelEl = requireElement<HTMLElement>('end-turn-label');
@@ -320,9 +327,9 @@ const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
 const restartYesButton = requireElement<HTMLButtonElement>('restart-yes');
 const restartNoButton = requireElement<HTMLButtonElement>('restart-no');
 const statusEl = requireElement<HTMLElement>('status');
-/* The HUD's seat chips. Distinct from `seatsSelect` above, which is the
-   landing's seat-count dropdown — they shared an id until 2026-08-24, and
-   `getElementById` gave both of these the dropdown. */
+/* The HUD's seat chips. Distinct from `seatsValue` above, which is the
+   landing's seat-count stepper — they shared an id until 2026-08-24, and
+   `getElementById` gave both of these the landing's control. */
 const seatsEl = requireElement<HTMLElement>('seat-strip');
 const civYieldsEl = requireElement<HTMLElement>('civ-yields');
 /* The two meter cards, hung under the left end of the bar. The chips that open
@@ -496,7 +503,7 @@ for (const name of MAP_SIZE_NAMES) {
   option.textContent = MAPGEN_CONFIG.sizes[name]!.label;
   sizeSelect.append(option);
 }
-sizeSelect.value = MAP_SIZE_NAMES.includes('standard') ? 'standard' : MAP_SIZE_NAMES[0]!;
+sizeSelect.value = MAP_SIZE_NAMES.includes(DEFAULT_SIZE) ? DEFAULT_SIZE : MAP_SIZE_NAMES[0]!;
 
 /**
  * The seats a new game can be dealt into. Turns are simultaneous, so these are
@@ -504,18 +511,64 @@ sizeSelect.value = MAP_SIZE_NAMES.includes('standard') ? 'standard' : MAP_SIZE_N
  * the others are driven by a bot, by the seat chips, or — in time — by a remote
  * peer.
  *
- * The roster itself, the modes and the arithmetic that turns one into the other
- * live in `src/ui/gameSetup.ts`, which is a leaf with no DOM in it and therefore
- * the half a test can hold. What stays here is the picker: the options, the
- * labels on them, and what changing one does to the rest of the card.
+ * The roster itself, the two ends of the count and the arithmetic that turns one
+ * into the other live in `src/ui/gameSetup.ts`, which is a leaf with no DOM in it
+ * and therefore the half a test can hold. What stays here is the control: two
+ * buttons, a figure between them, and what moving it does to the rest of the
+ * card.
+ *
+ * The count is read back off the `<output>` rather than kept in a variable
+ * beside it, so there is one answer to "how many seats" and not two — the same
+ * bargain the seed field and the size picker make.
  */
-for (const mode of availableSeatModes()) {
-  const option = document.createElement('option');
-  option.value = mode.value;
-  option.textContent = mode.label;
-  seatsSelect.append(option);
+function seatCount(): number {
+  return clampSeats(Number(seatsValue.value));
 }
-seatsSelect.value = DEFAULT_SEAT_MODE;
+
+/** Winds the stepper to a count, and tells the rest of the card about it. */
+function setSeatCount(seats: number): void {
+  const count = clampSeats(seats);
+  seatsValue.value = String(count);
+  seatsValue.setAttribute('aria-valuenow', String(count));
+  seatsValue.setAttribute('aria-valuetext', count === 1 ? '1 seat' : `${count} seats`);
+  seatsFewerButton.disabled = count <= MIN_SEATS;
+  seatsMoreButton.disabled = count >= MAX_SEATS;
+  refreshPersonaRow();
+}
+
+seatsValue.setAttribute('aria-valuemin', String(MIN_SEATS));
+seatsValue.setAttribute('aria-valuemax', String(MAX_SEATS));
+seatsFewerButton.addEventListener('click', () => setSeatCount(seatCount() - 1));
+seatsMoreButton.addEventListener('click', () => setSeatCount(seatCount() + 1));
+
+/**
+ * The arrow keys on the figure itself.
+ *
+ * A spinbutton that only answers to its two buttons is a spinbutton a keyboard
+ * cannot reach, and the value element is the focusable half — so up/right wind
+ * it on, down/left back, and Home/End go to the two ends. `preventDefault`
+ * because the page under the landing scrolls on those keys.
+ */
+seatsValue.addEventListener('keydown', (event) => {
+  const step =
+    event.key === 'ArrowUp' || event.key === 'ArrowRight'
+      ? 1
+      : event.key === 'ArrowDown' || event.key === 'ArrowLeft'
+        ? -1
+        : 0;
+  if (step !== 0) {
+    event.preventDefault();
+    setSeatCount(seatCount() + step);
+    return;
+  }
+  if (event.key === 'Home') {
+    event.preventDefault();
+    setSeatCount(MIN_SEATS);
+  } else if (event.key === 'End') {
+    event.preventDefault();
+    setSeatCount(MAX_SEATS);
+  }
+});
 
 /**
  * **How the seat nobody is sitting in plays.**
@@ -540,25 +593,21 @@ for (const id of PERSONA_IDS) {
 personaSelect.value = DEFAULT_PERSONA;
 
 /**
- * What changing the Seats picker does to the rest of the card.
+ * What moving the Seats stepper does to the rest of the card.
  *
- * Two answers, both `modeAsksPersona`'s and `FULL_GAME_SIZE`'s business rather
- * than this listener's. The Opponent row is only a question where there is one
- * opponent to ask about. And a full game moves the Size picker to the map it
- * wants: four empires need room, and moving the visible control — rather than
- * quietly overriding it at Start — leaves the player free to choose otherwise,
- * which is the difference between a default and a rule.
+ * One answer, and it is `seatsAskPersona`'s business rather than this function's:
+ * the Opponent row is only a question where there is one opponent to ask about.
+ * A larger table deals its rivals their own postures (`rivalPersona`), so the
+ * row would be asking about five seats and answering for none.
+ *
+ * The Size picker is left alone. It opens on `DEFAULT_SIZE` — the map the seat
+ * count was chosen against — and winding the stepper does not move it: a default
+ * the player has already overruled is not a default worth re-asserting.
  */
 function refreshPersonaRow(): void {
-  personaRow.hidden = !modeAsksPersona(seatsSelect.value);
+  personaRow.hidden = !seatsAskPersona(seatCount());
 }
-seatsSelect.addEventListener('change', () => {
-  refreshPersonaRow();
-  if (seatsSelect.value === 'full' && MAP_SIZE_NAMES.includes(FULL_GAME_SIZE)) {
-    sizeSelect.value = FULL_GAME_SIZE;
-  }
-});
-refreshPersonaRow();
+setSeatCount(DEFAULT_SEATS);
 
 // --- the HUD's transient cards ---------------------------------------------
 
@@ -1219,18 +1268,25 @@ function parseSeed(raw: string): number {
 }
 
 function currentConfig(): GameConfig {
+  const seed = parseSeed(seedInput.value);
   return {
-    seed: parseSeed(seedInput.value),
+    seed,
     sizeName: sizeSelect.value,
     // Whose chairs are filled and which of them a person is sitting in. See
-    // `rosterFor`: seat 0 is always Crimson and always the human.
+    // `rosterFor`: seat 0 is always Crimson and always the human, the rest are
+    // driven unless the hot-seat box says every chair is a person.
     //
-    // **And which figure each sits under** (batch L2b). `seatLeaders` writes a
-    // `leader` key only where there is one, so *No leader* — the default —
-    // leaves a roster byte-identical to the one this line has always built,
-    // and the rivals take their figures from the sheet in order behind yours
-    // (`rivalLeaders`, the whole of the rule).
-    players: seatLeaders(rosterFor(seatsSelect.value, personaSelect.value), leaderSelect.chosen),
+    // **And which figure each sits under** (batch L2b, recast in L4).
+    // `seatLeaders` writes a `leader` key only where there is one — *No leader*
+    // leaves your own seat byte-identical to the one this line has always built
+    // — and the rivals draw distinct figures from the sheet in an order hashed
+    // from the seed, so a seed is a cast as well as a world (`rivalLeaders`,
+    // the whole of the rule).
+    players: seatLeaders(
+      rosterFor(seatCount(), { persona: personaSelect.value, hotSeat: hotSeatToggle.checked }),
+      leaderSelect.chosen,
+      seed,
+    ),
     // **The game asks for the wild.** `GameConfig.barbarians` defaults to off so
     // that a fixture, an inspection page or a pacing measurement gets the quiet
     // world it always had (see that field); a real game played by a person is

@@ -36,6 +36,7 @@ import {
 import { type CardClause, describeCard } from '../sim/statecraft';
 import type { PlayerSpec } from '../sim/state';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { hash3 } from '../render3d/hash';
 import { element } from './dom';
 import { setDescriptorText } from './keywords';
 
@@ -143,26 +144,49 @@ export function leaderFaces(): LeaderFace[] {
 }
 
 /**
- * **Which figure each rival sits under** — the deterministic rule, said once.
+ * The stream index the cast is hashed on. Its own number, so that a second
+ * seeded question asked on this screen one day cannot deal the same permutation.
+ */
+const CAST_STREAM = 0x1ea4;
+
+/**
+ * **Which figure each rival sits under** — the deterministic rule, said once
+ * (batch L4, `docs/flags.md` (nnnn)).
  *
- * The remaining figures in **sheet order**: seat 1 takes the first of
- * `LEADER_IDS` that is not yours, seat 2 the next, and so on. No draw — the
- * landing has no `Rng` and a table dealt from `Math.random` would be a table a
- * save could not replay (hard rule 2; a leader rides into `GameConfig`).
+ * **Every rival plays a figure**, and they are **distinct**: the rivals take the
+ * sheet minus your own pick, ordered by a hash of the seed. A seed is therefore
+ * a *cast* as well as a world — the same seed and the same seats deal the same
+ * neighbours, which is the sentence the landing card already prints — and a
+ * different seed may deal a different one. Nothing here is a draw: the landing
+ * has no `Rng`, and a table dealt from the platform's own unseeded randomness
+ * would be a table a save could not replay (hard rule 2; a leader rides into
+ * `GameConfig`).
  *
- * **Nobody is seated when you are not.** *No leader* means a wholly leaderless
- * table, so the one-click game is the game it always was and its config is
- * byte-identical to one from before figures existed. A player who wants figures
- * takes one, and the rivals take theirs.
+ * The hash is `hash3`, the renderer's own integer scatter — a pure function of
+ * `(seed, the figure's place on the sheet, a stream)`. **Never the sim's `Rng`,
+ * and never its gameplay hash separator** (the one `src/sim/state.ts` says must
+ * never be renamed): this is a question about the interface's own arithmetic,
+ * and borrowing the gameplay stream would make a seeded outcome depend on a
+ * screen. Ties fall back to sheet order, so the ordering is total and not merely
+ * usually total.
+ *
+ * **Rivals take figures whether or not you do.** *No leader* is an answer about
+ * your own seat — you play the plain rules — and it used to empty the whole
+ * table, which made the world the one-click game drew a world with nobody in it.
+ * Your own seat is still written byte-identically: no `leader` key at all.
  *
  * A table with more seats than the sheet has figures simply runs out, and the
  * seats past the end sit under none — the honest answer rather than a repeat.
  */
-export function rivalLeaders(chosen: string, rivals: number): (LeaderId | undefined)[] {
+export function rivalLeaders(chosen: string, rivals: number, seed = 0): (LeaderId | undefined)[] {
+  const rest = LEADER_IDS.map((id, at) => ({ id, at }))
+    .filter((entry) => entry.id !== chosen)
+    .sort((a, b) => {
+      const byHash = hash3(seed, a.at, CAST_STREAM) - hash3(seed, b.at, CAST_STREAM);
+      return byHash !== 0 ? byHash : a.at - b.at;
+    });
   const seats: (LeaderId | undefined)[] = [];
-  if (chosen === NO_LEADER) return seats;
-  const rest = LEADER_IDS.filter((id) => id !== chosen);
-  for (let at = 0; at < rivals; at += 1) seats.push(rest[at]);
+  for (let at = 0; at < rivals; at += 1) seats.push(rest[at]?.id);
   return seats;
 }
 
@@ -170,14 +194,21 @@ export function rivalLeaders(chosen: string, rivals: number): (LeaderId | undefi
  * The roster with its figures written on, and **nothing else changed**.
  *
  * A key is written only where there is one, exactly as `normalizeConfig` writes
- * a charge: a leaderless roster carries no `leader` anywhere and normalises byte
- * for byte as a roster from before leaders existed.
+ * a charge: a seat under no figure carries no `leader` and normalises byte for
+ * byte as a spec from before leaders existed.
+ *
+ * The `seed` is the landing's own — the number in the Seed field — so the cast
+ * travels with the world rather than beside it.
  */
-export function seatLeaders(players: readonly PlayerSpec[], chosen: string): PlayerSpec[] {
-  if (chosen === NO_LEADER) return players.map((spec) => ({ ...spec }));
-  const rivals = rivalLeaders(chosen, Math.max(0, players.length - 1));
+export function seatLeaders(
+  players: readonly PlayerSpec[],
+  chosen: string,
+  seed = 0,
+): PlayerSpec[] {
+  const rivals = rivalLeaders(chosen, Math.max(0, players.length - 1), seed);
+  const mine: LeaderId | undefined = chosen === NO_LEADER ? undefined : (chosen as LeaderId);
   return players.map((spec, seat) => {
-    const leader = seat === 0 ? (chosen as LeaderId) : rivals[seat - 1];
+    const leader = seat === 0 ? mine : rivals[seat - 1];
     return leader === undefined ? { ...spec } : { ...spec, leader };
   });
 }

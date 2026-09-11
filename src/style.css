@@ -677,6 +677,93 @@ body {
   font-weight: 600;
 }
 
+/* --- the Seats stepper (batch L4) ---
+   The mockup's ruled pill: − , the count, + , hairlines between them and one
+   border round the lot. A count rather than a dropdown of named shapes, so the
+   control has to *look* like arithmetic — hence the pill, and hence the figure
+   in the tabular face every number in this interface is set in.
+
+   It sits in a `.field-control`, so it inherits that row's `justify-self: end`
+   and takes its own width rather than the field's 230px: a three-character
+   control stretched across a form column reads as a text input. */
+.landing-card .row.field .field-control.seats-stepper {
+  display: inline-flex;
+  width: auto;
+  gap: 0;
+  align-items: stretch;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--parchment);
+}
+
+/* The two ends. Flat against the pill — no border, no radius of their own —
+   because the pill is the frame and a button inside a frame with its own frame
+   is two frames. They keep `.btn-quiet`'s hover and its focus ring. */
+.landing-card .seats-stepper .btn-step {
+  flex: 0 0 auto;
+  min-width: 30px;
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  font-family: var(--face-ui);
+  font-size: 15px;
+  line-height: 1.2;
+  box-shadow: none;
+}
+
+.landing-card .seats-stepper .btn-step:hover:not(:disabled) {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+/* A wound-out stepper says so by going quiet, not by disappearing: the end of
+   the range is information, and a control that vanishes at its own limit leaves
+   the player wondering whether they broke it. */
+.landing-card .seats-stepper .btn-step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* The count. Tabular mono — it is a number, and every number in this interface
+   is (the specimen's one unbreakable rule). The two hairlines are its own, so
+   the figure is boxed by the same rule that separates the buttons from it. */
+.landing-card .seats-count {
+  display: inline-block;
+  min-width: 2.4ch;
+  padding: 3px 11px;
+  border-left: var(--border-thin) solid var(--ink);
+  border-right: var(--border-thin) solid var(--ink);
+  font-family: var(--face-num);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--ink);
+}
+
+/* It is focusable (a spinbutton the arrow keys drive), so it needs a ring — but
+   drawn *inside* it: the pill clips its own overflow, and the page's default
+   ring sits two pixels outside, where it would be cut in half. The accent
+   rather than ink, because an ink ring on an ink border is a thicker border. */
+.landing-card .seats-count:focus-visible {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: -2px;
+}
+
+/* The hot-seat harness, under the guide's row and quieter still: it is a dev
+   tool kept reachable rather than a shape of game being offered, so it takes
+   the same soft ink the guide's row does and no extra weight. */
+.landing-hotseat {
+  margin-top: 7px;
+  color: var(--ink-soft);
+}
+
+.landing-card .row.check.landing-hotseat label {
+  color: inherit;
+}
+
 /* --- the one strong action ---
    The mockup's Begin button: an ink pill, alone at the foot of the seat's
    column, saying who the game begins as (`setStartLabel` in main.ts). Ink and
