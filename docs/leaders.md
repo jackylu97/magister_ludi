@@ -528,7 +528,19 @@ What that means for a bias:
   Modu's pastures and Bumin's iron are met by construction.
 - **Desert is a rejection today** (`hostileTerrain`, `maxHostileRingShare`
   0.45), so Akhenaten's bias is the river, the floodplain and the oasis — the
-  Nile's valley, not the Sahara.
+  Nile's valley, not the Sahara. **Built, and then retuned** (2026-09-11,
+  `docs/flags.md` (uuuu), the user: *"i notice akhenaten rarely spawns in
+  desert"*): the first cut weighted desert at a fraction and asked for one arid
+  hex within two rings, which a river valley with a dune in sight answers — he
+  held the want on every board and stood in sand on none of twenty-four. The
+  want is now **`aridBeside: 3`**, three of the six hexes *touching* the capital,
+  and the terrain weights are `river 4, floodplain 3, oasis 3, desert 2`. The
+  site itself is still refused if it is desert, which is the point: what a figure
+  of the sand can have is the last liveable hex before it. Measured, he now
+  stands in three arid neighbours on 11 of 24 standard boards (mean 1.9, up from
+  0.9) — the rest is the twenty-hex spacing spending the sites the ground grew.
+  See `docs/mapgen.md`, "Hard wants, and the fallback", for the two want shapes
+  and the whole table.
 - **The seating becomes per-seat.** Today starts are chosen first and handed to
   seats in roster order; with biases each seat scores the board its own way,
   so the chooser seats **in roster order** (seat one takes its best site, seat
