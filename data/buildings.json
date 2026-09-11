@@ -1192,7 +1192,15 @@
           "stat": "charges",
           "amount": 1,
           "class": {
-            "consecrates": true
+            "type": "prophet"
+          }
+        },
+        {
+          "kind": "unitStat",
+          "stat": "charges",
+          "amount": 1,
+          "class": {
+            "type": "apostle"
           }
         },
         {
@@ -2871,7 +2879,7 @@
       "tileYields": [
         { "on": { "test": "improvement", "improvement": "pasture" }, "add": { "faith": 1 } }
       ],
-      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing, and a soldier of yours that halts on one of its pastures is given a fresh horse."
+      "note": "Felt tents pitched among the herds. Every pasture this town works is holy ground as well as grazing, and a soldier of yours is given a fresh horse every time it steps onto one of them — not once a march, but each time."
     },
     "obelisk": {
       "name": "The Obelisk",

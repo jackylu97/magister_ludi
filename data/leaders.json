@@ -688,7 +688,7 @@
             "name": "The Horde Camp",
             "kind": "unique",
             "flavor": "A city that can be folded up and carried.",
-            "text": "Opens the Horde Camp: every pasture the town works pays +1 faith, and a soldier of yours that halts on one of its pastures has its whole movement back.",
+            "text": "Opens the Horde Camp: every pasture the town works pays +1 faith, and a soldier of yours has its whole movement back every time it steps onto one of them.",
             "unlocks": {
               "building": "hordeCamp"
             }

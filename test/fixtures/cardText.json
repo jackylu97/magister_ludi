@@ -3064,8 +3064,12 @@
   ],
   "greatMosqueOfDjenne": [
    {
-    "raw": "newly created religious units gain +1 charge",
-    "text": "newly created religious units gain +1 charge"
+    "raw": "newly created prophets gain +1 charge",
+    "text": "newly created prophets gain +1 charge"
+   },
+   {
+    "raw": "newly created apostles gain +1 charge",
+    "text": "newly created apostles gain +1 charge"
    },
    {
     "raw": "+1 pantheon slot",

@@ -1800,6 +1800,94 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (rrrr) **Starts further apart — RULED, M2** (the user, 2026-09-11:
+  *"another leader spawned 8 tiles from me -- ideally we should have some
+  distance between players, maybe 15 tiles?"* → the diagnosis below →
+  *"lets raise the floor to 12 and ceiling to 20, i can mess with the
+  mapgen settings once i see some example starts at 12"*). **Today**
+  `starts.spacingFactor` 0.55 × √land clamped to [`minDistance` 5,
+  `maxDistance` 16] — the standard map aims at 16 — but the greedy sweep
+  relaxes the spacing a hex at a time down to the floor whenever nothing
+  fits, and a leader's want (M1: mountain, river, pasture, desert) is
+  seated first, so a want with no hex at 16 pulled the spacing down
+  before the want gave way; hence a rival at 8. **M2 builds**: (1)
+  `minDistance` **12**, `maxDistance` **20** (standard still aims at 16
+  and never accepts under 12; the user retunes from the lobby); (2)
+  **wants yield before distance does** — the seating order of relaxation
+  is: the want's criteria first (`meets` dropped, then the bias), and
+  only then the spacing, never below the floor; (3) a **contact
+  penalty** in the site score: a candidate loses `starts.contactPenalty`
+  per rival start already chosen within `starts.contactRadius` (12)
+  hexes, so distance is preferred before it is forced — a labelled line
+  in `scoreStartSite`'s list (rule 5's shape), shown in the lobby's start
+  rows; (4) **measured**: a slow sweep over 24 seeds × 6 figures on
+  standard prints the minimum pairwise start distance per seed and its
+  distribution, pinned to a floor of 12 everywhere the map can seat six
+  at all; the mapgen lobby's start rows print each seat's distance to
+  its nearest rival so the user sees the example starts. `docs/mapgen.md`
+  follows the knobs.
+- (ssss) **The city banner's canton loses its shield — RULED** (the
+  user, 2026-09-11: *"remove the banner from the left of the city
+  screen, it looks awkward. Maybe just the icon (and not the outline of
+  the shield motif) will do"*). The plate's canton (`.city-banner-canton`,
+  H7: a shield-shaped field in the primary with the charge in the
+  secondary) becomes the **charge alone** — no field, no shield shape —
+  inked in the seat's **primary** on the plate's parchment; the plate's
+  rim keeps the primary. The Heraldry trap's "never straight in seat
+  ink" is amended: the *plate* is the parchment the charge sits on.
+  Orchestrator's, small.
+- (qqqq) **After the first look at H7 — five rulings** (the user,
+  2026-09-11, on :5199: *"the unit icons are way too thick -- also the
+  borders look off, the line border around the accent overdraws past
+  where they meet. Could you take a look and fix yourself? Leader
+  unlocked units should cost maintenance based on the age they're
+  unlocked (which is how normal unit maintenance works, right?), horde
+  camp should refill every time, please make sure to tell the user its
+  ability in the selection. Great mosque of djenne should give an extra
+  charge to prophets and apostles. barbarian war elephents are fine,
+  xiongnu city list is fine. did the agent use the same colors as you
+  listed, they look different in game"*). (1) **Badge** — the
+  orchestrator retunes `pieces.badgeScale`/`badgeRing` by eye on :5199
+  (thinner ring, a touch smaller). (2) **Border stitch overdraw** — the
+  inner strip runs past the corner where two edges meet; the orchestrator
+  fixes the strip's end caps in `cities3d.ts` (`stitchBand`) so the
+  stitch stops where the line does (mitred or shortened by its own half
+  width). (3) **Uniques' upkeep — RULED**: a unit no technology names is
+  priced by **the age of the row that opens it** — for a leader's unique
+  the age of its deck row (`leaderCardHome(card).age`), for a card's or a
+  belief's the age its opener sits in where one is known, else the row's
+  own `column`'s age — so a unique costs what a same-age unit costs
+  (`unitUpkeep` reads one more source; `explainEmpireGold` untouched;
+  pinned on the Fubing, the Khopesh and a plain spearman of the same
+  age). (4) **Horde Camp — refills every time**, as built; the card's
+  `text` and the building's `note` say it plainly ("a mounted unit that
+  steps onto one of this town's pastures has its full movement again,
+  every time") so the draft sheet and the leader sheet tell the player
+  what they are taking. (5) **Great Mosque of Djenné**: its "+1 charge"
+  reaches **prophets and apostles** — the class filter names the two
+  rows (or the marker both carry and nobody else does, if one exists —
+  never the model class); the walk-every-table pin in
+  `test/sim/religion.test.ts` gains the exception (this one line may
+  reach a prophet and an apostle, and only it). **Ruled fine**: barbarian
+  war elephants in the third age; the Xiongnu city list. (6) **The
+  colours** — the orchestrator checks the in-game inks against the doc's
+  hexes (toon shading and the parchment wash may be the difference; if
+  the data differs from the doc the sync test would have said so).
+  **Done by the orchestrator** (2026-09-11): (1) the badge back to the
+  grid's size with the ring a shade thicker (`badgeScale` 1 ·
+  `badgeRing` 1.15 — the user: *"make them what they were before but a
+  tiny smidge thicker"*), the pin re-aimed at the dials rather than a
+  figure; (2) the border overdraw was a save from before H7 — the user
+  confirmed the borders read right on a fresh board; nothing changed;
+  (6) the data carries the doc's hexes exactly (the sync test holds; the
+  literal hex reaches the board through `playerPieceColor`) — what
+  differs in game is the toon shading and the line's opacity over
+  vellum, not the ink. **And a sixth**: the **selection ring** on a
+  chosen piece's hex wore the data file's terracotta; it now takes the
+  seat's primary (`OverlayState.selectionColor`, handed down beside
+  `lockedColor`), the hover ring keeping the accent — a cursor belongs
+  to nobody; pinned in `overlays3d.test.ts`. (3) (4) (5) are an agent's,
+  in flight.
 - (pppp) **A figure's cities carry its empire's names — RULED** (the
   user, 2026-09-11: *"let's also create a list of ~15 names with
   historically accurate cities from the civ's empire (in order of
@@ -1881,6 +1969,27 @@ directly to confirm rulings — user marginalia are rulings.
   in `GameConfig` is what every surface reads (no second source); the
   canton's field and device inks; the border stitch instanced once per
   game; the badge tunables read from data; `signUnits`' list unchanged.
+  **H7 built** (2026-09-11, held): `LeaderColors {primary, secondary,
+  names}` validated at load (lower-case hex, the halves distinct, two
+  words); `PlayerSpec.secondary?`/`Player.secondary?` copied iff present
+  (a roster without it snapshots byte-for-byte); `src/art/seatInks.ts`
+  the ONE fallback (`secondary ?? palette.ink` — the outline shell's own
+  ink, so a plain seat's board is the board it was; a source sweep
+  refuses a second `secondary ??` anywhere); the territory stitch a
+  `stitchBand` strip hoisted once per board build (`territory.
+  stitchWidth`); the plate's rim `--banner-color`, the canton
+  `--canton-field`/`--canton-device`; the piece's outline washed in the
+  trim; the badge **0.40 → 0.54** across, its rim **0.042 → 0.091**
+  (`pieces.badgeScale` 1.35 · `pieces.badgeRing` 1.6), hit target and
+  lift following; `playerPieceColor` gained a literal-hex clause below
+  the named table (a figure's maroon could not otherwise reach the
+  diorama — every palette ink pinned unchanged). **"Hue distance" is a
+  weighted-RGB separation** (redmean), not a hue angle — a grey has no
+  hue and the Abbasid black against the palette's ink is the pair that
+  matters; `MIN_INK_DISTANCE` 40, tightest live pair Taizong/Teal at
+  44.6, the doc's colours section says so. Twenty-one pins in
+  `test/render/seatInks.test.ts`; the gallery stall "the seats' two
+  inks" with three sliders. Not browser-checked.
 - (nnnn) **Six seats by default; a stepper, not a mode list; every
   rival plays a figure — RULED** (the user, 2026-09-11: *"how are bot
   games constructed now? do they choose a leader when the player does? We

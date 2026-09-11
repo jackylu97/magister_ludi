@@ -184,6 +184,7 @@ import { RULES } from "../../src/sim/rulesData";
 import { TECH_IDS, techDef } from "../../src/sim/techData";
 import { hasAbility } from "../../src/sim/tech";
 import {
+  UNIT_TYPE_IDS,
   isCombatant,
   unitDef,
   unitMaxHp,
@@ -3200,6 +3201,17 @@ describe("no charge line anywhere reaches the prophet", () => {
   // "3/2" (the user, 2026-09-11, `docs/flags.md` (kkkk)). The ruling is that a
   // prophet has exactly two, so this walks every table's charge lines and asks
   // the evaluator's own matcher whether any of them would reach one.
+  //
+  // **One stated exception** (the user, 2026-09-11, `docs/flags.md` (qqqq)
+  // point 5): the Great Mosque of Djenné's "+1 charge" was written against
+  // `consecrates: true`, a marker only the retired augur ever carried, so the
+  // wonder paid nothing at all. It was ruled to reach **prophets and apostles**,
+  // and there is no marker the two share that the inquisitor does not, so the
+  // row names the two types outright — `UnitFilter.type`, the filter's own
+  // last resort, and the *data* naming a row is the thing that has always been
+  // allowed (no rule in `src/sim/` compares a type against a name). So the walk
+  // now asks two questions rather than one: which lines reach an agent, and
+  // whether they are exactly the lines the ruling names.
   it("walks every table's charge lines", () => {
     const tables: Record<string, unknown> = {
       buildings: BUILDINGS_RAW,
@@ -3208,29 +3220,55 @@ describe("no charge line anywhere reaches the prophet", () => {
       greatPeople: GREAT_PEOPLE_RAW,
       leaders: LEADERS_RAW,
     };
-    const lines: { table: string; filter: UnitFilter | undefined }[] = [];
-    const walk = (table: string, node: unknown): void => {
+    // The trail of keys down to the line, so an exception can be granted to a
+    // *row* rather than to a whole table: "the Mosque may" is the ruling, and
+    // "a building may" would be a hole the next wonder falls through.
+    const lines: { table: string; path: string; filter: UnitFilter | undefined }[] = [];
+    const walk = (table: string, path: string, node: unknown): void => {
       if (Array.isArray(node)) {
-        for (const item of node) walk(table, item);
+        for (const item of node) walk(table, path, item);
         return;
       }
       if (node === null || typeof node !== "object") return;
       const row = node as Record<string, unknown>;
       if (row.kind === "unitStat" && row.stat === "charges") {
-        lines.push({ table, filter: row.class as UnitFilter | undefined });
+        lines.push({ table, path, filter: row.class as UnitFilter | undefined });
       }
-      for (const value of Object.values(row)) walk(table, value);
+      for (const [key, value] of Object.entries(row)) walk(table, `${path}.${key}`, value);
     };
-    for (const [table, raw] of Object.entries(tables)) walk(table, raw);
+    for (const [table, raw] of Object.entries(tables)) walk(table, table, raw);
     // The tables really do say it, several times over — a walk that found
     // nothing would be a walk reading the wrong shape.
     expect(lines.length).toBeGreaterThanOrEqual(5);
-    for (const agent of ["prophet", "apostle", "inquisitor"] as const) {
+    // **The exception, named by the row it was granted to.** Both of the
+    // Mosque's lines are found, and nothing else in any table is allowed to
+    // reach a preacher.
+    const MOSQUE = "greatMosqueOfDjenne";
+    const mosque = lines.filter((line) => line.path.includes(MOSQUE));
+    expect(mosque.length).toBe(2);
+    for (const agent of ["prophet", "apostle"] as const) {
       const reaching = lines.filter((line) => unitMatches(agent, line.filter));
-      expect(reaching, `${agent} is dealt a charge by ${reaching.map((l) => l.table).join(", ")}`).toEqual([]);
+      expect(
+        reaching.map((line) => line.path),
+        `${agent} is dealt a charge by ${reaching.map((l) => l.path).join(", ")}`,
+      ).toEqual(mosque.filter((line) => unitMatches(agent, line.filter)).map((line) => line.path));
+      // …and the Mosque really does reach it: exactly one of its two lines.
+      expect(reaching.length).toBe(1);
     }
+    // **The inquisitor is reached by nothing at all**, the Mosque included: the
+    // ruling names two preachers and a purge is not a sermon.
+    const purger = lines.filter((line) => unitMatches("inquisitor", line.filter));
+    expect(purger, `inquisitor is dealt a charge by ${purger.map((l) => l.path).join(", ")}`).toEqual([]);
     // And the worker still gets what the lines promise.
     expect(lines.some((line) => unitMatches("worker", line.filter))).toBe(true);
+    // The Mosque's own lines reach the two preachers and **nobody else** — a
+    // `{ type }` filter that grew a second reader would be a filter that stopped
+    // meaning one row.
+    for (const line of mosque) {
+      const reached = UNIT_TYPE_IDS.filter((type) => unitMatches(type, line.filter));
+      expect(reached.length).toBe(1);
+      expect(["prophet", "apostle"]).toContain(reached[0]);
+    }
   });
 });
 

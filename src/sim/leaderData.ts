@@ -48,9 +48,9 @@ import { BUILDING_IDS, type BuildingId, type CompletionGrant } from './buildingD
 import { type ImprovementId, improvementForResource } from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 import type { CardDefBase, CardEffect } from './statecraftData';
-import type { TechAge } from './techData';
+import { type TechAge, techAgeBands } from './techData';
 import { FEATURE_IDS, TERRAIN_IDS, type TerrainId } from './terrainData';
-import { UNIT_TYPE_IDS, type UnitTypeId } from './unitData';
+import { UNIT_TYPE_IDS, type UnitTypeId, unitDef } from './unitData';
 
 /**
  * What a terrain weight may name: a terrain, a feature, or one of the two facts
@@ -517,6 +517,87 @@ export function leaderCardHome(id: LeaderCardId): { leader: LeaderId; age: Leade
   const held = LEADER_CARDS.get(id);
   if (!held) throw new Error(`Unknown leader card "${id}"`);
   return { leader: held.leader, age: held.age };
+}
+
+/**
+ * **What age opens a unit the tree does not name**, or `undefined` when nothing
+ * in the tables says.
+ *
+ * The user's ruling of 2026-09-11 (`docs/flags.md` (qqqq), point 3): *"a unit no
+ * technology names is priced by the age of the row that opens it"*. `unitUpkeep`
+ * (`upkeep.ts`) charges an army by the age of its unlocking node — "the price is
+ * the age", its own docblock — and a leader's unique has no node at all, so
+ * every one of the ten was free to keep. This is the second source that reading
+ * falls to, and the whole of what it adds.
+ *
+ * Two clauses, in precedence, and each is a different sentence:
+ *
+ *   · **the deck row that hands the piece over** (`leaderCardHome(card).age`).
+ *     The most particular answer there is: the Fubing is an Æra I card of
+ *     Taizong's deck, so the Fubing is an Æra I soldier and costs what an Æra I
+ *     spearman costs. A card says *when* it is dealt, which is exactly the
+ *     statement a technology makes about the row it unlocks;
+ *   · **the age the row's own column belongs to** — the band `techAgeBands`
+ *     puts that column in. This is `docs/production-costs.md`'s reading of the
+ *     same field said one ledger over: a row the tree does not name is already
+ *     *priced* in hammers off its own `column` (`priceColumn` in `cities.ts`),
+ *     and a column is a position in the tree whether or not a node stands on it.
+ *     It answers for the Templars, whom a belief opens and no belief dates, and
+ *     for the parked hulls (`awaitsTech`) the tree has yet to reach.
+ *
+ * It deliberately does **not** ask the tree first. The tree is `unitUpkeep`'s
+ * own first clause and stays there — this function's whole contract is "the
+ * technology said nothing; who else did?" — so there is one statement of the
+ * standard reading and one of the fallback, and neither is a copy of the other.
+ *
+ * **Why it lives here.** The decks are this module's; the roster and the chart
+ * are leaves it already imports. Anywhere else — `unitData.ts`, `techData.ts` —
+ * would have to import `leaderData.ts`, which imports both of them back, and the
+ * cycle would come out empty under the dev server's module runner (CLAUDE.md's
+ * trap). `upkeep.ts` is downstream of all three and imports this by name.
+ *
+ * Memoised off the tables, which never move at runtime: `explainUnitUpkeep`
+ * prices every piece an empire holds every turn, and a walk of the decks and a
+ * rebuild of the chart's bands per soldier is a sweep nobody asked for.
+ */
+export function ageThatOpens(type: UnitTypeId): TechAge | undefined {
+  openerAges ??= computeOpenerAges();
+  return openerAges.get(type);
+}
+
+let openerAges: Map<UnitTypeId, TechAge> | null = null;
+
+function computeOpenerAges(): Map<UnitTypeId, TechAge> {
+  const ages = new Map<UnitTypeId, TechAge>();
+  // The column band first, so a deck row below overwrites it: the card that
+  // hands a piece over is the more particular answer, and a unique carries both
+  // a deck row and a column of its own.
+  for (const type of UNIT_TYPE_IDS) {
+    const column = unitDef(type).column;
+    if (column === undefined) continue;
+    const age = ageOfColumn(column);
+    if (age !== undefined) ages.set(type, age);
+  }
+  for (const id of LEADER_CARD_IDS) {
+    const opened = leaderCard(id).unlocks?.unit;
+    if (opened === undefined) continue;
+    ages.set(opened, Number(leaderCardHome(id).age) as TechAge);
+  }
+  return ages;
+}
+
+/**
+ * Which age owns a column of the chart.
+ *
+ * `techAgeBands` is the reading of record — the ages own disjoint runs of
+ * columns by construction since the banding — and a column past the last run
+ * belongs to the last age there is: a row parked beyond the tree's edge
+ * (`awaitsTech`) is a row of the furthest age the game has, not a row of no age.
+ */
+function ageOfColumn(column: number): TechAge | undefined {
+  const bands = techAgeBands();
+  for (const band of bands) if (column >= band.from && column <= band.to) return band.age;
+  return bands[bands.length - 1]?.age;
 }
 
 /**

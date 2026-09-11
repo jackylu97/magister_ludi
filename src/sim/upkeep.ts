@@ -22,6 +22,16 @@
  * same argument `explainUnitCost`'s age band makes about the *price* one column
  * over — "`unlocks` already says when a unit belongs".
  *
+ * **And where the tree says nothing, the row that opens it does** (the ruling of
+ * 2026-09-11, `docs/flags.md` (qqqq) point 3). A leader's unique is dealt by a
+ * card rather than researched, so no node names it and the whole reading above
+ * fell through to zero — ten soldiers an empire kept for nothing. `ageThatOpens`
+ * (`leaderData.ts`) answers the same question of the deck row that hands the
+ * piece over, and failing that of the age the row's own `column` sits in, which
+ * is the reading `docs/production-costs.md` already takes of that field. Still
+ * one number per row and still nothing written on a unit row: the second source
+ * is a second *place the tables already say it*, never a second answer.
+ *
  * Who is exempt, and why each
  * ---------------------------
  * Three exemptions on the *type*, and they are three different sentences:
@@ -70,6 +80,10 @@
 import { BUILDING_UNLOCK_TECH, UNIT_UNLOCK_TECH, techDef } from './techData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { type UnitTypeId, isCivilian, isExplorer, trades, unitDef } from './unitData';
+// The age of the row that opens a unit the tree does not name — the ruling of
+// 2026-09-11, and `unitUpkeep`'s second source. It lives beside the decks
+// because the decks are the answer for ten of the eleven rows; see its docblock.
+import { ageThatOpens } from './leaderData';
 import { RULES } from './rulesData';
 // Salt's Æra III shilling a soldier, read through the one luxury evaluator. It
 // takes `unitUpkeepOf` handed in for `cardUpkeepRebateLines`' reason exactly —
@@ -114,16 +128,26 @@ export interface BuildingUpkeepLine extends UpkeepLine {
  * particular piece. The pure reader — the Compendium's figure and the build
  * list's hover, neither of which has a `Unit` to ask about.
  *
- * Zero for every exemption in the docblock above, and zero for a type no
- * technology unlocks: there is no age to charge, which is why the great person
- * needs no clause of its own.
+ * Zero for every exemption in the docblock above, and zero only when **nothing
+ * in the tables opens the row at all**.
+ *
+ * **The second source** (the user's ruling of 2026-09-11, `docs/flags.md`
+ * (qqqq) point 3). "The price is the age" was read off the unlocking node alone,
+ * and a leader's unique has no node — no technology names one of the ten — so
+ * every figure's own soldier was free to keep for ever, which is a discount
+ * nobody designed. `ageThatOpens` (`leaderData.ts`, which owns the decks) is
+ * asked exactly where the tree was silent: the deck row that hands the piece
+ * over, else the age the row's own `column` belongs to. Asked *after* the tree
+ * and never instead of it, so a plain roster row is priced today exactly as it
+ * was yesterday and the standard reading is still stated once.
  */
 export function unitUpkeep(type: UnitTypeId): number {
   const def = unitDef(type);
   if (isCivilian(def) || isExplorer(def) || trades(def)) return 0;
   const tech = UNIT_UNLOCK_TECH.get(type);
-  if (tech === undefined) return 0;
-  return techDef(tech).age * RULES.upkeep.goldPerUnitAge;
+  const age = tech === undefined ? ageThatOpens(type) : techDef(tech).age;
+  if (age === undefined) return 0;
+  return age * RULES.upkeep.goldPerUnitAge;
 }
 
 /**
