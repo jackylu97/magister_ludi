@@ -1841,6 +1841,22 @@ directly to confirm rulings — user marginalia are rulings.
   standing and pressing; the seat unchanged; the city centre refused; a
   foreign hex refused. A replay change on the held stack (schema stays
   115).
+  **Both built** (2026-09-11, held). (1) the five charge lines name the
+  worker row; a walk over all five tables pins that no charge line
+  reaches a prophet, apostle or inquisitor; the Tinkers' Guild pin keeps
+  "newly created" and reads "workers". (2) **F3**: the tide never read
+  `Religion.holySite` — `spreadReligion` walks the map for the
+  `holySite` improvement per sweep, so a second site pressed the moment
+  its stones were written and no register was needed; `plantHolySiteError`
+  asks `foundReligionError` only on the founding arm, `plantHolySiteAt`
+  has two arms (the drafts and the owed rung are the founding's alone,
+  `holySite ??=` now load-bearing), `HolySitePlanting.founded` is
+  two-valued and `CommandResult.planted` carries a later planting out
+  for its own toast; the unit sheet's one row reads "Found religion" or
+  "Plant holy site" by `plantingCost`; bots raise at most one site per
+  town (`townWantingSite`), after founding and deepening; `explainStones`
+  prices the want. Nine pins incl. a measured pressure rise and a
+  byte-identical replay with second plantings in the log.
 - (jjjj) **The landing screen composed to the mock — built** (the user,
   2026-09-10: *"could you do a design pass on the landing page? It's
   very different than the mock"*). On the held stack: the frontispiece
