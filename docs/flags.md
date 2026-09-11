@@ -1800,6 +1800,35 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (vvvv) **The docs condensed to current state — RULED, D1** (the user,
+  2026-09-11: *"go through and summarize/condense all the docs in the docs
+  section. I want to bring context to a different claude agent and limit
+  the token spend from having it read everything. please deprecate
+  outdated docs by putting them in the deprecated section. In general,
+  the new agent only needs to know the current state, and not the log of
+  all changes that we've made."*). The tree is ~35k lines of docs, four
+  of them logs (`bot-priorities.md` 7k, `design-history.md` 4.6k, this
+  board 4.4k, `history/schema-changelog.md` 1.5k). **D1 builds**: (1) a
+  **briefing** — `docs/README.md` rewritten as the first thing a fresh
+  agent reads: every live system in current-state voice (rules as they
+  stand, the reference doc, the code's home, the open rulings), no
+  history, no figures beyond what a table carries, a few hundred lines;
+  (2) every kept **reference doc trimmed to current state** — "since
+  2026-…", "used to be", "moved from" paragraphs cut or moved to
+  `docs/history/`; every **sync-tested table byte-exact** (statecraft,
+  leaders, mapgen, yields, units, production costs, religion — the
+  agent runs every doc-sync test and greps `test/` for doc paths before
+  moving a file); (3) **this board split**: `docs/flags.md` keeps the
+  workflow and the open ▢ items only, in current-state wording; the
+  resolved/built log moves whole to `docs/history/flags-log.md` (item
+  letters kept so citations resolve); (4) **outdated docs deprecated** —
+  plans that were executed, worksheets whose decisions now live in a
+  reference doc, notes from a superseded system — moved to
+  `docs/deprecated/` with a one-line header naming what superseded
+  each; nothing deleted; `CLAUDE.md`'s doc references updated to the
+  new paths; (5) `docs/design-notes.md` stays the condensed design
+  state and `design-history.md` the archive (moved under `history/`
+  and cited from the briefing as "only if you need the why").
 - (uuuu) **Akhenaten starts in the desert — RULED** (the user,
   2026-09-11: *"i notice akhetaten rarely spawns in desert, could we
   give him a desert start bias?"*). He has one (M1c) but it is weak by
