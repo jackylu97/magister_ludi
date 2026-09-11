@@ -1800,6 +1800,21 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (jjjj) **The landing screen composed to the mock — built** (the user,
+  2026-09-10: *"could you do a design pass on the landing page? It's
+  very different than the mock"*). On the held stack: the frontispiece
+  becomes a masthead band (title, device, double rule, epigraph, stamp)
+  with the map card and the seat card as siblings below it (`340px |
+  1fr`, one column under 900px), both wearing the specimen's eyebrow ·
+  title · hint; field rows label-left / control-right on a hairline (the
+  clipped "OPPONE" mono column gone); Random beside the seed; **Begin
+  as …** the one strong action, in ink, in a rail at the foot (keeps
+  `id="start-game"`, `form="landing-setup"` so Enter still submits);
+  the roster four across at 1440 wrapping to one, the repeated
+  "from the first turn" eyebrows replaced by one lede, deferred clauses
+  a size down; hover wash on unchosen faces. Fits 1440×900 without a
+  scroll. ▢ `data/leaders.json` still carries no `family`/`spectrum`,
+  so the mock's family line and spectrum bar print nothing.
 - (iiii) **The leaders' deferred halves — RULED** (the user, 2026-09-10,
   on seeing the decks on :5199: *"it looks like many of the leader
   abilities aren't implemented?"* … *"let's implement every effect that
