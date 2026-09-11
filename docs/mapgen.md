@@ -979,6 +979,8 @@ is a wheat somewhere else.
 | Best N tiles | sum of the best `workedTiles` ring tiles, each weighted by its ring |
 | Fresh water | `freshwaterBonus` if the site can drink |
 | Coast | `coastBonus` if the site is coastal |
+| *one per ground a leader asked for* | its weight × the matching hexes, each worth its ring — see [the three stages](#the-leaders-three-stages) |
+| Bias cap | whatever of those the map's ceiling will not allow, taken back |
 
 A tile's worth is `food × foodWeight + production × productionWeight + gold ×
 goldWeight`. How many rings are scored is **the length of `ringWeights`** — a
@@ -1030,9 +1032,12 @@ possible start (the maximum roster) is checked and each gap filled:
    a reason to plant a city on it;
 4. a copy of **every row in `startStrategics`** within `startStrategicRadius`
    (`ensureStartStrategics`, ruled 2026-09-05: *"every capital has both horses
-   and iron within six tiles"*).
+   and iron within six tiles"*);
+5. one resource of **every kind a seated leader's `furnish` names** within
+   `startFurnishRadius` (`ensureStartFurnishing` — stage three below). The only
+   guarantee a *figure* asks for, and the only one a seat can be without.
 
-All four **roll no dice**: the tile chosen is the nearest legal one, ties by tile
+All five **roll no dice**: the tile chosen is the nearest legal one, ties by tile
 index, and the luxury chosen prefers the continent's own hand so a guarantee does
 not flatten the character the deal just built. That keeps them reproducible
 without consuming from the stream, and means they do not shift when the scatter
@@ -1063,6 +1068,139 @@ no flat grass within six hexes — and there the chooser's own last-resort fallb
 seats those players on refused sites anyway, because a 40×25 board with twelve
 capitals has nowhere else to put them. A duel map seating twelve is a dev harness,
 not a game.
+
+### The leaders' three stages
+
+Ruled in `docs/flags.md` (cccc); the design is `docs/leaders.md`. A **leader** is
+a row in `data/leaders.json` (`src/sim/leaderData.ts`), and the only half of one
+that is built is its `startBias`. A seat carries its figure in the game config
+(`PlayerSpec.leader`), so the roster is a **fourth input to the map** beside the
+seed, the size and the override sheet — and a save is `{config, log}`, so the
+world a figure made regenerates from the config that made it.
+
+Each stage rides a pass that already exists, in the order the generator runs
+them:
+
+1. **The ground** — `startBias.terrain`, read by the start chooser. Each key
+   (a terrain, a feature, `hills` or `river`) is worth its weight per matching
+   hex in the site and its scored rings, each hex counting for the ring it
+   stands in. Every hex counts, workable or not: a mountain is not a tile a
+   citizen can be sent to and is exactly what Pachacuti is written about. A
+   negative weight is lawful and means *away from* — Modu's steppe says so with
+   a minus rather than with a second field. Starts are chosen on bare ground
+   before a resource exists, so terrain can be biased **only** here.
+   Over that score sits `startBias.wants` — see [hard wants](#hard-wants-and-the-fallback).
+2. **What grows near it** — `startBias.resources` multiplies the scatter's
+   *tile* draw inside `startBiasRadius` of that leader's own start, and
+   `startBias.luxuries` multiplies its continent's **hand draw**, so the cap,
+   the hostability filter and the relaxation all hold unchanged and no kind
+   reaches a continent the deal would not have given it.
+3. **The furnishing** — `startBias.furnish` names improvement *kinds*, or a
+   resource row by name where the figure's need is that row (Modu's `horses`;
+   `pasture` would furnish the first pastured row the table lists, and cattle are
+   not horses). `ensureStartFurnishing` plants one suitable resource per entry
+   within `startFurnishRadius`. A luxury is drawn from the continent's hand
+   first and falls through to the rest of the table only when the ground in reach
+   will grow nothing the region was dealt — `ensureStartLuxuries`' own clause,
+   for its reason, and measured: two of twenty-four seeds put Mithridates' only
+   camp ground on flat plains, whose one camp row is ivory, which that continent
+   had not been dealt. A bonus or strategic row is free of the question. Which
+   wine and which deer is the ground's business — the pass asks the improvement
+   table which rows a kind opens.
+
+#### Hard wants, and the fallback
+
+A capped weight moves the odds and cannot deliver a need. Measured over the same
+24 seeds: Pachacuti found a mountain within two hexes on a fifth of them, biased
+or not, because a mountain is worth the same handful of points wherever it stands
+and the ceiling would not let it be worth more.
+
+So a row may carry **`startBias.wants`** — a closed vocabulary of predicates, each
+a radius: `mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`,
+`aridWithin`, `grasslandWithin`, `pastureGroundWithin` (one such hex in reach,
+the site's own included; `pastureGroundWithin` asks the improvement table what
+ground a pasture stands on rather than naming terrain here, and `aridWithin`
+counts a desert hex or an oasis or a floodplain — the three faces of one place).
+
+`aridWithin` is the clearest case of what a filter over *accepted* sites buys.
+Desert is `hostileTerrain`, so a site on it is refused outright and a site with
+more than `maxHostileRingShare` of its rings in sand is refused too. What
+Akhenaten's want can therefore ever find is a liveable hex **beside** the sand —
+which, beside his `riverOrFloodplainWithin 1`, is the Nile. A seat takes its best-scoring
+**accepted** site that meets *every* want it carries; if the map offers none it
+takes the best-scoring accepted site outright, then a refused one, then gives up
+the spacing floor — the cascade the chooser always had. A want is therefore a
+**filter over the order and never a change to it**, never a rejection, and never
+a guarantee.
+
+Two things follow, and both are the design:
+
+- **The needy choose first.** Seats are served in order of how many wants they
+  carry, ties by roster index. A river asked for from sixth place is a river
+  asked of what three river-hungry chairs have left; the count is the whole of
+  the order, so it reads off the roster.
+- **A want may not ask about a resource.** Starts are chosen on ground before a
+  resource exists — a want that chased a wheat would be the guarantee chasing
+  itself around the map. What a figure needs *placed* it asks for in stage three:
+  Modu's `furnish` names `horses` by row, because `pasture` would furnish the
+  first pastured row the table lists and cattle are not horses.
+
+**A bias is a score and never a rejection**, which is what keeps every sweep that
+proves a roster seats legally on every seed true. The lines are held under
+`starts.biasCap` — a share of the best *unbiased* site — and held **softly**:
+`cap · b / (cap + |b|)`, which is `b` near nought, approaches the cap and never
+reaches it, and is strictly increasing all the way. A hard clamp was measured and
+discarded: it flattened every good site onto the same number, so the tie fell
+back to the unbiased score and the bias did nothing except where it was weakest.
+
+Seating is **per seat, most wants first, ties by roster index**
+(`chooseStartPositionsFor`): each chair takes its best remaining site at spacing,
+and the chairs with hard needs choose before the flexible ones. A roster with no
+figures in it is delegated to the unbiased chooser, so a game without leaders is
+byte-identical to a game from before they existed — and the resource passes take the same untouched path (the
+uniform tile draw is kept as its own arm, because `nextInt` and `nextFloat` are
+different draws off one stream).
+
+Measured over 24 seeds at `standard`, six seats, one figure each — the share of
+starts meeting each figure's own criterion, with nobody seated and with everybody
+seated:
+
+| Figure | Criterion | Unseated | Seated | Backed by |
+|---|---|---|---|---|
+| Pachacuti | a mountain within 2 | 17% | 100% | want |
+| Pachacuti | three hills within 2 | 100% | 100% | score |
+| Pachacuti | a river within 1 | 83% | 100% | want |
+| Taizong | grassland within 2 | 79% | 100% | want |
+| Modu | horses within 4 | 83% | 100% | furnishing |
+| Modu | two pasture hexes within 3 | 100% | 100% | want |
+| Akhenaten | river or floodplain within 1 | 100% | 100% | want |
+| Akhenaten | desert, oasis or floodplain within 2 | 38% | 100% | want |
+| Al-Ma'mun | a river within 2 | 75% | 100% | want |
+| Mithridates | a river within 2 | 50% | 100% | want |
+| Mithridates | a camp kind within 3 | 29% | 100% | furnishing |
+| Mithridates | a plantation kind within 3 | 88% | 100% | furnishing |
+
+Every backed claim holds on every seed of the sweep; the slow test asserts a
+floor under each rather than merely "no worse than an empty chair". Before the
+wants (M1, the capped score alone) the same table read 21%, 92%, 88%, 83% and
+42% down that column — which is the measurement the wants exist because of.
+
+The price is the other half of it: the seats' **unbiased** site scores move by at
+most a couple of points of a mean around forty, against a cap of about nine —
+46.7 → 44.3, 45.0 → 43.6, 43.4 → 42.3, 41.4 → 43.7, 36.7 → 38.1, 33.4 → 33.7 down
+the roster. Pachacuti pays the most, because a mountain within two hexes is the
+rarest thing any figure asks for; Akhenaten and Al-Ma'mun come out *ahead*,
+because where a chair sits in the serving order is worth more than the ground it
+gives up — which is the whole argument for ordering by need.
+
+The **luxury guarantee's fallthrough stays**. `ensureStartLuxuries` prefers the
+continent's hand and falls through to the rest of the table when nothing dealt
+will grow on the ground in reach; tightening that to hand-or-nothing was measured
+at six of 144 possible starts over twelve standard seeds left short of their
+second kind and two short of their seam — a guarantee quietly not kept on four
+per cent of the seats, which is worse than the exclusivity it buys. The biases
+make the miss rarer but cannot make it rare enough: the guarantee covers the
+*maximum* roster, and most of those seats have no figure to bias anything.
 
 ### Water at a start: a soft preference, not a guarantee
 
@@ -1242,7 +1380,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 
 | Key | Default | Meaning |
 |-----|---------|---------|
-| `maxSize` | 8 | water bodies of at most this many tiles become lakes |
+| `maxSize` | 15 | water bodies of at most this many tiles become lakes (8 until 2026-09-11; the user raised it with the river pass) |
 
 ### pangaea
 
@@ -1270,14 +1408,14 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 |-----|---------|---------|
 | `countPer1000Tiles` | 14 | river quota, scaled by map area |
 | `minCount` | 3 | floor on that quota — a duel map is never riverless |
-| `minSpringElevation` | 0.80 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
+| `minSpringElevation` | 0.65 | lowest corner altitude a spring may sit at (range ground). Moved with `seaLevel` and the ridge break on 2026-09-03: land elevation runs `seaLevel…1`, so an absolute threshold means a different quantile of the land when either moves. 0.80 is the hill cut — "hill country or above" |
 | `minSpringSpacing` | 1 | hexes between springs; 1 means "not the same hex" |
-| `minLength` | 4 | traces shorter than this many edges are discarded |
+| `minLength` | 5 | traces shorter than this many edges are discarded |
 | `maxLength` | 80 | hard cap on one trace |
 | `backtrackSteps` | 64 | forks one trace may retry before it is abandoned; 0 is the plain greedy walk |
 | `attemptsPerRiver` | 120 | springs examined per river asked for. **Not the lever it looks like on a big board**: about 3,900 corners clear `minSpringElevation` on a huge map against a budget of 17,160, so every candidate is already tried and a larger number buys nothing |
 | `pitLakes` | true | may a trace that runs out of downhill flood the basin it stopped in and count as landed? See [pit lakes](#pit-lakes-a-river-that-ends-in-a-tarn). `false` switches the rule off whole and reproduces the pre-ruling map byte for byte (`OLD_FIXTURES`) |
-| `pitLakeMinTiles` | 5000 | smallest board, in tiles, that pools — "the boards above standard" (standard is 4,160, large 6,656). **0 pools on every size**, which is the intended follow-up; standard is excluded today only because it is the size the balance is tuned against and the size every pinned fixture is measured at |
+| `pitLakeMinTiles` | 3500 | smallest board, in tiles, that pools — standard (4,160) and above since 2026-09-11 (it shipped at 5,000, "the boards above standard"). **0 pools on every size**, which remains the intended follow-up |
 
 ### resources
 
@@ -1288,7 +1426,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `luxuryKindsPerContinent` | 4 | kinds in one continent's hand |
 | `maxContinentsPerLuxury` | 2 | continents one kind may appear on (relaxes upward if the arithmetic demands) |
 | `luxuryCopiesPerKind.min` / `.max` | 3 / 6 | tiles of a dealt kind placed on its continent |
-| `luxuryMinCopiesPerContinent` | 2 | tiles a continent must be able to seat before it is dealt a kind; also the seam floor |
+| `luxuryMinCopiesPerContinent` | 4 | tiles a continent must be able to seat before it is dealt a kind; also the seam floor (2 until 2026-09-11) |
 | `luxuryPer1000LandTiles` | 75 | luxury density the settle pass reconciles to |
 | `luxuryDensityTolerance` | 0.1 | how far the settled total may sit from that budget |
 | `luxuryScarcityBias` | 1.5 | exponent on `continents/hosts` in the draw weight; 0 = frequency alone |
@@ -1302,6 +1440,8 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `startLuxuryKinds` | 2 | distinct luxury kinds every start is guaranteed |
 | `startStrategics` | `["horses","iron"]` | strategic rows every start is guaranteed a copy of. Empty disables both the guarantee and the site refusal behind it |
 | `startStrategicRadius` | 6 | how far from a start those copies may be |
+| `startBiasRadius` | 4 | how far a seated leader's resource bias reaches from its own start (stage two) |
+| `startFurnishRadius` | 3 | how far its furnishing may stand (stage three) |
 | `startLuxuryCopies` | 2 | tiles of one of those kinds — the region-luxury seam |
 
 ### starts
@@ -1309,7 +1449,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `spacingFactor` | 0.55 | × √land, then clamped — start spacing |
-| `minDistance` | 5 | clamp floor, and the floor the greedy sweep relaxes to |
+| `minDistance` | 10 | clamp floor, and the floor the greedy sweep relaxes to (5 until 2026-09-11, `docs/flags.md` (tttt)) |
 | `maxDistance` | 16 | clamp ceiling |
 | `ringWeights` | [1.0, 0.55] | what each ring is worth; **its length is how many rings are scored** |
 | `workedTiles` | 6 | how many ring tiles are scored — the best this many, not all |
@@ -1319,6 +1459,7 @@ See [The grain of the woods](#the-grain-of-the-woods-and-the-clearings).
 | `goldWeight` | 0.3 | …of gold |
 | `freshwaterBonus` | 10 | flat bonus for a site on fresh water |
 | `coastBonus` | 6 | flat bonus for a coastal site |
+| `biasCap` | 0.2 | how much a leader's start bias may be worth, × the best **unbiased** site on the map. Approached and never reached — see [the leaders' three stages](#the-leaders-three-stages) |
 | `minRingFood` | 16 | food the workable ring tiles must carry, or the site is refused |
 | `minRingProduction` | 11 | production they must carry |
 | `hostileTerrain` | desert, tundra, snow | terrain nobody should start on or be surrounded by |
