@@ -1397,6 +1397,9 @@ function expansionTerm(ctx: ValueContext): ValueTerm {
  *     founding deals, the founder's trickle over the towns the tide would reach;
  *   · **deepen it** (`explainNextRung`) — one more follower or enhancer belief,
  *     priced by the evaluator a belief is always priced by;
+ *   · **raise a further holy site** (`explainStones`, batch F3) — the other
+ *     two-charge act of an empire that has already founded, and the cheapest
+ *     thing on the sheet: a site is stones and a tide, never a rule;
  *   · **say a rite over every town** (`explainEmpireRite`) — the fourth act, and
  *     the one that was already priced before this batch.
  *
@@ -1422,6 +1425,13 @@ function prophetTerms(
   } else {
     const rung = explainNextRung(state, player, ctx);
     if (rung !== null) acts.push({ label: `another rung of ${rung.faith}`, worth: rung.worth });
+    // **The fourth act, since batch F3**: a prophet of an empire that already
+    // has a faith may raise a *further* holy site. It is on the list so that a
+    // faith with every rung taken still has something to want a prophet for, and
+    // it is priced as the stones alone (`explainStones`) so it never outbids a
+    // belief that is actually available.
+    const stones = explainStones(ctx);
+    if (stones.terms.length > 0) acts.push({ label: 'a further holy site', worth: stones });
   }
   const rites = explainEmpireRite(state, ctx, row.towns);
   if (rites.terms.length > 0) acts.push({ label: 'a rite said over every town', worth: rites });
@@ -1482,12 +1492,7 @@ function prophetTerms(
  * later).
  */
 function explainFounding(state: GameState, player: Player, ctx: ValueContext): Appraisal {
-  const terms: ValueTerm[] = [];
-  if (HOLY_SITE !== null) {
-    terms.push(
-      nest('the stones it raises', explainYields(bagOfTileYield(improvementYield(HOLY_SITE)), ctx)),
-    );
-  }
+  const terms: ValueTerm[] = [...explainStones(ctx).terms];
   const rungs = foundingRungs(ctx);
   if (rungs.terms.length > 0) terms.push(nest('the rungs the founding deals', rungs));
   const reach = tideReach(state, player, ctx);
@@ -1505,6 +1510,26 @@ function explainFounding(state: GameState, player: Player, ctx: ValueContext): A
     );
   }
   return appraise(terms);
+}
+
+/**
+ * **What the stones themselves pay** — the holy site read as what it is, an
+ * improvement, priced by the yields on its row (`improvementYield`, read off the
+ * improvement table's own inverse rather than by name).
+ *
+ * One function because there are two acts that raise them now (batch F3): the
+ * founding, where the stones are one line of four, and a **later planting**,
+ * where they are the whole of it. A prophet that raises a second site draws no
+ * belief and moves no seat — the tide it adds is a fact about towns this bot
+ * already counts once in `tideReach` for the founding — so pricing it as the
+ * stones and nothing else is the honest floor, and it is deliberately the
+ * cheapest act on a prophet's sheet.
+ */
+function explainStones(ctx: ValueContext): Appraisal {
+  if (HOLY_SITE === null) return appraise([]);
+  return appraise([
+    nest('the stones it raises', explainYields(bagOfTileYield(improvementYield(HOLY_SITE)), ctx)),
+  ]);
 }
 
 /**

@@ -42,6 +42,7 @@ import type { Command } from '../../src/sim/commands';
 import { foundingErrorAt } from '../../src/sim/cities';
 import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import { getTileAt, mapRange, neighborTiles, tileHex } from '../../src/sim/map';
+import { isPassable } from '../../src/sim/pathfind';
 import { availableRites, empireRiteError, riteError } from '../../src/sim/religion';
 import { type PurchasableItem, explainPurchaseCost } from '../../src/sim/purchase';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -210,7 +211,9 @@ function playFaithful(maxTurns: number): {
 
     // **A rite over the whole realm, then the ground.** A prophet has two
     // charges and `plantHolySite` spends the *piece*, so the order matters: the
-    // realm-wide rite takes one charge and the founding takes what is left.
+    // realm-wide rite takes one charge and the planting takes what is left —
+    // the founding for the first prophet and, since batch F3, a further holy
+    // site for every one after it.
     // This is the one rite a scripted seat can be *sure* of — `empireRite`
     // needs no Chapel anywhere, and the Chapel is behind an uncommon wildcard
     // Order (see the note on the determinism test).
@@ -389,6 +392,7 @@ function playTwoFaiths(maxTurns: number): {
   religionsFounded: number;
   bombs: number;
   converts: number;
+  secondSites: number;
 } {
   const g = createGame({
     seed: 8181,
@@ -404,6 +408,10 @@ function playTwoFaiths(maxTurns: number): {
   // silently strand the script on a refused chooseResearch again.
   const ROAD: TechId[] = closureOf('theHighTemple' as TechId);
   let bombs = 0;
+  // **One further site a seat** (batch F3): the second planting is in the log so
+  // the replay has to reproduce it, and it is capped at one apiece so the script
+  // still spends most of its prophets on the bombs this game is named after.
+  const secondSiteBySeat = [0, 0];
 
   for (let turn = 0; turn < maxTurns; turn++) {
     for (const seat of [0, 1]) {
@@ -503,10 +511,12 @@ function playTwoFaiths(maxTurns: number): {
         }
       }
 
-      // Spend the prophets: the founding first, and the bomb after. There is no
-      // second site to plant any more (Entry LVIII — one prophet, one deed), so
-      // the `hasFaith` gate is now the *rule* rather than a policy: a seat that
-      // has founded is refused the ground and proclaims instead.
+      // Spend the prophets: the founding first, then **one further holy site**
+      // (batch F3 — a prophet of an empire that has founded may raise another
+      // set of stones), and the bomb after. The `hasFaith` gate is a policy
+      // again rather than the rule: it decides which of the two plantings the
+      // same verb would perform, and the cap keeps the rest of the prophets for
+      // the proclamations this game is about.
       const hasFaith = g.state.religions.some((religion) => religion.founderId === seat);
       for (const unit of [...g.state.units]) {
         if (unit.ownerId !== seat || unitDef(unit.type).prophesies !== true) continue;
@@ -514,6 +524,36 @@ function playTwoFaiths(maxTurns: number): {
           !hasFaith &&
           dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok
         ) {
+          continue;
+        }
+        if (hasFaith && secondSiteBySeat[seat] === 0) {
+          if (dispatch(g, { type: 'plantHolySite', playerId: seat, unitId: unit.id } as Command).ok) {
+            secondSiteBySeat[seat] = 1;
+            continue;
+          }
+          // **Reserved for the stones**, and it has to keep its charges to spend
+          // them: a bought prophet spawns on the city centre, where a holy site
+          // may not stand, and a prophet that proclaimed on the way has one
+          // charge where the planting wants two. So the first prophet after the
+          // founding steps off and says nothing until it has planted.
+          //
+          // The step is tried hex by hex until the reducer takes one, because a
+          // capital's ring is full of this script's own warriors and settlers
+          // and `canStopOn` refuses a hex that is occupied — a policy that
+          // picked one neighbour and gave up stood on the centre for ever.
+          for (const tile of neighborTiles(
+            g.state.map,
+            tileHex(getTileAt(g.state.map, unit.col, unit.row)!),
+          )) {
+            if (!isPassable(tile)) continue;
+            const moved = dispatch(g, {
+              type: 'moveUnit',
+              playerId: seat,
+              unitId: unit.id,
+              target: { col: tile.col, row: tile.row },
+            } as Command);
+            if (moved.ok) break;
+          }
           continue;
         }
         if (dispatch(g, { type: 'proclaim', playerId: seat, unitId: unit.id } as Command).ok) {
@@ -602,7 +642,13 @@ function playTwoFaiths(maxTurns: number): {
   for (const city of g.state.cities) {
     for (const count of Object.values(city.followers ?? {})) converts += count ?? 0;
   }
-  return { game: g, religionsFounded: g.state.religions.length, bombs, converts };
+  return {
+    game: g,
+    religionsFounded: g.state.religions.length,
+    bombs,
+    converts,
+    secondSites: secondSiteBySeat[0]! + secondSiteBySeat[1]!,
+  };
 }
 
 /**
@@ -646,7 +692,8 @@ describe('two faiths and a bomb', () => {
     const played = playTwoFaiths(340);
     // eslint-disable-next-line no-console
     console.log(
-      `[religion v2] ${played.religionsFounded} religions founded, ${played.bombs} ` +
+      `[religion v2] ${played.religionsFounded} religions founded, ${played.secondSites} ` +
+        `further holy sites raised, ${played.bombs} ` +
         `proclamations made, ${played.converts} citizens converted in 340 turns`,
     );
     // The log actually contains the subsystem. A determinism test over a game
@@ -654,6 +701,9 @@ describe('two faiths and a bomb', () => {
     expect(played.religionsFounded).toBe(2);
     expect(played.bombs).toBeGreaterThan(0);
     expect(played.converts).toBeGreaterThan(0);
+    // And it contains batch F3's second arm: a `plantHolySite` that founded
+    // nothing, in the log, replayed byte for byte with everything else.
+    expect(played.secondSites).toBeGreaterThan(0);
     const replayed = replay(played.game.config, played.game.log);
     expect(snapshotState(replayed)).toEqual(snapshotState(played.game.state));
   });

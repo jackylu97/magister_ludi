@@ -31,6 +31,7 @@ import {
   foundReligion,
   gainBeliefError,
   plantHolySiteError,
+  plantingCost,
   empireRiteError,
   proclaimError,
   religionBeliefPool,
@@ -334,15 +335,40 @@ describe('the religious agents’ sheet', () => {
     expect(sourceOf('controls.ts')).not.toContain("'apostle'");
   });
 
-  it('says the planting founds, and says it always', () => {
-    // Entry LVIII: planting IS founding and there is no later planting, so the
-    // row no longer changes its name with the state. One command, one row, one
-    // sentence — an empire that already has a faith is greyed with
-    // `foundReligionError`'s own words rather than shown a second verb.
-    expect(rows).toContain('found your religion here');
-    expect(rows).toContain("name: 'Found religion',");
-    expect(rows).not.toContain('Plant holy site');
+  it('is one row whose name flips with the faith, off the simulation’s own question', () => {
+    // Batch F3: the verb founds for an empire with no faith and raises a further
+    // site for one that has it. Still **one** row and one command — what moves
+    // is the name, the sentence and the price, and all three follow
+    // `plantingCost` rather than a reading of the state this file does itself.
     expect((rows.match(/verb: 'plantHolySite'/g) ?? []).length).toBe(1);
+    expect(rows).toContain('const planting = plantingCost(state, localPlayerId);');
+    expect(rows).toContain("planting === 'foundReligion' ? 'Found religion' : 'Plant holy site'");
+    expect(rows).toContain('found your religion here');
+    expect(rows).toContain('raise a second holy site here');
+    expect(rows).toContain('spreads from it as from the first');
+    // And the price is that same question's answer, so the row can never print
+    // one act's charges over the other act's name.
+    expect(rows).toContain('const founding = chargeCostWords(planting);');
+  });
+
+  it('drives the two names off a real board', () => {
+    // The pin the source test cannot make: which name the row would carry is a
+    // fact about the empire, and it changes the moment the faith is founded.
+    const state = world();
+    expect(plantingCost(state, 0)).toBe('foundReligion');
+    found(state, 0);
+    expect(plantingCost(state, 0)).toBe('plantHolySite');
+  });
+
+  it('announces a planting that founded nothing, and leaves a founding to the watcher', () => {
+    // A founding puts a religion in the register and the world's own watcher
+    // says so; a later site puts stones on a hex and nothing else, so it is
+    // announced where the charge was spent (`reportPlanting`).
+    const act = fn('controls.ts', 'prophetAct');
+    expect(act).toContain('if (result.planted && !result.planted.founded)');
+    const said = fn('controls.ts', 'reportPlanting');
+    expect(said).toContain('A holy site stands');
+    expect(said).toContain('spreads from it as from the first');
   });
 
   it('offers one belief row where there were two, and lets the ladder pick the house', () => {
@@ -368,7 +394,9 @@ describe('the religious agents’ sheet', () => {
     // shared with its own sentence. Not one figure is written into the interface.
     expect((rows.match(/cost: chargeCostWords\('[a-zA-Z]+'\)/g) ?? []).length).toBe(7);
     expect(rows).toContain('cost: founding,');
-    expect(rows).toContain("const founding = chargeCostWords('foundReligion');");
+    // The planting row asks the same formatter, of the verb the board says it
+    // is about to send (batch F3) rather than of a written-in key.
+    expect(rows).toContain('const founding = chargeCostWords(planting);');
     expect(sourceOf('controls.ts')).not.toContain('AGENT_PRICE_WORD');
     expect(sourceOf('controls.ts')).not.toContain('AGENT_CHARGE_WORD');
     // Driven: the charge counts on the roster are what make the prices spendable.

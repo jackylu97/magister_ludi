@@ -219,6 +219,7 @@ import {
   growthThreshold,
   queueItemCost,
   tileContextAt,
+  tileOwnerCityId,
   tileOwnerPlayerId,
   tilePurchaseError,
   turnsToBuild,
@@ -277,9 +278,11 @@ import {
 import {
   beliefPool,
   gainBeliefError,
+  holySites,
   nextBeliefRerollCost,
   placeRelicError,
   plantHolySiteError,
+  plantingCost,
   religionBeliefPool,
   rerollError,
   rerollKindFor,
@@ -7726,10 +7729,25 @@ function augurCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
 }
 
 /**
- * A prophet's: **plant the stones, else deepen the faith, else get off the city
- * centre so next turn's stones have somewhere to go.**
+ * A prophet's: **found the faith, else deepen it, else raise a second site for
+ * a town that has none, else get off the city centre so next turn's stones have
+ * somewhere to go.**
  *
- * The third clause is the one that earns its place. A bought prophet spawns on
+ * The founding leads because it is the act that only exists once and pays for
+ * the whole system; the rung is next because a belief is a standing rule and a
+ * second site is only a tide.
+ *
+ * **The second site is fourth on purpose** (batch F3, `docs/flags.md` (kkkk)).
+ * The verb is the same verb and the gate would say `null` on any hex of this
+ * empire's, so an arm that simply asked it first would have every prophet after
+ * the founding dumping stones wherever it happened to be standing — the ladder's
+ * expensive acts left unspent and the map covered in sites. Two clauses stop
+ * that, and neither is a knob: it is tried only *after* the rung the faith could
+ * still take, and only on the ground of a town that holds no site
+ * (`townWantingSite`), so an empire ends with at most one site a town and each
+ * prophet raises at most the one that empties it.
+ *
+ * The last clause is the one that earns its place. A bought prophet spawns on
  * the town's own hex, and a holy site may not stand where a city stands — so
  * without a step off, every prophet this bot ever bought would sleep for the
  * rest of the game on the square it was born on. The hex it steps to is chosen
@@ -7747,16 +7765,21 @@ function augurCommand(state: GameState, player: Player, unit: Unit): UnitChoice 
  */
 function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoice | null {
   const tried: BotCandidate[] = [];
+  // Which act the one verb would perform, asked of the simulation rather than of
+  // this file: `plantingCost` is what names the row on a player's sheet too.
+  const founds = plantingCost(state, player.id) === 'foundReligion';
   const plant = plantHolySiteError(state, player.id, unit.id);
-  if (plant === null) {
-    tried.push(chosenAt('plant the stones', 0));
-    return {
-      command: { type: 'plantHolySite', playerId: player.id, unitId: unit.id },
-      summary: 'Plants a holy site where it stands, which is what founds the faith.',
-      candidates: tried,
-    };
+  if (founds) {
+    if (plant === null) {
+      tried.push(chosenAt('plant the stones', 0));
+      return {
+        command: { type: 'plantHolySite', playerId: player.id, unitId: unit.id },
+        summary: 'Plants a holy site where it stands, which is what founds the faith.',
+        candidates: tried,
+      };
+    }
+    tried.push(refused('plant the stones', plant));
   }
-  tried.push(refused('plant the stones', plant));
   const belief = gainBeliefError(state, player.id, unit.id);
   if (belief === null) {
     tried.push(chosenAt('deepen the faith', 1));
@@ -7767,9 +7790,27 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     };
   }
   tried.push(refused('deepen the faith', belief));
+  if (!founds) {
+    const town = townWantingSite(state, player, unit);
+    if (plant === null && town !== null) {
+      tried.push(chosenAt('raise a second site', 2));
+      return {
+        command: { type: 'plantHolySite', playerId: player.id, unitId: unit.id },
+        summary: `Raises a second holy site on ${town.name}'s ground, which presses the faith as the first does.`,
+        candidates: tried,
+      };
+    }
+    tried.push(
+      refused(
+        'raise a second site',
+        plant ??
+          'the town holding this hex already has a holy site, and a second beside it would press nothing new',
+      ),
+    );
+  }
   const step = holySiteStep(state, player, unit);
   if (step !== null) {
-    tried.push(chosenAt(`step to (${step.col},${step.row})`, 2));
+    tried.push(chosenAt(`step to (${step.col},${step.row})`, 3));
     return {
       command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: step },
       summary:
@@ -7780,6 +7821,28 @@ function prophetCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     };
   }
   return standDown(state, unit, 'Nowhere to plant, nothing to deepen and nowhere legal to step.');
+}
+
+/**
+ * The town whose ground this prophet stands on, when that town holds no holy
+ * site — the only place this bot will raise a second one.
+ *
+ * **A town, not a radius**, because a town is the thing a site presses for and
+ * the thing a rival takes: one site apiece spreads the stones over the realm at
+ * the rate the realm actually grows, and it needs no number of this file's own.
+ * The sites are the simulation's own walk of the ground (`holySites`) rather
+ * than a list kept here, so a site a rival planted and this empire captured
+ * counts the moment the hex changes hands.
+ */
+function townWantingSite(state: GameState, player: Player, unit: Unit): City | null {
+  const holder = tileOwnerCityId(state, unit.col, unit.row);
+  if (holder === null) return null;
+  const town = cityById(state, holder);
+  if (!town || town.ownerId !== player.id) return null;
+  for (const site of holySites(state)) {
+    if (tileOwnerCityId(state, site.col, site.row) === town.id) return null;
+  }
+  return town;
 }
 
 /**

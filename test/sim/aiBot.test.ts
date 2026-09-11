@@ -50,6 +50,8 @@ import { buildError, researchExpansion } from '../../src/sim/tech';
 import { anyCardDef } from '../../src/sim/statecraft';
 import { type OrderId, ORDER_IDS } from '../../src/sim/statecraftData';
 import { BELIEF_IDS } from '../../src/sim/religionData';
+import { foundReligion, religionBeliefPool } from '../../src/sim/religion';
+import { workForFamily } from '../../src/sim/improvementData';
 import { explainEmpireGold } from '../../src/sim/empireGold';
 import { explainBuildingRow, meterWeight, yieldWeight } from '../../src/ai/value';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -693,7 +695,76 @@ describe('the appetite for gods', () => {
     );
     expect(prophet).toBe(true);
   });
+
+  /**
+   * **The second holy site** (batch F3, `docs/flags.md` (kkkk)) — a want, and a
+   * gated one.
+   *
+   * The verb is the same verb the founding sends, and its gate says `null` on
+   * any hex of this empire's, so an arm that simply asked it would have every
+   * prophet after the founding dump stones wherever it happened to be standing.
+   * Both halves are pinned by *playing*: a prophet on the ground of a town with
+   * no site plants, and a prophet on the ground of a town that has one does not.
+   */
+  it('raises a second site for a town that has none, and not for one that has', () => {
+    const game = grownGame(8);
+    const player = seat(game.state, 0);
+    player.pantheon.beliefs = [firstBelief()];
+    // A faith with no stones on the board — the founding is the register row,
+    // and this seat's site was never raised (or was pillaged away).
+    const religion = foundReligion(game.state, player);
+    bumpRevision(game.state);
+    const city = firstCity(game.state, 0);
+    const ground = plantableGround(game.state, city);
+    const prophet = createUnit(game.state, 0, 'prophet', ground.col, ground.row);
+    bumpRevision(game.state);
+
+    // **A rung the faith could still take outranks the stones**, which is the
+    // ordering the arm is written in: a belief is a standing rule and a site is
+    // only a tide.
+    expect(nextBotCommandFor(game, 0, prophet.id)?.type).toBe('gainBelief');
+
+    // With the follower house full and Theology unresearched, the ladder has
+    // nothing left to deal (`nextBeliefPool`) — and now the stones are the best
+    // act this prophet has in it.
+    religion.follower = religionBeliefPool(religion, 'follower').slice(0, 3);
+    bumpRevision(game.state);
+    expect(nextBotCommandFor(game, 0, prophet.id)?.type).toBe('plantHolySite');
+  });
+
+  it('leaves a town that already holds the stones alone', () => {
+    const game = grownGame(8);
+    const player = seat(game.state, 0);
+    player.pantheon.beliefs = [firstBelief()];
+    const religion = foundReligion(game.state, player);
+    religion.follower = religionBeliefPool(religion, 'follower').slice(0, 3);
+    const city = firstCity(game.state, 0);
+    // The town's site, standing on its own ground: the clause that stops the
+    // map filling with stones (`townWantingSite`).
+    const standing = plantableGround(game.state, city);
+    standing.improvement = HOLY_SITE;
+    const ground = plantableGround(game.state, city);
+    const prophet = createUnit(game.state, 0, 'prophet', ground.col, ground.row);
+    bumpRevision(game.state);
+    const command = nextBotCommandFor(game, 0, prophet.id);
+    expect(command === null || command.type !== 'plantHolySite').toBe(true);
+  });
 });
+
+/** The improvement a prophet plants, off the table's inverse rather than a name. */
+const HOLY_SITE = workForFamily('prophet')!;
+
+/**
+ * A hex of this town's the stones would be legal on — the ground rule asked of
+ * the simulation (`improvementErrorAt`), never guessed at here.
+ */
+function plantableGround(state: GameState, city: City): Tile {
+  for (const tile of mapRange(state.map, tileHex(getTileAt(state.map, city.col, city.row)!), 2)) {
+    if (improvementErrorAt(state, city.ownerId, tile, HOLY_SITE) !== null) continue;
+    return tile;
+  }
+  throw new Error('no ground this town could plant on');
+}
 
 /** Any belief id, for a test that only needs the pantheon to be non-empty. */
 function firstBelief(): never {

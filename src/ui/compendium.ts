@@ -503,10 +503,10 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   // clause above it would otherwise claim a prophet digs mines.
   if (def.prophesies === true) {
     out.push({
-      text: 'Its charges are ministries rather than spadework, and its deeds are not all worth the same. Founding your religion where it stands, or drawing another belief for a religion you already have, takes every charge it carries and uses up the unit. Proclaiming your faith over the land around it, or saying a rite over every city you own at once, costs less — so a prophet kept for its voice may speak, and then speak again, before it is spent.',
+      text: 'Its charges are ministries rather than spadework, and its deeds are not all worth the same. Founding your religion where it stands, raising a further holy site for a faith that already stands, or drawing another belief for a religion you already have, takes every charge it carries and uses up the unit. Proclaiming your faith over the land around it, or saying a rite over every city you own at once, costs less — so a prophet kept for its voice may speak, and then speak again, before it is spent.',
     });
     out.push({
-      text: 'Founding raises the holy site that anchors the faith, out of the gods you already keep, and opens two belief drafts — the second offered the moment the first is answered. Later prophets fill the follower beliefs first and the enhancer beliefs after them, and the enhancers wait on a technology.',
+      text: 'Founding raises the holy site that anchors the faith, out of the gods you already keep, and opens two belief drafts — the second offered the moment the first is answered. Once the faith stands, a later prophet may raise another site on any land of yours that will take it: the faith spreads from it exactly as it does from the first, though the seat of the faith never moves and no belief is drafted for it. Later prophets fill the follower beliefs first and the enhancer beliefs after them, and the enhancers wait on a technology.',
     });
   }
   // The **inquisitor**, `prophesies`' third sibling: a marker on the row, and a

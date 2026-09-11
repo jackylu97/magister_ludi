@@ -274,6 +274,7 @@ import {
   isProphet,
   placeRelicError,
   plantHolySiteError,
+  plantingCost,
   proclaimError,
   purgeError,
   riteCostFor,
@@ -281,6 +282,7 @@ import {
   ritePreview,
 } from '../sim/religion';
 import {
+  type HolySitePlanting,
   type ProclamationReport,
   type PurgeReport,
   proclaimPreview,
@@ -2686,6 +2688,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         : `Your prophet proclaims ${name} — ${said.join(', ')}`,
       { cell },
     );
+  }
+
+  /**
+   * Says that a further holy site stands, and what it is for.
+   *
+   * Only ever called for a planting that **founded nothing**
+   * (`HolySitePlanting.founded`), which is the one outcome of the verb the
+   * world's own watcher cannot see: a founding puts a religion in the register
+   * and is announced from there, a later site puts an improvement on a hex and
+   * is announced from here. The sentence names the tide rather than the stones,
+   * because "a faith spreads from it" is what the player spent a prophet on.
+   */
+  function reportPlanting(report: HolySitePlanting): void {
+    announce(`A holy site stands — ${report.religion.name} spreads from it as from the first`, {
+      cell: { col: report.col, row: report.row },
+    });
   }
 
   /**
@@ -5447,14 +5465,24 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // worth the same** (the ruling of 2026-09-10): the founding pair take both
     // charges, the voice pair take one each, and every figure here is the
     // simulation's own (`chargeCostWords`).
-    const founding = chargeCostWords('foundReligion');
+    //
+    // **One row whose name follows the board** (batch F3): the same verb founds
+    // a faith for an empire with none and raises a further site for one that has
+    // it, and which act it is, is `plantingCost`'s answer rather than this
+    // sheet's — so the name, the sentence and the price all move together and
+    // the interface holds no opinion about a charge.
+    const planting = plantingCost(state, localPlayerId);
+    const founding = chargeCostWords(planting);
     const taught = availableRites(state, localPlayerId);
     return [
       {
         verb: 'plantHolySite',
-        name: 'Found religion',
+        name: planting === 'foundReligion' ? 'Found religion' : 'Plant holy site',
         blocked: ended ?? plantHolySiteError(state, localPlayerId, unit.id),
-        says: `${founding}: found your religion here, and raise its holy site`,
+        says:
+          planting === 'foundReligion'
+            ? `${founding}: found your religion here, and raise its holy site`
+            : `${founding}: raise a second holy site here; ${faith} spreads from it as from the first`,
         cost: founding,
       },
       {
@@ -5570,6 +5598,15 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the strip is a difference that stops existing when the command returns.
     if (result.purged) {
       reportPurge(result.purged);
+    }
+    // **A planting that founded nothing says so** (batch F3). A founding is
+    // already the world's news and the watcher announces it — "You founded the
+    // Way of the Reed" — so saying it twice here would be the one act on the
+    // sheet that toasts itself. A *later* site is news to nobody but the seat
+    // that spent the prophet, and the watcher has nothing to diff, so this is
+    // where it is said.
+    if (result.planted && !result.planted.founded) {
+      reportPlanting(result.planted);
     }
     renderer.invalidate();
     refreshOverlays();

@@ -2157,14 +2157,19 @@ export function chargeCostWords(verb: ChargeVerbName): string {
  * Which of the two planting prices this act pays: the founding's, or a second
  * set of stones'.
  *
- * Today every planting founds (`plantHolySiteError` asks `foundReligionError`
- * unconditionally, so an empire with a faith is refused before it reaches the
- * ground), which makes the second arm unreachable — deliberately, and for
- * `consecrateAt`'s reason exactly: the *rule* the ruling states has two prices
- * in it, and a rule kept whole survives the day a prophet may raise a second
- * site again. Both rows of the table are live figures either way.
+ * **Both arms are reachable now** (batch F3, `docs/flags.md` (kkkk)): an empire
+ * with no faith founds one where its prophet stands, and an empire that already
+ * holds one raises a *further* holy site for the same price in charges. The rule
+ * survived two entries as an unreachable second row of the table precisely
+ * because it was kept whole, which is the argument `consecrateAt`'s arm still
+ * makes for itself.
+ *
+ * It is also the one question the sheet asks to name its row, which is why it is
+ * exported: "Found religion" and "Plant holy site" are one verb whose *name*
+ * follows the board, and an interface deciding that for itself would be a second
+ * opinion about which act the button sends.
  */
-function plantingCost(state: GameState, playerId: number): ProphetVerbName {
+export function plantingCost(state: GameState, playerId: number): ProphetVerbName {
   return foundedReligion(state, playerId) === undefined ? 'foundReligion' : 'plantHolySite';
 }
 
@@ -2228,36 +2233,44 @@ function chargesInWords(count: number): string {
 }
 
 /**
- * Why this prophet cannot found a religion here, or `null` when it can.
+ * Why this prophet cannot plant a holy site here, or `null` when it can.
  *
- * **Planting IS founding, and it is now the only planting there is** (Entry
- * LVIII). A prophet has one charge and one deed; raising a *second* holy site
- * was the deed that made the piece feel like a tool with a spare, and it is gone
- * — so this gate asks `foundReligionError` unconditionally rather than only when
- * the empire has founded nothing, and an empire that already has a faith is
- * refused in that function's own sentence.
+ * **Two acts behind one verb** (batch F3, `docs/flags.md` (kkkk)), and which one
+ * is being asked for is `plantingCost`'s answer rather than a second command:
  *
- * That puts all three founding refusals ("no gods", "already founded", "the
- * world is full") in front of a player who reaches for the ground, rather than
- * leaving them in a gate the command never asks.
+ *   · an empire with **no faith** founds one where the stones go up, and is held
+ *     to all three founding refusals ("no gods", "already founded", "the world is
+ *     full") here, at the ground, rather than in a gate the command never asks —
+ *     which is Entry LVIII's argument and it is unchanged;
+ *   · an empire that **already holds a faith** raises a *further* site, and the
+ *     founding questions are not asked of it at all. They would all refuse: an
+ *     empire founding its second religion is exactly what "already founded" is
+ *     about, and a later site founds nothing.
  *
- * The holy sites an empire ends up with are therefore exactly one, plus whatever
- * it takes off somebody else — which is what makes the stones worth defending.
+ * So the holy sites an empire ends up with are its first, every further one a
+ * prophet was spent on, and whatever it takes off somebody else — and the seat of
+ * the faith is still only the first (`plantHolySiteAt`), which is what keeps the
+ * original stones worth defending.
  *
  * The ground's half is delegated whole to `improvementErrorAt`, exactly as
  * `greatPersonWorkError` delegates it: a work stands anywhere its planter can
  * stand, which for a holy site is any hex of your own that is not water and not
- * a mountain.
+ * a mountain. A hex that already carries one is refused there too, in that
+ * function's own sentence — there is no clause for it here, because "two
+ * improvements never stand on one hex" is a rule about the ground.
  */
 export function plantHolySiteError(
   state: GameState,
   playerId: number,
   unitId: number,
 ): string | null {
-  const problem = prophetProblem(state, playerId, unitId, plantingCost(state, playerId));
+  const verb = plantingCost(state, playerId);
+  const problem = prophetProblem(state, playerId, unitId, verb);
   if (problem !== null) return problem;
-  const cannot = foundReligionError(state, playerId);
-  if (cannot !== null) return cannot;
+  if (verb === 'foundReligion') {
+    const cannot = foundReligionError(state, playerId);
+    if (cannot !== null) return cannot;
+  }
   const unit = unitById(state, unitId)!;
   const tile = getTileAt(state.map, unit.col, unit.row);
   if (!tile) return `Unit ${unit.id} is not on the map`;
@@ -2276,40 +2289,47 @@ export function plantHolySiteError(
 /** The improvement a prophet plants, read off the table's own inverse. */
 const HOLY_SITE: ImprovementId = workForFamily('prophet') ?? 'holySite';
 
-/** What founding a religion did, for the announcement. */
+/** What planting a holy site did, for the announcement. */
 export interface HolySitePlanting {
   religion: Religion;
   /**
-   * Always true since Entry LVIII, and kept rather than deleted because every
-   * surface that reads this report is *about* the founding — the toast, the
-   * chronicle line, the world's watcher. A field that can only say one thing is
-   * cheaper than four callers each re-deriving that a planting founds.
+   * True when these stones **founded** the faith, false when they were raised
+   * beside a faith that already stood (batch F3). It was a field that could only
+   * say one thing for two entries and it says two now, so a reader that assumed
+   * the founding is a reader that is now wrong: the announcement, the chronicle
+   * line and the world's watcher each ask before they say "you founded".
    */
   founded: boolean;
-  /** The first of the founding's two drafts, or `null` if none could be dealt. */
+  /**
+   * The first of the founding's two drafts, or `null` — which is every later
+   * planting, because the belief drafts are the founding's alone.
+   */
   offer: BeliefOffer | null;
   col: number;
   row: number;
   /**
-   * True when the prophet was spent — always, in practice: a founding costs both
-   * of a prophet's charges (`rules.religion.prophetCosts`) and a prophet that
-   * had already spoken once was refused the act. It is the act's own report
+   * True when the prophet was spent — always, in practice: either planting costs
+   * both of a prophet's charges (`rules.religion.prophetCosts`) and a prophet
+   * that had already spoken once was refused the act. It is the act's own report
    * rather than a constant, so the day the table says otherwise this says so.
    */
   prophetSpent: boolean;
 }
 
 /**
- * Founds a religion, plants its stones, and opens the founding's **two** drafts.
+ * Plants a holy site — **founding the faith where there is none**, and raising a
+ * further set of stones for one that already stands (batch F3).
  * Validates nothing — `plantHolySiteError` is the rule.
  *
  * The order is the arithmetic and each step is a rule:
  *
- *   1. **the religion first**, because the site is the religion's anchor and a
- *      site standing for nobody's faith would press for nothing;
+ *   1. **the religion first** on the founding arm, because the site is the
+ *      religion's anchor and a site standing for nobody's faith would press for
+ *      nothing. On the later arm the faith is already there and is only read;
  *   2. **the stones**, through `tile.improvement` and `refreshTileDerived` — the
  *      same two lines `buildImprovementAt` and `greatPersonWorkAt` write, so a
- *      holy site pays its faith into the panel this instant;
+ *      holy site pays its faith into the panel this instant. Both arms, and the
+ *      same two lines in both: there is one way to put a work on a hex;
  *   3. **the first draft**, dealt *after* the stones for `consecrateAt`'s reason
  *      exactly — the draw advances `state.rng`, and anything that could throw
  *      between the two would leave a prophet able to deal a second hand from a
@@ -2320,16 +2340,24 @@ export interface HolySitePlanting {
  *      ladder, so two hands dealt now would put the same belief on both tables;
  *      the second opens the instant the first is answered (`payBeliefDebt`).
  *      Owed only when a first was actually dealt — an empire that could not be
- *      offered one belief is not owed two.
- *   5. **the prophet's charges**, which for a founding is both of them
- *      (`prophetCosts.foundReligion`, the ruling of 2026-09-10) — so there is no
- *      day left to spend because there is no prophet left to spend it. Through
- *      `spendCharge` like every other act: the price is a figure, not a routine.
+ *      offered one belief is not owed two. **Steps 3 and 4 are the founding's
+ *      alone**: a later planting draws nothing, spends no generator, and so
+ *      raises no offer card and no End Turn blocker.
+ *   5. **the prophet's charges**, which for either planting is both of them
+ *      (`prophetCosts`, the ruling of 2026-09-10) — so there is no day left to
+ *      spend because there is no prophet left to spend it. Through `spendCharge`
+ *      like every other act: the price is a figure, not a routine.
  *
- * **The stones are the seat of the faith.** The `??=` is kept although a prophet
- * can no longer raise a second site: what `religionFounder` reads is *this* hex,
- * and the guard says out loud that nothing later moves it — a captured holy city
- * changes who a faith pays, never where its seat is.
+ * **The stones are the seat of the faith, and only the first stones are.** The
+ * `??=` is what says so, and it is load-bearing now that a second planting
+ * reaches it: what `religionFounder` reads is the *first* hex, a later site
+ * extends the tide and never moves the seat (`docs/religion-v2.md`), and a
+ * captured holy city changes who a faith pays rather than where its seat is.
+ *
+ * **Nothing here tells the tide about the new stones**, and that is the design
+ * rather than an omission: `holySites` derives every site from the board each
+ * sweep by walking the improvement, so a second one presses the moment it is
+ * written and there is no register to keep in step.
  */
 export function plantHolySiteAt(
   state: GameState,
@@ -2339,9 +2367,10 @@ export function plantHolySiteAt(
 ): HolySitePlanting {
   // Asked **before** the faith exists, because that is the question the price is
   // an answer to: the stones that found a religion are the founding's price, and
-  // the ones a later prophet might raise beside them are their own.
+  // the ones a later prophet raises beside them are their own.
   const verb = plantingCost(state, player.id);
-  const religion = foundReligion(state, player);
+  const founded = verb === 'foundReligion';
+  const religion = founded ? foundReligion(state, player) : foundedReligion(state, player.id)!;
 
   tile.improvement = HOLY_SITE;
   // The stones are an improvement like any other to `openedResource`, and they
@@ -2352,18 +2381,20 @@ export function plantHolySiteAt(
   religion.holySite ??= { col: tile.col, row: tile.row };
 
   let offer: BeliefOffer | null = null;
-  const pool = drawableBeliefPool(state, player.id, religion);
-  if (pool !== null) {
-    offer = drawPoolBeliefOffer(state, player, religion, pool);
-    player.pantheon.pending = offer;
-    player.pantheon.owed = 1;
+  if (founded) {
+    const pool = drawableBeliefPool(state, player.id, religion);
+    if (pool !== null) {
+      offer = drawPoolBeliefOffer(state, player, religion, pool);
+      player.pantheon.pending = offer;
+      player.pantheon.owed = 1;
+    }
   }
 
   // The planting's own price (`plantingCost`), spent through the one routine
-  // every charge goes through — and it is the *founding's* two, because a
-  // planting founds. `prophetSpent` is what the act actually did to the piece.
+  // every charge goes through. `prophetSpent` is what the act actually did to
+  // the piece.
   const prophetSpent = spendCharge(state, unit, verb);
-  return { religion, founded: true, offer, col: tile.col, row: tile.row, prophetSpent };
+  return { religion, founded, offer, col: tile.col, row: tile.row, prophetSpent };
 }
 
 /**
@@ -3011,6 +3042,12 @@ export interface HolySite {
 
 /**
  * Every holy site on the board, in map order.
+ *
+ * **The tide's one source walk**, and it walks the *ground*: a site is wherever
+ * the improvement stands, so an empire that raises a second one (batch F3) is
+ * pressing from both the instant the stones go up, and there has never been a
+ * register to keep in step. `Religion.holySite` is the seat of the faith and is
+ * read by `religionFounder` alone — the tide does not ask it.
  *
  * **Hoisted for one sweep**, `zocField`'s and `tileOwnerField`'s bargain: the
  * spread phase asks once and hands the list to forty towns, where asking per

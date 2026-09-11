@@ -1800,6 +1800,47 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (kkkk) **The prophet's third charge, and the site it cannot plant —
+  RULED** (the user, 2026-09-11, on :5199: *"it says my prophet has 3/2
+  charges and i dont have the ability to plant a holy site"*). Two
+  causes. (1) **"Workers gain +1 charge" reached the prophet** — the
+  user was Akhenaten, so not the Corvée (a bot's card) but the same
+  slip in four older rows: the prophet, apostle and inquisitor wear the
+  worker's *model class*, and the worker-charge lines filtered by that
+  model. Two of them (The Pyramids, State Workforce) carried a
+  `consecrates: false` guard written when the augur was the consecrator
+  — but the augur retired and the prophet never took the marker, so the
+  guard excludes nothing; two (Tinkers' Guild, Vaucanson's legacy) had
+  no guard at all. Every "workers +1 charge" line now names the worker
+  row (`class: {type: 'worker'}`), the Corvée included; pinned for each.
+  ▢ **The Great Mosque of Djenné** pays "+1 charge" to `consecrates:
+  true` — the retired augur alone — so the line is dead; with the
+  prophet fixed at two charges by ruling, it wants a new gift (an
+  apostle's charge? a rite's price?) — the user's call. (2) **Planting a holy site for a
+  faith already founded is unreachable by design** — Entry LVIII made
+  planting *the* founding, `plantHolySiteError` asks `foundReligionError`
+  unconditionally, and F2 priced the second arm (`plantHolySite` 2)
+  without opening it. The user's F2 ruling stands as written:
+  *"prophets can plant new holy sites that also consume 2 charges"*, and
+  `docs/religion-v2.md` already says what a later site is — "a later
+  site extends the tide but never moves the seat of the faith". **F3
+  builds** the second arm: a prophet of an empire with a faith may plant
+  a holy site (the `holySite` improvement, `WorkFamily 'prophet'`) on any
+  own hex that takes it, off the city centre, for `prophetCosts.
+  plantHolySite`; the site presses the faith as the first one does (the
+  tide's sources are every holy site the faith holds — verify how
+  `spreadReligion` finds its sources and make a second site one of them,
+  never a second register), pays the site's yields, and moves nothing
+  (`Religion.holySite` stays the seat; the belief drafts are the
+  founding's alone). The unit sheet lists **Found religion** (no faith
+  yet) or **Plant holy site** (a faith held) — one row, its name and
+  price by `plantingCost`; the bots' prophet logic may plant a second
+  site where it would otherwise idle (a want, priced like a work).
+  Pins: refused with no faith on a second-site claim (it founds instead);
+  accepted with a faith, two charges spent, the piece gone, the site
+  standing and pressing; the seat unchanged; the city centre refused; a
+  foreign hex refused. A replay change on the held stack (schema stays
+  115).
 - (jjjj) **The landing screen composed to the mock — built** (the user,
   2026-09-10: *"could you do a design pass on the landing page? It's
   very different than the mock"*). On the held stack: the frontispiece
@@ -1921,6 +1962,13 @@ directly to confirm rulings — user marginalia are rulings.
   called (`CountKind greatPeopleCalled`, monotone). Thirty-two pins in
   `test/sim/leaderGround.test.ts`. With L3a and L3b: every passive,
   unique and bonus line is whole; the sixteen boon lines stand.
+  The stack's gate found two things in L3a worth the register: the
+  great-person act's payout emptiness check moved beside the composer
+  (`windfallPayoutIsEmpty`, so the renown column keeps its six readers),
+  and `adoptGovernmentAt` joined `forgetTheLaw`'s register — the chair
+  count reads the law between the government changing and the chairs
+  being rebuilt, and a memo warmed there let a benched Order go on
+  paying. Held green: 242 files, 6374 tests; serving on :5199.
   **Found by L3b, needs a ruling** — ▢ **every leader-unlocked unit costs
   zero maintenance**: `unitUpkeep` prices a piece off its *unlocking
   tech's* age, and no tech names a leader unique (ten rows), so the

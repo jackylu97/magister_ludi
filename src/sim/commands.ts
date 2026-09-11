@@ -112,6 +112,7 @@ import { getTileAt, tileIndex } from './map';
 import { advanceAlongPath } from './movement';
 import { type Cell, canStopOn, findPath, isPassable } from './pathfind';
 import {
+  type HolySitePlanting,
   type ProclamationReport,
   type PurgeReport,
   beliefChoiceError,
@@ -1235,23 +1236,25 @@ export interface PlaceRelicCommand extends PlayerCommand {
 }
 
 /**
- * Spends the prophet on **founding a religion** — the stones and the faith in
- * one deed.
+ * Spends the prophet on **raising a holy site** — which founds the religion when
+ * the empire has none, and extends the tide of the one it has when it does.
  *
  * `foundCity`'s shape: it names the piece and nothing else, because the piece is
  * what authorises it and the hex it stands on is where the stones go. **One
- * verb, one act**, since Entry LVIII: a prophet carries one charge, planting is
- * founding, and there is no such thing as a second holy site any more. An empire
- * that cannot found (no gods, already founded, or the world already holds every
- * religion it will) is refused here, at the ground, rather than discovering it
- * in a screen somewhere else.
+ * verb, two acts** (batch F3): which one is a fact about the empire rather than
+ * about the command, so a client sends the same JSON either way and the sheet's
+ * row reads its name off `plantingCost`. An empire with no faith that also
+ * cannot found one (no gods, or the world already holds every religion it will)
+ * is refused here, at the ground, rather than discovering it in a screen
+ * somewhere else.
  *
- * Founding opens **two** belief drafts, each answered by `chooseBelief` — Entry
+ * **Founding** opens two belief drafts, each answered by `chooseBelief` — Entry
  * XV's shape for the fourth time, both halves in the log, and a pick that names
  * an index rather than an id. The second hand is *drawn when the first is
  * answered* (`PlayerPantheon.owed`) rather than dealt alongside it, because both
  * come out of the same bag and two simultaneous hands could offer the same
- * belief twice.
+ * belief twice. **A later planting opens none**: the drafts are what founding a
+ * faith is worth, and the stones are what a later prophet buys.
  *
  * Turn-gated like every other act.
  */
@@ -1805,6 +1808,7 @@ export type CommandResult =
       guilds?: GuildReport[];
       proclaimed?: ProclamationReport;
       purged?: PurgeReport;
+      planted?: HolySitePlanting;
       prospect?: ProspectReport;
       campBounties?: { ownerId: number; col: number; row: number; bounty: CampBounty }[];
       beads?: BeadAward[];
@@ -2013,6 +2017,14 @@ export type CommandResult =
  * a list of them — and carried out for `arrivals`' reason: by the time this
  * returns the banks are empty and the congregations are smaller, and no diff of
  * two boards could tell an inquisitor's work from a rival's bad turn.
+ *
+ * `planted` is the sixteenth, from `plantHolySite` alone (batch F3), and it is
+ * set beside the helper for `proclaimed`'s reason — one act on one board. It is
+ * carried out because the act now has **two outcomes** and only one of them is
+ * visible afterwards: a founding leaves a new religion for the world's watcher
+ * to announce, and a later planting leaves a hex with stones on it and nothing
+ * that says a prophet was spent raising them. `HolySitePlanting.founded` is the
+ * field that tells the two apart, and every surface reading this asks it.
  */
 function ok(
   arrivals?: readonly ArrivalReport[],
@@ -3668,15 +3680,18 @@ function applyPerformRite(state: GameState, command: PerformRiteCommand): Comman
 }
 
 /**
- * Plants a holy site, founding the religion where there is none. See
- * `PlantHolySiteCommand`, and `religion.ts` for the rules.
+ * Plants a holy site — founding the religion where there is none, raising a
+ * further set of stones where one already stands. See `PlantHolySiteCommand`,
+ * and `religion.ts` for the rules.
  *
  * `applyBuildImprovement`'s shape question for question — is this a real seat,
  * may it still act, and then everything about the *act* delegated whole to
  * `plantHolySiteError`, which is what the prophet's sheet greys the row with.
- * The name the founding generates is drawn from `state.rng` inside the
- * mechanism, so an AI that plants one gets a named faith without the reducer
- * knowing how names are made.
+ * **Which of the two acts it is, this reducer never asks**: `plantingCost`
+ * decides it inside the mechanism, so the command stays one verb naming one
+ * piece and the price follows the board. The name a founding generates is drawn
+ * from `state.rng` in there too, so an AI that plants one gets a named faith
+ * without the reducer knowing how names are made.
  */
 function applyPlantHolySite(state: GameState, command: PlantHolySiteCommand): CommandResult {
   const actor = resolveActor(state, command.playerId);
@@ -3690,8 +3705,13 @@ function applyPlantHolySite(state: GameState, command: PlantHolySiteCommand): Co
 
   const unit = unitById(state, command.unitId)!;
   const tile = getTileAt(state.map, unit.col, unit.row)!;
-  plantHolySiteAt(state, actor, unit, tile);
-  return ok();
+  const done = plantHolySiteAt(state, actor, unit, tile);
+  const result = ok();
+  // Carried out rather than derived, `proclaimed`'s argument: a planting that
+  // founded nothing leaves stones on a hex and no other trace, so the interface
+  // would have to diff its own copy of the board to notice the act happened.
+  if (result.ok) result.planted = done;
+  return result;
 }
 
 /** Draws one more belief for this religion. See `GainBeliefCommand`. */

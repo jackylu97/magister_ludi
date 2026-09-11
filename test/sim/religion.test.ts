@@ -78,6 +78,7 @@ import {
   explainNextRung,
   faithRungCost,
   gainBeliefError,
+  holySites,
   nextRungWords,
   pantheonPlaces,
   explainPressure,
@@ -103,6 +104,7 @@ import {
   pantheonSlots,
   performRiteAt,
   plantHolySiteError,
+  plantingCost,
   nextBeliefPool,
   purgeError,
   purgePreview,
@@ -1437,6 +1439,41 @@ function landBeside(
   throw new Error("no ground beside the town");
 }
 
+/**
+ * A seat with its faith founded on stones beside its capital, both belief
+ * drafts answered, and the prophet spent — the board every second-site case
+ * starts from.
+ *
+ * The drafts are answered because a pending offer refuses *every* prophet verb
+ * (`agentProblem`'s fifth question), so a case about the second planting has to
+ * clear the founding's hand or it is testing the wrong refusal.
+ */
+function foundedWithSite(seed = 7) {
+  const g = game(seed);
+  learn(g.state, 0, "divination", "stonecraft", "theHighTemple");
+  found(g.state, 0);
+  keep(g.state, 0, "keeperOfTheHearth");
+  const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+  const ground = landBeside(g.state, seat);
+  const first = prophetAt(g.state, 0, ground.col, ground.row);
+  applyCommand(g.state, {
+    type: "plantHolySite",
+    playerId: 0,
+    unitId: first.id,
+  } as Command);
+  applyCommand(g.state, {
+    type: "chooseBelief",
+    playerId: 0,
+    optionIndex: 0,
+  } as Command);
+  applyCommand(g.state, {
+    type: "chooseBelief",
+    playerId: 0,
+    optionIndex: 0,
+  } as Command);
+  return { g, seat, ground, religion: g.state.religions[0]! };
+}
+
 /** A founded religion for a seat, with one god behind it. */
 function faith(
   state: GameState,
@@ -1754,51 +1791,144 @@ describe("founding a religion", () => {
     expect(g.state.units.find((u) => u.id === prophet.id)).toBeUndefined();
   });
 
-  it("refuses a second founding, so a prophet can never raise a second site", () => {
-    // Entry LVIII: planting IS founding, and there is no later planting. The
-    // refusal is `foundReligionError`'s own sentence, asked unconditionally.
-    const g = game();
-    learn(g.state, 0, "divination", "stonecraft", "theHighTemple");
-    found(g.state, 0);
-    keep(g.state, 0, "keeperOfTheHearth");
-    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
-    const ground = landBeside(g.state, seat);
-    const first = prophetAt(g.state, 0, ground.col, ground.row);
-    expect(
-      applyCommand(g.state, {
-        type: "plantHolySite",
-        playerId: 0,
-        unitId: first.id,
-      } as Command).ok,
-    ).toBe(true);
-    // Both of the founding's drafts answered, so the refusal below is the
-    // *founding* one rather than the pending-offer one every prophet verb
-    // shares.
-    applyCommand(g.state, {
-      type: "chooseBelief",
-      playerId: 0,
-      optionIndex: 0,
-    } as Command);
-    applyCommand(g.state, {
-      type: "chooseBelief",
-      playerId: 0,
-      optionIndex: 0,
-    } as Command);
+  it("raises a second holy site for a faith already founded, and moves nothing", () => {
+    // Batch F3, `docs/flags.md` (kkkk). One verb, two acts: an empire with no
+    // faith founds one, and one that has a faith raises *further* stones —
+    // "a later site extends the tide but never moves the seat of the faith".
+    const { g, seat, religion, ground } = foundedWithSite();
+
+    // The act the verb would now perform is the *second* planting's, and the
+    // founding refusals are not asked at all — this empire has founded, which
+    // is the very thing `foundReligionError` refuses.
+    expect(plantingCost(g.state, 0)).toBe("plantHolySite");
+    expect(foundReligionError(g.state, 0)).toMatch(/already founded a religion/);
 
     const elsewhere = landBeside(g.state, seat, ground);
     const second = prophetAt(g.state, 0, elsewhere.col, elsewhere.row);
-    expect(plantHolySiteError(g.state, 0, second.id)).toMatch(
-      /already founded a religion/,
-    );
-    const before = snapshotState(g.state);
+    expect(second.chargesLeft).toBe(2);
+    expect(plantHolySiteError(g.state, 0, second.id)).toBeNull();
+
+    // What the tide reads before the stones go up, for the same town.
+    const before = pressureTotals(g.state, seat)[religion.id] ?? 0;
+
     expect(
       applyCommand(g.state, {
         type: "plantHolySite",
         playerId: 0,
         unitId: second.id,
       } as Command).ok,
+    ).toBe(true);
+
+    // The stones stand on the hex, and the piece is gone: two charges of two.
+    expect(getTileAt(g.state.map, elsewhere.col, elsewhere.row)!.improvement).toBe(
+      "holySite",
+    );
+    expect(g.state.units.find((u) => u.id === second.id)).toBeUndefined();
+    // The seat of the faith has not moved, and there is still one religion.
+    expect(religion.holySite).toEqual({ col: ground.col, row: ground.row });
+    expect(g.state.religions).toHaveLength(1);
+    // No draft was dealt: the belief hands are the founding's alone, so nothing
+    // is pending and End Turn is not blocked by this act.
+    expect(playerById(g.state, 0)!.pantheon.pending).toBeUndefined();
+
+    // **And it presses.** The tide's sources are every holy site on the board
+    // (`holySites` walks the improvement), so the second one is worth exactly
+    // one more `siteStrength` on a town inside its reach.
+    const after = pressureTotals(g.state, seat)[religion.id] ?? 0;
+    expect(after - before).toBe(RULES.religion.siteStrength);
+    expect(
+      holySites(g.state).filter((site) => site.religion === religion.id),
+    ).toHaveLength(2);
+  });
+
+  it("reports a later planting as one that founded nothing", () => {
+    // `HolySitePlanting.founded` could only say one thing for two entries and
+    // says two now — the field every announcement asks before it says "you
+    // founded". Carried out on the result, `proclaimed`'s argument: afterwards
+    // there are only stones on a hex.
+    const { g, seat, ground } = foundedWithSite();
+    const elsewhere = landBeside(g.state, seat, ground);
+    const second = prophetAt(g.state, 0, elsewhere.col, elsewhere.row);
+    const done = applyCommand(g.state, {
+      type: "plantHolySite",
+      playerId: 0,
+      unitId: second.id,
+    } as Command);
+    expect(done.ok).toBe(true);
+    const planted = done.ok ? done.planted : undefined;
+    expect(planted?.founded).toBe(false);
+    expect(planted?.offer).toBeNull();
+    expect(planted?.prophetSpent).toBe(true);
+    expect(planted?.col).toBe(elsewhere.col);
+    expect(planted?.row).toBe(elsewhere.row);
+  });
+
+  it("refuses the second site on the city centre, on foreign ground, and where one stands", () => {
+    const { g, seat, ground } = foundedWithSite();
+
+    // The centre keeps its own sentence, which is the fix rather than the
+    // ground's fact — and it is the same sentence on both arms of the verb.
+    const onTown = prophetAt(g.state, 0, seat.col, seat.row);
+    expect(plantHolySiteError(g.state, 0, onTown.id)).toBe(
+      "Move the prophet off the city centre to plant a holy site",
+    );
+
+    // A hex that already carries the stones is refused by the ground rule —
+    // `improvementErrorAt`'s own clause, because "two improvements never stand
+    // on one hex" is a fact about the hex and not about a faith.
+    const onSite = prophetAt(g.state, 0, ground.col, ground.row);
+    expect(plantHolySiteError(g.state, 0, onSite.id)).toMatch(
+      /already has a holy site/,
+    );
+
+    // And ground this empire does not hold, in `improvementErrorAt`'s words.
+    const rival = found(g.state, 1);
+    const abroad = neighborTiles(
+      g.state.map,
+      tileHex(getTileAt(g.state.map, rival.col, rival.row)!),
+    ).find((tile) => isPassable(tile))!;
+    const away = prophetAt(g.state, 0, abroad.col, abroad.row);
+    expect(plantHolySiteError(g.state, 0, away.id)).toMatch(
+      /not in your territory|belongs to player/,
+    );
+    // Every one of them refused without moving a byte.
+    const before = snapshotState(g.state);
+    expect(
+      applyCommand(g.state, {
+        type: "plantHolySite",
+        playerId: 0,
+        unitId: away.id,
+      } as Command).ok,
     ).toBe(false);
-    expect(snapshotState(g.state)).toEqual(before);
+    expect(snapshotState(g.state)).toBe(before);
+  });
+
+  it("founds rather than raising a second site when the empire has no faith", () => {
+    // The other half of the ruling: the verb never raises a bare site for an
+    // empire that has founded nothing — it founds, at the founding's price, and
+    // the refusals it is held to are the founding's three.
+    const g = game();
+    learn(g.state, 0, "divination", "stonecraft", "theHighTemple");
+    found(g.state, 0);
+    const seat = g.state.cities.find((city) => city.ownerId === 0)!;
+    const ground = landBeside(g.state, seat);
+    const prophet = prophetAt(g.state, 0, ground.col, ground.row);
+    // No gods yet: the founding arm's own refusal, which the later arm would
+    // never ask.
+    expect(plantingCost(g.state, 0)).toBe("foundReligion");
+    expect(plantHolySiteError(g.state, 0, prophet.id)).toBe(
+      "You have no gods to found a religion on",
+    );
+    keep(g.state, 0, "keeperOfTheHearth");
+    bumpRevision(g.state);
+    const done = applyCommand(g.state, {
+      type: "plantHolySite",
+      playerId: 0,
+      unitId: prophet.id,
+    } as Command);
+    expect(done.ok).toBe(true);
+    expect(done.ok ? done.planted?.founded : null).toBe(true);
+    expect(g.state.religions).toHaveLength(1);
   });
 
   it("tells a bought prophet standing on the city centre to move, not the ground’s own sentence", () => {
