@@ -26,6 +26,7 @@ import {
 import { VIEW3D } from '../../src/render3d/lookData';
 import { MaterialLibrary } from '../../src/render3d/toon';
 import { foundingErrorAt } from '../../src/sim/cities';
+import { autoExploreError, exploreSearch } from '../../src/sim/explore';
 import { IMPROVEMENT_IDS, isGreatPersonWork } from '../../src/sim/improvementData';
 import { improvementError, improvementErrorAt } from '../../src/sim/improvements';
 import type { Command } from '../../src/sim/commands';
@@ -51,6 +52,7 @@ import { RULES } from '../../src/sim/rulesData';
 import type { GameState } from '../../src/sim/state';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
 import {
+  EXPLORED,
   HIDDEN,
   maxSightArea,
   maxSightRadius,
@@ -410,6 +412,66 @@ describe('visibility at scale', () => {
     // Generous by roughly two orders of magnitude; the measured figure is in the
     // log line above. This catches "somebody made it quadratic", nothing finer.
     expect(each).toBeLessThan(60);
+  });
+});
+
+// --- the ranging piece ------------------------------------------------------
+
+/**
+ * The auto-explore search at scale, which is the one reading in the march that
+ * could be made quadratic without anybody noticing.
+ *
+ * A ranging piece re-decides several times inside one resolution (`explore.ts`,
+ * the user's ruling of 2026-09-10), so `exploreSearch` is asked far more often
+ * than the once-a-turn its bound was written for — and it is asked with three
+ * hundred pieces on the board, which is what every reading inside it walks. The
+ * bound itself is the algorithm's own claim and is asserted tightly; the clock
+ * beside it is the usual generous one, and it is here to catch a hex judged
+ * against the whole unit list rather than against a hoisted field.
+ *
+ * Measured on a **charted** board, which is the search's worst case and not an
+ * unusual one: while the seat still has fog in reach the sweep finds its
+ * fallback in the first ring or two, and it is the empire that has already seen
+ * everything nearby — the late game, every seat, every turn — whose scouts pay
+ * the whole bound every time they are asked. So the seat's grid is filled with
+ * `EXPLORED` before the clock starts, on a copy of the fixture of this block's
+ * own: the shared probe is read by the recomputes above and the state at the
+ * foot of the file is a save that must still replay.
+ */
+describe('the ranging piece at scale', () => {
+  it('holds the search bound and prices it well inside a resolution', () => {
+    const state = restoreState(snapshotState(game.state));
+    // A world with nothing left to chart: the sweep can never return early on a
+    // frontier hit, so every ask pays the full `searchLimit`.
+    state.visibility[0]!.fill(EXPLORED);
+    const rangers = state.units
+      .filter((unit) => unit.ownerId === 0 && autoExploreError(unit) === null)
+      .slice(0, 40);
+    expect(rangers.length).toBeGreaterThan(10);
+
+    const spentSearch = cpuMs();
+    let examined = 0;
+    for (const unit of rangers) {
+      const search = exploreSearch(state, unit);
+      // The bound is a rule, not a hope: a charted continent must not turn one
+      // idle scout into a full-map Dijkstra.
+      expect(search.examined).toBeLessThanOrEqual(RULES.explore.searchLimit);
+      examined += search.examined;
+    }
+    const each = spentSearch() / rangers.length;
+    // Both halves are printed because they are two different costs. The tiles
+    // judged are the sweep; the milliseconds, on a fixture whose pieces are
+    // packed shoulder to shoulder and reach very little ground, are mostly the
+    // per-ask hoists — the mover's profile and the zone-of-control field, each
+    // of which walks three hundred pieces. Those are exactly what a careless
+    // change makes quadratic, so the bound is worth having either way.
+    console.log(
+      `[stress] auto-explore search on a charted board, ${state.units.length} pieces: ` +
+        `${each.toFixed(2)}ms cpu each, ${(examined / rangers.length).toFixed(0)} tiles judged`,
+    );
+    // Roughly two orders of magnitude above the measured figure in the line
+    // above. It catches "somebody made it quadratic", nothing finer.
+    expect(each).toBeLessThan(120);
   });
 });
 

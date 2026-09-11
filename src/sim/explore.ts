@@ -170,6 +170,13 @@ function isKnownDiscovery(state: GameState, ownerId: number, tile: Tile): boolea
  * The mover's profile and the zone-of-control field are hoisted once, `findPath`'s
  * bargain; intermediate hexes need only transit (a search may thread between
  * friendly pieces), and only a hex the piece may *stop* on can be the answer.
+ * Two more of the same bargain are inside the loop and are noted where they
+ * sit: a hex's transit answer is remembered for the sweep's length, and the
+ * standing rule is asked only of a hex that could be the answer. Both are the
+ * same readings giving the same answers in a different order — a march that
+ * re-decides several times in one resolution asks this far more often than the
+ * once a turn it was written for, so what it asks of a hex it will not use is
+ * the whole of its cost.
  */
 export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
   const { map } = state;
@@ -181,6 +188,27 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
   const limit = RULES.explore.searchLimit;
 
   const visited = new Uint8Array(map.tiles.length);
+  /**
+   * **What the sweep already asked about a hex, remembered for its length.**
+   *
+   * Nothing in a search moves a piece, founds a town or declares a war, so
+   * `canTransit`'s answer about a tile is the same every time it is asked
+   * inside one — and the sweep asks more than once, twice over. A hex the mover
+   * may not pass through is never marked visited, so each of its six
+   * neighbours asks about it again in turn; and a hex that *is* enqueued is
+   * asked a second time when its own level comes up, because `canStopOn` opens
+   * with the same reading. One signed byte a tile (-1 unasked) turns both into
+   * a lookup, and it is the same `canTransit` giving the same answer — a memo,
+   * never a second copy of the rule.
+   */
+  const passable = new Int8Array(map.tiles.length).fill(-1);
+  const canPass = (tile: Tile, at: number): boolean => {
+    const held = passable[at]!;
+    if (held >= 0) return held === 1;
+    const answer = canTransit(state, unit, tile, mover);
+    passable[at] = answer ? 1 : 0;
+    return answer;
+  };
   const startIndex = tileIndex(map, start.col, start.row);
   visited[startIndex] = 1;
   let level: number[] = [startIndex];
@@ -197,18 +225,38 @@ export function exploreSearch(state: GameState, unit: Unit): ExploreSearch {
       if (examined >= limit) break;
       examined += 1;
       const tile = map.tiles[index]!;
-      if (canStopOn(state, unit, tile, mover)) {
-        if (isKnownDiscovery(state, unit.ownerId, tile)) {
+      /**
+       * **What the hex is for, before whether the piece may stand on it.**
+       *
+       * The same conjunction as ever, asked in the other order, and the order
+       * is the whole of the saving: a bounded sweep judges four hundred tiles
+       * and the overwhelming majority of them are neither a ruin nor — once the
+       * fallback is in hand — the frontier, so asking the standing rule of
+       * every one of them buys an answer nobody reads. `isKnownDiscovery` opens
+       * on a field that is absent from ninety-odd percent of the board and
+       * `revealsAnything` is already gated on the fallback being unfound, so a
+       * hex that could not be the answer now costs one property read.
+       *
+       * The rule itself is untouched, and it still binds both candidates: a
+       * ruin the mover may not come to rest on is not a target, and it is not a
+       * fallback frontier either — the `else` says so, exactly as the old
+       * outer `if` did by never reaching the second clause.
+       */
+      if (isKnownDiscovery(state, unit.ownerId, tile)) {
+        if (canStopOn(state, unit, tile, mover)) {
           return { target: { col: tile.col, row: tile.row }, examined };
         }
-        if (frontier === null && revealsAnything(state, unit, tile)) {
-          frontier = { col: tile.col, row: tile.row };
-        }
+      } else if (
+        frontier === null &&
+        revealsAnything(state, unit, tile) &&
+        canStopOn(state, unit, tile, mover)
+      ) {
+        frontier = { col: tile.col, row: tile.row };
       }
       for (const neighbor of neighborsOf(map, tile)) {
         const at = tileIndex(map, neighbor.col, neighbor.row);
         if (visited[at]) continue;
-        if (!canTransit(state, unit, neighbor, mover)) continue;
+        if (!canPass(neighbor, at)) continue;
         if (stepCost(map, tile, neighbor, mover, field) === null) continue;
         visited[at] = 1;
         next.push(at);

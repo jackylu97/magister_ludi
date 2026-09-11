@@ -25,14 +25,16 @@
  *   6. **A ranging piece stops blocking End Turn**, `sleeping`'s reading one
  *      flag over.
  *
- * Plus the one thing every state change in this project owes: a log with two
- * auto-exploring seats replays to a byte-identical state.
+ * Plus the two things every state change in this project owes: a log with two
+ * auto-exploring seats replays to a byte-identical state, and twenty turns of
+ * ranging at two seeds still arrive at the board they always arrived at — the
+ * outcome pin a change made for speed has to get past.
  */
 
 import { describe, expect, it } from 'vitest';
 
 import { type Command, applyCommand } from '../../src/sim/commands';
-import { createGame, dispatch, replay } from '../../src/sim/game';
+import { createGame, dispatch, replay, snapshotState } from '../../src/sim/game';
 import {
   autoExploreError,
   exploreSearch,
@@ -44,6 +46,7 @@ import { createMap, getTileAt, mapRange, tileHex, tileIndex, wrappedDistance } f
 import { RULES } from '../../src/sim/rulesData';
 import { type GameState, createUnit, newGame, bumpRevision } from '../../src/sim/state';
 import { END_OF_TURN_PHASES } from '../../src/sim/turn';
+import { isCombatant, isExplorer, unitDef } from '../../src/sim/unitData';
 import { unitAwaitsOrders } from '../../src/sim/units';
 import {
   EXPLORED,
@@ -81,6 +84,23 @@ function clone(state: GameState): GameState {
 
 function explore(unitId: number, on = true, playerId = 0): Command {
   return { type: 'setAutoExplore', playerId, unitId, on };
+}
+
+/**
+ * One number for a whole board — FNV-1a over `snapshotState`'s print, with the
+ * print's own length beside it.
+ *
+ * A hash rather than the dump for the obvious reason (a state print is a
+ * hundred and eighty kilobytes) and one less obvious: a literal nobody can read
+ * is a literal nobody is tempted to repair by hand.
+ */
+function digest(text: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= text.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash.toString(16).padStart(8, '0') + ':' + text.length;
 }
 
 /** Every hex charted for this seat: an exploring search must come up empty. */
@@ -483,6 +503,61 @@ describe('determinism', () => {
     expect(game.log.some((command) => command.type === 'setAutoExplore')).toBe(true);
     expect(JSON.stringify(replay(game.config, game.log))).toBe(JSON.stringify(game.state));
   });
+
+  /**
+   * **The outcome pin**, and the one the replay above cannot stand in for: a
+   * replay proves the same code twice agrees with itself, not that *this* code
+   * agrees with yesterday's.
+   *
+   * The march is the one standing order that re-decides where it is going
+   * several times inside a single resolution, so it is the order most exposed
+   * to a change made for speed — a search that skips a tile, a fog reading
+   * taken one beat early, a candidate judged in a different order — and every
+   * one of those moves the piece, which moves a ruin, a camp, a meeting and
+   * each seeded roll after them. None of it shows in a unit test about one
+   * scout.
+   *
+   * So: a generated world with every soldier and scout of both seats ranging
+   * ahead, twenty resolutions deep, at two seeds, printed with `snapshotState`
+   * and reduced to one number. The literals were taken on the head of
+   * 2026-09-10 (schema 115). **They are evidence, not a baseline.** If one
+   * moves, the change moved the game and it is the change that is wrong (hard
+   * rule 2); only a ruling about how the march decides may edit them, and the
+   * ruling lands in `docs/flags.md` first.
+   */
+  const RANGED_BOARDS: Record<number, string> = {
+    11: '4eaaee50:187926',
+    2026: '6dd775b3:188191',
+  };
+
+  for (const seed of [11, 2026]) {
+    it(`ranges twenty turns at seed ${seed} to the board it always ranged to`, () => {
+      const game = createGame({
+        seed,
+        sizeName: 'duel',
+        players: [
+          { name: 'A', color: '#a00', isHuman: true },
+          { name: 'B', color: '#00a', isHuman: true },
+        ],
+        barbarians: true,
+      });
+      for (const unit of [...game.state.units]) {
+        if (unit.ownerId > 1) continue;
+        const def = unitDef(unit.type);
+        if (!isCombatant(def) && !isExplorer(def)) continue;
+        dispatch(game, explore(unit.id, true, unit.ownerId));
+      }
+      for (let turn = 0; turn < 20; turn++) {
+        for (const player of game.state.players) {
+          dispatch(game, { type: 'endTurn', playerId: player.id });
+        }
+      }
+      // The order really was given: a pin over a game where nothing ranged
+      // would be green for the wrong reason.
+      expect(game.log.some((command) => command.type === 'setAutoExplore')).toBe(true);
+      expect(digest(snapshotState(game.state))).toBe(RANGED_BOARDS[seed]);
+    });
+  }
 });
 
 describe('the gated layers and the explorer', () => {
