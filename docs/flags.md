@@ -1800,6 +1800,36 @@ directly to confirm rulings — user marginalia are rulings.
   were fitted with those injections in place; the wagers now carry that
   weight alone (a wager pays beads, not yields). The **new baseline** is
   the post-Q1 row above.
+- (llll) **A built unit's spill: never onto a contested hex, never
+  under siege — RULED** (the user, 2026-09-11, on :5199: *"i see units
+  still being spawned outside the city when there's a city garrison. The
+  biggest issue with this is when the city is sieged, it can overwrite an
+  attacking unit"* → offered three, chose *"1 and 2"*). Today
+  `spawnTileFor`'s ring walk asks `hasStackingRoom`, which counts pieces
+  of the **same category** and never asks whose — so a built spearman
+  cannot land on an enemy spearman's hex but can on an enemy settler's,
+  and a built worker on an enemy warrior's; under siege that ring is
+  where the attackers stand. When no hex has room the unit already
+  **waits** (the head item keeps its hammers until room appears). **P4
+  builds**: (1) **a contested hex is never a spawn hex** — the ring walk
+  skips any hex holding a unit of another owner, whatever its category
+  (one reading, in `spawnTileFor`, shared by the naval and land arms;
+  the city hex itself is never contested — a foreign piece cannot stand
+  there); (2) **under siege, nothing spills** — when `underSiege(city)`
+  (the derived reading, never stored) a built unit takes the city hex or
+  waits; the purchase path is untouched (P3: the hex or refused). The
+  city panel's head item says "waiting for room" in the quiet voice
+  while a completed unit waits (production banked, no overflow lost, the
+  turn the hex clears it lands); the bots' production chooser must not
+  thrash on a waiting head (`chooseProduction` treats a waiting unit as
+  progress, not a stall). Vanilla spill in peacetime stands (option 3,
+  no spill ever, declined for daily play). Pins: a hex with an enemy
+  civilian is skipped for a military spawn and vice versa; a hex with an
+  own unit of another category is still taken; besieged → the unit waits
+  with the centre garrisoned and lands the turn the garrison steps out;
+  not besieged → the spill still happens; the head keeps its hammers
+  across the wait; the panel's sentence. A replay change on the held
+  stack (schema stays 115).
 - (kkkk) **The prophet's third charge, and the site it cannot plant —
   RULED** (the user, 2026-09-11, on :5199: *"it says my prophet has 3/2
   charges and i dont have the ability to plant a holy site"*). Two
