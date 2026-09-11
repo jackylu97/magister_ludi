@@ -880,8 +880,8 @@
   ],
   "tinkersGuild": [
    {
-    "raw": "newly created worker units gain +1 charge",
-    "text": "newly created worker units gain +1 charge"
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
    }
   ],
   "publicGranaries": [
@@ -4053,8 +4053,8 @@
   ],
   "vaucanson": [
    {
-    "raw": "newly created worker units gain +1 charge",
-    "text": "newly created worker units gain +1 charge"
+    "raw": "newly created workers gain +1 charge",
+    "text": "newly created workers gain +1 charge"
    }
   ],
   "jakobFugger": [

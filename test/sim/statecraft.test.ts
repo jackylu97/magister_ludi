@@ -352,9 +352,13 @@ describe("the card table", () => {
     // `cardExtraCharges` is read exactly once, by `createUnit`, so a worker
     // already in the field gains nothing when the Order is slotted — and the
     // clause has to say so. Playtest batch two, 8/27: "Tinker's guild should
-    // read: newly created worker units gain +1 charge".
+    // read: newly created worker units gain +1 charge". Since 2026-09-11 the
+    // row names the worker *row* rather than the worker's model class (the
+    // model is also the prophet's, and the guild was dealing prophets a third
+    // charge — `docs/flags.md` (kkkk)), and the describer says a named row
+    // as "workers"; "newly created" is the half the ruling settled.
     expect(describeCard("tinkersGuild").map((clause) => clause.text)).toEqual([
-      "newly created worker units gain +1 charge",
+      "newly created workers gain +1 charge",
     ]);
   });
 

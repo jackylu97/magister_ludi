@@ -16,6 +16,13 @@
  * see the difference.
  */
 
+import BUILDINGS_RAW from "../../data/buildings.json";
+import TECHS_RAW from "../../data/techs.json";
+import STATECRAFT_RAW from "../../data/statecraft.json";
+import GREAT_PEOPLE_RAW from "../../data/greatPeople.json";
+import LEADERS_RAW from "../../data/leaders.json";
+import { unitMatches } from "../../src/sim/statecraft";
+import type { UnitFilter } from "../../src/sim/statecraftData";
 import { describe, expect, it } from "vitest";
 
 import { type Command, applyCommand } from "../../src/sim/commands";
@@ -3055,6 +3062,48 @@ describe("the prophet’s four verbs", () => {
  * the ladder a *figure* rather than a rule written in five places — the table is
  * the data's, and it is read in exactly one function.
  */
+describe("no charge line anywhere reaches the prophet", () => {
+  // "Workers gain +1 charge" is said by a wonder, a technology, an Order, a
+  // legacy and a leader's card — and the prophet, the apostle and the
+  // inquisitor wear the worker's *model class*, so a line that filtered by the
+  // model dealt every religious agent a charge over its row and the sheet read
+  // "3/2" (the user, 2026-09-11, `docs/flags.md` (kkkk)). The ruling is that a
+  // prophet has exactly two, so this walks every table's charge lines and asks
+  // the evaluator's own matcher whether any of them would reach one.
+  it("walks every table's charge lines", () => {
+    const tables: Record<string, unknown> = {
+      buildings: BUILDINGS_RAW,
+      techs: TECHS_RAW,
+      statecraft: STATECRAFT_RAW,
+      greatPeople: GREAT_PEOPLE_RAW,
+      leaders: LEADERS_RAW,
+    };
+    const lines: { table: string; filter: UnitFilter | undefined }[] = [];
+    const walk = (table: string, node: unknown): void => {
+      if (Array.isArray(node)) {
+        for (const item of node) walk(table, item);
+        return;
+      }
+      if (node === null || typeof node !== "object") return;
+      const row = node as Record<string, unknown>;
+      if (row.kind === "unitStat" && row.stat === "charges") {
+        lines.push({ table, filter: row.class as UnitFilter | undefined });
+      }
+      for (const value of Object.values(row)) walk(table, value);
+    };
+    for (const [table, raw] of Object.entries(tables)) walk(table, raw);
+    // The tables really do say it, several times over — a walk that found
+    // nothing would be a walk reading the wrong shape.
+    expect(lines.length).toBeGreaterThanOrEqual(5);
+    for (const agent of ["prophet", "apostle", "inquisitor"] as const) {
+      const reaching = lines.filter((line) => unitMatches(agent, line.filter));
+      expect(reaching, `${agent} is dealt a charge by ${reaching.map((l) => l.table).join(", ")}`).toEqual([]);
+    }
+    // And the worker still gets what the lines promise.
+    expect(lines.some((line) => unitMatches("worker", line.filter))).toBe(true);
+  });
+});
+
 describe("the prophet’s price ladder", () => {
   /** A seat with gods, a town and a prophet on legal ground beside it. */
   function readyProphet(seed = 5) {

@@ -447,8 +447,7 @@
           "stat": "charges",
           "amount": 1,
           "class": {
-            "modelClass": "worker",
-            "consecrates": false
+            "type": "worker"
           }
         },
         {
