@@ -1921,6 +1921,13 @@ directly to confirm rulings — user marginalia are rulings.
   called (`CountKind greatPeopleCalled`, monotone). Thirty-two pins in
   `test/sim/leaderGround.test.ts`. With L3a and L3b: every passive,
   unique and bonus line is whole; the sixteen boon lines stand.
+  The stack's gate found two things in L3a worth the register: the
+  great-person act's payout emptiness check moved beside the composer
+  (`windfallPayoutIsEmpty`, so the renown column keeps its six readers),
+  and `adoptGovernmentAt` joined `forgetTheLaw`'s register — the chair
+  count reads the law between the government changing and the chairs
+  being rebuilt, and a memo warmed there let a benched Order go on
+  paying. Held green: 242 files, 6374 tests; serving on :5199.
   **Found by L3b, needs a ruling** — ▢ **every leader-unlocked unit costs
   zero maintenance**: `unitUpkeep` prices a piece off its *unlocking
   tech's* age, and no tech names a leader unique (ten rows), so the
