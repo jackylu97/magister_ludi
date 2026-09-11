@@ -3200,16 +3200,20 @@ kbd {
   flex: 0 0 auto;
   width: 14px;
   height: 17px;
-  border-radius: 2px 2px 7px 7px;
-  background: var(--canton-field);
-  box-shadow: 0 0 0 1px rgba(247, 242, 225, 0.45);
+  /* No field and no shield (the user, 2026-09-11, `docs/flags.md` (ssss):
+     "just the icon (and not the outline of the shield motif)"): the plate is
+     the parchment the charge sits on, so the charge alone is printed here, in
+     the seat's primary — the plate's rim already carries it, and the two read
+     as one ink. The variables keep their H7 names so the banner's paint call
+     is untouched; only which one the device wears changed. */
+  background: transparent;
 }
 
 .city-banner-canton::after {
   content: '';
   position: absolute;
-  inset: 2px;
-  background: var(--canton-device);
+  inset: 0;
+  background: var(--canton-field);
   -webkit-mask-image: var(--canton-mark);
   mask-image: var(--canton-mark);
   -webkit-mask-repeat: no-repeat;
