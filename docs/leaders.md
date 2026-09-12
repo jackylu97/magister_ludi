@@ -50,7 +50,7 @@ A leader is **five designs**, plus data that costs nothing to write:
 | what | how many | when it reaches the seat |
 |---|---|---|
 | **leader bonus** | one | turn one, for the game (a doctrine-weight card effect) |
-| **uniques** | four — one an age, two units and two buildings across the four | granted when *this seat's* age turns, announced on a card; the row opens in the build list and the Compendium |
+| **age grants** | four — one an age, each **a passive or a unique, fixed by design** (the user, 2026-09-11: the liked passives return); at least one unique unit and one unique building among the four so the figure is on the board | granted when *this seat's* age turns, announced on a card; a unique's row opens in the build list and the Compendium, a passive joins `liveEffects` |
 | **family progression** | shared by the family — four fixed passives, one an age | granted with the age, no choice; the family's, not the figure's |
 | colours · cities · start bias · charge | data | the landing and the map |
 
@@ -81,16 +81,28 @@ The one first-cut passive left out is Pachacuti's mountain-town science (Æra IV
 which was the figure's rather than the road family's; it can return as a
 seventh-family idea (highlands) or as a bonus.
 
-### The six figures, at five designs
+### The six figures, at five designs (▢ the user's to mark up)
+
+A figure's four age grants mix passives and uniques. The figure-flavoured
+passives of the first cut come back here (bold), displacing the weaker uniques;
+the generic passives stay in the family progression above.
 
 | figure | family | bonus | Æra I | Æra II | Æra III | Æra IV |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | roads | farms +1 food per adjacent mountain | Terraces | the Slinger | the Tambo | the Qollqa |
-| **Emperor Taizong** | imperium | melee +1 strength +1 movement; +2 culture in every city | the Fubing | the Examination Court | Tang heavy cavalry | the Post Station |
-| **Modu Chanyu** | steppe | mounted +1 movement on grass and plains; pillaging +50% | the Whistling Arrow | the Horde Camp | the Xiongnu horse archer | the Chanyu's Guard |
-| **Akhenaten** | faith | +1 faith on farms drinking fresh water; holy-site cities +20% toward wonders | the Obelisk | the Khopesh | the Sun Court | the Valley of Kings |
-| **Al-Ma'mun** | science | faith and science buildings +2 food; +10% science in cities keeping a rite | the House of Learning | the Mihna Court | the camel archer | the Paper Mill |
-| **Mithridates VI** | defence | +2 strength against wider empires; +1 food on improved resources | the Pontic peltast | the Mithridatium | the scythed chariot | the Mountain Hold |
+| **Pachacuti** | roads | farms +1 food per adjacent mountain | Terraces | the Slinger | the Tambo | **+10% science and +10% gold in cities with a mountain hex** |
+| **Emperor Taizong** | imperium | melee +1 strength +1 movement; +2 culture in every city | the Fubing | the Examination Court | Tang heavy cavalry | **the Great Poets** — artists' acts pay double and grant five turns of +10% production and culture |
+| **Modu Chanyu** | steppe | mounted +1 movement on grass and plains; pillaging +50% | the Whistling Arrow | the Horde Camp | **+1 combat strength while a rite burns in your empire** | the Chanyu's Guard |
+| **Akhenaten** | faith | +1 faith on farms drinking fresh water; holy-site cities +20% toward wonders | the Obelisk | **holy sites on desert +3 food +3 faith** | the Sun Court | the Valley of Kings |
+| **Al-Ma'mun** | science | faith and science buildings +2 food; +10% science in cities keeping a rite | the House of Learning | the Mihna Court | **+1 science per five faith a turn, empire-wide** | the Paper Mill |
+| **Mithridates VI** | defence | +2 strength against wider empires; +1 food on improved resources | the Pontic peltast | **one more free chair in every government** | the scythed chariot | the Mountain Hold |
+
+**Benched, still built**: the Qollqa, the Post Station, the Xiongnu horse
+archer, the Khopesh, the camel archer, the Mithridatium — a second figure of the
+family may take them up. **Holes this opens in the progressions** (▢ a generic
+passive each, the family sections below are the quarry): roads Æra IV, imperium
+Æra IV, steppe Æra III, faith Æra II, science Æra III, defence Æra II — the
+progression table above still shows the first-cut passive in each of those
+cells until the user fills it.
 
 Every unique named here is built (L2a/L3) and keeps its row; only *how* it
 reaches the seat changes.
