@@ -59,7 +59,7 @@ the record; the landing shows the four lines.
 ### The twelve
 
 The first six, remapped from what is built (every unit and building below has a
-row and its rules); the second six proposed by the orchestrator — **Basil II and
+row and its rules); the second six proposed by the orchestrator — **Joan of Arc and
 Mansa Musa are the user's; ▢ the other four**, chosen to fill the gaps the first
 six leave (the sea, land commerce, the steppe's second seat, the Levant).
 
@@ -71,7 +71,7 @@ six leave (the sea, land commerce, the steppe's second seat, the Levant).
 | **Akhenaten** | Egypt | tall · faith and wonders | cities with a holy site +20% production toward wonders | +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
 | **Al-Ma'mun** | Abbasid | tall · science and faith | +1 science per five faith a turn, empire-wide | faith and science buildings +2 food | the camel archer | the House of Learning |
 | **Mithridates VI** | Pontus | tall · defence and growth | +2 strength against empires with more cities | +2 food on plantations and camps | the Pontic peltast | the Mountain Hold |
-| **Basil II** | Byzantium | imperium · the fortress empire | *the Themes*: units cost no upkeep while standing in your own borders | *Purple-born*: the capital pays +3 culture +2 faith, and wonders there +15% production | the Cataphract (the retired row returns as his) | the Hippodrome — +3 happiness, +1 culture per soldier garrisoned in the city |
+| **Joan of Arc** | France | faith and war | *the Voices*: a kill pays faith and presses your faith on the nearest city | *the Maid*: +4 combat strength on any hex that follows your faith | the Gendarme — a heavy lance of the fourth age, +10 against cities | the Sainte-Chapelle — a temple line, +3 faith; military units may be bought here with faith |
 | **Mansa Musa** | Mali | land commerce · gold and the hajj | *the Gold of Wangara*: mines and camps pay +2 gold; desert hexes worked pay +1 gold | *the Hajj*: routes to or from a city holding a holy site pay +2 gold +2 faith | the Mandekalu — a horseman line, pillaging pays double gold | the Sankore Madrasa — a library line, +1 science per four faith the city makes |
 | **Rajendra Chola** ▢ | Chola | sea commerce · the fleet | *the Chola fleet*: ships +1 movement; embarked units +10 defence | *the Nagaram*: sea routes pay +3 gold +1 culture | the Thirisadai — a heavy ship of the third age | the Nagaram hall — a market line, +1 route slot, +2 gold per sea route ending here |
 | **Tomyris** ▢ | Massagetae | steppe · vengeance | *the Queen's vengeance*: +5 strength for five turns after one of your units dies | *the Kurgans*: units heal +10 a turn in your own borders | the Massagetae horse archer — retreats after firing | the Kurgan — a monument line, +2 faith +2 culture, a fallen unit's kill pays renown |
@@ -89,8 +89,14 @@ twelve-town Inca content. Every piece is built (the per-mountain farm line from
 L3c pays two peaks twice; the road-joined scope; the Terraces waiver; the
 Slinger's hills) — a data change. The Qollqa and the Tambo go to the bench.
 
-Notes on the second six: Basil II's Cataphract is the row retired when the
-Horseman took its place — it comes back as his alone. Mansa Musa is the land
+Notes on the second six: Joan of Arc replaces Basil II (the user, 2026-09-11:
+*"i think i want a religion/war civ"*) — she was on the deferred list as a
+whole-seat concept, and as two abilities, a unit and a building she is a sharp
+seat rather than a warping one; every French piece lands in Æra IV, the
+Cathedrals, where a faith-war figure should peak. Her lines are built shapes
+(the Crusade's kill rider presses faith; the Khopesh fights harder on following
+hexes) except **buying soldiers with faith in one building** — ▢ a small new
+shape. Basil II and the Cataphract return to the bench. Mansa Musa is the land
 commerce seat `docs/playstyles.md` names and no figure held. Rajendra Chola is
 the sea's first seat. Tomyris gives the steppe a tall, defensive second figure
 against Modu's raider. Sher Shah Suri is roads-and-administration where
@@ -105,7 +111,7 @@ the Post Station, the Whistling Arrow, the Chanyu's Guard, the Sun Court, the
 Valley of Kings, the Mihna Court, the Paper Mill, the Mithridatium, the scythed
 chariot, the Great Poets, the Corvée and the rest of the first cut's passives.
 
-**Not taken**: Yongle (Ming, not Tang — a second Chinese seat in twelve while
+**Not taken**: Basil II (Joan took the seat; Byzantium waits); Yongle (Ming, not Tang — a second Chinese seat in twelve while
 the sea and West Africa had none). Still on the shelf: Rajendra's alternatives
 Dandolo and Hanno; Ezana, Djoser, Gwanggaeto, Sargon, Ulugh Beg, Abd al-Rahman
 III, Bumin, Teuta, Justinian and Theodora, Jayavarman VII.
