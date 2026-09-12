@@ -59,9 +59,8 @@ the record; the landing shows the four lines.
 ### The twelve
 
 The first six, remapped from what is built (every unit and building below has a
-row and its rules); the second six proposed by the orchestrator — **Joan of Arc and
-Mansa Musa are the user's; ▢ the other four**, chosen to fill the gaps the first
-six leave (the sea, land commerce, the steppe's second seat, the Levant).
+row and its rules); the second six proposed by the orchestrator — **the six are the user's picks** (2026-09-11); the abilities, units and
+buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
@@ -73,10 +72,10 @@ six leave (the sea, land commerce, the steppe's second seat, the Levant).
 | **Mithridates VI** | Pontus | tall · defence and growth | +2 strength against empires with more cities | +2 food on plantations and camps | the Pontic peltast | the Mountain Hold |
 | **Joan of Arc** | France | faith and war | *the Voices*: a kill pays faith and presses your faith on the nearest city | *the Maid*: +4 combat strength on any hex that follows your faith | the Gendarme — a heavy lance of the fourth age, +10 against cities | the Sainte-Chapelle — a temple line, +3 faith; military units may be bought here with faith |
 | **Mansa Musa** | Mali | land commerce · gold and the hajj | *the Gold of Wangara*: mines and camps pay +2 gold; desert hexes worked pay +1 gold | *the Hajj*: routes to or from a city holding a holy site pay +2 gold +2 faith | the Mandekalu — a horseman line, pillaging pays double gold | the Sankore Madrasa — a library line, +1 science per four faith the city makes |
-| **Rajendra Chola** ▢ | Chola | sea commerce · the fleet | *the Chola fleet*: ships +1 movement; embarked units +10 defence | *the Nagaram*: sea routes pay +3 gold +1 culture | the Thirisadai — a heavy ship of the third age | the Nagaram hall — a market line, +1 route slot, +2 gold per sea route ending here |
-| **Tomyris** ▢ | Massagetae | steppe · vengeance | *the Queen's vengeance*: +5 strength for five turns after one of your units dies | *the Kurgans*: units heal +10 a turn in your own borders | the Massagetae horse archer — retreats after firing | the Kurgan — a monument line, +2 faith +2 culture, a fallen unit's kill pays renown |
-| **Sher Shah Suri** ▢ | Sur | wide · administration | *the Sarai*: roads cost nothing to maintain; units on your roads +1 movement | *the Rupee*: +1 gold per citizen in every city joined to the capital by road | the Afghan lancer — a lancer line, +10 vs mounted | the Sarai — a caravanserai line, +2 gold +1 happiness, routes through the city pay +1 gold |
-| **Zenobia** ▢ | Palmyra | tall · the trading fortress | *the Caravan queen*: land routes pay +2 gold and +1 culture | *Rebel empress*: cities you capture keep every building and pay +2 culture | the Palmyrene archer — a mounted archer with +1 range | the Caravan gate — a walls line, +5 strength, +1 route slot |
+| **Zheng He** | Ming | wide · the sea | *the Treasure Fleet*: ships +2 movement and +1 sight | *Tribute of the Western Ocean*: sea routes pay +2 gold +1 culture; the first sea route to each foreign empire pays a lump of gold | the Treasure Ship — a great hull of the third age, strong and far-seeing (▢ carrying two passengers is a new escort shape) | the Longjiang Dockyard — a harbour line: ships built here +1 movement, +2 gold per sea route ending here |
+| **Nezahualcoyotl** | Texcoco | tall · the engineer-poet | *the Dikes*: cities beside a lake or river pay +2 food +1 production | *Flower and Song*: +1 culture for every two citizens in the capital | the Eagle warrior — a swordsman line; a kill pays +5 culture | the Tetzcotzinco — an aqueduct line that waters the town, +2 culture, farms drinking fresh water +1 food |
+| **Hypatia** | Alexandria | tall · the library city | *the Museion*: +25% renown; scholars' works pay +2 science | *the Commentaries*: every great person's work in your lands pays +2 science | the Alexandrian galley — a light hull with +1 sight | the Museion — a university line: +3 science, +2 renown toward scholars |
+| **Hildegard of Bingen** | the Rhineland | tall · rites and song | *the Rites*: cities keeping a rite pay +2 culture +1 faith | *Symphonia*: temples and monasteries pay +2 culture | the Canoness — an apostle line with three charges | the Scriptorium — a monastery line: +2 faith +2 culture (▢ a rite said here presses twice as far — a new shape) |
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
 food from mountains (tall, few sites) and roads (wide, many). Now both lines
@@ -97,14 +96,17 @@ Cathedrals, where a faith-war figure should peak. Her lines are built shapes
 (the Crusade's kill rider presses faith; the Khopesh fights harder on following
 hexes) except **buying soldiers with faith in one building** — ▢ a small new
 shape. Basil II and the Cataphract return to the bench. Mansa Musa is the land
-commerce seat `docs/playstyles.md` names and no figure held. Rajendra Chola is
-the sea's first seat. Tomyris gives the steppe a tall, defensive second figure
-against Modu's raider. Sher Shah Suri is roads-and-administration where
-Pachacuti is roads-and-growth — the Grand Trunk Road and the rupee are his own.
-Zenobia is the Levant's fortress-trader. Every ability above is written in the
-card vocabulary the evaluator has today except **Tomyris's retreat-after-firing**
-(a unit rule; ▢ deferred if not built) and **Zenobia's "keep every building"**
-(a capture rule; ▢ likewise).
+commerce seat `docs/playstyles.md` names and no figure held. Zheng He is the sea's first seat and the roster's second Chinese figure (Ming,
+eight centuries after Taizong — the user kept him for the fleets). Nezahualcoyotl
+is the poet-king of Texcoco, engineer of the dikes of the lake — the tall growth
+seat that is *water*, not faith. Hypatia is the library city with no faith
+detour: where Al-Ma'mun turns faith into science, she turns great people and
+their works into it. Hildegard is rites and song: where Akhenaten builds with
+faith (holy sites, wonders), she keeps it (rites) and sings it (culture), with
+no wonder bias at all. Every ability above is written in the
+card vocabulary the evaluator has today except the three marked ▢ in the table (Joan's soldiers bought with faith in one
+building, the Treasure Ship's second passenger, the Scriptorium's farther rite) —
+each a small new shape, deferred-and-annotated if not built.
 
 **Benched, still built**, for later figures: the Tambo, the Qollqa, the Fubing,
 the Post Station, the Whistling Arrow, the Chanyu's Guard, the Sun Court, the
@@ -112,9 +114,11 @@ Valley of Kings, the Mihna Court, the Paper Mill, the Mithridatium, the scythed
 chariot, the Great Poets, the Corvée and the rest of the first cut's passives.
 
 **Not taken**: Basil II (Joan took the seat; Byzantium waits); Yongle (Ming, not Tang — a second Chinese seat in twelve while
-the sea and West Africa had none). Still on the shelf: Rajendra's alternatives
-Dandolo and Hanno; Ezana, Djoser, Gwanggaeto, Sargon, Ulugh Beg, Abd al-Rahman
-III, Bumin, Teuta, Justinian and Theodora, Jayavarman VII.
+the sea and West Africa had none). Still on the shelf: Tomyris, Sher Shah Suri, Zenobia, Rajendra
+Chola, Dandolo, Hanno, Ezana, Djoser, Gwanggaeto, Sargon, Ulugh Beg, Abd
+al-Rahman III, Bumin, Teuta, Justinian and Theodora, Jayavarman VII; and the
+magi — Gerbert of Aurillac, Ramon Llull, John Dee, Paracelsus — with Enheduanna,
+Al-Jazari, Shen Kuo, Su Song, Ibn Battuta, Piri Reis, Rabban Bar Sauma, Sun Tzu.
 
 ### What building it costs
 
