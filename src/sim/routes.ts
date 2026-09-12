@@ -23,6 +23,37 @@ import { type City, type GameState, type TradeRoute, type Unit, cityById } from 
 // The war register, and the only thing this leaf asks about diplomacy.
 // `wars.ts` imports the rules, the state and the deal terms and nothing else.
 import { atWar } from './wars';
+import { leaderDef } from './leaderData';
+import { type UnitTypeId, caravanTypeId, trades, unitDef } from './unitData';
+
+/**
+ * **Which caravan this seat sends** — its figure's own, or the roster's.
+ *
+ * `caravanTypeId` (`unitData.ts`) answers the roster's question: which row
+ * `trades`. It walks the union and takes the first, which was the whole of the
+ * answer while exactly one row traded. A figure may now name a trader of its own
+ * (Ibn Battuta's Rihla caravan), and a unique nobody can be *given* is a unique
+ * nobody has — so the question a verb actually wants is this one: which trader
+ * does *this empire* send.
+ *
+ * The figure's row wins where the figure has one, and the roster's is the
+ * fallback for every other seat. Markers, never names: the sheet says which row,
+ * and `trades` says whether it is a caravan at all — so a figure whose unique is
+ * a soldier falls through here exactly as a figure with no unique would.
+ *
+ * **A leaf, and it has to be.** `trade.ts`, `purchase.ts`, `cities.ts` and the
+ * reducer all ask this, and `cities.ts` may never import `trade.ts` (the pinned
+ * rule). `leaderData.ts` and `unitData.ts` are both leaves themselves, so the
+ * edges cost nothing.
+ */
+export function caravanTypeFor(state: GameState, playerId: number): UnitTypeId | null {
+  const leader = state.players[playerId]?.leader;
+  if (leader !== undefined) {
+    const own = leaderDef(leader).unit;
+    if (trades(unitDef(own))) return own;
+  }
+  return caravanTypeId();
+}
 
 // --- which way a route runs -------------------------------------------------
 

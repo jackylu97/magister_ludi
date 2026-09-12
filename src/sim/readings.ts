@@ -470,7 +470,7 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
 
   for (const from of state.cities) {
     if (from.ownerId !== playerId) continue;
-    const probe = caravanProbeFor(playerId, from);
+    const probe = caravanProbeFor(state, playerId, from);
     for (const to of state.cities) {
       if (to.id === from.id) continue;
       // The discovery clause (batch R3, see the docblock): a partner whose

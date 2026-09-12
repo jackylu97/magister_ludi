@@ -1182,10 +1182,13 @@ two shapes, and `START_WANT_MEASURE` (`src/sim/leaderData.ts`) says which each i
 
 - a **radius**, `…Within`: one such hex in reach, the site's own included —
   `mountainWithin`, `riverWithin`, `riverOrFloodplainWithin`, `aridWithin`,
-  `grasslandWithin`, `pastureGroundWithin`. (`pastureGroundWithin` asks the
-  improvement table what ground a pasture stands on rather than naming terrain
-  here, and `aridWithin` counts a desert hex or an oasis or a floodplain — the
-  three faces of one place.)
+  `grasslandWithin`, `pastureGroundWithin`, `coastalWithin`, `lakeWithin`.
+  (`pastureGroundWithin` asks the improvement table what ground a pasture stands
+  on rather than naming terrain here, and `aridWithin` counts a desert hex or an
+  oasis or a floodplain — the three faces of one place. `coastalWithin` is salt
+  water, a coast or an ocean hex; `lakeWithin` is a lake and is deliberately not
+  the same want, because a basin floats no fleet out of the bay — batch L6a, for
+  Zheng He and Hypatia on the one hand and Nezahualcoyotl on the other.)
 - a **count**, `…Beside`: this many of the six hexes *touching* the site —
   `aridBeside`, the only one today. Ruled 2026-09-11, `docs/flags.md` (uuuu),
   from the user's *"i notice akhenaten rarely spawns in desert"*. A radius asks

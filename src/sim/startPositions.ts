@@ -552,6 +552,12 @@ function hexAnswers(key: keyof StartWants, tile: Tile): boolean {
       return tile.terrain === 'grassland';
     case 'pastureGroundWithin':
       return pastureRows().some((id) => tileSuitsResource(tile, resourceDef(id)));
+    case 'coastalWithin':
+      // Salt water, and a lake is deliberately not it: a basin floats no fleet
+      // out of the bay, and the figure who wants one says `lakeWithin`.
+      return tile.terrain === 'coast' || tile.terrain === 'ocean';
+    case 'lakeWithin':
+      return tile.terrain === 'lake';
   }
 }
 

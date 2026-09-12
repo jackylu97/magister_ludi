@@ -249,8 +249,10 @@
     },
     "byUnitType": {
       "trader": "trader",
+      "rihlaCaravan": "trader",
       "prophet": "prophet",
       "apostle": "apostle",
+      "canoness": "apostle",
       "phalanx": "phalanx",
       "legionary": "legionary",
       "spearWall": "spearWall",

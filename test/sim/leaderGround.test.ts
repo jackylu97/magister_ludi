@@ -110,24 +110,26 @@ function hexLines(state: GameState, city: City, tile: Tile) {
 }
 
 /**
- * The one line a named **card** put on a hex, or `undefined`.
+ * The one line a named **ability** put on a hex, or `undefined`.
  *
  * Asked of the line's own `card` rather than of its printed label, because the
  * label is the Ledger's business and a retitled figure should not break a claim
- * about what the ground pays.
+ * about what the ground pays. Since the second cut (L6a) the id on the line is
+ * the *ability's* — a figure has two and they are folded apart — which is the
+ * finer name and the one a breakdown should carry.
  */
 function lineFrom(
   state: GameState,
   city: City,
   tile: Tile,
   card: string,
-): { food: number; faith: number } | undefined {
+): { food: number; gold: number; faith: number } | undefined {
   return hexLines(state, city, tile).find((entry) => entry.card === card);
 }
 
 // --- Pachacuti · the farms below the peaks ----------------------------------
 
-describe('Pachacuti’s farms are paid once for each peak beside them', () => {
+describe('Pachacuti’s farms mint a coin for each peak beside them', () => {
   /**
    * A city at (6, 6) with a farm at (6, 5), and as many mountains around that
    * farm as the claim wants. The peaks go down before the marks are re-derived,
@@ -151,27 +153,30 @@ describe('Pachacuti’s farms are paid once for each peak beside them', () => {
   it('pays nothing where no mountain stands beside the farm', () => {
     const { state, city, farm } = farmUnder(0);
     expect(farm.mountainsBeside).toBeUndefined();
-    expect(lineFrom(state, city, farm, 'pachacuti')).toBeUndefined();
+    expect(lineFrom(state, city, farm, 'goldOfThePeaks')).toBeUndefined();
   });
 
-  it('pays one food for one peak and two for two — the count is the helping', () => {
+  it('pays one coin for one peak and two for two — the count is the helping', () => {
     for (const peaks of [1, 2, 3]) {
       const { state, city, farm } = farmUnder(peaks);
       expect(farm.mountainsBeside, `${peaks} peaks`).toBe(peaks);
-      const line = lineFrom(state, city, farm, 'pachacuti');
+      const line = lineFrom(state, city, farm, 'goldOfThePeaks');
       expect(line, `${peaks} peaks`).toBeDefined();
-      expect(line!.food, `${peaks} peaks`).toBe(peaks);
+      expect(line!.gold, `${peaks} peaks`).toBe(peaks);
+      // Gold and never food since the second cut: an Inca town is productive
+      // with few citizens, and the coin is what the width is bought with.
+      expect(line!.food, `${peaks} peaks`).toBe(0);
     }
   });
 
   it('is one labelled line and the fold of the list, never a total beside it', () => {
-    // Hard rule 5. Three peaks are three food *in one entry* — a player reads
+    // Hard rule 5. Three peaks are three coins *in one entry* — a player reads
     // one name and one number, and the breakdown still sums to the total.
     const { state, city, farm } = farmUnder(3);
     const lines = hexLines(state, city, farm);
-    const mine = lines.filter((entry) => entry.card === 'pachacuti');
+    const mine = lines.filter((entry) => entry.card === 'goldOfThePeaks');
     expect(mine).toHaveLength(1);
-    expect(mine[0]!.card).toBe('pachacuti');
+    expect(mine[0]!.card).toBe('goldOfThePeaks');
   });
 
   it('pays a farm and nothing else standing under the same peaks', () => {
@@ -179,11 +184,11 @@ describe('Pachacuti’s farms are paid once for each peak beside them', () => {
     // The same hex with the furrows taken out again is ordinary hillside.
     farm.improvement = undefined;
     refreshCityDerived(state, city);
-    expect(lineFrom(state, city, farm, 'pachacuti')).toBeUndefined();
+    expect(lineFrom(state, city, farm, 'goldOfThePeaks')).toBeUndefined();
     // And a pasture under the same peaks is not a farm either.
     farm.improvement = 'pasture';
     refreshCityDerived(state, city);
-    expect(lineFrom(state, city, farm, 'pachacuti')).toBeUndefined();
+    expect(lineFrom(state, city, farm, 'goldOfThePeaks')).toBeUndefined();
   });
 
   it('belongs to the seat that plays the figure, and to no other', () => {
@@ -199,7 +204,7 @@ describe('Pachacuti’s farms are paid once for each peak beside them', () => {
       tileNeighbors(state.map, farm)[0]!.terrain = 'mountain';
       reground(state);
       refreshCityDerived(state, city);
-      expect(lineFrom(state, city, farm, 'pachacuti') !== undefined, city.name).toBe(paid);
+      expect(lineFrom(state, city, farm, 'goldOfThePeaks') !== undefined, city.name).toBe(paid);
     }
   });
 });
@@ -234,8 +239,8 @@ describe('Akhenaten’s farms are paid for the water they drink', () => {
     const river = farmBeside('river');
     expect(lake.farm.freshwater).toBe(true);
     expect(river.farm.freshwater).toBe(true);
-    const byLake = lineFrom(lake.state, lake.city, lake.farm, 'akhenaten');
-    const byRiver = lineFrom(river.state, river.city, river.farm, 'akhenaten');
+    const byLake = lineFrom(lake.state, lake.city, lake.farm, 'nilesGift');
+    const byRiver = lineFrom(river.state, river.city, river.farm, 'nilesGift');
     expect(byLake).toBeDefined();
     expect(byLake!.faith).toBe(1);
     expect(byRiver!.faith).toBe(byLake!.faith);
@@ -244,14 +249,14 @@ describe('Akhenaten’s farms are paid for the water they drink', () => {
   it('pays a dry farm nothing at all', () => {
     const { state, city, farm } = farmBeside('nothing');
     expect(farm.freshwater).toBe(false);
-    expect(lineFrom(state, city, farm, 'akhenaten')).toBeUndefined();
+    expect(lineFrom(state, city, farm, 'nilesGift')).toBeUndefined();
   });
 
   it('pays the water and not the ground — bare land beside a lake is not a farm', () => {
     const { state, city, farm } = farmBeside('lake');
     farm.improvement = undefined;
     refreshCityDerived(state, city);
-    expect(lineFrom(state, city, farm, 'akhenaten')).toBeUndefined();
+    expect(lineFrom(state, city, farm, 'nilesGift')).toBeUndefined();
   });
 });
 

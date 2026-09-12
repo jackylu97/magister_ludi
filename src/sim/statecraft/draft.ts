@@ -217,6 +217,13 @@ export interface SlottedOrder {
 export interface OrderOffer {
   /** The new cards, in draw order. */
   options: OrderId[];
+  /**
+   * **This hand has already had its free redraw** — the Rihla's stamp (batch
+   * L6a, `CardActionRule` `rerollOffers`). Presence is the state and it dies
+   * with the offer, which is what makes the waiver one per *draft* rather than
+   * one per game; a seat without the rule never writes it.
+   */
+  rerolled?: true;
 }
 
 /**
@@ -237,6 +244,13 @@ export interface OrderTally {
 /** Three Doctrines from one adoption's pool, drawn without replacement. */
 export interface DoctrineOffer {
   options: DoctrineId[];
+  /**
+   * **This hand has already had its free redraw** — the Rihla's stamp (batch
+   * L6a, `CardActionRule` `rerollOffers`). Presence is the state and it dies
+   * with the offer, which is what makes the waiver one per *draft* rather than
+   * one per game; a seat without the rule never writes it.
+   */
+  rerolled?: true;
 }
 
 /**

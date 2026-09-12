@@ -113,7 +113,7 @@ blow read the same plan.
 Generated — do not hand-edit anything below this line except the **Notes**
 column, which is carried through every regeneration.
 
-### Military — 33 rows
+### Military — 36 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -150,8 +150,11 @@ column, which is carried through every regeneration.
 | Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 101 | — | — | — | — |  |
 | The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 18 | — | — | Spear Wall | — |  |
 | The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 132 | — | — | — | needs improved Horses |  |
+| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 297 | — | — | — | needs improved Horses |  |
+| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 101 | — | — | Knight | needs improved Horses |  |
+| The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 41 | — | — | Longswordsman | — |  |
 
-### Naval — 12 rows
+### Naval — 14 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -167,8 +170,10 @@ column, which is carried through every regeneration.
 | Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 101 | — | Shipwrights | Gun Galley | — |  |
 | Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 342 | — | The Astrolabe | Frigate | — |  |
 | Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 448 | — | — | — | awaits its node · bombards |  |
+| The Treasure Ship | navalHeavy | 76 | — | — | 4 | 120 | 3 | engine | 152 | — | — | — | blockades |  |
+| The Alexandrian Galley | navalLight | 54 | — | — | 5 | 100 | 3 | line | 41 | — | — | Caravel | hit and run |  |
 
-### Civilian — 6 rows
+### Civilian — 7 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -178,12 +183,14 @@ column, which is carried through every regeneration.
 | Apostle | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | Theology | — | bought with faith only · 2 charges |  |
 | Inquisitor | worker | 0 | — | — | 2 | 100 | 2 | free | 0 | — | The Holy Office | — | bought with faith only · 1 charge |  |
 | Great Person | settler | 0 | — | — | 2 | 100 | 2 | free | 0 | — | — | — | great person · 1 charge |  |
+| The Canoness | worker | 0 | — | — | 4 | 100 | 2 | free | 0 | — | — | — | bought with faith only · 2 charges |  |
 
-### Trader — 1 row
+### Trader — 2 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Trader | worker | 0 | — | — | 2 | 100 | 1 | engine | 51 | — | Currency | — | route only |  |
+| The Rihla Caravan | worker | 0 | — | — | 3 | 100 | 2 | engine | 67 | — | — | — | route only |  |
 
 ### The rows' own strength lines
 
@@ -212,6 +219,8 @@ trench). This is the whole of the naval triangle in the simulation.
 | Fubing | Against mounted | +10 | always · vs mounted |
 | The Pontic Peltast | Against mounted | +10 | always · vs mounted |
 | The Scythed Chariot | Against foot | +3 | always · vs melee |
+| The Gendarme | Against cities | +10 | attacking · vs cities |
+| The Alexandrian Galley | Against ranged ships | +10 | always · vs navalRanged |
 
 ### The figures (`data/rules.json`)
 

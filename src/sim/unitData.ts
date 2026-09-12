@@ -34,6 +34,9 @@
 import unitsJson from '../../data/units.json';
 
 import type { ResourceId } from './resourceData';
+// Type-only, so the roster stays a leaf: a row's rules are written in the cards'
+// own vocabulary and read by the cards' own evaluator.
+import type { CardEffect } from './statecraftData';
 
 export type UnitTypeId =
   | 'warrior'
@@ -110,6 +113,13 @@ export type UnitTypeId =
   | 'camelArcher'
   | 'ponticPeltast'
   | 'scythedChariot'
+  | 'gendarme'
+  | 'mandekalu'
+  | 'treasureShip'
+  | 'eagleWarrior'
+  | 'alexandrianGalley'
+  | 'canoness'
+  | 'rihlaCaravan'
   | 'greatPerson';
 
 /**
@@ -718,6 +728,27 @@ export interface UnitDef {
    * that fights on its printed number alone. See `UnitCombatLine`.
    */
   combatLines?: readonly UnitCombatLine[];
+  /**
+   * **Rules this row carries that are not strength lines** (batch L6a).
+   *
+   * A `combatLines` entry is a labelled point on the combat ledger and nothing
+   * else; a row whose text says *pillaging pays double* or *a kill pays culture*
+   * has no other home, because a unit is a piece on a board and the law is an
+   * empire's. So these are folded into **the law of the figure whose sheet names
+   * this row** (`liveEffects`' twelfth source), which is exactly the set of seats
+   * that may ever field the piece — and each effect is scoped to the row's own
+   * class in its own data, so the rule reaches the piece and nothing beside it.
+   *
+   * Only a figure's unique is read: an ordinary row's effects would need a
+   * different question ("who owns one right now"), and that is a design decision
+   * rather than a field. Live from the seat's first turn, which costs nothing —
+   * an effect naming a piece the tree has not yet opened pays on no piece.
+   */
+  effects?: CardEffect[];
+  /** Named halves of the row's text that are deliberately absent. Player prose. */
+  deferred?: string[];
+  /** Something to know about the row that *is* here. Player prose. */
+  note?: string;
   /**
    * True when an attack does **not** end this piece's turn: it pays
    * `rules.naval.hitAndRunCost` out of its allowance and keeps the rest — or the

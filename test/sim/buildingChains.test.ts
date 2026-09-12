@@ -87,10 +87,12 @@ const UNIQUES = BUILDING_IDS.filter(
 
 describe('a chained building wants its parent standing in the same town', () => {
   /**
-   * The ten chains the pass ruled, as the field rather than as a sentence: the
-   * table is the spec, and a chain added or removed has to move this list.
+   * The chains the pass ruled, as the field rather than as a sentence: the table
+   * is the spec, and a chain added or removed has to move this list. Three
+   * joined it in batch L6a — a figure's unique that stands on the line it
+   * replaces asks for that line, exactly as a University asks for a Library.
    */
-  it('is the ten chains the pass ruled, and nothing else', () => {
+  it('is the chains the pass ruled, and nothing else', () => {
     const chains = Object.fromEntries(
       CHAINED.map((id) => [id, buildingDef(id).requiresBuilding]),
     );
@@ -105,6 +107,9 @@ describe('a chained building wants its parent standing in the same town', () => 
       observatory: 'university',
       forge: 'workshop',
       temple: 'shrine',
+      sainteChapelle: 'temple',
+      sankoreMadrasa: 'library',
+      longjiangDockyard: 'harbour',
     });
   });
 

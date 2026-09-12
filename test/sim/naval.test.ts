@@ -117,9 +117,12 @@ function seeEverything(state: GameState): void {
 // --- the roster -------------------------------------------------------------
 
 describe('the naval roster', () => {
-  it('gives twelve hulls three classes, a rig and a canton', () => {
+  it('gives fourteen hulls three classes, a rig and a canton', () => {
+    // Twelve until batch L6a, and fourteen since: Zheng He's Treasure Ship and
+    // Hypatia's Alexandrian Galley are hulls like any other and answer to every
+    // claim below — a unique is a row of the roster, never a class of its own.
     const hulls = UNIT_TYPE_IDS.filter((id) => isNaval(unitDef(id)));
-    expect(hulls).toHaveLength(12);
+    expect(hulls).toHaveLength(14);
     for (const id of hulls) {
       const def = unitDef(id);
       // A ship is a combatant and never a civilian: the category is about
@@ -154,8 +157,11 @@ describe('the naval roster', () => {
     const light = UNIT_TYPE_IDS.filter((id) => unitDef(id).modelClass === 'navalLight');
     const heavy = UNIT_TYPE_IDS.filter((id) => unitDef(id).modelClass === 'navalHeavy');
     const shooters = UNIT_TYPE_IDS.filter((id) => unitDef(id).modelClass === 'navalRanged');
-    expect(light).toHaveLength(5);
-    expect(heavy).toHaveLength(4);
+    // Six and five since batch L6a — the Alexandrian Galley joined the light
+    // line and the Treasure Ship the heavy, and each carries its line's marker
+    // like every other row of it.
+    expect(light).toHaveLength(6);
+    expect(heavy).toHaveLength(5);
     expect(shooters).toHaveLength(3);
     for (const id of light) expect(unitDef(id).hitAndRun, id).toBe(true);
     for (const id of heavy) expect(unitDef(id).blockades, id).toBe(true);

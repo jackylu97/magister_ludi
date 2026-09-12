@@ -41,10 +41,10 @@ import {
 import {
   type CombatSituation,
   cardCombatLines,
-  cardUpkeepRebateLines,
+  liveEffects,
   windfallPayout,
 } from '../../src/sim/statecraft';
-import { type LeaderCardId, type LeaderId, leaderCardHome } from '../../src/sim/leaderData';
+import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
 import { moveCost } from '../../src/sim/terrainData';
 import { fullMovement } from '../../src/sim/units';
 import { type UnitTypeId, unitDef } from '../../src/sim/unitData';
@@ -54,16 +54,15 @@ import { openEveryWar } from './warHelpers';
 // --- the bench ---------------------------------------------------------------
 
 /**
- * A blank grassland board, two seats at war, the first playing `leader` and
- * already holding `card`.
+ * A blank grassland board, two seats at war, the first playing `leader`.
  *
- * The pick is written rather than drafted (`leaderPicks`, then `bumpRevision`)
- * for the bench's usual reason: what is being tested is the rule the card puts
- * into the law, and walking a seat into its own age to be dealt the row is
- * `leaders.test.ts`' claim, pinned there once. The offer the board deals with
- * itself is dropped so nothing here is answering a debt.
+ * Nothing is written onto the seat any more (batch L6a): a figure's abilities
+ * and its unique's own rules are in the law from the turn it sits down, so
+ * naming the figure in the roster is the whole of the bench. The rules below are
+ * the rows' (`UnitDef.effects`) and the sheets', and that they *arrive* is
+ * `leaders.test.ts`' claim, pinned there once.
  */
-function board(leader?: LeaderId, card?: LeaderCardId, width = 14, height = 12): GameState {
+function board(leader?: LeaderId, width = 14, height = 12): GameState {
   const state = newGame({
     seed: 7,
     sizeName: 'duel',
@@ -78,11 +77,6 @@ function board(leader?: LeaderId, card?: LeaderCardId, width = 14, height = 12):
   state.cities = [];
   state.nextEntityId = 1;
   openEveryWar(state);
-  const seat = playerById(state, 0)!;
-  delete seat.leaderOffer;
-  if (card !== undefined) {
-    seat.leaderPicks = { [Number(leaderCardHome(card).age)]: card };
-  }
   bumpRevision(state);
   return state;
 }
@@ -143,7 +137,7 @@ function ring(state: GameState, tile: Tile): Tile[] {
 
 describe('Pachacuti’s Slinger — the hills do not slow it', () => {
   it('pays a hill what the flat land under it costs, where an archer pays the climb', () => {
-    const state = board('pachacuti', 'pachacutiSlinger');
+    const state = board('pachacuti');
     const from = at(state, 5, 5);
     const hill = ring(state, from)[0]!;
     hill.hills = true;
@@ -165,7 +159,7 @@ describe('Pachacuti’s Slinger — the hills do not slow it', () => {
   });
 
   it('still pays for what grows on the hill — it is the climb it ignores', () => {
-    const state = board('pachacuti', 'pachacutiSlinger');
+    const state = board('pachacuti');
     const from = at(state, 5, 5);
     const wood = ring(state, from)[0]!;
     wood.hills = true;
@@ -177,7 +171,7 @@ describe('Pachacuti’s Slinger — the hills do not slow it', () => {
   });
 
   it('makes a mountain no more walkable than it was', () => {
-    const state = board('pachacuti', 'pachacutiSlinger');
+    const state = board('pachacuti');
     const from = at(state, 5, 5);
     const peak = ring(state, from)[0]!;
     peak.terrain = 'mountain';
@@ -188,62 +182,47 @@ describe('Pachacuti’s Slinger — the hills do not slow it', () => {
   });
 });
 
-// --- Taizong's Fubing --------------------------------------------------------
+/**
+ * **The bench keeps its rules, and nobody reads them** (batch L6a).
+ *
+ * The Fubing and the Chanyu's Guard are two of the first cut's rows that no
+ * figure of the second cut names. They kept everything — their stats, their
+ * prices, the marker, and the rule the retired card used to carry, which now
+ * rides the row itself (`UnitDef.effects`). What they have not got is a figure,
+ * so `isUnlocked` refuses them to every seat and the rule reaches no law at all.
+ *
+ * That is the whole shape of a bench and it is worth pinning both halves of: a
+ * row half-retired — the piece gone and the rule still paying somebody — is
+ * exactly the failure nobody would notice.
+ */
+describe('a benched row', () => {
+  const BENCHED = ['fubing', 'chanyuGuard'] as const;
 
-describe('Taizong’s Fubing — kept for nothing only while it garrisons a town', () => {
-  /**
-   * The card reading, asked at the seam that owns it.
-   *
-   * `cardUpkeepRebateLines` takes the price from its caller by design (its own
-   * docblock: "what this side owns is the card reading … and what the caller
-   * owns is the price"), so the bench hands it a shilling a soldier and reads
-   * back which pieces the law forgave. That is the half this batch changed, and
-   * it is asked of the one function that decides it — the ledger's fold is
-   * `explainUnitUpkeepRebate`'s claim and is pinned in `upkeep`'s own file.
-   */
-  const shilling = (unit: Unit): number => (unitDef(unit.type).category === 'military' ? 1 : 0);
-
-  function forgiven(state: GameState): number {
-    let total = 0;
-    for (const line of cardUpkeepRebateLines(state, 0, shilling)) total += line.gold;
-    return total;
-  }
-
-  it('forgives the piece standing in its own city, and charges it in the field', () => {
-    const state = board('taizong', 'taizongFubing');
-    const seat = at(state, 6, 6);
-    const city = foundCityAt(state, 0, seat);
-    expect(city).not.toBeNull();
-    bumpRevision(state);
-
-    // In the gate: the soldier-farmers feed themselves and cost nothing.
-    const fubing = piece(state, 'fubing', seat);
-    expect(forgiven(state)).toBe(1);
-
-    // One hex out — still the town's own ground, and no longer the garrison.
-    const field = ring(state, seat).find(
-      (tile) => tileOwnerCityId(state, tile.col, tile.row) === city!.id,
-    )!;
-    fubing.col = field.col;
-    fubing.row = field.row;
-    bumpRevision(state);
-    expect(forgiven(state)).toBe(0);
+  it('still carries the rule its retired card used to', () => {
+    expect(unitDef('fubing').effects).toEqual([
+      { kind: 'upkeepRebate', free: true, class: { type: 'fubing' }, where: 'garrison' },
+    ]);
+    expect((unitDef('chanyuGuard').effects ?? []).length).toBe(1);
   });
 
-  it('is the fubing’s bargain and nobody else’s, and no other empire’s', () => {
-    const state = board('taizong', 'taizongFubing');
-    const seat = at(state, 6, 6);
-    foundCityAt(state, 0, seat);
-    bumpRevision(state);
+  it('puts that rule into nobody’s law, under any figure at all', () => {
+    for (const leader of LEADER_IDS) {
+      const state = board(leader);
+      const held = liveEffects(state, 0);
+      for (const type of BENCHED) {
+        for (const effect of unitDef(type).effects ?? []) {
+          expect(
+            held.some((line) => JSON.stringify(line.effect) === JSON.stringify(effect)),
+            `${leader} reads ${type}`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
 
-    // A spearman in the same gate pays like anybody else…
-    piece(state, 'spearman', seat);
-    expect(forgiven(state)).toBe(0);
-    // …and the seat that never took the card forgives nothing at all.
-    piece(state, 'fubing', seat, 1);
-    let theirs = 0;
-    for (const line of cardUpkeepRebateLines(state, 1, shilling)) theirs += line.gold;
-    expect(theirs).toBe(0);
+  it('is named by no figure’s sheet', () => {
+    const claimed = new Set(LEADER_IDS.map((id) => leaderDef(id).unit));
+    for (const type of BENCHED) expect(claimed.has(type), type).toBe(false);
   });
 });
 
@@ -251,7 +230,7 @@ describe('Taizong’s Fubing — kept for nothing only while it garrisons a town
 
 describe('Akhenaten’s Khopesh — anywhere the seat’s faith is kept', () => {
   it('is worth its three points on a following town’s ground, and nothing in the wild', () => {
-    const state = board('akhenaten', 'akhenatenKhopesh');
+    const state = board('akhenaten');
     const seat = at(state, 6, 6);
     const mine = foundCityAt(state, 0, seat)!;
     const religion = foundReligion(state, playerById(state, 0)!);
@@ -279,7 +258,7 @@ describe('Akhenaten’s Khopesh — anywhere the seat’s faith is kept', () => 
   });
 
   it('follows the banner rather than the border — a town that lapses stops paying', () => {
-    const state = board('akhenaten', 'akhenatenKhopesh');
+    const state = board('akhenaten');
     const seat = at(state, 6, 6);
     const mine = foundCityAt(state, 0, seat)!;
     const religion = foundReligion(state, playerById(state, 0)!);
@@ -298,7 +277,7 @@ describe('Akhenaten’s Khopesh — anywhere the seat’s faith is kept', () => 
   });
 
   it('is the khopesh’s line and no other sword’s', () => {
-    const state = board('akhenaten', 'akhenatenKhopesh');
+    const state = board('akhenaten');
     const seat = at(state, 6, 6);
     const mine = foundCityAt(state, 0, seat)!;
     const religion = foundReligion(state, playerById(state, 0)!);
@@ -306,47 +285,6 @@ describe('Akhenaten’s Khopesh — anywhere the seat’s faith is kept', () => 
     bumpRevision(state);
     const swordsman = piece(state, 'swordsman', seat);
     expect(cardStrength(state, swordsman, seat)).toBe(0);
-  });
-});
-
-// --- Modu's Guard ------------------------------------------------------------
-
-describe('The Chanyu’s Guard — the horse archers riding beside it', () => {
-  it('emboldens a mounted archer on the next hex, and not one two hexes off', () => {
-    const state = board('modu', 'moduGuard');
-    const here = at(state, 6, 6);
-    const rider = piece(state, 'horseArcher', here);
-    const beside = ring(state, here)[0]!;
-    const away = ring(state, beside).find(
-      (tile) => tile.col !== here.col || tile.row !== here.row,
-    )!;
-
-    // Nobody beside it: no line at all.
-    expect(cardStrength(state, rider, here)).toBe(0);
-
-    const guard = piece(state, 'chanyuGuard', away);
-    expect(cardStrength(state, rider, here)).toBe(0);
-
-    guard.col = beside.col;
-    guard.row = beside.row;
-    bumpRevision(state);
-    expect(cardStrength(state, rider, here)).toBe(2);
-    // Defending too — it is the formation that is worth something, not the charge.
-    expect(cardStrength(state, rider, here, 'defend')).toBe(2);
-  });
-
-  it('embolden the archers and not the spears, and never a rival’s', () => {
-    const state = board('modu', 'moduGuard');
-    const here = at(state, 6, 6);
-    const beside = ring(state, here)[0]!;
-    piece(state, 'chanyuGuard', beside);
-
-    const foot = piece(state, 'spearman', here);
-    expect(cardStrength(state, foot, here)).toBe(0);
-
-    // A rival's archer standing next to the Guard is not the Chanyu's.
-    const theirs = piece(state, 'horseArcher', here, 1);
-    expect(cardStrength(state, theirs, here)).toBe(0);
   });
 });
 
@@ -369,7 +307,7 @@ describe('Al-Ma’mun’s Camel Archer — keener for the works in the capital',
   }
 
   it('shoots no harder with nothing planted, and +3 with three works in the seat', () => {
-    const state = board('almamun', 'almamunCamel');
+    const state = board('almamun');
     const seat = at(state, 6, 6);
     const city = foundCityAt(state, 0, seat)!;
     bumpRevision(state);
@@ -382,7 +320,7 @@ describe('Al-Ma’mun’s Camel Archer — keener for the works in the capital',
   });
 
   it('counts the capital’s works and not a second town’s', () => {
-    const state = board('almamun', 'almamunCamel');
+    const state = board('almamun');
     const seat = at(state, 6, 6);
     const capital = foundCityAt(state, 0, seat)!;
     // A colony far enough off that the two towns share no ground.
@@ -402,7 +340,7 @@ describe('Al-Ma’mun’s Camel Archer — keener for the works in the capital',
   });
 
   it('is the arrows and not the guard — it pays on the shot alone', () => {
-    const state = board('almamun', 'almamunCamel');
+    const state = board('almamun');
     const seat = at(state, 6, 6);
     const city = foundCityAt(state, 0, seat)!;
     bumpRevision(state);
@@ -417,7 +355,7 @@ describe('Al-Ma’mun’s Camel Archer — keener for the works in the capital',
   });
 
   it('counts the stones, not the names: a work out in the wild is nobody’s', () => {
-    const state = board('almamun', 'almamunCamel');
+    const state = board('almamun');
     const seat = at(state, 6, 6);
     foundCityAt(state, 0, seat);
     bumpRevision(state);
@@ -435,7 +373,7 @@ describe('Al-Ma’mun’s Camel Archer — keener for the works in the capital',
 
 describe('The Pontic Peltast — the mend on a kill is the peltast’s', () => {
   it('mends on its own kill and on nobody else’s', () => {
-    const state = board('mithridates', 'mithridatesPeltast');
+    const state = board('mithridates');
     const mine = windfallPayout(state, 0, 'kill', 0, 0, { actor: 'ponticPeltast' });
     expect(mine.heal).toBe(25);
 
@@ -448,7 +386,7 @@ describe('The Pontic Peltast — the mend on a kill is the peltast’s', () => {
   });
 
   it('mends the peltast that struck, in the fight itself', () => {
-    const state = board('mithridates', 'mithridatesPeltast');
+    const state = board('mithridates');
     const here = at(state, 6, 6);
     const peltast = piece(state, 'ponticPeltast', here);
     peltast.hp = 10;
@@ -468,7 +406,7 @@ describe('The Pontic Peltast — the mend on a kill is the peltast’s', () => {
   });
 
   it('leaves a warrior’s kill unmended', () => {
-    const state = board('mithridates', 'mithridatesPeltast');
+    const state = board('mithridates');
     const here = at(state, 6, 6);
     const warrior = piece(state, 'warrior', here);
     warrior.hp = 10;

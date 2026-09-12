@@ -2,6 +2,65 @@
   "leaders": {
     "pachacuti": {
       "name": "Pachacuti",
+      "abilities": [
+        {
+          "id": "qhapaqNan",
+          "name": "The Qhapaq Ñan",
+          "text": "Every city joined to your capital by road pays +1 happiness and +1 production.",
+          "effects": [
+            {
+              "kind": "happiness",
+              "amount": 1,
+              "scope": {
+                "test": "connected"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "production": 1,
+              "scope": {
+                "test": "connected"
+              }
+            }
+          ]
+        },
+        {
+          "id": "goldOfThePeaks",
+          "name": "The Gold of the Peaks",
+          "text": "Farms pay +1 gold for every mountain standing beside them.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "gold": 1,
+              "perAdjacentMountain": true,
+              "on": {
+                "test": "all",
+                "of": [
+                  {
+                    "test": "improvement",
+                    "improvement": "farm"
+                  },
+                  {
+                    "test": "adjacentMountain"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "slinger",
+      "building": "terraces",
+      "colors": {
+        "primary": "#8b2635",
+        "secondary": "#e0b21a",
+        "names": [
+          "maroon",
+          "sun gold"
+        ]
+      },
       "cities": [
         "Cusco",
         "Quito",
@@ -19,238 +78,80 @@
         "Choquequirao",
         "Raqchi"
       ],
-      "colors": {
-        "primary": "#8b2635",
-        "secondary": "#e0b21a",
-        "names": ["maroon", "sun gold"]
-      },
-      "bonus": {
-        "text": "Farms pay +1 food for every mountain standing beside them.",
-        "effects": [
-          {
-            "kind": "pays",
-            "where": "hex",
-            "food": 1,
-            "perAdjacentMountain": true,
-            "on": {
-              "test": "all",
-              "of": [
-                {
-                  "test": "improvement",
-                  "improvement": "farm"
-                },
-                {
-                  "test": "adjacentMountain"
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "pachacutiCorvee",
-            "name": "The Corvée",
-            "kind": "passive",
-            "flavor": "The road asks; the province answers.",
-            "text": "Workers gain one more charge.",
-            "effects": [
-              {
-                "kind": "unitStat",
-                "stat": "charges",
-                "amount": 1,
-                "class": {
-                  "type": "worker"
-                }
-              }
-            ]
-          },
-          {
-            "id": "pachacutiMita",
-            "name": "The Mit'a",
-            "kind": "boon",
-            "flavor": "Labour owed, labour given, labour written down.",
-            "text": "+3 authority.",
-            "effects": [
-              {
-                "kind": "authority",
-                "amount": 3
-              }
-            ]
-          },
-          {
-            "id": "pachacutiTerraces",
-            "name": "Terraces",
-            "kind": "unique",
-            "flavor": "The mountain is made to lie flat, one step at a time.",
-            "text": "Opens the Terraces: farms may be cut into the high ground the town holds, and every farm it works up there pays +1 food.",
-            "unlocks": {
-              "building": "terraces"
-            }
-          }
-        ],
-        "2": [
-          {
-            "id": "pachacutiQhapaqNan",
-            "name": "The Qhapaq Ñan",
-            "kind": "passive",
-            "flavor": "Forty thousand miles of road, and a runner on every one.",
-            "text": "Every city joined to your capital by road pays +1 happiness and +1 production.",
-            "effects": [
-              {
-                "kind": "happiness",
-                "amount": 1,
-                "scope": {
-                  "test": "connected"
-                }
-              },
-              {
-                "kind": "pays",
-                "where": "city",
-                "production": 1,
-                "scope": {
-                  "test": "connected"
-                }
-              }
-            ]
-          },
-          {
-            "id": "pachacutiMaster",
-            "name": "The Master of Works",
-            "kind": "boon",
-            "flavor": "Somebody has to know where the stone goes.",
-            "text": "A great engineer is offered.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "greatPerson",
-                  "family": "engineer"
-                }
-              ]
-            }
-          },
-          {
-            "id": "pachacutiSlinger",
-            "name": "The Slinger",
-            "kind": "unique",
-            "flavor": "A stone, a strap, and the whole hillside for a wall.",
-            "text": "Opens the Slinger, a shooter of the second age with +2 ranged strength. A hill costs it no more than the flat land under it.",
-            "unlocks": {
-              "unit": "slinger"
-            }
-          }
-        ],
-        "3": [
-          {
-            "id": "pachacutiTribute",
-            "name": "The Tribute Road",
-            "kind": "passive",
-            "flavor": "What the road carries, the road may be asked for.",
-            "text": "+1 authority capacity per city joined to your capital by road.",
-            "effects": [
-              {
-                "kind": "authority",
-                "amount": 1,
-                "per": "city",
-                "scope": {
-                  "test": "connected"
-                }
-              }
-            ]
-          },
-          {
-            "id": "pachacutiStorehouses",
-            "name": "The Storehouses Opened",
-            "kind": "boon",
-            "flavor": "The province eats what the province stored.",
-            "text": "+10 production in every city.",
-            "boon": {
-              "windfall": {
-                "yield": "production",
-                "amount": 10,
-                "where": "every"
-              }
-            },
-            "deferred": [
-              "Every town takes the hammers, not only those joined to your seat."
-            ]
-          },
-          {
-            "id": "pachacutiTambo",
-            "name": "The Tambo",
-            "kind": "unique",
-            "flavor": "A roof, a well, and somewhere to put the llamas.",
-            "text": "Opens the Tambo: another caravan may set out from this town, and your own roads to or from it carry +1 food and +1 production.",
-            "unlocks": {
-              "building": "tambo"
-            }
-          }
-        ],
-        "4": [
-          {
-            "id": "pachacutiHighlands",
-            "name": "The Highland Seat",
-            "kind": "passive",
-            "flavor": "Thin air, long sight.",
-            "text": "+10% science and +10% gold in every city whose lands hold a mountain.",
-            "effects": [
-              {
-                "kind": "percentYields",
-                "yield": "science",
-                "percent": 10,
-                "scope": {
-                  "test": "terrainInBorders",
-                  "terrain": "mountain"
-                }
-              },
-              {
-                "kind": "percentYields",
-                "yield": "gold",
-                "percent": 10,
-                "scope": {
-                  "test": "terrainInBorders",
-                  "terrain": "mountain"
-                }
-              }
-            ]
-          },
-          {
-            "id": "pachacutiLevy",
-            "name": "The Levy of Hands",
-            "kind": "boon",
-            "flavor": "Move the people, and the empire moves with them.",
-            "text": "A citizen in every city.",
-            "boon": {
-              "windfall": {
-                "yield": "population",
-                "amount": 1,
-                "where": "every"
-              }
-            },
-            "deferred": [
-              "Every town gains the citizen, not only those joined to your seat."
-            ]
-          },
-          {
-            "id": "pachacutiQollqa",
-            "name": "The Qollqa",
-            "kind": "unique",
-            "flavor": "Cold stone, dry grain, a hard winter survived.",
-            "text": "Opens the Qollqa: +2 production, and the town keeps a quarter of its stores when it grows.",
-            "unlocks": {
-              "building": "qollqa"
-            }
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "river": 6, "hills": 1.5, "mountain": 2.5 },
-        "wants": { "mountainWithin": 2, "riverWithin": 1 }
+        "terrain": {
+          "river": 6,
+          "hills": 1.5,
+          "mountain": 2.5
+        },
+        "wants": {
+          "mountainWithin": 2,
+          "riverWithin": 1
+        }
       }
     },
     "taizong": {
       "name": "Emperor Taizong",
+      "abilities": [
+        {
+          "id": "theMandate",
+          "name": "The Mandate",
+          "text": "Melee units gain +1 combat strength and +1 movement.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 1,
+              "side": "both",
+              "when": {
+                "test": "always"
+              },
+              "class": {
+                "modelClass": "melee"
+              }
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "melee"
+              }
+            }
+          ]
+        },
+        {
+          "id": "garrisonTowns",
+          "name": "The Garrison Towns",
+          "text": "Garrisoned cities pay +1 happiness and +15% culture.",
+          "effects": [
+            {
+              "kind": "happiness",
+              "amount": 1,
+              "scope": {
+                "test": "garrisoned"
+              }
+            },
+            {
+              "kind": "percentYields",
+              "yield": "culture",
+              "percent": 15,
+              "scope": {
+                "test": "garrisoned"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "tangCavalry",
+      "building": "examinationCourt",
+      "colors": {
+        "primary": "#2e8b6e",
+        "secondary": "#f3ecd8",
+        "names": [
+          "jade",
+          "ivory"
+        ]
+      },
       "cities": [
         "Chang'an",
         "Luoyang",
@@ -268,289 +169,77 @@
         "Xiangyang",
         "Fuzhou"
       ],
-      "colors": {
-        "primary": "#2e8b6e",
-        "secondary": "#f3ecd8",
-        "names": ["jade", "ivory"]
-      },
-      "bonus": {
-        "text": "Melee units gain +1 combat strength and +1 movement. Every city pays +2 culture.",
-        "effects": [
-          {
-            "kind": "combatLine",
-            "amount": 1,
-            "side": "both",
-            "when": {
-              "test": "always"
-            },
-            "class": {
-              "modelClass": "melee"
-            }
-          },
-          {
-            "kind": "unitStat",
-            "stat": "movement",
-            "amount": 1,
-            "class": {
-              "modelClass": "melee"
-            }
-          },
-          {
-            "kind": "pays",
-            "where": "city",
-            "culture": 2
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "taizongYangtze",
-            "name": "The Great Yangtze",
-            "kind": "passive",
-            "flavor": "A river is a border until somebody bridges it.",
-            "text": "+1 authority capacity per city on a river.",
-            "effects": [
-              {
-                "kind": "authority",
-                "amount": 1,
-                "per": "city",
-                "scope": {
-                  "test": "riverside"
-                }
-              }
-            ]
-          },
-          {
-            "id": "taizongMandate",
-            "name": "The Mandate of Heaven",
-            "kind": "boon",
-            "flavor": "Heaven does not argue. It simply stops answering.",
-            "text": "+3 authority.",
-            "effects": [
-              {
-                "kind": "authority",
-                "amount": 3
-              }
-            ]
-          },
-          {
-            "id": "taizongFubing",
-            "name": "The Fubing",
-            "kind": "unique",
-            "flavor": "Soldiers who plough, and ploughmen who muster.",
-            "text": "Opens the Fubing, a cheap spear line that costs no gold in maintenance while it stands in one of your cities.",
-            "unlocks": {
-              "unit": "fubing"
-            },
-            "effects": [
-              {
-                "kind": "upkeepRebate",
-                "free": true,
-                "class": {
-                  "type": "fubing"
-                },
-                "where": "garrison"
-              }
-            ]
-          }
-        ],
-        "2": [
-          {
-            "id": "taizongGarrisons",
-            "name": "The Garrison Towns",
-            "kind": "passive",
-            "flavor": "A town with a wall and men on it sleeps well.",
-            "text": "Garrisoned cities pay +1 happiness and +15% culture.",
-            "effects": [
-              {
-                "kind": "happiness",
-                "amount": 1,
-                "scope": {
-                  "test": "garrisoned"
-                }
-              },
-              {
-                "kind": "percentYields",
-                "yield": "culture",
-                "percent": 15,
-                "scope": {
-                  "test": "garrisoned"
-                }
-              }
-            ]
-          },
-          {
-            "id": "taizongXuanwu",
-            "name": "The Xuanwu Gate",
-            "kind": "boon",
-            "flavor": "One morning at one gate, and the dynasty is decided.",
-            "text": "Every Order draft shows one more card.",
-            "effects": [
-              {
-                "kind": "offerRider",
-                "offer": "order",
-                "extra": 1
-              }
-            ],
-            "deferred": [
-              "It widens every draft from now on rather than the next one alone.",
-              "The draft it widens is not free of charge."
-            ]
-          },
-          {
-            "id": "taizongExamination",
-            "name": "The Examination Court",
-            "kind": "unique",
-            "flavor": "Sit the paper. Nobody asks who your father was.",
-            "text": "Opens the Examination Court: +1 authority, and +1 science for every Order in a military chair.",
-            "unlocks": {
-              "building": "examinationCourt"
-            }
-          }
-        ],
-        "3": [
-          {
-            "id": "taizongKhagan",
-            "name": "The Heavenly Khagan",
-            "kind": "passive",
-            "flavor": "The steppe named him, which is worth more than a crown.",
-            "text": "A captured city costs 1 less authority, and every puppet city pays +5 culture.",
-            "effects": [
-              {
-                "kind": "meterRule",
-                "rule": "capturedCityCost",
-                "delta": -1
-              },
-              {
-                "kind": "pays",
-                "where": "city",
-                "culture": 5,
-                "scope": {
-                  "test": "puppet"
-                }
-              }
-            ]
-          },
-          {
-            "id": "taizongTribute",
-            "name": "The Tribute of the Khaganate",
-            "kind": "boon",
-            "flavor": "Carts, and more carts behind them.",
-            "text": "+200 gold.",
-            "boon": {
-              "windfall": {
-                "yield": "gold",
-                "amount": 200,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "One payment reaches your seat rather than one from each puppet."
-            ]
-          },
-          {
-            "id": "taizongCavalry",
-            "name": "Tang Heavy Cavalry",
-            "kind": "unique",
-            "flavor": "Armour on the horse as well as the man.",
-            "text": "Opens the Tang heavy cavalry, a strengthened horse line worth +2 more beside a melee unit.",
-            "unlocks": {
-              "unit": "tangCavalry"
-            },
-            "effects": [
-              {
-                "kind": "combatLine",
-                "amount": 2,
-                "side": "both",
-                "when": {
-                  "test": "beside",
-                  "class": {
-                    "modelClass": "melee"
-                  }
-                },
-                "class": {
-                  "type": "tangCavalry"
-                }
-              }
-            ]
-          }
-        ],
-        "4": [
-          {
-            "id": "taizongPoets",
-            "name": "The Great Poets",
-            "kind": "passive",
-            "flavor": "The empire is remembered in eight lines.",
-            "text": "A great artist's boon pays twice over, and is followed by years of quickened work and song.",
-            "effects": [
-              {
-                "kind": "effectAmplifier",
-                "target": "greatPersonAct",
-                "percent": 100,
-                "family": "artist"
-              },
-              {
-                "kind": "windfallRider",
-                "occasion": "greatPersonAct",
-                "family": "artist",
-                "grant": {
-                  "timed": {
-                    "turns": 5,
-                    "effects": [
-                      {
-                        "kind": "percentYields",
-                        "yield": "production",
-                        "percent": 10
-                      },
-                      {
-                        "kind": "percentYields",
-                        "yield": "culture",
-                        "percent": 10
-                      }
-                    ]
-                  }
-                }
-              }
-            ]
-          },
-          {
-            "id": "taizongMuster",
-            "name": "The Muster of the Provinces",
-            "kind": "boon",
-            "flavor": "Every barracks empties into the same road.",
-            "text": "A knight musters at your seat.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "unit",
-                  "unit": "knight"
-                }
-              ]
-            },
-            "deferred": [
-              "One rider musters at your seat rather than one in every town with a barracks."
-            ]
-          },
-          {
-            "id": "taizongPostRoad",
-            "name": "The Post Station",
-            "kind": "unique",
-            "flavor": "Fresh horses, and the news arrives before the rumour.",
-            "text": "Opens the Post Station: +1 authority, and +20% production while the town is joined to your capital.",
-            "unlocks": {
-              "building": "postStation"
-            }
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "grassland": 0.9, "river": 2 },
-        "wants": { "grasslandWithin": 2 }
+        "terrain": {
+          "grassland": 0.9,
+          "river": 2
+        },
+        "wants": {
+          "grasslandWithin": 2
+        }
       }
     },
     "modu": {
       "name": "Modu Chanyu",
+      "abilities": [
+        {
+          "id": "steppeRiders",
+          "name": "The Riders of the Steppe",
+          "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mounted"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 1,
+              "class": {
+                "modelClass": "mountedRanged"
+              },
+              "where": "grassOrPlains"
+            },
+            {
+              "kind": "windfallRider",
+              "occasion": "pillage",
+              "percent": 50
+            }
+          ]
+        },
+        {
+          "id": "theHerds",
+          "name": "The Herds",
+          "text": "+1 production and +1 faith on every pasture.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "production": 1,
+              "faith": 1,
+              "on": {
+                "test": "improvement",
+                "improvement": "pasture"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "xiongnuHorseArcher",
+      "building": "hordeCamp",
+      "colors": {
+        "primary": "#3a78b5",
+        "secondary": "#efe6d2",
+        "names": [
+          "sky blue",
+          "bone"
+        ]
+      },
       "cities": [
         "Longcheng",
         "Ordos",
@@ -568,279 +257,78 @@
         "Duurlig Nars",
         "Yanran"
       ],
-      "colors": {
-        "primary": "#3a78b5",
-        "secondary": "#efe6d2",
-        "names": ["sky blue", "bone"]
-      },
-      "bonus": {
-        "text": "Mounted units gain +1 movement on grassland and plains. Pillaging pays half again.",
-        "effects": [
-          {
-            "kind": "unitStat",
-            "stat": "movement",
-            "amount": 1,
-            "class": {
-              "modelClass": "mounted"
-            },
-            "where": "grassOrPlains"
-          },
-          {
-            "kind": "unitStat",
-            "stat": "movement",
-            "amount": 1,
-            "class": {
-              "modelClass": "mountedRanged"
-            },
-            "where": "grassOrPlains"
-          },
-          {
-            "kind": "windfallRider",
-            "occasion": "pillage",
-            "percent": 50
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "moduHerds",
-            "name": "The Herds",
-            "kind": "passive",
-            "flavor": "Count the horses. That is the census.",
-            "text": "+1 production and +1 faith on every pasture.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "hex",
-                "production": 1,
-                "faith": 1,
-                "on": {
-                  "test": "improvement",
-                  "improvement": "pasture"
-                }
-              }
-            ]
-          },
-          {
-            "id": "moduHorseLords",
-            "name": "The Horse Lords",
-            "kind": "boon",
-            "flavor": "Where the grass ends, the empire ends.",
-            "text": "The horses are shown, and a pasture is laid where the nearest of them stand.",
-            "deferred": [
-              "The horses are not revealed.",
-              "No pasture is laid."
-            ]
-          },
-          {
-            "id": "moduWhistlingArrow",
-            "name": "The Whistling Arrow",
-            "kind": "unique",
-            "flavor": "Shoot where it flies. Do not ask what it is pointing at.",
-            "text": "Opens the Whistling Arrow, an early chariot bow that shoots one hex further.",
-            "unlocks": {
-              "unit": "whistlingArrow"
-            }
-          }
-        ],
-        "2": [
-          {
-            "id": "moduRaiders",
-            "name": "The Raiders",
-            "kind": "passive",
-            "flavor": "Take the harvest, leave the field.",
-            "text": "Pillaging costs no movement, mends the raider and pays +25 faith.",
-            "effects": [
-              {
-                "kind": "rule",
-                "rule": "freePillage"
-              },
-              {
-                "kind": "windfallRider",
-                "occasion": "pillage",
-                "grant": {
-                  "heal": 25
-                }
-              },
-              {
-                "kind": "windfallRider",
-                "occasion": "pillage",
-                "grant": {
-                  "yield": "faith",
-                  "amount": 25
-                }
-              }
-            ]
-          },
-          {
-            "id": "moduGreatRaid",
-            "name": "The Great Raid",
-            "kind": "boon",
-            "flavor": "One season is enough to undo ten.",
-            "text": "Every rival's field within reach of your columns burns at once.",
-            "deferred": [
-              "Nothing is burnt: the stroke that empties a neighbour's fields is not built."
-            ]
-          },
-          {
-            "id": "moduHordeCamp",
-            "name": "The Horde Camp",
-            "kind": "unique",
-            "flavor": "A city that can be folded up and carried.",
-            "text": "Opens the Horde Camp: every pasture the town works pays +1 faith, and a soldier of yours has its whole movement back every time it steps onto one of them.",
-            "unlocks": {
-              "building": "hordeCamp"
-            }
-          }
-        ],
-        "3": [
-          {
-            "id": "moduSkyRite",
-            "name": "The Rite of the Sky",
-            "kind": "passive",
-            "flavor": "The sky is the only roof worth praying under.",
-            "text": "While a rite is being kept anywhere in your empire, +1 combat strength.",
-            "effects": [
-              {
-                "kind": "conditionRule",
-                "when": {
-                  "test": "keepingRite"
-                },
-                "then": [
-                  {
-                    "kind": "combatLine",
-                    "amount": 1,
-                    "side": "both",
-                    "when": {
-                      "test": "always"
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "moduGeneral",
-            "name": "The General of the Left",
-            "kind": "boon",
-            "flavor": "The wing that decides is the wing you cannot see.",
-            "text": "A great general is offered.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "greatPerson",
-                  "family": "general"
-                }
-              ]
-            }
-          },
-          {
-            "id": "moduHorseArcher",
-            "name": "The Xiongnu Horse Archer",
-            "kind": "unique",
-            "flavor": "They shoot going away. That is the whole trick.",
-            "text": "Opens the Xiongnu horse archer, a faster bow on horseback that is given its movement back whenever it kills.",
-            "unlocks": {
-              "unit": "xiongnuHorseArcher"
-            },
-            "effects": [
-              {
-                "kind": "rule",
-                "rule": "moveAfterKill",
-                "class": {
-                  "type": "xiongnuHorseArcher"
-                }
-              }
-            ]
-          }
-        ],
-        "4": [
-          {
-            "id": "moduTribute",
-            "name": "The Tribute of the Han",
-            "kind": "passive",
-            "flavor": "Silk, grain, a princess, and peace until spring.",
-            "text": "Every puppet city pays 30% of its science and 30% of its culture over again.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "city",
-                "basis": "share",
-                "from": "science",
-                "to": "science",
-                "percent": 30,
-                "scope": {
-                  "test": "puppet"
-                }
-              },
-              {
-                "kind": "pays",
-                "where": "city",
-                "basis": "share",
-                "from": "culture",
-                "to": "culture",
-                "percent": 30,
-                "scope": {
-                  "test": "puppet"
-                }
-              }
-            ]
-          },
-          {
-            "id": "moduSilk",
-            "name": "The Silk Tribute",
-            "kind": "boon",
-            "flavor": "They call it a gift. We call it a schedule.",
-            "text": "+500 gold.",
-            "boon": {
-              "windfall": {
-                "yield": "gold",
-                "amount": 500,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "One payment reaches your seat rather than one from each puppet."
-            ]
-          },
-          {
-            "id": "moduGuard",
-            "name": "The Chanyu's Guard",
-            "kind": "unique",
-            "flavor": "The ones who ride nearest the whistling arrow.",
-            "text": "Opens the Chanyu's Guard, a heavier and faster horse than any knight. Your mounted archers standing beside one fight at +2 strength.",
-            "unlocks": {
-              "unit": "chanyuGuard"
-            },
-            "effects": [
-              {
-                "kind": "combatLine",
-                "amount": 2,
-                "side": "both",
-                "class": {
-                  "modelClass": "mountedRanged"
-                },
-                "when": {
-                  "test": "beside",
-                  "class": {
-                    "type": "chanyuGuard"
-                  }
-                }
-              }
-            ]
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "grassland": 0.45, "plains": 0.4, "hills": -0.3 },
-        "resources": { "horses": 12, "cattle": 4 },
-        "furnish": ["horses"],
-        "wants": { "pastureGroundWithin": 3 }
+        "terrain": {
+          "grassland": 0.45,
+          "plains": 0.4,
+          "hills": -0.3
+        },
+        "resources": {
+          "horses": 12,
+          "cattle": 4
+        },
+        "furnish": [
+          "horses"
+        ],
+        "wants": {
+          "pastureGroundWithin": 3
+        }
       }
     },
     "akhenaten": {
       "name": "Akhenaten",
+      "abilities": [
+        {
+          "id": "greatWorks",
+          "name": "The Great Works",
+          "text": "Cities with a holy site make wonders 20% faster.",
+          "effects": [
+            {
+              "kind": "productionBonus",
+              "category": "wonder",
+              "percent": 20,
+              "scope": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            }
+          ]
+        },
+        {
+          "id": "nilesGift",
+          "name": "The Nile's Gift",
+          "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "faith": 1,
+              "on": {
+                "test": "all",
+                "of": [
+                  {
+                    "test": "improvement",
+                    "improvement": "farm"
+                  },
+                  {
+                    "test": "freshwater"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "khopesh",
+      "building": "obelisk",
+      "colors": {
+        "primary": "#e0852a",
+        "secondary": "#234b9a",
+        "names": [
+          "sun orange",
+          "lapis"
+        ]
+      },
       "cities": [
         "Akhetaten",
         "Thebes",
@@ -858,260 +346,68 @@
         "Buhen",
         "Napata"
       ],
-      "colors": {
-        "primary": "#e0852a",
-        "secondary": "#234b9a",
-        "names": ["sun orange", "lapis"]
-      },
-      "bonus": {
-        "text": "+1 faith on farms that drink fresh water, from a river, a lake or an oasis alike. Cities with a holy site make wonders 20% faster.",
-        "effects": [
-          {
-            "kind": "pays",
-            "where": "hex",
-            "faith": 1,
-            "on": {
-              "test": "all",
-              "of": [
-                {
-                  "test": "improvement",
-                  "improvement": "farm"
-                },
-                {
-                  "test": "freshwater"
-                }
-              ]
-            }
-          },
-          {
-            "kind": "productionBonus",
-            "category": "wonder",
-            "percent": 20,
-            "scope": {
-              "test": "hasImprovement",
-              "improvement": "holySite"
-            }
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "akhenatenRites",
-            "name": "The Rites of Aten",
-            "kind": "passive",
-            "flavor": "One disc, one hymn, one hand held open.",
-            "text": "+10% production towards wonders in every city keeping a rite.",
-            "effects": [
-              {
-                "kind": "productionBonus",
-                "category": "wonder",
-                "percent": 10,
-                "scope": {
-                  "test": "keepingRite"
-                }
-              }
-            ]
-          },
-          {
-            "id": "akhenatenVoice",
-            "name": "The Voice of the Sun",
-            "kind": "boon",
-            "flavor": "He wrote the hymn himself, and signed it.",
-            "text": "A prophet arrives at your seat.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "unit",
-                  "unit": "prophet"
-                }
-              ]
-            },
-            "deferred": [
-              "The prophet comes at once rather than waiting on the study of omens."
-            ]
-          },
-          {
-            "id": "akhenatenObelisk",
-            "name": "The Obelisk",
-            "kind": "unique",
-            "flavor": "One stone, standing, with the sun on its tip at noon.",
-            "text": "Opens the Obelisk, a shrine that also pays +2 production.",
-            "unlocks": {
-              "building": "obelisk"
-            }
-          }
-        ],
-        "2": [
-          {
-            "id": "akhenatenDesert",
-            "name": "The City in the Desert",
-            "kind": "passive",
-            "flavor": "He built it where nobody had any claim to be.",
-            "text": "+3 food and +3 faith on a holy site standing on desert.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "hex",
-                "food": 3,
-                "faith": 3,
-                "on": {
-                  "test": "all",
-                  "of": [
-                    {
-                      "test": "improvement",
-                      "improvement": "holySite"
-                    },
-                    {
-                      "test": "terrain",
-                      "terrain": "desert"
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "id": "akhenatenCourt",
-            "name": "The Court Moves",
-            "kind": "boon",
-            "flavor": "The whole city walks out to the new one.",
-            "text": "+2 citizens in your capital.",
-            "boon": {
-              "windfall": {
-                "yield": "population",
-                "amount": 2,
-                "where": "capital"
-              }
-            }
-          },
-          {
-            "id": "akhenatenKhopesh",
-            "name": "The Khopesh",
-            "kind": "unique",
-            "flavor": "A sickle for a harvest nobody sowed.",
-            "text": "Opens the Khopesh, a sword line worth +3 more on every hex held by a city that follows your religion.",
-            "unlocks": {
-              "unit": "khopesh"
-            },
-            "effects": [
-              {
-                "kind": "combatLine",
-                "amount": 3,
-                "side": "both",
-                "when": {
-                  "test": "followingTerritory"
-                },
-                "class": {
-                  "type": "khopesh"
-                }
-              }
-            ]
-          }
-        ],
-        "3": [
-          {
-            "id": "akhenatenMillions",
-            "name": "The House of Millions of Years",
-            "kind": "passive",
-            "flavor": "Built for the length of time, not the length of a reign.",
-            "text": "+10% food and +5 culture in every city holding a wonder that supplies culture.",
-            "effects": [
-              {
-                "kind": "percentYields",
-                "yield": "food",
-                "percent": 10,
-                "scope": {
-                  "test": "hasBuildingYielding",
-                  "yields": "culture",
-                  "wonder": true
-                }
-              },
-              {
-                "kind": "pays",
-                "where": "city",
-                "culture": 5,
-                "scope": {
-                  "test": "hasBuildingYielding",
-                  "yields": "culture",
-                  "wonder": true
-                }
-              }
-            ]
-          },
-          {
-            "id": "akhenatenWorks",
-            "name": "The Master of Works",
-            "kind": "boon",
-            "flavor": "Somebody has to know how deep the footings go.",
-            "text": "A great engineer is offered.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "greatPerson",
-                  "family": "engineer"
-                }
-              ]
-            }
-          },
-          {
-            "id": "akhenatenSunCourt",
-            "name": "The Sun Court",
-            "kind": "unique",
-            "flavor": "No roof over the altar. That was the argument.",
-            "text": "Opens the Sun Court: +3 happiness, and +1 faith for every fourth citizen.",
-            "unlocks": {
-              "building": "sunCourt"
-            }
-          }
-        ],
-        "4": [
-          {
-            "id": "akhenatenFaithful",
-            "name": "The Faith of the Realm",
-            "kind": "passive",
-            "flavor": "A people who agree cost less to govern.",
-            "text": "Cities that keep your religion ask 15% less happiness.",
-            "effects": [
-              {
-                "kind": "rulePercent",
-                "rule": "happinessDemand",
-                "percent": -15,
-                "scope": {
-                  "test": "follows"
-                }
-              }
-            ]
-          },
-          {
-            "id": "akhenatenConversion",
-            "name": "The Great Conversion",
-            "kind": "boon",
-            "flavor": "The old names were chiselled off in a single season.",
-            "text": "Every foreign city that leans your way turns outright.",
-            "deferred": [
-              "Nothing turns: the stroke that converts a leaning town is not built."
-            ]
-          },
-          {
-            "id": "akhenatenValley",
-            "name": "The Valley of Kings",
-            "kind": "unique",
-            "flavor": "Doors cut into a dry cliff, and a guard on each.",
-            "text": "Opens the Valley of Kings, raised once in an empire: +10% culture for every wonder standing in its own town, where a wonder may also be hurried along with faith.",
-            "unlocks": {
-              "building": "valleyOfKings"
-            }
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "river": 4, "floodplain": 3, "oasis": 3, "desert": 2 },
-        "wants": { "riverOrFloodplainWithin": 1, "aridBeside": 3 }
+        "terrain": {
+          "river": 4,
+          "floodplain": 3,
+          "oasis": 3,
+          "desert": 2
+        },
+        "wants": {
+          "riverOrFloodplainWithin": 1,
+          "aridBeside": 3
+        }
       }
     },
     "almamun": {
       "name": "Al-Ma'mun",
+      "abilities": [
+        {
+          "id": "mutazila",
+          "name": "The Mu'tazila",
+          "text": "+1 science for every fifth point of faith your realm makes each turn.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "empire",
+              "basis": "rate",
+              "to": "science",
+              "amount": 1,
+              "fromRate": "faithPerTurn",
+              "per": 5
+            }
+          ]
+        },
+        {
+          "id": "theHouseOfWisdom",
+          "name": "The House of Wisdom",
+          "text": "+2 food for every faith or science building a city holds.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "food",
+              "amount": 2,
+              "count": "buildingsOfCategories",
+              "categories": [
+                "faith",
+                "science"
+              ]
+            }
+          ]
+        }
+      ],
+      "unit": "camelArcher",
+      "building": "houseOfLearning",
+      "colors": {
+        "primary": "#1c1a1a",
+        "secondary": "#d4a934",
+        "names": [
+          "black",
+          "gold"
+        ]
+      },
       "cities": [
         "Baghdad",
         "Merv",
@@ -1129,243 +425,64 @@
         "Aleppo",
         "Bukhara"
       ],
-      "colors": {
-        "primary": "#1c1a1a",
-        "secondary": "#d4a934",
-        "names": ["black", "gold"]
-      },
-      "bonus": {
-        "text": "+2 food for every faith or science building a city holds. +10% science in cities keeping a rite.",
-        "effects": [
-          {
-            "kind": "pays",
-            "where": "city",
-            "basis": "count",
-            "to": "food",
-            "amount": 2,
-            "count": "buildingsOfCategories",
-            "categories": [
-              "faith",
-              "science"
-            ]
-          },
-          {
-            "kind": "percentYields",
-            "yield": "science",
-            "percent": 10,
-            "scope": {
-              "test": "keepingRite"
-            }
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "almamunDevotion",
-            "name": "The Caliph's Devotion",
-            "kind": "passive",
-            "flavor": "He kept the fast and read the Greeks.",
-            "text": "+1 faith for every second citizen of your capital.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "capital",
-                "basis": "count",
-                "to": "faith",
-                "amount": 1,
-                "count": "capitalPopulation",
-                "per": 2
-              }
-            ]
-          },
-          {
-            "id": "almamunNewCity",
-            "name": "The New City",
-            "kind": "boon",
-            "flavor": "A round city, laid out with a compass.",
-            "text": "+2 citizens in your capital.",
-            "boon": {
-              "windfall": {
-                "yield": "population",
-                "amount": 2,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "It adds two citizens to your seat rather than setting it at three."
-            ]
-          },
-          {
-            "id": "almamunHouse",
-            "name": "The House of Learning",
-            "kind": "unique",
-            "flavor": "Paid by the weight of the book.",
-            "text": "Opens the House of Learning: +2 food, and +1 science for every great person you have called.",
-            "unlocks": {
-              "building": "houseOfLearning"
-            }
-          }
-        ],
-        "2": [
-          {
-            "id": "almamunTranslators",
-            "name": "The Translators",
-            "kind": "passive",
-            "flavor": "Every tongue, once, and correctly.",
-            "text": "+20% renown, and every faith building feeds the scholars.",
-            "effects": [
-              {
-                "kind": "cityRenownPercent",
-                "percent": 20,
-                "where": "empire"
-              },
-              {
-                "kind": "renown",
-                "amount": 1,
-                "per": "buildingOfCategory",
-                "category": "faith",
-                "family": "scholar"
-              }
-            ]
-          },
-          {
-            "id": "almamunAlmagest",
-            "name": "The Almagest",
-            "kind": "boon",
-            "flavor": "He set the price of peace at one book.",
-            "text": "+150 science.",
-            "boon": {
-              "windfall": {
-                "yield": "science",
-                "amount": 150,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "It is paid now rather than at the next peace you sign."
-            ]
-          },
-          {
-            "id": "almamunMihna",
-            "name": "The Mihna Court",
-            "kind": "unique",
-            "flavor": "A creed one may be examined on.",
-            "text": "Opens the Mihna Court: +2 happiness, and a tenth of the town's faith is heard again as science.",
-            "unlocks": {
-              "building": "mihnaCourt"
-            }
-          }
-        ],
-        "3": [
-          {
-            "id": "almamunMutazila",
-            "name": "The Mu'tazila",
-            "kind": "passive",
-            "flavor": "Reason first, and revelation will keep.",
-            "text": "+1 science for every fifth point of faith your realm makes each turn.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "empire",
-                "basis": "rate",
-                "to": "science",
-                "amount": 1,
-                "fromRate": "faithPerTurn",
-                "per": 5
-              }
-            ]
-          },
-          {
-            "id": "almamunPurse",
-            "name": "The Wisdom Purse",
-            "kind": "boon",
-            "flavor": "Gold by the weight of what was written.",
-            "text": "+40 renown.",
-            "boon": {
-              "windfall": {
-                "yield": "renown",
-                "amount": 40,
-                "where": "capital"
-              }
-            }
-          },
-          {
-            "id": "almamunCamel",
-            "name": "The Camel Archer",
-            "kind": "unique",
-            "flavor": "It drinks once and rides for a week.",
-            "text": "Opens the camel archer, a strengthened bow on the march. It shoots at +1 strength for every great person's work standing in your capital.",
-            "unlocks": {
-              "unit": "camelArcher"
-            },
-            "effects": [
-              {
-                "kind": "combatLine",
-                "amount": 1,
-                "side": "attack",
-                "class": {
-                  "type": "camelArcher"
-                },
-                "when": {
-                  "test": "always"
-                },
-                "scaled": {
-                  "count": "capitalGreatWorks",
-                  "per": 1
-                }
-              }
-            ]
-          }
-        ],
-        "4": [
-          {
-            "id": "almamunOrdinance",
-            "name": "The Ordinance of Faith",
-            "kind": "passive",
-            "flavor": "What the state believes, the state pays for.",
-            "text": "Every faith your cards pay is paid twice.",
-            "effects": [
-              {
-                "kind": "cardYieldAmplifier",
-                "yield": "faith",
-                "percent": 100
-              }
-            ]
-          },
-          {
-            "id": "almamunEnquiry",
-            "name": "The Great Enquiry",
-            "kind": "boon",
-            "flavor": "Measure the earth. Then check it.",
-            "text": "+400 science.",
-            "boon": {
-              "windfall": {
-                "yield": "science",
-                "amount": 400,
-                "where": "capital"
-              }
-            }
-          },
-          {
-            "id": "almamunPaperMill",
-            "name": "The Paper Mill",
-            "kind": "unique",
-            "flavor": "Rag, water, a screen, and everything changes.",
-            "text": "Opens the Paper Mill: +3 science, +3 culture, and every caravan ending here brings +2 science.",
-            "unlocks": {
-              "building": "paperMill"
-            }
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "river": 5, "coast": 0.6 },
-        "wants": { "riverWithin": 2 }
+        "terrain": {
+          "river": 5,
+          "coast": 0.6
+        },
+        "wants": {
+          "riverWithin": 2
+        }
       }
     },
     "mithridates": {
       "name": "Mithridates VI",
+      "abilities": [
+        {
+          "id": "poisonKing",
+          "name": "The Poison King",
+          "text": "+2 combat strength against an empire holding more cities than yours.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 2,
+              "side": "both",
+              "when": {
+                "test": "vsWiderEmpire"
+              }
+            }
+          ]
+        },
+        {
+          "id": "grovesAndHunt",
+          "name": "The Groves and the Hunt",
+          "text": "+2 food on plantations and camps.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "food": 2,
+              "on": {
+                "test": "anyImprovement",
+                "improvements": [
+                  "plantation",
+                  "camp"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "ponticPeltast",
+      "building": "ponticHold",
+      "colors": {
+        "primary": "#6b2d7a",
+        "secondary": "#d8d8e0",
+        "names": [
+          "Tyrian purple",
+          "silver"
+        ]
+      },
       "cities": [
         "Sinope",
         "Amaseia",
@@ -1383,239 +500,586 @@
         "Laodicea",
         "Gaziura"
       ],
-      "colors": {
-        "primary": "#6b2d7a",
-        "secondary": "#d8d8e0",
-        "names": ["Tyrian purple", "silver"]
-      },
-      "bonus": {
-        "text": "+2 combat strength against an empire holding more cities than yours. +1 food on every improved resource.",
-        "effects": [
-          {
-            "kind": "combatLine",
-            "amount": 2,
-            "side": "both",
-            "when": {
-              "test": "vsWiderEmpire"
-            }
-          },
-          {
-            "kind": "pays",
-            "where": "hex",
-            "food": 1,
-            "on": {
-              "test": "all",
-              "of": [
-                {
-                  "test": "improved"
-                },
-                {
-                  "test": "hasResource"
-                }
-              ]
-            }
-          }
-        ]
-      },
-      "deck": {
-        "1": [
-          {
-            "id": "mithridatesGroves",
-            "name": "The Groves and the Hunt",
-            "kind": "passive",
-            "flavor": "Everything on the hillside is either food or physic.",
-            "text": "+2 food on plantations and camps.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "hex",
-                "food": 2,
-                "on": {
-                  "test": "anyImprovement",
-                  "improvements": [
-                    "plantation",
-                    "camp"
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "id": "mithridatesCourt",
-            "name": "The King's Court",
-            "kind": "boon",
-            "flavor": "Twenty-two languages at one table.",
-            "text": "+2 citizens in your capital.",
-            "boon": {
-              "windfall": {
-                "yield": "population",
-                "amount": 2,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "It adds two citizens to your seat rather than setting it at three."
-            ]
-          },
-          {
-            "id": "mithridatesPeltast",
-            "name": "The Pontic Peltast",
-            "kind": "unique",
-            "flavor": "Light on the foot, and quick to come back.",
-            "text": "Opens the Pontic peltast, a spear line that mends itself whenever it makes a kill. No other piece of yours does.",
-            "unlocks": {
-              "unit": "ponticPeltast"
-            },
-            "effects": [
-              {
-                "kind": "windfallRider",
-                "occasion": "kill",
-                "class": {
-                  "type": "ponticPeltast"
-                },
-                "grant": {
-                  "heal": 25
-                }
-              }
-            ]
-          }
-        ],
-        "2": [
-          {
-            "id": "mithridatesFriends",
-            "name": "The King's Friends",
-            "kind": "passive",
-            "flavor": "He kept the men who had nowhere else to go.",
-            "text": "Every government opens one more free chair.",
-            "effects": [
-              {
-                "kind": "slotRider",
-                "extra": 1
-              }
-            ]
-          },
-          {
-            "id": "mithridatesPhysician",
-            "name": "The Royal Physician",
-            "kind": "boon",
-            "flavor": "A little of everything, every morning.",
-            "text": "A citizen in every city.",
-            "boon": {
-              "windfall": {
-                "yield": "population",
-                "amount": 1,
-                "where": "every"
-              }
-            }
-          },
-          {
-            "id": "mithridatesMithridatium",
-            "name": "The Mithridatium",
-            "kind": "unique",
-            "flavor": "Fifty-four ingredients, and the king took it first.",
-            "text": "Opens the Mithridatium, a garden that also pays +2 happiness and +1 science for each citizen.",
-            "unlocks": {
-              "building": "mithridatium"
-            }
-          }
-        ],
-        "3": [
-          {
-            "id": "mithridatesRoads",
-            "name": "The Inner Roads",
-            "kind": "passive",
-            "flavor": "The kingdom feeds itself before it feeds anybody else.",
-            "text": "Your own caravans carry +2 food and +2 science.",
-            "effects": [
-              {
-                "kind": "pays",
-                "where": "route",
-                "crossing": "domestic",
-                "food": 2,
-                "science": 2
-              }
-            ]
-          },
-          {
-            "id": "mithridatesGeneral",
-            "name": "The Army Restored",
-            "kind": "boon",
-            "flavor": "He lost every war and came back from all of them.",
-            "text": "A great general is offered.",
-            "boon": {
-              "grants": [
-                {
-                  "grant": "greatPerson",
-                  "family": "general"
-                }
-              ]
-            },
-            "deferred": [
-              "Your armies are not mended by it."
-            ]
-          },
-          {
-            "id": "mithridatesChariot",
-            "name": "The Scythed Chariot",
-            "kind": "unique",
-            "flavor": "Blades on the axle, and a straight run at the line.",
-            "text": "Opens the scythed chariot, a late chariot worth +3 more against foot.",
-            "unlocks": {
-              "unit": "scythedChariot"
-            }
-          }
-        ],
-        "4": [
-          {
-            "id": "mithridatesPoison",
-            "name": "The Poison King",
-            "kind": "passive",
-            "flavor": "Nothing could kill him. In the end he had to ask.",
-            "text": "Every unit mends +5 more each turn.",
-            "effects": [
-              {
-                "kind": "unitStat",
-                "stat": "heal",
-                "amount": 5
-              }
-            ]
-          },
-          {
-            "id": "mithridatesTongues",
-            "name": "The Twenty-Two Tongues",
-            "kind": "boon",
-            "flavor": "He judged every case himself, in the plaintiff's own words.",
-            "text": "+100 renown.",
-            "boon": {
-              "windfall": {
-                "yield": "renown",
-                "amount": 100,
-                "where": "capital"
-              }
-            },
-            "deferred": [
-              "It is paid once rather than at every bargain you strike."
-            ]
-          },
-          {
-            "id": "mithridatesHold",
-            "name": "The Mountain Hold",
-            "kind": "unique",
-            "flavor": "Seventy fortresses, and the treasure in all of them.",
-            "text": "Opens the Mountain Hold: +2 food, and the town is far harder to storm.",
-            "unlocks": {
-              "building": "ponticHold"
-            }
-          }
-        ]
-      },
       "startBias": {
-        "terrain": { "river": 9, "coast": 0.4, "hills": 0.6 },
-        "resources": { "deer": 2 },
-        "luxuries": { "wine": 2.5 },
-        "furnish": ["plantation", "camp"],
-        "wants": { "riverWithin": 2 }
+        "terrain": {
+          "river": 9,
+          "coast": 0.4,
+          "hills": 0.6
+        },
+        "resources": {
+          "deer": 2
+        },
+        "luxuries": {
+          "wine": 2.5
+        },
+        "furnish": [
+          "plantation",
+          "camp"
+        ],
+        "wants": {
+          "riverWithin": 2
+        }
       }
+    },
+    "joan": {
+      "name": "Joan of Arc",
+      "abilities": [
+        {
+          "id": "theVoices",
+          "name": "The Voices",
+          "text": "Killing a unit pays faith, and presses your faith on the towns around the field.",
+          "effects": [
+            {
+              "kind": "windfallRider",
+              "occasion": "kill",
+              "grant": {
+                "yield": "faith",
+                "amount": 8,
+                "pressure": {
+                  "amount": 15,
+                  "range": 2
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "theMaid",
+          "name": "The Maid",
+          "text": "+4 combat strength on any ground that follows your faith.",
+          "effects": [
+            {
+              "kind": "combatLine",
+              "amount": 4,
+              "side": "both",
+              "when": {
+                "test": "followingTerritory"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "gendarme",
+      "building": "sainteChapelle",
+      "colors": {
+        "primary": "#2c3e9e",
+        "secondary": "#d9a521",
+        "names": [
+          "royal azure",
+          "gold"
+        ]
+      },
+      "cities": [
+        "Orléans",
+        "Reims",
+        "Paris",
+        "Bourges",
+        "Chinon",
+        "Rouen",
+        "Tours",
+        "Poitiers",
+        "Blois",
+        "Compiègne",
+        "Troyes",
+        "Lyon",
+        "Bordeaux",
+        "Avignon",
+        "Domrémy"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 3
+        }
+      }
+    },
+    "mansaMusa": {
+      "name": "Mansa Musa",
+      "abilities": [
+        {
+          "id": "goldOfWangara",
+          "name": "The Gold of Wangara",
+          "text": "+2 gold on mines and camps, and +1 gold on every desert hex worked.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "gold": 2,
+              "on": {
+                "test": "anyImprovement",
+                "improvements": [
+                  "mine",
+                  "camp"
+                ]
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "hex",
+              "gold": 1,
+              "on": {
+                "test": "terrain",
+                "terrain": "desert"
+              }
+            }
+          ]
+        },
+        {
+          "id": "theHajj",
+          "name": "The Hajj",
+          "text": "Trade routes that begin or end at a city holding a holy site pay +2 gold and +2 faith.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "faith": 2,
+              "origin": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "faith": 2,
+              "destination": {
+                "test": "hasImprovement",
+                "improvement": "holySite"
+              }
+            }
+          ],
+          "note": "A road with a holy site standing at both ends is paid at both ends."
+        }
+      ],
+      "unit": "mandekalu",
+      "building": "sankoreMadrasa",
+      "colors": {
+        "primary": "#e6c419",
+        "secondary": "#27306e",
+        "names": [
+          "Wangara gold",
+          "indigo"
+        ]
+      },
+      "cities": [
+        "Niani",
+        "Timbuktu",
+        "Djenné",
+        "Gao",
+        "Walata",
+        "Kumbi Saleh",
+        "Kangaba",
+        "Taghaza",
+        "Tadmekka",
+        "Kukiya",
+        "Awdaghost",
+        "Takedda",
+        "Dia",
+        "Ségou",
+        "Bamako"
+      ],
+      "startBias": {
+        "terrain": {
+          "desert": 2,
+          "river": 2,
+          "oasis": 2
+        },
+        "luxuries": {
+          "gold": 3
+        },
+        "furnish": [
+          "gold"
+        ],
+        "wants": {
+          "aridWithin": 2
+        }
+      }
+    },
+    "zhengHeOfMing": {
+      "name": "Zheng He",
+      "abilities": [
+        {
+          "id": "treasureFleet",
+          "name": "The Treasure Fleet",
+          "text": "Ships gain +2 movement and +1 sight.",
+          "effects": [
+            {
+              "kind": "unitStat",
+              "stat": "movement",
+              "amount": 2,
+              "class": {
+                "category": "naval"
+              }
+            },
+            {
+              "kind": "unitStat",
+              "stat": "sight",
+              "amount": 1,
+              "class": {
+                "category": "naval"
+              }
+            }
+          ]
+        },
+        {
+          "id": "tributeOfTheWesternOcean",
+          "name": "Tribute of the Western Ocean",
+          "text": "Trade routes that begin or end at a coastal city pay +2 gold and +1 culture.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "culture": 1,
+              "origin": {
+                "test": "coastal"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "route",
+              "gold": 2,
+              "culture": 1,
+              "destination": {
+                "test": "coastal"
+              }
+            }
+          ],
+          "deferred": [
+            "The first road you send to each foreign realm does not yet pay its lump of gold."
+          ]
+        }
+      ],
+      "unit": "treasureShip",
+      "building": "longjiangDockyard",
+      "colors": {
+        "primary": "#c8341b",
+        "secondary": "#4a7fc1",
+        "names": [
+          "vermilion",
+          "porcelain blue"
+        ]
+      },
+      "cities": [
+        "Nanjing",
+        "Beijing",
+        "Taicang",
+        "Quanzhou",
+        "Ningbo",
+        "Changle",
+        "Zhangzhou",
+        "Malacca",
+        "Palembang",
+        "Calicut",
+        "Hormuz",
+        "Aden",
+        "Malindi",
+        "Semarang",
+        "Kunyang"
+      ],
+      "startBias": {
+        "terrain": {
+          "coast": 2
+        },
+        "wants": {
+          "coastalWithin": 1
+        }
+      }
+    },
+    "nezahualcoyotl": {
+      "name": "Nezahualcoyotl",
+      "abilities": [
+        {
+          "id": "theDikes",
+          "name": "The Dikes",
+          "text": "Cities with an aqueduct pay +1 culture, and their farms +1 production.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "culture": 1,
+              "scope": {
+                "test": "hasBuilding",
+                "building": "aqueduct"
+              }
+            },
+            {
+              "kind": "pays",
+              "where": "hex",
+              "production": 1,
+              "on": {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              "scope": {
+                "test": "hasBuilding",
+                "building": "aqueduct"
+              }
+            }
+          ]
+        },
+        {
+          "id": "flowerAndSong",
+          "name": "Flower and Song",
+          "text": "+1 culture for every two citizens in your capital.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "capital",
+              "basis": "count",
+              "to": "culture",
+              "amount": 1,
+              "count": "capitalPopulation",
+              "per": 2
+            }
+          ]
+        }
+      ],
+      "unit": "eagleWarrior",
+      "building": "tetzcotzinco",
+      "colors": {
+        "primary": "#1fb3a5",
+        "secondary": "#c98b2e",
+        "names": [
+          "turquoise",
+          "ochre"
+        ]
+      },
+      "cities": [
+        "Texcoco",
+        "Tenochtitlan",
+        "Tlacopan",
+        "Huexotla",
+        "Coatlinchan",
+        "Teotihuacan",
+        "Otumba",
+        "Chimalhuacan",
+        "Acolman",
+        "Tepetlaoztoc",
+        "Chiconauhtla",
+        "Papalotla",
+        "Chiautla",
+        "Calpulalpan",
+        "Tepechpan"
+      ],
+      "startBias": {
+        "terrain": {
+          "lake": 2.5,
+          "river": 2
+        },
+        "wants": {
+          "riverOrFloodplainWithin": 1,
+          "lakeWithin": 2
+        }
+      }
+    },
+    "hypatiaOfAlexandria": {
+      "name": "Hypatia",
+      "abilities": [
+        {
+          "id": "theMuseion",
+          "name": "The Museion",
+          "text": "+25% renown.",
+          "effects": [
+            {
+              "kind": "cityRenownPercent",
+              "percent": 25,
+              "where": "empire"
+            }
+          ]
+        },
+        {
+          "id": "theCommentaries",
+          "name": "The Commentaries",
+          "text": "A great person's work pays half again of what it makes.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "hex",
+              "percent": 50,
+              "on": {
+                "test": "greatWork"
+              }
+            }
+          ]
+        }
+      ],
+      "unit": "alexandrianGalley",
+      "building": "museion",
+      "colors": {
+        "primary": "#e8dcae",
+        "secondary": "#1c3f7a",
+        "names": [
+          "papyrus",
+          "deep lapis"
+        ]
+      },
+      "cities": [
+        "Alexandria",
+        "Cyrene",
+        "Ptolemais",
+        "Naucratis",
+        "Canopus",
+        "Pelusium",
+        "Antinoöpolis",
+        "Oxyrhynchus",
+        "Arsinoe",
+        "Berenice",
+        "Myos Hormos",
+        "Philae",
+        "Leontopolis",
+        "Nicopolis",
+        "Taposiris Magna"
+      ],
+      "startBias": {
+        "terrain": {
+          "coast": 2,
+          "river": 3
+        },
+        "wants": {
+          "coastalWithin": 1,
+          "riverWithin": 2
+        }
+      }
+    },
+    "hildegard": {
+      "name": "Hildegard of Bingen",
+      "abilities": [
+        {
+          "id": "theRites",
+          "name": "The Rites",
+          "text": "Cities keeping a rite pay +20% culture.",
+          "effects": [
+            {
+              "kind": "percentYields",
+              "yield": "culture",
+              "percent": 20,
+              "scope": {
+                "test": "keepingRite"
+              }
+            }
+          ]
+        },
+        {
+          "id": "symphonia",
+          "name": "Symphonia",
+          "text": "+2 culture and +2 production for every faith building a city holds.",
+          "effects": [
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "culture",
+              "amount": 2,
+              "count": "buildingsOfCategory",
+              "category": "faith",
+              "within": "city"
+            },
+            {
+              "kind": "pays",
+              "where": "city",
+              "basis": "count",
+              "to": "production",
+              "amount": 2,
+              "count": "buildingsOfCategory",
+              "category": "faith",
+              "within": "city"
+            }
+          ]
+        }
+      ],
+      "unit": "canoness",
+      "building": "rupertsbergScriptorium",
+      "colors": {
+        "primary": "#55a832",
+        "secondary": "#efe3c8",
+        "names": [
+          "viridian",
+          "vellum"
+        ]
+      },
+      "cities": [
+        "Bingen",
+        "Rupertsberg",
+        "Disibodenberg",
+        "Mainz",
+        "Trier",
+        "Cologne",
+        "Worms",
+        "Speyer",
+        "Eibingen",
+        "Koblenz",
+        "Aachen",
+        "Frankfurt",
+        "Ingelheim",
+        "Lorsch",
+        "Sponheim"
+      ],
+      "startBias": {
+        "terrain": {
+          "river": 4,
+          "forest": 1.5
+        },
+        "wants": {
+          "riverWithin": 1
+        }
+      }
+    },
+    "ibnBattutaOfTangier": {
+      "name": "Ibn Battuta",
+      "abilities": [
+        {
+          "id": "guestAtEveryCourt",
+          "name": "A Guest at Every Court",
+          "text": "One more wildcard chair in every government.",
+          "effects": [
+            {
+              "kind": "slotRider",
+              "extra": 1
+            }
+          ]
+        },
+        {
+          "id": "theRihla",
+          "name": "The Rihla",
+          "text": "The first redraw of every hand you are dealt costs nothing — an Order, a doctrine or a great person, and never a belief.",
+          "effects": [
+            {
+              "kind": "rule",
+              "rule": "rerollOffers"
+            }
+          ]
+        }
+      ],
+      "unit": "rihlaCaravan",
+      "building": "funduq",
+      "colors": {
+        "primary": "#b5651d",
+        "secondary": "#0d6b78",
+        "names": [
+          "ochre",
+          "sea teal"
+        ]
+      },
+      "cities": [
+        "Tangier",
+        "Fez",
+        "Marrakesh",
+        "Sijilmasa",
+        "Ceuta",
+        "Tlemcen",
+        "Tunis",
+        "Salé",
+        "Rabat",
+        "Meknes",
+        "Oujda",
+        "Bougie",
+        "Algiers",
+        "Tripoli",
+        "Kairouan"
+      ],
+      "startBias": {}
     }
   }
 }

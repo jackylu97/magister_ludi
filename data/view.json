@@ -97,7 +97,14 @@
       "horseArcher": "flag",
       "cataphract": "person",
       "warElephant": "person",
-      "fireLance": "pawn"
+      "fireLance": "pawn",
+      "gendarme": "person",
+      "mandekalu": "person",
+      "treasureShip": "boat",
+      "eagleWarrior": "pawn",
+      "alexandrianGalley": "boat",
+      "canoness": "person",
+      "rihlaCaravan": "boat"
     },
     "byPlayerColor": {
       "#d4502e": "red",

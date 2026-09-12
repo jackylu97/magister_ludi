@@ -400,6 +400,36 @@ import {
   resourceIsVisibleTo,
 } from './resourceData';
 import { improvementDef } from './improvementData';
+// The figure's own sheet, a leaf (`leaderData.ts`'s docblock), so the unique's
+// gate below costs this module no edge it did not already have.
+import { leaderOpensBuilding, leaderOpensUnit } from './leaderData';
+
+/**
+ * **Has this empire reached this column of the chart?** — the gate a row the
+ * tree does not name is opened by (batch L6a).
+ *
+ * Every ordinary row is opened by a node, and a node is a *position* on the
+ * chart. A figure's unique has no node: it is opened by the figure, and what
+ * dates it is its own `column`, which is already the field that **prices** it
+ * (`docs/production-costs.md` — "a column IS a price"). Without this, a row the
+ * tree never names would be buildable from turn one for the seat whose sheet
+ * holds it, which would put an Æra IV lance in the opening build list.
+ *
+ * "Reached" is read off the seat's own research and nothing else: it has learnt
+ * something standing at this column or deeper. A column rather than an age,
+ * deliberately — the second cut retired every per-age mechanism it had, and a
+ * column is the finer statement of the same fact. Column 1 is the root's and is
+ * reached by every empire that has researched anything at all.
+ */
+function columnReached(state: GameState, playerId: number, column: number): boolean {
+  if (column <= 1) return true;
+  const player = playerById(state, playerId);
+  if (!player) return false;
+  for (const id of player.techsResearched) {
+    if (techColumn(id) >= column) return true;
+  }
+  return false;
+}
 import { RULES } from './rulesData';
 import type { CityScope } from './statecraftData';
 import {
@@ -439,6 +469,7 @@ import {
   UNIT_UNLOCK_TECH,
   highestAge,
   isTechId,
+  techColumn,
   techDef,
   techDepth,
   techsGrant,
@@ -599,22 +630,36 @@ export function isUnlocked(
   // arrives by an act (`BuildingDef.placed`). Asked here rather than left to
   // fall through the tree's silence for `unlockedByCard`'s stated reason: a
   // building no technology names is otherwise buildable from turn one.
-  // **A row a figure opens is asked of the figure's cards**, on exactly the
-  // clause above's terms (batch L2a). Same shape, same question, same fall
-  // through to the tree: a leader's taken unique puts an ordinary `unlocksUnit`
-  // or `unlocksBuilding` into `liveEffects` (`leaderCardEffects`), so what
-  // answers here is `cardUnlocksUnit` — the same reader a belief's Templars go
-  // through — and nothing in this file compares a row against a name. The
-  // marker is separate from `unlockedByCard` because the two say different
-  // things to a *reader* (see `UnitDef.unlockedByLeader`); to this function they
-  // are one rule asked twice.
+  // **A row a figure opens is asked of the figure, and then of the tree** (batch
+  // L2a; re-aimed at the second cut in L6a, `docs/flags.md` (xxxx)).
+  //
+  // Two questions and *both* must answer yes, which is the whole of the second
+  // cut's unlock rule: the seat's sheet has to name this row, and the row's own
+  // technology has to have come. A unique is not an age-gated grant and not a
+  // card — it is an ordinary row of the roster that one figure alone may raise,
+  // and it arrives when its technology does, exactly as a swordsman does. So
+  // there is no age machinery here and none anywhere else.
+  //
+  // A row **nobody** names is a bench: `leaderOpensUnit` answers `false` for
+  // every seat, so the Tambo and the Qollqa and the rest of the first cut's
+  // pieces keep their rules and their prices and wait for a figure to claim
+  // them. That is why the refusal is `return false` rather than a fall through
+  // to the tree — the tree's silence about these rows would otherwise read as
+  // "buildable from turn one", which is the same trap `unlockedByCard` avoids
+  // one clause up.
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByLeader === true) {
-    if (cardUnlocksUnit(state, playerId, id)) return true;
-    if (gatingTech(kind, id) === null) return false;
+    const seat = playerById(state, playerId);
+    if (!leaderOpensUnit(seat?.leader, id)) return false;
+    if (gatingTech(kind, id) === null) {
+      return columnReached(state, playerId, unitDef(id).column ?? 1);
+    }
   }
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByLeader === true) {
-    if (cardUnlocksBuilding(state, playerId, id)) return true;
-    if (gatingTech(kind, id) === null) return false;
+    const seat = playerById(state, playerId);
+    if (!leaderOpensBuilding(seat?.leader, id)) return false;
+    if (gatingTech(kind, id) === null) {
+      return columnReached(state, playerId, buildingDef(id).column ?? 1);
+    }
   }
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).placed === true) return false;
   // **A race project is asked of the table**, before the tree, for the clause
@@ -832,17 +877,25 @@ export function buildError(
         ? `${itemName(kind, id)} needs the Order that opens it in one of your slots`
         : `${itemName(kind, id)} needs ${techDef(gate).name}, or the Order that opens it in one of your slots`;
     }
-    // **A row a figure opens says so too** (batch L2a), and this one covers both
-    // kinds where the charters' clause covers only buildings: ten of the
-    // leaders' uniques are soldiers, and a player told a slinger "needs a
-    // technology you do not have" has been sent to the tree for something only
-    // Pachacuti's deck holds. It names the deck rather than the card, because a
-    // player who has not taken the card has not been shown its name.
-    const figureOpens =
+    // **A row a figure opens says so too** (batch L2a; L6a's words), and this one
+    // covers both kinds where the charters' clause covers only buildings: half
+    // the uniques are soldiers, and a player told a slinger "needs a technology
+    // you do not have" has been sent to the tree for something only Pachacuti
+    // may raise. Two sentences, because the two refusals are different facts: a
+    // seat whose figure names the row is merely waiting on the tree, and a seat
+    // whose figure does not will never build it at all.
+    const figureRow =
       (kind === 'unit' && isUnitTypeId(id) && unitDef(id).unlockedByLeader === true) ||
       (kind === 'building' && isBuildingId(id) && buildingDef(id).unlockedByLeader === true);
-    if (figureOpens) {
-      return `${itemName(kind, id)} needs the card your leader's own deck opens it with`;
+    if (figureRow) {
+      const seat = playerById(state, playerId);
+      const mine =
+        kind === 'unit' && isUnitTypeId(id)
+          ? leaderOpensUnit(seat?.leader, id)
+          : isBuildingId(id) && leaderOpensBuilding(seat?.leader, id);
+      if (!mine) return `${itemName(kind, id)} belongs to another realm's leader`;
+      const needs = gate ? techDef(gate).name : 'a technology you do not have';
+      return `${itemName(kind, id)} needs ${needs}`;
     }
     const needs = gate ? techDef(gate).name : 'a technology you do not have';
     return `${itemName(kind, id)} needs ${needs}`;

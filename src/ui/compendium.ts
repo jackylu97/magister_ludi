@@ -118,6 +118,7 @@ import {
   describeBuildingRow,
   describeCard,
   describeFamilyVerb,
+  ref,
   stripRefs,
   tileConditionWords,
 } from '../sim/statecraft';
@@ -139,11 +140,9 @@ import {
   orderDef,
 } from '../sim/statecraftData';
 import { gatingTech } from '../sim/tech';
-import { TECH_IDS, type TechId, eraNumeral, techDef } from '../sim/techData';
+import { TECH_IDS, type TechId, techDef } from '../sim/techData';
 import {
-  LEADER_DECK_AGES,
   LEADER_IDS,
-  type LeaderCardKind,
   type LeaderId,
   leaderDef,
 } from '../sim/leaderData';
@@ -646,7 +645,7 @@ function unitMarkers(def: UnitDef): CompendiumClause[] {
   // looking for something only a leader's own deck holds.
   if (def.unlockedByLeader === true) {
     out.push({
-      text: 'No research reaches this. Your leader opens it, with a card from their own deck, and nothing else does.',
+      text: 'Only one leader may ever raise this, and only once the technology that opens it has arrived. No other realm can build it at all.',
     });
   }
   if (def.mirrors !== undefined) {
@@ -712,6 +711,14 @@ function unitEntry(type: UnitTypeId): CompendiumEntry {
     ...row('Unlocked by', techName(gate)),
   ];
   const clauses = unitMarkers(def);
+  // **The row's own words, and the halves of them that are not built yet**
+  // (batch L6a, `UnitDef.note` / `UnitDef.deferred`). The buildings' shelf has
+  // printed both for as long as it has existed; the roster's could not, because
+  // the fields did not exist on a unit row. A deferred line is the promise a row
+  // is *not* keeping, and a book that printed the rule without it would be the
+  // one surface telling a player something untrue.
+  if (def.note !== undefined) clauses.push({ text: def.note, note: true });
+  for (const waiting of def.deferred ?? []) clauses.push({ text: waiting, deferred: true });
   if (!unbuildable) {
     clauses.push({
       text:
@@ -984,7 +991,7 @@ function buildingEntry(id: BuildingId): CompendiumEntry {
   // never given back, so there is no "while it is slotted" to warn about.
   if (def.unlockedByLeader === true) {
     clauses.push({
-      text: 'Only a leader whose deck holds the card that opens this can build it. Once that card is taken, it is yours for the rest of the game.',
+      text: 'Only one leader may ever raise this, and only once the technology that opens it has arrived. No other realm can build it at all.',
       note: true,
     });
   }
@@ -1737,28 +1744,21 @@ function wagerEntry(id: WagerId): CompendiumEntry {
   };
 }
 
-/** What a card's column is called, in the words the draft sheet uses. */
-const LEADER_KIND_WORD: Record<LeaderCardKind, string> = {
-  passive: 'kept',
-  boon: 'taken now',
-  unique: 'opened',
-};
-
 /**
- * One leader (batch L2a, `docs/leaders.md`).
+ * One leader (batch L2a; the second cut, L6a, `docs/leaders.md` "The thirteen").
  *
- * **One page a figure, not one a card**, and that is the shelf's whole shape: a
- * leader is chosen once, at the table, and what a player needs in front of them
- * at that moment is the *whole* of what the figure will ever offer — the line
- * they hold from the first turn and all twelve cards they will be asked to
- * choose between. Twelve pages a leader would be seventy-two entries nobody
- * could compare.
+ * **One page a figure**, and since the second cut the page is short enough to
+ * read at the table: two abilities live from the first turn, the one soldier and
+ * the one building nobody else may raise, the towns and the pair of inks. That
+ * is the whole of what a figure is, which is the point of the second cut — a
+ * leader you can know before you meet it.
  *
- * Every clause comes out of `describeCard`, the same describer the Ledger's own
- * lines come out of, so nothing here is hand-written prose about a number
- * (CLAUDE.md's rule for this file). The only words this function writes are the
- * headings that say which age a row belongs to and which column of it a card
- * sits in — and those carry no figures, which is why they may be written at all.
+ * Every rules clause comes out of `describeCard`, the same describer the
+ * Ledger's own lines come out of, so nothing here is hand-written prose about a
+ * number (CLAUDE.md's rule for this file). The only words this function writes
+ * are the headings, and those carry no figures, which is why they may be written
+ * at all. The uniques are named through `ref()` so the book links to their own
+ * entries rather than restating their rows.
  */
 function leaderEntry(id: LeaderId): CompendiumEntry {
   const def = leaderDef(id);
@@ -1767,27 +1767,28 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
     // shelf is the one surface where a figure's pair cannot be *shown* — an
     // entry is prose and a keyword ref, not a swatch — so it is named instead,
     // off the row's own `colors.names`, which is the doc table's first cell.
-    // A book that printed a hex here would be printing an identifier at a
-    // reader (hard rule 7); a book that said nothing would leave the one fact
-    // about a figure a player will see every single turn off its page.
     { text: `Its colours are ${def.colors.names[0]} and ${def.colors.names[1]}.`, note: true },
     { text: 'What this leader gives you from the first turn:', note: true },
-    ...cardClauses(id),
   ];
-  for (const age of LEADER_DECK_AGES) {
-    clauses.push({
-      text: `Æra ${eraNumeral(Number(age))} — three cards, one taken:`,
-      note: true,
-    });
-    for (const card of def.deck[age]) {
-      clauses.push({ text: `${card.name} — ${LEADER_KIND_WORD[card.kind]}:`, note: true });
-      clauses.push(...cardClauses(card.id));
-    }
+  for (const ability of def.abilities) {
+    clauses.push({ text: `${ability.name}:`, note: true });
+    clauses.push(...cardClauses(ability.id));
   }
-  // **The towns** (batch L5, `docs/flags.md` (pppp)). Under the deck, because it
-  // is the last thing a player choosing at the table wants and the first thing
-  // they will see on the board. One plain clause off the row itself: the names
-  // are the sheet's, in the sheet's order, and nothing here interprets them.
+  // **The two rows only this figure may raise.** Under the abilities, because
+  // an ability is true the moment you sit down and a unique waits on its own
+  // technology — which is the one thing a reader has to be told about it, and is
+  // said here rather than restated from the row's own page.
+  clauses.push({ text: 'And two things nobody else may build:', note: true });
+  clauses.push({
+    text:
+      `${ref('unit', def.unit, unitDef(def.unit).name)} and ` +
+      `${ref('building', def.building, buildingDef(def.building).name)}, ` +
+      'each the moment the technology that opens it arrives.',
+  });
+  // **The towns** (batch L5, `docs/flags.md` (pppp)). Last, because it is the
+  // last thing a player choosing at the table wants and the first thing they
+  // will see on the board. One plain clause off the row itself: the names are
+  // the sheet's, in the sheet's order, and nothing here interprets them.
   clauses.push({
     text: `Its towns are named ${joined([...def.cities], 'and')}, in that order.`,
   });
@@ -1795,7 +1796,7 @@ function leaderEntry(id: LeaderId): CompendiumEntry {
     id: compendiumId('leader', id),
     section: 'leader',
     name: def.name,
-    eyebrow: 'a leader, and the deck they bring',
+    eyebrow: 'a leader, and what its realm alone can do',
     mark: { kind: 'glyph', glyph: '♛' },
     rows: [],
     clauses,

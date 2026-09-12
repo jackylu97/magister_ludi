@@ -115,6 +115,7 @@ import {
   slotsFromTechs,
 } from './religionData';
 import {
+  cardActionRule,
   cardAmplifier,
   cardPantheonSlots,
   cardPeriodicOffers,
@@ -671,12 +672,65 @@ function isHeavyKind(kind: RerollKind): kind is 'doctrine' | 'greatPerson' {
   return kind === 'doctrine' || kind === 'greatPerson';
 }
 
+/**
+ * **Has this hand already had its free redraw?** The Rihla's stamp, read.
+ *
+ * One reading over the three offers that carry one, so "which hand is on the
+ * table" and "has it been asked again" are answered from the same place. A
+ * belief hand answers `true` — it is never the free arm's business, because its
+ * own first asking is already free (`explainBeliefRerollCost`).
+ */
+function offerWasRedrawn(player: Player, kind: RerollKind): boolean {
+  switch (kind) {
+    case 'order':
+      return player.statecraft.pendingOrder?.rerolled === true;
+    case 'doctrine':
+      return player.statecraft.pendingDoctrine?.rerolled === true;
+    case 'greatPerson':
+      return player.greatPersonOffer?.rerolled === true;
+    case 'belief':
+      return true;
+  }
+}
+
+/**
+ * **Is the Rihla paying for this redraw?** — the one reading of the free arm,
+ * asked by the price, by the refusal and by the settlement, so a button that
+ * says "free" is the button that charges nothing.
+ *
+ * Three conditions and all three are the rule's own sentence: the seat holds it,
+ * the hand is not a belief, and this particular hand has not been asked again.
+ */
+export function rihlaPaysFor(state: GameState, player: Player, kind: RerollKind): boolean {
+  if (kind === 'belief') return false;
+  if (offerWasRedrawn(player, kind)) return false;
+  return cardActionRule(state, player.id, 'rerollOffers');
+}
+
+/** The stamp, written on the hand the redraw just dealt. See `rihlaPaysFor`. */
+function stampRedrawn(player: Player, kind: RerollKind): void {
+  if (kind === 'order' && player.statecraft.pendingOrder) {
+    player.statecraft.pendingOrder.rerolled = true;
+  } else if (kind === 'doctrine' && player.statecraft.pendingDoctrine) {
+    player.statecraft.pendingDoctrine.rerolled = true;
+  } else if (kind === 'greatPerson' && player.greatPersonOffer) {
+    player.greatPersonOffer.rerolled = true;
+  }
+}
+
 export function explainRerollCost(
   state: GameState,
   playerId: number,
   kind: RerollKind = 'order',
 ): RerollPrice {
   const player = playerById(state, playerId);
+  // **The Rihla, first and alone on the list** (batch L6a): a waived price is a
+  // price of nothing, so the list is the one line that says why rather than the
+  // three that would have said how much. Rule 5 holds — the total is still the
+  // fold of the list.
+  if (player && rihlaPaysFor(state, player, kind)) {
+    return { lines: [{ source: 'The Rihla', amount: 0 }], total: 0 };
+  }
   const spec = RELIGION.reroll;
   const taken = Math.max(0, Math.floor(player?.statecraft.rerollsTaken ?? 0));
   const age = player ? highestAge(player.techsResearched) : 1;
@@ -815,6 +869,10 @@ export function rerollKindFor(player: Player): RerollKind | null {
  * reading the refusal's words would break the day a sentence was reworded.
  */
 export function rerollDoorOpen(state: GameState, playerId: number): boolean {
+  // **Or the Rihla opened it** (batch L6a). A figure whose whole line is "you
+  // always get a second look" would be a figure with no line at all until the
+  // Long Count came in, which is four ages of nothing.
+  if (cardActionRule(state, playerId, 'rerollOffers')) return true;
   return hasAbility(state, playerId, RELIGION.reroll.ability);
 }
 
@@ -947,14 +1005,20 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
   }
 
   const sc = player.statecraft;
-  const paid = nextRerollCost(state, player.id, kind);
+  // **The Rihla's redraw is free and is not a rung** (batch L6a): the lifetime
+  // ladder stays where it was, because a waived asking is not an asking the
+  // price should remember. Read before a byte moves, since the stamp below is
+  // what makes the answer change.
+  const free = rihlaPaysFor(state, player, kind);
+  const paid = free ? 0 : nextRerollCost(state, player.id, kind);
   player.faithPool = Math.max(0, player.faithPool - paid);
   // The banks are a line of the meters too (batch M3, `slate.ts`).
   bumpEconomy(state);
-  sc.rerollsTaken += 1;
+  if (!free) sc.rerollsTaken += 1;
 
   if (kind === 'doctrine') {
     sc.pendingDoctrine = drawDoctrineOffer(state, player, governmentDef(sc.government).tier);
+    if (free) stampRedrawn(player, kind);
     return { kind, paid, taken: sc.rerollsTaken };
   }
   if (kind === 'greatPerson') {
@@ -965,6 +1029,7 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
       old.family === undefined
         ? drawGreatPersonOffer(state, player)
         : drawGreatPersonOffer(state, player, old.family);
+    if (free) stampRedrawn(player, kind);
     return { kind, paid, taken: sc.rerollsTaken };
   }
 
@@ -974,6 +1039,7 @@ export function settleReroll(state: GameState, player: Player): RerollOutcome | 
     slot.rerollsSeen = (slot.rerollsSeen ?? 0) + 1;
   }
   sc.pendingOrder = drawOrderOffer(state, player);
+  if (free) stampRedrawn(player, kind);
   return { kind, paid, taken: sc.rerollsTaken };
 }
 

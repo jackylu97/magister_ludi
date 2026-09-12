@@ -119,7 +119,6 @@ import { religionBlocker } from '../sim/religion';
 import type { Player } from '../sim/state';
 import { statecraftBlocker } from '../sim/statecraft';
 import { wagerBlocker } from '../sim/wagers';
-import { leaderBlocker } from '../sim/leaders';
 import { availableTechs } from '../sim/tech';
 import { type GameState, hasEndedTurn, playerById } from '../sim/state';
 import { hasSendablePair, idleTraders } from '../sim/trade';
@@ -247,23 +246,12 @@ export function firstBlocker(
   // for one, because a spent roster is not a decision.
   if (greatPersonBlocker(player) !== null) return { kind: 'greatPerson' };
 
-  // **The fifth offer** (batch L2a, `docs/leaders.md` "The draft"), and it owes
-  // the turn what the other four do: the figure's row sits on this seat until it
-  // is spent, nobody else can answer it, and the reducer refuses a
-  // `chooseLeaderCard` from a seat that has ended its turn.
-  //
-  // It stands **above** the wager because it never expires: a wager's table is
-  // answered in the one window the world dealt it and the phase fills an empty
-  // chair afterwards, while a leader's row is one seat's own business for as
-  // long as it takes and nothing anywhere answers it on that seat's behalf. So
-  // it is the one debt on this list that can go unanswered for ever if the
-  // interface lets it past, which is precisely why it does not.
-  //
-  // It also holds its tongue until the seat has founded its first city, because
-  // a boon has nowhere to land before then — the row is on the table from turn
-  // one and the debt begins with the realm. The rule itself is `leaderBlocker`
-  // in the simulation, where the bot reads it.
-  if (leaderBlocker(state, playerId) !== null) return { kind: 'leaderDraft' };
+  // **The fifth offer retired with the leaders' deck** (batch L6a): a figure is
+  // two abilities live from turn one and two rows only it may raise, so there is
+  // nothing on the table for a seat to answer. The union still carries
+  // `leaderDraft` and the sheet behind it still exists — both go with the
+  // screens in L6b — but nothing raises it any more, and the simulation has no
+  // reading left to ask.
 
   // **The sixth offer, and the shortest-lived of them** (`docs/wager.md` §2).
   // The three wagers are dealt to the whole world on the turn an age opens and

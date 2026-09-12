@@ -429,8 +429,11 @@ describe('the badge atlas layout', () => {
    * drawings and no others.
    */
   it('composes each hull\'s badge from the rig and canton on its own roster row', () => {
+    // Fourteen since batch L6a, and the two that joined are two figures' own
+    // hulls: a unique is a roster row and wears its rig and canton like any
+    // other, which is the whole of what this holds.
     const hulls = UNIT_TYPE_IDS.filter((id) => unitDef(id).category === 'naval');
-    expect(hulls).toHaveLength(12);
+    expect(hulls).toHaveLength(14);
     const worn = new Set<string>();
     for (const type of hulls) {
       const def = unitDef(type);
@@ -445,6 +448,13 @@ describe('the badge atlas layout', () => {
         rig: def.masts,
         canton: def.canton,
       });
+      // **A badge is a class and an age, not a name.** The twelve rows the tree
+      // opens each wear a cell of their own, which is what makes the mark
+      // readable at a glance; a figure's own hull (batch L6a) deliberately wears
+      // the cell of the line and rig it belongs to — the Treasure Ship is a
+      // four-masted heavy and reads as one — so it is excluded from the
+      // uniqueness and not from anything above it.
+      if (unitDef(type).unlockedByLeader === true) continue;
       expect(worn.has(badge), `${type} shares a badge`).toBe(false);
       worn.add(badge);
     }

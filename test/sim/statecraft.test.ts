@@ -8701,6 +8701,16 @@ describe("the engine shapes", () => {
       "tambo · routeYield",
       "paperMill · routeYield",
       "mithridatium · cityRenownPercent",
+      // Batch L6a — the second cut's own buildings (`docs/leaders.md` "The
+      // thirteen"). The Dockyard and the Funduq each pay a caravan at both ends
+      // of the road, the Tambo's two rows of one shape; the Tetzcotzinco is the
+      // Garden's row with the lake's food added, so it carries the Garden's own
+      // renown share exactly as the Mithridatium does.
+      "longjiangDockyard · routeYield",
+      "longjiangDockyard · routeYield",
+      "tetzcotzinco · cityRenownPercent",
+      "funduq · routeYield",
+      "funduq · routeYield",
       // Batch E — the tree's own gifts (`docs/history/tech-gifts.md` §7).
       "theLongCount · periodic",
       "theLongCount · buildingsOfCategories",

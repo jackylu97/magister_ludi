@@ -231,7 +231,7 @@ import { totalSpecialists } from './specialists';
 // caravan both moved out of `trade.ts` so that this file's *founding* verb — The
 // Founders' Road — reaches them without crossing the cycle it once documented.
 import { layRoad } from './roads';
-import { caravanTypeId } from './unitData';
+import { caravanTypeFor } from './routes';
 import { awardFoundingTriumphs, awardOccasion } from './triumphs';
 // **A function-level cycle, and the documented kind** (CLAUDE.md): `religion.ts`
 // imports this file for the capital, the tile-owner field and the windfall
@@ -1023,7 +1023,7 @@ export function foundCityAt(state: GameState, ownerId: number, tile: Tile): City
  * `Tile.road`, so a decreed highway and a worn one are the same mark.
  */
 function layFoundingRoad(state: GameState, city: City): void {
-  const type = caravanTypeId();
+  const type = caravanTypeFor(state, city.ownerId);
   if (!type) return;
   const start = getTileAt(state.map, city.col, city.row);
   if (!start) return;

@@ -1,10 +1,15 @@
 /**
- * The leaders: a **start bias**, a **bonus** and a **deck**.
+ * The leaders: a **start bias**, **two abilities**, a **unique unit** and a
+ * **unique building**.
  *
- * `docs/leaders.md` is the sheet — six figures, each with one line that is live
- * from the first turn and four rows of three cards, a passive and a boon and a
- * unique per age — and `docs/flags.md` (dddd) is the ruling that built it. Two
- * halves of one row, and they are read by two different halves of the game:
+ * `docs/leaders.md` "The second cut — fixed identity" is the sheet — thirteen
+ * figures, each with two lines live from the first turn and one soldier and one
+ * building nobody else may raise — and `docs/flags.md` (xxxx) is the ruling that
+ * built it. The first cut's deck of twelve drafted cards a figure is **gone**
+ * (batch L6a): a leader is a known quantity from the table, the way Civ's are,
+ * and the per-age choice this game already asks five times over did not need a
+ * sixth. Two halves of one row, and they are read by two different halves of the
+ * game:
  *
  * **The map's half** (batch M1, ruled in `docs/flags.md` (cccc) as **three
  * stages**), each riding a pass that already exists:
@@ -18,12 +23,15 @@
  *      `ensureStartFurnishing`) — an improvement kind, or one row by name where
  *      the figure's need is that row.
  *
- * **The rules' half** (batch L2a): `bonus` is a list of ordinary `CardEffect`s
- * that is live for the seat from turn one, and `deck` is four rows of three
- * cards — the draft `leaders.ts` deals when the seat's *own* age turns. Both
- * reach the game through `liveEffects`, which is the whole point of writing them
- * in the card vocabulary: a leader's line is read by the same evaluator that
- * reads a doctrine's, and a seventh leader is a JSON row.
+ * **The rules' half** (batch L6a): `abilities` is a pair of ordinary
+ * `CardEffect` lists, both live for the seat from turn one, and `unit` and
+ * `building` name the two rows this figure alone may raise. The abilities reach
+ * the game through `liveEffects`, which is the whole point of writing them in
+ * the card vocabulary: a leader's line is read by the same evaluator that reads
+ * a doctrine's, and a fourteenth leader is a JSON row. The uniques reach it
+ * through `isUnlocked`, which asks the seat's figure and then the row's own tech
+ * gate — a unique arrives when its technology does, and there is no age
+ * machinery anywhere in the system.
  *
  * A row is data and nothing else. The weights, the multipliers, the kinds and
  * every figure on every card live in `data/leaders.json`; the code holds
@@ -31,20 +39,19 @@
  * `mapgen.ts` keep.
  *
  * **A leaf.** Nothing here imports a pass or a verb, so the modules that read a
- * bias (`startPositions.ts`, `resources.ts`), the evaluator that folds a bonus
- * and the draft that deals a deck can all name it without closing a load-time
- * cycle. The three imports that would close one — the card vocabulary, the bead
- * boon's shapes and the completion grant's — are **type-only**, which is the
- * arrangement `religionData.ts` already keeps with the evaluator and for the
- * same reason. The validation below runs at module load, so a mistyped terrain,
- * an unknown resource or a card whose `unlocks` names a row nobody has heard of
- * is a boot error rather than a line that silently never fires.
+ * bias (`startPositions.ts`, `resources.ts`), the evaluator that folds a figure's
+ * abilities and the gate that opens its uniques can all name it without closing a
+ * load-time cycle. The one import that would close one — the card vocabulary —
+ * is **type-only**, which is the arrangement `religionData.ts` already keeps with
+ * the evaluator and for the same reason. The validation below runs at module
+ * load, so a mistyped terrain, an unknown resource or a figure naming a row
+ * nobody has heard of is a boot error rather than a line that silently never
+ * fires.
  */
 
 import leadersJson from '../../data/leaders.json';
 
-import type { BeadWindfall } from './beadData';
-import { BUILDING_IDS, type BuildingId, type CompletionGrant } from './buildingData';
+import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
 import { type ImprovementId, improvementForResource } from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 import type { CardDefBase, CardEffect } from './statecraftData';
@@ -191,6 +198,29 @@ export interface StartWants {
   grasslandWithin?: number;
   /** A hex a pasture could ever stand on: flat grassland or plains. */
   pastureGroundWithin?: number;
+  /**
+   * Salt water in reach — a coast or an ocean hex.
+   *
+   * The sea's own want (batch L6a, for Zheng He and Hypatia). A `coast` terrain
+   * *weight* already existed and is what Al-Ma'mun's mild coast is written with,
+   * but a weight is capped and a need is not, and a figure whose whole identity
+   * is a fleet may not be seated a fortnight's march from water. Asked at radius
+   * 1 it means "this town will have a harbour".
+   *
+   * A lake is deliberately not salt water: it floats no fleet out of the bay,
+   * and the figure who wants one says `lakeWithin`.
+   */
+  coastalWithin?: number;
+  /**
+   * A lake hex in reach.
+   *
+   * Its own want rather than a face of `riverOrFloodplainWithin` (batch L6a, for
+   * Nezahualcoyotl), because the two are different places: the valley want is
+   * about moving water and the ground it lays down, and a lake is a basin with a
+   * shore — which is what the engineer of the dikes of Texcoco was standing on.
+   * A figure who wants both says both, and Nezahualcoyotl does.
+   */
+  lakeWithin?: number;
 }
 
 /** Every want key, in the order they are asked and printed. */
@@ -202,6 +232,8 @@ export const START_WANT_KEYS: readonly (keyof StartWants)[] = [
   'aridBeside',
   'grasslandWithin',
   'pastureGroundWithin',
+  'coastalWithin',
+  'lakeWithin',
 ];
 
 /** What a want's one number counts: how far away, or how many of them. */
@@ -223,6 +255,8 @@ export const START_WANT_MEASURE: Readonly<Record<keyof StartWants, StartWantMeas
   aridBeside: 'count',
   grasslandWithin: 'radius',
   pastureGroundWithin: 'radius',
+  coastalWithin: 'radius',
+  lakeWithin: 'radius',
 };
 
 /**
@@ -251,102 +285,90 @@ export function furnishMatches(entry: FurnishEntry, id: ResourceId): boolean {
   return entry === id || improvementForResource(id) === entry;
 }
 
-// --- the deck -----------------------------------------------------------------
+// --- the two abilities -------------------------------------------------------
 
 /**
- * **Which column of the age's row a card sits in** — and nothing more.
+ * **One of a figure's two abilities** (batch L6a, `docs/leaders.md` "The
+ * thirteen" — the table is the spec of record and a sync test holds the two
+ * together).
  *
- * A row of the sheet is one passive, one boon and one unique, in that order
- * (`docs/leaders.md`), and this word says which is which so a screen can lay the
- * three out in the three inks without reading the effects. It is deliberately
- * *not* the mechanism: what a card actually does is `effects` (live while held),
- * `boon` (paid once, on the pick) and `unlocks` (a row the seat may now build),
- * and a card may carry more than one of them. The Mit'a is written as a boon and
- * pays a permanent step of authority, because that is what "gain three
- * authority" means in a game where authority is a capacity — bending it into a
- * lump would have been a second, quieter rule about what the column implies.
+ * A card in all but class: a name, the rule in words, and a list of ordinary
+ * `CardEffect`s. There is no column, no age, no cost and nothing to choose — an
+ * ability is simply *true* for the seat from the turn it sits down, which is the
+ * whole of what the second cut changed. The vocabulary is the cards' for the
+ * reason it always was: a figure's line is folded, described, appraised and
+ * printed by exactly the machinery that folds a doctrine's.
+ *
+ * `id` is the figure-local key the Compendium anchors on and the describers name
+ * the ability by; it is unique across the whole sheet (checked at load), so a
+ * screen may hold one without holding the figure beside it.
+ *
+ * A clause the vocabulary cannot yet say goes in `deferred`, never bent into a
+ * near-fit — the rule that repeats across beliefs, legacies and wonders.
  */
-export type LeaderCardKind = 'passive' | 'boon' | 'unique';
-
-/** The four rows of a deck, keyed as the sheet keys them. */
-export type LeaderDeckAge = '1' | '2' | '3' | '4';
-
-/**
- * **What a card hands over the instant it is taken.**
- *
- * The bead's own one-shot vocabulary, reused whole rather than restated: a lump
- * is a `BeadWindfall` (which voice, how much, and which towns — the only shape
- * in the game that can say *a citizen in every city*), and a thing handed over
- * is a `CompletionGrant` (a named piece, a great person, a technology, a draft),
- * which is the union a wonder's completion already speaks. Both are paid through
- * the seams that already pay them (`payWindfall` and `payGrants`), so a leader's
- * boon is announced, banked and settled by exactly the machinery a bead and a
- * wonder go through, and this file learns nothing about baskets.
- *
- * A card with neither is a card whose boon is deferred — `moduHorseLords`, whose
- * text asks for a resource to be revealed and a pasture to be laid, and the
- * vocabulary carries neither. It says so in `deferred` rather than being bent
- * into something adjacent (CLAUDE.md rule 7, and the cards trap's "always defer,
- * never bend").
- */
-export interface LeaderBoon {
-  /** A lump of a voice, and which towns take it. */
-  windfall?: BeadWindfall;
-  /** Things handed over — a piece, a name, a technology, a draft. */
-  grants?: CompletionGrant[];
-}
-
-/** A row this card opens for the seat that took it. See `LeaderCard.unlocks`. */
-export interface LeaderUnlocks {
-  unit?: UnitTypeId;
-  building?: BuildingId;
-}
-
-/**
- * One card of one leader's deck.
- *
- * `CardDefBase`'s shape with two fields loosened and three added, and each
- * difference is the deck's own: `effects` is optional (a card whose whole text
- * is deferred declares none), `text` is required (every leader card prints its
- * rule, where a doctrine may not), and `boon`, `unlocks` and `id` are the three
- * things a doctrine has no use for. `leaderCardDef` is the conversion the
- * evaluator's `anyCardDef` reads, so a leader card is described by the same
- * describers that describe an Order.
- */
-export interface LeaderCard {
-  id: LeaderCardId;
+export interface LeaderAbility {
+  id: LeaderAbilityId;
+  /** The name the table gives it, in italics there. */
   name: string;
-  kind: LeaderCardKind;
-  /** One line in the voice of the tech tree's aphorisms. Never a rule. */
-  flavor: string;
   /** The ratified rules text, for the screen. The effects are the truth. */
   text: string;
-  /** Live for as long as the seat holds the card. Absent is none. */
-  effects?: CardEffect[];
-  /** Paid once, the turn the card is taken. */
-  boon?: LeaderBoon;
-  /**
-   * The row this card opens — a unit or a building carrying `unlockedByLeader`.
-   *
-   * The *declaration*, and the `unlocksUnit` / `unlocksBuilding` effect is
-   * derived from it (`leaderCardEffects`) rather than written beside it, so
-   * there is one place a unique names its row and no way for the two to
-   * disagree. Availability is then the ordinary question `isUnlocked` asks of
-   * the cards, and nothing in `src/sim/` compares a row against a name.
-   */
-  unlocks?: LeaderUnlocks;
+  /** Live for as long as the seat plays this figure — which is always. */
+  effects: CardEffect[];
   /** Named halves of the text that are deliberately absent. Player prose. */
   deferred?: string[];
   /** Something to know about a clause that *is* here. Player prose. */
   note?: string;
 }
 
-/** A leader's own line, live from the first turn. See `LeaderDef.bonus`. */
-export interface LeaderBonus {
-  text: string;
-  effects: CardEffect[];
-  deferred?: string[];
-}
+/**
+ * **Every ability the sheet names**, written down.
+ *
+ * Written rather than derived, and for `BuildingId`'s reason exactly: a JSON
+ * module widens a string *value* to `string` (only its keys stay literal), so a
+ * union inferred off `abilities` would be `string` and would swallow every other
+ * `CardId` with it. The load validator below checks this union against the sheet
+ * in both directions.
+ */
+export type LeaderAbilityId =
+  // Pachacuti
+  | 'qhapaqNan'
+  | 'goldOfThePeaks'
+  // Emperor Taizong
+  | 'theMandate'
+  | 'garrisonTowns'
+  // Modu Chanyu
+  | 'steppeRiders'
+  | 'theHerds'
+  // Akhenaten
+  | 'greatWorks'
+  | 'nilesGift'
+  // Al-Ma'mun
+  | 'mutazila'
+  | 'theHouseOfWisdom'
+  // Mithridates VI
+  | 'poisonKing'
+  | 'grovesAndHunt'
+  // Joan of Arc
+  | 'theVoices'
+  | 'theMaid'
+  // Mansa Musa
+  | 'goldOfWangara'
+  | 'theHajj'
+  // Zheng He
+  | 'treasureFleet'
+  | 'tributeOfTheWesternOcean'
+  // Nezahualcoyotl
+  | 'theDikes'
+  | 'flowerAndSong'
+  // Hypatia
+  | 'theMuseion'
+  | 'theCommentaries'
+  // Hildegard of Bingen
+  | 'theRites'
+  | 'symphonia'
+  // Ibn Battuta
+  | 'guestAtEveryCourt'
+  | 'theRihla';
 
 /**
  * **The two colours a figure wears** (batch H7, `docs/flags.md` (oooo); the table
@@ -397,17 +419,39 @@ export interface LeaderDef {
    * wears — so an empire under a figure is named after the empire, and the
    * invented list is the fallback for a seat sitting under nobody.
    *
-   * Data, like everything else on a row: a seventh figure is fifteen more
+   * Data, like everything else on a row: a fourteenth figure is fifteen more
    * strings and no edit here.
    */
   cities: readonly string[];
   /** The two inks this figure's seat wears. See `LeaderColors`. */
   colors: LeaderColors;
   startBias: StartBias;
-  /** The one line this seat holds from turn one, whatever it drafts. */
-  bonus: LeaderBonus;
-  /** Three cards an age, dealt when *this seat's* age turns. */
-  deck: Record<LeaderDeckAge, [LeaderCard, LeaderCard, LeaderCard]>;
+  /**
+   * **The two lines this seat holds from the first turn.** Exactly two — the
+   * table's own count, checked at load, and the reason the landing screen fits a
+   * whole figure in four lines.
+   */
+  abilities: [LeaderAbility, LeaderAbility];
+  /**
+   * **The soldier nobody else may raise**, and **the building nobody else may
+   * raise**.
+   *
+   * A declaration and not a rule: the row itself carries `unlockedByLeader`, and
+   * `isUnlocked` (`tech.ts`) asks this pair whether *this* seat's figure names
+   * the row before it asks the tree whether the technology has come. So a unique
+   * arrives when its technology does — the one gate every other row already
+   * passes through — and a row named by nobody is simply a bench.
+   */
+  unit: UnitTypeId;
+  building: BuildingId;
+  /**
+   * The device on the canton, or absent for the seat-order fallback.
+   *
+   * Uninterpreted config beside `colors`, exactly as `PlayerSpec.charge` is —
+   * see the Heraldry trap in `CLAUDE.md`. No figure carries one today; the field
+   * is here so that giving one a device is a JSON edit.
+   */
+  charge?: string;
 }
 
 interface LeaderTable {
@@ -442,130 +486,56 @@ export function startBiasOf(leader: LeaderId | undefined): StartBias | undefined
 }
 
 /**
- * **Every card the six decks hold**, written down.
+ * **Every ability, by id**, and which figure holds it.
  *
- * Written rather than derived, and for `BuildingId`'s reason exactly: a JSON
- * module widens a string *value* to `string` (only its keys stay literal), so a
- * union inferred off `deck` would be `string` and would swallow every other
- * `CardId` with it. The load validator below checks this union against the sheet
- * in both directions, so a card added to `data/leaders.json` and not to this
- * list is a boot error rather than a card nothing can name.
+ * Built off the sheet at load, and the register the validator checks
+ * `LeaderAbilityId` against in both directions: an ability added to
+ * `data/leaders.json` and not to the union is a boot error rather than a line
+ * nothing can name.
  */
-export type LeaderCardId =
-  // Pachacuti
-  | 'pachacutiCorvee'
-  | 'pachacutiMita'
-  | 'pachacutiTerraces'
-  | 'pachacutiQhapaqNan'
-  | 'pachacutiMaster'
-  | 'pachacutiSlinger'
-  | 'pachacutiTribute'
-  | 'pachacutiStorehouses'
-  | 'pachacutiTambo'
-  | 'pachacutiHighlands'
-  | 'pachacutiLevy'
-  | 'pachacutiQollqa'
-  // Emperor Taizong
-  | 'taizongYangtze'
-  | 'taizongMandate'
-  | 'taizongFubing'
-  | 'taizongGarrisons'
-  | 'taizongXuanwu'
-  | 'taizongExamination'
-  | 'taizongKhagan'
-  | 'taizongTribute'
-  | 'taizongCavalry'
-  | 'taizongPoets'
-  | 'taizongMuster'
-  | 'taizongPostRoad'
-  // Modu Chanyu
-  | 'moduHerds'
-  | 'moduHorseLords'
-  | 'moduWhistlingArrow'
-  | 'moduRaiders'
-  | 'moduGreatRaid'
-  | 'moduHordeCamp'
-  | 'moduSkyRite'
-  | 'moduGeneral'
-  | 'moduHorseArcher'
-  | 'moduTribute'
-  | 'moduSilk'
-  | 'moduGuard'
-  // Akhenaten
-  | 'akhenatenRites'
-  | 'akhenatenVoice'
-  | 'akhenatenObelisk'
-  | 'akhenatenDesert'
-  | 'akhenatenCourt'
-  | 'akhenatenKhopesh'
-  | 'akhenatenMillions'
-  | 'akhenatenWorks'
-  | 'akhenatenSunCourt'
-  | 'akhenatenFaithful'
-  | 'akhenatenConversion'
-  | 'akhenatenValley'
-  // Al-Ma'mun
-  | 'almamunDevotion'
-  | 'almamunNewCity'
-  | 'almamunHouse'
-  | 'almamunTranslators'
-  | 'almamunAlmagest'
-  | 'almamunMihna'
-  | 'almamunMutazila'
-  | 'almamunPurse'
-  | 'almamunCamel'
-  | 'almamunOrdinance'
-  | 'almamunEnquiry'
-  | 'almamunPaperMill'
-  // Mithridates VI
-  | 'mithridatesGroves'
-  | 'mithridatesCourt'
-  | 'mithridatesPeltast'
-  | 'mithridatesFriends'
-  | 'mithridatesPhysician'
-  | 'mithridatesMithridatium'
-  | 'mithridatesRoads'
-  | 'mithridatesGeneral'
-  | 'mithridatesChariot'
-  | 'mithridatesPoison'
-  | 'mithridatesTongues'
-  | 'mithridatesHold';
-
-/** The four rows, in order. Iteration order for every walk over a deck. */
-export const LEADER_DECK_AGES: readonly LeaderDeckAge[] = ['1', '2', '3', '4'];
-
-/** The row of a leader's deck an age asks for. `TechAge` is the same four. */
-export function deckAgeOf(age: TechAge): LeaderDeckAge {
-  return String(age) as LeaderDeckAge;
-}
-
-/** Every leader card, in sheet order: by leader, then by age, then by column. */
-export const LEADER_CARD_IDS: readonly LeaderCardId[] = LEADER_IDS.flatMap((leader) =>
-  LEADER_DECK_AGES.flatMap((age) => leaderDef(leader).deck[age].map((card) => card.id)),
-);
-
-const LEADER_CARDS = new Map<string, { card: LeaderCard; leader: LeaderId; age: LeaderDeckAge }>();
+const LEADER_ABILITIES = new Map<string, { ability: LeaderAbility; leader: LeaderId }>();
 for (const leader of LEADER_IDS) {
-  for (const age of LEADER_DECK_AGES) {
-    for (const card of leaderDef(leader).deck[age]) LEADER_CARDS.set(card.id, { card, leader, age });
+  for (const ability of leaderDef(leader).abilities) {
+    LEADER_ABILITIES.set(ability.id, { ability, leader });
   }
 }
 
-export function isLeaderCardId(value: unknown): value is LeaderCardId {
-  return typeof value === 'string' && LEADER_CARDS.has(value);
+/** Every ability id, in sheet order: by figure, then first line and second. */
+export const LEADER_ABILITY_IDS: readonly LeaderAbilityId[] = LEADER_IDS.flatMap((leader) =>
+  leaderDef(leader).abilities.map((ability) => ability.id),
+);
+
+export function isLeaderAbilityId(value: unknown): value is LeaderAbilityId {
+  return typeof value === 'string' && LEADER_ABILITIES.has(value);
 }
 
-export function leaderCard(id: LeaderCardId): LeaderCard {
-  const held = LEADER_CARDS.get(id);
-  if (!held) throw new Error(`Unknown leader card "${id}"`);
-  return held.card;
+export function leaderAbility(id: LeaderAbilityId): LeaderAbility {
+  const held = LEADER_ABILITIES.get(id);
+  if (!held) throw new Error(`Unknown leader ability "${id}"`);
+  return held.ability;
 }
 
-/** Which figure's deck holds this card, and which of its four rows. */
-export function leaderCardHome(id: LeaderCardId): { leader: LeaderId; age: LeaderDeckAge } {
-  const held = LEADER_CARDS.get(id);
-  if (!held) throw new Error(`Unknown leader card "${id}"`);
-  return { leader: held.leader, age: held.age };
+/** Which figure's sheet holds this ability. For the book and the spectator. */
+export function leaderAbilityHome(id: LeaderAbilityId): LeaderId {
+  const held = LEADER_ABILITIES.get(id);
+  if (!held) throw new Error(`Unknown leader ability "${id}"`);
+  return held.leader;
+}
+
+/**
+ * **Does this figure's sheet name this row?** The whole of a unique's gate.
+ *
+ * Asked by `isUnlocked` (`tech.ts`) of a row carrying `unlockedByLeader`, and by
+ * nothing else. A row nobody names answers `false` for every seat, which is what
+ * a bench is: the Tambo and the Qollqa and the rest of the first cut's pieces
+ * keep their rules and their prices and wait for a figure to claim them.
+ */
+export function leaderOpensUnit(leader: LeaderId | undefined, type: UnitTypeId): boolean {
+  return leader !== undefined && leaderDef(leader).unit === type;
+}
+
+export function leaderOpensBuilding(leader: LeaderId | undefined, id: BuildingId): boolean {
+  return leader !== undefined && leaderDef(leader).building === id;
 }
 
 /**
@@ -575,39 +545,38 @@ export function leaderCardHome(id: LeaderCardId): { leader: LeaderId; age: Leade
  * The user's ruling of 2026-09-11 (`docs/flags.md` (qqqq), point 3): *"a unit no
  * technology names is priced by the age of the row that opens it"*. `unitUpkeep`
  * (`upkeep.ts`) charges an army by the age of its unlocking node — "the price is
- * the age", its own docblock — and a leader's unique has no node at all, so
- * every one of the ten was free to keep. This is the second source that reading
+ * the age", its own docblock — and a figure's unique has no node at all, so
+ * every one of them was free to keep. This is the second source that reading
  * falls to, and the whole of what it adds.
  *
- * Two clauses, in precedence, and each is a different sentence:
+ * One clause now, where the first cut had two: **the age the row's own column
+ * belongs to** — the band `techAgeBands` puts that column in. This is
+ * `docs/production-costs.md`'s reading of the same field said one ledger over: a
+ * row the tree does not name is already *priced* in hammers off its own `column`
+ * (`priceColumn` in `cities.ts`), and a column is a position in the tree whether
+ * or not a node stands on it. It answers for every `unlockedByLeader` row, for
+ * the Templars whom a belief opens and no belief dates, and for the parked hulls
+ * (`awaitsTech`) the tree has yet to reach.
  *
- *   · **the deck row that hands the piece over** (`leaderCardHome(card).age`).
- *     The most particular answer there is: the Fubing is an Æra I card of
- *     Taizong's deck, so the Fubing is an Æra I soldier and costs what an Æra I
- *     spearman costs. A card says *when* it is dealt, which is exactly the
- *     statement a technology makes about the row it unlocks;
- *   · **the age the row's own column belongs to** — the band `techAgeBands`
- *     puts that column in. This is `docs/production-costs.md`'s reading of the
- *     same field said one ledger over: a row the tree does not name is already
- *     *priced* in hammers off its own `column` (`priceColumn` in `cities.ts`),
- *     and a column is a position in the tree whether or not a node stands on it.
- *     It answers for the Templars, whom a belief opens and no belief dates, and
- *     for the parked hulls (`awaitsTech`) the tree has yet to reach.
+ * The deck row that used to sit ahead of it is gone with the deck (batch L6a).
+ * It said the same thing twice for a unique — every one of them carried a column
+ * of its own as well, because the price fold has always needed one — and there
+ * is no longer anything that dates a row except the row.
  *
  * It deliberately does **not** ask the tree first. The tree is `unitUpkeep`'s
  * own first clause and stays there — this function's whole contract is "the
  * technology said nothing; who else did?" — so there is one statement of the
  * standard reading and one of the fallback, and neither is a copy of the other.
  *
- * **Why it lives here.** The decks are this module's; the roster and the chart
- * are leaves it already imports. Anywhere else — `unitData.ts`, `techData.ts` —
- * would have to import `leaderData.ts`, which imports both of them back, and the
- * cycle would come out empty under the dev server's module runner (CLAUDE.md's
- * trap). `upkeep.ts` is downstream of all three and imports this by name.
+ * **Why it lives here.** The roster and the chart are leaves this module already
+ * imports. Anywhere else — `unitData.ts`, `techData.ts` — would have to import
+ * `leaderData.ts`, which imports both of them back, and the cycle would come out
+ * empty under the dev server's module runner (CLAUDE.md's trap). `upkeep.ts` is
+ * downstream of all three and imports this by name.
  *
  * Memoised off the tables, which never move at runtime: `explainUnitUpkeep`
- * prices every piece an empire holds every turn, and a walk of the decks and a
- * rebuild of the chart's bands per soldier is a sweep nobody asked for.
+ * prices every piece an empire holds every turn, and a rebuild of the chart's
+ * bands per soldier is a sweep nobody asked for.
  */
 export function ageThatOpens(type: UnitTypeId): TechAge | undefined {
   openerAges ??= computeOpenerAges();
@@ -618,19 +587,11 @@ let openerAges: Map<UnitTypeId, TechAge> | null = null;
 
 function computeOpenerAges(): Map<UnitTypeId, TechAge> {
   const ages = new Map<UnitTypeId, TechAge>();
-  // The column band first, so a deck row below overwrites it: the card that
-  // hands a piece over is the more particular answer, and a unique carries both
-  // a deck row and a column of its own.
   for (const type of UNIT_TYPE_IDS) {
     const column = unitDef(type).column;
     if (column === undefined) continue;
     const age = ageOfColumn(column);
     if (age !== undefined) ages.set(type, age);
-  }
-  for (const id of LEADER_CARD_IDS) {
-    const opened = leaderCard(id).unlocks?.unit;
-    if (opened === undefined) continue;
-    ages.set(opened, Number(leaderCardHome(id).age) as TechAge);
   }
   return ages;
 }
@@ -650,54 +611,39 @@ function ageOfColumn(column: number): TechAge | undefined {
 }
 
 /**
- * **Everything a held card puts into the law**, effects and unlock together.
+ * An ability as a card, for `anyCardDef` and every describer behind it.
  *
- * The one reading, and the reason `unlocks` is a declaration rather than a
- * second copy of an effect: a unique's row is named once on the card and the
- * `unlocksUnit` / `unlocksBuilding` shape is composed here, so `cardUnlocksUnit`
- * answers a leader's card by walking the same list it walks for a belief and
- * `isUnlocked` never learns the word "leader".
- *
- * Composed fresh each call rather than memoised: the lists are three deep and
- * the memo that matters is `liveEffects`', one level up, keyed on the state's
- * own revision.
+ * The conversion is the whole reason an ability is written in the card
+ * vocabulary: the Ledger, the Compendium and the bot's appraisal all read a
+ * figure's line through the machinery that reads a doctrine's, and none of them
+ * learns the word "leader" to do it. No `flavor` — an ability is a rule a seat
+ * holds rather than a card it was dealt, and the figure's own page carries
+ * whatever there is to say about it.
  */
-export function leaderCardEffects(card: LeaderCard): CardEffect[] {
-  const list: CardEffect[] = [...(card.effects ?? [])];
-  if (card.unlocks?.unit !== undefined) {
-    list.push({ kind: 'unlocksUnit', unit: card.unlocks.unit });
-  }
-  if (card.unlocks?.building !== undefined) {
-    list.push({ kind: 'unlocksBuilding', building: card.unlocks.building });
-  }
-  return list;
-}
-
-/** A leader card as a card, for `anyCardDef` and every describer behind it. */
-export function leaderCardDef(id: LeaderCardId): CardDefBase {
-  const card = leaderCard(id);
+export function leaderAbilityDef(id: LeaderAbilityId): CardDefBase {
+  const ability = leaderAbility(id);
   const def: CardDefBase = {
-    name: card.name,
-    flavor: card.flavor,
-    text: card.text,
-    effects: leaderCardEffects(card),
+    name: ability.name,
+    flavor: '',
+    text: ability.text,
+    effects: ability.effects,
   };
-  if (card.deferred !== undefined) def.deferred = card.deferred;
-  if (card.note !== undefined) def.note = card.note;
+  if (ability.deferred !== undefined) def.deferred = ability.deferred;
+  if (ability.note !== undefined) def.note = ability.note;
   return def;
 }
 
-/** A leader's own line as a card, for the same reason `leaderCardDef` exists. */
-export function leaderBonusDef(id: LeaderId): CardDefBase {
-  const def = leaderDef(id);
-  const card: CardDefBase = {
-    name: def.name,
-    flavor: '',
-    text: def.bonus.text,
-    effects: def.bonus.effects,
-  };
-  if (def.bonus.deferred !== undefined) card.deferred = def.bonus.deferred;
-  return card;
+/**
+ * **Both of a figure's lines, folded into one law.**
+ *
+ * `liveEffects`' leader source asks this and nothing else, so "a figure is its
+ * two abilities" is stated once. The uniques are deliberately *not* here: a
+ * unique is a gate on a row (`leaderOpensUnit`), never an `unlocksUnit` effect
+ * in the ledger, because the row's own technology still has to arrive and an
+ * effect in the law would say it had already.
+ */
+export function leaderAbilityEffects(leader: LeaderId): CardEffect[] {
+  return leaderDef(leader).abilities.flatMap((ability) => ability.effects);
 }
 
 /** Does this bias ask the world for anything? An empty one is not a bias. */
@@ -804,59 +750,68 @@ for (const id of LEADER_IDS) {
     }
   }
 
-  // --- the deck ---------------------------------------------------------------
-  // The same discipline one field over. A card that names a unit nobody has
-  // heard of, or a row of two cards where the sheet promises three, is a boot
-  // error rather than a draft that quietly deals a hand nobody can answer.
-  if (typeof def.bonus?.text !== 'string' || def.bonus.text.length === 0) {
-    throw new Error(`${where} has no bonus text`);
+  // --- the two abilities and the two uniques ---------------------------------
+  // The same discipline one field over. A sheet that names a unit nobody has
+  // heard of, or a figure with three lines where the second cut promises two, is
+  // a boot error rather than a line that quietly never fires.
+  const abilities = def.abilities;
+  if (!Array.isArray(abilities) || abilities.length !== 2) {
+    throw new Error(`${where} does not carry exactly two abilities`);
   }
-  if (!Array.isArray(def.bonus.effects)) throw new Error(`${where} has no bonus effects`);
-  for (const age of LEADER_DECK_AGES) {
-    const row = def.deck?.[age];
-    if (!Array.isArray(row) || row.length !== 3) {
-      throw new Error(`${where} deals no three cards in Æra ${age}`);
+  for (const ability of abilities) {
+    const at = `${where} ability "${ability.id}"`;
+    if (!LEADER_ABILITIES.has(ability.id)) throw new Error(`${at} is not in LeaderAbilityId`);
+    if (typeof ability.name !== 'string' || ability.name.length === 0) {
+      throw new Error(`${at} has no name`);
     }
-    // The columns are the sheet's own order — a passive, a boon, a unique —
-    // because a screen lays the three out in three inks and reads the order
-    // rather than searching the row for a kind.
-    const kinds = row.map((card) => card.kind).join(',');
-    if (kinds !== 'passive,boon,unique') {
-      throw new Error(`${where} Æra ${age} is dealt as ${kinds}`);
+    if (typeof ability.text !== 'string' || ability.text.length === 0) {
+      throw new Error(`${at} prints no rule`);
     }
-    for (const card of row) {
-      const at = `${where} card "${card.id}"`;
-      if (!LEADER_CARDS.has(card.id)) throw new Error(`${at} is not in LeaderCardId`);
-      if (typeof card.name !== 'string' || card.name.length === 0) {
-        throw new Error(`${at} has no name`);
-      }
-      if (typeof card.text !== 'string' || card.text.length === 0) {
-        throw new Error(`${at} prints no rule`);
-      }
-      if (card.unlocks?.unit !== undefined && !UNIT_TYPE_IDS.includes(card.unlocks.unit)) {
-        throw new Error(`${at} opens the unknown unit "${card.unlocks.unit}"`);
-      }
-      if (card.unlocks?.building !== undefined && !BUILDING_IDS.includes(card.unlocks.building)) {
-        throw new Error(`${at} opens the unknown building "${card.unlocks.building}"`);
-      }
-      // **A card that does nothing at all says so.** Deferring a whole text is
-      // lawful (the vocabulary carries no way to reveal a resource), but a card
-      // that neither acts nor admits to it is a promise the game never keeps.
-      const acts =
-        (card.effects ?? []).length > 0 ||
-        card.unlocks !== undefined ||
-        card.boon?.windfall !== undefined ||
-        (card.boon?.grants ?? []).length > 0;
-      if (!acts && (card.deferred ?? []).length === 0) {
-        throw new Error(`${at} does nothing and does not say so`);
-      }
+    if (!Array.isArray(ability.effects)) throw new Error(`${at} has no effects list`);
+    // **An ability that does nothing at all says so.** Deferring a whole text is
+    // lawful — the vocabulary carries no way to say some of what the sheet wants
+    // — but a line that neither acts nor admits to it is a promise the game
+    // never keeps, and a player would read the row and believe it.
+    if (ability.effects.length === 0 && (ability.deferred ?? []).length === 0) {
+      throw new Error(`${at} does nothing and does not say so`);
     }
+  }
+  // **The uniques, and the marker that makes them uniques.** A row this figure
+  // names without `unlockedByLeader` on it is a row the tree opens for everybody
+  // — the failure that reads as "my rival built my Gendarme" and that nothing
+  // downstream could catch, since `isUnlocked` would never be asked.
+  if (!UNIT_TYPE_IDS.includes(def.unit)) {
+    throw new Error(`${where} raises the unknown unit "${String(def.unit)}"`);
+  }
+  if (unitDef(def.unit).unlockedByLeader !== true) {
+    throw new Error(`${where} raises "${def.unit}", which is not marked as a figure's own`);
+  }
+  if (!BUILDING_IDS.includes(def.building)) {
+    throw new Error(`${where} raises the unknown building "${String(def.building)}"`);
+  }
+  if (buildingDef(def.building).unlockedByLeader !== true) {
+    throw new Error(`${where} raises "${def.building}", which is not marked as a figure's own`);
   }
 }
 
-// One id, one card. The other direction — a member of `LeaderCardId` no sheet
-// row carries — is a type, so it is pinned by the register test reading this
-// file's own source (`test/sim/leaders.test.ts`).
-if (LEADER_CARD_IDS.length !== LEADER_CARDS.size) {
-  throw new Error('leaders.json deals the same card id twice');
+// **One unique, one figure.** Two figures naming the same row would give a
+// player a piece they could not account for, and `leaderOpensUnit` would answer
+// yes to a seat whose sheet a screen never showed it.
+const CLAIMED_UNITS = new Set<string>();
+const CLAIMED_BUILDINGS = new Set<string>();
+for (const id of LEADER_IDS) {
+  const def = LEADER_DATA.leaders[id]!;
+  if (CLAIMED_UNITS.has(def.unit)) throw new Error(`two figures raise the unit "${def.unit}"`);
+  CLAIMED_UNITS.add(def.unit);
+  if (CLAIMED_BUILDINGS.has(def.building)) {
+    throw new Error(`two figures raise the building "${def.building}"`);
+  }
+  CLAIMED_BUILDINGS.add(def.building);
+}
+
+// One id, one ability. The other direction — a member of `LeaderAbilityId` no
+// sheet row carries — is a type, so it is pinned by the register test reading
+// this file's own source (`test/sim/leaders.test.ts`).
+if (LEADER_ABILITY_IDS.length !== LEADER_ABILITIES.size) {
+  throw new Error('leaders.json names the same ability id twice');
 }

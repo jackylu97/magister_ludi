@@ -54,7 +54,7 @@ import type { Family, GreatPersonId } from './greatPeopleData';
 import type { ImprovementId } from './improvementData';
 // Type-only in both directions, exactly as `beadData.ts` is: a leader's bonus
 // and its deck's cards carry ordinary `CardEffect`s, and both are `CardId`s.
-import type { LeaderCardId, LeaderId } from './leaderData';
+import type { LeaderAbilityId, LeaderId } from './leaderData';
 import type { ModifierStage } from './yields/stages';
 import type { ProjectId, ProjectPayout } from './projectData';
 import type { BeliefId, ConsecrationId, RiteId } from './religionData';
@@ -153,16 +153,18 @@ export type CardId =
   // it is a class rather than a flag on an Order row (`maliceData.ts`'s
   // docblock). Ids stay unique across the whole table.
   | MaliceId
-  // **Thirteen classes since the leaders** (batch L2a, `docs/flags.md` (dddd)),
-  // and they arrive as a pair because a figure gives a seat two different
-  // things: `LeaderId` is the **bonus**, the one line a seat holds from the turn
-  // it sits down, and `LeaderCardId` is a **card of its deck**, taken in a draft
-  // when the seat's own age turns. Both are read through `liveEffects`' twelfth
-  // source and described by the same describers as an Order, which is the whole
-  // argument for writing a leader in the card vocabulary at all. Ids stay unique
-  // across the whole table, and `test/sim/leaders.test.ts` pins that.
+  // **Thirteen classes since the leaders** (batch L2a, `docs/flags.md` (dddd);
+  // re-aimed at the second cut in L6a), and they arrive as a pair because a
+  // figure gives a seat two different things: `LeaderId` names the **figure**,
+  // which is what a line says when it means "because of who you are", and
+  // `LeaderAbilityId` names **one of its two abilities**, which is what a line
+  // says when it means "because of this rule". Both are read through
+  // `liveEffects`' twelfth source and described by the same describers as an
+  // Order, which is the whole argument for writing a leader in the card
+  // vocabulary at all. Ids stay unique across the whole table, and
+  // `test/sim/leaders.test.ts` pins that.
   | LeaderId
-  | LeaderCardId;
+  | LeaderAbilityId;
 
 /**
  * Which slot an Order fits, and therefore what a government's spread is counted
@@ -2086,7 +2088,23 @@ export type ActionRuleId =
    * *which bank may pay* and never what a thing costs. A row naming its own bank
    * is untouched, for that marker's stated reason.
    */
-  | 'faithBuysScienceBuildings';
+  | 'faithBuysScienceBuildings'
+  /**
+   * **The first redraw of every hand this seat is dealt costs nothing** — Ibn
+   * Battuta's Rihla (batch L6a, `docs/leaders.md` "The thirteen").
+   *
+   * It opens the reroll's door and waives the reroll's price, once per offer:
+   * the redraw itself is the one the game already deals (`settleReroll`), from
+   * the seat's own pool and off `state.rng`, so there is one draw and one place
+   * a hand comes from. The stamp that spends it is on the **offer** rather than
+   * on the seat (`OrderOffer.rerolled` and its two siblings, presence-is-state),
+   * which is what makes it *every* draft rather than one a game.
+   *
+   * **Never a belief.** A belief hand's first asking is already free on its own
+   * ladder (`explainBeliefRerollCost`), so the rule would be waiving a price of
+   * nought and then charging the second asking as if it were the first.
+   */
+  | 'rerollOffers';
 
 /**
  * Something about the world that stops being true — or starts.

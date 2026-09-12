@@ -4,26 +4,27 @@
  *
  * The finding L3b left behind: `unitUpkeep` prices an army by the age of the
  * node that unlocks it ("the price is the age", `upkeep.ts`' own docblock), and
- * **no technology names a leader's unique** — all ten are dealt by a card. Every
- * figure's own soldier was therefore free to keep for ever, a discount nobody
- * designed and one a player could not see. The ruling: a unit no technology
- * names is priced by the age of *the row that opens it*.
+ * **no technology names a figure's unique**. Every figure's own soldier was
+ * therefore free to keep for ever, a discount nobody designed and one a player
+ * could not see. The ruling: a unit no technology names is priced by the age of
+ * *the row that opens it*.
  *
  * Three claims, and the shape of the file is the three:
  *
  *   · **the uniques are priced, and priced as their age** — every
- *     `unlockedByLeader` row costs something, and costs exactly what its deck
- *     row's age costs, which is the only reading that makes the pins the ruling
- *     named ("the Fubing costs what a same-age spearman costs") true by
+ *     `unlockedByLeader` row costs something, and costs exactly what the age of
+ *     its own column costs, which is the only reading that makes the pins the
+ *     ruling named ("the Fubing costs what a same-age spearman costs") true by
  *     construction rather than by coincidence;
  *   · **nothing else moved** — a plain tech-named row is priced today exactly as
  *     it was, off the tree, and the three exemptions still exempt;
- *   · **the fallback is a fallback** — `ageThatOpens` answers off the deck where
- *     a card opens the row and off the row's own column where nothing does, and
- *     `unitUpkeep` asks it only after the tree has said nothing.
+ *   · **the fallback is a fallback** — `ageThatOpens` answers off the row's own
+ *     column, and `unitUpkeep` asks it only after the tree has said nothing.
+ *     (The deck's clause ahead of it retired with the deck, batch L6a: a unique
+ *     carried both a card's age and a column, and the two said the same thing.)
  *
- * The tables are walked rather than listed: a leader's eleventh unique joins
- * these pins by being added to `data/leaders.json`, which is the whole of what
+ * The tables are walked rather than listed: a fourteenth figure's unique joins
+ * these pins by being added to `data/units.json`, which is the whole of what
  * "nothing compares a type against a name" buys.
  *
  * **Core, not slow**: it reads the tables and calls two pure functions. No
@@ -32,12 +33,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import {
-  LEADER_CARD_IDS,
-  ageThatOpens,
-  leaderCard,
-  leaderCardHome,
-} from '../../src/sim/leaderData';
+import { ageThatOpens } from '../../src/sim/leaderData';
 import { RULES } from '../../src/sim/rulesData';
 import { TECH_AGES, UNIT_UNLOCK_TECH, techAgeBands, techDef } from '../../src/sim/techData';
 import { unitUpkeep, unitUpkeepOf } from '../../src/sim/upkeep';
@@ -54,44 +50,39 @@ import {
 const PER_AGE = RULES.upkeep.goldPerUnitAge;
 
 /**
- * Every unit a figure's deck opens, paired with the age of the row that opens
- * it — read off `data/leaders.json` rather than written down here, so the pins
- * below are claims about the rule and not a second copy of the table.
+ * Every row a figure may raise, paired with the age its **own column** stands
+ * in — read off `data/units.json` and the chart rather than written down here,
+ * so the pins below are claims about the rule and not a second copy of a table.
+ *
+ * The deck's own clause retired with the deck (batch L6a): a unique was dated by
+ * the card that handed it over *and* by the column it carried, which said the
+ * same thing twice, and the column is the half that survives.
  */
-const OPENED_BY_A_DECK: { type: UnitTypeId; age: number; card: string }[] = LEADER_CARD_IDS.flatMap(
-  (id) => {
-    const opened = leaderCard(id).unlocks?.unit;
-    if (opened === undefined) return [];
-    return [{ type: opened, age: Number(leaderCardHome(id).age), card: id }];
-  },
-);
+const AGE_OF = (column: number): number => {
+  for (const band of techAgeBands()) if (column >= band.from && column <= band.to) return band.age;
+  return techAgeBands()[techAgeBands().length - 1]!.age;
+};
 
-describe('a unique is priced by the age of the row that opens it', () => {
-  it('walks every leader-dealt unit and finds none of them free', () => {
-    // The ten the finding counted. A walk that found nothing would be a walk
-    // reading the wrong shape.
-    expect(OPENED_BY_A_DECK.length).toBeGreaterThanOrEqual(10);
-    for (const { type, age, card } of OPENED_BY_A_DECK) {
+const FIGURE_ROWS: { type: UnitTypeId; age: number }[] = UNIT_TYPE_IDS.filter(
+  (type) => unitDef(type).unlockedByLeader === true,
+).map((type) => ({ type, age: AGE_OF(unitDef(type).column ?? 1) }));
+
+describe('a unique is priced by the age of the column it stands in', () => {
+  it('walks every row a figure may raise and finds none of them free', () => {
+    // Seventeen since the second cut's seven joined the ten. A walk that found
+    // nothing would be a walk reading the wrong shape.
+    expect(FIGURE_ROWS.length).toBeGreaterThanOrEqual(10);
+    for (const { type, age } of FIGURE_ROWS) {
       // The tree really does say nothing — which is the whole premise.
       expect(UNIT_UNLOCK_TECH.get(type), `${type} is named by a technology after all`).toBe(
         undefined,
       );
-      expect(unitUpkeep(type), `${unitDef(type).name} (${card}) is kept for nothing`).toBe(
-        age * PER_AGE,
-      );
+      // A civilian is kept for nothing by construction, whoever raised it; the
+      // payroll's own rule, and the Canoness is the first unique to meet it.
+      if (isCivilian(unitDef(type)) || trades(unitDef(type))) continue;
+      expect(unitUpkeep(type), `${unitDef(type).name} is kept for nothing`).toBe(age * PER_AGE);
       expect(unitUpkeep(type)).toBeGreaterThan(0);
     }
-  });
-
-  it('also covers every row carrying the marker, however it was opened', () => {
-    // `unlockedByLeader` is the roster's own marker; the walk above is the
-    // decks'. They must agree, and neither may leave a soldier free.
-    const marked = UNIT_TYPE_IDS.filter((type) => unitDef(type).unlockedByLeader === true);
-    expect(marked.length).toBeGreaterThanOrEqual(10);
-    for (const type of marked) {
-      expect(unitUpkeep(type), `${unitDef(type).name} is kept for nothing`).toBeGreaterThan(0);
-    }
-    expect([...marked].sort()).toEqual([...OPENED_BY_A_DECK.map((row) => row.type)].sort());
   });
 
   it('costs what a soldier of the same age costs — the Fubing and the Khopesh', () => {
@@ -154,12 +145,12 @@ describe('nothing the tree already named has moved', () => {
   });
 });
 
-describe('ageThatOpens — the deck first, the row’s own column after', () => {
-  it('answers a unique off its deck row', () => {
-    for (const { type, age } of OPENED_BY_A_DECK) expect(ageThatOpens(type)).toBe(age);
+describe('ageThatOpens — the row’s own column, and nothing else', () => {
+  it('answers a figure’s unique off the column its row carries', () => {
+    for (const { type, age } of FIGURE_ROWS) expect(ageThatOpens(type), type).toBe(age);
   });
 
-  it('falls to the column’s band where no card dates the row', () => {
+  it('answers a row a belief opens the same way', () => {
     // The Knights Templar are opened by a belief, and a belief carries no age —
     // so the row's own `column` answers, through the chart's bands.
     expect(UNIT_UNLOCK_TECH.get('knightsTemplar')).toBe(undefined);

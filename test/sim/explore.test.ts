@@ -546,10 +546,26 @@ describe('determinism', () => {
    * the orders. The march itself is untouched by the ruling; what moved is what
    * it was marching across, which is precisely the case this docblock reserves
    * for a re-take.
+   *
+   * **Re-taken a third time, 2026-09-12 (batch L6a)**, and the reason is again
+   * written here because the rule above says it must be: the `leaders` phase
+   * retired with the leaders' draft (`docs/flags.md` (xxxx)), and the end-of-turn
+   * pipeline therefore bumps `GameState.revision` **once less per resolution** —
+   * twenty fewer over twenty turns. The revision is a *memo key* and nothing
+   * else: it is what `readings.ts` hangs a remembered reading on, no rule reads
+   * it, and it is in the snapshot because everything is.
+   *
+   * The claim that nothing moved is not an argument, it is a measurement: the
+   * two snapshots were taken side by side — this tree's and the head before it,
+   * same seed, same twenty resolutions — parsed and walked key by key, and the
+   * **whole** of the difference was `.revision` 602 against 622. Same board,
+   * same fog, same pieces on the same hexes with the same health, same camps,
+   * same ruins, same generator state. The byte length is unchanged too, which
+   * is what a three-digit counter changing looks like.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: 'd8f5a676:187628',
-    2026: '1413bb21:187513',
+    11: '16508274:187628',
+    2026: '3eafddef:187513',
   };
 
   for (const seed of [11, 2026]) {

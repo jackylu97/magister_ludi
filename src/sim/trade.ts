@@ -160,7 +160,7 @@ import {
   settleCultureWindfall,
   windfallPayout,
 } from './statecraft';
-import { type UnitTypeId, caravanTypeId, trades, unitDef } from './unitData';
+import { type UnitTypeId, trades, unitDef } from './unitData';
 import { fullMovement } from './units';
 // The two halves that had to leave (2026-08-28). `cities.ts` folds a caravan's
 // lines into `foldCity` and banks `empireGold` in `collectYields`, and while
@@ -173,7 +173,7 @@ import { routeCities, routeIsLive } from './routeYields';
 // The mode's own three names, from the leaf that owns them (see the re-export
 // below): a `export … from` binds nothing locally, and every gate in this file
 // is written in terms of a mode.
-import { type RouteMode, ROUTE_MODES } from './routes';
+import { type RouteMode, ROUTE_MODES, caravanTypeFor } from './routes';
 import { bumpEconomy } from './slate';
 
 export {
@@ -563,8 +563,8 @@ function caravanProbe(playerId: number, type: UnitTypeId, from: City): Unit {
  * count and its turn count would describe some other wagon. Every other caller
  * of a probe is inside this file.
  */
-export function caravanProbeFor(playerId: number, from: City): Unit | null {
-  const type = caravanTypeId();
+export function caravanProbeFor(state: GameState, playerId: number, from: City): Unit | null {
+  const type = caravanTypeFor(state, playerId);
   return type === null ? null : caravanProbe(playerId, type, from);
 }
 
@@ -778,7 +778,7 @@ export function routeModeFor(
   mode?: RouteMode,
 ): RouteMode {
   if (mode !== undefined) return mode;
-  const type = caravanTypeId();
+  const type = caravanTypeFor(state, playerId);
   const from = cityById(state, fromCityId);
   const to = cityById(state, toCityId);
   if (!type || !from || !to) return 'land';
@@ -872,7 +872,7 @@ export function routeStartable(
   toCityId: number,
   mode?: RouteMode,
 ): string | null {
-  const type = caravanTypeId();
+  const type = caravanTypeFor(state, playerId);
   if (!type) return 'This world has no caravans';
 
   const from = cityById(state, fromCityId);

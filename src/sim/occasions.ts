@@ -156,24 +156,7 @@ export type Occasion =
    * whose head row reads **nought** announces nothing at all — leading the world
    * at nothing is not a deed.
    */
-  | 'censusTaken'
-  /**
-   * **A leader's row was put in front of a seat** (batch L2a, `docs/leaders.md`
-   * "The draft"). `openLeaderOffers`.
-   *
-   * A moment rather than a fact, and the age is what makes it one: the three
-   * cards are dealt on the turn **this seat's** own age turns, once, and the
-   * seat owes an answer from that instant until it takes one. So there is a
-   * point in time to announce, which is `wagerClaimed`'s own argument for being
-   * in the shared vocabulary rather than in one module's private signal — a deed
-   * or a Triumph may one day name the moment a realm's figure spoke.
-   *
-   * It announces the **deal**, not the pick. What a card pays when it is taken
-   * is an ordinary boon settled by the seams that settle boons, and a card taken
-   * is not an event the world hears about — it is a fact about one realm's law,
-   * exactly as a slotted Order is.
-   */
-  | 'leaderOffered';
+  | 'censusTaken';
 
 /** Every occasion, in declaration order. The register the hooks are pinned by. */
 export const OCCASIONS: readonly Occasion[] = [
@@ -195,5 +178,4 @@ export const OCCASIONS: readonly Occasion[] = [
   'wagerClaimed',
   'maliceSeated',
   'censusTaken',
-  'leaderOffered',
 ];

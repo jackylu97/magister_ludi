@@ -466,6 +466,20 @@ export type BuildingId =
   | 'paperMill'
   | 'mithridatium'
   | 'ponticHold'
+  | 'sainteChapelle'
+  | 'sankoreMadrasa'
+  | 'longjiangDockyard'
+  | 'tetzcotzinco'
+  | 'museion'
+  | 'rupertsbergScriptorium'
+  | 'funduq'
+  | 'sainteChapelle'
+  | 'sankoreMadrasa'
+  | 'longjiangDockyard'
+  | 'tetzcotzinco'
+  | 'museion'
+  | 'rupertsbergScriptorium'
+  | 'funduq'
   // --- the wonders ---------------------------------------------------------
   //
   // Twenty-seven, ratified from `docs/wonders.md` and homed on the tree as it
@@ -1143,12 +1157,15 @@ export interface BuildingDef {
    * opens the same bank for the town's *civilians* only — settlers, workers,
    * caravans — and a second boolean beside this one would have been two markers
    * answering one question, which is exactly how a town ends up selling a
-   * knight for faith because the wrong flag was read. `'all'` is the Reliquary's
+   * knight for faith because the wrong flag was read. `'military'` is the third
+   * word (batch L6a, the Sainte-Chapelle) and is the second's negation rather
+   * than a second question: a town holding both rows sells its whole roster, as
+   * both rows say. `'all'` is the Reliquary's
    * whole roster; `'civilian'` is `isCivilian` (`unitData.ts`), the same
    * predicate `unitPurchaseBucket` sorts a purchase by, so the bank that opens
    * and the bucket that is stamped can never disagree about what a civilian is.
    */
-  faithPurchases?: 'all' | 'civilian';
+  faithPurchases?: 'all' | 'civilian' | 'military';
   /**
    * **What this building takes off the price of anything its town buys**, as a
    * signed whole percent — the Assay House's five off. Absent means a town that

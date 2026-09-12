@@ -298,10 +298,6 @@ const EXCUSED = new Map<string, string>([
     'writes the turn report, not the board — the old `beads` phase’s excuse one phase up: a kept wager’s beads land through `awardBead`, which announces, and everything else this phase writes (`Player.wagerTotals`, `Player.wager`, `WagerDeal.claimed`) is a running total or an absolute stamp no tenant folds a yield from',
   ],
   [
-    'leaders.ts#runLeaderDraft',
-    'writes the turn report, not the board — `runWagers`’ excuse one phase up: the figure’s row it opens is `Player.leaderOffer`, a decision the seat owes and not a line any tenant folds a yield from, and the card that *is* folded is written by `chooseLeaderCardAt`, which announces',
-  ],
-  [
     'state.ts#aimResearchAt',
     'moves beakers between `Player.sciencePool` and the bucket `Player.techProgress` parks them in (batch S2, schema 111) — the empire’s total does not change, and every caller announces anyway: the reducer’s own clock for the two research commands, and `settleResearch` for the promotion',
   ],

@@ -3865,11 +3865,12 @@ describe('the five charter lines (batch X8)', () => {
 
 describe('the site, refused out loud (batch X8)', () => {
   it('gives the simulation’s own sentence for a row the town has no ground for', () => {
-    // Thirteen live rows carry a `requiresSite`, and `canQueueBuilding` dropped
-    // every one of them out of the candidate list without a word. The refusal is
+    // Fourteen live rows carry a `requiresSite` — thirteen until the Longjiang
+    // Dockyard joined them in batch L6a — and `canQueueBuilding` dropped every
+    // one of them out of the candidate list without a word. The refusal is
     // `buildError`'s, and it names the site rather than the flag.
     const sited = BUILDING_IDS.filter((id) => buildingDef(id).requiresSite !== undefined);
-    expect(sited.length).toBe(13);
+    expect(sited.length).toBe(14);
     const { state, player, cities } = x8Realm(1, 6);
     player.techsResearched.push('sailing');
     bumpRevision(state);

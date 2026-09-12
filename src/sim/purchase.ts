@@ -112,7 +112,8 @@ import {
 } from './statecraft';
 import { buildError, gatingTech, hasTech, isUnlocked, settleResearchWindfall } from './tech';
 import { techDef } from './techData';
-import { type UnitTypeId, caravanTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { type UnitTypeId, isCivilian, isUnitTypeId, unitDef } from './unitData';
+import { caravanTypeFor } from './routes';
 import { bumpEconomy } from './slate';
 
 /** The banks a thing may be priced in. */
@@ -459,7 +460,7 @@ export function explainPurchaseCost(
  * 1 prints exactly the caravan's converted cost and no line that says "× 1".
  */
 export function explainRoutePrice(state: GameState, playerId: number): UnitCostLine[] | null {
-  const type = caravanTypeId();
+  const type = caravanTypeFor(state, playerId);
   if (type === null) return null;
   const hammers = explainUnitCost(state, playerId, type);
   const cost = foldUnitCost(hammers);
@@ -577,6 +578,12 @@ function faithBankOpen(
     const opens = buildingDef(id).faithPurchases;
     if (opens === undefined) continue;
     if (opens === 'civilian' && !isCivilian(unitDef(item.id))) continue;
+    // **And the Sainte-Chapelle's word is the other half** (batch L6a): soldiers
+    // and nothing that does not fight. Asked of the same `isCivilian` the
+    // civilian arm asks, so the two words are one predicate read from both ends
+    // and a town holding both rows sells its whole roster — which is what a town
+    // holding both rows should do.
+    if (opens === 'military' && isCivilian(unitDef(item.id))) continue;
     return true;
   }
   return false;

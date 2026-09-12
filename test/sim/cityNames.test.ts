@@ -176,18 +176,25 @@ describe('a seat under no figure', () => {
 
 // --- the log -----------------------------------------------------------------
 
+/** As many figures as one table seats. See the pin below. */
+const SEATED = LEADER_IDS.slice(0, 12);
+
 describe('the board’s own memory', () => {
   /**
-   * The determinism pin (hard rule 2). Six seats, each under its own figure,
-   * each founding by **command** — so the log is a save file and the names in
-   * it are whatever `nextCityName` said at the moment the settler stopped
-   * walking. A name read off anything but the state would show up here.
+   * The determinism pin (hard rule 2). A full table of seats, each under its own
+   * figure, each founding by **command** — so the log is a save file and the
+   * names in it are whatever `nextCityName` said at the moment the settler
+   * stopped walking. A name read off anything but the state would show up here.
+   *
+   * The roster is capped at the table's own size (`rules.maxPlayers`), which the
+   * thirteen figures outgrew in batch L6a: the claim is about the *log*, and it
+   * is made by as many figures as may sit down at once.
    */
   it('replays a log of foundings under figures byte for byte', () => {
     const game = createGame({
       seed: 4242,
       sizeName: 'standard',
-      players: LEADER_IDS.map((leader, index) => ({
+      players: SEATED.map((leader, index) => ({
         name: leaderDef(leader).name,
         color: `#${(0x204060 + index * 0x101010).toString(16)}`,
         isHuman: index === 0,
@@ -203,7 +210,7 @@ describe('the board’s own memory', () => {
         dispatch(game, { type: 'foundCity', playerId: player.id, settlerUnitId: settler.id }).ok,
       ).toBe(true);
     }
-    expect(game.state.cities).toHaveLength(LEADER_IDS.length);
+    expect(game.state.cities).toHaveLength(SEATED.length);
     for (const city of game.state.cities) {
       const leader = game.state.players[city.ownerId]!.leader!;
       expect(city.name).toBe(leaderDef(leader).cities[0]);

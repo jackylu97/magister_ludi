@@ -927,7 +927,24 @@
       "size": "light",
       "column": 2,
       "unlockedByLeader": true,
-      "combatLines": [{ "label": "Against mounted", "amount": 10, "vsModelClass": "mounted" }],
+      "effects": [
+        {
+          "kind": "upkeepRebate",
+          "free": true,
+          "class": {
+            "type": "fubing"
+          },
+          "where": "garrison"
+        }
+      ],
+      "note": "A militia farmed between musters. It costs the realm nothing at all while it stands in a city of its own.",
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 10,
+          "vsModelClass": "mounted"
+        }
+      ],
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -945,6 +962,23 @@
       "size": "heavy",
       "column": 7,
       "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "when": {
+            "test": "beside",
+            "class": {
+              "modelClass": "melee"
+            }
+          },
+          "class": {
+            "type": "tangCavalry"
+          }
+        }
+      ],
+      "note": "Lamellar and a long lance, and it fights best with foot beside it.",
       "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -985,6 +1019,16 @@
       "size": "heavy",
       "column": 7,
       "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "rule",
+          "rule": "moveAfterKill",
+          "class": {
+            "type": "xiongnuHorseArcher"
+          }
+        }
+      ],
+      "note": "It shoots and rides on: a kill leaves it with its feet still moving.",
       "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -1002,6 +1046,23 @@
       "size": "heavy",
       "column": 11,
       "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 2,
+          "side": "both",
+          "class": {
+            "modelClass": "mountedRanged"
+          },
+          "when": {
+            "test": "beside",
+            "class": {
+              "type": "chanyuGuard"
+            }
+          }
+        }
+      ],
+      "note": "The Chanyu’s own household, and the archers riding next to it shoot harder for the company.",
       "requiresResource": "horses",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -1019,6 +1080,20 @@
       "size": "line",
       "column": 4,
       "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 3,
+          "side": "both",
+          "when": {
+            "test": "followingTerritory"
+          },
+          "class": {
+            "type": "khopesh"
+          }
+        }
+      ],
+      "note": "A sickle sword, and it fights hardest on ground that keeps its king’s god.",
       "requiresResource": "iron",
       "foundsCity": false,
       "haltsGrowth": false,
@@ -1039,6 +1114,24 @@
       "size": "heavy",
       "column": 7,
       "unlockedByLeader": true,
+      "effects": [
+        {
+          "kind": "combatLine",
+          "amount": 1,
+          "side": "attack",
+          "class": {
+            "type": "camelArcher"
+          },
+          "when": {
+            "test": "always"
+          },
+          "scaled": {
+            "count": "capitalGreatWorks",
+            "per": 1
+          }
+        }
+      ],
+      "note": "It shoots the keener for every great work standing in the capital it was raised for.",
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1055,7 +1148,26 @@
       "size": "line",
       "column": 2,
       "unlockedByLeader": true,
-      "combatLines": [{ "label": "Against mounted", "amount": 10, "vsModelClass": "mounted" }],
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "class": {
+            "type": "ponticPeltast"
+          },
+          "grant": {
+            "heal": 25
+          }
+        }
+      ],
+      "note": "Javelins and a physician’s training. A kill leaves it better than it was.",
+      "combatLines": [
+        {
+          "label": "Against mounted",
+          "amount": 10,
+          "vsModelClass": "mounted"
+        }
+      ],
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
@@ -1074,12 +1186,214 @@
       "column": 8,
       "unlockedByLeader": true,
       "requiresResource": "horses",
-      "combatLines": [{ "label": "Against foot", "amount": 3, "vsModelClass": "melee" }],
+      "combatLines": [
+        {
+          "label": "Against foot",
+          "amount": 3,
+          "vsModelClass": "melee"
+        }
+      ],
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
       "modelClass": "mounted",
       "glyph": "Y"
+    },
+    "gendarme": {
+      "name": "The Gendarme",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 130,
+      "combatStrength": 66,
+      "size": "heavy",
+      "column": 11,
+      "unlockedByLeader": true,
+      "requiresResource": "horses",
+      "combatLines": [
+        {
+          "label": "Against cities",
+          "amount": 10,
+          "side": "attack",
+          "vsCity": true
+        }
+      ],
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "mounted",
+      "glyph": "D",
+      "note": "Heavy lance, and it is walls it was bred for: it strikes a town harder than it strikes anything standing in the field."
+    },
+    "mandekalu": {
+      "name": "The Mandekalu",
+      "category": "military",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 50,
+      "size": "heavy",
+      "column": 7,
+      "unlockedByLeader": true,
+      "requiresResource": "horses",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "knight",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "pillage",
+          "percent": 100,
+          "class": {
+            "type": "mandekalu"
+          }
+        }
+      ],
+      "modelClass": "mounted",
+      "glyph": "W",
+      "note": "Mail under a quilted coat, and a long way from home. What it tears down it carries back twice over."
+    },
+    "treasureShip": {
+      "name": "The Treasure Ship",
+      "category": "naval",
+      "movement": 4,
+      "sight": 3,
+      "maxHp": 120,
+      "combatStrength": 76,
+      "size": "engine",
+      "column": 8,
+      "unlockedByLeader": true,
+      "blockades": true,
+      "masts": 4,
+      "canton": "rook",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "navalHeavy",
+      "glyph": "Z",
+      "deferred": [
+        "It does not yet carry a second passenger."
+      ],
+      "note": "Nine masts and a crew of a small town. It sees further than any hull afloat and is very hard to sink."
+    },
+    "eagleWarrior": {
+      "name": "The Eagle Warrior",
+      "category": "military",
+      "movement": 2,
+      "sight": 2,
+      "maxHp": 110,
+      "combatStrength": 36,
+      "size": "line",
+      "column": 5,
+      "unlockedByLeader": true,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "longswordsman",
+      "effects": [
+        {
+          "kind": "windfallRider",
+          "occasion": "kill",
+          "grant": {
+            "yield": "culture",
+            "amount": 5
+          },
+          "class": {
+            "type": "eagleWarrior"
+          }
+        }
+      ],
+      "modelClass": "melee",
+      "glyph": "E",
+      "note": "It needs no iron, and every kill is a song somebody will still be singing in a hundred years."
+    },
+    "alexandrianGalley": {
+      "name": "The Alexandrian Galley",
+      "category": "naval",
+      "movement": 5,
+      "sight": 3,
+      "maxHp": 100,
+      "combatStrength": 54,
+      "size": "line",
+      "column": 5,
+      "unlockedByLeader": true,
+      "hitAndRun": true,
+      "combatLines": [
+        {
+          "label": "Against ranged ships",
+          "amount": 10,
+          "vsModelClass": "navalRanged"
+        }
+      ],
+      "masts": 3,
+      "canton": "chevrons",
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "upgradesTo": "caravel",
+      "modelClass": "navalLight",
+      "glyph": "A",
+      "note": "A lookout on the masthead and the Pharos behind it. It finds the coast before the coast finds it."
+    },
+    "canoness": {
+      "name": "The Canoness",
+      "category": "civilian",
+      "movement": 4,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "size": "free",
+      "column": 8,
+      "unlockedByLeader": true,
+      "charges": 2,
+      "proclaims": true,
+      "purchase": {
+        "currency": "faith",
+        "cost": 90,
+        "increment": 40,
+        "exclusive": true,
+        "verb": "Call a canoness"
+      },
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "modelClass": "worker",
+      "glyph": "Q",
+      "deferred": [
+        "Her preaching does not yet set the whole realm building."
+      ],
+      "note": "She travels with a choir and a book of her own composing, and she preaches as an apostle does."
+    },
+    "rihlaCaravan": {
+      "name": "The Rihla Caravan",
+      "category": "trader",
+      "movement": 3,
+      "sight": 2,
+      "maxHp": 100,
+      "combatStrength": 0,
+      "size": "engine",
+      "column": 5,
+      "unlockedByLeader": true,
+      "trades": true,
+      "routeOnly": true,
+      "foundsCity": false,
+      "haltsGrowth": false,
+      "minCityPop": 0,
+      "effects": [
+        {
+          "kind": "pays",
+          "where": "route",
+          "gold": 3
+        },
+        {
+          "kind": "rule",
+          "rule": "tradersUnplunderable"
+        }
+      ],
+      "modelClass": "worker",
+      "glyph": "R",
+      "note": "It has crossed everything there is to cross and knows whom to pay. Nobody robs it, and it comes home richer than it left."
     }
   }
 }

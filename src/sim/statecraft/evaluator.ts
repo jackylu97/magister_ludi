@@ -151,13 +151,10 @@ import { isMaliceId, maliceDef } from '../maliceData';
 // The figure's own table, a leaf, so the twelfth source of the law costs this
 // module no edge it did not already have. See `buildLiveEffects`.
 import {
-  type LeaderCardId,
-  isLeaderCardId,
+  isLeaderAbilityId,
   isLeaderId,
-  leaderBonusDef,
-  leaderCard,
-  leaderCardDef,
-  leaderCardEffects,
+  leaderAbilityDef,
+  leaderAbilityEffects,
   leaderDef,
 } from '../leaderData';
 import { beadCapEffects } from '../beads';
@@ -165,7 +162,6 @@ import {
   type AbilityId,
   UNIT_UNLOCK_TECH,
   eraNumeral,
-  TECH_AGES,
   highestAge,
   isTechId,
   techDef,
@@ -295,15 +291,18 @@ function readCardDef(id: CardId): CardDefBase {
   // one id space.
   if (isConsecrationId(id)) return consecrationDef(id);
   if (isOrderId(id) || isDoctrineId(id) || isGovernmentId(id)) return cardDef(id);
-  // The **twelfth and thirteenth** classes (batch L2a): a leader's own line and
-  // a card of its deck. Both are already written in this vocabulary on their own
-  // rows, so the adaptation is `leaderData.ts`'s — one lookup, one label, one
-  // `describeCard` — and the arms exist so that a breakdown line carrying either
-  // resolves to a name like every other line. Asked before the building arm
-  // because the id spaces are disjoint and the cheaper guard should not have to
-  // prove it.
-  if (isLeaderCardId(id)) return leaderCardDef(id);
-  if (isLeaderId(id)) return leaderBonusDef(id);
+  // The **twelfth and thirteenth** classes (batch L2a, re-aimed in L6a): one of
+  // a figure's two abilities, and the figure itself. Both are already written in
+  // this vocabulary on their own rows, so the adaptation is `leaderData.ts`'s —
+  // one lookup, one label, one `describeCard` — and the arms exist so that a
+  // breakdown line carrying either resolves to a name like every other line.
+  // Asked before the building arm because the id spaces are disjoint and the
+  // cheaper guard should not have to prove it.
+  if (isLeaderAbilityId(id)) return leaderAbilityDef(id);
+  if (isLeaderId(id)) {
+    const def = leaderDef(id);
+    return { name: def.name, flavor: '', text: '', effects: leaderAbilityEffects(id) };
+  }
   // The **eleventh** class (batch G3): a malice. It is already written in this
   // vocabulary on its own row, so the adaptation is one field — the row's `note`
   // is its plain-words sentence, exactly as a technology's is — and the arm
@@ -786,25 +785,21 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
       });
     }
   }
-  // **The twelfth source** (batch L2a, `docs/flags.md` (dddd)): *the figure this
-  // seat plays*. Two things arrive together and they are two readings of one
-  // fact — that this realm is somebody's:
+  // **The twelfth source** (batch L2a, `docs/flags.md` (dddd); the second cut,
+  // L6a): *the figure this seat plays* — **both of its abilities**, in the
+  // sheet's own order, live from the turn the seat sat down.
   //
-  //   · the **bonus**, live from the turn the seat sat down, whatever it has
-  //     drafted since;
-  //   · every **card it has taken**, in age order (`heldLeaderCards`' walk is
-  //     `TECH_AGES`, never the record's own keys).
-  //
-  // Pushed as ordinary cards, which is the whole argument for writing a leader
-  // in this vocabulary at all: a figure's line is folded, described, appraised
-  // and printed by exactly the machinery that folds a doctrine's, and a seventh
-  // leader is a JSON row. A unique's `unlocksUnit` arrives here too —
-  // `leaderCardEffects` composes it off the card's own `unlocks` — so
-  // `cardUnlocksUnit` answers a leader's row without learning the word.
+  // Pushed as ordinary cards under the ability's own id, which is the whole
+  // argument for writing a leader in this vocabulary at all: a figure's line is
+  // folded, described, appraised and printed by exactly the machinery that folds
+  // a doctrine's, and a fourteenth leader is a JSON row. What is deliberately
+  // *not* here is the pair of uniques: a unique is a gate `isUnlocked` asks of
+  // the figure and then of the tree (`leaderOpensUnit`), never an `unlocksUnit`
+  // effect in the ledger — an effect would say the technology had already come.
   //
   // **Last**, after the law, the gods, the stones, the dead, the bill, the beads
   // and the tree, for the reason each of those is last in turn: it is the order
-  // they were acquired in, so no ledger reshuffles itself. The bonus is a seat's
+  // they were acquired in, so no ledger reshuffles itself. A figure is a seat's
   // oldest possession of all and is nevertheless at the foot of the walk, which
   // is the one place this reading and that rule disagree — a figure is a *frame*
   // around the ledger rather than a rung of it, and a reader looking for "and
@@ -815,33 +810,20 @@ function buildLiveEffects(state: GameState, playerId: number): LiveCardEffect[] 
   const figure = playerById(state, playerId);
   const leader = figure?.leader;
   if (figure && leader !== undefined) {
-    push(leader, CLASS_WORD.leader, leaderDef(leader).bonus.effects);
-    for (const id of heldLeaderCards(figure)) {
-      push(id, CLASS_WORD.leader, leaderCardEffects(leaderCard(id)));
+    const sheet = leaderDef(leader);
+    for (const ability of sheet.abilities) {
+      push(ability.id, CLASS_WORD.leader, ability.effects);
     }
+    // **And whatever the unique's own row says** (batch L6a, `UnitDef.effects`).
+    // A piece is a piece on a board and a rule is an empire's, so a row whose
+    // text reads *pillaging pays double* has nowhere else to put it; the effects
+    // ride the law of the one figure that may ever field the piece, each scoped
+    // to the row's own class in its own data. Under the figure's own id, because
+    // that is the name a breakdown line should carry: it is the leader that
+    // brought the piece.
+    push(leader, CLASS_WORD.leader, unitDef(sheet.unit).effects ?? []);
   }
   return list;
-}
-
-/**
- * The cards a seat has taken from its figure's deck, in age order.
- *
- * A copy of `leaders.ts`' walk rather than a call to it, and the duplication is
- * deliberate: `leaders.ts` pays a boon and therefore imports the seams a boon is
- * paid through (`cities.ts`, `beads.ts`), both of which stand on this evaluator.
- * Four lines here keep that import from existing at all. The rule it encodes is
- * the one that matters and is stated in both places — walk `TECH_AGES`, never
- * the record's own keys (hard rule 2).
- */
-function heldLeaderCards(player: Player): LeaderCardId[] {
-  const held: LeaderCardId[] = [];
-  const picks = player.leaderPicks;
-  if (!picks) return held;
-  for (const age of TECH_AGES) {
-    const id = picks[age];
-    if (id !== undefined) held.push(id);
-  }
-  return held;
 }
 
 /**

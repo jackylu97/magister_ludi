@@ -489,7 +489,6 @@ describe("end-of-turn pipeline", () => {
       // The figure's own row (batch L2a): directly after the phase where a
       // technology lands, because a seat's age is its highest technology and a
       // sweep above this one would deal the row a turn late.
-      "leaders",
       // The periodic boons (batch A, 2026-09-06): a slotted Order whose clock has
       // come round pays its burst here — after the baskets this turn's yields
       // filled, before the draft that might spend one, so a boon paid in culture

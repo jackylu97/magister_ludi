@@ -3652,6 +3652,8 @@ const FLAG_RULE_WORDS: Record<CardFlagRuleId, string> = {
   buyGreatPersonWithGold: 'a great person waiting to be called may be bought with gold',
   buyGreatPersonWithFaith: 'a great person waiting to be called may be bought with faith',
   buyScholarDraftWithFaith: 'a draft of great scholars may be bought with faith',
+  rerollOffers:
+    'the first time you ask for a fresh hand of Orders, doctrines or great people, it costs nothing',
   // Facts a card declares true of every town. `CityRuleId`.
   freshwater: 'every city of yours counts as being on fresh water',
   // Things about the world that stop being true — or start. `BehaviorRuleId`.

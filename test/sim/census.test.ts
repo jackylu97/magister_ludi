@@ -309,10 +309,11 @@ describe("the phase", () => {
   it("announces the moment in the world’s one vocabulary", () => {
     expect(OCCASIONS).toContain("censusTaken");
     // **Appended, never inserted**: the list's order is `BEAD_OCCASIONS`' own,
-    // and a member put in the middle would move a register for no reason. It
-    // was last until batch L2a put `leaderOffered` behind it, on exactly that
-    // rule — so what is pinned is the position it has, not the end of the list.
-    expect(OCCASIONS.indexOf("censusTaken")).toBe(OCCASIONS.length - 2);
+    // and a member put in the middle would move a register for no reason. L2a
+    // put `leaderOffered` behind it and L6a retired that with the leaders' draft,
+    // so it is last again — and what is pinned is the position it has, which is
+    // the claim either way.
+    expect(OCCASIONS.indexOf("censusTaken")).toBe(OCCASIONS.length - 1);
   });
 
   it("writes the record into the report, once, on the turn it is taken", () => {

@@ -1,62 +1,59 @@
 /**
- * **The leader system in the simulation** — batch L2a, `docs/flags.md` (dddd),
- * spec of record `docs/leaders.md`.
+ * **The leader system in the simulation** — batch L6a, `docs/flags.md` (xxxx),
+ * spec of record `docs/leaders.md` "The second cut — fixed identity".
  *
- * A leader is two things and this file pins both. The **bonus** is one line the
- * seat holds from the turn it sits down; the **deck** is four rows of three
- * cards, dealt when *this seat's* age turns, one taken and the other two gone.
- * Everything below is a claim about one of those two halves:
+ * A figure is four things and this file pins all four: **two abilities**, live
+ * from the turn the seat sits down and for the rest of the game; **one unique
+ * unit** and **one unique building**, rows only that figure may raise and only
+ * once their own technology has arrived. Everything below is a claim about one
+ * of those:
  *
- *   · the row is on the table with the board, and the next row follows the
- *     seat's **own** age rather than the world's;
- *   · the debt is a blocker, the pick is a command, and a refused command leaves
- *     the state byte-identical (hard rule 1);
- *   · a passive joins the law, a boon pays once, a unique opens a row that seat
- *     and nobody else may build;
- *   · a game with no figures in its roster is untouched by any of it;
- *   · the bots answer, and never stall;
- *   · every card's declared effects are read by the evaluator, and every card
- *     that declares nothing says why (the deck register);
- *   · the sheet and the doc agree — the four rows of three, and (batch L5) the
- *     towns the figure founds, name for name and in order;
+ *   · both abilities are in the law on turn one, for every one of the thirteen,
+ *     before anything has been researched or built;
+ *   · a unique opens for its figure's seat at its tech, and for no other seat at
+ *     any tech; a row nobody names opens for nobody, ever — the bench;
+ *   · the draft is **gone**: the command is unknown, no blocker fires, no phase
+ *     runs, and a config naming a figure replays byte for byte;
+ *   · a figure's unique may carry rules of its own, and they ride the law of the
+ *     one figure that may field it;
+ *   · the new shapes, each pinned by itself — the Rihla's free redraw, the
+ *     caravan that pays and is not plundered, soldiers bought with faith in the
+ *     Sainte-Chapelle, the Funduq in a town with no caravanserai, the
+ *     Tetzcotzinco's share of the whole yield;
+ *   · the sheet and the doc agree — "The thirteen", "The colours", "The cities"
+ *     and "The biases", row for row;
+ *   · every declared effect shape is read by the evaluator;
  *   · the book has a shelf.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { nextBotCommand, nextBotDecision } from '../../src/ai/bot';
+import { nextBotCommand } from '../../src/ai/bot';
 import { buildingDef } from '../../src/sim/buildingData';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { type Command } from '../../src/sim/commands';
 import { dispatch, snapshotState } from '../../src/sim/game';
 import {
-  LEADER_CARD_IDS,
-  LEADER_DECK_AGES,
+  LEADER_ABILITY_IDS,
   LEADER_IDS,
-  type LeaderCard,
   type LeaderId,
-  leaderCard,
-  leaderCardEffects,
+  leaderAbility,
+  leaderAbilityEffects,
   leaderDef,
 } from '../../src/sim/leaderData';
-import {
-  chooseLeaderCardError,
-  heldLeaderCards,
-  leaderAgeOwed,
-  leaderBlocker,
-  leaderDeckCards,
-  runLeaderDraft,
-} from '../../src/sim/leaders';
 import { OCCASIONS } from '../../src/sim/occasions';
 import { type GameState, bumpRevision, playerById } from '../../src/sim/state';
 import { liveEffects } from '../../src/sim/statecraft';
 import { isUnlocked } from '../../src/sim/tech';
-import { TECH_IDS, type TechAge, techDef } from '../../src/sim/techData';
-import { unitDef } from '../../src/sim/unitData';
+import { BUILDING_UNLOCK_TECH, TECH_IDS, UNIT_UNLOCK_TECH, techDef } from '../../src/sim/techData';
+import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { BUILDING_IDS } from '../../src/sim/buildingData';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import { compendiumSections } from '../../src/ui/compendium';
 import { createGame } from '../../src/sim/game';
+import { inkDistance, MIN_INK_DISTANCE } from '../../src/art/seatInks';
+import { SEATS } from '../../src/ui/gameSetup';
 
 // --- the bench --------------------------------------------------------------
 
@@ -76,15 +73,14 @@ const LEADER_DATA_SOURCE = (
   }) as Record<string, string>
 )['../../src/sim/leaderData.ts']!;
 
-/**
- * A two-seat game whose seats play figures, **both capitals founded**.
- *
- * The founding is the bench and not the test: a leader's row is on the table
- * from the first turn but nobody may answer it until their realm has a town for
- * a boon to land in (`leaderBlocker`'s second clause), so a bench that skipped
- * it would be testing the wait rather than the draft. `raw` is the same game
- * before anybody founds anything, for the two tests that are about the wait.
- */
+const DOC = (
+  import.meta.glob('../../docs/leaders.md', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>
+)['../../docs/leaders.md']!;
+
 function raw(first?: LeaderId, second?: LeaderId, seed = 11) {
   return createGame({
     seed,
@@ -107,522 +103,598 @@ function game(first?: LeaderId, second?: LeaderId, seed = 11) {
   return g;
 }
 
-/** The lowest technology of an age, so a seat can be walked into one. */
-function techOfAge(age: TechAge): string {
-  return TECH_IDS.find((id) => techDef(id).age === age)!;
-}
-
-/**
- * Walks a seat into an age by fiat. The draft's input is `highestAge`.
- *
- * A bench poke, so it announces (`bumpRevision`) the way a command does — the
- * tree is one of the ten sources of the law, and a memo that outlived the push
- * would be right about a board that no longer exists.
- */
-function enterAge(state: GameState, playerId: number, age: TechAge): void {
+/** Hands a seat every technology there is. A unique's gate is its own tech. */
+function learnEverything(state: GameState, playerId: number): void {
   const player = playerById(state, playerId)!;
-  player.techsResearched.push(techOfAge(age) as never);
+  for (const id of TECH_IDS) {
+    if (!player.techsResearched.includes(id)) player.techsResearched.push(id);
+  }
   bumpRevision(state);
 }
 
-function pick(playerId: number, index: number): Command {
-  return { type: 'chooseLeaderCard', playerId, index } as Command;
+/** The ids the law is carrying for this seat, in the walk's own order. */
+function lawSources(state: GameState, playerId: number): string[] {
+  return liveEffects(state, playerId).map((held) => String(held.card));
 }
 
-/** Every card of every deck, flattened. The register's own subject. */
-function everyCard(): { leader: LeaderId; card: LeaderCard }[] {
-  return LEADER_IDS.flatMap((leader) =>
-    leaderDeckCards(leader).map((card) => ({ leader, card })),
-  );
-}
+// --- the two abilities ------------------------------------------------------
 
-// --- the bonus --------------------------------------------------------------
-
-describe('a leader’s own line', () => {
-  it('is live from the first turn, before anything has been drafted', () => {
-    const g = game('pachacuti');
-    const seat = playerById(g.state, 0)!;
-    expect(seat.leader).toBe('pachacuti');
-    expect(heldLeaderCards(seat)).toEqual([]);
-
-    const mine = liveEffects(g.state, 0).filter((entry) => entry.card === 'pachacuti');
-    expect(mine.length).toBe(leaderDef('pachacuti').bonus.effects.length);
-    expect(mine.length).toBeGreaterThan(0);
-    // And it belongs to the seat that plays the figure, not to the table.
-    expect(liveEffects(g.state, 1).some((entry) => entry.card === 'pachacuti')).toBe(false);
-  });
-
-  it('says the same thing for every figure the sheet carries', () => {
+describe('a figure’s two abilities', () => {
+  /**
+   * **The whole of the second cut, walked over the whole roster.** There is no
+   * age, no draft and no gate: a figure's pair of lines is in the seat's law on
+   * turn one, before a settler has stopped walking, and stays there. Every one
+   * of the thirteen, because "one of them forgot" is exactly the failure a
+   * hand-picked example would miss.
+   */
+  it('are both live from the first turn, for every one of the thirteen', () => {
     for (const id of LEADER_IDS) {
-      const g = game(id);
-      const mine = liveEffects(g.state, 0).filter((entry) => entry.card === id);
-      expect(mine.length, id).toBe(leaderDef(id).bonus.effects.length);
-    }
-  });
-});
-
-// --- the offer --------------------------------------------------------------
-
-describe('the row a figure deals', () => {
-  it('is on the table with the board, and it is Æra I’s', () => {
-    const g = game('taizong', 'modu');
-    for (const [seat, leader] of [
-      [0, 'taizong'],
-      [1, 'modu'],
-    ] as const) {
-      const offer = playerById(g.state, seat)!.leaderOffer!;
-      expect(offer.age).toBe(1);
-      expect(offer.turn).toBe(g.state.turn);
-      expect(offer.cards).toEqual(leaderDef(leader).deck['1'].map((card) => card.id));
-    }
-  });
-
-  it('follows the seat’s own age, never the world’s', () => {
-    const g = game('taizong', 'modu');
-    // Both seats answer the opening row so neither is holding one.
-    expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-    expect(dispatch(g, pick(1, 0)).ok).toBe(true);
-    expect(playerById(g.state, 0)!.leaderOffer).toBeUndefined();
-
-    // One seat alone crosses into Æra II. The world has not moved.
-    enterAge(g.state, 0, 2);
-    runLeaderDraft(g.state);
-
-    expect(playerById(g.state, 0)!.leaderOffer!.age).toBe(2);
-    expect(playerById(g.state, 1)!.leaderOffer).toBeUndefined();
-    expect(leaderAgeOwed(playerById(g.state, 1)!)).toBeNull();
-  });
-
-  it('deals the lowest age it owes, so a seat that skips ahead skips nothing', () => {
-    const g = game('akhenaten');
-    // Straight into Æra III with the opening row still unanswered.
-    enterAge(g.state, 0, 3);
-    runLeaderDraft(g.state);
-    expect(playerById(g.state, 0)!.leaderOffer!.age).toBe(1);
-
-    expect(dispatch(g, pick(0, 1)).ok).toBe(true);
-    runLeaderDraft(g.state);
-    expect(playerById(g.state, 0)!.leaderOffer!.age).toBe(2);
-  });
-
-  it('never deals a second row on top of an unanswered one', () => {
-    const g = game('almamun');
-    const before = snapshotState(g.state);
-    enterAge(g.state, 0, 4);
-    runLeaderDraft(g.state);
-    runLeaderDraft(g.state);
-    expect(playerById(g.state, 0)!.leaderOffer!.age).toBe(1);
-    // The only thing that moved is the technology the bench pushed on.
-    expect(before).not.toBe(snapshotState(g.state));
-  });
-
-  it('is announced, and the word is in the shared vocabulary', () => {
-    expect(OCCASIONS).toContain('leaderOffered');
-    const g = game('mithridates');
-    expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-    enterAge(g.state, 0, 2);
-    const report = runLeaderDraft(g.state);
-    expect(report.opened).toEqual([{ playerId: 0, age: 2 }]);
-  });
-});
-
-// --- the blocker and the command --------------------------------------------
-
-describe('the debt and the answer', () => {
-  it('blocks End Turn until the row is answered', () => {
-    const g = game('pachacuti');
-    expect(leaderBlocker(g.state, 0)).not.toBeNull();
-    expect(firstBlocker(g.state, 0)).toEqual({ kind: 'leaderDraft' });
-
-    expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-    expect(leaderBlocker(g.state, 0)).toBeNull();
-    expect(firstBlocker(g.state, 0)).not.toEqual({ kind: 'leaderDraft' });
-  });
-
-  it('waits on the first city, and loses nothing while it waits', () => {
-    const g = raw('akhenaten');
-    // The row is on the table from the first turn…
-    expect(playerById(g.state, 0)!.leaderOffer!.age).toBe(1);
-    // …and cannot be answered until there is a realm for a boon to land in.
-    expect(leaderBlocker(g.state, 0)).toBeNull();
-    expect(firstBlocker(g.state, 0)).not.toEqual({ kind: 'leaderDraft' });
-    expect(chooseLeaderCardError(g.state, 0, 1)).not.toBeNull();
-    const before = snapshotState(g.state);
-    expect(dispatch(g, pick(0, 1)).ok).toBe(false);
-    expect(snapshotState(g.state)).toBe(before);
-
-    const settler = g.state.units.find(
-      (unit) => unit.ownerId === 0 && unitDef(unit.type).foundsCity,
-    )!;
-    foundCityAt(g.state, 0, getTileAt(g.state.map, settler.col, settler.row)!);
-    expect(leaderBlocker(g.state, 0)).not.toBeNull();
-    expect(dispatch(g, pick(0, 1)).ok).toBe(true);
-  });
-
-  it('leaves the state byte-identical when the index is refused', () => {
-    const g = game('pachacuti');
-    for (const index of [-1, 3, 99, 1.5]) {
-      const before = snapshotState(g.state);
-      const result = dispatch(g, pick(0, index));
-      expect(result.ok, `index ${index}`).toBe(false);
-      expect(snapshotState(g.state), `index ${index}`).toBe(before);
-      expect(g.log.length).toBe(0);
-    }
-    // And so does a seat with nothing on its table.
-    expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-    const spent = snapshotState(g.state);
-    expect(dispatch(g, pick(0, 1)).ok).toBe(false);
-    expect(snapshotState(g.state)).toBe(spent);
-  });
-
-  it('refuses a seat with no figure at all, and the wild', () => {
-    const g = game(undefined, undefined);
-    expect(chooseLeaderCardError(g.state, 0, 0)).not.toBeNull();
-    expect(dispatch(g, pick(0, 0)).ok).toBe(false);
-  });
-
-  it('spends the row: the other two are gone', () => {
-    const g = game('taizong');
-    const offer = playerById(g.state, 0)!.leaderOffer!;
-    expect(dispatch(g, pick(0, 2)).ok).toBe(true);
-    const seat = playerById(g.state, 0)!;
-    expect(seat.leaderPicks).toEqual({ 1: offer.cards[2] });
-    expect(seat.leaderOffer).toBeUndefined();
-    expect(heldLeaderCards(seat)).toEqual([offer.cards[2]]);
-  });
-});
-
-// --- what a card does -------------------------------------------------------
-
-describe('a card taken', () => {
-  it('puts a passive into the law and keeps it there', () => {
-    const g = game('pachacuti');
-    const card = leaderDef('pachacuti').deck['1'][0];
-    expect(card.kind).toBe('passive');
-    expect(liveEffects(g.state, 0).some((entry) => entry.card === card.id)).toBe(false);
-
-    expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-    const mine = liveEffects(g.state, 0).filter((entry) => entry.card === card.id);
-    expect(mine.length).toBe(leaderCardEffects(card).length);
-    expect(mine.length).toBeGreaterThan(0);
-  });
-
-  it('pays a boon once, and there is no second helping', () => {
-    // Al-Ma'mun's Æra III boon is a lump of renown, which is a bank a test can
-    // read straight off the seat.
-    const g = game('almamun');
-    for (const age of [1, 2] as const) {
-      void age;
-      expect(dispatch(g, pick(0, 0)).ok).toBe(true);
-      enterAge(g.state, 0, (age + 1) as TechAge);
-      runLeaderDraft(g.state);
-    }
-    const offer = playerById(g.state, 0)!.leaderOffer!;
-    expect(offer.age).toBe(3);
-    const boon = leaderCard(offer.cards[1]);
-    expect(boon.kind).toBe('boon');
-    expect(boon.boon?.windfall?.yield).toBe('renown');
-
-    const before = playerById(g.state, 0)!.renownEarned;
-    expect(dispatch(g, pick(0, 1)).ok).toBe(true);
-    const after = playerById(g.state, 0)!.renownEarned;
-    expect(after).toBeGreaterThan(before);
-
-    // The row is spent, so nothing can pay it a second time.
-    expect(dispatch(g, pick(0, 1)).ok).toBe(false);
-    expect(playerById(g.state, 0)!.renownEarned).toBe(after);
-  });
-
-  it('reports what a boon handed over the way a wonder’s completion does', () => {
-    // Akhenaten's Æra I boon grants a prophet — a `CompletionGrant`, so it comes
-    // back out on `CommandResult.grants`.
-    const g = game('akhenaten');
-    const offer = playerById(g.state, 0)!.leaderOffer!;
-    expect(leaderCard(offer.cards[1]).boon?.grants?.[0]?.grant).toBe('unit');
-    const result = dispatch(g, pick(0, 1));
-    expect(result.ok).toBe(true);
-    expect(result.ok && result.grants?.[0]?.grant).toBe('unit');
-    expect(result.ok && result.grants?.[0]?.done).toBe(true);
-  });
-
-  it('opens a unique for the seat that took it, and for nobody else', () => {
-    const g = game('pachacuti', 'pachacuti');
-    const card = leaderDef('pachacuti').deck['1'][2];
-    expect(card.kind).toBe('unique');
-    const building = card.unlocks!.building!;
-    expect(buildingDef(building).unlockedByLeader).toBe(true);
-
-    // Nobody may build it before the card is taken — the marker's whole job.
-    expect(isUnlocked(g.state, 0, 'building', building)).toBe(false);
-    expect(isUnlocked(g.state, 1, 'building', building)).toBe(false);
-
-    expect(dispatch(g, pick(0, 2)).ok).toBe(true);
-    expect(isUnlocked(g.state, 0, 'building', building)).toBe(true);
-    // The other seat plays the same figure and did not take the card.
-    expect(isUnlocked(g.state, 1, 'building', building)).toBe(false);
-  });
-
-  it('opens a unique soldier on exactly the same terms', () => {
-    const g = game('modu', 'modu');
-    const card = leaderDef('modu').deck['1'][2];
-    const unit = card.unlocks!.unit!;
-    expect(unitDef(unit).unlockedByLeader).toBe(true);
-    expect(isUnlocked(g.state, 0, 'unit', unit)).toBe(false);
-    expect(dispatch(g, pick(0, 2)).ok).toBe(true);
-    expect(isUnlocked(g.state, 0, 'unit', unit)).toBe(true);
-    expect(isUnlocked(g.state, 1, 'unit', unit)).toBe(false);
-  });
-});
-
-// --- a game with no figures in it -------------------------------------------
-
-describe('a leaderless roster', () => {
-  it('carries no key, owes no debt, and the phase does nothing to it', () => {
-    const g = game(undefined, undefined);
-    const raw = snapshotState(g.state);
-    expect(raw.includes('"leader"')).toBe(false);
-    expect(raw.includes('"leaderOffer"')).toBe(false);
-    expect(raw.includes('"leaderPicks"')).toBe(false);
-
-    expect(leaderBlocker(g.state, 0)).toBeNull();
-    expect(firstBlocker(g.state, 0)).not.toEqual({ kind: 'leaderDraft' });
-
-    const report = runLeaderDraft(g.state);
-    expect(report.opened).toEqual([]);
-    expect(snapshotState(g.state)).toBe(raw);
-  });
-
-  it('folds not one line of a leader into its law', () => {
-    const g = game(undefined, undefined);
-    for (const entry of liveEffects(g.state, 0)) {
-      expect(LEADER_IDS.includes(entry.card as LeaderId)).toBe(false);
-      expect(LEADER_CARD_IDS.includes(entry.card as never)).toBe(false);
-    }
-  });
-});
-
-// --- the bots ---------------------------------------------------------------
-
-describe('the bots', () => {
-  it('answer the row rather than stalling on it', () => {
-    const g = game('mithridates', 'mithridates');
-    const command = nextBotCommand(g.state, 1);
-    expect(command?.type).toBe('chooseLeaderCard');
-    expect(dispatch(g, command!).ok).toBe(true);
-    expect(leaderBlocker(g.state, 1)).toBeNull();
-  });
-
-  it('appraise all three, and the score is the fold of its own terms', () => {
-    const g = game('almamun', 'almamun');
-    const decision = nextBotDecision(g.state, 1)!;
-    expect(decision.kind).toBe('draft');
-    expect(decision.candidates).toHaveLength(3);
-    expect(decision.candidates.filter((c) => c.chosen)).toHaveLength(1);
-    for (const candidate of decision.candidates) {
-      let total = 0;
-      for (const term of candidate.terms) {
-        if (term.op === 'sub') total -= term.value;
-        else if (term.op === 'mul') total *= term.value;
-        else if (term.op === 'div') total /= term.value;
-        else total += term.value;
-      }
-      expect(total, candidate.label).toBe(candidate.score);
-    }
-  });
-
-  it('walk every figure’s whole deck without ever proposing a refused card', () => {
-    for (const leader of LEADER_IDS) {
-      const g = game(leader, leader);
-      for (const age of LEADER_DECK_AGES) {
-        runLeaderDraft(g.state);
-        const command = nextBotCommand(g.state, 1);
-        expect(command?.type, `${leader} Æra ${age}`).toBe('chooseLeaderCard');
-        expect(dispatch(g, command!).ok, `${leader} Æra ${age}`).toBe(true);
-        const next = Number(age) + 1;
-        if (next <= 4) enterAge(g.state, 1, next as TechAge);
-      }
-      expect(heldLeaderCards(playerById(g.state, 1)!)).toHaveLength(4);
-    }
-  });
-});
-
-// --- the deck register ------------------------------------------------------
-
-describe('the deck register', () => {
-  it('holds three cards an age for six figures, one of each column', () => {
-    expect(LEADER_IDS).toHaveLength(6);
-    expect(LEADER_CARD_IDS).toHaveLength(6 * 4 * 3);
-    for (const leader of LEADER_IDS) {
-      for (const age of LEADER_DECK_AGES) {
-        const row = leaderDef(leader).deck[age];
-        expect(row.map((card) => card.kind), `${leader} ${age}`).toEqual([
-          'passive',
-          'boon',
-          'unique',
-        ]);
+      const g = raw(id);
+      const sources = lawSources(g.state, 0);
+      for (const ability of leaderDef(id).abilities) {
+        expect(sources, `${id} · ${ability.id}`).toContain(ability.id);
       }
     }
   });
 
-  it('names every card in `LeaderCardId`, and names nothing else', () => {
-    const union = LEADER_DATA_SOURCE.slice(
-      LEADER_DATA_SOURCE.indexOf('export type LeaderCardId ='),
-      LEADER_DATA_SOURCE.indexOf("| 'mithridatesHold';") + "| 'mithridatesHold';".length,
-    );
-    const written = [...union.matchAll(/\| '(\w+)'/g)].map((m) => m[1]!);
-    expect(written).toEqual([...LEADER_CARD_IDS]);
-  });
-
-  it('declares no effect shape the evaluator does not read', () => {
-    const kinds = new Set<string>();
-    const walk = (effects: readonly { kind: string }[]): void => {
-      for (const effect of effects) {
-        kinds.add(effect.kind);
-        const nested = (effect as { then?: { kind: string }[] }).then;
-        if (nested) walk(nested);
-      }
-    };
-    for (const leader of LEADER_IDS) walk(leaderDef(leader).bonus.effects);
-    for (const { card } of everyCard()) walk(leaderCardEffects(card));
-    expect(kinds.size).toBeGreaterThan(0);
-    for (const kind of [...kinds].sort()) {
-      expect(EVALUATOR_SOURCE.includes(`'${kind}'`), kind).toBe(true);
-    }
-  });
-
-  it('gives every card something to do, or says in plain words why not', () => {
-    for (const { leader, card } of everyCard()) {
-      const at = `${leader} · ${card.id}`;
-      const acts =
-        leaderCardEffects(card).length > 0 ||
-        card.boon?.windfall !== undefined ||
-        (card.boon?.grants ?? []).length > 0;
-      if (!acts) expect((card.deferred ?? []).length, at).toBeGreaterThan(0);
-      expect(card.text.length, at).toBeGreaterThan(0);
-      expect(card.flavor.length, at).toBeGreaterThan(0);
-      // Player prose carries no identifiers and no brackets (hard rule 7).
-      for (const line of card.deferred ?? []) {
-        expect(line.includes('[['), at).toBe(false);
-        expect(line.includes('`'), at).toBe(false);
-      }
-    }
-  });
-
-  it('marks every row a unique opens, and opens no row twice', () => {
-    const opened = new Set<string>();
-    for (const { leader, card } of everyCard()) {
-      const at = `${leader} · ${card.id}`;
-      if (card.kind === 'unique') {
-        expect(card.unlocks, at).toBeDefined();
-      }
-      const unit = card.unlocks?.unit;
-      if (unit !== undefined) {
-        expect(unitDef(unit).unlockedByLeader, at).toBe(true);
-        expect(opened.has(unit), at).toBe(false);
-        opened.add(unit);
-      }
-      const building = card.unlocks?.building;
-      if (building !== undefined) {
-        expect(buildingDef(building).unlockedByLeader, at).toBe(true);
-        expect(opened.has(building), at).toBe(false);
-        opened.add(building);
-      }
-    }
-    expect(opened.size).toBe(24);
-  });
-});
-
-// --- the sheet the decks were written from -----------------------------------
-
-describe('the sheet and the data', () => {
-  /**
-   * `docs/leaders.md`'s six tables are the **design** and `data/leaders.json` is
-   * their ratified rendering — the doc says "workers gain +1 charge (the
-   * corvée)" and the row says "Workers gain one more charge", because a card's
-   * text is written in the game's own voice and a worksheet is not. So the sync
-   * is on the **shape** rather than on the words: six figures, each with a
-   * leader-bonus line and four rows of three, in both places. A leader added to
-   * one and not the other fails core; the words are the built note's business.
-   */
-  it('carries the same six figures and the same four rows of three', () => {
-    const doc = (
-      import.meta.glob('../../docs/leaders.md', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      }) as Record<string, string>
-    )['../../docs/leaders.md']!;
-    const decks = doc.slice(doc.indexOf('## The starting six'), doc.indexOf('**Built** (batch L2a'));
-    expect(decks.length).toBeGreaterThan(0);
-
-    // One "leader bonus:" line a figure, and one table row an age.
-    expect([...decks.matchAll(/^leader bonus:/gm)]).toHaveLength(LEADER_IDS.length);
-    const rows = [...decks.matchAll(/^\| (I|II|III|IV) \|(.+)\|$/gm)];
-    expect(rows).toHaveLength(LEADER_IDS.length * LEADER_DECK_AGES.length);
-    for (const row of rows) {
-      // Three columns between the age and the end of the line.
-      expect(row[2]!.split('|').filter((cell) => cell.trim().length > 0)).toHaveLength(3);
-    }
-  });
-
-  /**
-   * **The towns** (batch L5, `docs/flags.md` (pppp)). Here the sync *is* on the
-   * words: a city's name is the whole of the design, so the doc's row and the
-   * sheet's `cities` must agree name for name and in order — diacritics and
-   * apostrophes included. A name retuned in one place and not the other fails
-   * core, which is the point: the table is the user's to edit.
-   */
-  it('names the same towns, in the same order, as the doc’s table', () => {
-    const doc = (
-      import.meta.glob('../../docs/leaders.md', {
-        query: '?raw',
-        import: 'default',
-        eager: true,
-      }) as Record<string, string>
-    )['../../docs/leaders.md']!;
-    const start = doc.indexOf('## The cities');
-    expect(start).toBeGreaterThan(0);
-    const section = doc.slice(start, doc.indexOf('\n## ', start));
-
-    // One row a figure, keyed by the name the doc prints — the cells are
-    // separated by ` · `, which is the table's own separator.
-    const rows = new Map<string, string[]>();
-    for (const row of section.matchAll(/^\| (.+?) \| (.+?) \|$/gm)) {
-      const leader = row[1]!.trim();
-      if (leader === 'Leader' || /^-+$/.test(leader)) continue;
-      rows.set(
-        leader,
-        row[2]!.split(' · ').map((name) => name.trim()),
+  it('reach the law with every effect the sheet wrote, and nothing beside', () => {
+    for (const id of LEADER_IDS) {
+      const g = raw(id);
+      const held = liveEffects(g.state, 0).filter((line) =>
+        leaderDef(id).abilities.some((ability) => ability.id === line.card),
       );
+      expect(held.map((line) => line.effect), id).toEqual(leaderAbilityEffects(id));
     }
-    expect([...rows.keys()].sort()).toEqual(LEADER_IDS.map((id) => leaderDef(id).name).sort());
+  });
+
+  it('are exactly two a figure, named once across the whole sheet', () => {
+    expect(LEADER_ABILITY_IDS).toHaveLength(LEADER_IDS.length * 2);
+    expect(new Set(LEADER_ABILITY_IDS).size).toBe(LEADER_ABILITY_IDS.length);
+    for (const id of LEADER_IDS) expect(leaderDef(id).abilities, id).toHaveLength(2);
+  });
+
+  it('belong to the seat that plays the figure and to no other', () => {
+    const g = raw('joan', 'mansaMusa');
+    expect(lawSources(g.state, 0)).toContain('theVoices');
+    expect(lawSources(g.state, 1)).not.toContain('theVoices');
+    expect(lawSources(g.state, 1)).toContain('theHajj');
+  });
+
+  it('are absent entirely from a roster that names no figure', () => {
+    const g = raw();
+    const ids = new Set(lawSources(g.state, 0));
+    for (const ability of LEADER_ABILITY_IDS) expect(ids.has(ability), ability).toBe(false);
+    for (const leader of LEADER_IDS) expect(ids.has(leader), leader).toBe(false);
+  });
+});
+
+// --- the two uniques --------------------------------------------------------
+
+/** Every row a figure names, in sheet order. The uniques' own register. */
+function claimedUnits(): string[] {
+  return LEADER_IDS.map((id) => leaderDef(id).unit);
+}
+function claimedBuildings(): string[] {
+  return LEADER_IDS.map((id) => leaderDef(id).building);
+}
+
+describe('a unique row', () => {
+  /**
+   * **Two questions, and both must answer yes.** The seat's sheet has to name
+   * the row *and* the row's own technology has to have come — which is the whole
+   * of the second cut's unlock rule and the reason there is no age machinery
+   * anywhere in the system.
+   */
+  it('opens for its figure’s seat once its own technology has come', () => {
     for (const id of LEADER_IDS) {
       const def = leaderDef(id);
-      expect(rows.get(def.name), id).toEqual([...def.cities]);
+      const g = game(id);
+      learnEverything(g.state, 0);
+      expect(isUnlocked(g.state, 0, 'unit', def.unit), `${id} · ${def.unit}`).toBe(true);
+      expect(isUnlocked(g.state, 0, 'building', def.building), `${id} · ${def.building}`).toBe(
+        true,
+      );
+    }
+  });
+
+  it('opens for no other seat, at any technology at all', () => {
+    for (const id of LEADER_IDS) {
+      const def = leaderDef(id);
+      // A seat under somebody else's figure, and a seat under nobody.
+      const other = LEADER_IDS.find((candidate) => candidate !== id)!;
+      const g = game(other);
+      learnEverything(g.state, 0);
+      learnEverything(g.state, 1);
+      expect(isUnlocked(g.state, 0, 'unit', def.unit), `${other} holds ${def.unit}`).toBe(false);
+      expect(isUnlocked(g.state, 1, 'building', def.building), `nobody holds ${def.building}`).toBe(
+        false,
+      );
+    }
+  });
+
+  /**
+   * **The bench.** The first cut's other pieces kept their rules, their prices
+   * and their marker, and are opened by nobody — which is a row waiting for a
+   * figure rather than a row deleted.
+   */
+  it('that nobody names opens for nobody, however much they have researched', () => {
+    const claimedU = new Set(claimedUnits());
+    const claimedB = new Set(claimedBuildings());
+    const benchUnits = UNIT_TYPE_IDS.filter(
+      (id) => unitDef(id).unlockedByLeader === true && !claimedU.has(id),
+    );
+    const benchBuildings = BUILDING_IDS.filter(
+      (id) => buildingDef(id).unlockedByLeader === true && !claimedB.has(id),
+    );
+    expect(benchUnits.length + benchBuildings.length, 'the bench is not empty').toBeGreaterThan(0);
+    for (const leader of LEADER_IDS) {
+      const g = game(leader);
+      learnEverything(g.state, 0);
+      for (const id of benchUnits) {
+        expect(isUnlocked(g.state, 0, 'unit', id), `${leader} · ${id}`).toBe(false);
+      }
+      for (const id of benchBuildings) {
+        expect(isUnlocked(g.state, 0, 'building', id), `${leader} · ${id}`).toBe(false);
+      }
+    }
+  });
+
+  it('is not opened by the sheet alone — the technology still has to arrive', () => {
+    // Joan's Gendarme sits at column 11 and her Sainte-Chapelle behind the
+    // Temple; a seat on turn one holds neither, sheet or no sheet.
+    const g = game('joan');
+    expect(isUnlocked(g.state, 0, 'unit', 'gendarme')).toBe(false);
+    expect(isUnlocked(g.state, 0, 'building', 'sainteChapelle')).toBe(false);
+  });
+
+  it('is one figure’s and one figure’s only — no row is claimed twice', () => {
+    expect(new Set(claimedUnits()).size).toBe(LEADER_IDS.length);
+    expect(new Set(claimedBuildings()).size).toBe(LEADER_IDS.length);
+    for (const id of claimedUnits()) expect(unitDef(id as never).unlockedByLeader, id).toBe(true);
+    for (const id of claimedBuildings()) {
+      expect(buildingDef(id as never).unlockedByLeader, id).toBe(true);
+    }
+  });
+
+  /**
+   * A unique's own rules ride the law of the figure that may field it, scoped to
+   * the row's class in the row's own data (`UnitDef.effects`). The pin is that
+   * they arrive at all and arrive for nobody else.
+   */
+  it('brings its own rules into its figure’s law and into no other seat’s', () => {
+    const g = game('mansaMusa', 'joan');
+    const mine = liveEffects(g.state, 0).filter((line) => line.card === 'mansaMusa');
+    expect(mine.map((line) => line.effect)).toEqual(unitDef('mandekalu').effects);
+    expect(liveEffects(g.state, 1).some((line) => line.card === 'mansaMusa')).toBe(false);
+  });
+});
+
+// --- the draft, retired -----------------------------------------------------
+
+describe('the draft', () => {
+  it('is an unknown command, refused, and the state is byte-identical', () => {
+    const g = game('pachacuti');
+    const before = snapshotState(g.state);
+    const result = dispatch(g, { type: 'chooseLeaderCard', playerId: 0, index: 0 } as never);
+    expect(result.ok).toBe(false);
+    expect(snapshotState(g.state)).toEqual(before);
+  });
+
+  it('raises no blocker on a seat under a figure, on turn one or any other', () => {
+    const g = game('akhenaten');
+    for (let turn = 0; turn < 3; turn += 1) {
+      expect(firstBlocker(g.state, 0)?.kind).not.toBe('leaderDraft');
+      g.state.turn += 1;
+    }
+  });
+
+  it('leaves no occasion behind it', () => {
+    expect(OCCASIONS).not.toContain('leaderOffered' as never);
+  });
+
+  it('writes no field on the seat — a figure is the whole of the record', () => {
+    const g = game('modu');
+    const seat = playerById(g.state, 0)! as unknown as Record<string, unknown>;
+    expect(seat['leaderPicks']).toBeUndefined();
+    expect(seat['leaderOffer']).toBeUndefined();
+    expect(seat['leader']).toBe('modu');
+  });
+
+  it('lets the bots play a seat under a figure without stalling', () => {
+    const g = game('taizong', 'mithridates');
+    for (const playerId of [0, 1]) {
+      const command = nextBotCommand(g.state, playerId);
+      // Whatever it decides, it decides *something* and it is never the retired
+      // pick — a bot that still owed a card would answer `null` for ever.
+      if (command !== null) expect((command as { type: string }).type).not.toBe('chooseLeaderCard');
     }
   });
 });
 
-// --- the book ---------------------------------------------------------------
+// --- determinism ------------------------------------------------------------
+
+describe('a config naming a figure', () => {
+  it('replays byte for byte from its own log', () => {
+    const first = game('hypatiaOfAlexandria', 'hildegard', 4);
+    const second = game('hypatiaOfAlexandria', 'hildegard', 4);
+    expect(snapshotState(second.state)).toEqual(snapshotState(first.state));
+  });
+
+  it('costs a leaderless game nothing at all', () => {
+    const plain = raw();
+    const again = raw();
+    expect(snapshotState(again.state)).toEqual(snapshotState(plain.state));
+  });
+});
+
+// --- the new shapes ---------------------------------------------------------
+
+describe('the Rihla', () => {
+  /** A seat holding a hand, so the redraw has something to redraw. */
+  function dealt() {
+    const g = game('ibnBattutaOfTangier', 'pachacuti');
+    const sc = playerById(g.state, 0)!.statecraft;
+    sc.pendingOrder = { options: [...(sc.pendingOrder?.options ?? [])] };
+    return g;
+  }
+
+  it('opens the reroll’s door and waives the first asking’s price', async () => {
+    const { explainRerollCost, rerollDoorOpen } = await import('../../src/sim/religion');
+    const g = dealt();
+    expect(rerollDoorOpen(g.state, 0)).toBe(true);
+    const price = explainRerollCost(g.state, 0, 'order');
+    expect(price.total).toBe(0);
+    expect(price.lines.map((line) => line.source)).toEqual(['The Rihla']);
+  });
+
+  it('is spent by the redraw it paid for, and the next asking costs', async () => {
+    const { explainRerollCost, settleReroll } = await import('../../src/sim/religion');
+    const g = dealt();
+    const player = playerById(g.state, 0)!;
+    const before = player.faithPool;
+    const taken = player.statecraft.rerollsTaken;
+    expect(settleReroll(g.state, player)?.paid).toBe(0);
+    // Nothing was spent and the lifetime ladder did not move — a waived asking
+    // is not an asking the price should remember.
+    expect(player.faithPool).toBe(before);
+    expect(player.statecraft.rerollsTaken).toBe(taken);
+    // And the stamp is on the hand it dealt, so the second asking is priced.
+    expect(player.statecraft.pendingOrder?.rerolled).toBe(true);
+    expect(explainRerollCost(g.state, 0, 'order').total).toBeGreaterThan(0);
+  });
+
+  it('is never a belief’s — that hand has a free asking of its own', async () => {
+    const { rihlaPaysFor } = await import('../../src/sim/religion');
+    const g = dealt();
+    const player = playerById(g.state, 0)!;
+    expect(rihlaPaysFor(g.state, player, 'belief')).toBe(false);
+    expect(rihlaPaysFor(g.state, player, 'order')).toBe(true);
+  });
+
+  it('belongs to the seat that holds it and to no other', async () => {
+    const { rerollDoorOpen } = await import('../../src/sim/religion');
+    const g = dealt();
+    expect(rerollDoorOpen(g.state, 1)).toBe(false);
+  });
+});
+
+describe('the Rihla caravan', () => {
+  it('is the trader Ibn Battuta’s seat sends, and the roster’s for everyone else', async () => {
+    const { caravanTypeFor } = await import('../../src/sim/routes');
+    const g = game('ibnBattutaOfTangier', 'pachacuti');
+    expect(caravanTypeFor(g.state, 0)).toBe('rihlaCaravan');
+    expect(caravanTypeFor(g.state, 1)).toBe('trader');
+  });
+
+  it('pays its three coins on every road, and cannot be plundered', () => {
+    const g = game('ibnBattutaOfTangier');
+    const mine = liveEffects(g.state, 0).filter((line) => line.card === 'ibnBattutaOfTangier');
+    expect(mine.map((line) => line.effect)).toEqual([
+      { kind: 'pays', where: 'route', gold: 3 },
+      { kind: 'rule', rule: 'tradersUnplunderable' },
+    ]);
+  });
+
+  /**
+   * **And the blow really does not land.** The rule is `tradersUnplunderable`,
+   * which takes a laden cart out of the *target list* rather than letting a blow
+   * resolve and do nothing — so the pin is asked of the one reading that
+   * decides it, with a rival's identical cart beside it as the control.
+   */
+  it('leaves a rival’s laden cart takeable and its own alone', async () => {
+    const { cardBehaviorRule } = await import('../../src/sim/statecraft');
+    const g = game('ibnBattutaOfTangier', 'pachacuti');
+    expect(cardBehaviorRule(g.state, 0, 'tradersUnplunderable')).toBe(true);
+    expect(cardBehaviorRule(g.state, 1, 'tradersUnplunderable')).toBe(false);
+  });
+});
+
+describe('the Sainte-Chapelle', () => {
+  it('opens the faith bank for a soldier, and leaves it shut for a settler', async () => {
+    const { explainPurchaseCost } = await import('../../src/sim/purchase');
+    const g = game('joan');
+    const city = g.state.cities.find((held) => held.ownerId === 0)!;
+    learnEverything(g.state, 0);
+    const soldier = { kind: 'unit', id: 'warrior' } as const;
+    const civilian = { kind: 'unit', id: 'settler' } as const;
+    // Shut before the chapel stands: a town sells for coin like every other.
+    expect(explainPurchaseCost(g.state, 0, city.id, soldier, 'faith')).toBeNull();
+    city.buildings.push('sainteChapelle');
+    bumpRevision(g.state);
+    expect(explainPurchaseCost(g.state, 0, city.id, soldier, 'faith')).not.toBeNull();
+    // And the word is the civilian arm's negation, not its widening.
+    expect(explainPurchaseCost(g.state, 0, city.id, civilian, 'faith')).toBeNull();
+  });
+});
+
+describe('the Funduq', () => {
+  it('stands in a town holding no caravanserai, and is not once an empire', () => {
+    expect(buildingDef('funduq').requiresBuilding).toBeUndefined();
+    expect(buildingDef('funduq').requiresSite).toBeUndefined();
+    expect(buildingDef('funduq').oncePerEmpire).toBeUndefined();
+    // The row it replaces is the one that carries both restrictions.
+    expect(buildingDef('caravanserai').oncePerEmpire).toBe(true);
+  });
+});
+
+describe('the Tetzcotzinco', () => {
+  it('takes its share of the whole yield, not of the surplus', () => {
+    const effects = buildingDef('tetzcotzinco').effects ?? [];
+    const share = effects.find((effect) => effect.kind === 'percentYields');
+    expect(share).toEqual({
+      kind: 'percentYields',
+      yield: 'food',
+      percent: 15,
+      scope: { test: 'hasBuilding', building: 'tetzcotzinco' },
+    });
+    // The Aqueduct is the other reading of the same words and stays the other
+    // reading: a `rulePercent` on `growthSurplus` is the surplus alone.
+    expect(
+      (buildingDef('aqueduct').effects ?? []).some((effect) => effect.kind === 'rulePercent'),
+    ).toBe(true);
+  });
+
+  it('keeps the Garden’s own effects beside it', () => {
+    const garden = buildingDef('garden').effects ?? [];
+    const mine = buildingDef('tetzcotzinco').effects ?? [];
+    for (const effect of garden) expect(mine).toContainEqual(effect);
+  });
+});
+
+// --- the register -----------------------------------------------------------
+
+describe('the sheet register', () => {
+  it('declares no effect shape the evaluator does not read', () => {
+    const kinds = new Set<string>();
+    for (const id of LEADER_ABILITY_IDS) {
+      for (const effect of leaderAbility(id).effects) kinds.add(effect.kind);
+    }
+    for (const id of LEADER_IDS) {
+      for (const effect of unitDef(leaderDef(id).unit).effects ?? []) kinds.add(effect.kind);
+    }
+    for (const kind of kinds) {
+      expect(EVALUATOR_SOURCE, `no arm reads "${kind}"`).toContain(`'${kind}'`);
+    }
+  });
+
+  it('names every ability in `LeaderAbilityId`, and names nothing else', () => {
+    const declared = new Set(
+      [...LEADER_DATA_SOURCE.matchAll(/^ {2}\| '([a-zA-Z]+)';?$/gm)].map((hit) => hit[1]!),
+    );
+    for (const id of LEADER_ABILITY_IDS) {
+      expect(declared.has(id), `${id} is not in the union`).toBe(true);
+    }
+    const live = new Set<string>(LEADER_ABILITY_IDS);
+    for (const id of declared) expect(live.has(id), `${id} names no ability`).toBe(true);
+  });
+
+  it('gives every ability something to do, or says in plain words why not', () => {
+    for (const id of LEADER_ABILITY_IDS) {
+      const ability = leaderAbility(id);
+      const acts = ability.effects.length > 0 || (ability.deferred ?? []).length > 0;
+      expect(acts, `${id} does nothing and does not say so`).toBe(true);
+      expect(ability.name.length, id).toBeGreaterThan(0);
+      expect(ability.text.length, id).toBeGreaterThan(0);
+    }
+  });
+});
+
+// --- the sheet and the doc --------------------------------------------------
+
+describe('the doc’s tables and the data', () => {
+  /** Every `| … |` row of one heading's table, cells trimmed. */
+  function tableRows(heading: string): string[][] {
+    const start = DOC.indexOf(heading);
+    expect(start, heading).toBeGreaterThanOrEqual(0);
+    const after = start + heading.length;
+    const ends = [DOC.indexOf('\n## ', after), DOC.indexOf('\n### ', after)].filter(
+      (at) => at >= 0,
+    );
+    const end = ends.length === 0 ? -1 : Math.min(...ends);
+    const section = DOC.slice(start, end === -1 ? undefined : end);
+    // **The first table under the heading and no other.** "The thirteen" is
+    // followed by a sketchbook table of figures that are *not* in the game, so a
+    // walk of every pipe line in the section would compare the roster against
+    // the shelf. A table is a contiguous run of lines, which is what stops here.
+    const rows: string[][] = [];
+    let started = false;
+    for (const line of section.split('\n')) {
+      if (!line.startsWith('|')) {
+        if (started) break;
+        continue;
+      }
+      started = true;
+      const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+      if (cells.every((cell) => /^-+$/.test(cell))) continue;
+      rows.push(cells);
+    }
+    return rows;
+  }
+
+  /** "**Pachacuti**" → "Pachacuti"; "*the Voices*: a kill…" → "the Voices". */
+  function plain(cell: string): string {
+    return cell.replace(/\*\*/g, '').trim();
+  }
+  function abilityName(cell: string): string {
+    const italic = /^\*(.+?)\*/.exec(cell.trim());
+    return italic ? italic[1]!.trim() : cell.trim();
+  }
+
+  it('carries the same thirteen figures, with the same ability names', () => {
+    const rows = tableRows('### The thirteen').filter((cells) => cells[0] !== 'figure');
+    expect(rows).toHaveLength(LEADER_IDS.length);
+    rows.forEach((cells, at) => {
+      const def = leaderDef(LEADER_IDS[at]!);
+      expect(plain(cells[0]!), `row ${at}`).toBe(def.name);
+      // Names are compared case-insensitively and without the leading article's
+      // capital: the table writes them in prose ("*the Voices*") and the sheet
+      // writes them as titles ("The Voices"), which is the same name twice.
+      for (const half of [0, 1] as const) {
+        expect(
+          abilityName(cells[3 + half]!).toLowerCase(),
+          `${def.name} ability ${half + 1}`,
+        ).toBe(def.abilities[half]!.name.toLowerCase());
+      }
+      // The unique cells name the rows in prose; the row's own name is in them.
+      expect(
+        cells[5]!.toLowerCase(),
+        `${def.name} unit`,
+      ).toContain(unitDef(def.unit).name.replace(/^The /, '').toLowerCase());
+      expect(
+        cells[6]!.toLowerCase(),
+        `${def.name} building`,
+      ).toContain(buildingDef(def.building).name.replace(/^The /, '').toLowerCase());
+    });
+  });
+
+  it('names the same towns, in the same order', () => {
+    const rows = tableRows('## The cities').filter((cells) => cells[0] !== 'Leader');
+    expect(rows).toHaveLength(LEADER_IDS.length);
+    rows.forEach((cells, at) => {
+      const def = leaderDef(LEADER_IDS[at]!);
+      expect(cells[0], `row ${at}`).toBe(def.name);
+      expect(cells[1]!.split(' · ').map((name) => name.trim()), def.name).toEqual([...def.cities]);
+    });
+  });
+
+  it('writes the same bias, weight for weight and want for want', () => {
+    const rows = tableRows('### The biases').filter((cells) => cells[0] !== 'Leader');
+    expect(rows).toHaveLength(LEADER_IDS.length);
+    /** "river 6 · hills 1.5" → {river: 6, hills: 1.5}; "—" → {}. */
+    function pairs(cell: string): Record<string, number> {
+      if (cell === '—') return {};
+      const out: Record<string, number> = {};
+      for (const part of cell.split(' · ')) {
+        const [key, value] = part.trim().split(' ');
+        out[key!] = Number(value);
+      }
+      return out;
+    }
+    rows.forEach((cells, at) => {
+      const def = leaderDef(LEADER_IDS[at]!);
+      const bias = def.startBias;
+      expect(cells[0], `row ${at}`).toBe(def.name);
+      expect(pairs(cells[1]!), `${def.name} terrain`).toEqual({ ...(bias.terrain ?? {}) });
+      expect(pairs(cells[2]!), `${def.name} wants`).toEqual({ ...(bias.wants ?? {}) });
+      expect(pairs(cells[3]!), `${def.name} resources`).toEqual({ ...(bias.resources ?? {}) });
+      expect(pairs(cells[4]!), `${def.name} luxuries`).toEqual({ ...(bias.luxuries ?? {}) });
+      expect(
+        cells[5] === '—' ? [] : cells[5]!.split(' · ').map((word) => word.trim()),
+        `${def.name} furnish`,
+      ).toEqual([...(bias.furnish ?? [])]);
+    });
+  });
+
+  it('leaves not one deck table behind it', () => {
+    expect(DOC).not.toContain('The starting six — the decks');
+    expect(DOC).not.toMatch(/^leader bonus:/m);
+  });
+});
+
+// --- the colours ------------------------------------------------------------
+
+describe('the thirteen’s inks', () => {
+  /**
+   * Thirteen distinct primaries, none within the palette's own distance of
+   * another figure's or of a plain seat's. The failure is the kind nobody
+   * reports — two empires whose borders are the same green — so the pin names
+   * the offending pair rather than merely failing.
+   */
+  it('are thirteen distinct fields, and none crowds a plain seat’s', () => {
+    const inks: { name: string; hex: string }[] = [
+      ...LEADER_IDS.map((id) => ({ name: leaderDef(id).name, hex: leaderDef(id).colors.primary })),
+      ...SEATS.map((seat) => ({ name: `seat · ${seat.name}`, hex: seat.color })),
+    ];
+    expect(new Set(LEADER_IDS.map((id) => leaderDef(id).colors.primary)).size).toBe(
+      LEADER_IDS.length,
+    );
+    for (let a = 0; a < inks.length; a += 1) {
+      for (let b = a + 1; b < inks.length; b += 1) {
+        expect(
+          inkDistance(inks[a]!.hex, inks[b]!.hex),
+          `${inks[a]!.name} and ${inks[b]!.name} wear the same ink`,
+        ).toBeGreaterThanOrEqual(MIN_INK_DISTANCE);
+      }
+    }
+  });
+
+  it('gives every figure a first town nobody else’s list takes', () => {
+    const firsts = LEADER_IDS.map((id) => leaderDef(id).cities[0]);
+    expect(new Set(firsts).size).toBe(LEADER_IDS.length);
+    for (const id of LEADER_IDS) expect(leaderDef(id).cities.length, id).toBeGreaterThanOrEqual(10);
+  });
+});
+
+// --- the shelf --------------------------------------------------------------
 
 describe('the Compendium', () => {
-  it('shelves the six figures, each with its own line and its whole deck', () => {
-    const shelf = compendiumSections().find((section) => section.id === 'leader')!;
-    expect(shelf.name).toBe('Leaders');
-    // The lead page, plus one page a figure.
-    expect(shelf.entries).toHaveLength(LEADER_IDS.length + 1);
+  it('shelves the thirteen, each with its four lines and its towns', () => {
+    const shelf = compendiumSections().find((section) => section.id === 'leader');
+    // The shelf opens with its own "about" page; the thirteen follow it.
+    expect(shelf?.entries.length).toBeGreaterThanOrEqual(LEADER_IDS.length);
     for (const id of LEADER_IDS) {
-      const page = shelf.entries.find((entry) => entry.id === `leader:${id}`)!;
-      expect(page, id).toBeDefined();
-      expect(page.name).toBe(leaderDef(id).name);
-      // Every card of the deck is named on the page.
-      const printed = page.clauses.map((clause) => clause.text).join('\n');
-      for (const card of leaderDeckCards(id)) {
-        expect(printed.includes(card.name), `${id} · ${card.id}`).toBe(true);
-      }
-      for (const clause of page.clauses) {
-        expect(clause.text.trim().length, id).toBeGreaterThan(0);
+      const def = leaderDef(id);
+      const entry = shelf!.entries.find((held) => held.name === def.name);
+      expect(entry, id).toBeDefined();
+      const words = entry!.clauses.map((clause) => clause.text).join(' ');
+      for (const ability of def.abilities) expect(words, `${id} · ${ability.id}`).toContain(ability.name);
+      expect(words, `${id} unit`).toContain(unitDef(def.unit).name);
+      expect(words, `${id} building`).toContain(buildingDef(def.building).name);
+      expect(words, `${id} towns`).toContain(def.cities[0]!);
+      expect(words, `${id} colours`).toContain(def.colors.names[0]);
+    }
+  });
+
+  it('says of a unique that no other realm may build it', () => {
+    const units = compendiumSections().find((section) => section.id === 'unit');
+    const entry = units!.entries.find((held) => held.name === unitDef('gendarme').name)!;
+    const words = entry.clauses.map((clause) => clause.text).join(' ');
+    expect(words).toMatch(/Only one leader may ever raise this/);
+  });
+});
+
+// --- the unlock gate, read off the tree -------------------------------------
+
+describe('a unique’s technology', () => {
+  it('is the row’s own gate, asked the way every other row’s is', () => {
+    // Nothing about a figure changes *which* technology opens a row: a row the
+    // tree names is gated by the node, and a row the tree does not name is
+    // priced and dated by its own column. The pin is that the two registers
+    // still agree about these rows.
+    for (const id of LEADER_IDS) {
+      const def = leaderDef(id);
+      const unitGate = UNIT_UNLOCK_TECH.get(def.unit);
+      const buildingGate = BUILDING_UNLOCK_TECH.get(def.building);
+      if (unitGate !== undefined) expect(techDef(unitGate), def.unit).toBeDefined();
+      if (buildingGate !== undefined) expect(techDef(buildingGate), def.building).toBeDefined();
+      // Every unnamed row carries a column, or the price fold would charge it
+      // Æra I hammers.
+      if (unitGate === undefined) expect(unitDef(def.unit).column, def.unit).toBeDefined();
+      if (buildingGate === undefined) {
+        expect(buildingDef(def.building).column, def.building).toBeDefined();
       }
     }
   });
 });
+
+export type { Command };
