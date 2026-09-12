@@ -156,8 +156,21 @@ The letter is the item the question came out of; the item's full history is in
   comes with Æra IV"), the cities in order with the founded ones inked,
   the pair of inks; a plain seat gets one sentence; the dock's fifth door
   lost its waiting dot; the mockup redrawn to two tabs. Twenty-five pins.
-  Whole tree typechecks; `test/ui` 77 files green. ▢ a stale comment in
-  `statecraft/draft.ts` still cites `chooseLeaderCardAt`.
+  Whole tree typechecks; `test/ui` 77 files green. The full gate then
+  failed two slow sweeps for one cause: both seated *every* figure — six
+  became thirteen — and thirteen seats cannot hold a floor of ten. **Re-
+  aimed at the product's six-seat cast**: `castFor(seed)` in
+  `test/mapgen/leaderCriteria.ts` — Akhenaten every board (the (uuuu)
+  reading is his), the other five a window rotated through the twelve so
+  each sits ten of twenty-four boards; rates are shares of seatings.
+  Floor held (min 14, median 16, none let down). **Shares worth the
+  user's eye**: Mansa Musa's arid start 30% (40% unbiased — dry country
+  is the ground a standard board grows least and refuses most, and a
+  one-want figure is served late on the ladder), Zheng He's coast 50%
+  (unmoved by the bias, same reason), Hildegard's river 70%; every other
+  criterion 90–100%. `refitSlots` has no callers now (the draft was its
+  only one) — docblock says so, kept whole. `docs/mapgen.md`'s rates
+  table follows the new shares.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.

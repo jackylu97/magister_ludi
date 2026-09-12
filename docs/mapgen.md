@@ -1236,25 +1236,45 @@ byte-identical to a game from before they existed — and the resource passes ta
 uniform tile draw is kept as its own arm, because `nextInt` and `nextFloat` are
 different draws off one stream).
 
-Measured over 24 seeds at `standard`, six seats, one figure each — seeds out of
-24 on which each figure's own criterion held, when the wants shipped (M1) and
-after the seating ladder changed (M2, `docs/flags.md` (rrrr)). The table is
-`RATES` in `test/mapgen/leaderCriteria.ts`, which both sweeps pin against:
+Measured over 24 seeds at `standard` in **six-seat casts** — the product's own
+table. Since the roster grew to thirteen (L6a) a cast is `castFor(seed)` in
+`test/mapgen/leaderCriteria.ts`: Akhenaten at every board (the sand reading below
+is his), the other five a window rotated through the twelve so each figure sits
+ten of the twenty-four boards. A rate is the **share of the boards a figure sat
+at** on which its own criterion held — under M1 (the wants as shipped), and under
+M2 (the seating ladder of `docs/flags.md` (rrrr)); the second cut's figures have
+no M1 column. The table is `RATES`, which both sweeps pin against:
 
 | Figure | Criterion | M1 | M2 | Backed by |
 |---|---|---|---|---|
-| Pachacuti | a mountain within 2 | 24 | 24 | want |
-| Pachacuti | three hills within 2 | 24 | 24 | score |
-| Pachacuti | a river within 1 | 24 | 24 | want |
-| Taizong | grassland within 2 | 24 | 24 | want |
-| Modu | horses within 4 | 24 | 24 | furnishing |
-| Modu | two pasture hexes within 3 | 24 | 24 | want |
-| Akhenaten | river or floodplain within 1 | 24 | 23 | want |
-| Akhenaten | three arid neighbours | 0 | 11 | want (new, (uuuu)) |
-| Al-Ma'mun | a river within 2 | 24 | 20 | want |
-| Mithridates | a river within 2 | 24 | 19 | want |
-| Mithridates | a camp kind within 3 | 24 | 24 | furnishing |
-| Mithridates | a plantation kind within 3 | 24 | 24 | furnishing |
+| Pachacuti | a mountain within 2 | 100% | 100% | want |
+| Pachacuti | three hills within 2 | 100% | 100% | score |
+| Pachacuti | a river within 1 | 100% | 100% | want |
+| Taizong | grassland within 2 | 100% | 100% | want |
+| Modu | horses within 4 | 100% | 100% | furnishing |
+| Modu | two pasture hexes within 3 | 100% | 100% | want |
+| Akhenaten | river or floodplain within 1 | 100% | 100% | want |
+| Akhenaten | three arid neighbours | 0% | 63% | want (new, (uuuu)) |
+| Al-Ma'mun | a river within 2 | 100% | 100% | want |
+| Mithridates | a river within 2 | 100% | 90% | want |
+| Mithridates | a camp kind within 3 | 100% | 100% | furnishing |
+| Mithridates | a plantation kind within 3 | 100% | 100% | furnishing |
+| Mansa Musa | arid within 2 | — | 30% | want |
+| Zheng He | the sea within 1 | — | 50% | want |
+| Nezahualcoyotl | a lake within 2 | — | 100% | want |
+| Nezahualcoyotl | river or floodplain within 1 | — | 100% | want |
+| Hypatia | the sea within 1 | — | 100% | want |
+| Hypatia | a river within 2 | — | 100% | want |
+| Hildegard | a river within 1 | — | 70% | want |
+
+Joan of Arc and Ibn Battuta carry no want and so no row: they are seated and
+scored, never held to ground they did not ask for.
+
+**The low rows are the ground, not the chooser.** Dry country and a salt-water
+shore are the two grounds a standard board grows least of and refuses starts on
+most often, so a figure asking for one is first to be told nothing is left once
+the spacing is paid; and a figure with one want is served after one with two
+(Hypatia's coast holds every time, Zheng He's half the time, for that reason).
 
 **Two rows fell, and the fall is the ruling working.** M1 pulled the board's
 spacing down a hex at a time to keep a want, so a river was always found and a
