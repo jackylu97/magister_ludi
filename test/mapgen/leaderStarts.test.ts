@@ -33,6 +33,14 @@ import {
   startBiasCap,
   startSpacing,
 } from '../../src/sim/startPositions';
+import {
+  CAST_ANCHOR,
+  CAST_SIZE,
+  SWEEP_SEEDS,
+  appearances,
+  castFor,
+  seatOf,
+} from './leaderCriteria';
 
 const SEATS: StartSeat[] = LEADER_IDS.map((leader) => ({ leader }));
 
@@ -52,6 +60,54 @@ function seatSpecs(leaders: readonly (string | undefined)[]): PlayerSpec[] {
 function configOf(leaders: readonly (string | undefined)[]): GameConfig {
   return { seed: 11, sizeName: 'standard', players: seatSpecs(leaders) };
 }
+
+describe('the sweeps" cast', () => {
+  // The two slow sweeps measure a **six-seat** table drawn from a sheet of
+  // thirteen (L6a) — the floor cannot hold thirteen capitals on a standard
+  // board, so seating every figure would measure a crowded map instead of the
+  // biases. Who is at the table rotates by seed (`castFor`,
+  // `test/mapgen/leaderCriteria.ts`). Its two properties are what make a share
+  // in `RATES` a reading of a figure rather than of a sample, so they are pinned
+  // here, in core, where the sweeps themselves are too slow to be.
+  it('seats six distinct figures on every board, the anchor always among them', () => {
+    for (let seed = 1; seed <= SWEEP_SEEDS; seed++) {
+      const cast = castFor(seed);
+      expect(`seed ${seed}: ${cast.length} seated`).toBe(`seed ${seed}: ${CAST_SIZE} seated`);
+      const ids = cast.map((seat) => seat.leader);
+      expect(`seed ${seed}: ${new Set(ids).size} distinct`).toBe(`seed ${seed}: ${CAST_SIZE} distinct`);
+      expect(`seed ${seed}: anchor ${ids.includes(CAST_ANCHOR)}`).toBe(`seed ${seed}: anchor true`);
+      // In sheet order, so `seatOf` is a lookup and never an assumption.
+      const sheet = ids.map((id) => LEADER_IDS.indexOf(id!));
+      expect(`seed ${seed}: ${sheet.join(',')}`).toBe(
+        `seed ${seed}: ${[...sheet].sort((a, b) => a - b).join(',')}`,
+      );
+      for (const id of ids) expect(seatOf(cast, id!)).toBe(ids.indexOf(id));
+    }
+  });
+
+  it('seats every figure often enough for its share to mean something', () => {
+    // The rotation advances by its own width through the twelve non-anchors, so
+    // over `SWEEP_SEEDS` boards each of them is seated the same number of times
+    // — the floor below is that number, and a rotation that started skipping
+    // somebody would fall through it rather than quietly thin a row's
+    // denominator.
+    const seated = appearances(SWEEP_SEEDS);
+    const floor = Math.floor((SWEEP_SEEDS * (CAST_SIZE - 1)) / (LEADER_IDS.length - 1));
+    for (const id of LEADER_IDS) {
+      const at = seated.get(id)!;
+      const wanted = id === CAST_ANCHOR ? SWEEP_SEEDS : floor;
+      expect(`${id} sat at ${at} boards`).toBe(`${id} sat at ${Math.max(at, wanted)} boards`);
+    }
+  });
+
+  it('is a pure function of the seed', () => {
+    for (const seed of [1, 7, 13, 24]) {
+      expect(castFor(seed).map((seat) => seat.leader)).toEqual(
+        castFor(seed).map((seat) => seat.leader),
+      );
+    }
+  });
+});
 
 describe('the leaders', () => {
   it('carries a bias the sheet can state', () => {

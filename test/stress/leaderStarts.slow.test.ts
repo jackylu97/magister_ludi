@@ -6,8 +6,15 @@
  * a cap, and the honest way to say whether it works is not "this seat has a
  * river" but **how much more often** a seat has one than the same seat would
  * have had with nobody sitting in it. So every criterion is measured twice over
- * the same seeds — an unbiased world seated unbiased, and a world with the six
+ * the same seeds — an unbiased world seated unbiased, and a world with six
  * figures seated — and the table below is the difference.
+ *
+ * **Six chairs, a rotating cast** (L6a): the sheet carries thirteen figures and
+ * a standard board seats six at the floor, so the sweep keeps the product's
+ * table and rotates who is at it (`castFor`, `test/mapgen/leaderCriteria.ts`).
+ * Every rate below is therefore a **share of the boards that figure sat at**,
+ * never a count of seeds — a denominator of ten for most of them and of
+ * twenty-four for the anchor.
  *
  * The second half of the measurement is the price. A bias that bought a river by
  * seating an empire on tundra would show a perfect river column and a ruined
@@ -28,10 +35,17 @@ import { describe, expect, it } from 'vitest';
 import { tileHex, wrappedDistance } from '../../src/sim/map';
 import { MAPGEN_CONFIG } from '../../src/sim/mapgenData';
 import { generateMap } from '../../src/sim/mapgen';
-import { LEADER_IDS, leaderDef } from '../../src/sim/leaderData';
-import { CRITERIA, RATES } from '../mapgen/leaderCriteria';
+import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
 import {
-  type StartSeat,
+  CAST_SIZE,
+  CRITERIA,
+  RATES,
+  SWEEP_SEEDS,
+  appearances,
+  castFor,
+  shareOf,
+} from '../mapgen/leaderCriteria';
+import {
   chooseStartPositions,
   chooseStartPositionsFor,
   landmassFacts,
@@ -40,34 +54,43 @@ import {
   strategicGround,
 } from '../../src/sim/startPositions';
 
-const SEEDS = 24;
+const SEEDS = SWEEP_SEEDS;
 const SIZE = 'standard';
 
 /**
- * The claims themselves live in `test/mapgen/leaderCriteria.ts`, beside the M2
- * sweep that measures the same list after the seating ladder changed
- * (`docs/flags.md` (rrrr)). One list, two questions: a criterion edited in one
- * sweep and not the other would be two measurements that look comparable and are
- * not.
+ * The claims themselves — and the cast — live in
+ * `test/mapgen/leaderCriteria.ts`, beside the M2 sweep that measures the same
+ * list after the seating ladder changed (`docs/flags.md` (rrrr)). One list, two
+ * questions: a criterion edited in one sweep and not the other would be two
+ * measurements that look comparable and are not.
  */
 
-/** The six figures, one a seat, in sheet order. */
-const SEATS: StartSeat[] = LEADER_IDS.map((leader) => ({ leader }));
+/** A criterion's name in `RATES` — the key both sweeps print and pin against. */
+function rowKey(leader: LeaderId, label: string): string {
+  return `${leader} · ${label}`;
+}
 
 describe('the leaders" start biases', () => {
   it('gives every figure more of the ground it asks for, and pays under the cap', () => {
     const held = new Map<string, { plain: number; biased: number }>();
-    for (const criterion of CRITERIA) held.set(criterion.label + '|' + criterion.leader, { plain: 0, biased: 0 });
-    const score = SEATS.map(() => ({ plain: 0, biased: 0 }));
+    for (const criterion of CRITERIA) held.set(rowKey(criterion.leader, criterion.label), { plain: 0, biased: 0 });
+    // Per figure, not per chair: a figure sits in a different seat on every
+    // board it is at, so a per-seat total would be the average of whoever
+    // happened to sit there.
+    const score = new Map<LeaderId, { plain: number; biased: number }>(
+      LEADER_IDS.map((id) => [id, { plain: 0, biased: 0 }]),
+    );
+    const seated = appearances(SEEDS);
     let caps = 0;
 
     for (let seed = 1; seed <= SEEDS; seed++) {
-      // Two worlds of one seed: nobody seated, and the six seated.
+      // Two worlds of one seed: nobody seated, and this seed's cast seated.
+      const cast = castFor(seed);
       const plainMap = generateMap(seed, SIZE);
-      const plainStarts = chooseStartPositions(plainMap, SEATS.length);
-      const biasedMap = generateMap(seed, SIZE, undefined, SEATS);
-      const biasedStarts = chooseStartPositionsFor(biasedMap, SEATS);
-      expect(biasedStarts).toHaveLength(SEATS.length);
+      const plainStarts = chooseStartPositions(plainMap, cast.length);
+      const biasedMap = generateMap(seed, SIZE, undefined, cast);
+      const biasedStarts = chooseStartPositionsFor(biasedMap, cast);
+      expect(biasedStarts).toHaveLength(cast.length);
 
       // The cap this map holds every figure under: a share of its best
       // *unbiased* site, asked of the chooser's own arithmetic.
@@ -96,17 +119,17 @@ describe('the leaders" start biases', () => {
         }
       }
 
-      for (let seat = 0; seat < SEATS.length; seat++) {
-        const leader = SEATS[seat]!.leader!;
+      for (let seat = 0; seat < cast.length; seat++) {
+        const leader = cast[seat]!.leader!;
         for (const criterion of CRITERIA) {
           if (criterion.leader !== leader) continue;
-          const row = held.get(criterion.label + '|' + criterion.leader)!;
+          const row = held.get(rowKey(criterion.leader, criterion.label))!;
           if (criterion.holds(plainMap, plainStarts[seat]!)) row.plain += 1;
           if (criterion.holds(biasedMap, biasedStarts[seat]!)) row.biased += 1;
         }
         // The price, read in the *unbiased* scorer's own terms on both sides —
         // what the site is worth to anybody, not what it is worth to its figure.
-        score[seat]!.plain += scoreStartSite(
+        score.get(leader)!.plain += scoreStartSite(
           plainMap,
           plainStarts[seat]!,
           undefined,
@@ -123,42 +146,49 @@ describe('the leaders" start biases', () => {
         expect(`seed ${seed}: seat ${seat} is on ${biasedReading.reject ?? 'a site the chooser accepts'}`).toBe(
           `seed ${seed}: seat ${seat} is on a site the chooser accepts`,
         );
-        score[seat]!.biased += biasedReading.total;
+        score.get(leader)!.biased += biasedReading.total;
       }
     }
 
-    const share = (n: number): string => `${((100 * n) / SEEDS).toFixed(0)}%`;
-    const lines = [`leader start biases · ${SEEDS} seeds · ${SIZE} · ${SEATS.length} seats`];
+    const lines = [
+      `leader start biases · ${SEEDS} seeds · ${SIZE} · casts of ${CAST_SIZE} from ${LEADER_IDS.length} figures`,
+    ];
     for (const criterion of CRITERIA) {
-      const row = held.get(criterion.label + '|' + criterion.leader)!;
+      const row = held.get(rowKey(criterion.leader, criterion.label))!;
+      const at = seated.get(criterion.leader)!;
       lines.push(
-        `  ${leaderDef(criterion.leader).name.padEnd(16)} ${criterion.label.padEnd(28)} ` +
-          `unbiased ${share(row.plain).padStart(4)} → biased ${share(row.biased).padStart(4)}`,
+        `  ${leaderDef(criterion.leader).name.padEnd(20)} ${criterion.label.padEnd(28)} ` +
+          `unbiased ${`${shareOf(row.plain, at)}%`.padStart(4)} →` +
+          ` biased ${`${shareOf(row.biased, at)}%`.padStart(4)} (of ${at} boards)`,
       );
     }
     const meanCap = caps / SEEDS;
     lines.push(`  mean site score (the unbiased reading), cap ${meanCap.toFixed(1)}`);
-    for (let seat = 0; seat < SEATS.length; seat++) {
+    for (const id of LEADER_IDS) {
+      const at = seated.get(id)!;
+      const row = score.get(id)!;
       lines.push(
-        `  ${leaderDef(SEATS[seat]!.leader!).name.padEnd(16)} ` +
-          `before ${(score[seat]!.plain / SEEDS).toFixed(1).padStart(6)} → ` +
-          `after ${(score[seat]!.biased / SEEDS).toFixed(1).padStart(6)}`,
+        `  ${leaderDef(id).name.padEnd(20)} ` +
+          `before ${(row.plain / at).toFixed(1).padStart(6)} → ` +
+          `after ${(row.biased / at).toFixed(1).padStart(6)}`,
       );
     }
     console.log(lines.join('\n'));
 
     // **The whole board of criteria improves**, and that is the assertion that
-    // matters: the six figures between them find the ground they ask for far
-    // more often than six empty chairs would have.
+    // matters: the figures between them find the ground they ask for far more
+    // often than the same number of empty chairs would have. A sum of counts
+    // rather than of shares, because both sides share a denominator here —
+    // every row is the same set of boards measured twice.
     let plainHeld = 0;
     let biasedHeld = 0;
     for (const row of held.values()) {
       plainHeld += row.plain;
       biasedHeld += row.biased;
     }
-    expect(`held ${biasedHeld} of ${CRITERIA.length * SEEDS}`).toBe(
-      `held ${Math.max(biasedHeld, plainHeld)} of ${CRITERIA.length * SEEDS}`,
-    );
+    let seatings = 0;
+    for (const criterion of CRITERIA) seatings += seated.get(criterion.leader)!;
+    expect(`held ${biasedHeld} of ${seatings}`).toBe(`held ${Math.max(biasedHeld, plainHeld)} of ${seatings}`);
 
     // Every criterion is held at the rate the sheet **measures today**, and that
     // rate lives beside the criteria (`RATES`, `test/mapgen/leaderCriteria.ts`)
@@ -172,27 +202,31 @@ describe('the leaders" start biases', () => {
     // was still nearly-always would have had to be lowered to the worst row and
     // would then have measured nothing about the rest; a table of the real
     // numbers holds every row to what it actually delivers and shows what M2
-    // cost in the same glance.
+    // cost in the same glance. The rate is a share of the boards the figure sat
+    // at, since L6a made that a different number per figure.
     for (const criterion of CRITERIA) {
-      const row = held.get(criterion.label + '|' + criterion.leader)!;
-      const rate = RATES[`${criterion.leader} · ${criterion.label}`];
-      expect(`${criterion.leader} · ${criterion.label} · rated`).toBe(
-        rate === undefined
-          ? `${criterion.leader} · ${criterion.label} · unrated`
-          : `${criterion.leader} · ${criterion.label} · rated`,
+      const key = rowKey(criterion.leader, criterion.label);
+      const row = held.get(key)!;
+      const rate = RATES[key];
+      expect(`${key} · rated`).toBe(rate === undefined ? `${key} · unrated` : `${key} · rated`);
+      const at = seated.get(criterion.leader)!;
+      expect(`${criterion.leader} sat at ${at} boards`).toBe(
+        `${criterion.leader} sat at ${Math.max(at, 1)} boards`,
       );
-      expect(`${criterion.leader} · ${criterion.label} · ${row.biased} of ${SEEDS}`).toBe(
-        `${criterion.leader} · ${criterion.label} · ${Math.max(row.biased, rate!.m2)} of ${SEEDS}`,
-      );
+      const share = shareOf(row.biased, at);
+      expect(`${key} · ${share}%`).toBe(`${key} · ${Math.max(share, rate!.m2)}%`);
     }
 
     // And the price stays inside the cap: a figure may trade a share of a site's
-    // quality for the ground it wants, and no more than that share.
-    for (let seat = 0; seat < SEATS.length; seat++) {
-      const before = score[seat]!.plain / SEEDS;
-      const after = score[seat]!.biased / SEEDS;
-      expect(`${LEADER_IDS[seat]} paid ${(before - after).toFixed(1)}`).toBe(
-        `${LEADER_IDS[seat]} paid ${Math.min(before - after, meanCap).toFixed(1)}`,
+    // quality for the ground it wants, and no more than that share. Averaged
+    // over the boards that figure actually sat at, which is what makes the two
+    // columns the same seeds read twice.
+    for (const id of LEADER_IDS) {
+      const at = seated.get(id)!;
+      const before = score.get(id)!.plain / at;
+      const after = score.get(id)!.biased / at;
+      expect(`${id} paid ${(before - after).toFixed(1)}`).toBe(
+        `${id} paid ${Math.min(before - after, meanCap).toFixed(1)}`,
       );
     }
   }, 240_000);

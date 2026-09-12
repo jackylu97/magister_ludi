@@ -571,11 +571,17 @@ export function chairCount(state: GameState, playerId: number, government: Gover
  * held and still slottable the moment there is somewhere to put it. Nothing is
  * lost and nothing is sealed — a seal is a promise about a chair.
  *
- * Called wherever the law that opens chairs changes: `adoptGovernmentAt` builds
- * to `chairCount` directly, and a leader's pick calls this (`chooseLeaderCardAt`,
- * on the far side of `forgetTheLaw`, so the card it just took is in the law it
- * reads). Any future seam that grants or withdraws a `slotRider` calls it too —
- * that is the whole register, and it is short on purpose.
+ * Called wherever the law that opens chairs changes mid-reign:
+ * `adoptGovernmentAt` builds to `chairCount` directly and needs nobody's help,
+ * and the leaders' first cut called this from the card a figure had just
+ * drafted. **That second seam is gone** (L6a, `docs/flags.md` (xxxx)): a
+ * figure's abilities are ordinary effects live from turn one, so a `slotRider`
+ * one of them carries is already in the law when a government is adopted and
+ * there is no moment left at which a council's size changes under a standing
+ * reign. So the register is empty today, and this is kept whole rather than
+ * deleted with the piece for the reason `consecrateAt` is: the rule that a chair
+ * opened mid-reign is a resize and never a rebuild is the part worth keeping,
+ * and the next seam that grants or withdraws a `slotRider` calls this.
  */
 export function refitSlots(state: GameState, player: Player): OrderId[] {
   const sc = player.statecraft;
