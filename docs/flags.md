@@ -144,8 +144,20 @@ The letter is the item the question came out of; the item's full history is in
   the Sankore's rate is a 25% share with a note. The seven figures'
   colours, cities and biases are in `docs/leaders.md`'s tables (the
   user's to retune); two new wants `coastalWithin`, `lakeWithin`. The
-  tree does not typecheck at this head on purpose — six UI files read the
-  retired types; **L6b is flying on top**.
+  tree did not typecheck at that head on purpose — six UI files read the
+  retired types. **L6b built** (2026-09-12): the landing face is four lines
+  (two rules through the describers, the unit and the building each named
+  with what opens it — today every unique prints the age of its own
+  column, since no node names one); `leaderDraftSheet.ts`, its overlay,
+  CSS, wiring, the blocker arm and the `TurnBlocker` member are gone
+  (the bot's dead `leaderDraft` arm with them); **the leader sheet is
+  "Your Civ"** — both rules with the ledger's own lines under each, both
+  uniques with `isUnlocked`'s answer and a Compendium ref ("Not yet — it
+  comes with Æra IV"), the cities in order with the founded ones inked,
+  the pair of inks; a plain seat gets one sentence; the dock's fifth door
+  lost its waiting dot; the mockup redrawn to two tabs. Twenty-five pins.
+  Whole tree typechecks; `test/ui` 77 files green. ▢ a stale comment in
+  `statecraft/draft.ts` still cites `chooseLeaderCardAt`.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.
