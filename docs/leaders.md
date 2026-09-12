@@ -65,7 +65,7 @@ six leave (the sea, land commerce, the steppe's second seat, the Levant).
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · roads and growth | farms +1 food per adjacent mountain | cities joined to the capital by road +1 happiness +1 production | the Slinger | Terraces |
+| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | cities joined to the capital by road +1 happiness +1 production | farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | Terraces — farms may be cut into hills |
 | **Emperor Taizong** | Tang | wide · the imperium | melee +1 strength +1 movement | garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
 | **Modu Chanyu** | Xiongnu | wide · the steppe | mounted +1 movement on grass and plains; pillaging +50% | pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
 | **Akhenaten** | Egypt | tall · faith and wonders | cities with a holy site +20% production toward wonders | +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
@@ -77,6 +77,17 @@ six leave (the sea, land commerce, the steppe's second seat, the Levant).
 | **Tomyris** ▢ | Massagetae | steppe · vengeance | *the Queen's vengeance*: +5 strength for five turns after one of your units dies | *the Kurgans*: units heal +10 a turn in your own borders | the Massagetae horse archer — retreats after firing | the Kurgan — a monument line, +2 faith +2 culture, a fallen unit's kill pays renown |
 | **Sher Shah Suri** ▢ | Sur | wide · administration | *the Sarai*: roads cost nothing to maintain; units on your roads +1 movement | *the Rupee*: +1 gold per citizen in every city joined to the capital by road | the Afghan lancer — a lancer line, +10 vs mounted | the Sarai — a caravanserai line, +2 gold +1 happiness, routes through the city pay +1 gold |
 | **Zenobia** ▢ | Palmyra | tall · the trading fortress | *the Caravan queen*: land routes pay +2 gold and +1 culture | *Rebel empress*: cities you capture keep every building and pay +2 culture | the Palmyrene archer — a mounted archer with +1 range | the Caravan gate — a walls line, +5 strength, +1 route slot |
+
+**Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
+food from mountains (tall, few sites) and roads (wide, many). Now both lines
+reward the same country: hills and peaks joined by road. The mountain farms
+mint gold rather than food, and the gold is the width — traders, routes and
+the odd army bought with coin from small terraced towns while the plain-dwellers
+grow fat and slow. No food bonus anywhere: Inca towns are productive with few
+citizens, which no other figure is, and the happiness line is what keeps a
+twelve-town Inca content. Every piece is built (the per-mountain farm line from
+L3c pays two peaks twice; the road-joined scope; the Terraces waiver; the
+Slinger's hills) — a data change. The Qollqa and the Tambo go to the bench.
 
 Notes on the second six: Basil II's Cataphract is the row retired when the
 Horseman took its place — it comes back as his alone. Mansa Musa is the land
