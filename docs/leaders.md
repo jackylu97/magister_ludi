@@ -56,7 +56,7 @@ uniques are `unlockedByLeader` rows opened by the seat's figure through the tech
 gate every row already has. L2b's draft sheet goes; the leader sheet stays as
 the record; the landing shows the four lines.
 
-### The twelve
+### The thirteen
 
 The first six, remapped from what is built (every unit and building below has a
 row and its rules); the second six proposed by the orchestrator — **the six are the user's picks** (2026-09-11); the abilities, units and
@@ -76,6 +76,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 | **Nezahualcoyotl** | Texcoco | tall · the engineer-poet | *the Dikes*: cities beside a lake or river pay +2 food +1 production | *Flower and Song*: +1 culture for every two citizens in the capital | the Eagle warrior — a swordsman line; a kill pays +5 culture | the Tetzcotzinco — an aqueduct line that waters the town, +2 culture, farms drinking fresh water +1 food |
 | **Hypatia** | Alexandria | tall · the library city | *the Museion*: +25% renown; scholars' works pay +2 science | *the Commentaries*: every great person's work in your lands pays +2 science | the Alexandrian galley — a light hull with +1 sight | the Museion — a university line: +3 science, +2 renown toward scholars |
 | **Hildegard of Bingen** | the Rhineland | tall · rites and song | *the Rites*: cities keeping a rite pay +2 culture +1 faith | *Symphonia*: temples and monasteries pay +2 culture | the Canoness — an apostle line with three charges | the Scriptorium — a monastery line: +2 faith +2 culture (▢ a rite said here presses twice as far — a new shape) |
+| **Ibn Battuta** | the Maghreb | the traveller — the generalist who reacts to the map | *the Rihla*: meeting a new empire pays a lump of culture; the first route to each partner pays a lump of gold and science | *A guest at every court*: every distinct luxury your empire holds pays +1 gold +1 science +1 culture | the Rihla caravan — a trader that cannot be plundered | the Funduq — a caravanserai line, +1 route slot; each foreign route ending here pays +1 culture +1 science |
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
 food from mountains (tall, few sites) and roads (wide, many). Now both lines
@@ -103,7 +104,13 @@ seat that is *water*, not faith. Hypatia is the library city with no faith
 detour: where Al-Ma'mun turns faith into science, she turns great people and
 their works into it. Hildegard is rites and song: where Akhenaten builds with
 faith (holy sites, wonders), she keeps it (rites) and sings it (culture), with
-no wonder bias at all. Every ability above is written in the
+no wonder bias at all. Ibn Battuta (the user, 2026-09-11: *"the
+generalist, react to what you're given"*) pays off contact and variety rather
+than any yield, so the map decides what he becomes; he carries **no wants and no
+start bias**, since taking what he is given is the point, and every line is built
+vocabulary (meeting and route lumps, the distinct-luxury count, the
+unplunderable-trader rule, route riders). Thirteen is an odd count; the roster
+carries it, or the user drops one later. Every ability above is written in the
 card vocabulary the evaluator has today except the three marked ▢ in the table (Joan's soldiers bought with faith in one
 building, the Treasure Ship's second passenger, the Scriptorium's farther rite) —
 each a small new shape, deferred-and-annotated if not built.
