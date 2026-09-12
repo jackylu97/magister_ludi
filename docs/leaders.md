@@ -17,7 +17,108 @@ civ's) so a leader shades a playstyle rather than dictating it. A leader would
 take two or three of the bullets under it, not all. Each fits one of
 `docs/playstyles.md`'s families first and a sub-identity second.
 
-## The starting six — the decks (2026-09-10)
+## The second cut — fixed identity (2026-09-11)
+
+**Ruled with the user, 2026-09-11.** The first cut below (a bonus and a deck of
+twelve drafted cards a figure) is superseded by this section; the tables under
+"The starting six — the decks" stay until the second cut is built, because
+`data/leaders.json` mirrors them and a sync test holds the two together.
+
+### Why
+
+- **Density.** Civ VI launched eighteen civs at four designs each (a civ
+  ability, a leader ability, a unique unit, a unique building). The first cut is
+  thirteen designs a figure — seventy-eight for six — and the twelfth card on
+  any leader is filler. A roster of twelve on that shape is a hundred and
+  fifty-six card designs. The roster is small *because* the deck is dense.
+- **Legibility.** A leader is a known quantity in Civ: you know what Rome does
+  before you meet Rome. A drafted second age makes a rival Pachacuti three
+  possible Pachacutis, and makes choosing him on the landing screen a choice
+  about a hand you have not seen.
+- **The per-age choice already exists.** The wager deal lands when an age turns;
+  governments arrive at tiers; Orders are dealt as offers; doctrines, beliefs
+  and great people are picks from a spread. A leader draft is a fifth "pick one
+  of three" on the same turn as the wager. Balatro's deck is read a hundred times
+  an hour; a leader card is read four times in six hours — obvious or forgotten,
+  never a build.
+- **The boon column** was already doubted as a column; it goes with the draft.
+
+### The shape
+
+A leader is **five designs**, plus data that costs nothing to write:
+
+| what | how many | when it reaches the seat |
+|---|---|---|
+| **leader bonus** | one | turn one, for the game (a doctrine-weight card effect) |
+| **uniques** | four — one an age, two units and two buildings across the four | granted when *this seat's* age turns, announced on a card; the row opens in the build list and the Compendium |
+| **family progression** | shared by the family — four fixed passives, one an age | granted with the age, no choice; the family's, not the figure's |
+| colours · cities · start bias · charge | data | the landing and the map |
+
+**No draft.** The age turns, the seat is told what it now holds, and plays on.
+`Player.leaderOffer`, the `leaderDraft` blocker and `chooseLeaderCard` retire;
+the age-turn hook grants instead of dealing. L2b's draft sheet becomes the
+announcement card; the leader sheet stays as the record (what is held, what the
+next age brings); the landing screen shows the bonus and the four uniques in
+place of the Æra I row; the bots lose an appraisal they did not need. Every
+half L3 built survives — a passive is a row wherever it sits.
+
+### The six families and their progressions (drawn from the first cut's passives — ▢ the user's to mark up)
+
+Each family is one of `docs/playstyles.md`'s sub-identities. A figure's family
+is a field on its row (`family`), which the landing screen already wants for
+its family line.
+
+| family | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|
+| **roads** (wide) | workers gain +1 charge | cities joined to the capital by road +1 happiness +1 production | cities joined to the capital by road cost 1 fewer authority | +10% science and +10% gold in cities joined to the capital by road |
+| **imperium** (wide) | cities beside a river cost 1 fewer authority | garrisoned cities +1 happiness, +15% culture | a captured city costs 1 fewer authority; puppets pay +5 culture | great artists' acts pay double and grant +10% production and culture for five turns |
+| **steppe** (wide) | pastures +1 production +1 faith | pillaging costs no movement, heals, and pays +25 faith | +1 combat strength while a rite burns in your empire | puppets pay +30% science and +30% culture |
+| **faith** (tall) | cities keeping a rite +10% production toward wonders | holy sites +2 food +2 faith | cities holding a wonder +10% food and +5 culture | cities following your faith demand 15% less happiness |
+| **science** (tall) | +1 faith for every two citizens in the capital | +20% renown; faith buildings pay +1 renown toward scholars | +1 science per five faith a turn, empire-wide | Orders that pay faith pay double |
+| **defence** (tall) | +2 food on plantations and camps | one more free chair in every government | internal routes carry +2 food +2 science | units heal +5 a turn |
+
+The one first-cut passive left out is Pachacuti's mountain-town science (Æra IV),
+which was the figure's rather than the road family's; it can return as a
+seventh-family idea (highlands) or as a bonus.
+
+### The six figures, at five designs
+
+| figure | family | bonus | Æra I | Æra II | Æra III | Æra IV |
+|---|---|---|---|---|---|---|
+| **Pachacuti** | roads | farms +1 food per adjacent mountain | Terraces | the Slinger | the Tambo | the Qollqa |
+| **Emperor Taizong** | imperium | melee +1 strength +1 movement; +2 culture in every city | the Fubing | the Examination Court | Tang heavy cavalry | the Post Station |
+| **Modu Chanyu** | steppe | mounted +1 movement on grass and plains; pillaging +50% | the Whistling Arrow | the Horde Camp | the Xiongnu horse archer | the Chanyu's Guard |
+| **Akhenaten** | faith | +1 faith on farms drinking fresh water; holy-site cities +20% toward wonders | the Obelisk | the Khopesh | the Sun Court | the Valley of Kings |
+| **Al-Ma'mun** | science | faith and science buildings +2 food; +10% science in cities keeping a rite | the House of Learning | the Mihna Court | the camel archer | the Paper Mill |
+| **Mithridates VI** | defence | +2 strength against wider empires; +1 food on improved resources | the Pontic peltast | the Mithridatium | the scythed chariot | the Mountain Hold |
+
+Every unique named here is built (L2a/L3) and keeps its row; only *how* it
+reaches the seat changes.
+
+### The roster
+
+**Target twelve** — two a family — so a six-seat cast varies between games; room
+to eighteen at three a family. The second seat of each family, from the second
+set below (▢ the user's): roads · **Sher Shah Suri** (the Grand Trunk Road);
+imperium · **Basil II** or **Yongle**; steppe · **Tomyris** or **Bumin**; faith
+· **Djoser** or **Ezana**; science · **Ulugh Beg** or **Abd al-Rahman III**;
+defence · **Zenobia** or **Teuta**. The sea family (`docs/playstyles.md`) has no
+seat in either cut — **Rajendra Chola**, **Dandolo** and **Hanno** are its
+candidates when a seventh family opens.
+
+### What building it costs
+
+A held-stack change (nothing has landed): `LeaderDef.family`, family
+progressions as a table in `data/leaders.json` (this doc's table the spec,
+sync-tested), `LeaderDef.uniques` as one row an age in place of `deck`; the
+`leaders` phase grants (progression passive + unique) when the seat's age turns
+and announces through `CommandResult.grants`; `liveEffects`' twelfth source
+reads the family's held passives; the draft command, offer and blocker retire
+(rows kept for saves as ever); the three screens re-aimed as above; `docs/`
+follows. The seventy-two first-cut cards are the quarry: the passives seeded
+the progressions above, the uniques stand, the boons retire.
+
+## The starting six — the decks (2026-09-10; the first cut, superseded above — kept until the second cut is built)
 
 Pachacuti · Taizong · Modu Chanyu · Akhenaten · Al-Ma'mun · Mithridates. Three
 wide, three tall; the sea unrepresented in the first cut. **The draft**: when a

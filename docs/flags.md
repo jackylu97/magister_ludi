@@ -71,11 +71,13 @@ The letter is the item the question came out of; the item's full history is in
 - **(dddd) · (jjjj) The rows `data/leaders.json` does not carry.** There is no
   `family` or `spectrum` field, so the new-game screen's family line and spectrum
   bar print nothing and the mockup's two lines are absent. A data decision.
-- **(iiii) The one-time boons.** Sixteen boon halves stand unbuilt because the
-  user doubts a one-time boon as a column at all — replace it with a second
-  passive, or keep and finish it. Until that is answered the "not yet" lines
-  stay, and `docs/leaders.md`'s deferred bullets for the fifteen L3c rows are
-  stale.
+- **(wwww) The leaders' second cut — RULED, unbuilt.** The draft and the boon
+  column go; a leader is a bonus plus four uniques granted as the seat's age
+  turns, the passives move to six shared **family progressions**, and the
+  roster targets twelve at two a family. `docs/leaders.md` "The second cut —
+  fixed identity" is the spec; ▢ the six progressions and the second seats are
+  the user's to mark up before it flies. The first cut's sixteen boon halves
+  are moot under it.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.
