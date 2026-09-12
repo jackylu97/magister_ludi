@@ -198,7 +198,6 @@ import { setKeywordOpener } from './ui/keywords';
 import { createStaleDeployNotice } from './ui/staleDeploy';
 import { type TradeScreen, createTradeScreen } from './ui/tradeScreen';
 import { type WagerSheet, createWagerSheet, wagerBoards } from './ui/wagerSheet';
-import { type LeaderDraftSheet, createLeaderDraftSheet } from './ui/leaderDraftSheet';
 import { type LeaderSheet, createLeaderSheet } from './ui/leaderSheet';
 import { type LeaderSelect, createLeaderSelect, seatLeaders } from './ui/leaderSelect';
 import { type CensusSheet, censusPage, createCensusSheet } from './ui/censusSheet';
@@ -416,10 +415,8 @@ const wagerBodyEl = requireElement<HTMLElement>('wager-body');
    clerks have counted, and by nothing else (`docs/wager.md` §10). */
 const censusOverlayEl = requireElement<HTMLElement>('census-overlay');
 const censusBodyEl = requireElement<HTMLElement>('census-body');
-/* The leader's two sheets (batch L2b): the draft, raised by the End Turn
-   blocker, and the record, behind the fifth door on the HUD dock. */
-const leaderDraftOverlayEl = requireElement<HTMLElement>('leader-draft-overlay');
-const leaderDraftBodyEl = requireElement<HTMLElement>('leader-draft-body');
+/* The leader's sheet (batch L2b, re-aimed in L6b): the record of what your civ
+   does, behind the fifth door on the HUD dock. Its draft retired with the deck. */
 const leaderOverlayEl = requireElement<HTMLElement>('leader-overlay');
 const leaderBodyEl = requireElement<HTMLElement>('leader-body');
 const diplomacyOverlayEl = requireElement<HTMLElement>('diplomacy-overlay');
@@ -827,9 +824,8 @@ let trade: TradeScreen | null = null;
 let wagerSheet: WagerSheet | null = null;
 /* The census sheet, built in `boot` for `wagerSheet`'s reason exactly. */
 let censusSheet: CensusSheet | null = null;
-/* The leader's two, built in `boot` for `wagerSheet`'s reason exactly: both ask
+/* The leader's sheet, built in `boot` for `wagerSheet`'s reason exactly: it asks
    whose seat this is (batch L2b). */
-let leaderDraft: LeaderDraftSheet | null = null;
 let leaderSheet: LeaderSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
@@ -1016,8 +1012,7 @@ function closePopovers(): boolean {
     (trade?.isOpen ?? false) ||
     (wagerSheet?.isOpen ?? false) ||
     (censusSheet?.isOpen ?? false) ||
-    // The leader's two (batch L2b), on the census sheet's terms exactly.
-    (leaderDraft?.isOpen ?? false) ||
+    // The leader's record (batch L2b), on the census sheet's terms exactly.
     (leaderSheet?.isOpen ?? false) ||
     (diplomacy?.isOpen ?? false) ||
     (reliquary?.isOpen ?? false) ||
@@ -1044,10 +1039,9 @@ function closePopovers(): boolean {
   statecraft?.close();
   religion?.close();
   trade?.close();
-  // The leader's two (batch L2b). Both are counted in `wasOpen` above and both
-  // are taken down here, which is what makes Escape mean "clear the screen" for
-  // them and what keeps either from standing over the landing after a restart.
-  leaderDraft?.close();
+  // The leader's record (batch L2b). It is counted in `wasOpen` above and taken
+  // down here, which is what makes Escape mean "clear the screen" for it and
+  // what keeps it from standing over the landing after a restart.
   leaderSheet?.close();
   diplomacy?.close();
   reliquary?.close();
@@ -1693,10 +1687,6 @@ const END_TURN_LABELS: Record<TurnBlocker['kind'], string> = {
   statecraft: 'A card awaits',
   religion: 'A god awaits',
   greatPerson: 'A great person awaits',
-  // The figure's own row (batch L2a). It names the leader rather than the card,
-  // because the three have not been read yet and the seat is being told *who*
-  // is waiting on it.
-  leaderDraft: 'Your leader awaits',
   wager: 'A wager awaits',
   // The one label that names a *reading* rather than a decision: nothing is
   // owed here but a look, and the verb says so.
@@ -2259,12 +2249,10 @@ async function boot(initial: Game | null): Promise<void> {
     // routes and the towns this pass has just re-read. It draws nothing at all
     // unless it is open, so this costs a boolean when it is not.
     trade?.refresh();
-    // The leader's two, on the Trade screen's terms exactly: both are about the
-    // books this pass has just re-read — the record's ledger changes every time
-    // a yield does, and the draft's "today" line with it — and both draw nothing
-    // at all unless they are open.
+    // The leader's record, on the Trade screen's terms exactly: it is about the
+    // books this pass has just re-read — its ledger changes every time a yield
+    // does — and it draws nothing at all unless it is open.
     leaderSheet?.refresh();
-    leaderDraft?.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -3203,8 +3191,7 @@ async function boot(initial: Game | null): Promise<void> {
       // The census sheet, on the same terms: it owns its own Escape while it is
       // up, and End Turn must not fire from underneath a blocker.
       (censusSheet?.isOpen ?? false) ||
-      // The leader's two, on the same terms (batch L2b).
-      (leaderDraft?.isOpen ?? false) ||
+      // The leader's record, on the same terms (batch L2b).
       (leaderSheet?.isOpen ?? false) ||
       // The Reliquary owns its own Escape and its own arrow keys while it is up
       // — the pile is what ‹ › mean there — so the board must not see either
@@ -3404,8 +3391,6 @@ async function boot(initial: Game | null): Promise<void> {
     onToggleAbacus: () => abacus?.toggle(),
     // The fifth blocker's "there": three bars on a sheet, not a hex.
     onOfferWager: () => wagerSheet?.open(),
-    // The seventh's: a figure's three cards, on a sheet of their own (L2b).
-    onOfferLeaderDraft: () => leaderDraft?.open(),
     // The sixth blocker's "there": a page of figures, not a hex.
     onOfferCensus: () => censusSheet?.open(),
     onToggleBeads: () => beads?.toggle(),
@@ -4052,54 +4037,6 @@ async function boot(initial: Game | null): Promise<void> {
   gameDisposers.push(() => censusSheet?.dispose());
 
   /**
-   * **The leader's draft** — the thirteenth sheet on the shell (batch L2b).
-   *
-   * Raised by the End Turn blocker, exactly as the wager's is, and — unlike the
-   * wager's — reopenable, because a figure's row never expires
-   * (`leaderBlocker`'s docblock). The door that reopens it is the leader sheet
-   * beside it, not a hotkey: a row is answered from the record of what it is
-   * for, which is where a player can see what they already hold.
-   *
-   * The pick goes straight through `dispatch` and the result is *checked* for
-   * the Order draft's reason exactly — a refusal nobody says out loud is a
-   * button that silently does nothing.
-   */
-  leaderDraft = createLeaderDraftSheet({
-    overlay: leaderDraftOverlayEl,
-    body: leaderDraftBodyEl,
-    closeButton: requireElement('leader-draft-close'),
-    getState: () => game.state,
-    getPlayerId: () => controls.localPlayerId(),
-    take: (index) => {
-      const seat = controls.localPlayerId();
-      const result = dispatch(game, { type: 'chooseLeaderCard', playerId: seat, index });
-      if (!result.ok) controls.guide(`☞ ${result.error}`);
-      controls.refresh();
-      leaderSheet?.refresh();
-      return result.ok;
-    },
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      wagerSheet?.close();
-      censusSheet?.close();
-      compendium.close();
-      leaderSheet?.close();
-    },
-  });
-
-  gameDisposers.push(() => leaderDraft?.dispose());
-
-  /**
    * The Abacus: the score, as an object on the table.
    *
    * One rod per seat, read off the live roster rather than off a snapshot, so a
@@ -4594,8 +4531,8 @@ async function boot(initial: Game | null): Promise<void> {
   });
 
   /**
-   * **Your leader** — the fourteenth sheet on the shell (batch L2b), and the
-   * only one of the leader's two a player opens for themselves.
+   * **Your civ** — the thirteenth sheet on the shell (batch L2b, re-aimed at the
+   * second cut in L6b): the record of what the figure at your table does.
    *
    * Built *here*, after the dock, rather than beside the other sheets above:
    * the shell keeps the keyboard's return path on the control that opened it
@@ -4609,9 +4546,6 @@ async function boot(initial: Game | null): Promise<void> {
     trigger: hudDock.leaderButton,
     getState: () => game.state,
     getPlayerId: () => controls.localPlayerId(),
-    // The way back to a decision the seat still owes: a figure's row never
-    // expires, so the record is where it is found again.
-    onOpenDraft: () => leaderDraft?.open(),
     onOpen: () => {
       menu.close();
       help.close();
@@ -4627,15 +4561,14 @@ async function boot(initial: Game | null): Promise<void> {
       wagerSheet?.close();
       censusSheet?.close();
       compendium.close();
-      leaderDraft?.close();
     },
   });
 
   gameDisposers.push(() => leaderSheet?.dispose());
 
-  /* The fifth door, and the one that reopens a decision rather than a document:
-     a figure's row never expires, so the sheet behind this banner is where a
-     seat that walked past the End Turn blocker finds its three cards again. */
+  /* The fifth door, and the one behind which nothing is ever owed: a figure is
+     a known quantity from the landing screen onward, so the sheet behind this
+     banner is a record — what your civ is, and what it is paying you today. */
   hudDock.leaderButton.addEventListener('click', () => {
     openScreen(() => leaderSheet?.open());
   });

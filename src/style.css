@@ -14737,30 +14737,16 @@ body.compendium-page {
 }
 
 /* ============================================================
-   The leaders (batch L2b, `docs/flags.md` (dddd); the mockup of 2026-09-10 is
-   the spec of record)
+   The leaders (batch L2b; re-aimed at the second cut in L6b, `docs/flags.md`
+   (xxxx))
 
-   Three surfaces in one language, and the language is the specimen's: ink on
-   parchment, every figure tabular mono, and **three inks for the three
-   columns** — a passive is cobalt, a boon is gilt, a unique is vermilion. The
-   ink is set once, on `.leader-ink-*`, and every rule below reads it through
-   `--leader-ink`, so a fourth column would be one custom property rather than a
-   pass over this block.
+   Two surfaces in one language, and the language is the specimen's: ink on
+   parchment, every figure tabular mono. The deck's three column inks went with
+   the deck — a figure is two rules and two rows now, and the one accent left is
+   the seat's own pair of colours, which is data and never a stylesheet's.
    ============================================================ */
 
-.leader-ink-passive {
-  --leader-ink: var(--cobalt);
-}
-
-.leader-ink-boon {
-  --leader-ink: var(--gilt);
-}
-
-.leader-ink-unique {
-  --leader-ink: var(--vermilion);
-}
-
-/* --- the clauses, shared by all three surfaces -------------------------- */
+/* --- the clauses, shared by both surfaces ------------------------------- */
 
 .leader-clause {
   margin: 0;
@@ -14825,11 +14811,12 @@ body.compendium-page {
   margin: 0 0 10px;
 }
 
-/* A roster of figures, as wide as the card allows and never fewer than two
-   across: the mockup's row of faces, and a seventh figure simply joins it. */
+/* A roster of figures, as wide as the card allows: the mockup's row of faces,
+   and a fourteenth figure simply joins it. Wider than it was, because a face
+   carries four labelled lines now rather than one paragraph. */
 .leader-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 9px;
 }
 
@@ -14911,14 +14898,8 @@ body.compendium-page {
   line-height: 1.1;
 }
 
-.leader-eyebrow {
-  margin: 6px 0 2px;
-}
-
-.leader-bonus,
-.leader-mini-clauses,
-.leader-pick-clauses,
-.leader-pick-boon,
+.leader-lines,
+.leader-line-clauses,
 .leader-hold-clauses {
   list-style: none;
   margin: 0;
@@ -14928,16 +14909,39 @@ body.compendium-page {
   font-size: 13px;
 }
 
-/* A face carries its line at reading size and its unbuilt halves under it, a
+/* **The four lines a figure is.** Each one a label over what it says, so a
+   reader comparing two faces is comparing four labelled things rather than four
+   paragraphs. A rule above a hairline, the two rows below it: the first pair are
+   true today and the second pair are promises with a date on them. */
+.leader-lines {
+  margin-top: 7px;
+  gap: 6px;
+}
+
+.leader-line-unit {
+  border-top: 1px solid var(--rule);
+  padding-top: 6px;
+}
+
+.leader-line-label {
+  display: block;
+  font-family: var(--face-num);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* A face carries its lines at reading size and its unbuilt halves under them, a
    size down: the strike-through is the mark that says "declared, not built",
    and at the roster's scale it has to be an aside rather than a second
    paragraph competing with the line it qualifies. */
-.leader-bonus {
+.leader-line-clauses {
   font-size: 12.5px;
   line-height: 1.4;
 }
 
-.leader-bonus > .leader-clause.is-deferred {
+.leader-line-clauses > .leader-clause.is-deferred {
   font-size: 11.5px;
   line-height: 1.35;
 }
@@ -14947,169 +14951,6 @@ body.compendium-page {
   font-size: 12.5px;
   line-height: 1.4;
   color: var(--ink-soft);
-}
-
-/* --- the chosen figure's first row ---
-   What taking this figure puts on the table, in the three column inks. Set off
-   from the roster by a rule and a breath, exactly as the mockup sets it off:
-   it is about *one* face, and the row above it is about all of them. */
-.leader-first {
-  margin: 12px 0 0;
-  border-top: var(--border-thin) solid var(--rule);
-  padding-top: 10px;
-}
-
-.leader-first-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
-  gap: 9px;
-  margin-top: 7px;
-}
-
-.leader-mini {
-  padding: 9px 11px 10px;
-  background: var(--parchment);
-  border: 1px solid var(--rule);
-  border-top: 4px solid var(--leader-ink, var(--ink));
-  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
-}
-
-/* The column's own word in the column's own ink: three minis, three inks, and
-   the kind is legible before the name is read. */
-.leader-mini-kind {
-  margin: 0 0 3px;
-  color: var(--leader-ink, var(--ink-soft));
-}
-
-.leader-mini-name {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 16px;
-  line-height: 1.15;
-  margin: 0 0 5px;
-}
-
-.leader-mini-clauses {
-  font-size: 12.5px;
-  line-height: 1.4;
-}
-
-.leader-first > .leader-note {
-  margin-top: 10px;
-  font-size: 12.5px;
-  line-height: 1.5;
-}
-
-/* --- the age's draft --------------------------------------------------- */
-
-.leader-lead {
-  margin: 0 0 14px;
-}
-
-.leader-headline {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 26px;
-  margin: 2px 0 6px;
-}
-
-.leader-lead-text {
-  margin: 0;
-  max-width: 66ch;
-  color: var(--ink-soft);
-}
-
-.leader-waiting {
-  margin: 8px 0 0;
-  max-width: 66ch;
-}
-
-.leader-picks {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 14px;
-}
-
-.leader-pick {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  padding: 12px 14px;
-  background: var(--parchment);
-  border: var(--border) solid var(--ink);
-  border-top: 6px solid var(--leader-ink, var(--ink));
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.leader-pick:disabled {
-  cursor: default;
-  box-shadow: none;
-  opacity: 0.72;
-}
-
-.leader-pick:focus-visible {
-  outline: 2px solid var(--cobalt);
-  outline-offset: 3px;
-}
-
-.leader-pick-kind {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.leader-pick-lasts {
-  font-size: 12px;
-  color: var(--ink-faint);
-}
-
-.leader-pick-name {
-  font-family: var(--face-display);
-  font-weight: 400;
-  font-size: 21px;
-  margin: 0;
-}
-
-.leader-pick-boon {
-  color: var(--leader-ink, var(--ink));
-}
-
-.leader-pick-today {
-  margin-top: auto;
-  border-top: 1px solid var(--rule);
-  padding-top: 8px;
-  display: grid;
-  gap: 4px;
-}
-
-.leader-pick-row,
-.leader-pick-stamp {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-  margin: 0;
-  font-size: 13px;
-}
-
-.leader-row-label {
-  color: var(--ink-faint);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-}
-
-.leader-row-figure {
-  font-family: var(--face-num);
-  font-variant-numeric: tabular-nums;
-}
-
-.leader-pick-wanting {
-  margin: 0;
 }
 
 /* --- your leader ------------------------------------------------------- */
@@ -15166,28 +15007,94 @@ body.compendium-page {
   margin: 0;
 }
 
-.leader-hold-cards {
+/* A rule's own title, over its clauses. */
+.leader-hold-title {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.15;
+  margin: 1px 0 5px;
+}
+
+/* The two inks the board flies for this seat, said in the row's own words with
+   the pair drawn beside them: the field first, the device after. */
+.leader-inks {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.leader-ink-chip {
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  background: var(--chip-ink, var(--parchment));
+}
+
+/* What a rule is putting in the books this turn — the ledger's own lines,
+   gathered under the rule that carries them. A label, and its figure right. */
+.leader-now {
+  margin-top: 7px;
+  border-top: 1px solid var(--rule);
+  padding-top: 6px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 8px;
-  margin-top: 6px;
+  gap: 3px;
 }
 
-.leader-hold-card {
-  padding: 8px 10px;
-  border: 1px solid var(--rule);
-  border-top: 4px solid var(--leader-ink, var(--ink));
+.leader-now-line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0;
+  font-size: 12.5px;
 }
 
-/* The card taken stands; the two left beside it are greyed. A figure's sheet is
-   the same three every game, so there is nothing to hide — and *what you left*
-   is exactly what a player opens this sheet to see. */
-.leader-hold-card.is-left {
-  opacity: 0.5;
+.leader-now-label {
+  color: var(--ink-soft);
 }
 
-.leader-hold-card.is-taken {
-  box-shadow: inset 0 0 0 2px var(--ink);
+.leader-now-figure {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.leader-now > .leader-note {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+/* The row's own line, with the roster's name drawn as a keyword. */
+.leader-unique-line {
+  margin: 1px 0 0;
+  font-size: 14px;
+}
+
+.leader-unique > .leader-note {
+  font-size: 12.5px;
+}
+
+/* The towns the figure founds, in its own order; a name already standing is
+   inked solid, the rest wait. */
+.leader-cities {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+
+.leader-city.is-founded {
+  color: var(--ink);
+  font-weight: 600;
 }
 
 .leader-ledger {
@@ -15241,65 +15148,3 @@ body.compendium-page {
   font-weight: 600;
 }
 
-/* The way back to a row the seat still owes — the one button on this sheet. */
-.leader-hold-take {
-  margin-top: 8px;
-  font-family: var(--face-ui);
-  font-size: 13px;
-  padding: 5px 12px;
-  border: var(--border-thin) solid var(--ink);
-  background: var(--ink);
-  color: var(--parchment);
-  cursor: pointer;
-}
-
-.leader-hold-take:focus-visible {
-  outline: 2px solid var(--cobalt);
-  outline-offset: 3px;
-}
-
-/* The draft's foot: what a pick costs, and the press that spends it. The card
-   above says *this one*; this button says *take it* — the sheet asks twice
-   because the two cards beside the one taken are gone. */
-.leader-draft-foot {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.leader-draft-foot-note {
-  margin: 0;
-  color: var(--ink-soft);
-  max-width: 60ch;
-}
-
-.leader-take {
-  font-family: var(--face-ui);
-  font-size: 14px;
-  padding: 8px 18px;
-  border: var(--border) solid var(--ink);
-  background: var(--ink);
-  color: var(--parchment);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-}
-
-.leader-take:disabled {
-  background: transparent;
-  color: var(--ink-faint);
-  box-shadow: none;
-  cursor: default;
-}
-
-.leader-take:focus-visible {
-  outline: 2px solid var(--cobalt);
-  outline-offset: 3px;
-}
-
-.leader-pick.is-picked {
-  box-shadow: inset 0 0 0 2px var(--ink), var(--shadow-sm);
-  background: #fff9e6;
-}

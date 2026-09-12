@@ -56,7 +56,6 @@
 import { diplomacyMarkDataUri, statecraftMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import type { Game } from '../sim/game';
-import { leaderBlocker } from '../sim/leaders';
 import { hasReligionOffer } from '../sim/religion';
 import { hasStatecraftOffer } from '../sim/statecraft';
 import { type Player, playerById } from '../sim/state';
@@ -232,10 +231,10 @@ export function createHudDock(options: HudDockOptions): HudDock {
         const uri = heraldryMarkDataUri(heraldryFor(localPlayerId(), player?.charge));
         icon.style.setProperty('--dock-mark', `url("${uri}")`);
       }
-      leaderButton.classList.toggle(
-        'hud-badge-waiting',
-        player !== undefined && leaderBlocker(state, player.id) !== null,
-      );
+      // **No dot on the banner** (batch L6b): a figure is a known quantity from
+      // the landing screen, and the sheet behind this door is a record rather
+      // than a decision — there is nothing for the seat to answer, so there is
+      // nothing to be told about.
     },
   };
 }

@@ -1237,12 +1237,9 @@ function answerBlocker(
       return beliefDecision(state, player, sitting);
     case 'greatPerson':
       return greatPersonDecision(state, player, sitting);
-    // **The figure's row retired with the deck** (batch L6a): a leader is two
-    // abilities live from turn one, so there is nothing here to answer. The arm
-    // stays until the interface stops raising the blocker (L6b), answering the
-    // only honest thing there is to answer.
-    case 'leaderDraft':
-      return null;
+    // **The figure's row retired with the deck** (batch L6a) and its blocker
+    // with the screens (L6b): a leader is two abilities live from turn one, so
+    // there is no arm here because there is no longer a discriminant to name.
     case 'wager':
       return wagerDecision(state, player, sitting);
     case 'census':

@@ -141,7 +141,6 @@ export type TurnBlocker =
   | { kind: 'statecraft'; what: 'order' | 'doctrine' }
   | { kind: 'religion' }
   | { kind: 'greatPerson' }
-  | { kind: 'leaderDraft' }
   | { kind: 'wager' }
   | { kind: 'census' };
 
@@ -246,12 +245,10 @@ export function firstBlocker(
   // for one, because a spent roster is not a decision.
   if (greatPersonBlocker(player) !== null) return { kind: 'greatPerson' };
 
-  // **The fifth offer retired with the leaders' deck** (batch L6a): a figure is
-  // two abilities live from turn one and two rows only it may raise, so there is
-  // nothing on the table for a seat to answer. The union still carries
-  // `leaderDraft` and the sheet behind it still exists — both go with the
-  // screens in L6b — but nothing raises it any more, and the simulation has no
-  // reading left to ask.
+  // **The fifth offer retired with the leaders' deck** (batch L6a, and the
+  // discriminant with the screens in L6b): a figure is two abilities live from
+  // turn one and two rows only it may raise, so there is nothing on the table
+  // for a seat to answer and nothing left in this union to name it.
 
   // **The sixth offer, and the shortest-lived of them** (`docs/wager.md` §2).
   // The three wagers are dealt to the whole world on the turn an age opens and

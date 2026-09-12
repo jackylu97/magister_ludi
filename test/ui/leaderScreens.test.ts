@@ -1,58 +1,59 @@
 /**
- * **The leaders' three screens** — batch L2b, `docs/flags.md` (dddd); the
- * mockup of 2026-09-10 and `docs/leaders.md` are the specs of record.
+ * **The leaders' two screens** — batch L2b, re-aimed at the second cut in L6b
+ * (`docs/flags.md` (xxxx); `docs/leaders.md` "The second cut — fixed identity"
+ * and the mockup are the specs of record).
  *
- * The new game's leader half, the age's draft sheet and the leader's own
- * record. Pure builders and `?raw` source reading, no jsdom: this suite's
- * discipline (`wagerSheet.test.ts`'s). Everything that can be quietly wrong is a
- * fold — which figure a rival sits under, what a card's face says, which lines
- * of the empire's books carry the leader's name — and the drawing is `append`
- * calls that fail loudly.
+ * The new game's leader half and the leader's own record. Pure builders and
+ * `?raw` source reading, no jsdom: this suite's discipline
+ * (`wagerSheet.test.ts`'s). Everything that can be quietly wrong is a fold —
+ * which figure a rival sits under, what a face says, which lines of the empire's
+ * books carry the leader's name, whether a unique is open — and the drawing is
+ * `append` calls that fail loudly.
  *
  * The claims, one section each:
  *
- *   · the landing **walks** the leader table and names no figure, and the chosen
- *     figure lands in the config with the rivals behind it;
- *   · the draft sheet is raised by the blocker, prints the row's three faces
- *     with their "today" lines, and carries the simulation's own refusal;
- *   · the leader sheet lists what is held, what was left and what is locked, and
- *     its ledger is the empire's own lines filtered by the card on them;
- *   · both sheets are on the shell and in the disposal register;
+ *   · the landing **walks** the leader table, names no figure, prints **four
+ *     lines** a face and names what opens each unique; the chosen figure lands
+ *     in the config with the rivals behind it;
+ *   · the draft is **gone** — no sheet, no overlay, no command, no blocker;
+ *   · the leader sheet is the record of what your civ does: both rules with the
+ *     ledger's own lines under them, both uniques with their open-or-coming
+ *     state, and the towns the figure founds;
+ *   · the sheet is on the shell and in the disposal register;
  *   · no surface prints a raw `[[`.
  */
 
 import { describe, expect, it } from 'vitest';
 
-import { createGame, dispatch } from '../../src/sim/game';
+import { createGame } from '../../src/sim/game';
 import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
+import { buildingDef } from '../../src/sim/buildingData';
 import { unitDef } from '../../src/sim/unitData';
+import { gatingTech, isUnlocked } from '../../src/sim/tech';
+import { techDef } from '../../src/sim/techData';
 import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
-import { leaderBlocker } from '../../src/sim/leaders';
 import { stripRefs } from '../../src/sim/statecraft';
-import { playerById } from '../../src/sim/state';
 import { firstBlocker } from '../../src/ui/turnBlockers';
 import {
-  LEADER_FIRST_ROW_NOTE,
-  LEADER_KIND_WORD,
+  LEADER_FACE_LINES,
+  LEADER_ROW_WORD,
   NO_LEADER,
+  leaderFaceLines,
   leaderFaces,
+  leaderOpeningWords,
   rivalLeaders,
   seatLeaders,
 } from '../../src/ui/leaderSelect';
 import {
-  LEADER_BOON_MOMENT,
-  LEADER_DRAFT_LEAD,
-  LEADER_DRAFT_WAITING,
-  leaderDraftFaces,
-  leaderDraftHeadline,
-} from '../../src/ui/leaderDraftSheet';
-import {
+  LEADER_PLAIN_SEAT,
   LEADER_SOURCE_WORD,
+  LEADER_UNIQUE_OPEN,
   foldLeaderLedger,
-  leaderHoldRows,
+  leaderAbilityRows,
+  leaderCityRows,
   leaderLedgerLines,
-  leaderRowReach,
+  leaderUniqueRows,
 } from '../../src/ui/leaderSheet';
 import { DEFAULT_SEATS, rosterFor } from '../../src/ui/gameSetup';
 import { uiSource } from './sourceHelpers';
@@ -64,6 +65,15 @@ const EVALUATOR = (
     eager: true,
   }) as Record<string, string>
 )['../../src/sim/statecraft/evaluator.ts']!;
+
+/** Every source under `src/`, for the sweeps that read outside `src/ui`. */
+function srcFiles(): Record<string, string> {
+  return import.meta.glob('../../src/**/*.ts', {
+    query: '?raw',
+    import: 'default',
+    eager: true,
+  }) as Record<string, string>;
+}
 
 /** The first figure the sheet lists — never named here, so a rename is free. */
 const FIRST: LeaderId = LEADER_IDS[0]!;
@@ -88,18 +98,6 @@ function bench(seed = 11) {
   return g;
 }
 
-/** The same game before anybody founds anything — the wait's own bench. */
-function unfounded(seed = 11) {
-  return createGame({
-    seed,
-    sizeName: 'duel',
-    players: [
-      { name: 'Ada', color: '#d4502e', isHuman: true, leader: FIRST },
-      { name: 'Bors', color: '#3a7fe8', leader: SECOND },
-    ],
-  });
-}
-
 // --- 1 · the new game's leader half -----------------------------------------
 
 describe('the new game screen', () => {
@@ -108,20 +106,62 @@ describe('the new game screen', () => {
     expect(faces).toHaveLength(LEADER_IDS.length);
     expect(faces.map((face) => face.id)).toEqual([...LEADER_IDS]);
     for (const face of faces) {
-      expect(face.name).toBe(leaderDef(face.id).name);
-      // Three cards in Æra I, in the sheet's own columns.
-      expect(face.first.map((card) => card.kind)).toEqual(['passive', 'boon', 'unique']);
-      expect(face.first.map((card) => card.word)).toEqual([
-        LEADER_KIND_WORD.passive,
-        LEADER_KIND_WORD.boon,
-        LEADER_KIND_WORD.unique,
-      ]);
+      const def = leaderDef(face.id);
+      expect(face.name).toBe(def.name);
+      // Two abilities, in the sheet's own order, and the two rows off the row.
+      expect(face.abilities.map((ability) => ability.id)).toEqual(
+        def.abilities.map((ability) => ability.id),
+      );
+      expect(face.unit.id).toBe(def.unit);
+      expect(face.building.id).toBe(def.building);
+      expect(face.unit.name).toBe(unitDef(def.unit).name);
+      expect(face.building.name).toBe(buildingDef(def.building).name);
     }
   });
 
+  it('prints a whole figure in four lines: two rules, one soldier, one building', () => {
+    // The second cut's own claim, drawn (`docs/leaders.md`, "The shape").
+    expect(LEADER_FACE_LINES).toBe(4);
+    for (const face of leaderFaces()) {
+      const lines = leaderFaceLines(face);
+      expect(lines, face.id).toHaveLength(LEADER_FACE_LINES);
+      expect(lines.map((line) => line.kind)).toEqual(['ability', 'ability', 'unit', 'building']);
+      // The rows' eyebrows are the kind, not the name — the name is inside the
+      // clause, where it carries its keyword ref.
+      expect(lines[2]!.label).toBe(LEADER_ROW_WORD.unit);
+      expect(lines[3]!.label).toBe(LEADER_ROW_WORD.building);
+      // Every one of the four says something.
+      for (const line of lines) {
+        expect(line.clauses.length, `${face.id} · ${line.label}`).toBeGreaterThan(0);
+        for (const clause of line.clauses) expect(stripRefs(clause.text).length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('names what opens each unique — the technology, or the age of its column', () => {
+    for (const face of leaderFaces()) {
+      for (const row of [face.unit, face.building]) {
+        expect(row.opens.length, `${face.id} · ${row.id}`).toBeGreaterThan(0);
+        // The line is the row's name and its opening, and the name is a ref so
+        // the reader is one press from the Compendium page.
+        expect(row.text).toContain(`[[${row.kind}:${row.id}|${row.name}]]`);
+        expect(row.text).toContain(row.opens);
+        const gate = gatingTech(row.kind, row.id);
+        if (gate !== null) expect(stripRefs(row.opens)).toContain(techDef(gate).name);
+        else expect(row.opens).toMatch(/Æra/);
+      }
+    }
+    // And a row the tree *does* name is named by its technology — the clause
+    // that no unique exercises today, pinned against a row that does.
+    const gated = gatingTech('unit', 'warrior')!;
+    expect(gated).not.toBeNull();
+    expect(stripRefs(leaderOpeningWords('unit', 'warrior'))).toContain(techDef(gated).name);
+    expect(leaderOpeningWords('unit', 'warrior')).toContain(`[[tech:${gated}|`);
+  });
+
   it('names no figure, no card and no knob in the page or its module', () => {
-    // The arena panel's rule, one screen over: a seventh leader appears with no
-    // page edit, which is only true while nothing on the page holds a name.
+    // The arena panel's rule, one screen over: a fourteenth leader appears with
+    // no page edit, which is only true while nothing on the page holds a name.
     // Whole words: `modu` is a leader id and also the first four letters of
     // "module", and a substring search would fail on English rather than on a
     // hard-coded figure.
@@ -135,11 +175,6 @@ describe('the new game screen', () => {
         expect(names(source, written), `${name} names ${written}`).toBe(false);
       }
     }
-  });
-
-  it('says the one rule the sheet did not name, in plain words and with no figure', () => {
-    expect(LEADER_FIRST_ROW_NOTE).toMatch(/capital/);
-    expect(LEADER_FIRST_ROW_NOTE).not.toMatch(/[0-9]/);
   });
 
   it('seats every rival under a distinct figure from the sheet minus yours', () => {
@@ -223,136 +258,69 @@ describe('the new game screen', () => {
   });
 });
 
-// --- 2 · the age's draft -----------------------------------------------------
+// --- 2 · the draft is gone ---------------------------------------------------
 
-describe("the leader's draft sheet", () => {
-  it('prints the row the blocker is holding out, three faces in three inks', () => {
+describe("the leaders' draft", () => {
+  it('raises no blocker: a figure is two rules and owes the turn nothing', () => {
     const g = bench();
-    expect(firstBlocker(g.state, 0)).toEqual({ kind: 'leaderDraft' });
-    const offer = leaderBlocker(g.state, 0)!;
-    const faces = leaderDraftFaces(g.state, 0, offer);
-    expect(faces).toHaveLength(3);
-    expect(faces.map((face) => face.kind)).toEqual(['passive', 'boon', 'unique']);
-    expect(faces.map((face) => face.index)).toEqual([0, 1, 2]);
-    for (const face of faces) expect(face.rejected).toBeNull();
-    // The headline names the seat and the age, and nothing about how an age
-    // turns over — the wager sheet's own absence, kept.
-    expect(leaderDraftHeadline(g.state, 0, offer)).toContain('Ada');
+    // Turn one, both capitals founded — the very board the draft used to stop.
+    expect(firstBlocker(g.state, 0)?.kind).not.toBe('leaderDraft');
+    // And the discriminant itself is gone from the union.
+    expect(uiSource('turnBlockers.ts')).not.toContain("kind: 'leaderDraft'");
   });
 
-  it('gives every face something to read: a clause, a lump or a row', () => {
-    const g = bench();
-    const offer = leaderBlocker(g.state, 0)!;
-    for (const face of leaderDraftFaces(g.state, 0, offer)) {
-      const said = face.clauses.length + face.boon.length + face.row.length;
-      expect(said, `${face.id} says nothing`).toBeGreaterThan(0);
+  it('leaves no sheet, no overlay and no command anywhere in the tree', () => {
+    for (const [path, source] of Object.entries(srcFiles())) {
+      expect(source, `${path} names the draft sheet`).not.toContain('leaderDraftSheet');
+      // Nothing *issues* the retired command. A docblock in the simulation may
+      // still say the name out loud — `state.ts`'s schema paragraph records that
+      // there is no such command — and that is a record, not a dispatch.
+      expect(source, `${path} dispatches the retired command`).not.toContain(
+        "type: 'chooseLeaderCard'",
+      );
     }
+    const html = uiSource('index.html');
+    expect(html).not.toContain('leader-draft-overlay');
+    expect(html).not.toContain('leader-draft-body');
+    // `closePopovers` and the open-screen guards lost their entry with it.
+    expect(uiSource('main.ts')).not.toContain('leaderDraft');
+    expect(uiSource('style.css')).not.toContain('leader-draft-foot');
   });
 
-  it("says what a boon hands over at this card's own moment, not a wonder's", () => {
-    const g = bench();
-    const offer = leaderBlocker(g.state, 0)!;
-    const withGrant = leaderDraftFaces(g.state, 0, offer).flatMap((face) => face.boon);
-    for (const clause of withGrant) {
-      expect(clause.text).not.toContain('on completion');
-    }
-    // And the moment itself is a phrase with no figure in it.
-    expect(LEADER_BOON_MOMENT).not.toMatch(/[0-9]/);
-  });
-
-  it("folds the passive's today line out of the empire's own ledger", () => {
-    const g = bench();
-    const offer = leaderBlocker(g.state, 0)!;
-    const faces = leaderDraftFaces(g.state, 0, offer);
-    // At least one of the three moves the books as the board stands — a figure
-    // whose whole first row were silent would be a row nobody could compare.
-    const speaks = faces.filter((face) => face.todayText !== null);
-    expect(speaks.length + faces.filter((face) => face.row.length > 0).length).toBeGreaterThan(0);
-    // Nothing on the sheet computes a yield: the reading is the ghost-diff's.
-    expect(uiSource('leaderDraftSheet.ts')).toContain('explainCardImpact');
-  });
-
-  it('carries the simulation’s own refusal while there is no town', () => {
-    const g = unfounded();
-    const offer = playerById(g.state, 0)!.leaderOffer!;
-    for (const face of leaderDraftFaces(g.state, 0, offer)) {
-      expect(face.rejected).not.toBeNull();
-    }
-    // And the blocker holds its tongue, so the sheet is not raised at the
-    // player — the row waits, and the sentence says it is not lost.
-    expect(leaderBlocker(g.state, 0)).toBeNull();
-    expect(LEADER_DRAFT_WAITING).toMatch(/still here/);
-    expect(LEADER_DRAFT_WAITING).not.toMatch(/[0-9]/);
-  });
-
-  it('asks twice: a card is picked up, and the foot spends it', () => {
-    // The mockup's own gesture, and the reason the card is not the button: the
-    // two cards beside the one taken are gone the instant one is taken.
-    const sheet = uiSource('leaderDraftSheet.ts');
-    expect(sheet).toContain("card.setAttribute('aria-pressed', String(picked === face.index));");
-    expect(sheet).toContain('picked = face.index;');
-    expect(sheet).toContain('take.textContent = chosen === undefined');
-    // And a fresh sheet forgets: a card picked up in one age is not a card
-    // picked up in the next.
-    expect(sheet).toContain('onShow: () => {');
-  });
-
-  it('issues the command and closes on Take, and is raised by the blocker', () => {
-    const sheet = uiSource('leaderDraftSheet.ts');
-    expect(sheet).toContain('if (!options.take(chosen.index)) return;');
-    expect(sheet).toContain('shell.close();');
-    const main = uiSource('main.ts');
-    expect(main).toContain("type: 'chooseLeaderCard', playerId: seat, index");
-    expect(main).toContain('onOfferLeaderDraft: () => leaderDraft?.open()');
-    expect(uiSource('controls.ts')).toContain('onOfferLeaderDraft?.();');
-  });
-
-  it('leaves no lead prose with a figure in it', () => {
-    expect(LEADER_DRAFT_LEAD).not.toMatch(/[0-9]/);
+  it('takes the dot off the fifth door: nothing behind it is ever owed', () => {
+    const dock = uiSource('hudDock.ts');
+    expect(dock).toContain('leaderButton');
+    expect(dock).not.toContain('leaderBlocker');
   });
 });
 
-// --- 3 · your leader ---------------------------------------------------------
+// --- 3 · your civ ------------------------------------------------------------
 
 describe('the leader sheet', () => {
-  it('lists one row an age, in age order, with the three cards of each', () => {
+  it('lists both rules with the empire’s own lines under them', () => {
     const g = bench();
-    const rows = leaderHoldRows(g.state, 0);
-    expect(rows.map((row) => row.age)).toEqual([1, 2, 3, 4]);
-    for (const row of rows) expect(row.cards).toHaveLength(3);
-    // Æra I is on the table on turn one; the three after it are out of reach.
-    expect(rows[0]!.state).toBe('offered');
-    expect(rows.slice(1).map((row) => row.state)).toEqual(['locked', 'locked', 'locked']);
-    for (const row of rows.slice(1)) expect(row.reach).not.toBeNull();
-  });
-
-  it('marks the card taken and greys the two left beside it', () => {
-    const g = bench();
-    expect(dispatch(g, { type: 'chooseLeaderCard', playerId: 0, index: 0 }).ok).toBe(true);
-    const row = leaderHoldRows(g.state, 0)[0]!;
-    expect(row.state).toBe('taken');
-    expect(row.cards.map((card) => card.taken)).toEqual([true, false, false]);
-  });
-
-  it('says how a locked row is reached, in plain words with no figure', () => {
-    const reach = leaderRowReach(2);
-    expect(reach).not.toMatch(/[0-9]/);
-    expect(reach.length).toBeGreaterThan(0);
-  });
-
-  it('gathers the empire’s own lines, filtered by the card on them', () => {
-    const g = bench();
-    dispatch(g, { type: 'chooseLeaderCard', playerId: 0, index: 0 });
-    const lines = leaderLedgerLines(g.state, 0);
-    // Every gathered line is one the books already carry, labelled by the class
-    // word the evaluator writes — the only handle a meter line offers.
-    for (const line of lines) {
-      expect(line.source.startsWith(`${LEADER_SOURCE_WORD} · `)).toBe(true);
+    const rows = leaderAbilityRows(g.state, 0);
+    const def = leaderDef(FIRST);
+    expect(rows.map((row) => row.id)).toEqual(def.abilities.map((ability) => ability.id));
+    for (const row of rows) {
+      expect(row.name).toBe(def.abilities.find((ability) => ability.id === row.id)!.name);
+      expect(row.clauses.length, row.id).toBeGreaterThan(0);
+      // Every line under a rule is one of the books' own, carrying that rule's
+      // id and labelled with the class word the evaluator writes.
+      for (const line of row.lines) {
+        expect(line.card).toBe(row.id);
+        expect(line.source.startsWith(`${LEADER_SOURCE_WORD} · `)).toBe(true);
+      }
     }
+    // Every gathered line belongs to one of the two rules or to the figure
+    // itself (the unique's own row effects ride the figure's id).
+    const all = leaderLedgerLines(g.state, 0);
+    const owned = new Set<string>([...def.abilities.map((ability) => ability.id), FIRST]);
+    for (const line of all) expect(owned.has(line.card), line.source).toBe(true);
     // And the fold is the fold of the list, never a figure beside it.
-    const total = foldLeaderLedger(lines);
+    const total = foldLeaderLedger(all);
     for (const key of Object.keys(total)) {
-      const summed = lines.reduce(
+      const summed = all.reduce(
         (at, line) => at + ((line.yields as Record<string, number>)[key] ?? 0),
         0,
       );
@@ -360,11 +328,41 @@ describe('the leader sheet', () => {
     }
   });
 
+  it('lists both uniques with the simulation’s own open-or-coming state', () => {
+    const g = bench();
+    const rows = leaderUniqueRows(g.state, 0);
+    const def = leaderDef(FIRST);
+    expect(rows.map((row) => row.id)).toEqual([def.unit, def.building]);
+    expect(rows.map((row) => row.kind)).toEqual(['unit', 'building']);
+    for (const row of rows) {
+      // The gate is asked of the simulation, never re-derived here.
+      expect(row.open).toBe(isUnlocked(g.state, 0, row.kind, row.id));
+      expect(row.word).toBe(LEADER_ROW_WORD[row.kind]);
+      expect(row.note).toBe(row.open ? LEADER_UNIQUE_OPEN : `Not yet — it comes ${row.opens}.`);
+      // A "coming at" sentence names the opening and carries no numeral.
+      if (!row.open) expect(stripRefs(row.note)).not.toMatch(/[0-9]/);
+    }
+    // A rival's row is not this seat's: the gate's first question is the figure.
+    for (const row of leaderUniqueRows(g.state, 0)) {
+      expect(isUnlocked(g.state, 1, row.kind, row.id)).toBe(false);
+    }
+  });
+
+  it('lists the towns the figure founds, in order, with the standing ones marked', () => {
+    const g = bench();
+    const rows = leaderCityRows(g.state, 0);
+    expect(rows.map((row) => row.name)).toEqual([...leaderDef(FIRST).cities]);
+    // The capital founded on the bench wears the first name on the list.
+    expect(rows[0]!.founded).toBe(true);
+    expect(rows.filter((row) => row.founded)).toHaveLength(1);
+  });
+
   it('pins the class word against the evaluator’s own table', () => {
     // `MeterContribution` carries no id, so the meter half of the ledger keys
     // on the label's head. This is the pin that keeps the two names meeting.
     expect(EVALUATOR).toContain(`leader: '${LEADER_SOURCE_WORD}',`);
     expect(uiSource('leaderSheet.ts')).toContain('readEmpire');
+    expect(uiSource('leaderSheet.ts')).toContain('isUnlocked(state, playerId, row.kind, row.id)');
   });
 
   it('answers a seat under no figure with a sentence rather than a blank page', () => {
@@ -376,51 +374,39 @@ describe('the leader sheet', () => {
         { name: 'Bors', color: '#3a7fe8' },
       ],
     });
-    expect(leaderHoldRows(g.state, 0)).toEqual([]);
+    expect(leaderAbilityRows(g.state, 0)).toEqual([]);
+    expect(leaderUniqueRows(g.state, 0)).toEqual([]);
+    expect(leaderCityRows(g.state, 0)).toEqual([]);
     expect(leaderLedgerLines(g.state, 0)).toEqual([]);
-    expect(uiSource('leaderSheet.ts')).toContain('This seat sits under no leader');
+    expect(LEADER_PLAIN_SEAT).not.toMatch(/[0-9]/);
+    expect(uiSource('leaderSheet.ts')).toContain('LEADER_PLAIN_SEAT');
   });
 });
 
 // --- 4 · the furniture -------------------------------------------------------
 
-describe('the two sheets’ furniture', () => {
-  it('builds both on the shell and hands the keyboard back to the door', () => {
-    for (const name of ['leaderDraftSheet.ts', 'leaderSheet.ts']) {
-      expect(uiSource(name)).toContain('createModalShell({');
-    }
+describe('the sheet’s furniture', () => {
+  it('builds on the shell and hands the keyboard back to the door', () => {
+    expect(uiSource('leaderSheet.ts')).toContain('createModalShell({');
     expect(uiSource('leaderSheet.ts')).toContain('trigger,');
     expect(uiSource('main.ts')).toContain('trigger: hudDock.leaderButton');
   });
 
   it('wears the overlay class the cap rule reads, and is hidden at rest', () => {
     const html = uiSource('index.html');
-    for (const id of ['leader-draft-overlay', 'leader-overlay']) {
-      const at = html.indexOf(`id="${id}"`);
-      expect(at, id).toBeGreaterThan(0);
-      const block = html.slice(at, at + 400);
-      expect(block, id).toContain('class="statecraft-overlay"');
-      expect(block, id).toContain('hidden');
-    }
+    const at = html.indexOf('id="leader-overlay"');
+    expect(at).toBeGreaterThan(0);
+    const block = html.slice(at, at + 400);
+    expect(block).toContain('class="statecraft-overlay"');
+    expect(block).toContain('hidden');
   });
 
-  it('registers both in the disposal register and nowhere by name', () => {
+  it('registers in the disposal register and nowhere by name', () => {
     const main = uiSource('main.ts');
-    expect(main).toContain('gameDisposers.push(() => leaderDraft?.dispose());');
     expect(main).toContain('gameDisposers.push(() => leaderSheet?.dispose());');
-    // And both are taken down by `closePopovers`, so neither can stand over the
+    // And it is taken down by `closePopovers`, so it cannot stand over the
     // landing screen after a restart.
-    expect(main).toContain('leaderDraft?.close();');
     expect(main).toContain('leaderSheet?.close();');
-  });
-
-  it('gives the record a way back to a row the seat still owes', () => {
-    // A figure's row never expires, so the sheet that says what the row is for
-    // is where it is found again — the claim the draft sheet's docblock makes.
-    const sheet = uiSource('leaderSheet.ts');
-    expect(sheet).toContain('onOpenDraft');
-    expect(sheet).toContain('leaderBlocker(state, seat)');
-    expect(uiSource('main.ts')).toContain('onOpenDraft: () => leaderDraft?.open()');
   });
 
   it('gives the dock a fifth door wearing the seat’s own charge', () => {
@@ -434,21 +420,18 @@ describe('the two sheets’ furniture', () => {
 // --- 5 · the sweep -----------------------------------------------------------
 
 describe('the descriptor sweep', () => {
-  it('prints no raw keyword marker on any of the three surfaces', () => {
+  it('prints no raw keyword marker on either surface', () => {
     const g = bench();
-    const offer = leaderBlocker(g.state, 0)!;
     const texts: string[] = [];
     for (const face of leaderFaces()) {
-      texts.push(...face.bonus.map((clause) => clause.text));
-      for (const card of face.first) texts.push(...card.clauses.map((clause) => clause.text));
+      for (const line of leaderFaceLines(face)) {
+        texts.push(...line.clauses.map((clause) => clause.text));
+      }
     }
-    for (const face of leaderDraftFaces(g.state, 0, offer)) {
-      texts.push(...face.clauses.map((clause) => clause.text));
-      texts.push(...face.boon.map((clause) => clause.text));
+    for (const row of leaderAbilityRows(g.state, 0)) {
+      texts.push(...row.clauses.map((clause) => clause.text));
     }
-    for (const row of leaderHoldRows(g.state, 0)) {
-      for (const card of row.cards) texts.push(...card.clauses.map((clause) => clause.text));
-    }
+    for (const row of leaderUniqueRows(g.state, 0)) texts.push(row.text, row.note);
     // Every one of them goes through `setDescriptorText`, which is what turns a
     // `[[kind:id|Name]]` into a drawn name — and `stripRefs` is the proof that
     // what is left after the markers is a sentence rather than a hole.
@@ -456,7 +439,7 @@ describe('the descriptor sweep', () => {
       expect(stripRefs(text)).not.toContain('[[');
       expect(stripRefs(text).length, text).toBeGreaterThan(0);
     }
-    for (const name of ['leaderSelect.ts', 'leaderDraftSheet.ts', 'leaderSheet.ts']) {
+    for (const name of ['leaderSelect.ts', 'leaderSheet.ts']) {
       expect(uiSource(name)).toContain('setDescriptorText');
     }
   });

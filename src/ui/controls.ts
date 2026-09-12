@@ -1592,14 +1592,6 @@ export interface GameControlsOptions {
    */
   onOfferWager?: () => void;
   /**
-   * Raises the leader's draft sheet — `main.ts`'s `leaderDraft.open()`.
-   *
-   * The seventh blocker's "there", and it takes the player to the same three
-   * cards `leaderBlocker` is holding out (batch L2b). No camera: a figure's row
-   * is the empire's, not a place on the board.
-   */
-  onOfferLeaderDraft?: () => void;
-  /**
    * Raises the census sheet — `main.ts`'s `censusSheet.open()`.
    *
    * The sixth blocker's "there", and the only one of the six that is not a
@@ -2390,7 +2382,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     onOfferReligion,
     onOfferGreatPerson,
     onOfferWager,
-    onOfferLeaderDraft,
     onOfferCensus,
     onCensusTaken,
     onGreatPersonSpent,
@@ -7032,19 +7023,6 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         // recruitment's own announcement, once there is somebody to look at.
         guide('☞ A great person awaits your call.');
         onOfferGreatPerson?.();
-        return;
-      }
-      case 'leaderDraft': {
-        // No camera for the fifth either, for the fourth's reason: a figure's
-        // row is the empire's and not a place on the board.
-        //
-        // The sheet is batch L2b's and it is here now. Two sentences rather than
-        // one, because the row a realm with no town is holding is the one case
-        // where the button cannot be obeyed yet: the blocker itself waits on the
-        // founding (`leaderBlocker`'s second clause), so by the time this line
-        // is read there *is* a capital and the only steering left is where.
-        guide('☞ Your leader offers three cards — take one.');
-        onOfferLeaderDraft?.();
         return;
       }
       case 'wager': {

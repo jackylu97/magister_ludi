@@ -193,11 +193,12 @@
         </form>
 
         <!-- The seat: who you are in the world the card above draws (batch L2b,
-             docs/flags.md (dddd); the mockup of 2026-09-10 is the spec). Empty
-             markup on purpose — every figure, every canton and every card of the
-             first age is built by src/ui/leaderSelect.ts by *walking* the leader
-             table, so a seventh leader added to data/leaders.json appears here
-             with no edit to this file. Nothing on this page names a figure.
+             re-aimed at the second cut in L6b, docs/flags.md (xxxx)). Empty
+             markup on purpose — every figure, every canton and all four of the
+             lines a figure is are built by src/ui/leaderSelect.ts by *walking*
+             the leader table, so a fourteenth leader added to data/leaders.json
+             appears here with no edit to this file. Nothing on this page names
+             a figure.
 
              "No leader" is the default, so the game that was one press of Start
              away is still one press of Start away and its config is byte for
@@ -1089,59 +1090,31 @@
       </div>
     </div>
 
-    <!-- ================= the leader's draft ======================
-         The three cards a figure puts on the table when *this seat's* age
-         turns, and the one it takes. The thirteenth sheet on `modalShell.ts`
-         (batch L2b, `docs/flags.md` (dddd)). Raised by the End Turn blocker;
-         unlike the wager's it never expires, so the leader sheet's own door
-         reopens it for a seat that walked away from the decision.
-         ============================================================ -->
-    <div
-      id="leader-draft-overlay"
-      class="statecraft-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Your leader's draft"
-      hidden
-    >
-      <div class="statecraft-sheet">
-        <header class="statecraft-head">
-          <div class="statecraft-head-titles">
-            <p class="eyebrow statecraft-eyebrow">the age your leader opens</p>
-            <h2 class="statecraft-title">Three <em>Cards</em></h2>
-          </div>
-          <p class="statecraft-hint">
-            take one &mdash; the other two are gone &mdash; <kbd>Esc</kbd> to close
-          </p>
-          <button id="leader-draft-close" class="statecraft-close" type="button" aria-label="Close">
-            &times;
-          </button>
-        </header>
-        <div id="leader-draft-body" class="statecraft-body"></div>
-      </div>
-    </div>
-
-    <!-- ================= your leader =============================
-         What the figure at your table has given you, what it is giving you this
-         turn, and what the next age will offer. The fourteenth sheet on
-         `modalShell.ts`, behind the fifth door on the HUD dock — the one
-         wearing this seat's own charge.
+    <!-- ================= your civ ================================
+         Who is at your table, what their two rules are paying you this turn,
+         the two rows nobody else may raise and the towns your realm founds.
+         The thirteenth sheet on `modalShell.ts`, behind the fifth door on the
+         HUD dock — the one wearing this seat's own charge. A record and not a
+         decision: the deck and its draft retired with the second cut (batch
+         L6a/L6b, `docs/flags.md` (xxxx)).
          ============================================================ -->
     <div
       id="leader-overlay"
       class="statecraft-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="Your leader"
+      aria-label="Your civ"
       hidden
     >
       <div class="statecraft-sheet">
         <header class="statecraft-head">
           <div class="statecraft-head-titles">
             <p class="eyebrow statecraft-eyebrow">the figure at your table</p>
-            <h2 class="statecraft-title">Your <em>Leader</em></h2>
+            <h2 class="statecraft-title">Your <em>Civ</em></h2>
           </div>
-          <p class="statecraft-hint">what you hold, and what it pays &mdash; <kbd>Esc</kbd> to close</p>
+          <p class="statecraft-hint">
+            what you hold, what it pays and what only you may raise &mdash; <kbd>Esc</kbd> to close
+          </p>
           <button id="leader-close" class="statecraft-close" type="button" aria-label="Close">
             &times;
           </button>

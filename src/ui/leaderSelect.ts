@@ -1,23 +1,26 @@
 /**
  * **The new game's leader half** — the second card on the landing screen, beside
- * the map's (batch L2b, `docs/flags.md` (dddd); the mockup of 2026-09-10 is the
- * spec of record).
+ * the map's (batch L2b; re-aimed at the second cut in L6b, `docs/flags.md`
+ * (xxxx), `docs/leaders.md` "The second cut — fixed identity").
  *
- * The map card asks what world to draw; this one asks who you are in it. Six
- * figures and *No leader*, each a button carrying the seat's canton, the line
- * the seat holds from its first turn, and — for the one chosen — the three
- * cards Æra I will put on the table.
+ * The map card asks what world to draw; this one asks who you are in it. The
+ * whole sheet of figures and *No leader*, each a button carrying the seat's
+ * canton and **the four lines a figure is**: its two abilities, its unique unit
+ * and its unique building, each unique named with the technology or the age that
+ * opens it. There is nothing else to say about a figure and nothing left to
+ * choose after this screen — which is the second cut's own claim, drawn.
  *
  * **The table is walked, never listed** (CLAUDE.md's rule for the arena's panel,
  * read one screen over): every face below comes out of `LEADER_IDS` and
- * `describeCard`, so a seventh figure added to `data/leaders.json` appears here
- * with no edit to this file, to `index.html` or to the stylesheet. Nothing in
- * this module names a leader, a card or a figure.
+ * `describeCard`, so a fourteenth figure added to `data/leaders.json` appears
+ * here with no edit to this file, to `index.html` or to the stylesheet. Nothing
+ * in this module names a leader, a row or a figure.
  *
  * **No number is written in prose.** The clauses are `describeCard`'s — the same
  * describer the Compendium's leader shelf and the Ledger's own lines come out of
  * — so the figures arrive already worded, already marked, and already carrying
- * their `[[kind:id|Name]]` refs for `setDescriptorText` to draw.
+ * their `[[kind:id|Name]]` refs for `setDescriptorText` to draw. The two unique
+ * lines carry a ref of their own for the same reason.
  *
  * The pure half is above the DOM, as every sheet in this directory keeps it
  * (`wagerSheet.ts`' discipline): what a face says, and which figure each rival
@@ -26,19 +29,22 @@
  */
 
 import {
-  type LeaderCardId,
-  type LeaderCardKind,
+  type LeaderAbilityId,
   type LeaderId,
   LEADER_IDS,
-  leaderCard,
   leaderDef,
 } from '../sim/leaderData';
-import { type CardClause, describeCard } from '../sim/statecraft';
+import { type CardClause, describeCard, ref } from '../sim/statecraft';
 import type { PlayerSpec } from '../sim/state';
+import { type BuildingId, buildingDef } from '../sim/buildingData';
+import { type UnitTypeId, unitDef } from '../sim/unitData';
+import { gatingTech } from '../sim/tech';
+import { techAgeBands, techDef } from '../sim/techData';
 import { type SeatInks, seatInks } from '../art/seatInks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { hash3 } from '../render3d/hash';
 import { element } from './dom';
+import { eraWord } from './figures';
 import { setDescriptorText } from './keywords';
 
 /**
@@ -50,32 +56,14 @@ import { setDescriptorText } from './keywords';
  */
 export const NO_LEADER = '';
 
-/** The column words, in the sheet's own order. The three inks are the CSS's. */
-export const LEADER_KIND_WORD: Record<LeaderCardKind, string> = {
-  passive: 'Passive',
-  boon: 'Boon',
-  unique: 'Unique',
-};
+/** Which of a figure's two rows a line is about. The kinds `isUnlocked` asks. */
+export type LeaderRowKind = 'unit' | 'building';
 
-/** How long each column lasts, said once, in a first-time player's words. */
-export const LEADER_KIND_LASTS: Record<LeaderCardKind, string> = {
-  passive: 'lasts the game',
-  boon: 'once, when you take it',
-  unique: 'a row of your own',
+/** The eyebrow over a unique's line, one word per kind. */
+export const LEADER_ROW_WORD: Record<LeaderRowKind, string> = {
+  unit: 'Unique unit',
+  building: 'Unique building',
 };
-
-/**
- * **The one rule the sheet did not name**, in plain words (`docs/leaders.md`).
- *
- * Three of the six opening boons hand a *town* something, so nobody may answer
- * Æra I's row until their realm has one. The landing shows the row anyway — it
- * is what the figure is *for*, and hiding it until the first turn would make the
- * choice on this screen a choice about nothing.
- */
-export const LEADER_FIRST_ROW_NOTE =
-  'You take one of these three on your first turn with a capital — your leader waits ' +
-  'until there is a town for the gift to arrive in. Each later age puts three more on ' +
-  'the table, and the two you leave are gone.';
 
 /** The sentence under the whole card, for a table sitting under no figure. */
 export const NO_LEADER_NOTE =
@@ -83,26 +71,74 @@ export const NO_LEADER_NOTE =
 
 /**
  * **What a figure is**, said once under the title (the design pass of
- * 2026-09-10).
+ * 2026-09-10, re-worded for the second cut).
  *
- * It was said six times before, as an eyebrow over every face's clauses, which
- * is the same sentence repeated until it stops being read — and it made each
- * face twice as tall as the mockup's, so the roster ran off the bottom of the
- * screen. Said once, at the top, it is the card's own lead and the faces below
- * it are what they should be: a name, a canton and the line it holds.
+ * Said once, at the top, rather than as an eyebrow over every face: the same
+ * sentence repeated thirteen times stops being read, and it made each face twice
+ * as tall as the mockup's. The faces below it are then what they should be — a
+ * name, a canton and the four lines the figure is.
  */
 export const LEADER_LEDE =
-  'A figure holds the line printed under it from its first turn, and lays a row of cards ' +
-  'on the table at the turn of every age. The world is drawn around the seat it is given.';
+  'A figure holds its two rules from its first turn and keeps them for the game, and it ' +
+  'alone may raise the one soldier and the one building printed under them — each when its ' +
+  'own learning arrives. The world is drawn around the seat it is given.';
 
-/** One card of a row, as this screen prints it. Words and flags, no sim types. */
-export interface LeaderCardFace {
-  id: LeaderCardId;
+/** **How many lines a face prints.** Two abilities, one soldier, one building. */
+export const LEADER_FACE_LINES = 4;
+
+/**
+ * **What opens a row nobody else may raise**, in the words a face prints.
+ *
+ * Two clauses, and they are `isUnlocked`'s own two (`tech.ts`, the
+ * `unlockedByLeader` arm) said out loud: a row the tree names is opened by *that
+ * technology*, and a row the tree names nothing of is opened by the empire
+ * reaching the row's **own column** — which is the same field that prices it
+ * (`docs/production-costs.md`, "a column IS a price"). The column is printed as
+ * the age that owns it, because an age is what a player has a name for and a
+ * column is an axis on the star chart.
+ *
+ * The technology arrives as a keyword ref, so the face and the sheet both put a
+ * reader one press from the node that opens their soldier.
+ */
+export function leaderOpeningWords(kind: LeaderRowKind, id: string): string {
+  const gate = gatingTech(kind, id);
+  if (gate !== null) return `with ${ref('tech', gate, techDef(gate).name)}`;
+  const column =
+    kind === 'unit'
+      ? (unitDef(id as UnitTypeId).column ?? 1)
+      : (buildingDef(id as BuildingId).column ?? 1);
+  return `with ${eraWord(ageOfColumn(column))}`;
+}
+
+/**
+ * Which age owns a column of the chart — `techAgeBands` read the way
+ * `leaderData.ts`'s own `ageOfColumn` reads it, and for its reason: the ages own
+ * disjoint runs of columns by construction, and a column past the last run
+ * belongs to the last age there is.
+ */
+function ageOfColumn(column: number): number {
+  const bands = techAgeBands();
+  for (const band of bands) if (column >= band.from && column <= band.to) return band.age;
+  return bands[bands.length - 1]?.age ?? 1;
+}
+
+/** One of a figure's two rows, as a screen prints it. */
+export interface LeaderUniqueFace {
+  kind: LeaderRowKind;
+  id: string;
+  /** The row's own name, as the roster prints it. */
   name: string;
-  kind: LeaderCardKind;
-  /** "Passive" · "Boon" · "Unique". */
-  word: string;
-  /** `describeCard`'s clauses — descriptor text, drawn through `keywords.ts`. */
+  /** "with Steel" · "with Æra IV" — `leaderOpeningWords`. */
+  opens: string;
+  /** The whole line, the row's keyword ref and its opening: drawn, never raw. */
+  text: string;
+}
+
+/** One of a figure's two abilities, worded. */
+export interface LeaderAbilityFace {
+  id: LeaderAbilityId;
+  name: string;
+  /** `describeCard`'s clauses — the deferred halves struck through. */
   clauses: CardClause[];
 }
 
@@ -114,30 +150,38 @@ export interface LeaderFace {
   colors: SeatInks;
   /** The pair said in words, for a roster that prints them (the book's shelf). */
   colorWords: [string, string];
-  /** The line held from the first turn, in the game's own words. */
-  bonus: CardClause[];
-  /** The Æra I row: what the first draft will offer. */
-  first: LeaderCardFace[];
+  /** Both lines held from the first turn, in the sheet's order. */
+  abilities: [LeaderAbilityFace, LeaderAbilityFace];
+  /** The soldier nobody else may raise. */
+  unit: LeaderUniqueFace;
+  /** The building nobody else may raise. */
+  building: LeaderUniqueFace;
 }
 
-/** One card of a deck, worded. `describeCard` carries the deferred halves. */
-function cardFace(id: LeaderCardId): LeaderCardFace {
-  const card = leaderCard(id);
-  return {
-    id,
-    name: card.name,
-    kind: card.kind,
-    word: LEADER_KIND_WORD[card.kind],
-    clauses: describeCard(id),
-  };
+/** One printed line of a face: an ability, or one of the two rows. */
+export interface LeaderFaceLine {
+  kind: 'ability' | LeaderRowKind;
+  /** The eyebrow: the ability's name, or the kind of row. */
+  label: string;
+  /** What the line says. One clause for a row; an ability may say two. */
+  clauses: CardClause[];
+}
+
+/** A figure's row, worded — the same shape for the soldier and the building. */
+function uniqueFace(kind: LeaderRowKind, id: string, name: string): LeaderUniqueFace {
+  const opens = leaderOpeningWords(kind, id);
+  return { kind, id, name, opens, text: `${ref(kind, id, name)} · ${opens}` };
 }
 
 /**
  * **Every figure the sheet holds**, in sheet order — the picker's whole reading.
  *
- * A leader's own line is `describeCard(leaderId)`: a bonus is a card in this
- * vocabulary (`anyCardDef`'s twelfth class), which is the whole argument for
- * writing one in the card vocabulary at all.
+ * An ability's words are `describeCard(ability.id)`: an ability is a card in
+ * this vocabulary (`anyCardDef`'s thirteenth class), which is the whole argument
+ * for writing one in the card vocabulary at all. A unique's words are its row's
+ * name and the gate `isUnlocked` will ask about it — no describer, because a
+ * unique is not an effect and saying it were one would claim the technology had
+ * already come.
  */
 export function leaderFaces(): LeaderFace[] {
   return LEADER_IDS.map((id) => {
@@ -149,10 +193,39 @@ export function leaderFaces(): LeaderFace[] {
       // read a figure's pair through the same one door (batch H7).
       colors: seatInks({ color: def.colors.primary, secondary: def.colors.secondary }),
       colorWords: [...def.colors.names] as [string, string],
-      bonus: describeCard(id),
-      first: def.deck['1'].map((card) => cardFace(card.id)),
+      abilities: def.abilities.map((ability) => ({
+        id: ability.id,
+        name: ability.name,
+        clauses: describeCard(ability.id),
+      })) as [LeaderAbilityFace, LeaderAbilityFace],
+      unit: uniqueFace('unit', def.unit, unitDef(def.unit).name),
+      building: uniqueFace('building', def.building, buildingDef(def.building).name),
     };
   });
+}
+
+/**
+ * **The four lines**, in the order a face prints them.
+ *
+ * The fold the roster is drawn from, so "a figure fits on the landing screen in
+ * four lines" is a claim a suite with no document can hold to. The two abilities
+ * first, because they are true from the first turn; the two rows after, because
+ * they are promises with a date on them.
+ */
+export function leaderFaceLines(face: LeaderFace): LeaderFaceLine[] {
+  return [
+    ...face.abilities.map((ability) => ({
+      kind: 'ability' as const,
+      label: ability.name,
+      clauses: ability.clauses,
+    })),
+    { kind: 'unit' as const, label: LEADER_ROW_WORD.unit, clauses: [{ text: face.unit.text }] },
+    {
+      kind: 'building' as const,
+      label: LEADER_ROW_WORD.building,
+      clauses: [{ text: face.building.text }],
+    },
+  ];
 }
 
 /**
@@ -313,6 +386,26 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     return list;
   }
 
+  /**
+   * A face's four lines: the ability's own name over its clauses, and the kind
+   * of row over the row's.
+   *
+   * The eyebrow is the *line's* name rather than a repeat of what a line is —
+   * that sentence is the card's lead above the roster (`LEADER_LEDE`) and is
+   * said once — so a reader comparing two figures is comparing four labelled
+   * things rather than four paragraphs.
+   */
+  function drawLines(face: LeaderFace): HTMLElement {
+    const list = element('ul', 'leader-lines');
+    for (const line of leaderFaceLines(face)) {
+      const item = element('li', `leader-line leader-line-${line.kind}`);
+      item.append(element('span', 'leader-line-label', line.label));
+      item.append(clauseList(line.clauses, 'leader-line-clauses'));
+      list.append(item);
+    }
+    return list;
+  }
+
   function drawFace(face: LeaderFace): HTMLElement {
     const button = element('button', 'leader-face') as HTMLButtonElement;
     button.type = 'button';
@@ -321,9 +414,7 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     button.append(canton(face.colors));
     const text = element('span', 'leader-face-text');
     text.append(element('span', 'leader-name', face.name));
-    // No eyebrow over the clauses: what the line is, and when it is live, is the
-    // card's lead above the roster (`LEADER_LEDE`) and is said once.
-    if (face.bonus.length > 0) text.append(clauseList(face.bonus, 'leader-bonus'));
+    text.append(drawLines(face));
     button.append(text);
     button.addEventListener('click', () => {
       chosen = chosen === face.id ? NO_LEADER : face.id;
@@ -351,23 +442,6 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     return button;
   }
 
-  /** The chosen figure's Æra I row, and the sentence about when it is answered. */
-  function drawFirstRow(face: LeaderFace): HTMLElement {
-    const block = element('section', 'leader-first');
-    block.append(element('p', 'eyebrow', `${face.name} · what the first age offers`));
-    const row = element('div', 'leader-first-row');
-    for (const card of face.first) {
-      const cell = element('article', `leader-mini leader-ink-${card.kind}`);
-      cell.append(element('p', 'eyebrow leader-mini-kind', card.word));
-      cell.append(element('h4', 'leader-mini-name', card.name));
-      cell.append(clauseList(card.clauses, 'leader-mini-clauses'));
-      row.append(cell);
-    }
-    block.append(row);
-    block.append(element('p', 'leader-note', LEADER_FIRST_ROW_NOTE));
-    return block;
-  }
-
   function render(): void {
     container.replaceChildren();
     container.append(element('p', 'eyebrow', 'the seat'));
@@ -377,11 +451,8 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', 'Leaders');
     grid.append(drawNone());
-    const faces = leaderFaces();
-    for (const face of faces) grid.append(drawFace(face));
+    for (const face of leaderFaces()) grid.append(drawFace(face));
     container.append(grid);
-    const picked = faces.find((face) => face.id === chosen);
-    if (picked) container.append(drawFirstRow(picked));
   }
 
   return {

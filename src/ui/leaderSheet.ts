@@ -1,56 +1,57 @@
 /**
- * **Your leader** — what the figure at your table has given you, what it is
- * giving you *this turn*, and what the next age will put on the table (batch
- * L2b, `docs/flags.md` (dddd); the mockup of 2026-09-10 is the spec of record).
+ * **Your civ** — who is at your table, what their two rules are paying you *this
+ * turn*, the two rows nobody else may raise, and the towns your realm founds
+ * (batch L2b; re-aimed at the second cut in L6b, `docs/flags.md` (xxxx)).
  *
- * The fourteenth sheet on `modalShell.ts`, behind the fifth door on the HUD dock
- * — the one wearing the seat's own charge. It is the sheet a player opens, where
- * the draft is the sheet the game raises at them, and that is the whole division
- * between the two: a row is a debt and this is a record.
+ * The thirteenth sheet on `modalShell.ts`, behind the fifth door on the HUD dock
+ * — the one wearing the seat's own charge. The draft sheet that stood beside it
+ * is gone with the deck (L6a): a figure is a **known quantity** from the landing
+ * screen onward, so there is no decision left for a sheet to raise and this one
+ * is a record and nothing else. The user's ruling is what it exists for:
+ * *"we still need to give players a way to see what their civ does"*.
  *
- * Two columns, and both are readings
- * ----------------------------------
- * **Left, what you hold**: the leader bonus first — it is live from the turn the
- * seat sits down, whatever is drafted — then one block per age, in age order.
- * A row already answered shows the card taken; the row on the table shows the
- * three still owed; a row not yet reached shows its three cards greyed with one
- * plain sentence saying how to reach them. The untaken siblings of an answered
- * row are shown greyed beside the card that was taken, because *what you left*
- * is a thing a player wants to see and a figure's sheet is the same three cards
- * every game — there is nothing to hide.
+ * Four things, and every one of them a reading
+ * -------------------------------------------
+ * **The head**: the figure's name, the seat's canton, and the pair of inks said
+ * in the row's own words.
  *
- * **Right, the ledger**: every line in the empire's own books that carries the
- * leader's name, and its fold. **Nothing here is computed** (rule 5): the yield
- * lines are `readEmpire`'s — the very list the top bar's chip and the Ledger's
- * bars are built out of — filtered by the **card id** on the line, and the meter
- * lines are `explainHappiness`/`explainAuthority`'s, filtered by the one handle
- * a meter line offers, which is the class word the evaluator writes at the head
- * of its label (`classifyEmpireGold`'s precedent, one screen over, and its
- * reason: `MeterContribution` carries no id).
+ * **The two abilities**: each with its clauses and **what it is paying this
+ * turn** — gathered, never computed (rule 5). The yield lines are `readEmpire`'s
+ * — the very list the top bar's chip and the Ledger's bars are built out of —
+ * filtered by the **card id** on the line, which for an ability is the ability's
+ * own id; the meter lines are `explainHappiness`/`explainAuthority`'s, filtered
+ * by the label they carry, because `MeterContribution` offers no id
+ * (`classifyEmpireGold`'s precedent, one screen over, and its reason).
+ *
+ * **The two uniques**: the soldier and the building this figure alone may raise,
+ * each with the technology or the age that opens it and whether it is open *for
+ * this seat* — `isUnlocked`, the simulation's own gate, asked rather than
+ * re-derived. A row not yet open says when it comes.
+ *
+ * **The towns**: the figure's own list in order, with the ones already standing
+ * marked — `LeaderDef.cities`, which is what `nextCityName` walks.
  *
  * A line's figure is the line's. This sheet gathers; it does not price.
  */
 
-import {
-  type LeaderCardId,
-  type LeaderCardKind,
-  type LeaderId,
-  leaderCard,
-  leaderDef,
-} from '../sim/leaderData';
-import { heldLeaderCards, leaderBlocker, leaderRowFor } from '../sim/leaders';
-import { type CardClause, describeCard } from '../sim/statecraft';
+import { type LeaderId, leaderDef } from '../sim/leaderData';
+import type { CardClause } from '../sim/statecraft';
 import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
 import { readEmpire } from '../sim/readings';
-import { TECH_AGES, TECH_IDS, type TechAge, highestAge, techDef } from '../sim/techData';
+import { isUnlocked } from '../sim/tech';
 import { type GameState, playerById } from '../sim/state';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
-import { isLeaderCardId, isLeaderId } from '../sim/leaderData';
-import { LEADER_KIND_WORD } from './leaderSelect';
+import {
+  type LeaderAbilityFace,
+  type LeaderRowKind,
+  type LeaderUniqueFace,
+  LEADER_ROW_WORD,
+  leaderFaces,
+} from './leaderSelect';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import { seatInks } from '../art/seatInks';
 import { element } from './dom';
-import { YIELD_GLYPH, eraWord, figure, signedFigure } from './figures';
+import { YIELD_GLYPH, figure, signedFigure } from './figures';
 import { setDescriptorText } from './keywords';
 import { createModalShell } from './modalShell';
 
@@ -67,15 +68,25 @@ import { createModalShell } from './modalShell';
  */
 export const LEADER_SOURCE_WORD = 'Leader';
 
-/** Does this line's card belong to this seat's figure? Asked of the id. */
-function isLeaderCard(card: unknown): boolean {
-  return isLeaderCardId(card) || isLeaderId(card);
-}
+/** What the sheet says to a seat sitting under nobody. One sentence, no figure. */
+export const LEADER_PLAIN_SEAT =
+  'This seat sits under no leader: it plays the plain rules, with no line of its own and ' +
+  'no row nobody else may raise. A new game is where a figure is chosen.';
+
+/** What a unique's line says once the seat may raise it. */
+export const LEADER_UNIQUE_OPEN = 'Yours to raise, in any city that may build its kind.';
 
 /** One line of the leader's ledger: what pays, what it reads, what it is worth. */
 export interface LeaderLedgerLine {
-  /** The evaluator's own label — "Leader · The Corvée". */
+  /** The evaluator's own label — "Leader · the Qhapaq Ñan". */
   source: string;
+  /**
+   * **Whose line it is**: the ability's id, or the figure's own — the two ids
+   * `liveEffects`' twelfth source pushes under (the second is the unique unit's
+   * own row effects, which ride the law of the figure that may field the piece).
+   * This is the handle the ability blocks group on.
+   */
+  card: string;
   /** The six voices, as the line carries them. All zero on a meter line. */
   yields: Partial<Record<CityYieldKey, number>>;
   /** A meter's own points, when the line is a meter's. */
@@ -104,41 +115,67 @@ function addBag(
 }
 
 /**
+ * **Which id a meter line belongs to**, recovered from its label.
+ *
+ * `MeterContribution` carries no card id — it is a word and a number — so the
+ * one handle a meter line offers is the label the evaluator writes, which is
+ * `CLASS_WORD.leader` and then the card's own name. Built off the figure's own
+ * sheet rather than off a table here, so a renamed ability moves both halves at
+ * once and a line whose name nothing on the sheet answers to is simply not this
+ * figure's.
+ */
+function labelsOf(leader: LeaderId): Map<string, string> {
+  const def = leaderDef(leader);
+  const map = new Map<string, string>();
+  for (const ability of def.abilities) {
+    map.set(`${LEADER_SOURCE_WORD} · ${ability.name}`, ability.id);
+  }
+  map.set(`${LEADER_SOURCE_WORD} · ${def.name}`, leader);
+  return map;
+}
+
+/**
  * **Every line in this empire's books carrying the leader's name**, in the
  * order the books already print them: the towns first, then the empire's own,
  * then the two meters.
  *
- * The towns and the empire are `readEmpire`'s lists, taken whole and filtered by
- * the id on the line. The meters are the two `explain…` lists, filtered by the
- * class word — see this module's docblock, and `LEADER_SOURCE_WORD`.
- *
- * A town's lines are summed **per label** across the realm, because a card that
+ * A town's lines are summed **per label** across the realm, because a rule that
  * pays a hammer in every town prints one line per town in `readEmpire` and the
- * reader's question is what the card pays, not what it pays in Uruk.
+ * reader's question is what the rule pays, not what it pays in Uruk.
  */
 export function leaderLedgerLines(state: GameState, playerId: number): LeaderLedgerLine[] {
+  const player = playerById(state, playerId);
+  const leader = player?.leader;
+  if (!player || leader === undefined) return [];
+  const labels = labelsOf(leader);
+  const mine = new Set<string>(labels.values());
+
   const byLabel = new Map<string, LeaderLedgerLine>();
   const order: string[] = [];
-  const take = (source: string, yields: Partial<Record<CityYieldKey, number>>): void => {
+  const take = (
+    source: string,
+    card: string,
+    yields: Partial<Record<CityYieldKey, number>>,
+  ): void => {
     const held = byLabel.get(source);
     if (held) {
       addBag(held.yields, yields);
       return;
     }
-    byLabel.set(source, { source, yields: { ...yields }, meter: null });
+    byLabel.set(source, { source, card, yields: { ...yields }, meter: null });
     order.push(source);
   };
 
   const reading = readEmpire(state, playerId);
   for (const town of reading.towns) {
     for (const line of town.reading.lines) {
-      if (!isLeaderCard(line.card)) continue;
-      take(line.source, bagOf(line));
+      if (typeof line.card !== 'string' || !mine.has(line.card)) continue;
+      take(line.source, line.card, bagOf(line));
     }
   }
   for (const line of reading.lines) {
-    if (!isLeaderCard(line.card)) continue;
-    take(line.source, bagOf(line));
+    if (typeof line.card !== 'string' || !mine.has(line.card)) continue;
+    take(line.source, line.card, bagOf(line));
   }
 
   const lines = order.map((source) => byLabel.get(source)!);
@@ -148,9 +185,14 @@ export function leaderLedgerLines(state: GameState, playerId: number): LeaderLed
   ];
   for (const meter of meters) {
     for (const entry of meter.list) {
-      if (!entry.source.startsWith(`${LEADER_SOURCE_WORD} · `)) continue;
-      if (entry.value === 0) continue;
-      lines.push({ source: entry.source, yields: {}, meter: { word: meter.word, value: entry.value } });
+      const card = labels.get(entry.source);
+      if (card === undefined || entry.value === 0) continue;
+      lines.push({
+        source: entry.source,
+        card,
+        yields: {},
+        meter: { word: meter.word, value: entry.value },
+      });
     }
   }
   return lines;
@@ -165,126 +207,88 @@ export function foldLeaderLedger(
   return total;
 }
 
-/** One card of a deck, as the sheet prints it. */
-export interface LeaderHoldCard {
-  id: LeaderCardId;
-  name: string;
-  kind: LeaderCardKind;
+/** One of the two rules, with what it is paying the empire as the board stands. */
+export interface LeaderAbilityRow extends LeaderAbilityFace {
+  /** The books' own lines carrying this rule's id. Gathered, never priced. */
+  lines: LeaderLedgerLine[];
+}
+
+/** One of the two rows nobody else may raise, and where this seat stands with it. */
+export interface LeaderUniqueRow extends LeaderUniqueFace {
+  /** The eyebrow — "Unique unit" · "Unique building". */
   word: string;
-  clauses: CardClause[];
-  /** True for the card this seat took out of its row. */
-  taken: boolean;
+  /** `isUnlocked`'s own answer for this seat, this turn. */
+  open: boolean;
+  /** One plain sentence: what to do with it, or when it comes. */
+  note: string;
 }
 
-/** How a row of the sheet stands for this seat. */
-export type LeaderRowState = 'taken' | 'offered' | 'locked';
-
-/** One age's row: its three cards and where the seat stands with them. */
-export interface LeaderHoldRow {
-  age: TechAge;
-  /** "Æra II" — the row's own name. */
-  era: string;
-  state: LeaderRowState;
-  cards: LeaderHoldCard[];
-  /** How to reach a locked row, in plain words. `null` for the other two. */
-  reach: string | null;
+/** One of the figure's towns, and whether the realm has founded it. */
+export interface LeaderCityRow {
+  name: string;
+  founded: boolean;
 }
 
-/**
- * **How a locked row is reached**, in a first-time player's words and with no
- * figure in it.
- *
- * The technologies that *enter* the age, read off the tree rather than listed
- * here: a node whose own age is this row's and whose parents' are not is a door
- * into it, which is the same reading the star chart's banding makes. Named
- * rather than counted, and at most three, because a sentence listing eleven
- * technologies is a sentence nobody reads.
- */
-export function leaderRowReach(age: TechAge): string {
-  const era = eraWord(age);
-  const doors = ageDoors(age);
-  if (doors.length === 0) return `Reach ${era} and these three are offered.`;
-  return `Learn ${listWords(doors)} — any of them opens ${era} — and these three are offered.`;
+/** The figure this seat plays, as this sheet reads it. `null` for a plain seat. */
+function faceOf(state: GameState, playerId: number) {
+  const leader = playerById(state, playerId)?.leader;
+  if (leader === undefined) return null;
+  return leaderFaces().find((face) => face.id === leader) ?? null;
+}
+
+/** Both rules, each with its own lines out of the empire's books. */
+export function leaderAbilityRows(state: GameState, playerId: number): LeaderAbilityRow[] {
+  const face = faceOf(state, playerId);
+  if (!face) return [];
+  const lines = leaderLedgerLines(state, playerId);
+  return face.abilities.map((ability) => ({
+    ...ability,
+    lines: lines.filter((line) => line.card === ability.id),
+  }));
 }
 
 /**
- * The technologies that **step into** an age: banded into it, with every
- * prerequisite banded earlier — the doors, and the same reading the star chart's
- * banding makes.
+ * Both rows, with the gate asked of the simulation.
  *
- * Read off the tree rather than tabulated here, so a technology moved between
- * ages moves this sentence with it and no second list can disagree. At most
- * three names, in the table's own order: a sentence listing eleven technologies
- * is a sentence nobody reads.
+ * `isUnlocked` and nothing beside it: the rule is two questions — does this
+ * seat's figure name the row, and has the row's own learning come — and a
+ * second reading of it here would be a second gate that could disagree with the
+ * build list a player is looking at.
  */
-function ageDoors(age: TechAge): string[] {
-  const names: string[] = [];
-  for (const id of TECH_IDS) {
-    const def = techDef(id);
-    if (def.age !== age) continue;
-    if (def.prereqs.length === 0) continue;
-    if (!def.prereqs.every((parent) => techDef(parent).age < age)) continue;
-    names.push(def.name);
-    if (names.length === 3) break;
-  }
-  return names;
+export function leaderUniqueRows(state: GameState, playerId: number): LeaderUniqueRow[] {
+  const face = faceOf(state, playerId);
+  if (!face) return [];
+  return [face.unit, face.building].map((row) => {
+    const open = isUnlocked(state, playerId, row.kind, row.id);
+    return {
+      ...row,
+      word: LEADER_ROW_WORD[row.kind as LeaderRowKind],
+      open,
+      note: open ? LEADER_UNIQUE_OPEN : `Not yet — it comes ${row.opens}.`,
+    };
+  });
 }
 
-/** "a, b or c" — a short list read aloud. */
-function listWords(parts: readonly string[]): string {
-  if (parts.length === 0) return '';
-  if (parts.length === 1) return parts[0]!;
-  return `${parts.slice(0, -1).join(', ')} or ${parts[parts.length - 1]}`;
+/**
+ * The figure's towns in the order it founds them, with the standing ones marked.
+ *
+ * `nextCityName` walks this same list ahead of the invented one and skips a name
+ * a standing town already wears, so "founded" here is exactly what that walk
+ * skips — asked of the board rather than counted, because a captured town wears
+ * its founder's name wherever it now flies.
+ */
+export function leaderCityRows(state: GameState, playerId: number): LeaderCityRow[] {
+  const leader = playerById(state, playerId)?.leader;
+  if (leader === undefined) return [];
+  const standing = new Set(state.cities.map((city) => city.name));
+  return leaderDef(leader).cities.map((name) => ({ name, founded: standing.has(name) }));
 }
 
-/** What this seat holds and what it is still owed, row by row. */
-export function leaderHoldRows(state: GameState, playerId: number): LeaderHoldRow[] {
-  const player = playerById(state, playerId);
-  const leader = player?.leader;
-  if (!player || leader === undefined) return [];
-  const held = new Set(heldLeaderCards(player));
-  const offer = player.leaderOffer;
-  const reached = highestAge(player.techsResearched);
-  const rows: LeaderHoldRow[] = [];
-  // `TECH_AGES` and not `LEADER_DECK_AGES`, and the two are the same four by
-  // construction (`deckAgeOf`): a row is keyed by the age it is dealt in, and
-  // walking the *ages* is what keeps this list in the order the seat will meet
-  // them — object key order is not an order this game may depend on.
-  for (const age of TECH_AGES) {
-    const ids = leaderRowFor(leader, age);
-    const taken = ids.find((id) => held.has(id));
-    // **Three states, in precedence.** A row already answered is `taken`
-    // whatever the seat's era; a row the seat has *reached* is `offered`,
-    // whether the phase has dealt it yet or not (Æra I's is dealt with the
-    // board and the rest at the end of the turn the age turned, so "reached and
-    // unanswered" is the honest reading either side of that sweep); everything
-    // above the seat's own era is out of reach and says how to get there.
-    const standing: LeaderRowState =
-      taken !== undefined ? 'taken' : offer?.age === age || age <= reached ? 'offered' : 'locked';
-    rows.push({
-      age,
-      era: eraWord(age),
-      state: standing,
-      cards: ids.map((id) => {
-        const card = leaderCard(id);
-        return {
-          id,
-          name: card.name,
-          kind: card.kind,
-          word: LEADER_KIND_WORD[card.kind],
-          clauses: describeCard(id),
-          taken: held.has(id),
-        };
-      }),
-      reach: standing === 'locked' ? leaderRowReach(age) : null,
-    });
-  }
-  return rows;
-}
-
-/** The figure's own line, held from the first turn. */
-export function leaderBonusClauses(leader: LeaderId): CardClause[] {
-  return describeCard(leader);
+/** The figure's two inks said in words — the row's own first cells. */
+export function leaderColorWords(state: GameState, playerId: number): [string, string] | null {
+  const leader = playerById(state, playerId)?.leader;
+  if (leader === undefined) return null;
+  return [...leaderDef(leader).colors.names] as [string, string];
 }
 
 // --- the sheet --------------------------------------------------------------
@@ -306,16 +310,6 @@ export interface LeaderSheetOptions {
   getState: () => GameState;
   getPlayerId: () => number;
   onOpen?: () => void;
-  /**
-   * Raises the draft sheet — `main.ts`'s `leaderDraft.open()`.
-   *
-   * **The door that reopens a decision.** A figure's row never expires
-   * (`leaderBlocker`'s docblock), so a seat that walked past the End Turn
-   * blocker still owes it — and this is where the row is found again, because
-   * this is the sheet that says what the row is *for*. Absent is a sheet with no
-   * way back to the draft, which is what a hot-seat harness or a test builds.
-   */
-  onOpenDraft?: () => void;
 }
 
 export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
@@ -354,60 +348,89 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     return mark;
   }
 
-  function drawBonus(state: GameState, seat: number, leader: LeaderId): HTMLElement {
-    const hold = element('article', 'leader-hold');
-    hold.append(element('p', 'eyebrow', 'from the first turn'));
+  /** The head: who is at the table, and the two inks the board flies for them. */
+  function drawHead(state: GameState, seat: number, leader: LeaderId): HTMLElement {
+    const hold = element('article', 'leader-hold leader-hold-figure');
+    hold.append(element('p', 'eyebrow', 'the figure at your table'));
     const head = element('div', 'leader-hold-head');
     head.append(canton(state, seat));
     head.append(element('h3', 'leader-hold-name', leaderDef(leader).name));
     hold.append(head);
-    hold.append(clauseList(leaderBonusClauses(leader), 'leader-hold-clauses'));
+    const words = leaderColorWords(state, seat);
+    if (words) {
+      const inks = seatInks(playerById(state, seat));
+      const swatch = element('p', 'leader-inks');
+      const field = element('span', 'leader-ink-chip');
+      field.style.setProperty('--chip-ink', inks.primary);
+      const device = element('span', 'leader-ink-chip');
+      device.style.setProperty('--chip-ink', inks.secondary);
+      swatch.append(field, device, element('span', '', `${words[0]} and ${words[1]}`));
+      hold.append(swatch);
+    }
     return hold;
   }
 
-  function drawRow(row: LeaderHoldRow, owed: boolean): HTMLElement {
-    const hold = element('article', `leader-hold is-${row.state}`);
-    const word =
-      row.state === 'taken' ? 'taken' : row.state === 'offered' ? 'on the table' : 'not yet reached';
-    hold.append(element('p', 'eyebrow', `${row.era} · ${word}`));
-    const cards = element('div', 'leader-hold-cards');
-    for (const card of row.cards) {
-      const cell = element(
-        'div',
-        `leader-hold-card leader-ink-${card.kind}${card.taken ? ' is-taken' : ' is-left'}`,
-      );
-      cell.append(element('p', 'eyebrow leader-mini-kind', card.word));
-      cell.append(element('h4', 'leader-mini-name', card.name));
-      cell.append(clauseList(card.clauses, 'leader-mini-clauses'));
-      cards.append(cell);
+  /** One rule, and the books' own lines for it. */
+  function drawAbility(row: LeaderAbilityRow, at: number): HTMLElement {
+    const hold = element('article', 'leader-hold');
+    hold.append(element('p', 'eyebrow', at === 0 ? 'its first rule' : 'its second rule'));
+    hold.append(element('h4', 'leader-hold-title', row.name));
+    hold.append(clauseList(row.clauses, 'leader-hold-clauses'));
+    const now = element('div', 'leader-now');
+    if (row.lines.length === 0) {
+      now.append(element('p', 'leader-note', 'Nothing in the books this turn.'));
+    } else {
+      for (const line of row.lines) {
+        const item = element('p', 'leader-now-line');
+        item.append(element('span', 'leader-now-label', line.source));
+        item.append(element('span', 'num leader-now-figure', lineFigure(line)));
+        now.append(item);
+      }
     }
-    hold.append(cards);
-    if (row.reach !== null) hold.append(element('p', 'leader-note', row.reach));
-    // **The way back to the decision.** Only on the row this seat actually
-    // owes an answer for — `leaderBlocker`'s own reading, which is also the one
-    // that holds its tongue until there is a capital, so the button never
-    // offers a pick the reducer would refuse.
-    if (owed && options.onOpenDraft !== undefined) {
-      const take = element('button', 'leader-hold-take') as HTMLButtonElement;
-      take.type = 'button';
-      take.textContent = `Take one for ${row.era}`;
-      take.addEventListener('click', () => options.onOpenDraft?.());
-      hold.append(take);
-    }
+    hold.append(now);
     return hold;
+  }
+
+  /** One row nobody else may raise, with its gate and where the seat stands. */
+  function drawUnique(row: LeaderUniqueRow): HTMLElement {
+    const hold = element('article', `leader-hold leader-unique${row.open ? '' : ' is-locked'}`);
+    hold.append(element('p', 'eyebrow', row.word));
+    const line = element('p', 'leader-unique-line');
+    setDescriptorText(line, row.text, { linked: true });
+    hold.append(line);
+    hold.append(element('p', 'leader-note', row.note));
+    return hold;
+  }
+
+  /** The towns, in the order the figure founds them. */
+  function drawCities(rows: readonly LeaderCityRow[]): HTMLElement {
+    const hold = element('article', 'leader-hold');
+    hold.append(element('p', 'eyebrow', 'the towns it founds, in order'));
+    const list = element('ul', 'leader-cities');
+    for (const row of rows) {
+      const item = element('li', row.founded ? 'leader-city is-founded' : 'leader-city', row.name);
+      if (row.founded) item.setAttribute('title', 'standing');
+      list.append(item);
+    }
+    hold.append(list);
+    hold.append(
+      element('p', 'leader-note', 'A name already standing on the board is marked; the next town ' +
+        'your realm founds takes the first that is not.'),
+    );
+    return hold;
+  }
+
+  /** What one line puts in the books — a bag of voices, or a meter's points. */
+  function lineFigure(line: LeaderLedgerLine): string {
+    if (line.meter !== null) return `${signedFigure(line.meter.value)} ${line.meter.word}`;
+    return bagText(line.yields) || '—';
   }
 
   /** One ledger row: the label, and the figure it puts in the books this turn. */
   function drawLedgerLine(line: LeaderLedgerLine): HTMLElement {
     const item = element('tr', 'leader-ledger-row');
     item.append(element('td', 'leader-ledger-source', line.source));
-    const cell = element('td', 'num leader-ledger-figure');
-    if (line.meter !== null) {
-      cell.textContent = `${signedFigure(line.meter.value)} ${line.meter.word}`;
-    } else {
-      cell.textContent = bagText(line.yields);
-    }
-    item.append(cell);
+    item.append(element('td', 'num leader-ledger-figure', lineFigure(line)));
     return item;
   }
 
@@ -429,25 +452,17 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     const player = playerById(state, seat);
     const leader = player?.leader;
     if (!player || leader === undefined) {
-      body.append(
-        element(
-          'p',
-          'leader-empty',
-          'This seat sits under no leader. A new game is where one is chosen.',
-        ),
-      );
+      body.append(element('p', 'leader-empty', LEADER_PLAIN_SEAT));
       return;
     }
 
     const sheet = element('div', 'leader-sheet-grid');
 
     const held = element('section', 'leader-held');
-    held.append(drawBonus(state, seat, leader));
-    // Which row is actually owed, asked once of the simulation rather than
-    // guessed from the row's own standing: `offered` says the seat has reached
-    // the age, and `leaderBlocker` says whether the game is waiting on it.
-    const owed = leaderBlocker(state, seat)?.age ?? null;
-    for (const row of leaderHoldRows(state, seat)) held.append(drawRow(row, row.age === owed));
+    held.append(drawHead(state, seat, leader));
+    leaderAbilityRows(state, seat).forEach((row, at) => held.append(drawAbility(row, at)));
+    for (const row of leaderUniqueRows(state, seat)) held.append(drawUnique(row));
+    held.append(drawCities(leaderCityRows(state, seat)));
     sheet.append(held);
 
     const ledger = element('section', 'leader-ledger');
