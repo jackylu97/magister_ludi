@@ -118,6 +118,34 @@ The letter is the item the question came out of; the item's full history is in
   no other seat; the draft command is refused as unknown; a config naming
   a figure replays; the doc tables ↔ data; the re-roll redraws once and is
   refused twice; the caravan pays and is not plundered.
+  **L6a built** (2026-09-12, held `cb40685`): `LeaderDef {abilities[2],
+  unit, building, colors, cities, startBias}`; a unique opens through two
+  questions — the seat's sheet names the row AND its column is reached
+  (`columnReached`, since no node names these rows); everything of the
+  first cut retired, `src/sim/leaders.ts` and `src/ai/leader.ts` deleted,
+  the v113 paragraph rewritten, schema stays 115 and a figure config
+  replays byte for byte. Three sheet keys renamed for id collisions with
+  great people (`zhengHeOfMing`, `hypatiaOfAlexandria`,
+  `ibnBattutaOfTangier`; names unchanged) — ▢ the user may prefer to
+  promote those three out of the great-people roster instead. New:
+  `UnitDef.effects` — a row's own rules ride the row and fold into its
+  figure's law (this also rescued seven first-cut unit rules the deck's
+  deletion would have destroyed). **Built shapes**: soldiers bought with
+  faith (`faithPurchases: 'military'`, a third word on the seam); the
+  Rihla's re-roll folded into the EXISTING `rerollOffer` command (an
+  `ActionRuleId rerollOffers` waives the first asking per hand, never a
+  belief, never a government); the caravan's +3 gold and unplunderability
+  scoped to its row, and `caravanTypeFor` so his seat fields Rihla
+  caravans; the Tetzcotzinco's whole-yield percent; the Museion's per-
+  great-person science; the Funduq's lifted site. **Deferred on the row**:
+  the Treasure Ship's second passenger, the Scriptorium's doubled beliefs,
+  the Canoness's production lump (no `proclaim` occasion), Zheng He's
+  first-contact lump, the Dockyard's +1 movement for ships built there;
+  the Sankore's rate is a 25% share with a note. The seven figures'
+  colours, cities and biases are in `docs/leaders.md`'s tables (the
+  user's to retune); two new wants `coastalWithin`, `lakeWithin`. The
+  tree does not typecheck at this head on purpose — six UI files read the
+  retired types; **L6b is flying on top**.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.

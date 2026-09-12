@@ -209,6 +209,13 @@ reading for a once-per-empire row.
 | `paperMill` | The Paper Mill | large | 11 | 893 |
 | `mithridatium` | The Mithridatium | medium | 5 | 117 |
 | `ponticHold` | The Mountain Hold | large | 11 | 893 |
+| `sainteChapelle` | The Sainte-Chapelle | medium | 11 | 595 |
+| `sankoreMadrasa` | The Sankore Madrasa | medium | 8 | 264 |
+| `longjiangDockyard` | The Longjiang Dockyard | medium | 8 | 264 |
+| `tetzcotzinco` | The Tetzcotzinco | medium | 5 | 117 |
+| `museion` | The Museion | small | 5 | 88 |
+| `rupertsbergScriptorium` | The Scriptorium of Rupertsberg | large | 8 | 397 |
+| `funduq` | The Funduq | large | 8 | 397 |
 
 ### Wonders
 
@@ -305,3 +312,10 @@ table, with no second figure anywhere. See `docs/trade.md`.
 | `camelArcher` | Camel Archer | heavy | 7 | 101 |
 | `ponticPeltast` | The Pontic Peltast | line | 2 | 18 |
 | `scythedChariot` | The Scythed Chariot | heavy | 8 | 132 |
+| `gendarme` | The Gendarme | heavy | 11 | 297 |
+| `mandekalu` | The Mandekalu | heavy | 7 | 101 |
+| `treasureShip` | The Treasure Ship | engine | 8 | 152 |
+| `eagleWarrior` | The Eagle Warrior | line | 5 | 41 |
+| `alexandrianGalley` | The Alexandrian Galley | line | 5 | 41 |
+| `canoness` | The Canoness | free | 8 | 0 |
+| `rihlaCaravan` | The Rihla Caravan | engine | 5 | 67 |

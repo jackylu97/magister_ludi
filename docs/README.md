@@ -299,15 +299,21 @@ Reference: **`docs/trade.md`** and **`docs/luxuries.md`**.
 
 ## Leaders
 
-Reference: **`docs/leaders.md`** (a worksheet; every figure is still the user's).
+Reference: **`docs/leaders.md`**, "The second cut — fixed identity" (the spec of
+record; the figures are still the user's to retune).
 
-Six starting figures — Pachacuti, Taizong, Modu Chanyu, Akhenaten, Al-Ma'mun,
-Mithridates; three wide, three tall. Each has a **deck**: per age, one
-**passive** (lasts the game), one **boon** (one time) and one **unique** (a unit
-or building). A seat entering an age is shown that age's three and takes one; Æra
-I's row is offered at the first turn. Every line is written against a shape the
-card vocabulary already has. Leaders also carry **start biases**, run in three
-stages by `startPositions.ts`, and a pair of **colours** the board wears.
+**Thirteen figures**, and a figure is Civ's shape exactly: **two abilities**, one
+**unique unit** and one **unique building**. The abilities are ordinary card
+effects, live for the seat from the turn it sits down and for the rest of the
+game — `liveEffects`' twelfth source, folded and described by the machinery that
+folds a doctrine's. The uniques are ordinary roster rows carrying
+`unlockedByLeader`, opened by `isUnlocked` for the one seat whose sheet names
+them and only once the row's **own technology** has arrived; a row nobody names
+is a bench. There is no draft, no offer and no age machinery — the first cut's
+deck of twelve cards a figure retired in batch L6a. Leaders also carry **start
+biases** (three stages, `startPositions.ts`), **fifteen city names** and a pair
+of **colours** the board wears; all three are tables in `docs/leaders.md`,
+mirrored in `data/leaders.json` and held together by sync tests.
 
 ## Barbarians
 

@@ -19,10 +19,12 @@ take two or three of the bullets under it, not all. Each fits one of
 
 ## The second cut — fixed identity (2026-09-11)
 
-**Ruled with the user, 2026-09-11.** The first cut (a bonus and a deck of twelve
-drafted cards a figure) is superseded by this section; its tables under "The
-starting six — the decks" stay until the second cut is built, because
-`data/leaders.json` mirrors them and a sync test holds the two together.
+**Ruled with the user, 2026-09-11; built 2026-09-12 (batch L6a).** The first cut
+(a bonus and a deck of twelve drafted cards a figure) is superseded by this
+section, and its tables are gone with the deck. This section is the spec of
+record: `data/leaders.json` mirrors "The thirteen", "The colours", "The cities"
+and "The biases", and the sync tests in `test/sim/leaders.test.ts` and
+`test/render/seatInks.test.ts` hold each pair together.
 
 ### Why
 
@@ -64,18 +66,18 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | cities joined to the capital by road +1 happiness +1 production | farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | Terraces — farms may be cut into hills |
-| **Emperor Taizong** | Tang | wide · the imperium | melee +1 strength +1 movement | garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
-| **Modu Chanyu** | Xiongnu | wide · the steppe | mounted +1 movement on grass and plains; pillaging +50% | pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
-| **Akhenaten** | Egypt | tall · faith and wonders | cities with a holy site +20% production toward wonders | +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
-| **Al-Ma'mun** | Abbasid | tall · science and faith | +1 science per five faith a turn, empire-wide | faith and science buildings +2 food | the camel archer | the House of Learning |
-| **Mithridates VI** | Pontus | tall · defence and growth | +2 strength against empires with more cities | +2 food on plantations and camps | the Pontic peltast | the Mountain Hold |
+| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | Terraces — farms may be cut into hills |
+| **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +1 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
+| **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
+| **Akhenaten** | Egypt | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
+| **Al-Ma'mun** | Abbasid | tall · science and faith | *the Mu'tazila*: +1 science per five faith a turn, empire-wide | *the House of Wisdom*: faith and science buildings +2 food | the camel archer | the House of Learning |
+| **Mithridates VI** | Pontus | tall · defence and growth | *the Poison King*: +2 strength against empires with more cities | *the Groves and the Hunt*: +2 food on plantations and camps | the Pontic peltast | the Mountain Hold |
 | **Joan of Arc** | France | faith and war | *the Voices*: a kill pays faith and presses your faith on the nearest city | *the Maid*: +4 combat strength on any hex that follows your faith | the Gendarme — a heavy lance of the fourth age, +10 against cities | the Sainte-Chapelle — a temple line, +3 faith; military units may be bought here with faith |
 | **Mansa Musa** | Mali | land commerce · gold and the hajj | *the Gold of Wangara*: mines and camps pay +2 gold; desert hexes worked pay +1 gold | *the Hajj*: routes to or from a city holding a holy site pay +2 gold +2 faith | the Mandekalu — a horseman line, pillaging pays double gold | the Sankore Madrasa — a library line, +1 science per four faith the city makes |
 | **Zheng He** | Ming | wide · the sea | *the Treasure Fleet*: ships +2 movement and +1 sight | *Tribute of the Western Ocean*: sea routes pay +2 gold +1 culture; the first sea route to each foreign empire pays a lump of gold | the Treasure Ship — a great hull of the third age, strong and far-seeing (▢ carrying two passengers is a new escort shape) | the Longjiang Dockyard — a harbour line: ships built here +1 movement, routes to or from this city pay +2 gold |
 | **Nezahualcoyotl** | Texcoco | tall · the engineer-poet | *the Dikes*: cities with an aqueduct pay +1 culture, and their farms +1 production | *Flower and Song*: +1 culture for every two citizens in the capital | the Eagle warrior — a swordsman line; a kill pays +5 culture | the Tetzcotzinco — replaces the garden, keeps its effects, and the city makes +15% food in total (the whole yield, not the surplus) |
 | **Hypatia** | Alexandria | tall · the library city | *the Museion*: +25% renown | *the Commentaries*: great people's works pay +50% of their yields | the Alexandrian galley — a light hull with +1 sight | the Museion — replaces the library, keeps its effects, and pays +1 science for every great person your realm has called this game |
-| **Hildegard of Bingen** | the Rhineland | tall · rites and song | *the Rites*: cities keeping a rite pay +20% culture | *Symphonia*: every faith building pays +2 culture +2 production | the Canoness — an apostle whose proclamation also grants a lump of production to every city | the Scriptorium — a monastery line, +3 faith; follower and founder effects are doubled in this city (▢ a new shape: a city-scoped amplifier on belief effects) |
+| **Hildegard of Bingen** | the Rhineland | tall · rites and song | *the Rites*: cities keeping a rite pay +20% culture | *Symphonia*: every faith building pays +2 culture +2 production | the Canoness — an apostle whose proclamation also grants a lump of production to every city | the Scriptorium of Rupertsberg — +3 faith and +2 culture (the monastery line is retired, so it stands alone); follower and founder effects are doubled in this city (▢ a new shape: a city-scoped amplifier on belief effects — deferred in L6a) |
 | **Ibn Battuta** | the Maghreb | the traveller — the generalist who reacts to the map | *A guest at every court*: one more wildcard chair in every government | *the Rihla*: one free re-roll at every draft — Orders, doctrines, governments, great people — never a belief (▢ a re-roll verb: the draft is redrawn from the seat's own pool, once, the Magister's Dice shape) | the Rihla caravan — a trader whose routes pay +3 gold and which cannot be plundered (▢ the unplunderable rule and a route rider scoped to one trader row) | the Funduq — replaces the caravanserai and stands in any city (the site rule lifted); +1 route slot; each foreign route starting or ending here pays +2 food +2 production |
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
@@ -147,99 +149,24 @@ his faith and science are one pool. Llull's faith wants to be abroad, in rival
 towns, where it pays science; the alchemical treatises falsely attributed to him
 for three centuries are the Æra V hook if a figure ever leans toward the Opus.
 
-### What building it costs
+### What it cost to build
 
-A held-stack change (nothing has landed): `LeaderDef` becomes `{abilities[2],
-unit, building, colors, cities, startBias, charge}`; the six new figures are
-rows (colours, cities and biases to write — this doc's tables the spec,
-sync-tested); the draft command, offer, blocker and phase retire; the seat's
-abilities join `liveEffects` from `newGame` (the bonus already does); a unique's
-row opens for the figure's seat through `unlocksUnit`/`unlocksBuilding` at its
-tech; the landing screen and leader sheet re-aimed; the mockup redrawn for four
-lines; `docs/` follows.
-
-## The starting six — the decks (2026-09-10; the first cut, superseded above — kept until the second cut is built)
-
-Pachacuti · Taizong · Modu Chanyu · Akhenaten · Al-Ma'mun · Mithridates. Three
-wide, three tall; the sea unrepresented in the first cut. **The draft**: when a
-seat enters an age (its own tech age), it is shown that age's three cards from
-its leader's deck — one **passive** (lasts the game), one **boon** (one time,
-now), one **unique** (a unit or building of that age) — and takes one. Æra I's
-row is offered at the first turn. Every line is written against a shape the
-game has (a passive is a doctrine-weight card effect; a boon is a windfall or a
-grant; a unique is a row with `unlockedByCard`-style gating). ▢ every figure.
-
-### Pachacuti — wide, roads and growth (Inca)
-
-leader bonus: farms gain +1 food for each adjacent mountain
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | workers gain +1 charge (the corvée) | +3 authority | **Terraces** — farms may be built on hills, +1 food |
-| II | every city joined to the capital by road pays +1 happiness and +1 production | gain a random great engineer | slinger, replaces the age 2 ranged unit. +2 ranged combat strength and take no movement penalty from hills |
-| III | cities connected to your capital cost 1 fewer authority | +10 production in every city joined to the capital | **The Tambo** — +1 route slot; domestic routes to or from here pay +1 food +1 production |
-| IV | +10% science and +10% gold in every city with a mountain tile | a citizen in every city joined to the capital | **The Qollqa** — the city keeps a quarter of its food on growing, +2 production |
-
-### Emperor Taizong — wide, the imperium (Tang)
-
-leader bonus: melee units +1 combat strength and +1 movement, +2 culture in all cities (gain at the start of the game)
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | The great yangtze - cities settled next to rivers cost 1 fewer authority | +3 authority | **The Fubing** — a spearman line that costs no upkeep while garrisoned, cheaper to produce |
-| II | garrisoned cities +1 happiness, +15% culture | the Xuanwu Gate: your next Order draft shows one more card and costs nothing | **The Examination Hall** — Orders in military slots pay +1 science each, +1 authority |
-| III | a captured city costs 1 less authority; puppets pay +5 culture each | the Heavenly Khagan: every puppet pays 200 gold at once | **Tang heavy cavalry** — a horseman line, +2 strength, +2 combat strength if adjacent to a melee unit |
-| IV | the great poets: great artist boons +100% culture and give +10% production and +10% culture for 5 turns | a knight musters in every city with a Barracks | **The Post Road** — +1 authority, +20% production in this city if connected to the capital |
-
-### Modu Chanyu — wide, the steppe (Xiongnu)
-
-leader bonus: mounted units +1 movement on grassland and plains, pillaging +50% yields
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | +1 prod and +1 faith on pastures | Horses are revealed, and a pasture is laid where your capital's nearest horses stand | **The Whistling Arrow** — a chariot archer line available from Husbandry, +1 range |
-| II | pillaging costs no movement; pillaging gives extra health and +25 faith | every rival improvement within 2 hexes of your units is pillaged at once | **The Horde Camp** — improved pasture: +1 faith, military units regain all movement points when stepping on one |
-| III | units +1 combat strength while a rite is active in your empire | a great general arrives | **The Xiongnu horse archer** — a horse archer line, +1 movement, hit and run |
-| IV | puppets pay +30% science and +30% culture | every puppeted city gives 500 gold | **The Chanyu's Guard** — a stronger knight, +1 movement and +2 combat strength to adjacent ranged cavalry units |
-
-### Akhenaten — tall, faith and wonders (Egypt)
-
-leader bonus: +1 faith on farms adjacent to a river, cities with a holy site +20% production towards wonders
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | cities with an active rite +10% production towards wonders | a prophet arrives with Divination | **Obelisk** — a shrine that pays +2 faith and +2 production |
-| II | holy sites +3 food and +3 faith on desert | gain 2 population in your capital | **The Khopesh** — a swordsman line, +3 strength in cities of your religion |
-| III | cities with a wonder +10% food (total, not surplus) and +5 culture | gain a great engineer | **The Sun Court** — +3 happiness, +1 faith per 4 citizens |
-| IV | cities following your religion -15% happiness cost | every foreign city that follows you converts fully | Valley of Kings - can only be built once in the empire. +10% culture in this city for every wonder in this city. Wonders can be rushed with faith |
-
-### Al-Ma'mun — tall, science and faith (Abbasid)
-
-leader bonus: faith and science buildings give +2 food, +10% science in cities with an active rite
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | +1 faith for every 2 population in your capital | your capital starts at 3 popultaion | Needs name: +2 food, gains +1 science for every great person you've recruited |
-| II | +20% renown, faith buildings give +1 renown towards scholars | the Almagest: a peace signed pays a lump of science | **The Mihna Court** — +2 happiness; 10% of the cities faith is gained as science |
-| III | gain +1 science per 5 faith per turn, empire-wide | +40 renown | Camel archer: replaces horse archer, +1 ranged strength for every great person improvement in your capital |
-| IV | your orders that give faith are doubly effective | the Great Enquiry: a lump of science | **The Paper Mill** — +3 science +3 culture; routes ending here bring science |
-
-### Mithridates VI — tall, defence and growth (Pontus)
-
-leader bonus: +2 combat strength against empires with more cities (your own puppets not counted), +1 food on improved resources
-
-| Æra | Passive | Boon | Unique |
-|---|---|---|---|
-| I | +2 food on plantations, camps | your capital starts at 3 population | **The Pontic peltast** — a spearman line that heals when it kills |
-| II | +1 wildcard slot in every government | the royal physician: every city grows one citizen | **The Mithridatium** — replaces the garden, keeps all its effects and gains +2 happiness, +1 science per population in the city |
-| III | internal trade routes supply +2 food and +2 science | your armies heal fully and a general arrives | **The scythed chariot** — a chariot line at Æra III, +3 against foot |
-| IV | your units heal +5 every turn | the twenty-two tongues: gain +100 renown every time you perform a trade deal | **The Mountain Hold** — a citadel-building: +10 city strength, +2 food |
-
-**Second set** (one per family, for later): Sher Shah Suri, Rajendra Chola,
-Basil II, Sargon, Gwanggaeto, Tomyris, Bumin, Zenobia, Yongle, Emperor Wu,
-Dandolo, Teuta, Hanno, Ulugh Beg, Abd al-Rahman III, Jayavarman VII, Justinian
-and Theodora, Djoser, Ezana; Mansa Musa ▢. **Deferred** (the game-warping
-seats): Joan of Arc, Rudolf II, Ludovico Sforza. **Cut**: Tigranes, Amanirenas.
+**L6a, the simulation and the data (2026-09-12).** `LeaderDef` is
+`{name, abilities[2], unit, building, colors, cities, startBias, charge?}`, and
+an ability is `{id, name, text, effects, deferred?, note?}` — ordinary card
+effects, validated at load. The seven new figures are rows, with the colours,
+cities and biases in this doc's three tables and mirrored in the sheet. The
+draft retired whole: `Player.leaderPicks`, `Player.leaderOffer`,
+`chooseLeaderCard`, the `leaders` phase, the `leaderOffered` occasion, the
+`LeaderCard`/`LeaderBoon`/deck types, `src/ai/leader.ts` and the bot's arm are
+gone, and `state.ts`'s v113 paragraph is rewritten to the second cut (the schema
+stays 115 — nothing of the draft ever reached a save). A unique's row carries
+`unlockedByLeader` and is opened by `isUnlocked` for the one seat whose sheet
+names it, once the row's own technology has come — or, for a row the tree names
+nothing of, once the empire has researched something standing at the row's own
+column. Fourteen new rows joined the roster and the buildings; a unit row may
+now carry `effects` of its own, folded into the law of the figure that may field
+it. **L6b is the screens.**
 
 ## The one the user named
 
@@ -695,10 +622,12 @@ What that means for a bias:
   its sync test, and the seed sweep re-run with every leader seated. A day's
   batch, after the leader system exists to carry the row.
 
-Proposed biases (▢ each): Pachacuti — hills and river; Taizong — river and
-grassland (the Yangtze passive); Modu Chanyu — grassland and plains, away from
-hills; Akhenaten — river, floodplain, oasis; Al-Ma'mun — river, with a mild
-coast; Mithridates — coast and hills (the Black Sea and the Pontic mountains).
+The biases as built are the table **"The biases"** below, which is the spec of
+record and is sync-tested against `data/leaders.json`. (The first cut's proposal
+— Pachacuti hills and river, Taizong river and grassland, Modu grassland and
+plains away from hills, Akhenaten river and floodplain and oasis, Al-Ma'mun
+river with a mild coast, Mithridates coast and hills — is what those six rows
+were written from, and the measured retunes since are noted above.)
 
 **A bias toward improvements — plantations and camps — is possible, but it is
 a furnishing, not a site** (the user, 2026-09-10: "mithridates: plantations and
@@ -743,6 +672,40 @@ then always has something to stand on.
   Rule 2 holds: every stage draws from the map's own stream and the bias is
   config, so the same seed and roster draw the same world.
 
+
+### The biases (2026-09-12, batch L6a)
+
+One row a figure, and `data/leaders.json`'s `startBias` mirrors it — the sync
+test in `test/sim/leaders.test.ts` holds the two together and the rows are the
+user's to retune. **Terrain** weights are soft score lines, capped and never a
+rejection; **wants** are the hard filter over accepted sites (`…Within` is a
+radius, `…Beside` a count of the six touching hexes); **resources** weight the
+scatter near the start, **luxuries** the continent's own hand, and **furnish**
+is what the fairness pass plants at the start whatever else happens. A dash is
+nothing asked for, and a row of dashes is a figure that takes what it is given.
+
+| Leader | Terrain | Wants | Resources | Luxuries | Furnish |
+|---|---|---|---|---|---|
+| Pachacuti | river 6 · hills 1.5 · mountain 2.5 | mountainWithin 2 · riverWithin 1 | — | — | — |
+| Emperor Taizong | grassland 0.9 · river 2 | grasslandWithin 2 | — | — | — |
+| Modu Chanyu | grassland 0.45 · plains 0.4 · hills -0.3 | pastureGroundWithin 3 | horses 12 · cattle 4 | — | horses |
+| Akhenaten | river 4 · floodplain 3 · oasis 3 · desert 2 | riverOrFloodplainWithin 1 · aridBeside 3 | — | — | — |
+| Al-Ma'mun | river 5 · coast 0.6 | riverWithin 2 | — | — | — |
+| Mithridates VI | river 9 · coast 0.4 · hills 0.6 | riverWithin 2 | deer 2 | wine 2.5 | plantation · camp |
+| Joan of Arc | river 3 | — | — | — | — |
+| Mansa Musa | desert 2 · river 2 · oasis 2 | aridWithin 2 | — | gold 3 | gold |
+| Zheng He | coast 2 | coastalWithin 1 | — | — | — |
+| Nezahualcoyotl | lake 2.5 · river 2 | riverOrFloodplainWithin 1 · lakeWithin 2 | — | — | — |
+| Hypatia | coast 2 · river 3 | coastalWithin 1 · riverWithin 2 | — | — | — |
+| Hildegard of Bingen | river 4 · forest 1.5 | riverWithin 1 | — | — | — |
+| Ibn Battuta | — | — | — | — | — |
+
+Ibn Battuta carries **nothing at all**, which is the design: taking what the
+map gives him is the whole of the figure (`biasIsEmpty` answers `true` and the
+chooser seats him unbiased). Zheng He and Hypatia are the first two to ask for
+salt water — `coastalWithin`, new in L6a beside `lakeWithin`, which is what
+Nezahualcoyotl wants the basin of the lake for.
+
 ## The colours (2026-09-11, `docs/flags.md` (oooo))
 
 Two a figure, Civ's reading: the **primary** is the field — the territory
@@ -769,6 +732,13 @@ colours it always wore.
 | Akhenaten | sun orange `#e0852a` | lapis `#234b9a` | the Aten's disc; Egyptian blue |
 | Al-Ma'mun | black `#1c1a1a` | gold `#d4a934` | the Abbasid black banner; gilt |
 | Mithridates VI | Tyrian purple `#6b2d7a` | silver `#d8d8e0` | a Hellenistic king's purple; the star and crescent |
+| Joan of Arc | royal azure `#2c3e9e` | gold `#d9a521` | the azure field of France, sown with gold lilies |
+| Mansa Musa | Wangara gold `#e6c419` | indigo `#27306e` | the gold of the Bambuk washings; the indigo the Sahel dyes with |
+| Zheng He | vermilion `#c8341b` | porcelain blue `#4a7fc1` | the cinnabar of the Ming seal; the blue of the wares the fleet carried |
+| Nezahualcoyotl | turquoise `#1fb3a5` | ochre `#c98b2e` | the turquoise mosaic of an Acolhua crown; the reeds of the lake |
+| Hypatia | papyrus `#e8dcae` | deep lapis `#1c3f7a` | the papyrus of the library; the sea under the Pharos |
+| Hildegard of Bingen | viridian `#55a832` | vellum `#efe3c8` | *viriditas*, her own word for the greening; the leaf she wrote it on |
+| Ibn Battuta | ochre `#b5651d` | sea teal `#0d6b78` | the mud brick of the Maghreb; the water he would not stop crossing |
 
 ## The cities (2026-09-11, `docs/flags.md` (pppp))
 
@@ -786,6 +756,13 @@ are the user's to retune. Names are separated by ` · `.
 | Akhenaten | Akhetaten · Thebes · Memphis · Heliopolis · Abydos · Hermopolis · Elephantine · Thinis · Sais · Bubastis · Coptos · Edfu · Swenett · Buhen · Napata |
 | Al-Ma'mun | Baghdad · Merv · Kufa · Basra · Raqqa · Damascus · Samarra · Mosul · Wasit · Rayy · Nishapur · Isfahan · Fustat · Aleppo · Bukhara |
 | Mithridates VI | Sinope · Amaseia · Amisos · Trapezus · Cabira · Pharnacia · Eupatoria · Zela · Comana · Themiscyra · Panticapaeum · Phanagoria · Chersonesus · Laodicea · Gaziura |
+| Joan of Arc | Orléans · Reims · Paris · Bourges · Chinon · Rouen · Tours · Poitiers · Blois · Compiègne · Troyes · Lyon · Bordeaux · Avignon · Domrémy |
+| Mansa Musa | Niani · Timbuktu · Djenné · Gao · Walata · Kumbi Saleh · Kangaba · Taghaza · Tadmekka · Kukiya · Awdaghost · Takedda · Dia · Ségou · Bamako |
+| Zheng He | Nanjing · Beijing · Taicang · Quanzhou · Ningbo · Changle · Zhangzhou · Malacca · Palembang · Calicut · Hormuz · Aden · Malindi · Semarang · Kunyang |
+| Nezahualcoyotl | Texcoco · Tenochtitlan · Tlacopan · Huexotla · Coatlinchan · Teotihuacan · Otumba · Chimalhuacan · Acolman · Tepetlaoztoc · Chiconauhtla · Papalotla · Chiautla · Calpulalpan · Tepechpan |
+| Hypatia | Alexandria · Cyrene · Ptolemais · Naucratis · Canopus · Pelusium · Antinoöpolis · Oxyrhynchus · Arsinoe · Berenice · Myos Hormos · Philae · Leontopolis · Nicopolis · Taposiris Magna |
+| Hildegard of Bingen | Bingen · Rupertsberg · Disibodenberg · Mainz · Trier · Cologne · Worms · Speyer · Eibingen · Koblenz · Aachen · Frankfurt · Ingelheim · Lorsch · Sponheim |
+| Ibn Battuta | Tangier · Fez · Marrakesh · Sijilmasa · Ceuta · Tlemcen · Tunis · Salé · Rabat · Meknes · Oujda · Bougie · Algiers · Tripoli · Kairouan |
 
 Notes on the choices: Akhetaten leads Egypt's list because it is the city
 Akhenaten built and ruled from, with Thebes and Memphis behind it. The
@@ -797,23 +774,55 @@ user may prefer a shorter list here. Mithridates' list crosses to the
 Bosporan kingdom he held (Panticapaeum, Phanagoria, Chersonesus). Al-Ma'mun
 ruled first from Merv and then Baghdad; Samarra is the later Abbasid seat.
 
+Notes on the second seven: Joan's list leads with Orléans, the town she
+relieved, then Reims where she had the king crowned and Paris she never took;
+Bourges is the seat Charles VII actually ruled from and Rouen is where she was
+burnt, with Domrémy — the hamlet she was born in — last. Mansa Musa's is the
+Mali of the hajj: Niani the capital, Timbuktu and Djenné the river towns,
+Taghaza and Tadmekka the salt and the caravan stations, Kumbi Saleh the Ghana
+capital his empire had swallowed. Zheng He's crosses the water on purpose — the
+Ming ports first (Nanjing, where the Longjiang yard built the fleet, and Taicang
+where it sailed from), then the stations of the seven voyages, Malacca to
+Malindi, with Kunyang, the Yunnan town he was taken from as a boy, last.
+Nezahualcoyotl's is the Acolhua half of the Triple Alliance, Texcoco first and
+Tenochtitlan and Tlacopan beside it. Hypatia's is Greek Egypt and the ports of
+the Red Sea run. Hildegard's is the middle Rhine: Bingen, the two houses she
+founded or fled (Rupertsberg, Disibodenberg), then the sees. Ibn Battuta's is
+the Maghreb he set out from and came home to, Tangier first.
+
 ## Notes for the system
 
-- **Built state** (2026-09-10, batches L2a → L3c, `docs/flags.md` (dddd)
-  and (iiii)): every **leader bonus**, **passive** and **unique** line in
-  the six tables above is whole in `data/leaders.json` and read by the
-  sim; the **boons** are built where a windfall or grant could say them,
-  and sixteen boon halves stand as a plain "not yet" line on the card
-  (three boons do nothing yet: The Horse Lords, The Great Raid, The
-  Great Conversion). ▢ the boons as a column
-  at all is the user's open question. Two readings the tables left
-  open were settled by the doc's own words: the Camel Archer counts the
-  works **in the capital**; Pachacuti's farms pay **per** mountain.
+- **Built state** (2026-09-12, batch L6a, `docs/flags.md` (xxxx)): the second
+  cut is whole in `data/leaders.json` and read by the sim. Thirteen figures,
+  each **two abilities** (live from the first turn, folded by `liveEffects`
+  exactly as a doctrine is), **one unique unit** and **one unique building**
+  (rows carrying `unlockedByLeader`, opened for the figure's seat by
+  `isUnlocked` once the row's own technology has come — no age machinery). The
+  draft is gone: no offer, no picks, no `leaders` phase, no `chooseLeaderCard`,
+  no blocker. The first cut's other pieces (the Tambo, the Qollqa, the Fubing,
+  the Post Station, the Whistling Arrow, the Chanyu's Guard, the Sun Court, the
+  Valley of Kings, the Mihna Court, the Paper Mill, the Mithridatium, the
+  scythed chariot) keep their marker, their rules and their prices and are
+  opened by nobody — a bench, ready for a later figure.
+  **Deferred, and annotated on the rows**: the Treasure Ship's second passenger
+  (the escort clause counts one hull and one rider and takes no capacity from a
+  row); the Scriptorium's doubled belief effects (there is no city-scoped
+  amplifier over follower or founder lines); the Canoness's lump of production
+  to every city (no occasion for a proclamation, and no grant shape that pays
+  every town); Zheng He's lump for the first sea road to each foreign realm
+  (nothing records a first contact); the Longjiang Dockyard's extra step for
+  ships launched there (`unitStamp` carries hit points and strength, not
+  movement).
 - A leader is a seat's **persona** in the sim (`Player.persona` exists for
-  bots) and a **charge and colour** in heraldry; each bonus is one card effect
-  on the seat, read by the same evaluator as a doctrine.
+  bots) and a **charge and colour** in heraldry; each ability is a list of card
+  effects on the seat, read by the same evaluator as a doctrine.
 - Portraits are placeholders like everything visual; the heraldry canton
-  carries the charge.
-- ▢ how many at launch (rec: eight, one per sub-identity plus Mithridates and
-  Rudolf), ▢ whether a leader locks a persona for bots (rec: yes — the
-  spectator page then reads as a story), ▢ two or three bonuses per leader.
+  carries the charge. No figure names one today (`LeaderDef.charge` is there
+  and empty), so every seat falls back to its seat-order device.
+- Three figures share a name with a great person on the roster (Zheng He,
+  Hypatia, Ibn Battuta), so their sheet keys are `zhengHeOfMing`,
+  `hypatiaOfAlexandria` and `ibnBattutaOfTangier`: an id is unique across the
+  whole card table by construction. The **names** they print are the plain ones.
+  ▢ the user may prefer the great-person rows renamed or retired instead.
+- ▢ whether a leader locks a persona for bots (rec: yes — the spectator page
+  then reads as a story).
