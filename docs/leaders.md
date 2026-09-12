@@ -76,7 +76,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 | **Nezahualcoyotl** | Texcoco | tall · the engineer-poet | *the Dikes*: cities with an aqueduct pay +1 culture, and their farms +1 production | *Flower and Song*: +1 culture for every two citizens in the capital | the Eagle warrior — a swordsman line; a kill pays +5 culture | the Tetzcotzinco — replaces the garden, keeps its effects, and the city makes +15% food in total (the whole yield, not the surplus) |
 | **Hypatia** | Alexandria | tall · the library city | *the Museion*: +25% renown | *the Commentaries*: great people's works pay +50% of their yields | the Alexandrian galley — a light hull with +1 sight | the Museion — replaces the library, keeps its effects, and pays +1 science for every great person your realm has called this game |
 | **Hildegard of Bingen** | the Rhineland | tall · rites and song | *the Rites*: cities keeping a rite pay +20% culture | *Symphonia*: every faith building pays +2 culture +2 production | the Canoness — an apostle whose proclamation also grants a lump of production to every city | the Scriptorium — a monastery line, +3 faith; follower and founder effects are doubled in this city (▢ a new shape: a city-scoped amplifier on belief effects) |
-| **Ibn Battuta** | the Maghreb | the traveller — the generalist who reacts to the map | *the Rihla*: meeting a new empire pays a lump of culture; the first route to each partner pays a lump of gold and science | *A guest at every court*: every distinct luxury your empire holds pays +1 gold +1 science +1 culture | the Rihla caravan — a trader that cannot be plundered | the Funduq — a caravanserai line, +1 route slot; each foreign route ending here pays +1 culture +1 science |
+| **Ibn Battuta** | the Maghreb | the traveller — the generalist who reacts to the map | *A guest at every court*: one more wildcard chair in every government | *the Rihla*: every unit +1 movement and +1 sight — civilians and traders included (▢ route reach follows the trader's movement, or gains one hex beside it: a rules knob to open) | the Rihla caravan — a trader that cannot be plundered | the Funduq — a caravanserai line, +1 route slot; each foreign route ending here pays +1 culture +1 science |
 
 **Pachacuti, reworked (the user, 2026-09-11).** His first cut pulled two ways —
 food from mountains (tall, few sites) and roads (wide, many). Now both lines
@@ -105,8 +105,10 @@ detour: where Al-Ma'mun turns faith into science, she turns great people and
 their works into it. Hildegard is rites and song: where Akhenaten builds with
 faith (holy sites, wonders), she keeps it (rites) and sings it (culture), with
 no wonder bias at all. Ibn Battuta (the user, 2026-09-11: *"the
-generalist, react to what you're given"*) pays off contact and variety rather
-than any yield, so the map decides what he becomes; he carries **no wants and no
+generalist, react to what you're given"*) pays off *reach* rather than any
+yield — a spare chair for whatever the map asks for, and every piece a hex
+farther and a hex wiser, the settler and the trader as much as the scout — so the
+map decides what he becomes; he carries **no wants and no
 start bias**, since taking what he is given is the point, and every line is built
 vocabulary (meeting and route lumps, the distinct-luxury count, the
 unplunderable-trader rule, route riders). Thirteen is an odd count; the roster
