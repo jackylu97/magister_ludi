@@ -135,6 +135,19 @@ al-Rahman III, Bumin, Teuta, Justinian and Theodora, Jayavarman VII; and the
 magi — Gerbert of Aurillac, Ramon Llull, John Dee, Paracelsus — with Enheduanna,
 Al-Jazari, Shen Kuo, Su Song, Ibn Battuta, Piri Reis, Rabban Bar Sauma, Sun Tzu.
 
+
+**Sketched for the shelf (2026-09-11) — the two magi the user asked after:**
+
+| figure | civ | identity | ability I | ability II | unique unit | unique building |
+|---|---|---|---|---|---|---|
+| **Gerbert of Aurillac** | Reims and Rome | the magician pope — beads, faith and learning as one instrument | *the Reckoner*: every glass bead you hold pays +2 science +1 culture a turn | *the Brazen Head*: temples pay +2 science and libraries +2 faith | the Legate — an apostle whose proclamation also grants the city a lump of science | the Cathedral School — replaces the library, keeps its effects, +2 faith; the city's rites cost a quarter less faith (▢ a rite-price rider) |
+| **Ramon Llull** | Majorca | the Ars Magna — convert by argument, always the right card | *the Ars Magna*: every Order draft shows one more card | *Blanquerna*: +1 science +1 culture per three foreign citizens following your faith | the Disputant — an apostle line with an extra charge; its proclamation on a foreign city also pays science | the Studium of Miramar — replaces the university, +3 science, +1 culture per congregation in the city (▢ a per-congregation count) |
+
+Gerbert plays the wagers for the beads themselves rather than for the Opus, and
+his faith and science are one pool. Llull's faith wants to be abroad, in rival
+towns, where it pays science; the alchemical treatises falsely attributed to him
+for three centuries are the Æra V hook if a figure ever leans toward the Opus.
+
 ### What building it costs
 
 A held-stack change (nothing has landed): `LeaderDef` becomes `{abilities[2],
