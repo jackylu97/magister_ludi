@@ -71,13 +71,53 @@ The letter is the item the question came out of; the item's full history is in
 - **(dddd) · (jjjj) The rows `data/leaders.json` does not carry.** There is no
   `family` or `spectrum` field, so the new-game screen's family line and spectrum
   bar print nothing and the mockup's two lines are absent. A data decision.
-- **(wwww) The leaders' second cut — RULED, unbuilt.** The draft and the boon
-  column go; a leader is a bonus plus four uniques granted as the seat's age
-  turns, the passives move to six shared **family progressions**, and the
-  roster targets twelve at two a family. `docs/leaders.md` "The second cut —
-  fixed identity" is the spec; ▢ the six progressions and the second seats are
-  the user's to mark up before it flies. The first cut's sixteen boon halves
-  are moot under it.
+- **(xxxx) The leaders' second cut — RULED, L6** (the user, 2026-09-11: *"lets
+  implement these. Fold it into the existing UI and axe the leader draft
+  mechanic. I'm not sure what to do with the leader menu, we still need to
+  give players a way to see what their civ does."*). The spec is
+  `docs/leaders.md` "The second cut — fixed identity": a figure is **two
+  abilities, a unique unit, a unique building** plus colours, cities, start
+  bias and charge; **thirteen figures** (the six built, remapped; Joan of Arc,
+  Mansa Musa, Zheng He, Nezahualcoyotl, Hypatia, Hildegard of Bingen, Ibn
+  Battuta new). **L6a — the sim and the data**: `LeaderDef` reshaped
+  (`abilities: CardEffect[][2]`, `unit`, `building`, the rest as today);
+  the abilities are the seat's held effects from `newGame` (the bonus's
+  seam, widened to two); a unique's row is `unlockedByLeader` and opens for
+  the figure's seat **through the tech gate every row has** — no age
+  machinery; `Player.leaderPicks`/`leaderOffer`, `chooseLeaderCard`, the
+  `leaderDraft` blocker, the `leaders` phase, `leaderCardHome`/the deck
+  types and `src/ai/leader.ts` **retire** (the v113 changelog rewritten to
+  the second cut; schema stays 115 — nothing landed); seven new unit rows
+  and seven new building rows (sizes, columns, silhouettes/model classes,
+  Compendium clauses through the describers) and the six benched rows kept
+  with `unlockedByLeader` and no figure (a bench); the seven new figures'
+  **colours, cities and start biases drafted into the doc's three tables by
+  the agent** (the doc is the spec; the user retunes; sync-tested); the
+  first-cut deck tables and their sync test removed with the deck. New
+  shapes, **build if small, else defer-and-annotate**: Joan's soldiers
+  bought with faith in one building (`BuildingDef.faithBuysMilitary`, read
+  in `purchase.ts` beside `faithBuysWonders`); the Treasure Ship's second
+  passenger (the escort clause, per row); the Scriptorium's doubled belief
+  effects in its city (a city-scoped amplifier on follower/founder lines);
+  the Canoness's production lump on proclamation (a rider on the proclaim
+  occasion — add the occasion if absent); Ibn Battuta's **re-roll** (a new
+  command `rerollOffer {playerId, kind}` redrawing an Order, doctrine,
+  government or great-person offer once from the seat's own pool, never a
+  belief; a `Player` stamp per offer so it is once per draft; bots ignore
+  it for now); the caravan's `+3 gold on its routes` and `cannot be
+  plundered` scoped to one trader row (route rider and rule by `class`).
+  **L6b — the screens**, on L6a: the landing face shows the four lines
+  (abilities through the describers, the unit and building named with the
+  tech that opens each); the draft sheet and its door go; **the leader
+  sheet stays as "your civ"** — the four lines with what each ability pays
+  this turn from the ledger's own lines, the uniques with their opening
+  tech and a Compendium ref, the cities in order, the pair of inks; the
+  Compendium's leader shelf lists the same; the spectator names the figure;
+  the mockup redrawn to four lines. Pins: every figure's abilities are live
+  from turn one; a unique opens for its figure's seat at its tech and for
+  no other seat; the draft command is refused as unknown; a config naming
+  a figure replays; the doc tables ↔ data; the re-roll redraws once and is
+  refused twice; the caravan pays and is not plundered.
 - **(qqqq) Whose movement the row means.** A leader row reading "military units
   regain all movement" is implemented as `isCombatant`; mounted-only would be a
   rule change.
