@@ -68,9 +68,33 @@ genuinely good stand-in, which is why heraldry shipped first.
 
 ## Rules for the paintings themselves (for the Midjourney lane)
 
-- **One style, stated once**: engraved-and-hand-tinted — the woodcut/copperplate line with a
-  wash, so it sits beside ink marks rather than fighting them; never photoreal, never painterly
-  soft. Sultan's Game's gilding is the register; CK3's low contrast is the discipline.
+- **One style, stated once** (the user, 2026-09-11, two reference plates): **flat-plane
+  gouache poster** — mid-century poster illustration. Shapes of colour with hard-edged shadow
+  shapes, no outlines, a screen-print or gouache grain, on cream paper. Never photoreal, never
+  painterly-soft, never a woodcut line (the engraved-and-hand-tinted rule this replaces).
+  CK3's low contrast is still the discipline where a plate sits behind text.
+- **The palette is the board's, at full chroma.** Six anchors shared with the diorama:
+  vermilion/orange, lapis/ultramarine, gold, cream paper, sage/olive, deep teal-green. The
+  paintings use them flat and saturated; the board uses the same hues lit, at roughly two
+  thirds the chroma, because the board carries information. The light is one light: a warm
+  key from screen-left, blue in the shadows, on both. A leader's portrait, plate rim and border
+  stitch rhyme because the seat's two inks (`docs/leaders.md` "The colours") are drawn from
+  these anchors — ▢ Taizong's jade and Mithridates' Tyrian purple sit outside them (a deep
+  teal-green and an oxblood or lapis-and-gold are the poster's nearest); the user's call.
+- **Grain unifies**: a light film grain on the render and the paper grain on the art make the
+  two read as one printed object.
+
+| anchor | hex (poster, flat) | where it lives on the board |
+|---|---|---|
+| vermilion / orange | `#e8542a` · `#f08a2e` | seat ink, the wanting voice, orange foliage |
+| lapis / ultramarine | `#2c3e9e` · `#3f5fd0` | water, seat ink, shadow tint |
+| gold | `#d9a521` | gilt frames, seat secondaries |
+| cream paper | `#efe3c8` | the UI's parchment, the vellum table |
+| sage / olive | `#8fae4a` · `#6f8f3a` | grass, plains |
+| deep teal-green | `#1f5c55` | forest, cypress, jungle |
+
+The hexes are anchors for the eye, not data — the seat inks and `view3d.json` carry their own
+figures; a sync test against this table is ▢ if the user wants the inks held to it.
 - **Composition pulls to one subject**, background quiet, nothing that expects to move (CK3's
   rule) — the plate sits *behind* or *beside* text and must not compete with it.
 - **Portraits at 3:4, three-quarter view, eyes level**, so a 24px crop still reads as a face.
