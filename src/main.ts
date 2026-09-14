@@ -100,8 +100,17 @@ import {
   createSavesPanel,
   downloadJson,
   openSaveStorage,
-  savedAtLabel,
+  recentWorlds,
+  relativeWhen,
 } from './ui/savesPanel';
+/* The landing's three steps (batch L7, docs/flags.md (yyyy)). The step logic
+   and every word it prints are `landingFlow.ts`; what is here is the wiring. */
+import {
+  type LandingFlow,
+  STEP_CRUMB,
+  createLandingFlow,
+  summaryStrip,
+} from './ui/landingFlow';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
 import { type VictoryModal, createVictoryModal } from './ui/victoryModal';
@@ -303,23 +312,29 @@ const startButton = requireElement<HTMLButtonElement>('start-game');
 /**
  * **The landing's leader half** (batch L2b) — built once at module scope beside
  * the form, because it is part of the same screen and holds the same kind of
- * thing: an answer the player gives before a game exists.
+ * thing: an answer the player gives before a game exists. It is step two of two
+ * since batch L7, which is why it is handed the breadcrumb and the seed.
  *
  * The canton it draws is seat 0's, which is the seat the person at the keyboard
- * always takes (`rosterFor`). Start's own label follows the pick, so the button
+ * always takes (`rosterFor`). Begin's own label follows the pick, so the button
  * says who it begins as — the mockup's one flourish on this screen.
  */
 const leaderSelect: LeaderSelect = createLeaderSelect({
   container: requireElement<HTMLElement>('landing-leaders'),
+  detail: requireElement<HTMLElement>('landing-detail'),
+  crumb: STEP_CRUMB.civ,
   color: SEATS[0]!.color,
+  // Read at the press, off the field the world was drawn from: *Random* deals
+  // this world's figure rather than a figure beside it.
+  seed: () => parseSeed(seedInput.value),
   onPick: (chosen) => setStartLabel(chosen),
 });
 
-/** Start's label: "Start Game", or who it begins as. */
+/** Begin's label: "Begin", or who it begins as. */
 function setStartLabel(chosen: string): void {
   startButton.textContent = isLeaderId(chosen)
     ? `Begin as ${leaderDef(chosen).name}`
-    : 'Start Game';
+    : 'Begin';
 }
 const restartButton = requireElement<HTMLButtonElement>('restart');
 const restartConfirmEl = requireElement<HTMLElement>('restart-confirm');
@@ -448,13 +463,27 @@ const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
 /**
- * Saving and loading: the landing's resume row, the ☰ menu's four verbs, and the
- * load list that both of them open. See `src/ui/saves.ts` for what a save *is*
- * and `src/ui/savesPanel.ts` for the list; what is here is the wiring.
+ * Saving and loading: the title screen's Continue and its shelf of recent
+ * worlds, the ☰ menu's four verbs, and the load list that all of them open. See
+ * `src/ui/saves.ts` for what a save *is* and `src/ui/savesPanel.ts` for the list
+ * and the shelf's own reading; what is here is the wiring.
  */
 const continueButton = requireElement<HTMLButtonElement>('continue-game');
 const continueLabelEl = requireElement<HTMLElement>('continue-label');
 const landingLoadButton = requireElement<HTMLButtonElement>('landing-load');
+const shelfEl = requireElement<HTMLElement>('landing-shelf');
+const shelfEmptyEl = requireElement<HTMLElement>('landing-shelf-empty');
+/* The landing's three steps (batch L7): the title screen's two remaining rows,
+   the world step's switch, its summary and the four ways between steps. */
+const newGameButton = requireElement<HTMLButtonElement>('landing-new');
+const compendiumMenuButton = requireElement<HTMLButtonElement>('landing-compendium');
+const crumbWorldEl = requireElement<HTMLElement>('landing-crumb-world');
+const modeSingleButton = requireElement<HTMLButtonElement>('mode-single');
+const modeHotSeatButton = requireElement<HTMLButtonElement>('mode-hotseat');
+const summaryEl = requireElement<HTMLElement>('landing-summary');
+const backToTitleButton = requireElement<HTMLButtonElement>('landing-back-title');
+const backToWorldButton = requireElement<HTMLButtonElement>('landing-back-world');
+const toCivButton = requireElement<HTMLButtonElement>('landing-to-civ');
 const menuSaveButton = requireElement<HTMLButtonElement>('menu-save');
 const menuSaveAsButton = requireElement<HTMLButtonElement>('menu-save-as');
 const menuLoadButton = requireElement<HTMLButtonElement>('menu-load');
@@ -531,6 +560,9 @@ function setSeatCount(seats: number): void {
   seatsFewerButton.disabled = count <= MIN_SEATS;
   seatsMoreButton.disabled = count >= MAX_SEATS;
   refreshPersonaRow();
+  // The strip under the card is a reading of the card, so it is re-read wherever
+  // the card is written (batch L7).
+  refreshSummary();
 }
 
 seatsValue.setAttribute('aria-valuemin', String(MIN_SEATS));
@@ -1072,20 +1104,69 @@ function closePopovers(): boolean {
 let takeOverGame: ((next: Game | null) => void) | null = null;
 
 /**
- * The landing's Continue button: what it says, and whether it is there at all.
+ * **The title screen's two readings of the shelf**: what Continue says, and what
+ * the recent-worlds card lists (batch L7, `docs/flags.md` (yyyy)).
  *
- * The newest save of any kind — the rolling autosave and a named slot compete on
- * one clock, because "where I was" is a question about time and not about which
- * button wrote it. Nothing to resume hides the button rather than disabling it:
- * a first-ever visit should see the form it always saw, not a dead control
- * explaining an absence.
+ * Continue is the newest save of any kind — the rolling autosave and a named
+ * slot compete on one clock, because "where I was" is a question about time and
+ * not about which button wrote it — and it names that world by its figure, its
+ * seed and its turn. Nothing to resume hides the button rather than disabling
+ * it: a first visit should see a menu with nothing dead on it.
+ *
+ * The shelf under it is the same list, a row a world, newest first, and a row
+ * loads. Both come out of `recentWorlds` (`savesPanel.ts`), which is the one
+ * reading of the shelf either surface makes.
  */
 function refreshResumeRow(): void {
-  const slot = newestSlot(saveStorage);
-  continueButton.hidden = slot === null;
+  const worlds = recentWorlds(saveStorage);
+  const newest = worlds[0];
+  continueButton.hidden = newest === undefined;
   continueLabelEl.textContent =
-    slot === null ? '' : `Turn ${slot.turn} · ${savedAtLabel(slot.savedAt)}`;
-  continueButton.title = slot === null ? '' : `Resume “${slot.name}”`;
+    newest === undefined
+      ? ''
+      : `${newest.figure} · seed ${newest.slot.seed} · turn ${newest.slot.turn}`;
+  continueButton.title = newest === undefined ? '' : `Resume “${newest.slot.name}”`;
+
+  shelfEl.replaceChildren();
+  for (const world of worlds) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'landing-shelf-row';
+    const who = document.createElement('span');
+    who.className = 'landing-shelf-who';
+    who.textContent = `${world.figure} · seed ${world.slot.seed}`;
+    const when = document.createElement('span');
+    when.className = 'landing-shelf-when';
+    when.textContent = `turn ${world.slot.turn} · ${relativeWhen(world.slot.savedAt)}`;
+    row.append(who, when);
+    row.title = `Load “${world.slot.name}”`;
+    row.addEventListener('click', () => loadSlotId(world.slot.id));
+    shelfEl.append(row);
+  }
+  shelfEmptyEl.hidden = worlds.length > 0;
+}
+
+/**
+ * One slot, loaded straight, with no list in between — Continue's own journey
+ * and a shelf row's.
+ *
+ * The refusal lands on the landing's own error line rather than in the list,
+ * because the player never opened a list: they pressed one row and it did not
+ * work, and the sentence belongs where they are looking. A save too broken to
+ * load is also a save that should stop being offered, so the shelf is rebuilt.
+ */
+function loadSlotId(slotId: string | null): void {
+  const result = slotId === null ? null : loadSlot(saveStorage, slotId);
+  if (result === null || !result.ok) {
+    landingErrorEl.textContent = result === null ? 'That save is no longer there.' : result.error;
+    landingErrorEl.hidden = false;
+    if (result !== null && !result.ok && result.detail !== undefined) {
+      console.error(`[magister-ludi save] ${result.detail}`);
+    }
+    refreshResumeRow();
+    return;
+  }
+  void beginGame(result.game);
 }
 
 function showLanding(): void {
@@ -1144,16 +1225,11 @@ function showLanding(): void {
   // follows it.
   leaderSelect.render();
   setStartLabel(leaderSelect.chosen);
-  // The button, not the seed field: Start is what the player came here to press,
-  // and Shift+Tab reaches the fields above it.
-  //
-  // `preventScroll`, because Begin is now the last thing on the leaf (the design
-  // pass of 2026-09-10) and focusing it on a window shorter than the leaf would
-  // scroll the title off the top — the player would arrive at a page that had
-  // already scrolled past its own masthead. The landing opens at its top; the
-  // focus ring is reached by scrolling, exactly as the button is.
-  landingEl.scrollTop = 0;
-  startButton.focus({ preventScroll: true });
+  refreshSummary();
+  // Back to the front of the walk: a restart opens on the title screen, where
+  // Continue names the game that just ended (batch L7). `go` scrolls the leaf to
+  // its own top, so nobody arrives half-way down a card they have not seen.
+  landing.go('title');
 }
 
 function hideLanding(): void {
@@ -1200,8 +1276,21 @@ async function beginGame(loaded: Game | null = null): Promise<void> {
   }
 }
 
+/**
+ * Enter, wherever it is pressed inside the setup form.
+ *
+ * The form spans two steps — the fields are on the world step and Begin is the
+ * civ step's — so submission means *the way on from where the player is*: Enter
+ * in the seed field walks to the civ step rather than starting a game the player
+ * has not finished setting up. From the civ step it is Begin, which is the
+ * button that actually submitted it.
+ */
 landingForm.addEventListener('submit', (event) => {
   event.preventDefault();
+  if (landing.step === 'world') {
+    landing.go('civ');
+    return;
+  }
   void beginGame();
 });
 
@@ -1211,33 +1300,96 @@ randomSeedButton.addEventListener('click', () => {
   // UI-side only: the simulation itself never calls Math.random().
   seedInput.value = String(Math.floor(Math.random() * 1_000_000));
   seedInput.focus();
+  refreshSummary();
 });
 
-/**
- * Continue: the newest save, loaded straight, with no list in between.
- *
- * The refusal lands on the landing's own error line rather than in the list,
- * because the player never opened a list — they pressed one button and it did
- * not work, and the sentence belongs where they are looking. A save too broken
- * to load is also a save that should stop being offered, so the row is rebuilt.
- */
+/** Continue: the newest save of any kind, loaded straight (`loadSlotId`). */
 continueButton.addEventListener('click', () => {
-  const slot = newestSlot(saveStorage);
-  const result = slot === null ? null : loadSlot(saveStorage, slot.id);
-  if (result === null || !result.ok) {
-    landingErrorEl.textContent =
-      result === null ? 'That save is no longer there.' : result.error;
-    landingErrorEl.hidden = false;
-    if (result !== null && !result.ok && result.detail !== undefined) {
-      console.error(`[magister-ludi save] ${result.detail}`);
-    }
-    refreshResumeRow();
-    return;
-  }
-  void beginGame(result.game);
+  landingErrorEl.hidden = true;
+  loadSlotId(newestSlot(saveStorage)?.id ?? null);
 });
 
 landingLoadButton.addEventListener('click', () => savesPanel.open());
+
+// --- the landing's three steps (batch L7, docs/flags.md (yyyy)) --------------
+
+/**
+ * The walk, and the four keys the title screen answers.
+ *
+ * Every verb here already existed — Continue, Load, the book, the setup form —
+ * and what batch L7 added is *where* each is pressed. So this block is wiring
+ * and nothing else: the step logic, the words and the key mapping are all
+ * `landingFlow.ts`, which a suite with no document can hold.
+ *
+ * The keyboard is refused while the shelf or the book is standing over the
+ * landing: that surface owns the keys while it is up, and both answer Escape of
+ * their own.
+ */
+const landing: LandingFlow = createLandingFlow({
+  root: landingEl,
+  busy: () => savesPanel.isOpen || compendium.isOpen,
+  onKey: (action) => {
+    if (action === 'continue') continueButton.click();
+    else if (action === 'new') landing.go('world');
+    else if (action === 'load') savesPanel.open();
+    else compendium.open();
+  },
+  // Nothing on a step may open half-scrolled or with the keyboard nowhere, so
+  // each one is entered at its own first control.
+  onStep: (step) => {
+    if (step === 'title') {
+      (continueButton.hidden ? newGameButton : continueButton).focus({ preventScroll: true });
+    } else if (step === 'world') {
+      seedInput.focus({ preventScroll: true });
+    } else {
+      startButton.focus({ preventScroll: true });
+    }
+  },
+});
+
+crumbWorldEl.textContent = STEP_CRUMB.world;
+newGameButton.addEventListener('click', () => landing.go('world'));
+compendiumMenuButton.addEventListener('click', () => compendium.open());
+/* Both Backs go through the walk itself (`stepBefore`) rather than naming the
+   step they land on: each button is only ever on screen on its own step, and one
+   graph is easier to keep true than two hard-coded answers. */
+backToTitleButton.addEventListener('click', () => landing.back());
+backToWorldButton.addEventListener('click', () => landing.back());
+toCivButton.addEventListener('click', () => landing.go('civ'));
+
+/**
+ * **The mode switch writes the checkbox**, and the checkbox is still the answer.
+ *
+ * `currentConfig` reads `hotSeatToggle.checked` exactly as it always did — the
+ * switch is a way of pressing it, not a second place the fact lives — so a game
+ * set up through the switch and a game set up through the old checkbox produce
+ * byte-identical configs. Online presses nothing: it is disabled.
+ */
+function setMode(hotSeat: boolean): void {
+  hotSeatToggle.checked = hotSeat;
+  modeSingleButton.setAttribute('aria-pressed', String(!hotSeat));
+  modeHotSeatButton.setAttribute('aria-pressed', String(hotSeat));
+  refreshSummary();
+}
+modeSingleButton.addEventListener('click', () => setMode(false));
+modeHotSeatButton.addEventListener('click', () => setMode(true));
+
+/** The mono line under the map card: what the controls above it currently say. */
+function refreshSummary(): void {
+  summaryEl.textContent = summaryStrip({
+    size: sizeSelect.value,
+    seats: seatCount(),
+    seed: parseSeed(seedInput.value),
+    hotSeat: hotSeatToggle.checked,
+  });
+}
+/* The two controls that change under the player's own hand. The seats stepper
+   and the die are not here: both go through a function of their own
+   (`setSeatCount`, the reseed handler), and a control that is written by script
+   fires no `input` — so the refresh rides with the write instead. */
+for (const control of [seedInput, sizeSelect]) {
+  control.addEventListener('input', () => refreshSummary());
+}
 
 restartButton.addEventListener('click', () => setRestartConfirm(true));
 restartNoButton.addEventListener('click', () => {

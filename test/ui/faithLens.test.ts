@@ -263,7 +263,10 @@ describe('the faith lens’s rack row', () => {
    * strange again (user, 2026-08-28).
    */
   it('is label-only, with no tail clause on it or in the record', () => {
-    expect(main).not.toContain('tail:');
+    // A word boundary, not a substring: `main.ts` has a `detail:` on it since
+    // the landing's civ step (batch L7), and a bare substring search reads that
+    // as the field this pin is about.
+    expect(main).not.toMatch(/\btail:/);
     expect(main).not.toContain('lens-option-tail');
     const rack = main.slice(main.indexOf('interface LensOption'), main.indexOf('const LENS_OPTIONS'));
     expect(rack).not.toContain('tail');

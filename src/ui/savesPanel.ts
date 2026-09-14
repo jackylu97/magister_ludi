@@ -25,6 +25,7 @@
  */
 
 import type { Game } from '../sim/game';
+import { isLeaderId, leaderDef } from '../sim/leaderData';
 import {
   SAVE_KEY_PREFIX,
   type SavePayload,
@@ -115,6 +116,67 @@ export function savedAtLabel(savedAt: number, now: number = Date.now()): string 
   const time = when.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   if (sameDay) return time;
   return `${when.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })} ${time}`;
+}
+
+/**
+ * **How long ago, in a phrase** — the title screen's shelf (batch L7,
+ * `docs/flags.md` (yyyy)).
+ *
+ * The load list asks a different question and keeps its own answer: it is a list
+ * of *slots* and has to tell four autosaves from this afternoon apart, so it
+ * prints a clock (`savedAtLabel`). The shelf on the title screen asks "which
+ * world was I in", and for that the useful reading is the distance — today, two
+ * days ago, last week. Past a fortnight it hands back to the date, because
+ * "eleven weeks ago" is a number nobody converts.
+ */
+export function relativeWhen(savedAt: number, now: number = Date.now()): string {
+  if (!Number.isFinite(savedAt) || savedAt <= 0) return '—';
+  const then = new Date(savedAt);
+  const startOf = (at: Date): number => new Date(at).setHours(0, 0, 0, 0);
+  const days = Math.round((startOf(new Date(now)) - startOf(then)) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days} days ago`;
+  if (days < 14) return 'last week';
+  return savedAtLabel(savedAt, now);
+}
+
+/**
+ * One row of the title screen's shelf: a world, named by who is playing it.
+ *
+ * **The figure, the seed, the turn and when** — the four things that tell one
+ * saved world from another at a glance. A `SaveSlot` carries three of them; the
+ * fourth is in the payload's config, on seat 0, so the file is read a second
+ * time for it. That is deliberate and it is cheap: a shelf is never more than a
+ * handful of rows, and the alternative is a field on `SaveSlot` that every save
+ * written before leaders existed would not have.
+ *
+ * A seat under no figure falls back to the save's own name, which is what the
+ * player called it (or "Autosave") — never an invented one.
+ */
+export interface RecentWorld {
+  slot: SaveSlot;
+  /** The figure seat 0 sits under, or the save's own name where there is none. */
+  figure: string;
+}
+
+export function recentWorlds(storage: SaveStorage, limit = 4): RecentWorld[] {
+  return listSaves(storage)
+    .slice(0, limit)
+    .map((slot) => ({ slot, figure: figureOf(storage, slot) }));
+}
+
+/** Who seat 0 is in a stored save, in the roster's own words. */
+function figureOf(storage: SaveStorage, slot: SaveSlot): string {
+  const json = storage.getItem(storageKey(slot.id));
+  if (json === null) return slot.name;
+  try {
+    const payload = JSON.parse(json) as Partial<SavePayload>;
+    const leader = payload.config?.players?.[0]?.leader;
+    return isLeaderId(leader) ? leaderDef(leader).name : slot.name;
+  } catch {
+    return slot.name;
+  }
 }
 
 /** Hands the player a file the browser saves wherever it saves things. */

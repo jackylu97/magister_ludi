@@ -376,6 +376,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
 - `src/ui/` is the DOM UI; `controls.ts` drives renderers only through the
   `MapView` interface. A full-screen sheet builds on `modalShell.ts`. Per-game
   screens push their window listeners into `gameDisposers`.
+- **The landing is three screens and one element** (batch L7, `docs/flags.md`
+  (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
+  is the whole of the screen state — **title** (the poster, shown here and
+  nowhere else, with the menu and the shelf of recent worlds on its edges;
+  Enter · N · L · ? are its keys), **world** (the mode switch, the map card, a
+  mono summary strip) and **civ** (the roster of figures and the detail card,
+  with Begin). Nothing routes and no field is rebuilt between steps, which is
+  what keeps `currentConfig` byte-identical for the same choices. The step walk,
+  the breadcrumbs, the summary and the keys are `src/ui/landingFlow.ts`.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

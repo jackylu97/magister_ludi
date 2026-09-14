@@ -48,8 +48,17 @@
 
          It comes back — over a running game — when Restart is confirmed in the
          ☰ menu, which is why it is a screen state and not a page.
+
+         **Three screens, one element** (batch L7, docs/flags.md (yyyy)): the
+         title, the world and the civ are blocks of this one leaf, and
+         `data-step` on #landing says which of them is on screen. Nothing
+         routes and nothing is rebuilt between steps — the form below keeps its
+         fields and their values the whole way through, which is what makes
+         `currentConfig` read the same three controls it has always read and
+         answer byte for byte the same config for the same choices. The step
+         logic is src/ui/landingFlow.ts; the stylesheet does the showing.
          ============================================================ -->
-    <div id="landing">
+    <div id="landing" data-step="title">
       <div class="landing-stage">
         <!-- The specimen's marquee, verbatim in spirit: the display face, the
              italic vermilion accent on the second word, an italic subtitle and
@@ -83,7 +92,7 @@
              astrolabe or the latin text"); src/ui/frontispiece.ts guards both
              of its elements against absence, so main.ts is untouched. The plate
              is served at two sizes from public/art/. -->
-        <header class="marquee marquee-poster">
+        <header class="marquee marquee-poster landing-step" data-step-for="title">
           <div class="marquee-art">
             <img
               class="marquee-plate"
@@ -107,150 +116,267 @@
           </div>
         </header>
 
-        <!-- A form, so Enter submits from either field without a keystroke
-             handler of its own. It carries the eyebrow/title/hint the mockup
-             gives it, so the two cards under the masthead are siblings that
-             say what they are for rather than a bare stack of fields beside a
-             titled one. -->
-        <form id="landing-setup" class="hud-card landing-card">
-          <p class="eyebrow">the map</p>
+        <!-- ---- step one of three: the title -------------------------------
+             The two cards on the poster's edges: the menu at the left, the
+             shelf of recent worlds at the right. The title screen owns
+             everything that is *not* a decision about a new world — continuing,
+             loading, the book, settings — so that the two setup steps are
+             nothing but the new game.
+
+             Every row here is a real button with its key printed beside it, and
+             the keys are the same four landingFlow.ts answers: they cannot
+             drift, because a key with no row would be a secret and a row with no
+             key would be a lie. -->
+        <div class="landing-title-grid landing-step" data-step-for="title">
+          <div class="hud-card landing-card landing-menu">
+            <p class="eyebrow">the table</p>
+            <!-- Continue is the newest save of any kind — autosave or a named
+                 one, whichever is later — named by its own figure, seed and
+                 turn (`refreshResumeRow`). It hides itself when there is
+                 nothing to resume, so a first-ever visit sees a menu with
+                 nothing dead on it. -->
+            <button id="continue-game" class="btn landing-menu-item is-strong" type="button" hidden>
+              <span class="landing-menu-text">
+                Continue
+                <span id="continue-label" class="landing-menu-sub"></span>
+              </span>
+              <span class="landing-key">Enter</span>
+            </button>
+            <button id="landing-new" class="btn landing-menu-item" type="button">
+              <span class="landing-menu-text">New game</span>
+              <span class="landing-key">N</span>
+            </button>
+            <button id="landing-load" class="btn landing-menu-item" type="button">
+              <span class="landing-menu-text">Load a game</span>
+              <span class="landing-key">L</span>
+            </button>
+            <!-- Netcode comes after the playable core and the AI (CLAUDE.md,
+                 Direction). The row is here and disabled rather than absent,
+                 because "not yet" is information and a missing row is not. -->
+            <button id="landing-multiplayer" class="btn landing-menu-item" type="button" disabled>
+              <span class="landing-menu-text">
+                Multiplayer
+                <span class="landing-menu-sub">coming after the playable core</span>
+              </span>
+              <span class="landing-key"></span>
+            </button>
+            <div class="double-rule landing-menu-rule" aria-hidden="true"></div>
+            <button id="landing-compendium" class="btn btn-quiet landing-menu-item" type="button">
+              <span class="landing-menu-text">Compendium</span>
+              <span class="landing-key">?</span>
+            </button>
+            <!-- There is no settings screen yet: the ☰ menu's own rows belong to
+                 a running game. Disabled and saying so, for Multiplayer's
+                 reason. -->
+            <button id="landing-settings" class="btn btn-quiet landing-menu-item" type="button" disabled>
+              <span class="landing-menu-text">
+                Settings
+                <span class="landing-menu-sub">soon</span>
+              </span>
+              <span class="landing-key"></span>
+            </button>
+          </div>
+
+          <!-- The shelf: the same slots the load list holds, newest first, each
+               row naming the figure, the seed, the turn and when. Empty markup —
+               `refreshResumeRow` fills it from `recentWorlds` (savesPanel.ts),
+               which is the one reading of the shelf either surface makes. -->
+          <div class="hud-card landing-card landing-shelf">
+            <p class="eyebrow">recent worlds</p>
+            <div id="landing-shelf" class="landing-shelf-rows"></div>
+            <p id="landing-shelf-empty" class="landing-hint" hidden>
+              No worlds yet. A game autosaves at the end of every turn.
+            </p>
+            <p class="landing-hint">
+              Named saves and the autosave, newest first. Load opens the whole shelf,
+              with Import beside it.
+            </p>
+          </div>
+        </div>
+
+        <!-- ---- step two of three: the world -------------------------------
+             A form, so Enter submits from either field without a keystroke
+             handler of its own. On this step Enter means "choose your civ"
+             rather than "begin" — see the submit listener in main.ts, which
+             reads the step.
+
+             The masthead does not repeat here: the breadcrumb stands in for it
+             (STEP_CRUMB in landingFlow.ts, written once at boot). -->
+        <form id="landing-setup" class="hud-card landing-card landing-step" data-step-for="world">
+          <p id="landing-crumb-world" class="eyebrow landing-crumb"></p>
           <h2 class="landing-title">Draw a world</h2>
 
-          <!-- Every setup row is a ruled field: the name at the left in the
-               working face, the control at the right. The label sizes to its
-               own word rather than to the HUD's 34px eyebrow column, which is
-               what used to clip the longest of them. -->
-          <div class="row field">
-            <label for="seed">Seed</label>
-            <span class="field-control">
-              <input id="seed" type="text" value="1" spellcheck="false" />
-              <button id="random-seed" class="btn btn-quiet btn-reseed" type="button">
-                Random
-              </button>
-            </span>
-          </div>
-
-          <div class="row field">
-            <label for="size">Size</label>
-            <select id="size"></select>
-          </div>
-
-          <!-- Seats at one table, not a rotation: turns are simultaneous.
-               A count and not a list of named shapes (batch L4, docs/flags.md
-               (nnnn)): you, and the rivals behind you, from the rules' floor to
-               the palette's ceiling. The <output> is the value — one element
-               carries both the figure on the screen and what `currentConfig`
-               reads, so the two cannot drift. It is a spinbutton, so the arrow
-               keys work on it; the two ends and the roster each count deals are
-               `src/ui/gameSetup.ts`. -->
-          <div class="row field">
-            <label for="seats">Seats</label>
-            <span class="field-control seats-stepper">
-              <button
-                id="seats-fewer"
-                class="btn btn-quiet btn-step"
-                type="button"
-                aria-label="One seat fewer"
-              >
-                −
-              </button>
-              <output id="seats" class="seats-count" role="spinbutton" tabindex="0"></output>
-              <button
-                id="seats-more"
-                class="btn btn-quiet btn-step"
-                type="button"
-                aria-label="One seat more"
-              >
-                +
-              </button>
-            </span>
-          </div>
-
-          <!-- How the seat nobody is sitting in plays. It is config, not a
-               setting: it rides into the save with the roster, so a game
-               reloaded next year is played by the same opponent rather than
-               by whatever the default has become. Shown only where there is one
-               opponent to ask about — a larger table deals its rivals their own
-               postures (`rivalPersona`). -->
-          <div class="row field" id="persona-row">
-            <label for="bot-persona">Opponent</label>
-            <select id="bot-persona"></select>
-          </div>
-
-          <!-- The guide. On for a browser that has never been here, remembered
-               after that in localStorage and nowhere else — it is never in a
-               save (see src/ui/tutorial.ts). Unchecking it here is the whole of
-               turning it off; the ☰ menu is where it is asked for again. -->
-          <div class="row check landing-tutorial">
-            <input id="tutorial-toggle" type="checkbox" checked />
-            <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
-          </div>
-
-          <!-- The hot-seat harness, in the fine print where a dev tool belongs
-               (CLAUDE.md, Direction: single-player-vs-AI and remote multiplayer
-               are the product; hot-seat is a harness). Off by default, so the
-               chairs behind yours are driven unless a tester says otherwise. -->
-          <div class="row check landing-hotseat">
-            <input id="hot-seat" type="checkbox" />
-            <label for="hot-seat">Hot-seat — every seat is a person</label>
-          </div>
-
-          <p class="landing-hint">
-            A seed is a world: the same seed and the same seats draw the same map, the
-            same neighbours and the same opening hands.
-          </p>
-
-          <!-- Picking up where you left off. Continue is the newest save of any
-               kind — autosave or a named one, whichever is later — and it hides
-               itself when there is nothing to resume, so a first-ever visit sees
-               exactly the form it always saw. Load… stays whatever the shelf
-               holds, because an empty shelf is where Import is needed most. -->
-          <div class="row landing-resume">
-            <button id="continue-game" class="btn btn-second" type="button" hidden>
-              <span>Continue</span>
-              <span id="continue-label" class="btn-sub"></span>
+          <!-- How the table is filled, as a switch rather than as a checkbox in
+               the fine print. It writes the hot-seat checkbox below, which stays
+               in the document (hidden) so that `currentConfig` and every pin
+               that ever read it still read **one** place. Online is the same
+               "not yet" the title screen's Multiplayer row is. -->
+          <div class="landing-modes" role="group" aria-label="How the table is filled">
+            <button id="mode-single" class="landing-mode" type="button" aria-pressed="true">
+              Single player
             </button>
-            <button id="landing-load" class="btn btn-quiet" type="button">Load…</button>
+            <button id="mode-hotseat" class="landing-mode" type="button" aria-pressed="false">
+              Hot-seat
+            </button>
+            <button id="mode-online" class="landing-mode" type="button" aria-pressed="false" disabled>
+              Online · soon
+            </button>
           </div>
 
-          <p id="landing-error" class="landing-error" hidden></p>
+          <div class="landing-setup-grid">
+            <div class="landing-setup-column">
+
+              <!-- Every setup row is a ruled field: the name at the left in the
+                   working face, the control at the right. The label sizes to its
+                   own word rather than to the HUD's 34px eyebrow column, which is
+                   what used to clip the longest of them. -->
+              <div class="row field">
+                <label for="seed">Seed</label>
+                <span class="field-control">
+                  <input id="seed" type="text" value="1" spellcheck="false" />
+                  <button id="random-seed" class="btn btn-quiet btn-reseed" type="button">
+                    Random
+                  </button>
+                </span>
+              </div>
+
+              <div class="row field">
+                <label for="size">Size</label>
+                <select id="size"></select>
+              </div>
+
+              <!-- Seats at one table, not a rotation: turns are simultaneous.
+                   A count and not a list of named shapes (batch L4, docs/flags.md
+                   (nnnn)): you, and the rivals behind you, from the rules' floor to
+                   the palette's ceiling. The <output> is the value — one element
+                   carries both the figure on the screen and what `currentConfig`
+                   reads, so the two cannot drift. It is a spinbutton, so the arrow
+                   keys work on it; the two ends and the roster each count deals are
+                   `src/ui/gameSetup.ts`. -->
+              <div class="row field">
+                <label for="seats">Seats</label>
+                <span class="field-control seats-stepper">
+                  <button
+                    id="seats-fewer"
+                    class="btn btn-quiet btn-step"
+                    type="button"
+                    aria-label="One seat fewer"
+                  >
+                    −
+                  </button>
+                  <output id="seats" class="seats-count" role="spinbutton" tabindex="0"></output>
+                  <button
+                    id="seats-more"
+                    class="btn btn-quiet btn-step"
+                    type="button"
+                    aria-label="One seat more"
+                  >
+                    +
+                  </button>
+                </span>
+              </div>
+            </div>
+
+            <div class="landing-setup-column">
+              <!-- How the seat nobody is sitting in plays. It is config, not a
+                   setting: it rides into the save with the roster, so a game
+                   reloaded next year is played by the same opponent rather than
+                   by whatever the default has become. Shown only where there is one
+                   opponent to ask about — a larger table deals its rivals their own
+                   postures (`rivalPersona`). -->
+              <div class="row field" id="persona-row">
+                <label for="bot-persona">Opponent</label>
+                <select id="bot-persona"></select>
+              </div>
+
+              <!-- The guide. On for a browser that has never been here, remembered
+                   after that in localStorage and nowhere else — it is never in a
+                   save (see src/ui/tutorial.ts). Unchecking it here is the whole of
+                   turning it off; the ☰ menu is where it is asked for again. -->
+              <div class="row check landing-tutorial">
+                <input id="tutorial-toggle" type="checkbox" checked />
+                <label for="tutorial-toggle">Tutorial — walk me through my first turns</label>
+              </div>
+
+              <!-- The hot-seat harness. It is the switch at the top of this card
+                   now, and this row is where the switch writes: the checkbox stays
+                   in the document — hidden, never removed — so `currentConfig` and
+                   every pin that reads "is this a hot-seat game" read the same one
+                   control they always read (batch L7). A dev tool, off by default
+                   (CLAUDE.md, Direction: hot-seat is a harness). -->
+              <div class="row check landing-hotseat" hidden>
+                <input id="hot-seat" type="checkbox" />
+                <label for="hot-seat">Hot-seat — every seat is a person</label>
+              </div>
+
+              <p class="landing-hint">
+                A seed is a world: the same seed and the same seats draw the same map, the
+                same neighbours and the same opening hands.
+              </p>
+
+              <!-- What the controls above currently say, in one mono line
+                   (`summaryStrip`). A reading of the card, never a second place a
+                   default lives. -->
+              <p id="landing-summary" class="landing-summary"></p>
+            </div>
+          </div>
+
+          <div class="landing-foot">
+            <button id="landing-back-title" class="btn btn-quiet" type="button">← Back</button>
+            <button id="landing-to-civ" class="btn btn-primary landing-next" type="button">
+              Choose your civ →
+            </button>
+          </div>
         </form>
 
-        <!-- The seat: who you are in the world the card above draws (batch L2b,
-             re-aimed at the second cut in L6b, docs/flags.md (xxxx)). Empty
-             markup on purpose — every figure, every canton and all four of the
-             lines a figure is are built by src/ui/leaderSelect.ts by *walking*
-             the leader table, so a fourteenth leader added to data/leaders.json
-             appears here with no edit to this file. Nothing on this page names
-             a figure.
+        <!-- ---- step three of three: the civ -------------------------------
+             Who you are in the world step two drew (batch L2b, re-aimed at the
+             second cut in L6b, docs/flags.md (xxxx); given its own screen in L7,
+             (yyyy)). Two empty cards on purpose — the roster of figures and the
+             detail card beside it are both built by src/ui/leaderSelect.ts by
+             *walking* the leader table, so a fourteenth leader added to
+             data/leaders.json appears here with no edit to this file. Nothing on
+             this page names a figure.
 
              "No leader" is the default, so the game that was one press of Start
              away is still one press of Start away and its config is byte for
              byte the config it always was. -->
-        <section
-          id="landing-leaders"
-          class="hud-card landing-card landing-leaders"
-          aria-label="Choose a leader"
-        ></section>
+        <div class="landing-civ landing-step" data-step-for="civ">
+          <section
+            id="landing-leaders"
+            class="hud-card landing-card landing-leaders"
+            aria-label="Choose a leader"
+          ></section>
 
-        <!-- The one strong action on the page, under the seat it begins as —
-             the mockup's Begin button. It sits *outside* both cards because the
-             leader card is wiped and redrawn on every pick (see
-             src/ui/leaderSelect.ts), and a button inside it would be a button
-             that stopped existing between renders; `form=` keeps it the setup
-             form's submit button all the same, so Enter in the seed field still
-             starts the game. Its words are set by `setStartLabel` in main.ts,
-             which is what makes it name the chosen figure. -->
-        <div class="landing-begin">
-          <button
-            id="start-game"
-            class="btn btn-primary btn-start"
-            type="submit"
-            form="landing-setup"
-          >
-            Start Game
-          </button>
+          <div class="landing-civ-detail">
+            <div id="landing-detail" class="hud-card landing-card leader-detail"></div>
+
+            <!-- Back, and the one strong action on the page — the mockup's
+                 Begin button, saying who it begins as (`setStartLabel` in
+                 main.ts). It sits *outside* the detail card because that card is
+                 wiped and redrawn on every pick (see src/ui/leaderSelect.ts),
+                 and a button inside it would be a button that stopped existing
+                 between renders; `form=` keeps it the setup form's submit button
+                 all the same, so Enter from the seed field's own step still
+                 walks the flow rather than escaping it. -->
+            <div class="landing-begin">
+              <button id="landing-back-world" class="btn btn-quiet" type="button">← Back</button>
+              <button
+                id="start-game"
+                class="btn btn-primary btn-start"
+                type="submit"
+                form="landing-setup"
+              >
+                Begin
+              </button>
+            </div>
+          </div>
         </div>
+
+        <!-- A renderer that could not start, or a save that would not load: the
+             one error line of the whole leaf, outside the three steps because
+             Continue fails on the title and Start fails on the civ. -->
+        <p id="landing-error" class="landing-error" hidden></p>
       </div>
     </div>
 

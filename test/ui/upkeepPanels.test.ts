@@ -282,7 +282,10 @@ describe('the faith lens’s rack row', () => {
    * in the tooltip every row already has.
    */
   it('is label-only, like every other lens row', () => {
-    expect(main).not.toContain('tail:');
+    // A word boundary, not a substring: `main.ts` has a `detail:` on it since
+    // the landing's civ step (batch L7), and a bare substring search reads that
+    // as the field this pin is about.
+    expect(main).not.toMatch(/\btail:/);
     expect(main).not.toContain('lens-option-tail');
     expect(main).not.toContain('whose argument is winning');
   });

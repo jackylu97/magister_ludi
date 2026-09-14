@@ -1,0 +1,11 @@
+
+  VITE v5.4.21  ready in 161 ms
+
+  ➜  Local:   http://localhost:5311/
+  ➜  Network: use --host to expose
+6:41:54 PM [vite] hmr update /src/style.css
+6:42:00 PM [vite] hmr update /src/style.css
+6:42:07 PM [vite] hmr update /src/style.css
+6:44:06 PM [vite] page reload src/ui/landingFlow.ts
+6:44:10 PM [vite] page reload src/ui/landingFlow.ts
+6:46:01 PM [vite] hmr update /src/style.css

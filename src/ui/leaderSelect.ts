@@ -1,14 +1,21 @@
 /**
- * **The new game's leader half** — the second card on the landing screen, beside
- * the map's (batch L2b; re-aimed at the second cut in L6b, `docs/flags.md`
- * (xxxx), `docs/leaders.md` "The second cut — fixed identity").
+ * **The new game's leader half** — step two of the landing (batch L2b; re-aimed
+ * at the second cut in L6b, `docs/flags.md` (xxxx), `docs/leaders.md` "The
+ * second cut — fixed identity"; given a screen of its own in L7, (yyyy)).
  *
- * The map card asks what world to draw; this one asks who you are in it. The
- * whole sheet of figures and *No leader*, each a button carrying the seat's
- * canton and **the four lines a figure is**: its two abilities, its unique unit
- * and its unique building, each unique named with the technology or the age that
- * opens it. There is nothing else to say about a figure and nothing left to
- * choose after this screen — which is the second cut's own claim, drawn.
+ * The map card asks what world to draw; this one asks who you are in it. It is
+ * **a roster and a detail card** (batch L7, `mockups/new-game-flow.html`): every
+ * figure as a face of a name and its two inks, and beside them the whole of the
+ * chosen one — the plate, the identity line, **the four lines a figure is** (its
+ * two abilities, its unique unit and its unique building, each unique named with
+ * the technology or the age that opens it), the pair of colours and the towns it
+ * founds. There is nothing else to say about a figure and nothing left to choose
+ * after this screen — which is the second cut's own claim, drawn.
+ *
+ * The four lines moved off the faces and into the detail card for the room:
+ * thirteen figures each printing four labelled clauses is a page nobody reads,
+ * and a roster of names with one figure open beside it is how a player actually
+ * compares two. The fold is the same one (`leaderFaceLines`) either way.
  *
  * **The table is walked, never listed** (CLAUDE.md's rule for the arena's panel,
  * read one screen over): every face below comes out of `LEADER_IDS` and
@@ -32,6 +39,7 @@ import {
   type LeaderAbilityId,
   type LeaderId,
   LEADER_IDS,
+  isLeaderId,
   leaderDef,
 } from '../sim/leaderData';
 import { type CardClause, describeCard, ref } from '../sim/statecraft';
@@ -229,10 +237,54 @@ export function leaderFaceLines(face: LeaderFace): LeaderFaceLine[] {
 }
 
 /**
+ * **The identity line under a name** — the two inks, and nothing else.
+ *
+ * The mockup prints a family and a spectrum here ("Egypt · tall · faith and
+ * wonders"). `data/leaders.json` has no such field and inventing one on a screen
+ * would be the interface making a design decision the user has not made
+ * (`docs/flags.md` (dddd), the open item), so the line says the one identifying
+ * thing a figure genuinely carries beside its name: the pair of colours its seat
+ * flies, in the row's own words.
+ */
+export function leaderIdentity(face: LeaderFace): string {
+  return face.colorWords.join(' · ');
+}
+
+/** The towns a figure founds first, as the detail card lists them. */
+export const LEADER_CITIES_SHOWN = 4;
+
+/** The first towns off the figure's own list, in its own order. */
+export function leaderFirstCities(id: LeaderId): string[] {
+  return leaderDef(id).cities.slice(0, LEADER_CITIES_SHOWN);
+}
+
+/**
  * The stream index the cast is hashed on. Its own number, so that a second
  * seeded question asked on this screen one day cannot deal the same permutation.
  */
 const CAST_STREAM = 0x1ea4;
+
+/** The stream *Random* is dealt on — its own, for `CAST_STREAM`'s reason. */
+const DEAL_STREAM = 0x0dea;
+
+/**
+ * **What Random deals** — a figure, by the seed, and the same seed deals the
+ * same one (batch L7, `docs/flags.md` (yyyy)).
+ *
+ * The screen has no `Rng` and must not borrow the sim's (`rivalLeaders`' note
+ * says why at length): this is the interface's own arithmetic over the number in
+ * the seed field, so *Random* is a world's figure rather than a coin flip, a
+ * player who rerolls the seed is dealt somebody else, and a player who types the
+ * seed back gets the same figure a second time.
+ *
+ * It resolves **at the press**: the chosen value is the dealt figure's id from
+ * that moment on, so the config carries a figure and never a marker, and the
+ * detail card opens on whoever was dealt.
+ */
+export function dealtLeader(seed: number): LeaderId {
+  const at = Math.abs(hash3(seed, 0, DEAL_STREAM)) % LEADER_IDS.length;
+  return LEADER_IDS[at]!;
+}
 
 /**
  * **Which figure each rival sits under** — the deterministic rule, said once
@@ -318,8 +370,16 @@ export interface LeaderSelect {
 }
 
 export interface LeaderSelectOptions {
-  /** The card's own element, built once and repainted on every pick. */
+  /** The roster's own card, built once and repainted on every pick. */
   container: HTMLElement;
+  /**
+   * The card beside it, holding the whole of the chosen figure. Repainted on
+   * every pick like the roster — which is why the Begin button is a sibling of
+   * this element and never inside it (`index.html`'s note).
+   */
+  detail: HTMLElement;
+  /** The mono line where the masthead would be: `STEP_CRUMB.civ`. */
+  crumb: string;
   /**
    * The seat's own charge, for the canton. `undefined` is by seat order
    * (`heraldryFor`) — which is what the landing's roster always leaves it at.
@@ -332,6 +392,11 @@ export interface LeaderSelectOptions {
    * `seatInks` — which is what a plain seat on the landing always leaves it at.
    */
   secondary?: string;
+  /**
+   * The seed in the field, read at the press: *Random* deals from the world's
+   * own number rather than from a number this module remembers (`dealtLeader`).
+   */
+  seed?: () => number;
   /** Raised on every pick, so the Start button can say who it begins as. */
   onPick?: (chosen: string) => void;
 }
@@ -346,6 +411,12 @@ export interface LeaderSelectOptions {
 export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
   const { container } = options;
   let chosen: string = NO_LEADER;
+  /**
+   * The figure the last press of *Random* dealt, or none. Kept only so the
+   * Random face can say what it dealt: the *answer* lives in `chosen` with every
+   * other pick, because a deal that resolved is a figure and not a mode.
+   */
+  let dealt: LeaderId | null = null;
 
   /**
    * The seat's banner, as a canton: **the field in the primary and the device in
@@ -373,86 +444,180 @@ export function createLeaderSelect(options: LeaderSelectOptions): LeaderSelect {
     return canton(seatInks({ color: options.color, ...(options.secondary === undefined ? {} : { secondary: options.secondary }) }));
   }
 
-  /** A list of clauses, drawn through the descriptor writer (a raw `[[` never). */
+  /**
+   * A list of clauses, drawn through the descriptor writer (a raw `[[` never).
+   *
+   * Only the detail card prints clauses, and it is not a button — so the
+   * keywords in them are links, which is `keywordsAllowedIn`'s ruling read the
+   * way it is meant to be read: a click here means "tell me more".
+   */
   function clauseList(clauses: readonly CardClause[], className: string): HTMLElement {
     const list = element('ul', className);
     for (const clause of clauses) {
       const item = element('li', clause.deferred ? 'leader-clause is-deferred' : 'leader-clause');
-      // `linked: false` — the host is inside a `<button>`, where a click already
-      // means "take this figure" (`keywordsAllowedIn`'s ruling).
-      setDescriptorText(item, clause.text, { linked: false });
+      setDescriptorText(item, clause.text);
       list.append(item);
     }
     return list;
   }
 
   /**
-   * A face's four lines: the ability's own name over its clauses, and the kind
-   * of row over the row's.
+   * A face: the canton, the name, and the identity line under it.
    *
-   * The eyebrow is the *line's* name rather than a repeat of what a line is —
-   * that sentence is the card's lead above the roster (`LEADER_LEDE`) and is
-   * said once — so a reader comparing two figures is comparing four labelled
-   * things rather than four paragraphs.
+   * One line rather than four (batch L7). The four lines are the detail card's
+   * now — thirteen figures each printing four labelled clauses is a page nobody
+   * reads — and what a face has to do is let a reader find the figure they are
+   * looking for and see, at a glance, which of thirteen is open beside them.
    */
-  function drawLines(face: LeaderFace): HTMLElement {
-    const list = element('ul', 'leader-lines');
+  function drawFaceShell(
+    className: string,
+    mark: HTMLElement,
+    name: string,
+    line: string,
+    pressed: boolean,
+    onClick: () => void,
+  ): HTMLButtonElement {
+    const button = element('button', className);
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(pressed));
+    if (pressed) button.classList.add('is-chosen');
+    button.append(mark);
+    const text = element('span', 'leader-face-text');
+    text.append(element('span', 'leader-name', name));
+    text.append(element('span', 'leader-face-id', line));
+    button.append(text);
+    button.addEventListener('click', onClick);
+    return button;
+  }
+
+  /**
+   * Takes a figure, or puts the one already taken back down.
+   *
+   * A pick off the roster forgets the last deal: *Random* says what it dealt
+   * only while the deal is what is chosen, and a figure taken by name is the
+   * player's answer rather than the seed's.
+   */
+  function take(id: string): void {
+    chosen = chosen === id ? NO_LEADER : id;
+    dealt = null;
+    options.onPick?.(chosen);
+    render();
+  }
+
+  /**
+   * The whole of the chosen figure, beside the roster.
+   *
+   * The plate is a slot rather than a painting: the two inks as a diagonal, the
+   * 3:4 crop the portraits will arrive in, and a label saying what it is (the
+   * mockup's own placeholder — the paintings come later, and a blank card in
+   * their place would read as a figure with something missing rather than as a
+   * frame with nothing in it yet).
+   *
+   * The clauses are drawn into ordinary elements here rather than into a button,
+   * so a keyword in an ability is a **link** into the Compendium: on this card a
+   * click means "tell me more", which is exactly the ruling `keywordsAllowedIn`
+   * states.
+   */
+  function drawDetail(faces: readonly LeaderFace[]): void {
+    const card = options.detail;
+    card.replaceChildren();
+    if (!isLeaderId(chosen)) {
+      card.append(element('p', 'eyebrow', 'no leader'));
+      card.append(element('h3', 'leader-detail-name', 'The plain rules'));
+      card.append(element('p', 'leader-note', NO_LEADER_NOTE));
+      return;
+    }
+    const face = faces.find((entry) => entry.id === chosen)!;
+    const plate = element('div', 'leader-plate');
+    plate.setAttribute('aria-hidden', 'true');
+    plate.style.setProperty('--plate-primary', face.colors.primary);
+    plate.style.setProperty('--plate-secondary', face.colors.secondary);
+    card.append(plate);
+    card.append(element('h3', 'leader-detail-name', face.name));
+    card.append(element('p', 'leader-detail-id', leaderIdentity(face)));
+
+    const lines = element('ul', 'leader-lines');
     for (const line of leaderFaceLines(face)) {
       const item = element('li', `leader-line leader-line-${line.kind}`);
       item.append(element('span', 'leader-line-label', line.label));
       item.append(clauseList(line.clauses, 'leader-line-clauses'));
-      list.append(item);
+      lines.append(item);
     }
-    return list;
-  }
+    card.append(lines);
 
-  function drawFace(face: LeaderFace): HTMLElement {
-    const button = element('button', 'leader-face') as HTMLButtonElement;
-    button.type = 'button';
-    button.setAttribute('aria-pressed', String(chosen === face.id));
-    if (chosen === face.id) button.classList.add('is-chosen');
-    button.append(canton(face.colors));
-    const text = element('span', 'leader-face-text');
-    text.append(element('span', 'leader-name', face.name));
-    text.append(drawLines(face));
-    button.append(text);
-    button.addEventListener('click', () => {
-      chosen = chosen === face.id ? NO_LEADER : face.id;
-      options.onPick?.(chosen);
-      render();
-    });
-    return button;
-  }
-
-  function drawNone(): HTMLElement {
-    const button = element('button', 'leader-face leader-face-none') as HTMLButtonElement;
-    button.type = 'button';
-    button.setAttribute('aria-pressed', String(chosen === NO_LEADER));
-    if (chosen === NO_LEADER) button.classList.add('is-chosen');
-    button.append(seatCanton());
-    const text = element('span', 'leader-face-text');
-    text.append(element('span', 'leader-name', 'No leader'));
-    text.append(element('p', 'leader-none-note', NO_LEADER_NOTE));
-    button.append(text);
-    button.addEventListener('click', () => {
-      chosen = NO_LEADER;
-      options.onPick?.(chosen);
-      render();
-    });
-    return button;
+    const chips = element('p', 'leader-chips');
+    for (const at of [0, 1] as const) {
+      const chip = element('span', 'leader-chip');
+      const swatch = element('span', 'leader-chip-mark');
+      swatch.setAttribute('aria-hidden', 'true');
+      swatch.style.background = at === 0 ? face.colors.primary : face.colors.secondary;
+      chip.append(swatch, document.createTextNode(face.colorWords[at]));
+      chips.append(chip);
+    }
+    card.append(chips);
+    card.append(
+      element('p', 'leader-cities', `Cities: ${leaderFirstCities(face.id).join(' · ')} …`),
+    );
   }
 
   function render(): void {
     container.replaceChildren();
-    container.append(element('p', 'eyebrow', 'the seat'));
-    container.append(element('h2', 'leader-title', 'Choose a leader'));
+    container.append(element('p', 'eyebrow landing-crumb', options.crumb));
+    container.append(element('h2', 'leader-title', 'Choose your civ'));
     container.append(element('p', 'landing-hint leader-lede', LEADER_LEDE));
+    // Walked once and read twice — the roster and the card beside it are two
+    // drawings of one fold.
+    const faces = leaderFaces();
     const grid = element('div', 'leader-grid');
     grid.setAttribute('role', 'group');
     grid.setAttribute('aria-label', 'Leaders');
-    grid.append(drawNone());
-    for (const face of leaderFaces()) grid.append(drawFace(face));
+    // *No leader* first and default: the game that was one press of Start away
+    // is still one press of Start away, and its config is byte for byte what it
+    // always was.
+    grid.append(
+      drawFaceShell(
+        'leader-face leader-face-none',
+        seatCanton(),
+        'No leader',
+        'the plain rules',
+        chosen === NO_LEADER,
+        () => take(NO_LEADER),
+      ),
+    );
+    for (const face of faces) {
+      grid.append(
+        drawFaceShell(
+          'leader-face',
+          canton(face.colors),
+          face.name,
+          leaderIdentity(face),
+          chosen === face.id,
+          () => take(face.id),
+        ),
+      );
+    }
+    // **Random, last.** It deals a figure by the seed and then *is* that figure:
+    // the press resolves, the detail card opens on whoever was dealt, and this
+    // face says which — so the answer is on the screen before Begin is pressed
+    // rather than after the world is drawn.
+    const showsDeal = dealt !== null && dealt === chosen;
+    grid.append(
+      drawFaceShell(
+        'leader-face leader-face-random',
+        seatCanton(),
+        'Random',
+        showsDeal ? `dealt ${leaderDef(dealt!).name}` : 'dealt by the seed',
+        showsDeal,
+        () => {
+          dealt = dealtLeader(options.seed?.() ?? 0);
+          chosen = dealt;
+          options.onPick?.(chosen);
+          render();
+        },
+      ),
+    );
     container.append(grid);
+    drawDetail(faces);
   }
 
   return {

@@ -507,10 +507,11 @@ body {
   display: none;
 }
 
-/* The leaf: a masthead across the top and the two cards under it — the world on
-   the left, the seat on the right — with the one strong action at the foot of
-   the seat's column. The grid is declared here and the columns are split at the
-   breakpoint in the leaders block below, where the second card is described. */
+/* The leaf: one column of blocks, of which the stylesheet shows the ones
+   belonging to the step on screen. Each block lays out its own columns — the
+   title screen's two cards, the map card's two halves, the roster and its detail
+   card — because the three screens want three different measures and a stage
+   that tried to hold all of them would be a grid nobody could read. */
 .landing-stage {
   display: grid;
   gap: 15px;
@@ -518,6 +519,301 @@ body {
   width: min(1240px, 100%);
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
+}
+
+/* --- the three steps (batch L7, docs/flags.md (yyyy)) ---
+   `data-step` on #landing is the whole of the screen state — one attribute,
+   written by `landingFlow.ts`, read here. A block is off unless the step it
+   belongs to is the step on screen; each says how it comes back, because a
+   `display: block` restored over a grid is a card that quietly loses its
+   columns. The `#landing[data-step=…]` prefix carries an id, so these beat the
+   `.hud-card.landing-card` recipe wherever either sits in the file. */
+#landing > .landing-stage > .landing-step {
+  display: none;
+}
+
+#landing[data-step='title'] > .landing-stage > .landing-step[data-step-for='title'] {
+  display: block;
+}
+
+/* Both class names, and deliberately: the rule above it selects the same element
+   through `[data-step-for]` and is one attribute *heavier*, so a single-class
+   `display: grid` here loses to its `display: block` and the two cards stack. */
+#landing[data-step='title'] > .landing-stage > .landing-step.landing-title-grid {
+  display: grid;
+}
+
+#landing[data-step='world'] > .landing-stage > .landing-step[data-step-for='world'] {
+  display: block;
+}
+
+#landing[data-step='civ'] > .landing-stage > .landing-step[data-step-for='civ'] {
+  display: grid;
+}
+
+/* The breadcrumb that stands in for the masthead on the two setup steps. The
+   poster is shown once, on the title screen, and never again on the way into a
+   game — so these two screens say where they are instead, in the face every
+   counted thing in this interface is set in. */
+.landing-crumb {
+  font-family: var(--face-num);
+}
+
+/* --- the title screen ---
+   The menu at the left and the shelf of recent worlds at the right, on the
+   poster's own edges. The measure is the mockup's: a fixed column for the menu,
+   whatever is left for the shelf. */
+.landing-title-grid {
+  gap: 15px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .landing-title-grid {
+    grid-template-columns: 340px minmax(0, 1fr);
+  }
+}
+
+/* Both class names, for `.hud-card.landing-card`'s reason: that recipe declares
+   `display: block` with two classes, and a single-class column here would be
+   quietly beaten and the menu would stack as prose. */
+.hud-card.landing-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* A menu row: what it does at the left, the key that does it at the right. */
+.landing-menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 14px;
+  border-radius: 999px;
+  text-align: left;
+  font-size: 13.5px;
+}
+
+/* Continue is the one thing on the screen a returning player came for, so it is
+   the one ink row: the same weight Begin has on the last step, and for the same
+   reason — a screen has one strong action or none. */
+.landing-menu-item.is-strong {
+  background: var(--ink);
+  color: var(--parchment);
+  border-color: var(--ink);
+}
+
+.landing-menu-item.is-strong:hover:not(:disabled) {
+  background: #2c2830;
+}
+
+.landing-menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.landing-menu-text {
+  display: block;
+  min-width: 0;
+}
+
+/* The line under a verb — the world Continue resumes, or why a row is dark.
+   Mono, because half of what lands there is counted, and quiet either way: it is
+   the line under the verb, not the verb. */
+.landing-menu-sub {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.82;
+}
+
+.landing-key {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.landing-menu-item.is-strong .landing-key {
+  color: var(--parchment);
+  opacity: 0.66;
+}
+
+/* The rule between the game's verbs and the page's. Two class names and its own
+   air: `.double-rule` sets a 58% measure further down the file and would win on
+   source order, which printed this as a short bar tucked under the row above it
+   rather than a rule across the card. */
+.landing-menu > .landing-menu-rule {
+  width: 100%;
+  margin: 8px 0 7px;
+}
+
+/* --- the shelf of recent worlds ---
+   Ruled rows, the figure in the display face at the left and the counted half
+   in mono at the right. A row is a button: the whole of it loads that world. */
+.landing-shelf-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.landing-shelf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 4px;
+  border: 0;
+  border-bottom: var(--border-thin) solid var(--rule);
+  border-radius: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.landing-shelf-row:last-child {
+  border-bottom: 0;
+}
+
+.landing-shelf-row:hover {
+  background: #fbf7ea;
+}
+
+.landing-shelf-row:focus-visible {
+  outline: 2px solid var(--cobalt);
+  outline-offset: -2px;
+}
+
+.landing-shelf-who {
+  font-family: var(--face-display);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.landing-shelf-when {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 10.5px;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+/* --- the world step's mode switch ---
+   One segmented pill: the three ways a table can be filled, of which two exist.
+   It writes the hot-seat checkbox and nothing else (see index.html). */
+.landing-modes {
+  display: inline-flex;
+  margin: 2px 0 12px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--parchment);
+}
+
+.landing-mode {
+  padding: 5px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font-family: var(--face-num);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.landing-mode[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.landing-mode:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.landing-mode:focus-visible {
+  outline: var(--border-thin) solid var(--vermilion);
+  outline-offset: -3px;
+}
+
+/* The map card's two halves. One column until there is room for two. */
+.landing-setup-grid {
+  display: grid;
+  gap: 0 20px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .landing-setup-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.landing-setup-column {
+  min-width: 0;
+}
+
+/* The reading of the card, in the counted face. */
+.landing-summary {
+  margin: 12px 0 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+/* Back at one end, the way on at the other — the mockup's foot, and the same
+   shape the civ step's own foot takes. */
+.landing-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: var(--border-thin) solid var(--rule);
+}
+
+/* Each button takes its own width. `.btn` carries `flex: 1` for the HUD's rows
+   of equal verbs, and a foot with two unequal ones — a quiet Back and the way on
+   — is the other case: left with Back stretched across the card it read as the
+   primary action, which is the one thing it is not. Both feet, because the civ
+   step's is the same row with the same two jobs. */
+.landing-foot > .btn,
+.landing-begin > .btn {
+  flex: 0 0 auto;
+}
+
+/* Both class names, as `.landing-begin .btn-start` does one screen on: the ink
+   pill has to beat `.btn-primary`'s vermilion, which sits further down the file
+   and would win on source order against a single class. On this leaf the
+   vermilion belongs to the poster's own stamp. */
+.btn.landing-next {
+  flex: 0 0 auto;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--parchment);
+  font-size: 13px;
+}
+
+.btn.landing-next:hover:not(:disabled) {
+  background: #2c2830;
 }
 
 /* The specimen's marquee card, at HUD scale. */
@@ -623,6 +919,17 @@ body {
   margin-bottom: 0;
   padding: 7px 0;
   border-bottom: var(--border-thin) solid var(--rule);
+}
+
+/* A row the card has hidden is gone, not merely marked.
+   The UA's `[hidden]` rule is one class-worth of weight and every row rule in
+   this block outranks it — so `hidden` on a `.row` used to leave the row laid
+   out exactly as before, which is how the Opponent row stood at six seats and
+   the hot-seat harness stood under the switch that had replaced it. The same
+   override every other `[hidden]` surface in this file states explicitly. */
+.landing-card .row.field[hidden],
+.landing-card .row.check[hidden] {
+  display: none;
 }
 
 /* The last ruled field carries no rule: a ledger closes on the last entry, it
@@ -765,15 +1072,18 @@ body {
 }
 
 /* --- the one strong action ---
-   The mockup's Begin button: an ink pill, alone at the foot of the seat's
-   column, saying who the game begins as (`setStartLabel` in main.ts). Ink and
-   not the usual vermilion primary, because on this page the vermilion is the
+   The mockup's Begin button: an ink pill at the foot of the figure's own
+   column, saying who the game begins as (`setStartLabel` in main.ts), with Back
+   at the other end of the row — the same foot the map step wears. Ink and not
+   the usual vermilion primary, because on this page the vermilion is the
    title's own accent and the stamp under it — a third one would be a page with
    no accent at all. */
 .landing-begin {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .landing-begin .btn-start {
@@ -7656,37 +7966,13 @@ body:has(.city-mode:not([hidden])) #hud-context {
   white-space: nowrap;
 }
 
-/* --- the landing's resume row --- */
-
-.landing-resume {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: var(--border-thin) solid var(--rule);
-  gap: 9px;
-}
-
-#continue-game {
-  flex: 2;
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: 7px;
-}
-
-/* Carries the id, because the rule above does: an attribute selector on its own
-   loses to it, and the button would stay laid out with nothing to resume. */
+/* --- Continue, on the title screen's menu ---
+   The resume row went to the title screen in batch L7; the button kept its id,
+   so this is where "hidden means gone" is still said. An attribute selector on
+   its own would lose to the menu-item rule's own weight, and the button would
+   stay laid out with nothing to resume. */
 #continue-game[hidden] {
   display: none;
-}
-
-/* "Turn 12 · 16:42", riding on the Continue button. Mono, because both halves
-   of it are numbers and this interface writes numbers in one face. */
-.btn-sub {
-  font-family: var(--face-num);
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  opacity: 0.82;
 }
 
 /* --- the menu's save verbs --- */
@@ -7738,8 +8024,9 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 /* --- the load list --- */
 
-/* Above the landing (z 50), and the only thing that is: it is opened from the
-   landing, so a surface underneath it would be a surface nobody could reach. */
+/* Above the landing (z 50): it is opened from the landing, so a surface
+   underneath it would be a surface nobody could reach. The book is the other
+   one, and only while the landing is up — see the rule under this one. */
 .saves-overlay {
   position: fixed;
   inset: 0;
@@ -7754,6 +8041,17 @@ body:has(.city-mode:not([hidden])) #hud-context {
 
 .saves-overlay[hidden] {
   display: none;
+}
+
+/* The book, opened from the title screen (batch L7: "Compendium", and `?`).
+   Every parchment sheet sits at 40, under the landing's 50, because every one of
+   them belongs to a running game — the Compendium is the single exception, being
+   a property of the *page*. So it is lifted over the landing exactly while the
+   landing is up, and takes its own place in the stack again the moment a game is
+   on screen. A sibling selector, because `hidden` on `#landing` is already the
+   one answer to "is the landing up?" and this asks that same one. */
+#landing:not([hidden]) ~ #compendium-overlay {
+  z-index: 60;
 }
 
 /* `position: static` for the reason the landing card needs it: `.hud-card` is
@@ -14769,26 +15067,28 @@ body.compendium-page {
   color: var(--ink-faint);
 }
 
-/* --- the new game's leader card ---------------------------------------- */
+/* --- the new game's civ step (batch L7) ---------------------------------- */
 
-/* The two cards, side by side under the masthead, with the one strong action at
-   the foot of the seat's own column — the mockup's composition. One column on a
-   narrow window, and the map leads there: it is the decision that cannot be
-   skipped. */
+/* The roster at the left and the whole of the chosen figure at the right, with
+   Back and Begin at the foot of the figure's own column — the mockup's
+   composition. One column on a narrow window, roster first: the list is the
+   decision, and the detail card is what the decision opens. */
+.landing-civ {
+  gap: 15px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+}
+
 @media (min-width: 900px) {
-  .landing-stage {
-    grid-template-columns: 340px minmax(0, 1fr);
+  .landing-civ {
+    grid-template-columns: minmax(0, 1fr) 400px;
   }
+}
 
-  /* The masthead is the page's title and spans both cards under it. */
-  .landing-stage > .marquee {
-    grid-column: 1 / -1;
-  }
-
-  /* Begin belongs under the seat it begins as, not under the map. */
-  .landing-stage > .landing-begin {
-    grid-column: 2;
-  }
+.landing-civ-detail {
+  display: grid;
+  gap: 12px;
+  align-content: start;
 }
 
 .hud-card.landing-leaders {
@@ -14811,19 +15111,19 @@ body.compendium-page {
   margin: 0 0 10px;
 }
 
-/* A roster of figures, as wide as the card allows: the mockup's row of faces,
-   and a fourteenth figure simply joins it. Wider than it was, because a face
-   carries four labelled lines now rather than one paragraph. */
+/* A roster of figures, as wide as the card allows: the mockup's grid of faces,
+   and a fourteenth figure simply joins it. Narrow again (batch L7) — a face is a
+   name and its two inks now, because the four lines are the detail card's. */
 .leader-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 9px;
 }
 
 .leader-face {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 10px;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 9px;
   align-items: start;
   align-content: start;
   text-align: left;
@@ -14862,8 +15162,8 @@ body.compendium-page {
   --canton-field: var(--parchment);
   --canton-device: var(--ink);
   display: block;
-  width: 34px;
-  height: 40px;
+  width: 30px;
+  height: 36px;
   background: var(--canton-field);
   border: var(--border-thin) solid var(--ink);
   border-radius: 2px 2px 16px 16px;
@@ -14892,10 +15192,24 @@ body.compendium-page {
 
 .leader-name {
   display: block;
-  margin-bottom: 5px;
   font-family: var(--face-display);
-  font-size: 19px;
+  font-size: 16px;
   line-height: 1.1;
+}
+
+/* The line under a name: the two inks the seat flies, in the row's own words
+   (`leaderIdentity`). Inscription mono, because it is a label and not a
+   sentence — and because the family line the mockup prints there is a field
+   `data/leaders.json` does not have (docs/flags.md (dddd)). */
+.leader-face-id {
+  display: block;
+  margin-top: 3px;
+  font-family: var(--face-num);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  color: var(--ink-soft);
 }
 
 .leader-lines,
@@ -14946,10 +15260,103 @@ body.compendium-page {
   line-height: 1.35;
 }
 
-.leader-none-note {
+/* Random's face says what it dealt once it has dealt; until then it says what
+   it is. Nothing else sets it apart — it is a face like the thirteen above it,
+   which is the point: it *is* one of them, chosen by the seed. */
+.leader-face-random .leader-face-id {
+  color: var(--ink-faint);
+}
+
+/* --- the detail card (batch L7) ---
+   The whole of the chosen figure, beside the roster: the plate, the name, the
+   identity line, the four lines, the two inks and the first towns. */
+.hud-card.leader-detail {
+  position: relative;
+  z-index: auto;
+  display: block;
+  padding: 16px 18px 18px;
+  font-size: 13px;
+}
+
+/* The portrait's frame, waiting for the painting (docs/flags.md (yyyy): the
+   plate arrives later). The figure's own two inks on the diagonal, at the 3:4
+   crop the portraits will come in, with the label the mockup prints so that an
+   empty frame reads as a frame and not as a figure missing something. */
+.leader-plate {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  max-height: 210px;
+  margin: 0 auto 12px;
+  border: var(--border) solid var(--ink);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    135deg,
+    var(--plate-primary, var(--rule)) 0 55%,
+    var(--plate-secondary, var(--parchment)) 55% 100%
+  );
+  overflow: hidden;
+}
+
+.leader-plate::after {
+  content: 'portrait plate';
+  position: absolute;
+  right: 7px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(29, 26, 32, 0.6);
+  color: rgba(247, 242, 225, 0.88);
+  font-family: var(--face-num);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.leader-detail-name {
   margin: 0;
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 1.1;
+}
+
+.leader-detail-id {
+  margin: 3px 0 4px;
+  font-family: var(--face-num);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* The pair of inks, said in the row's own words with the colour beside each. */
+.leader-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.leader-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.leader-chip-mark {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 1px solid var(--ink);
+  border-radius: 3px;
+}
+
+.leader-cities {
+  margin: 6px 0 0;
   font-size: 12.5px;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--ink-soft);
 }
 
