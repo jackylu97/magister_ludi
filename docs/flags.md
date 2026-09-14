@@ -10,6 +10,13 @@ Three sections: **A** is the questions only the user can answer, **B** is rows
 that ship deferred-with-prose, **C** is open threads and playtest questions. The
 user edits this page directly — user marginalia are rulings.
 
+**Landed on `main` 2026-09-14** (the user: *"commit all of our leader related
+changes and push"*): the whole held stack of 2026-09-10 → 09-12 — S2 · F2 · M1 ·
+L2 · X14 · P3 · P4 · L3 · L4 · L5 · H7 · F3 · M2 · the mapgen defaults · D1 ·
+L6 — at **schema 115**, gate green (core 209/6307, slow 38/147). `docs/great-
+people.md` is the user's own version. The log of what each batch built is
+`docs/history/flags-log.md`.
+
 ## A. Awaiting your ruling
 
 One paragraph a question, in the words the state of the tree makes them now.
