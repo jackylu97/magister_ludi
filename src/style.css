@@ -15148,3 +15148,134 @@ body.compendium-page {
   font-weight: 600;
 }
 
+/* ============================================================================
+   The poster frontispiece (2026-09-14). The masthead is the user's gouache
+   plate at seven-tenths of its height, the title set into its sky in the
+   plate's own cream and gold, a hairline double frame with corner stars printed
+   inside the painting, and the stamp as a cream outline in the corner. Later
+   in the sheet than the banded masthead above, so these win at equal
+   specificity; `.marquee-poster` is the whole of the switch and the old rules
+   still serve the flair gallery's own marquee. Every colour here is the
+   plate's, not the page's — the painting is a mounted print and the UI's inks
+   stay outside its frame. */
+.marquee.marquee-poster {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  background: #1a3f96;
+}
+
+.marquee-art {
+  position: relative;
+  aspect-ratio: 1680 / 504;
+  width: 100%;
+}
+
+.marquee-plate {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 58%;
+  display: block;
+}
+
+.marquee-frame {
+  position: absolute;
+  inset: 14px;
+  border: 1px solid rgba(243, 230, 200, 0.55);
+  pointer-events: none;
+}
+
+.marquee-frame::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(243, 230, 200, 0.3);
+}
+
+.marquee-star {
+  position: absolute;
+  color: #f3e6c8;
+  font-size: 14px;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.marquee-star.tl { top: 7px; left: 9px; }
+.marquee-star.tr { top: 7px; right: 9px; }
+.marquee-star.bl { bottom: 7px; left: 9px; }
+.marquee-star.br { bottom: 7px; right: 9px; }
+
+.marquee-poster .marquee-name {
+  position: absolute;
+  left: 6.5%;
+  top: 12%;
+  z-index: 1;
+  margin: 0;
+}
+
+.marquee-over {
+  display: block;
+  font-family: var(--face-num);
+  font-size: 12px;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: #f3e6c8;
+  opacity: 0.85;
+  margin: 0 0 10px 3px;
+}
+
+.marquee-poster .marquee-title {
+  font-size: clamp(2.5rem, 5.4vw, 4.5rem);
+  line-height: 0.9;
+  color: #f3e6c8;
+  letter-spacing: 0.005em;
+  text-shadow: 0 1px 0 rgba(15, 30, 80, 0.45), 0 0 22px rgba(15, 30, 80, 0.28);
+}
+
+.marquee-poster .marquee-title em {
+  color: #ffd166;
+  text-shadow: 0 1px 0 rgba(15, 30, 80, 0.5), 0 0 22px rgba(15, 30, 80, 0.35);
+}
+
+.marquee-rule-star {
+  display: block;
+  position: relative;
+  width: 120px;
+  height: 0;
+  border-top: 1px solid #f3e6c8;
+  margin: 16px 0 0 3px;
+  opacity: 0.8;
+}
+
+.marquee-rule-star::after {
+  content: '✶';
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  transform: translateX(-50%);
+  color: #ffd166;
+  font-size: 13px;
+  padding: 0 6px;
+}
+
+.marquee-poster .marquee-stamp {
+  position: absolute;
+  right: 28px;
+  bottom: 26px;
+  z-index: 1;
+  margin: 0;
+  background: transparent;
+  color: #f3e6c8;
+  border: 1.5px solid #f3e6c8;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  .marquee-poster .marquee-name { top: 10%; }
+  .marquee-over { font-size: 10px; letter-spacing: 0.24em; }
+  .marquee-poster .marquee-stamp { right: 16px; bottom: 14px; }
+}

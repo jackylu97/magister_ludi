@@ -72,15 +72,39 @@
              world and the seat — onto one screen, which is the mockup's whole
              composition. The order of the words is unchanged; only the
              arrangement is. -->
-        <header class="marquee">
-          <div class="marquee-name">
-            <h1 class="marquee-title">Magister <em>Ludi</em></h1>
-            <p class="marquee-sub">a game of everything mankind has thought</p>
+        <!-- The poster (2026-09-14, the user's design pass in the artifact):
+             the frontispiece is the user's gouache plate — the lit town under a
+             blue sky — with the title set straight into the sky in the plate's
+             own cream and gold, a hairline double frame printed inside the
+             painting with a star at each corner, a small overline and a starred
+             rule under the title, and the stamp as a cream outline in the
+             corner. The tagline, the printer's device and the epigraph are gone
+             (the user: "axe the tagline altogether", "we don't need the
+             astrolabe or the latin text"); src/ui/frontispiece.ts guards both
+             of its elements against absence, so main.ts is untouched. The plate
+             is served at two sizes from public/art/. -->
+        <header class="marquee marquee-poster">
+          <div class="marquee-art">
+            <img
+              class="marquee-plate"
+              src="/art/frontispiece.jpg"
+              srcset="/art/frontispiece-small.jpg 900w, /art/frontispiece.jpg 1680w"
+              sizes="(max-width: 900px) 100vw, 1280px"
+              alt=""
+              decoding="async"
+            />
+            <div class="marquee-frame" aria-hidden="true"></div>
+            <span class="marquee-star tl" aria-hidden="true">✶</span>
+            <span class="marquee-star tr" aria-hidden="true">✶</span>
+            <span class="marquee-star bl" aria-hidden="true">✶</span>
+            <span class="marquee-star br" aria-hidden="true">✶</span>
+            <div class="marquee-name">
+              <span class="marquee-over">a game of the ages</span>
+              <h1 class="marquee-title">Magister <em>Ludi</em></h1>
+              <span class="marquee-rule-star" aria-hidden="true"></span>
+            </div>
+            <span class="marquee-stamp">one seed · one world</span>
           </div>
-          <span id="landing-device" class="marquee-device" aria-hidden="true"></span>
-          <div class="double-rule marquee-rule" aria-hidden="true"></div>
-          <p id="landing-epigraph" class="marquee-epigraph"></p>
-          <span class="marquee-stamp">one seed · one world</span>
         </header>
 
         <!-- A form, so Enter submits from either field without a keystroke
