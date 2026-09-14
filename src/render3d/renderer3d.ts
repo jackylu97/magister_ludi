@@ -1,29 +1,17 @@
+import type { TerrainId } from '../sim/terrainData';
 /**
  * The playable 3D renderer: scene, lights, board, pieces, overlays, input glue.
  *
- * This is the look-dev prototype grown up. The look is unchanged and
- * deliberately so — same palette, same three-band toon ramp, same inverted-hull
- * outlines, same warm-key/cool-fill rig, same 57° orthographic angle, same
- * grout-line substrate. What was added is everything a look test did not need:
- * picking, the east–west wrap, overlays, unit animation, and a board that can be
- * rebuilt while the game runs.
+ * One gameplay host serves the default diorama and the opt-in painted look.
+ * Both share the real map, HUD projections, picking, animation and cylindrical
+ * wrap. Painted terrain/cities/works use the approved study assets; layers are
+ * replaced incrementally while their simulation and interaction contracts stay
+ * in this host.
  *
- * Lighting recipe
- * ---------------
- * One warm directional key (the sun), one cool hemisphere fill (sky above, warm
- * bounce off the ground below), and a small flat ambient so nothing ever goes
- * fully unlit. The key is warm and the fill is cool because that temperature
- * split is what makes a flat-shaded facet read as *lit* rather than merely
- * coloured — the shadowed band is not just darker, it is a different colour, and
- * the toon ramp's hard edge between them is where the illustration quality comes
- * from.
- *
- * Shadows do a disproportionate amount of the work: the contact shadow under a
- * tree or a game piece is what glues it to the tile. The shadow camera is
- * therefore kept *tight* — it tracks the pan target and scales with the zoom, so
- * a 2048² map covers only the visible region and stays sharp instead of being
- * stretched over an 80×52 board. Because the pan target wraps with the camera,
- * the shadow rig wraps with it too and the seam needs no special case.
+ * The default look uses its original toon palette and viewport shadow rig.
+ * Painted mode owns the approved material/light presets and separates a cached
+ * world shadow map from a small moving-unit map. See paintedLook.js and
+ * paintedShadows.js for that pass isolation and asset lifetime.
  *
  * Render on demand
  * ----------------
@@ -42,6 +30,7 @@ import {
   Group,
   HemisphereLight,
   Mesh,
+  type MeshBasicMaterial,
   PCFSoftShadowMap,
   Scene,
   Vector3,
@@ -54,6 +43,8 @@ import { type GameMap, getTileAt, offsetToAxial, tileIndex } from '../sim/map';
 // has to be that one rather than a look-alike in `view3d.json`.
 import { RULES } from '../sim/rulesData';
 import type { GameState } from '../sim/state';
+import { isVisibleTo } from '../sim/visibility';
+import { layerVisibility, type LayerVisibility } from './layerVisibility';
 import type {
   CellRef,
   FallenUnit,
@@ -64,6 +55,7 @@ import type {
 } from '../ui/mapView';
 
 import { DeathAnimations3D, MoveAnimations3D } from './animation3d';
+import { pickUnitModel as pickUnitBody, type UnitModelCandidate } from './unitModelPicking';
 import { TileIcons, UnitBadges, badgeHitRadius } from './badges3d';
 import {
   type BuiltBoard,
@@ -93,7 +85,7 @@ import { RoadLayer, signRoadCells } from './roads3d';
 import { type SuppressScope, RENDER_ORDER, SUPPRESS } from './instances';
 import { LensLayer, NO_LENS, sameLens, signReligion } from './lens3d';
 import { VIEW3D, playerPieceColor } from './lookData';
-import { cellCenter, tileTopY, wrapWidth } from './layout';
+import { cellCenter, tileTopY, wrapWidth, worldToCell } from './layout';
 import { type TurnMarkRef, OverlayLayer } from './overlays';
 import {
   CityFocusVignette,
@@ -115,16 +107,30 @@ import {
   signUnits,
   terrainUnder,
   unitColor,
+  unitShellWash,
+  unitGhostColor,
 } from './pieces';
 import { type WorldPoint, pickBadge, pickTile } from './picking';
 import { type RevealStats, RevealView } from './reveal3d';
 import { UnitSprites } from './sprites3d';
 import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
+import { createPaintedLook, type PaintedLook } from './paintedLook.js';
+import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
+import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
+import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks } from './paintedWorks';
+import type { ImprovementId } from '../sim/improvementData';
+import { PaintedCityLayer } from './paintedCities';
+import { PaintedSiteLayer } from './paintedSites';
+import { PaintedGroundLayer, planPaintedRoads, planPaintedTerritory } from './paintedGround';
+import { installPaintedSurface, uninstallPaintedSurface } from './paintedSurface';
+import { PaintedUnitKit, type PaintedUnitModel } from './paintedUnits';
+import { paintedUnitSupport } from './paintedUnitPlacement';
 
 const DEG = Math.PI / 180;
 const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
+const PAINTED_IMPROVEMENTS = new Set<ImprovementId>(PAINTED_WORK_IMPROVEMENTS);
 
 export interface BoardStats {
   tiles: number;
@@ -134,13 +140,15 @@ export interface BoardStats {
   drawCalls: number;
   /** Milliseconds spent building the board's instance buffers. */
   buildMs: number;
+  triangles: number;
+  shadowBakes: number;
 }
 
 export class Renderer3D implements MapView {
   readonly canvas: HTMLCanvasElement;
   readonly renderer: WebGLRenderer;
   readonly scene = new Scene();
-  readonly view = new DioramaCamera();
+  readonly view: DioramaCamera;
 
   private readonly materials: MaterialLibrary;
   private readonly geometry = new BoardGeometry();
@@ -185,6 +193,29 @@ export class Renderer3D implements MapView {
   private readonly fallers = new Map<number, Group>();
 
   private board: BuiltBoard | null = null;
+  private paintedLook: PaintedLook | null = null;
+  private paintedBoard: PaintedBoard | null = null;
+  private boardBuild: AbortController | null = null;
+  private preparedBoard: {map: GameMap; board: PaintedBoard; shadows: boolean} | null = null;
+  paintedBuildMetrics: PaintedBuildMetrics | null = null;
+  private paintedCities: PaintedCityLayer | null = null;
+  private readonly cityBannerAnchors = new Map<number, WorldPoint>();
+  private cityWallPreview = false;
+  private paintedWorks: PaintedWorksLayer | null = null;
+  private paintedSites: PaintedSiteLayer | null = null;
+  private paintedRoads: PaintedGroundLayer | null = null;
+  private paintedTerritory: PaintedGroundLayer | null = null;
+  private paintedUnits: PaintedUnitKit | null = null;
+  private readonly walkerModels = new Map<number, PaintedUnitModel>();
+  private readonly unitOutlines = new Map<number, MeshBasicMaterial>();
+  private hoveredUnitId: number | null = null;
+  private paintedWorksSignature: number | null = null;
+  private paintedWorksFogSignature: number | null = null;
+  private paintedWorksShadowSignature: number | null = null;
+  private omniscientLevels: number[] = [];
+  private lastTriangles = 0;
+  private lastRenderMs = 0;
+  private benchmarking = false;
   /**
    * The fog of war: the blank-chart layer, and the per-instance patching that
    * hides and knocks back the board. Rebuilt with the board and never after —
@@ -253,6 +284,7 @@ export class Renderer3D implements MapView {
    * `loadBadges` and `badges3d.ts`.
    */
   private badges: UnitBadges | null = null;
+  private unitBadgesVisible = true;
   /**
    * The tile-icon atlas — resource roundels, yield glyphs, numerals — once it
    * has rasterised. Null until then, and forever in a browser with no 2D
@@ -260,6 +292,8 @@ export class Renderer3D implements MapView {
    */
   private icons: TileIcons | null = null;
   /** Fingerprint of the units the layer was last built from. See `loop`. */
+  private visibilitySignatures: LayerVisibility | null = null;
+  private shadowVisibilitySignatures: LayerVisibility | null = null;
   private unitsSignature = 0;
   /** The same for the towns and for the borders. See `loop`. */
   private citiesSignature = 0;
@@ -305,9 +339,10 @@ export class Renderer3D implements MapView {
   /** What the last fog repaint cost. See `FogStats`. */
   private lastFogStats: FogStats | null = null;
 
-  constructor(canvas: HTMLCanvasElement) {
+  constructor(canvas: HTMLCanvasElement, options: { minFrustum?: number } = {}) {
     this.canvas = canvas;
-    this.renderer = new WebGLRenderer({ canvas, antialias: true });
+    this.view = new DioramaCamera(options.minFrustum);
+    this.renderer = new WebGLRenderer({ canvas, antialias: true, stencil: true });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     // No tone mapping: the palette is already muted, and a filmic curve would
     // pull the highlights grey and undo the work.
@@ -364,6 +399,134 @@ export class Renderer3D implements MapView {
     this.loadSprites();
     this.loadBadges();
     this.loadIcons();
+  }
+
+  /** Opt-in terrain presentation; the gameplay host and its layers stay live. */
+  async enablePaintedLook(daylight = 'golden'): Promise<void> {
+    if (this.paintedLook) return;
+    const oldLights = this.scene.children.filter(object => 'isLight' in object);
+    this.paintedLook = await createPaintedLook(this.renderer, this.scene, this.view.camera, daylight);
+    if (!this.running) { this.paintedLook.dispose(); this.paintedLook = null; return; }
+    this.paintedCities = new PaintedCityLayer(this.paintedLook.cityAssets, this.paintedLook.registerMaterial);
+    this.scene.add(this.paintedCities.group);
+    this.paintedWorks = new PaintedWorksLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
+    this.scene.add(this.paintedWorks.group);
+    this.paintedSites = new PaintedSiteLayer(this.paintedLook.workAssets, this.paintedLook.registerMaterial);
+    this.paintedRoads = new PaintedGroundLayer('painted-roads', this.paintedLook.registerMaterial);
+    this.paintedTerritory = new PaintedGroundLayer('painted-territory', this.paintedLook.registerMaterial);
+    this.scene.add(this.paintedSites.group, this.paintedRoads.group, this.paintedTerritory.group);
+    this.paintedUnits = new PaintedUnitKit(this.paintedLook.registerMaterial);
+    for (const light of oldLights) this.scene.remove(light);
+    this.scene.remove(this.key.target);
+    this.resize();
+    if (this.state) { this.rebuildBoard(this.state.map); this.setGameState(this.state); }
+    this.invalidate();
+  }
+
+  /** Prepare off-thread before handing a new game to the synchronous layers. */
+  async preparePaintedMap(map: GameMap, onProgress?: (percent: number) => void): Promise<void> {
+    this.boardBuild?.abort();
+    this.preparedBoard?.board.dispose(); this.preparedBoard = null;
+    if (!this.paintedLook || !this.running) return;
+    const controller = new AbortController(), shadows = this.shadows;
+    this.boardBuild = controller;
+    try {
+      const result = await buildPaintedBoardAsync(map, this.paintedLook.assets, this.paintedLook.materials, shadows,
+        {signal: controller.signal, onProgress});
+      if (!this.running || controller.signal.aborted || this.boardBuild !== controller) {
+        result.board.dispose(); throw new DOMException('Board build cancelled', 'AbortError');
+      }
+      this.preparedBoard = {map, board: result.board, shadows};
+      this.paintedBuildMetrics = result.metrics;
+    } finally {
+      if (this.boardBuild === controller) this.boardBuild = null;
+    }
+  }
+
+  get paintedEnabled(): boolean { return this.paintedLook !== null; }
+
+  /** Presentation-only command/update probe. Never issues orders or saves. */
+  async benchmarkMovementUpdates(): Promise<unknown> {
+    if (!this.state || !this.paintedLook || this.benchmarking || this.animations.pending) return null;
+    this.benchmarking = true;
+    const original = this.state, sample = structuredClone(original);
+    sample.map = original.map;
+    const unit = sample.units.find(u => u.ownerId === this.fogSeat) ?? sample.units[0];
+    const destination = unit && original.map.tiles.find(t => t.row === unit.row && t.col !== unit.col && Math.abs(t.col - unit.col) <= 3 && !['ocean','coast','lake','mountain'].includes(t.terrain));
+    const frame = () => new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    const results = [];
+    try {
+      this.setGameState(sample); await frame(); await frame();
+      for (const scenario of ['same visibility', 'visibility changes']) {
+        const updates: number[] = [], frames: number[] = [];
+        const bakes = this.paintedLook.shadowBakes;
+        for (let i = 0; i < 8; i++) {
+          if (unit && destination) unit.col = i % 2 ? original.units.find(u => u.id === unit.id)!.col : destination.col;
+          if (scenario === 'visibility changes' && this.fogSeat !== null) {
+            const levels = sample.visibility[this.fogSeat]!;
+            // Existing charted cells alternate between visible and remembered.
+            for (let cell = 0, count = 0; cell < levels.length && count < 12; cell++) if (levels[cell]! > 0) { levels[cell] = i % 2 ? 2 : 1; count++; }
+          }
+          const start = performance.now(); this.setGameState(sample);
+          updates.push(performance.now() - start);
+          await frame(); await frame(); frames.push(performance.now() - start);
+        }
+        results.push({scenario, updatesMs: updates, updateToTwoFramesMs: frames, terrainShadowBakes: this.paintedLook.shadowBakes - bakes});
+      }
+      return {map: {width: original.map.width, height: original.map.height}, unitMoved: Boolean(destination), seat: this.fogSeat, unitCount: sample.units.length, results};
+    } finally { this.setGameState(original); this.benchmarking = false; this.invalidate(); }
+  }
+
+  setDaylight(key: string): void { this.paintedLook?.setDaylight(key); this.invalidate(); }
+
+  /** Opt-in art review; never adds a building or changes the command log. */
+  setCityWallPreview(enabled: boolean): void {
+    if (this.cityWallPreview === enabled) return;
+    this.cityWallPreview = enabled;
+    this.rebuildCities();
+    this.invalidate();
+  }
+
+  /** A repeatable view-only sweep; it never changes the map or command log. */
+  async benchmarkTerrain(): Promise<unknown> {
+    if (!this.paintedLook || !this.map || !this.board || this.benchmarking) return null;
+    this.benchmarking = true;
+    const saved = { target: this.view.target.clone(), radius: this.view.radius, seat: this.fogSeat };
+    const results: unknown[] = [], map = this.map, started = this.buildMs;
+    const frame = () => new Promise<number>(resolve => requestAnimationFrame(resolve));
+    const mixed = map.tiles.filter(tile => tile.feature === 'forest').sort((a,b) =>
+      Math.hypot(a.col-map.width*.5,a.row-map.height*.5)-Math.hypot(b.col-map.width*.5,b.row-map.height*.5))[0];
+    const center = mixed ? cellCenter(mixed.col,mixed.row) : {x:saved.target.x,z:saved.target.z};
+    const ownUnit = this.state?.units.find(unit => unit.ownerId === saved.seat);
+    const chartedCenter = ownUnit ? cellCenter(ownUnit.col, ownUnit.row) : center;
+    try {
+      for (const scenario of ['charted play', 'charted overview', 'play', 'overview', 'wrap seam']) {
+        this.setFogSeat(scenario.startsWith('charted ') ? saved.seat : null);
+        const kind = scenario.replace('charted ', '');
+        if (kind === 'overview') this.view.frameBoard(this.board.bounds);
+        else this.view.zoomByFactor(this.view.radius / (kind === 'play' ? 7 : 10), this.canvas.clientWidth/2,this.canvas.clientHeight/2);
+        const origin = kind === 'overview' ? {x:map.width*Math.sqrt(3)*.5,z:map.height*.75}
+          :kind === 'wrap seam' ? {x:0,z:center.z}:scenario.startsWith('charted ') ? chartedCenter : center;
+        const intervals:number[]=[],submission:number[]=[],draws:number[]=[],triangles:number[]=[];
+        let previous=0,shadowStart=0;
+        for(let i=0;i<156;i++) {
+          this.view.panTo(origin.x+Math.sin(i*.028)*4,origin.z+Math.cos(i*.024)*1.5,false,performance.now());
+          this.invalidate();
+          const time=await frame();
+          if(i===35)shadowStart=this.paintedLook.shadowBakes;
+          if(i>=36){intervals.push(time-previous);submission.push(this.lastRenderMs);draws.push(this.lastDrawCalls);triangles.push(this.lastTriangles)}
+          previous=time;
+        }
+        const summarize=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return {median:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted[sorted.length-1]}};
+        results.push({view:scenario,frames:intervals.length,frameMs:summarize(intervals),cpuRenderMs:summarize(submission),drawCalls:summarize(draws),triangles:summarize(triangles),terrainShadowRebakes:this.paintedLook.shadowBakes-shadowStart});
+      }
+      return {map:{width:map.width,height:map.height,tiles:map.tiles.length},viewport:{width:this.canvas.clientWidth,height:this.canvas.clientHeight,dpr:this.renderer.getPixelRatio()},browser:navigator.userAgent,boardBuildMs:started,geometryMiB:(this.paintedBoard?.geometryBytes??0)/1048576,instanceMiB:(this.paintedBoard?.instanceBytes??0)/1048576,visibility:'charted views use original seat; other views omniscient; original seat restored',results};
+    } finally {
+      this.setFogSeat(saved.seat);
+      this.view.zoomByFactor(this.view.radius/saved.radius,this.canvas.clientWidth/2,this.canvas.clientHeight/2);
+      this.view.panTo(saved.target.x,saved.target.z,false,performance.now());
+      this.benchmarking=false;this.invalidate();
+    }
   }
 
   /**
@@ -473,8 +636,15 @@ export class Renderer3D implements MapView {
    * ordinary command.
    */
   setGameState(state: GameState | null): void {
+    const force = state !== this.state || state?.map !== this.map;
     this.state = state;
+    if (!state || signUnits(state) !== this.unitsSignature) this.setHoveredUnitId(null);
     if (!state) {
+      if (this.paintedCities) this.paintedCities.group.visible = false;
+      if (this.paintedWorks) this.paintedWorks.group.visible = false;
+      for (const layer of [this.paintedSites, this.paintedRoads, this.paintedTerritory]) if (layer) layer.group.visible = false;
+      this.paintedWorksSignature = null;
+      this.cityBannerAnchors.clear();
       this.invalidate();
       return;
     }
@@ -487,20 +657,12 @@ export class Renderer3D implements MapView {
     ) {
       this.clearGround();
     }
-    this.rebuildUnits();
-    this.rebuildCities();
-    this.rebuildTerritory();
-    this.rebuildRoads();
-    this.rebuildImprovements();
-    this.rebuildSites();
+    // A load may replace presentation facts not covered by ordinary command
+    // fingerprints (e.g. owner colours). Commands retain the same state object.
+    if (force) { this.visibilitySignatures = null; this.paintedWorksSignature = null; this.reveal?.reset(); }
+    this.syncStateLayers(force);
     this.rebuildOverlays();
     this.rebuildLens();
-    this.applyFog();
-    // A state swapped under the board — a load, a replay — can be a different
-    // empire holding different technologies on the same map, and nothing about
-    // the handles this layer holds would say so. See `RevealView.reset`.
-    this.reveal?.reset();
-    this.applyReveal();
     this.invalidate();
   }
 
@@ -510,6 +672,7 @@ export class Renderer3D implements MapView {
 
   private setMap(map: GameMap): void {
     this.hover = null;
+    this.hoveredUnitId = null;
     this.reachable = [];
     this.attackable = [];
     this.pathPreview = [];
@@ -618,6 +781,7 @@ export class Renderer3D implements MapView {
     if ((this.cleared.get(cell) ?? SUPPRESS.never) >= scope) return;
     this.cleared.set(cell, scope);
     this.board?.suppressTile(cell, scope);
+    this.paintedLook?.invalidateShadows();
   }
 
   /**
@@ -681,8 +845,13 @@ export class Renderer3D implements MapView {
    */
   private applyFog(): FogStats | null {
     const levels = this.fogLevels();
-    if (!this.fog || !levels) return null;
-    return this.fog.apply(levels);
+    if (this.paintedBoard) {
+      const revision = this.paintedBoard.shadowRevision;
+      this.paintedBoard.applyFog(levels);
+      if (revision !== this.paintedBoard.shadowRevision) this.paintedLook?.invalidateShadows();
+    }
+    if (!this.fog || (!levels && !this.paintedLook)) return null;
+    return this.fog.apply(levels ?? this.omniscientLevels);
   }
 
   /**
@@ -695,6 +864,7 @@ export class Renderer3D implements MapView {
    */
   setFogSeat(playerId: number | null): void {
     if (this.fogSeat === playerId) return;
+    this.setHoveredUnitId(null);
     this.fogSeat = playerId;
     this.applyFog();
     // The seat's *knowledge* moves with its eyes: the new player may not have
@@ -743,12 +913,25 @@ export class Renderer3D implements MapView {
    * board is built once per game.
    */
   private rebuildBoard(map: GameMap): void {
+    if (this.map) uninstallPaintedSurface(this.map);
     if (this.board) {
       this.scene.remove(this.board.group);
       this.board.dispose();
     }
     const started = performance.now();
-    this.board = buildBoard(map, this.geometry, this.materials, this.shadows);
+    this.paintedWorksSignature = null;
+    const prepared = this.preparedBoard;
+    this.preparedBoard = null;
+    const ready = prepared?.map === map && prepared.shadows === this.shadows;
+    if (prepared && !ready) prepared.board.dispose();
+    this.paintedBoard = ready ? prepared.board : this.paintedLook
+      ? buildPaintedBoard(map, this.paintedLook.assets, this.paintedLook.materials, this.shadows) : null;
+    this.board = this.paintedBoard ?? buildBoard(map, this.geometry, this.materials, this.shadows);
+    if (this.paintedBoard) {
+      installPaintedSurface(map, this.paintedBoard.renderMap, this.paintedBoard.pickMeshes);
+      this.paintedLook!.fitShadows(this.board.bounds, this.board.wrapWidth);
+    }
+    this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything
     // already built on this map has to be applied to it once. See `clearGround`.
     this.cleared.clear();
@@ -756,7 +939,7 @@ export class Renderer3D implements MapView {
     this.clearedImprovementsSignature = 0;
     this.clearedFeaturesSignature = 0;
     this.clearGround();
-    this.buildMs = performance.now() - started;
+    this.buildMs = performance.now() - started + (ready ? this.paintedBuildMetrics?.totalMs ?? 0 : 0);
     this.map = map;
     this.scene.add(this.board.group);
     this.rebuildReveal();
@@ -772,6 +955,8 @@ export class Renderer3D implements MapView {
       instances: this.board?.instanceCount ?? 0,
       drawCalls: this.lastDrawCalls,
       buildMs: this.buildMs,
+      triangles: this.lastTriangles,
+      shadowBakes: this.paintedLook?.shadowBakes ?? 0,
     };
   }
 
@@ -786,7 +971,7 @@ export class Renderer3D implements MapView {
       this.view.camera.quaternion.clone(),
       this.shadows,
       this.sprites,
-      this.badges,
+      this.unitBadgesVisible !== false ? this.badges : null,
       this.selectedUnitId,
       this.fogLevels(),
       // The tile atlas, for the worker charge badge's numeral boss — the same
@@ -796,15 +981,27 @@ export class Renderer3D implements MapView {
       // fog grid above belongs to, so the pieces a player may hit and the
       // pieces a player can see are answered for one empire.
       this.fogSeat,
+      this.paintedUnits,
     );
     // A walk in flight keeps its piece hidden across the rebuild; the sample
     // loop restores it when the animation ends.
     for (const unitId of this.animations.activeUnits()) this.units.hide(unitId);
+    this.units.setHoveredUnitId(this.hoveredUnitId ?? null);
+    if (this.paintedLook) this.units.group.traverse(object => object.layers.set(2));
     this.unitsSignature = signUnits(this.state);
   }
 
-  private rebuildCities(): void {
+  private rebuildCities(shadowChanged = true): void {
     if (!this.state) return;
+    this.cityBannerAnchors.clear();
+    if (this.paintedCities && this.paintedBoard) {
+      this.paintedCities.group.visible = true;
+      this.paintedCities.build(this.state, this.paintedBoard.renderMap, this.fogLevels(), this.shadows, {previewWalls: this.cityWallPreview});
+      for (const city of this.state.cities) {
+        const anchor = this.paintedCities.flagAnchors.get(city.id);
+        if (anchor) this.cityBannerAnchors.set(tileIndex(this.state.map, city.col, city.row), anchor);
+      }
+    }
     this.cities.build(
       this.state,
       this.geometry,
@@ -813,13 +1010,19 @@ export class Renderer3D implements MapView {
       this.shadows,
       this.fogLevels(),
       this.icons,
+      this.paintedCities ? {towns: false, flagAnchors: this.paintedCities.flagAnchors} : undefined,
     );
     this.citiesSignature = signCities(this.state);
+    if (shadowChanged) this.paintedLook?.invalidateShadows();
   }
 
   private rebuildTerritory(): void {
     if (!this.state) return;
-    this.territory.build(this.state, this.geometry, this.materials, this.fogLevels());
+    if (this.paintedTerritory && this.paintedBoard) {
+      this.territory.group.visible = false;
+      this.paintedTerritory.build(this.state, this.paintedBoard.renderMap,
+        planPaintedTerritory(this.state, this.paintedBoard.renderMap), this.fogLevels(), this.shadows);
+    } else this.territory.build(this.state, this.geometry, this.materials, this.fogLevels());
     this.territorySignature = signTerritory(this.state);
   }
 
@@ -831,7 +1034,7 @@ export class Renderer3D implements MapView {
    * The layer paints its own fog on the way out, so a rebuild on remembered
    * ground comes up washed rather than lit.
    */
-  private rebuildImprovements(): void {
+  private rebuildImprovements(shadowChanged = true): void {
     if (!this.state) return;
     this.improvements.build(
       this.state,
@@ -839,8 +1042,51 @@ export class Renderer3D implements MapView {
       this.materials,
       this.shadows,
       this.fogLevels(),
+      this.paintedWorks ? PAINTED_IMPROVEMENTS : null,
     );
+    this.rebuildPaintedWorks();
     this.improvementsSignature = signImprovements(this.state);
+    if (shadowChanged) this.paintedLook?.invalidateShadows();
+  }
+
+  /** Resource reveal and painted fields update independently of the terrain bake. */
+  private rebuildPaintedWorks(): boolean {
+    if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
+    const signature = signPaintedWorks(this.state, this.fogSeat);
+    const levels = this.fogLevels();
+    let fogSignature = 0, shadowSignature = 0;
+    if (levels) for (let cell = 0; cell < levels.length; cell++) {
+      const tile = this.state.map.tiles[cell];
+      if (tile?.resource || tile?.improvement) {
+        fogSignature = (Math.imul(fogSignature ^ cell, 31) + (levels[cell] ?? 0)) | 0;
+        shadowSignature = (Math.imul(shadowSignature ^ cell, 31) + ((levels[cell] ?? 0) > 0 ? 1 : 0)) | 0;
+      }
+    }
+    // Include monotone scenery clearing, which survives pillage and is not
+    // necessarily represented by the tile's current improvement alone.
+    for (const [cell, scope] of this.cleared) {
+      fogSignature = (Math.imul(fogSignature, 31) + cell * 3 + scope) | 0;
+      shadowSignature = (Math.imul(shadowSignature, 31) + cell * 3 + scope) | 0;
+    }
+    if (signature === this.paintedWorksSignature && fogSignature === this.paintedWorksFogSignature) return false;
+    const shadowChanged = signature !== this.paintedWorksSignature || shadowSignature !== this.paintedWorksShadowSignature;
+    this.paintedWorks.group.visible = true;
+    this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
+    this.reservePaintedProps();
+    this.paintedWorksSignature = signature;
+    this.paintedWorksFogSignature = fogSignature;
+    this.paintedWorksShadowSignature = shadowSignature;
+    if (shadowChanged) this.paintedLook?.invalidateShadows();
+    return true;
+  }
+
+  private reservePaintedProps(): void {
+    if (!this.paintedWorks || !this.paintedBoard) return;
+    const reservations = new Map(this.paintedWorks.entries.map(entry => [entry.cell,
+      entry.improvement === 'farm' ? 1 : entry.improvement === 'lumbermill' ? .50 :
+        entry.improvement && entry.improvement !== 'camp' ? .72 : .54]));
+    for (const entry of this.paintedSites?.entries ?? []) reservations.set(entry.cell, Math.max(reservations.get(entry.cell) ?? 0, .77));
+    this.paintedBoard.reserveFootprints(reservations);
   }
 
   /**
@@ -853,7 +1099,11 @@ export class Renderer3D implements MapView {
    */
   private rebuildRoads(): void {
     if (!this.state) return;
-    this.roads.build(
+    if (this.paintedRoads && this.paintedBoard) {
+      this.roads.group.visible = false;
+      this.paintedRoads.build(this.state, this.paintedBoard.renderMap,
+        planPaintedRoads(this.state, this.paintedBoard.renderMap), this.fogLevels(), this.shadows);
+    } else this.roads.build(
       this.state,
       this.geometry,
       this.materials,
@@ -861,10 +1111,17 @@ export class Renderer3D implements MapView {
       this.fogLevels(),
     );
     this.roadsSignature = signRoadCells(this.state);
+    // Painted road ink receives shadows but casts none.
+    if (!this.paintedRoads) this.paintedLook?.invalidateShadows();
   }
 
-  private rebuildSites(): void {
+  private rebuildSites(shadowChanged = true): void {
     if (!this.state) return;
+    if (this.paintedSites && this.paintedBoard) {
+      this.paintedSites.group.visible = true;
+      this.paintedSites.build(this.state, this.paintedBoard.renderMap, this.fogLevels(), this.fogSeat, this.shadows);
+      this.reservePaintedProps();
+    }
     this.sites.build(
       this.state,
       this.geometry,
@@ -884,8 +1141,10 @@ export class Renderer3D implements MapView {
       // and hashed into the fingerprint below, so finishing the node rebuilds
       // this layer on the very next frame.
       this.fogSeat,
+      this.paintedSites ? { props: false } : undefined,
     );
     this.sitesSignature = signSites(this.state, this.fogSeat);
+    if (shadowChanged) this.paintedLook?.invalidateShadows();
   }
 
   private rebuildOverlays(): void {
@@ -964,6 +1223,16 @@ export class Renderer3D implements MapView {
   }
 
   // --- MapView: selection and overlays -------------------------------------
+
+  /** Art inspection can expose headgear; the playable game's tags stay on. */
+  setUnitBadgesVisible(visible: boolean): void {
+    this.setHoveredUnitId(null);
+    if (this.unitBadgesVisible === visible) return;
+    this.skipAnimations();
+    this.unitBadgesVisible = visible;
+    this.rebuildUnits();
+    this.invalidate();
+  }
 
   setSelectedUnitId(id: number | null): void {
     if (this.selectedUnitId === id) return;
@@ -1198,6 +1467,19 @@ export class Renderer3D implements MapView {
     return this.hover;
   }
 
+  /** Hover changes only the old and new rims, never the terrain or unit batch. */
+  setHoveredUnitId(unitId: number | null): void {
+    if (unitId === (this.hoveredUnitId ?? null)) return;
+    this.hoveredUnitId = unitId;
+    this.units.setHoveredUnitId(unitId);
+    for (const [id, group] of this.walkers) group.traverse(object => {
+      if (!(object instanceof Mesh) || !object.userData.unitShell || !this.state) return;
+      const unit = this.state.units.find(piece => piece.id === id);
+      if (unit) object.material = this.unitOutline(unitShellWash(this.state, unit, this.fogSeat), id === unitId);
+    });
+    this.invalidate();
+  }
+
   // --- MapView: picking and camera -----------------------------------------
 
   /**
@@ -1233,9 +1515,9 @@ export class Renderer3D implements MapView {
    * test, the price plates and the damage figures all want. The city banner is
    * the one caller that passes anything: it hangs its plate above the flagpole
    * so the pieces' own roundels stand on the tile beneath it (the user, U7 —
-   * `ui/cityBanners.ts`, "Where the plate hangs"). A rise rather than a second
-   * projector because it is the same question about a different point, and the
-   * wrap resolution above is the part that must not be copied.
+   * `ui/cityBanners.ts`, "Where the plate hangs"). Painted city banners use their
+   * architectural flag anchor through `projectCityBanner`. Both share the same
+   * cylindrical wrap and screen projection.
    */
   projectCell(col: number, row: number, rise = 0): ScreenPoint | null {
     if (!this.map) return null;
@@ -1243,12 +1525,22 @@ export class Renderer3D implements MapView {
     if (!tile) return null;
 
     const centre = cellCenter(col, row);
-    const period = wrapWidth(this.map);
-    const reference = this.view.target.x;
-    let delta = (((centre.x - reference) % period) + period) % period;
-    if (delta > period / 2) delta -= period;
+    return this.projectWrappedPoint({x: centre.x, y: tileTopY(tile) + rise, z: centre.z});
+  }
 
-    const point = this.projectPoint({ x: reference + delta, y: tileTopY(tile) + rise, z: centre.z });
+  /** The city flag's architectural anchor; unseen towns retain the tile anchor. */
+  projectCityBanner(col: number, row: number, rise = 0): ScreenPoint | null {
+    if (!this.map) return null;
+    const anchor = this.cityBannerAnchors.get(tileIndex(this.map, col, row));
+    return anchor ? this.projectWrappedPoint({...anchor, y: anchor.y + rise}) : this.projectCell(col, row, rise);
+  }
+
+  private projectWrappedPoint(anchor: WorldPoint): ScreenPoint {
+    const period = wrapWidth(this.map!);
+    const reference = this.view.target.x;
+    let delta = (((anchor.x - reference) % period) + period) % period;
+    if (delta > period / 2) delta -= period;
+    const point = this.projectPoint({...anchor, x: reference + delta});
     return {
       x: point.x,
       y: point.y,
@@ -1308,10 +1600,11 @@ export class Renderer3D implements MapView {
   pickUnitBadge(screenX: number, screenY: number, playerId: number): number | null {
     // No atlas yet means no badges are drawn, and a target nobody can see is
     // not a target: until the icons rasterise, a click is the tile contract.
-    if (!this.state || !this.badges) return null;
+    if (!this.state || !this.badges || this.unitBadgesVisible === false) return null;
 
-    const anchors = badgeAnchors(this.state, playerId, (type) =>
-      unitVisualHeight(type, this.sprites),
+    const anchors = badgeAnchors(this.state, playerId, (type, unit) =>
+      this.paintedUnits?.resolve(unit, terrainUnder(this.state!.map, unit))?.height ?? unitVisualHeight(type, this.sprites),
+      this.paintedUnits,
     );
     return pickBadge(
       anchors,
@@ -1320,6 +1613,33 @@ export class Renderer3D implements MapView {
       (point) => this.projectPoint(point),
       this.badgeRimOffset(),
     );
+  }
+
+  /** Exact body triangles, including wrap copies and the current walking pose. */
+  pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
+    if (!this.state || !this.map) return null;
+    const candidates: UnitModelCandidate[] = this.units.modelCandidates();
+    for (const [unitId, group] of this.walkers) group.traverse(object => {
+      if (object instanceof Mesh && object.userData.unitBody) candidates.push({unitId, object});
+    });
+    const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, [this.scene], {
+      layers: this.view.camera.layers,
+      acceptsOccluderHit: hit => {
+        if (!this.paintedBoard) return true;
+        const geometry = hit.object.geometry, cells = geometry.getAttribute('paintedCell');
+        const index = hit.instanceId ?? hit.face?.a;
+        if (!cells || index === undefined) return true;
+        const cell = Math.round(cells.getX(index)), grade = geometry.getAttribute('paintedSuppress')?.getX(index) ?? 0;
+        const other = geometry.getAttribute('paintedOther')?.getX(index);
+        if (!this.paintedBoard.isCellVisible(cell, grade) &&
+            (other === undefined || !this.paintedBoard.isCellVisible(Math.round(other), grade))) return false;
+        const distance = geometry.getAttribute('paintedReservationDistance')?.getX(index) ?? 0;
+        const reserved = Number(this.paintedBoard.fogTexture.image.data?.[cell * 4 + 2] ?? 0) / 255;
+        return distance <= 0 || distance - 1 >= reserved;
+      },
+    });
+    const unit = this.state.units.find(piece => piece.id === id);
+    return unit?.ownerId === playerId && isVisibleTo(this.state, playerId, unit.col, unit.row) ? unit.id : null;
   }
 
   /**
@@ -1352,11 +1672,13 @@ export class Renderer3D implements MapView {
   }
 
   panByScreen(dx: number, dy: number): void {
+    this.setHoveredUnitId(null);
     this.view.pan(dx, dy);
     this.invalidate();
   }
 
   zoomBy(factor: number, screenX: number, screenY: number): void {
+    this.setHoveredUnitId(null);
     this.view.zoomByFactor(factor, screenX, screenY);
     this.invalidate();
   }
@@ -1375,6 +1697,7 @@ export class Renderer3D implements MapView {
    * The zoom is not touched: this answers "where", not "how close".
    */
   panToCells(cells: readonly CellRef[], animate: boolean): void {
+    this.setHoveredUnitId(null);
     if (!this.map || cells.length === 0) return;
     const period = wrapWidth(this.map);
     const reference = this.view.target.x;
@@ -1400,6 +1723,7 @@ export class Renderer3D implements MapView {
    * target to pull the nearest copy toward.
    */
   focusOpening(cell: CellRef): void {
+    this.setHoveredUnitId(null);
     const { x, z } = cellCenter(cell.col, cell.row);
     this.view.openAt(x, z);
     this.invalidate();
@@ -1417,6 +1741,7 @@ export class Renderer3D implements MapView {
    * short of half the wrap period, so "nearest copy" is unambiguous here.
    */
   frameCells(cells: readonly CellRef[], animate: boolean): void {
+    this.setHoveredUnitId(null);
     if (!this.map || cells.length === 0) return;
     const period = wrapWidth(this.map);
     const reference = this.view.target.x;
@@ -1451,25 +1776,29 @@ export class Renderer3D implements MapView {
    * verbs stay separate and a caller that wants both says both.
    */
   resetZoom(): void {
+    this.setHoveredUnitId(null);
     this.view.resetZoom();
     this.invalidate();
   }
 
   /** Re-frames the whole board, as a fresh map does. */
   fitToViewport(): void {
+    this.setHoveredUnitId(null);
     if (!this.board) return;
     this.view.frameBoard(this.board.bounds);
     this.invalidate();
   }
 
   resize(): void {
+    this.setHoveredUnitId(null);
     const width = Math.max(1, this.canvas.clientWidth);
     const height = Math.max(1, this.canvas.clientHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, this.paintedLook ? 1.5 : 2));
     // `false`: the canvas is sized by CSS (`inset: 0`), and letting three write
     // inline styles would fight the stylesheet on every resize.
     this.renderer.setSize(width, height, false);
     this.view.resize(width, height);
+    this.paintedLook?.resize(width, height);
     if (this.needsFit && this.board) {
       this.view.frameBoard(this.board.bounds);
       this.needsFit = false;
@@ -1499,7 +1828,7 @@ export class Renderer3D implements MapView {
     this.animations.start(unitId, from, walked, performance.now());
     if (this.animations.activeUnits().includes(unitId)) {
       this.units.hide(unitId);
-      this.spawnWalker(unitId);
+      this.spawnWalker(unitId, getTileAt(this.state.map, from.col, from.row)?.terrain);
     }
     this.invalidate();
   }
@@ -1558,7 +1887,7 @@ export class Renderer3D implements MapView {
    * identical standing still and mid-stride. That shared builder is the whole
    * reason animation needed no second implementation for the new art.
    */
-  private spawnWalker(unitId: number): void {
+  private spawnWalker(unitId: number, terrain?: TerrainId): void {
     if (!this.state || !this.map) return;
     const unit = this.state.units.find((u) => u.id === unitId);
     if (!unit) return;
@@ -1568,6 +1897,10 @@ export class Renderer3D implements MapView {
     const color = unitColor(this.state, unit);
     const period = wrapWidth(this.map);
     const group = new Group();
+    const painted = this.paintedUnits?.resolve(unit, terrain ?? terrainUnder(this.map, unit));
+    group.userData.unitVisual = true;
+    const visualHeight = painted?.height ?? unitVisualHeight(unit.type, this.sprites);
+    if (painted) this.walkerModels.set(unitId, painted);
 
     /**
      * The walker's own badge, or null while the atlas is still rasterising.
@@ -1578,7 +1911,7 @@ export class Renderer3D implements MapView {
      * buckets to move, which is the thing hiding-and-respawning exists to avoid.
      */
     const badgeFor = (): Group | null =>
-      this.badges
+      this.badges && this.unitBadgesVisible !== false
         ? buildBadge(
             this.geometry,
             this.materials,
@@ -1586,7 +1919,7 @@ export class Renderer3D implements MapView {
             badgeClassFor(unit.type),
             color,
             faceCamera,
-            unitVisualHeight(unit.type, this.sprites),
+            visualHeight,
           )
         : null;
 
@@ -1608,12 +1941,12 @@ export class Renderer3D implements MapView {
             this.geometry,
             this.materials,
             faceCamera,
-            unitVisualHeight(unit.type, this.sprites),
+            visualHeight,
             fraction,
           );
     };
 
-    const spriteMaterial = this.sprites?.materialFor(unit.type) ?? null;
+    const spriteMaterial = painted ? null : this.sprites?.materialFor(unit.type) ?? null;
     if (spriteMaterial) {
       for (const dx of [-period, 0, period]) {
         const copy = buildSpriteUnit(
@@ -1635,22 +1968,18 @@ export class Renderer3D implements MapView {
       return;
     }
 
-    // The walking copy takes the piece's *own* body — laden twin and boat hull
-    // included — or a caravan would shed its bale for exactly the length of its
-    // march, and a piece rowing out to sea would walk there on foot. The terrain
-    // is the unit's *current* hex, which during a march is where it is going: a
-    // step onto the water becomes a boat for the whole slide, which is the same
-    // reading the bale gets and the honest one for an animation that has no
-    // notion of a halfway house.
+    // Painted walkers use the sampled terrain and exchange cached geometry
+    // at a shore crossing. The legacy path retains its destination sculpt,
+    // including its existing laden and boat variants.
     const piece = this.geometry.pieces[unitSculpt(unit, terrainUnder(this.map, unit))];
-    const shape = piece.geometry;
+    const shape = painted?.geometry ?? piece.geometry;
     computeHullNormals(shape);
-    const material = pieceMaterials(this.materials, piece, color);
+    const material = painted && this.paintedUnits ? this.paintedUnits.material(painted, color) : pieceMaterials(this.materials, piece, color);
 
     // The piece's own turn goes on each mesh, never on the group: the group
     // carries the wrap offsets, and a rotation above them would swing the two
     // outer copies out of the seam and onto the wrong part of the board.
-    const facing = placePiece(this.map, unit, 0).quaternion;
+    const facing = placePiece(this.map, unit, 0, painted).quaternion;
     for (const dx of [-period, 0, period]) {
       // One wrapper per copy, so the badge can be a *sibling* of the piece: as a
       // child it would inherit the piece's hashed yaw and stop facing the
@@ -1658,11 +1987,15 @@ export class Renderer3D implements MapView {
       const copy = new Group();
       copy.position.x = dx;
       const mesh = new Mesh(shape, material);
+      mesh.renderOrder = RENDER_ORDER.unitBody;
+      mesh.userData.unitBody = true;
       mesh.castShadow = this.shadows;
       mesh.receiveShadow = this.shadows;
       mesh.quaternion.copy(facing);
       mesh.frustumCulled = false;
-      const shell = new Mesh(shape, this.materials.outline);
+      const shell = new Mesh(shape, this.unitOutline(unitShellWash(this.state, unit, this.fogSeat), unitId === this.hoveredUnitId));
+      shell.userData.unitShell = true;
+      shell.renderOrder = RENDER_ORDER.unitBody;
       shell.castShadow = false;
       shell.receiveShadow = false;
       shell.frustumCulled = false;
@@ -1672,7 +2005,7 @@ export class Renderer3D implements MapView {
       // player is most likely to be watching that particular hex. A child of the
       // mesh, so it inherits the piece's turn and cannot come apart from it; the
       // resting instance gets the same pass from the collector (see `pieces.ts`).
-      const ghost = new Mesh(shape, this.materials.silhouette(color));
+      const ghost = new Mesh(shape, this.materials.silhouette(unitGhostColor(this.state, unit, this.fogSeat)));
       ghost.castShadow = false;
       ghost.receiveShadow = false;
       ghost.frustumCulled = false;
@@ -1716,12 +2049,14 @@ export class Renderer3D implements MapView {
     // version of that where a footman topples over on the water.
     const tile = getTileAt(this.map, fallen.col, fallen.row);
     const piece = this.geometry.pieces[sculptFor(fallen.type, tile?.terrain)];
-    computeHullNormals(piece.geometry);
+    const painted = this.paintedUnits?.resolve(fallen, tile?.terrain);
+    const shape = painted?.geometry ?? piece.geometry;
+    computeHullNormals(shape);
     const player = this.state.players[fallen.ownerId];
     const color = playerPieceColor(player?.color ?? '', fallen.ownerId);
 
     const centre = cellCenter(fallen.col, fallen.row);
-    const height = tile ? tileTopY(tile) : 0;
+    const height = painted ? paintedUnitSupport(this.map, painted, centre.x, centre.z, tile ? tileTopY(tile) : 0) : tile ? tileTopY(tile) : 0;
     const period = wrapWidth(this.map);
     const group = new Group();
 
@@ -1730,15 +2065,23 @@ export class Renderer3D implements MapView {
       anchor.position.set(centre.x + dx, height, centre.z);
       // Cloned per copy so the three wrap copies can share nothing mutable; the
       // geometry is still the shared sculpt, which is the expensive half.
-      const materials = pieceMaterials(this.materials, piece, color);
+      const materials = painted && this.paintedUnits ? this.paintedUnits.material(painted, color) : pieceMaterials(this.materials, piece, color);
       const cloned = Array.isArray(materials)
         ? materials.map((material) => material.clone())
         : materials.clone();
       for (const material of Array.isArray(cloned) ? cloned : [cloned]) {
+        if (painted && !Array.isArray(materials)) {
+          // Material.clone omits shader hooks; keep the shared painted light
+          // uniforms and the fixed/owner pigment mask on a fading copy.
+          material.onBeforeCompile = materials.onBeforeCompile;
+          material.customProgramCacheKey = materials.customProgramCacheKey;
+        }
         material.transparent = true;
         material.depthWrite = false;
+        material.stencilWrite = false;
       }
-      const mesh = new Mesh(piece.geometry, cloned);
+      const mesh = new Mesh(shape, cloned);
+      if (painted) mesh.rotation.y = painted.yaw;
       mesh.castShadow = false;
       mesh.receiveShadow = false;
       mesh.frustumCulled = false;
@@ -1799,7 +2142,38 @@ export class Renderer3D implements MapView {
     for (const unitId of [...this.fallers.keys()]) this.removeFaller(unitId);
   }
 
+  private unitOutline(wash: { target: number; mix: number }, hovered = false): MeshBasicMaterial {
+    // Targets are integer RGB values and mixes are in [0, 1], so the fractional
+    // half of the key keeps distinct washes of the same ink separate.
+    const key = wash.target + wash.mix / 2 + (hovered ? 0x1000000 : 0);
+    let material = this.unitOutlines.get(key);
+    if (!material) {
+      material = this.materials.unitOutline.clone();
+      // InstanceCollector.setShellWash uploads sRGB channel ratios as linear
+      // multipliers. A fresh Color(target) applies a different transfer curve:
+      // match the resting shell's actual output rather than changing its ink.
+      const base = this.materials.outline.color.getHex();
+      for (const [channel, shift] of [['r', 16], ['g', 8], ['b', 0]] as const) {
+        const from = ((base >> shift) & 255) / 255;
+        const to = ((wash.target >> shift) & 255) / 255;
+        const factor = wash.mix <= 0 ? 1 : Math.max(0, Math.min(8,
+          (from * (1 - wash.mix) + to * wash.mix) / Math.max(from, .02)));
+        // Match the precision of the instancer's Float32 colour attribute.
+        material.color[channel] *= Math.fround(factor);
+      }
+      const source = this.materials.unitOutline;
+      material.onBeforeCompile = (shader, renderer) => {
+        source.onBeforeCompile(shader, renderer);
+        shader.uniforms.uUnitOutlineWidth = {value: hovered ? VIEW3D.units.hoverOutlineWidth : VIEW3D.units.outlineWidth};
+      };
+      material.customProgramCacheKey = () => `unit-outline:${hovered ? 'hover' : 'rest'}`;
+      this.unitOutlines.set(key, material);
+    }
+    return material;
+  }
+
   private removeWalker(unitId: number): void {
+    this.walkerModels.delete(unitId);
     const group = this.walkers.get(unitId);
     if (!group) return;
     this.scene.remove(group);
@@ -1838,7 +2212,18 @@ export class Renderer3D implements MapView {
         this.units.restore(unitId);
         continue;
       }
-      this.walkers.get(unitId)?.position.set(sample.x, sample.y, sample.z);
+      // The simulation is already at its destination. Choose art from the
+      // animated position so boats turn into land pieces at the actual shore.
+      if (this.paintedUnits) {
+        const unit = this.state?.units.find(unit => unit.id === unitId);
+        const terrain = worldToCell(this.map, sample.x, sample.z)?.tile.terrain;
+        if (unit && this.paintedUnits.resolve(unit, terrain) !== this.walkerModels.get(unitId)) {
+          this.spawnWalker(unitId, terrain);
+        }
+      }
+      const model = this.walkerModels.get(unitId);
+      const y = model ? Math.max(sample.y, paintedUnitSupport(this.map, model, sample.x, sample.z, sample.y, true)) : sample.y;
+      this.walkers.get(unitId)?.position.set(sample.x, y, sample.z);
       active = true;
     }
     return active;
@@ -1879,6 +2264,7 @@ export class Renderer3D implements MapView {
   }
 
   private applyLight(): void {
+    if (this.paintedLook) return;
     const el = LOOK.lightElevation * DEG;
     const az = LOOK.lightAzimuth * DEG;
     const direction = new Vector3(
@@ -1906,49 +2292,11 @@ export class Renderer3D implements MapView {
     shadow.updateProjectionMatrix();
   }
 
-  private loop(): void {
-    if (!this.running) return;
-    requestAnimationFrame(this.loop);
-
-    const now = performance.now();
-    // A frame that had a walker in it always draws, even if that walker just
-    // finished — the piece it removed has to be replaced by the instanced one.
-    // Asked of the *walks* as well as of the meshes, because the walk is what
-    // owns the hide: a walk with no mesh still has a piece to give back, and a
-    // gate that only watched the meshes would never run the sweep that does it.
-    const hadWalkers = this.animations.pending || this.walkers.size > 0;
-    if (hadWalkers) this.stepAnimations(now);
-    // Falls force frames exactly as walks do, and for the same reason: the
-    // frame that finished one has to draw the board without it.
-    const hadFallers = this.fallers.size > 0;
-    if (hadFallers) this.stepDeaths(now);
-    // An animating camera forces frames the same way a walking piece does: it
-    // moved the target, so the frame it moved it on has to be drawn.
-    const panned = this.view.stepPan(now);
-    // The city screen's wash fades on its own clock and forces frames the same
-    // way a walker or a moving camera does — one number, sampled here, so the
-    // render-on-demand loop goes back to idle the instant the fade lands.
-    const fading = this.vignette.step(now);
-    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading) return;
-
-    this.dirty = false;
-    // The pieces are instanced, so unlike the 2D units layer they are not
-    // re-read from the state every frame — they have to be rebuilt when the
-    // state moves them. Rather than making every caller remember to say so,
-    // the layer is fingerprinted and rebuilt when the fingerprint changes: it
-    // is a handful of integers per unit, it runs only on frames that were
-    // already going to be drawn, and it cannot be forgotten. Moves, spawns,
-    // damage, deaths and the stored orders that resolve during a turn change
-    // are all caught by it.
-    // Fog first, because everything below filters by it.
-    //
-    // Repainted per drawn frame rather than off a fingerprint of its own, and
-    // the cost of that is a single integer compare per tile — `apply` writes
-    // only where a level actually moved (see `fog3d.ts`). A fingerprint would
-    // have to hash four thousand integers to answer the same question, and a
-    // *notification* would have to be plumbed through every command, every turn
-    // phase and every seat change without ever being forgotten. The frame the
-    // renderer was already going to draw is the honest place to ask.
+  /** Shared command/frame update path; camera motion never rebuilds unchanged scenery. */
+  private syncStateLayers(force = false): void {
+    // Commands mutate state in place and invalidate the view. Fingerprints
+    // catch all visual changes at that boundary; animation-only frames reuse
+    // the resulting buffers. Fog is applied before content visibility checks.
     const fogged = this.applyFog();
     if (fogged) this.lastFogStats = fogged;
     // And the seat's *knowledge*, on the same frame and for the same reason: a
@@ -1965,7 +2313,13 @@ export class Renderer3D implements MapView {
     // or a mark, so the layers that filter by the seat's eyes are rebuilt with
     // the same one call the ordinary fingerprints would have made.
     const fogMoved = (fogged?.tiles ?? 0) > 0;
-    if (this.state && (fogMoved || signUnits(this.state) !== this.unitsSignature)) {
+    const visibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat) : null;
+    const shadowVisibility = this.state ? layerVisibility(this.state, this.fogLevels(), this.fogSeat, true) : null;
+    const shadowChanged = (layer: keyof LayerVisibility): boolean => force || shadowVisibility?.[layer] !== this.shadowVisibilitySignatures?.[layer];
+    const fogChanged = (layer: keyof LayerVisibility): boolean => force ||
+      visibility?.[layer] !== this.visibilitySignatures?.[layer];
+    if (this.state && (fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
+      this.setHoveredUnitId(null);
       this.rebuildUnits();
       this.rebuildOverlays();
     }
@@ -2003,14 +2357,14 @@ export class Renderer3D implements MapView {
       // founding.
       if (this.lensView.yields) this.rebuildLens();
     }
-    if (this.state && (fogMoved || signCities(this.state) !== this.citiesSignature)) {
-      this.rebuildCities();
+    if (this.state && (fogChanged('cities') || signCities(this.state) !== this.citiesSignature)) {
+      this.rebuildCities(shadowChanged('cities') || signCities(this.state) !== this.citiesSignature);
     }
     // Improvements are terrain-ish, so they follow the fog on explored ground
     // rather than disappearing with it — which means a fog move has to reach
     // this layer too, exactly as it reaches the towns and the borders.
-    if (this.state && (fogMoved || signImprovements(this.state) !== this.improvementsSignature)) {
-      this.rebuildImprovements();
+    if (this.state && (fogChanged('improvements') || signImprovements(this.state) !== this.improvementsSignature)) {
+      this.rebuildImprovements(shadowChanged('improvements') || signImprovements(this.state) !== this.improvementsSignature);
       // A holy site raised or pillaged is the strongest term in the tide and the
       // one thing this lens rings — see `addFaithWash`.
       if (this.lensView.mode === 'faith') this.rebuildLens();
@@ -2019,10 +2373,13 @@ export class Renderer3D implements MapView {
       // tile's yield the same way a farm does.
       if (this.lensView.yields) this.rebuildLens();
     }
+    // A reveal technology or a surveyed vein can change resource models without
+    // changing an improvement. The same update also follows in-place fog edits.
+    if (this.rebuildPaintedWorks() && this.lensView.yields) this.rebuildLens();
     // Roads are ground too, and follow the fog for the same reason: they survive
     // on remembered hexes, so a fog move has to reach this layer as well as the
     // works. Their own fingerprint is presence-only — see `signRoadCells`.
-    if (this.state && (fogMoved || signRoadCells(this.state) !== this.roadsSignature)) {
+    if (this.state && (fogChanged('roads') || signRoadCells(this.state) !== this.roadsSignature)) {
       this.rebuildRoads();
     }
     // Sites are seat-filtered twice over — a ruin fades on remembered ground and
@@ -2030,8 +2387,8 @@ export class Renderer3D implements MapView {
     // both of its tenants. The survey notes ride the same trigger: the seat's
     // own answer is inside the fingerprint, so the turn Geomancy lands the marks
     // appear on the very next frame. See `sites3d.ts`.
-    if (this.state && (fogMoved || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
-      this.rebuildSites();
+    if (this.state && (fogChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature)) {
+      this.rebuildSites(shadowChanged('sites') || signSites(this.state, this.fogSeat) !== this.sitesSignature);
       // The explorer lens is a picture of exactly what that fingerprint counts —
       // the unclaimed sites and the camps — so a ruin claimed or a camp burnt
       // out since the last frame has to reach it too, or the board keeps ringing
@@ -2051,7 +2408,7 @@ export class Renderer3D implements MapView {
         if (this.lensView.mode === 'faith') this.rebuildLens();
       }
     }
-    if (this.state && (fogMoved || signTerritory(this.state) !== this.territorySignature)) {
+    if (this.state && (fogChanged('territory') || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
       if (this.lensView.mode === 'settler') this.rebuildLens();
@@ -2071,6 +2428,38 @@ export class Renderer3D implements MapView {
     } else if (fogMoved) {
       this.rebuildLens();
     }
+    this.visibilitySignatures = visibility;
+    this.shadowVisibilitySignatures = shadowVisibility;
+  }
+
+  private loop(): void {
+    if (!this.running) return;
+    requestAnimationFrame(this.loop);
+
+    const now = performance.now();
+    // A frame that had a walker in it always draws, even if that walker just
+    // finished — the piece it removed has to be replaced by the instanced one.
+    // Asked of the *walks* as well as of the meshes, because the walk is what
+    // owns the hide: a walk with no mesh still has a piece to give back, and a
+    // gate that only watched the meshes would never run the sweep that does it.
+    const hadWalkers = this.animations.pending || this.walkers.size > 0;
+    if (hadWalkers) this.stepAnimations(now);
+    // Falls force frames exactly as walks do, and for the same reason: the
+    // frame that finished one has to draw the board without it.
+    const hadFallers = this.fallers.size > 0;
+    if (hadFallers) this.stepDeaths(now);
+    // An animating camera forces frames the same way a walking piece does: it
+    // moved the target, so the frame it moved it on has to be drawn.
+    const panned = this.view.stepPan(now);
+    // The city screen's wash fades on its own clock and forces frames the same
+    // way a walker or a moving camera does — one number, sampled here, so the
+    // render-on-demand loop goes back to idle the instant the fade lands.
+    const fading = this.vignette.step(now);
+    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading) return;
+
+    const refreshState = this.dirty;
+    this.dirty = false;
+    if (refreshState) this.syncStateLayers();
     // The light rig follows the pan target, so it must be recomputed on any
     // frame the camera could have moved — which is every frame we draw.
     this.applyLight();
@@ -2082,8 +2471,22 @@ export class Renderer3D implements MapView {
       this.canvas.clientWidth,
       this.canvas.clientHeight,
     );
-    this.renderer.render(this.scene, this.view.camera);
+    const renderStarted = performance.now();
+    if (this.paintedLook) {
+      const pixels = Math.sqrt(3) * this.canvas.clientWidth * this.renderer.getPixelRatio()
+        / (this.view.camera.right - this.view.camera.left);
+      this.paintedBoard?.updateDetail(pixels, this.paintedLook.sun.shadow.needsUpdate);
+      this.paintedLook.setContactDetail(pixels);
+      this.paintedLook.updateTime(now / 1000);
+      for (const group of [...this.walkers.values(), ...this.fallers.values()]) group.traverse(object => object.layers.set(2));
+      this.paintedLook.updateDynamicShadows(this.view.target, this.view.radius);
+      this.renderer.info.autoReset = false;
+      this.renderer.info.reset();
+      this.paintedLook.render();
+    } else this.renderer.render(this.scene, this.view.camera);
     this.lastDrawCalls = this.renderer.info.render.calls;
+    this.lastTriangles = this.renderer.info.render.triangles;
+    this.lastRenderMs = performance.now() - renderStarted;
     // After the draw, so anything the listener projects sees the camera the
     // frame was rendered with rather than the one before it.
     this.frameListener?.();
@@ -2091,6 +2494,8 @@ export class Renderer3D implements MapView {
 
   dispose(): void {
     this.running = false;
+    this.boardBuild?.abort(); this.boardBuild = null;
+    this.preparedBoard?.board.dispose(); this.preparedBoard = null;
     this.frameListener = null;
     this.clearWalkers();
     this.clearFallers();
@@ -2099,6 +2504,15 @@ export class Renderer3D implements MapView {
     this.icons?.dispose();
     this.units.dispose();
     this.cities.dispose();
+    this.paintedCities?.dispose();
+    this.paintedWorks?.dispose();
+    this.paintedSites?.dispose();
+    this.paintedRoads?.dispose();
+    this.paintedTerritory?.dispose();
+    this.paintedUnits?.dispose();
+    for (const material of this.unitOutlines.values()) material.dispose();
+    this.unitOutlines.clear();
+    this.cityBannerAnchors.clear();
     this.territory.dispose();
     this.tints.dispose();
     this.roads.dispose();
@@ -2109,7 +2523,9 @@ export class Renderer3D implements MapView {
     this.vignette.dispose();
     this.fog?.dispose();
     this.reveal?.dispose();
+    if (this.map) uninstallPaintedSurface(this.map);
     if (this.board) this.board.dispose();
+    this.paintedLook?.dispose();
     this.geometry.dispose();
     this.materials.dispose();
     this.renderer.dispose();

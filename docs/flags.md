@@ -19,6 +19,43 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(aaaaa) The painted renderer's performance pass — RULED, P-series** (the
+user, 2026-09-14: *"i've had astra also document what it thinks are the
+biggest performance improvements, could you read over the doc (now in main)
+and delegate subagents to handle each? Please verify they don't change the
+existing visual fidelity and note any sacrifices that have to be made to
+functionality before folding them in."*). The spec is
+`docs/plans/painted-performance-audit.md` — the original findings 1–16 as
+reconciled against the integrated renderer (`70ff850`) in its "Integration
+reconciliation" section, plus the additional tasks 17–24 and the revised
+delegation order there. **Two waves, each batch on its own fence off the
+reconciled main** (Astra's `70ff850` merged with L7 and the generals' data):
+**wave 1** — P1 the measurement harness (#24 GPU/CPU attribution and stress
+fixtures, #23 startup stage markers; evidence only, no runtime change); P2
+the local fixes (#17 the shadow toggle without a terrain rebuild, corrected
+#1 the counter-shadow gate including resting units, #11 the walker layer set
+once, #16 the painted knobs into `data/view3d.json`); P3 the developed-map
+caches (#5 city recipes keyed on the city's look with the local surface
+sampler, #6 the ground layer's incremental batches); P4 startup assets (#20
+GLB processing moved to a build script with a manifest, #8 parallel asset
+loads, #9 the grain textures as one channel — pixel identity required);
+**wave 2**, after wave 1 lands and P1's numbers exist — P5 the shadows (#3
+one-period fit and #19 exploration's global bake split from colour LOD); P6
+overview LOD (#18, one distant prop family; **a visual-review checkpoint
+for the user**, since it changes what the far view draws); P7 startup
+caching or replay-in-a-worker (#21/#22, whichever P1's stage markers say).
+**The fidelity gate, every batch**: before/after screenshots of the same
+seeded game at play and overview through the headless harness
+(`scratchpad/pw/gameshot.mjs`, `?art=painted&light=golden`, same camera),
+pixel-diffed (`pixdiff.mjs`, threshold 0.08) — **≤ 0.5% differing pixels**
+or the batch explains every differing region; the agent's own before/after
+measurement on one named workload; and a **"sacrifices"** paragraph in its
+report naming any behaviour that changed (a stale shadow case, a picking
+edge, a dropped bump map) — the orchestrator folds nothing in without it,
+and anything visual waits for the user's eye. Every batch: typecheck,
+`test/render` + its own pins green; the orchestrator's full gate at landing.
+
+
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,
 2026-09-14, after the four-way study at `terrain-study.html?review=fog`:
 *"i actually like the look of shadowed the most. i'll let you know when the

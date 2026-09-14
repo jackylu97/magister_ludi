@@ -115,8 +115,8 @@
  * shared by every outlined piece on the board regardless of its own colour;
  * the resting instance's shell is washed on its own, per instance, by
  * `InstanceCollector.setShellWash` once `build`'s buffers exist, and the
- * walking copy's shell has no equivalent channel to write to and stays at
- * full strength for the length of the march. The badge's own printed disc —
+ * walking copy uses a cached material with the equivalent colour multiplier.
+ * The badge's own printed disc —
  * a texture atlas cell, not ink — cannot be washed at all without greying
  * out the print, so it is left alone; the ring of ink around it washes with
  * everything else.
@@ -180,6 +180,9 @@ import {
   disposeInstancedGroup,
 } from './instances';
 import { cellCenter, tileTopY, wrapWidth } from './layout';
+import { samplePaintedSurface } from './paintedSurface';
+import type { PaintedUnitKit, PaintedUnitModel } from './paintedUnits';
+import { paintedUnitSupport } from './paintedUnitPlacement';
 import { VIEW3D, playerPieceColor, shade } from './lookData';
 import { atWar } from '../sim/wars';
 import { isVisibleTo } from '../sim/visibility';
@@ -222,8 +225,8 @@ export function pieceMaterials(
 ): Material | Material[] {
   const colors = pieceColors(piece, bodyColor);
   return colors.length === 1
-    ? materials.get(colors[0]!)
-    : colors.map((color) => materials.get(color));
+    ? materials.unit(colors[0]!)
+    : colors.map((color) => materials.unit(color));
 }
 
 /**
@@ -554,22 +557,25 @@ export function terrainUnder(map: GameMap, unit: Unit): TerrainId | undefined {
  * a toy soldier pointing away from the viewer looks like a mistake, not a
  * variation.
  */
-export function placePiece(map: GameMap, unit: Unit, stackIndex: number): PiecePlacement {
+export function placePiece(map: GameMap, unit: Unit, stackIndex: number, painted?: PaintedUnitModel | null): PiecePlacement {
   const tile = map.tiles[unit.row * map.width + unit.col];
   const center = cellCenter(unit.col, unit.row);
   const angle = stackIndex * 2.1;
-  const spread = stackIndex === 0 ? 0 : PIECES.stackSpread;
-  return {
+  const spread = stackIndex === 0 ? 0 : painted ? PIECES.paintedStackSpread : PIECES.stackSpread;
+  const dx = Math.cos(angle) * spread, dz = Math.sin(angle) * spread;
+  const placement = {
     position: new Vector3(
-      center.x + Math.cos(angle) * spread,
-      tile ? tileTopY(tile) : 0,
-      center.z + Math.sin(angle) * spread,
+      center.x + dx,
+      tile ? samplePaintedSurface(tile, dx, dz) ?? tileTopY(tile) : 0,
+      center.z + dz,
     ),
     quaternion: new Quaternion().setFromAxisAngle(
       new Vector3(0, 1, 0),
-      -0.6 + hashSigned(unit.col, unit.row, 40) * 0.5,
+      painted?.yaw ?? (-0.6 + hashSigned(unit.col, unit.row, 40) * 0.5),
     ),
   };
+  if (painted) placement.position.y = paintedUnitSupport(map, painted, placement.position.x, placement.position.z, placement.position.y);
+  return placement;
 }
 
 /**
@@ -620,7 +626,8 @@ export function unitStackIndices(state: GameState): Map<number, number> {
 export function badgeAnchors(
   state: GameState,
   playerId: number,
-  visualHeight: (type: UnitTypeId) => number,
+  visualHeight: (type: UnitTypeId, unit: Unit) => number,
+  paintedKit?: PaintedUnitKit | null,
 ): BadgeAnchor[] {
   const period = wrapWidth(state.map);
   const stackIndex = unitStackIndices(state);
@@ -634,8 +641,8 @@ export function badgeAnchors(
   for (const unit of state.units) {
     if (unit.ownerId !== playerId) continue;
     if (bannered.has(tileIndex(state.map, unit.col, unit.row))) continue;
-    const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0);
-    const y = placement.position.y + badgeCenterY(visualHeight(unit.type));
+    const placement = placePiece(state.map, unit, stackIndex.get(unit.id) ?? 0, paintedKit?.resolve(unit, terrainUnder(state.map, unit)));
+    const y = placement.position.y + badgeCenterY(visualHeight(unit.type, unit));
     for (const dx of [-period, 0, period]) {
       anchors.push({
         unitId: unit.id,
@@ -792,8 +799,7 @@ function routedInk(unit: Unit, ink: number): number {
  * shell (every outlined piece on the board shares one `MaterialLibrary`
  * material regardless of its own colour — the resting instance's shell is
  * washed separately, per instance, by `InstanceCollector.setShellWash`; the
- * walker's shell has no per-instance channel to write to at all and stays at
- * full strength for the length of the march) and the badge's own printed
+ * walker's shell uses a cached material with the same multiplier) and the badge's own printed
  * disc (a texture atlas cell — `InstanceCollector` refuses to tint any bucket
  * that carries a material of its own, on both `add`'s `tint` and `setWash`,
  * precisely so a wash can never grey out a roundel's print; see the module's
@@ -830,6 +836,23 @@ export function unitTrimColor(state: GameState, unit: Unit): number {
  * literal hex, so `playerPieceColor` reads it rather than the fallback order.
  */
 const DEFAULT_TRIM = playerPieceColor(DERIVED_SECONDARY, 0);
+
+/** Standalone walkers share the resting instance's shell and ghost precedence. */
+export function unitShellColor(state: GameState, unit: Unit, seat: number | null): number {
+  const wash = unitShellWash(state, unit, seat);
+  return mixToward(DEFAULT_TRIM, wash.target, wash.mix);
+}
+
+/** Keep the unrounded wash for matching a standalone shell to instance RGB. */
+export function unitShellWash(state: GameState, unit: Unit, seat: number | null): { target: number; mix: number } {
+  if (unitIsRouted(unit)) return { target: ROUTED_WASH_TARGET, mix: PIECES.routedWash };
+  if (hostileOwners(state, seat).has(unit.ownerId)) return { target: HOSTILE_GLOW, mix: VIEW3D.units.hostileGlowMix };
+  return { target: unitTrimColor(state, unit), mix: 1 };
+}
+
+export function unitGhostColor(state: GameState, unit: Unit, seat: number | null): number {
+  return hostileOwners(state, seat).has(unit.ownerId) ? HOSTILE_GLOW : unitColor(state, unit);
+}
 
 /**
  * The town hexes whose banner this seat is looking at, by tile index.
@@ -873,6 +896,8 @@ export class UnitLayer {
    * tile while the piece slid away would be the most visible bug on the board.
    */
   private handles = new Map<number, InstanceHandle[]>();
+  private bodies = new Map<number, InstanceHandle>();
+  private hoveredUnitId: number | null = null;
   /** Billboard units, which are meshes rather than instances. See the docblock. */
   private spriteUnits = new Map<number, Group>();
   private hidden = new Set<number>();
@@ -947,8 +972,10 @@ export class UnitLayer {
     levels: FogLevels = null,
     icons: TileIcons | null = null,
     seat: number | null = null,
+    paintedKit: PaintedUnitKit | null = null,
   ): void {
     this.disposeGroup();
+    this.group.userData.unitVisual = true;
 
     const map = state.map;
     const period = wrapWidth(map);
@@ -1011,10 +1038,11 @@ export class UnitLayer {
       // where a piece stands in its tile's fan is a fact about the tile, so a
       // unit that steps out of the fog does not shuffle the ones beside it.
       if (!seesCell(levels, map, unit.col, unit.row)) continue;
-      const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0);
+      const painted = paintedKit?.resolve(unit, terrainUnder(map, unit));
+      const placement = placePiece(map, unit, stackIndex.get(unit.id) ?? 0, painted);
       const slots: InstanceHandle[] = [];
       this.handles.set(unit.id, slots);
-      const spriteMaterial = sprites?.materialFor(unit.type) ?? null;
+      const spriteMaterial = painted ? null : sprites?.materialFor(unit.type) ?? null;
       if (spriteMaterial) {
         const group = new Group();
         for (const dx of [-period, 0, period]) {
@@ -1043,17 +1071,19 @@ export class UnitLayer {
         const ink = unitColor(state, unit);
         const hostile = hostileSeats.has(unit.ownerId);
         const pieceHandle = collector.add(
-          piece.geometry,
-          pieceColors(piece, ink),
+          painted?.geometry ?? piece.geometry,
+          painted ? [0xffffff] : pieceColors(piece, ink),
           new Matrix4().compose(placement.position, placement.quaternion, scale),
           // The x-ray ghost, over these very matrices. Keyed on the player's
           // own ink — or on the war red, for a piece belonging to somebody this
           // seat has declared on — and either way the ghost material joins the
           // bucket key by identity, so a hostile piece batches into its own
           // bucket exactly as cleanly as a friendly one does.
-          { ghost: materials.silhouette(hostile ? HOSTILE_GLOW : ink) },
+          { ghost: materials.silhouette(hostile ? HOSTILE_GLOW : ink), unitOutline: true, order: RENDER_ORDER.unitBody,
+            ...(painted && paintedKit ? { material: paintedKit.material(painted, ink), litMaterial: true } : {}) },
         );
         slots.push(pieceHandle);
+        this.bodies.set(unit.id, pieceHandle);
         if (unitIsRouted(unit)) routedShellHandles.push(pieceHandle);
         // The other half of the mark: the outline shell, which is one shared
         // material for every piece on the board and can therefore only be
@@ -1070,7 +1100,7 @@ export class UnitLayer {
         }
       }
 
-      const visualHeight = unitVisualHeight(unit.type, sprites);
+      const visualHeight = painted?.height ?? unitVisualHeight(unit.type, sprites);
       // The city banner over this hex is carrying this piece's roundel and its
       // hit bar, so the piece carries neither — the charge boss with them, since
       // a numeral bossing a disc that is not there is a digit floating in the
@@ -1142,6 +1172,8 @@ export class UnitLayer {
       InstanceCollector.setShellWash(handle, ink, 1);
     }
     for (const unitId of this.hidden) this.applyHide(unitId);
+    const hovered = this.bodies.get(this.hoveredUnitId!);
+    if (hovered) InstanceCollector.setUnitOutline(hovered, true);
   }
 
   /**
@@ -1405,6 +1437,20 @@ export class UnitLayer {
     return this.drawCallCount;
   }
 
+  setHoveredUnitId(unitId: number | null): void {
+    if (unitId === this.hoveredUnitId) return;
+    const old = this.bodies.get(this.hoveredUnitId!);
+    if (old) InstanceCollector.setUnitOutline(old, false);
+    this.hoveredUnitId = unitId;
+    const next = this.bodies.get(unitId!);
+    if (next) InstanceCollector.setUnitOutline(next, true);
+  }
+
+  modelCandidates() {
+    return [...this.bodies].flatMap(([unitId, handle]) =>
+      InstanceCollector.bodyInstances(handle).map(candidate => ({unitId, ...candidate})));
+  }
+
   /**
    * Takes a unit's resting visual off the board while something else draws it —
    * a walk in flight. Idempotent, and style-agnostic: an instanced piece is
@@ -1447,6 +1493,7 @@ export class UnitLayer {
   private disposeGroup(): void {
     disposeInstancedGroup(this.group);
     this.handles.clear();
+    this.bodies.clear();
     this.spriteUnits.clear();
   }
 

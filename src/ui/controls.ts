@@ -321,7 +321,8 @@ import {
   unitsOnTile,
   wakesSince,
 } from '../sim/units';
-import { isExploredBy } from '../sim/visibility';
+import { isExploredBy, isVisibleTo } from '../sim/visibility';
+import { nextUnitInStack, resolveUnitPointerTarget } from './unitPointer';
 import { walkedPrefix } from '../render/animation';
 import { cityDisplayName } from './cityDisplay';
 import { HAMMER, YIELD_GLYPH, figure, percentFigure, signedFigure } from './figures';
@@ -1799,6 +1800,8 @@ export interface GameControls {
    * way out. The board's own tiles are handled by hover picking.
    */
   setHoveredCity(cityId: number | null): void;
+  /** A named, selectable piece under a DOM garrison icon; `null` on leave. */
+  setHoveredPiece(unitId: number | null): void;
   /**
    * Re-reads the game and repaints; call after replacing the game object.
    *
@@ -2462,6 +2465,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   let resourcesOn = LENS_DEFAULTS.resources;
   /** A city whose DOM banner the pointer is over. See `setHoveredCity`. */
   let hoveredCityId: number | null = null;
+  /** A DOM icon names a piece even though the canvas cannot see that icon. */
+  let hoveredPieceId: number | null = null;
   /**
    * Which button started the current drag, or `null` when nothing is pressed.
    * Left and right both pan; only the button that went down decides what the
@@ -2749,6 +2754,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const caravans = caravanDestinations();
     const result = dispatch(getGame(), command);
     if (result.ok) {
+      // Orders can move, consume or transfer the piece under a stationary
+      // pointer. A new pointer sample may resolve it again against fresh state.
+      clearUnitHover();
       // A card or a belief can change what a hex pays with no board fingerprint to
       // move; the yields lens is told once per accepted command (`MapView`, optional).
       renderer.noteStateChanged?.();
@@ -3618,6 +3626,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const next = on && selectedUnit() !== null && canOrder();
     if (next === moveMode) return;
     moveMode = next;
+    clearUnitHover();
     viewport.classList.toggle('is-move-mode', moveMode);
     renderer.setMoveModeHighlight?.(moveMode);
     publishNotice();
@@ -3646,6 +3655,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const next = on && openCity() !== null && canOrder();
     if (next === buyMode) return;
     buyMode = next;
+    clearUnitHover();
     viewport.classList.toggle('is-buy-mode', buyMode);
     publishNotice();
     refreshOverlays();
@@ -4162,6 +4172,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     selectedId = null;
     openCityId = null;
     hoveredCityId = null;
+    pointer = null;
+    clearUnitHover();
     skippedUnitIds.clear();
     // And a hand-over the previous seat's End Turn was still owed: its card and
     // its camera glide are that player's, and this chair is somebody else's.
@@ -4486,6 +4498,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // layer at a time.
     if (id !== null && openCityId !== null) {
       openCityId = null;
+      setBuyMode(false);
       renderer.invalidate();
     }
     // Move mode is a property of *this* selection: dropping the unit, or
@@ -4494,6 +4507,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (moveMode) setMoveMode(false);
     refreshOverlays();
     onUpdate(selectedUnit(), renderer.getHover());
+    refreshUnitHover();
   }
 
   function clearSelection(): void {
@@ -4520,6 +4534,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setOpenCity(cityId: number | null): void {
     if (openCityId === cityId) return;
     openCityId = cityId;
+    clearUnitHover();
     // Opening a city is a change of subject. This is also the path a click on a
     // city *banner* takes — banners are DOM over the board, so they never reach
     // the board's own click handling — and an armed move order left hanging
@@ -4732,6 +4747,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
         col: unit.col,
         row: unit.row,
         hp: unit.hp,
+        person: unit.person,
       });
     }
     return snapshot;
@@ -6209,18 +6225,19 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * Selects on a tile the way a click on it always has: your topmost unit
    * there, or the next one along if it is already selected.
    *
-   * One function because there are two ways to aim at a unit — its ground and
-   * its badge — and they must not drift apart. A badge hit deliberately does
+   * This shares `nextUnitInStack` with the badge resolver so the two ways to
+   * cycle a tile cannot drift apart. A badge hit deliberately does
    * *not* select the unit whose tag was struck: a stack fans its badges out
    * around one tile centre, and "the badge I hit" would make a stack cycle in an
    * order that depends on where the pointer landed rather than on the click
    * before it. Cycling belongs to the tile.
    */
   function selectOnTile(col: number, row: number): boolean {
+    if (!isVisibleTo(getGame().state, localPlayerId, col, row)) return false;
     const mine = ownUnitsAt(col, row);
-    if (mine.length === 0) return false;
-    const at = mine.findIndex((unit) => unit.id === selectedId);
-    select(mine[(at + 1) % mine.length]!.id);
+    const next = nextUnitInStack(mine, selectedId);
+    if (!next) return false;
+    select(next.id);
     return true;
   }
 
@@ -6239,23 +6256,22 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const unit = unitById(getGame().state, unitId);
     if (!unit) return false;
     if (!ownUnitsAt(unit.col, unit.row).some((own) => own.id === unitId)) return false;
+    if (!isVisibleTo(getGame().state, localPlayerId, unit.col, unit.row)) return false;
     select(unitId);
     return true;
   }
 
   /**
-   * The unit whose badge the pointer is on, or `null`.
-   *
-   * Ownership is the renderer's filter (see `MapView.pickUnitBadge`), and it is
-   * re-checked here because the answer crosses a module boundary and this module
-   * is the one that owns the rule that only the local seat may be commanded.
+   * The next selectable unit under a badge, then an exact model, then optional
+   * ground. Hover and click ask this same resolver, including its ownership,
+   * current visibility and routed-caravan checks.
    */
-  function badgeUnitAt(screen: { x: number; y: number }): Unit | null {
-    const id = renderer.pickUnitBadge?.(screen.x, screen.y, localPlayerId) ?? null;
-    if (id === null) return null;
-    const unit = unitById(getGame().state, id);
-    if (!unit || unit.ownerId !== localPlayerId) return null;
-    return unit;
+  function unitPointerTarget(screen: { x: number; y: number }, tile: Tile | null = null): Unit | null {
+    return resolveUnitPointerTarget(getGame().state, localPlayerId, selectedId, {
+      badgeId: renderer.pickUnitBadge?.(screen.x, screen.y, localPlayerId) ?? null,
+      modelId: () => renderer.pickUnitModel?.(screen.x, screen.y, localPlayerId) ?? null,
+      tile,
+    })?.unit ?? null;
   }
 
   /**
@@ -6277,6 +6293,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    *                           closes an open city panel, because the two share
    *                           one slot. An *enemy* badge is not a target and
    *                           falls through to the rows below.
+   *  2a. your model surface   selects that exact piece. The ground between
+   *                           pieces remains available to the citizen board.
    *  3a. city panel open,     buys the hex, or says why it cannot be bought.
    *      buy mode armed,      Above the citizen board because an armed mode is
    *      click in the ring    what the ring *means* while it is up, and the tag
@@ -6320,14 +6338,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       return;
     }
 
-    // Row 2. The badge's own tile, not the hovered one: a tag floats above the
+    // Rows 2 and 2a. The badge's own tile, not the hovered one: a tag floats above the
     // piece and the ground behind it is often the tile to the north — which is
     // also why this is asked before the board is: a badge belonging to a unit on
     // the top row can float clean off the map, where there is no tile at all.
-    const badged = badgeUnitAt(screen);
-    if (badged && selectOnTile(badged.col, badged.row)) return;
+    const pointed = unitPointerTarget(screen);
+    if (pointed) {
+      select(pointed.id);
+      return;
+    }
 
-    // Past the poles, on no badge: there is nothing here to mean anything.
+    // Past the poles, on no badge or model: there is nothing here to select.
     if (!hover) return;
     const { col, row } = hover.tile;
 
@@ -7286,6 +7307,43 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   // --- hover ---------------------------------------------------------------
 
+  function clearUnitHover(): void {
+    hoveredPieceId = null;
+    renderer.setHoveredUnitId?.(null);
+  }
+
+  /** A narrow outline update: no panel paint, reachable-set work or unit rebuild. */
+  function refreshUnitHover(hover: HoverInfo | null = renderer.getHover()): void {
+    if (!renderer.setHoveredUnitId) return;
+    if (dragButton !== null || inputBlocked?.()) {
+      renderer.setHoveredUnitId(null);
+      return;
+    }
+    if (hoveredPieceId !== null) {
+      // A garrison list is a named control, including while an order mode is
+      // armed. Its click selects directly and disarms that mode.
+      const target = resolveUnitPointerTarget(getGame().state, localPlayerId, selectedId, {
+        modelId: hoveredPieceId,
+      });
+      renderer.setHoveredUnitId(target?.unit.id ?? null);
+      return;
+    }
+    if (!pointer || moveMode || hoveredCityId !== null) {
+      renderer.setHoveredUnitId(null);
+      return;
+    }
+    let tile = hover?.tile ?? null;
+    const city = openCity();
+    // The open city's ground is a purchase/pin target before it is a stack
+    // target. Badges and model silhouettes still select above that ground.
+    if (tile && city && withinWorkRadius(getGame().state, city, tile.col, tile.row) &&
+        (buyMode || assignableTiles(getGame().state, city).some(
+          (candidate) => candidate.col === tile!.col && candidate.row === tile!.row))) {
+      tile = null;
+    }
+    renderer.setHoveredUnitId(unitPointerTarget(pointer, tile)?.id ?? null);
+  }
+
   /**
    * The pointer came to rest somewhere new: re-pick the hex under it, push the
    * three previews that follow the cursor at the board, and tell the interface.
@@ -7300,6 +7358,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (!pointer) return;
     const hover = renderer.pick(pointer.x, pointer.y);
     renderer.setHover(hover);
+    refreshUnitHover(hover);
     // The spotlight follows the pointer, so it is refreshed here rather than in
     // `refreshOverlays` — which recomputes the reachable set and has no business
     // running on every mouse move. Both renderer setters ignore an unchanged
@@ -7329,6 +7388,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (event.button !== 0 && event.button !== 2) return;
     if (dragButton !== null) return;
     dragButton = event.button;
+    clearUnitHover();
     travelled = 0;
     pressX = event.clientX;
     pressY = event.clientY;
@@ -7392,10 +7452,14 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     if (viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
     }
-    if (!fire || travelled > CLICK_SLOP_PX) return;
+    if (!fire || travelled > CLICK_SLOP_PX) {
+      clearUnitHover();
+      return;
+    }
 
     const rect = viewport.getBoundingClientRect();
     const screen = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    pointer = screen;
     const hover = renderer.pick(screen.x, screen.y);
     // The left button asks a second picking question — which badge is under the
     // pointer — so it needs the position itself, and it is worth asking even
@@ -7403,6 +7467,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // the top row floats past the north pole. See `handleLeftClick`.
     if (button === 0) handleLeftClick(hover, screen);
     else if (hover) handleRightClick(hover);
+    refreshUnitHover(hover);
   }
 
   viewport.addEventListener('pointerup', (event) => {
@@ -7415,6 +7480,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   viewport.addEventListener('pointerleave', () => {
     pointer = null;
+    clearUnitHover();
     renderer.setHover(null);
     renderer.setPathPreview([]);
     // The pointer took the spotlight with it. A banner keeps its own — moving
@@ -7443,6 +7509,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   );
 
   window.addEventListener('keydown', (event) => {
+    // Keyboard navigation can open a modal or move the camera without another
+    // pointer event. Its old model target no longer advertises the next click.
+    clearUnitHover();
     // A screen in front of the board owns the keyboard while it is up, Escape
     // included: there is nothing behind it for Escape to back out of.
     if (inputBlocked?.()) return;
@@ -7605,7 +7674,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function setHoveredCity(cityId: number | null): void {
     if (hoveredCityId === cityId) return;
     hoveredCityId = cityId;
+    clearUnitHover();
     refreshSpotlight();
+  }
+
+  function setHoveredPiece(unitId: number | null): void {
+    hoveredPieceId = unitId;
+    refreshUnitHover();
   }
 
   // The board starts masked by the seat this client is playing. Sent once, here,
@@ -7629,6 +7704,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     resourcesShown: () => resourcesOn,
     setResources,
     setHoveredCity,
+    setHoveredPiece,
     foundCity,
     foundCityBlocker,
     cancelOrder,
@@ -7716,6 +7792,8 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       openCityId = null;
       // City ids do not survive a new game; the lens the player chose does.
       hoveredCityId = null;
+      pointer = null;
+      clearUnitHover();
       // Nor do unit ids — a stale skip could otherwise silence a fresh unit
       // that only happens to reuse a low id.
       skippedUnitIds.clear();

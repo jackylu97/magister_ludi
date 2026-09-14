@@ -1,5 +1,9 @@
 /**
- * Which tile is under the cursor — closed form, no GPU readback.
+ * Which tile is under the cursor, without GPU readback.
+ *
+ * A painted board first queries its registered near terrain meshes, rejecting
+ * chunk bounds before exact triangle intersections. The closed-form model
+ * below remains the default for an ordinary prism board.
  *
  * The board is not an arbitrary mesh. Every tile top is a horizontal hexagon at
  * one of five known heights, and the ground layout inverts exactly (see
@@ -66,6 +70,7 @@
 import type { GameMap, Tile } from '../sim/map';
 
 import { type Ray, rayPlaneHit } from './camera3d';
+import { pickPaintedSurface } from './paintedSurface';
 import {
   HEIGHT_CLASSES_TOP_DOWN,
   heightClassOf,
@@ -91,6 +96,8 @@ export interface PickResult {
  * the north or south pole (columns wrap; rows do not).
  */
 export function pickTile(map: GameMap, ray: Ray): PickResult | null {
+  const painted = pickPaintedSurface(map, ray);
+  if (painted !== undefined) return painted;
   for (const kind of HEIGHT_CLASSES_TOP_DOWN) {
     const hit = rayPlaneHit(ray, nominalTopY(kind));
     const cell = worldToCell(map, hit.x, hit.z);

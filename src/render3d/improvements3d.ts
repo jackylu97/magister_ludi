@@ -127,6 +127,7 @@ export class ImprovementLayer {
     materials: MaterialLibrary,
     shadows: boolean,
     levels: FogLevels = null,
+    replaced: ReadonlySet<ImprovementId> | null = null,
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -145,7 +146,7 @@ export class ImprovementLayer {
     let instances = 0;
     for (const tile of map.tiles) {
       const id = tile.improvement;
-      if (id === undefined) continue;
+      if (id === undefined || replaced?.has(id)) continue;
       // Nothing at all on ground nobody has charted. Explored ground keeps its
       // works, washed — see the module docblock.
       const cell = tileIndex(map, tile.col, tile.row);

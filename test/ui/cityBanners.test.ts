@@ -895,7 +895,7 @@ describe('the row’s fingerprint', () => {
     expect(banners).toMatch(/walked\.state === state && walked\.stamp === stamp/);
     // The row is painted inside the signature gate, beside the wound and the
     // arcs — never on every refresh, and never from `reposition`.
-    expect(banners).toMatch(/paintGarrisonRow\(banner\.garrison, facts\.garrison, onSelectPiece\)/);
+    expect(banners).toMatch(/paintGarrisonRow\(banner\.garrison, facts\.garrison, onSelectPiece,/);
     const reposition = banners.slice(banners.indexOf('function reposition()'));
     expect(reposition.slice(0, reposition.indexOf('\n  }'))).not.toMatch(/garrison/i);
     // And the term is in the string the banner is rewritten on.
@@ -1090,9 +1090,10 @@ describe('where the plate hangs', () => {
    * the way through, or the *ground* point quietly moving with it — so both are
    * named.
    */
-  it('is passed to projectCell, which lifts the point and leaves the ground alone', () => {
+  it('uses an architectural banner anchor when available while leaving ground projection alone', () => {
     const banners = uiSource('cityBanners.ts').replace(/\/\*[\s\S]*?\*\//g, '');
-    expect(banners).toMatch(/renderer\.projectCell\(banner\.col, banner\.row, BANNER_RISE\)/);
+    expect(banners).toContain('renderer.projectCityBanner ?? renderer.projectCell');
+    expect(banners).toMatch(/project\.call\(renderer, banner\.col, banner\.row, BANNER_RISE\)/);
     const renderer = Object.values(
       import.meta.glob('../../src/render3d/renderer3d.ts', {
         query: '?raw',
@@ -1104,6 +1105,8 @@ describe('where the plate hangs', () => {
     // hit test, the price plates, the damage figures — is untouched.
     expect(renderer).toMatch(/projectCell\(col: number, row: number, rise = 0\)/);
     expect(renderer).toMatch(/y: tileTopY\(tile\) \+ rise/);
+    expect(renderer).toContain('y: anchor.y + rise');
+    expect(renderer).toContain(': this.projectCell(col, row, rise)');
   });
 
   /**

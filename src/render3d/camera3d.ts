@@ -126,7 +126,8 @@ export class DioramaCamera {
   /** The pan currently animating, or null. See the module docblock. */
   private panTween: PanTween | null = null;
 
-  constructor() {
+  /** Galleries may inspect closer; the game's zoom bounds remain the default. */
+  constructor(private readonly minFrustum = CAMERA.minFrustum) {
     const el = CAMERA.elevation * DEG;
     const az = CAMERA.azimuth * DEG;
     this.eyeDirection = new Vector3(
@@ -187,7 +188,7 @@ export class DioramaCamera {
     this.cancelPan();
     this.target.set(x, 0, z);
     const near = CAMERA.frustum - CAMERA.startZoom * (CAMERA.frustum - CAMERA.minFrustum);
-    this.frustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, near));
+    this.frustum = Math.min(this.maxFrustum, Math.max(this.minFrustum, near));
     this.normalize();
     this.apply();
   }
@@ -215,7 +216,7 @@ export class DioramaCamera {
     this.cancelPan();
     const before = this.groundAt(screenX, screenY);
     const next = this.frustum / factor;
-    this.frustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, next));
+    this.frustum = Math.min(this.maxFrustum, Math.max(this.minFrustum, next));
     this.apply();
     const after = this.groundAt(screenX, screenY);
     this.target.x += before.x - after.x;
@@ -269,7 +270,7 @@ export class DioramaCamera {
 
     const needed = this.neededFrustumFor(bounds);
     this.maxFrustum = Math.max(CAMERA.maxFrustum, needed);
-    this.frustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, needed));
+    this.frustum = Math.min(this.maxFrustum, Math.max(this.minFrustum, needed));
     this.normalize();
     this.apply();
   }
@@ -308,7 +309,7 @@ export class DioramaCamera {
     // Fitted to the ground the rails leave clear, not the whole canvas (the
     // user, 2026-09-07: "some of the tiles sit behind the menu panels").
     const needed = this.neededFrustumFor(bounds, CAMERA.cityFrameInsetPx);
-    const toFrustum = Math.min(this.maxFrustum, Math.max(CAMERA.minFrustum, needed));
+    const toFrustum = Math.min(this.maxFrustum, Math.max(this.minFrustum, needed));
 
     const worldPerPixel = (toFrustum * 2) / this.viewportHeight;
     const bias = CAMERA.cityFrameBiasPx * worldPerPixel;

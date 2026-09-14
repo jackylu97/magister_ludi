@@ -1,0 +1,5 @@
+{
+  "save": "standard seed 1, turn 7",
+  "report": "paragraph: 4160 tiles · 14430 instances · 374 draws board build 8043.5 ms · 1917k triangles · 1 terrain shadow bake(s)",
+  "notes": "After-only clean browser reload; earlier overview measurements used turn 2, not a paired total-startup benchmark"
+}

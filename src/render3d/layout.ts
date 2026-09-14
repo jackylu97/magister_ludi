@@ -16,6 +16,9 @@
  *
  * The height model
  * ----------------
+ * A map with an installed painted surface samples its exact terrain triangles
+ * for placement. The model below remains the default for the prism renderer.
+ *
  * A tile's top face is at one of five heights — ocean, coast, land, hills,
  * mountain — plus a per-tile jitter of a few percent. The nominal heights are
  * what picking intersects; `tileTopY` is what things standing on the tile are
@@ -39,6 +42,7 @@ import { type GameMap, type Tile, axialToOffset, getTileAt, offsetToAxial } from
 
 import { hashSigned } from './hash';
 import { VIEW3D } from './lookData';
+import { samplePaintedSurface } from './paintedSurface';
 
 const BOARD = VIEW3D.board;
 
@@ -101,6 +105,8 @@ export function tileYaw(tile: Tile): number {
  * never float above or sink into the tile it belongs to.
  */
 export function tileTopY(tile: Tile): number {
+  const painted = samplePaintedSurface(tile);
+  if (painted !== undefined) return painted;
   const base = nominalTopY(heightClassOf(tile));
   return BOARD.floorY + (base - BOARD.floorY) * tileScale(tile);
 }

@@ -1,0 +1,56 @@
+import type { BufferGeometry, DataTexture, InstancedBufferAttribute, Mesh, MeshStandardMaterial } from 'three';
+import type { GameMap } from '../sim/map';
+import type { BuiltBoard } from './board3d';
+
+export interface PaintedVegetationAsset {
+  geometry: BufferGeometry;
+  shoulderGeometry?: BufferGeometry | null;
+  material: MeshStandardMaterial;
+}
+export interface PaintedVegetationAssets {
+  broadleaves: PaintedVegetationAsset[];
+  cypresses: PaintedVegetationAsset[];
+  escarpments: PaintedVegetationAsset[];
+  limestone: PaintedVegetationAsset;
+  broadleaf: PaintedVegetationAsset;
+  rangeMaterial: MeshStandardMaterial;
+}
+export interface PaintedBoardMaterials {
+  ground: Record<string, MeshStandardMaterial>;
+  earth: MeshStandardMaterial;
+  mergedLand: MeshStandardMaterial;
+  mergedWater: MeshStandardMaterial;
+  mergedDetails: MeshStandardMaterial;
+  water: Record<string, MeshStandardMaterial>;
+  features: Record<string, MeshStandardMaterial>;
+}
+export interface PaintedBoardBatch {
+  geometry: BufferGeometry;
+  source: MeshStandardMaterial;
+  base?: BufferGeometry | null;
+  matrix?: InstancedBufferAttribute | null;
+  color?: InstancedBufferAttribute | null;
+  count?: number;
+  detail: 'near' | 'far' | 'always';
+  surface: boolean;
+  mountainPick: boolean;
+  castShadow: boolean;
+  cells?: number[];
+}
+export interface PaintedBoard extends BuiltBoard {
+  exportBatches(): PaintedBoardBatch[];
+  renderMap: GameMap;
+  pickMeshes: Mesh[];
+  fogTexture: DataTexture;
+  readonly shadowRevision: number;
+  geometryBytes: number;
+  instanceBytes: number;
+  readonly triangleCount: number;
+  applyFog(levels: ArrayLike<number> | null): number;
+  reserveFootprints(radii: ReadonlyMap<number,number>): number;
+  isCellVisible(cell: number, grade?: number): boolean;
+  updateDetail(pixels: number, baking?: boolean): void;
+  suppressTile(cell: number, scope: 0 | 1 | 2): boolean;
+  unsuppressTile(cell: number): boolean;
+}
+export function buildPaintedBoard(map: GameMap, assets: PaintedVegetationAssets, materials: PaintedBoardMaterials, shadows?: boolean, prepared?: PaintedBoardBatch[] | null, progress?: (done: number, total: number) => void, preparedMap?: GameMap | null): PaintedBoard;

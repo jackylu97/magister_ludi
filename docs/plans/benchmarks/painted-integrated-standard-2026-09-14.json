@@ -1,0 +1,94 @@
+{
+  "map": {
+    "width": 80,
+    "height": 52,
+    "tiles": 4160
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 678,
+    "dpr": 1.5
+  },
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "boardBuildMs": 6066.199999928474,
+  "geometryMiB": 209.80098152160645,
+  "instanceMiB": 2.0917510986328125,
+  "visibility": "omniscient during sweep; original seat restored",
+  "results": [
+    {
+      "view": "play",
+      "frames": 120,
+      "frameMs": {
+        "median": 17.600000000034925,
+        "p95": 34,
+        "max": 34.5
+      },
+      "cpuRenderMs": {
+        "median": 12.700000047683716,
+        "p95": 15.300000071525574,
+        "max": 16
+      },
+      "drawCalls": {
+        "median": 254,
+        "p95": 258,
+        "max": 259
+      },
+      "triangles": {
+        "median": 1353592,
+        "p95": 1362352,
+        "max": 1362892
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "overview",
+      "frames": 120,
+      "frameMs": {
+        "median": 33.40000000002328,
+        "p95": 50.70000000001164,
+        "max": 66.59999999997672
+      },
+      "cpuRenderMs": {
+        "median": 14.399999976158142,
+        "p95": 17.700000047683716,
+        "max": 19.59999990463257
+      },
+      "drawCalls": {
+        "median": 888,
+        "p95": 896,
+        "max": 896
+      },
+      "triangles": {
+        "median": 3138707,
+        "p95": 3145537,
+        "max": 3145537
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "wrap seam",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.70000000001164,
+        "p95": 34,
+        "max": 50
+      },
+      "cpuRenderMs": {
+        "median": 10.799999952316284,
+        "p95": 14.100000023841858,
+        "max": 16
+      },
+      "drawCalls": {
+        "median": 116,
+        "p95": 118,
+        "max": 118
+      },
+      "triangles": {
+        "median": 541617,
+        "p95": 545276,
+        "max": 545276
+      },
+      "terrainShadowRebakes": 0
+    }
+  ]
+}

@@ -111,7 +111,8 @@ function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
 /**
  * How many `InstancedMesh`es one *piece* bucket puts on the board.
  *
- * Three passes over one geometry and one instance buffer, and naming the number
+ * Three passes over one sculpt drawing and matching instance buffers. The
+ * shell owns a geometry view for its per-instance hover widths. Naming the number
  * is the point: it is the draw-call price of a unit class, and the tests that
  * count meshes should fail loudly the day a fourth pass is added rather than
  * quietly absorbing it.
@@ -123,6 +124,30 @@ function boundsOf(board: BoardGeometry, id: ModelClass): Box3 {
  */
 const MESHES_PER_PIECE_BUCKET = 3;
 
+/** A shell borrows the drawing but owns its width attribute. */
+function sameSculptDrawing(actual: BufferGeometry, expected: BufferGeometry): boolean {
+  const actualPositions = actual.getAttribute('position').array;
+  const expectedPositions = expected.getAttribute('position').array;
+  const actualIndices = actual.index?.array, expectedIndices = expected.index?.array;
+  return actualPositions.length === expectedPositions.length &&
+    actualPositions.every((value, i) => value === expectedPositions[i]) &&
+    (actualIndices === undefined ? expectedIndices === undefined :
+      expectedIndices !== undefined && actualIndices.length === expectedIndices.length &&
+      actualIndices.every((value, i) => value === expectedIndices[i]));
+}
+
+/** Preserve exact body/ghost sharing while checking the shell's full drawing. */
+function piecePasses(meshes: InstancedMesh[], sculpt: BufferGeometry): InstancedMesh[] {
+  const shared = meshes.filter(mesh => mesh.geometry === sculpt);
+  const shells = meshes.filter(mesh => mesh.geometry.hasAttribute('unitOutlineWidth') && sameSculptDrawing(mesh.geometry, sculpt));
+  expect(shared).toHaveLength(2);
+  expect(shells).toHaveLength(1);
+  expect(shells[0]!.geometry).not.toBe(sculpt);
+  expect(shells[0]!.geometry.getAttribute('position').array).toEqual(sculpt.getAttribute('position').array);
+  expect(shells[0]!.geometry.index?.array).toEqual(sculpt.index?.array);
+  return [...shared, ...shells];
+}
+
 /** A stand-in for the tile atlas: the layer only ever wants a material off it. */
 const fakeIcons = {
   material: new MeshBasicMaterial({ depthTest: false, depthWrite: false }),
@@ -132,10 +157,17 @@ const fakeIcons = {
 describe('the model-class roster', () => {
   it('gives every unit type in units.json a class model', () => {
     const board = geometry();
+    expect(UNIT_TYPE_IDS).toHaveLength(61);
     for (const type of UNIT_TYPE_IDS) {
       const modelClass = modelClassFor(type);
       expect(MINI_SCULPTS[modelClass], `no sculpt registered for ${type}`).toBeDefined();
       expect(board.pieces[modelClass]?.geometry, `no geometry built for ${type}`).toBeDefined();
+      // Runtime aliases can be finer than the class. Both ground and water
+      // appearances must resolve to real geometry for every leader row too.
+      for (const terrain of ['grassland', 'coast'] as const) {
+        const sculpt = unitSculpt({ type } as never, terrain);
+        expect(board.pieces[sculpt]?.geometry.getAttribute('position').count, `${type} on ${terrain}`).toBeGreaterThan(0);
+      }
     }
     board.dispose();
   });
@@ -219,9 +251,9 @@ describe('the model-class roster', () => {
     // save the rows the art table names (`badges.byUnitType`).
     for (const type of UNIT_TYPE_IDS) {
       const def = unitDef(type);
-      // The four rules clauses, in `badgeClassFor`'s own order — the fourth is
-      // the inquisitor's candle (Entry LVIII).
-      if (def.greatWork || def.prophesies || def.consecrates || def.purges) continue;
+      // Religious and trading roles identify civilians whose model class is
+      // shared with ordinary settlers and workers.
+      if (def.greatWork || def.prophesies || def.consecrates || def.proclaims || def.purges || def.trades) continue;
       // A hull's badge is composed from its rig and canton, which is the fourth
       // rules clause and not the art table's — see `badgeClassFor`.
       if (def.masts !== undefined && def.canton !== undefined) continue;
@@ -279,19 +311,19 @@ describe('the model-class roster', () => {
     // set this pins is *markers*, plural — and the closed half below still
     // holds, which is the half that would rot silently.
     const clergy = UNIT_TYPE_IDS.filter(
-      (type) => unitDef(type).consecrates === true || unitDef(type).purges === true,
+      (type) => unitDef(type).consecrates === true || unitDef(type).proclaims === true || unitDef(type).purges === true,
     );
     expect(clergy.length).toBeGreaterThan(1);
     for (const type of clergy) {
       expect(modelClassFor(type)).toBe('worker');
       expect(badgeClassFor(type)).toBe('religious');
     }
-    // Nothing else takes it: a `religious` badge on a row that performs no rite
-    // and no purge is a lie the board tells once per piece and nobody can trace
+    // Nothing else takes it: a `religious` badge on a row that performs no rite,
+    // proclamation or purge is a lie the board tells once per piece and nobody can trace
     // back to a table. The prophet is excluded by its own earlier clause, which
     // is why it is not in the set above.
     for (const type of UNIT_TYPE_IDS) {
-      if (unitDef(type).consecrates === true || unitDef(type).purges === true) continue;
+      if (unitDef(type).consecrates === true || unitDef(type).proclaims === true || unitDef(type).purges === true) continue;
       expect(badgeClassFor(type)).not.toBe('religious');
     }
   });
@@ -422,6 +454,28 @@ describe('the model-class roster', () => {
       if (type in table) continue;
       expect(sculptFor(type), type).toBe(modelClassFor(type));
     }
+  });
+
+  it.each([
+    ['treasureShip', 'carrack', 'navalHeavy4'],
+    ['alexandrianGalley', 'galley', 'navalLight3'],
+  ] as const)('uses the existing %s rig matching %s, including at sea', (type, reference, sculpt) => {
+    expect(unitDef(type).masts).toBe(unitDef(reference).masts);
+    expect(unitDef(type).canton).toBe(unitDef(reference).canton);
+    expect(sculptFor(type)).toBe(sculpt);
+    expect(sculptFor(type)).toBe(sculptFor(reference));
+    expect(unitSculpt({ type } as never, 'coast')).toBe(sculpt);
+    expect(badgeClassFor(type)).toBe(badgeClassFor(reference));
+    expect(pieceHeightFor(type)).toBe(pieceHeightFor(reference));
+  });
+
+  it('keeps the leader civilian aliases, including a Rihla caravan loaded or embarked', () => {
+    expect(sculptFor('canoness')).toBe('apostle');
+    expect(sculptFor('rihlaCaravan')).toBe('trader');
+    expect(sculptFor('worker')).toBe('worker');
+    const caravan = { type: 'rihlaCaravan', trade: { from: 1, to: 2, expiresTurn: 20, outbound: true, autoResend: false } } as never;
+    expect(unitSculpt(caravan)).toBe('traderLaden');
+    expect(unitSculpt(caravan, 'coast')).toBe('boat');
   });
 
   /**
@@ -1105,11 +1159,8 @@ describe('the units layer in pieces style', () => {
       { materialFor: () => null, any: false } as never,
     );
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
-    // The sculpt, its outline shell and its x-ray ghost: one geometry, three
-    // passes. See `MESHES_PER_PIECE_BUCKET`.
-    expect(meshes.map((m) => m.geometry)).toEqual(
-      new Array<BufferGeometry>(MESHES_PER_PIECE_BUCKET).fill(board.pieces.melee.geometry),
-    );
+    // The shell owns hover widths while all three passes keep the same drawing.
+    expect(piecePasses(meshes, board.pieces.melee.geometry)).toHaveLength(MESHES_PER_PIECE_BUCKET);
     layer.dispose();
     board.dispose();
   });
@@ -1196,8 +1247,8 @@ describe('the routed wash', () => {
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
     // The idle unit keeps the plain body; the routed one stands in the laden
     // twin — `unitSculpt`'s own rule, unrelated to and unaffected by the wash.
-    const idleMeshes = meshes.filter((m) => m.geometry === board.pieces.trader.geometry);
-    const routedMeshes = meshes.filter((m) => m.geometry === board.pieces.traderLaden.geometry);
+    const idleMeshes = piecePasses(meshes, board.pieces.trader.geometry);
+    const routedMeshes = piecePasses(meshes, board.pieces.traderLaden.geometry);
     expect(idleMeshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
     expect(routedMeshes).toHaveLength(MESHES_PER_PIECE_BUCKET);
 
@@ -1263,10 +1314,10 @@ describe('the routed wash', () => {
 
     const meshes = layer.group.children.filter((c): c is InstancedMesh => c instanceof InstancedMesh);
     const idleShell = meshes.find(
-      (m) => m.geometry === board.pieces.trader.geometry && m.material === materialsLib.outline,
+      (m) => m.material === materialsLib.unitOutline && sameSculptDrawing(m.geometry, board.pieces.trader.geometry),
     )!;
     const routedShell = meshes.find(
-      (m) => m.geometry === board.pieces.traderLaden.geometry && m.material === materialsLib.outline,
+      (m) => m.material === materialsLib.unitOutline && sameSculptDrawing(m.geometry, board.pieces.traderLaden.geometry),
     )!;
     expect(idleShell.instanceColor).not.toBeNull();
     expect(routedShell.instanceColor).not.toBeNull();
@@ -1881,11 +1932,14 @@ describe('the x-ray silhouette', () => {
     expect(meshes.length - ghosted.length).toBe(classes.size * (MESHES_PER_PIECE_BUCKET - 1));
 
     for (const ghost of ghosted) {
-      // All three passes over one geometry share one instance buffer, so they
-      // share its length: three wrap copies of three units.
-      const passes = meshes.filter((mesh) => mesh.geometry === ghost.geometry);
+      // All three drawings carry the same placements and buffer length:
+      // three wrap copies of three units, including the shell's geometry view.
+      const passes = piecePasses(meshes, ghost.geometry);
       expect(passes).toHaveLength(MESHES_PER_PIECE_BUCKET);
-      for (const pass of passes) expect(pass.count).toBe(9);
+      for (const pass of passes) {
+        expect(pass.count).toBe(9);
+        expect(pass.instanceMatrix.array).toEqual(ghost.instanceMatrix.array);
+      }
     }
     layer.dispose();
     board.dispose();
@@ -2740,7 +2794,7 @@ describe("the wild's red", () => {
   /** The outline shells, and whether each carries a per-instance wash. */
   function shellWashes(meshes: InstancedMesh[], materials: MaterialLibrary): boolean[] {
     return meshes
-      .filter((mesh) => mesh.material === materials.outline)
+      .filter((mesh) => mesh.material === materials.unitOutline)
       .map((mesh) =>
         [...(mesh.instanceColor!.array as Float32Array).slice(0, 3)].some((c) => c !== 1),
       );
@@ -2952,14 +3006,14 @@ describe("the caravan's own body", () => {
   });
 
   /**
-   * All three meshes take the caravan's geometry — the sculpt, the outline shell
+   * All three meshes take the caravan's drawing — the sculpt, the outline shell
    * and the x-ray ghost.
    *
    * A piece is three `InstancedMesh`es over one buffer, and a body swapped into
    * only one of them is the failure this pins: an outline in the worker's shape
    * around a caravan, or a ghost that shows the wrong silhouette through a pine.
-   * Asserted by *geometry identity* rather than by counting alone, so a fourth
-   * pass added later still has to carry the same drawing.
+   * Body and ghost share geometry identity. The shell's vertex and index
+   * buffers stay equal while its per-instance hover widths belong to the bucket.
    */
   it('gives the sculpt, the shell and the ghost the same caravan drawing', () => {
     const type = caravanTypeId()!;
@@ -2996,7 +3050,7 @@ describe("the caravan's own body", () => {
     const idle = sculptFor(type);
     const laden = MINI_SCULPTS[idle].laden!;
     for (const id of [idle, laden] as const) {
-      const wearing = meshes.filter((mesh) => mesh.geometry === board.pieces[id].geometry);
+      const wearing = piecePasses(meshes, board.pieces[id].geometry);
       expect(wearing, `${id} is not three meshes`).toHaveLength(MESHES_PER_PIECE_BUCKET);
     }
     // And the worker's body is nowhere on this board, which is the sentence the

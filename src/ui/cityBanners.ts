@@ -341,6 +341,8 @@ export interface CityBannersOptions {
    * `controls.selectPiece`, whose own rule decides which pieces answer at all.
    */
   onSelectPiece?: (unitId: number) => void;
+  /** The named garrison icon under the pointer, sharing the board's outline. */
+  onHoverPiece?: (unitId: number | null) => void;
 }
 
 export interface CityBanners {
@@ -1168,6 +1170,7 @@ export function paintGarrisonRow(
   root: HTMLElement,
   row: GarrisonRow | null,
   onSelectPiece?: (unitId: number) => void,
+  onHoverPiece?: (unitId: number | null) => void,
 ): void {
   root.style.display = row === null ? 'none' : '';
   root.replaceChildren();
@@ -1226,6 +1229,10 @@ export function paintGarrisonRow(
         event.stopPropagation();
         onSelectPiece(piece.unitId);
       };
+    }
+    if (piece.mine && onHoverPiece) {
+      seat.addEventListener('pointerenter', () => onHoverPiece(piece.unitId));
+      seat.addEventListener('pointerleave', () => onHoverPiece(null));
     }
     root.append(seat);
   }
@@ -1300,8 +1307,24 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     onHoverCity,
     selectedUnitId,
     onSelectPiece,
+    onHoverPiece,
   } = options;
   const banners = new Map<number, Banner>();
+  let hoveredBannerId: number | null = null;
+  let hoveredPieceBannerId: number | null = null;
+
+  function hoverPiece(cityId: number, unitId: number | null): void {
+    if (unitId === null && hoveredPieceBannerId !== cityId) return;
+    hoveredPieceBannerId = unitId === null ? null : cityId;
+    onHoverPiece?.(unitId);
+  }
+
+  function clearBannerHover(cityId: number): void {
+    hoverPiece(cityId, null);
+    if (hoveredBannerId !== cityId) return;
+    hoveredBannerId = null;
+    onHoverCity?.(null);
+  }
 
   /**
    * The pieces standing in each town, re-walked only when the board's own piece
@@ -1390,8 +1413,11 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     // Enter/leave rather than over/out: these do not fire for movement between
     // the banner's own children, so hovering the name and then the production
     // line is one hover, not four events.
-    root.addEventListener('pointerenter', () => onHoverCity?.(cityId));
-    root.addEventListener('pointerleave', () => onHoverCity?.(null));
+    root.addEventListener('pointerenter', () => {
+      hoveredBannerId = cityId;
+      onHoverCity?.(cityId);
+    });
+    root.addEventListener('pointerleave', () => clearBannerHover(cityId));
     container.append(root);
     return {
       root,
@@ -1545,7 +1571,11 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
         paintArc(banner.ring.ahead, growth?.ahead ?? 0, growth?.filled ?? 0);
         banner.ring.svg.style.display = growth === null ? 'none' : '';
         paintHealthBar(banner.health, facts.health);
-        paintGarrisonRow(banner.garrison, facts.garrison, onSelectPiece);
+        // Replacing a hovered icon does not reliably dispatch pointerleave.
+        // Only its own row clears it; unrelated city refreshes cannot steal it.
+        hoverPiece(facts.cityId, null);
+        paintGarrisonRow(banner.garrison, facts.garrison, onSelectPiece,
+          (unitId) => hoverPiece(facts.cityId, unitId));
         banner.name.textContent = facts.name;
         banner.production.textContent = facts.production;
         banner.production.hidden = facts.production === '';
@@ -1560,6 +1590,7 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
 
     for (const [id, banner] of [...banners]) {
       if (seen.has(id)) continue;
+      clearBannerHover(id);
       banner.root.remove();
       banners.delete(id);
     }
@@ -1575,10 +1606,12 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
    * underneath it at every zoom. See "Where the plate hangs".
    */
   function reposition(): void {
-    if (!renderer.projectCell) return;
-    for (const banner of banners.values()) {
-      const point = renderer.projectCell(banner.col, banner.row, BANNER_RISE);
+    const project = renderer.projectCityBanner ?? renderer.projectCell;
+    if (!project) return;
+    for (const [cityId, banner] of banners) {
+      const point = project.call(renderer, banner.col, banner.row, BANNER_RISE);
       if (!point || !point.onScreen) {
+        clearBannerHover(cityId);
         banner.root.style.display = 'none';
         continue;
       }
@@ -1597,6 +1630,8 @@ export function createCityBanners(options: CityBannersOptions): CityBanners {
     refresh,
     reposition,
     dispose(): void {
+      if (hoveredPieceBannerId !== null) hoverPiece(hoveredPieceBannerId, null);
+      if (hoveredBannerId !== null) clearBannerHover(hoveredBannerId);
       for (const banner of banners.values()) banner.root.remove();
       banners.clear();
     },

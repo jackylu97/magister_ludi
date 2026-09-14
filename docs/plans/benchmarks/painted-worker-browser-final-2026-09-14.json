@@ -1,0 +1,12 @@
+{
+  "savedGame": "Turn 7, standard 80×52, seed 1",
+  "metrics": {
+    "mode": "worker",
+    "totalMs": 6589,
+    "workerMs": 6209.5,
+    "hydrateMs": 34.199999928474426,
+    "frameCount": 386,
+    "maxFrameGapMs": 42.800000071525574
+  },
+  "note": "Final callback execution-time probe; no concurrent tests/builds. Frame count and maximum gap cover waiting for worker output only; excludes simulation/replay, asset loading, handoff and GPU upload."
+}

@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Magister Ludi — Gameplay study</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fraunces:opsz,wght@9..144,400..700&family=Instrument+Sans:wght@400..700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="/src/style.css"><link rel="stylesheet" href="./study.css"></head><body>
+<div id="stage"></div>
+<header id="topbar"><div id="civ-yields" class="civ-yields" aria-label="Sample empire yields"></div><p class="status">Turn 24</p><div class="topbar-tools"><button class="topbar-btn" id="toggle-ui">Hide HUD</button></div></header>
+<div id="study-hud">
+<div id="hud-research" class="hud-card research-card"><span class="research-dial" style="--progress:60%"><span class="research-dial-sky"><span class="research-dial-glyph">✧</span></span><span class="research-dial-boss">4t</span></span><span class="research-text"><span class="eyebrow research-eyebrow">Natural Philosophy</span><span class="research-name">Writing</span><span class="research-figures">36 / 60 · +6 per turn</span></span></div>
+<div id="hud-dock" class="hud-dock"></div>
+<aside id="unit-panel"><div class="unit-header"><div class="unit-title"><h2>Warrior</h2><span class="unit-owner">Your empire · Uruk</span></div><button id="close-unit" class="city-close" aria-label="Close unit panel">×</button></div>
+<div class="unit-stats"><div class="unit-stat"><span class="unit-stat-value">100/100</span><span class="unit-stat-label">Health</span></div><div class="unit-stat"><span class="unit-stat-value" id="moves">2/2</span><span class="unit-stat-label">Moves</span></div><div class="unit-stat"><span class="unit-stat-value" id="strength">20</span><span class="unit-stat-label">Strength</span></div></div>
+<div id="unit-details" class="unit-note"></div><div class="unit-actions"><h3>Actions</h3><button class="btn btn-second unit-action" data-preview="Move"><span class="unit-action-label">Move</span><kbd class="unit-action-key">M</kbd></button><button class="btn btn-second unit-action" data-preview="Fortify"><span class="unit-action-label">Fortify</span><kbd class="unit-action-key">F</kbd></button><button class="btn btn-second unit-action" data-preview="Skip turn"><span class="unit-action-label">Skip turn</span></button></div></aside>
+<div id="hud-end-turn"><button class="btn btn-primary btn-end" data-preview="End Turn">End Turn <kbd class="btn-key">↵</kbd></button></div>
+</div>
+<div class="map-label" id="city-label"><span class="population">3</span> URUK<small>Granary · 4 turns</small></div><button class="map-label unit-label" id="unit-label" aria-label="Show Warrior panel">⚔</button>
+<div id="study-tools"><span class="eyebrow">ART STUDY · SAMPLE HUD</span><div><select aria-label="Landscape palette" id="palette"><option value="meadow">Meadow & stone</option><option value="ochre">Ochre & blue</option></select><button id="reset">Reset view</button></div><span id="terrain-hover"></span><span id="stats"></span></div>
+<div id="preview-message" role="status" hidden></div><script type="module" src="./main.js"></script><script type="module" src="./hud.js"></script></body></html>

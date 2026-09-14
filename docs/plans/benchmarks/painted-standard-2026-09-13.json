@@ -1,0 +1,94 @@
+{
+  "map": {
+    "width": 80,
+    "height": 52,
+    "tiles": 4160
+  },
+  "viewport": {
+    "width": 842,
+    "height": 794,
+    "dpr": 1.5
+  },
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "boardBuildMs": 7187,
+  "geometryMiB": 206.8471908569336,
+  "instanceMiB": 2.0600051879882812,
+  "visibility": "omniscient during sweep; original seat restored",
+  "results": [
+    {
+      "view": "play",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.79999999998836,
+        "p95": 34.199999999953434,
+        "max": 115.80000000004657
+      },
+      "cpuRenderMs": {
+        "median": 3.9000000953674316,
+        "p95": 5.100000023841858,
+        "max": 113.10000002384186
+      },
+      "drawCalls": {
+        "median": 185,
+        "p95": 190,
+        "max": 190
+      },
+      "triangles": {
+        "median": 1052735,
+        "p95": 1101705,
+        "max": 1108013
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "overview",
+      "frames": 120,
+      "frameMs": {
+        "median": 32.40000000002328,
+        "p95": 34.5,
+        "max": 34.899999999965075
+      },
+      "cpuRenderMs": {
+        "median": 5.700000047683716,
+        "p95": 7.600000023841858,
+        "max": 8.100000023841858
+      },
+      "drawCalls": {
+        "median": 546,
+        "p95": 546,
+        "max": 546
+      },
+      "triangles": {
+        "median": 2741772,
+        "p95": 2743632,
+        "max": 2743632
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "wrap seam",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.70000000001164,
+        "p95": 33.199999999953434,
+        "max": 34.29999999998836
+      },
+      "cpuRenderMs": {
+        "median": 2.799999952316284,
+        "p95": 4,
+        "max": 4.799999952316284
+      },
+      "drawCalls": {
+        "median": 114,
+        "p95": 118,
+        "max": 118
+      },
+      "triangles": {
+        "median": 541038,
+        "p95": 544770,
+        "max": 544770
+      },
+      "terrainShadowRebakes": 0
+    }
+  ]
+}

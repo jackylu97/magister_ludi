@@ -1,0 +1,45 @@
+{
+  "protocol": "Same process and map; old/new then new/old; first pair cold topology caches, second pair warm; GC before each build; prop stand-ins",
+  "results": [
+    {
+      "version": "before",
+      "seed": 1,
+      "size": "standard",
+      "tiles": 4160,
+      "boardMs": 5801.279708,
+      "geometryMiB": 212.7998447418213,
+      "geometryHash": "cc45459ef07a71054602d73d04de8a3abdc65a2e83a87477ef0fc55d8e676f33",
+      "notes": "CPU terrain build with small prop stand-ins; excludes real asset loading, GPU upload, shader compilation and saved-game replay"
+    },
+    {
+      "version": "after",
+      "seed": 1,
+      "size": "standard",
+      "tiles": 4160,
+      "boardMs": 4622.059041999999,
+      "geometryMiB": 212.7998447418213,
+      "geometryHash": "cc45459ef07a71054602d73d04de8a3abdc65a2e83a87477ef0fc55d8e676f33",
+      "notes": "CPU terrain build with small prop stand-ins; excludes real asset loading, GPU upload, shader compilation and saved-game replay"
+    },
+    {
+      "version": "after",
+      "seed": 1,
+      "size": "standard",
+      "tiles": 4160,
+      "boardMs": 4201.535250000001,
+      "geometryMiB": 212.7998447418213,
+      "geometryHash": "cc45459ef07a71054602d73d04de8a3abdc65a2e83a87477ef0fc55d8e676f33",
+      "notes": "CPU terrain build with small prop stand-ins; excludes real asset loading, GPU upload, shader compilation and saved-game replay"
+    },
+    {
+      "version": "before",
+      "seed": 1,
+      "size": "standard",
+      "tiles": 4160,
+      "boardMs": 4714.883167,
+      "geometryMiB": 212.7998447418213,
+      "geometryHash": "cc45459ef07a71054602d73d04de8a3abdc65a2e83a87477ef0fc55d8e676f33",
+      "notes": "CPU terrain build with small prop stand-ins; excludes real asset loading, GPU upload, shader compilation and saved-game replay"
+    }
+  ]
+}

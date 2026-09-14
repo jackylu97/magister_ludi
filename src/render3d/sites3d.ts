@@ -236,6 +236,7 @@ export class SiteLayer {
      * technology completing rebuilds this layer.
      */
     seat: number | null = null,
+    art?: { props?: boolean },
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -255,6 +256,7 @@ export class SiteLayer {
     let notes = 0;
 
     const place = (col: number, row: number, kind: SiteKind): void => {
+      if (art?.props === false) return;
       const tile = map.tiles[tileIndex(map, col, row)];
       if (!tile) return;
       const spec = SITES.props[kind];

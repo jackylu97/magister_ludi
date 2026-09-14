@@ -34,6 +34,7 @@
  */
 
 import {
+  AlwaysStencilFunc,
   BackSide,
   BufferAttribute,
   type BufferGeometry,
@@ -42,12 +43,14 @@ import {
   DoubleSide,
   FrontSide,
   GreaterDepth,
+  NotEqualStencilFunc,
   type IUniform,
   MeshBasicMaterial,
   MeshToonMaterial,
   type Texture,
   NearestFilter,
   RedFormat,
+  ReplaceStencilOp,
   UnsignedByteType,
   Vector3,
 } from 'three';
@@ -160,7 +163,8 @@ export interface ToonOptions {
 
 /**
  * Owns every material in the scene, so there is exactly one place a look change
- * has to write to. Materials are cached by `(colour, opacity)`, which is also
+ * has to write to. Materials are cached by colour, opacity, vertex colour and
+ * whether they mark a unit's visible body in the stencil. Otherwise this is also
  * the instancing key — two kinds of geometry sharing a colour share a material,
  * and the `InstancedMesh` split falls out of the geometry alone.
  *
@@ -181,6 +185,7 @@ export class MaterialLibrary {
 
   readonly outlineWidth: IUniform<number> = { value: 0 };
   readonly outline: MeshBasicMaterial;
+  readonly unitOutline: MeshBasicMaterial;
 
   constructor(rampSteps: number, outlineColor: number) {
     this.rampFloor = VIEW3D.look.rampFloor;
@@ -198,13 +203,39 @@ export class MaterialLibrary {
           '#include <begin_vertex>\ntransformed += aHullNormal * uOutlineWidth;',
         );
     };
+    this.unitOutline = new MeshBasicMaterial({ color: outlineColor, side: BackSide });
+    this.unitOutline.onBeforeCompile = shader => {
+      shader.uniforms.uUnitOutlineWidth = { value: VIEW3D.units.outlineWidth };
+      shader.vertexShader = shader.vertexShader
+        .replace('#include <common>', `#include <common>
+attribute vec3 aHullNormal;
+uniform float uUnitOutlineWidth;
+#ifdef USE_INSTANCING
+attribute float unitOutlineWidth;
+#endif`)
+        .replace('#include <begin_vertex>', `#include <begin_vertex>
+#ifdef USE_INSTANCING
+transformed += aHullNormal * unitOutlineWidth;
+#else
+transformed += aHullNormal * uUnitOutlineWidth;
+#endif`);
+    };
   }
 
   /** A toon material for this colour, created once and shared thereafter. */
   get(color: number, options: ToonOptions = {}): MeshToonMaterial {
+    return this.toon(color, options, false);
+  }
+
+  /** A unit's body marks visible pixels so ghosts cannot paint through it. */
+  unit(color: number, options: ToonOptions = {}): MeshToonMaterial {
+    return this.toon(color, options, true);
+  }
+
+  private toon(color: number, options: ToonOptions, unit: boolean): MeshToonMaterial {
     const opacity = options.opacity ?? 1;
     const vertexColors = options.vertexColors ?? false;
-    const key = `${color}|${opacity}|${vertexColors ? 1 : 0}`;
+    const key = `${color}|${opacity}|${vertexColors ? 1 : 0}|${unit ? 1 : 0}`;
     const existing = this.cache.get(key);
     if (existing) return existing;
 
@@ -217,6 +248,10 @@ export class MaterialLibrary {
       // and setting it would be silently dropped.
       transparent: opacity < 1,
       opacity,
+      ...(unit ? {
+        stencilWrite: true, stencilRef: 1, stencilFunc: AlwaysStencilFunc,
+        stencilZPass: ReplaceStencilOp, stencilWriteMask: 1,
+      } : {}),
     });
     this.cache.set(key, material);
     this.baseColors.set(material, color);
@@ -268,12 +303,13 @@ export class MaterialLibrary {
    * The x-ray ghost of a unit: what shows through the pine tree standing in
    * front of it.
    *
-   * The whole trick is one flag. `depthFunc: GreaterDepth` inverts the depth
+   * `depthFunc: GreaterDepth` inverts the depth
    * test, so this material draws **only where something is already in front of
    * it** — a fragment passes when its own depth is *greater* than what the depth
    * buffer already holds. The unit's ordinary solid pass has already run and
-   * written its own depth, so on every pixel where the piece is plainly visible
-   * the ghost tests equal, not greater, and nothing is drawn at all. That is
+   * written its own depth and marked the stencil. The frontmost ghost fragment
+   * tests equal rather than greater; the stencil refuses rear fragments that
+   * would otherwise show through the body's own front. That is
    * what keeps the pass free on an unoccluded board and, more importantly, what
    * keeps the *solid* render honest: a mountain still occludes the real piece;
    * all that changes is that a faint player-coloured shape appears where it did.
@@ -312,6 +348,15 @@ export class MaterialLibrary {
       side: map ? DoubleSide : FrontSide,
       alphaTest: map ? VIEW3D.units.sprite.alphaTest : 0,
       toneMapped: false,
+      // Visible unit bodies mark stencil bit 0 after scenery has drawn.
+      // GreaterDepth alone also admits the rear of a club through its own
+      // front, making the opaque sculpt appear translucent. Skip those pixels
+      // while retaining the hint through terrain and trees.
+      stencilWrite: true,
+      stencilRef: 1,
+      stencilFunc: NotEqualStencilFunc,
+      stencilFuncMask: 1,
+      stencilWriteMask: 0,
     });
     this.silhouetteCache.set(key, material);
     return material;
@@ -345,6 +390,7 @@ export class MaterialLibrary {
     for (const material of this.cache.values()) material.needsUpdate = true;
     for (const material of this.overlayCache.values()) material.needsUpdate = true;
     this.outline.needsUpdate = true;
+    this.unitOutline.needsUpdate = true;
   }
 
   dispose(): void {
@@ -356,6 +402,7 @@ export class MaterialLibrary {
     this.silhouetteCache.clear();
     this.baseColors.clear();
     this.outline.dispose();
+    this.unitOutline.dispose();
     this.gradientMap.dispose();
   }
 }

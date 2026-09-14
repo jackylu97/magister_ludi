@@ -365,6 +365,7 @@ export class CityLayer {
     shadows: boolean,
     levels: FogLevels = null,
     icons: TileIcons | null = null,
+    art?: { towns?: boolean; flagAnchors?: ReadonlyMap<number, { x: number; y: number; z: number }> },
   ): void {
     disposeInstancedGroup(this.group);
 
@@ -388,20 +389,24 @@ export class CityLayer {
       const top = tileTopY(tile);
       const look = cityLook(state, city, capitals);
 
-      this.addTown(city, look, centre, top, geometry, collector);
-      this.addWall(look, tile, centre, top, geometry, collector);
+      if (art?.towns !== false) {
+        this.addTown(city, look, centre, top, geometry, collector);
+        this.addWall(look, tile, centre, top, geometry, collector);
+      }
+      const flag = art?.flagAnchors?.get(city.id);
+      const flagCentre = flag ?? centre, flagTop = flag?.y ?? top;
 
       // The pole stands dead centre, where the ring of buildings leaves a gap.
       collector.add(
         geometry.pole,
         [pole],
         new Matrix4().compose(
-          new Vector3(centre.x, top, centre.z),
+          new Vector3(flagCentre.x, flagTop, flagCentre.z),
           new Quaternion(),
           new Vector3(1, 1, 1),
         ),
       );
-      this.addFlag(state, city, look, centre, top, geometry, collector, faceCamera, icons);
+      this.addFlag(state, city, look, flagCentre, flagTop, geometry, collector, faceCamera, icons);
     }
 
     this.drawCallCount = collector.flush(this.group, materials, shadows);

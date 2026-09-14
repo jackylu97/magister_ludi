@@ -1,0 +1,20 @@
+{
+  "savedGame": "Turn 7, standard 80×52, seed 1",
+  "initialWorkerHandoff": {
+    "mode": "worker",
+    "totalMs": 8861.199999928474,
+    "workerMs": 6845.699999928474,
+    "hydrateMs": 1689.8999999761581,
+    "frameCount": 429,
+    "maxFrameGapMs": 83.29999999999563
+  },
+  "finalWorkerHandoff": {
+    "mode": "worker",
+    "totalMs": 5930,
+    "workerMs": 5514.099999904633,
+    "hydrateMs": 26.5,
+    "frameCount": 330,
+    "maxFrameGapMs": 349.79999999998836
+  },
+  "note": "Isolated browser tab; frame intervals cover only the wait for worker output, not simulation/replay, assets, handoff or GPU upload."
+}

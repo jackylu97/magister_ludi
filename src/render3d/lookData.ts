@@ -269,6 +269,10 @@ export interface DecorSpec {
 export interface PiecesSpec {
   /** How far stacked pieces on one tile fan out from the centre. */
   stackSpread: number;
+  /** Wider plinths in the approved painted chess kit need their own fan. */
+  paintedStackSpread: number;
+  paintedContactLift: number;
+  paintedMovingContacts: number;
   /**
    * How far a routed caravan's ink is mixed toward `fog.exploredWash` — the
    * same parchment/chart tone remembered ground fades toward, reused here
@@ -864,6 +868,9 @@ export interface LensSpec {
  */
 export interface UnitStyleSpec {
   style: 'pieces' | 'sprites';
+  /** World-space hull widths; unit hover leaves the board's ink untouched. */
+  outlineWidth: number;
+  hoverOutlineWidth: number;
   /**
    * How strongly a unit's x-ray ghost shows through whatever is standing in
    * front of it — see `MaterialLibrary.silhouette`.
@@ -2265,6 +2272,9 @@ export const VIEW3D: View3DData = {
   },
   pieces: {
     stackSpread: viewJson.pieces.stackSpread,
+    paintedStackSpread: viewJson.pieces.paintedStackSpread,
+    paintedContactLift: viewJson.pieces.paintedContactLift,
+    paintedMovingContacts: viewJson.pieces.paintedMovingContacts,
     // Clamped for `fog.exploredDim`'s reason: outside [0, 1] is a typo, and
     // both failure modes — no fade at all, or a caravan bleached past legible
     // — read as the renderer being broken rather than as a bad number.
@@ -2585,6 +2595,8 @@ export const VIEW3D: View3DData = {
     families: parseFamilies(viewJson.abacus.families),
   },
   units: {
+    outlineWidth: Math.max(0, viewJson.units.outlineWidth),
+    hoverOutlineWidth: Math.max(0, viewJson.units.hoverOutlineWidth),
     style: parseUnitStyle(viewJson.units.style),
     // Clamped: an alpha outside [0, 1] is a typo, and both failure modes — no
     // ghost at all, or a solid player-coloured shape printed over the mountain
