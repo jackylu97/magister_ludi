@@ -19,6 +19,50 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(yyyy) The new-game flow in three screens — RULED, L7** (the user,
+2026-09-14: *"the three screen flow is great, please fold those in too"*;
+the spec is the artifact "Magister Ludi — New Game Flow", its first three
+tabs, redrawn in `mockups/new-game-flow.html` when L7 lands). Today the
+landing is one leaf: the poster masthead, the map card and the seat card,
+with Continue and Load in the map card's foot. **L7 builds** three screens,
+all screen states of the one page as the landing is today (nothing routes):
+**(1) the title** — the poster masthead at full size, once, and under it two
+cards on its edges: the menu (Continue with the newest save named on the
+button and hidden when there is none · New game · Load a game · Multiplayer
+greyed with "coming after the playable core" · a rule · Compendium ·
+Settings) and the recent-worlds shelf (named saves and the autosave, newest
+first, each row naming the figure, the seed, the turn and when — a row loads
+it; the shelf reads `savesPanel.ts`'s own list); keyboard: Enter continues,
+N new, L load, ? the book. **(2) new game, step one** — the mode as a
+segmented switch at the top (Single player · Hot-seat · Online greyed),
+then the map card exactly as built (seed + Random, size, the seats stepper,
+the opponent row at two seats, the tutorial check; the hot-seat checkbox
+becomes the switch) — the rows the mockup shows and the game does not have
+(rivals · pace · the wild · difficulty) are **not built**, no greyed
+placeholders — a summary strip in mono under the card ("standard · 6 seats
+· seed 1"), Back to the title, and **Choose your civ →**. The masthead does
+not repeat here; a small mono breadcrumb ("new game · step one of two")
+stands in. **(3) choose your civ, step two** — the roster as the four-line
+faces `leaderSelect.ts` already builds, No leader first and default,
+**Random** last (dealt by the seed through `hash3`, the cast's own hash),
+and beside the roster a detail card for the chosen figure: a portrait plate
+slot in the figure's two inks (`artPlate`-style, the painting arrives
+later), the name and identity line (▢ `family`/identity is still not a
+field; print the two inks' names and nothing invented), the two abilities
+through the describers, the unit and building each with the age that opens
+it, the colour chips, the first cities, and **Begin as X** (Begin for no
+leader). Back returns to step one with its values kept. `currentConfig`
+reads the same controls it reads today; the config is byte-identical for
+the same choices. Every existing pin on the landing (`leaderScreens`,
+`gameSetup`, `screenLifecycle`, `seatRoster`, the tutorial) is reworked,
+never dropped; new pins: the three screens are one `#landing` with a
+`data-step`, Continue hides without a save and names the newest with one,
+the shelf lists saves newest first and loads on click, the keys, the
+segmented switch writes `hotSeat`, Random deals by the seed and the same
+seed deals the same figure, Back keeps the seed, Begin's label follows the
+pick, and a raw `[[` nowhere. `docs/README.md`'s surfaces section follows.
+
+
 One paragraph a question, in the words the state of the tree makes them now.
 The letter is the item the question came out of; the item's full history is in
 `docs/history/flags-log.md`.
