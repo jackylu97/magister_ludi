@@ -3654,8 +3654,8 @@
   ],
   "piyamaradu": [
    {
-    "raw": "+6 combat strength outside your territory",
-    "text": "+6 combat strength outside your territory"
+    "raw": "+3 combat strength outside your territory",
+    "text": "+3 combat strength outside your territory"
    },
    {
     "raw": "-2 authority capacity",
@@ -3670,8 +3670,8 @@
   ],
   "deborah": [
    {
-    "raw": "+8 combat strength within 2 hexes of one of your cities",
-    "text": "+8 combat strength within 2 hexes of one of your cities"
+    "raw": "+4 combat strength within 2 hexes of one of your cities",
+    "text": "+4 combat strength within 2 hexes of one of your cities"
    }
   ],
   "sappho": [
@@ -3718,8 +3718,8 @@
     "text": "siege units: +1 movement"
    },
    {
-    "raw": "+6 combat strength for siege units",
-    "text": "+6 combat strength for siege units"
+    "raw": "+3 combat strength for siege units",
+    "text": "+3 combat strength for siege units"
    }
   ],
   "hypatia": [
@@ -3834,12 +3834,12 @@
   ],
   "hannibal": [
    {
-    "raw": "+10 combat strength outside your territory",
-    "text": "+10 combat strength outside your territory"
+    "raw": "+5 combat strength outside your territory",
+    "text": "+5 combat strength outside your territory"
    },
    {
-    "raw": "-8 combat strength inside your territory",
-    "text": "-8 combat strength inside your territory"
+    "raw": "-4 combat strength inside your territory",
+    "text": "-4 combat strength inside your territory"
    }
   ],
   "hanXin": [
@@ -3860,8 +3860,8 @@
   ],
   "boudica": [
    {
-    "raw": "+8 combat strength inside your territory",
-    "text": "+8 combat strength inside your territory"
+    "raw": "+4 combat strength inside your territory",
+    "text": "+4 combat strength inside your territory"
    },
    {
     "raw": "lost when the age it was earned in closes",
@@ -3870,8 +3870,8 @@
   ],
   "spartacus": [
    {
-    "raw": "+6 combat strength against an empire with more cities than you",
-    "text": "+6 combat strength against an empire with more cities than you"
+    "raw": "+3 combat strength against an empire with more cities than you",
+    "text": "+3 combat strength against an empire with more cities than you"
    }
   ],
   "ibnSina": [
@@ -4010,14 +4010,14 @@
   ],
   "janZizka": [
    {
-    "raw": "+10 combat strength while fortified",
-    "text": "+10 combat strength while fortified"
+    "raw": "+5 combat strength while fortified",
+    "text": "+5 combat strength while fortified"
    }
   ],
   "elCid": [
    {
-    "raw": "+6 combat strength in a city you captured",
-    "text": "+6 combat strength in a city you captured"
+    "raw": "+3 combat strength in a city you captured",
+    "text": "+3 combat strength in a city you captured"
    }
   ],
   "mimarSinan": [
@@ -4186,24 +4186,24 @@
   ],
   "nzingaOfNdongo": [
    {
-    "raw": "+10 combat strength in forest",
-    "text": "+10 combat strength in forest"
+    "raw": "+5 combat strength in forest",
+    "text": "+5 combat strength in forest"
    },
    {
-    "raw": "+10 combat strength in jungle",
-    "text": "+10 combat strength in jungle"
+    "raw": "+5 combat strength in jungle",
+    "text": "+5 combat strength in jungle"
    }
   ],
   "yiSunSin": [
    {
-    "raw": "+10 combat strength for ships",
-    "text": "+10 combat strength for ships"
+    "raw": "+5 combat strength for ships",
+    "text": "+5 combat strength for ships"
    }
   ],
   "lautaro": [
    {
-    "raw": "+6 combat strength against mounted units",
-    "text": "+6 combat strength against mounted units"
+    "raw": "+3 combat strength against mounted units",
+    "text": "+3 combat strength against mounted units"
    }
   ]
  },

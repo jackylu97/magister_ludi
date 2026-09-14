@@ -387,7 +387,7 @@
         "gold": 0
       },
       "clearsClutter": true,
-      "defense": 20,
+      "defense": 8,
       "claimsNeighbours": true
     },
     "holySite": {
