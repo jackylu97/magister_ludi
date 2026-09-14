@@ -85,6 +85,18 @@ the shelf lists saves newest first and loads on click, the keys, the
 segmented switch writes `hotSeat`, Random deals by the seed and the same
 seed deals the same figure, Back keeps the seed, Begin's label follows the
 pick, and a raw `[[` nowhere. `docs/README.md`'s surfaces section follows.
+**L7 built** (2026-09-14; on the gate, landing with the great-people data
+fix): `src/ui/landingFlow.ts` (the step walk, the breadcrumb table, the
+summary strip, one guarded document key handler with two refusals — a text
+control keeps every key, a button only Enter/Space); `savesPanel.ts` gained
+`recentWorlds` and `relativeWhen`; the title's menu and shelf, the world's
+switch and summary, the civ's roster with Random dealt by `hash3` and the
+detail card; every control id kept and `currentConfig` unchanged; the book
+opened from the title lifted above the landing (z 60); a pre-existing bug
+found — `hidden` on a landing row was a no-op under the card's `display`
+rules (the Opponent row had shown at every count) — fixed with a `[hidden]`
+rule and a cascade pin. Verified on screen through the headless harness
+(`scratchpad/pw/flow.mjs`). Twenty-one pins in `test/ui/landingFlow.test.ts`.
 
 
 One paragraph a question, in the words the state of the tree makes them now.
