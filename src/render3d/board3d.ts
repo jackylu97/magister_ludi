@@ -296,7 +296,9 @@ export function badgeClassFor(type: UnitTypeId): BadgeClass {
   const def = unitDef(type);
   if (def.greatWork) return 'greatPerson';
   if (def.prophesies) return 'prophet';
-  if (def.consecrates) return 'religious';
+  // Apostles and canonesses share the worker's model class, but preaching
+  // earns the religious mark just as performing a rite does.
+  if (def.consecrates || def.proclaims) return 'religious';
   // **The inquisitor wears the candle** (Entry LVIII). A third religious agent,
   // sculpted as a `worker` like the other two, and "worker" floating over the
   // piece that empties a province of rival faith is the wrong sentence for the
@@ -322,6 +324,9 @@ export function badgeClassFor(type: UnitTypeId): BadgeClass {
   if (def.masts !== undefined && def.canton !== undefined) {
     return navalBadgeId(def.masts, def.canton);
   }
+  // The route-bearing role also belongs to the Rihla caravan. Its shared
+  // worker model class must not turn the trade badge into a worker badge.
+  if (def.trades) return 'trader';
   return BADGE_OVERRIDES.get(type) ?? def.modelClass;
 }
 

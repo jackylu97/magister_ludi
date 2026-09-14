@@ -24,6 +24,7 @@ import type { Hex } from '../sim/hex';
 import type { Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
 import type { UnitTypeId } from '../sim/unitData';
+import type { GreatPersonId } from '../sim/greatPeopleData';
 
 /** An offset cell. Structurally what the simulation calls a path waypoint. */
 export interface CellRef {
@@ -61,6 +62,8 @@ export interface FallenUnit {
   ownerId: number;
   col: number;
   row: number;
+  /** Keep a named person's family emblem after the sim removes the unit. */
+  person?: GreatPersonId;
 }
 
 /** Where something on the board landed on screen, in viewport CSS pixels. */
@@ -225,6 +228,11 @@ export interface MapView {
    * `?art=flat` selection is exactly the tile contract it always was.
    */
   pickUnitBadge?(screenX: number, screenY: number, playerId: number): number | null;
+
+  /** Visible owned model under the pointer, including its sculpted silhouette. */
+  pickUnitModel?(screenX: number, screenY: number, playerId: number): number | null;
+  /** Strengthens one unit's outline without rebuilding the board or army. */
+  setHoveredUnitId?(unitId: number | null): void;
 
   /** The unit drawn with a selection marker, or `null`. */
   setSelectedUnitId(id: number | null): void;
@@ -442,6 +450,9 @@ export interface MapView {
    * hex — `cityBanners.ts`, "Where the plate hangs").
    */
   projectCell?(col: number, row: number, rise?: number): ScreenPoint | null;
+
+  /** Architectural flag anchor for city banners; other labels use projectCell. */
+  projectCityBanner?(col: number, row: number, rise?: number): ScreenPoint | null;
 
   /**
    * Optional: a callback run after every frame the renderer actually draws.

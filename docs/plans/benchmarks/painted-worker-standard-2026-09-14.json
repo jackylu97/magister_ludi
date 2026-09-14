@@ -1,0 +1,18 @@
+{
+  "seed": 1,
+  "size": "standard",
+  "tiles": 4160,
+  "generationMs": 3597.312083,
+  "boardMs": 8492.01275,
+  "worker": {
+    "mode": "worker",
+    "totalMs": 8491.111375,
+    "workerMs": 8057.865583,
+    "hydrateMs": 24.492166999998517,
+    "frameCount": 0,
+    "maxFrameGapMs": 0
+  },
+  "geometryMiB": 212.7998447418213,
+  "geometryHash": "cc45459ef07a71054602d73d04de8a3abdc65a2e83a87477ef0fc55d8e676f33",
+  "notes": "CPU terrain build with small prop stand-ins; excludes real asset loading, GPU upload, shader compilation and saved-game replay"
+}

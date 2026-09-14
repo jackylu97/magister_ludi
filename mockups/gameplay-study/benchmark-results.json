@@ -1,0 +1,110 @@
+{
+  "method": "Repeated 37-tile chunks, shared geometry: rendering proxy, NOT a generated standard game map. Includes current asset density and static HUD; excludes simulation, full-map picking and unique-map build/memory.",
+  "standardTiles": 4160,
+  "proxyTiles": 4181,
+  "patches": 113,
+  "viewport": [
+    514,
+    767
+  ],
+  "renderTestSize": [
+    1440,
+    900
+  ],
+  "drawingBuffer": [
+    2160,
+    1350
+  ],
+  "dpr": 1.5,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "runs": [
+    {
+      "name": "Empty timing baseline",
+      "frames": 180,
+      "fps": 59.99999999999999,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 17.399999999999864,
+      "p99Ms": 17.59999999999991,
+      "cpuSubmitP95Ms": 1.800000011920929,
+      "firstRenderSubmitMs": 0.9000000357627869,
+      "maxDraws": 1,
+      "maxTriangles": 2,
+      "framesOver33ms": 0,
+      "hiddenDuringRun": false
+    },
+    {
+      "name": "37 tiles / play zoom",
+      "frames": 180,
+      "fps": 59.99999999999999,
+      "medianMs": 16.699999999999818,
+      "p95Ms": 17,
+      "p99Ms": 17.5,
+      "cpuSubmitP95Ms": 1.600000023841858,
+      "firstRenderSubmitMs": 10.099999964237213,
+      "maxDraws": 27,
+      "maxTriangles": 48534,
+      "framesOver33ms": 0,
+      "hiddenDuringRun": false
+    },
+    {
+      "name": "4181 tiles / play zoom / cached shadows",
+      "frames": 180,
+      "fps": 60.00200006666886,
+      "medianMs": 16.69999999999891,
+      "p95Ms": 17.299999999999272,
+      "p99Ms": 17.5,
+      "cpuSubmitP95Ms": 3.200000047683716,
+      "firstRenderSubmitMs": 3.300000011920929,
+      "maxDraws": 193,
+      "maxTriangles": 397349,
+      "framesOver33ms": 0,
+      "hiddenDuringRun": false
+    },
+    {
+      "name": "4181 tiles / regional zoom / cached shadows",
+      "frames": 180,
+      "fps": 59.99999999999999,
+      "medianMs": 16.69999999999891,
+      "p95Ms": 16.799999999999272,
+      "p99Ms": 16.799999999999272,
+      "cpuSubmitP95Ms": 3.699999988079071,
+      "firstRenderSubmitMs": 7.700000047683716,
+      "maxDraws": 1216,
+      "maxTriangles": 2393534,
+      "framesOver33ms": 0,
+      "hiddenDuringRun": false
+    },
+    {
+      "name": "4181 tiles / whole board / cached shadows",
+      "frames": 180,
+      "fps": 43.72540445999123,
+      "medianMs": 16.700000000000728,
+      "p95Ms": 33.400000000001455,
+      "p99Ms": 33.400000000001455,
+      "cpuSubmitP95Ms": 24.700000047683716,
+      "firstRenderSubmitMs": 10.599999964237213,
+      "maxDraws": 2939,
+      "maxTriangles": 5484118,
+      "framesOver33ms": 26,
+      "hiddenDuringRun": false
+    },
+    {
+      "name": "4181 tiles / play zoom / refreshed shadows",
+      "frames": 180,
+      "fps": 60.00200006666886,
+      "medianMs": 16.69999999999709,
+      "p95Ms": 17.399999999997817,
+      "p99Ms": 17.600000000002183,
+      "cpuSubmitP95Ms": 5.300000011920929,
+      "firstRenderSubmitMs": 2.300000011920929,
+      "maxDraws": 396,
+      "maxTriangles": 834575,
+      "framesOver33ms": 0,
+      "hiddenDuringRun": false
+    }
+  ],
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+  "cloneAssemblyMs": 9.5,
+  "shadowLimit": "Current fixed 24x24-world-unit shadow frustum, not full-map shadow coverage. CPU submit timing is not GPU timing.",
+  "complete": true
+}

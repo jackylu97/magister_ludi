@@ -85,6 +85,7 @@ import {
 } from 'three';
 
 import { type MaterialLibrary, computeHullNormals } from './toon';
+import { VIEW3D } from './lookData';
 
 /** A matrix that scales to nothing: the way an instance is hidden. */
 export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
@@ -139,6 +140,8 @@ export const HIDDEN_MATRIX = new Matrix4().makeScale(0, 0, 0);
  * tunes to taste, it is the statement of which readout wins.
  */
 export const RENDER_ORDER = {
+  /** Opaque units write the self-occlusion stencil after opaque scenery. */
+  unitBody: 5,
   overlay: 10,
   silhouette: 15,
   onTop: 20,
@@ -172,6 +175,7 @@ export type Tint = readonly [number, number, number];
 const NO_TINT: Tint = [1, 1, 1];
 
 interface Bucket {
+  unitOutline: boolean;
   geometry: BufferGeometry;
   /**
    * One colour per geometry group. Length 1 for a plain shape; length 3 for a
@@ -205,6 +209,8 @@ interface Bucket {
    * outlined, never shadowed and never tinted — it is a printed thing.
    */
   material: Material | null;
+  /** A supplied surface material, rather than a printed atlas or decal. */
+  litMaterial: boolean;
   /** Multiply the ink by the geometry's `color` attribute. See `ToonOptions`. */
   vertexColors: boolean;
   /** Unlit overlay decals, drawn after everything and never shadowed. */
@@ -431,6 +437,8 @@ export class InstanceCollector {
     matrix: Matrix4,
     options: {
       outlined?: boolean;
+      /** A per-instance unit rim, independently adjustable on hover. */
+      unitOutline?: boolean;
       overlay?: boolean;
       onTop?: boolean;
       order?: number;
@@ -438,6 +446,8 @@ export class InstanceCollector {
       tint?: Tint;
       vertexColors?: boolean;
       material?: Material;
+      /** Opt a custom surface into real shadows and the ordinary unit shell. */
+      litMaterial?: boolean;
       /**
        * Draw these instances a second time with this material, over the same
        * matrices — the x-ray silhouette pass. See `Bucket.ghostMaterial`.
@@ -473,7 +483,8 @@ export class InstanceCollector {
     } = {},
   ): InstanceHandle {
     const custom = options.material ?? null;
-    const outlined = custom ? false : (options.outlined ?? true);
+    const litMaterial = !!custom && options.litMaterial === true;
+    const outlined = custom && !litMaterial ? false : (options.outlined ?? true);
     const onTop = options.onTop ?? false;
     const overlay = !custom && (onTop || (options.overlay ?? false));
     const order = options.order ?? null;
@@ -490,14 +501,16 @@ export class InstanceCollector {
     const key =
       `${id}|${colors.join(',')}|${outlined ? 1 : 0}|` +
       `${overlay ? 1 : 0}|${onTop ? 1 : 0}|${order ?? 'auto'}|` +
-      `${opacity}|${vertexColors ? 1 : 0}|${materialId}|${ghostId}`;
+      `${opacity}|${vertexColors ? 1 : 0}|${materialId}|${ghostId}|${litMaterial ? 1 : 0}|${options.unitOutline ? 1 : 0}`;
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
+        unitOutline: options.unitOutline === true,
         geometry,
         colors,
         outlined: outlined && !overlay,
         material: custom,
+        litMaterial,
         ghostMaterial: options.ghost ?? null,
         ghostOrder: options.ghostOrder ?? null,
         vertexColors: vertexColors && !overlay,
@@ -514,7 +527,7 @@ export class InstanceCollector {
         // away from greying out every roundel on it. `setWash` refuses these
         // buckets from the other end; this is the half that makes sure there is
         // nothing there to write to. See `Bucket.material`.
-        tinted: this.forceTint && !custom,
+        tinted: this.forceTint && (!custom || litMaterial),
         mesh: null,
         shell: null,
         ghost: null,
@@ -573,17 +586,20 @@ export class InstanceCollector {
         opacity: bucket.opacity,
         vertexColors: bucket.vertexColors,
       };
+      const surface = (color: number) => bucket.unitOutline
+        ? materials.unit(color, toonOptions)
+        : materials.get(color, toonOptions);
       const material = bucket.material
         ? bucket.material
         : bucket.overlay
           ? materials.overlay(bucket.colors[0]!, bucket.opacity, bucket.onTop)
           : bucket.colors.length === 1
-            ? materials.get(bucket.colors[0]!, toonOptions)
-            : bucket.colors.map((color) => materials.get(color, toonOptions));
+            ? surface(bucket.colors[0]!)
+            : bucket.colors.map(surface);
 
       const mesh = new InstancedMesh(bucket.geometry, material, count);
-      mesh.castShadow = shadows && !bucket.overlay && !bucket.material;
-      mesh.receiveShadow = shadows && !bucket.overlay && !bucket.material;
+      mesh.castShadow = shadows && !bucket.overlay && (!bucket.material || bucket.litMaterial);
+      mesh.receiveShadow = shadows && !bucket.overlay && (!bucket.material || bucket.litMaterial);
       // Overlays are unlit decals a hair above the board; drawing them last and
       // without depth writes keeps them off the depth buffer entirely. The
       // `onTop` kind is drawn after even those, because it is not depth-tested
@@ -626,7 +642,15 @@ export class InstanceCollector {
 
       if (bucket.outlined) {
         computeHullNormals(bucket.geometry);
-        const shell = new InstancedMesh(bucket.geometry, materials.outline, count);
+        // The width attribute belongs to this bucket, never the shared sculpt:
+        // two owners can batch the same asset with different hovered instances.
+        const shellGeometry = bucket.unitOutline ? bucket.geometry.clone() : bucket.geometry;
+        if (bucket.unitOutline) shellGeometry.userData.unitOutlineSource = bucket.geometry.uuid;
+        if (bucket.unitOutline) shellGeometry.setAttribute('unitOutlineWidth',
+          new InstancedBufferAttribute(new Float32Array(count).fill(VIEW3D.units.outlineWidth), 1));
+        const shell = new InstancedMesh(shellGeometry, bucket.unitOutline ? materials.unitOutline : materials.outline, count);
+        shell.userData.ownsGeometry = bucket.unitOutline;
+        if (bucket.unitOutline) shell.renderOrder = RENDER_ORDER.unitBody;
         // The shell must never cast: it is a fraction of a millimetre larger
         // than the mesh it wraps and would z-fight its own subject's shadow.
         shell.castShadow = false;
@@ -867,6 +891,23 @@ export class InstanceCollector {
     const bucket = (handle as HandleImpl).bucket;
     writeWash(bucket.shell, null, handle, washFactor(outlineInk(bucket), target, mix, shade));
   }
+
+  /** Patches only this piece's wrap copies; hovering never rebuilds a bucket. */
+  static setUnitOutline(handle: InstanceHandle, hovered: boolean): void {
+    const shell = (handle as HandleImpl).bucket.shell;
+    const widths = shell?.geometry.getAttribute('unitOutlineWidth');
+    if (!widths) return;
+    const width = hovered ? VIEW3D.units.hoverOutlineWidth : VIEW3D.units.outlineWidth;
+    for (let i = 0; i < handle.count; i++) widths.setX(handle.start + i, width);
+    widths.needsUpdate = true;
+  }
+
+  /** Authoritative active body slots, excluding shell, ghost and hidden copies. */
+  static bodyInstances(handle: InstanceHandle): { object: InstancedMesh; instanceId: number }[] {
+    const impl = handle as HandleImpl;
+    if (impl.flags || !impl.bucket.mesh) return [];
+    return Array.from({ length: handle.count }, (_, i) => ({object: impl.bucket.mesh!, instanceId: handle.start + i}));
+  }
 }
 
 /** `0xRRGGBB` split into three 0..1 channels. */
@@ -1022,7 +1063,10 @@ function markUpdated(bucket: Bucket): void {
 /** Disposes every `InstancedMesh` under a group and empties it. */
 export function disposeInstancedGroup(group: Group): void {
   for (const child of group.children) {
-    if (child instanceof InstancedMesh) child.dispose();
+    if (child instanceof InstancedMesh) {
+      if (child.userData.ownsGeometry) child.geometry.dispose();
+      child.dispose();
+    }
   }
   group.clear();
 }

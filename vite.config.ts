@@ -75,6 +75,7 @@ export default defineConfig({
         pieces: 'pieces.html',
         abacus: 'abacus.html',
         mapgen: 'mapgen.html',
+        terrainStudy: 'terrain-study.html',
         flair: 'flair.html',
         compendium: 'compendium.html',
         spectate: 'spectate.html',

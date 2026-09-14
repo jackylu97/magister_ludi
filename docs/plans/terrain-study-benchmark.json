@@ -1,0 +1,410 @@
+{
+  "scope": "Standard seed 1; painted lighting; final paired sustained runs; not ordinary frame-rate readings",
+  "reference": {
+    "label": "baseline-burst-repeat",
+    "viewport": [
+      842,
+      836
+    ],
+    "dpr": 1.5,
+    "gpuTimer": true,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "rendersPerFrame": 3,
+    "timing": "CPU/GPU milliseconds per render; frameMs is the entire animation frame",
+    "shadowBakes": 0,
+    "phases": [
+      {
+        "view": "range",
+        "motion": "still",
+        "contact": true,
+        "frames": 122,
+        "frameMs": {
+          "median": 17.5,
+          "p95": 33.9
+        },
+        "cpuMs": {
+          "median": 1.87,
+          "p95": 2.33
+        },
+        "gpuMs": {
+          "median": 10.23,
+          "p95": 10.97
+        },
+        "drawCalls": 133,
+        "triangles": 673171
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": true,
+        "frames": 110,
+        "frameMs": {
+          "median": 33.1,
+          "p95": 34
+        },
+        "cpuMs": {
+          "median": 2.2,
+          "p95": 2.5
+        },
+        "gpuMs": {
+          "median": 10.92,
+          "p95": 12.08
+        },
+        "drawCalls": 139,
+        "triangles": 677949
+      },
+      {
+        "view": "grove",
+        "motion": "pan",
+        "contact": true,
+        "frames": 119,
+        "frameMs": {
+          "median": 17.7,
+          "p95": 34.3
+        },
+        "cpuMs": {
+          "median": 2.1,
+          "p95": 2.4
+        },
+        "gpuMs": {
+          "median": 10.31,
+          "p95": 10.86
+        },
+        "drawCalls": 91,
+        "triangles": 543999
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": true,
+        "frames": 73,
+        "frameMs": {
+          "median": 34.3,
+          "p95": 50.1
+        },
+        "cpuMs": {
+          "median": 1.57,
+          "p95": 1.67
+        },
+        "gpuMs": {
+          "median": 12.12,
+          "p95": 14.56
+        },
+        "drawCalls": 1539,
+        "triangles": 5358481
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": false,
+        "frames": 180,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 1.27,
+          "p95": 1.43
+        },
+        "gpuMs": {
+          "median": 2.2,
+          "p95": 3.72
+        },
+        "drawCalls": 68,
+        "triangles": 338973
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": false,
+        "frames": 112,
+        "frameMs": {
+          "median": 32.9,
+          "p95": 33.8
+        },
+        "cpuMs": {
+          "median": 0.87,
+          "p95": 0.97
+        },
+        "gpuMs": {
+          "median": 7.36,
+          "p95": 7.57
+        },
+        "drawCalls": 768,
+        "triangles": 2679239
+      }
+    ]
+  },
+  "optimized": {
+    "label": "final-burst-repeat",
+    "viewport": [
+      842,
+      836
+    ],
+    "dpr": 1.5,
+    "gpuTimer": true,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "rendersPerFrame": 3,
+    "timing": "CPU/GPU milliseconds per render; frameMs is the entire animation frame",
+    "shadowBakes": 0,
+    "phases": [
+      {
+        "view": "range",
+        "motion": "still",
+        "contact": true,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 0.77,
+          "p95": 1.1
+        },
+        "gpuMs": {
+          "median": 4.1,
+          "p95": 5.48
+        },
+        "drawCalls": 68,
+        "triangles": 336587
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": true,
+        "frames": 178,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.5
+        },
+        "cpuMs": {
+          "median": 0.87,
+          "p95": 1.1
+        },
+        "gpuMs": {
+          "median": 4.06,
+          "p95": 5.66
+        },
+        "drawCalls": 71,
+        "triangles": 338976
+      },
+      {
+        "view": "grove",
+        "motion": "pan",
+        "contact": true,
+        "frames": 180,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 0.97,
+          "p95": 1.23
+        },
+        "gpuMs": {
+          "median": 4.02,
+          "p95": 5.95
+        },
+        "drawCalls": 47,
+        "triangles": 272001
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": true,
+        "frames": 152,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 33.3
+        },
+        "cpuMs": {
+          "median": 1.23,
+          "p95": 1.43
+        },
+        "gpuMs": {
+          "median": 4.84,
+          "p95": 6.1
+        },
+        "drawCalls": 364,
+        "triangles": 2190290
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": false,
+        "frames": 180,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 1.03,
+          "p95": 1.27
+        },
+        "gpuMs": {
+          "median": 2.04,
+          "p95": 2.18
+        },
+        "drawCalls": 68,
+        "triangles": 338973
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": false,
+        "frames": 180,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.5
+        },
+        "cpuMs": {
+          "median": 0.9,
+          "p95": 1.03
+        },
+        "gpuMs": {
+          "median": 4.82,
+          "p95": 5.46
+        },
+        "drawCalls": 361,
+        "triangles": 2190287
+      }
+    ]
+  },
+  "optimizedSingleRender": {
+    "label": "current",
+    "viewport": [
+      842,
+      836
+    ],
+    "dpr": 1.5,
+    "shading": "painted",
+    "gpuTimer": true,
+    "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+    "rendersPerFrame": 1,
+    "timing": "CPU/GPU milliseconds per render; frameMs is the entire animation frame",
+    "disjointResets": 0,
+    "shadowBakes": 0,
+    "phases": [
+      {
+        "view": "range",
+        "motion": "still",
+        "contact": true,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 1.8,
+          "p95": 2.2
+        },
+        "gpuMs": {
+          "median": 5.02,
+          "p95": 11.11
+        },
+        "drawCalls": 68,
+        "triangles": 336587
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": true,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 1.9,
+          "p95": 2.3
+        },
+        "gpuMs": {
+          "median": 5.51,
+          "p95": 11.15
+        },
+        "drawCalls": 71,
+        "triangles": 338976
+      },
+      {
+        "view": "grove",
+        "motion": "pan",
+        "contact": true,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.5
+        },
+        "cpuMs": {
+          "median": 1.9,
+          "p95": 2.2
+        },
+        "gpuMs": {
+          "median": 9.74,
+          "p95": 10.36
+        },
+        "drawCalls": 47,
+        "triangles": 272001
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": true,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.4
+        },
+        "cpuMs": {
+          "median": 1.7,
+          "p95": 3.3
+        },
+        "gpuMs": {
+          "median": 9.83,
+          "p95": 11.06
+        },
+        "drawCalls": 364,
+        "triangles": 2190290
+      },
+      {
+        "view": "range",
+        "motion": "pan",
+        "contact": false,
+        "frames": 178,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.4
+        },
+        "cpuMs": {
+          "median": 1.9,
+          "p95": 2.1
+        },
+        "gpuMs": {
+          "median": 7.52,
+          "p95": 7.88
+        },
+        "drawCalls": 68,
+        "triangles": 338973
+      },
+      {
+        "view": "overview",
+        "motion": "pan",
+        "contact": false,
+        "frames": 179,
+        "frameMs": {
+          "median": 16.7,
+          "p95": 17.6
+        },
+        "cpuMs": {
+          "median": 1.8,
+          "p95": 3.3
+        },
+        "gpuMs": {
+          "median": 9.44,
+          "p95": 11.08
+        },
+        "drawCalls": 361,
+        "triangles": 2190287
+      }
+    ]
+  }
+}

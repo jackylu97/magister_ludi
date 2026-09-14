@@ -35,6 +35,7 @@ import { type GameMap, getTileAt } from '../sim/map';
 
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
+import { samplePaintedWorld } from './paintedSurface';
 
 const ANIM = VIEW3D.animation;
 
@@ -243,10 +244,8 @@ export class MoveAnimations3D {
     const bTop = bTile ? tileTopY(bTile) : 0;
     const hop = Math.sin(Math.PI * fraction) * ANIM.hopHeight;
 
-    return {
-      x: a.x + dx * fraction,
-      y: aTop + (bTop - aTop) * fraction + hop,
-      z: a.z + (b.z - a.z) * fraction,
-    };
+    const x = a.x + dx * fraction, z = a.z + (b.z - a.z) * fraction;
+    const surface = samplePaintedWorld(map, x, z);
+    return { x, y: (surface ?? aTop + (bTop - aTop) * fraction) + hop, z };
   }
 }

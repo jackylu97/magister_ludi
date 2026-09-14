@@ -1099,3 +1099,24 @@ describe('the improvement look table', () => {
     }
   });
 });
+
+
+describe('incremental painted improvement replacement', () => {
+  it('omits only migrated IDs and retains all other live improvements', () => {
+    const state = flatState();
+    for (const [index, id] of IMPROVEMENT_IDS.entries()) state.map.tiles[index]!.improvement = id;
+    const layer = new ImprovementLayer(), geometry = new BoardGeometry(), library = materials();
+    const replaced = new Set<ImprovementId>(['farm', 'mine', 'pasture', 'camp', 'quarry']);
+    try {
+      layer.build(state, geometry, library, false, null, replaced);
+      const drawn = meshesOf(layer.group).map(mesh => mesh.geometry);
+      for (const id of IMPROVEMENT_IDS) {
+        if (replaced.has(id)) expect(drawn).not.toContain(geometry.improvementProps[id]);
+        else expect(drawn).toContain(geometry.improvementProps[id]);
+      }
+      layer.build(state, geometry, library, false);
+      const legacy = meshesOf(layer.group).map(mesh => mesh.geometry);
+      for (const id of IMPROVEMENT_IDS) expect(legacy).toContain(geometry.improvementProps[id]);
+    } finally { layer.dispose(); geometry.dispose(); library.dispose(); }
+  });
+});

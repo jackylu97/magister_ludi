@@ -1245,31 +1245,32 @@ describe('the seat-filtered layers all follow the fog', () => {
   ];
 
   it('rebuilds each of them when the seat changes', () => {
-    const seat = source.slice(source.indexOf('setFogSeat('));
+    const seat = source.slice(source.indexOf('\n  setFogSeat('));
     const body = seat.slice(0, seat.indexOf('\n  }'));
     for (const layer of layers) expect(body, layer).toContain(`this.${layer}();`);
   });
 
   it('rebuilds each of them when a fresh state arrives', () => {
-    const set = source.slice(source.indexOf('setGameState('));
+    const set = source.slice(source.indexOf('\n  setGameState('));
     const body = set.slice(0, set.indexOf('\n  }'));
-    for (const layer of layers) expect(body, layer).toContain(`this.${layer}();`);
+    expect(body).toContain('const force = state !== this.state || state?.map !== this.map');
+    expect(body).toContain('this.syncStateLayers(force)');
   });
 
   /**
-   * And in the loop, each behind `fogMoved` as well as behind its own
+   * And in the shared update path, each behind its scoped fog check and its own
    * fingerprint: a tile that changed level can add or remove a piece, a town, a
    * border, a work or a tag, and no fingerprint of the *state* moves when only
    * the seat's eyes did.
    */
-  it('rebuilds each of them on a fog move, beside its own fingerprint', () => {
+  it('rebuilds each of them when its own content changes visibility, beside its fingerprint', () => {
     // The render loop's own half, from where it decides a fog move happened.
     const loop = source.slice(source.indexOf('const fogMoved ='));
     for (const layer of layers) {
-      const call = loop.indexOf(`this.${layer}();`);
+      const call = loop.indexOf(`this.${layer}(`);
       expect(call, layer).toBeGreaterThan(0);
       const guard = loop.lastIndexOf('if (', call);
-      expect(loop.slice(guard, call), layer).toContain('fogMoved');
+      expect(loop.slice(guard, call), layer).toContain(`fogChanged('${layer.slice(7).toLowerCase()}')`);
     }
   });
 

@@ -18,6 +18,16 @@ import { generateMap } from '../../src/sim/mapgen';
 
 const CAMERA = VIEW3D.camera;
 
+it('allows a gallery camera to inspect closer without changing the game camera or its opening scale', () => {
+  const game = new DioramaCamera(), gallery = new DioramaCamera(1.2);
+  for (const camera of [game, gallery]) { camera.resize(900, 600); camera.openAt(12, 10); }
+  expect(gallery.radius).toBe(game.radius);
+  game.zoomByFactor(20, 450, 300); gallery.zoomByFactor(20, 450, 300);
+  expect(game.radius).toBe(CAMERA.minFrustum); expect(gallery.radius).toBe(1.2);
+  gallery.pan(20, -10);
+  expect(gallery.radius).toBe(1.2); expect(CAMERA.minFrustum).toBe(5);
+});
+
 /**
  * `maxFrustum` — how far out the diorama can zoom — was cut to two-thirds of
  * its former 46 (2026-08-30, the "reduce max zoom" ruling). Pinned deliberately,

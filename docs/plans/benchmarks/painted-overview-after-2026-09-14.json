@@ -1,0 +1,144 @@
+{
+  "map": {
+    "width": 80,
+    "height": 52,
+    "tiles": 4160
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 678,
+    "dpr": 1.5
+  },
+  "browser": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "boardBuildMs": 6076.5,
+  "geometryMiB": 213.32281494140625,
+  "instanceMiB": 2.0917510986328125,
+  "visibility": "charted views use original seat; other views omniscient; original seat restored",
+  "results": [
+    {
+      "view": "charted play",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.69999999999709,
+        "p95": 33.400000000001455,
+        "max": 50
+      },
+      "cpuRenderMs": {
+        "median": 3.5,
+        "p95": 9.300000071525574,
+        "max": 45.799999952316284
+      },
+      "drawCalls": {
+        "median": 54,
+        "p95": 54,
+        "max": 54
+      },
+      "triangles": {
+        "median": 590915,
+        "p95": 590915,
+        "max": 590915
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "charted overview",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.69999999999709,
+        "p95": 17.599999999998545,
+        "max": 34.5
+      },
+      "cpuRenderMs": {
+        "median": 3,
+        "p95": 5.5,
+        "max": 6.700000047683716
+      },
+      "drawCalls": {
+        "median": 49,
+        "p95": 49,
+        "max": 49
+      },
+      "triangles": {
+        "median": 661039,
+        "p95": 661039,
+        "max": 661039
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "play",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.700000000004366,
+        "p95": 33.400000000001455,
+        "max": 50
+      },
+      "cpuRenderMs": {
+        "median": 3.5999999046325684,
+        "p95": 4.299999952316284,
+        "max": 4.700000047683716
+      },
+      "drawCalls": {
+        "median": 240,
+        "p95": 244,
+        "max": 245
+      },
+      "triangles": {
+        "median": 1346092,
+        "p95": 1354852,
+        "max": 1355392
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "overview",
+      "frames": 120,
+      "frameMs": {
+        "median": 33.30000000000291,
+        "p95": 50,
+        "max": 50.299999999995634
+      },
+      "cpuRenderMs": {
+        "median": 11.5,
+        "p95": 14.5,
+        "max": 15.799999952316284
+      },
+      "drawCalls": {
+        "median": 808,
+        "p95": 816,
+        "max": 816
+      },
+      "triangles": {
+        "median": 3131207,
+        "p95": 3150103,
+        "max": 3150103
+      },
+      "terrainShadowRebakes": 0
+    },
+    {
+      "view": "wrap seam",
+      "frames": 120,
+      "frameMs": {
+        "median": 16.69999999999709,
+        "p95": 49.900000000001455,
+        "max": 133.8000000000029
+      },
+      "cpuRenderMs": {
+        "median": 11.600000023841858,
+        "p95": 31.600000023841858,
+        "max": 74.40000009536743
+      },
+      "drawCalls": {
+        "median": 102,
+        "p95": 104,
+        "max": 104
+      },
+      "triangles": {
+        "median": 534117,
+        "p95": 537776,
+        "max": 537776
+      },
+      "terrainShadowRebakes": 0
+    }
+  ]
+}

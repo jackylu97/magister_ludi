@@ -1,0 +1,9 @@
+{
+  "chunkTiles": 36,
+  "triangles": 9371,
+  "pieces": 5,
+  "worldRaycastSearchMs": 2979.051667,
+  "localTriangleSearchMs": 12.181375000000116,
+  "speedup": 244.55791460323417,
+  "maxLayoutError": 6.106226635438361e-16
+}

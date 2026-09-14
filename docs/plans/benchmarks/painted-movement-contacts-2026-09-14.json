@@ -1,0 +1,9 @@
+{
+  "samples": 240,
+  "chunkTiles": 36,
+  "triangles": 9371,
+  "raycastMs": 157.06058300000007,
+  "indexedColdMs": 12.124916000000098,
+  "indexedWarmMs": 0.41133300000001327,
+  "maxHeightError": 2.1094237467877974e-15
+}

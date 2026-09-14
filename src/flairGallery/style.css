@@ -835,6 +835,25 @@ body {
   color: rgba(29, 26, 32, 0.6);
 }
 
+.painted-works-stage { position: relative; overflow: hidden; border: 1px solid var(--ink-soft); border-radius: 4px; }
+.painted-works-canvas { display: block; width: 100%; height: min(68vh, 760px); min-height: 380px; touch-action: none; cursor: grab; }
+.painted-works-canvas:active { cursor: grabbing; }
+.painted-works-labels { position: absolute; inset: 0; pointer-events: none; }
+.painted-works-label { position: absolute; transform: translate(-50%, 0); white-space: nowrap; padding: 3px 8px; border-radius: 3px; background: #f4e4cce6; color: #40332b; font-size: 11px; }
+.focused-works-review #index { position: relative; width: auto; border-right: 0; border-bottom: 1px solid var(--ink-soft); padding: 12px 22px; display: flex; align-items: center; justify-content: space-between; }
+.focused-works-review #index h1 { font-size: 1.35rem; margin: 0; }
+.focused-works-review #index a::before { content: none; }
+.focused-works-review #sheet { margin: 0; max-width: none; padding: 18px 22px; }
+.focused-works-review .sheet-section { margin-bottom: 0; }
+.focused-works-review .sheet-section h2 { font-size: 1.6rem; }
+.painted-units-canvas { height: min(70vh, 780px); }
+.focused-units-review .sheet-controls select { max-width: min(290px, 65vw); }
+.focused-units-review .sheet-controls :disabled { opacity: .5; cursor: default; }
+@media (max-width: 640px) {
+  .focused-units-review #sheet { padding: 14px 10px; }
+  .focused-units-review .sheet-controls { gap: 10px; }
+  .focused-units-review .painted-works-label { padding: 2px 5px; font-size: 10px; }
+}
 /* --- the seats' two inks ---------------------------------------------------
    Batch H7. Six figures in a row, each showing the pair on the three surfaces
    that carry it: the canton (the landing's own class, unchanged and undecorated

@@ -1,0 +1,19 @@
+{
+  "newStandardSeed1": {
+    "mode": "worker",
+    "totalMs": 7244.399999976158,
+    "workerMs": 6900,
+    "hydrateMs": 40.10000002384186,
+    "frameCount": 400,
+    "maxFrameGapMs": 399.5
+  },
+  "restartStandardSeed2": {
+    "mode": "worker",
+    "totalMs": 5593.900000095367,
+    "workerMs": 5344.399999976158,
+    "hydrateMs": 61.800000071525574,
+    "frameCount": 328,
+    "maxFrameGapMs": 399.5
+  },
+  "note": "Production preview on isolated origin, no console errors. Initial frame interval probe used RAF timestamps; replaced with callback execution times to avoid counting stale timestamps following simulation generation."
+}

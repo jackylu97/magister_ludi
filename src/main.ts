@@ -1069,7 +1069,7 @@ function closePopovers(): boolean {
  * that goes through here instead. Loading is the same journey with a game that
  * already exists, which is why one holder carries both.
  */
-let takeOverGame: ((next: Game | null) => void) | null = null;
+let takeOverGame: ((next: Game | null) => Promise<void>) | null = null;
 
 /**
  * The landing's Continue button: what it says, and whether it is there at all.
@@ -1184,9 +1184,12 @@ function setRestartConfirm(asking: boolean): void {
 async function beginGame(loaded: Game | null = null): Promise<void> {
   if (startButton.disabled) return;
   startButton.disabled = true;
+  const startLabel = startButton.textContent;
+  startButton.textContent = 'Preparing the world…';
+  landingForm.setAttribute('aria-busy', 'true');
   landingErrorEl.hidden = true;
   try {
-    if (takeOverGame) takeOverGame(loaded);
+    if (takeOverGame) await takeOverGame(loaded);
     else await boot(loaded);
     hideLanding();
   } catch (error) {
@@ -1197,7 +1200,13 @@ async function beginGame(loaded: Game | null = null): Promise<void> {
     console.error(error);
   } finally {
     startButton.disabled = false;
+    startButton.textContent = startLabel;
+    landingForm.removeAttribute('aria-busy');
   }
+}
+
+function terrainBuildProgress(percent: number): void {
+  startButton.textContent = percent < 100 ? `Painting the world… ${percent}%` : 'Finishing the world…';
 }
 
 landingForm.addEventListener('submit', (event) => {
@@ -1752,10 +1761,11 @@ function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | 
 
 // --- renderer selection ----------------------------------------------------
 
-type ArtMode = 'toon3d' | 'sprites' | 'flat';
+type ArtMode = 'toon3d' | 'painted' | 'sprites' | 'flat';
 
 function artMode(): ArtMode {
   const art = new URLSearchParams(window.location.search).get('art');
+  if (art === 'painted') return 'painted';
   if (art === 'sprites') return 'sprites';
   if (art === 'flat') return 'flat';
   return 'toon3d';
@@ -1792,6 +1802,54 @@ function build3DPanel(renderer: Renderer3D): () => void {
   row.append(toggle, label);
   menuExtrasEl.append(row);
 
+  if (renderer.paintedEnabled) {
+    const lightLabel = document.createElement('label');
+    lightLabel.textContent = 'Time of day ';
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', 'Time of day');
+    for (const [value, name] of [['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']]) {
+      const option = document.createElement('option'); option.value = value!; option.textContent = name!; select.append(option);
+    }
+    select.value = new URLSearchParams(location.search).get('light') ?? 'golden';
+    select.onchange = () => {
+      renderer.setDaylight(select.value);
+      const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
+    };
+    lightLabel.append(select); menuExtrasEl.append(lightLabel);
+    const benchmark = document.createElement('button'), result = document.createElement('pre');
+    benchmark.textContent = 'Benchmark full map'; result.id = 'terrain-benchmark-results';
+    result.style.cssText = 'white-space:pre-wrap;max-height:260px;overflow:auto;font-size:10px';
+    benchmark.onclick = async () => {
+      benchmark.disabled = true; result.textContent = 'Measuring play zoom, overview and map seam…';
+      try { result.textContent = JSON.stringify(await renderer.benchmarkTerrain(), null, 2); }
+      finally { benchmark.disabled = false; report(); }
+    };
+    menuExtrasEl.append(benchmark,result);
+    if (new URLSearchParams(location.search).has('profile')) {
+      const movement = document.createElement('button');
+      movement.textContent = 'Benchmark movement updates';
+      movement.onclick = async () => {
+        movement.disabled = true;
+        try { result.textContent = JSON.stringify(await renderer.benchmarkMovementUpdates(), null, 2); }
+        finally { movement.disabled = false; }
+      };
+      menuExtrasEl.append(movement);
+    }
+    if (new URLSearchParams(location.search).has('cityReview')) {
+      const reviewLabel = document.createElement('label');
+      const preview = document.createElement('input');
+      preview.type = 'checkbox';
+      preview.setAttribute('aria-label', 'Preview palisades');
+      preview.onchange = () => renderer.setCityWallPreview(preview.checked);
+      reviewLabel.append(preview, ' Preview palisades (visual only)');
+      menuExtrasEl.append(reviewLabel);
+    }
+  }
+
+  const loadingStats = document.createElement('pre');
+  loadingStats.id = 'terrain-loading-results';
+  loadingStats.style.cssText = 'white-space:pre-wrap;font-size:10px';
+  if (new URLSearchParams(location.search).has('profile')) menuExtrasEl.append(loadingStats);
   const stats = document.createElement('p');
   stats.id = 'stats';
   menuExtrasEl.append(stats);
@@ -1803,9 +1861,11 @@ function build3DPanel(renderer: Renderer3D): () => void {
 
   function report(): void {
     const s = renderer.stats;
+    loadingStats.textContent = JSON.stringify(renderer.paintedBuildMetrics, null, 2);
     stats.textContent =
       `${s.tiles} tiles · ${s.instances} instances · ${s.drawCalls} draws\n` +
-      `board build ${s.buildMs.toFixed(1)} ms`;
+      `board build ${s.buildMs.toFixed(1)} ms` +
+      (renderer.paintedEnabled ? ` · ${Math.round(s.triangles / 1000)}k triangles · ${s.shadowBakes} terrain shadow bake(s)` : '');
   }
 
   return () => {
@@ -1828,17 +1888,28 @@ async function createRenderer(
   mode: ArtMode,
   game: Game,
 ): Promise<{ view: MapView; report: () => void }> {
-  if (mode === 'toon3d') {
+  if (mode === 'toon3d' || mode === 'painted') {
     keepCanvases('toon3d');
     bootEl.remove();
     // The controls sheet is written for every renderer at once; the lines that
     // only apply to the 2D pipelines go away when they are not the one running.
     for (const el of helpOverlayEl.querySelectorAll('[data-only="2d"]')) el.remove();
     const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'));
-    const report = build3DPanel(renderer);
-    renderer.setGameState(game.state);
-    report();
-    return { view: renderer, report };
+    try {
+      if (mode === 'painted') {
+        await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
+        await renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+      }
+      renderer.setGameState(game.state);
+      const report = build3DPanel(renderer);
+      report();
+      return { view: renderer, report };
+    } catch (error) {
+      // A failed asset or board build never reaches the game's normal disposal
+      // registry. Stop this renderer before the landing page offers a retry.
+      renderer.dispose();
+      throw error;
+    }
   }
 
   keepCanvases('canvas2d');
@@ -4678,6 +4749,7 @@ async function boot(initial: Game | null): Promise<void> {
     // its ground does — the label floats above the board, so the board's own
     // hover picking never sees it.
     onHoverCity: (cityId) => controls.setHoveredCity(cityId),
+    onHoverPiece: (unitId) => controls.setHoveredPiece(unitId),
     // The garrison row over the plate (U8): the piece in hand is ringed there
     // the way the board rings it, and a press on a roundel picks that piece up.
     // Both are read fresh rather than pushed, exactly as the open city is —
@@ -4972,7 +5044,11 @@ async function boot(initial: Game | null): Promise<void> {
    * because there is no second path to get it wrong in. The only branch is the
    * seat, and the sentence at the end.
    */
-  function adoptGame(next: Game | null): void {
+  async function adoptGame(next: Game | null): Promise<void> {
+    // Keep the current game intact if background construction fails. The
+    // landing remains busy until the replacement board is ready to adopt.
+    const replacement = next ?? createGame(currentConfig());
+    if (renderer instanceof Renderer3D) await renderer.preparePaintedMap(replacement.state.map, terrainBuildProgress);
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
@@ -5001,7 +5077,7 @@ async function boot(initial: Game | null): Promise<void> {
     abacus?.close();
     beads?.close();
     abacus?.refresh();
-    game = next ?? createGame(currentConfig());
+    game = replacement;
     // The turn guard is about *this* game's turns. A resumed game is very often
     // at a turn number the last one also reached, and without this its first
     // autosave would be swallowed as a duplicate.

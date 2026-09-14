@@ -1,0 +1,96 @@
+{
+  "standardTiles": 4160,
+  "proxyTiles": 4181,
+  "patches": 113,
+  "viewport": [
+    1388,
+    1060
+  ],
+  "pixelRatio": 2,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+  "method": "113 shared-geometry clones of the detailed 37-tile maquette; dense stress proxy, not generated game map; cached shadows; excludes simulation and UI",
+  "runs": [
+    {
+      "name": "empty scene / timing baseline",
+      "frames": 240,
+      "seconds": 8.0055,
+      "fps": 30.000000000000004,
+      "frameMsMedian": 33.30000000000018,
+      "frameMsP95": 34.30000000000018,
+      "cpuSubmitMsP95": 6.5,
+      "drawCallsMax": 1,
+      "trianglesMax": 2,
+      "framesOver33ms": 95,
+      "hidden": false
+    },
+    {
+      "name": "single study / play distance",
+      "frames": 240,
+      "seconds": 8.005899999976158,
+      "fps": 29.996250468691414,
+      "frameMsMedian": 33.29999999999927,
+      "frameMsP95": 34.30000000000291,
+      "cpuSubmitMsP95": 5.699999988079071,
+      "drawCallsMax": 156,
+      "trianglesMax": 177092,
+      "framesOver33ms": 99,
+      "hidden": false
+    },
+    {
+      "name": "standard proxy / play distance",
+      "frames": 240,
+      "seconds": 8.013600000023843,
+      "fps": 29.999999999999986,
+      "frameMsMedian": 33.29999999999927,
+      "frameMsP95": 34.29999999999927,
+      "cpuSubmitMsP95": 30.399999976158142,
+      "drawCallsMax": 942,
+      "trianglesMax": 2415950,
+      "framesOver33ms": 101,
+      "hidden": false
+    },
+    {
+      "name": "standard proxy / regional view",
+      "frames": 240,
+      "seconds": 11.903599999964237,
+      "fps": 20.367117289136694,
+      "frameMsMedian": 34.099999999998545,
+      "frameMsP95": 67.69999999999709,
+      "cpuSubmitMsP95": 66.80000001192093,
+      "drawCallsMax": 6129,
+      "trianglesMax": 9413224,
+      "framesOver33ms": 165,
+      "hidden": false
+    },
+    {
+      "name": "standard proxy / whole board",
+      "frames": 240,
+      "seconds": 31.044799999952318,
+      "fps": 7.758904959879996,
+      "frameMsMedian": 133.3000000000029,
+      "frameMsP95": 165.79999999999563,
+      "cpuSubmitMsP95": 146.5,
+      "drawCallsMax": 17516,
+      "trianglesMax": 20011172,
+      "framesOver33ms": 240,
+      "hidden": false
+    },
+    {
+      "name": "standard proxy / play distance / shadows refreshed each frame",
+      "frames": 240,
+      "seconds": 8.855100000023842,
+      "fps": 27.167145864934014,
+      "frameMsMedian": 33.39999999999418,
+      "frameMsP95": 50,
+      "cpuSubmitMsP95": 26.100000023841858,
+      "drawCallsMax": 2130,
+      "trianglesMax": 4820930,
+      "framesOver33ms": 129,
+      "hidden": false
+    }
+  ],
+  "uniqueGeometryBytes": 15945512,
+  "terrainDrawBatches": 18,
+  "cloneAssemblyMs": 161.19999998807907,
+  "complete": true
+}

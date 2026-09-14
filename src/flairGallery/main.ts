@@ -31,8 +31,9 @@
  * transcribed any of it would go stale silently, which is the one failure mode
  * a reference sheet cannot survive.
  *
- * The one thing it does not do is *play*. There is no map, no turn and no
- * command anywhere on this page — the city fixtures found a town and stop.
+ * Focused painted reviews run separately from this sheet. The unit review can
+ * demonstrate a real movement command in its own fixture; it never touches the
+ * player's saved game.
  */
 
 import '../style.css';
@@ -287,6 +288,27 @@ drawPaletteAndRamp(
     'The world’s paints, the twelve seat tinctures, and the four faces at the sizes the specimen sets them — the reference on the same page as the assets.',
   ),
 );
+
+// The focused review loads the production renderer without all the other stalls.
+{
+  const root = open('painted-world', 'Painted World', 'Roads, discoveries and paired empire borders on the live terrain.');
+  const link = document.createElement('a');
+  link.href = '/flair.html?review=world&view=borders&light=golden';
+  link.textContent = 'Open the world-layer review'; root.append(link);
+}
+{
+  const root = open('painted-works', 'Painted Improvements',
+    'Everyday works and six special monuments on flat ground, hills and coast, beside the painted city and farm.');
+  const link = element('a', undefined, 'Open the painted improvement review');
+  link.href = '/flair.html?review=works'; root.append(link);
+}
+
+{
+  const root = open('painted-units', 'Painted Units',
+    'The twelve accepted primitive pieces, five great-person families, owner colours and movement on the painted board.');
+  const link = element('a', undefined, 'Open the painted unit review');
+  link.href = '/flair.html?review=units&unit=all&light=golden&detail=game'; root.append(link);
+}
 
 // --- the index, and the atlas ----------------------------------------------
 

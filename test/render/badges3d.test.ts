@@ -103,6 +103,25 @@ const BADGES_SOURCE = (() => {
 })();
 
 describe('every named badge cell exists (the trireme bug of 2026-08-30)', () => {
+  it('resolves the full leader-expanded roster to existing atlas cells', () => {
+    expect(UNIT_TYPE_IDS).toHaveLength(61);
+    for (const type of UNIT_TYPE_IDS) {
+      expect(BADGE_CELLS, `${type} has no badge in the atlas`).toContain(badgeClassFor(type));
+    }
+  });
+
+  it.each([
+    ['apostle', 'religious'], ['canoness', 'religious'],
+    ['trader', 'trader'], ['rihlaCaravan', 'trader'],
+    ['worker', 'worker'], ['prophet', 'prophet'], ['greatPerson', 'greatPerson'],
+  ] as const)('identifies %s as %s without confusing its shared sculpt class', (type, badge) => {
+    expect(badgeClassFor(type)).toBe(badge);
+    if (type === 'apostle' || type === 'canoness' || type === 'trader' || type === 'rihlaCaravan') {
+      expect(modelClassFor(type)).toBe('worker');
+      expect(badgeClassFor(type)).not.toBe(badgeClassFor('worker'));
+    }
+  });
+
   // `badges.byUnitType` mapped the hulls to cell ids that were never in
   // `BADGE_CELLS` ("navalLight2"…), so the trireme wore a bare canton disc
   // with no hull. The rules clause composes a hull's cell from its row
