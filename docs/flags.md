@@ -19,6 +19,30 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,
+2026-09-14, after the four-way study at `terrain-study.html?review=fog`:
+*"i actually like the look of shadowed the most. i'll let you know when the
+repo is free to add that in."*). Remembered cells keep their full pigment and
+geometry and sit in shadow — the sun term scaled by `paintedFog.shadowedSun`
+(0.35) with a slight cool shift (`shadowedCool` 0.22, `shadowedShade` 0.88) —
+the fill unchanged; uncharted cells stay the chart table (the paper plane at
+ground datum receiving the lit relief's shadows, ruled hexes, the sea wash);
+the light edge soft over `sunFalloff` (0.5 hex) with the ink edge hard; the
+reveal eases the sun up over `revealMs` (300). **Waits for the repo**: the
+study lives on branch `fog-study` (worktree `.claude/worktrees/fog-study`,
+served on :5241), built on a snapshot of the other agent's uncommitted
+renderer redesign; it lands only once that redesign is committed and the
+two are reconciled — the drawn and bleed treatments are deleted at landing
+(the drawn's hatching and the bleed's block are fenced so they lift out
+clean; the toggle and knobs go with them), `treatment` stops being a knob,
+and `docs/plans/painted-fog-study.md` becomes the record. Two things to
+carry: the **paper takes the sun's shadow but not its colour** (under golden
+hour it read peach — the user saw it), and the audit's finding that any fog
+texel change today forces a full shadow rebake and five layer rebuilds
+(`docs/plans/painted-performance-audit.md`, finding 2) is the first thing to
+fix beside it, or the soft edge and the reveal will stutter every march.
+
+
 **(yyyy) The new-game flow in three screens — RULED, L7** (the user,
 2026-09-14: *"the three screen flow is great, please fold those in too"*;
 the spec is the artifact "Magister Ludi — New Game Flow", its first three
