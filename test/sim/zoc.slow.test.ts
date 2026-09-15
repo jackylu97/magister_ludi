@@ -63,7 +63,11 @@ describe('one evaluator: the sweep, the route and the walk agree', () => {
       const state = randomBoard(seed);
       for (const mover of state.units.filter((u) => u.ownerId === 0)) {
         const home = { col: mover.col, row: mover.row, movesLeft: mover.movesLeft };
-        for (const { tile } of reachableTiles(state, mover)) {
+        for (const { tile, swap } of reachableTiles(state, mover)) {
+          // A swap hex is highlighted by `planSwap`, not by a route `findPath`
+          // can return (its goal is a friend's hex); the swap's own agreement
+          // with the reducer is pinned in `movement.test.ts` (M1, (ooooo)).
+          if (swap === true) continue;
           const path = findPath(state, mover, tile);
           expect(path, `seed ${seed}: no route to a highlighted tile`).not.toBeNull();
           advanceAlongPath(state, mover, path!);

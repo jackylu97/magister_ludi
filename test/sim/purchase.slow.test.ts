@@ -40,6 +40,10 @@ function marchOut(live: ReturnType<typeof game>, town: { col: number; row: numbe
     for (const target of neighborTiles(live.state.map, tileHex(
       getTileAt(live.state.map, town.col, town.row)!,
     ))) {
+      // Never onto a hex holding one of our own: since M1 (`docs/flags.md`
+      // (ooooo)) that order is a *swap*, which would march the other piece back
+      // into the town — and the town's hex is what this walk is clearing.
+      if (live.state.units.some((u) => u.col === target.col && u.row === target.row)) continue;
       const moved = dispatch(live, {
         type: 'moveUnit',
         playerId: 0,
