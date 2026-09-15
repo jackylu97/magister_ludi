@@ -5,7 +5,8 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
-import type { ResourceId } from '../sim/resourceData';
+import { RESOURCE_IDS, type ResourceId } from '../sim/resourceData';
+import { FEATURE_IDS } from '../sim/terrainData';
 import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/improvementData';
 import { visibleResourceAt } from '../sim/tech';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
@@ -90,18 +91,43 @@ const improvementAt = (tile: Tile): CoreImprovement | undefined => {
 const resourceAt = (state: GameState, seat: number | null, tile: Tile): ResourceId | null =>
   seat === null ? tile.resource ?? null : visibleResourceAt(state, seat, tile);
 
+/**
+ * The three tables that turn a row's name into a number, built once.
+ *
+ * The fingerprint below is asked on every state refresh and walks the whole
+ * map, so what it costs per tile is what it costs per unit step. Hashing the
+ * *names* cost three string walks a tile — some twelve thousand character reads
+ * a refresh, on a 41-town map the dearest thing in this file — and told the
+ * renderer nothing a number could not. A row's position in its own id list is
+ * that number: stable within a build, never persisted, and one comparison
+ * apart from the name it stands for. Zero is "nothing here", so an absent row
+ * and the first row of a list are still two different fingerprints.
+ */
+const resourceOrdinal = new Map<ResourceId, number>(RESOURCE_IDS.map((id, index) => [id, index + 1]));
+const improvementOrdinal = new Map<string, number>(DRAWN_WORK_IMPROVEMENTS.map((id, index) => [id, index + 1]));
+const featureOrdinal = new Map<string, number>(FEATURE_IDS.map((id, index) => [id, index + 1]));
+
 /** Only presentation facts: hidden veins and simulation RNG never participate. */
 export function signPaintedWorks(state: GameState, seat: number | null = null): number {
   let hash = 2166136261;
-  const add = (value: string): void => {
-    for (let i = 0; i < value.length; i++) hash = Math.imul(hash ^ value.charCodeAt(i), 16777619);
-    hash = Math.imul(hash ^ 255, 16777619);
-  };
-  add(String(seat));
+  const add = (value: number): void => { hash = Math.imul(hash ^ (value | 0), 16777619); };
+  add(seat === null ? -1 : seat);
+  // One answer per resource row rather than one per hex: whether this seat can
+  // name a resource is an empire fact, and the map asks it four thousand times.
+  const nameable = new Map<ResourceId, boolean>();
   for (const tile of state.map.tiles) {
-    add(resourceAt(state, seat, tile) ?? ''); add(improvementAt(tile) ?? ''); add(tile.feature);
+    const id = tile.resource;
+    let resource = 0;
+    if (id !== undefined) {
+      let visible = seat === null ? true : nameable.get(id);
+      if (visible === undefined) { visible = visibleResourceAt(state, seat!, tile) !== null; nameable.set(id, visible); }
+      if (visible) resource = resourceOrdinal.get(id) ?? 0;
+    }
+    add(resource);
+    add(tile.improvement ? improvementOrdinal.get(improvementBaseRow(tile.improvement)) ?? 0 : 0);
+    add(featureOrdinal.get(tile.feature) ?? 0);
   }
-  for (const city of state.cities) add(`${city.col},${city.row}`);
+  for (const city of state.cities) { add(city.col); add(city.row); }
   return hash >>> 0;
 }
 

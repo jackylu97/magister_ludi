@@ -91,9 +91,43 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (sculpt) return source === assets.rangeMaterial ? `range ${sculpt}` : sculpt;
     return materialNames.get(source) || 'unnamed';
   }
+  /**
+   * What a vertex that no longer carries an attribute reads as.
+   *
+   * Three leaves a program attribute the geometry does not supply at whatever
+   * the context's generic value happens to be unless the material names one, so
+   * the zero the fog shader's reservation test relies on is stated here rather
+   * than inherited. `uv` is on the list for the same reason, one layer down: the
+   * bump path is re-pointed at the position below, but the stock `vUv` line is
+   * still compiled in and would otherwise read a value nobody set.
+   */
+  const SURFACE_DEFAULTS = {paintedReservationDistance: [0], uv: [0, 0]};
+  /**
+   * The merged land's pigment `uv`, computed instead of stored (#10).
+   *
+   * `normalize` used to write `position.xz * .6` into eight bytes a vertex —
+   * some twenty-seven mebibytes on a standard map — for one reader: the mineral
+   * bump map three samples at `vBumpMapUv`. The name three builds that varying
+   * from is a macro, so re-pointing the macro at the coordinate the shader
+   * already has gives the identical value at the identical cost of nothing:
+   * `bumpMapTransform` is the identity here (no repeat, no offset), and a
+   * quantity linear in `position` interpolates exactly as the attribute did.
+   * Only the merged land wears a bump map; nothing else on the board asks.
+   */
+  function deriveSurfaceUv(material) {
+    const previous = material.onBeforeCompile, key = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, renderer) => {
+      previous.call(material, shader, renderer);
+      shader.vertexShader = `#undef BUMPMAP_UV\n#define BUMPMAP_UV (position.xz * .6)\n${shader.vertexShader}`;
+    };
+    material.customProgramCacheKey = () => `${key()}:painted-derived-uv`;
+    return material;
+  }
   function materialFor(source) {
     if (!ownedMaterials.has(source)) {
       const material = paintedFogMaterial(source, fog, source === materials.mergedWater);
+      material.defaultAttributeValues = {...material.defaultAttributeValues, ...SURFACE_DEFAULTS};
+      if (source === materials.mergedLand) deriveSurfaceUv(material);
       ownedMaterials.set(source, material); sources.set(material, source);
     }
     return ownedMaterials.get(source);
@@ -106,7 +140,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     mesh.userData.paintedCasts = !!castShadow;
     mesh.receiveShadow = true; mesh.castShadow = shadows && !!castShadow;
     const shared = source === materials.mergedWater, key = `${source.side}:${shared}`;
-    if (!depthMaterials.has(key)) depthMaterials.set(key, paintedFogDepth(fog, source.side, shared));
+    if (!depthMaterials.has(key)) {
+      const depth = paintedFogDepth(fog, source.side, shared);
+      // The depth pass reads the same reservation the colour pass does, so it
+      // takes the same stated zero for the attribute the surfaces dropped.
+      depth.defaultAttributeValues = {...depth.defaultAttributeValues, ...SURFACE_DEFAULTS};
+      depthMaterials.set(key, depth);
+    }
     mesh.customDepthMaterial = depthMaterials.get(key);
   }
   function addCopies(mesh, list, surface = false, detail = 'always', preparedCells = null) {
@@ -139,11 +179,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     geometry.setAttribute('paintedCell', new T.BufferAttribute(new CellArray(count).fill(cell), 1));
     geometry.setAttribute('paintedOther', geometry.getAttribute('paintedCell'));
     geometry.setAttribute('paintedSuppress', new T.BufferAttribute(new Uint8Array(count).fill(grade), 1));
-    geometry.setAttribute('paintedReservationDistance', new T.BufferAttribute(new Uint8Array(count), 1));
+    // No `paintedReservationDistance` and no `uv` (#10, and see `SURFACE_DEFAULTS`
+    // and `deriveSurfaceUv`): a footprint reservation is a rule about *props*
+    // standing near a building, so on a surface batch the attribute was four
+    // million zeroes, and the pigment's `uv` is `position.xz * .6` — a function
+    // of a coordinate the vertex shader already has. Both are supplied where
+    // they are read instead of stored per vertex.
     geometry.setAttribute('turfWeight', new T.Float32BufferAttribute(new Float32Array(count).fill(turfStrength), 1));
-    const uv = new Float32Array(count * 2);
-    for (let i = 0; i < count; i++) { uv[i * 2] = p.getX(i) * .6; uv[i * 2 + 1] = p.getZ(i) * .6; }
-    geometry.setAttribute('uv', new T.BufferAttribute(uv, 2));
     return geometry;
   }
   function batchMesh(source, list, surface = false, detail = 'always') {
@@ -152,7 +194,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (!geometry) throw new Error('Painted terrain batch has incompatible attributes');
     // Each batch has one material. Its unused inputs need not occupy vertex
     // memory; retained coordinates, normals and pigments remain bit-identical.
-    if (source !== materials.mergedLand) { geometry.deleteAttribute('turfWeight'); geometry.deleteAttribute('uv'); }
+    if (source !== materials.mergedLand) geometry.deleteAttribute('turfWeight');
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
     const mesh = new T.Mesh(geometry, materialFor(source));

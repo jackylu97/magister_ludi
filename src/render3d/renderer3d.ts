@@ -132,6 +132,28 @@ const LOOK = VIEW3D.look;
 const LIGHTS = VIEW3D.lights;
 const PAINTED_IMPROVEMENTS = new Set<ImprovementId>(PAINTED_WORK_IMPROVEMENTS);
 
+/**
+ * Every layer this file puts in the scene, by the name it puts there.
+ *
+ * The register exists because of one reading: `sampleColourPass` attributes a
+ * frame to the family that submitted it by walking up to the scene child and
+ * asking its name, so an unnamed group comes back as "unnamed layer" and its
+ * triangles cannot be told from anybody else's. P6's overview attribution found
+ * exactly that — the second-largest row at overview had no name — so a layer
+ * added to the scene is named here and nowhere else, and
+ * `test/render/paintedSceneNames.test.ts` reads this file to say so.
+ *
+ * Board meshes are the one exception and stay off this list: they carry
+ * `paintedFamily` (`paintedBoard.js`'s `familyName`), which is finer than a
+ * layer name and is what P6's stand-ins are measured by. The painted layers
+ * name their own groups in their own constructors (`painted-cities`,
+ * `painted-works`, `painted-sites`, `painted-roads`, `painted-territory`).
+ */
+export const SCENE_LAYER_NAMES = [
+  'units', 'cities', 'tints', 'territory', 'roads', 'improvements', 'sites',
+  'lens', 'overlays', 'vignette', 'fog', 'walker', 'faller',
+] as const;
+
 export interface BoardStats {
   tiles: number;
   /** Instances uploaded, wrap copies included. */
@@ -376,21 +398,24 @@ export class Renderer3D implements MapView {
     );
     this.scene.add(new AmbientLight(LIGHTS.ambientColor, LIGHTS.ambientIntensity));
 
-    this.scene.add(this.units.group);
-    this.scene.add(this.cities.group);
-    this.scene.add(this.tints.group);
-    this.scene.add(this.territory.group);
-    this.scene.add(this.roads.group);
-    this.scene.add(this.improvements.group);
-    this.scene.add(this.sites.group);
-    // Under the overlays: a lens is information about the ground, and the
-    // selection ring and route have to stay readable on top of it.
-    this.scene.add(this.lens.group);
-    this.scene.add(this.overlays.group);
-    // Last, and over everything — see `RENDER_ORDER.vignette`. It is a wash on
-    // the finished frame, not a layer among the others, so it is added here
-    // rather than sorted into the list above by what it is about.
-    this.scene.add(this.vignette.mesh);
+    // Named as they are added, and for one reason: the colour-pass attribution
+    // (`sampleColourPass`) answers "which family filled this frame" by walking
+    // up to the scene child and reading its name, so a layer with no name comes
+    // back as "unnamed layer" and hides whatever it costs. Board meshes carry
+    // `paintedFamily` instead; everything else answers for its layer here.
+    // See `SCENE_LAYER_NAMES`, which is the register.
+    for (const [name, layer] of [
+      ['units', this.units.group], ['cities', this.cities.group], ['tints', this.tints.group],
+      ['territory', this.territory.group], ['roads', this.roads.group],
+      ['improvements', this.improvements.group], ['sites', this.sites.group],
+      // Under the overlays: a lens is information about the ground, and the
+      // selection ring and route have to stay readable on top of it.
+      ['lens', this.lens.group], ['overlays', this.overlays.group],
+      // Last, and over everything — see `RENDER_ORDER.vignette`. It is a wash on
+      // the finished frame, not a layer among the others, so it is added here
+      // rather than sorted into the list above by what it is about.
+      ['vignette', this.vignette.mesh],
+    ] as const) { layer.name = name; this.scene.add(layer); }
 
     this.resize();
     this.applyLight();
@@ -1398,6 +1423,7 @@ export class Renderer3D implements MapView {
     if (!this.board || !this.map) return;
     this.fog = new FogView(this.map, this.board.tiles);
     this.fog.buildChart(this.geometry, this.materials, this.icons);
+    this.fog.group.name = 'fog';
     this.scene.add(this.fog.group);
     this.applyFog();
   }
@@ -2505,6 +2531,7 @@ export class Renderer3D implements MapView {
     const period = wrapWidth(this.map);
     const group = new Group();
     const painted = this.paintedUnits?.resolve(unit, terrain ?? terrainUnder(this.map, unit));
+    group.name = 'walker';
     group.userData.unitVisual = true;
     const visualHeight = painted?.height ?? unitVisualHeight(unit.type, this.sprites);
     if (painted) this.walkerModels.set(unitId, painted);
@@ -2682,6 +2709,7 @@ export class Renderer3D implements MapView {
     const height = painted ? paintedUnitSupport(this.map, painted, centre.x, centre.z, tile ? tileTopY(tile) : 0) : tile ? tileTopY(tile) : 0;
     const period = wrapWidth(this.map);
     const group = new Group();
+    group.name = 'faller';
 
     for (const dx of [-period, 0, period]) {
       const anchor = new Group();

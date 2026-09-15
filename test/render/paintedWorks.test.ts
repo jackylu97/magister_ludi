@@ -304,6 +304,37 @@ describe('painted plantations, lumbermills and fishing boats', () => {
     for (const mesh of remote) expect(f.layer.group.children).toContain(mesh);
     expect(f.propMeshes().some(mesh => mesh.geometry === f.assets.bison)).toBe(true);
   });
+  /**
+   * The count, not just the survival (#7's residual, P10).
+   *
+   * The layer batches by twelve-hex region, and a hex crossing between watched
+   * and remembered swaps the wash its props are drawn with — so that hex's
+   * region is re-instanced and re-merged. What this pins is that *only* that
+   * region is: the audit's reading was that one fog texel rebuilt the whole
+   * map's works, and the meshes of every other region must come through the
+   * rebuild as the same objects, by identity, however many regions there are.
+   */
+  it('rebuilds only the region a fog move touched, and counts what that costs', () => {
+    const state = world(48, 4);
+    const marked = [2, 14, 26, 38].map(col => tileIndex(state.map, col, 1));
+    for (const cell of marked) state.map.tiles[cell]!.resource = 'cattle';
+    const f = fixtures(state); f.build();
+    const regionOf = (cell: number) => `${Math.floor(cell % 48 / 12)},${Math.floor(Math.floor(cell / 48) / 12)}`;
+    const cellsOf = (mesh: Mesh) => mesh.userData.paintedWorksCells as number[];
+    const before = f.layer.group.children.filter((child): child is Mesh => child instanceof Mesh);
+    expect(new Set(before.map(mesh => regionOf(cellsOf(mesh)[0]!))).size).toBe(4);
+    const moved = marked[1]!;
+    state.visibility[0]![moved] = EXPLORED; f.build();
+    const after = f.layer.group.children.filter((child): child is Mesh => child instanceof Mesh);
+    const kept = new Set(after.filter(mesh => before.includes(mesh)));
+    for (const mesh of before) {
+      const touched = regionOf(cellsOf(mesh)[0]!) === regionOf(moved);
+      expect(kept.has(mesh), `${touched ? 'touched' : 'untouched'} region ${regionOf(cellsOf(mesh)[0]!)}`).toBe(!touched);
+    }
+    // One region's worth, three wrap copies of it, and nothing else.
+    expect(before.length - kept.size).toBe(before.length / 4);
+    expect(after.filter(mesh => cellsOf(mesh).includes(moved))).toHaveLength(3);
+  });
   it('cultivates all thirteen plantation resources, including reeds, while retaining woodland features', () => {
     const state = world(14, 8), resources = improvementDef('plantation').improvesResource!;
     const tiles = resources.map((resource, index) => {

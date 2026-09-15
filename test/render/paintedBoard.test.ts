@@ -91,12 +91,45 @@ describe('production painted board', () => {
     expect(board.fogTexture.image.data![2]).toBe(0);
     expect(board.fogTexture.image.data![5]).toBe(1);
     expect(board.pickMeshes.map(mesh => mesh.geometry)).toEqual(geometry);
+    // A reservation is a rule about props standing near a building, so the
+    // distance rides the instances and nothing else (#10): a surface batch used
+    // to carry four million zeroes of it. What the shader reads there is stated
+    // on the material instead, colour pass and depth pass alike.
     board.group.traverse(object => {
       if (!(object instanceof Mesh)) return;
       const distances = object.geometry.getAttribute('paintedReservationDistance');
-      expect(distances).toBeDefined();
-      if (!(object instanceof InstancedMesh)) expect(Array.from(distances.array).every(value => value === 0)).toBe(true);
+      if (object instanceof InstancedMesh) { expect(distances).toBeDefined(); return; }
+      expect(distances).toBeUndefined();
+      // `defaultAttributeValues` is three's own escape hatch and typed only on
+      // `ShaderMaterial`; every material carries it and the board writes it.
+      const defaults = (material: object): Record<string, number[]> =>
+        (material as {defaultAttributeValues: Record<string, number[]>}).defaultAttributeValues;
+      expect(defaults(object.material).paintedReservationDistance).toEqual([0]);
+      expect(defaults(object.customDepthMaterial!).paintedReservationDistance).toEqual([0]);
     });
+  });
+
+  /**
+   * #10: the merged land's pigment `uv` was `position.xz * .6` stored eight
+   * bytes a vertex for one reader. The board keeps the number and drops the
+   * bytes, so the pin is on both halves — no attribute, and the macro three
+   * builds `vBumpMapUv` from re-pointed at the coordinate itself.
+   */
+  it('derives the merged land’s pigment coordinate instead of storing it', () => {
+    const {build} = fixture(), board = build();
+    let land = 0;
+    board.group.traverse(object => {
+      if (!(object instanceof Mesh) || object instanceof InstancedMesh) return;
+      expect(object.geometry.getAttribute('uv')).toBeUndefined();
+      if (!object.geometry.getAttribute('turfWeight')) return;
+      land++;
+      const shader = {vertexShader: 'void main() {\n#include <uv_vertex>\n#include <begin_vertex>\n}', fragmentShader: 'void main() {\n#include <opaque_fragment>\n}', uniforms: {}};
+      object.material.onBeforeCompile(shader, {} as never);
+      expect(shader.vertexShader).toContain('#undef BUMPMAP_UV');
+      expect(shader.vertexShader).toContain('#define BUMPMAP_UV (position.xz * .6)');
+      expect(object.material.customProgramCacheKey()).toContain('painted-derived-uv');
+    });
+    expect(land).toBeGreaterThan(0);
   });
 
   it('keeps the shadow depth cache when charted terrain only changes its fog wash', () => {
