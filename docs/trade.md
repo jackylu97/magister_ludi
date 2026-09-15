@@ -107,6 +107,31 @@ nothing new is stored.
   trading post at the partner would bring into range. The screen's lag was
   re-pricing every pair through `routeStartable`/`findPath` on **every open and
   every redraw**.
+- **`explainRouteGates(state, playerId, from, to)`** (`trade.ts`) is the gate
+  asked of **every mode at once**, each line carrying the mode, `routeStartable`'s
+  own sentence, the leg the survey walked and the turns it measured on a full
+  purse. `routeStartable` is that line's `refusal` and `routeModesAvailable` the
+  fold of the list, so there is still one implementation of the five clauses.
+  It exists because `readRoutes` was buying one pair's answer three times —
+  the modes, the refusal's sentence again, then the land leg again to count what
+  a cart would pave (2026-09-15, `docs/flags.md` item (fffff)).
+- **`findPathToFirst`** (`pathfind.ts`) is the other half of the same pass:
+  `routeLegPath` aims at six doorsteps abroad, and a failed search has already
+  settled every hex the mover can reach, so the five after it are answered by
+  lookup instead of by five more flooded continents. The route it returns is the
+  loop's, hex for hex — pinned in `test/sim/trade.test.ts`.
+- **Measured, 2026-09-15** (`standard-t120-s1`, 41 towns, seat 0's seven, 56
+  charted pairs): opening the sheet in the browser **553ms → 182ms**; the cold
+  reading with the revision moved between asks **1.40s → 0.50s**; the
+  pathfinding under it **793ms → ~230ms**, of which the doorstep proof took the
+  seven unreachable foreign pairs from 450ms to 80ms. The sheet's whole DOM
+  rebuild is **1.5ms** (reopen on an unmoved revision) and was left alone, and a
+  command with the sheet shut costs **0.1ms** of the panel pass — `hidden` is
+  the whole of the screen state. What is left is the searches themselves, and
+  the two rows above them in the profile are `hasForeignUnit` (27%) and `cityAt`
+  (6%) — linear walks of the roster and the towns, per edge, inside every A\* in
+  the game. Hoisting those per search is `zocField`'s bargain again and is not
+  this ruling's.
 - **Measured** (a played thirteen-town board, 72 ordered pairs): the screen's
   own walk costs **342ms** with a route slot free and **0.9ms** with none —
   `routeStartable` refuses on the slot clause *before* it searches, so a

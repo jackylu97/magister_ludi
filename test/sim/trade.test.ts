@@ -21,10 +21,12 @@ import {
   saveGame,
   snapshotState,
 } from '../../src/sim/game';
-import type { Tile } from '../../src/sim/map';
+import { type Tile, getTileAt, tileNeighbors } from '../../src/sim/map';
+import { fullMovement } from '../../src/sim/units';
 import { advanceAlongPath } from '../../src/sim/movement';
 import {
   findPath,
+  findPathToFirst,
   moveProfile,
   pathTurns,
   reachableTiles,
@@ -62,6 +64,7 @@ import {
   connectedCities,
   explainRouteSenderYield,
   explainRouteSenderYieldBetween,
+  explainRouteGates,
   explainRouteSlots,
   explainRouteYield,
   explainRouteYieldBetween,
@@ -73,10 +76,14 @@ import {
   routeArrived,
   routeIsInternational,
   routeIsLive,
+  routeLegPath,
   routeModeFor,
   routeModesAvailable,
+  routeProfile,
+  routeRange,
   routeSlots,
   routeStartable,
+  caravanProbeFor,
   standsIn,
   startRouteError,
   usedRouteSlots,
@@ -2575,5 +2582,129 @@ describe('a route’s science and culture', () => {
       foldCity(carded.state, carded.home).science +
         foldCity(carded.state, carded.partner).science,
     );
+  });
+});
+
+// --- the gate asked once ----------------------------------------------------
+
+/**
+ * **One gate, one survey** — the user's ruling of 2026-09-15 (`docs/flags.md`
+ * item (fffff): *"Could you do a performance pass on the trade route screen? it
+ * seems to be slow again"*).
+ *
+ * The Trade screen's reading was buying the same answer three times for every
+ * ordered pair — the modes, then the refusal's *sentence*, then the land leg
+ * again to count the hexes a cart would pave — and two of the three were the
+ * identical A*. `explainRouteGates` is the gate handing back what it already
+ * measured, and `findPathToFirst` is the six doorsteps of a foreign partner
+ * sharing one search's reachability proof instead of flooding the continent
+ * apiece.
+ *
+ * Both are pure speed and **must** therefore be provably the same answer. Three
+ * things could be quietly wrong and each fails here for its own reason:
+ *
+ *   1. a gate line's sentence drifting from `routeStartable`'s own;
+ *   2. the survey handed out not being the leg the gate priced its range on;
+ *   3. `findPathToFirst` returning a different doorstep — or a different route
+ *      to the same one — than the loop it replaced.
+ */
+describe('the gate is asked once and hands back what it measured', () => {
+  it('is `routeStartable` per mode, sentence for sentence', () => {
+    for (const world of [tradeWorld(), seaWorld(), seaWorld(false), foreignWorld()]) {
+      const { state, home, partner } = world;
+      const gates = explainRouteGates(state, 0, home.id, partner.id);
+      expect(gates.map((line) => line.mode)).toEqual([...ROUTE_MODES]);
+      for (const line of gates) {
+        expect(line.refusal).toBe(routeStartable(state, 0, home.id, partner.id, line.mode));
+      }
+      // And the modes on offer are the fold of it, which is what the interface
+      // draws buttons from.
+      expect(routeModesAvailable(state, 0, home.id, partner.id)).toEqual(
+        gates.filter((line) => line.refusal === null).map((line) => line.mode),
+      );
+    }
+  });
+
+  it('hands out the very leg the range clause was measured on', () => {
+    for (const world of [tradeWorld(), seaWorld(), foreignWorld()]) {
+      const { state, home, partner } = world;
+      const probe = caravanProbeFor(state, 0, home)!;
+      for (const line of explainRouteGates(state, 0, home.id, partner.id)) {
+        if (line.path === null) {
+          expect(line.turns).toBeNull();
+          continue;
+        }
+        // The path is `routeLegPath`'s, hex for hex…
+        expect(line.path).toEqual(routeLegPath(state, probe, home, partner, line.mode));
+        // …and the turns are `pathTurns` over it on a full purse, which is the
+        // figure clause 5 compares against the range.
+        const full = fullMovement(probe, state);
+        expect(line.turns).toBe(
+          pathTurns(state, probe, [...line.path], { left: full, refill: full }),
+        );
+      }
+    }
+  });
+
+  it('reports the march of a pair it refused for distance', () => {
+    // A row the Unavailable tab prints a distance on: the gate went all the way
+    // to clause 5 and the survey it ran is worth keeping, refusal or not.
+    const state = bareState(60, 9);
+    const home = foundCityAt(state, 0, at(state, 2, 4));
+    const far = foundCityAt(state, 0, at(state, 30, 4));
+    home.buildings.push('market');
+    bumpRevision(state);
+    const land = explainRouteGates(state, 0, home.id, far.id).find(
+      (line) => line.mode === 'land',
+    )!;
+    expect(land.refusal).toMatch(/turns away/);
+    expect(land.path).not.toBeNull();
+    expect(land.turns).toBeGreaterThan(routeRange(home, far));
+  });
+
+  it('a refusal taken before the survey carries no march at all', () => {
+    // The slot clause returns before any ground is walked, which is the whole
+    // reason this reading stays cheap on a board with every route running.
+    const { state, home, partner, trader } = tradeWorld();
+    expect(applyCommand(state, send(0, trader.id, home.id, partner.id)).ok).toBe(true);
+    const second = foundCityAt(state, 0, at(state, 6, 7));
+    bumpRevision(state);
+    for (const line of explainRouteGates(state, 0, home.id, second.id)) {
+      expect(line.refusal).toMatch(/trade routes are running/);
+      expect(line.path).toBeNull();
+      expect(line.turns).toBeNull();
+    }
+  });
+
+  it('finds the same doorstep the loop found, and the same route to it', () => {
+    // `findPathToFirst` against `findPath` in a loop, on the six doorsteps a
+    // foreign partner is aimed at. Reachable: the same hexes in the same order.
+    const { state, home, partner } = foreignWorld();
+    const probe = caravanProbeFor(state, 0, home)!;
+    const profile = routeProfile(state, probe, 'land', home, partner);
+    const centre = getTileAt(state.map, partner.col, partner.row)!;
+    const goals = tileNeighbors(state.map, centre);
+    expect(goals.length).toBeGreaterThan(1);
+
+    const loop = (): ReturnType<typeof findPath> => {
+      for (const goal of goals) {
+        const path = findPath(state, probe, goal, profile);
+        if (path !== null) return path;
+      }
+      return null;
+    };
+    expect(findPathToFirst(state, probe, goals, profile)).toEqual(loop());
+
+    // And unreachable: both answer nothing, which is the case the proof is for
+    // — one flooded continent instead of six.
+    const island = seaWorld(false);
+    const far = caravanProbeFor(island.state, 0, island.home)!;
+    const dry = routeProfile(island.state, far, 'land', island.home, island.partner);
+    const centres = tileNeighbors(
+      island.state.map,
+      getTileAt(island.state.map, island.partner.col, island.partner.row)!,
+    );
+    expect(findPathToFirst(island.state, far, centres, dry)).toBeNull();
+    for (const goal of centres) expect(findPath(island.state, far, goal, dry)).toBeNull();
   });
 });

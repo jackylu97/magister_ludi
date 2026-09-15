@@ -101,10 +101,22 @@ const SOURCES = import.meta.glob(
     '../../src/ui/hudDock.ts',
     '../../src/ui/controls.ts',
     '../../src/ui/modalShell.ts',
+    '../../src/ui/turnBlockers.ts',
     '../../src/main.ts',
   ],
   { eager: true, query: '?raw', import: 'default' },
 ) as Record<string, string>;
+
+/**
+ * Every DOM surface, for the one claim that is about *absence*: the reading has
+ * exactly one caller, and a second one would pay its walk on every command
+ * whether or not this sheet is up. See "a shut sheet does no work".
+ */
+const UI_SOURCES = import.meta.glob('../../src/ui/*.ts', {
+  eager: true,
+  query: '?raw',
+  import: 'default',
+}) as Record<string, string>;
 
 function source(name: string): string {
   const key = Object.keys(SOURCES).find((path) => path.endsWith(name));
@@ -1078,5 +1090,64 @@ describe('a partner whose centre is not on the chart', () => {
     }
     expect(ctx.rows.some((row) => row.to.id === near.id)).toBe(true);
     expect(ctx.rows.some((row) => row.to.id === far.id)).toBe(true);
+  });
+});
+
+// --- 8. a shut sheet costs nothing ------------------------------------------
+
+/**
+ * **`hidden` is the whole of the screen state, and that is a performance claim
+ * as well as a lifecycle one** (CLAUDE.md's H5 rule; the ruling of 2026-09-15,
+ * `docs/flags.md` item (fffff)).
+ *
+ * The reading behind this sheet is the dearest in the interface — a walk of
+ * every ordered pair, with a pathfinding survey inside it — and it is asked from
+ * exactly one place. Measured in the browser on `standard-t120-s1` (41 towns,
+ * seat 0's seven), a command with the sheet **shut** costs 0.1ms of the panel
+ * pass and a command with it open costs the walk; so the whole difference
+ * between a laggy turn and a quiet one is that `refresh` looks at `hidden`
+ * first.
+ *
+ * Three things keep that true and each of them could be undone silently:
+ * the shell's own gate, the single door the reading is asked through, and the
+ * blocker's deliberate refusal to ask it at all.
+ */
+describe('a shut sheet does no work', () => {
+  it('repaints only while it is up — the shell looks at `hidden` first', () => {
+    // `refresh` is the one thing every accepted command calls (`updatePanel`),
+    // dozens of times a turn. It must cost a boolean while the sheet is down.
+    expect(source('modalShell.ts')).toContain('refresh(): void {\n      if (isOpen()) options.draw();');
+    // …and the sheet's own `refresh` is the shell's, unwrapped: a second one
+    // here would be a second answer to "am I up".
+    expect(source('tradeScreen.ts')).toContain('refresh: shell.refresh,');
+    // The panel pass calls it rather than the reading.
+    const main = source('main.ts');
+    expect(main).toContain('trade?.refresh();');
+    expect(main).not.toContain('readRoutes(');
+  });
+
+  it('is the only surface that asks the reading at all', () => {
+    // A second caller anywhere in the interface would pay the walk on every
+    // command whether or not the sheet is up — which is the exact bug this
+    // ruling is about, wearing a different hat.
+    for (const [path, text] of Object.entries(UI_SOURCES)) {
+      if (path.endsWith('/tradeScreen.ts')) continue;
+      const body = text
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .split('\n')
+        .map((line) => line.replace(/\/\/.*$/, ''))
+        .join('\n');
+      expect(body.includes('readRoutes('), `${path} asks readRoutes`).toBe(false);
+    }
+  });
+
+  it('keeps the End Turn blocker off the reading', () => {
+    // `firstBlocker` runs once a press *and* once an ask by the bot's driver, so
+    // it asks the cheap half of the gate — the slot and the partner, no A* — and
+    // errs toward prompting for a partner the sheet will then refuse in the
+    // gate's own sentence.
+    const blockers = source('turnBlockers.ts');
+    expect(blockers).toContain('hasSendablePair(state, playerId)');
+    expect(blockers).not.toContain('readRoutes(state');
   });
 });
