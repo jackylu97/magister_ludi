@@ -1050,5 +1050,12 @@
       "stemColor": "vellumDeep",
       "markSize": 0.44
     }
+  },
+  "painted": {
+    "lod": {
+      "distantCells": {
+        "groves": { "x": 2, "y": 3, "z": 2 }
+      }
+    }
   }
 }

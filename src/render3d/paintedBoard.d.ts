@@ -5,6 +5,9 @@ import type { BuiltBoard } from './board3d';
 export interface PaintedVegetationAsset {
   geometry: BufferGeometry;
   shoulderGeometry?: BufferGeometry | null;
+  /** The map-scale stand-in, where the distance sheet names this family. */
+  farGeometry?: BufferGeometry | null;
+  farShoulderGeometry?: BufferGeometry | null;
   material: MeshStandardMaterial;
 }
 export interface PaintedVegetationAssets {

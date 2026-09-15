@@ -4,12 +4,14 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
 
 // The authored kit, in the order the renderer indexes it: three broadleaves,
-// two cypresses, three escarpments, then the limestone block.
+// two cypresses, three escarpments, then the limestone block. `family` is the
+// name the distance sheet calls a group of them by; it is not in the bundle,
+// which indexes by `name` alone.
 export const VEGETATION_SPECIES=[
- ...[0,1,2].map(i=>({name:`grove-sculpt-${i}`,evergreen:false,rock:false})),
- ...[0,1].map(i=>({name:`cypress-sculpt-${i}`,evergreen:true,rock:false})),
- ...[0,1,2].map(i=>({name:`escarpment-${i}`,evergreen:false,rock:true})),
- {name:'limestone',evergreen:false,rock:true},
+ ...[0,1,2].map(i=>({name:`grove-sculpt-${i}`,evergreen:false,rock:false,family:'groves'})),
+ ...[0,1].map(i=>({name:`cypress-sculpt-${i}`,evergreen:true,rock:false,family:'groves'})),
+ ...[0,1,2].map(i=>({name:`escarpment-${i}`,evergreen:false,rock:true,family:'escarpments'})),
+ {name:'limestone',evergreen:false,rock:true,family:'stones'},
 ];
 
 // Everything the kit needs doing to it is a pure function of the GLB bytes, so
@@ -98,6 +100,107 @@ export function finishVegetation({broadleaves,cypresses,escarpments,limestone},{
  }
 }
 
+/**
+ * One sculpt's stand-in at map scale, derived from the sculpt itself.
+ *
+ * At the overview a grove stands a few pixels tall and the authored crown spends
+ * six hundred triangles on facets nobody can resolve. Clustering keeps what
+ * survives that scale and drops the rest: the sculpt's own bounding box is cut
+ * into a coarse grid, every vertex collapses to its cell's average, a triangle
+ * whose corners land in fewer than three cells has collapsed to nothing, and the
+ * survivors are stretched back over the original box — an inset crown would read
+ * as fewer trees, and thinning the forests is exactly the change this may not
+ * make.
+ *
+ * Every attribute but the normal is averaged with its cell, so the pigment, the
+ * canopy weight the breeze reads and the range-foot weight the mountain pigment
+ * mixes on all arrive meaning what they meant; normals are recomputed flat,
+ * which is what these materials wanted anyway. The original facing decides the
+ * survivor's winding, because averaged corners can turn a face inside out and a
+ * hole in a crown reads at any scale.
+ *
+ * Derived, not authored: the bundle ships one artefact and the GLB fallback
+ * produces the same stand-in from the same bytes, so there is nothing here that
+ * can go stale.
+ */
+export function farSculpt(geometry,{x=2,y=3,z=2}={}){
+ const p=geometry.attributes.position;
+ if(!p?.count)return null;
+ geometry.computeBoundingBox();
+ const box=geometry.boundingBox,low=[box.min.x,box.min.y,box.min.z];
+ const span=[box.max.x-box.min.x,box.max.y-box.min.y,box.max.z-box.min.z].map(v=>Math.max(1e-6,v));
+ const grid=[x,y,z].map(v=>Math.max(1,Math.round(v))),cells=grid[0]*grid[1]*grid[2];
+ const names=Object.keys(geometry.attributes).filter(name=>name!=='normal');
+ const sums=Object.fromEntries(names.map(name=>[name,new Float64Array(cells*geometry.attributes[name].itemSize)]));
+ const tally=new Uint32Array(cells),cellOf=new Uint32Array(p.count);
+ for(let i=0;i<p.count;i++){
+  let cell=0;
+  for(let a=0;a<3;a++){
+   const v=a===0?p.getX(i):a===1?p.getY(i):p.getZ(i);
+   cell=cell*grid[a]+Math.min(grid[a]-1,Math.max(0,Math.floor((v-low[a])/span[a]*grid[a])));
+  }
+  cellOf[i]=cell;tally[cell]++;
+  for(const name of names){
+   const attribute=geometry.attributes[name],size=attribute.itemSize;
+   for(let j=0;j<size;j++)sums[name][cell*size+j]+=attribute.array[i*size+j];
+  }
+ }
+ for(const name of names){
+  const size=geometry.attributes[name].itemSize;
+  for(let cell=0;cell<cells;cell++)if(tally[cell])for(let j=0;j<size;j++)sums[name][cell*size+j]/=tally[cell];
+ }
+ const at=sums.position,reach=[[Infinity,-Infinity],[Infinity,-Infinity],[Infinity,-Infinity]];
+ for(let cell=0;cell<cells;cell++)if(tally[cell])for(let a=0;a<3;a++){
+  const v=at[cell*3+a];if(v<reach[a][0])reach[a][0]=v;if(v>reach[a][1])reach[a][1]=v;
+ }
+ for(let a=0;a<3;a++){
+  const have=reach[a][1]-reach[a][0],scale=have>1e-6?span[a]/have:1;
+  for(let cell=0;cell<cells;cell++)if(tally[cell])at[cell*3+a]=low[a]+(at[cell*3+a]-reach[a][0])*scale;
+ }
+ const index=geometry.index?.array,corners=index?index.length:p.count,faces=new Map();
+ const va=new T.Vector3(),vb=new T.Vector3(),vc=new T.Vector3(),edge=new T.Vector3(),other=new T.Vector3(),normal=new T.Vector3();
+ const place=(cell,out)=>out.set(at[cell*3],at[cell*3+1],at[cell*3+2]);
+ const source=(i,out)=>out.set(p.getX(i),p.getY(i),p.getZ(i));
+ for(let i=0;i<corners;i+=3){
+  const ia=index?index[i]:i,ib=index?index[i+1]:i+1,ic=index?index[i+2]:i+2;
+  const a=cellOf[ia],b=cellOf[ib],c=cellOf[ic];
+  if(a===b||b===c||a===c)continue;
+  const key=[a,b,c].sort((m,n)=>m-n).join(',');
+  let face=faces.get(key);
+  if(!face)faces.set(key,face={a,b,c,nx:0,ny:0,nz:0});
+  source(ia,va);source(ib,vb);source(ic,vc);
+  edge.subVectors(vb,va);other.subVectors(vc,va);normal.crossVectors(edge,other);
+  face.nx+=normal.x;face.ny+=normal.y;face.nz+=normal.z;
+ }
+ const kept=[];
+ for(const face of faces.values()){
+  place(face.a,va);place(face.b,vb);place(face.c,vc);
+  edge.subVectors(vb,va);other.subVectors(vc,va);normal.crossVectors(edge,other);
+  if(normal.lengthSq()<1e-16)continue;
+  const flipped=normal.x*face.nx+normal.y*face.ny+normal.z*face.nz<0;
+  if(flipped)normal.negate();
+  normal.normalize();
+  kept.push({cells:flipped?[face.a,face.c,face.b]:[face.a,face.b,face.c],normal:normal.clone()});
+ }
+ if(!kept.length)return null;
+ const far=new T.BufferGeometry(),count=kept.length*3;
+ const normals=new Float32Array(count*3);
+ for(const name of names){
+  const size=geometry.attributes[name].itemSize,array=new Float32Array(count*size);
+  kept.forEach((face,f)=>face.cells.forEach((cell,corner)=>{
+   for(let j=0;j<size;j++)array[(f*3+corner)*size+j]=sums[name][cell*size+j];
+  }));
+  far.setAttribute(name,new T.BufferAttribute(array,size));
+ }
+ kept.forEach((face,f)=>{for(let corner=0;corner<3;corner++)normals.set([face.normal.x,face.normal.y,face.normal.z],(f*3+corner)*3)});
+ far.setAttribute('normal',new T.BufferAttribute(normals,3));
+ far.computeBoundingBox();far.computeBoundingSphere();
+ // The stand-in answers to the sculpt's name, so a submission attributed at the
+ // overview says which sculpt it stood in for and that it stood in at all.
+ if(geometry.userData.paintedAsset)far.userData.paintedAsset=`${geometry.userData.paintedAsset} far`;
+ return indexGeometry(far);
+}
+
 const ARRAYS={Float32Array,Uint32Array,Uint16Array,Uint8Array,Int16Array,Int8Array};
 
 /** One file: a JSON header naming every buffer, then the buffers themselves. */
@@ -177,7 +280,7 @@ async function loadPreparedAssets(indexed){
  }
 }
 
-export async function loadVegetation(time,flocking,mineral,{indexed=true}={}) {
+export async function loadVegetation(time,flocking,mineral,{indexed=true,distantCells=null}={}) {
   // The bundle needs no texture, so its download overlaps the grain textures.
   const prepared=loadPreparedAssets(indexed);
   const [flockingGrain,mineralGrain]=await Promise.all([flocking,mineral]);
@@ -241,6 +344,25 @@ export async function loadVegetation(time,flocking,mineral,{indexed=true}={}) {
     })();
   const broadleaves=assets.slice(0,3),cypresses=assets.slice(3,5),escarpments=assets.slice(5,8),limestone=assets[8];
   if(!bundled)finishVegetation({broadleaves,cypresses,escarpments,limestone},{indexed});
+  // Name each sculpt on the geometry itself. A batch submitted at the overview
+  // has no other identity to report — the bundle carries none, and a benchmark
+  // that had to be handed a map of assets would go stale the day one is added.
+  for(const [i,asset]of assets.entries()){
+   if(asset.geometry)asset.geometry.userData.paintedAsset=VEGETATION_SPECIES[i].name;
+   if(asset.shoulderGeometry)asset.shoulderGeometry.userData.paintedAsset=`${VEGETATION_SPECIES[i].name}-shoulder`;
+   // One family gets a map-scale stand-in, and the sheet says which: a family
+   // the sheet does not name keeps its own sculpt at every distance, which is
+   // what the board drew before there was a stand-in at all.
+   const cells=distantCells?.[VEGETATION_SPECIES[i].family];
+   if(!cells)continue;
+   for(const near of ['geometry','shoulderGeometry']){
+    if(!asset[near])continue;
+    const far=farSculpt(asset[near],cells);
+    if(!far)continue;
+    asset[near==='geometry'?'farGeometry':'farShoulderGeometry']=far;
+    outputs.add(far);
+   }
+  }
   return {broadleaves,cypresses,escarpments,limestone,rangeMaterial,broadleaf:broadleaves[0],cypress:cypresses[0],materials:[foliageMaterial,rockMaterial,rangeMaterial]};
   }catch(error){
     for(const geometry of outputs)geometry.dispose();

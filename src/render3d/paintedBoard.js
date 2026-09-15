@@ -58,6 +58,25 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     }
   }
 
+  // Attribution reads off the mesh, never off a map held somewhere else: a prop
+  // is the sculpt it was instanced from, a surface batch is the merged material
+  // it belongs to. Cloned wrap copies keep the string, which is why it is one.
+  const materialNames = new Map([[materials.earth, 'earth'], [materials.mergedLand, 'merged land'],
+    [materials.mergedWater, 'merged water'], [materials.mergedDetails, 'merged details']]);
+  for (const [group, entries] of [['ground', ground], ['water', water], ['feature', features]])
+    for (const [key, source] of Object.entries(entries)) if (!materialNames.has(source)) materialNames.set(source, `${group} ${key}`);
+  // The map-scale stand-ins, by the sculpt each stands in for. A family without
+  // one is simply absent here and draws its own sculpt at every distance.
+  const distantGeometry = new Map();
+  for (const asset of [...assets.broadleaves, ...assets.cypresses, ...assets.escarpments, assets.limestone]) {
+    if (asset.farGeometry) distantGeometry.set(asset.geometry, asset.farGeometry);
+    if (asset.shoulderGeometry && asset.farShoulderGeometry) distantGeometry.set(asset.shoulderGeometry, asset.farShoulderGeometry);
+  }
+  function familyName(source, base) {
+    const sculpt = base?.userData?.paintedAsset;
+    if (sculpt) return source === assets.rangeMaterial ? `range ${sculpt}` : sculpt;
+    return materialNames.get(source) || 'unnamed';
+  }
   function materialFor(source) {
     if (!ownedMaterials.has(source)) {
       const material = paintedFogMaterial(source, fog, source === materials.mergedWater);
@@ -117,6 +136,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (source !== materials.mergedWater) geometry.deleteAttribute('paintedOther');
     indexGeometry(geometry); geometry.computeBoundingBox(); geometry.computeBoundingSphere(); ownedGeometry.add(geometry);
     const mesh = new T.Mesh(geometry, materialFor(source));
+    mesh.userData.paintedFamily = familyName(source, null);
     decorateMesh(mesh, source, source === materials.earth || source === materials.mergedLand || source === features.stone || source === features.shrub);
     if (detail === 'far') mesh.castShadow = false;
     const placed = []; addCopies(mesh, placed, surface, detail); return placed;
@@ -135,6 +155,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       geometry.setAttribute('paintedReservationDistance', new T.InstancedBufferAttribute(new Float32Array(reservationDistances), 1));
       ownedGeometry.add(geometry);
       const mesh = new T.InstancedMesh(geometry, materialFor(material), matrices.length);
+      mesh.userData.paintedFamily = familyName(material, original);
       matrices.forEach((matrix, i) => { mesh.setMatrixAt(i, matrix); mesh.setColorAt(i, tints[i]); });
       mesh.computeBoundingSphere(); decorateMesh(mesh, material, !distant); mesh.visible = !distant;
       const mountainPick = !distant && material === assets.rangeMaterial;
@@ -156,6 +177,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       ownedGeometry.add(geometry);
       if (base) instanceBases.set(geometry, base);
       const mesh = matrix ? new T.InstancedMesh(geometry, materialFor(source), count) : new T.Mesh(geometry, materialFor(source));
+      mesh.userData.paintedFamily = familyName(source, base);
       if (matrix) { mesh.instanceMatrix = matrix; mesh.instanceColor = color; mesh.computeBoundingSphere(); }
       decorateMesh(mesh, source, castShadow);
       if (mountainPick) mesh.userData.paintedPickOnly = true;
@@ -203,16 +225,18 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       }
       function prop(geometry, material, x, y, z, sx, sy, sz, angle = 0, tint = 0xffffff, grade = CLUTTER) {
         if (!geometry) return;
-        const key = geometry.uuid + material.uuid;
         const matrix = new T.Matrix4().compose(new T.Vector3(x, y, z), new T.Quaternion().setFromAxisAngle(axis, angle), new T.Vector3(sx, sy, sz));
         const color = tint?.isColor ? tint : new T.Color(tint);
         // At overview zoom a whole-map instance sphere touches all three wrap
         // copies and submits every tree three times. Coarser spatial batches
         // retain the study's low draw count while culling those unseen copies.
+        // The far copy also stands the family's map-scale sculpt where one
+        // exists: same place, same pose, same pigment, a tenth of the facets.
         const farKey = `${Math.floor(activeTile.col / 18)},${Math.floor(activeTile.row / 18)}`;
         if (!mapProps.has(farKey)) mapProps.set(farKey, new Map());
-        for (const batches of [props, mapProps.get(farKey)]) {
-          if (!batches.has(key)) batches.set(key, { geometry, material, matrices: [], tints: [], cells: [], grades: [], reservationDistances: [] });
+        for (const [batches, sculpt] of [[props, geometry], [mapProps.get(farKey), distantGeometry.get(geometry) || geometry]]) {
+          const key = sculpt.uuid + material.uuid;
+          if (!batches.has(key)) batches.set(key, { geometry: sculpt, material, matrices: [], tints: [], cells: [], grades: [], reservationDistances: [] });
           const batch = batches.get(key); batch.matrices.push(matrix); batch.tints.push(color); batch.cells.push(cell); batch.grades.push(grade);
           const c = centre(activeTile);
           batch.reservationDistances.push(grade === NEVER ? 0 : 1 + Math.hypot(x-c.x,z-c.z));

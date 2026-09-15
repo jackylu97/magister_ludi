@@ -487,6 +487,72 @@ export class Renderer3D implements MapView {
     this.invalidate();
   }
 
+  /**
+   * One sampling window at whatever camera the caller has parked, optionally
+   * attributing the colour pass to the batch that submitted it.
+   *
+   * `renderer.info` counts a frame whole, and the overview's question is *which*
+   * family fills it. The only honest answer is the draw list the renderer really
+   * walked — after frustum culling, after the board's own LOD visibility — so
+   * the tally hangs off `onBeforeRender`, which three calls once per object it
+   * actually draws, and divides by the passes `Scene.onBeforeRender` counted.
+   * Shadow depth goes through `onBeforeShadow` and is deliberately outside this:
+   * the static sun bakes on world changes, not on the frames sampled here.
+   *
+   * The hooks are a closure call per draw, so attribution is sampled in its own
+   * short window after the timings rather than through them.
+   */
+  private async sampleFrames(frames: number, attribute: boolean): Promise<{
+    intervals: number[]; submission: number[]; draws: number[]; triangles: number[];
+    attribution: {family: string; draws: number; triangles: number; instances: number}[];
+  }> {
+    const tally = new Map<string, {family: string; draws: number; triangles: number; instances: number}>();
+    const restore: (() => void)[] = [];
+    let passes = 0;
+    if (attribute) {
+      const scene = this.scene, sceneBefore = scene.onBeforeRender;
+      scene.onBeforeRender = (...args) => { passes++; sceneBefore.apply(scene, args); };
+      restore.push(() => { scene.onBeforeRender = sceneBefore; });
+      scene.traverse((object) => {
+        const mesh = object as Mesh & {isMesh?: boolean; isInstancedMesh?: boolean; count?: number};
+        if (!mesh.isMesh) return;
+        let family = typeof mesh.userData['paintedFamily'] === 'string' ? mesh.userData['paintedFamily'] as string : '';
+        if (!family) {
+          // Anything outside the board answers for its layer: a name the
+          // renderer already gave the group when it added it to the scene.
+          let node = object;
+          while (node.parent && node.parent !== scene) node = node.parent;
+          family = node.name || 'unnamed layer';
+        }
+        const before = mesh.onBeforeRender;
+        mesh.onBeforeRender = (...args) => {
+          const geometry = mesh.geometry;
+          const indices = geometry.index?.count ?? geometry.getAttribute('position')?.count ?? 0;
+          const instances = mesh.isInstancedMesh ? (mesh.count ?? 0) : 1;
+          let row = tally.get(family);
+          if (!row) tally.set(family, row = {family, draws: 0, triangles: 0, instances: 0});
+          row.draws++; row.triangles += indices / 3 * instances; row.instances += instances;
+          before.apply(mesh, args);
+        };
+        restore.push(() => { mesh.onBeforeRender = before; });
+      });
+    }
+    const intervals: number[] = [], submission: number[] = [], draws: number[] = [], triangles: number[] = [];
+    let previous = performance.now();
+    try {
+      for (let i = 0; i < frames; i++) {
+        this.invalidate();
+        const time = await new Promise<number>(resolve => requestAnimationFrame(resolve));
+        intervals.push(time - previous); previous = time;
+        submission.push(this.lastRenderMs); draws.push(this.lastDrawCalls); triangles.push(this.lastTriangles);
+      }
+    } finally { for (const undo of restore) undo(); }
+    const per = Math.max(1, passes);
+    return {intervals, submission, draws, triangles,
+      attribution: [...tally.values()].map(row => ({family: row.family, draws: row.draws / per,
+        triangles: row.triangles / per, instances: row.instances / per})).sort((a, b) => b.triangles - a.triangles)};
+  }
+
   /** A repeatable view-only sweep; it never changes the map or command log. */
   async benchmarkTerrain(): Promise<unknown> {
     if (!this.paintedLook || !this.map || !this.board || this.benchmarking) return null;
@@ -499,7 +565,24 @@ export class Renderer3D implements MapView {
     const center = mixed ? cellCenter(mixed.col,mixed.row) : {x:saved.target.x,z:saved.target.z};
     const ownUnit = this.state?.units.find(unit => unit.ownerId === saved.seat);
     const chartedCenter = ownUnit ? cellCenter(ownUnit.col, ownUnit.row) : center;
+    const summarize=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return {median:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted[sorted.length-1]}};
     try {
+      // The parked omniscient overview comes first and stands still: a camera
+      // that pans cannot be screenshotted twice the same way, and this is the
+      // view the LOD is answerable to. Warm-up absorbs the seat change's rebake
+      // and the LOD flip; the timings are taken clean, the attribution after.
+      this.setFogSeat(null);
+      this.view.frameBoard(this.board.bounds);
+      this.view.panTo(map.width*Math.sqrt(3)*.5, map.height*.75, false, performance.now());
+      await this.sampleFrames(30, false);
+      const parkedBakes = this.paintedLook.shadowBakes;
+      const parked = await this.sampleFrames(150, false);
+      const attributed = await this.sampleFrames(24, true);
+      results.push({view:'parked omniscient overview',frames:parked.intervals.length,
+        frameMs:summarize(parked.intervals),cpuRenderMs:summarize(parked.submission),
+        drawCalls:summarize(parked.draws),triangles:summarize(parked.triangles),
+        terrainShadowRebakes:this.paintedLook.shadowBakes-parkedBakes,
+        colourPassAttribution:attributed.attribution});
       for (const scenario of ['charted play', 'charted overview', 'play', 'overview', 'wrap seam']) {
         this.setFogSeat(scenario.startsWith('charted ') ? saved.seat : null);
         const kind = scenario.replace('charted ', '');
@@ -517,7 +600,6 @@ export class Renderer3D implements MapView {
           if(i>=36){intervals.push(time-previous);submission.push(this.lastRenderMs);draws.push(this.lastDrawCalls);triangles.push(this.lastTriangles)}
           previous=time;
         }
-        const summarize=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return {median:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted[sorted.length-1]}};
         results.push({view:scenario,frames:intervals.length,frameMs:summarize(intervals),cpuRenderMs:summarize(submission),drawCalls:summarize(draws),triangles:summarize(triangles),terrainShadowRebakes:this.paintedLook.shadowBakes-shadowStart});
       }
       return {map:{width:map.width,height:map.height,tiles:map.tiles.length},viewport:{width:this.canvas.clientWidth,height:this.canvas.clientHeight,dpr:this.renderer.getPixelRatio()},browser:navigator.userAgent,boardBuildMs:started,geometryMiB:(this.paintedBoard?.geometryBytes??0)/1048576,instanceMiB:(this.paintedBoard?.instanceBytes??0)/1048576,visibility:'charted views use original seat; other views omniscient; original seat restored',results};

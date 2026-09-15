@@ -9,6 +9,7 @@ import {separatePaintedShadows} from './paintedShadows.js';
 import {PAINTED_WORK_ASSET_NAMES} from './paintedWorks';
 import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
+import {VIEW3D} from './lookData';
 
 export async function createPaintedLook(renderer,scene,camera,key='golden') {
  const resources=new Set();
@@ -46,7 +47,7 @@ const grainRequests=['mineral-grain','flocking-grain','gouache-grain'].map(name=
 // Both asset batches want only the mineral/flocking grain for a bump map, and
 // want it after their own download, so all five requests are in flight at once.
 const assetRequests=[
- loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true}),
+ loadVegetation({value:0},grainRequests[1],grainRequests[0],{indexed:true,distantCells:VIEW3D.painted.lod.distantCells}),
  loadSettlementAssets({register(){}},grainRequests[0],{names:['city-house','city-loggia','civic-sanctum','city-spire','city-dome','house','temple','bell-tower',...PAINTED_WORK_ASSET_NAMES,...PAINTED_SITE_ASSET_NAMES]}),
 ];
 for(const request of assetRequests)request.catch(()=>{});
@@ -58,7 +59,8 @@ const [mineralTexture,flockTexture,paintTexture]=grains.map(result=>result.value
 const [vegetationResult,cityResult]=await Promise.allSettled(assetRequests);
 if(vegetationResult.status==='fulfilled'){
  for(const material of vegetationResult.value.materials)own(material);
- for(const asset of [...vegetationResult.value.broadleaves,...vegetationResult.value.cypresses,...vegetationResult.value.escarpments,vegetationResult.value.limestone]){own(asset.geometry);if(asset.shoulderGeometry)own(asset.shoulderGeometry)}
+ for(const asset of [...vegetationResult.value.broadleaves,...vegetationResult.value.cypresses,...vegetationResult.value.escarpments,vegetationResult.value.limestone])
+  for(const key of ['geometry','shoulderGeometry','farGeometry','farShoulderGeometry'])if(asset[key])own(asset[key]);
 }
 if(cityResult.status==='fulfilled')for(const resource of Object.values(cityResult.value))own(resource);
 const assetFailure=[...grains,vegetationResult,cityResult].find(result=>result.status==='rejected');

@@ -1992,6 +1992,22 @@ export const FAMILY_IDS: readonly FamilyId[] = [
   'commerce',
 ];
 
+/**
+ * The painted look's own numbers.
+ *
+ * `lod.distantCells` is the grid a prop family's sculpt is clustered on to make
+ * the map-scale stand-in the overview draws (`farSculpt`, `terrainStudy/
+ * vegetation.js`): coarser is cheaper and blunter, and a family with no entry
+ * here draws its authored sculpt at every distance. Near geometry, picking and
+ * the static shadow bake never read this — they are always the sculpt.
+ */
+export interface PaintedLodSpec {
+  distantCells: Partial<Record<'groves' | 'escarpments' | 'stones', { x: number; y: number; z: number }>>;
+}
+export interface PaintedSpec {
+  lod: PaintedLodSpec;
+}
+
 export interface View3DData {
   palette: Record<string, number>;
   terrainColor: Record<TerrainId, number>;
@@ -2022,6 +2038,7 @@ export interface View3DData {
   sites: SiteLookSpec;
   abacus: AbacusSpec;
   units: UnitStyleSpec;
+  painted: PaintedSpec;
 }
 
 // --- parsing ---------------------------------------------------------------
@@ -2634,6 +2651,7 @@ export const VIEW3D: View3DData = {
       },
     },
   },
+  painted: { lod: { distantCells: viewJson.painted.lod.distantCells } },
 };
 
 // --- colour maths ----------------------------------------------------------

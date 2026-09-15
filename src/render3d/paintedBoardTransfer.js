@@ -52,7 +52,11 @@ export function packPaintedKit(assets, materials) {
     return value;
   }
   // Explicit asset contract avoids walking loader textures or callbacks.
-  const asset = value => ({geometry: value.geometry, shoulderGeometry: value.shoulderGeometry || null, material: value.material});
+  // The map-scale stand-ins travel with their sculpts: a far batch's geometry
+  // must resolve to a binding both threads know, or the worker's own object
+  // comes back unnamed and every far batch ships a second copy of the vertices.
+  const asset = value => ({geometry: value.geometry, shoulderGeometry: value.shoulderGeometry || null,
+    farGeometry: value.farGeometry || null, farShoulderGeometry: value.farShoulderGeometry || null, material: value.material});
   const tree = encode({assets: {broadleaves: assets.broadleaves.map(asset), cypresses: assets.cypresses.map(asset),
     escarpments: assets.escarpments.map(asset), limestone: asset(assets.limestone), broadleaf: asset(assets.broadleaf), rangeMaterial: assets.rangeMaterial}, materials});
   return {packet: {tree, resources}, bindings};
