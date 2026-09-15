@@ -19,6 +19,31 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(jjjjj) The AI turn feels slow — RULED, A1** (the user, 2026-09-15:
+*"could you do a performance pass on the ai - its starting to feel slow, i
+wonder if anything changed due to the new renderer"*). **Measure first**,
+on the 41-town fixture (`docs/plans/benchmarks/fixtures/standard-t120-s1`)
+and on a fresh six-seat game driven ~80 turns: the wall time of one End
+Turn as the player experiences it, attributed to (a) the bots' decisions
+(`src/ai/` — per seat, per phase: wants, appraisal, the per-unit plan, and
+the pathfinding inside them, `findPath`/`reachableTiles`/`pathTurns` call
+counts and ms), (b) the turn resolution phases (`src/sim/turn.ts`), and
+(c) the UI and renderer work the bots' commands trigger on the main thread
+— every accepted bot command calls `onChanged` → `updatePanel` (a DOM
+repaint) and marks the renderer dirty (`syncStateLayers` on the next
+frame) — under the painted look **and** under `?art=toon3d`, so the
+renderer question is answered by a paired number, not a guess. Then take
+the dearest rows in the sim's discipline: the pathfinder hoists T1 named
+(`hasForeignUnit` and `cityAt` are linear walks of 273 units and 41 towns
+per edge inside `canTransit`, in every A* in the game — hoist per search,
+`zocField`'s bargain, lifetime one search); the bots' own memos keyed on
+the revision; and the UI repaint coalesced to once per bot seat or once per
+turn rather than once per command, if (c) is a real share. **Fidelity is
+determinism**: a 120-turn six-seat bot game replays to the same snapshot
+digest before and after (the bots must decide identically — a hoist may
+change nothing but time), plus the P-series pixel pair. Report the
+attribution table before/after and a Sacrifices paragraph.
+
 **(iiiii) Four rulings from the Modu Chanyu playtest — BUILT** (the user,
 2026-09-15: *"marco polo needs a nerf: make it every 5 tiles instead.
 terraced hillsides needs a nerf, should read: +2 food on farms on hills.
