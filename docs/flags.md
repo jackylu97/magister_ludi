@@ -215,6 +215,25 @@ to two frames past `hideLanding`), not `setGameState` itself; the saves
 panel's route shows the sheet in two halves around "Abandon the game in
 progress?". P1's `first-board-frame` mark is the one that survived (it
 fires inside `boot`, earlier than the sheet's own seam).
+**Landed — P6** (2026-09-14, the user's eye: *"yeah this is fine, lets
+send it"*): the attribution said groves were a third of a fully revealed
+overview's triangles (980k of 3.0M) and escarpments a fifth of that, so
+the groves are the one distant family — each grove and cypress sculpt
+gets a map-scale stand-in by vertex clustering on its own box
+(`farSculpt`, `vegetation.js`; 643 → ~20 triangles, same footprint,
+height, tint, pose and instancing), derived at load rather than bundled so
+`paintedAssetSync` keeps its meaning; families ride `VEGETATION_SPECIES`
+and the sheet's `painted.lod.distantCells`. Far view −29% submitted
+triangles at unchanged draws; near view, picking, the static bake,
+instance counts and placement untouched (pinned). **Sacrifices kept**: far
+forests read slightly denser and greener (solid crowns, 1.2% of the
+overview's pixels, all canopy); a pop at the existing 25/29-px LOD band
+(79 px worst case); ~20 KB more board geometry and 6–28 ms of clustering
+once per session; a new sculpt must declare its `family` or it silently
+gets no stand-in; `benchmarkTerrain` gained a parked-overview scenario
+first in its results. **Follow-up row**: an unnamed scene layer is the
+second-largest far-view contributor (410k triangles over 27,855
+instances) — name and attribute it (P10).
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between
