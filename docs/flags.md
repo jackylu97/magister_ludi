@@ -47,7 +47,7 @@ that the old angle did not, made the same cost. Fidelity: the P-series pair
 0.000%; a founding shot before/after identical once settled; the
 attribution table before/after and a Sacrifices paragraph.
 
-**(wwwww) The movement range ink's seams — RULED, R2** (the user,
+**(wwwww) The movement range ink's seams — BUILT, R2** (2026-09-15: the corners coincided to 1.8e-15; the seam was *height* — a ray at exactly a hex vertex falls through the seam between the terrain's own triangles and read the paper 0.08 below the plateau, 1.8× the ink's width, at the hub of every round join, and the two strips broke at different corners. Now the boundary edges are traced into closed rings, the ground is read once per centreline station as the highest of a five-point rosette, and each ring is extruded with bounded mitre joins — both strips from the same stations. **Sacrifices kept**: a mitred corner runs ~15 % wider than the edge and reads sharp rather than round; a turn sharper than 60° is bevelled; the ribbon is level across its width, so a ~0.0006 cross-slope tilt is gone; a crevasse a hundredth of a hex wide is bridged; a station the ground cannot answer takes the line between its neighbours rather than its tile's height.) Originally: (the user,
 2026-09-15: *"the seams in the range indicator for movement is off, could
 you take a look?"*). Astra's frontier ink (`src/render3d/movementBoundary.ts`,
 drawn by `overlays.ts` as two on-top strips, backing and ink) reads as
