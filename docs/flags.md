@@ -160,6 +160,33 @@ same fixture; the remainder is the units and fog layers, unmeasured since);
 and a real scout march charted twenty cells with zero static rebakes while
 an end-turn refresh baked once — the opposite of #19's source reading, so
 P5 measures before it acts. Nothing visual changed (evidence only).
+**Landed — P5** (2026-09-14): the static bake's near geometry is raised
+around the sun's depth submission alone (`PaintedBoard.setBakeDetail`,
+inside `separatePaintedShadows`' try/finally), so an overview reveal keeps
+its far colour LOD — the bake frame's colour half is now exactly the quiet
+frame's (1204 → 840 draws on a fully charted board); a per-pass ledger
+(`paintedLook.shadowStats`) says what the depth pass costs on its own.
+Four pairs at 0.000%. **#3 not taken, with numbers**: the depth pass is
+three-quarters of a reveal frame (2716 draws ≈ 905 × three wrap copies),
+and a canonical-period fit is a real 3× cut, but it needs the shadow lookup
+wrapped in every receiving material's shader with a sheared UV offset and a
+per-copy depth offset — surgery on the approved look with seam risk and no
+visual checkpoint; incremental baking is only half-correct (suppression
+removes casters); 8192 → 4096 is a fidelity call, not a cost one (the pass
+is draw-bound). Queued as **P11** in wave 3 with a user eye on seam shadows.
+**Sacrifices kept**: `updateDetail` takes only `pixels` now (a caller that
+wants near geometry for a bake calls `setBakeDetail`, and must pair it with
+`false`); the one-frame detail pop on a reveal is gone by design; the hook
+is bound to one board and rebinds in `rebuildBoard` alone. Two rows for
+later: the first frame with a walking piece spends ~1.7 s compiling the
+walker's depth program (P8's list), and the bake count climbs across
+restarts in one tab (something does not reset with the board — P9).
+**Landed — R1** (2026-09-14, (ccccc)): the ground ink takes a polygon
+offset one rank deeper than every other ground decal, so the border ribbon
+and roads draw over a farm's furrows; town and great-person ground pigment
+go under the ink too (same class, same step), a farmed frontier hex loses
+a thin strip of crop beneath the ribbon, and a plinth base directly under
+a ribbon could in theory lose its bottom row of pixels (not reproduced).
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between
