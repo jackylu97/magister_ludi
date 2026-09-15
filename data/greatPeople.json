@@ -1286,7 +1286,7 @@
           "where": "route",
           "basis": "count",
           "count": "routeLength",
-          "per": 2,
+          "per": 5,
           "gold": 1
         }
       ]

@@ -2261,6 +2261,14 @@ describe('the marginal draft reading', () => {
       sc.slots[chair] = { card: id, sealedUntil: 0 };
       bumpRevision(state);
     }
+    // Every hill of the bench is farmed (the user's nerf of 2026-09-15,
+    // `docs/flags.md` (iiiii): Terraced Hillsides pays a farm on a hill), the
+    // town hexes excepted — a town stands on no field.
+    for (const tile of state.map.tiles) {
+      if (!tile.hills || tile.improvement !== undefined) continue;
+      if (state.cities.some((city) => city.col === tile.col && city.row === tile.row)) continue;
+      tile.improvement = 'farm';
+    }
     for (const city of state.cities) refreshCityDerived(state, city);
     return { state, player };
   }

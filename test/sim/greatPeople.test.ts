@@ -1847,7 +1847,10 @@ describe('the one-row shapes, built generically', () => {
       row.source.includes('hex'),
     );
     expect(line, 'the road prints its own length').toBeDefined();
-    expect(line!.gold).toBe(Math.floor(hexes / 2));
+    // Per **five** hexes since the user's nerf of 2026-09-15 (`docs/flags.md`
+    // (iiiii)); the row's own `per` is the figure, read here so the pin and
+    // the sheet cannot disagree.
+    expect(line!.gold).toBe(Math.floor(hexes / 5));
     // The count answers nothing to a reader holding no road: only the fold that
     // holds both ends can measure one, so the empire's own books stay silent.
     expect(foldCardYields(explainCardEmpireYields(g.state, 0)).gold).toBe(0);

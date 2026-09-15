@@ -76,7 +76,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
 | **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; he has no unique building — ruled) |
-| **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +1 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
+| **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +3 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
 | **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
 | **Akhenaten** | Egypt | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
 | **Al-Ma'mun** | Abbasid | tall · science and faith | *the Mu'tazila*: +1 science per five faith a turn, empire-wide | *the House of Wisdom*: faith and science buildings +2 food | the camel archer | the House of Learning |

@@ -216,7 +216,7 @@ line under Notes, where the words after the dagger are what the row does *not* d
 | Sumptuary Laws | E | 🐫 | ● | P | +1 happiness for each unique luxury. |
 | Chartered Companies | E | 🐫 | ◆ | S | Buying a hex pays +5 science · buying a hex costs 15% less. |
 | Ore Tithes | E | ⚒ | ● | E | +2 production on every hex carrying a strategic resource, and +2 production in your capital for each military Order you have in a slot. |
-| Terraced Hillsides | E | 🌱 | ● | S | +2 food on every hill hex. |
+| Terraced Hillsides | E | 🌱 | ● | S | +2 food on farms on hills. |
 | Master Masons | E | ⚒ | ◆ | S | Completing a building grants +25 culture. |
 | Royal Surveyors | E | — | ● | S | +50% border expansion · buying a hex costs 25% less. |
 | Provincial Governors | E | — | ● | E | +1 authority capacity for each economic Order you have in a slot, at most +4. |

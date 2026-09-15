@@ -226,14 +226,16 @@ function tileCardBench(): { state: GameState; city: City; playerId: number } {
   state.wars = [];
   const city = foundCityAt(state, 0, at(state, 4, 4));
   const hills = [at(state, 4, 3), at(state, 5, 4)];
-  for (const tile of hills) tile.hills = true;
+  // Farmed hills since the user's nerf of 2026-09-15 (`docs/flags.md` (iiiii)):
+  // the card pays a farm on a hill, not the hill.
+  for (const tile of hills) { tile.hills = true; tile.improvement = 'farm'; }
   const desert = at(state, 3, 4);
   desert.terrain = 'desert';
   city.population = 3;
   city.workedTiles = [...hills, desert].map((tile) => ({ col: tile.col, row: tile.row }));
   const player = playerById(state, 0)!;
   const sc = player.statecraft;
-  // +2🌾 on every hills hex — a card whose whole payment is on the ground.
+  // +2🌾 on every farmed hill — a card whose whole payment is on the ground.
   const terraces = 'terracedHillsides' as (typeof ORDER_IDS)[number];
   if (!sc.orders.includes(terraces)) sc.orders.push(terraces);
   sc.slots.push({ card: terraces, sealedUntil: state.turn });

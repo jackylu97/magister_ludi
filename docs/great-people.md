@@ -305,7 +305,7 @@ notation still stands and **no row wears it**: the twelve halves the pass of
 | Villard de Honnecourt | Engineer | ◆ strong | `engineerHammers` 40⚙ × age | **Manufactory** +3⚙ | +15% production toward wonders |  |
 | Benjamin of Tudela | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold, +1 culture on every hex carrying a great person's work |  |
 | Ibn Baṭṭūṭa | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +5% culture per other empire you trade with |  |
-| Marco Polo | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per 2 hexes between the two cities |  |
+| Marco Polo | Merchant | ○ situational | `merchantGold` 60💰 × age | **Customs House** +3💰 | +1 gold per 5 hexes between the two cities |  |
 | Francesco Datini | Merchant | ◆ strong | `merchantGold` 60💰 × age | **Customs House** +3💰 | +2 gold on every hex carrying a resource, in every city with a Bank |  |
 | Subutai | General | ● defining | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | mounted units: +1 movement · +25% combat strength for mounted units |  |
 | Tomoe Gozen | General | ◆ strong | heal + `generalCombat` +3 within 2 ×5 | **Citadel** +2⚙, +8 defence, claims its ring | +15% combat strength for mounted units · +15% combat strength for ranged units |  |

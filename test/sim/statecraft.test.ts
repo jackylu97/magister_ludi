@@ -4654,7 +4654,8 @@ describe("the balance pass of 2026-08-31", () => {
       "+2 production on every hex carrying a strategic resource",
       "+2 production in your capital per military Order you have in a slot",
     ]);
-    expect(said("terracedHillsides")).toEqual(["+2 food on every hill hex"]);
+    // A farm on a hill since the user's nerf of 2026-09-15 (`docs/flags.md` (iiiii)).
+    expect(said("terracedHillsides")).toEqual(["+2 food on every hill hex with a Farm"]);
     expect(said("pilgrimRoads")).toEqual([
       "+1 faith per citizen in your capital",
       "+1 happiness per 50 banked faith (at most +5 happiness)",

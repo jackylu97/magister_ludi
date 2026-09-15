@@ -2566,14 +2566,23 @@
       "line": "green",
       "rarity": "common",
       "flavor": "The hill was made to feed us; it only needed steps.",
-      "text": "+2 food on every hill hex.",
+      "text": "+2 food on farms on hills.",
       "effects": [
         {
           "kind": "pays",
           "where": "hex",
           "food": 2,
           "on": {
-            "test": "hills"
+            "test": "all",
+            "of": [
+              {
+                "test": "improvement",
+                "improvement": "farm"
+              },
+              {
+                "test": "hills"
+              }
+            ]
           }
         }
       ]

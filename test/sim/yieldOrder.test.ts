@@ -126,8 +126,11 @@ describe('the hex is folded before the town reads it', () => {
   it('a. lands a hex bonus and the amplifier over it inside explainTileYield', () => {
     const { state, city, hexes } = bench();
     const hill = bareHill(hexes[0]!);
-    // Terraced Hillsides pays the hill; The Harvest Home pays *your Orders that
-    // give food* one more food — an engine reading the line beside it.
+    // A farm on the hill since the user's nerf of 2026-09-15 (`docs/flags.md`
+    // (iiiii)): Terraced Hillsides pays a farmed hill, not the hill.
+    hill.improvement = 'farm';
+    // Terraced Hillsides pays the farmed hill; The Harvest Home pays *your
+    // Orders that give food* one more food — an engine reading the line beside it.
     slot(state, 0, 'terracedHillsides');
     slot(state, 0, 'theHarvestHome');
 
@@ -143,8 +146,9 @@ describe('the hex is folded before the town reads it', () => {
     expect(lineOf(lines, 'Terraced Hillsides').food).toBe(2);
     expect(lineOf(lines, 'The Harvest Home').food).toBe(1);
 
-    // §2c's figure: grassland 2 → the hill overrides it to 0 → +2 → +1 = 3.
-    expect(foldTileLines(lines).food).toBe(3);
+    // §2c's figure: grassland 2 → the hill overrides it to 0 → +1 the farm →
+    // +2 the card → +1 the engine = 4.
+    expect(foldTileLines(lines).food).toBe(4);
 
     // And neither is a town line. If either had landed at step 3 the town would
     // still have banked the food — with the hex reading 0, which is the failure
@@ -160,10 +164,14 @@ describe('the hex is folded before the town reads it', () => {
     const bare = bareHill(hexes[1]!);
     mined.improvement = 'mine';
 
-    // Terraced Hillsides puts 2 food on **both** hexes as an ordinary card line.
-    // It is the trap in this test: a share taken over the hex's total would
-    // pick it up, and neither share may.
-    slot(state, 0, 'terracedHillsides');
+    // First Fruits puts 1 food and 1 gold on **both** hexes as an ordinary card
+    // line — each carries wheat. It is the trap in this test: a share taken
+    // over the hex's total would pick it up, and neither share may. (It was
+    // Terraced Hillsides until the user's nerf of 2026-09-15 made that card a
+    // farm's, and a mine and an unimproved hex can carry no farm.)
+    mined.resource = 'wheat';
+    bare.resource = 'wheat';
+    slot(state, 0, 'firstFruits');
     slot(state, 0, 'theDeepSeams'); // +100% on a mine's own entries
     slot(state, 0, 'theOldWays'); // +100% on an unimproved hex's ground
 
@@ -172,19 +180,21 @@ describe('the hex is folded before the town reads it', () => {
     // The mine pays 1⚙ and nothing else, so the share is 1⚙ and **no food** —
     // not the 2⚙ the hill pays, and not the 2🌾 the card put beside it.
     expect([worksShare.production, worksShare.food]).toEqual([1, 0]);
-    // The hex: 0🌾/2⚙ from the hill, +1⚙ the mine, +2🌾 the card, +1⚙ the share.
+    // The hex: 0🌾/2⚙ from the hill, +1🌾 the wheat, +1⚙ the mine, +1🌾/+1💰 the
+    // card, +1⚙ the share — 2🌾/4⚙.
     expect(foldTileLines(worked)).toMatchObject({ food: 2, production: 4 });
 
     const ground = explainTileYield(bare, cityContext(state, city));
     const groundShare = lineOf(ground, 'The Old Ways');
-    // The ground is the hill's own 0🌾/2⚙ (the grassland it overrode included),
-    // so the share is 2⚙ and no food — the card's 2🌾 is a line *after* the
-    // works bracket and out of reach of both shares.
-    expect([groundShare.production, groundShare.food]).toEqual([2, 0]);
-    // The hex: 0🌾/2⚙ from the hill, +2🌾 the card, +2⚙ the share. Same fold as
-    // the mined hex above, by two different routes and neither of them the
-    // card's food — which is the claim.
-    expect(foldTileLines(ground)).toMatchObject({ food: 2, production: 4 });
+    // The ground is the hill's own 0🌾/2⚙ (the grassland it overrode included)
+    // and the wheat's 1🌾 — a resource is ground — so the share is 2⚙/1🌾 and
+    // never the card's food: the card's 1🌾 is a line *after* the works bracket
+    // and out of reach of both shares.
+    expect([groundShare.production, groundShare.food]).toEqual([2, 1]);
+    // The hex: 0🌾/2⚙ from the hill, +1🌾 the wheat, +1🌾/+1💰 the card, +2⚙/+1🌾
+    // the share — 3🌾/4⚙, and the share's food is the wheat's, not the card's,
+    // which is the claim.
+    expect(foldTileLines(ground)).toMatchObject({ food: 3, production: 4 });
   });
 
   it('h. never lets a town percentage reach a hex’s fold', () => {

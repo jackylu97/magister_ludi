@@ -96,11 +96,11 @@
         {
           "id": "theMandate",
           "name": "The Mandate",
-          "text": "Melee units gain +1 combat strength and +1 movement.",
+          "text": "Melee units gain +3 combat strength and +1 movement.",
           "effects": [
             {
               "kind": "combatLine",
-              "amount": 1,
+              "amount": 3,
               "side": "both",
               "when": {
                 "test": "always"

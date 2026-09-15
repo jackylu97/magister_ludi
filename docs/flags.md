@@ -19,6 +19,24 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(iiiii) Four rulings from the Modu Chanyu playtest — BUILT** (the user,
+2026-09-15: *"marco polo needs a nerf: make it every 5 tiles instead.
+terraced hillsides needs a nerf, should read: +2 food on farms on hills.
+Let's buff taizon, +3 combat strength on melee instead of the combat bonus
+before, keep the additional movement the same. we can also make the new
+lighting/renderer the default, set to the day lighting."*). Marco Polo's
+legacy pays +1 gold per **5** hexes of route (was 2) — `data/greatPeople.json`
+`per`, the doc's row follows. Terraced Hillsides pays +2 food on a **farm on
+a hill** (was every hill hex): the hex clause is `all` of the `improvement:
+farm` test (so a terrace counts) and `hills` — `data/statecraft.json`, the
+doc's row follows. Taizong's Mandate: melee **+3** combat strength (was +1),
++1 movement unchanged — `data/leaders.json`, `docs/leaders.md`'s row follows.
+**The painted look is the default renderer, opening at day** — `artMode()` in
+`src/main.ts` returns `painted` unless `?art=toon3d` (or `sprites`/`flat`),
+and the daylight preset reads `?light=` else `day`; the harness scripts that
+name `?art=painted&light=golden` are unaffected, and every fidelity pair in
+the P-series was taken under golden, so a future pair should say which.
+
 **(hhhhh) The save format stays {config, log} — PARKED** (the user,
 2026-09-15, on the replay cost of loading: *"Lets keep the current save
 format for now."*). The hybrid — config, log and a snapshot of the final

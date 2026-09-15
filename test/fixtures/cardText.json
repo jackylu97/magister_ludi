@@ -992,8 +992,8 @@
   ],
   "terracedHillsides": [
    {
-    "raw": "+2 food on every hill hex",
-    "text": "+2 food on every hill hex"
+    "raw": "+2 food on every hill hex with a [[improvement:farm|Farm]]",
+    "text": "+2 food on every hill hex with a Farm"
    }
   ],
   "masterMasons": [
@@ -3978,8 +3978,8 @@
   ],
   "marcoPolo": [
    {
-    "raw": "+1 gold per 2 hexes between the two cities",
-    "text": "+1 gold per 2 hexes between the two cities"
+    "raw": "+1 gold per 5 hexes between the two cities",
+    "text": "+1 gold per 5 hexes between the two cities"
    }
   ],
   "francescoDatini": [
@@ -4420,8 +4420,8 @@
   ],
   "taizong": [
    {
-    "raw": "+1 combat strength for melee units",
-    "text": "+1 combat strength for melee units"
+    "raw": "+3 combat strength for melee units",
+    "text": "+3 combat strength for melee units"
    },
    {
     "raw": "melee units: +1 movement",
@@ -4602,8 +4602,8 @@
   ],
   "theMandate": [
    {
-    "raw": "+1 combat strength for melee units",
-    "text": "+1 combat strength for melee units"
+    "raw": "+3 combat strength for melee units",
+    "text": "+3 combat strength for melee units"
    },
    {
     "raw": "melee units: +1 movement",

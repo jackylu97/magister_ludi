@@ -1995,12 +1995,24 @@ function showEndTurnState(blocker: TurnBlocker | null, pause: StatecraftPause | 
 
 type ArtMode = 'toon3d' | 'painted' | 'sprites' | 'flat';
 
+/**
+ * **The painted look is the game** (the user, 2026-09-15: "we can also make
+ * the new lighting/renderer the default, set to the day lighting"). The toon
+ * diorama it grew out of stays reachable as `?art=toon3d` — the frozen 2D
+ * renderers as `?art=sprites` / `?art=flat` — for the harnesses and the study
+ * pages that still compare against it.
+ */
 function artMode(): ArtMode {
   const art = new URLSearchParams(window.location.search).get('art');
-  if (art === 'painted') return 'painted';
+  if (art === 'toon3d' || art === 'toon') return 'toon3d';
   if (art === 'sprites') return 'sprites';
   if (art === 'flat') return 'flat';
-  return 'toon3d';
+  return 'painted';
+}
+
+/** The daylight preset the painted look opens under: the sheet's `?light=`, else day. */
+function daylightChoice(): string {
+  return new URLSearchParams(location.search).get('light') ?? 'day';
 }
 
 /** Drops the canvases the chosen renderer will not draw into. */
@@ -2042,7 +2054,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     for (const [value, name] of [['morning', 'Morning'], ['day', 'Daylight'], ['golden', 'Golden hour'], ['dusk', 'Dusk']]) {
       const option = document.createElement('option'); option.value = value!; option.textContent = name!; select.append(option);
     }
-    select.value = new URLSearchParams(location.search).get('light') ?? 'golden';
+    select.value = daylightChoice();
     select.onchange = () => {
       renderer.setDaylight(select.value);
       const url = new URL(location.href); url.searchParams.set('light', select.value); history.replaceState(null, '', url);
@@ -2130,7 +2142,7 @@ async function createRenderer(
     const renderer = new Renderer3D(requireElement<HTMLCanvasElement>('layer-3d'));
     try {
       if (mode === 'painted') {
-        await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
+        await renderer.enablePaintedLook(daylightChoice());
         performance.mark('magisterludi:assets-loaded');
         // The board goes to the terrain worker here and comes back seconds
         // later, and for those seconds the main thread has nothing to do. P8's
