@@ -55,8 +55,8 @@
  *     standing near a town raises the threat term like a raider's would
  *     (`threatLevel`), because declining to notice an army is not diplomacy, it
  *     is negligence. Above zero, the warmonger's arm wakes: soldiers hunt a
- *     rival's pieces and push at their towns inside `military.huntRadius`, at
- *     exchanges loosened by the appetite (`favourableBlow`, `warMarch`).
+ *     rival's pieces and push at their towns with the campaign (`campaignPlan`),
+ *     at exchanges loosened by the appetite (`favourableBlow`, `campaignMarch`).
  *
  *     **Since P3 that appetite is gated by an actual war.** A blow against a
  *     nation this seat is at peace with is refused by `previewCombat` and a
@@ -171,6 +171,7 @@ import {
   valueOfYields,
   yieldDelta,
   yieldWeight,
+  ageBand,
 } from './value';
 import { citizenKeepTerm } from './citizen';
 import {
@@ -848,7 +849,9 @@ function garrisonWorth(
       label:
         `this empire wants ${round1(levy.wanted)} soldier${levy.wanted === 1 ? '' : 's'} and holds ` +
         `${levy.held} — ${round1(levy.standing * 100)}% of a levy already standing (${levy.note})`,
-      value: -soldier.total * levy.standing,
+      // The slope is `military.levySurplusSlope` (E1a), one knob for the three
+      // readers of the same charge; one is the old unit slope.
+      value: -soldier.total * levy.standing * ctx.ai.military.levySurplusSlope,
     },
   ]);
 }
@@ -4934,7 +4937,7 @@ function push(
  * `src/sim/` keeps and a reader of the same tables has no business breaking.
  *
  * A **settler** is a town, worth less for every town already held
- * (`expansion.cityValueFalloff`), minus the citizen it costs — and a citizen is
+ * (`expansion.cityValueFalloffByAge`), minus the citizen it costs — and a citizen is
  * no longer a flat number either (`explainCitizen`). Those two changes are what
  * make "wide" and "tall" real preferences rather than two settings of a cap.
  *
@@ -5098,7 +5101,8 @@ function unitRoleValue(
     // would be a regression nobody could see coming, so twice the levy stands as
     // the bound the old gate used to be. It is feasibility rather than taste
     // (`buildCandidates`' distinction), so it is a refusal rather than a term.
-    if (!empty && held >= 2 * wanted) return null;
+    // The multiple is `military.levyCapMultiple` since E1a; two is the old bound.
+    if (!empty && held >= ai.military.levyCapMultiple * wanted) return null;
     const soldier = explainSoldier(id, ctx);
     // **The wanted army became a value** (batch 4, the wage-aware levy). Three
     // sentences used to end in a gate: the standing army an empire this size
@@ -5133,7 +5137,9 @@ function unitRoleValue(
         label:
           `this empire wants ${round1(wanted)} soldier${wanted === 1 ? '' : 's'} and holds ` +
           `${held} — ${round1(surplus * 100)}% of a levy already standing (${levy.note})`,
-        value: -soldier.total * surplus,
+        // `military.levySurplusSlope` (E1a): how hard a standing levy charges
+        // the next piece. One is the old unit slope.
+        value: -soldier.total * surplus * ai.military.levySurplusSlope,
       },
       explainMixCraving(state, player, id, ctx),
     ];
@@ -5257,15 +5263,43 @@ function explainMixCraving(
 ): ValueTerm {
   const role = mixRoleOf(unitDef(id));
   const { counts, total } = armyMix(state, player.id);
-  const target = ctx.ai.military.mix[role] ?? 0;
+  // **Which mix, by posture** (E1a; the user's (iv), `docs/flags.md` (zzzzz)):
+  // the campaign mix while a war is planned or open on the offensive, the
+  // defend mix otherwise. The posture is `campaignPosture`'s reading of the
+  // board — the same enemy sweep the campaign plan walks — remembered nowhere.
+  const campaigning = campaignPosture(state, player, ctx);
+  const mix = campaigning ? ctx.ai.military.mixCampaign : ctx.ai.military.mixDefend;
+  const target = mix[role] ?? 0;
   const share = total === 0 ? 0 : counts[role] / total;
   return {
     label:
       `${counts[role]} of ${total} in this army ${total === 1 ? 'is' : 'are'} ${role}, ` +
-      `and the mix wants ${round1(target * 100)}% — ${round1(target * 100 - share * 100)}% of a ` +
-      `${round1(ctx.ai.military.mixBonus)}-point craving`,
+      `and the ${campaigning ? 'campaign' : 'defend'} mix wants ${round1(target * 100)}% — ` +
+      `${round1(target * 100 - share * 100)}% of a ${round1(ctx.ai.military.mixBonus)}-point craving`,
     value: ctx.ai.military.mixBonus * (target - share),
   };
+}
+
+/**
+ * **Is this seat on campaign?** — the posture the two mixes are chosen by
+ * (`explainMixCraving`), and `campaignPlan`'s own first reading asked without a
+ * piece: at war with a real empire the warscore does not say it is losing to
+ * (`war.sueFloor`), with a town of theirs to march on (`campaignTarget`). A
+ * war a seat is losing is a war it holds its towns through, which is the
+ * defend mix's whole point.
+ *
+ * Memoised on the context: the build arm asks it once per unit row per town,
+ * and the sweep behind it walks the roster twice (`armyStrength`) per rival.
+ * One reading a sitting, like the levy.
+ */
+const POSTURE_MEMO = new WeakMap<ValueContext, boolean>();
+
+function campaignPosture(state: GameState, player: Player, ctx: ValueContext): boolean {
+  const held = POSTURE_MEMO.get(ctx);
+  if (held !== undefined) return held;
+  const fresh = campaignEnemy(state, player, ctx.ai) !== null;
+  POSTURE_MEMO.set(ctx, fresh);
+  return fresh;
 }
 
 /**
@@ -5335,7 +5369,10 @@ export function explainCitizen(state: GameState, city: City, ctx: ValueContext):
   if (perPop > 0) {
     terms.push(nest('the science it makes by existing', explainYields({ science: perPop }, ctx)));
   }
-  const { smallCityPop, smallCityPremium } = ctx.ai.growth;
+  // "Small" is this age's band of `growth.smallCityPop` (E1a): a six-citizen
+  // town is grown in the first age and a hamlet in the third.
+  const smallCityPop = ageBand(ctx.ai.growth.smallCityPop, ctx.age);
+  const { smallCityPremium } = ctx.ai.growth;
   if (city.population < smallCityPop) {
     terms.push({
       label: `a small town's premium — ${city.population} citizens, under the ${smallCityPop} this seat calls small`,
@@ -6554,7 +6591,9 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   // Every blow both arms weigh is filed here, so that a piece which ends up
   // digging in can still print what it looked at — a held blow is a decision.
   const weighed: BotCandidate[] = [];
-  const blow = favourableBlow(state, player, unit, holdsWild, 0, weighed);
+  // The wild's exchange is `military.wildAggression` (E1a); nought is the old
+  // rule — dealt must beat taken, whatever the seat thinks of its neighbours.
+  const blow = favourableBlow(state, player, unit, holdsWild, ai.military.wildAggression, weighed);
   if (blow !== null) {
     return {
       command: { type: 'attack', playerId: player.id, unitId: unit.id, target: blow.at },
@@ -6588,7 +6627,7 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
     // standing beside it, clears `war.siegeExchange` instead. Everywhere else on
     // the map the seat's own temperament still decides.
     plan !== null && plan.pushing
-      ? { appetite: ai.war.siegeExchange, at: plan.target, within: 1 }
+      ? { appetite: ai.war.siegeExchange, at: plan.target, within: ai.war.siegeWithin }
       : undefined,
   );
   if (strike !== null) {
@@ -6815,7 +6854,9 @@ function favourableBlow(
     // town are what an army trades down to break, and `war.siegeExchange` is the
     // number that says how far. What a push may not do is walk melee into the
     // walls themselves, which is the clause below rather than this bar.
-    const floor = besieging ? 0 : Math.max(0, ai.military.strikeFloor);
+    // At the walls the floor is `military.siegeStrikeFloor` (E1a) — nought,
+    // the old rule, lets the siege appetite be the whole bar.
+    const floor = Math.max(0, besieging ? ai.military.siegeStrikeFloor : ai.military.strikeFloor);
     const bar = preview.damageToAttacker * Math.max(floor, 1 - appetite);
     // **The blow nobody should make** (the same ruling): a melee piece walking at
     // a town, or at a dug-in piece on ground that pays it, and coming off worse.
@@ -7247,7 +7288,8 @@ function holdsRival(state: GameState, player: Player, tile: Tile): boolean {
  * re-read from the board on every ask and remembered nowhere.
  *
  * What it replaces is the honest v1 that used to stand here: `warMarch` walked
- * each piece alone at the nearest enemy *thing* inside `military.huntRadius`,
+ * each piece alone at the nearest enemy *thing* inside a hunt radius (the
+ * `military.huntRadius` knob, retired in E1a as a dial nothing read),
  * which had three faults the user found in one sitting (2026-09-07). A target
  * chosen by where a soldier happens to be standing changes every time the
  * soldier moves, so no two pieces of one army ever agreed on where they were
@@ -7282,10 +7324,17 @@ interface Campaign {
   pushing: boolean;
 }
 
-function campaignPlan(state: GameState, player: Player, unit: Unit): Campaign | null {
-  const ai = aiFor(player);
-  if (!townsAreHeld(state, player)) return null;
-  if (!isRedundant(state, player, unit)) return null;
+/**
+ * **Whom the campaign is against, and which town** — the plan's first reading,
+ * split out (E1a) so the build arm's posture (`campaignPosture`) and the piece's
+ * plan read one sweep: the enemy whose target town is nearest this empire's
+ * ground, among the real empires this seat is at war with and not losing to.
+ */
+function campaignEnemy(
+  state: GameState,
+  player: Player,
+  ai: AiConfig,
+): { enemy: Player; target: City; distance: number } | null {
   let chosen: { enemy: Player; target: City; distance: number } | null = null;
   for (const enemy of realPlayers(state)) {
     if (enemy.id === player.id || enemy.eliminated) continue;
@@ -7299,6 +7348,14 @@ function campaignPlan(state: GameState, player: Player, unit: Unit): Campaign | 
       chosen = { enemy, target: found.city, distance: found.distance };
     }
   }
+  return chosen;
+}
+
+function campaignPlan(state: GameState, player: Player, unit: Unit): Campaign | null {
+  const ai = aiFor(player);
+  if (!townsAreHeld(state, player)) return null;
+  if (!isRedundant(state, player, unit)) return null;
+  const chosen = campaignEnemy(state, player, ai);
   if (chosen === null) return null;
   const muster = musterHex(state, player, chosen.target, unit, ai);
   if (muster === null) return null;

@@ -44,6 +44,7 @@ import {
 } from '../../src/ai/aiConfig';
 import { foldTerms } from '../../src/ai/decision';
 import { driveBots } from '../../src/ai/driver';
+import { ageBand } from '../../src/ai/value';
 import { buildImprovementPlan } from '../../src/ai/plan';
 import { type Game, createGame, dispatch, snapshotState } from '../../src/sim/game';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -126,13 +127,20 @@ describe('the persona sheet', () => {
   it('overrides what each persona says it overrides', () => {
     // The authored table, as numbers rather than as prose. These are the user's
     // to tune; what is pinned is that the merge *reaches* them.
-    expect(aiConfigFor('tall').expansion.cityValueFalloff).toBe(0.6);
-    expect(aiConfigFor('tall').expansion.cityValueFalloff).toBeLessThan(
-      aiConfigFor('wide').expansion.cityValueFalloff,
-    );
-    expect(aiConfigFor('wide').expansion.cityValueFalloff).toBeGreaterThan(
-      AI.expansion.cityValueFalloff,
-    );
+    //
+    // **Re-cut for E1a** (`docs/plans/bot-evolution.md` §2.2): the falloff is a
+    // row per age now, and each persona's is the old scalar written four times
+    // — so the pins read every band, and the six-seat 120-turn digests were
+    // byte-identical across the re-cut (the report of record).
+    for (const age of [1, 2, 3, 4] as const) {
+      expect(ageBand(aiConfigFor('tall').expansion.cityValueFalloffByAge, age)).toBe(0.6);
+      expect(ageBand(aiConfigFor('tall').expansion.cityValueFalloffByAge, age)).toBeLessThan(
+        ageBand(aiConfigFor('wide').expansion.cityValueFalloffByAge, age),
+      );
+      expect(ageBand(aiConfigFor('wide').expansion.cityValueFalloffByAge, age)).toBeGreaterThan(
+        ageBand(AI.expansion.cityValueFalloffByAge, age),
+      );
+    }
     expect(aiConfigFor('zealot').religion.prophetTechValue).toBeGreaterThan(AI.religion.prophetTechValue);
     expect(aiConfigFor('warmonger').weights.military).toBeGreaterThan(AI.weights.military);
     // The one behaviour addition, and the promise that goes with it: only the
@@ -176,14 +184,31 @@ describe('the persona sheet', () => {
     const wide = aiConfigFor('wide');
     const tall = aiConfigFor('tall');
     const warmonger = aiConfigFor('warmonger');
-    expect(wide.expansion.cityValueFalloff).toBe(1);
+    expect(wide.expansion.cityValueFalloffByAge).toEqual([1, 1, 1, 1]);
     expect(wide.weights.city).toBeGreaterThan(AI.weights.city);
-    expect(tall.expansion.cityValueFalloff).toBeLessThan(AI.expansion.cityValueFalloff);
+    for (const age of [1, 2, 3, 4] as const) {
+      expect(ageBand(tall.expansion.cityValueFalloffByAge, age)).toBeLessThan(
+        ageBand(AI.expansion.cityValueFalloffByAge, age),
+      );
+    }
     expect(tall.weights.city).toBeLessThan(AI.weights.city);
     // The new carrier: a town founded into a deficit costs a tall empire more.
     expect(tall.weights.happiness).toBeGreaterThan(AI.weights.happiness);
     expect(warmonger.weights.city).toBeGreaterThan(AI.weights.city);
-    expect(warmonger.expansion.cityValueFalloff).toBe(AI.expansion.cityValueFalloff);
+    expect(warmonger.expansion.cityValueFalloffByAge).toEqual(AI.expansion.cityValueFalloffByAge);
+    // **The rows E1a restated the personas on** hold the old scalars, band by
+    // band: wide calls a town small under six, tall under twelve, in every age.
+    expect(wide.growth.smallCityPop).toEqual([6, 6, 6, 6]);
+    expect(tall.growth.smallCityPop).toEqual([12, 12, 12, 12]);
+    // And the family lean is all ones on every sheet until the tuner's first
+    // run: the rows are infrastructure at today's defaults (the ruling of
+    // 2026-09-15), so a persona *can* say what it plays for and none yet does.
+    for (const id of PERSONA_IDS) {
+      expect({ persona: id, lean: aiConfigFor(id).wager.familyLean }).toEqual({
+        persona: id,
+        lean: { domination: 1, culture: 1, science: 1, economic: 1 },
+      });
+    }
     // And the deleted knobs are gone from every sheet, not merely from the base.
     for (const id of PERSONA_IDS) {
       const expansion = aiConfigFor(id).expansion as unknown as Record<string, unknown>;
@@ -194,8 +219,9 @@ describe('the persona sheet', () => {
         // and the search radius (a bound on compute).
         // Batch X6 (2026-09-09) added `hexOffersPriced` — a bound on how many
         // frontier hexes the book prices, not a gate on settling; it is listed
-        // here because the register reads every key of the block.
-        gates: ['cityValueFalloff', 'hexOffersPriced', 'siteSearchRadius'],
+        // here because the register reads every key of the block. E1a made the
+        // falloff a row per age (`cityValueFalloffByAge`).
+        gates: ['cityValueFalloffByAge', 'hexOffersPriced', 'siteSearchRadius'],
       });
     }
   });
@@ -218,11 +244,11 @@ describe('the persona sheet', () => {
     seat(game.state, 1).persona = 'tall';
     const wide = valueContext(game.state, seat(game.state, 0));
     const tall = valueContext(game.state, seat(game.state, 1));
-    expect(wide.ai.expansion.cityValueFalloff).toBe(aiConfigFor('wide').expansion.cityValueFalloff);
-    expect(tall.ai.expansion.cityValueFalloff).toBe(aiConfigFor('tall').expansion.cityValueFalloff);
+    expect(wide.ai.expansion.cityValueFalloffByAge).toBe(aiConfigFor('wide').expansion.cityValueFalloffByAge);
+    expect(tall.ai.expansion.cityValueFalloffByAge).toBe(aiConfigFor('tall').expansion.cityValueFalloffByAge);
     // And asking the first seat again does not answer with the second's sheet.
-    expect(valueContext(game.state, seat(game.state, 0)).ai.expansion.cityValueFalloff).toBe(
-      wide.ai.expansion.cityValueFalloff,
+    expect(valueContext(game.state, seat(game.state, 0)).ai.expansion.cityValueFalloffByAge).toBe(
+      wide.ai.expansion.cityValueFalloffByAge,
     );
   });
 
@@ -286,9 +312,9 @@ describe('the per-seat tuning sheet', () => {
       // what a persona-less seat gets.
       expect(aiConfigFor('tall', 0).weights.city).toBe(aiConfigFor('tall').weights.city);
       // …and a knob the persona is silent about inherits the seat's sheet.
-      withAiTuning({ weights: { tech: AI.weights.tech + 7 } }, () => {
-        expect(aiConfigFor('tall', 0).weights.tech).toBe(AI.weights.tech + 7);
-        expect(aiConfigFor('tall', 1).weights.tech).toBe(AI.weights.tech);
+      withAiTuning({ weights: { bead: AI.weights.bead + 7 } }, () => {
+        expect(aiConfigFor('tall', 0).weights.bead).toBe(AI.weights.bead + 7);
+        expect(aiConfigFor('tall', 1).weights.bead).toBe(AI.weights.bead);
       }, { playerId: 0 });
     }, { playerId: 0 });
   });
@@ -304,11 +330,11 @@ describe('the per-seat tuning sheet', () => {
   it('folds under the page’s own sheet rather than over it', () => {
     // The order is: the file, what the page is trying, what this seat is trying,
     // what this seat's persona says. So a knob both sheets name is the seat's.
-    withAiTuning({ weights: { tech: 100, city: 200 } }, () => {
-      withAiTuning({ weights: { tech: 300 } }, () => {
-        expect(aiConfigFor(undefined, 0).weights.tech).toBe(300);
+    withAiTuning({ weights: { bead: 100, city: 200 } }, () => {
+      withAiTuning({ weights: { bead: 300 } }, () => {
+        expect(aiConfigFor(undefined, 0).weights.bead).toBe(300);
         expect(aiConfigFor(undefined, 0).weights.city).toBe(200);
-        expect(aiConfigFor(undefined, 1).weights.tech).toBe(100);
+        expect(aiConfigFor(undefined, 1).weights.bead).toBe(100);
       }, { playerId: 0 });
     });
     expect(aiTuning()).toBeNull();

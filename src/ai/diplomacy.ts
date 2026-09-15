@@ -107,6 +107,8 @@ import {
   proposePeaceError,
 } from '../sim/diplomacy';
 import { getTileAt, tileHex, wrappedDistance } from '../sim/map';
+// The settler's own reading of a town's ground, for `war.targetValueWeight`.
+import { explainSite } from '../sim/sites';
 import { type ResourceId, resourceDef } from '../sim/resourceData';
 import type { City, GameState, Player, Unit } from '../sim/state';
 import { playerById, realPlayers } from '../sim/state';
@@ -393,6 +395,8 @@ interface WarStanding {
   ahead: boolean;
   /** Its army advantage no longer clears the bar it would have declared at. */
   outArmed: boolean;
+  /** Towns taken since this war began — `war.goalTowns`' count (E1a). */
+  won: number;
   /** The lines, for the feed. */
   terms: ValueTerm[];
   /** The sentence a decision prints. */
@@ -422,8 +426,11 @@ function explainStanding(
   return {
     ratio,
     bleeding: ours > 0 && ratio >= ai.war.peaceExchange,
-    ahead: theirs > ours,
+    // **By `war.aheadMargin`** (E1a): one is the old strict comparison; above
+    // one the seat wants a clearer lead before it calls the exchange its own.
+    ahead: theirs > ours * Math.max(0, ai.war.aheadMargin),
     outArmed: !advantage.clears,
+    won: exchange === null ? 0 : exchange.won,
     note,
     terms: [
       {
@@ -769,10 +776,23 @@ function peaceDecision(
     // because either alone is a seat that sues the moment it loses a skirmish.
     const standing = explainStanding(state, player, enemy, ai);
     const bleeding = standing.bleeding && standing.outArmed;
-    if (score.total < ai.war.sueFloor || bleeding) {
-      // Losing badly enough to bring coin: the tribute is the score, priced.
+    // **The war's goal** (E1a, `war.goalTowns`): a seat that has taken as many
+    // towns as it set out for, and is still ahead on the exchange, puts a white
+    // peace up rather than fighting until the exchange turns — the audit's
+    // finding that a winning seat had no reason to stop. Nought is no goal.
+    const goalMet =
+      ai.war.goalTowns > 0 && standing.won >= ai.war.goalTowns && standing.ahead;
+    if (score.total < ai.war.sueFloor || bleeding || goalMet) {
+      // Losing badly enough to bring coin: the tribute is the score, priced —
+      // capped at `war.tributeShare` of the treasury (E1a; one is the whole purse).
+      // **Not floored**, deliberately: a treasury is fractional in this game
+      // (yields land whole, but a refund or a windfall can leave a tenth), the
+      // rule accepted the whole fractional purse as a lump before this row
+      // existed, and a floor here moved the standard-board digest — `× 1` is
+      // bit-exact only if nothing else is done to it.
+      const purse = player.gold * Math.max(0, ai.war.tributeShare);
       const tribute =
-        score.total < ai.war.tributeFloor ? Math.min(player.gold, Math.floor(owed)) : 0;
+        score.total < ai.war.tributeFloor ? Math.min(purse, Math.floor(owed)) : 0;
       const offered =
         tribute > 0 ? { give: { gold: tribute } as DealTerms, take: {} as DealTerms } : undefined;
       const refusal = proposePeaceError(state, player.id, enemy.id, offered);
@@ -805,9 +825,12 @@ function peaceDecision(
             ? `Sues the ${seatPeople(state, enemy.id)} for peace: ${standing.note}, and the army that would ` +
               `march no longer clears the bar this seat declares at` +
               (tribute > 0 ? `, so ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.')
-            : `Sues the ${seatPeople(state, enemy.id)} for peace: the war reads ${round1(score.total)} for this ` +
-              `empire, under the ${ai.war.sueFloor} it sues at` +
-              (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
+            : goalMet && score.total >= ai.war.sueFloor
+              ? `Offers the ${seatPeople(state, enemy.id)} a white peace: ${standing.won} town${standing.won === 1 ? '' : 's'} ` +
+                `taken this war is the ${ai.war.goalTowns} this seat set out for, and the exchange is still its own.`
+              : `Sues the ${seatPeople(state, enemy.id)} for peace: the war reads ${round1(score.total)} for this ` +
+                `empire, under the ${ai.war.sueFloor} it sues at` +
+                (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
         };
         continue;
       }
@@ -1387,16 +1410,20 @@ export function explainDeclaration(
   // is all garrison has no advantage over anybody, whatever the roster says.
   const mine = fieldedStrength(force);
   const wanted = Math.max(1, ai.war.strikeForce);
+  // **The train** (E1a, `war.siegePiecesWanted`): how many of the spare pieces
+  // must shoot or lay siege. One is the old clause — a single bow sufficed.
+  const trainWanted = Math.max(0, ai.war.siegePiecesWanted);
   const forceTerm: ValueTerm = {
     label:
       `${force.spare} of ${force.soldiers.length} soldiers are spare of the garrisons ` +
       `(${wanted} wanted for a strike force)` +
       (force.siege === null
-        ? ', and none of them shoots or lays siege'
-        : `, and ${unitDef(force.siege.type).name} is with them`),
+        ? `, and none of them shoots or lays siege (${trainWanted} wanted)`
+        : `, and ${force.sieges} of them shoot${force.sieges === 1 ? 's' : ''} or lay${force.sieges === 1 ? 's' : ''} siege — ` +
+          `${unitDef(force.siege.type).name} among them (${trainWanted} wanted)`),
     value: 0,
   };
-  const hasForce = force.spare >= wanted && force.siege !== null;
+  const hasForce = force.spare >= wanted && force.sieges >= trainWanted;
   const rows: BotCandidate[] = [];
   const clear: { enemy: Player; score: number; target: City; distance: number; row: number }[] = [];
 
@@ -1415,7 +1442,8 @@ export function explainDeclaration(
     const piled = warsAgainst(state, enemy.id) >= Math.max(1, ai.war.dogpileSeats);
     const theirs = piled ? Math.max(standing, raisedStrength(enemy)) : standing;
     const ratio = mine / Math.max(1, theirs);
-    const appraisal = appraise([
+    const reach = nearestTownInReach(state, player, enemy, ai);
+    const lines: ValueTerm[] = [
       {
         label:
           `our ${round1(mine)} marching strength against their ${round1(theirs)}` +
@@ -1423,8 +1451,25 @@ export function explainDeclaration(
         value: ratio,
       },
       { label: `× ${round1(appetite)} — this seat's appetite for a fight`, value: appetite, op: 'mul' },
-    ]);
-    const reach = nearestTownInReach(state, player, enemy, ai);
+    ];
+    // **What the war would gain** (E1a, `war.targetValueWeight`): the target
+    // town's ground, read by the settler's own appraisal (`explainSite`) against
+    // `weights.city`, so a rich neighbour is a dearer target than a poor one at
+    // the same ratio. Off at nought — and not asked then, since the site
+    // reading is a ring walk — so today's ratio-only order prints unchanged.
+    if (reach !== null && ai.war.targetValueWeight > 0) {
+      const tile = getTileAt(state.map, reach.city.col, reach.city.row);
+      const worth = tile ? explainSite(state, player.id, tile).total : 0;
+      const lift = 1 + ai.war.targetValueWeight * (worth / Math.max(1, ai.weights.city));
+      lines.push({
+        label:
+          `× ${round1(lift)} — ${reach.city.name}'s ground reads ${round1(worth)} against the ` +
+          `${round1(ai.weights.city)} a town is worth, at a weight of ${ai.war.targetValueWeight}`,
+        value: lift,
+        op: 'mul',
+      });
+    }
+    const appraisal = appraise(lines);
     const terms: ValueTerm[] = [
       { label: 'the army advantage, with appetite', value: appraisal.total, parts: appraisal.terms },
       {
