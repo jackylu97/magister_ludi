@@ -19,44 +19,6 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
-**(bbbbb) Pachacuti's Terraces are a farm, not a hall — RULED, L8** (the user,
-2026-09-14, playtesting Pachacuti: *"originally, i was imagining that terraces
-would be a unique farm, not a building in the city. It would have +1 food
-compared to a regular farm, and could be built adjacent to mountains (not
-just flat tiles and freshwater). Could we change that? no need for a separate
-graphical change for now"*). **Today** `terraces` is a leader-unique
-*building* (L3c: a `townTerraces` hills waiver on the farm plus +1 food on
-the town's hill farms). **L8 builds**: `terraces` becomes a leader-unique
-**improvement** — a farm of its own row in `data/improvements.json`: the
-farm's fields and worker charge, **food 2** (one more than a farm), placeable
-wherever a farm is *and* on hills *and* on any hex **adjacent to a mountain**
-(the mountain foot waives the flat-ground and freshwater rules; the terrain
-still has to be one a farm can stand on — grassland, plains, or the farm's
-freshwater terrains); it **counts as a farm** wherever the rules read farms
-(Pachacuti's own gold-per-mountain line, Irrigation's upgrade, Akhenaten's
-fresh-water faith, the Tetzcotzinco, the Dikes — one marker on the row,
-e.g. `countsAs: 'farm'`, read by the `improvement` test and the upgrade
-walk, never a name compared); it opens **for Pachacuti's seat alone**
-(`unlockedByLeader` on the improvement row and a `leaderOpensImprovement`
-gate beside the unit's and the building's, asked where the worker's menu and
-the reducer ask `requiresTech`); the seat's worker offers it beside the farm.
-**The shape**: `LeaderDef` gains `improvement?` and `building` becomes
-optional — Pachacuti's fourth line is the Terraces improvement and he has no
-unique building for now (the Qollqa stays benched; ▢ the user may give him
-one later); the landing face and the Your Civ sheet print "unique
-improvement" for that line; `docs/leaders.md`'s "The thirteen" table follows
-(the sync test reads the column by kind). **Retire** the `terraces` building
-row and the `townTerraces` waiver (L3c) — nothing else used them. **No new
-graphic**: the terrace draws as a farm in both renderers (the painted works
-recipe and the native improvement layer map `terraces` to the farm's look;
-the Compendium's silhouette too). Pins: a Pachacuti worker may build a
-terrace on a bare hill and on a dry mountain-foot hex where a farm is
-refused, and a rival's worker may not; a terrace pays two food and takes
-Irrigation's upgrade like a farm; the gold-per-mountain line pays on it; the
-building row is gone from every pool; doc ↔ data; a replay pin (schema
-stays 115 — nothing has landed since the stack; this is a rules change and
-the changelog says so).
-
 
 **(aaaaa) The painted renderer's performance pass — RULED, P-series** (the
 user, 2026-09-14: *"i've had astra also document what it thinks are the
