@@ -258,6 +258,27 @@ three's `defaultAttributeValues` path and on the BUMPMAP_UV macro's name
 (pinned); a second uv-reading map on the merged land would read (0,0)
 silently; the works guard asks resource visibility once a row (an empire
 fact today; a per-hex reveal rule must undo it).
+**Landed — P9** (2026-09-15): a unit pick tests each instance's own
+sphere before the triangle cast and walks the scene minus lights and unit
+visuals (a body pick 6.9 → 4.8 ms, p95 halved; the same 28 picked and 11
+blocked, id for id); `mergedDetails` stops receiving shadows (0 pixels at
+both zooms) while the **water keeps receiving** — turning it off moved
+634 pixels, a headland's shadow across a river, so the audit's cheapest
+row is declined by measurement; the settlement kit ships as
+`settlements-1.bundle` through P4's contract (28 requests → 1, 60 → 12
+ms, +84 KB gzipped, `--check` in core); the shadow toggle writes its flag
+over the works, sites, cities, roads and territory batches P3 retains
+instead of forcing rebuilds (the setting leaves their batch keys; toggled
+off now darkens the props and ribbons that used to keep casting — 45 px);
+the study page uploads the grains one-channel. Six pairs at 0.000%.
+**The climbing bake count is not a leak**: `shadowBakes` is a running
+total the look keeps across restarts; games two and three bake less than
+the first. **Sacrifices kept**: a future detail material not flush with
+the ground would not receive a shadow (pinned per family); the lens and
+the marginalia still occlude a pick (a picking change, not taken);
+picking holds ~16 B a slot of sphere cache; a cold settlement fallback is
+one round trip slower; `paintedCities` takes the toggle twice (both
+reuses); a sixth retained layer must join `setShadows`' list by hand.
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between
