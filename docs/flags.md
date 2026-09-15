@@ -19,6 +19,29 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(rrrrr) The Khopesh upgrades into the Legionary — BUILT** (the user,
+2026-09-15: *"khopesh should upgrade into legionary"*). `upgradesTo` on the
+row: it went straight to the Longswordsman, skipping the rung every other
+sword climbs; the roster doc is re-printed.
+
+**(sssss) Combat odds at a distance — RULED, U1, after M1** (the user,
+2026-09-15: *"the unit overview should show the combat odds regardless of
+movement/adjacency, players need a way to compare strength without
+marching their units into combat."*). Today the forecast — both sides'
+strength and the damage each would take, `planCombat`'s own reading — shows
+only when a selected piece hovers an enemy it could strike this turn
+(adjacent, or in range, with movement). Rule: with a piece selected, hovering
+**any** enemy piece or town in sight shows the same forecast as if the two
+were adjacent on the target's own hex — the ground the target stands on,
+its fortification, the general's aura, the waterline's refusals printed as
+refusals, with a plain line saying it is a comparison and not an order
+("out of reach — a comparison"); the right-click still refuses what
+`attackError` refuses. One reading (`forecastAt` or its existing name in
+`src/ui/controls.ts`), the card's tint says which. Pins in `test/ui/`: a
+forecast for an enemy three hexes off equals the forecast the same pair
+would get adjacent, less nothing; the order is still refused; the line
+prints. Waits for M1 (in `controls.ts` for the swap's card and tint).
+
 **(qqqqq) The culture and great-person ladders climb a fifth slower — BUILT**
 (the user, 2026-09-15: *"tune down the scaling of the culture tiers and the
 great people tiers by ~20% (the initial values are fine, but they get

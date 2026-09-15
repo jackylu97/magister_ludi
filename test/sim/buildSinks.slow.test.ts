@@ -145,8 +145,11 @@ describe('what the pass did to the opening', () => {
     });
     const turns = (id: 'scout' | 'warrior' | 'worker'): number =>
       Math.ceil(unitProductionCost(priced.state, 0, id) / median);
-    expect(turns('scout')).toBe(4);
-    expect(turns('warrior')).toBe(4);
+    // The soldiers pay `Soldier +50%` since the user's ruling of 2026-09-15
+    // (`docs/flags.md` (mmmmm)): fifteen light hammers over three and a third
+    // is a fifth turn; the worker, a civilian, keeps its four.
+    expect(turns('scout')).toBe(5);
+    expect(turns('warrior')).toBe(5);
     expect(turns('worker')).toBe(4);
   }, 60_000);
 });

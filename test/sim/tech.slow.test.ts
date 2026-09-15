@@ -174,12 +174,16 @@ describe('pacing', () => {
     // and the warrior are `light` pieces opened at the first column, so what
     // they cost is the light base itself — the anchor is now one number in
     // `data/rules.json` rather than two figures on two rows.
-    expect(unitRosterCost('scout')).toBe(RULES.production.unitSizeHammers.light);
-    expect(unitRosterCost('warrior')).toBe(RULES.production.unitSizeHammers.light);
-    // Four turns, at the re-measured median of 3 and at the writ's 3.3 alike:
-    // ten light hammers over three and a third is still a fourth turn, so the
-    // rung moved the reading without moving the opening's shape.
-    expect(Math.ceil(unitRosterCost('warrior') / median)).toBe(4);
+    // — plus the soldier's line since the user's ruling of 2026-09-15
+    // (`docs/flags.md` (mmmmm)): half again over the sized figure, floored.
+    const light = RULES.production.unitSizeHammers.light;
+    const soldier = light + Math.floor((light * RULES.production.militaryPercent) / 100);
+    expect(unitRosterCost('scout')).toBe(soldier);
+    expect(unitRosterCost('warrior')).toBe(soldier);
+    // Five turns, at the re-measured median of 3 and at the writ's 3.3 alike:
+    // fifteen light hammers over three and a third is a fifth turn, one more
+    // than the ten of the opening the standard was pinned on.
+    expect(Math.ceil(unitRosterCost('warrior') / median)).toBe(5);
   }, 30_000);
 
   it('turns a fresh capital into a scout at exactly its own rate', () => {
@@ -373,8 +377,10 @@ describe('pacing', () => {
       firstBuild.turns,
     );
     expect(unitProductionCost(game.state, 0, 'settler')).toBe(rung(2));
-    // The settler is the expensive end of the opening scale: a real multiple of
-    // what the scout costs, whatever the capital's roll.
-    expect(first).toBeGreaterThanOrEqual(unitProductionCost(game.state, 0, 'scout') * 2);
+    // The settler is the expensive end of the opening scale, whatever the
+    // capital's roll — dearer than the scout, which since the soldiers' surcharge
+    // of 2026-09-15 (`docs/flags.md` (mmmmm)) costs fifteen against its
+    // twenty-eight rather than ten.
+    expect(first).toBeGreaterThan(unitProductionCost(game.state, 0, 'scout'));
   }, 30_000);
 });

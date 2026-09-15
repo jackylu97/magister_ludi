@@ -146,7 +146,7 @@ column, which is carried through every regeneration.
 | The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | needs improved Horses |  |
 | Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | needs improved Horses |  |
 | The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | needs improved Horses |  |
-| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Longswordsman | needs improved Iron |  |
+| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Legionary | needs improved Iron |  |
 | Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 151 | — | — | — | — |  |
 | The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 27 | — | — | Spear Wall | — |  |
 | The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 198 | — | — | — | needs improved Horses |  |
