@@ -99,3 +99,6 @@ wow honey is broken, probably needs a rework  [done 8/26 — it was the farm-ove
 - turn crowding back on, the effect should be noticeable at 15 pop, something to overcome at 20 pop, and almost debilitating (but playable) at 30 pop.
 - gold is way too strong. Gold costs need to be 2x across the board. FOr the sake of bonuses, keep the conversion at 2:1 between gold and other yields, but becuase gold is so flexible we need to nerf it quite hard.
 - 
+## 2026-09-15 — the first logged victory
+
+- **The Magnum Opus closed on turn 164** (the user, on the build before Astra's diplomacy redesign landed — `0af2fad`), playing Nezahualcoyotl: tall, science first, with a little faith and the wonders. The first full game recorded from press to Opus; the score V1 builds (`docs/flags.md` (uuuuu)) is calibrated against it — a turn-164 tall science win is the reference a score of that shape should read as strong.
