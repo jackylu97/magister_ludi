@@ -24,6 +24,36 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(ttttt) A recommended site in the settler lens — RULED, S1** (the user,
+2026-09-15: *"could we implement a map icon for recommended city settlement
+locations, like in civ? hovering over it should give some indicator (we
+recommend you build a city here - access to X luxuries, the yields are
+good, etc). It should only appear in the settler lens."*). The bot already
+appraises sites (`src/ai/`'s expansion rows: `expansion.siteSearchRadius`,
+the site's yields, luxuries, fresh water, the falloff from the capital) —
+**one reading, shared**: `explainSite(state, playerId, tile)` returns a
+labelled list (rule 5's shape — the luxuries it would reach, the fresh
+water, the worked yields of its ring, the coast, the distance from the
+nearest own town, the hills), `foldSite` its one figure, and `readSites`
+the memo in `readings.ts` — the bot's own site appraisal re-based on it so
+the icon and the bot agree about what a good site is (the bot's decisions
+may move; digests re-taken, said so). The lens: with a settler selected
+(the settler lens is what shows when a settler is selected today — the
+founding preview), the top few sites in the seat's charted ground within
+reach (a knob, `ui.recommendedSites` ≈ 3, and a floor on the figure) draw
+a marker in the tile atlas (path data, the atlas discipline; a new mark
+joins the flair gallery in the same pass) on the hex, visible only in that
+lens and only where `foundingErrorAt` is null. Hovering the marker prints
+the list in plain words — "A good site: three luxuries in reach (Silk,
+Wine, Gems), fresh water, strong food" — through the sticky info card;
+clicking it does nothing a click on the hex would not. Fog: a site is
+recommended only on charted hexes and never on ones the seat cannot see
+the yields of (rule 5's ctx). Pins: the reading's list, the fold, the memo
+on the revision, the lens shows the marker only with a settler selected,
+the words print, no marker on an unfoundable hex; the P-series pixel pair
+unchanged at turn one with nothing selected. The bot's arena averages
+before/after in the report if its appraisal was re-based.
+
 **(sssss) Combat odds at a distance — RULED, U1, after M1** (the user,
 2026-09-15: *"the unit overview should show the combat odds regardless of
 movement/adjacency, players need a way to compare strength without
@@ -74,7 +104,7 @@ today, so every bot is named. Two figures on one board are refused at setup
 already (one figure a seat), so names are unique. Docs: the README's UI
 paragraph; the changelog says no state moved.
 
-**(ooooo) Passing, swapping, and no toll from a friend — RULED, M1** (the
+**(ooooo) Passing, swapping, and no toll from a friend — BUILT, M1** (2026-09-15: `TransitField` classifies a piece as a foreign town, a hostile soldier, a hostile civilian or a peaceful piece, once for the hoisted sweep and the fallback walk; `canTransit` refuses only the hostile soldier, `canStopOn` refuses resting on a peaceful piece; `zocField` counts only seats at war — pieces, towns and the Great Wall's borders; `planSwap` is the one reading of a swap, asked by the highlight and the reducer, and `swapPlaces` walks the mover then the sitter through `advanceAlongPath`, both arrivals through `arriveOnTile`; a `moveUnit` onto the friend's hex is the whole order, schema 116, the changelog saying a stored march now walks under the new rules; the info card prints "Swap with Spearman", the swap hex wearing the ordinary move tint until a tint of its own exists (U1's row). The bots take different roads: both 120-turn digests and the ranged-board pins re-taken with the measured reason. **Sacrifices kept**: a neighbour's column no longer corks a pass and its picket costs nothing until a declaration — the Great Wall buys nothing at peace; a swap spends both pieces' turns, breaks both trenches and drops the sitter's standing order, with the card's line the whole warning; a swap is never a standing order; `reachableTiles` may run one A* per own-soldier hex in the highlight; `walkFitsThisTurn` is a fifth reader of `stepCost`. **For W1**: the bots inherit the pass and the free picket through `canTransit`/`canStopOn` but cannot see the swap — `wants.ts`'s step-the-garrison-aside search is the case it would solve.) Originally: (the
 user, 2026-09-15: *"units should be able to 'move past' units that are
 blocking them if they have enough movement (i.e. the unit has enough
 movement to get to a tile as if the unit blocking wasn't there), this
