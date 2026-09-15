@@ -634,6 +634,14 @@ body {
   opacity: 0.82;
 }
 
+/* Continue naming a save this build's rules will not replay. The verb stays —
+   the press is still allowed, and it now says why on the sheet — but the line
+   under it counts nothing and says so in the one ink refusals wear. */
+#continue-game.is-refused .landing-menu-sub {
+  color: var(--vermilion);
+  opacity: 1;
+}
+
 .landing-key {
   flex: 0 0 auto;
   font-family: var(--face-num);
@@ -707,6 +715,22 @@ body {
   font-size: 10.5px;
   white-space: nowrap;
   color: var(--ink-soft);
+}
+
+/* A save this build's rules will not replay (docs/flags.md (yyyyy)). The row
+   stays, and stays pressable — it is still the player's game, and it is not this
+   screen's business to decide it is gone — but it reads as spent, and its right
+   half says why instead of counting turns. */
+.landing-shelf-row.is-refused .landing-shelf-who {
+  color: var(--ink-faint);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.landing-shelf-row.is-refused .landing-shelf-when {
+  color: var(--vermilion);
+  font-variant-caps: small-caps;
+  letter-spacing: 0.04em;
 }
 
 /* --- the world step's mode switch ---
@@ -15724,7 +15748,9 @@ body.compendium-page {
        is never the target of a press. `modalShell.ts` closes a sheet on a press
        on the ground around the paper, and this is the one sheet that must not
        close — there is no Cancel yet, so a dismissed loading report would leave
-       the player watching a blank board with nothing to ask.
+       the player watching a blank board with nothing to ask. (It stays covered
+       when the sheet turns into a refusal: a refusal has its own way out and a
+       stray press beside the paper is not it.)
 
    Every figure on it is tabular (the specimen's rule): "turn 84 of 121" must
    not twitch as it counts.
@@ -15826,4 +15852,42 @@ body.compendium-page {
   height: 100%;
   background: var(--y-prod);
   transition: width 120ms linear;
+}
+
+/* A load that will not finish (docs/flags.md (yyyyy)).
+
+   The stage list is replaced rather than joined: nothing further is going to
+   happen, and four stages that will never be reached are four lines the player
+   has to read past to find the one that matters. */
+.loading-refusal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.loading-refusal-sentence {
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+
+/* Where the walk stopped, in the mono voice everything technical on this
+   interface wears — it is here to be carried to whoever can fix the file, and it
+   must not compete with the sentence above it. `anywhere` because a reducer's
+   refusal can be one long unbroken name. */
+.loading-refusal-detail {
+  margin: 0;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.loading-refusal-out {
+  align-self: flex-end;
 }
