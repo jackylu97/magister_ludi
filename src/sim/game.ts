@@ -93,6 +93,23 @@ export type ReplayResult =
   | { ok: false; failure: ReplayFailure };
 
 /**
+ * Told how far the walk has got, **once per turn the log crosses into** — never
+ * once per command.
+ *
+ * A loading sheet has to say something true while a save a hundred turns deep
+ * replays, and the honest unit is the turn: a player knows what turn 84 of 121
+ * means and has no idea what command 4,407 of 4,900 means. Per-turn is also the
+ * only rate worth sending across a worker seam — a message per command is four
+ * thousand messages of noise.
+ *
+ * It is an *observer*, and the rule that keeps replay deterministic is that it
+ * is handed numbers and nothing else: there is no state to reach, so nothing it
+ * does can change the walk. `test/ui/gameLoader.test.ts` pins that the state is
+ * byte-identical with a watcher and without one.
+ */
+export type ReplayWatcher = (turn: number, commandIndex: number) => void;
+
+/**
  * Rebuilds a state from scratch, reporting a rejected command rather than
  * throwing on it.
  *
@@ -107,8 +124,16 @@ export type ReplayResult =
  * A bad *config* still throws — from `newGame`, which validates it — because
  * that is not a command the log got wrong, it is a game that cannot be built.
  */
-export function tryReplay(config: GameConfig, log: readonly Command[]): ReplayResult {
+export function tryReplay(
+  config: GameConfig,
+  log: readonly Command[],
+  onTurn?: ReplayWatcher,
+): ReplayResult {
   const state = newGame(config);
+  // The turn the walk is standing on. Reported when it changes, and once at the
+  // start so a caller has a number to print before the first end of turn.
+  let turn = state.turn;
+  onTurn?.(turn, -1);
   for (let i = 0; i < log.length; i++) {
     const command = log[i]!;
     const result = applyCommand(state, command);
@@ -117,6 +142,10 @@ export function tryReplay(config: GameConfig, log: readonly Command[]): ReplayRe
         ok: false,
         failure: { index: i, type: String(command.type), error: result.error },
       };
+    }
+    if (state.turn !== turn) {
+      turn = state.turn;
+      onTurn?.(turn, i);
     }
   }
   return { ok: true, state };
