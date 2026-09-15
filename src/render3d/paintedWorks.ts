@@ -6,6 +6,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { GameState } from '../sim/state';
 import type { ResourceId } from '../sim/resourceData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/improvementData';
 import { visibleResourceAt } from '../sim/tech';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
 import { type FogLevels, levelAt } from './fog3d';
@@ -24,11 +25,24 @@ export const PAINTED_WORK_ASSET_NAMES = [
   'horse', 'cattle', 'bison', 'deer', 'elephant', 'beaver',
   'house', 'mine', 'camp', 'quarry', 'resource-shrub', 'fishing-boat',
 ] as const;
-export const PAINTED_WORK_IMPROVEMENTS = [
+/** The rows this layer has a recipe drawn for. One name, one composition. */
+const DRAWN_WORK_IMPROVEMENTS = [
   'farm', 'mine', 'pasture', 'camp', 'quarry', 'plantation', 'lumbermill', 'fishingBoats',
   'academy', 'landmark', 'manufactory', 'customsHouse', 'citadel', 'holySite',
 ] as const;
-type CoreImprovement = typeof PAINTED_WORK_IMPROVEMENTS[number];
+type CoreImprovement = typeof DRAWN_WORK_IMPROVEMENTS[number];
+/**
+ * Every row this layer takes responsibility for — the drawn ones above, and any
+ * row that **stands in** for one of them (`ImprovementDef.countsAs`).
+ *
+ * Derived rather than listed, so the native improvement layer skips exactly what
+ * this one draws: the renderer builds its "already painted" set out of this, and
+ * a variant missing from it would be drawn twice, once in each style. See
+ * `improvementAt`, which is where a stand-in becomes the row it stands in for.
+ */
+export const PAINTED_WORK_IMPROVEMENTS: readonly ImprovementId[] = IMPROVEMENT_IDS.filter(
+  (id) => (DRAWN_WORK_IMPROVEMENTS as readonly string[]).includes(improvementBaseRow(id)),
+);
 export type PaintedWorksAssets = { material: MeshStandardMaterial } & Record<typeof PAINTED_WORK_ASSET_NAMES[number], BufferGeometry>;
 export interface PaintedWorksOptions { suppressed?: ReadonlyMap<number, SuppressScope> }
 export interface PaintedWorksEntry {
@@ -58,9 +72,21 @@ type Recipe = {
 type PropBatch = { geometry: BufferGeometry; material: MeshStandardMaterial; props: Prop[]; cells: number[] };
 type PatchBatch = { material: MeshStandardMaterial; geometries: BufferGeometry[]; cells: number[] };
 const up = new Vector3(0, 1, 0);
-const core = new Set<string>(PAINTED_WORK_IMPROVEMENTS);
-const improvementAt = (tile: Tile): CoreImprovement | undefined =>
-  tile.improvement && core.has(tile.improvement) ? tile.improvement as CoreImprovement : undefined;
+const core = new Set<string>(DRAWN_WORK_IMPROVEMENTS);
+/**
+ * Which recipe a hex's works are drawn from — **the row it stands in for**.
+ *
+ * The one lookup a variant row needs anywhere in this layer (batch L8, the
+ * user: *"no need for a separate graphical change for now"*): a terrace comes
+ * back as a farm here, so the recipe, the fingerprint and the renderer's own
+ * footprint reservation all read the sculpt that is actually on the hex without
+ * any of them learning a second name.
+ */
+const improvementAt = (tile: Tile): CoreImprovement | undefined => {
+  if (!tile.improvement) return undefined;
+  const drawn = improvementBaseRow(tile.improvement);
+  return core.has(drawn) ? drawn as CoreImprovement : undefined;
+};
 const resourceAt = (state: GameState, seat: number | null, tile: Tile): ResourceId | null =>
   seat === null ? tile.resource ?? null : visibleResourceAt(state, seat, tile);
 

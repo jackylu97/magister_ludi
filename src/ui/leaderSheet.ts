@@ -39,6 +39,8 @@ import type { CardClause } from '../sim/statecraft';
 import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
 import { readEmpire } from '../sim/readings';
 import { isUnlocked } from '../sim/tech';
+import { improvementOpenTo } from '../sim/improvements';
+import type { ImprovementId } from '../sim/improvementData';
 import { type GameState, playerById } from '../sim/state';
 import { CITY_YIELD_KEYS, type CityYieldKey } from '../sim/resourceData';
 import {
@@ -75,6 +77,14 @@ export const LEADER_PLAIN_SEAT =
 
 /** What a unique's line says once the seat may raise it. */
 export const LEADER_UNIQUE_OPEN = 'Yours to raise, in any city that may build its kind.';
+
+/**
+ * The same sentence for a unique that is **ground** rather than a building
+ * (batch L8): nobody raises a terrace in a city, a worker cuts one into a
+ * hillside, and telling a player to look in a build list would send them to a
+ * menu it will never be on.
+ */
+export const LEADER_UNIQUE_OPEN_GROUND = 'Yours to cut, on any of your hexes its ground will take.';
 
 /** One line of the leader's ledger: what pays, what it reads, what it is worth. */
 export interface LeaderLedgerLine {
@@ -258,13 +268,25 @@ export function leaderAbilityRows(state: GameState, playerId: number): LeaderAbi
 export function leaderUniqueRows(state: GameState, playerId: number): LeaderUniqueRow[] {
   const face = faceOf(state, playerId);
   if (!face) return [];
-  return [face.unit, face.building].map((row) => {
-    const open = isUnlocked(state, playerId, row.kind, row.id);
+  return face.uniques.map((row) => {
+    // **The gate each kind owns.** A soldier and a hall are queue rows and
+    // `isUnlocked` answers for them; a work of the ground is not a queue row at
+    // all, so its two questions — does this seat's figure name it, has its own
+    // technology come — are asked of the function that owns them
+    // (`improvementOpenTo`, batch L8) rather than of a third reading here.
+    const open =
+      row.kind === 'improvement'
+        ? improvementOpenTo(state, playerId, row.id as ImprovementId)
+        : isUnlocked(state, playerId, row.kind, row.id);
     return {
       ...row,
       word: LEADER_ROW_WORD[row.kind as LeaderRowKind],
       open,
-      note: open ? LEADER_UNIQUE_OPEN : `Not yet — it comes ${row.opens}.`,
+      note: open
+        ? row.kind === 'improvement'
+          ? LEADER_UNIQUE_OPEN_GROUND
+          : LEADER_UNIQUE_OPEN
+        : `Not yet — it comes ${row.opens}.`,
     };
   });
 }

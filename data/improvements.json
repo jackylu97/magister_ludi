@@ -49,14 +49,57 @@
       "requiresHills": false,
       "hillsIf": [
         "freshwater",
-        "ownResource",
-        "townTerraces"
+        "ownResource"
       ],
       "improvesResource": [
         "wheat",
         "rice",
         "maize"
       ],
+      "clearsClutter": true,
+      "upgrades": [
+        {
+          "tech": "irrigation",
+          "requiresFreshwater": true,
+          "add": {
+            "food": 1,
+            "production": 0,
+            "gold": 0
+          }
+        }
+      ]
+    },
+    "terraces": {
+      "name": "Terraces",
+      "emoji": "🌱",
+      "chargeCost": 1,
+      "requiresTech": "agriculture",
+      "yields": {
+        "food": 2,
+        "production": 0,
+        "gold": 0
+      },
+      "validTerrain": [
+        "grassland",
+        "plains"
+      ],
+      "freshwaterTerrain": [
+        "desert",
+        "tundra",
+        "snow"
+      ],
+      "validFeatures": [
+        "none",
+        "floodplain"
+      ],
+      "mountainFoot": true,
+      "improvesResource": [
+        "wheat",
+        "rice",
+        "maize"
+      ],
+      "countsAs": "farm",
+      "unlockedByLeader": true,
       "clearsClutter": true,
       "upgrades": [
         {

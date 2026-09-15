@@ -18,13 +18,19 @@
  *     requiresHills    the tile's `hills` flag must equal this      (optional)
  *     requiresResource the tile must carry one of these resources   (optional)
  *
- * with **three** seams in the AND, and every one of them *widens* a filter
+ * with **four** seams in the AND, and every one of them *widens* a filter
  * rather than adding one: `freshwaterTerrain`, which widens `validTerrain` on
  * ground that can drink; `hillsIf`, which waives `requiresHills` on ground that
- * has a reason; and `adjacentImprovement`, which widens `validTerrain` on ground
- * whose *neighbour* gives it a reason. See the fields — the farm is the only
- * user of the first two and the reason both exist, and the floating gardens are
- * the third's.
+ * has a reason; `adjacentImprovement`, which widens `validTerrain` on ground
+ * whose *neighbour* gives it a reason; and `mountainFoot`, which forgives the
+ * water on ground a peak stands over. See the fields — the farm is the only
+ * user of the first two and the reason both exist, the floating gardens are the
+ * third's, and the Terraces are the fourth's.
+ *
+ * A fifth marker is not a seam at all and is filed with them because it is read
+ * in the same breath: `countsAs`, the row a **variant** stands in for. It says
+ * nothing about which hex will take the row and everything about which rules
+ * already written are true of it — see the field.
  *
  * `requiresTech` sits beside them and is the one filter that is *not* about the
  * ground: it asks the worker's owner rather than the hex, which is why it is
@@ -164,6 +170,13 @@ import { TECH_IDS, type TechId } from './techData';
 
 export type ImprovementId =
   | 'farm'
+  // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): a farm of the high
+  // ground and the mountain foot that one figure's seat alone may cut. An
+  // ordinary row in every respect but two markers — `unlockedByLeader`, which
+  // is the roster's and the shelf's gate read one table over, and `countsAs`,
+  // which is what keeps every rule that was ever written about a farm true of
+  // it without any of them learning a second name.
+  | 'terraces'
   | 'mine'
   | 'pasture'
   | 'camp'
@@ -240,14 +253,10 @@ export interface ImprovementUpgrade {
  * A closed union rather than a free string, so a typo in the JSON is a load
  * error and not an exception that silently never fires.
  */
-export type HillsWaiver = 'freshwater' | 'ownResource' | 'townTerraces';
+export type HillsWaiver = 'freshwater' | 'ownResource';
 
 /** Every waiver word, for the load validator. Iteration order is the union's. */
-export const HILLS_WAIVERS: readonly HillsWaiver[] = [
-  'freshwater',
-  'ownResource',
-  'townTerraces',
-];
+export const HILLS_WAIVERS: readonly HillsWaiver[] = ['freshwater', 'ownResource'];
 
 /**
  * The **third seam** in the constraint shape: terrains a row may *also* be built
@@ -346,15 +355,62 @@ export interface ImprovementDef {
    *     names). Wheat on a hill wants a farm and can take no other improvement,
    *     so a rule that refused the farm made the seam unimprovable, which is the
    *     bug the user hit.
-   *   · `townTerraces` — the town whose borders the hex lies in has **cut steps
-   *     into its hillsides** (`BuildingDef.terraces`, read through
-   *     `buildingsTerrace`). Pachacuti's Terraces, batch L3c, and the third
-   *     reason a hill is farmland rather than a fact about farms: a hillside
-   *     nobody has terraced refuses the farm in the very next town, which is the
-   *     pin the card is worth anything for. Asked of the *building* and never of
-   *     the leader who drafted it, so a second row that terraces inherits this.
+   * A third reason lived here between L3c and L8 — `townTerraces`, the town
+   * that had raised Pachacuti's hall — and it left with the hall: the Terraces
+   * are a **row of their own** now (`docs/flags.md` (bbbbb)), so the hillside
+   * they reach is their own row's business and no longer a waiver on the farm's.
    */
   hillsIf?: HillsWaiver[];
+  /**
+   * True when a hex **at the foot of a mountain** is excused the row's water.
+   *
+   * The **fourth seam** in the AND, and a widening like the other three: it
+   * never refuses ground the row would otherwise take, it forgives dry ground
+   * the row asked to be watered on when a peak stands next to it. Read off
+   * `Tile.mountainsBeside`, the fact mapgen bakes once and nothing ever moves,
+   * so it is a question about the *neighbourhood* rather than about the hex —
+   * `adjacentImprovement`'s kind of question asked of the terrain instead of of
+   * a neighbour's works.
+   *
+   * The Terraces are why it exists (the user, 2026-09-14): *"could be built
+   * adjacent to mountains (not just flat tiles and freshwater)"*. The terrain
+   * list still holds — a terrace under a peak is cut into grass, plains, desert,
+   * tundra or snow like any other, never into a marsh or the sea — which is what
+   * makes this a widening of `freshwaterTerrain` and not a hole in the row.
+   */
+  mountainFoot?: boolean;
+  /**
+   * The row this one **stands in for** wherever the rules read an improvement,
+   * or absent for the ordinary row that is only itself.
+   *
+   * One marker, read by one pair of helpers (`improvementBaseRow` and
+   * `improvementCountsAs`), and the whole of how a *variant* row works: the
+   * Terraces are a farm — Pachacuti's gold of the peaks pays on them, the
+   * Nile's gift pays on them, the Dikes and the Tetzcotzinco count them, the
+   * wheat on a hillside is content with them, and the board draws them with the
+   * farm's furrows — because the row says so, not because six readers learned
+   * the word "terraces". Nothing in `src/sim/` compares an improvement id
+   * against `"terraces"`, which is `greatPerson`'s and `charges`' bargain a
+   * fourth time.
+   *
+   * Two things the validator holds it to. A stand-in may not stand in for a
+   * stand-in — one hop, so `improvementBaseRow` is a lookup and not a walk — and
+   * its `improvesResource` may name nothing the row it stands in for does not,
+   * because a variant that opened a seam its own base could not would be a
+   * second answer to "what do I build on this?".
+   */
+  countsAs?: ImprovementId;
+  /**
+   * True when a **leader's sheet** is what opens this row, the way
+   * `UnitDef.unlockedByLeader` and `BuildingDef.unlockedByLeader` mark the other
+   * two kinds of unique (batch L8, `docs/flags.md` (bbbbb)).
+   *
+   * A declaration and not a rule: `improvementLeaderError` (`improvements.ts`)
+   * asks `leaderOpensImprovement` whether *this* empire's figure names the row
+   * before the tree is asked anything, and a row named by no figure opens for
+   * nobody — the improvements' own bench, exactly as the roster's is.
+   */
+  unlockedByLeader?: boolean;
   /**
    * Terrains this may **also** be built on when a neighbouring hex carries a
    * named improvement, or absent for "the neighbourhood changes nothing".
@@ -554,6 +610,12 @@ export function chopYield(feature: FeatureId): TileYield {
  */
 const RESOURCE_IMPROVEMENT = new Map<ResourceId, ImprovementId>();
 for (const id of IMPROVEMENT_IDS) {
+  // **A stand-in never answers this question.** "What do I build on this wheat?"
+  // has one answer and it is the row every empire may build: a variant opens
+  // the same seams (`improvementCountsAs` is what the seam clause asks), but a
+  // refusal that named a row only one figure may cut would send twelve seats to
+  // a menu with nothing on it.
+  if (IMPROVEMENT_DATA.improvements[id].countsAs !== undefined) continue;
   for (const resource of IMPROVEMENT_DATA.improvements[id].improvesResource ?? []) {
     if (!RESOURCE_IMPROVEMENT.has(resource)) RESOURCE_IMPROVEMENT.set(resource, id);
   }
@@ -587,6 +649,36 @@ export function workForFamily(family: WorkFamily): ImprovementId | null {
 /** Is this a great person's work — the one thing a worker may never build? */
 export function isGreatPersonWork(id: ImprovementId): boolean {
   return improvementDef(id).greatPerson !== undefined;
+}
+
+/**
+ * **The row a row answers to**: the one it stands in for, or itself.
+ *
+ * One hop and never a walk — the validator refuses a stand-in whose base is
+ * itself a stand-in — so this is a lookup with no loop in it and no order to get
+ * wrong. It is the *lookup* half of `ImprovementDef.countsAs`; the predicate
+ * half is `improvementCountsAs` below, and everything that asks "is this a farm"
+ * asks one of the two rather than comparing a name.
+ *
+ * The two renderers ask this one: a row that stands in for another wears that
+ * row's sculpt and that row's tuning, which is how the Terraces draw as furrows
+ * with no art authored twice (the user, 2026-09-14: *"no need for a separate
+ * graphical change for now"*).
+ */
+export function improvementBaseRow(id: ImprovementId): ImprovementId {
+  return improvementDef(id).countsAs ?? id;
+}
+
+/**
+ * **Does this row count as that one?** The predicate every rule about an
+ * improvement is asked through.
+ *
+ * True for the row itself, and true for a row that stands in for it
+ * (`ImprovementDef.countsAs`). Never the other way round: a farm is not a
+ * terrace, so a rule written about the variant stays about the variant.
+ */
+export function improvementCountsAs(id: ImprovementId, as: ImprovementId): boolean {
+  return id === as || improvementBaseRow(id) === as;
 }
 
 /**
@@ -685,6 +777,33 @@ function validateTable(): void {
         }
       }
     }
+    // The fourth seam, held to the one thing it cannot get wrong: a widening
+    // with nothing to widen. `mountainFoot` forgives the *water*, so a row with
+    // no watered ground to forgive is a marker whose author meant something and
+    // got nothing — `freshwaterTerrain` without `validTerrain`, one seam over.
+    if (def.mountainFoot === true && def.freshwaterTerrain === undefined) {
+      throw new Error(`${where} stands at a mountain foot but asks no hex for water`);
+    }
+    // **A stand-in, held to one hop and to its base's seams.** See `countsAs`:
+    // a chain would make `improvementBaseRow` a walk, and a variant that opened
+    // a seam its own base could not would be a second answer to "what do I
+    // build on this?" — the failure the resource claim below refuses outright.
+    const base = def.countsAs;
+    if (base !== undefined) {
+      if (!Object.prototype.hasOwnProperty.call(IMPROVEMENT_DATA.improvements, base)) {
+        throw new Error(`${where} counts as "${String(base)}", which is not an improvement`);
+      }
+      if (base === id) throw new Error(`${where} counts as itself`);
+      if (IMPROVEMENT_DATA.improvements[base].countsAs !== undefined) {
+        throw new Error(`${where} counts as "${base}", which itself counts as something else`);
+      }
+      const opened = IMPROVEMENT_DATA.improvements[base].improvesResource ?? [];
+      for (const resource of def.improvesResource ?? []) {
+        if (!opened.includes(resource)) {
+          throw new Error(`${where} opens "${resource}", which ${base} does not`);
+        }
+      }
+    }
     if (def.requiresTech !== undefined && !TECH_IDS.includes(def.requiresTech)) {
       throw new Error(`${where} needs unknown technology "${def.requiresTech}"`);
     }
@@ -754,8 +873,13 @@ function validateTable(): void {
   // Two improvements claiming one resource would make "what do I build on this
   // iron?" a question with two answers, and `improvementForResource` would
   // silently keep the first.
+  //
+  // A **stand-in** is excused, and only a stand-in: it opens its base's seams by
+  // construction (the clause above holds its list to a subset), and the map is
+  // built skipping it for the same reason, so the question still has one answer.
   const claimed = new Map<ResourceId, ImprovementId>();
   for (const id of IMPROVEMENT_IDS) {
+    if (improvementDef(id).countsAs !== undefined) continue;
     for (const resource of improvementDef(id).improvesResource ?? []) {
       const owner = claimed.get(resource);
       if (owner !== undefined) {

@@ -24,7 +24,11 @@
 import viewJson from '../../data/view3d.json';
 
 import type { DiscoveryKind } from '../sim/discoveryData';
-import type { ImprovementId } from '../sim/improvementData';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementBaseRow,
+} from '../sim/improvementData';
 import type { ResourceId, ResourceKind } from '../sim/resourceData';
 import type { FeatureId, TerrainId } from '../sim/terrainData';
 
@@ -2052,6 +2056,33 @@ const rawImprovementProps = viewJson.improvements.props as Record<
   { color: string; shade: number; size: number; jitter: number; gilt?: string }
 >;
 
+/**
+ * One improvement's prop knobs, with its palette names resolved — **read off the
+ * row it stands in for** (`ImprovementDef.countsAs`, batch L8).
+ *
+ * A variant row wears the tuning of the row it is a variant of, so the Terraces
+ * are the farm's furrows at the farm's size in the farm's timber and nobody has
+ * to retune two rows to retune a farm. A row with neither knobs of its own nor a
+ * row to borrow them from is a boot error rather than a hex with an undefined
+ * size on it.
+ */
+function improvementPropSpec(id: ImprovementId): ImprovementPropSpec {
+  const drawn = improvementBaseRow(id);
+  const spec = rawImprovementProps[drawn];
+  if (spec === undefined) {
+    throw new Error(`view3d.json: improvements.props has no row for "${drawn}"`);
+  }
+  const { gilt, ...rest } = spec;
+  return {
+    ...rest,
+    color: named(spec.color, `improvements.props.${drawn}.color`),
+    // Added back only when the row has one, so a row without the key stays
+    // without it: `gilt: undefined` would serialise as a present-but-empty ink
+    // and make "has a gilt element" a truthiness test rather than a fact.
+    ...(gilt === undefined ? {} : { gilt: named(gilt, `improvements.props.${drawn}.gilt`) }),
+  };
+}
+
 const palette: Record<string, number> = {};
 for (const [name, value] of Object.entries(rawPalette)) {
   palette[name] = parseColor(value, `palette.${name}`);
@@ -2545,20 +2576,15 @@ export const VIEW3D: View3DData = {
   },
   improvements: {
     lift: viewJson.improvements.lift,
+    // **Walked over the improvement table rather than over the JSON's own
+    // keys** (batch L8), so a row that stands in for another
+    // (`ImprovementDef.countsAs`) wears that row's tuning: the Terraces are the
+    // farm's furrows at the farm's size in the farm's timber, and the day
+    // somebody retunes a farm the terrace follows instead of drifting. A row
+    // with neither knobs of its own nor a row to borrow them from is a boot
+    // error, which is what the cast below used to promise as a compile one.
     props: Object.fromEntries(
-      Object.entries(rawImprovementProps).map(([id, spec]) => [
-        id,
-        {
-          ...spec,
-          color: named(spec.color, `improvements.props.${id}.color`),
-          // Spread and then overwritten, so a row without the key stays without
-          // it: `gilt: undefined` would serialise as a present-but-empty ink and
-          // make "has a gilt element" a truthiness test rather than a fact.
-          ...(spec.gilt === undefined
-            ? {}
-            : { gilt: named(spec.gilt, `improvements.props.${id}.gilt`) }),
-        },
-      ]),
+      IMPROVEMENT_IDS.map((id) => [id, improvementPropSpec(id)]),
     ) as Record<ImprovementId, ImprovementPropSpec>,
   },
   sites: {

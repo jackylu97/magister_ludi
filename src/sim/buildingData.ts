@@ -1279,28 +1279,6 @@ export interface BuildingDef {
    */
   irrigates?: boolean;
   /**
-   * **This building terraces the high ground the town works** — the Terraces,
-   * and Pachacuti's whole reason for drafting them (`docs/leaders.md`: *"farms
-   * may be built on hills"*).
-   *
-   * `irrigates`' third sibling, and a marker for that field's reason exactly:
-   * `waters` ends the town's thirst, `irrigates` vouches for its fields' water,
-   * and this cuts steps into its hillsides. Three questions, three readings, and
-   * nothing in `src/sim/` compares a building id against `"terraces"`.
-   *
-   * Read in **one place** — `buildingsTerrace` (`buildingEffects.ts`), asked by
-   * the one rule that decides whether a row's `requiresHills` is waived
-   * (`hillsWaived`, `improvements.ts`, the `townTerraces` reason). It is
-   * therefore a *placement* fact rather than a yield: what the terraced farm
-   * then pays is the row's own food plus whatever the town's `tileYields` say,
-   * which for this building is the second half of the same card.
-   *
-   * The town asked is the one whose borders the hex lies in
-   * (`tileOwnerCityId`), because a farm is cut into the hillside by whoever
-   * holds the hillside — the same reading `improvementGroundError` opens with.
-   */
-  terraces?: boolean;
-  /**
    * **The ground this town's herds are kept on**, on which a soldier of its
    * owner's that comes to rest has its whole allowance back — the Horde Camp's
    * pastures (`docs/leaders.md`: *"military units regain all movement points
