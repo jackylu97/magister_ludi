@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(sssss) Combat odds at a distance — RULED, U1, after M1** (the user,
+**(sssss) Combat odds at a distance — BUILT** (the user,
 2026-09-15: *"the unit overview should show the combat odds regardless of
 movement/adjacency, players need a way to compare strength without
 marching their units into combat."*). Today the forecast — both sides'
@@ -40,7 +40,11 @@ refusals, with a plain line saying it is a comparison and not an order
 `src/ui/controls.ts`), the card's tint says which. Pins in `test/ui/`: a
 forecast for an enemy three hexes off equals the forecast the same pair
 would get adjacent, less nothing; the order is still refused; the line
-prints. Waits for M1 (in `controls.ts` for the swap's card and tint).
+prints. Built as `combatForecast` widened (`CombatReading`) over a
+`CombatStance` on `previewCombat` — the hex is chosen by `standToStrike`
+beside it: the strongest standable hex for a sword, the nearest hex in range
+for a bow, and "nowhere to stand beside it" where there is none. The fog is
+the one refusal a comparison does not get past. `docs/units.md` carries it.
 
 **(qqqqq) The culture and great-person ladders climb a fifth slower — BUILT**
 (the user, 2026-09-15: *"tune down the scaling of the culture tiers and the

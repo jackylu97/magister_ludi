@@ -6493,6 +6493,29 @@ body:has(.city-mode:not([hidden])) #hud-context {
   display: none;
 }
 
+/* A comparison rather than an order (user, 2026-09-15): the odds of a fight the
+   selected piece cannot pick this turn, shown so an army can be weighed before
+   it is marched into. The same card, held back a step — a dashed rule instead of
+   a solid one and the parchment showing through instead of the table's tint — so
+   a glance says which reading this is before a word of it is read. */
+.combat-forecast.is-comparison {
+  border-style: dashed;
+  border-color: var(--ink-faint);
+  background: none;
+}
+
+/* And the sentence itself, in the head's voice because it is the same kind of
+   thing: a label for everything under it. */
+.combat-comparison {
+  margin: 0 0 6px;
+  font-family: var(--face-num);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
 .combat-head {
   margin: 0 0 6px;
   font-family: var(--face-num);

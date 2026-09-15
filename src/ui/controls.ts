@@ -243,10 +243,10 @@ import {
   prospectTechError,
   removeImprovementError,
 } from '../sim/improvements';
-import { type Tile, getTileAt, mapRange, tileHex } from '../sim/map';
+import { type Tile, getTileAt, mapRange, tileHex, wrappedDistance } from '../sim/map';
 import { resourceDef } from '../sim/resourceData';
 import { authorityOf, happinessOf } from '../sim/meters';
-import { findPath, pathTurnMarks, reachableTiles, takesByWalking } from '../sim/pathfind';
+import { canStopOn, findPath, pathTurnMarks, reachableTiles, takesByWalking } from '../sim/pathfind';
 import { RULES } from '../sim/rulesData';
 import {
   type CensusRecord,
@@ -298,6 +298,7 @@ import {
 import { type ResearchReport, hasAbility, researchSince, researchSnapshot } from '../sim/tech';
 import {
   type CardClause,
+  cardUnitStat,
   describeCard,
   describeFamilyVerb,
   slotOrderError,
@@ -1073,6 +1074,35 @@ export function wantsNativeContextMenu(target: ContextMenuTarget | null): boolea
   if (tag === 'INPUT') return TEXT_INPUT_TYPES.includes((target.type ?? 'text').toLowerCase());
   return false;
 }
+
+/**
+ * A forecast and what kind of reading it is — the card's whole input.
+ *
+ * `comparison` is the ruling of 2026-09-15 ("players need a way to compare
+ * strength without marching their units into combat"): the same forecast, taken
+ * of a fight that is not on offer this turn, so the card can say so and tint
+ * itself. `from` is the hex the piece was imagined striking from — its own when
+ * the blow is a real one, which is what makes a comparison recognisable without
+ * a second flag.
+ */
+export interface CombatReading {
+  /** The forecast, or the refusal, exactly as `previewCombat` answers it. */
+  preview: CombatPreview;
+  /** True when this is a comparison rather than an order the player could give. */
+  comparison: boolean;
+  /** Where the attacker stands, or is imagined standing, for this reading. */
+  from: CellRef;
+}
+
+/**
+ * The line a comparison prints, in the ruling's own words.
+ *
+ * Here beside `cityPhaseLine` rather than in `main.ts` for that sentence's
+ * reason: the card prints words this module chose, so the words can be read by a
+ * test without a DOM, and so there is one place a player's sentence is written
+ * down.
+ */
+export const COMPARISON_LINE = 'Out of reach — a comparison';
 
 /**
  * The siege beat a forecast's `cityPhase` names, in the one sentence the
@@ -2201,8 +2231,15 @@ export interface GameControls {
    * as `null`, because "you cannot attack that, and here is why" is exactly what
    * the card should say. It is `previewCombat`'s answer verbatim: the forecast
    * the player reads is the arithmetic the reducer will perform.
+   *
+   * **And when the blow is not on offer, the odds are shown anyway** (user,
+   * 2026-09-15): the same forecast, taken as if the piece were already standing
+   * where it would have to stand, marked `comparison` so the card can say so.
+   * See `forecastAt`, which is the whole of the reading, and note that the
+   * right-click is untouched — `issueAttack` still asks `previewCombat` about
+   * the hex the piece is *really* on, and still speaks its refusal.
    */
-  combatForecast(): CombatPreview | null;
+  combatForecast(): CombatReading | null;
 
   /** The unit currently selected, re-read from the state, or `null`. */
   selectedUnit(): Unit | null;
@@ -4722,13 +4759,89 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   }
 
   /**
+   * **Where this piece would have to stand to strike that hex**, and the
+   * forecast taken from there — or `null` when there is nowhere it could stand.
+   *
+   * The one place the interface *chooses a hex on the player's behalf*, so the
+   * rule is written down here and asked of the simulation rather than guessed:
+   *
+   *   · a candidate is any hex within the piece's reach of the target — its six
+   *     neighbours for a sword, everything inside `range` for a bow — that it
+   *     could come to rest on (`canStopOn`, the reducer's own standing rule), and
+   *     its **own** hex always counts, since it is standing there already;
+   *   · the list is walked nearest-first, ties by column then row, so the answer
+   *     is the same on every machine;
+   *   · **a bow compares from the nearest hex it could shoot from** and a sword
+   *     from the **strongest** hex it could swing from, which is the difference
+   *     between the two weapons: a shot is the same shot from anywhere in range,
+   *     while a charge is worth less across a ford and more beside a general;
+   *   · and a refusal is kept rather than skipped — the first candidate stands as
+   *     the answer when every one of them refuses, so the waterline's sentence
+   *     reaches the card instead of being swallowed as "nowhere to stand".
+   *
+   * Each candidate is priced by `previewCombat` with a `CombatStance`, which is
+   * the same evaluator the reducer resolves with — so the card a player reads
+   * about an enemy three hexes off is the card they will read when they get
+   * there, less nothing.
+   */
+  function standToStrike(unit: Unit, tile: Tile): CombatReading | null {
+    const { state } = getGame();
+    const from = getTileAt(state.map, unit.col, unit.row);
+    if (!from) return null;
+    const def = unitDef(unit.type);
+    const ranged = isRanged(def);
+    // The bow's own reach, asked of the one evaluator for it, so a card that
+    // lengthens a shot lengthens the comparison too.
+    const reach = ranged ? (def.range ?? 1) + cardUnitStat(state, unit, 'range') : 1;
+
+    const stands: Tile[] = [];
+    for (const hex of mapRange(state.map, tileHex(tile), reach)) {
+      if (hex.col === tile.col && hex.row === tile.row) continue;
+      const own = hex.col === unit.col && hex.row === unit.row;
+      if (!own && !canStopOn(state, unit, hex)) continue;
+      stands.push(hex);
+    }
+    const eye = tileHex(from);
+    const away = (hex: Tile): number => wrappedDistance(state.map, eye, tileHex(hex));
+    stands.sort((a, b) => away(a) - away(b) || a.col - b.col || a.row - b.row);
+
+    let chosen: CombatReading | null = null;
+    for (const hex of stands) {
+      const cell = { col: hex.col, row: hex.row };
+      const preview = previewCombat(state, unit.id, { col: tile.col, row: tile.row }, { from: cell });
+      const stand: CombatReading = { preview, comparison: true, from: cell };
+      if (chosen === null || !chosen.preview.ok) {
+        chosen = stand;
+        continue;
+      }
+      if (!preview.ok) continue;
+      // Nearest-first has already answered for the bow; the sword takes the
+      // strongest stance it found, and the ties are the sort order's.
+      if (!ranged && preview.attackerStrength > chosen.preview.attackerStrength) chosen = stand;
+    }
+    return chosen;
+  }
+
+  /**
    * The forecast for the hovered tile. See `GameControls.combatForecast`.
    *
    * It answers `null` — rather than a refusal — when there is simply nothing
    * hostile under the pointer, because a card that explained why you cannot
    * attack an empty meadow would be a card that never stopped talking.
+   *
+   * Two readings, in this order, and the first one is unchanged: **the blow this
+   * piece could strike right now**, asked of `previewCombat` about the hex it is
+   * really standing on. Only when that is refused — out of range, out of
+   * movement, already fought — does the comparison follow (`standToStrike`), and
+   * it is marked as one.
+   *
+   * The fog is the one refusal a comparison does **not** get past, and that is
+   * the rule rather than an oversight: `planCombat`'s visibility clause is there
+   * so a player cannot read the game's own memory, and a comparison that
+   * answered for a hex this empire cannot see would hand them exactly that. So a
+   * hidden hex keeps the refusal it has always had.
    */
-  function combatForecast(): CombatPreview | null {
+  function combatForecast(): CombatReading | null {
     const unit = selectedUnit();
     const hover = renderer.getHover();
     if (!unit || !hover) return null;
@@ -4742,7 +4855,28 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // price — and a card refusing one would be a card explaining a gesture the
     // player never made.
     if (takenByWalking(unit, col, row)) return null;
-    return previewCombat(state, unit.id, { col, row });
+
+    const here = { col: unit.col, row: unit.row };
+    const now = previewCombat(state, unit.id, { col, row });
+    if (now.ok) return { preview: now, comparison: false, from: here };
+    if (!isVisibleTo(state, localPlayerId, col, row)) {
+      return { preview: now, comparison: false, from: here };
+    }
+
+    const tile = getTileAt(state.map, col, row);
+    if (!tile) return { preview: now, comparison: false, from: here };
+    const compared = standToStrike(unit, tile);
+    // Nowhere to stand is a true sentence and the only one there is: a piece
+    // that cannot reach any hex beside its quarry has no fight to price, and
+    // saying so is better than pricing one from a hex it may not occupy.
+    if (compared === null) {
+      return {
+        preview: { ok: false, error: `${unitDef(unit.type).name} has nowhere to stand beside it` },
+        comparison: true,
+        from: here,
+      };
+    }
+    return compared;
   }
 
   /** Every unit on the board right now, by id, as it looks this instant. */

@@ -1483,6 +1483,29 @@ function clampDamage(value: number, hp: number, floor: number): number {
 }
 
 /**
+ * **A stance the piece is not in** — "suppose it were standing here, and suppose
+ * its turn were still ahead of it" (user ruling, 2026-09-15: "the unit overview
+ * should show the combat odds regardless of movement/adjacency, players need a
+ * way to compare strength without marching their units into combat").
+ *
+ * A comparison, and never an order: `applyCombat` passes none, so nothing the
+ * reducer resolves can be planned from a hex its piece is not on. What it buys
+ * is that the *same* evaluator answers both questions — the card a player reads
+ * about an enemy three hexes off is built by the function that will resolve the
+ * blow when the march finally happens, rather than by a second theory of
+ * strength kept in the interface.
+ *
+ * It moves only *where the piece stands* and *whether its turn is spent*. The
+ * ground, the fortification, the walls, the auras, the waterline and the war are
+ * all still asked, and still refuse — see `combatForecast` and `standToStrike`
+ * in `controls.ts`, which choose the hex and print a refusal as a refusal.
+ */
+export interface CombatStance {
+  /** The hex the attacker is imagined to be standing on. */
+  from: Cell;
+}
+
+/**
  * Builds the plan, or explains why there is no attack to plan.
  *
  * Everything is checked here and nothing is written, which is what lets the
@@ -1494,18 +1517,35 @@ function planCombat(
   state: GameState,
   attackerId: number,
   cell: Cell,
+  stance?: CombatStance,
 ): { ok: true; plan: CombatPlan } | { ok: false; error: string } {
-  const attacker = unitById(state, attackerId);
-  if (!attacker) return { ok: false, error: `No unit with id ${String(attackerId)}` };
+  const standing = unitById(state, attackerId);
+  if (!standing) return { ok: false, error: `No unit with id ${String(attackerId)}` };
 
-  const def = unitDef(attacker.type);
+  const def = unitDef(standing.type);
   if (!isCombatant(def)) return { ok: false, error: `A ${def.name} cannot attack` };
-  if (attacker.movesLeft <= 0) {
-    return { ok: false, error: `Unit ${attacker.id} has no movement left` };
+  /**
+   * The two readiness clauses are the two a *comparison* does not ask: a spent
+   * piece is still worth what it is worth, and a player comparing strength has
+   * not ordered anything yet. Everything below this line is asked of both.
+   */
+  if (stance === undefined) {
+    if (standing.movesLeft <= 0) {
+      return { ok: false, error: `Unit ${standing.id} has no movement left` };
+    }
+    if (standing.hasAttacked) {
+      return { ok: false, error: `Unit ${standing.id} has already attacked this turn` };
+    }
   }
-  if (attacker.hasAttacked) {
-    return { ok: false, error: `Unit ${attacker.id} has already attacked this turn` };
-  }
+  /**
+   * The imagined piece: a copy standing somewhere else, so that every line below
+   * — the auras that read a position, the ford, the waterline — reads the hex
+   * the comparison is about without a second parameter threaded through any of
+   * them. The real piece is untouched, and the copy never leaves this function
+   * except inside a plan `previewCombat` throws away.
+   */
+  const attacker =
+    stance === undefined ? standing : { ...standing, col: stance.from.col, row: stance.from.row };
 
   const from = getTileAt(state.map, attacker.col, attacker.row);
   if (!from) return { ok: false, error: `Unit ${attacker.id} is not on the map` };
@@ -2237,6 +2277,10 @@ function planCombat(
  * What would happen if this unit attacked this cell — the interface's forecast,
  * and the reducer's validation, in one function.
  *
+ * With a `stance` it answers the *comparison* instead: the same arithmetic with
+ * the piece imagined standing somewhere else and its turn still ahead of it.
+ * See `CombatStance` — the reducer never passes one.
+ *
  * Rolls nothing and touches nothing. The damage figures are the midpoint of the
  * band with `…Min` / `…Max` beside them, so the card can show "34 ± 7" honestly:
  * the reducer will produce a number in exactly that closed interval, because it
@@ -2260,8 +2304,13 @@ function planCombat(
  * would then refuse. A forecast that showed both bars emptying would be
  * describing a state of the world this game does not have.
  */
-export function previewCombat(state: GameState, attackerId: number, cell: Cell): CombatPreview {
-  const planned = planCombat(state, attackerId, cell);
+export function previewCombat(
+  state: GameState,
+  attackerId: number,
+  cell: Cell,
+  stance?: CombatStance,
+): CombatPreview {
+  const planned = planCombat(state, attackerId, cell, stance);
   if (!planned.ok) return { ok: false, error: planned.error };
   return { ok: true, ...planned.plan.forecast };
 }
