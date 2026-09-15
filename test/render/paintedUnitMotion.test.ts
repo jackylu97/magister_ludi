@@ -48,7 +48,9 @@ function fixture(painted: boolean) {
   const runtime = Object.assign(Object.create(Renderer3D.prototype), {
     state, map: state.map, geometry, materials, paintedUnits: kit,
     unitOutlines: outlines, walkerModels: new Map(), walkers, fallers,
-    view: { camera }, scene, shadows: true, sprites: null, badges: null, fogSeat: 0,
+    // A standing camera's `facing` is a copy of its own quaternion (R3); the
+    // stub answers the same, so a walker faces what a resting piece faces.
+    view: { camera, facing: camera.quaternion }, scene, shadows: true, sprites: null, badges: null, fogSeat: 0,
   }) as MotionHarness;
   const build = (): void => layer.build(state, geometry, materials, new Quaternion(), true,
     null, null, null, null, null, 0, kit);
