@@ -34,6 +34,7 @@ import {
   type Object3D,
   PCFSoftShadowMap,
   Scene,
+  type Texture,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -315,6 +316,13 @@ export class Renderer3D implements MapView {
    * context; the lens layer draws neither half without it. See `loadIcons`.
    */
   private icons: TileIcons | null = null;
+  /**
+   * The textures already handed to the GPU by `warmTexture`, so a second warm
+   * of the same atlas costs nothing. A `WeakSet` and not a count: the entries
+   * are the textures themselves, and a disposed atlas must not be kept alive by
+   * the register that says it was uploaded.
+   */
+  private readonly warmedTextures = new WeakSet<Texture>();
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private visibilitySignatures: LayerVisibility | null = null;
   private shadowVisibilitySignatures: LayerVisibility | null = null;
@@ -468,6 +476,93 @@ export class Renderer3D implements MapView {
     } finally {
       if (this.boardBuild === controller) this.boardBuild = null;
     }
+  }
+
+  /**
+   * Hands one texture to the GPU now rather than on the frame that first draws
+   * it — three's own `initTexture`, through a register so it happens once.
+   *
+   * P8's attribution of the first drawn frame: on the software rasteriser the
+   * whole of the gap between "playable" and the first board frame is one
+   * main-thread task, and the largest single thing in it is not the shaders. It
+   * is the two canvas atlases — the badge sheet and the tile icons — being
+   * uploaded at the instant a material first asks for them, because that is
+   * when three uploads a texture. Every drawn pixel is the same afterwards; all
+   * that moves is *when* the bytes cross.
+   *
+   * Silent on failure: a context lost while an atlas is still rasterising draws
+   * nothing either way, and a board that refuses to start because a warm-up
+   * threw would be a worse trade than a frame that pays for the upload itself.
+   */
+  private warmTexture(texture: Texture | null | undefined): void {
+    if (!texture || !texture.image || this.warmedTextures.has(texture)) return;
+    this.warmedTextures.add(texture);
+    try { this.renderer.initTexture(texture); } catch { /* see the docblock */ }
+  }
+
+  /**
+   * Every texture this renderer holds that the first frame would otherwise
+   * upload, uploaded now — one a frame, so the loading sheet behind it keeps
+   * painting its own bar while they go.
+   *
+   * Called with the terrain worker already running (`main.ts`'s boot): the
+   * board is somebody else's thread for the next several seconds, and this is
+   * the one window in the whole startup where the main thread has nothing to do
+   * and a queue of GPU work to hand over. The atlases finish rasterising during
+   * the asset phase, so by the time this runs they are ready to go.
+   *
+   * The painted look's own grains ride the merged land material's bump slot;
+   * the board's props carry no maps of their own (procedural pigment), so this
+   * list is the whole of it. A texture that has not arrived yet is skipped, and
+   * uploads on the frame that draws it, exactly as it did before.
+   */
+  async warmTextures(): Promise<void> {
+    const frame = (): Promise<void> => new Promise(resolve => { requestAnimationFrame(() => resolve()); });
+    for (const texture of [
+      this.badges?.material.map, this.badges?.wildMaterial.map,
+      this.icons?.material.map, this.paintedLook?.materials.mergedLand.bumpMap,
+    ]) {
+      if (!this.running) return;
+      if (!texture || this.warmedTextures.has(texture)) continue;
+      await frame();
+      this.warmTexture(texture);
+    }
+  }
+
+  /**
+   * The shader programs the next frame will need, compiled before that frame
+   * rather than inside it.
+   *
+   * `compileAsync` asks the GPU for every program the scene as it now stands
+   * would use, and — where `KHR_parallel_shader_compile` is there — waits for
+   * them without blocking. Where it is not (SwiftShader has no such extension),
+   * three resolves as soon as the link commands are issued, which is still the
+   * point: they are issued here, with the loading sheet up, instead of inside
+   * the first drawn frame.
+   *
+   * **The board alone**, and not the whole scene. The programs are a fact of the
+   * *objects*, not of the materials: the board's surfaces derive fog variants of
+   * the look's materials, and an instanced prop and a merged surface with the
+   * same pigment are two different programs — so nothing short of the real
+   * meshes warms the right set. But `compile` walks a root whole, hidden
+   * children included, and a whole scene includes every layer that is built and
+   * not up: asking for the scene compiled **49** programs where the first frame
+   * draws with 27, and the twenty-two strays cost more to link than they saved.
+   * The board is where the difference is anyway.
+   *
+   * Called with the board built and not yet in the scene, so the GPU links
+   * while `setGameState` builds the layers — the one other window in the
+   * startup where the main thread is busy for long enough to hide a link.
+   *
+   * The shadow pass's depth programs are deliberately not covered: `compile`
+   * does not reach them, and P8 measured a link at half a millisecond on the
+   * software rasteriser, depth programs included.
+   */
+  async warmPrograms(): Promise<void> {
+    if (!this.running) return;
+    const board = this.preparedBoard?.board.group ?? this.paintedBoard?.group;
+    if (!board) return;
+    await this.renderer.compileAsync(board, this.view.camera, this.scene);
   }
 
   get paintedEnabled(): boolean { return this.paintedLook !== null; }
@@ -1169,6 +1264,12 @@ export class Renderer3D implements MapView {
         return;
       }
       this.badges = badges;
+      // Straight to the GPU, rather than on the frame that first draws a tag.
+      // The sheet is the dearest upload of the startup (P8) and this is the
+      // earliest moment it can be made: it costs the same wherever it happens,
+      // and here it happens while the painted assets are still downloading.
+      this.warmTexture(badges.material.map);
+      this.warmTexture(badges.wildMaterial.map);
       this.rebuildUnits();
       this.invalidate();
     });
@@ -1199,6 +1300,8 @@ export class Renderer3D implements MapView {
         return;
       }
       this.icons = icons;
+      // Uploaded here for the reason the badge sheet is: see `loadBadges`.
+      this.warmTexture(icons.material.map);
       this.rebuildLens();
       this.rebuildUnits();
       // And the sites, whose standing markers are cells of this atlas too: a
