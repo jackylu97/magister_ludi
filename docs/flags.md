@@ -67,7 +67,7 @@ Pins: the weighted draw with a line followed (seeded, counted over many
 draws), the hold replacing its own slot, the pity zeroed on a change, the
 reroll zeroed on adoption, a replayed log byte-identical.
 
-**(bbbbbb) S2 — the lifetime tally — RULED, in flight** ((yyyyy)(1) as
+**(bbbbbb) S2 — the lifetime tally — BUILT, 2026-09-15** (`PlayerStatecraft.yieldTallies`, one row per card per voice, written by `recordDeckTally` at the head of the yield phase from the Ledger's own per-card split, schema 117; the Ledger's third band prints per card with the fold under a rule; the score's six statecraft lines read the lifetime sum at `perDeckYield` ÷ 50 — measured over two turn-160 bot games so the lines keep V1's fifth of the score; a benched card keeps what it paid; the reading is what the Ledger printed for the turn, not what the banks credited after the phase's citizen re-seat — the one stated gap) ((yyyyy)(1) as
 written: `PlayerStatecraft.tallies` per voice, one add a turn in
 `collectYields` from `ledgerFold`'s statecraft class, schema 117, the
 Ledger's third band prints per card, V1's six statecraft score lines read
@@ -78,7 +78,7 @@ working on each of these things"*.
 on each of these things"* (2026-09-15) taken as the verdict on both sheets;
 wonders keep the cobalt L1 chose (gilt if the user says so later).
 
-**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN, its eight rulings TAKEN AS RECOMMENDED (the user, 2026-09-15: *"ok, lets get working on each of these things"*); E1a and E1b in flight as infrastructure; the tuner's first RUN HELD until (dddddd) settles** (the user, 2026-09-15: *"let's hold off on tuning the bot until we settle the rework"* — E1a's rows land at today's defaults with the digests unmoved, E1b's harness lands unrun; E1a's row (ii) `score.poolSynergy` is skipped, to return after the decks)
+**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN, its eight rulings TAKEN AS RECOMMENDED (the user, 2026-09-15: *"ok, lets get working on each of these things"*); E1a BUILT 2026-09-15 (twenty-odd rows at today's defaults, `data/ai.json`; the two dead dials retired; three six-seat digests byte-identical — the one move found and fixed was a floor on the tribute share against a fractional treasury; the meter floors demonstrated: a floor of fifty cuts a duel's eighteen towns at turn sixty to six; the ruled two-mix *shapes* and the persona family leans are deliberately NOT on the sheet, since they move the digest — they are the tuner's first edits when it runs; `docs/bot-priorities.md` carries the rows), E1b in flight; the tuner's first RUN HELD until (dddddd) settles** (the user, 2026-09-15: *"let's hold off on tuning the bot until we settle the rework"* — E1a's rows land at today's defaults with the digests unmoved, E1b's harness lands unrun; E1a's row (ii) `score.poolSynergy` is skipped, to return after the decks)
 (`docs/plans/bot-evolution.md` is the plan of record; its "What the user
 must rule on" list is ruled **1–8 as recommended**, no ▢ taken.) **E1a —
 the first batch of rows** (§2.8 items 1–3, every row marked NUMBER, at
@@ -170,7 +170,7 @@ future build may open it). Pins in `test/ui/loadingSheet.test.ts` and
 `gameLoader.test.ts` (worker and fallback paths agree character for
 character).
 
-**(xxxxx) Founding a town lags — RULED, R3** (the user, 2026-09-15: *"the
+**(xxxxx) Founding a town lags — BUILT, R3, 2026-09-15** (measured: the founding is one drawn frame and one required static shadow bake, and the camera never moved the target or zoom; the *second* hitch was the camera's pitch ease re-facing every billboarded layer a third of a second after the click — now a turned pitch is one more staleness reason the founding's own sweep answers, `DioramaCamera.facing` = the pitch being settled on; the settle re-faces nothing; board pixels 0.000% before/after; the bake's depth draws stay the parked audit task #19; `benchWorkloads=foundTown` is the workload on the bench; pins in `test/render/paintedFounding.test.ts`; billboards now snap at the *start* of a pitch turn rather than its end — the one thing a player could notice) (the user, 2026-09-15: *"the
 game tends to lag a bit when founding a new city - i think it has to do
 with the new camera angle, could you take a look"*). **Measure first**: the
 frame after a `foundCity` command on a developed board (the 41-town fixture
