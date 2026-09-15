@@ -773,6 +773,26 @@ export interface LensSpec {
   resourceStemRadius: number;
   resourceStemTaper: number;
   resourceStemColor: number;
+  /**
+   * The settler lens's recommendation mark (`src/art/settleMarks.ts`): the disc's
+   * size, how far it stands off the ground, and the shoulder of the hex it is
+   * planted on.
+   *
+   * A set of its own rather than the resource marker's reused, because the two
+   * stand on the **same hex at the same moment** — a recommended site with wheat
+   * in it wears both — and the pair has to be legible together. The offsets put
+   * this one on the upper *right*, opposite the roundel, with the yield glyphs
+   * between them.
+   *
+   * Larger than `resourceIconSize` on purpose: a roundel names a thing on the
+   * ground and is read once, while this is an answer the board is volunteering
+   * and has to be seen without being looked for.
+   */
+  settleMarkSize: number;
+  settleMarkLift: number;
+  settleMarkOffset: number;
+  settleMarkOffsetX: number;
+  settleStemColor: number;
   foodColor: number;
   productionColor: number;
   goldColor: number;
@@ -1619,6 +1639,16 @@ export interface IconSpec {
    * its own remarks in.
    */
   surveyScale: number;
+  /**
+   * A settle mark's size within its cell (`SETTLE_MARK_CELLS`).
+   *
+   * Sized against the **disc** rather than against the cell, like the charges
+   * and the town marks it is printed beside, which is why it is nearer
+   * `chargeScale` than `surveyScale`. Its own knob all the same: a charge is
+   * read on a banner at the top of the screen and this is read on open ground
+   * with a settler's move highlight under it.
+   */
+  settleScale: number;
   /**
    * The inscription cell — *hic svnt dracones* — in the same faded marginalia
    * ink, since it is the same hand writing in the same margin.
@@ -2651,6 +2681,11 @@ export const VIEW3D: View3DData = {
     resourceStemRadius: viewJson.lens.resourceStemRadius,
     resourceStemTaper: viewJson.lens.resourceStemTaper,
     resourceStemColor: named(viewJson.lens.resourceStemColor, 'lens.resourceStemColor'),
+    settleMarkSize: viewJson.lens.settleMarkSize,
+    settleMarkLift: viewJson.lens.settleMarkLift,
+    settleMarkOffset: viewJson.lens.settleMarkOffset,
+    settleMarkOffsetX: viewJson.lens.settleMarkOffsetX,
+    settleStemColor: named(viewJson.lens.settleStemColor, 'lens.settleStemColor'),
     foodColor: parseColor(viewJson.lens.foodColor, 'lens.foodColor'),
     productionColor: parseColor(viewJson.lens.productionColor, 'lens.productionColor'),
     goldColor: parseColor(viewJson.lens.goldColor, 'lens.goldColor'),
@@ -2696,6 +2731,7 @@ export const VIEW3D: View3DData = {
     marginaliaScale: viewJson.icons.marginaliaScale,
     marginaliaColor: named(viewJson.icons.marginaliaColor, 'icons.marginaliaColor'),
     surveyScale: viewJson.icons.surveyScale,
+    settleScale: viewJson.icons.settleScale,
     inscriptionScale: viewJson.icons.inscriptionScale,
     inscriptionTracking: viewJson.icons.inscriptionTracking,
     inscriptionLeading: viewJson.icons.inscriptionLeading,

@@ -75,6 +75,7 @@ import {
   describeSurvey,
   describeWater,
   foundingCostRow,
+  recommendedSiteRow,
   resourceRequirementNode,
   resourceRowNode,
   tileYieldContributions,
@@ -520,6 +521,7 @@ const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoWater = requireElement<HTMLElement>('info-water');
 const infoFounding = requireElement<HTMLElement>('info-founding');
+const infoSite = requireElement<HTMLElement>('info-site');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
@@ -1573,6 +1575,7 @@ function clearInfoRows(): void {
     infoFeature,
     infoWater,
     infoFounding,
+    infoSite,
     infoYields,
     infoResource,
     infoImprovement,
@@ -2385,6 +2388,17 @@ async function boot(initial: Game | null): Promise<void> {
         infoFounding,
         controls.boardLens() === 'settler'
           ? foundingCostRow(game.state, seat, hover.tile)
+          : null,
+      );
+      // The recommendation itself, on the same lens condition and for the same
+      // reason: the mark is only drawn with a settler in hand, so the sentence
+      // that explains the mark is only printed there too — advice with nothing
+      // on the board pointing at it is advice out of nowhere. Which hexes carry
+      // it is `readSites`', not this row's: one list, one claim.
+      setInfoRow(
+        infoSite,
+        controls.boardLens() === 'settler'
+          ? recommendedSiteRow(game.state, seat, hover.tile)
           : null,
       );
       setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));

@@ -225,13 +225,10 @@ import {
   turnsToBuild,
   yieldScore,
 } from '../sim/cities';
-import {
-  type TileYieldContext,
-  explainTileYield,
-  foldTile,
-  foldTileLines,
-  yieldContextFor,
-} from '../sim/yields/hex';
+import { foldTile } from '../sim/yields/hex';
+// The shared site reading (`docs/flags.md` item (ttttt)): the ring walk, the
+// weighing of a hex and the seams in reach, which the board's own marker reads.
+import { explainSite, siteWorth } from '../sim/sites';
 import {
   empirePercents,
   explainCity,
@@ -344,7 +341,6 @@ import {
 import { sleepError, unitOfferedForOrders } from '../sim/units';
 import { isExploredBy, isVisibleTo } from '../sim/visibility';
 import { atWar } from '../sim/wars';
-import { hasFreshWater } from '../sim/water';
 import { type TurnBlocker, firstBlocker } from '../ui/turnBlockers';
 import { wagerBlocker } from '../sim/wagers';
 import { appraiseWagers, wagerLeanOf } from './wager';
@@ -670,14 +666,14 @@ function seatContext(state: GameState, player: Player, sitting?: BotSitting): Va
  *
  * The **nearest** legal site to any town of this empire, which is a different
  * question from the settler's own (`marchToSite` ranks every legal hex in range
- * by `explainSite` and walks to the best). The chain asks only *how far off is
+ * by `explainSiteValue` and walks to the best). The chain asks only *how far off is
  * the next town*, and the nearest legal one answers it; the settler may well walk
  * further for better ground, so the chain's walk is optimistic and says so in its
  * own docblock.
  *
  * That choice is also what makes the probe affordable. `valueContext` is asked
  * once per **decision** — every unit order included — and scoring two hundred
- * candidate hexes with `explainSite` apiece is two hundred ring walks; picking
+ * candidate hexes with `explainSiteValue` apiece is two hundred ring walks; picking
  * the nearest legal hex is `foundingErrorAt` on each, and only the one that wins
  * is appraised. `expansion.siteSearchRadius` survives the batch as exactly what
  * the audit says a cap may honestly be: a bound on compute.
@@ -723,7 +719,7 @@ function nextTownChain(
   const lines = explainFoundingCost(state, player.id, best.tile);
   const probe: SiteProbe = {
     tile: { col: best.tile.col, row: best.tile.row },
-    score: explainSite(state, ctx.realm, ctx, best.tile, yieldContextFor(state, player.id)).total,
+    score: explainSiteValue(state, ctx.realm, ctx, best.tile).total,
     distance: best.distance,
     // The escort question, asked of the *site* exactly as the settler's own arm
     // asks it (`marchToSite`): a settler with nothing walking beside it will not
@@ -5620,9 +5616,6 @@ function settlerCommand(
   // own ground, improved or not — and the tile the purchasing plan would buy
   // reads the very same set (`ValueContext.realm`).
   const held = ctx.realm;
-  // The seat's own reading of ground nobody owns, hoisted for the same reason
-  // and for the same walk: it is what gates a seam this empire cannot yet name.
-  const ground = yieldContextFor(state, player.id);
   // Who is walking with it, asked once and read twice — here and by the march.
   const escorted = escortWithin(state, player, unit);
   const here = getTileAt(state.map, unit.col, unit.row);
@@ -5631,7 +5624,7 @@ function settlerCommand(
       ? null
       : {
           tile: here,
-          appraisal: explainSite(state, held, ctx, here, ground),
+          appraisal: explainSiteValue(state, held, ctx, here),
           legal: foundingError(state, unit),
         };
   const foundHere = (why: string): UnitChoice => ({
@@ -5685,7 +5678,6 @@ function settlerCommand(
     player,
     unit,
     held,
-    ground,
     escorted,
     standing?.appraisal ?? null,
     legalHere,
@@ -5723,10 +5715,8 @@ function marchToSite(
   state: GameState,
   player: Player,
   unit: Unit,
-  /** The empire's seams, hoisted by the caller. See `explainSite`. */
+  /** The empire's seams, hoisted by the caller. See `explainSiteValue`. */
   held: ReadonlySet<ResourceId>,
-  /** The seat's own reading of unowned ground, hoisted. See `explainSite`. */
-  ground: TileYieldContext | undefined,
   /** The piece walking with it, or `null`. See `escortWithin`. */
   escorted: Unit | null,
   here: Appraisal | null,
@@ -5757,7 +5747,7 @@ function marchToSite(
   // falloff, and it is the town that does not exist while the settler is walking.
   // So both sides of the comparison carry it, and the discount then bites on the
   // whole of what is being put off rather than on the part of it that varies. It
-  // is the same reading `explainSite` has always been a modifier to.
+  // is the same reading `explainSiteValue` has always been a modifier to.
   const townWorth = explainNextTown(state, player, ctx).total;
   // **The margin defends the ground under the piece** (principle 1 of the
   // priority spec, and the other half of `siteScoreMin`'s replacement). A
@@ -5780,7 +5770,7 @@ function marchToSite(
   for (const tile of mapRange(state.map, from, ai.expansion.siteSearchRadius)) {
     if (tile.col === unit.col && tile.row === unit.row) continue;
     if (foundingErrorAt(state, player.id, tile) !== null) continue;
-    const appraisal = explainSite(state, held, ctx, tile, ground);
+    const appraisal = explainSiteValue(state, held, ctx, tile);
     const distance = wrappedDistance(state.map, from, tileHex(tile));
     // **The road is part of the price** (batch 4, in `siteScoreMin`'s place). A
     // site three turns' walk away has to be *worth* the three turns: the same
@@ -6142,8 +6132,18 @@ function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
  * surplus is read off the ground alone — no granary, no card, no percentage, and
  * no starvation guard — because the question is *which of two empty hexes to
  * walk to* and the sheet a town will actually keep is a hundred turns of play
- * away. `site.ringFalloff` retires with the sum it weighted; `ringRadius` stays,
- * as the bound on the ground that is looked at.
+ * away. `site.ringFalloff` retires with the sum it weighted.
+ *
+ * **Re-based on the simulation's own reading** (`docs/flags.md` item (ttttt),
+ * 2026-09-15). The board now marks the sites it recommends to the *player*, and
+ * two appraisals of one question drift: the day the marker and the settler
+ * disagree about a hex, the marker is a lie. So the ring walk, the weighing of a
+ * hex and the seams in reach moved down into `src/sim/sites.ts` — with
+ * `site.ringRadius` and `site.yieldWeights`, which are now `rules.sites` and
+ * therefore one table rather than two — and this function is what the *bot*
+ * knows on top of it. That half is **time**, and it is exactly the half a marker
+ * on a hex cannot draw: which citizen works which hex and how many turns out,
+ * what a spade would add once a node lands, and the discount on both.
  *
  * **The ground as it would be worked, not as it lies** (batch X1e, ruled
  * 2026-09-09: *"a human will take a suboptimal coastal spot over a slightly
@@ -6179,22 +6179,26 @@ function escortMarch(state: GameState, player: Player, unit: Unit): UnitTarget |
  * *empire*, so a seam a rival has revealed and this one cannot name is still a
  * kind it does not hold.
  *
- * `held` and `ground` are **hoisted by the caller**, `tileOwnerField`'s bargain
- * one system over and for exactly its reason: `hasResource` sweeps the whole map
- * and `yieldContextFor` walks two card tables, and a settler prices two hundred
- * candidate hexes in one decision.
+ * `held` is **hoisted by the caller**, `tileOwnerField`'s bargain one system
+ * over and for exactly its reason: `hasResource` sweeps the whole map and a
+ * settler prices two hundred candidate hexes in one decision. `ground` was
+ * hoisted beside it and is gone from every signature it rode: the seat's reading
+ * of unowned ground is remembered on the slate now, inside the shared reading,
+ * so every caller pays for it once without being handed it.
  */
-export function explainSite(
+export function explainSiteValue(
   state: GameState,
   held: ReadonlySet<ResourceId>,
   ctx: ValueContext,
   tile: Tile,
-  ground: TileYieldContext | undefined,
 ) {
   const ai = ctx.ai;
+  // **The shared reading** (`docs/flags.md` item (ttttt), `src/sim/sites.ts`):
+  // the ring walk, the weighing of each hex, the water and the seams are one
+  // answer now, and the board's marker reads the very same one. What is left in
+  // here is the half a marker cannot draw — the empire's clock.
+  const site = explainSite(state, ctx.playerId, tile);
   const bonuses: ValueTerm[] = [];
-  const here = tileHex(tile);
-  const seen = new Set<ResourceId>();
   const ranked: {
     col: number;
     row: number;
@@ -6206,37 +6210,41 @@ export function explainSite(
   }[] = [];
   let centreFood = 0;
   let centreWorth = 0;
-  for (const near of mapRange(state.map, here, Math.max(0, ai.site.ringRadius))) {
-    const yields = foldTileLines(explainTileYield(near, ground));
-    const worth = siteWorth(ai, yields);
-    const steps = wrappedDistance(state.map, here, tileHex(near));
-    if (steps === 0) {
-      centreFood = yields.food;
-      centreWorth = worth;
-    } else {
-      // The improvements a reachable node would open on this hex, weighted in
-      // the site's own currency. Which of them is worth the most depends on when
-      // the citizen who works the hex arrives, so the choice is made below and
-      // the whole list is carried here.
-      ranked.push({
-        col: near.col,
-        row: near.row,
-        worth,
-        food: yields.food,
-        at: tileIndex(state.map, near.col, near.row),
-        promises: reachableGroundOn(ctx, near).map((promise) => ({
-          worth: siteWorth(ai, promise.delta),
-          landing: promise.landing,
-          name: improvementDef(promise.improvement).name,
-        })),
-      });
+  for (const hex of site.ring) {
+    if (hex.steps === 0) {
+      centreFood = hex.yields.food;
+      centreWorth = hex.worth;
+      continue;
     }
-    // The seam itself, once per kind: a site with two silk hexes is still a
-    // site that opens silk, which is exactly what the signature pays for.
-    const resource = near.resource;
-    if (resource === undefined || seen.has(resource)) continue;
-    seen.add(resource);
-    bonuses.push(...newResourceTerms(held, ai, resource, `at (${near.col},${near.row})`));
+    // The improvements a reachable node would open on this hex, weighted in
+    // the site's own currency. Which of them is worth the most depends on when
+    // the citizen who works the hex arrives, so the choice is made below and
+    // the whole list is carried here.
+    const near = getTileAt(state.map, hex.col, hex.row);
+    ranked.push({
+      col: hex.col,
+      row: hex.row,
+      worth: hex.worth,
+      food: hex.yields.food,
+      at: hex.at,
+      promises:
+        near === undefined
+          ? []
+          : reachableGroundOn(ctx, near).map((promise) => ({
+              worth: siteWorth(promise.delta),
+              landing: promise.landing,
+              name: improvementDef(promise.improvement).name,
+            })),
+    });
+  }
+  // **The whole list of seams, and not the nameable half** (`SiteReading.seams`).
+  // A luxury is a signature and a second copy pays nothing new, so what makes a
+  // site valuable is a kind nobody in this empire holds — a question about the
+  // empire's ground rather than about its books. The board's marker takes the
+  // gated half; a settler walking to a hill does not need to have heard of the
+  // iron under it.
+  for (const seam of site.seams) {
+    bonuses.push(...newResourceTerms(held, ai, seam.id, `at (${seam.col},${seam.row})`));
   }
   // Best first, ties by tile index — a fact about the board rather than about the
   // order the range walk happened to visit hexes in (rule 2).
@@ -6312,27 +6320,9 @@ export function explainSite(
       parts: worked,
     },
   ];
-  if (hasFreshWater(tile)) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
+  if (site.freshWater) terms.push({ label: 'fresh water', value: ai.site.freshWaterBonus });
   terms.push(...bonuses);
   return appraise(terms);
-}
-
-/**
- * One tile reading in the settle table's own currency — `site.yieldWeights` over
- * the six voices, and the one place the weights are applied.
- *
- * Its own function since batch X1e because two readings now go through it: the
- * hex as it lies, and the delta an improvement would add to it. A promise
- * weighted differently from the ground it stands on would be two currencies in
- * one appraisal.
- */
-function siteWorth(ai: AiConfig, yields: TileYield): number {
-  let worth = 0;
-  for (const [voice, weight] of Object.entries(ai.site.yieldWeights) as [string, number][]) {
-    const value = (yields as unknown as Record<string, number>)[voice];
-    if (typeof value === 'number') worth += value * weight;
-  }
-  return worth;
 }
 
 

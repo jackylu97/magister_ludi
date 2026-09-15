@@ -48,6 +48,8 @@ import {
   foldMeter,
   foundingCostLines,
 } from '../sim/meters';
+import { readSites } from '../sim/readings';
+import { RULES } from '../sim/rulesData';
 import { type GameState, playerById } from '../sim/state';
 import { hasTech, visibleResourceAt } from '../sim/tech';
 import { techDef } from '../sim/techData';
@@ -563,6 +565,78 @@ export function foundingCostRow(
 ): string | null {
   if (foundingErrorAt(state, playerId, tile) !== null) return null;
   return foundingCostText(explainFoundingCost(state, playerId, tile));
+}
+
+/**
+ * **Why the board marked this hex** — the recommendation, in a first-time
+ * player's words, or `null` on a hex it did not mark.
+ *
+ * "A good site: three luxuries in reach (Silk, Wine and Gems), fresh water and
+ * strong food." One sentence, the facts in the order a player would say them,
+ * and **no figures in it** (rule 7): the ledger behind the sentence carries
+ * numbers, and the ledger is not what the card prints. A count is spelled out
+ * where it is small enough to be a word, which is every count a ring of two
+ * hexes can produce.
+ *
+ * The list it reads is `readSites`', which is the list the marker is drawn from
+ * — so the words under the cursor and the mark on the ground are the same claim,
+ * and a hex that carries the pennant always has a sentence to go with it. The
+ * names are the resources' own (`resourceDef`), which is the table the roundel
+ * and the Compendium name them out of.
+ *
+ * `null` for "draw no row", this card's word throughout: a hex the board did not
+ * recommend has nothing to say about why it did.
+ *
+ * *When* to ask is the caller's — only with a settler in hand, because that is
+ * the one lens the marker is drawn in and a sentence on a board with no mark on
+ * it would be advice with nothing pointing at it.
+ */
+export function recommendedSiteRow(
+  state: GameState,
+  playerId: number,
+  tile: Tile,
+): string | null {
+  const marked = readSites(state, playerId).find(
+    (candidate) => candidate.col === tile.col && candidate.row === tile.row,
+  );
+  if (marked === undefined) return null;
+  const site = marked.reading;
+  const clauses: string[] = [];
+  if (site.luxuries.length > 0) {
+    const names = site.luxuries.map((id) => resourceDef(id).name);
+    clauses.push(`${countWord(names.length)} ${plural(names.length, 'luxury', 'luxuries')} in reach (${listWords(names)})`);
+  }
+  if (site.strategics.length > 0) {
+    const names = site.strategics.map((id) => resourceDef(id).name);
+    clauses.push(`${listWords(names)} in reach`);
+  }
+  if (site.freshWater) clauses.push('fresh water');
+  if (site.food >= RULES.sites.strongFood) clauses.push('strong food');
+  if (site.production >= RULES.sites.strongProduction) clauses.push('good ground for work');
+  if (site.coast) clauses.push('a harbour on the sea');
+  if (site.hills > 0) clauses.push('hills to quarry');
+  // Something is always true of a hex the reading ranked this highly, but the
+  // clauses above are each a threshold and a board could in principle clear the
+  // floor on plain ground alone. The fallback is the honest short sentence
+  // rather than a colon with nothing after it.
+  if (clauses.length === 0) return 'A good site: open ground with room to grow.';
+  return `A good site: ${listWords(clauses)}.`;
+}
+
+/** Small counts as words — a card says "three", never a figure (rule 7). */
+function countWord(count: number): string {
+  const words = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+  return words[count] ?? 'several';
+}
+
+function plural(count: number, one: string, many: string): string {
+  return count === 1 ? one : many;
+}
+
+/** "A", "A and B", "A, B and C" — the house comma, with the last joined by "and". */
+function listWords(parts: readonly string[]): string {
+  if (parts.length <= 1) return parts[0] ?? '';
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]!}`;
 }
 
 /**

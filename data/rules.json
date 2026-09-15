@@ -392,6 +392,32 @@
     "max": 17,
     "renown": 5
   },
+  "sites": {
+    "ringRadius": 2,
+    "workedHexes": 7,
+    "searchRadius": 8,
+    "yieldWeights": {
+      "food": 3,
+      "production": 2,
+      "gold": 1,
+      "science": 1,
+      "culture": 1,
+      "faith": 1
+    },
+    "freshWater": 6,
+    "luxury": 14,
+    "strategic": 10,
+    "coast": 4,
+    "hills": 2,
+    "comfortableSpacing": 6,
+    "crowding": 4,
+    "strongFood": 12,
+    "strongProduction": 9,
+    "scoreFloor": 70
+  },
+  "ui": {
+    "recommendedSites": 3
+  },
   "startingUnits": [
     "settler",
     "scout"
