@@ -58,7 +58,7 @@ import {
 } from '../../src/sim/techData';
 import { buildError, gatingTech, isUnlocked } from '../../src/sim/tech';
 import { techGifts } from '../../src/sim/techUnlocks';
-import { UNIT_TYPE_IDS, unitDef } from '../../src/sim/unitData';
+import { UNIT_TYPE_IDS, isCivilian, unitDef } from '../../src/sim/unitData';
 import { resetVisibility } from '../../src/sim/visibility';
 import { openEveryWar } from './warHelpers';
 
@@ -420,9 +420,13 @@ describe('the roster is priced by its size and its column', () => {
       const gate = UNIT_UNLOCK_TECH.get(id);
       const column = gate === undefined ? def.column : Math.max(1, techColumn(gate));
       expect(column, id).toBeDefined();
-      expect(unitProductionCost(state, 0, id), id).toBe(
-        Math.floor(base * rate ** (column! - 1)),
-      );
+      // **A soldier costs half again** (the user's ruling of 2026-09-15,
+      // `docs/flags.md` (mmmmm)): one floored line over the sized-and-columned
+      // figure for every unit that is not a civilian, and nothing for the
+      // worker, the settler and the trader.
+      const sized = Math.floor(base * rate ** (column! - 1));
+      const soldier = isCivilian(def) ? 0 : Math.floor((sized * RULES.production.militaryPercent) / 100);
+      expect(unitProductionCost(state, 0, id), id).toBe(sized + soldier);
     }
   });
 
@@ -432,31 +436,34 @@ describe('the roster is priced by its size and its column', () => {
     // the curve multiplies by one, so what a scout costs is the light base
     // itself — the whole of the Æra I roster is three numbers in
     // `data/rules.json` now rather than a printed figure on every row.
-    expect(unitProductionCost(state, 0, 'scout')).toBe(10);
-    expect(unitProductionCost(state, 0, 'warrior')).toBe(10);
+    // The soldiers among them pay the `Soldier +50%` line on top since the
+    // user's ruling of 2026-09-15 — the worker, a civilian, does not.
+    expect(unitProductionCost(state, 0, 'scout')).toBe(15);
+    expect(unitProductionCost(state, 0, 'warrior')).toBe(15);
     expect(unitProductionCost(state, 0, 'worker')).toBe(10);
-    expect(unitProductionCost(state, 0, 'archer')).toBe(10);
-    // One column on, the spearman pays the rate once over the line base.
-    expect(unitProductionCost(state, 0, 'spearman')).toBe(18);
+    expect(unitProductionCost(state, 0, 'archer')).toBe(15);
+    // One column on, the spearman pays the rate once over the line base, then
+    // the soldier's half again.
+    expect(unitProductionCost(state, 0, 'spearman')).toBe(27);
     // The mounted premium is the `heavy` size, and where a horse sits in the
     // tree is the rest of it: the chariot is The Wheel's in Æra I, the horseman
     // The Saddle's in Æra III since tree revision 4 (2026-09-02).
-    expect(unitProductionCost(state, 0, 'horseman')).toBe(101);
-    expect(unitProductionCost(state, 0, 'chariot')).toBe(34);
-    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(34);
+    expect(unitProductionCost(state, 0, 'horseman')).toBe(151);
+    expect(unitProductionCost(state, 0, 'chariot')).toBe(51);
+    expect(unitProductionCost(state, 0, 'chariotArcher')).toBe(51);
     // And the late roster, where the curve does its work: a closing-age piece
     // costs what a closing-age building costs, which is the reading the user
     // marked ("this is ok, lets playtest first").
-    expect(unitProductionCost(state, 0, 'phalanx')).toBe(31);
-    expect(unitProductionCost(state, 0, 'swordsman')).toBe(31);
-    expect(unitProductionCost(state, 0, 'bowman')).toBe(41);
-    expect(unitProductionCost(state, 0, 'catapult')).toBe(116);
-    expect(unitProductionCost(state, 0, 'pikeman')).toBe(159);
-    expect(unitProductionCost(state, 0, 'knight')).toBe(297);
-    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(261);
+    expect(unitProductionCost(state, 0, 'phalanx')).toBe(46);
+    expect(unitProductionCost(state, 0, 'swordsman')).toBe(46);
+    expect(unitProductionCost(state, 0, 'bowman')).toBe(61);
+    expect(unitProductionCost(state, 0, 'catapult')).toBe(174);
+    expect(unitProductionCost(state, 0, 'pikeman')).toBe(238);
+    expect(unitProductionCost(state, 0, 'knight')).toBe(445);
+    expect(unitProductionCost(state, 0, 'trebuchet')).toBe(391);
     // A hull that shipped ahead of its node carries its own column and is
     // priced by it, rather than falling to the first one.
-    expect(unitProductionCost(state, 0, 'frigate')).toBe(448);
+    expect(unitProductionCost(state, 0, 'frigate')).toBe(672);
   });
 
   it('is the fold of its own labelled lines, escalation included', () => {
@@ -486,6 +493,7 @@ describe('the roster is priced by its size and its column', () => {
     expect(explainUnitCost(state, 0, 'knight').map((line) => line.source)).toEqual([
       'Heavy unit',
       'Column 11 ×14.88',
+      'Soldier +50%',
     ]);
     expect(explainUnitCost(state, 0, 'knight')[0]!.amount).toBe(
       RULES.production.unitSizeHammers.heavy,

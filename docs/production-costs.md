@@ -259,62 +259,62 @@ table, with no second figure anywhere. See `docs/trade.md`.
 
 | Row | Name | Size | Column | Hammers |
 |---|---|---|---|---|
-| `warrior` | Warrior | light | 1 | 10 |
-| `scout` | Scout | light | 1 | 10 |
+| `warrior` | Warrior | light | 1 | 15 |
+| `scout` | Scout | light | 1 | 15 |
 | `settler` | Settler | settler | 1 | 28 |
 | `worker` | Worker | light | 1 | 10 |
 | `trader` | Trader | engine | 4 | 51 |
-| `archer` | Archer | light | 1 | 10 |
-| `bowman` | Bowman | line | 5 | 41 |
-| `spearman` | Spearman | line | 2 | 18 |
-| `horseman` | Horseman | heavy | 7 | 101 |
-| `chariot` | War Chariot | heavy | 3 | 34 |
-| `chariotArcher` | Chariot Archer | heavy | 3 | 34 |
-| `swordsman` | Swordsman | line | 4 | 31 |
-| `catapult` | Catapult | engine | 7 | 116 |
-| `compositeBowman` | Composite Bowman | line | 7 | 70 |
-| `pikeman` | Pikeman | line | 10 | 159 |
-| `crossbowman` | Crossbowman | line | 9 | 121 |
-| `knight` | Knight | heavy | 11 | 297 |
-| `longswordsman` | Longswordsman | heavy | 10 | 227 |
-| `trebuchet` | Trebuchet | engine | 10 | 261 |
-| `trireme` | Trireme | line | 2 | 18 |
-| `bireme` | Bireme | line | 5 | 41 |
-| `galley` | Galley | line | 7 | 70 |
-| `caravel` | Caravel | heavy | 11 | 297 |
-| `corvette` | Corvette | heavy | 11 | 297 |
-| `warGalley` | War Galley | heavy | 5 | 58 |
-| `towerShip` | Tower Ship | engine | 7 | 116 |
-| `carrack` | Carrack | engine | 11 | 342 |
-| `shipOfTheLine` | Ship of the Line | engine | 12 | 448 |
-| `fireShip` | Fire Ship | heavy | 7 | 101 |
-| `gunGalley` | Gun Galley | engine | 11 | 342 |
-| `frigate` | Frigate | engine | 12 | 448 |
+| `archer` | Archer | light | 1 | 15 |
+| `bowman` | Bowman | line | 5 | 61 |
+| `spearman` | Spearman | line | 2 | 27 |
+| `horseman` | Horseman | heavy | 7 | 151 |
+| `chariot` | War Chariot | heavy | 3 | 51 |
+| `chariotArcher` | Chariot Archer | heavy | 3 | 51 |
+| `swordsman` | Swordsman | line | 4 | 46 |
+| `catapult` | Catapult | engine | 7 | 174 |
+| `compositeBowman` | Composite Bowman | line | 7 | 105 |
+| `pikeman` | Pikeman | line | 10 | 238 |
+| `crossbowman` | Crossbowman | line | 9 | 181 |
+| `knight` | Knight | heavy | 11 | 445 |
+| `longswordsman` | Longswordsman | heavy | 10 | 340 |
+| `trebuchet` | Trebuchet | engine | 10 | 391 |
+| `trireme` | Trireme | line | 2 | 27 |
+| `bireme` | Bireme | line | 5 | 61 |
+| `galley` | Galley | line | 7 | 105 |
+| `caravel` | Caravel | heavy | 11 | 445 |
+| `corvette` | Corvette | heavy | 11 | 445 |
+| `warGalley` | War Galley | heavy | 5 | 87 |
+| `towerShip` | Tower Ship | engine | 7 | 174 |
+| `carrack` | Carrack | engine | 11 | 513 |
+| `shipOfTheLine` | Ship of the Line | engine | 12 | 672 |
+| `fireShip` | Fire Ship | heavy | 7 | 151 |
+| `gunGalley` | Gun Galley | engine | 11 | 513 |
+| `frigate` | Frigate | engine | 12 | 672 |
 | `prophet` | Prophet | free | 5 | 0 |
 | `apostle` | Apostle | free | 8 | 0 |
 | `inquisitor` | Inquisitor | free | 11 | 0 |
 | `greatPerson` | Great Person | free | 1 | 0 |
-| `phalanx` | Phalanx | line | 4 | 31 |
-| `legionary` | Legionary | line | 6 | 54 |
-| `horseArcher` | Horse Archer | heavy | 7 | 101 |
-| `spearWall` | Spear Wall | line | 6 | 54 |
-| `warElephant` | War Elephant | heavy | 7 | 101 |
-| `fireLance` | The Fire Lance | heavy | 12 | 389 |
-| `knightsTemplar` | Knights Templar | heavy | 11 | 297 |
-| `slinger` | Slinger | line | 5 | 41 |
-| `fubing` | Fubing | light | 2 | 13 |
-| `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 101 |
-| `whistlingArrow` | The Whistling Arrow | heavy | 3 | 34 |
-| `xiongnuHorseArcher` | Xiongnu Horse Archer | heavy | 7 | 101 |
-| `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 297 |
-| `khopesh` | The Khopesh | line | 4 | 31 |
-| `camelArcher` | Camel Archer | heavy | 7 | 101 |
-| `ponticPeltast` | The Pontic Peltast | line | 2 | 18 |
-| `scythedChariot` | The Scythed Chariot | heavy | 8 | 132 |
-| `gendarme` | The Gendarme | heavy | 11 | 297 |
-| `mandekalu` | The Mandekalu | heavy | 7 | 101 |
-| `treasureShip` | The Treasure Ship | engine | 8 | 152 |
-| `eagleWarrior` | The Eagle Warrior | line | 5 | 41 |
-| `alexandrianGalley` | The Alexandrian Galley | line | 5 | 41 |
+| `phalanx` | Phalanx | line | 4 | 46 |
+| `legionary` | Legionary | line | 6 | 81 |
+| `horseArcher` | Horse Archer | heavy | 7 | 151 |
+| `spearWall` | Spear Wall | line | 6 | 81 |
+| `warElephant` | War Elephant | heavy | 7 | 151 |
+| `fireLance` | The Fire Lance | heavy | 12 | 583 |
+| `knightsTemplar` | Knights Templar | heavy | 11 | 445 |
+| `slinger` | Slinger | line | 5 | 61 |
+| `fubing` | Fubing | light | 2 | 19 |
+| `tangCavalry` | Tang Heavy Cavalry | heavy | 7 | 151 |
+| `whistlingArrow` | The Whistling Arrow | heavy | 3 | 51 |
+| `xiongnuHorseArcher` | Xiongnu Horse Archer | heavy | 7 | 151 |
+| `chanyuGuard` | The Chanyu's Guard | heavy | 11 | 445 |
+| `khopesh` | The Khopesh | line | 4 | 46 |
+| `camelArcher` | Camel Archer | heavy | 7 | 151 |
+| `ponticPeltast` | The Pontic Peltast | line | 2 | 27 |
+| `scythedChariot` | The Scythed Chariot | heavy | 8 | 198 |
+| `gendarme` | The Gendarme | heavy | 11 | 445 |
+| `mandekalu` | The Mandekalu | heavy | 7 | 151 |
+| `treasureShip` | The Treasure Ship | engine | 8 | 228 |
+| `eagleWarrior` | The Eagle Warrior | line | 5 | 61 |
+| `alexandrianGalley` | The Alexandrian Galley | line | 5 | 61 |
 | `canoness` | The Canoness | free | 8 | 0 |
 | `rihlaCaravan` | The Rihla Caravan | engine | 5 | 67 |

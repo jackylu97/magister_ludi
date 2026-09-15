@@ -461,13 +461,15 @@ describe('the bot defends itself', () => {
     // comparison the addendum is about — a worker in the quiet world, a soldier
     // under the column — only shows on turns when the town is between errands:
     // on a turn it has just taken a second site it wants a settler badly enough
-    // that a column next door does not move it. Swept 8–26 on the current
-    // board: fourteen reads as the addendum says (so do 10, 12, 18 and 26;
-    // 16, 20, 22 and 24 do not), and fourteen is the figure the test was born
-    // with. It is asserted below rather than assumed: the quiet pick must be
-    // something other than a soldier, or the test proves nothing by finding
-    // one under siege.
-    const game = grownGame(14);
+    // that a column next door does not move it. **Re-sited a third time,
+    // 2026-09-15**, for the soldiers' new price (`docs/flags.md` (mmmmm)): the
+    // played board changed with it, and swept 8–26 again, sixteen reads as the
+    // addendum says — a worker in the quiet world, a warrior under the column
+    // (so do 17, 18 and 21–26; 8–15 raise a ranger either way, 19 and 20 a
+    // worker either way). It is asserted below rather than assumed: the quiet
+    // pick must be something other than a soldier, or the test proves nothing
+    // by finding one under siege.
+    const game = grownGame(16);
     const player = seat(game.state, 0);
     const city = firstCity(game.state, 0);
     // A quiet world is ESTABLISHED, not assumed (2026-09-05): on the retuned

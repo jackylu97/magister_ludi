@@ -681,13 +681,13 @@ describe('terrain and fortification', () => {
     const a = createUnit(state, 0, 'warrior', 3, 3);
     createUnit(state, 1, 'archer', 4, 3);
 
-    // Forest (+5) and hills (+6) stack as **points** — U9 rescaled the ground
-    // with the ladder: an archer of 15 defends at 26, so
-    // 30 · e^(0.04 · (20 − 26)) = 23.6 → 24.
+    // Forest (+5) and hills (+2, the user's ruling of 2026-09-15) stack as
+    // **points** — U9 rescaled the ground with the ladder: an archer of 15
+    // defends at 22, so 30 · e^(0.04 · (20 − 22)) = 27.7 → 28.
     const view = forecast(state, a.id, 4, 3);
-    expect(view.terrainBonus).toBe(11);
-    expect(view.defenderStrength).toBe(26);
-    expect(view.damageToDefender).toBe(24);
+    expect(view.terrainBonus).toBe(7);
+    expect(view.defenderStrength).toBe(22);
+    expect(view.damageToDefender).toBe(28);
   });
 
   it('itemises the ground one line per reason, never one summed "terrain"', () => {
@@ -701,13 +701,15 @@ describe('terrain and fortification', () => {
     const view = forecast(state, a.id, 4, 3);
     // The table's own names, in the table's own order, and both of them flat.
     expect(view.defenderLines).toContainEqual({ source: 'Forest', amount: 5 });
-    expect(view.defenderLines).toContainEqual({ source: 'Hills', amount: 6 });
+    // Hills are worth two since the user's ruling of 2026-09-15 (`docs/flags.md`
+    // (mmmmm): "hills should only give +2 combat strength").
+    expect(view.defenderLines).toContainEqual({ source: 'Hills', amount: 2 });
     expect(foldCombatStrength(view.defenderLines)).toBe(view.defenderStrength);
     // And the table agrees with the fight about what the hex is worth.
-    expect(defenseBonus('grassland', 'forest', true)).toBe(11);
+    expect(defenseBonus('grassland', 'forest', true)).toBe(7);
     expect(
       explainTerrainDefense('grassland', 'forest', true).reduce((sum, l) => sum + l.amount, 0),
-    ).toBe(11);
+    ).toBe(7);
     // Bare ground says nothing at all rather than saying zero.
     expect(explainTerrainDefense('grassland', 'none', false)).toEqual([]);
   });

@@ -285,6 +285,12 @@ describe('the played opening (batch X13)', () => {
         for (const unit of game.state.units) {
           if (unit.ownerId !== 0) continue;
           const def = unitDef(unit.type);
+          // **Only the rangers this seat raised.** A ruin hands a free scout to
+          // whoever finds it (`data/discoveries.json`, `Unit.freeUpkeep` at the
+          // free-unit seam), and the cap is a bound on what the empire *builds*
+          // — the soldiers' new price of 2026-09-15 replayed the board and a
+          // gift landed on it, which is not the bot exceeding its dial.
+          if (unit.freeUpkeep === true) continue;
           if (isExplorer(def)) rangers.add(unit.id);
           // The starting settler is spent on the capital in the first turn, so
           // any settler standing after that is one this empire raised.
@@ -298,7 +304,7 @@ describe('the played opening (batch X13)', () => {
     expect(rangers.size).toBeLessThanOrEqual(cap);
     let held = 0;
     for (const unit of game.state.units) {
-      if (unit.ownerId === 0 && isExplorer(unitDef(unit.type))) held += 1;
+      if (unit.ownerId === 0 && unit.freeUpkeep !== true && isExplorer(unitDef(unit.type))) held += 1;
     }
     expect(held).toBeLessThanOrEqual(cap);
   });

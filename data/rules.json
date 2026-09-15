@@ -370,6 +370,7 @@
       "settler": 28,
       "free": 0
     },
+    "militaryPercent": 50,
     "columnRate": 1.31,
     "uniqueCostBreakeven": 4,
     "goldPerHammer": 4,

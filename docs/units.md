@@ -117,61 +117,61 @@ column, which is carried through every regeneration.
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Warrior | melee | 20 | — | — | 2 | 100 | 2 | light | 10 | — | Agriculture | Swordsman | — |  |
-| Scout | scout | 10 | — | — | 2 | 100 | 3 | light | 10 | — | Agriculture | — | ignores terrain |  |
-| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 10 | — | Fletching | Bowman | — |  |
-| Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 41 | — | Siegecraft | Composite Bowman | — |  |
-| Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 18 | — | Bronzeworking | Phalanx | — |  |
-| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 101 | — | The Saddle | Knight | needs improved Horses |  |
-| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 34 | — | The Wheel | Horseman | needs improved Horses |  |
-| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 34 | — | The Wheel | Horse Archer | needs improved Horses |  |
-| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 31 | — | Bronze Panoply | Legionary | needs improved Iron |  |
-| Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 116 | — | Mathematics | Trebuchet | — |  |
-| Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 70 | — | Mathematics | Crossbowman | — |  |
-| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 159 | — | Castellany | — | — |  |
-| Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 121 | — | Machinery | — | — |  |
-| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | Militant Orders | — | needs improved Horses |  |
-| Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 227 | — | Steel | — | needs improved Iron |  |
-| Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 261 | — | Natural Philosophy | — | — |  |
-| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 31 | — | Bronze Panoply | Spear Wall | — |  |
-| Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Longswordsman | needs improved Iron |  |
-| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 101 | — | The Saddle | — | needs improved Horses |  |
-| Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 54 | — | Iron Working | Pikeman | — |  |
-| War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 101 | — | The Saddle | — | needs improved Ivory |  |
-| The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 389 | — | Alchemy | — | needs improved Niter |  |
-| Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 297 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
-| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 41 | — | — | Composite Bowman | unslowed by hills |  |
-| Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 13 | — | — | Spear Wall | — |  |
-| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 101 | — | — | Knight | needs improved Horses |  |
-| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 34 | — | — | Horse Archer | needs improved Horses |  |
-| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 101 | — | — | — | needs improved Horses |  |
-| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 297 | — | — | — | needs improved Horses |  |
-| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 31 | — | — | Longswordsman | needs improved Iron |  |
-| Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 101 | — | — | — | — |  |
-| The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 18 | — | — | Spear Wall | — |  |
-| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 132 | — | — | — | needs improved Horses |  |
-| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 297 | — | — | — | needs improved Horses |  |
-| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 101 | — | — | Knight | needs improved Horses |  |
-| The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 41 | — | — | Longswordsman | — |  |
+| Warrior | melee | 20 | — | — | 2 | 100 | 2 | light | 15 | — | Agriculture | Swordsman | — |  |
+| Scout | scout | 10 | — | — | 2 | 100 | 3 | light | 15 | — | Agriculture | — | ignores terrain |  |
+| Archer | ranged | 15 | 20 | 2 | 2 | 100 | 2 | light | 15 | — | Fletching | Bowman | — |  |
+| Bowman | ranged | 20 | 28 | 2 | 2 | 100 | 2 | line | 61 | — | Siegecraft | Composite Bowman | — |  |
+| Spearman | melee | 25 | — | — | 2 | 100 | 2 | line | 27 | — | Bronzeworking | Phalanx | — |  |
+| Horseman | mounted | 48 | — | — | 4 | 100 | 2 | heavy | 151 | — | The Saddle | Knight | needs improved Horses |  |
+| War Chariot | mounted | 33 | — | — | 4 | 100 | 2 | heavy | 51 | — | The Wheel | Horseman | needs improved Horses |  |
+| Chariot Archer | mountedRanged | 20 | 26 | 2 | 3 | 100 | 2 | heavy | 51 | — | The Wheel | Horse Archer | needs improved Horses |  |
+| Swordsman | melee | 35 | — | — | 2 | 100 | 2 | line | 46 | — | Bronze Panoply | Legionary | needs improved Iron |  |
+| Catapult | siege | 35 | 42 | 2 | 1 | 100 | 2 | engine | 174 | — | Mathematics | Trebuchet | — |  |
+| Composite Bowman | ranged | 30 | 39 | 2 | 2 | 100 | 2 | line | 105 | — | Mathematics | Crossbowman | — |  |
+| Pikeman | melee | 52 | — | — | 2 | 120 | 2 | line | 238 | — | Castellany | — | — |  |
+| Crossbowman | ranged | 45 | 50 | 2 | 2 | 110 | 2 | line | 181 | — | Machinery | — | — |  |
+| Knight | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | Militant Orders | — | needs improved Horses |  |
+| Longswordsman | melee | 55 | — | — | 2 | 120 | 2 | heavy | 340 | — | Steel | — | needs improved Iron |  |
+| Trebuchet | siege | 40 | 48 | 2 | 1 | 110 | 2 | engine | 391 | — | Natural Philosophy | — | — |  |
+| Phalanx | melee | 30 | — | — | 2 | 110 | 2 | line | 46 | — | Bronze Panoply | Spear Wall | — |  |
+| Legionary | melee | 45 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Longswordsman | needs improved Iron |  |
+| Horse Archer | mountedRanged | 32 | 42 | 2 | 4 | 100 | 2 | heavy | 151 | — | The Saddle | — | needs improved Horses |  |
+| Spear Wall | melee | 42 | — | — | 2 | 110 | 2 | line | 81 | — | Iron Working | Pikeman | — |  |
+| War Elephant | mounted | 50 | — | — | 3 | 130 | 2 | heavy | 151 | — | The Saddle | — | needs improved Ivory |  |
+| The Fire Lance | melee | 80 | — | — | 2 | 120 | 2 | heavy | 583 | — | Alchemy | — | needs improved Niter |  |
+| Knights Templar | mounted | 60 | — | — | 4 | 120 | 2 | heavy | 445 | — | — | — | opened by a card · bought with faith only · mirrors the best mounted |  |
+| Slinger | ranged | 20 | 30 | 2 | 2 | 100 | 2 | line | 61 | — | — | Composite Bowman | unslowed by hills |  |
+| Fubing | melee | 27 | — | — | 2 | 110 | 2 | light | 19 | — | — | Spear Wall | — |  |
+| Tang Heavy Cavalry | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | needs improved Horses |  |
+| The Whistling Arrow | mountedRanged | 20 | 26 | 3 | 3 | 100 | 2 | heavy | 51 | — | — | Horse Archer | needs improved Horses |  |
+| Xiongnu Horse Archer | mountedRanged | 32 | 42 | 2 | 5 | 100 | 2 | heavy | 151 | — | — | — | needs improved Horses |  |
+| The Chanyu's Guard | mounted | 66 | — | — | 5 | 130 | 2 | heavy | 445 | — | — | — | needs improved Horses |  |
+| The Khopesh | melee | 35 | — | — | 2 | 110 | 2 | line | 46 | — | — | Longswordsman | needs improved Iron |  |
+| Camel Archer | mountedRanged | 32 | 46 | 2 | 4 | 100 | 2 | heavy | 151 | — | — | — | — |  |
+| The Pontic Peltast | melee | 26 | — | — | 2 | 110 | 2 | line | 27 | — | — | Spear Wall | — |  |
+| The Scythed Chariot | mounted | 46 | — | — | 4 | 110 | 2 | heavy | 198 | — | — | — | needs improved Horses |  |
+| The Gendarme | mounted | 66 | — | — | 4 | 130 | 2 | heavy | 445 | — | — | — | needs improved Horses |  |
+| The Mandekalu | mounted | 50 | — | — | 4 | 110 | 2 | heavy | 151 | — | — | Knight | needs improved Horses |  |
+| The Eagle Warrior | melee | 36 | — | — | 2 | 110 | 2 | line | 61 | — | — | Longswordsman | — |  |
 
 ### Naval — 14 rows
 
 | Unit | Class | Str | Ranged | Range | Move | HP | Sight | Size | Cost | Escalation | Unlocked by | Upgrades to | Marks | Notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 18 | — | Sailing | Bireme | hit and run |  |
-| Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 41 | — | Wayfinding | Galley | hit and run |  |
-| Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 70 | — | Shipwrights | Caravel | hit and run |  |
-| Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 297 | — | The Astrolabe | Corvette | hit and run |  |
-| Corvette | navalLight | 78 | — | — | 6 | 100 | 2 | heavy | 297 | — | — | — | awaits its node · hit and run |  |
-| War Galley | navalHeavy | 45 | — | — | 3 | 100 | 2 | heavy | 58 | — | Wayfinding | Tower Ship | blockades |  |
-| Tower Ship | navalHeavy | 58 | — | — | 3 | 100 | 2 | engine | 116 | — | Shipwrights | Carrack | blockades |  |
-| Carrack | navalHeavy | 72 | — | — | 3 | 100 | 2 | engine | 342 | — | The Astrolabe | Ship of the Line | blockades |  |
-| Ship of the Line | navalHeavy | 88 | — | — | 3 | 100 | 2 | engine | 448 | — | — | — | awaits its node · blockades |  |
-| Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 101 | — | Shipwrights | Gun Galley | — |  |
-| Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 342 | — | The Astrolabe | Frigate | — |  |
-| Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 448 | — | — | — | awaits its node · bombards |  |
-| The Treasure Ship | navalHeavy | 76 | — | — | 4 | 120 | 3 | engine | 152 | — | — | — | blockades |  |
-| The Alexandrian Galley | navalLight | 54 | — | — | 5 | 100 | 3 | line | 41 | — | — | Caravel | hit and run |  |
+| Trireme | navalLight | 36 | — | — | 4 | 100 | 2 | line | 27 | — | Sailing | Bireme | hit and run |  |
+| Bireme | navalLight | 40 | — | — | 5 | 100 | 2 | line | 61 | — | Wayfinding | Galley | hit and run |  |
+| Galley | navalLight | 52 | — | — | 5 | 100 | 2 | line | 105 | — | Shipwrights | Caravel | hit and run |  |
+| Caravel | navalLight | 65 | — | — | 6 | 100 | 2 | heavy | 445 | — | The Astrolabe | Corvette | hit and run |  |
+| Corvette | navalLight | 78 | — | — | 6 | 100 | 2 | heavy | 445 | — | — | — | awaits its node · hit and run |  |
+| War Galley | navalHeavy | 45 | — | — | 3 | 100 | 2 | heavy | 87 | — | Wayfinding | Tower Ship | blockades |  |
+| Tower Ship | navalHeavy | 58 | — | — | 3 | 100 | 2 | engine | 174 | — | Shipwrights | Carrack | blockades |  |
+| Carrack | navalHeavy | 72 | — | — | 3 | 100 | 2 | engine | 513 | — | The Astrolabe | Ship of the Line | blockades |  |
+| Ship of the Line | navalHeavy | 88 | — | — | 3 | 100 | 2 | engine | 672 | — | — | — | awaits its node · blockades |  |
+| Fire Ship | navalRanged | 40 | 50 | 2 | 4 | 100 | 2 | heavy | 151 | — | Shipwrights | Gun Galley | — |  |
+| Gun Galley | navalRanged | 52 | 62 | 2 | 4 | 100 | 2 | engine | 513 | — | The Astrolabe | Frigate | — |  |
+| Frigate | navalRanged | 66 | 80 | 2 | 4 | 100 | 2 | engine | 672 | — | — | — | awaits its node · bombards |  |
+| The Treasure Ship | navalHeavy | 76 | — | — | 4 | 120 | 3 | engine | 228 | — | — | — | blockades |  |
+| The Alexandrian Galley | navalLight | 54 | — | — | 5 | 100 | 3 | line | 61 | — | — | Caravel | hit and run |  |
 
 ### Civilian — 7 rows
 

@@ -193,6 +193,7 @@ import {
   type UnitSize,
   type UnitStamp,
   type UnitTypeId,
+  isCivilian,
   isNaval,
   isUnitTypeId,
   unitDef,
@@ -2371,11 +2372,21 @@ export function explainUnitCost(
  */
 export function unitRosterLines(type: UnitTypeId): UnitCostLine[] {
   const def = unitDef(type);
-  return sizedCostLines(
+  const lines = sizedCostLines(
     UNIT_SIZE_WORDS[def.size],
     RULES.production.unitSizeHammers[def.size] ?? 0,
     unitCostColumn(type),
   );
+  // **A soldier costs more than a civilian of its size** (`militaryPercent`,
+  // the user's ruling of 2026-09-15): its own line over the sized-and-columned
+  // figure, floored once, so the hover can point at it — and civilians (the
+  // worker beside the warrior, the trader beside the catapult) never pay it.
+  const percent = RULES.production.militaryPercent;
+  const sized = foldUnitCost(lines);
+  if (percent !== 0 && sized > 0 && !isCivilian(def)) {
+    lines.push({ source: `Soldier +${percent}%`, amount: Math.floor((sized * percent) / 100) });
+  }
+  return lines;
 }
 
 /** The fold of `unitRosterLines`. */

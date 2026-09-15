@@ -19,6 +19,58 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(nnnnn) The bots' wars — RULED, W1, after A1** (the user, 2026-09-15:
+*"the ai is probably too agressive in going to war, how is it valuing the
+decision to war right now?"* and, in a game where every bot but one had
+declared on them: *"they are just sending massive hordes of army lmao.
+their ai is honestly not great right now either, so i feel like i'm playing
+a wave defense game. We should really tune it's propensity to throw units
+into mine and how aggressively it decides to declare war."*). Two halves,
+one batch, **measure first** on the user's shape — a six-seat standard
+game with seat 0 held passive (defending, never declaring) for a hundred
+turns at three seeds — and report before changing anything: how many
+seats declared on seat 0 and on what turn, the army ratio each declared
+at, and the exchange each war produced (bot pieces lost against seat 0's
+pieces lost, and against seat 0's towns taken). **The declaration**
+(`src/ai/diplomacy.ts`, the five clauses): the ratio counts **fielded**
+strength — pieces spare of the garrisons every town is owed, the strike
+force's own reading — not the whole roster; a term for what the war would
+cost, the nearest target town's own strength (`cityBaseStrength` plus its
+walls and hill) and the road's length, against the force that would walk
+it; **no second war while one runs** unless the advantage is overwhelming
+(a second bar, in the sheet); and a dogpile check — a target already at
+war with two or more seats is not a cheaper target, it is the same target,
+so the appetite does not read their other wars as weakness. The persona
+bars in `data/ai.json` are then retuned so that, on the measured shape,
+at most one or two seats declare on a passive seat 0 by turn 100 and none
+before its army is real. **The conduct** (`src/ai/bot.ts`'s attack and
+campaign rows, `src/ai/campaign.ts`): a bot strikes only when the forecast
+is favourable — the damage it would deal against the damage it would take,
+through `planCombat`'s own forecast, with a knob for the margin; a hurt
+piece falls back and heals rather than presses; a column masses to its
+strike force before it walks in rather than arriving one piece a turn; and
+a fortified piece on a hill or in a town is not attacked by melee at a
+loss — ranged and siege go first or it waits. Every clause is a printed
+term on the spectator feed, every number a sheet knob (the arena walks the
+sheet). **Fidelity is the arena**: the bot must still win its own games —
+`arena.html`'s five-game average per seat before and after, and the
+determinism digest unchanged where no decision is meant to change (the
+opening, the builds). Report the measured shape before/after and a
+Sacrifices paragraph. Waits for A1 (the AI performance pass) to land, since
+both are in `src/ai/`.
+
+**(mmmmm) Soldiers cost half again; hills are worth two — BUILT** (the
+user, 2026-09-15: *"military units need to be ~50% more expensive"* and
+*"hills should only give +2 combat strength"*). `rules.production
+.militaryPercent` (50) is one line over the sized-and-columned figure,
+`Soldier +50%`, pushed in `unitRosterLines` for every unit that is not a
+civilian — so the worker beside the warrior and the trader beside the
+catapult pay nothing more, and the Compendium's empire-free reading and the
+city's fold agree; the settler's ladder and the empire's lines compose on
+top as before. `docs/production-costs.md`'s unit rows and `docs/units.md`'s
+roster are re-printed. Hills' `defenseBonus` is 2 (was 6) in
+`data/terrain.json`; the combat pins re-taken with the arithmetic.
+
 **(lllll) An empire rite pays every chapel — BUILT** (the user, 2026-09-15:
 *"are chapels correctly getting the +5 culture from an empire-wide rite by
 the prophet?"* — they were not). `empireRiteAt` stamped the rite on every

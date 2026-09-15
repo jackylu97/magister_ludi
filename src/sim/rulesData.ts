@@ -1349,6 +1349,16 @@ export interface ProductionRules {
    */
   unitSizeHammers: Record<UnitSize, number>;
   /**
+   * **What a soldier costs over a civilian of the same size**, as a share of
+   * the sized-and-columned figure — the user's ruling of 2026-09-15 ("military
+   * units need to be ~50% more expensive"). A percent line rather than a second
+   * size table, because the sizes are shared: a worker is `light` beside the
+   * warrior and a trader is `engine` beside the catapult, and the ruling is
+   * about the soldiers alone. Read in one place — `unitRosterLines` — so the
+   * Compendium's empire-free reading and the city's own fold agree.
+   */
+  militaryPercent: number;
+  /**
    * **What one column of the tech tree does to a price** — the whole of the
    * curve, ruled **1.31** on 2026-09-07 ("lets make it 1.31. I'll let you know
    * if we need to tweak it").
