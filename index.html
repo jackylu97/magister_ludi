@@ -1548,19 +1548,41 @@
       hidden
     ></div>
 
-    <!-- ================= the victory sheet =====================
-         The Triumph sheet's sibling (src/ui/victoryModal.ts): one seat has
-         reached the threshold, and every seat is told, not only the winner.
-         Raised at the hand-over, behind the turn card.
+    <!-- ================= the standings =========================
+         The victory sheet and the score (src/ui/victoryScreen.ts,
+         docs/flags.md item (uuuuu)). The fifteenth sheet on modalShell:
+         one row per thing counted, one column per seat, the fold at the
+         foot. Raised at the hand-over when the Magnum Opus closes the
+         game, and opened from the dock's sixth door on any turn — the
+         standings are true whether or not the work is finished.
+
+         It replaces the old victory modal, which announced the winner and
+         a bead figure and said nothing about what a game came to.
          ============================================================ -->
     <div
       id="victory-overlay"
-      class="triumph-overlay"
+      class="statecraft-overlay"
       role="dialog"
       aria-modal="true"
-      aria-label="The Bead Race is decided"
+      aria-label="The standings"
       hidden
-    ></div>
+    >
+      <div class="statecraft-sheet">
+        <header class="statecraft-head">
+          <div class="statecraft-head-titles">
+            <p class="eyebrow statecraft-eyebrow">what every empire has to show</p>
+            <h2 class="statecraft-title">The <em>Standings</em></h2>
+          </div>
+          <p class="statecraft-hint">
+            the score, line by line &mdash; <kbd>Esc</kbd> to close
+          </p>
+          <button id="victory-close" class="statecraft-close" type="button" aria-label="Close">
+            &times;
+          </button>
+        </header>
+        <div id="victory-body" class="statecraft-body"></div>
+      </div>
+    </div>
 
     <!-- ================= the Abacus ============================
          The score, as a counting frame standing on the table: one rod per

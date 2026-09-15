@@ -12952,16 +12952,200 @@ body.compendium-page {
   color: var(--ink-faint);
 }
 
-/* --- the victory sheet ----------------------------------------------------- */
+/* --- the standings, and the victory sheet -----------------------------------
 
-/* The Triumph sheet's dress with one difference: the gilt is louder, because
-   this is the golden bead's own moment. */
-.victory-sheet {
-  border-color: var(--gilt);
+   The score as a clerk's table (`src/ui/victoryScreen.ts`, item (uuuuu)): one
+   row per thing counted, one column per seat, the fold at the foot. It replaces
+   the old victory modal's dress — a Triumph sheet in louder gilt — because the
+   document is a *ledger* now rather than an announcement, and the one thing it
+   keeps of that sheet is the gilt on the masthead of a decided game.
+
+   Every figure is tabular mono (the specimen's rule) and the table scrolls
+   inside its own frame rather than widening the paper: six seats is twelve
+   columns of figures. */
+
+.victory-title {
+  text-align: center;
+  margin: 0 0 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--rule);
 }
 
-.victory-sheet .triumph-eyebrow {
-  color: var(--gilt);
+.victory-name {
+  font-family: var(--face-display);
+  font-weight: 400;
+  font-size: 30px;
+  line-height: 1.1;
+  margin: 2px 0 0;
+}
+
+/* A decided game, and the only gilt on the page. */
+.victory-title.is-won .victory-eyebrow,
+.victory-title.is-won .victory-name {
+  color: var(--gilt, var(--ink));
+}
+
+.victory-headline {
+  font-family: var(--face-display);
+  font-style: italic;
+  font-size: 15px;
+  color: var(--ink-soft);
+  margin: 6px 0 0;
+}
+
+.victory-text {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.victory-table-frame {
+  overflow-x: auto;
+}
+
+.victory-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+  font-size: 13px;
+}
+
+.victory-table th,
+.victory-table td {
+  padding: 4px 8px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.victory-row-label {
+  text-align: left;
+  font-weight: 400;
+  font-family: var(--face-ui);
+}
+
+.victory-table thead th {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 7px;
+}
+
+/* The head of a column: the seat's ink, its name, and the mark that says which
+   one is yours. */
+.victory-seat {
+  text-align: right;
+  font-weight: 400;
+}
+
+.victory-seat.is-you .victory-seat-name {
+  font-weight: 600;
+}
+
+.victory-seat.is-winner .victory-seat-name {
+  color: var(--gilt, var(--ink));
+}
+
+.victory-swatch {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 5px;
+  border: 1px solid var(--ink);
+  vertical-align: baseline;
+}
+
+.victory-you {
+  margin-left: 5px;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+}
+
+.victory-worth,
+.victory-count,
+.victory-value,
+.victory-total {
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+}
+
+/* What one of a row is worth, and how many there are: the workings, one weight
+   lighter than the figure they produce. */
+.victory-worth,
+.victory-count {
+  color: var(--ink-faint);
+}
+
+.victory-count {
+  padding-right: 2px;
+}
+
+.victory-value {
+  padding-left: 2px;
+}
+
+.victory-value.is-you {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.victory-row:nth-child(odd) td,
+.victory-row:nth-child(odd) th {
+  background: var(--table);
+}
+
+.victory-table tfoot td,
+.victory-table tfoot th {
+  border-top: var(--border) solid var(--ink);
+  padding-top: 7px;
+  font-size: 17px;
+}
+
+.victory-total.is-winner {
+  color: var(--gilt, var(--ink));
+}
+
+.victory-deck {
+  margin: 14px auto 0;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.victory-deck-label {
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+}
+
+.victory-deck-figures {
+  margin-left: 8px;
+  font-family: var(--face-num);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.victory-foot {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.victory-stay,
+.victory-to-title {
+  font-family: var(--face-ui);
+  padding: 7px 16px;
+  border: var(--border) solid var(--ink);
+  cursor: pointer;
+}
+
+/* Staying is the affirmative answer — a game is still running underneath. */
+.victory-stay {
+  background: var(--ink);
+  color: var(--parchment);
+}
+
+.victory-to-title {
+  background: transparent;
+  color: var(--ink);
 }
 
 /* --- the bead sheet --------------------------------------------------------

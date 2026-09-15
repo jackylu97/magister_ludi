@@ -143,3 +143,50 @@ export function tradeMarkDataUri(color = '#000'): string {
   uriCache.set(`trade:${color}`, uri);
   return uri;
 }
+
+/**
+ * **The ranking** — the standings sheet's door, and the fourth mark in this set
+ * (`docs/flags.md` item (uuuuu)).
+ *
+ * Drawn here rather than vendored, the cart's reason exactly: the outline sets
+ * carry a scroll, a herald and a flame, and none of them carries a **ranking**.
+ * Three rules, longest first, each with its **bead** at the head — the game's
+ * own counting vocabulary (design ledger Entry VI) rather than a bar chart,
+ * which is a picture this interface has never drawn.
+ *
+ * Three rules and not a counting frame, which was the first drawing: a frame's
+ * two uprights and two rods come out at dock scale as a shape with dots in it,
+ * where descending rules read as an order of finish at any size. The Abacus has
+ * its own door on the top bar and this is not it.
+ *
+ * Same grid, same weight, same caps and joins as the three beside it, so it
+ * masks and prints identically and no fifth mechanism was written for it.
+ */
+export const STANDINGS_MARK: { note: string; credit: string; paths: readonly MarkPath[] } = {
+  note: 'a ranking: three rules, longest first, a bead at the head of each',
+  credit: 'drawn for Magister Ludi',
+  paths: [
+    // The three places, longest first.
+    stroke('M9 7h11'),
+    stroke('M9 12h8'),
+    stroke('M9 17h5'),
+    // And the bead at the head of each.
+    stroke('M6 7a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 1 1 3.2 0'),
+    stroke('M6 12a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 1 1 3.2 0'),
+    stroke('M6 17a1.6 1.6 0 1 1-3.2 0 1.6 1.6 0 1 1 3.2 0'),
+  ],
+};
+
+/** The counting frame as a standalone SVG document, inked in `color`. */
+export function standingsMarkSvg(color = '#000'): string {
+  return markSvg(STANDINGS_MARK.paths, YIELD_MARK_BOX, YIELD_MARK_STROKE, color);
+}
+
+/** The frame as a `data:` URI. `statecraftMarkDataUri`'s twin, same cache. */
+export function standingsMarkDataUri(color = '#000'): string {
+  const cached = uriCache.get(`standings:${color}`);
+  if (cached !== undefined) return cached;
+  const uri = `data:image/svg+xml,${encodeURIComponent(standingsMarkSvg(color))}`;
+  uriCache.set(`standings:${color}`, uri);
+  return uri;
+}

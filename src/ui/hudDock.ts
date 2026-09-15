@@ -1,7 +1,8 @@
 /**
- * The HUD dock: five square buttons under the research card, top-left, in the
+ * The HUD dock: six square buttons under the research card, top-left, in the
  * same ink/parchment lozenge language — the front door to Statecraft, to
- * Religion, to Diplomacy, to Trade and to the figure at your table.
+ * Religion, to Diplomacy, to Trade, to the figure at your table, and to the
+ * standings.
  *
  * Why a dock and not two more chips
  * ----------------------------------
@@ -53,7 +54,12 @@
  * scroll is vendored fresh beside it in `src/art/dockMarks.ts`.
  */
 
-import { diplomacyMarkDataUri, statecraftMarkDataUri, tradeMarkDataUri } from '../art/dockMarks';
+import {
+  diplomacyMarkDataUri,
+  standingsMarkDataUri,
+  statecraftMarkDataUri,
+  tradeMarkDataUri,
+} from '../art/dockMarks';
 import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
 import type { Game } from '../sim/game';
 import { hasReligionOffer } from '../sim/religion';
@@ -139,6 +145,16 @@ export interface HudDock {
    * still standing after the End Turn blocker has been walked past.
    */
   readonly leaderButton: HTMLButtonElement;
+  /**
+   * The standings door (`docs/flags.md` item (uuuuu)): the score, as a list, for
+   * every seat — and the sheet the end of the game is announced on.
+   *
+   * Sixth and last, and it wears **no waiting badge** for the banner's reason
+   * exactly: the standings are a record rather than a decision. Nothing is ever
+   * owed here, and a dot that pulsed because a rival had pulled ahead would be
+   * pulsing for most of the game.
+   */
+  readonly standingsButton: HTMLButtonElement;
   /** Refreshes the badges. */
   render(): void;
 }
@@ -202,7 +218,22 @@ export function createHudDock(options: HudDockOptions): HudDock {
   // `render` rather than here, because it is the seat's charge and the seat can
   // change — see `HudDock.leaderButton`.
   const leaderButton = buildButton('hud-dock-leader', 'Leader', 'Your leader', '');
-  container.append(statecraftButton, religionButton, diplomacyButton, tradeButton, leaderButton);
+  // The ranking, sixth: the score every seat has to show for itself, and
+  // the sheet a finished game is announced on (item (uuuuu)).
+  const standingsButton = buildButton(
+    'hud-dock-standings',
+    'Standings',
+    'The standings',
+    standingsMarkDataUri(),
+  );
+  container.append(
+    statecraftButton,
+    religionButton,
+    diplomacyButton,
+    tradeButton,
+    leaderButton,
+    standingsButton,
+  );
 
   return {
     statecraftButton,
@@ -210,6 +241,7 @@ export function createHudDock(options: HudDockOptions): HudDock {
     diplomacyButton,
     tradeButton,
     leaderButton,
+    standingsButton,
     render(): void {
       const { state } = getGame();
       const player = playerById(state, localPlayerId());
