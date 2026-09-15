@@ -49,6 +49,7 @@ import {
   LEDGER_CLASSES,
   LEDGER_CLASS_NAME,
   LEDGER_CURVE_FOOTNOTE,
+  LEDGER_CURVE_SERIES,
   LEDGER_HISTORY_CAP,
   type LedgerClass,
   type LedgerSample,
@@ -60,6 +61,8 @@ import {
   flatsByClass,
   foldLedgerBag,
   ledgerCaption,
+  ledgerCurveLegend,
+  stackedSeries,
   explainLedger,
   ledgerSample,
   netFigure,
@@ -68,6 +71,7 @@ import {
   shareOut,
   sparkPoints,
 } from '../../src/ui/ledgerScreen';
+import { LEDGER_INK, ledgerInk } from '../../src/ui/ledgerInk';
 import { readEmpire } from '../../src/sim/readings';
 import { readCity } from '../../src/sim/readings';
 import {
@@ -443,15 +447,15 @@ describe('the reading', () => {
     expect(deck).not.toBe(0);
     const science = reading.find((voice) => voice.key === 'science')!;
     const caption = ledgerCaption(science);
-    expect(caption.startsWith('your deck makes')).toBe(true);
+    expect(caption.startsWith(`${LEDGER_CLASS_NAME.deck} makes`)).toBe(true);
     expect(caption.endsWith('science')).toBe(true);
   });
 
   it('says “no science yet” rather than “0 of 0” for an empire with nothing', () => {
     const empty = { key: 'science' as const, total: 0, byClass: emptyClasses() };
-    expect(ledgerCaption(empty)).toBe('your deck makes no science yet');
+    expect(ledgerCaption(empty)).toBe('statecraft makes no science yet');
     const noDeck = { key: 'gold' as const, total: 9, byClass: { ...emptyClasses(), tiles: 9 } };
-    expect(ledgerCaption(noDeck)).toBe('your deck makes none of your 9 gold');
+    expect(ledgerCaption(noDeck)).toBe('statecraft makes none of your 9 gold');
     // A treasury in arrears keeps its sign: `figure` prints a magnitude, and an
     // empire paying twelve gold a turn more than it earns must not read as one
     // earning twelve.
@@ -930,7 +934,13 @@ describe('the source register', () => {
       expect(name.length, cls).toBeGreaterThan(0);
       expect(name, cls).toBe(name.toLowerCase());
     }
-    expect(LEDGER_CLASS_NAME.deck).toBe('your deck');
+    // The user's ruling of 2026-09-15: the deck's class reads **statecraft**,
+    // which is what every other surface in the interface already calls it. It
+    // is a *name* pin and not a spelling preference — the caption under a bar
+    // is built out of this table, so a word changed here changes the sentence
+    // and the legend together or fails.
+    expect(LEDGER_CLASS_NAME.deck).toBe('statecraft');
+    expect(source('ledgerScreen.ts')).not.toContain('your deck');
   });
 });
 
@@ -968,13 +978,136 @@ describe('the sparkline', () => {
   it('draws one sample as a reading, not as a dot in the corner', () => {
     expect(sparkPoints([4], 100, 40, 0, 10)).toEqual([[100, 24]]);
   });
+
+  it('stacks the three shaded classes from the axis, in the legend’s order', () => {
+    const zero = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+    const one: LedgerSample = {
+      turn: 1,
+      age: 1,
+      totals: { ...zero, science: 20 },
+      deck: { ...zero, science: 5 },
+      people: { ...zero, science: 3 },
+      religion: { ...zero, science: 2 },
+    };
+    const two: LedgerSample = { ...one, turn: 2, deck: { ...zero, science: 9 } };
+    // Cumulative, in order: statecraft from the axis, the people on top of it,
+    // religion on top of both — so a band's *thickness* is what that class made
+    // and the topmost curve is what the three made together.
+    expect(stackedSeries([one, two], 'science')).toEqual([
+      [5, 9],
+      [8, 12],
+      [10, 14],
+    ]);
+    expect(LEDGER_CURVE_SERIES).toEqual(['deck', 'people', 'religion']);
+  });
+
+  it('never stacks a band downward from a class in the red', () => {
+    // Band 1's bar is positives only for a stated reason — a stack with a
+    // negative segment no longer means "this is the whole" — and a curve is
+    // that bar over time. The dip belongs to the total's own line.
+    const zero = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+    const owing: LedgerSample = {
+      turn: 1,
+      age: 1,
+      totals: { ...zero, gold: -4 },
+      deck: { ...zero, gold: -6 },
+      people: { ...zero, gold: 2 },
+      religion: { ...zero },
+    };
+    expect(stackedSeries([owing], 'gold')).toEqual([[0], [2], [2]]);
+  });
+});
+
+// --- the palette: one ink a class, everywhere the class appears --------------
+
+/**
+ * The user's ruling of 2026-09-15 (`docs/flags.md` (vvvvv)): *"let's add more
+ * colors to the ledger … the other colors should be glanceable."*
+ *
+ * What can go quietly wrong here is a **half-painted** sheet — a class coloured
+ * on the bar and grey on the chart, or a ninth class added to `LedgerClass` with
+ * no ink at all, which draws perfectly as a transparent gap in a bar that is
+ * supposed to be a whole. There is no DOM in this suite (the head of this file
+ * says why), so the palette is read three ways: the table itself, the stylesheet
+ * it names, and the drawing's own source for the one function that paints.
+ */
+describe('the Ledger’s palette', () => {
+  /** `--ldg-deck: var(--grape);` → `#7b3fa8`. One level of indirection is all the palette uses. */
+  function inkValue(css: string, property: string): string {
+    const declared = [...css.matchAll(new RegExp(`\\n\\s*${property}:\\s*([^;]+);`, 'g'))];
+    expect(declared, property).toHaveLength(1);
+    const value = declared[0]![1]!.trim();
+    const indirect = value.match(/^var\((--[a-z0-9-]+)\)$/);
+    return indirect ? inkValue(css, indirect[1]!) : value;
+  }
+
+  it('gives every class exactly one ink, and no two classes the same one', () => {
+    expect(Object.keys(LEDGER_INK).sort()).toEqual([...LEDGER_CLASSES].sort());
+    const css = raw('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    const inks = new Map<string, LedgerClass>();
+    for (const cls of LEDGER_CLASSES) {
+      const value = inkValue(css, LEDGER_INK[cls]);
+      expect(value, `${cls} resolves to a colour`).toMatch(/^(#[0-9a-f]{3,8}|rgba?\()/);
+      const held = inks.get(value);
+      expect(held, `${cls} and ${held ?? ''} share ${value}`).toBeUndefined();
+      inks.set(value, cls);
+    }
+    expect(inks.size).toBe(LEDGER_CLASSES.length);
+  });
+
+  it('draws every class through the one painter, on every surface it appears', () => {
+    const screen = source('ledgerScreen.ts');
+    // The head of band 1, a bar's slice, the legend's swatch, a curve's band —
+    // four surfaces, one function, and no colour named on this page.
+    for (const surface of ['drawBar', 'drawLegend', 'drawSpark']) {
+      const at = screen.indexOf(`function ${surface}(`);
+      expect(at, surface).toBeGreaterThan(-1);
+      expect(screen.slice(at, screen.indexOf('\n}', at)), surface).toContain('paintLedgerInk(');
+    }
+    expect(screen).toContain("paintLedgerInk(label, 'deck')");
+    expect(screen).not.toMatch(/#[0-9a-f]{6}/i);
+    // And the stylesheet names no class of its own: a rule per class is how the
+    // two halves drift apart.
+    const css = raw('style.css').replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const cls of LEDGER_CLASSES) expect(css, cls).not.toContain(`.ldg-slice.is-${cls}`);
+    expect(css).toContain('background: var(--ldg-ink');
+    expect(css).toContain('fill: var(--ldg-ink');
+    expect(ledgerInk('deck')).toBe('var(--ldg-deck)');
+  });
+
+  it('names every class once at the foot, and says what the curves shade', () => {
+    const screen = source('ledgerScreen.ts');
+    // One legend, and it is the sheet's rather than band 1's: two keys saying
+    // the same eight words would be the sheet answering the same question twice.
+    expect(screen).toContain('drawProduced(), drawLegend()');
+    expect(screen.match(/element\('ul', 'ldg-key'\)/g)).toHaveLength(1);
+    // Every class, by the table rather than by a written list: a legend that
+    // named seven of eight would be a bar with an unexplained colour in it.
+    const drawn = screen.slice(screen.indexOf('function drawLegend('));
+    const body = drawn.slice(0, drawn.indexOf('\n}'));
+    expect(body).toContain('for (const cls of LEDGER_CLASSES)');
+    expect(body).toContain('LEDGER_CLASS_NAME[cls]');
+    const legend = ledgerCurveLegend();
+    for (const cls of LEDGER_CURVE_SERIES) expect(legend, cls).toContain(LEDGER_CLASS_NAME[cls]);
+    // Plain words, in the order they stack, and no number in a sentence.
+    expect(legend.indexOf('statecraft')).toBeLessThan(legend.indexOf('great people'));
+    expect(legend.indexOf('great people')).toBeLessThan(legend.indexOf('religion'));
+    expect(legend).not.toMatch(/\d/);
+  });
 });
 
 // --- band 2: the session's curve --------------------------------------------
 
 function sample(turn: number): LedgerSample {
   const zero = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
-  return { turn, age: 1, totals: { ...zero }, deck: { ...zero } };
+  return {
+    turn,
+    age: 1,
+    totals: { ...zero },
+    deck: { ...zero },
+    people: { ...zero },
+    religion: { ...zero },
+  };
 }
 
 describe('the curve’s ring buffer', () => {
@@ -997,16 +1130,35 @@ describe('the curve’s ring buffer', () => {
     expect(history.samples()).toEqual([]);
   });
 
-  it('samples the six totals and the deck’s share of each', () => {
+  it('samples the six totals and the three shaded classes of each', () => {
     const { state, playerId } = bench();
     const taken = ledgerSample(state, playerId);
     expect(taken.turn).toBe(state.turn);
     expect(taken.age).toBeGreaterThanOrEqual(1);
     const headline = readEmpire(state, playerId).totals;
+    const reading = explainLedger(state, playerId);
     for (const key of ['food', 'production', 'gold', 'science', 'culture', 'faith'] as const) {
       expect(taken.totals[key], key).toBe(headline[key]);
-      expect(taken.deck[key], `deck ${key}`).toBeTypeOf('number');
+      const voice = reading.find((one) => one.key === key)!;
+      // The three series are **columns of the one fold** the totals came out of
+      // (the ruling of 2026-09-15), not three readings of their own: a sample
+      // that asked `explainLedger` again per class would be four empire folds a
+      // turn, and could disagree with the bar drawn from the same turn.
+      for (const cls of LEDGER_CURVE_SERIES) {
+        expect(taken[cls][key], `${cls} ${key}`).toBe(voice.byClass[cls]);
+      }
     }
+  });
+
+  it('draws a chart off a ring that predates the two new series', () => {
+    // A sample is view state and is never saved, so the only way an old shape
+    // reaches the chart is a page kept open across a reload of this module —
+    // but a chart that *threw* on one would take the whole sheet down with it,
+    // which is a worse answer than two flat bands.
+    const zero = { food: 0, production: 0, gold: 0, science: 0, culture: 0, faith: 0 };
+    const old = { turn: 3, age: 1, totals: { ...zero, science: 9 }, deck: { ...zero, science: 4 } };
+    const stacks = stackedSeries([old as LedgerSample], 'science');
+    expect(stacks).toEqual([[4], [4], [4]]);
   });
 
   it('says out loud that the curve is the session’s and not the save’s', () => {
