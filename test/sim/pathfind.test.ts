@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import {
   canStopOn,
   canTransit,
@@ -16,8 +16,11 @@ import {
   stepCost,
   takesByWalking,
   tileMoveCost,
+  transitField,
   zocField,
 } from '../../src/sim/pathfind';
+import { cityAt } from '../../src/sim/cities';
+import { hasForeignUnit } from '../../src/sim/units';
 import { advanceAlongPath } from '../../src/sim/movement';
 import { RULES } from '../../src/sim/rulesData';
 import { techsGrant } from '../../src/sim/techData';
@@ -774,5 +777,151 @@ describe('the shore crossing', () => {
     expect(priceOf(state, worker, at(state.map, 3, 5), at(state.map, 4, 5))).toBe(
       fullMovement(worker, state),
     );
+  });
+});
+
+/**
+ * **The hoist is the same two readings, taken once** — the M-series pin
+ * (`docs/flags.md` (fffff)'s follow-up row).
+ *
+ * `canTransit` used to walk `state.cities` and `state.units` per edge; it now
+ * reads one byte of a `TransitField` swept once per search. The claim is that
+ * nothing about the *answer* moved, and this is the whole of the proof, in two
+ * halves that between them cover every reader:
+ *
+ *   · the **field** says what the two walks say, hex for hex and seat for seat;
+ *   · the **gate** answers the same with a field and without one, for every
+ *     piece on the board and every hex of it.
+ *
+ * That is sufficient for `findPath` and `reachableTiles` by construction: both
+ * searches are built out of `canTransit`, `canStopOn` and `stepCost`, the last
+ * of which the hoist never touched. A route is a fold of edge answers, so two
+ * runs agreeing on every edge agree on every route — which is why there is no
+ * third half here comparing routes against a second implementation, and why the
+ * byte-for-byte proof that a *bot game* is unchanged (a 120-turn six-seat drive
+ * at two seeds, digested with `snapshotState`) is taken out of tier, where a
+ * drive of that size belongs.
+ *
+ * The board is built by hand rather than played, so that the cases a played
+ * board reaches by luck are all here on purpose: a foreign piece, a friendly
+ * one, a foreign town, a friendly town, a hex carrying both, three seats rather
+ * than two, and the two ends of the wrapped seam — which is the one place a
+ * coordinate could be confused with an index.
+ */
+describe('the transit field', () => {
+  /** Three seats, pieces and towns strewn over the seam and the middle alike. */
+  function crowdedState(): GameState {
+    const state = newGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+        { name: 'C', color: '#0a0', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(state);
+    state.units = [];
+    state.cities = [];
+    state.nextEntityId = 1;
+    createCity(state, 0, 'Home', 5, 3);
+    createCity(state, 1, 'Theirs', 8, 3);
+    // On the seam, both sides of it: column 0 and column 11 are neighbours.
+    createCity(state, 2, 'Edge', 0, 6);
+    unit(state, 5, 3, 'warrior', 0);
+    unit(state, 6, 3, 'warrior', 1);
+    unit(state, 6, 4, 'settler', 1);
+    // A friendly piece and a foreign one on one hex: the two bits are
+    // independent, and a hex that carries both must read as both.
+    unit(state, 8, 3, 'warrior', 1);
+    unit(state, 8, 3, 'worker', 0);
+    unit(state, 11, 6, 'warrior', 2);
+    unit(state, 0, 0, 'warrior', 1);
+    unit(state, 11, 7, 'settler', 2);
+    return state;
+  }
+
+  it('says what `cityAt` and `hasForeignUnit` say, hex for hex and seat for seat', () => {
+    const state = crowdedState();
+    for (const seat of [0, 1, 2]) {
+      const field = transitField(state, seat);
+      expect(field.ownerId).toBe(seat);
+      let towns = 0;
+      let pieces = 0;
+      for (const tile of state.map.tiles) {
+        const bits = field.blocked[tileIndex(state.map, tile.col, tile.row)]!;
+        const city = cityAt(state, tile.col, tile.row);
+        expect((bits & 2) !== 0).toBe(city !== undefined && city.ownerId !== seat);
+        expect((bits & 1) !== 0).toBe(hasForeignUnit(state, tile.col, tile.row, seat));
+        if ((bits & 2) !== 0) towns += 1;
+        if ((bits & 1) !== 0) pieces += 1;
+      }
+      // An agreement between two readings that both say "nothing anywhere" is
+      // not an agreement worth having: the board is crowded on purpose, so the
+      // field has to have found the crowd.
+      expect(towns).toBe(2);
+      expect(pieces).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('gates every piece on every hex exactly as the walks did', () => {
+    const state = crowdedState();
+    // Everybody at war with everybody, so the civilian clause at the foot of
+    // `canTransit` is live rather than skipped: that arm reads the state
+    // directly and has to go on answering for itself.
+    openWar(state, 0, 1);
+    openWar(state, 0, 2);
+    openWar(state, 1, 2);
+    for (const piece of state.units) {
+      const mover = moveProfile(state, piece);
+      const field = transitField(state, piece.ownerId);
+      for (const tile of state.map.tiles) {
+        expect(canTransit(state, piece, tile, mover, field)).toBe(
+          canTransit(state, piece, tile, mover),
+        );
+        expect(canStopOn(state, piece, tile, mover, field)).toBe(
+          canStopOn(state, piece, tile, mover),
+        );
+      }
+    }
+  });
+
+  it('is spent only against the seat it was swept for', () => {
+    const state = crowdedState();
+    // A field built for somebody else is not a second opinion, it is a wrong
+    // one — so the gate compares the seat and falls back to the walks rather
+    // than reading a stranger's bytes. Pinned because that compare is the only
+    // thing between a hoist and a quietly different board.
+    const piece = state.units.find((row) => row.ownerId === 0)!;
+    const mover = moveProfile(state, piece);
+    const theirs = transitField(state, 1);
+    for (const tile of state.map.tiles) {
+      expect(canTransit(state, piece, tile, mover, theirs)).toBe(
+        canTransit(state, piece, tile, mover),
+      );
+    }
+  });
+
+  it('leaves the route and the highlight where they were', () => {
+    // The composed half: the searches take a field by default now, so this is
+    // the reading a caller actually gets, pinned against the hand-written answer
+    // rather than against a second run of the same code.
+    const state = flatState(8, 6);
+    createCity(state, 1, 'Theirs', 4, 2);
+    unit(state, 5, 2, 'warrior', 1);
+    const mine = unit(state, 2, 2, 'warrior', 0);
+    // Straight along row 2 is shortest, and a foreign town and a foreign soldier
+    // both sit on that line, so the route has to go round the pair of them.
+    const path = findPath(state, mine, at(state.map, 6, 2));
+    expect(path).not.toBeNull();
+    for (const step of path!) {
+      expect(`${step.col},${step.row}`).not.toBe('4,2');
+      expect(`${step.col},${step.row}`).not.toBe('5,2');
+    }
+    expect(path![path!.length - 1]).toEqual({ col: 6, row: 2 });
+    const reach = reachableTiles(state, mine).map((row) => `${row.tile.col},${row.tile.row}`);
+    expect(reach).not.toContain('4,2');
+    expect(reach).toContain('3,2');
   });
 });
