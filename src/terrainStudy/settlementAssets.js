@@ -3,14 +3,34 @@ import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {indexGeometry} from './indexGeometry.js';
 
+/** Release a batch nobody will own, including requests that land later. */
+async function releaseScenes(downloads){
+ for(const result of await Promise.allSettled(downloads)){
+  if(result.status!=='fulfilled')continue;
+  const resources=new Set();
+  result.value.scene.traverse(o=>{if(o.isMesh){resources.add(o.geometry);for(const m of Array.isArray(o.material)?o.material:[o.material])resources.add(m)}});
+  for(const resource of resources)resource.dispose();
+ }
+}
+
 // Authored once in Blender. Each multi-material asset becomes one indexed,
 // vertex-coloured mesh so the whole herd/building costs a single instance.
 export async function loadSettlementAssets(paintedStyle,mineral,{names=['horse','cattle','bison','deer','elephant','beaver','house','temple','bell-tower','mine','camp','quarry','fishing-boat','resource-shrub','city-house','city-loggia','civic-sanctum','city-spire','city-dome','site-ruin-arch','site-ruin-column','site-ruin-fragment','site-hut','site-longhouse','site-antiquity','site-wreck','site-raider-tent','site-watchtower']}={}){
- const material=new T.MeshStandardMaterial({color:'white',vertexColors:true,flatShading:true,roughness:.94,metalness:0,bumpMap:mineral,bumpScale:.003});
+ const loader=new GLTFLoader(),unique=[...new Set(names)];
+ // The kit's download needs no texture. Starting it before the grain resolves
+ // is the whole of why the two batches overlap; the settled-batch ownership
+ // rules below are unchanged. The idle `catch` only keeps a request that fails
+ // before the batch is awaited from being reported as unhandled.
+ const downloads=unique.map(name=>{const request=loader.loadAsync(`/terrain-study/settlements/${name}.glb`);request.catch(()=>{});return request});
+ let mineralGrain;
+ try{mineralGrain=await mineral}
+ catch(error){await releaseScenes(downloads);throw error}
+ const material=new T.MeshStandardMaterial({color:'white',vertexColors:true,flatShading:true,roughness:.94,metalness:0,bumpMap:mineralGrain,bumpScale:.003});
  paintedStyle.register(material);
- const loader=new GLTFLoader(),assets={material};
- const loaded=await Promise.allSettled([...new Set(names)].map(async name=>{
-  const {scene}=await loader.loadAsync(`/terrain-study/settlements/${name}.glb`);scene.updateMatrixWorld(true);
+ const assets={material};
+ const loaded=await Promise.allSettled(downloads.map(async (download,index)=>{
+  const name=unique[index];
+  const {scene}=await download;scene.updateMatrixWorld(true);
   const pieces=[];let geometry;
   try {
   scene.traverse(o=>{
