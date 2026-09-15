@@ -1877,6 +1877,74 @@ export interface CensusRules {
   renown: number;
 }
 
+/**
+ * **What a hex is worth as a place to put a town** — the one table, read by the
+ * settler's marker and by the bot alike (`src/sim/sites.ts`).
+ *
+ * `ringRadius` and `yieldWeights` lived in `data/ai.json` until the reading was
+ * shared, and moving them here is the whole point of the move: a second weight
+ * table beside this one is the fault the settle audit named, and two of them
+ * would put the marker on one hex and the settler on another.
+ */
+export interface SiteRules {
+  /**
+   * How far a *young* town's appraisal reaches, in hexes.
+   *
+   * Deliberately less than `cities.workRadius`: a town works out to three
+   * eventually, but not on the turn it is founded and not for a long while
+   * after — its borders have to grow there and a citizen has to be born to
+   * stand on it. Two is what the bot's settle table already used.
+   */
+  ringRadius: number;
+  /**
+   * How many of the ring's hexes the appraisal counts — the centre it works for
+   * nothing, plus the hands a young town can plausibly put on the ground.
+   *
+   * A ring of nineteen counted whole would rank a site by fields its first ten
+   * citizens will never touch.
+   */
+  workedHexes: number;
+  /** How far from a town or a settler of its own a seat looks for sites. */
+  searchRadius: number;
+  /** What each voice of a hex's yield is worth to a site. */
+  yieldWeights: ResourceYieldBag;
+  /** A river, a lake or an oasis. */
+  freshWater: number;
+  /** Each luxury the ring would reach, once per kind. */
+  luxury: number;
+  /** Each strategic seam, likewise. */
+  strategic: number;
+  /** A hex that could put a harbour on the sea. */
+  coast: number;
+  /** Each hill in the ring — the ground a town works for stone. */
+  hills: number;
+  /** Closer than this to a town of our own and the site is crowded. */
+  comfortableSpacing: number;
+  /** What each hex of that crowding costs the site. */
+  crowding: number;
+  /** The counted hexes' food at or above which the words say "strong food". */
+  strongFood: number;
+  /** Their production, likewise. */
+  strongProduction: number;
+  /**
+   * Below this the site is not worth recommending at all. A marker on the least
+   * bad hex of a bad continent is worse than no marker.
+   */
+  scoreFloor: number;
+}
+
+/**
+ * The handful of figures the **board** reads rather than the simulation.
+ *
+ * Kept small on purpose: a number that changes an outcome is a rule and belongs
+ * in a block above. What lands here decides how much of an answer the player is
+ * shown, never what the answer is.
+ */
+export interface UiRules {
+  /** How many recommended sites the settler lens marks at once. */
+  recommendedSites: number;
+}
+
 export interface RulesConfig {
   game: GameRules;
   movement: MovementRules;
@@ -1901,6 +1969,8 @@ export interface RulesConfig {
   upkeep: UpkeepRules;
   wager: WagerRules;
   census: CensusRules;
+  sites: SiteRules;
+  ui: UiRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];
 }

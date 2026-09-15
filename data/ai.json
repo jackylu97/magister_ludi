@@ -23,18 +23,9 @@
     "hexOffersPriced": 4
   },
   "site": {
-    "ringRadius": 2,
     "freshWaterBonus": 6,
     "newLuxuryBonus": 14,
-    "newStrategicBonus": 10,
-    "yieldWeights": {
-      "food": 3,
-      "production": 2,
-      "gold": 1,
-      "science": 1,
-      "culture": 1,
-      "faith": 1
-    }
+    "newStrategicBonus": 10
   },
   "workers": {
     "searchRadius": 6,

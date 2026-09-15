@@ -55,6 +55,10 @@ describe('the three verbs', () => {
         // wager deck may ask what the sheet prints. It holds an `explain…` and
         // two `fold…`s and is governed the day it exists.
         '../../src/sim/ledgerFold.ts',
+        // The settler's marker and the bot's settle table read one appraisal of
+        // a site (`docs/flags.md` item (ttttt)). It holds an `explain…` and its
+        // `fold…`, and the memo over it is `readSites` in `readings.ts`.
+        '../../src/sim/sites.ts',
         '../../src/sim/modifiers.ts',
         '../../src/ui/ledgerScreen.ts',
         '../../src/ui/topBar.ts',
@@ -173,6 +177,9 @@ describe('the three verbs', () => {
       // The Trade screen's whole subject, once per revision (batch R1): every
       // pair a caravan could join, gated, priced and paid.
       'readRoutes',
+      // The settler lens's marked hexes (item (ttttt)): every charted, foundable
+      // hex in reach of a town or a settler of this seat's, ranked and cut.
+      'readSites',
     ]);
   });
 

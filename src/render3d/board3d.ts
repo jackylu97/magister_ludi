@@ -45,6 +45,7 @@ import {
 import type { CityMarkId } from '../art/cityMarks';
 import type { HeraldryId } from '../art/heraldryMarks';
 import type { SurveyMarkId } from '../art/surveyMarks';
+import type { SettleMarkId } from '../art/settleMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
 import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
@@ -66,6 +67,7 @@ import {
   NUMERAL_CELLS,
   SITE_MARK_CELLS,
   SURVEY_MARK_CELLS,
+  SETTLE_MARK_CELLS,
   YIELD_KEYS,
   type YieldKey,
   badgeCellRect,
@@ -1034,6 +1036,20 @@ function buildSurveyMarkers(): Record<SurveyMarkId, BufferGeometry> {
 }
 
 /**
+ * The settler lens's staked pennants, standing up: `buildSurveyMarkers` against
+ * one more set of atlas rectangles, and asked of `SETTLE_MARK_CELLS` for that
+ * function's stated reason.
+ */
+function buildSettleMarkers(): Record<SettleMarkId, BufferGeometry> {
+  const out: Partial<Record<SettleMarkId, BufferGeometry>> = {};
+  for (const id of SETTLE_MARK_CELLS) {
+    const rect = tileIconRect({ set: 'settle', id });
+    out[id] = atlasQuad(rect.u0, rect.v0, rect.u1, rect.v1);
+  }
+  return out as Record<SettleMarkId, BufferGeometry>;
+}
+
+/**
  * The ten numeral cells again, *standing up* — the same trick
  * `buildResourceMarkers` plays, one set over. This is what the worker's charge
  * badge (`pieces.ts`) is built from: a small camera-facing digit at a badge's
@@ -1256,6 +1272,13 @@ export class BoardGeometry {
    */
   readonly surveyMarkers: Record<SurveyMarkId, BufferGeometry>;
   /**
+   * And once more for the **settle marks** — the staked pennant the settler lens
+   * plants on a hex the simulation recommends (`src/sim/sites.ts`). Same quad,
+   * same pin, same atlas; planted by `lens3d.ts` and only while a settler is in
+   * hand, on the upper shoulder of the hex the site marker leaves free.
+   */
+  readonly settleMarkers: Record<SettleMarkId, BufferGeometry>;
+  /**
    * The standing form of the ten numeral cells, for the worker's charge badge
    * — see `buildNumeralMarkers`. Indexed by digit, exactly as `numerals` is.
    */
@@ -1393,6 +1416,7 @@ export class BoardGeometry {
     this.resourceMarkers = buildResourceMarkers();
     this.siteMarkers = buildSiteMarkers();
     this.surveyMarkers = buildSurveyMarkers();
+    this.settleMarkers = buildSettleMarkers();
     this.resourceStem = markerPin(VIEW3D.lens.resourceStemTaper);
     this.numeralMarkers = buildNumeralMarkers();
     this.river = riverSegment();
@@ -1480,6 +1504,7 @@ export class BoardGeometry {
     for (const quad of Object.values(this.resourceMarkers)) quad.dispose();
     for (const quad of Object.values(this.siteMarkers)) quad.dispose();
     for (const quad of Object.values(this.surveyMarkers)) quad.dispose();
+    for (const quad of Object.values(this.settleMarkers)) quad.dispose();
     this.resourceStem.dispose();
     for (const quad of this.numeralMarkers) quad.dispose();
     for (const quad of Object.values(this.yieldGlyphs)) quad.dispose();

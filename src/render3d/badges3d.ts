@@ -116,6 +116,7 @@ import {
 } from '../art/resourceMarks';
 import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, type SurveyMarkId, surveyMark } from '../art/surveyMarks';
+import { SETTLE_MARK_IDS, type SettleMarkId, settleMark } from '../art/settleMarks';
 import {
   YIELD_MARK_BOX,
   YIELD_MARK_SCALE,
@@ -1155,6 +1156,19 @@ export const SITE_MARK_CELLS: readonly DiscoveryKind[] = DISCOVERY_KINDS;
  */
 export const CITY_MARK_CELLS: readonly CityMarkId[] = CITY_MARK_IDS;
 
+/**
+ * The **settle** marks: one cell per drawn settle mark
+ * (`src/art/settleMarks.ts`), which is one today — the staked pennant the
+ * settler lens plants on a recommended hex.
+ *
+ * Aliased from the art registry for `SITE_MARK_CELLS`' reason exactly. Printed
+ * on **parchment**, like the charges and the town marks and against the survey's
+ * bare ink: a survey note is the surveyor's own guess pencilled onto his chart,
+ * while this is the board answering the question the settler in the player's
+ * hand is asking, and it has to read at a glance over jungle and over snow.
+ */
+export const SETTLE_MARK_CELLS: readonly SettleMarkId[] = SETTLE_MARK_IDS;
+
 /** A cell of the tile atlas: which set it belongs to, and which member. */
 export type TileIconCell =
   | { set: 'resource'; id: ResourceId }
@@ -1166,7 +1180,8 @@ export type TileIconCell =
   | { set: 'charge'; id: HeraldryId }
   | { set: 'axis'; id: BeliefAxis }
   | { set: 'survey'; id: SurveyMarkId }
-  | { set: 'cityMark'; id: CityMarkId };
+  | { set: 'cityMark'; id: CityMarkId }
+  | { set: 'settle'; id: SettleMarkId };
 
 /**
  * Every cell of the tile atlas, in layout order: the resources, then the six
@@ -1192,6 +1207,7 @@ export const TILE_ICON_CELLS: readonly TileIconCell[] = [
   // index here is a texture coordinate.
   ...MEDALLION_CELLS.map((id) => ({ set: 'medallion', id }) as TileIconCell),
   ...CITY_MARK_CELLS.map((id) => ({ set: 'cityMark', id }) as TileIconCell),
+  ...SETTLE_MARK_CELLS.map((id) => ({ set: 'settle', id }) as TileIconCell),
 ];
 
 /**
@@ -2056,6 +2072,43 @@ function drawCityMarkCell(
 }
 
 /**
+ * Paints one settle mark: a parchment disc with the mark on it.
+ *
+ * `drawCityMarkCell` a second time, on the same grid at the same weight, and
+ * deliberately not `drawSurveyCell` — the two marks are the only ones on this
+ * atlas that say something about a hex rather than naming a thing on it, and the
+ * difference between them is the whole of why one is faint and this one is not.
+ * A survey note is a guess the surveyor pencilled onto his own chart; this is an
+ * answer the board is handing the player about the piece in his hand, and an
+ * answer printed in the faded hand would read as a doubt.
+ */
+function drawSettleCell(
+  context: CanvasRenderingContext2D,
+  index: number,
+  layout: AtlasLayout,
+  id: SettleMarkId,
+): void {
+  const origin = badgeCellOrigin(index, layout);
+  const cell = layout.cell;
+  const center = { x: origin.x + cell / 2, y: origin.y + cell / 2 };
+
+  context.save();
+  context.fillStyle = cssHex(ICONS.paperColor);
+  context.beginPath();
+  context.arc(center.x, center.y, paperRadiusFraction() * cell, 0, Math.PI * 2);
+  context.fill();
+  context.restore();
+
+  paintMarkPaths(
+    context,
+    settleMark(id),
+    center,
+    Math.max(1, ICONS.settleScale * cell),
+    ICONS.inkColor,
+  );
+}
+
+/**
  * Paints one numeral: a parchment disc with a digit on it.
  *
  * Text rather than artwork, and drawn in the platform's own mono-ish stack. See
@@ -2501,8 +2554,14 @@ export class TileIcons {
         drawCityMarkCell(context, index, layout, cell.id);
         return;
       }
-      // Every `TileIconCell` variant is one of the nine branches above; this is
-      // the exhaustiveness check, not a reachable draw path — a tenth set
+      // The settler lens's own mark, on the charges' field for the town mark's
+      // reason; see `SETTLE_MARK_CELLS`.
+      if (cell.set === 'settle') {
+        drawSettleCell(context, index, layout, cell.id);
+        return;
+      }
+      // Every `TileIconCell` variant is one of the ten branches above; this is
+      // the exhaustiveness check, not a reachable draw path — an eleventh set
       // added to the union without a painter here fails typecheck instead of
       // drawing a blank cell.
       const exhaustive: never = cell;

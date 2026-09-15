@@ -64,7 +64,7 @@ import {
   bestTechGoal,
   explainCard,
   explainCitizen,
-  explainSite,
+  explainSiteValue,
   isPatientRow,
   nextBotDecision,
   valueContext,
@@ -162,7 +162,6 @@ import {
   type TileYieldContext,
   cityContext,
   foldTile,
-  yieldContextFor,
 } from '../../src/sim/yields/hex';
 import { startRouteAt } from '../../src/sim/trade';
 import {
@@ -4314,9 +4313,8 @@ describe('the ground nobody works (batch X1d-ground)', () => {
     const { state, rich, middling } = twoSites();
     const player = seat(state, 0);
     const ctx = valueContext(state, player);
-    const ground = yieldContextFor(state, player.id);
-    const a = explainSite(state, ctx.realm, ctx, rich, ground);
-    const b = explainSite(state, ctx.realm, ctx, middling, ground);
+    const a = explainSiteValue(state, ctx.realm, ctx, rich);
+    const b = explainSiteValue(state, ctx.realm, ctx, middling);
     expect(foldTerms(a.terms)).toBe(a.total);
     expect(foldTerms(b.terms)).toBe(b.total);
     expect(a.total).toBeGreaterThan(b.total);
@@ -4351,24 +4349,22 @@ describe('the ground nobody works (batch X1d-ground)', () => {
       at(state.map, col, row).resource = 'iron';
     }
     bumpRevision(state);
-    const blind = explainSite(
+    const blind = explainSiteValue(
       state,
       valueContext(state, player).realm,
       valueContext(state, player),
       rich,
-      yieldContextFor(state, player.id),
     );
     for (const step of researchExpansion(state, 0, 'bronzePanoply')) {
       if (!player.techsResearched.includes(step)) player.techsResearched.push(step);
     }
     if (!player.techsResearched.includes('bronzePanoply')) player.techsResearched.push('bronzePanoply');
     bumpRevision(state);
-    const seeing = explainSite(
+    const seeing = explainSiteValue(
       state,
       valueContext(state, player).realm,
       valueContext(state, player),
       rich,
-      yieldContextFor(state, player.id),
     );
     // What one iron hex is worth as it lies, off the site's own printed line.
     const hexAsItLies = (appraisal: Appraisal, col: number, row: number): number => {
@@ -4434,7 +4430,7 @@ describe('the ground nobody works (batch X1d-ground)', () => {
     const player = seat(state, 0);
     const read = (tile: Tile): number => {
       const ctx = valueContext(state, player);
-      return explainSite(state, ctx.realm, ctx, tile, yieldContextFor(state, player.id)).total;
+      return explainSiteValue(state, ctx.realm, ctx, tile).total;
     };
     // The sheet's own horizon: Sailing is two cheap nodes off, so the coast is
     // priced at the fishing boats a town there would put on the fish.

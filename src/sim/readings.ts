@@ -159,6 +159,7 @@ import {
 import { getTileAt } from './map';
 import { routePrice } from './purchase';
 import { RULES } from './rulesData';
+import { rankSites, type SiteCandidate } from './sites';
 import {
   type RouteYieldLine,
   explainRouteSenderYieldBetween,
@@ -464,6 +465,35 @@ export interface RoutesReading {
 export function readRoutes(state: GameState, playerId: number): RoutesReading {
   return slateMemo(state, 'revision', 'routes', String(playerId), () =>
     routesReading(state, playerId),
+  );
+}
+
+/**
+ * **The sites this seat should be told about, once per revision** — the ranked
+ * few, already cut to `ui.recommendedSites` (`rankSites`, `sites.ts`).
+ *
+ * The lens draws these and the hover card explains them, and they read one list
+ * so the marker on the board and the words under the cursor cannot disagree
+ * about which hexes are recommended. The **bot** does not ask this verb: its
+ * settler asks `explainSite` about the hexes its own march can reach, with its
+ * own refusals on top (a hostile near the site, a route to it), so what is
+ * shared between the two is the *reading* rather than the shortlist.
+ *
+ * **On the revision, and it has to be.** The sweep's three gates are a chart
+ * (`isExploredBy` — one step of a scout opens new ground), the founding rule
+ * (`foundingErrorAt` — one town founded refuses a whole ring around it) and the
+ * ground itself as this seat sees it (a reveal technology, an improvement, a
+ * border bought). Every one of those moves on a command that need not touch a
+ * town's books, so the coarser clock would hand the settler yesterday's answer.
+ *
+ * It is the most expensive reading in this file by some way — a ring walk per
+ * candidate hex, over a search radius around every town and settler the seat
+ * holds — and that is the whole reason it is a memo: the lens rebuilds it on
+ * each repaint, and the hover card asks again on every mouse move.
+ */
+export function readSites(state: GameState, playerId: number): readonly SiteCandidate[] {
+  return slateMemo(state, 'revision', 'sites', String(playerId), () =>
+    rankSites(state, playerId),
   );
 }
 
