@@ -246,7 +246,3 @@ function handOver(playerId: number): BotDecision {
   };
 }
 
-/** A decision's seat, named — the feed's swatch and label read this. */
-export function seatName(game: Game, playerId: number): string {
-  return playerById(game.state, playerId)?.name ?? `Seat ${playerId + 1}`;
-}

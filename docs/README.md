@@ -317,9 +317,11 @@ is a bench. An improvement unique is the same two questions asked one table over
 variant improvement may carry `countsAs`, which is what makes a terrace a farm
 wherever the rules read a farm. There is no draft, no offer and no age machinery — the first cut's
 deck of twelve cards a figure retired in batch L6a. Leaders also carry **start
-biases** (three stages, `startPositions.ts`), **fifteen city names** and a pair
-of **colours** the board wears; all three are tables in `docs/leaders.md`,
-mirrored in `data/leaders.json` and held together by sync tests.
+biases** (three stages, `startPositions.ts`), **fifteen city names**, a pair of
+**colours** the board wears and a **people** word ("Inca", "French") for the
+sentences that want a nation; all four are tables in `docs/leaders.md`, mirrored
+in `data/leaders.json` and held together by sync tests. A seat is **called by its
+figure everywhere** — see the surfaces section's `seatName` / `seatPeople` note.
 
 ## Barbarians
 
@@ -406,6 +408,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
   with Begin). Nothing routes and no field is rebuilt between steps, which is
   what keeps `currentConfig` byte-identical for the same choices. The step walk,
   the breadcrumbs, the summary and the keys are `src/ui/landingFlow.ts`.
+- **A seat is called by its figure** (`docs/flags.md` (ppppp)): `seatName(state,
+  id)` and `seatPeople(state, id)` (`src/sim/leaderData.ts`) are the one reading
+  — the figure's name where a seat sits under one, the ink's name where it does
+  not, and the country word (`LeaderDef.people`) for the sentences that want a
+  nation ("at war with the Inca"). Every surface asks the reading and nothing
+  prints `Player.name`, which stays what the config wrote — the two stated
+  exceptions, both deliberate, are the setup screen's colour swatches and the
+  save shelf's own label. Pinned by a source sweep,
+  `test/ui/seatNames.test.ts`.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

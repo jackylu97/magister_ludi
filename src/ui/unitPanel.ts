@@ -60,6 +60,7 @@ import { setDescriptorText } from './keywords';
 import type { RouteReading } from './tradeLines';
 import { setYieldText, yieldFigureNodes } from './yieldMark';
 import { element } from './dom';
+import { seatName } from '../sim/leaderData';
 
 /** The three voices an improvement can move, in the order the panel reads them. */
 const DELTA_KEYS = ['food', 'production', 'gold'] as const;
@@ -1307,6 +1308,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
 
     const def = unitDef(unit.type);
     const owner = getGame().state.players[unit.ownerId];
+    const whose = seatName(getGame().state, unit.ownerId);
     // The accent is the owner's colour, the same hex the seat chip and the city
     // banner wear. Only ever your own unit is selectable, so in practice this is
     // "your colour" — but it is read from the unit, not assumed.
@@ -1328,7 +1330,7 @@ export function createUnitPanel(options: UnitPanelOptions): UnitPanel {
       element(
         'span',
         'unit-owner',
-        person ? `${person.family} · ${owner?.name ?? 'Unowned'}` : owner?.name ?? 'Unowned',
+        person ? `${person.family} · ${whose}` : whose,
       ),
     );
     header.append(title);

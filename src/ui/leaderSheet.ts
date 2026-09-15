@@ -34,7 +34,7 @@
  * A line's figure is the line's. This sheet gathers; it does not price.
  */
 
-import { type LeaderId, leaderDef } from '../sim/leaderData';
+import { type LeaderId, leaderDef, seatName } from '../sim/leaderData';
 import type { CardClause } from '../sim/statecraft';
 import { type MeterContribution, explainAuthority, explainHappiness } from '../sim/meters';
 import { readEmpire } from '../sim/readings';
@@ -371,12 +371,12 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
   }
 
   /** The head: who is at the table, and the two inks the board flies for them. */
-  function drawHead(state: GameState, seat: number, leader: LeaderId): HTMLElement {
+  function drawHead(state: GameState, seat: number): HTMLElement {
     const hold = element('article', 'leader-hold leader-hold-figure');
     hold.append(element('p', 'eyebrow', 'the figure at your table'));
     const head = element('div', 'leader-hold-head');
     head.append(canton(state, seat));
-    head.append(element('h3', 'leader-hold-name', leaderDef(leader).name));
+    head.append(element('h3', 'leader-hold-name', seatName(state, seat)));
     hold.append(head);
     const words = leaderColorWords(state, seat);
     if (words) {
@@ -481,7 +481,7 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     const sheet = element('div', 'leader-sheet-grid');
 
     const held = element('section', 'leader-held');
-    held.append(drawHead(state, seat, leader));
+    held.append(drawHead(state, seat));
     leaderAbilityRows(state, seat).forEach((row, at) => held.append(drawAbility(row, at)));
     for (const row of leaderUniqueRows(state, seat)) held.append(drawUnique(row));
     held.append(drawCities(leaderCityRows(state, seat)));
@@ -490,7 +490,7 @@ export function createLeaderSheet(options: LeaderSheetOptions): LeaderSheet {
     const ledger = element('section', 'leader-ledger');
     ledger.append(element('p', 'eyebrow', 'what your leader is giving you this turn'));
     ledger.append(
-      element('h3', 'leader-ledger-title', `${leaderDef(leader).name} · turn ${figure(state.turn)}`),
+      element('h3', 'leader-ledger-title', `${seatName(state, seat)} · turn ${figure(state.turn)}`),
     );
     const lines = leaderLedgerLines(state, seat);
     if (lines.length === 0) {

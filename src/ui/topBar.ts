@@ -100,6 +100,7 @@ import { BEAD_RULES, anyBeadDef } from '../sim/beadData';
 import { BEAD_FAMILY_MARK } from './beadsScreen';
 import { ABILITY_TECH, eraNumeral, highestAge, techDef } from '../sim/techData';
 import { hasAbility } from '../sim/tech';
+import { seatName } from '../sim/leaderData';
 import { currentWorldAge, worldAgeCountdown } from '../sim/worldClock';
 import { tradeMarkDataUri } from '../art/dockMarks';
 import { createInfoCard } from './infoCard';
@@ -845,7 +846,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     for (const seat of realPlayers(state)) {
       const row = element('li', 'meter-line');
       row.classList.toggle('is-earned', seat.id === localPlayerId());
-      row.append(element('span', 'meter-line-source', seat.name));
+      row.append(element('span', 'meter-line-source', seatName(state, seat.id)));
       row.append(
         element('span', 'meter-line-value', `Æra ${eraNumeral(highestAge(seat.techsResearched))}`),
       );
@@ -907,7 +908,7 @@ export function createCivYieldStrip(options: CivYieldStripOptions): CivYieldStri
     for (const seat of realPlayers(state)) {
       const row = element('li', 'meter-line');
       row.classList.toggle('is-earned', seat.id === playerId);
-      row.append(element('span', 'meter-line-source', seat.name));
+      row.append(element('span', 'meter-line-source', seatName(state, seat.id)));
       row.append(element('span', 'meter-line-value', figure(seat.beads.length)));
       rods.append(row);
     }

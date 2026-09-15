@@ -373,6 +373,7 @@ import {
 import { type TurnBlocker, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
+import { seatName, seatPeople } from '../sim/leaderData';
 
 /** Radius in CSS pixels: hand wobble inside it is a click, not a camera pan. */
 const CLICK_SLOP_PX = 6;
@@ -1151,7 +1152,7 @@ export function pillageSentence(report: PillageReport): string {
  * the bare hex for a victim with no city near enough to ask.
  */
 export function pillageVictimSentence(state: GameState, report: PillageReport): string {
-  const raider = playerById(state, report.ownerId)?.name ?? 'An enemy';
+  const raider = seatName(state, report.ownerId);
   const city =
     report.fromOwnerId === null
       ? null
@@ -2842,7 +2843,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const { state } = getGame();
     for (const done of result.wonders) {
       const city = cityById(state, done.cityId);
-      const empire = playerById(state, done.playerId)?.name ?? 'An empire';
+      const empire = seatName(state, done.playerId);
       const where = city ? cityDisplayName(state, city) : 'a distant city';
       announce(
         `✶ ${empire} has completed ${done.name} in ${where}`,
@@ -2971,7 +2972,9 @@ export function createGameControls(options: GameControlsOptions): GameControls {
   function reportDiplomacy(result: CommandResult): void {
     if (!result.ok) return;
     const { state } = getGame();
-    const nameOf = (id: number): string => playerById(state, id)?.name ?? 'an empire';
+    // The *country*, not the figure: these sentences all write "the ___", and
+    // a war is declared on a nation (`seatPeople`, `docs/flags.md` (ppppp)).
+    const nameOf = (id: number): string => seatPeople(state, id);
     if (result.warDeclared) {
       const { byId, onId } = result.warDeclared;
       announce(
@@ -3339,7 +3342,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     const { state } = getGame();
     const mine: BeadAward[] = [];
     for (const award of result.beads) {
-      const who = playerById(state, award.playerId)?.name ?? 'An empire';
+      const who = seatName(state, award.playerId);
       if (award.playerId === localPlayerId) mine.push(award);
       if (award.kind === 'reckoning') {
         announce(`◈ Reckoning: ${award.name} — ${who}`);
@@ -3567,7 +3570,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       }
       const attacker = isBarbarian(state, combat.attackerOwnerId)
         ? `a ${combat.attackerName.toLowerCase()}`
-        : `${playerById(state, combat.attackerOwnerId)?.name ?? 'an enemy'}'s ${combat.attackerName}`;
+        : `${seatName(state, combat.attackerOwnerId)}'s ${combat.attackerName}`;
 
       if (combat.capturedUnitId === combat.defenderUnitId) {
         announce(`⚔ Your ${combat.defenderName.toLowerCase()} was taken by ${attacker}`, {

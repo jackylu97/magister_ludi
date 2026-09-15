@@ -76,6 +76,7 @@ import { cityDisplayName } from './cityDisplay';
 import { figure } from './figures';
 import { pressureLedgerText } from './religionScreen';
 import { element } from './dom';
+import { seatName } from '../sim/leaderData';
 
 /** How well the seat knows this town right now. See the module docblock. */
 export type FaithKnowledge = 'watched' | 'remembered';
@@ -134,7 +135,7 @@ export function faithHoverReading(
     return {
       cityId: city.id,
       cityName: cityDisplayName(state, city),
-      ownerName: owner?.name ?? 'somebody',
+      ownerName: seatName(state, city.ownerId),
       ownerColor: owner?.color ?? 'var(--ink)',
       ours: city.ownerId === seat,
       knowledge: 'watched',
@@ -172,7 +173,7 @@ export function faithHoverReading(
         religion: mine.id,
         name: mine.name,
         ours: true,
-        founderName: founder?.name ?? 'somebody',
+        founderName: seatName(state, mine.founderId),
         founderColor: founder?.color ?? 'var(--ink)',
         following: null,
         majority: false,

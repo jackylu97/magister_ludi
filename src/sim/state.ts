@@ -909,6 +909,17 @@ import {
  * fell) is the bead's alone. A v116 log replays byte for byte: the field is
  * derived at founding on replay, and a raze the old rule refused never reached
  * a log. The snapshot print gains the key on every empire's first town.
+ *
+ * **Still 116, and nothing moved** (2026-09-15, `docs/flags.md` (ppppp); the
+ * user: *"players should be identified by their leader choice — let's retire
+ * the color naming scheme unless the user has selected no leader"*): a seat is
+ * called by its figure now, and its country by the figure's people, but that is
+ * a *reading* over the state and not a field in it. `seatName` / `seatPeople`
+ * (`leaderData.ts`) answer off `Player.leader`, which a game has carried since
+ * v112; `Player.name` still holds exactly what the config wrote and a save still
+ * carries exactly that word. No command changed, no refusal changed its shape,
+ * and a v116 log replays byte for byte — the sentences the interface prints over
+ * it simply say "the Inca" where they said "the Crimson".
  */
 export const SCHEMA_VERSION = 116;
 

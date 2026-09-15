@@ -59,6 +59,9 @@ import {
   improvementForResource,
 } from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
+// Type-only, and it must stay that way: `state.ts` imports this file, so a
+// value edge back to it would be the runtime cycle `CLAUDE.md` warns about.
+import type { GameState } from './state';
 import type { CardDefBase, CardEffect } from './statecraftData';
 import { type TechAge, techAgeBands } from './techData';
 import { FEATURE_IDS, TERRAIN_IDS, type TerrainId } from './terrainData';
@@ -414,6 +417,23 @@ export interface LeaderDef {
   /** The figure's name, as every surface prints it. */
   name: string;
   /**
+   * **The figure's people**, as a sentence that wants a nation says it after
+   * "the" — "the Inca", "the French", "the Xiongnu" (`docs/flags.md` (ppppp)).
+   *
+   * A seat is called by its figure; but half the sentences this game writes do
+   * not want a person, they want a country — "You are already at war with the
+   * Inca", "The Rhinelanders are gone". Those two readings are `seatName` and
+   * `seatPeople` at the foot of this file, and this is the word the second one
+   * hands back. The doc's "The thirteen" table carries the column and a sync
+   * test holds the two together, so a fourteenth figure names its people in the
+   * same edit that names the figure.
+   *
+   * Written bare, without the article, because every sentence that asks for it
+   * already writes its own "the" — and a plural the article fits, so that a
+   * country reads as a people rather than a place.
+   */
+  people: string;
+  /**
    * **The towns this figure founds**, in order of importance — the empire it
    * ruled, or the age it ruled in (`docs/flags.md` (pppp)).
    *
@@ -690,6 +710,56 @@ export function leaderAbilityEffects(leader: LeaderId): CardEffect[] {
   return leaderDef(leader).abilities.flatMap((ability) => ability.effects);
 }
 
+// --- what a seat is called ----------------------------------------------------
+
+/**
+ * **What a seat is called**, and **what its country is called** — the one
+ * reading, and the whole of `docs/flags.md` (ppppp).
+ *
+ * The user, 2026-09-15: *"players should be identified by their leader choice —
+ * let's retire the color naming scheme unless the user has selected no leader"*.
+ * So a seat sitting under a figure is that figure everywhere a surface says who
+ * somebody is — "Pachacuti", "Joan of Arc" — and a seat sitting under nobody
+ * keeps the ink's name it has always had, because "Crimson" is still the only
+ * word that table gives it. The colour scheme is retired, not deleted.
+ *
+ * **Two words, because sentences want two things.** Half of what this game
+ * prints points at a person ("Pachacuti has ended their turn") and half points
+ * at a country ("You are already at war with the Inca"). `seatName` answers the
+ * first and `seatPeople` the second; both fall back to the seat's own name, so
+ * a leaderless game reads exactly as it read before, on both halves.
+ *
+ * **Here, and not in `state.ts`,** because the answer is a fact about a figure
+ * and the figures live on this sheet. The type edge back to the state is
+ * type-only and vanishes at build, which is what keeps `state.ts`'s own import
+ * of this file from becoming a runtime cycle (see the trap note in `CLAUDE.md`).
+ *
+ * `Player.name` is untouched by any of this: it is what the config wrote, it is
+ * what a save carries, and it is what the setup screen's swatch shows. This is
+ * the *display* reading over it, and every surface asks it rather than the field
+ * — pinned by a source sweep in `test/ui/seatNames.test.ts`.
+ */
+export function seatName(state: GameState, playerId: number): string {
+  const player = state.players[playerId];
+  if (!player) return UNNAMED_SEAT;
+  return player.leader === undefined ? player.name : leaderDef(player.leader).name;
+}
+
+/** The nation word a sentence puts after "the". See `seatName` above. */
+export function seatPeople(state: GameState, playerId: number): string {
+  const player = state.players[playerId];
+  if (!player) return UNNAMED_SEAT;
+  return player.leader === undefined ? player.name : leaderDef(player.leader).people;
+}
+
+/**
+ * What an id with nobody behind it is called. Unreachable in a live game — every
+ * id a surface holds came off a piece, a town or the roster — and here so that a
+ * remembered town whose seat has been swept out of a loaded save says something
+ * plain rather than the word "undefined".
+ */
+const UNNAMED_SEAT = 'an empire';
+
 /** Does this bias ask the world for anything? An empty one is not a bias. */
 export function biasIsEmpty(bias: StartBias | undefined): boolean {
   if (!bias) return true;
@@ -711,6 +781,16 @@ for (const id of LEADER_IDS) {
   const where = `leaders.json: ${id}`;
   if (typeof def.name !== 'string' || def.name.length === 0) {
     throw new Error(`${where} has no name`);
+  }
+  // **The people.** A figure with no nation word would leave every sentence that
+  // wants a country saying "the undefined", and the failure would be quiet on
+  // the twelve screens that want the figure's name instead. So it is a boot
+  // error, and the article is refused with it: the sentences write their own.
+  if (typeof def.people !== 'string' || def.people.length === 0) {
+    throw new Error(`${where} names no people`);
+  }
+  if (/^the /i.test(def.people)) {
+    throw new Error(`${where} writes its people as "${def.people}" — leave the article out`);
   }
   // **The towns.** A figure with no list would silently fall through to the
   // invented names and twin with every other leaderless seat, which is the very

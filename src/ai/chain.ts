@@ -233,6 +233,7 @@ import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } fro
 import { type TechId, techDef } from '../sim/techData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
 import { round } from './decision';
+import { seatName } from '../sim/leaderData';
 
 /** What a step of a chain is: a row a town raises, a piece, or ground worked. */
 export type ChainStepKind = 'building' | 'unit' | 'rider';
@@ -1950,7 +1951,7 @@ function leadingRival(
     const rate = beadRate(beads, state.turn, horizon);
     const close = Math.max(0, threshold - beads) / rate + buildDelay;
     if (best === null || close < best.close) {
-      best = { playerId: other.id, name: other.name, beads, rate, close };
+      best = { playerId: other.id, name: seatName(state, other.id), beads, rate, close };
     }
   }
   return best;

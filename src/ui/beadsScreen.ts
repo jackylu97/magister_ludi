@@ -70,6 +70,7 @@ import type { CardClause } from '../sim/statecraft';
 import { stripRefs } from '../sim/statecraft';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
+import { seatName } from '../sim/leaderData';
 
 // --- the four families ------------------------------------------------------
 
@@ -496,7 +497,7 @@ export function createBeadsScreen(options: BeadsScreenOptions): BeadsScreen {
       const rod = element('div', 'bead-rod');
       rod.classList.toggle('is-local', player.id === seat);
       const head = element('div', 'bead-rod-head');
-      head.append(element('span', 'bead-rod-name', player.name));
+      head.append(element('span', 'bead-rod-name', seatName(state, player.id)));
       head.append(
         element(
           'span',

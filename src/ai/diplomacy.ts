@@ -93,6 +93,7 @@ import { playerById, realPlayers } from '../sim/state';
 import { type UnitTypeId, isCombatant, unitDef } from '../sim/unitData';
 import { hasPeaceOffer, peaceTermsOn, warBetween } from '../sim/wars';
 import { round as round1 } from './decision';
+import { seatName, seatPeople } from '../sim/leaderData';
 
 /**
  * The one entry point: what this seat wants to say to somebody else, or `null`
@@ -425,7 +426,7 @@ export function answerProposal(
     refusal === null && accepting
       ? { type: 'acceptDeal', playerId: player.id, dealId: row.id }
       : { type: 'declineDeal', playerId: player.id, dealId: row.id };
-  const them = playerById(state, row.by)?.name ?? 'them';
+  const them = seatPeople(state, row.by);
   const candidates: BotCandidate[] = [
     {
       label: `sign the ${them}' paper`,
@@ -502,7 +503,7 @@ function peaceDecision(
     const theirs = hasPeaceOffer(state, enemy.id, player.id);
     const mine = hasPeaceOffer(state, player.id, enemy.id);
     const owed = owedForPeace(score, ai);
-    const label = `the ${enemy.name}`;
+    const label = `the ${seatPeople(state, enemy.id)}`;
 
     if (taken !== null) {
       rows.push({ label, score: score.total, chosen: false, terms: score.terms });
@@ -548,7 +549,7 @@ function peaceDecision(
           enemy,
           command: { type: 'proposePeace', playerId: player.id, targetId: enemy.id },
           summary:
-            `Signs the peace the ${enemy.name} put up: the war reads ${round1(score.total)} for this empire, ` +
+            `Signs the peace the ${seatPeople(state, enemy.id)} put up: the war reads ${round1(score.total)} for this empire, ` +
             `under the ${ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
             `${round1(value.total)} against the ${round1(-owed)} the score says it owes.`,
         };
@@ -595,7 +596,7 @@ function peaceDecision(
             ...(offered === undefined ? {} : { give: offered.give, take: offered.take }),
           },
           summary:
-            `Sues the ${enemy.name} for peace: the war reads ${round1(score.total)} for this empire, under the ` +
+            `Sues the ${seatPeople(state, enemy.id)} for peace: the war reads ${round1(score.total)} for this empire, under the ` +
             `${ai.war.sueFloor} it sues at` +
             (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
         };
@@ -620,7 +621,7 @@ function peaceDecision(
   return {
     kind: 'war',
     command: taken.command,
-    subject: taken.enemy.name,
+    subject: seatName(state, taken.enemy.id),
     summary: taken.summary,
     candidates: rows,
   };
@@ -722,7 +723,7 @@ export function answerPeaceOffer(
   if (!hasPeaceOffer(state, enemy.id, player.id)) return null;
   const score = explainWarScore(state, player, enemy, ctx.ai);
   const reading = readPeaceOffer(state, player, enemy, score, ctx);
-  const label = `the ${enemy.name}`;
+  const label = `the ${seatPeople(state, enemy.id)}`;
 
   if (reading.fair && !reading.winning && reading.refusal === null) {
     // The one row whose score is not the warscore alone — `peaceDecision`'s
@@ -734,9 +735,9 @@ export function answerPeaceOffer(
     return {
       kind: 'war',
       command: { type: 'proposePeace', playerId: player.id, targetId: enemy.id },
-      subject: enemy.name,
+      subject: seatName(state, enemy.id),
       summary:
-        `Signs the peace the ${enemy.name} put up: the war reads ${round1(score.total)} for this empire, ` +
+        `Signs the peace the ${seatPeople(state, enemy.id)} put up: the war reads ${round1(score.total)} for this empire, ` +
         `under the ${ctx.ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
         `${round1(reading.value.total)}.`,
       candidates: [
@@ -755,8 +756,8 @@ export function answerPeaceOffer(
   return {
     kind: 'war',
     command: { type: 'declinePeace', playerId: player.id, targetId: enemy.id },
-    subject: enemy.name,
-    summary: `Sends the ${enemy.name}' envoy home — ${reading.because}.`,
+    subject: seatName(state, enemy.id),
+    summary: `Sends the ${seatPeople(state, enemy.id)}' envoy home — ${reading.because}.`,
     candidates: [
       {
         label: `${label} — send the envoy home`,
@@ -1084,9 +1085,9 @@ function declareDecision(
   return {
     kind: 'war',
     command: { type: 'declareWar', playerId: player.id, targetId: best.enemy.id },
-    subject: best.enemy.name,
+    subject: seatName(state, best.enemy.id),
     summary:
-      `Declares war on the ${best.enemy.name}: the army ratio with this seat's appetite reads ` +
+      `Declares war on the ${seatPeople(state, best.enemy.id)}: the army ratio with this seat's appetite reads ` +
       `${round1(best.score)} against a bar of ${threshold}, ${force.spare} soldiers stand spare of the ` +
       `garrisons with something that shoots among them, and ${best.target.name} is ${road.steps} steps ` +
       'down a road one of them can walk.',
@@ -1140,7 +1141,7 @@ export function explainDeclaration(
   const clear: { enemy: Player; score: number; target: City; distance: number; row: number }[] = [];
 
   for (const enemy of rivalsOf(state, player)) {
-    const label = `the ${enemy.name}`;
+    const label = `the ${seatPeople(state, enemy.id)}`;
     const refusal = declareWarError(state, player.id, enemy.id);
     if (refusal !== null) {
       rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
@@ -1291,7 +1292,7 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
   for (const enemy of rivalsOf(state, player)) {
     const seats = bargainSeatError(state, player.id, enemy.id);
     if (seats !== null) {
-      rows.push({ label: `the ${enemy.name}`, score: 0, chosen: false, terms: [], rejected: seats });
+      rows.push({ label: `the ${seatPeople(state, enemy.id)}`, score: 0, chosen: false, terms: [], rejected: seats });
       continue;
     }
     for (const wanted of controlledResources(state, enemy.id, 'luxury')) {
@@ -1300,7 +1301,7 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
         if (hasResource(state, enemy.id, offered)) continue;
         const give: DealTerms = { luxuries: [offered] };
         const take: DealTerms = { luxuries: [wanted] };
-        const label = `${resourceDef(offered).name} for the ${enemy.name}' ${resourceDef(wanted).name.toLowerCase()}`;
+        const label = `${resourceDef(offered).name} for the ${seatPeople(state, enemy.id)}' ${resourceDef(wanted).name.toLowerCase()}`;
         const written = writeSwap(state, player, enemy, give, take, ctx);
         if (written.rejected !== undefined) {
           rows.push({ label, score: 0, chosen: false, terms: [], rejected: written.rejected });
@@ -1317,9 +1318,9 @@ function swapDecision(state: GameState, player: Player, ctx: ValueContext): BotD
             give: written.give,
             take: written.take,
           },
-          subject: enemy.name,
+          subject: seatName(state, enemy.id),
           summary:
-            `Offers the ${enemy.name} a swap: ${resourceDef(offered).name.toLowerCase()} it holds twice for ` +
+            `Offers the ${seatPeople(state, enemy.id)} a swap: ${resourceDef(offered).name.toLowerCase()} it holds twice for ` +
             `${resourceDef(wanted).name.toLowerCase()} it holds none of` +
             (written.sweetener === null ? '.' : ` — ${written.sweetener}.`),
           candidates: rows,
@@ -1376,7 +1377,7 @@ function writeSwap(
       ...plain,
       rejected:
         `sweetened and sent back on turn ${memory.sweetenedTurn}; not written again ` +
-        `while the ${enemy.name}' holdings stand where they did`,
+        `while the ${seatPeople(state, enemy.id)}' holdings stand where they did`,
     };
   }
   let written = plain;
