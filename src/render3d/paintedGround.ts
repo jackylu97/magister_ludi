@@ -3,9 +3,10 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { GameMap, Tile } from '../sim/map';
 import type { GameState } from '../sim/state';
 import { EXPLORED, HIDDEN } from '../sim/visibility';
-import { playerColor, playerSecondaryColor } from './cities3d';
+import { playerColor, playerSecondaryColor, signTerritory } from './cities3d';
 import { type FogLevels, levelAt } from './fog3d';
 import { VIEW3D } from './lookData';
+import { signRoadCells } from './roads3d';
 // @ts-expect-error Approved terrain modules remain JavaScript.
 import { centre, neighbour, surfaceHeight } from '../terrainStudy/surface.js';
 // @ts-expect-error Approved terrain modules remain JavaScript.
@@ -23,8 +24,32 @@ const corners: Point[] = [[1, -1], [1, 1], [0, 2], [-1, 1], [-1, -1], [0, -2]];
 const mod = (n: number, width: number): number => (n % width + width) % width;
 const water = (tile: Tile): boolean => ['ocean', 'coast', 'lake'].includes(tile.terrain);
 
+/**
+ * The last plan drawn for a prepared map, and the fingerprint it was drawn from.
+ *
+ * A plan is a picture of the *map*, and a fog move is not a fact about the map —
+ * but both layers are rebuilt on a fog move (a border survives on remembered
+ * ground, so it has to follow the wash), and the plan walk was being repeated
+ * every time to discover that not a tile had changed hands. The two fingerprints
+ * are the board's own, the same ones the renderer already gates the rebuild on,
+ * so the memo cannot disagree with the trigger: `signRoadCells` is presence per
+ * cell, `signTerritory` is the ownership array and the towns it points at.
+ *
+ * Keyed on the prepared map by weak reference — a new board drops its plans with
+ * it — and re-checked against the live `GameState` identity, because a second
+ * game's first frame must not be handed the first game's borders.
+ */
+type PlanMemo = { state: GameState; signature: number; plan: GroundPlan };
+const roadPlans = new WeakMap<GameMap, PlanMemo>();
+const territoryPlans = new WeakMap<GameMap, PlanMemo>();
+const memoised = (memo: PlanMemo | undefined, state: GameState, signature: number): GroundPlan | undefined =>
+  memo && memo.state === state && memo.signature === signature ? memo.plan : undefined;
+
 /** Live road facts, with each cell owning only its half-links and junction. */
 export function planPaintedRoads(state: GameState, prepared: GameMap): GroundPlan {
+  const signature = signRoadCells(state);
+  const memo = memoised(roadPlans.get(prepared), state, signature);
+  if (memo) return memo;
   const result: GroundPlan = new Map();
   for (let cell = 0; cell < state.map.tiles.length; cell++) {
     const original = state.map.tiles[cell]!, tile = prepared.tiles[cell]!;
@@ -56,18 +81,28 @@ export function planPaintedRoads(state: GameState, prepared: GameMap): GroundPla
       ...decks,
     ]);
   }
+  roadPlans.set(prepared, { state, signature, plan: result });
   return result;
 }
 
-type Edge = { cell: number; owner: number; a: Point; b: Point; ka: string; kb: string; normal: Point };
+type Edge = { cell: number; owner: number; a: Point; b: Point; ka: number; kb: number; normal: Point };
 /** Integer vertex identity joins concave corners and the cylindrical wrap seam. */
 export function planPaintedTerritory(state: GameState, prepared: GameMap): GroundPlan {
+  const signature = signTerritory(state);
+  const memo = memoised(territoryPlans.get(prepared), state, signature);
+  if (memo) return memo;
   const cityOwners = new Map(state.cities.map(city => [city.id, city.ownerId]));
   const owner = state.tileOwner.map(id => id == null ? undefined : cityOwners.get(id));
-  const edges: Edge[] = [], incoming = new Map<string, Edge>(), outgoing = new Map<string, Edge>();
-  const vertexKey = (tile: Tile, corner: number, seat: number): string => {
+  const edges: Edge[] = [], incoming = new Map<number, Edge>(), outgoing = new Map<number, Edge>();
+  // The identity is a *number* rather than the string it reads as: one vertex is
+  // asked for on every edge of every owned hex, and the rail joins are looked up
+  // twice more each. The lattice is finite and small — two columns and three rows
+  // per hex, plus the seat — so the whole of it fits in one integer, and the two
+  // maps stop allocating a key per corner.
+  const columns = 2 * prepared.width, rows = 3 * prepared.height + 4;
+  const vertexKey = (tile: Tile, corner: number, seat: number): number => {
     const [u, v] = corners[corner]!;
-    return `${seat}:${mod(2 * tile.col + tile.row % 2 + u, 2 * prepared.width)},${3 * tile.row + v}`;
+    return (seat * rows + (3 * tile.row + v! + 2)) * columns + mod(2 * tile.col + tile.row % 2 + u!, columns);
   };
   for (let cell = 0; cell < owner.length; cell++) {
     const seat = owner[cell]; if (seat === undefined) continue;
@@ -113,44 +148,109 @@ export function planPaintedTerritory(state: GameState, prepared: GameMap): Groun
       }
     }
   }
+  territoryPlans.set(prepared, { state, signature, plan: result });
   return result;
 }
 
-/** Ground-fit ink, batched by region. Fog changes reuse the clipped geometry. */
+/**
+ * A cell's marks, folded to one integer.
+ *
+ * It used to be `JSON.stringify(marks)` — several hundred bytes of transient
+ * string per roaded or bordered cell, over objects holding `Color` instances,
+ * built on every fog move only to discover that nothing had changed. The fold is
+ * the same question asked in integers: every corner, every ink and every lift,
+ * quantised to a millionth (ground ink is millimetres apart at the coarsest and
+ * a seat's two inks a whole channel step), with a separator between marks so two
+ * short marks cannot read as one long one.
+ */
+function foldMarks(marks: readonly Mark[]): number {
+  let hash = 2166136261 ^ marks.length;
+  const mix = (value: number): void => { hash = Math.imul(hash ^ (Math.round(value) | 0), 16777619); };
+  for (const mark of marks) {
+    for (const [x, z] of mark.polygon) { mix(x * 1e6); mix(z * 1e6); }
+    mix(mark.color.r * 1e6); mix(mark.color.g * 1e6); mix(mark.color.b * 1e6); mix(mark.lift * 1e6);
+    mix(mark.deck === undefined ? -1 : mark.deck * 1e6);
+    mix(0x5bf03635);
+  }
+  return hash >>> 0;
+}
+
+/**
+ * A cell's clipped ink — or `null`, which is an answer and not an absence.
+ *
+ * A mark can fall entirely off the tile top (a border mitre thrown onto a hex
+ * whose shoulder is cut away, most often on a shoreline), and the clip then
+ * comes back empty. That used to be remembered nowhere, so the tile was
+ * tessellated and clipped again on every single build to be told the same thing.
+ * Forty such cells on a developed map is the whole of what a fog move cost after
+ * the recipes were cached. A null recipe is the cache saying *nothing here*.
+ */
+type GroundRecipe = { key: number; geometry: BufferGeometry | null };
+type GroundBatch = {
+  parts: BufferGeometry[]; cells: number[]; starts: number[]; counts: number[];
+  levels: number[]; geometry: BufferGeometry; meshes: Mesh[]; shadows: boolean;
+};
+
+/**
+ * Ground-fit ink, batched by region. Fog changes reuse the clipped geometry.
+ *
+ * Three caches, and they answer three different questions. The **recipe** is the
+ * expensive one — a tile tessellated and a polygon clipped to its triangles —
+ * and it is keyed on the cell's marks (`foldMarks`), so a plan that came out the
+ * same leaves every clip standing. The **batch** is the region's merged geometry
+ * and its three wrap meshes, retained while the list of cells feeding it is
+ * identical by identity: one cell's ink changing re-merges one region and the
+ * rest of the map keeps its buffers.
+ *
+ * And the **wash is a vertex attribute**, not a second material. A hex crossing
+ * from watched to remembered used to change which of two materials its ink
+ * belonged to, which moved it to a different batch, which re-merged both — the
+ * whole geometry rebuilt because a scout looked away. `groundExplored` is 0 or 1
+ * per vertex and the shader picks the wash off it, so a fog move is a write into
+ * an existing buffer and no geometry moves at all. The mix is exact at both ends
+ * (`mix(x, y, 0.) == x`), so the picture is the one the two materials drew.
+ */
 export class PaintedGroundLayer {
   readonly group = new Group();
   readonly cells = new Set<number>();
   private material: MeshStandardMaterial;
-  private remembered: MeshStandardMaterial;
-  private recipes = new Map<number, { key: string; geometry: BufferGeometry }>();
-  private merged: BufferGeometry[] = [];
+  private recipes = new Map<number, GroundRecipe>();
+  private batches = new Map<string, GroundBatch>();
   private prepared?: GameMap;
+  private plan?: GroundPlan;
   constructor(name: string, register: (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown) {
     this.group.name = name;
     this.material = new MeshStandardMaterial({ color: 'white', vertexColors: true, roughness: .96, flatShading: true });
     register(this.material, { terrain: true });
-    this.remembered = this.material.clone();
     const hook = this.material.onBeforeCompile, key = this.material.customProgramCacheKey();
-    this.remembered.onBeforeCompile = function(shader, renderer) {
+    this.material.onBeforeCompile = function(shader, renderer) {
       hook.call(this, shader, renderer);
       shader.uniforms.groundWash = { value: new Color(VIEW3D.fog.exploredWash) };
-      shader.fragmentShader = `uniform vec3 groundWash;\n${shader.fragmentShader}`.replace('#include <opaque_fragment>',
-        `outgoingLight = mix(outgoingLight, groundWash, ${VIEW3D.fog.exploredDim.toFixed(5)}) * ${VIEW3D.fog.exploredShade.toFixed(5)};\n#include <opaque_fragment>`);
+      shader.vertexShader = `attribute float groundExplored;\nvarying float vGroundExplored;\n${shader.vertexShader}`
+        .replace('#include <begin_vertex>', 'vGroundExplored = groundExplored;\n#include <begin_vertex>');
+      shader.fragmentShader = `uniform vec3 groundWash;\nvarying float vGroundExplored;\n${shader.fragmentShader}`
+        .replace('#include <opaque_fragment>',
+          `outgoingLight = mix(outgoingLight, mix(outgoingLight, groundWash, ${VIEW3D.fog.exploredDim.toFixed(5)}) * ${VIEW3D.fog.exploredShade.toFixed(5)}, vGroundExplored);\n#include <opaque_fragment>`);
     };
-    this.remembered.customProgramCacheKey = () => `${key}:painted-ground-explored`;
+    this.material.customProgramCacheKey = () => `${key}:painted-ground-wash`;
   }
   build(state: GameState, prepared: GameMap, plan: GroundPlan, levels: FogLevels = null, shadows = true): void {
-    this.clearMeshes(); this.cells.clear(); this.group.visible = true;
-    if (this.prepared !== prepared) { this.clearRecipes(); this.prepared = prepared; }
-    for (const [cell, recipe] of this.recipes) if (!plan.has(cell)) { recipe.geometry.dispose(); this.recipes.delete(cell); }
-    const batches = new Map<string, { parts: BufferGeometry[]; cells: number[]; material: MeshStandardMaterial }>();
+    this.cells.clear(); this.group.visible = true;
+    if (this.prepared !== prepared) { this.clearMeshes(); this.clearRecipes(); this.prepared = prepared; this.plan = undefined; }
+    // The plan is memoised on its own fingerprint (`planPaintedRoads`), so the
+    // same object arriving again is the board saying nothing on the ground moved
+    // — every recipe stands and not a mark need be folded.
+    const planned = this.plan !== plan;
+    this.plan = plan;
+    if (planned) for (const [cell, recipe] of this.recipes) if (!plan.has(cell)) { recipe.geometry?.dispose(); this.recipes.delete(cell); }
+    const regions = new Map<string, { parts: BufferGeometry[]; cells: number[]; levels: number[] }>();
     for (const [cell, marks] of plan) {
       const tile = prepared.tiles[cell]!, level = levelAt(levels, state.map, tile.col, tile.row);
       if (level === HIDDEN) continue;
-      const key = JSON.stringify(marks);
       let recipe = this.recipes.get(cell);
+      const key = recipe && !planned ? recipe.key : foldMarks(marks);
       if (!recipe || recipe.key !== key) {
-        recipe?.geometry.dispose(); this.recipes.delete(cell);
+        recipe?.geometry?.dispose(); this.recipes.delete(cell);
         const terrain = terrainMesh(tile) as BufferGeometry[];
         let pieces: BufferGeometry[] = [];
         try {
@@ -169,29 +269,66 @@ export class PaintedGroundLayer {
           }
         }
         finally { terrain.forEach(g => g.dispose()); }
-        if (!pieces.length) continue;
+        if (!pieces.length) { this.recipes.set(cell, { key, geometry: null }); continue; }
         const geometry = mergeGeometries(pieces)!; pieces.forEach(g => g.dispose());
+        geometry.setAttribute('groundExplored', new Float32BufferAttribute(new Float32Array(geometry.getAttribute('position').count), 1));
         recipe = { key, geometry }; this.recipes.set(cell, recipe);
       }
+      if (!recipe.geometry) continue;
       this.cells.add(cell);
-      const material = level === EXPLORED ? this.remembered : this.material;
-      const id = `${Math.floor(tile.col / 12)},${Math.floor(tile.row / 12)}:${material.uuid}`;
-      let batch = batches.get(id);
-      if (!batch) { batch = { parts: [], cells: [], material }; batches.set(id, batch); }
-      batch.parts.push(recipe.geometry); batch.cells.push(cell);
+      const id = `${Math.floor(tile.col / 12)},${Math.floor(tile.row / 12)}`;
+      let region = regions.get(id);
+      if (!region) { region = { parts: [], cells: [], levels: [] }; regions.set(id, region); }
+      region.parts.push(recipe.geometry); region.cells.push(cell); region.levels.push(level === EXPLORED ? 1 : 0);
     }
     const period = root3 * prepared.width;
-    for (const batch of batches.values()) {
-      const geometry = mergeGeometries(batch.parts)!; this.merged.push(geometry);
-      for (const offset of [-period, 0, period]) {
-        const mesh = new Mesh(geometry, batch.material); mesh.position.x = offset; mesh.receiveShadow = shadows;
-        mesh.userData.paintedGroundCells = batch.cells; this.group.add(mesh);
+    const retained = new Set<string>();
+    for (const [id, region] of regions) {
+      retained.add(id);
+      const previous = this.batches.get(id);
+      if (previous && previous.shadows === shadows && previous.parts.length === region.parts.length
+        && region.parts.every((part, i) => part === previous.parts[i])) {
+        // Same ink in the same order: only the wash can have moved, and that is
+        // a write into the merged buffer rather than a merge.
+        const wash = previous.geometry.getAttribute('groundExplored');
+        let moved = false;
+        for (let i = 0; i < region.levels.length; i++) {
+          if (previous.levels[i] === region.levels[i]) continue;
+          previous.levels[i] = region.levels[i]!; moved = true;
+          const start = previous.starts[i]!, end = start + previous.counts[i]!;
+          for (let v = start; v < end; v++) wash.setX(v, region.levels[i]!);
+        }
+        if (moved) wash.needsUpdate = true;
+        continue;
       }
+      this.deleteBatch(id);
+      const starts: number[] = [], counts: number[] = [];
+      let start = 0;
+      for (let i = 0; i < region.parts.length; i++) {
+        const part = region.parts[i]!, wash = part.getAttribute('groundExplored');
+        const count = part.getAttribute('position').count;
+        for (let v = 0; v < count; v++) wash.setX(v, region.levels[i]!);
+        starts.push(start); counts.push(count); start += count;
+      }
+      const geometry = mergeGeometries(region.parts)!;
+      const meshes: Mesh[] = [];
+      for (const offset of [-period, 0, period]) {
+        const mesh = new Mesh(geometry, this.material); mesh.position.x = offset; mesh.receiveShadow = shadows;
+        mesh.userData.paintedGroundCells = region.cells; this.group.add(mesh); meshes.push(mesh);
+      }
+      this.batches.set(id, { parts: [...region.parts], cells: region.cells, starts, counts,
+        levels: [...region.levels], geometry, meshes, shadows });
     }
+    for (const id of [...this.batches.keys()]) if (!retained.has(id)) this.deleteBatch(id);
     this.group.updateMatrixWorld(true);
     this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
   }
-  private clearMeshes(): void { this.group.clear(); this.merged.forEach(g => g.dispose()); this.merged = []; }
-  private clearRecipes(): void { for (const r of this.recipes.values()) r.geometry.dispose(); this.recipes.clear(); }
-  dispose(): void { this.clearMeshes(); this.clearRecipes(); this.material.dispose(); this.remembered.dispose(); }
+  private deleteBatch(id: string): void {
+    const batch = this.batches.get(id); if (!batch) return;
+    for (const mesh of batch.meshes) this.group.remove(mesh);
+    batch.geometry.dispose(); this.batches.delete(id);
+  }
+  private clearMeshes(): void { for (const id of [...this.batches.keys()]) this.deleteBatch(id); this.group.clear(); }
+  private clearRecipes(): void { for (const r of this.recipes.values()) r.geometry?.dispose(); this.recipes.clear(); }
+  dispose(): void { this.clearMeshes(); this.clearRecipes(); this.material.dispose(); }
 }

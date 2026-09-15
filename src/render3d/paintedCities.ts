@@ -7,7 +7,7 @@ import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import type { City, GameState } from '../sim/state';
 import { type CityLook, capitalIds, cityLook } from './cities3d';
 import { type FogLevels, seesCell } from './fog3d';
-import { samplePaintedSurface } from './paintedSurface';
+import { createTileSurfaceSampler } from './paintedTileSurface';
 import { VIEW3D } from './lookData';
 import { paintedCityGeometry } from './paintedCityGeometry';
 // @ts-expect-error The reusable terrain art modules remain JavaScript.
@@ -36,6 +36,39 @@ export interface PaintedCityPlacement {
 }
 type RegisterMaterial = (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown;
 type Batch = { geometry: BufferGeometry; matrices: Matrix4[]; cells: number[] };
+/**
+ * One town's sculpt, built once and kept until the town changes.
+ *
+ * `tile`/`original` are identity, not contents, exactly as `PaintedWorksLayer`'s
+ * recipes are: a new board is a new prepared map and every recipe goes with it.
+ */
+type CityRecipe = {
+  key: string; cell: number; tile: Tile; original: Tile;
+  parts: { geometry: BufferGeometry; matrices: Matrix4[] }[];
+  patches: BufferGeometry[]; placements: PaintedCityPlacement[];
+  anchor: PaintedCityAnchor; tallest: number;
+};
+type CityBatch = { inputs: readonly unknown[]; meshes: Mesh[]; geometry?: BufferGeometry };
+/**
+ * The two facts in a `CityLook` that no roof moves for.
+ *
+ * A town's faith and its yoke are printed on its **banner** — DOM over the board
+ * (`cityBanners.ts`), never a stone — and `CityLook`'s own docblock says so. They
+ * are in the layer's *fingerprint* because the banner rides `signCities`; they
+ * are not in the *sculpt's* key, or converting a town would re-cut every wall
+ * segment in it for a picture that came out identical.
+ *
+ * Everything else in the look is in the key **by construction** — `sculptKey`
+ * walks the object rather than naming members, so a sixth sculpt fact added to
+ * `CityLook` joins this cache the day it joins the picture, which is the whole
+ * discipline that type exists for. Adding a name here is a deliberate claim that
+ * the new fact draws nothing.
+ */
+const BANNER_ONLY: readonly string[] = ['religion', 'puppet'];
+const sculptKey = (look: CityLook): string => Object.entries(look)
+  .filter(([name]) => !BANNER_ONLY.includes(name))
+  .sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)
+  .map(([name, value]) => `${name}=${String(value)}`).join(',');
 const up = new Vector3(0, 1, 0);
 const CITY = VIEW3D.city;
 const GARRISON_RADIUS = VIEW3D.pieces.base.radius;
@@ -69,7 +102,23 @@ function nearestToCenter(points: readonly { x: number; z: number }[]): number {
   return nearest;
 }
 
-/** Real cities using the approved sculpted kit. No fixtures or simulation writes. */
+/**
+ * Real cities using the approved sculpted kit. No fixtures or simulation writes.
+ *
+ * **A town is cut once.** The sculpt is expensive — a tile tessellated, a
+ * polygon clipped per building footprint, and fifty-two or ninety-two wall
+ * segments each sampling nine heights — and it was being cut again on every fog
+ * move, which on a developed map is every step any unit takes. A recipe is kept
+ * per town, keyed on everything the cut reads (`recipeKey`), and the batches over
+ * those recipes are retained while their contents are identical by identity, so a
+ * scout walking past a ten-town empire moves nothing at all.
+ *
+ * The heights come from the **tile's own triangles** (`createTileSurfaceSampler`)
+ * rather than from a query against the whole world, which is the same swap the
+ * works and the sites made: every point a town samples is inside its own hex —
+ * `onTileTop` refuses a footprint that is not — so the narrower reading answers
+ * the same question against a hundredth of the geometry.
+ */
 export class PaintedCityLayer {
   readonly group = new Group();
   readonly flagAnchors = new Map<number, PaintedCityAnchor>();
@@ -77,7 +126,9 @@ export class PaintedCityLayer {
   readonly placements: PaintedCityPlacement[] = [];
   private readonly geometry = paintedCityGeometry();
   private readonly fields: MeshStandardMaterial;
-  private readonly generated = new Set<BufferGeometry>();
+  private readonly recipes = new Map<number, CityRecipe>();
+  private readonly batches = new Map<string, CityBatch>();
+  private preparedMap: GameMap | undefined;
   private disposed = false;
 
   constructor(private readonly assets: PaintedCityAssets, registerMaterial: RegisterMaterial) {
@@ -89,56 +140,115 @@ export class PaintedCityLayer {
     registerMaterial(this.fields, { terrain: true });
   }
 
+  /**
+   * Everything the cut reads, in one string.
+   *
+   * The cell fixes which hex's triangles are sampled *and* the wall jitter, which
+   * hashes the town's own column and row (`vertical`, below). The population
+   * decides how many house addresses are filled, the preview flag puts a
+   * palisade on a town that has not built one, and `sculptKey` carries the look —
+   * every member of it but the two the banner owns.
+   *
+   * A stale key here is a visible bug, so the pins in
+   * `test/render/paintedCitiesCache.test.ts` walk each field and assert the key
+   * moved. The prepared tile and the original tile are checked by **identity**
+   * beside this string, because a new board is new triangles under the same town.
+   */
+  private recipeKey(city: City, cell: number, look: CityLook, options: PaintedCityOptions): string {
+    return `${cell}|${city.population}|${options.previewWalls === true}|${sculptKey(look)}`;
+  }
+
   build(state: GameState, preparedMap: GameMap, levels: FogLevels = null, shadows = true, options: PaintedCityOptions = {}): void {
     if (this.disposed) return;
-    this.clear();
+    if (this.preparedMap !== preparedMap) { this.clearBatches(); this.clearRecipes(); this.preparedMap = preparedMap; }
+    this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
     const batches = new Map<BufferGeometry, Batch>(), patches: BufferGeometry[] = [];
     const capitals = capitalIds(state), period = Math.sqrt(3) * state.map.width;
+    const living = new Set<number>();
     for (const city of state.cities) {
+      living.add(city.id);
       if (!seesCell(levels, state.map, city.col, city.row)) continue;
       const original = getTileAt(state.map, city.col, city.row);
       const tile = getTileAt(preparedMap, city.col, city.row);
       if (!original || !tile) continue;
-      this.city(state, city, original, tile, cityLook(state, city, capitals), batches, patches, options);
+      const cell = tileIndex(state.map, city.col, city.row);
+      const look = cityLook(state, city, capitals);
+      const key = this.recipeKey(city, cell, look, options);
+      let recipe = this.recipes.get(city.id);
+      if (!recipe || recipe.key !== key || recipe.tile !== tile || recipe.original !== original) {
+        this.deleteRecipe(city.id);
+        recipe = this.city(city, original, tile, look, options, cell, key);
+        this.recipes.set(city.id, recipe);
+      }
+      for (const part of recipe.parts) {
+        let batch = batches.get(part.geometry);
+        if (!batch) { batch = { geometry: part.geometry, matrices: [], cells: [] }; batches.set(part.geometry, batch); }
+        for (const matrix of part.matrices) { batch.matrices.push(matrix); batch.cells.push(recipe.cell); }
+      }
+      patches.push(...recipe.patches);
+      this.placements.push(...recipe.placements);
+      this.flagAnchors.set(city.id, recipe.anchor);
+      this.cityHeights.set(city.id, recipe.tallest);
     }
+    // A town razed takes its cut with it; a town merely out of sight keeps it,
+    // because the fog will hand it back and nothing about the stones moved.
+    for (const id of [...this.recipes.keys()]) if (!living.has(id)) this.deleteRecipe(id);
+    const retained = new Set<string>();
+    const reuse = (id: string, inputs: readonly unknown[]): boolean => {
+      retained.add(id);
+      const previous = this.batches.get(id);
+      if (previous && previous.inputs.length === inputs.length && inputs.every((input, i) => input === previous.inputs[i])) return true;
+      this.deleteBatch(id); return false;
+    };
     for (const { geometry, matrices, cells } of batches.values()) {
+      const id = `pieces:${geometry.id}:${shadows}`;
+      if (reuse(id, matrices)) continue;
+      const meshes: Mesh[] = [];
       for (const offset of [-period, 0, period]) {
         const mesh = new InstancedMesh(geometry, this.assets.material, matrices.length);
         matrices.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
         mesh.position.x = offset; mesh.castShadow = shadows; mesh.receiveShadow = true;
         mesh.userData.paintedCityCells = cells;
-        mesh.computeBoundingSphere(); this.group.add(mesh);
+        mesh.computeBoundingSphere(); this.group.add(mesh); meshes.push(mesh);
       }
+      this.batches.set(id, { inputs: [...matrices], meshes });
     }
-    if (patches.length) {
-      const geometry = mergeGeometries(patches)!; patches.forEach(patch => patch.dispose());
-      this.generated.add(geometry); geometry.computeBoundingSphere();
+    if (patches.length && !reuse(`fields:${shadows}`, patches)) {
+      const geometry = mergeGeometries(patches)!;
+      geometry.computeBoundingSphere();
+      const meshes: Mesh[] = [];
       for (const offset of [-period, 0, period]) {
         const mesh = new Mesh(geometry, this.fields); mesh.position.x = offset;
-        mesh.receiveShadow = true; this.group.add(mesh);
+        mesh.receiveShadow = true; this.group.add(mesh); meshes.push(mesh);
       }
+      this.batches.set(`fields:${shadows}`, { inputs: [...patches], meshes, geometry });
     }
+    for (const id of [...this.batches.keys()]) if (!retained.has(id)) this.deleteBatch(id);
     this.group.updateMatrixWorld(true);
     this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
   }
 
   private city(
-    state: GameState, city: City, original: Tile, tile: Tile, look: CityLook,
-    batches: Map<BufferGeometry, Batch>, patches: BufferGeometry[], options: PaintedCityOptions,
-  ): void {
-    const c = centre(tile) as { x: number; z: number }, cell = tileIndex(state.map, city.col, city.row);
+    city: City, original: Tile, tile: Tile, look: CityLook,
+    options: PaintedCityOptions, cell: number, key: string,
+  ): CityRecipe {
+    const c = centre(tile) as { x: number; z: number };
+    const recipe: CityRecipe = { key, cell, tile, original, parts: [], patches: [], placements: [],
+      anchor: { x: c.x, y: 0, z: c.z }, tallest: 0 };
     const [top, skirt] = terrainMesh(tile) as [BufferGeometry, BufferGeometry]; skirt.dispose();
-    const height = (x: number, z: number): number => samplePaintedSurface(original, x, z) ?? surfaceHeight(tile, x, z) as number;
+    // The tile's own triangles, in world coordinates like everything else here.
+    const surface = createTileSurfaceSampler(top, c.x, c.z);
+    const height = (x: number, z: number): number => surface(x, z) ?? surfaceHeight(tile, x, z) as number;
     let tallest = height(0, 0);
+    const parts = new Map<BufferGeometry, Matrix4[]>();
     const add = (geometry: BufferGeometry, x: number, y: number, z: number, sx: number, sy = sx, sz = sx, yaw = 0): void => {
-      if (!batches.has(geometry)) batches.set(geometry, { geometry, matrices: [], cells: [] });
-      const batch = batches.get(geometry)!;
-      batch.matrices.push(new Matrix4().compose(new Vector3(c.x + x, y, c.z + z), new Quaternion().setFromAxisAngle(up, yaw), new Vector3(sx, sy, sz)));
-      batch.cells.push(cell);
+      let matrices = parts.get(geometry);
+      if (!matrices) { matrices = []; parts.set(geometry, matrices); recipe.parts.push({ geometry, matrices }); }
+      matrices.push(new Matrix4().compose(new Vector3(c.x + x, y, c.z + z), new Quaternion().setFromAxisAngle(up, yaw), new Vector3(sx, sy, sz)));
     };
     const patch = (polygon: number[][], pigment: string, lift = .007): void => {
       const geometry = surfacePatch(top, polygon.map(([x, z]) => [x! + c.x, z! + c.z]), new Color(pigment), lift) as BufferGeometry;
-      if (geometry.getAttribute('position').count) patches.push(geometry); else geometry.dispose();
+      if (geometry.getAttribute('position').count) recipe.patches.push(geometry); else geometry.dispose();
     };
     const bounds = (geometry: BufferGeometry): Box3 => { if (!geometry.boundingBox) geometry.computeBoundingBox(); return geometry.boundingBox!; };
     const footprint = (box: Box3, x: number, z: number, scale: number, yaw: number): { x: number; z: number }[] =>
@@ -177,7 +287,7 @@ export class PaintedCityLayer {
         footprint: world, foundationMin: roof ?? min - .018, foundationMax: floor,
         ...(roof !== undefined ? { roofMounted: true } : {}),
       };
-      this.placements.push(placement); return placement;
+      recipe.placements.push(placement); return placement;
     };
 
     patch([[-.54, -.49], [.38, -.58], [.68, -.18], [.55, .52], [-.51, .57], [-.69, .11]], '#b8b693');
@@ -230,7 +340,7 @@ export class PaintedCityLayer {
         add(stone ? this.geometry.stoneWall : this.geometry.stake, x, min - .006, z,
           scale, vertical + (max - min) / .205, stone ? 1 : 1.42, yaw);
         tallest = Math.max(tallest, max + .21 * vertical);
-        this.placements.push({ cityId: city.id, kind: 'wall', asset: stone ? 'stoneWall' : 'stake', x: c.x + x, y: min - .006, z: c.z + z,
+        recipe.placements.push({ cityId: city.id, kind: 'wall', asset: stone ? 'stoneWall' : 'stake', x: c.x + x, y: min - .006, z: c.z + z,
           scale, yaw, footprint: foot.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: min - .006, foundationMax: max });
       }
       // An unsupported lintel is especially visible on a cut shoreline. The
@@ -240,25 +350,34 @@ export class PaintedCityLayer {
         for (const x of [-.22, .22]) add(this.geometry.stake, x, height(x, .75), .75, 2, 1.6, 2);
         const gateY = Math.max(height(-.22, .75), height(.22, .75)) + .26;
         add(this.geometry.rail, 0, gateY, .75, .47, 1.5, 1.5);
-        this.placements.push({ cityId: city.id, kind: 'gate', asset: 'rail', x: c.x, y: gateY, z: c.z + .75, scale: .47, yaw: 0,
+        recipe.placements.push({ cityId: city.id, kind: 'gate', asset: 'rail', x: c.x, y: gateY, z: c.z + .75, scale: .47, yaw: 0,
           footprint: supports.map(p => ({ x: c.x + p.x, z: c.z + p.z })), foundationMin: gateY, foundationMax: gateY });
       }
     }
-    this.flagAnchors.set(city.id, { x: c.x + .30, y: height(.30, .08) + .008, z: c.z + .08 });
-    this.cityHeights.set(city.id, tallest);
+    recipe.anchor = { x: c.x + .30, y: height(.30, .08) + .008, z: c.z + .08 };
+    recipe.tallest = tallest;
     top.dispose();
+    return recipe;
   }
 
-  private clear(): void {
-    this.group.traverse(object => { if (object instanceof InstancedMesh) object.dispose(); });
-    this.group.clear();
-    for (const geometry of this.generated) geometry.dispose(); this.generated.clear();
-    this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
+  private deleteBatch(id: string): void {
+    const batch = this.batches.get(id); if (!batch) return;
+    for (const mesh of batch.meshes) { this.group.remove(mesh); if (mesh instanceof InstancedMesh) mesh.dispose(); }
+    batch.geometry?.dispose();
+    this.batches.delete(id);
   }
+  private clearBatches(): void { for (const id of [...this.batches.keys()]) this.deleteBatch(id); this.group.clear(); }
+  private deleteRecipe(id: number): void {
+    const recipe = this.recipes.get(id); if (!recipe) return;
+    for (const patch of recipe.patches) patch.dispose();
+    this.recipes.delete(id);
+  }
+  private clearRecipes(): void { for (const id of [...this.recipes.keys()]) this.deleteRecipe(id); }
 
   dispose(): void {
     if (this.disposed) return; this.disposed = true;
-    this.clear(); this.fields.dispose();
+    this.clearBatches(); this.clearRecipes(); this.fields.dispose();
+    this.flagAnchors.clear(); this.cityHeights.clear(); this.placements.length = 0;
     Object.values(this.geometry).forEach(geometry => geometry.dispose());
   }
 }
