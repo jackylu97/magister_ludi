@@ -128,6 +128,7 @@ import { type GameMap, type Tile, getTileAt, tileIndex } from '../sim/map';
 import { holySites, pressureTotals } from '../sim/religion';
 import { resourceDef } from '../sim/resourceData';
 import { type GameState, type ReligionId, cityReligion, foundedReligion } from '../sim/state';
+import { readSites } from '../sim/readings';
 import { visibleResourceAt } from '../sim/tech';
 import { hasFreshWater, isCoastal } from '../sim/water';
 import type { CellRef, LensView } from '../ui/mapView';
@@ -243,6 +244,10 @@ export class LensLayer {
         collector,
         geometry,
       );
+      // And the recommendation itself, over the wash that says what is *legal*.
+      // Only in this lens, which is the whole of the ruling: a marker the board
+      // wore all the time would be advice nobody asked for.
+      if (icons) this.addSettleMarkers(state, lens.playerId, collector, geometry, icons, faceCamera, levels);
     }
     if (lens.mode === 'faith') {
       this.addFaithWash(
@@ -483,6 +488,75 @@ export class LensLayer {
         [],
         new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, disc),
         { material: icons.standingMaterial },
+      );
+    }
+  }
+
+  /**
+   * **The recommended sites**, one staked pennant apiece.
+   *
+   * The whole of the decision is the simulation's (`readSites`, `readings.ts`,
+   * over `explainSite` in `sites.ts`): which hexes this seat has charted, which
+   * of them the rules would take a city on, which of those are worth saying at
+   * all and in what order — and the same list the settler's own appraisal is
+   * built from, so the marker and the bot cannot disagree about what good ground
+   * is. This layer draws it and decides nothing.
+   *
+   * **The fog is asked twice, and the two questions are different.** The reading
+   * gates on the seat's own chart (`isExploredBy`), which is a fact about the
+   * *game*; this gates on `knowsCell`, which is a fact about the **fog view
+   * being painted** — a spectator's, a replay's, or a seat other than the local
+   * one. A marker that skipped the second would draw on black ground the moment
+   * the board was painted for somebody else, which is the audit
+   * `test/render/fog3d.test.ts` exists to catch.
+   *
+   * Planted on the hex's **upper right**, because the lens's own resource
+   * roundel takes the upper left and the yield glyphs (which this lens forces
+   * on) take the middle. Three marks, three shoulders, and none of them ever
+   * driven into the same spot — `sites3d.ts`' rule, one layer over.
+   */
+  private addSettleMarkers(
+    state: GameState,
+    playerId: number,
+    collector: InstanceCollector,
+    geometry: BoardGeometry,
+    icons: TileIcons,
+    faceCamera: Quaternion,
+    levels: FogLevels,
+  ): void {
+    const upright = new Quaternion();
+    const disc = new Vector3(LENS.settleMarkSize, LENS.settleMarkSize, 1);
+    const lift = LENS.settleMarkLift;
+
+    for (const candidate of readSites(state, playerId)) {
+      const tile = getTileAt(state.map, candidate.col, candidate.row);
+      if (tile === undefined) continue;
+      if (!knowsCell(levels, state.map, tile.col, tile.row)) continue;
+      const centre = cellCenter(tile.col, tile.row);
+      // −z is up-screen and +x is right under this camera (see `atlasDecal`).
+      const x = centre.x + LENS.settleMarkOffsetX;
+      const z = centre.z - LENS.settleMarkOffset;
+      const ground = tileTopY(tile);
+      const cell = tileIndex(state.map, tile.col, tile.row);
+
+      // The pin first, so the mark's own paper is drawn over the top of it in
+      // the one bucket where draw order still decides anything.
+      collector.add(
+        geometry.resourceStem,
+        [LENS.settleStemColor],
+        new Matrix4().compose(
+          new Vector3(x, ground + LENS.glyphLift, z),
+          upright,
+          new Vector3(LENS.resourceStemRadius, lift, LENS.resourceStemRadius),
+        ),
+        { outlined: false, tile: cell },
+      );
+      collector.add(
+        geometry.settleMarkers.goodSite,
+        // No ink of its own: the disc *is* the texture, as on every atlas quad.
+        [],
+        new Matrix4().compose(new Vector3(x, ground + lift, z), faceCamera, disc),
+        { material: icons.standingMaterial, tile: cell },
       );
     }
   }

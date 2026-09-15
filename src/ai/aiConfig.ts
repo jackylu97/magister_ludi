@@ -249,21 +249,20 @@ export interface AiConfig {
      */
     hexOffersPriced: number;
   };
+  /**
+   * What a settler is looking for.
+   *
+   * **`ringRadius` and `yieldWeights` are gone from this sheet** and are
+   * `rules.sites` now (`docs/flags.md` item (ttttt), 2026-09-15). The board
+   * marks the sites it recommends to the *player*, and the marker and the
+   * settler read one appraisal or the marker is a lie — so the ring walk and the
+   * weighing of a hex moved down into `src/sim/sites.ts` with the two figures
+   * they are made of. `ringFalloff` and `coastBonus` retired before them, and
+   * the whole of what is left here is what the **bot** adds on top: what a kind
+   * nobody holds is worth to *this* empire, and what water is worth beyond the
+   * yields the ring already prints.
+   */
   site: {
-    /**
-     * How many rings of neighbours a site's appraisal looks at. Two since P3: a
-     * town works a radius the first ring does not cover, and a bot that could
-     * only see one ring picked a hill with three good hexes over a river bend
-     * with nine.
-     *
-     * A **bound on the ground that is read**, and since 2026-09-09 nothing more
-     * than that: which of those hexes actually counts is the growth curve's
-     * answer (`explainSite`), not a weight. `ringFalloff` stood beside it — each
-     * further ring worth a fraction of the one inside it — and is **retired**
-     * with the sum it weighted, because a town that will never work the outer
-     * ring should count it at nothing rather than at a fraction.
-     */
-    ringRadius: number;
     /**
      * What a river or a lake beside the town square is worth beyond the yields
      * the ring already prints — the farms it waters and the thirst it answers,
@@ -288,7 +287,6 @@ export interface AiConfig {
     newLuxuryBonus: number;
     /** The same sentence for a strategic kind — iron an empire cannot field. */
     newStrategicBonus: number;
-    yieldWeights: Record<string, number>;
   };
   /**
    * What a worker is for, and how far ahead the **improvement plan** looks.
@@ -1310,8 +1308,8 @@ export function personaLabel(id: string): string {
  *
  * Plain objects merge key by key; arrays and scalars replace. The result keeps
  * **the base's key order**, with any key the override invents appended, which is
- * what makes a merged config's own iteration order (`site.yieldWeights` is
- * walked by `explainSite`) a fact about the data file rather than about which
+ * what makes a merged config's own iteration order (`weights`' bags are walked
+ * rather than indexed) a fact about the data file rather than about which
  * persona is playing.
  */
 function deepMerge<T>(base: T, override: unknown): T {

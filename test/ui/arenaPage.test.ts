@@ -173,11 +173,18 @@ describe('the configuration panel is generated, not listed', () => {
     // worth, replaced by the fold the build arm already scores a project with
     // (`explainProjectRow`).
     const walked = new Set(knobs.map((knob) => knobKey(knob.path)));
+    // Item (ttttt) takes two more off the sheet, and for a different reason
+    // from a retirement: `site.ringRadius` and `site.yieldWeights` are not gone,
+    // they **moved** — the settler's marker and the bot read one appraisal now
+    // (`src/sim/sites.ts`), so the ring and the weighing are `rules.sites` and
+    // this panel is no longer where they are tuned.
     for (const gone of [
       'workers.planFalloff',
       'site.ringFalloff',
       'site.coastBonus',
       'research.projectValue',
+      'site.ringRadius',
+      'site.yieldWeights.food',
     ]) {
       expect(walked.has(gone), gone).toBe(false);
       expect(html).not.toContain(gone.split('.')[1]);
@@ -185,7 +192,7 @@ describe('the configuration panel is generated, not listed', () => {
     // And the knobs beside them are untouched: a retirement is one row, not a
     // block.
     expect(walked.has('workers.planTopN')).toBe(true);
-    expect(walked.has('site.ringRadius')).toBe(true);
+    expect(walked.has('site.freshWaterBonus')).toBe(true);
   });
 
   it('groups by the sheet’s own top-level blocks, in the file’s order', () => {

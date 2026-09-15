@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(ttttt) A recommended site in the settler lens — RULED, S1** (the user,
+**(ttttt) A recommended site in the settler lens — BUILT, S1** (2026-09-15: `explainSite`/`foldSite` in the new leaf `sites.ts`, `rankSites` the sweep on charted foundable ground above `rules.sites.scoreFloor`, `readSites` the memo on the revision; the bot's site appraisal re-based on the same reading with `siteWorth` and the ring's weights moved from `data/ai.json` to `rules.sites` — both 120-turn digests byte-identical; a pennant atlas family (`settleMarks.ts`) drawn in the lens layer's settler branch on the top `ui.recommendedSites`, knobs on the sheet, a slider in the gallery; the card's Recommended row in plain words. **Sacrifices kept**: the arena lost two per-persona knobs (ring, weights) — one table for everyone; a radius-8 site sweep per revision while a settler is selected, the dearest reading in `readings.ts`; the marker's fold and the bot's total differ by what the bot adds for time, so the board may mark a hex the bot ranks second; `scoreFloor` 70 is a judgement nobody has playtested; the atlas grew a row.) Originally: (the user,
 2026-09-15: *"could we implement a map icon for recommended city settlement
 locations, like in civ? hovering over it should give some indicator (we
 recommend you build a city here - access to X luxuries, the yields are
@@ -54,7 +54,7 @@ the words print, no marker on an unfoundable hex; the P-series pixel pair
 unchanged at turn one with nothing selected. The bot's arena averages
 before/after in the report if its appraisal was re-based.
 
-**(sssss) Combat odds at a distance — RULED, U1, after M1** (the user,
+**(sssss) Combat odds at a distance — BUILT, U1** (2026-09-15: `combatForecast` asks the real hex first and, refused, a comparison — `standToStrike` picks the hex the piece could stand on beside the target, a sword the strongest stance, a bow the nearest in range, and `planCombat` prices from a copy standing there under a `CombatStance`, every clause but the two readiness ones still asked; the reducer passes no stance. The card wears a dashed hairline and says "Out of reach — a comparison"; six pins. **Sacrifices kept**: the comparison assumes a hex the piece may never reach and says not how far; the hex is the interface's choice; a hover costs up to six previews for a sword and nineteen for a bow; a spent piece shows odds instead of its refusal.) Originally: (the user,
 2026-09-15: *"the unit overview should show the combat odds regardless of
 movement/adjacency, players need a way to compare strength without
 marching their units into combat."*). Today the forecast — both sides'
@@ -70,7 +70,11 @@ refusals, with a plain line saying it is a comparison and not an order
 `src/ui/controls.ts`), the card's tint says which. Pins in `test/ui/`: a
 forecast for an enemy three hexes off equals the forecast the same pair
 would get adjacent, less nothing; the order is still refused; the line
-prints. Waits for M1 (in `controls.ts` for the swap's card and tint).
+prints. Built as `combatForecast` widened (`CombatReading`) over a
+`CombatStance` on `previewCombat` — the hex is chosen by `standToStrike`
+beside it: the strongest standable hex for a sword, the nearest hex in range
+for a bow, and "nowhere to stand beside it" where there is none. The fog is
+the one refusal a comparison does not get past. `docs/units.md` carries it.
 
 **(qqqqq) The culture and great-person ladders climb a fifth slower — BUILT**
 (the user, 2026-09-15: *"tune down the scaling of the culture tiers and the

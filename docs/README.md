@@ -94,6 +94,14 @@ Reference: **`docs/yields.md`**, the sequence of record · code: `src/sim/yields
   printed figure before banking.
 - The register at the foot of `docs/yields.md` says where every card kind that
   pays a yield lands. A new kind joins it or the sync test fails.
+- **What a hex is worth as a place to put a town** is one reading in the same
+  three verbs: `explainSite` / `foldSite` (`src/sim/sites.ts`) over the ring's
+  hexes through the seat's own eyes, the water, the seams, the coast, the hills
+  and how crowded it is, with `readSites` in `readings.ts` the memo that ranks
+  the seat's charted, foundable ground. The settler lens's markers, the hover
+  card's words and the bot's own settler all read it (`rules.sites` holds the
+  ring and the weights; `site.ringRadius` and `site.yieldWeights` left
+  `data/ai.json` when it landed, so there is no second weight table).
 
 ## Cities, production and purchases
 
@@ -446,6 +454,12 @@ Eight root pages, all named in `vite.config.ts` inputs:
   exceptions, both deliberate, are the setup screen's colour swatches and the
   save shelf's own label. Pinned by a source sweep,
   `test/ui/seatNames.test.ts`.
+- **The settler lens recommends sites.** With a settler in hand — and in no
+  other lens — the top `ui.recommendedSites` hexes of `readSites` wear a staked
+  pennant from the tile atlas (`src/art/settleMarks.ts`), never on ground the
+  rules refuse a city on and never on a hex the fog view has not charted; the
+  sticky info card's Recommended row says why in plain words, out of the same
+  reading. Clicking one does nothing a click on the hex would not.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

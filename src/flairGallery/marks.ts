@@ -56,6 +56,7 @@ import {
 } from '../art/navalMarks';
 import { siteMark } from '../art/siteMarks';
 import { SURVEY_MARK_IDS, surveyMark, surveyMarkDataUri } from '../art/surveyMarks';
+import { SETTLE_MARK_IDS, settleMark, settleMarkDataUri } from '../art/settleMarks';
 import { YIELD_MARKS, yieldMarkDataUri } from '../art/yieldMarks';
 import {
   BADGE_ICON_FILES,
@@ -72,7 +73,7 @@ import { DISCOVERY_KINDS } from '../sim/discoveryData';
 import { BELIEF_AXES, type BeliefAxis, type BeliefId } from '../sim/religionData';
 import { CORNER_STAR, PRINTER_DEVICE, cornerStarDataUri, printerDeviceDataUri } from '../ui/deviceMarks';
 import { CARD_LINE_NAME } from '../ui/cardLine';
-import { block, element, markCell, markGrid, uriOf } from './sheet';
+import { block, controls, element, markCell, markGrid, markSwatch, slider, uriOf } from './sheet';
 
 /** A `#rrggbb` string for a palette entry, which the data holds as a number. */
 function hex(color: number): string {
@@ -120,6 +121,7 @@ export function drawMarkFamilies(into: HTMLElement): void {
   resourceFamily(into);
   siteFamily(into);
   surveyFamily(into);
+  settleFamily(into);
   pantheonFamily(into);
   deviceFamily(into);
   badgeFamily(into);
@@ -257,6 +259,50 @@ function surveyFamily(into: HTMLElement): void {
   for (const id of SURVEY_MARK_IDS) {
     markCell(grid, id, surveyMarkDataUri(id), surveyMark(id).note);
   }
+}
+
+/**
+ * The settler's recommendation, and the one knob that decides whether it works.
+ *
+ * The block carries a **live slider** as well as the swatch table, and it is the
+ * only family here that needs one: every other mark is read at a size the page
+ * can state (`MARK_SIZES`), while this one is read at whatever fraction of a hex
+ * `lens.settleMarkSize` sets — over jungle, over snow, beside a resource roundel
+ * and a stack of yield glyphs. Too small and the board is volunteering advice
+ * nobody notices; too large and it covers the ground it is recommending. The
+ * slider drives the shipped knob and the preview beside it, so what is being
+ * judged is the figure that actually lands in `data/view3d.json`.
+ *
+ * The preview is sized against a nominal hex rather than against the three
+ * standard sizes for that reason — the number means "this fraction of a tile",
+ * and a swatch in pixels would be answering a different question.
+ */
+function settleFamily(into: HTMLElement): void {
+  const panel = block(
+    into,
+    'Settle marks — src/art/settleMarks.ts',
+    'What the settler lens plants on a hex the simulation recommends — the same appraisal the bot’s own settler is re-based on, so the mark and the march cannot disagree. A stake driven into the ground line under a swallow-tailed pennant: a claim rather than a building, because the board already draws towns in three dimensions and a mark that looked like a small one would read as somebody else’s. Printed on parchment like the charges and the town marks, and against the survey note’s bare faded ink — this is an answer, not a guess.',
+  );
+  const grid = markGrid(panel);
+  for (const id of SETTLE_MARK_IDS) {
+    markCell(grid, id, settleMarkDataUri(id), settleMark(id).note);
+  }
+  const stage = element('div', 'mark-row');
+  panel.append(stage);
+  const preview = markSwatch(settleMarkDataUri('goodSite'), 1, 'ink');
+  stage.append(preview);
+  slider(
+    controls(panel),
+    'on the hex (fraction of a tile)',
+    { min: 0.2, max: 1.2, step: 0.01, value: VIEW3D.lens.settleMarkSize },
+    (value) => value.toFixed(2),
+    (value) => {
+      VIEW3D.lens.settleMarkSize = value;
+      // A hex prints about this wide on screen at the default camera, so the
+      // swatch answers the question the knob asks rather than a pixel one.
+      preview.style.setProperty('--mark-size', `${Math.round(value * 96)}px`);
+    },
+  );
 }
 
 /**

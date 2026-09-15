@@ -1633,6 +1633,16 @@
              bar. See `foundingCostText`. -->
         <dt>Founding here</dt>
         <dd id="info-founding">—</dd>
+        <!-- Why the board planted a pennant on this hex — the marked sites of
+             the settler lens, in words (`docs/flags.md` item (ttttt)). It reads
+             the very list the marker is drawn from (`readSites`, over
+             `explainSite` in `src/sim/sites.ts`, which is also the reading the
+             bot's own settler is re-based on), so the mark on the ground and the
+             sentence under the cursor are one claim. Plain words and no figures,
+             rule 7: the ledger behind the sentence carries the numbers. See
+             `recommendedSiteRow`. -->
+        <dt>Recommended</dt>
+        <dd id="info-site">—</dd>
         <!-- The total, and under it the itemized breakdown it is the fold of —
              the ground, then one row per thing sitting on it, written by
              `tileYieldLineNodes` (`src/ui/tileReadout.ts`) out of

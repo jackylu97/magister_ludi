@@ -75,6 +75,7 @@ import {
   describeSurvey,
   describeWater,
   foundingCostRow,
+  recommendedSiteRow,
   resourceRequirementNode,
   resourceRowNode,
   tileYieldContributions,
@@ -128,6 +129,7 @@ import { type BeadAge, BEAD_RULES } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
+  COMPARISON_LINE,
   cityPhaseLine,
   createGameControls,
   showsSeatStrip,
@@ -522,6 +524,7 @@ const infoTerrain = requireElement<HTMLElement>('info-terrain');
 const infoFeature = requireElement<HTMLElement>('info-feature');
 const infoWater = requireElement<HTMLElement>('info-water');
 const infoFounding = requireElement<HTMLElement>('info-founding');
+const infoSite = requireElement<HTMLElement>('info-site');
 const infoYields = requireElement<HTMLElement>('info-yields');
 const infoResource = requireElement<HTMLElement>('info-resource');
 const infoImprovement = requireElement<HTMLElement>('info-improvement');
@@ -1578,6 +1581,7 @@ function clearInfoRows(): void {
     infoFeature,
     infoWater,
     infoFounding,
+    infoSite,
     infoYields,
     infoResource,
     infoImprovement,
@@ -1699,11 +1703,30 @@ function strengthFigure(value: number): string {
  * A refusal is shown as words instead. "You cannot attack that, and here is why"
  * is exactly what a player aiming at something out of reach needs to read, and
  * it is the reducer's own sentence.
+ *
+ * A **comparison** is the same card with one line and one tint added (user,
+ * 2026-09-15): the odds of a fight that is not on offer this turn, so a player
+ * can weigh an army before marching into it. Which reading it is comes from
+ * `controls.ts` (`CombatReading.comparison`) and is never decided here — this
+ * file prints the sentence that module wrote (`COMPARISON_LINE`) and hangs the
+ * tint on the card, exactly as it prints `cityPhaseLine`'s.
  */
-function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>): void {
+function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>): void {
   combatForecastEl.replaceChildren();
-  combatForecastEl.hidden = preview === null;
-  if (preview === null) return;
+  combatForecastEl.hidden = reading === null;
+  combatForecastEl.classList.toggle('is-comparison', reading !== null && reading.comparison);
+  if (reading === null) return;
+  const preview = reading.preview;
+
+  // The comparison says what it is **before** the numbers or the refusal, so a
+  // player reading downward knows what they are looking at by the time they
+  // reach a figure they might act on.
+  if (reading.comparison) {
+    const aside = document.createElement('p');
+    aside.className = 'combat-comparison';
+    aside.textContent = COMPARISON_LINE;
+    combatForecastEl.append(aside);
+  }
 
   if (!preview.ok) {
     const why = document.createElement('p');
@@ -2390,6 +2413,17 @@ async function boot(initial: Game | null): Promise<void> {
         infoFounding,
         controls.boardLens() === 'settler'
           ? foundingCostRow(game.state, seat, hover.tile)
+          : null,
+      );
+      // The recommendation itself, on the same lens condition and for the same
+      // reason: the mark is only drawn with a settler in hand, so the sentence
+      // that explains the mark is only printed there too — advice with nothing
+      // on the board pointing at it is advice out of nowhere. Which hexes carry
+      // it is `readSites`', not this row's: one list, one claim.
+      setInfoRow(
+        infoSite,
+        controls.boardLens() === 'settler'
+          ? recommendedSiteRow(game.state, seat, hover.tile)
           : null,
       );
       // What is standing here, and — when the piece in hand would **trade

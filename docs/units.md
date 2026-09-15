@@ -56,6 +56,19 @@ save may name it, and it leaves the reference because nobody can raise one.
 `planCombat` (`src/sim/combat.ts`) is the one evaluator; the forecast and the
 blow read the same plan.
 
+- **The card compares as well as it orders** (ruled 2026-09-15). With a piece
+  selected, hovering any enemy piece or town **in sight** prices the fight as if
+  the piece were already standing where it would have to stand: a sword takes the
+  strongest hex beside the target it could stand on, a bow the nearest hex in
+  range it could shoot from, and the card says so ("out of reach — a comparison")
+  and tints itself. It is the same evaluator with one more argument — a
+  `CombatStance`, which moves only where the piece stands and whether its turn is
+  spent — so the two readings cannot drift. The order is refused exactly as
+  before; the fog is the one refusal a comparison does not get past; and where no
+  hex beside the target is standable the card says that instead. The reading is
+  `combatForecast` and the hex is chosen by `standToStrike` beside it, both in
+  `src/ui/controls.ts`.
+
 - **Damage is an exponential in the *difference* of two effective strengths**,
   times a roll drawn from `state.rng` — `rules.combat.baseDamage`,
   `strengthExponent`, `rollBand`. It has no scale: a fixed edge is worth the same
