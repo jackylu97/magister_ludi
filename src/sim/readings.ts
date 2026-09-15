@@ -157,7 +157,6 @@ import {
   type CityYields,
 } from './cities';
 import { getTileAt } from './map';
-import { type Cell, pathTurns } from './pathfind';
 import { routePrice } from './purchase';
 import { RULES } from './rulesData';
 import {
@@ -168,16 +167,13 @@ import {
   routeIsInternational,
 } from './routeYields';
 import {
+  type RouteGateLine,
   type RouteMode,
-  caravanProbeFor,
-  routeLegPath,
-  routeModesAvailable,
+  explainRouteGates,
   routeRange,
   routeSlots,
-  routeStartable,
   usedRouteSlots,
 } from './trade';
-import { fullMovement } from './units';
 import { isExploredBy } from './visibility';
 import {
   empirePercents,
@@ -410,11 +406,13 @@ export interface RoutesReading {
  * (2026-09-09, `docs/flags.md` item (iii): *"please look into the performance
  * of the trade screen, it gets quite laggy"*).
  *
- * The screen's cost was never the drawing. Every open re-priced every ordered
- * pair from scratch: `routeModesAvailable` is `routeStartable` asked twice, and
- * `routeStartable` runs A* for each mode and then `pathTurns` over the path it
- * found — so a late board of a dozen towns paid a few hundred pathfinding
- * searches every time the sheet was opened, and again on every redraw within it.
+ * The screen's cost was never the drawing — it still is not: a reopen on an
+ * unmoved revision builds the whole sheet's DOM in under two milliseconds
+ * (measured in the browser on the fixture below). Every open used to re-price
+ * every ordered pair from scratch: the gate runs A* for each mode and then
+ * `pathTurns` over the path it found — so a late board of a dozen towns paid a
+ * few hundred pathfinding searches every time the sheet was opened, and again on
+ * every redraw within it.
  *
  * The third verb is the whole answer (CLAUDE.md rule 5's `readX`): this is
  * `explain` + `fold` for every pair at once, memoised on the slate, so the
@@ -430,10 +428,22 @@ export interface RoutesReading {
  * enemy ship moved changes this reading with nothing else on the board
  * different.
  *
- * Everything in a row is the simulation's own: the gate is `routeStartable`,
- * the pay is `routeYields.ts`'s two folds with the sea premium among their
- * lines, the price is `routePrice`, the range is `routeRange`. Nothing here
- * re-implements a rule; it remembers the answers.
+ * Everything in a row is the simulation's own: the gate is `explainRouteGates`
+ * (which is `routeStartable` per mode, with the march it measured), the pay is
+ * `routeYields.ts`'s two folds with the sea premium among their lines, the price
+ * is `routePrice`, the range is `routeRange`. Nothing here re-implements a rule;
+ * it remembers the answers.
+ *
+ * **And asks each of them once** (the user's second mark, 2026-09-15,
+ * `docs/flags.md` item (fffff): *"it seems to be slow again"*). The memo was
+ * doing its job — a repaint inside one revision is a `Map` lookup — but the
+ * *cold* walk was buying the same answer three times for every pair: the modes,
+ * then the refusal's sentence, then the land leg again to count what a cart
+ * would pave. Measured on `standard-t120-s1` (41 towns, seat 0's seven), that
+ * was 43% of the reading, and `routeLegPath`'s six doorsteps flooding a whole
+ * continent apiece where a partner sits across water was most of the rest. One
+ * gate call per pair and one search per unreachable partner took the reading's
+ * cold cost from 1.40s to 0.50s, with every figure on the sheet unchanged.
  *
  * **A town the seat has never found is not in the reading** (batch R3, the
  * user's second mark of 2026-09-09: *"the unavailable routes tab should not
@@ -470,7 +480,6 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
 
   for (const from of state.cities) {
     if (from.ownerId !== playerId) continue;
-    const probe = caravanProbeFor(state, playerId, from);
     for (const to of state.cities) {
       if (to.id === from.id) continue;
       // The discovery clause (batch R3, see the docblock): a partner whose
@@ -478,7 +487,17 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
       // not refused, not counted. A town of this seat's own is always on it,
       // and asking anyway is one array read rather than a special case.
       if (!isExploredBy(state, playerId, to.col, to.row)) continue;
-      const modes = routeModesAvailable(state, playerId, from.id, to.id);
+      // **One gate, asked once, with its own survey in hand** (the performance
+      // ruling of 2026-09-15, `docs/flags.md` item (fffff)). This row used to
+      // buy the same answer three times over: `routeModesAvailable` for the
+      // modes, `routeStartable` again for the refusal's *sentence*, and then a
+      // third search of the land leg to count the hexes a cart would pave — of
+      // which two were the identical A\*, and on a developed board that was
+      // 43% of the whole reading. `explainRouteGates` is the gate handing back
+      // what it already measured; nothing here decides a rule.
+      const gates = explainRouteGates(state, playerId, from.id, to.id);
+      const modes: RouteMode[] = [];
+      for (const line of gates) if (line.refusal === null) modes.push(line.mode);
       const pays: RouteModeReading[] = [];
       const abroad = routeIsInternational(from, to);
       for (const mode of modes) {
@@ -487,34 +506,33 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
           : explainRouteYieldBetween(state, from, to, mode);
         pays.push({ mode, abroad, lines, total: foldRouteYield(lines) });
       }
-      // **One extra survey, and only for a pair the gate took.** The land leg
-      // is what a cart paves and what the range was measured on, and the sea
-      // leg is the fallback for a pair with no land at all — but both are A*,
-      // and a pair the gate has already refused has no cart to measure. That
-      // keeps the reading's cost proportional to the routes actually **on
+      // **The leg the gate walked, and only for a pair the gate took.** The
+      // land leg is what a cart paves and what the range was measured on, and
+      // the sea leg is the fallback for a pair with no land at all — but both
+      // are A*, and a pair the gate has already refused has no cart to measure.
+      // That keeps the reading's cost proportional to the routes actually **on
       // offer** rather than to the square of the board, which matters most in
-      // exactly the state a player is in most of the game: `routeStartable`
-      // refuses on the slot clause *before* it searches, so on a board with
-      // every route running this whole reading costs 1.6ms against the 318ms
-      // an unconditional survey cost (measured, a played thirteen-town map,
-      // 72 pairs).
+      // exactly the state a player is in most of the game: the gate refuses on
+      // the slot clause *before* it searches, so on a board with every route
+      // running this whole reading costs 1.6ms against the 318ms an
+      // unconditional survey cost (measured, a played thirteen-town map, 72
+      // pairs).
       //
       // The consequence is stated rather than hidden: an unavailable row
       // carries no `turns` and no `roadHexes`, and it does not contribute to
       // the post-reach pass. That is honest — a post's reach is about routes
       // this seat could run — and the row still carries the gate's own sentence,
       // which is what the Unavailable tab prints.
-      const walk = (mode: RouteMode): Cell[] | null =>
-        probe === null ? null : routeLegPath(state, probe, from, to, mode);
-      const land = modes.includes('land') ? walk('land') : null;
-      const walked = land ?? (modes.includes('sea') ? walk('sea') : null);
-      const turns =
-        probe === null || walked === null
-          ? null
-          : (() => {
-              const full = fullMovement(probe, state);
-              return pathTurns(state, probe, walked, { left: full, refill: full });
-            })();
+      const gate = (mode: RouteMode): RouteGateLine | undefined =>
+        gates.find((line) => line.mode === mode);
+      const offered = (mode: RouteMode): RouteGateLine | undefined => {
+        const line = gate(mode);
+        return line !== undefined && line.refusal === null ? line : undefined;
+      };
+      const land = offered('land');
+      const walked = land ?? offered('sea');
+      const turns = walked?.turns ?? null;
+      const paved = land?.path ?? null;
       if (turns !== null) turnsBetween.set(pairKey(from.id, to.id), turns);
       rows.push({
         from,
@@ -524,9 +542,9 @@ function routesReading(state: GameState, playerId: number): RoutesReading {
         // The land mode's sentence: it is the one a player meets first, and a
         // pair with no land at all is told about the sea by it anyway (the gate
         // words its refusal after the mode it was asked about).
-        refusal: modes.length > 0 ? null : routeStartable(state, playerId, from.id, to.id, 'land'),
+        refusal: modes.length > 0 ? null : (gate('land')?.refusal ?? null),
         pays,
-        roadHexes: land === null ? null : unpavedHexes(state, land),
+        roadHexes: paved === null ? null : unpavedHexes(state, paved),
         turns,
         postReach: [],
       });

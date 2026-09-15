@@ -27,7 +27,7 @@
  * source-reading register test is always core).
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { applyCommand } from '../../src/sim/commands';
 import {
@@ -53,11 +53,16 @@ import { routePrice } from '../../src/sim/purchase';
 import { EXPLORED, HIDDEN, isExploredBy, isVisibleTo } from '../../src/sim/visibility';
 import { explainRouteYieldBetween, foldRouteYield } from '../../src/sim/routeYields';
 import {
+  explainRouteGates,
   routeModesAvailable,
   routeSlots,
   routeStartable,
   usedRouteSlots,
 } from '../../src/sim/trade';
+// The whole namespace beside the named imports, because the count below is
+// taken on the very binding `readings.ts` reaches through — a spy on a name this
+// file re-imported would count nothing at all.
+import * as tradeModule from '../../src/sim/trade';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { type City, type GameState, bumpRevision, newGame, playerById } from '../../src/sim/state';
 import { snapshotState } from '../../src/sim/game';
@@ -918,5 +923,119 @@ describe('nobody rebuilds the town’s list', () => {
     // readings — see the phase's docblock for the second reason.
     expect(read('cities.ts').includes("from './readings'")).toBe(false);
     expect(read('readings.ts').includes("from './cities'")).toBe(true);
+  });
+});
+
+/**
+ * **The gate is asked once a pair, and the memo answers every ask after the
+ * first** — the user's second mark on the Trade screen (2026-09-15,
+ * `docs/flags.md` item (fffff): *"it seems to be slow again"*).
+ *
+ * R1's memo was doing its job: a redraw inside one revision is a `Map` lookup.
+ * What was slow was the **cold** walk, and it was slow for a reason a figure
+ * could never show — it bought the same answer three times for every pair. The
+ * modes came from `routeModesAvailable` (the gate, per mode), the refusal's
+ * sentence came from `routeStartable` asked *again*, and the hexes a cart would
+ * pave came from a third search of the very leg the gate had just walked.
+ * Measured on the developed fixture that was 43% of the reading.
+ *
+ * So two claims, and both are about counting rather than about a number:
+ *
+ *   1. **one gate call per pair**, with its survey in hand — the reading does
+ *      not name `routeStartable`, `routeModesAvailable`, `routeLegPath` or
+ *      `pathTurns` at all any more, and a future hand that reaches for one of
+ *      them fails here;
+ *   2. **the memo hits** — a hundred asks on one revision cost one walk, and the
+ *      walk is taken again the moment the world moves.
+ */
+describe('the routes reading asks the gate once a pair', () => {
+  /** `readings.ts` with its prose taken out — a docblock naming a verb is not a call. */
+  function readingsSource(): string {
+    const files = import.meta.glob('../../src/sim/readings.ts', {
+      query: '?raw',
+      import: 'default',
+      eager: true,
+    }) as Record<string, string>;
+    const text = Object.values(files)[0];
+    expect(typeof text, 'readings.ts readable').toBe('string');
+    return text!
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map((line) => line.replace(/\/\/.*$/, ''))
+      .join('\n');
+  }
+
+  /** Two towns of one seat, a market, a purse — a board with routes to price. */
+  function board(): { state: GameState; home: City; partner: City } {
+    const { state } = game(23);
+    const home = found(state, 0)!;
+    const site = state.map.tiles.find((tile) => foundingErrorAt(state, 0, tile) === null);
+    expect(site).toBeDefined();
+    const partner = foundCityAt(state, 0, site!);
+    home.buildings.push('market');
+    playerById(state, 0)!.gold = 5_000;
+    bumpRevision(state);
+    return { state, home, partner };
+  }
+
+  it('calls the gate once per pair and never again on the same revision', () => {
+    const { state } = board();
+    const gate = vi.spyOn(tradeModule, 'explainRouteGates');
+    try {
+      const reading = readRoutes(state, 0);
+      // One call a row, and the rows are the pairs this seat has charted.
+      expect(gate).toHaveBeenCalledTimes(reading.rows.length);
+      expect(reading.rows.length).toBeGreaterThan(0);
+
+      // A hundred repaints inside one revision: the memo answers all of them.
+      gate.mockClear();
+      for (let ask = 0; ask < 100; ask += 1) expect(readRoutes(state, 0)).toBe(reading);
+      expect(gate).not.toHaveBeenCalled();
+
+      // The world moves and the walk is taken again — once a pair, as before.
+      bumpRevision(state);
+      const fresh = readRoutes(state, 0);
+      expect(fresh).not.toBe(reading);
+      expect(gate).toHaveBeenCalledTimes(fresh.rows.length);
+    } finally {
+      gate.mockRestore();
+    }
+  });
+
+  it('asks for the march and the verdict in the same breath', () => {
+    // The source register: a reading that reached for the gate's *sentence* a
+    // second time, or re-walked the leg it was handed, is exactly the shape this
+    // pass removed — and it would be invisible in every figure on the sheet.
+    const text = readingsSource();
+    expect(text).toContain('explainRouteGates(state, playerId, from.id, to.id)');
+    for (const gone of [
+      'routeStartable(',
+      'routeModesAvailable(',
+      'routeLegPath(',
+      'pathTurns(',
+      'caravanProbeFor(',
+    ]) {
+      expect(text.includes(gone), `${gone} is the gate's own business now`).toBe(false);
+    }
+  });
+
+  it('prints what the gate measured, not a second reading of it', () => {
+    // Rule 5's discipline as a pin: every figure on a row is the gate's own
+    // answer for the mode the row is read in, so nothing can drift.
+    const { state } = board();
+    const reading = readRoutes(state, 0);
+    for (const row of reading.rows) {
+      const gates = explainRouteGates(state, 0, row.from.id, row.to.id);
+      expect(row.modes).toEqual(
+        gates.filter((line) => line.refusal === null).map((line) => line.mode),
+      );
+      const land = gates.find((line) => line.mode === 'land' && line.refusal === null);
+      const walked = land ?? gates.find((line) => line.mode === 'sea' && line.refusal === null);
+      expect(row.turns).toBe(walked?.turns ?? null);
+      if (row.modes.length === 0) {
+        expect(row.refusal).toBe(gates.find((line) => line.mode === 'land')?.refusal ?? null);
+        expect(row.roadHexes).toBeNull();
+      }
+    }
   });
 });

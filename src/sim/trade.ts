@@ -143,7 +143,13 @@ import {
 // `src/sim` first in turn.
 import { hasMetSeat } from './diplomacy';
 import { type Tile, getTileAt, tileHex, tileNeighbors, wrappedDistance } from './map';
-import { type Cell, type MoveProfile, findPath, moveProfile, pathTurns } from './pathfind';
+import {
+  type Cell,
+  type MoveProfile,
+  findPathToFirst,
+  moveProfile,
+  pathTurns,
+} from './pathfind';
 import { RULES } from './rulesData';
 import {
   type City,
@@ -709,11 +715,11 @@ export function routeLegPath(
   mode: RouteMode,
 ): Cell[] | null {
   const profile = routeProfile(state, unit, mode, from, to);
-  for (const goal of routeGoals(state, unit, from, to)) {
-    const path = findPath(state, unit, goal, profile);
-    if (path !== null) return path;
-  }
-  return null;
+  // `findPathToFirst` rather than `findPath` in a loop, and the answer is the
+  // same hex for hex: the six doorsteps share one search's reachability proof,
+  // so a partner across water costs one flooded continent instead of six. Its
+  // docblock carries the argument.
+  return findPathToFirst(state, unit, routeGoals(state, unit, from, to), profile);
 }
 
 /** What one survey found: the mode a send would run in, and the path it walks. */
@@ -785,6 +791,51 @@ export function routeModeFor(
   return surveyRoute(state, caravanProbe(playerId, type, from), from, to, undefined).mode;
 }
 
+/** One mode's answer from the gate, with what its survey found. See `explainRouteGates`. */
+export interface RouteGateLine {
+  /** The mode asked about, and — where nothing was asked — the one the survey settled on. */
+  mode: RouteMode;
+  /** `routeStartable`'s own sentence, or `null` when this mode is on offer. */
+  refusal: string | null;
+  /**
+   * The leg the gate's survey walked, or `null` where it refused before
+   * surveying and where no path exists at all. **Read it; never write it** — it
+   * is the very array the gate priced its range clause off.
+   */
+  path: readonly Cell[] | null;
+  /**
+   * Turns of the caravan's own march along that leg, on a **full purse** — the
+   * figure the range clause is measured against, and the one the Trade screen
+   * prints. `null` wherever `path` is.
+   */
+  turns: number | null;
+}
+
+/**
+ * The gate asked of **every** mode at once, each answer carrying what its survey
+ * found — the list `routeModesAvailable` is the fold of, and the whole of what a
+ * caller who wants the march as well as the verdict has to ask (rule 5).
+ *
+ * It exists because the answer and the evidence were being bought twice
+ * (`docs/flags.md` item (fffff)). `readRoutes` asked `routeModesAvailable` for
+ * the modes, asked `routeStartable` again for the refusal's *sentence*, and then
+ * walked the land leg a third time to count the hexes a cart would pave — three
+ * surveys of one pair, of which two were the identical search. Handing the
+ * survey out with the verdict makes that one walk, and it is still one
+ * implementation of the gate: every line here is `routeStartable`'s own answer,
+ * which is why that function is now the refusal off this one.
+ *
+ * In `ROUTE_MODES` order, which is the order the interface draws the buttons in.
+ */
+export function explainRouteGates(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
+): RouteGateLine[] {
+  return ROUTE_MODES.map((mode) => gateRoute(state, playerId, fromCityId, toCityId, mode));
+}
+
 /**
  * The modes this pair of towns could actually be joined by, in `ROUTE_MODES`
  * order — what the Trade screen offers as buttons.
@@ -802,8 +853,8 @@ export function routeModesAvailable(
   toCityId: number,
 ): RouteMode[] {
   const modes: RouteMode[] = [];
-  for (const mode of ROUTE_MODES) {
-    if (routeStartable(state, playerId, fromCityId, toCityId, mode) === null) modes.push(mode);
+  for (const line of explainRouteGates(state, playerId, fromCityId, toCityId)) {
+    if (line.refusal === null) modes.push(line.mode);
   }
   return modes;
 }
@@ -872,15 +923,49 @@ export function routeStartable(
   toCityId: number,
   mode?: RouteMode,
 ): string | null {
+  return gateRoute(state, playerId, fromCityId, toCityId, mode).refusal;
+}
+
+/**
+ * The gate above, with the survey it ran handed back rather than dropped.
+ *
+ * `routeStartable` is this function's `refusal` and nothing else, so there is
+ * still exactly one implementation of the five clauses and the doc on it is the
+ * doc of record. The split exists for `explainRouteGates`' reason: a caller that
+ * wants the leg as well as the verdict was paying for the search twice, and a
+ * gate that answers "no, and here is the march I measured it against" costs the
+ * caller nothing it was not already buying.
+ *
+ * The **path is the survey's own array** and the `turns` beside it the very
+ * figure clause 5 compared against the range — never a second reading taken
+ * afterwards, which is the whole point.
+ */
+function gateRoute(
+  state: GameState,
+  playerId: number,
+  fromCityId: number,
+  toCityId: number,
+  mode?: RouteMode,
+): RouteGateLine {
+  // A refusal taken before any ground was surveyed: the mode is the one asked
+  // about (land where a caller named none, which is `surveyRoute`'s own
+  // default), and there is no march to report because none was measured.
+  const refuse = (sentence: string): RouteGateLine => ({
+    mode: mode ?? 'land',
+    refusal: sentence,
+    path: null,
+    turns: null,
+  });
+
   const type = caravanTypeFor(state, playerId);
-  if (!type) return 'This world has no caravans';
+  if (!type) return refuse('This world has no caravans');
 
   const from = cityById(state, fromCityId);
-  if (!from) return `No city with id ${String(fromCityId)}`;
+  if (!from) return refuse(`No city with id ${String(fromCityId)}`);
   const to = cityById(state, toCityId);
-  if (!to) return `No city with id ${String(toCityId)}`;
-  if (from.ownerId !== playerId) return `${from.name} belongs to another empire`;
-  if (to.id === from.id) return `A route joins two different cities`;
+  if (!to) return refuse(`No city with id ${String(toCityId)}`);
+  if (from.ownerId !== playerId) return refuse(`${from.name} belongs to another empire`);
+  if (to.id === from.id) return refuse(`A route joins two different cities`);
   if (to.ownerId !== playerId) {
     // **The foreign half, and it is two questions** (the international ruling of
     // 2026-09-03, `docs/trade.md`). War first, because a seat at war has
@@ -890,16 +975,18 @@ export function routeStartable(
     // and the ruling says so out loud.
     const them = playerById(state, to.ownerId);
     const name = them?.name ?? 'them';
-    if (atWar(state, playerId, to.ownerId)) return `You are at war with ${name}`;
-    if (!hasMetSeat(state, playerId, to.ownerId)) return `You have not met ${name}`;
+    if (atWar(state, playerId, to.ownerId)) return refuse(`You are at war with ${name}`);
+    if (!hasMetSeat(state, playerId, to.ownerId)) return refuse(`You have not met ${name}`);
   }
 
   const held = usedRouteSlots(state, playerId);
   const slots = routeSlots(state, playerId);
   if (held >= slots) {
-    return slots === 0
-      ? 'You have no trade routes — build a market'
-      : `All ${slots} of your trade routes are running`;
+    return refuse(
+      slots === 0
+        ? 'You have no trade routes — build a market'
+        : `All ${slots} of your trade routes are running`,
+    );
   }
 
   for (const other of tradersOf(state, playerId)) {
@@ -912,13 +999,13 @@ export function routeStartable(
     // stacking the ruling accepts.
     const joins = route.from === from.id && route.to === to.id;
     if (joins && routeIsLive(state, other)) {
-      return `A caravan already runs from ${from.name} to ${to.name}`;
+      return refuse(`A caravan already runs from ${from.name} to ${to.name}`);
     }
   }
 
   const goal = getTileAt(state.map, to.col, to.row);
-  if (!goal) return `${to.name} is off the map`;
-  if (!getTileAt(state.map, from.col, from.row)) return `${from.name} is off the map`;
+  if (!goal) return refuse(`${to.name} is off the map`);
+  if (!getTileAt(state.map, from.col, from.row)) return refuse(`${from.name} is off the map`);
 
   const probe = caravanProbe(playerId, type, from);
   // One survey, and the mode it settled on is what the refusal is *about*: a
@@ -927,9 +1014,15 @@ export function routeStartable(
   const survey = surveyRoute(state, probe, from, to, mode);
   const { path } = survey;
   if (!path) {
-    return survey.mode === 'sea'
-      ? `No sea lane a caravan could sail from ${from.name} to ${to.name}`
-      : `No road a caravan could walk from ${from.name} to ${to.name}`;
+    return {
+      mode: survey.mode,
+      refusal:
+        survey.mode === 'sea'
+          ? `No sea lane a caravan could sail from ${from.name} to ${to.name}`
+          : `No road a caravan could walk from ${from.name} to ${to.name}`,
+      path: null,
+      turns: null,
+    };
   }
 
   const range = routeRange(from, to);
@@ -937,10 +1030,15 @@ export function routeStartable(
   // any caravan has left today. See `pathTurns`.
   const full = fullMovement(probe, state);
   const turns = pathTurns(state, probe, path, { left: full, refill: full });
-  if (turns > range) {
-    return `${to.name} is ${turns} turns away; a caravan may be sent ${range}`;
-  }
-  return null;
+  // The march is reported either way — a row refused for distance is still a row
+  // a screen prints the distance of.
+  return {
+    mode: survey.mode,
+    refusal:
+      turns > range ? `${to.name} is ${turns} turns away; a caravan may be sent ${range}` : null,
+    path,
+    turns,
+  };
 }
 
 /**

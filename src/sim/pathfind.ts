@@ -1463,16 +1463,53 @@ export function findPath(
   goal: Tile,
   mover: MoveProfile = moveProfile(state, unit),
 ): Cell[] | null {
+  return searchPath(state, unit, goal, mover).path;
+}
+
+/**
+ * What one search found — the route, and, when there was none, **the proof**.
+ *
+ * `findPath` is `searchPath(…).path` and always was; the second field is the
+ * thing a search already knows and used to throw away. A search that fails has
+ * drained its heap, which means it settled every hex this mover could transit to
+ * from where it stands — so the array is the whole reachable set, and any *other*
+ * goal outside it is unreachable without asking again. See `findPathToFirst`,
+ * the one caller that spends it.
+ *
+ * `null` where the search never ran the loop at all (no start tile, the goal is
+ * where the mover stands, the goal is ground it may not stop on): those are
+ * refusals about the *goal*, and they prove nothing about the ground.
+ */
+interface PathSearch {
+  path: Cell[] | null;
+  /** Settled flags by tile index, iff the heap drained. Read by lookup only. */
+  exhausted: Uint8Array | null;
+}
+
+/**
+ * The cheapest route to one goal, with the search's own reachability proof.
+ *
+ * The body of `findPath` unchanged — every clause, every order, every tie —
+ * lifted here so that a caller with a *list* of goals may spend what a failed
+ * search learned instead of learning it again. Nothing about the route it
+ * returns depends on which of the two doors a caller came in by.
+ */
+function searchPath(
+  state: GameState,
+  unit: Unit,
+  goal: Tile,
+  mover: MoveProfile = moveProfile(state, unit),
+): PathSearch {
   const { map } = state;
   const start = getTileAt(map, unit.col, unit.row);
-  if (!start) return null;
+  if (!start) return { path: null, exhausted: null };
 
   const startIndex = tileIndex(map, start.col, start.row);
   const goalIndex = tileIndex(map, goal.col, goal.row);
-  if (startIndex === goalIndex) return null;
+  if (startIndex === goalIndex) return { path: null, exhausted: null };
 
   const goalHex = tileHex(goal);
-  if (!canStopOn(state, unit, goal, mover)) return null;
+  if (!canStopOn(state, unit, goal, mover)) return { path: null, exhausted: null };
   // The other fact about the whole search, hoisted for `mover`'s reason: who
   // holds ground against it. See `stepCost`.
   const field = zocField(state, unit.ownerId);
@@ -1519,7 +1556,10 @@ export function findPath(
     }
   }
 
-  if (settled[goalIndex] !== 1) return null;
+  // The heap drained without the goal settling: nothing outside `settled` is
+  // reachable from here at all, and that is a fact about the ground rather than
+  // about this goal. See `PathSearch.exhausted`.
+  if (settled[goalIndex] !== 1) return { path: null, exhausted: settled };
 
   const reversed: Cell[] = [];
   for (let at = goalIndex; at !== startIndex; at = cameFrom[at]!) {
@@ -1527,7 +1567,46 @@ export function findPath(
     reversed.push({ col: tile.col, row: tile.row });
   }
   reversed.reverse();
-  return reversed;
+  return { path: reversed, exhausted: null };
+}
+
+/**
+ * The cheapest route to the **first** of these goals that has one, in the
+ * caller's own order — `findPath` in a loop, minus the searches a failed search
+ * has already answered.
+ *
+ * One caller and one reason (`routeLegPath`, `trade.ts`): a leg abroad ends on
+ * the partner's *doorstep*, so the goal is a list of six hexes and the survey
+ * takes the first that answers. Where the partner is across water, all six fail
+ * — and each failure used to flood the whole continent again, six times a pair,
+ * which measured as the single dearest row of the Trade screen's reading
+ * (`docs/flags.md` item (fffff)).
+ *
+ * The saving is a proof, not a heuristic, and it is stated so that nobody has to
+ * take it on trust: a search that fails has drained its heap, therefore settled
+ * every hex this mover can transit to from where it stands, therefore a goal
+ * outside that set has no route either — and `canTransit` and `stepCost` do not
+ * read the goal, so the set is the same whichever hex was being aimed at. A goal
+ * *inside* the set is searched exactly as it would have been on its own, so the
+ * route handed back is the route the loop always handed back, hex for hex.
+ *
+ * A search that refused before the loop (the goal is where the mover stands, or
+ * ground it may not stop on) proves nothing and leaves the standing proof alone.
+ */
+export function findPathToFirst(
+  state: GameState,
+  unit: Unit,
+  goals: readonly Tile[],
+  mover: MoveProfile = moveProfile(state, unit),
+): Cell[] | null {
+  let exhausted: Uint8Array | null = null;
+  for (const goal of goals) {
+    if (exhausted !== null && exhausted[tileIndex(state.map, goal.col, goal.row)] !== 1) continue;
+    const found = searchPath(state, unit, goal, mover);
+    if (found.path !== null) return found.path;
+    if (found.exhausted !== null) exhausted = found.exhausted;
+  }
+  return null;
 }
 
 // --- reachability -----------------------------------------------------------
