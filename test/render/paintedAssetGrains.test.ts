@@ -41,6 +41,19 @@ describe('the grains are one channel', () => {
     expect(look.slice(look.indexOf('grainRequests'), look.indexOf('const mineralUniform'))).toContain('RedFormat');
   });
 
+  /**
+   * The study page has its own upload site, and it loads the same three files.
+   * It went on asking for four channels after the grains became one, which is
+   * not a crash and not a visible error — the page simply stops looking like the
+   * board it exists to study.
+   */
+  it('uploads the study page\'s three grains the same way', () => {
+    const study = source('terrainStudy/main.js');
+    for (const grain of GRAINS) expect(study, grain).toContain(`'/terrain-study/${grain}.png'`);
+    const uploads = study.match(/\.format\s*=\s*T\.RedFormat/g) ?? [];
+    expect(uploads).toHaveLength(GRAINS.length);
+  });
+
   it('samples every grain on the red channel alone', () => {
     const taps: string[] = [];
     for (const [path, text] of PAINTED_SOURCES) {

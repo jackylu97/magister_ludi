@@ -53,15 +53,22 @@ const ground=Object.fromEntries(Object.entries(colors).map(([k,c])=>[k,new T.Mes
 const waterMaterials={bank:mat('#819675'),river:mat('#8198d0'),shallows:mat('#477baa'),foam:mat('#95b1c0')};
 for(const m of Object.values(waterMaterials))m.side=T.DoubleSide;
 const clockUniform={value:0};
+// The three grains ship as one-channel PNGs and upload as RedFormat, exactly as
+// the game's own rig does (`paintedLook.js`) — every shader here samples `.r`
+// and the bump chunk reads `.x`. Without the format the study page uploads a
+// one-channel file as RGBA and reads a different texture from the game's.
 const mineralTexture = new T.TextureLoader().load('/terrain-study/mineral-grain.png');
+mineralTexture.format = T.RedFormat;
 mineralTexture.wrapS = mineralTexture.wrapT = T.RepeatWrapping;
 mineralTexture.anisotropy = Math.min(8,renderer.capabilities.getMaxAnisotropy());
 const mineralUniform={value:mineralTexture};
 const flockTexture=new T.TextureLoader().load('/terrain-study/flocking-grain.png');
+flockTexture.format=T.RedFormat;
 flockTexture.wrapS=flockTexture.wrapT=T.RepeatWrapping;
 flockTexture.anisotropy=mineralTexture.anisotropy;
 const flockUniform={value:flockTexture};
 const paintTexture=new T.TextureLoader().load('/terrain-study/gouache-grain.png');
+paintTexture.format=T.RedFormat;
 paintTexture.wrapS=paintTexture.wrapT=T.RepeatWrapping;paintTexture.anisotropy=mineralTexture.anisotropy;
 
 // World-space pigment variation preserves a continuous scale across hexes.

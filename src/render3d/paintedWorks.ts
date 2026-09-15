@@ -170,7 +170,7 @@ export class PaintedWorksLayer {
       this.deleteBatch(key); return false;
     };
     for (const [id, batch] of props) {
-      const key = `props:${id}:${shadows}`;
+      const key = `props:${id}`;
       if (reuse(key, batch.props)) continue;
       const meshes: InstancedMesh[] = [];
       for (const offset of [-period, 0, period]) {
@@ -189,7 +189,7 @@ export class PaintedWorksLayer {
     // `paintedGround.ts` is that rank, and the reason this layer's own material
     // may keep the `-1` every ground decal asks for.
     for (const [id, batch] of patches) {
-      const key = `patches:${id}:${shadows}`;
+      const key = `patches:${id}`;
       if (reuse(key, batch.geometries)) continue;
       const geometry = mergeGeometries(batch.geometries); if (!geometry) continue;
       this.merged.add(geometry);
@@ -202,8 +202,28 @@ export class PaintedWorksLayer {
       this.batches.set(key, {inputs: [...batch.geometries], meshes, geometry});
     }
     for (const key of this.batches.keys()) if (!retained.has(key)) this.deleteBatch(key);
+    // Over the reused batches too — they kept their buffers and so kept the flag
+    // they were built with. See `setShadows`.
+    this.setShadows(shadows);
     this.group.updateMatrixWorld(true);
     this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
+  }
+
+  /**
+   * Shadows on or off, over the props and patches already standing.
+   *
+   * A silhouette casts and receives; a field patch is flat pigment on the hex
+   * top and only receives. Both are mesh flags, not buffer contents, so the
+   * setting is written here rather than folded into the batch key — where it
+   * used to be, which made a toggle re-instance every animal and re-merge every
+   * field on the map. The site kit is this same layer under another name
+   * (`paintedSites.ts`), and it was the half nothing rebuilt on a toggle at all.
+   */
+  setShadows(enabled: boolean): void {
+    for (const batch of this.batches.values()) for (const mesh of batch.meshes) {
+      mesh.receiveShadow = enabled;
+      if (mesh instanceof InstancedMesh) mesh.castShadow = enabled;
+    }
   }
 
   private createRecipe(original: Tile, tile: Tile, entry: PaintedWorksEntry): Recipe {

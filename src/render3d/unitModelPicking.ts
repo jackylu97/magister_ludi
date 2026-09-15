@@ -38,6 +38,21 @@ interface InstanceBounds {
   count: number;
   geometry: BufferGeometry;
   box: Box3;
+  /**
+   * Every slot's own bounding sphere, in the batch's object space — the centre
+   * as three floats, the radius beside it.
+   *
+   * A prop batch is a whole 6×6 chunk of trees or a whole region of fields, so
+   * the batch box crossing the ray says almost nothing: the ray passes near two
+   * or three of its hundred instances. Before this, each of the hundred paid a
+   * `getMatrixAt`, a matrix multiply, a `Sphere.applyMatrix4` and — for anything
+   * the sphere admitted — a `Box3.applyMatrix4`, which transforms eight corners.
+   * The sphere is the same sphere `cast` computes first, so filtering on it here
+   * removes only work `cast` was going to throw away, and the walk is left with
+   * one transformed point per slot.
+   */
+  centres: Float32Array;
+  radii: Float32Array;
 }
 const instanceBounds = new WeakMap<InstancedMesh, InstanceBounds>();
 
@@ -134,21 +149,51 @@ function cast(mesh: Mesh, instanceId: number | undefined, accepts: (hit: Interse
   return nearest;
 }
 
-function batchBounds(mesh: InstancedMesh): Box3 {
+function boundsOf(mesh: InstancedMesh): InstanceBounds {
   let cached = instanceBounds.get(mesh);
   if (!cached || cached.version !== mesh.instanceMatrix.version || cached.count !== mesh.count || cached.geometry !== mesh.geometry) {
     if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+    if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere();
     const bounds = cached?.box ?? new Box3();
     bounds.makeEmpty();
+    const centres = new Float32Array(mesh.count * 3), radii = new Float32Array(mesh.count);
+    // A batch with no computable sphere leaves NaN here, and every comparison
+    // below is written so a NaN admits the slot rather than dropping it.
+    if (!mesh.geometry.boundingSphere) radii.fill(NaN);
     if (mesh.geometry.boundingBox) for (let i = 0; i < mesh.count; i++) {
       mesh.getMatrixAt(i, instanceMatrix);
       instanceBox.copy(mesh.geometry.boundingBox).applyMatrix4(instanceMatrix);
       bounds.union(instanceBox);
+      if (!mesh.geometry.boundingSphere) continue;
+      sphere.copy(mesh.geometry.boundingSphere).applyMatrix4(instanceMatrix);
+      centres[i * 3] = sphere.center.x; centres[i * 3 + 1] = sphere.center.y; centres[i * 3 + 2] = sphere.center.z;
+      radii[i] = sphere.radius;
     }
-    cached = { version: mesh.instanceMatrix.version, count: mesh.count, geometry: mesh.geometry, box: bounds };
+    cached = { version: mesh.instanceMatrix.version, count: mesh.count, geometry: mesh.geometry, box: bounds, centres, radii };
     instanceBounds.set(mesh, cached);
   }
-  return box.copy(cached.box).applyMatrix4(mesh.matrixWorld);
+  return cached;
+}
+
+function batchBounds(mesh: InstancedMesh): Box3 {
+  return box.copy(boundsOf(mesh).box).applyMatrix4(mesh.matrixWorld);
+}
+
+/**
+ * Could this slot's geometry be on the ray at all?
+ *
+ * The cached sphere is the object-space one, so the world sphere `cast` would
+ * build is this centre through `matrixWorld` at this radius times that matrix's
+ * largest scale. Composing the two scales can only *grow* the radius — three
+ * takes the largest axis of each matrix separately, and the product of two
+ * maxima is never below the maximum of the product — so a slot rejected here is
+ * one `cast`'s own first test would have rejected too.
+ */
+function instanceOnRay(bounds: InstanceBounds, index: number, mesh: InstancedMesh, scale: number): boolean {
+  point.set(bounds.centres[index * 3]!, bounds.centres[index * 3 + 1]!, bounds.centres[index * 3 + 2]!)
+    .applyMatrix4(mesh.matrixWorld);
+  const radius = bounds.radii[index]! * scale;
+  return !(raycaster.ray.distanceSqToPoint(point) > radius * radius);
 }
 
 /**
@@ -187,9 +232,13 @@ export function pickUnitModel(
     if (object instanceof Mesh && raycaster.layers.test(object.layers) && hasMaterial(object, occludingMaterial)) {
       object.updateWorldMatrix(true, false);
       if (object instanceof InstancedMesh) {
-        if (inRange(batchBounds(object))) for (let i = 0; i < object.count; i++) {
-          const distance = cast(object, i, worldHit);
-          if (distance !== null && distance < raycaster.far) return true;
+        if (inRange(batchBounds(object))) {
+          const bounds = boundsOf(object), scale = object.matrixWorld.getMaxScaleOnAxis();
+          for (let i = 0; i < object.count; i++) {
+            if (!instanceOnRay(bounds, i, object, scale)) continue;
+            const distance = cast(object, i, worldHit);
+            if (distance !== null && distance < raycaster.far) return true;
+          }
         }
       } else {
         const distance = cast(object, undefined, worldHit);

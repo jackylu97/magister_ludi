@@ -1,11 +1,14 @@
 /**
- * Two shipped files are *derived* from other files in the tree, and nothing at
+ * Three shipped files are *derived* from other files in the tree, and nothing at
  * runtime can tell that one of them is stale:
  *
  *   - `public/terrain-study/asset-bundle/vegetation-1.bundle` is the vegetation
  *     GLBs already expanded, baked, welded and indexed. A bundle built from an
  *     older sculpt still loads — the version matches, the header is well formed —
  *     and the board quietly draws the old tree.
+ *   - `public/terrain-study/asset-bundle/settlements-1.bundle` is the same thing
+ *     for the twenty-eight authored settlement and site sculpts, and goes stale
+ *     the same silent way.
  *   - `public/terrain-study/*-grain.png` is the red channel of the authored RGB
  *     grain in `scripts/terrain-study/grain-source/`. A grain re-authored without
  *     a rebuild changes no pixel, because the renderer is still sampling the old
@@ -40,4 +43,9 @@ describe('shipped painted assets are the ones the sources derive', () => {
     expect(reDerive('build_asset_bundle.mjs')).toContain('matches the live loader');
     expect(reDerive('build_grains.mjs')).toContain('smaller');
   }, 60_000);
+
+  // ~4 s: twenty-eight GLB parses and bakes, in a third Node process.
+  it('re-derives the settlement bundle from its own sources', () => {
+    expect(reDerive('build_settlement_bundle.mjs')).toContain('matches the live loader');
+  }, 120_000);
 });

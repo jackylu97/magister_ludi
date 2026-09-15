@@ -31,6 +31,7 @@ import {
   HemisphereLight,
   Mesh,
   type MeshBasicMaterial,
+  type Object3D,
   PCFSoftShadowMap,
   Scene,
   Vector3,
@@ -2222,6 +2223,28 @@ export class Renderer3D implements MapView {
     );
   }
 
+  /**
+   * What the pick asks to stand between the camera and a body.
+   *
+   * The whole scene used to be handed over, and `blocks` walked it. Measured on
+   * the developed fixture (41 towns, 273 pieces, `.claude/scratch/p9`), the walk
+   * visits about a thousand objects and the roots are not where its time goes:
+   * a light or an empty layer costs one `visible` test, while a single prop
+   * batch the ray crosses costs a hundred instance transforms. So this drops
+   * only what provably cannot occlude — the lights, and anything a unit's own
+   * visual owns, which `blocks` refuses anyway — and leaves the rest of the
+   * scene in. A layer added to the scene therefore keeps occluding by default,
+   * which is the way round that fails safe: an occluder wrongly dropped is a
+   * click landing on a piece behind a hill.
+   *
+   * The yields lens and the fog's marginalia are in that "rest", and they do
+   * hold opaque geometry. Taking them out would be a picking change, not a
+   * performance one, so it is not made here.
+   */
+  private occluderRoots(): Object3D[] {
+    return this.scene.children.filter(child => !(child as {isLight?: boolean}).isLight && !child.userData.unitVisual);
+  }
+
   /** Exact body triangles, including wrap copies and the current walking pose. */
   pickUnitModel(screenX: number, screenY: number, playerId: number): number | null {
     if (!this.state || !this.map) return null;
@@ -2229,7 +2252,7 @@ export class Renderer3D implements MapView {
     for (const [unitId, group] of this.walkers) group.traverse(object => {
       if (object instanceof Mesh && object.userData.unitBody) candidates.push({unitId, object});
     });
-    const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, [this.scene], {
+    const id = pickUnitBody(this.view.screenRay(screenX, screenY), candidates, this.occluderRoots(), {
       layers: this.view.camera.layers,
       acceptsOccluderHit: hit => {
         if (!this.paintedBoard) return true;
@@ -2891,9 +2914,15 @@ export class Renderer3D implements MapView {
     this.materials.invalidatePrograms();
     if (this.paintedBoard) {
       this.paintedBoard.setShadows(enabled);
-      // The works layer keys its batches on the flag, so the next sync rebuilds
-      // them — exactly what resetting this signature in `rebuildBoard` did.
-      this.paintedWorksSignature = null;
+      // Every painted layer that holds retained batches takes the flag the same
+      // way the board does: written over the meshes that are already standing.
+      // The works layer used to key its batches on it and be rebuilt by resetting
+      // its signature here — a re-instance of every animal and a re-merge of
+      // every field, to change a boolean — and the ground ribbons and the site
+      // props were never told at all, so a game begun with shadows off kept unlit
+      // roads, borders, ruins and camps after they were turned on.
+      for (const layer of [this.paintedWorks, this.paintedSites, this.paintedCities, this.paintedRoads, this.paintedTerritory])
+        layer?.setShadows(enabled);
       // A map that was never baked with shadows on has nothing in it.
       if (enabled) this.paintedLook?.invalidateShadows();
     } else if (this.map) this.rebuildBoard(this.map);

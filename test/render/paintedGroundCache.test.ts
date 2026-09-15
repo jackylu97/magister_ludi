@@ -152,6 +152,33 @@ describe('the painted ground batches', () => {
     expect([...inner.recipes.values()].filter(recipe => recipe.geometry === null).length).toBe(empty);
   });
 
+  /**
+   * The shadow setting is a flag over the ribbons that are already merged, not a
+   * fact about the merge. It used to ride in the batch's reuse test — so a
+   * toggle re-merged every roaded and bordered region on the map — and nothing
+   * asked this layer to rebuild on a toggle anyway, so ink laid while shadows
+   * were off stayed unlit when they came on.
+   */
+  it('takes the shadow toggle over the batches it already merged', () => {
+    const { state, prepared } = world();
+    const plan = planPaintedTerritory(state, prepared);
+    const lit = ground(), dark = ground();
+    lit.build(state, prepared, plan, state.visibility[0], true);
+    dark.build(state, prepared, plan, state.visibility[0], false);
+    const flags = (layer: PaintedGroundLayer): boolean[] => layer.group.children.map(mesh => (mesh as Mesh).receiveShadow);
+    expect(flags(dark)).toEqual(flags(lit).map(() => false));
+
+    const before = geometries(dark);
+    dark.setShadows(true);
+    expect(flags(dark)).toEqual(flags(lit));
+    // Not one region re-merged: the same buffers, in the same order.
+    expect(geometries(dark)).toEqual(before);
+    // And a rebuild at the new setting is still a reuse, not a re-merge.
+    dark.build(state, prepared, plan, state.visibility[0], true);
+    expect(geometries(dark)).toEqual(before);
+    expect(flags(dark)).toEqual(flags(lit));
+  });
+
   /** A new board is new triangles: every recipe and batch goes with the old one. */
   it('drops everything when the prepared map is replaced', () => {
     const { state, prepared } = world(), layer = ground();

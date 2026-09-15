@@ -106,7 +106,9 @@ describe('painted asset lifecycle', () => {
     let settled = false;
     const loading = loadSettlementAssets({register(){}}, null, {names:['city-house','city-loggia','city-spire','city-loggia']})
       .catch((error: unknown) => { settled = true; return error; });
-    await Promise.resolve(); await Promise.resolve();
+    // The prepared kit is tried first here too, so the authored GLBs are asked
+    // for several turns of the loop in rather than two microtasks.
+    await until(() => typeof finishLate === 'function');
     expect(settled).toBe(false);
     expect(request.mock.calls.map(([url]) => url)).toEqual(['city-house','city-loggia','city-spire'].map(name => `/terrain-study/settlements/${name}.glb`));
     finishLate(asset());

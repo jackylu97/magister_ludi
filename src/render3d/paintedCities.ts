@@ -201,7 +201,7 @@ export class PaintedCityLayer {
       this.deleteBatch(id); return false;
     };
     for (const { geometry, matrices, cells } of batches.values()) {
-      const id = `pieces:${geometry.id}:${shadows}`;
+      const id = `pieces:${geometry.id}`;
       if (reuse(id, matrices)) continue;
       const meshes: Mesh[] = [];
       for (const offset of [-period, 0, period]) {
@@ -213,7 +213,7 @@ export class PaintedCityLayer {
       }
       this.batches.set(id, { inputs: [...matrices], meshes });
     }
-    if (patches.length && !reuse(`fields:${shadows}`, patches)) {
+    if (patches.length && !reuse('fields', patches)) {
       const geometry = mergeGeometries(patches)!;
       geometry.computeBoundingSphere();
       const meshes: Mesh[] = [];
@@ -221,11 +221,28 @@ export class PaintedCityLayer {
         const mesh = new Mesh(geometry, this.fields); mesh.position.x = offset;
         mesh.receiveShadow = true; this.group.add(mesh); meshes.push(mesh);
       }
-      this.batches.set(`fields:${shadows}`, { inputs: [...patches], meshes, geometry });
+      this.batches.set('fields', { inputs: [...patches], meshes, geometry });
     }
     for (const id of [...this.batches.keys()]) if (!retained.has(id)) this.deleteBatch(id);
+    // Over the reused batches too. See `setShadows`.
+    this.setShadows(shadows);
     this.group.updateMatrixWorld(true);
     this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
+  }
+
+  /**
+   * Shadows on or off, over the stones already standing.
+   *
+   * A building casts and receives; a town's ground pigment only receives, and
+   * receives whether the sun is drawing shadows or not — a flat patch under the
+   * walls has nothing to gain from being cut out of the receiving set. Both are
+   * mesh flags, so the setting is written here instead of riding in the batch
+   * key, where it made a toggle re-instance every town on the map and re-merge
+   * all their fields.
+   */
+  setShadows(enabled: boolean): void {
+    for (const batch of this.batches.values()) for (const mesh of batch.meshes)
+      if (mesh instanceof InstancedMesh) mesh.castShadow = enabled;
   }
 
   private city(

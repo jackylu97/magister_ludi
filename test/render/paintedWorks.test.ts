@@ -570,4 +570,33 @@ describe('painted special improvements', () => {
     for (const disposal of borrowed) expect(disposal).not.toHaveBeenCalled();
     expect(f.layer.group.children).toHaveLength(0);
   });
+
+  /**
+   * A silhouette casts and receives, a field patch only receives, and both are
+   * flags rather than buffer contents. The setting used to be part of the batch
+   * key — so turning shadows on re-instanced every animal and re-merged every
+   * field on the map — and the site kit, which is this same layer under another
+   * name, was never rebuilt on a toggle at all and kept its unlit flags.
+   */
+  it('takes the shadow toggle over the props and patches it already batched', () => {
+    const state = world(), tile = getTileAt(state.map, 3, 2)!;
+    tile.resource = 'cattle'; tile.improvement = 'pasture';
+    const f = fixtures(state);
+    const flags = (): string[] => f.layer.group.children.map(mesh =>
+      `${(mesh as Mesh).castShadow}:${(mesh as Mesh).receiveShadow}`);
+
+    f.layer.build(state, f.prepared, state.visibility[0]!, 0, true, { suppressed: f.suppressed });
+    const lit = flags(), geometries = f.layer.group.children.map(mesh => (mesh as Mesh).geometry);
+    expect(lit.length).toBeGreaterThan(0);
+    expect(lit.some(row => row.startsWith('true'))).toBe(true);
+
+    f.layer.build(state, f.prepared, state.visibility[0]!, 0, false, { suppressed: f.suppressed });
+    expect(flags().every(row => row === 'false:false')).toBe(true);
+    // Nothing was re-instanced or re-merged to get there.
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).geometry)).toEqual(geometries);
+
+    f.layer.setShadows(true);
+    expect(flags()).toEqual(lit);
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).geometry)).toEqual(geometries);
+  });
 });

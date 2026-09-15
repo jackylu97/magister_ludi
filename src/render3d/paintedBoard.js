@@ -104,7 +104,21 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // water do not — and is kept apart from whether shadows are on at all, so
     // the switch is a flag written over a built board rather than a rebuild.
     mesh.userData.paintedCasts = !!castShadow;
-    mesh.receiveShadow = true; mesh.castShadow = shadows && !!castShadow;
+    // What it *receives* is a fact about the batch too, and `receiveShadow`
+    // compiles the shadow sampling chunks into that batch's program: every
+    // fragment it covers then pays a PCF lookup against the sun's map. The
+    // detail pigment — riverbanks, foam, shallows, oasis pools, reeds, the
+    // floodplain's fertile marks — is a thin decal lying on ground that is
+    // already sampling the same shadow directly underneath it, and turning it
+    // off moved not one pixel at either zoom (`.claude/scratch/p9`, four pairs).
+    //
+    // The water keeps it. It reads as a flat surface and the temptation is to
+    // treat it the same way, but a headland's shadow falling across a river or a
+    // lake edge is drawn *on the water* — take the flag away and the band over
+    // the blue disappears (measured: 634 pixels at play, and the picture is
+    // plainly worse). The audit called this an art call, and that is the call.
+    mesh.receiveShadow = source !== materials.mergedDetails;
+    mesh.castShadow = shadows && !!castShadow;
     const shared = source === materials.mergedWater, key = `${source.side}:${shared}`;
     if (!depthMaterials.has(key)) depthMaterials.set(key, paintedFogDepth(fog, source.side, shared));
     mesh.customDepthMaterial = depthMaterials.get(key);
