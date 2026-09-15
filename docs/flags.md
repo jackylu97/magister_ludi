@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(zzzzz) The bot's skill and an evolutionary tuner — RULED, E0 first**
+**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN (`docs/plans/bot-evolution.md`, awaiting the user's markup on its eight rulings)**
 (the user, 2026-09-15: *"I also want to make the game a lot harder, so the
 skill required to beat the game can feel more pressing. Maybe we can start
 by optimizing the ai, could you start a script to begin an evolutionary
