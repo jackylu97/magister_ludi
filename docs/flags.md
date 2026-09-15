@@ -19,6 +19,14 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(kkkkk) Joan's Voices reach four hexes — BUILT** (the user, 2026-09-15:
+*"lets update joan of arc, unit kills should convert cities within 4
+tiles"*; on the question of whether the lump grows too: *"Range 4, same
+lump"*). The kill's press keeps its fifteen pressure — one citizen turns
+per town per kill, a temple holding its share — and lands on every town
+within **four** hexes of the field instead of two: `data/leaders.json`
+`pressure.range`, the doc's row follows. No new shape.
+
 **(jjjjj) The AI turn feels slow — RULED, A1** (the user, 2026-09-15:
 *"could you do a performance pass on the ai - its starting to feel slow, i
 wonder if anything changed due to the new renderer"*). **Measure first**,

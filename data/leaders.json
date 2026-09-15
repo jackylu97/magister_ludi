@@ -537,7 +537,7 @@
                 "amount": 8,
                 "pressure": {
                   "amount": 15,
-                  "range": 2
+                  "range": 4
                 }
               }
             }

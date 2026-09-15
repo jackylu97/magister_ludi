@@ -4490,8 +4490,8 @@
     "text": "killing a unit grants +8 faith"
    },
    {
-    "raw": "killing a unit spreads your religion to every city within 2 hexes",
-    "text": "killing a unit spreads your religion to every city within 2 hexes"
+    "raw": "killing a unit spreads your religion to every city within 4 hexes",
+    "text": "killing a unit spreads your religion to every city within 4 hexes"
    },
    {
     "raw": "+4 combat strength inside cities that follow your religion",
@@ -4682,8 +4682,8 @@
     "text": "killing a unit grants +8 faith"
    },
    {
-    "raw": "killing a unit spreads your religion to every city within 2 hexes",
-    "text": "killing a unit spreads your religion to every city within 2 hexes"
+    "raw": "killing a unit spreads your religion to every city within 4 hexes",
+    "text": "killing a unit spreads your religion to every city within 4 hexes"
    }
   ],
   "theMaid": [
