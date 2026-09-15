@@ -456,6 +456,133 @@ hold in the same turn. That arena's claim was reworked into the rule (no
 declaration on a turn when the force is short) and the whole loop — declare,
 fight, sue, sign, truce — moved to a flat bench where it runs in a second.
 
+## 14. Too many wars, fought one piece at a time (2026-09-15)
+
+The user, on a game in which every empire but one had declared on them: *"they
+are just sending massive hordes of army lmao … i feel like i'm playing a wave
+defense game. We should really tune its propensity to throw units into mine and
+how aggressively it decides to declare war."* Ruled in `docs/flags.md` (nnnnn).
+
+**Measured first** (six seats, standard, seat 0 held passive through a per-seat
+tuning sheet — it never declares, never campaigns and garrisons what it builds —
+a hundred turns, seeds 1–3):
+
+- **Nobody declares on the passive seat at all.** Every declaration in three
+  games came from the warmonger, and the peaceful bars (4.5, wide 3.2) never
+  once cleared. The declaration problem is not *who* is declared on; it is how
+  many wars one seat opens: **four declarations in a single turn** on seed 1
+  (t51, on seats 1–4 at once), five over the game on seed 2, three of them still
+  running at t100.
+- **The conduct is the other half.** 159 and 174 attacks a game; 17 of them at a
+  forecast loss (every one of those a *melee* blow), and 6–10 of those into a
+  town or at a piece dug in on ground that pays it.
+
+### The declaration, as built (`src/ai/diplomacy.ts`)
+
+- **The ratio counts what could march** — `fieldedStrength(force)`, the field
+  army's strength scaled by the share of it that is spare of the garrisons every
+  town is owed. Which pieces stay home is not decided anywhere, so the share is
+  an estimate and prints as one.
+- **A second war costs more**: `war.secondWarMultiple` (2) raises the seat's own
+  bar while any war with a real empire is on. The wild is not a war.
+- **The dogpile**: a target already fought by `war.dogpileSeats` (2) empires is
+  read at the strength it *raised* (`Player.unitsBuilt`, the warscore's own
+  lifetime proxy) rather than at what is left standing — the same target, never
+  a cheaper one.
+- **The cost of the war** (`explainExpedition`): the marching strength against
+  the target town's own strength — `cityBaseStrength` + `buildingCityStat`'s
+  walls + `explainTerrainDefense`'s ground — dragged by `war.roadDragPerStep`
+  (0.05) a step of the probe's own road, refused under `war.expeditionOdds` (1).
+  Asked last, only for the candidate that cleared everything else, because it is
+  the only clause that needs the road's length.
+
+**The persona bars are untouched** (balanced 4.5, wide 3.2, warmonger 1.4, tall
+and zealot out of reach). The measurement is why: no peaceful persona ever
+cleared its bar in three games, so lowering one would be tuning against nothing
+and raising one would change nothing. What was actually declaring too much was
+one seat opening four wars in a turn, and that is the second-war multiple's.
+
+### The conduct, as built (`src/ai/bot.ts`, `src/ai/campaign.ts`)
+
+- **A blow in the field must be favourable**: `military.strikeFloor` (1) is the
+  floor the seat's appetite may not loosen past. A warmonger's 0.6 used to turn
+  *deal more than you take* into *deal more than four tenths of what you take*.
+- **Melee never walks into a wall at a loss**: `military.hardTargetMargin` (1.2)
+  refuses a melee blow on a town, or on a piece fortified on ground that pays
+  it, that would not come off better — unless it kills, captures or takes the
+  town. Bows and siege engines take no counter-blow and clear it by
+  construction, which is *ranged and siege first, or wait*. `war.siegeExchange`
+  is unchanged and still buys the other half of a push: the pieces screening the
+  town.
+- **A hurt piece in the field walks home**: `military.withdrawBelowHealth`
+  (0.35), `fallBackAndHeal` — the deferral `restAndHeal` wrote down when it
+  shipped, closed.
+- **The rally**: `musteredNear` no longer counts the pieces *holding a town* as
+  part of the column. A border town frequently stands nearer the target than the
+  muster does, so its garrison counted as gathered, the plan read itself as
+  mustered with one piece at the front, and the army arrived at the walls one
+  soldier a turn. No knob of its own — the force the column waits for is
+  `war.strikeForce`, which is already the figure the declaration cleared and the
+  levy builds for.
+
+**What the siege bench says about all four** (`aiWar.slow.test.ts`, the same
+board as §13's): the force still arrives and still takes the walls down —
+**nine** pieces within two hexes, the target from 115 hit points to 21 — and it
+arrives on **t16** rather than on t5. That is the batch in one number: the same
+siege, eleven turns later, because the column now waits for itself and the
+swordsmen wait for the bows.
+
+### The peace, as built (the addendum)
+
+The user: *"the ai should have some idea of how many units it's lost to you vs
+how many it's killed, and factor that into it's decision for peace."*
+
+The simulation already counts the pieces — `Player.unitsKilled` and
+`unitsLost`, written at the two seams in `applyCombat` where a piece leaves the
+board, the wild excluded — and counts them as **careers**. A peace decision
+wants the window since *this* war began, and nothing on the board carries one.
+`src/ai/warLedger.ts` opens the window from the bot's side, the way the refusal
+memory does (ruling (ggg)): a `WeakMap` on the live state, the career counts of
+the first look becoming that war's zero, keyed by the pair and the declaration's
+own turn. No schema, no save, no migration; a save loaded mid-war reads the
+exchange as even for a turn and goes on from there. The towns need no baseline —
+`City.capturedOn` is an absolute stamp, so a town taken on or after the
+declaration and standing in one of the two hands is a town this war moved.
+
+**If the exchange is ever wanted as a fact of the world** rather than as a
+bot's reading — a war screen showing the butcher's bill, say — the field to
+propose is a pair of counters on `WarState` (`killedA`/`killedB`, raised in
+`applyCombat` beside the lifetime ones), which is a schema decision and
+`src/sim/`'s to make.
+
+The reading is `explainStanding` (`src/ai/diplomacy.ts`): the war's cost against
+its takings, pieces and towns at the warscore's own weights
+(`war.unitLossWeight`, `war.cityWeight`), as *ours over theirs* — above one is a
+war going badly. Three clauses come off it, each printed:
+
+- **it sues** when the exchange has run past `war.peaceExchange` (1.3; the
+  warmonger asks at 2.2) **and** its army advantage no longer clears the bar it
+  would have declared at (`explainAdvantage`, the declaration's own fielded
+  ratio; the **base** bar, since the second-war multiple is about *opening* a
+  war, **capped at `war.declareThreshold`**). The cap is the one place this
+  reading is not the declaration's word for word, and the measurement is why: a
+  peaceful seat's own bar means *I declare only at an advantage nobody could
+  mistake for a fair fight*, and read as a peace bar it says *I have lost* about
+  a war it is winning two to one — the siege bench's balanced seat, eleven
+  soldiers against five, sued on turn three and the siege never happened. Both
+  clauses at once, too: either alone is a seat that sues the moment it loses a
+  skirmish;
+- **it takes a peace** offered while the exchange is against it or the advantage
+  is gone, whatever the paper is worth;
+- **it sends the envoy home** while the exchange is running its way *and* it
+  still out-arms them — a seat ahead on kills and behind on army is a seat whose
+  luck has run out.
+
+What the ledger cannot see is what the warscore could not: the counters are
+against **all** empires, so a seat in two wars charges both for every piece it
+loses. That is the three-way blur the warscore's own docblock names, narrowed to
+a window.
+
 ## Revisions
 
 *(yours — edit away)*

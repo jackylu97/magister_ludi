@@ -13,12 +13,19 @@
  *   · **A paper somebody put to me.** Answered before anything else, because a
  *     proposal is another empire waiting on this one — and because acceptance is
  *     the only decision here that can be taken away by a rival's next command.
- *   · **A war I am already in.** Sue for peace below the seat's floor, sign a
- *     paper the warscore says is fair, and press on otherwise.
- *   · **A war I could start.** Army ratio against a threshold, a town in reach,
- *     a strike force to send and a road to send it down, and the truce
- *     respected — every one of them printed. The last two are §13.1's, and the
- *     readings behind them are `src/ai/campaign.ts`', shared with the march.
+ *   · **A war I am already in.** Sue for peace below the seat's floor **or when
+ *     this war's own exchange has turned against it and the army that would
+ *     march no longer clears the bar it declares at** (§14, 2026-09-15), sign a
+ *     paper the warscore says is fair — or one the exchange says it can no
+ *     longer argue with — and press on otherwise.
+ *   · **A war I could start.** The **fielded** army ratio against a threshold, a
+ *     town in reach, a strike force to send, a road to send it down and what the
+ *     expedition would cost at the other end; no second war while one runs
+ *     unless the advantage clears a higher bar, and a target three empires are
+ *     already fighting read at the army it raised rather than the one it has
+ *     left. Every one of them printed. The force and the road are §13.1's, the
+ *     rest §14's, and the readings behind them are `src/ai/campaign.ts`',
+ *     shared with the march.
  *   · **A bargain I could offer.** One 1:1 luxury swap: a kind I hold twice for
  *     a kind I hold none of.
  *
@@ -58,11 +65,21 @@
  * in a three-way they can credit a seat for a town it took from somebody else.
  * That is the doc's "dumb logic" said out loud, and the honest fix is a register
  * in the state, which is a schema decision nobody has taken.
+ *
+ * **The peace has a second reading beside it since 2026-09-15** (§14's
+ * addendum): the *exchange* of one war since it began — what it has cost this
+ * empire against what it has cost the other, pieces and towns — which the
+ * warscore's career totals cannot say. The counts are the simulation's own
+ * (`Player.unitsKilled`/`unitsLost`); the *window* is `src/ai/warLedger.ts`',
+ * opened from this side rather than by a schema, exactly as the refusal memory
+ * is. `explainStanding` folds it, and three clauses spend it: sue, take a paper,
+ * send the envoy home.
  */
 
 import { type AiConfig } from './aiConfig';
 import { campaignRoad, strikeForce } from './campaign';
 import { readDealRefusal } from './dealMemory';
+import { readWarExchange } from './warLedger';
 import {
   type Appraisal,
   type BotCandidate,
@@ -73,7 +90,10 @@ import {
 } from './decision';
 import type { ValueContext } from './value';
 
+import { buildingCityStat, foldBuildingCityStat } from '../sim/buildingEffects';
 import { controlledResources, hasResource, resourceCopies } from '../sim/cities';
+import { cityBaseStrength } from '../sim/combat';
+import { explainTerrainDefense } from '../sim/terrainData';
 import { foldEmpireRates } from '../sim/yields/empire';
 import type { Command } from '../sim/commands';
 import { type DealProposal, type DealTerms, proposalsFor, termsAreEmpty } from '../sim/deals';
@@ -181,6 +201,63 @@ function soldiersLost(state: GameState, player: Player): number {
   return Math.max(0, raised - standing);
 }
 
+/**
+ * **The strength that could actually march** — the fielded reading of an army
+ * (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"the ratio counts fielded
+ * strength — pieces spare of the garrisons every town is owed — never the whole
+ * roster"*).
+ *
+ * `armyStrength` is every combatant this empire owns, and it was the whole of
+ * the declaration's numerator: an empire of five towns each holding a spearman
+ * read as five spearmen of advantage and had none to send. The force's own
+ * reading (`strikeForce`) already knows how many pieces are spare of the
+ * garrisons; what this adds is the strength those pieces are worth.
+ *
+ * **Which** pieces stay home is not decided anywhere — a garrison is a count,
+ * not a roster — so the strength that marches is the field army's own scaled by
+ * the share of it that is spare. That is an estimate and is printed as one; the
+ * alternative, picking the weakest `owed` pieces to leave behind, would be this
+ * file inventing a doctrine the march does not follow.
+ */
+export function fieldedStrength(force: { soldiers: Unit[]; spare: number }): number {
+  let strength = 0;
+  for (const unit of force.soldiers) strength += unitDef(unit.type).combatStrength;
+  if (force.soldiers.length === 0) return 0;
+  return (strength * force.spare) / force.soldiers.length;
+}
+
+/**
+ * **What this empire raised**, in strength — the dogpile's reading of a target.
+ *
+ * `soldiersLost`' twin from the other end: that one counts the pieces
+ * `Player.unitsBuilt` says were raised and are no longer standing, this one
+ * prices *everything* the ladder ever counted. It is a lifetime proxy with a
+ * lifetime proxy's faults (it never forgets a piece the creditors took, and it
+ * misses the free ones an empire opened with), and it is used in exactly one
+ * place: a target three empires are already fighting is not cheap because its
+ * army is thin — it is the same target it was before they started, and this is
+ * the only figure on the board that remembers what that was.
+ */
+function raisedStrength(player: Player): number {
+  let strength = 0;
+  for (const [type, count] of Object.entries(player.unitsBuilt)) {
+    const def = unitDef(type as UnitTypeId);
+    if (!isCombatant(def)) continue;
+    strength += def.combatStrength * (count ?? 0);
+  }
+  return strength;
+}
+
+/** How many real empires are already at war with this one. The wild does not count. */
+function warsAgainst(state: GameState, playerId: number): number {
+  let count = 0;
+  for (const other of realPlayers(state)) {
+    if (other.id === playerId || other.eliminated) continue;
+    if (warBetween(state, playerId, other.id) !== undefined) count += 1;
+  }
+  return count;
+}
+
 /** Towns in this empire's hands that were taken by force. See the docblock. */
 function townsTaken(state: GameState, playerId: number): number {
   let count = 0;
@@ -238,6 +315,123 @@ export function explainWarScore(
     },
     { label: `theirs at ${theirs} × ${strengthWeight}`, value: theirs * strengthWeight, op: 'sub' },
   ]);
+}
+
+// --- how this war is actually going -----------------------------------------
+
+/**
+ * **The army advantage, as the declaration reads it** — the fielded ratio with
+ * this seat's appetite, against the bar it would have declared at.
+ *
+ * Lifted out of `explainDeclaration` because the peace now asks the same
+ * question from the other end (the 2026-09-15 addendum: a seat sues when the
+ * exchange has run against it *and its advantage no longer clears the
+ * declaration bar*), and a bar restated is a bar that drifts — `owedForPeace`'s
+ * own argument, one register over.
+ *
+ * The **base** bar rather than the second-war one: `war.secondWarMultiple` asks
+ * what it takes to *open* another war, and a seat already in this one is not
+ * opening anything. Reading the raised bar here would have every seat at war
+ * with two empires suing to both of them on the same turn.
+ *
+ * And the bar is **capped at `war.declareThreshold`**, which is the one place
+ * this reading is not the declaration's word for word. A peaceful seat's own bar
+ * says *I declare only at an advantage nobody could mistake for a fair fight*
+ * (4.5, and the tall and the zealot put it out of reach entirely); read as a
+ * *peace* bar it would say *I have lost this war* about every war a peaceful
+ * empire is winning two to one, and the measurement said so out loud — the siege
+ * bench's balanced seat, eleven soldiers against five, sued on turn three. The
+ * warlike bar is the honest line for "is there still an army here": it is the
+ * advantage at which somebody would have started this.
+ */
+function explainAdvantage(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  ai: AiConfig,
+): { score: number; bar: number; clears: boolean; term: ValueTerm } {
+  const warlike = ai.military.aggression > 0;
+  const own = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
+  const bar = Math.min(own, ai.war.declareThreshold);
+  const appetite = 1 + Math.max(0, ai.military.aggression);
+  const mine = fieldedStrength(strikeForce(state, player, ai));
+  const theirs = armyStrength(state, enemy.id);
+  const score = (mine / Math.max(1, theirs)) * appetite;
+  return {
+    score,
+    bar,
+    clears: score >= bar,
+    term: {
+      label:
+        `${round1(mine)} of ours could march against their ${round1(theirs)}, which with this seat's ` +
+        `appetite reads ${round1(score)} against the ${round1(bar)} it would have declared at`,
+      value: 0,
+    },
+  };
+}
+
+/**
+ * **What this war has cost against what it has taken**, folded into one ratio —
+ * the addendum's own sentence (*"how many units it's lost to you vs how many
+ * it's killed"*), with the towns each way beside the pieces.
+ *
+ * The counts are `warLedger.ts`' (see its docblock for the window and what it
+ * cannot see); the **weights** are the warscore's own — `war.unitLossWeight` a
+ * piece and `war.cityWeight` a town — so a seat does not hold two opinions about
+ * what a town is worth against a spearman. The ratio is *what this war has cost
+ * us* over *what it has cost them*, so above one is a war going badly and below
+ * one is a war going well, which is the direction `war.peaceExchange` is written
+ * in.
+ */
+interface WarStanding {
+  /** The ratio above: our cost over theirs. Above one is losing. */
+  ratio: number;
+  /** The exchange has run against this seat past `war.peaceExchange`. */
+  bleeding: boolean;
+  /** This seat is taking more than it is giving — the reason it declines a peace. */
+  ahead: boolean;
+  /** Its army advantage no longer clears the bar it would have declared at. */
+  outArmed: boolean;
+  /** The lines, for the feed. */
+  terms: ValueTerm[];
+  /** The sentence a decision prints. */
+  note: string;
+}
+
+function explainStanding(
+  state: GameState,
+  player: Player,
+  enemy: Player,
+  ai: AiConfig,
+): WarStanding {
+  const advantage = explainAdvantage(state, player, enemy, ai);
+  const exchange = readWarExchange(state, player, enemy);
+  const ours =
+    exchange === null ? 0 : exchange.lost * ai.war.unitLossWeight + exchange.given * ai.war.cityWeight;
+  const theirs =
+    exchange === null ? 0 : exchange.killed * ai.war.unitLossWeight + exchange.won * ai.war.cityWeight;
+  const ratio = ours / Math.max(1, theirs);
+  const note =
+    exchange === null
+      ? 'no war'
+      : `${exchange.lost} of ours have fallen and ${exchange.killed} of theirs since turn ${exchange.since}` +
+        (exchange.won + exchange.given > 0
+          ? `, with ${exchange.won} town${exchange.won === 1 ? '' : 's'} taken and ${exchange.given} lost`
+          : '');
+  return {
+    ratio,
+    bleeding: ours > 0 && ratio >= ai.war.peaceExchange,
+    ahead: theirs > ours,
+    outArmed: !advantage.clears,
+    note,
+    terms: [
+      {
+        label: `${note} — the exchange reads ${round1(ratio)} against the ${round1(ai.war.peaceExchange)} this seat sues at`,
+        value: 0,
+      },
+      advantage.term,
+    ],
+  };
 }
 
 // --- what a paper is worth --------------------------------------------------
@@ -522,7 +716,7 @@ function peaceDecision(
     if (theirs) {
       // Their flag is up. What is on the table is *their* paper (or nothing at
       // all, which is a white peace), read from this seat's side.
-      const { value, fair, winning, refusal, because } = readPeaceOffer(
+      const { value, fair, winning, refusal, because, standing: how } = readPeaceOffer(
         state,
         player,
         enemy,
@@ -542,7 +736,7 @@ function peaceDecision(
           label: `${label} — sign what is on the table`,
           score: signing.total,
           chosen: true,
-          terms: signing.terms,
+          terms: [...signing.terms, ...how.terms],
         });
         taken = {
           enemy,
@@ -558,12 +752,23 @@ function peaceDecision(
         label: `${label} — their offer stands, and this seat will not sign`,
         score: score.total,
         chosen: false,
-        terms: [...score.terms, { label: because, value: 0 }],
+        terms: [...score.terms, ...how.terms, { label: because, value: 0 }],
       });
       continue;
     }
 
-    if (score.total < ai.war.sueFloor) {
+    // **Two reasons to put peace on the table**, and they are different
+    // sentences (the 2026-09-15 addendum). The warscore is a comparison of
+    // standing: their army against ours, their conquests against ours, as
+    // careers. The **exchange** is what this war has cost since it started, and
+    // a seat can be ahead on standing and still be feeding pieces into a line it
+    // cannot break — which is exactly the war the user was on the other side of.
+    // So a seat also sues when the exchange has run against it *and* its army no
+    // longer clears the bar it would have declared at. Both clauses at once,
+    // because either alone is a seat that sues the moment it loses a skirmish.
+    const standing = explainStanding(state, player, enemy, ai);
+    const bleeding = standing.bleeding && standing.outArmed;
+    if (score.total < ai.war.sueFloor || bleeding) {
       // Losing badly enough to bring coin: the tribute is the score, priced.
       const tribute =
         score.total < ai.war.tributeFloor ? Math.min(player.gold, Math.floor(owed)) : 0;
@@ -577,6 +782,7 @@ function peaceDecision(
           chosen: true,
           terms: [
             ...score.terms,
+            ...standing.terms,
             {
               label:
                 tribute > 0
@@ -594,10 +800,13 @@ function peaceDecision(
             targetId: enemy.id,
             ...(offered === undefined ? {} : { give: offered.give, take: offered.take }),
           },
-          summary:
-            `Sues the ${enemy.name} for peace: the war reads ${round1(score.total)} for this empire, under the ` +
-            `${ai.war.sueFloor} it sues at` +
-            (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
+          summary: bleeding
+            ? `Sues the ${enemy.name} for peace: ${standing.note}, and the army that would march no longer ` +
+              `clears the bar this seat declares at` +
+              (tribute > 0 ? `, so ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.')
+            : `Sues the ${enemy.name} for peace: the war reads ${round1(score.total)} for this empire, under the ` +
+              `${ai.war.sueFloor} it sues at` +
+              (tribute > 0 ? `, and ${tribute} coin goes with the paper.` : ' — a white peace, nothing offered.'),
         };
         continue;
       }
@@ -611,6 +820,7 @@ function peaceDecision(
       chosen: false,
       terms: [
         ...score.terms,
+        ...standing.terms,
         { label: `over the ${ai.war.sueFloor} this seat sues at`, value: 0 },
       ],
     });
@@ -651,10 +861,19 @@ function owedForPeace(score: Appraisal, ai: AiConfig): number {
 interface PeaceOfferReading {
   /** The paper on the table, from this seat's side. A white peace is nought. */
   value: Appraisal;
-  /** The paper is no worse than the score says this empire owes. */
+  /**
+   * The paper is no worse than the score says this empire owes — **or** the war
+   * itself has turned against this seat, which is a price of its own (the
+   * 2026-09-15 addendum).
+   */
   fair: boolean;
-  /** The war reads over the ceiling this seat presses on at. */
+  /**
+   * This seat presses on: the war reads over its ceiling, or the exchange is
+   * running its way and it still out-arms them.
+   */
   winning: boolean;
+  /** What the war has cost against what it has taken. See `explainStanding`. */
+  standing: WarStanding;
   /** The rules' own refusal of a bare signature, or `null`. */
   refusal: string | null;
   /** Why this seat will not sign, in its own words — the term and the sentence. */
@@ -682,18 +901,45 @@ function readPeaceOffer(
           ctx,
         ).appraisal;
   const fair = value.total >= -owed;
-  const winning = score.total > ai.war.acceptCeiling;
   const refusal = proposePeaceError(state, player.id, enemy.id);
+  // **What this war has actually cost** (the 2026-09-15 addendum). The warscore
+  // is a comparison of standing and says nothing about the price of the last
+  // twenty turns; the exchange does, and it decides in both directions:
+  //
+  //   · a seat **takes** a peace it would otherwise have haggled over when the
+  //     exchange has run against it or its advantage is gone — *"accepts an
+  //     offered peace when the exchange is against it or the advantage is
+  //     gone"*;
+  //   · and it **holds** one it would otherwise have signed while it is winning
+  //     the exchange and still out-arms them — *"declines peace while it is
+  //     winning the exchange"*. Still out-arms them, because a seat that is
+  //     ahead on kills and behind on army is a seat whose luck has run out.
+  //
+  // **A town is never bought with a bad month.** The exchange loosens what this
+  // seat will *pay* to stop, and a paper asking for a town of ours is not a
+  // price — it is the war's whole object, and a rule that handed one over for a
+  // fortnight of bad luck would be a rule a player could farm: declare, take
+  // three pieces, ask for the capital. So the loosening is scoped to papers that
+  // move coin and seams; a paper asking for towns still has to be fair on the
+  // warscore's own terms, which is where it was before this ruling.
+  const standing = explainStanding(state, player, enemy, ai);
+  const asksTowns = paper !== null && (sideOf(paper, player.id, enemy.id).cities ?? []).length > 0;
+  const holds = standing.ahead && !standing.outArmed;
+  const yields = (standing.bleeding || standing.outArmed) && !asksTowns;
+  const winning = holds || (!yields && score.total > ai.war.acceptCeiling);
   return {
     value,
-    fair,
+    fair: fair || yields,
     winning,
+    standing,
     refusal,
-    because: winning
-      ? `the war reads over the ${ai.war.acceptCeiling} this seat presses on at`
-      : refusal !== null
-        ? `the rules refuse it: ${refusal}`
-        : `the paper is worth ${round1(value.total)}, under the ${round1(-owed)} the score says it owes`,
+    because: holds
+      ? `this war is going its way — ${standing.note}`
+      : winning
+        ? `the war reads over the ${ai.war.acceptCeiling} this seat presses on at`
+        : refusal !== null
+          ? `the rules refuse it: ${refusal}`
+          : `the paper is worth ${round1(value.total)}, under the ${round1(-owed)} the score says it owes`,
   };
 }
 
@@ -740,7 +986,12 @@ export function answerPeaceOffer(
         `under the ${ctx.ai.war.acceptCeiling} it would press on at, and the paper is worth ` +
         `${round1(reading.value.total)}.`,
       candidates: [
-        { label: `${label} — sign what is on the table`, score: signing.total, chosen: true, terms: signing.terms },
+        {
+          label: `${label} — sign what is on the table`,
+          score: signing.total,
+          chosen: true,
+          terms: [...signing.terms, ...reading.standing.terms],
+        },
       ],
     };
   }
@@ -762,7 +1013,7 @@ export function answerPeaceOffer(
         label: `${label} — send the envoy home`,
         score: score.total,
         chosen: true,
-        terms: [...score.terms, { label: reading.because, value: 0 }],
+        terms: [...score.terms, ...reading.standing.terms, { label: reading.because, value: 0 }],
       },
     ],
   };
@@ -1119,12 +1370,21 @@ export function explainDeclaration(
 } {
   const ai = ctx.ai;
   const warlike = ai.military.aggression > 0;
-  const threshold = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
+  const bar = warlike ? ai.war.declareThreshold : ai.war.declareThresholdPeaceful;
+  // **The second war is asked for a different advantage** (the 2026-09-15
+  // ruling). A war already on is an army already pointed somewhere, and the
+  // ratio cannot see it: the same soldiers cleared the bar against the first
+  // neighbour and clear it again against the second. The multiple is a fact
+  // about this empire rather than about the target, so it is read once here.
+  const fighting = warsAgainst(state, player.id);
+  const threshold = fighting > 0 ? bar * Math.max(1, ai.war.secondWarMultiple) : bar;
   const appetite = 1 + Math.max(0, ai.military.aggression);
-  const mine = armyStrength(state, player.id);
   // One reading for the whole table: what this empire could send is a fact about
   // *this* empire, not about which neighbour it is looking at.
   const force = strikeForce(state, player, ai);
+  // **The ratio counts what could march**, not the roster: an empire whose army
+  // is all garrison has no advantage over anybody, whatever the roster says.
+  const mine = fieldedStrength(force);
   const wanted = Math.max(1, ai.war.strikeForce);
   const forceTerm: ValueTerm = {
     label:
@@ -1146,10 +1406,21 @@ export function explainDeclaration(
       rows.push({ label, score: 0, chosen: false, terms: [], rejected: refusal });
       continue;
     }
-    const theirs = armyStrength(state, enemy.id);
+    const standing = armyStrength(state, enemy.id);
+    // **The dogpile** (the same ruling): a target two empires are already
+    // fighting is not a cheaper target, it is the same target — so its strength
+    // reads as what it raised rather than as what is left standing, and its
+    // other wars buy this seat nothing.
+    const piled = warsAgainst(state, enemy.id) >= Math.max(1, ai.war.dogpileSeats);
+    const theirs = piled ? Math.max(standing, raisedStrength(enemy)) : standing;
     const ratio = mine / Math.max(1, theirs);
     const appraisal = appraise([
-      { label: `our ${mine} strength against their ${theirs}`, value: ratio },
+      {
+        label:
+          `our ${round1(mine)} marching strength against their ${round1(theirs)}` +
+          (piled ? ' — the army they raised, since two empires are already at them' : ''),
+        value: ratio,
+      },
       { label: `× ${round1(appetite)} — this seat's appetite for a fight`, value: appetite, op: 'mul' },
     ]);
     const reach = nearestTownInReach(state, player, enemy, ai);
@@ -1162,7 +1433,13 @@ export function explainDeclaration(
             : `${reach.city.name} stands ${reach.distance} hexes from one of our pieces`,
         value: 0,
       },
-      { label: `(the bar is ${threshold})`, value: 0 },
+      {
+        label:
+          fighting > 0
+            ? `(the bar is ${round1(threshold)} — ${round1(bar)} raised for the war already on)`
+            : `(the bar is ${round1(threshold)})`,
+        value: 0,
+      },
       forceTerm,
     ];
     if (reach === null || appraisal.total < threshold || !hasForce) {
@@ -1202,12 +1479,79 @@ export function explainDeclaration(
         value: 0,
       },
     ];
+    // **What the war would cost** (the 2026-09-15 ruling), asked last because it
+    // is the only clause that needs the road's own length: the force that would
+    // walk, weighed against the town it would walk at and dragged by the walk.
+    const cost = explainExpedition(state, mine, candidate.target, probe.steps, ai);
+    rows[candidate.row]!.terms = [...rows[candidate.row]!.terms, cost.term];
+    if (!cost.worth) continue;
     best = candidate;
     road = probe;
     break;
   }
 
   return { rows, best, road, force, threshold };
+}
+
+/**
+ * **What the war would cost, in one printed line** — the declaration's fifth
+ * clause (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"a cost term — the nearest
+ * target town's own strength and the road's length against the force that would
+ * walk it"*).
+ *
+ * The ratio is an army against an army, and a town is neither. A seat with twice
+ * a neighbour's soldiers and nothing that can get through a palisade declares a
+ * war it cannot finish, marches twenty hexes and feeds the walls one piece at a
+ * time — which is the half of the user's complaint the ratio could never answer.
+ *
+ * Three readings, and every one of them is the simulation's own:
+ *
+ *   · **the town's own strength** — `cityBaseStrength` (the best piece its owner
+ *     could raise, floored), the walls its buildings carry (`buildingCityStat`,
+ *     the one place a building's non-yield facts are read) and what the ground
+ *     under it is worth to whoever stands in the gate (`explainTerrainDefense`).
+ *     The last is the garrison's line rather than the town's — the walls *are*
+ *     the terrain for a blow on the city itself — and it is in here because the
+ *     force has to go through both;
+ *   · **the road**, as a drag of `war.roadDragPerStep` a step on the force that
+ *     would walk it: a town four steps off and a town twenty steps off are not
+ *     the same war, and the length of the probe's own road is the only thing
+ *     this bot knows about the difference;
+ *   · **the force**, which is `fieldedStrength` — what is spare of the
+ *     garrisons, and nothing else.
+ *
+ * Under `war.expeditionOdds` the war is refused, and the row keeps the sentence
+ * that refused it: a candidate removed silently is exactly what
+ * `explainDeclaration` exists not to produce.
+ */
+function explainExpedition(
+  state: GameState,
+  marching: number,
+  target: City,
+  steps: number,
+  ai: AiConfig,
+): { term: ValueTerm; worth: boolean } {
+  const walls = foldBuildingCityStat(buildingCityStat(target, 'defense'));
+  const tile = getTileAt(state.map, target.col, target.row);
+  let ground = 0;
+  if (tile) {
+    for (const line of explainTerrainDefense(tile.terrain, tile.feature, tile.hills)) {
+      ground += line.amount;
+    }
+  }
+  const town = Math.max(1, cityBaseStrength(state, target) + walls + ground);
+  const drag = 1 + Math.max(0, steps) * Math.max(0, ai.war.roadDragPerStep);
+  const odds = marching / (town * drag);
+  const bar = ai.war.expeditionOdds;
+  return {
+    worth: odds >= bar,
+    term: {
+      label:
+        `${round1(marching)} marching against ${target.name}'s ${round1(town)} of walls and ground, ` +
+        `over ${steps} steps of road: odds of ${round1(odds)} against the ${round1(bar)} an expedition wants`,
+      value: 0,
+    },
+  };
 }
 
 /** A piece as the feed names it: its row's name and where it stands. */

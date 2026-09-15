@@ -648,14 +648,18 @@ describe('the warmonger’s one capability', () => {
     createUnit(game.state, 0, 'warrior', city.col, city.row);
     const free = createUnit(game.state, 0, 'warrior', city.col + 1, city.row);
     const rival = createUnit(game.state, 1, 'warrior', city.col + 2, city.row);
-    const order = commandFor(game, 0, free.id);
+    const order = decisionFor(game, 0, free.id);
     expect(order).not.toBeNull();
-    // Either it swings at the piece next door or it walks at it; what it must
-    // not do is stand down beside a rival it is hunting.
-    if (order!.type === 'attack' || order!.type === 'moveUnit') {
-      expect(order!.target).toEqual({ col: rival.col, row: rival.row });
-    } else {
-      expect(['attack', 'moveUnit']).toContain(order!.type);
+    // It swings at the piece next door, walks at it, or joins the column that
+    // is going to take a town; what it must not do is stand down beside a rival
+    // it is hunting. **The third arm is the 2026-09-15 ruling** (`docs/flags.md`
+    // (nnnnn)): the blow in front of this piece deals less than it takes, and a
+    // seat's appetite may no longer buy a losing trade — so the honest answer to
+    // an unfavourable exchange is to march with the army rather than to feed it.
+    expect(['attack', 'moveUnit']).toContain(order!.command.type);
+    const target = (order!.command as { target?: { col: number; row: number } }).target;
+    if (target?.col !== rival.col || target.row !== rival.row) {
+      expect(order!.summary).toMatch(/the campaign on |Marches on the camp at/);
     }
   });
 });

@@ -449,6 +449,59 @@ export interface AiConfig {
      */
     rangedDeferral: number;
     /**
+     * **The least a blow in the field must deal for every point it takes**
+     * (ruled 2026-09-15, `docs/flags.md` (nnnnn): *"we should really tune its
+     * propensity to throw units into mine"*).
+     *
+     * `military.aggression` loosens the exchange a piece will accept, and with
+     * nothing under it a warmonger's appetite of 0.6 bought a blow that dealt
+     * four and took ten. This is the floor that appetite may not loosen past: at
+     * 1 the seat's temperament can no longer buy a losing trade in the open
+     * field, which is the ruling's *"strike only when the forecast is
+     * favourable"*. Under 1 it is a seat that will trade down to break a line;
+     * over 1 it is one that wants a bargain before it swings.
+     *
+     * It is a floor rather than a replacement so the appetite still means
+     * something *above* the floor — and so a persona that should trade down can
+     * say so in one number instead of in a second code path. The walls are not
+     * the field: a push at a town reads `war.siegeExchange` instead, and the
+     * clause below is what keeps that from becoming a licence.
+     */
+    strikeFloor: number;
+    /**
+     * **The least a melee blow must deal per point taken against a town, or
+     * against a dug-in piece on ground that pays it** (the same ruling: *"a
+     * fortified piece on a hill or in a town is not attacked by melee at a
+     * loss — ranged and siege first, or wait"*).
+     *
+     * The siege appetite exists because a stack *should* lose hit points to a
+     * wall; what it must not do is buy the one blow nobody should make — a
+     * swordsman walking at a fortified spearman on a hill. Ranged and siege
+     * pieces take no counter-blow, so they clear this by construction and go
+     * first; a melee piece waits for them. A blow that kills, captures or takes
+     * the town is decisive and is never held back by it.
+     *
+     * **Over one**, and deliberately: an even trade against a wall is not even.
+     * The town mends every turn and the piece mends only if it stops fighting,
+     * so a blow that deals exactly what it takes is a piece spent for nothing.
+     *
+     * At 0 the clause is off and the bot plays exactly as it did before the
+     * ruling, which is what makes it an arena A/B rather than a rule.
+     */
+    hardTargetMargin: number;
+    /**
+     * **A hurt piece in the field walks home rather than pressing** — the share
+     * of its own hit points below which it withdraws (the same ruling).
+     *
+     * `healBelowHealth` is the *resting* threshold and answers a piece already
+     * standing on ground this empire owns; this one is the deeper cut the old
+     * arm deliberately left open ("a piece hurt deep in a rival's fields does
+     * not retreat — it goes on fighting"), and it is the half the user watched
+     * being thrown away one piece at a time. Lower than the rest threshold on
+     * purpose: a piece pulls out of a fight later than it declines to start one.
+     */
+    withdrawBelowHealth: number;
+    /**
      * Hexes a bowman looks for a sighted hostile in before it starts caring
      * where it stands. Small: this is a *skirmish* rule, not a doctrine.
      */
@@ -483,6 +536,60 @@ export interface AiConfig {
     declareThresholdPeaceful: number;
     /** A target town has to stand this near one of this seat's pieces. */
     reachRadius: number;
+    /**
+     * **What the bar is multiplied by while a war is already on** (ruled
+     * 2026-09-15, `docs/flags.md` (nnnnn): *"no second war while one runs unless
+     * the advantage is overwhelming"*).
+     *
+     * An empire fighting somebody has its army pointed at somebody, and the
+     * ratio cannot see that: the same soldiers that cleared the bar against the
+     * first neighbour clear it again against the second, and the seat ends the
+     * decade at war with everybody and winning nowhere. So the second war is
+     * asked for a different advantage rather than the same one, and it is a
+     * multiple rather than a bar of its own so a persona that raises its
+     * threshold raises both together.
+     *
+     * The wild is not a war for this purpose — `atWarWithAnybody` counts real
+     * empires, which is `realPlayers`' register.
+     */
+    secondWarMultiple: number;
+    /**
+     * **How many wars make a target a dogpile** (the same ruling: *"a target
+     * already at war with two or more seats is not a cheaper target, it is the
+     * same target"*).
+     *
+     * A neighbour being fought by two empires has half the army it raised, and
+     * the ratio reads the difference as an invitation. At this many wars or more
+     * the target's strength is read as what it **raised** rather than as what is
+     * still standing — the same lifetime proxy the warscore's losses line uses,
+     * and for the same reason: the board carries no register of what an empire
+     * had before somebody started knocking it down.
+     */
+    dogpileSeats: number;
+    /**
+     * **The odds the expedition must have against the town it is marching on**
+     * (the same ruling's cost term).
+     *
+     * The ratio is an army against an army and says nothing about the *walls*:
+     * a seat with twice the neighbour's soldiers and no way through a palisade
+     * declares a war it cannot finish. So the force that would actually walk —
+     * the strength spare of this empire's own garrisons — is weighed against the
+     * target town's own strength, dragged by the length of the road it would
+     * walk (`roadDragPerStep`), and the war is refused under this figure. At 1
+     * the force must be worth the walls; under 1 it may gamble.
+     */
+    expeditionOdds: number;
+    /**
+     * **What one step of road costs the expedition**, as a share of its strength
+     * (the same cost term).
+     *
+     * A town four steps away and a town twenty steps away are not the same war,
+     * and the only thing this bot knows about the difference is the length of
+     * the road its own probe walked (`campaignRoad`). A fraction a step rather
+     * than a cut-off, so a long march is dearer by degrees and a tuner can make
+     * distance matter more without inventing a second radius.
+     */
+    roadDragPerStep: number;
     /**
      * **The force a declaration needs** (`docs/war-diplomacy.md` §13.1): combat
      * pieces *beyond* the garrisons every town of this empire is owed, at least
@@ -546,6 +653,27 @@ export interface AiConfig {
     acceptCeiling: number;
     /** Warscore below which a suing seat offers **tribute** rather than a white peace. */
     tributeFloor: number;
+    /**
+     * **What this war has cost against what it has taken, at which a seat asks
+     * to stop** (ruled 2026-09-15, `docs/flags.md` (nnnnn), the addendum: *"the
+     * ai should have some idea of how many units it's lost to you vs how many
+     * it's killed, and factor that into it's decision for peace"*).
+     *
+     * The warscore is a comparison of *standing* — their army against ours,
+     * their conquests against ours, as careers — and a seat can be ahead on
+     * standing while feeding pieces into a line it cannot break, which is
+     * exactly the war the user was on the other side of. The **exchange** is the
+     * price of this war since it began (`src/ai/warLedger.ts`), pieces and towns
+     * at the warscore's own weights, read as *ours over theirs*: above one is a
+     * war going badly. At 1.3 a seat asks for peace once this war has cost it
+     * half again what it has cost them — **and** its army no longer clears the
+     * bar it would have declared at, because either clause alone is a seat that
+     * sues the moment it loses a skirmish.
+     *
+     * A persona may ask later: the warmonger's is high, which is the same seat
+     * that keeps fighting while it is ahead (`acceptCeiling`).
+     */
+    peaceExchange: number;
     /** Coin a point of warscore is worth, both as tribute offered and as tribute accepted. */
     goldPerScorePoint: number;
     /** What one soldier raised and no longer standing is worth in the warscore. */

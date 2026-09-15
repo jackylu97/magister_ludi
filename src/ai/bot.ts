@@ -6539,6 +6539,21 @@ function soldierCommand(state: GameState, player: Player, unit: Unit): UnitChoic
   const ai = aiFor(player);
   const resting = restAndHeal(state, player, unit);
   if (resting !== null) return resting;
+  // **And the other half of it** (2026-09-15): the piece that is too hurt to be
+  // swinging and is standing in somebody else's fields walks home rather than
+  // pressing. Beside the rest arm rather than below the blows for the rest arm's
+  // reason — a piece that should be mending is not a piece that should be
+  // choosing between a wall and a camp — and it makes the same exception, so the
+  // blow arms below are still reached in exactly the cases worth being hurt for.
+  const pullOut = fallBackAndHeal(state, player, unit);
+  if (pullOut !== null) {
+    return {
+      command: { type: 'moveUnit', playerId: player.id, unitId: unit.id, target: pullOut.at },
+      summary: pullOut.summary,
+      candidates: pullOut.candidates,
+      focus: pullOut.at,
+    };
+  }
   // **The campaign, re-read from the board** (§13.3). Asked here rather than
   // beside the march below because the *blow* needs it too: a piece at the walls
   // of the town its army is pushing on weighs its exchange at the siege appetite
@@ -6690,6 +6705,26 @@ interface UnitTarget {
  * `(1 − aggression)` of what it takes, which is a seat that is willing to trade
  * down to break a line.
  *
+ * **Under all of that sits a floor** (ruled 2026-09-15, `docs/flags.md`
+ * (nnnnn)): `military.strikeFloor` is the least a blow may deal per point it
+ * takes, and the appetite cannot loosen past it. The user watched five empires
+ * feed a defended line one piece a turn, and the arithmetic that let them was
+ * exactly this: a warmonger's 0.6 turned "deal more than you take" into "deal
+ * more than four tenths of what you take", which is a piece thrown away with
+ * the seat's own approval printed beside it.
+ *
+ * **And one blow is refused outright**: a *melee* piece at a town, or at a
+ * fortified piece standing on ground that pays it, that would come off worse
+ * (`military.hardTargetMargin`). Bows and siege engines take no counter-blow, so
+ * they clear it by construction and go first — which is the ruling's *"ranged
+ * and siege first, or wait"* — and a decisive blow is never held back by it.
+ * This one outranks the siege appetite, deliberately: `war.siegeExchange` exists
+ * so a stack will *lose* hit points to a wall, and without a clause over it that
+ * became the licence a swordsman used to charge a palisade. What the siege
+ * appetite still buys is the other half of a push — the pieces standing *beside*
+ * the town, which are exactly what an army trades down to break — and a tuner
+ * who wants the old behaviour back sets `hardTargetMargin` to nought.
+ *
  * **`siege` replaces that appetite for the hexes a push is about** (§13.3): the
  * town the army is pushing on and everything standing beside it. A wall is a
  * thing an army loses hit points to on purpose, so a stack reading its seat's
@@ -6779,10 +6814,45 @@ function favourableBlow(
       chosen: false,
       terms,
     };
-    // The bar the exchange has to clear, loosened by the seat's appetite. At
-    // appetite 0 this is exactly `taken`, which is the rule the peaceful bot has
-    // always used.
-    const bar = preview.damageToAttacker * (1 - appetite);
+    // **The bar the exchange has to clear**, loosened by the seat's appetite and
+    // **floored** by `military.strikeFloor` in the field (ruled 2026-09-15):
+    // appetite may buy a keener seat, never a losing trade. At a floor of 1 the
+    // sentence is the ruling's own — strike when the forecast is favourable, and
+    // not otherwise — and everything the appetite still does happens above it.
+    //
+    // The floor is the **field's** and not the push's: the pieces screening a
+    // town are what an army trades down to break, and `war.siegeExchange` is the
+    // number that says how far. What a push may not do is walk melee into the
+    // walls themselves, which is the clause below rather than this bar.
+    const floor = besieging ? 0 : Math.max(0, ai.military.strikeFloor);
+    const bar = preview.damageToAttacker * Math.max(floor, 1 - appetite);
+    // **The blow nobody should make** (the same ruling): a melee piece walking at
+    // a town, or at a dug-in piece on ground that pays it, and coming off worse.
+    // A bow and a siege engine take no blow back, so they clear this by
+    // construction and go first; the swordsman waits for them, or for the walls
+    // to come down. Decisive blows are never held — a kill, a capture, a town
+    // taken is worth being hurt for, which is the exception every stand-down in
+    // this file already makes.
+    const hard =
+      preview.cityPhase !== undefined || (preview.fortifyBonus > 0 && preview.terrainBonus > 0);
+    const heldBack =
+      !decisive &&
+      hard &&
+      !shoots &&
+      preview.damageToDefender < preview.damageToAttacker * Math.max(0, ai.military.hardTargetMargin);
+    if (heldBack) {
+      terms.push({
+        label:
+          preview.cityPhase !== undefined
+            ? `${preview.defenderName} is behind walls and this blow deals ${preview.damageToDefender} for ${preview.damageToAttacker} — the ranged pieces go first`
+            : `${preview.defenderName} is dug in on ground that pays it and this blow deals ${preview.damageToDefender} for ${preview.damageToAttacker} — the ranged pieces go first`,
+        value: ai.military.rangedDeferral,
+        op: 'sub',
+      });
+      exchange.score = foldOf(terms);
+      tried.push(exchange);
+      continue;
+    }
     if (defer !== null) {
       tried.push(exchange);
       continue;
@@ -6890,6 +6960,90 @@ function restAndHeal(state: GameState, player: Player, unit: Unit): UnitChoice |
       'and no blow in front of it would finish anything. Digs in and mends.',
     candidates: [{ label: 'dig in and mend', score: foldOf(terms), chosen: true, terms }],
   };
+}
+
+/**
+ * **A hurt piece in the field walks home**, or `null` (ruled 2026-09-15,
+ * `docs/flags.md` (nnnnn): *"a hurt piece falls back to heal rather than
+ * presses"*).
+ *
+ * `restAndHeal`'s other half, and the deferral that arm wrote down when it
+ * shipped: *"a piece hurt deep in a rival's fields does not retreat — it goes on
+ * fighting, because walking it home wants an operational plan this bot does not
+ * have"*. There is an operational plan now — the campaign has a muster and this
+ * empire has towns — so the piece that is too hurt to be swinging and is
+ * standing on somebody else's ground marches at the nearest town of its own
+ * instead of pressing. It mends when it arrives, through the arm above.
+ *
+ * Three clauses, and two of them are `restAndHeal`'s word for word:
+ *
+ *   · **below `military.withdrawBelowHealth`** of its own maximum. Lower than
+ *     the rest threshold on purpose: a piece pulls out of a fight later than it
+ *     declines to start one;
+ *   · **not on ground this empire owns** — on its own fields it digs in, which
+ *     is the arm above and a better answer, because a fortified piece mends and
+ *     holds the ground at the same time;
+ *   · **unless the blow in front of it would finish something** — the ruling's
+ *     own exception, asked of the simulation's forecast through `decisiveBlowAt`
+ *     exactly as the rest arm asks it.
+ *
+ * The town is named by the road rather than by the crow (`findPath`), and a
+ * piece with no road home simply has none of this: it falls through to the arms
+ * below and fights where it stands.
+ */
+function fallBackAndHeal(state: GameState, player: Player, unit: Unit): UnitTarget | null {
+  const ai = aiFor(player);
+  const maxHp = unitMaxHp(unit);
+  if (maxHp <= 0) return null;
+  if (unit.hp / maxHp >= ai.military.withdrawBelowHealth) return null;
+  if (tileOwnerPlayerId(state, unit.col, unit.row) === player.id) return null;
+  if (decisiveBlowAt(state, player, unit) !== null) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  const from = tileHex(here);
+  const homes: { city: City; distance: number }[] = [];
+  for (const city of state.cities) {
+    if (city.ownerId !== player.id) continue;
+    const tile = getTileAt(state.map, city.col, city.row);
+    if (!tile) continue;
+    homes.push({ city, distance: wrappedDistance(state.map, from, tileHex(tile)) });
+  }
+  homes.sort((a, b) => a.distance - b.distance || a.city.id - b.city.id);
+  const tried: BotCandidate[] = [];
+  for (const entry of homes.slice(0, Math.max(1, ai.search.pathProbes))) {
+    const label = `${entry.city.name}, ${entry.distance} hexes off`;
+    // **The town or a hex beside it**, which is `standingsNear`'s whole job: a
+    // town with its own garrison already standing in it is a hex the stacking
+    // cap will not let a second soldier rest on, and a retreat that could only
+    // aim at the middle of a held town would be a retreat that never happens.
+    const goals = standingsNear(state, unit, { col: entry.city.col, row: entry.city.row }, 1, false);
+    let goal: { col: number; row: number } | null = null;
+    for (const tile of goals.slice(0, Math.max(1, ai.search.pathProbes))) {
+      if (findPath(state, unit, tile) === null) continue;
+      goal = { col: tile.col, row: tile.row };
+      break;
+    }
+    if (goal === null) {
+      tried.push(refused(label, 'no road home'));
+      continue;
+    }
+    const terms: ValueTerm[] = [
+      {
+        label: `${unit.hp} of ${maxHp} hit points, and this seat pulls a piece out below ${round1(ai.military.withdrawBelowHealth * 100)}%`,
+        value: maxHp - unit.hp,
+      },
+      { label: `${entry.distance} hexes back to ${entry.city.name}`, value: entry.distance, op: 'sub' },
+    ];
+    tried.push({ label, score: foldOf(terms), chosen: true, terms });
+    return {
+      at: goal,
+      summary:
+        `Too hurt to be out here: ${unit.hp} of ${maxHp} hit points on ground this empire does not hold, ` +
+        `and no blow in front of it would finish anything. Falls back to ${entry.city.name} to mend.`,
+      candidates: tried,
+    };
+  }
+  return null;
 }
 
 /**

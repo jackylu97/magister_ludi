@@ -1150,6 +1150,15 @@ describe('the bot module', () => {
     // is two abilities live from turn one and two rows only it may raise, so
     // there is no card to appraise and nothing left for that leaf to hold. The
     // appraisal it carried retired with the draft it served.
+    //
+    // Seventeen since the peace addendum (2026-09-15, `docs/flags.md` (nnnnn)):
+    // `warLedger.ts` is the eighth leaf and the **second** module here that
+    // remembers anything — what one war has cost since it began, windowed off
+    // the simulation's own lifetime counters by a `WeakMap` on the live state.
+    // It is `dealMemory.ts`' bargain exactly, and it is a module rather than an
+    // arm of `diplomacy.ts` for the reason every leaf here is one: the memory
+    // has to be the *game's* rather than either loop's, and the file that holds
+    // it says once, in one place, what it can and cannot see.
     expect(files.sort()).toEqual([
       'aiConfig.ts',
       'bot.ts',
@@ -1168,6 +1177,7 @@ describe('the bot module', () => {
       'value.ts',
       'wager.ts',
       'wants.ts',
+      'warLedger.ts',
     ]);
   });
 
