@@ -57,7 +57,7 @@ the H5 rule, wears `.statecraft-overlay`, and stays up until
 Cancel yet (P7's sacrifice #3 stands; ▢ the user). Fidelity: the settled
 frame is untouched — a pixel-identical play/overview pair.
 
-**(ddddd) The shadowed fog lands — BUILT, awaiting the user's eye** (the user, 2026-09-14: *"please
+**(ddddd) The shadowed fog lands — LANDED 2026-09-15** (the user, on the review pair: *"great - it looks much better. Please proceed."*) (the user, 2026-09-14: *"please
 also queue up the shadowed fog implementation, i'll let you sequence before
 or after the fog performance pass"*). Sequenced **after P5** (the shadows
 batch in flight), because the study's second pass on branch `fog-study` is
