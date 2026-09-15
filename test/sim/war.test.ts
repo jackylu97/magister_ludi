@@ -41,6 +41,7 @@ import {
   type City,
   type GameState,
   SCHEMA_VERSION,
+  capitalCityOf,
   createUnit,
   newGame,
 } from '../../src/sim/state';
@@ -723,6 +724,10 @@ describe('razing', () => {
   function held(): { state: GameState; city: City } {
     const state = flatState();
     const capital = foundCityAt(state, 0, at(state.map, 3, 4));
+    // The rival's own seat first, far off, so the town taken below is their
+    // *second* — an original capital is never razeable ((ggggg)), and a fixture
+    // whose only rival town was one would refuse every raze in this block.
+    foundCityAt(state, 1, at(state.map, 14, 8));
     const taken = foundCityAt(state, 1, at(state.map, 9, 4));
     claimBlock(state, taken, [8, 9, 10], [3, 4, 5]);
     taken.ownerId = 0;
@@ -759,25 +764,49 @@ describe('razing', () => {
 
   it('refuses a seat of government, on either reading of one', () => {
     const { state, city } = held();
-    // A town that has ever been a capital — the flag written at capture.
-    city.wasCapital = true;
+    // An empire's original capital — the flag written at founding — whoever
+    // holds it now.
+    city.originalCapital = true;
     expect(razeCityError(state, 0, city.id)).toContain('seat of government');
-    delete city.wasCapital;
+    delete city.originalCapital;
+    expect(razeCityError(state, 0, city.id)).toBeNull();
+    // A capital that was *re-seated* after the first fell is not the same
+    // thing ((ggggg)): `wasCapital` records it, and razing does not read it.
+    city.wasCapital = true;
     expect(razeCityError(state, 0, city.id)).toBeNull();
     // And the razer's own capital, which `capitalCityOf` names.
     const capital = state.cities.find((town) => town.col === 3)!;
     expect(razeCityError(state, 0, capital.id)).toContain('seat of government');
   });
 
-  it('marks a captured palace so it can never be pulled down', () => {
+  /**
+   * **The user's ruling, 2026-09-15** (`docs/flags.md` (ggggg)): "the game
+   * should allow razing cities that aren't original capitals, not allowing
+   * capitals in general basically prevents razing if you're capturing cities
+   * in a specific order." Two rival towns fall in order; the first is the
+   * empire's founding seat and can never be pulled down, the second became
+   * the capital only because the first fell, and burns.
+   */
+  it('never pulls down an original capital, and lets a re-seated one burn', () => {
     const state = flatState();
-    const theirs = foundCityAt(state, 1, at(state.map, 6, 4));
-    theirs.hp = 1;
+    const first = foundCityAt(state, 1, at(state.map, 6, 4));
+    const second = foundCityAt(state, 1, at(state.map, 12, 4));
+    expect(first.originalCapital).toBe(true);
+    expect(second.originalCapital).toBeUndefined();
     openWar(state, 0, 1);
-    const raider = createUnit(state, 0, 'warrior', 5, 4);
-    applyCombat(state, raider.id, { col: 6, row: 4 });
-    expect(theirs.wasCapital).toBe(true);
-    expect(razeCityError(state, 0, theirs.id)).toContain('seat of government');
+    first.hp = 1;
+    applyCombat(state, createUnit(state, 0, 'warrior', 5, 4).id, { col: 6, row: 4 });
+    expect(first.ownerId).toBe(0);
+    expect(first.wasCapital).toBe(true);
+    expect(razeCityError(state, 0, first.id)).toContain('seat of government');
+    // The second is the rival's capital now, and falls as one.
+    expect(capitalCityOf(state, 1)?.id).toBe(second.id);
+    second.hp = 1;
+    applyCombat(state, createUnit(state, 0, 'warrior', 11, 4).id, { col: 12, row: 4 });
+    expect(second.ownerId).toBe(0);
+    expect(second.wasCapital).toBe(true);
+    expect(razeCityError(state, 0, second.id)).toBeNull();
+    expect(applyCommand(state, { type: 'razeCity', playerId: 0, cityId: second.id }).ok).toBe(true);
   });
 
   it('refuses somebody else’s town', () => {

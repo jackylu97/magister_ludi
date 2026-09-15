@@ -901,6 +901,14 @@ import {
  * queued as a *building* in a town — which a v115 Inca player could do — is
  * refused where it was built, so every hammer after it lands somewhere else. A
  * v115 log that neither queued the hall nor cut a terrace replays byte for byte.
+ *
+ * **Still 116, with one more field** (2026-09-15, `docs/flags.md` (ggggg); the
+ * user: *"the game should allow razing cities that aren't original
+ * capitals"*): `City.originalCapital`, written at founding on an empire's
+ * first town, is what razing refuses now — `wasCapital` (every seat that ever
+ * fell) is the bead's alone. A v116 log replays byte for byte: the field is
+ * derived at founding on replay, and a raze the old rule refused never reached
+ * a log. The snapshot print gains the key on every empire's first town.
  */
 export const SCHEMA_VERSION = 116;
 
@@ -2610,8 +2618,28 @@ export interface City {
    *
    * Absent on every ordinary town, presence-is-the-state, and never cleared: a
    * palace pulled down is still a palace that stood.
+   *
+   * **Read by the bead alone since 2026-09-15** (`capitalCaptured`); razing
+   * reads `originalCapital` below. The user's ruling (`docs/flags.md` (ggggg)):
+   * a capital *re-seated* after the first fell is a capital `capitalCityOf`
+   * names and this flag records, but pulling it down is not the sacrilege the
+   * rule is about — and refusing it meant that a warlord taking an empire's
+   * towns in order could never raze any of them.
    */
   wasCapital?: true;
+  /**
+   * True on the first town an empire ever founded — its **original seat of
+   * government** — written once at founding (`createCity`) and never cleared,
+   * whoever holds it since.
+   *
+   * Stored rather than derived, for `wasCapital`'s reason turned around: once
+   * the palace changes hands nothing on the board says which of an empire's
+   * founded towns was the first, because `capitalCityOf` reads the *current*
+   * seat and the original may be three owners away by then. Razing reads it
+   * (a founding capital is never pulled down, by anyone, ever); nothing else
+   * does. Presence-is-the-state.
+   */
+  originalCapital?: true;
   /** Production queue, front first. Replaced wholesale by `setCityProduction`. */
   queue: QueueItem[];
   /**
@@ -4277,6 +4305,11 @@ export function createCity(
     specialists: newCitySpecialists(),
     guildBasket: 0,
   };
+  // **The first town an empire founds is its original seat**, and the fact is
+  // written here because this is the one moment it can be known: the seat is
+  // "the first city in founding order" only until that city is taken, and the
+  // raze rule needs the answer long after (`City.originalCapital`).
+  if (!state.cities.some((other) => other.ownerId === ownerId)) city.originalCapital = true;
   state.cities.push(city);
   // **A town on the board is a line in three walks** (batch M3, `slate.ts`):
   // the authority it costs, the citizens it charges to happiness, and the ground

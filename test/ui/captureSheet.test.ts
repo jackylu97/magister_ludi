@@ -60,9 +60,10 @@ function at(map: GameMap, col: number, row: number): Tile {
 function capture(): { state: GameState; city: City } {
   const state = flatState();
   // Both seats keep a home of their own, so the town that falls is nobody's
-  // seat of government: `razeCityError` refuses a captor's capital *and* a town
-  // that was the loser's (`City.wasCapital`, written by `handOverCity`), and a
-  // fixture that stormed a capital would only ever test the refusal.
+  // seat of government: `razeCityError` refuses a captor's capital *and* an
+  // empire's original one (`City.originalCapital`, written at founding —
+  // (ggggg)), and a fixture that stormed a capital would only ever test the
+  // refusal.
   foundCityAt(state, 0, at(state.map, 2, 4));
   foundCityAt(state, 1, at(state.map, 12, 7));
   const city = foundCityAt(state, 1, at(state.map, 6, 4));
@@ -221,8 +222,8 @@ describe('the three answers', () => {
 
   it('greys razing with the reducer’s own sentence, and never hides it', () => {
     const { state, city } = capture();
-    // A seat of government cannot be pulled down (`razeCityError`).
-    city.wasCapital = true;
+    // An original seat of government cannot be pulled down (`razeCityError`).
+    city.originalCapital = true;
     const face = captureFace(state, 0, city);
     const raze = face.options.find((option) => option.choice === 'raze')!;
     expect(raze.blocked).toContain('seat of government');

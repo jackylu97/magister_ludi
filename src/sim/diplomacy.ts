@@ -1139,10 +1139,14 @@ export function annexCityAt(state: GameState, city: City): void {
  *   · **your own capital** (`capitalCityOf`), because an empire that razed its
  *     own seat of government would be deleting the thing every meter in the
  *     game is anchored to;
- *   · **any town that has ever been a capital** (`City.wasCapital`, written the
- *     moment a palace is taken). That is the orchestrator's ruling — capitals
- *     are never razeable — said with the one field that survives a conquest;
- *     `capitalCityOf` cannot answer it, because a seized palace stops reading
+ *   · **any empire's original capital** (`City.originalCapital`, written the
+ *     moment it is founded), whoever holds it now. That is the user's ruling
+ *     of 2026-09-15 (`docs/flags.md` (ggggg)), narrowing the orchestrator's
+ *     "capitals are never razeable": a capital *re-seated* after the first one
+ *     fell (`wasCapital` records those too) is razeable, because refusing it
+ *     meant a warlord taking an empire's towns in order could raze none of
+ *     them — every town was the capital on the day it fell. `capitalCityOf`
+ *     cannot answer either question, because a seized palace stops reading
  *     as one the instant the flag changes hands.
  */
 export function razeCityError(
@@ -1155,7 +1159,7 @@ export function razeCityError(
   const city = cityById(state, cityId);
   if (!city) return `No city with id ${String(cityId)}`;
   if (city.ownerId !== actor.id) return `${city.name} is not yours`;
-  if (city.wasCapital === true || capitalCityOf(state, actor.id)?.id === city.id) {
+  if (city.originalCapital === true || capitalCityOf(state, actor.id)?.id === city.id) {
     return `${city.name} is a seat of government and cannot be pulled down`;
   }
   return null;

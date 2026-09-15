@@ -19,6 +19,22 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ggggg) Only an original capital is unrazeable — BUILT** (the user,
+2026-09-15: *"the game should allow razing cities that aren't original
+capitals, not allowing capitals in general basically prevents razing if
+you're capturing cities in a specific order."*). The orchestrator's default
+of 2026-09-03 — capitals are never razeable — was read through
+`City.wasCapital`, written whenever the loser's *current* capital fell, and
+since `capitalCityOf` re-seats the moment a palace is taken, a warlord
+taking an empire's towns in order found every one of them a capital on the
+day it fell. Now `City.originalCapital` is written once at founding on an
+empire's first town and never cleared, razing refuses that and the razer's
+own current seat, and nothing else; `wasCapital` stays for the
+`capitalCaptured` bead, which still pays on a re-seated capital. No new
+command; a v116 log replays byte for byte (a raze the old rule refused was
+never in a log). Pinned in `test/sim/war.test.ts`: two rival towns fall in
+order, the first cannot burn and the second can.
+
 **(fffff) The trade route screen is slow again — RULED, T1** (the user,
 2026-09-15, turn 99 as Modu Chanyu: *"Could you do a performance pass on
 the trade route screen? it seems to be slow again"*). Measure first on a
