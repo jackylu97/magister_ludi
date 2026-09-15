@@ -487,44 +487,565 @@ export class Renderer3D implements MapView {
     this.invalidate();
   }
 
+  /**
+   * The knobs the harness turns, read off the URL rather than hard-coded.
+   *
+   * A software-GL headless run draws two orders of magnitude slower than the
+   * user's GPU, so the 156-frame sweep that takes twenty seconds on an M4 takes
+   * a quarter of an hour under SwiftShader. The defaults are the numbers every
+   * committed JSON was measured with; the script that runs the fixtures says so
+   * in its own output when it lowers them.
+   */
+  private benchmarkOptions(): {frames: number; warmUp: number; workloads: boolean; views: boolean; label: string | null} {
+    const params = new URLSearchParams(location.search);
+    const number = (key: string, fallback: number, min: number) => {
+      const value = Math.floor(Number(params.get(key)));
+      return Number.isFinite(value) && value >= min ? value : fallback;
+    };
+    return {
+      frames: number('benchFrames', 156, 8),
+      warmUp: number('benchWarmUp', 36, 0),
+      workloads: params.has('benchWorkloads'),
+      views: params.get('benchViews') !== 'off',
+      label: params.get('benchLabel'),
+    };
+  }
+
+  /**
+   * The frame instrument the painted benchmarks share — audit task #24.
+   *
+   * The renderer's own loop registers its `requestAnimationFrame` before a
+   * benchmark ever awaits one, so the probe's callback runs *after* the frame
+   * the loop just drew. That ordering is the whole trick. A timer query opened
+   * at the end of sample N brackets exactly the loop's draw of frame N+1, and
+   * the main-thread cost of that frame is the probe's own clock minus the
+   * timestamp the frame started on — which is what separates frame preparation
+   * (`syncStateLayers`, the light rig, the vignette's projection) from
+   * `lastRenderMs`, which starts immediately before the draw and is submission
+   * time alone.
+   *
+   * Nothing blocks: query results are polled on later frames, a driver-reported
+   * disjoint throws the whole outstanding queue away, and a frame the loop
+   * decided not to draw is counted as idle rather than as a fast frame.
+   *
+   * **Absent measurements are `null`, never zero.** A browser without
+   * `EXT_disjoint_timer_query_webgl2` reports no GPU column at all, rather than
+   * a column of zeroes somebody will later average into a claim.
+   */
+  private benchmarkProbe(bakesNow: () => number) {
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const timer = (typeof gl.getExtension === 'function'
+      ? gl.getExtension('EXT_disjoint_timer_query_webgl2') as {TIME_ELAPSED_EXT: number; GPU_DISJOINT_EXT: number} | null
+      : null) ?? null;
+    const shadowMap = this.renderer.shadowMap as unknown as {render: (...args: never[]) => void};
+    const originalShadowRender = shadowMap.render;
+    let shadowRenders = 0;
+    shadowMap.render = (...args: never[]) => { shadowRenders++; originalShadowRender.apply(shadowMap, args); };
+    const renderCalls = () => this.renderer.info.render.frame;
+    const queue: {query: WebGLQuery; bucket: number[]}[] = [];
+    let open: {query: WebGLQuery; bucket: number[]} | null = null;
+    let disjointDiscards = 0, previous = 0, lastCalls = renderCalls(), counting = false;
+    let lastShadowRenders = 0, lastBakes = bakesNow();
+    type Phase = {
+      name: string; note: string | null;
+      intervals: number[]; main: number[]; submit: number[]; prep: number[];
+      draws: number[]; triangles: number[]; passes: number[]; gpu: number[];
+      idle: number; bakes: number; shadowRenders: number;
+    };
+    const phases: Phase[] = [];
+    let current: Phase | null = null;
+    const poll = (): void => {
+      if (!timer) return;
+      if (gl.getParameter(timer.GPU_DISJOINT_EXT)) {
+        for (const item of queue) gl.deleteQuery(item.query);
+        disjointDiscards += queue.length; queue.length = 0; return;
+      }
+      for (let i = queue.length - 1; i >= 0; i--) {
+        const item = queue[i]!;
+        if (!gl.getQueryParameter(item.query, gl.QUERY_RESULT_AVAILABLE)) continue;
+        item.bucket.push(gl.getQueryParameter(item.query, gl.QUERY_RESULT) / 1e6);
+        gl.deleteQuery(item.query); queue.splice(i, 1);
+      }
+    };
+    const closeQuery = (drew: boolean): void => {
+      if (!open || !timer) return;
+      gl.endQuery(timer.TIME_ELAPSED_EXT);
+      // A query that bracketed an undrawn frame measures nothing; it is not a
+      // zero-millisecond frame, it is no sample at all.
+      if (drew) queue.push({query: open.query, bucket: open.bucket});
+      else gl.deleteQuery(open.query);
+      open = null;
+    };
+    const frame = () => new Promise<number>(resolve => requestAnimationFrame(resolve));
+    const stat = (values: number[]) => {
+      if (values.length === 0) return null;
+      const sorted = [...values].sort((a, b) => a - b);
+      const at = (q: number) => Math.round(sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))]! * 100) / 100;
+      return {p50: at(.5), p95: at(.95), max: Math.round(sorted[sorted.length - 1]! * 100) / 100, samples: values.length};
+    };
+    const dropped = (intervals: number[]) => {
+      if (intervals.length < 8) return null;
+      const sorted = [...intervals].sort((a, b) => a - b);
+      const budget = sorted[Math.floor(sorted.length * .1)]!;
+      if (!(budget > 0)) return null;
+      return {
+        frameBudgetMs: Math.round(budget * 100) / 100,
+        fraction: Math.round(intervals.filter(value => value > budget * 1.5).length / intervals.length * 1000) / 1000,
+      };
+    };
+    return {
+      gpuTimer: timer !== null,
+      /** Puts the shadow hook back. Idempotent, and safe after `close`. */
+      restore(): void { shadowMap.render = originalShadowRender; },
+      /** Opens a named phase. Samples taken before `count(true)` are warm-up. */
+      phase(name: string, note: string | null = null): void {
+        closeQuery(false);
+        current = {name, note, intervals: [], main: [], submit: [], prep: [], draws: [], triangles: [], passes: [], gpu: [], idle: 0, bakes: 0, shadowRenders: 0};
+        phases.push(current);
+        counting = false;
+      },
+      /** From here on the samples count. Bakes and shadow passes count too. */
+      count: (on: boolean): void => { counting = on; },
+      /** One animation frame, sampled after the loop's own callback has run. */
+      sample: async (): Promise<number> => {
+        const time = await frame();
+        const at = performance.now();
+        const calls = renderCalls();
+        const drew = calls > lastCalls;
+        closeQuery(drew);
+        poll();
+        if (current && counting && drew) {
+          // Shadow work is counted frame by frame rather than between phase
+          // boundaries, so the settling frames between two workloads belong to
+          // neither of them.
+          current.shadowRenders += shadowRenders - lastShadowRenders;
+          current.bakes += bakesNow() - lastBakes;
+          const main = at - time, submit = this.lastRenderMs;
+          current.intervals.push(time - previous);
+          current.main.push(main);
+          current.submit.push(submit);
+          current.prep.push(Math.max(0, main - submit));
+          current.draws.push(this.lastDrawCalls);
+          current.triangles.push(this.lastTriangles);
+          current.passes.push(calls - lastCalls);
+        } else if (current && counting) current.idle++;
+        previous = time; lastCalls = calls;
+        lastShadowRenders = shadowRenders; lastBakes = bakesNow();
+        if (timer && current && counting && queue.length < 8) {
+          const query = gl.createQuery();
+          if (query) { open = {query, bucket: current.gpu}; gl.beginQuery(timer.TIME_ELAPSED_EXT, query); }
+        }
+        return time;
+      },
+      /** Drains outstanding queries, restores the shadow hook and reports. */
+      close: async (): Promise<unknown[]> => {
+        closeQuery(false);
+        for (let i = 0; i < 12 && queue.length > 0; i++) { await frame(); poll(); }
+        for (const item of queue) gl.deleteQuery(item.query);
+        queue.length = 0;
+        shadowMap.render = originalShadowRender;
+        return phases.map(phase => {
+          return {
+            view: phase.name,
+            note: phase.note,
+            frames: phase.intervals.length,
+            idleFrames: phase.idle,
+            frameMs: stat(phase.intervals),
+            mainThreadMs: stat(phase.main),
+            cpuRenderMs: stat(phase.submit),
+            preparationMs: stat(phase.prep),
+            gpuMs: timer ? stat(phase.gpu) : null,
+            drawCalls: stat(phase.draws),
+            triangles: stat(phase.triangles),
+            rendererRenderCalls: stat(phase.passes),
+            dropped: dropped(phase.intervals),
+            terrainShadowRebakes: phase.bakes,
+            shadowMapRenders: phase.shadowRenders,
+            gpuDisjointDiscards: timer ? disjointDiscards : null,
+          };
+        });
+      },
+    };
+  }
+
+  /** Hardware, browser and policy — recorded with every measurement (#24). */
+  private benchmarkEnvironment(): unknown {
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const info = typeof gl.getExtension === 'function'
+      ? gl.getExtension('WEBGL_debug_renderer_info') as {UNMASKED_RENDERER_WEBGL: number; UNMASKED_VENDOR_WEBGL: number} | null
+      : null;
+    const options = this.benchmarkOptions();
+    const memory = (performance as {memory?: {jsHeapSizeLimit: number}}).memory;
+    return {
+      label: options.label,
+      userAgent: navigator.userAgent,
+      gpu: info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) as string : null,
+      gpuVendor: info ? gl.getParameter(info.UNMASKED_VENDOR_WEBGL) as string : null,
+      webglRenderer: gl.getParameter(gl.RENDERER) as string,
+      gpuTimerAvailable: typeof gl.getExtension === 'function' && gl.getExtension('EXT_disjoint_timer_query_webgl2') !== null,
+      dpr: this.renderer.getPixelRatio(),
+      devicePixelRatio: window.devicePixelRatio,
+      viewport: {width: this.canvas.clientWidth, height: this.canvas.clientHeight},
+      drawingBuffer: {width: gl.drawingBufferWidth, height: gl.drawingBufferHeight},
+      hardwareConcurrency: navigator.hardwareConcurrency ?? null,
+      heapLimitMiB: memory ? Math.round(memory.jsHeapSizeLimit / 1048576) : null,
+      shadowsEnabled: this.shadowsEnabled,
+      search: location.search,
+      warmUpFrames: options.warmUp,
+      measuredFrames: options.frames - options.warmUp,
+      commit: null,
+    };
+  }
+
+  /** What the fixture actually contains — the populations the layers pay for. */
+  private async benchmarkFixture(): Promise<unknown> {
+    const state = this.state, map = this.map;
+    if (!state || !map) return null;
+    // Asked for at the moment of use rather than at the top of the file: a
+    // measurement harness has no business widening the renderer's import graph.
+    const {cityLook} = await import('./cities3d');
+    const {capitalCityOf} = await import('../sim/state');
+    const capitals = new Set(state.cities.filter(city => city.id === capitalCityOf(state, city.ownerId)?.id).map(city => city.id));
+    let walls = 0, buildings = 0, wonders = 0;
+    for (const city of state.cities) {
+      const look = cityLook(state, city, capitals);
+      if (look.walls) walls++;
+      wonders += look.wonders;
+      buildings += city.buildings.length;
+    }
+    const improvements: Record<string, number> = {};
+    let roads = 0, features = 0;
+    for (const tile of map.tiles) {
+      if (tile.road !== undefined && tile.road !== null) roads++;
+      if (tile.feature) features++;
+      if (tile.improvement) improvements[tile.improvement] = (improvements[tile.improvement] ?? 0) + 1;
+    }
+    const seat = this.fogSeat;
+    const levels = seat === null ? null : state.visibility[seat] ?? null;
+    return {
+      turn: state.turn,
+      seats: state.players.length,
+      cities: state.cities.length,
+      walledCities: walls,
+      buildings,
+      wonders,
+      units: state.units.length,
+      unitsOfSeat: seat === null ? null : state.units.filter(unit => unit.ownerId === seat).length,
+      improvements,
+      improvedTiles: Object.values(improvements).reduce((sum, count) => sum + count, 0),
+      roadedTiles: roads,
+      featuredTiles: features,
+      camps: state.camps.length,
+      discoveries: map.tiles.filter(tile => tile.discovery).length,
+      chartedFractionOfSeat: levels
+        ? Math.round(levels.filter(level => level > 0).length / levels.length * 1000) / 1000
+        : null,
+    };
+  }
+
+  /**
+   * The memory ledger — heap, geometry, instances and the targets (#24).
+   *
+   * Render-target bytes are arithmetic from the sizes actually allocated (the
+   * shadow map is asked for *its own* width, not for the constant it was
+   * requested with), not resident GPU memory, which no browser will tell us.
+   * Said so in the payload, because the audit's headline memory figure is an
+   * estimate of exactly this kind and was read once as a measurement.
+   */
+  private benchmarkMemory(): unknown {
+    const gl = this.renderer.getContext() as WebGL2RenderingContext;
+    const memory = (performance as {memory?: {usedJSHeapSize: number; totalJSHeapSize: number}}).memory;
+    const targets: {name: string; width: number; height: number; bytesPerTexel: number; allocated: boolean}[] = [];
+    this.scene.traverse(object => {
+      const light = object as unknown as {isDirectionalLight?: boolean; castShadow?: boolean; name?: string;
+        shadow?: {mapSize: {x: number; y: number}; map?: {width: number; height: number} | null}};
+      if (!light.isDirectionalLight || !light.castShadow || !light.shadow) return;
+      const map = light.shadow.map ?? null;
+      targets.push({
+        name: light.shadow.mapSize.x >= 4096 ? 'static sun shadow map' : 'counter shadow map',
+        width: map?.width ?? light.shadow.mapSize.x,
+        height: map?.height ?? light.shadow.mapSize.y,
+        // Three allocates a colour attachment beside the depth texture.
+        bytesPerTexel: 8,
+        allocated: map !== null,
+      });
+    });
+    const width = gl.drawingBufferWidth, height = gl.drawingBufferHeight;
+    targets.push({name: 'composer colour targets (×2, RGBA8 + depth)', width, height, bytesPerTexel: 16, allocated: true});
+    targets.push({name: 'contact pass targets (half resolution, ×3)', width: Math.ceil(width / 2), height: Math.ceil(height / 2), bytesPerTexel: 12, allocated: true});
+    const targetMiB = targets.reduce((sum, target) => sum + target.width * target.height * target.bytesPerTexel, 0) / 1048576;
+    return {
+      heapMiB: memory ? Math.round(memory.usedJSHeapSize / 1048576 * 100) / 100 : null,
+      heapTotalMiB: memory ? Math.round(memory.totalJSHeapSize / 1048576 * 100) / 100 : null,
+      boardGeometryMiB: this.paintedBoard ? Math.round(this.paintedBoard.geometryBytes / 1048576 * 100) / 100 : null,
+      boardInstanceMiB: this.paintedBoard ? Math.round(this.paintedBoard.instanceBytes / 1048576 * 100) / 100 : null,
+      geometries: this.renderer.info.memory.geometries,
+      textures: this.renderer.info.memory.textures,
+      programs: this.renderer.info.programs?.length ?? null,
+      renderTargets: targets.map(target => ({...target, miB: Math.round(target.width * target.height * target.bytesPerTexel / 1048576 * 100) / 100})),
+      renderTargetMiB: Math.round(targetMiB * 100) / 100,
+      note: 'render-target figures are arithmetic from allocated sizes, not resident GPU memory',
+    };
+  }
+
+  /**
+   * The workloads a panning sweep cannot see — audit task #24's fixture half.
+   *
+   * A pan measures a still world. What a 4X actually costs is the *changes*: a
+   * scout stepping into ground nobody has charted (the one case that still
+   * rebakes the static sun), the whole board revealed at overview, a zoom that
+   * crosses the LOD band, the city screen's wash, and the refresh after a turn
+   * resolves. Each is driven through the simulation's own reducer on a **copy**
+   * of the live state, so the numbers come from real state deltas rather than
+   * from a synthetic unit teleporting between two charted hexes.
+   *
+   * Two rules keep the player's game out of this:
+   *
+   *  · The copy shares the live `GameMap` — a second map object would rebuild
+   *    the whole board and measure that instead — so anything the reducer can
+   *    write to a tile is snapshotted before the probe and written back after,
+   *    field by field. The march route additionally refuses hexes carrying a
+   *    ruin or a camp, which are the two arrivals that consume something.
+   *  · Nothing here logs a command, saves, or ends the player's turn: the live
+   *    state object goes back onto the renderer in the `finally`, and the
+   *    command log never hears about any of it.
+   */
+  private async benchmarkWorkloads(
+    probe: ReturnType<Renderer3D['benchmarkProbe']>,
+    seat: number | null,
+  ): Promise<unknown> {
+    const look = this.paintedLook, map = this.map, board = this.board, original = this.state;
+    if (!look || !map || !board || !original) return null;
+    const {applyCommand} = await import('../sim/commands');
+    const {realPlayers} = await import('../sim/state');
+    const {tileIndex, neighborTiles} = await import('../sim/map');
+    const options = this.benchmarkOptions();
+    const frames = Math.max(8, Math.round(options.frames / 4));
+    const cx = this.canvas.clientWidth / 2, cy = this.canvas.clientHeight / 2;
+    const playRadius = 7;
+    const zoomTo = (radius: number) => this.view.zoomByFactor(this.view.radius / radius, cx, cy);
+    // No warm-up inside a workload: the first frame of a reveal is the frame
+    // the audit is asking about, and warming it away is how it went unmeasured.
+    const phase = (name: string, note: string) => { probe.phase(name, note); probe.count(true); };
+    const settle = async (count: number) => { for (let i = 0; i < count; i++) { this.invalidate(); await probe.sample(); } };
+    // Every own-enumerable field of every tile, so a restore is exact whatever
+    // the resolution touched (the mutable set is six fields; this asks nothing).
+    const snapshot = map.tiles.map(tile => ({...tile}));
+    const restoreTiles = () => {
+      for (let i = 0; i < map.tiles.length; i++) {
+        const tile = map.tiles[i]! as unknown as Record<string, unknown>;
+        const saved = snapshot[i]! as unknown as Record<string, unknown>;
+        for (const key of Object.keys(tile)) if (!(key in saved)) delete tile[key];
+        Object.assign(tile, saved);
+      }
+    };
+    const report: Record<string, unknown> = {};
+    try {
+      zoomTo(playRadius);
+      await settle(4);
+      phase('still (play zoom)', 'camera parked; a redraw forced every frame');
+      for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+
+      // --- a real march into unexplored ground -----------------------------
+      const march = structuredClone(original) as GameState;
+      march.map = original.map;
+      const levels = seat === null ? null : march.visibility[seat] ?? null;
+      // The frontier, and the piece nearest it: a developed empire's units all
+      // stand in charted ground, so "a march into the unknown" is a walk *to*
+      // the edge of the fog and then over it, not a unit that happens to be on
+      // the line already.
+      const edge = levels === null ? undefined : map.tiles.filter(tile =>
+        levels[tileIndex(map, tile.col, tile.row)] === 0
+        && !['ocean', 'coast', 'lake', 'mountain'].includes(tile.terrain));
+      const reach = (a: {col: number; row: number}, b: {col: number; row: number}) => {
+        const dx = Math.abs(a.col - b.col), wrapped = Math.min(dx, map.width - dx);
+        return Math.hypot(wrapped, a.row - b.row);
+      };
+      const candidates = seat === null ? [] : march.units.filter(unit => unit.ownerId === seat && !unit.trade);
+      let walker = undefined as typeof candidates[number] | undefined, frontier: {col: number; row: number} | undefined;
+      let best = Infinity;
+      for (const unit of candidates) for (const tile of edge ?? []) {
+        const distance = reach(unit, tile);
+        if (distance >= best) continue;
+        best = distance; walker = unit; frontier = tile;
+      }
+      if (!walker || !frontier || !levels || seat === null) {
+        report.march = {measured: false, reason: 'no own unit and no unexplored land in this fixture'};
+      } else {
+        const occupied = new Set(march.units.map(unit => `${unit.col},${unit.row}`));
+        const campCells = new Set(march.camps.map(camp => `${camp.col},${camp.row}`));
+        const steps: {col: number; row: number}[] = [];
+        let atCol = walker.col, atRow = walker.row;
+        const walked = new Set<string>([`${atCol},${atRow}`]);
+        for (let step = 0; step < 10; step++) {
+          const options_ = neighborTiles(map, offsetToAxial(atCol, atRow)).filter(tile =>
+            !tile.discovery && !['ocean', 'coast', 'lake', 'mountain'].includes(tile.terrain)
+            && !occupied.has(`${tile.col},${tile.row}`) && !campCells.has(`${tile.col},${tile.row}`)
+            && !walked.has(`${tile.col},${tile.row}`));
+          // Toward the frontier, and over it once it is reached.
+          const next = options_.sort((a, b) => reach(a, frontier) - reach(b, frontier))[0];
+          if (!next) break;
+          walked.add(`${next.col},${next.row}`);
+          steps.push({col: next.col, row: next.row});
+          atCol = next.col; atRow = next.row;
+        }
+        this.setGameState(march);
+        await settle(3);
+        phase('scout march into unexplored ground', 'one reducer-issued step per sample; visibility recomputed by the sim');
+        const updates: number[] = [], revealed: number[] = [];
+        let accepted = 0;
+        const bakesBefore = look.shadowBakes;
+        const {fullMovement} = await import('../sim/units');
+        for (const target of steps) {
+          const before = levels.filter(level => level > 0).length;
+          // The allowance refilled between steps, on the copy: a march is what
+          // this probe is measuring, and a scout that runs out of movement four
+          // hexes in would leave the rest of it unmeasured — the reveal is the
+          // event, not the turn's budget.
+          walker.movesLeft = fullMovement(walker, march);
+          const outcome = applyCommand(march, {type: 'moveUnit', playerId: seat, unitId: walker.id, target});
+          if (!outcome.ok) break;
+          accepted++;
+          const start = performance.now();
+          this.setGameState(march);
+          updates.push(Math.round((performance.now() - start) * 100) / 100);
+          revealed.push(levels.filter(level => level > 0).length - before);
+          await probe.sample(); await probe.sample(); await probe.sample();
+        }
+        report.march = {
+          measured: accepted > 0,
+          stepsOrdered: steps.length,
+          stepsAccepted: accepted,
+          cellsCharted: revealed.reduce((sum, count) => sum + count, 0),
+          setGameStateMs: updates,
+          terrainShadowRebakes: look.shadowBakes - bakesBefore,
+        };
+      }
+      this.setGameState(original);
+      await settle(3);
+
+      // --- the whole board revealed at overview ----------------------------
+      this.view.frameBoard(board.bounds);
+      await settle(4);
+      phase('overview reveal (charted → omniscient)', 'the seat is dropped at overview zoom; every hidden batch enters the pass');
+      const revealBakes = look.shadowBakes;
+      this.setFogSeat(null);
+      for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+      report.overviewReveal = {terrainShadowRebakes: look.shadowBakes - revealBakes};
+      this.setFogSeat(seat);
+      await settle(3);
+
+      // --- a zoom that crosses the detail band ------------------------------
+      this.view.frameBoard(board.bounds);
+      await settle(3);
+      phase('LOD zoom crossing (overview → play)', 'one zoom step per frame across the near/far detail band');
+      const factor = Math.pow(this.view.radius / playRadius, 1 / frames);
+      for (let i = 0; i < frames; i++) { this.view.zoomByFactor(factor, cx, cy); this.invalidate(); await probe.sample(); }
+      zoomTo(playRadius);
+      await settle(3);
+
+      // --- the city screen's wash -------------------------------------------
+      const town = original.cities.find(city => seat === null || city.ownerId === seat) ?? original.cities[0];
+      if (!town) report.cityScreen = {measured: false, reason: 'no city in this fixture'};
+      else {
+        phase('city screen open', 'the vignette fade only; the DOM panel is the interface\'s half, not the renderer\'s');
+        this.setCityFocus({col: town.col, row: town.row}, true);
+        for (let i = 0; i < frames; i++) await probe.sample();
+        report.cityScreen = {measured: true, city: {col: town.col, row: town.row}};
+        this.setCityFocus(null, false);
+        await settle(3);
+      }
+
+      // --- the refresh after a turn resolves --------------------------------
+      try {
+        const future = structuredClone(original) as GameState;
+        future.map = original.map;
+        for (const player of realPlayers(future)) applyCommand(future, {type: 'endTurn', playerId: player.id});
+        phase('end-turn refresh', 'every seat ends; the resolved state is handed to the layers');
+        const start = performance.now();
+        this.setGameState(future);
+        const updateMs = Math.round((performance.now() - start) * 100) / 100;
+        const bakes = look.shadowBakes;
+        for (let i = 0; i < frames; i++) { this.invalidate(); await probe.sample(); }
+        report.endTurn = {
+          measured: true,
+          turnBefore: original.turn,
+          turnAfter: future.turn,
+          setGameStateMs: updateMs,
+          terrainShadowRebakes: look.shadowBakes - bakes,
+        };
+      } catch (error) {
+        report.endTurn = {measured: false, reason: error instanceof Error ? error.message : String(error)};
+      }
+      return report;
+    } finally {
+      this.setGameState(original);
+      restoreTiles();
+      this.setCityFocus(null, false);
+      this.setFogSeat(seat);
+    }
+  }
+
   /** A repeatable view-only sweep; it never changes the map or command log. */
   async benchmarkTerrain(): Promise<unknown> {
     if (!this.paintedLook || !this.map || !this.board || this.benchmarking) return null;
     this.benchmarking = true;
+    const options = this.benchmarkOptions();
     const saved = { target: this.view.target.clone(), radius: this.view.radius, seat: this.fogSeat };
-    const results: unknown[] = [], map = this.map, started = this.buildMs;
-    const frame = () => new Promise<number>(resolve => requestAnimationFrame(resolve));
+    const map = this.map, started = this.buildMs, look = this.paintedLook;
+    const probe = this.benchmarkProbe(() => look.shadowBakes);
     const mixed = map.tiles.filter(tile => tile.feature === 'forest').sort((a,b) =>
       Math.hypot(a.col-map.width*.5,a.row-map.height*.5)-Math.hypot(b.col-map.width*.5,b.row-map.height*.5))[0];
     const center = mixed ? cellCenter(mixed.col,mixed.row) : {x:saved.target.x,z:saved.target.z};
     const ownUnit = this.state?.units.find(unit => unit.ownerId === saved.seat);
     const chartedCenter = ownUnit ? cellCenter(ownUnit.col, ownUnit.row) : center;
+    const fixture = await this.benchmarkFixture();
+    let workloads: unknown = null;
     try {
-      for (const scenario of ['charted play', 'charted overview', 'play', 'overview', 'wrap seam']) {
+      if (options.views) for (const scenario of ['charted play', 'charted overview', 'play', 'overview', 'wrap seam']) {
         this.setFogSeat(scenario.startsWith('charted ') ? saved.seat : null);
         const kind = scenario.replace('charted ', '');
         if (kind === 'overview') this.view.frameBoard(this.board.bounds);
         else this.view.zoomByFactor(this.view.radius / (kind === 'play' ? 7 : 10), this.canvas.clientWidth/2,this.canvas.clientHeight/2);
         const origin = kind === 'overview' ? {x:map.width*Math.sqrt(3)*.5,z:map.height*.75}
           :kind === 'wrap seam' ? {x:0,z:center.z}:scenario.startsWith('charted ') ? chartedCenter : center;
-        const intervals:number[]=[],submission:number[]=[],draws:number[]=[],triangles:number[]=[];
-        let previous=0,shadowStart=0;
-        for(let i=0;i<156;i++) {
+        probe.phase(scenario, 'panning');
+        for(let i=0;i<options.frames;i++) {
           this.view.panTo(origin.x+Math.sin(i*.028)*4,origin.z+Math.cos(i*.024)*1.5,false,performance.now());
           this.invalidate();
-          const time=await frame();
-          if(i===35)shadowStart=this.paintedLook.shadowBakes;
-          if(i>=36){intervals.push(time-previous);submission.push(this.lastRenderMs);draws.push(this.lastDrawCalls);triangles.push(this.lastTriangles)}
-          previous=time;
+          if (i === options.warmUp) probe.count(true);
+          await probe.sample();
         }
-        const summarize=(values:number[])=>{const sorted=[...values].sort((a,b)=>a-b);return {median:sorted[Math.floor(sorted.length*.5)],p95:sorted[Math.floor(sorted.length*.95)],max:sorted[sorted.length-1]}};
-        results.push({view:scenario,frames:intervals.length,frameMs:summarize(intervals),cpuRenderMs:summarize(submission),drawCalls:summarize(draws),triangles:summarize(triangles),terrainShadowRebakes:this.paintedLook.shadowBakes-shadowStart});
       }
-      return {map:{width:map.width,height:map.height,tiles:map.tiles.length},viewport:{width:this.canvas.clientWidth,height:this.canvas.clientHeight,dpr:this.renderer.getPixelRatio()},browser:navigator.userAgent,boardBuildMs:started,geometryMiB:(this.paintedBoard?.geometryBytes??0)/1048576,instanceMiB:(this.paintedBoard?.instanceBytes??0)/1048576,visibility:'charted views use original seat; other views omniscient; original seat restored',results};
+      // A workload that throws must not take the view sweep down with it: the
+      // sweep is the comparable evidence, and a harness that reports nothing
+      // because one probe failed is a harness that reports nothing.
+      if (options.workloads) {
+        try { workloads = await this.benchmarkWorkloads(probe, saved.seat); }
+        catch (error) { workloads = {measured: false, reason: error instanceof Error ? error.message : String(error)}; }
+      }
+      return {
+        map:{width:map.width,height:map.height,tiles:map.tiles.length},
+        environment: this.benchmarkEnvironment(),
+        fixture,
+        boardBuildMs:started,
+        memory: this.benchmarkMemory(),
+        geometryMiB:(this.paintedBoard?.geometryBytes??0)/1048576,
+        instanceMiB:(this.paintedBoard?.instanceBytes??0)/1048576,
+        viewport:{width:this.canvas.clientWidth,height:this.canvas.clientHeight,dpr:this.renderer.getPixelRatio()},
+        browser:navigator.userAgent,
+        visibility:'charted views use original seat; other views omniscient; original seat restored',
+        attribution:'frameMs is the animation-frame interval; mainThreadMs the frame callbacks; cpuRenderMs submission alone (lastRenderMs); preparationMs the difference; gpuMs an asynchronous timer query bracketing one drawn frame',
+        results: await probe.close(),
+        workloads,
+      };
     } finally {
       this.setFogSeat(saved.seat);
       this.view.zoomByFactor(this.view.radius/saved.radius,this.canvas.clientWidth/2,this.canvas.clientHeight/2);
       this.view.panTo(saved.target.x,saved.target.z,false,performance.now());
+      // Whatever happened, the renderer goes back to the one it started with:
+      // a probe that threw mid-sweep must not leave its shadow hook installed.
+      probe.restore();
       this.benchmarking=false;this.invalidate();
     }
   }
