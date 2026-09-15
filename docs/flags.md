@@ -24,6 +24,35 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(wwwww) The movement range ink's seams — RULED, R2** (the user,
+2026-09-15: *"the seams in the range indicator for movement is off, could
+you take a look?"*). Astra's frontier ink (`src/render3d/movementBoundary.ts`,
+drawn by `overlays.ts` as two on-top strips, backing and ink) reads as
+separate strokes: at the corners where two edges meet the segments do not
+join cleanly, and some strokes sit off the hex edge they trace. Measure
+before fixing — shoot the ink with a soldier selected (the harness
+`scratchpad/pw/rangeshot.mjs` does it: the End Turn blocker selects the
+settler, Skip Turn, the blocker again selects the scout) and crop the
+corners at 2×; then find the cause among: the corner positions computed
+per cell not coinciding across the two cells that share a corner (float
+drift, or the cylinder's wrap — `cellCenter` of a col-0 cell against its
+col-(width−1) neighbour); the painted hex top being inset or rounded
+against `VIEW3D.board.hexRadius` so the ink's corners fall off the drawn
+plateau edge; the height samples at the strip's inner and outer offsets
+disagreeing with the round join's centre so the join sits above or below
+the strip; the two strips (backing, ink) being built with different
+widths from the same samples so the backing shows through at joins; or the
+overlay's `onTop` depth against the terrain relief P3/Astra's terrace and
+relief cuts changed. Fix so the frontier is **one continuous line** that
+follows the hex edges of the reachable set — joined corners, no gaps, no
+offset — with the same two strips and the same knobs (`OVERLAY.range*`
+in the sheet). Pins: every corner of the frontier is shared by exactly the
+edges that meet there (a geometry test on a small reachable set: the
+segment endpoints coincide within 1e-6 across cells, including across the
+wrap seam), and the strip's samples at a corner equal the join's. Fidelity:
+the pixel pair at play/overview unchanged with nothing selected;
+before/after 2× crops of three corners for the user.
+
 **(uuuuu) The victory screen for the Magnum Opus, and the score — RULED, V1**
 (the user, 2026-09-15: *"we need to draft a victory screen for completing the
 magnum opus, and give the player a score based on their empire results and
