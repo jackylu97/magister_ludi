@@ -67,6 +67,16 @@ leaves the sheet at "turn 4 of 121" for ever instead of the refusal's own
 sentence: the worker's rejection must reach the sheet as a line and the
 landing as the shelf's refusal, and the sheet must come down. A bug, R4;
 pin: a log with a refused command shows the sentence and no sheet remains.
+**R4 BUILT** (2026-09-15): at HEAD the hang did not reproduce — the sheet
+came down within a second, which was the same bug quieter: the sentence
+went to the landing's foot and the console alone. Now the sheet *turns
+into* the refusal (the ruling's alternative) and stands until Back or
+Escape; the paper carries the plain sentence and, in the small mono voice,
+the reducer's own line with the command index; the shelf row and Continue
+are marked "would not open" for the page's life (never persisted — a
+future build may open it). Pins in `test/ui/loadingSheet.test.ts` and
+`gameLoader.test.ts` (worker and fallback paths agree character for
+character).
 
 **(xxxxx) Founding a town lags — RULED, R3** (the user, 2026-09-15: *"the
 game tends to lag a bit when founding a new city - i think it has to do
