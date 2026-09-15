@@ -24,6 +24,61 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(uuuuu) The victory screen for the Magnum Opus, and the score — RULED, V1**
+(the user, 2026-09-15: *"we need to draft a victory screen for completing the
+magnum opus, and give the player a score based on their empire results and
+the yields from their deck."*). Today `closeTheGreatWork` sets `winnerId`
+and `victoryModal.ts` prints an eyebrow, a headline, a bead figure and a
+line. Rule: **a score is a rule-5 list** — `explainScore(state, playerId)`
+in the sim (a leaf beside `ledgerFold.ts`), labelled lines a player can
+check, `foldScore` its one figure, the weights in `data/rules.json`'s
+`score` block, never in code: the empire's results — towns held, citizens,
+technologies, wonders, beads kept, great people recruited, towns taken by
+force, the age reached, and the Opus itself for its builder — and **what
+the deck produced**, the Ledger's lifetime tally per voice (`ledgerFold`'s
+own reading of the statecraft class over the game, the one the sheet's
+third section prints), each voice weighted. The screen: a full parchment
+sheet on `modalShell` (the H5 rule) that replaces the modal when the Opus
+closes — the winner's figure and people at the head, the Opus named,
+then **the score as its list** in the specimen's tabular columns with the
+fold at the foot, a second column for every other seat's score so the
+table reads as standings, and a line of what the deck paid in each voice
+over the game; a `Continue playing` and a `Back to the title`. The same
+sheet is reachable after the game from the dock (the standings are true
+whether or not the Opus is done — `explainScore` reads any turn). A bot's
+win shows the same sheet with the winner named. Pins: the list and the
+fold on a fixture, the weights read from the sheet, the sheet's rows equal
+the reading's lines, both journeys from the sheet, the modal replaced.
+**A visual-review checkpoint for the user** — screenshot before landing.
+
+**(vvvvv) The Ledger's colours, its name for the deck, and two more charts
+— RULED, L1** (the user, 2026-09-15: *"let's add more colors to the ledger,
+'your deck' should read as statecraft, and the other colors should be
+glanceable. Let's also add great people and religion to the ledger charts
+at the bottom."*). `LEDGER_CLASS_NAME.deck` reads **statecraft** (the user
+overrules rule 7's earlier reading: the word is on the dock already). Each
+Ledger class — the land, buildings, statecraft, religion, great people,
+trade, wonders, other — gets **its own ink** from one palette (a `ledger`
+block in `data/view3d.json`'s UI colours or the specimen's palette file,
+whichever holds the sheet's inks today), used everywhere the class appears:
+the stamp column, the class chips of the second section, the third
+section's rows, and the charts — a legend once at the foot. Inks chosen
+against the parchment for glanceability: distinct hue per class at the
+specimen's saturation, the land earthy, buildings stone, statecraft the
+Order ink, religion the faith ink, great people renown's gold, trade the
+route's teal, wonders the wonder stamp's colour, other the rule grey —
+read the specimen (`docs/design-specimen.html`) and reuse its named inks
+where one exists. The charts at the bottom: today one sparkline per voice
+with the deck's share shaded; now **the deck, great people and religion
+each shaded in their own ink** under the total, stacked from the axis, so
+a glance says which of the three carried the voice — `LedgerSample` gains
+`people` and `religion` per voice beside `deck` (the recorder in `main.ts`
+samples them from `ledgerFold` like the deck), the legend names the three.
+Pins: the class names, the palette has one ink per class and every class
+is drawn with its own, the sample carries the three series, a chart with
+all three stacks them in order. Pixel pair unchanged at play/overview
+(the sheet is closed); a screenshot of the Ledger for the user's eye.
+
 **(ttttt) A recommended site in the settler lens — BUILT, S1** (2026-09-15: `explainSite`/`foldSite` in the new leaf `sites.ts`, `rankSites` the sweep on charted foundable ground above `rules.sites.scoreFloor`, `readSites` the memo on the revision; the bot's site appraisal re-based on the same reading with `siteWorth` and the ring's weights moved from `data/ai.json` to `rules.sites` — both 120-turn digests byte-identical; a pennant atlas family (`settleMarks.ts`) drawn in the lens layer's settler branch on the top `ui.recommendedSites`, knobs on the sheet, a slider in the gallery; the card's Recommended row in plain words. **Sacrifices kept**: the arena lost two per-persona knobs (ring, weights) — one table for everyone; a radius-8 site sweep per revision while a settler is selected, the dearest reading in `readings.ts`; the marker's fold and the bot's total differ by what the bot adds for time, so the board may mark a hex the bot ranks second; `scoreFloor` 70 is a judgement nobody has playtested; the atlas grew a row.) Originally: (the user,
 2026-09-15: *"could we implement a map icon for recommended city settlement
 locations, like in civ? hovering over it should give some indicator (we
