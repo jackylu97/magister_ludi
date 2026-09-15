@@ -189,6 +189,11 @@ export interface StrikeForce {
   spare: number;
   /** The first piece in the force that shoots or lays siege, or `null`. */
   siege: Unit | null;
+  /**
+   * How many pieces shoot or lay siege — the count `war.siegePiecesWanted`
+   * (E1a) is read against; `siege` is the first of them, for the feed.
+   */
+  sieges: number;
 }
 
 export function strikeForce(state: GameState, player: Player, ai: AiConfig): StrikeForce {
@@ -197,10 +202,13 @@ export function strikeForce(state: GameState, player: Player, ai: AiConfig): Str
   for (const city of state.cities) if (city.ownerId === player.id) towns += 1;
   const owed = towns * Math.max(0, ai.military.garrisonPerCity);
   let siege: Unit | null = null;
+  let sieges = 0;
   for (const unit of soldiers) {
-    if (siege === null && isSiegePiece(unitDef(unit.type))) siege = unit;
+    if (!isSiegePiece(unitDef(unit.type))) continue;
+    sieges += 1;
+    if (siege === null) siege = unit;
   }
-  return { soldiers, owed, spare: Math.max(0, soldiers.length - owed), siege };
+  return { soldiers, owed, spare: Math.max(0, soldiers.length - owed), siege, sieges };
 }
 
 /**

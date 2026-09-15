@@ -903,7 +903,7 @@ describe('the levy craves the trade it lacks', () => {
     return candidate(decision!, name);
   }
 
-  const CRAVING = /in this army (?:is|are) \w+, and the mix wants/;
+  const CRAVING = /in this army (?:is|are) \w+, and the (?:defend|campaign) mix wants/;
 
   it('pays a bow a craving in an army of spearmen, and charges the next spearman', () => {
     const melee = army('warrior');
@@ -915,8 +915,8 @@ describe('the levy craves the trade it lacks', () => {
     // spearman is charged everything the other three trades were owed.
     expect(bow!.value).toBeGreaterThan(0);
     expect(spear!.value).toBeLessThan(0);
-    expect(bow!.value).toBeCloseTo(aiJson.military.mixBonus * aiJson.military.mix.ranged, 10);
-    expect(spear!.value).toBeCloseTo(aiJson.military.mixBonus * (aiJson.military.mix.melee - 1), 10);
+    expect(bow!.value).toBeCloseTo(aiJson.military.mixBonus * aiJson.military.mixDefend.ranged, 10);
+    expect(spear!.value).toBeCloseTo(aiJson.military.mixBonus * (aiJson.military.mixDefend.melee - 1), 10);
   });
 
   it('reads the same sentence backwards in an army of bowmen', () => {
@@ -4614,7 +4614,7 @@ describe('the lump, the faith rate and the symmetric margin (batch X12)', () => 
     // reached here by turning one dial rather than by hunting a board: with the
     // node itself worth less than nothing, every unresearched goal folds below
     // zero and whichever one holds the plan is the case in hand.
-    withAiTuning({ weights: { tech: -400 } }, () => {
+    withAiTuning({ weights: { techByAge: [-400, -400, -400, -400] } }, () => {
       const state = bench(1);
       const city = foundCityAt(state, 0, at(state.map, 5, 5));
       recomputeAllVisibility(state);

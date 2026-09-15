@@ -19,7 +19,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { AI } from '../../src/ai/bot';
-import { VOICES, yieldWeight } from '../../src/ai/value';
+import { VOICES, ageBand, yieldWeight } from '../../src/ai/value';
 import { driveBots } from '../../src/ai/driver';
 import { withAiTuning } from '../../src/ai/aiConfig';
 import { type Standing, foldStanding, standingOf } from '../../scripts/gridObjective';
@@ -51,13 +51,13 @@ describe('the grid search’s objective', () => {
       rates: { food: 10, production: 4, gold: 3, science: 7, culture: 1, faith: 0 },
     };
     const folded = foldStanding(standing);
-    let expected = 2 * AI.weights.bead + 5 * AI.weights.tech;
+    let expected = 2 * AI.weights.bead + 5 * ageBand(AI.weights.techByAge, 2);
     for (const voice of VOICES) expected += standing.rates[voice] * yieldWeight(AI, voice, 2);
     expect(folded.total).toBe(expected);
     // And the per-voice columns are the same lines the total is the sum of — the
     // reason they are printed at all is that a degenerate winner (one voice up,
     // five down) has to be visible in the table rather than only in the total.
-    let sum = 2 * AI.weights.bead + 5 * AI.weights.tech;
+    let sum = 2 * AI.weights.bead + 5 * ageBand(AI.weights.techByAge, 2);
     for (const voice of VOICES) sum += folded.voices[voice];
     expect(sum).toBe(folded.total);
   });

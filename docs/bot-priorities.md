@@ -99,10 +99,44 @@ price(c) = clamp( max over wants of marginal_worth_per_unit(c),
 ## Knobs
 
 `data/ai.json`'s `priorities` block, typed in `aiConfig.ts`:
-`horizonTurns 40 · switchMargin 1.1 · priceBandLow 0.5 · priceBandHigh 3.0`.
+`horizonTurns 60 · switchMargin 1.1 · priceBandLow 0.5 · priceBandHigh 3.0`.
 The old threshold knobs the system replaced (gold/faith spend floors and
 reserves, the settler gates, the site-score minimum) are gone; the audit's
 inventory of them is `docs/history/bot-audit.md`.
+
+**The E1a rows** (`docs/plans/bot-evolution.md` §2.8 items 1–3 and the user's
+rows in `docs/flags.md` (zzzzz); every default reproduces the play before them
+— the six-seat 120-turn digests are byte-identical — so each is an arena A/B
+until the tuner's first run):
+
+- **Age rows**, read with `ageBand` (a short row reuses its last entry):
+  `expansion.cityValueFalloffByAge` (was the scalar `cityValueFalloff`; the
+  personas' scalars written four times), `growth.smallCityPop`,
+  `weights.techByAge` (was `weights.tech`).
+- **The war's why**: `war.targetValueWeight` (the target town's `explainSite`
+  reading against `weights.city`, folded into the declaration),
+  `war.goalTowns` (towns taken this war at which a winning seat offers a white
+  peace), `war.aheadMargin`, `war.siegePiecesWanted`, `war.tributeShare`,
+  `war.siegeWithin`.
+- **The levy's shape**: `military.levyCapMultiple`, `military.levySurplusSlope`
+  (one slope for the queue, the purse and the faith book),
+  `military.wildAggression`, `military.siegeStrikeFloor`.
+- **Two mixes by posture**: `military.mixDefend` / `military.mixCampaign`
+  replace `military.mix`; the posture is `campaignPosture` (`bot.ts`) — at war
+  with a real empire the warscore does not say the seat is losing to, with a
+  town of theirs to march on — read off the board, never stored.
+- **The tree by age**: `research.ageEntryValue` scales the priced worth of the
+  seat's *held* luxuries' `fromAge` tiers on the first node of a road that lifts
+  its age (`ageEntryTerm`, `chain.ts`); `research.doorValue` pays the Opus door
+  node while the race is shut.
+- **The wager's shape**: `wager.familyLean` (a multiplier per bead family on
+  the stake score and the lean's worth), `wager.commitMargin` (under it the
+  stake is the least-malice card).
+- **The meter floors** (`meters.happinessFloor` / `authorityFloor`, `-999` =
+  no floor): a founding that would sink a meter under the floor is **refused**
+  in the expansion chain (`ExpansionChain.refused`), never priced.
+- **Retired** (the `weights.die` precedent — a live arena box that moved
+  nothing): `military.huntRadius`, `score.nominalTiles`.
 
 ## Personas and tuning
 

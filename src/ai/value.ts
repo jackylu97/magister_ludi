@@ -722,7 +722,18 @@ export function townProduction(
  * `ValueContext.ai`.
  */
 export function yieldWeight(ai: AiConfig, voice: Voice, age: TechAge): number {
-  const row = ai.weights[voice];
+  return ageBand(ai.weights[voice], age);
+}
+
+/**
+ * **One entry of an age-banded row**, indexed by `TechAge − 1` — the idiom
+ * every weight row has always been read with, named since E1a so the rows the
+ * batch added (`expansion.cityValueFalloffByAge`, `growth.smallCityPop`,
+ * `weights.techByAge`) read exactly as `weights.food` does: a shorter row
+ * reuses its last entry, an empty one reads nought. One reader, so a persona
+ * that writes a three-entry row is treated the same way by every arm.
+ */
+export function ageBand(row: readonly number[], age: TechAge): number {
   const index = Math.min(row.length - 1, Math.max(0, age - 1));
   return row[index] ?? 0;
 }
@@ -1612,7 +1623,9 @@ export function explainBuildingRow(
       terms.push({ label: 'a free piece on completion', value: ctx.ai.weights.military * ctx.ai.score.combatScale });
     } else if (grant.grant === 'tech') {
       terms.push(
-        nest('a free technology, granted once', lumpOfPoints(ctx.ai.weights.tech, ctx)),
+        // Priced at this age's band of `weights.techByAge` (E1a): a free node
+        // is worth what holding one more technology is worth *now*.
+        nest('a free technology, granted once', lumpOfPoints(ageBand(ctx.ai.weights.techByAge, ctx.age), ctx)),
       );
     } else {
       terms.push({ label: `a grant this bot cannot read (${grant.grant})`, value: ctx.ai.score.unknownEffect });

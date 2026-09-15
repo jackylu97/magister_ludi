@@ -206,6 +206,7 @@ import { renewalFoldFor } from './plan';
 import { caravanRefusal, explainCaravan } from './routes';
 import {
   type ValueContext,
+  ageBand,
   buildTurns,
   delayDiscount,
   delayTerm,
@@ -225,12 +226,18 @@ import { type TownFolds, townFolds } from './townFolds';
 
 import { BEAD_RULES } from '../sim/beadData';
 import { BUILDING_IDS, type BuildingId, buildingDef } from '../sim/buildingData';
-import { buildingProductionCost, unitProductionCost } from '../sim/cities';
+import {
+  buildingProductionCost,
+  controlledResources,
+  resourceCopies,
+  unitProductionCost,
+} from '../sim/cities';
 import { authorityOf, happinessOf } from '../sim/meters';
+import { type ResourceEffect, ageLabel, resourceDef } from '../sim/resourceData';
 import { type ProjectId, projectDef } from '../sim/projectData';
 import { type City, type GameState, type Player, realPlayers } from '../sim/state';
 import { buildError, gatingTech, opusOpen, researchExpansion, researchPlan } from '../sim/tech';
-import { type TechId, techDef } from '../sim/techData';
+import { type TechAge, type TechId, techDef } from '../sim/techData';
 import { type UnitTypeId, isCombatant, isExplorer, trades, unitDef } from '../sim/unitData';
 import { round } from './decision';
 import { seatName } from '../sim/leaderData';
@@ -525,6 +532,11 @@ export function techChain(
   const levy = levyReading(ctx);
 
   let owedSoFar = 0;
+  // **The age the road has reached so far** (E1a): the first node that lifts
+  // it is the one that hands the empire its luxuries' next tier, and the term
+  // is printed on that node and no other — a road that crosses into Æra III at
+  // its third node carries one crossing, however many Æra III nodes follow.
+  let ageSoFar = ctx.age;
   for (const node of nodes) {
     if (!held) owedSoFar += techDef(node).cost;
     // **Where this node lands**: the beakers owed for the road *through* it over
@@ -646,6 +658,21 @@ export function techChain(
           : { label: flat.label, value: flat.value * stand.value, parts: [flat, stand] },
       );
     }
+    // **The crossing** (E1a; the user's (i) in `docs/flags.md` (zzzzz)): the
+    // first node of the road that lifts the seat's age carries what its own
+    // luxuries' next tier would pay, scaled by `research.ageEntryValue`. A flat
+    // gift of this node, so it waits for the node like the rest.
+    if (!held && techDef(node).age > ageSoFar) {
+      const entry = ageEntryTerm(ctx, techDef(node).age);
+      if (entry !== null) {
+        giftTerms.push(
+          stand === null
+            ? entry
+            : { label: entry.label, value: entry.value * stand.value, parts: [entry, stand] },
+        );
+      }
+      ageSoFar = techDef(node).age;
+    }
     for (const flat of gifts.undiscounted) giftTerms.push(flat);
     for (const rider of renewalSteps(node, ctx, landing)) {
       for (const term of rider.terms) giftTerms.push(term);
@@ -666,7 +693,9 @@ export function techChain(
   }
   const terms: ValueTerm[] = [nest('what the goal unlocks, step by step', gifts)];
   if (!held) {
-    terms.push({ label: 'holding one more technology', value: ai.weights.tech });
+    // This age's band of `weights.techByAge` (E1a): breadth is worth what the
+    // sheet says it is worth *now*, not one figure for the whole tree.
+    terms.push({ label: 'holding one more technology', value: ageBand(ai.weights.techByAge, ctx.age) });
     // **Printed, and folded at nothing** (batch X1b; the user's ruling of
     // 2026-09-09, `docs/flags.md` item (ggg)). The beakers are not a cost — they
     // are a *wait*, and the wait is already charged: `researchDelay` is this very
@@ -974,7 +1003,128 @@ function readNodeGifts(ctx: ValueContext, node: TechId, levy: LevyReading, folds
   if (effects.length > 0) {
     flat.push(nest('the rules the node itself carries', explainEffects(effects, ctx)));
   }
+  // **The door** (E1a, `docs/plans/bot-evolution.md` §2.3): the node that opens
+  // the great work for the world earns `research.doorValue` for being the door,
+  // while nobody in the world holds it. Once the race is open the bead chain's
+  // own clock is the reading and this term withdraws. Off at nought, so the
+  // node prints exactly what it printed before the row existed.
+  if (ai.research.doorValue > 0 && !opusOpen(ctx.state)) {
+    const opus = opusRow();
+    if (opus !== null && gatingTech('building', opus) === node) {
+      flat.push({
+        label: 'the door to the great work, while nobody in the world holds it',
+        value: ai.research.doorValue,
+      });
+    }
+  }
   return { units, buildings, flat, undiscounted };
+}
+
+/**
+ * **What entering `age` is worth to this seat, read off its own luxuries** —
+ * the user's (i) (`docs/flags.md` (zzzzz)): *"valuing entering age 3 with the
+ * value of all the luxury resources they have"*.
+ *
+ * Every luxury row is a list of effects and the later tiers carry `fromAge`
+ * (`docs/luxuries.md`); the turn a seat's first node of that age lands, every
+ * such tier on every seam it controls switches on at once. So the crossing is
+ * priced as the sum of those tiers, each read the way the bot reads a card's
+ * effect — the yields at the seat's live prices, a happiness or a writ at the
+ * meter's weight, renown at its weight, and a shape this bot has no reading of
+ * at `score.unknownEffect` (never nought: an unread tier is still a tier) —
+ * scaled by `research.ageEntryValue`. `perCopy` tiers scale by the seams held
+ * (`resourceCopies`, the same count the meter uses), which is the one place a
+ * second seam of silver is worth a second reading.
+ *
+ * `null` when the row is nought or the seat holds no such luxury: then the
+ * crossing is worth only the flat per-node worth every technology carries
+ * (`weights.techByAge`), which is the ruling's own clause. The luxuries are read
+ * off `controlledResources` — what the seat *holds*, never what stands on the
+ * map — so a seat that has yet to improve its seams is not paid for them.
+ */
+function ageEntryTerm(ctx: ValueContext, age: TechAge): ValueTerm | null {
+  const scale = ctx.ai.research.ageEntryValue;
+  if (scale <= 0) return null;
+  const state = ctx.state;
+  const held = controlledResources(state, ctx.playerId, 'luxury');
+  if (held.length === 0) return null;
+  let population = 0;
+  for (const city of state.cities) if (city.ownerId === ctx.playerId) population += city.population;
+  const towns = Math.max(1, ctx.cities);
+  const parts: ValueTerm[] = [];
+  for (const id of held) {
+    for (const effect of resourceDef(id).effects ?? []) {
+      if (effect.fromAge !== age) continue;
+      const copies = effect.perCopy ? resourceCopies(state, ctx.playerId, id) : 1;
+      const tier = luxuryTierWorth(effect, ctx, towns, population);
+      parts.push({
+        label:
+          `${resourceDef(id).name}'s ${ageLabel(effect.fromAge)} tier (${effect.kind})` +
+          (copies !== 1 ? ` × ${copies} seams` : ''),
+        value: tier.value * copies,
+        parts: tier.parts,
+      });
+    }
+  }
+  if (parts.length === 0) return null;
+  const tiers = appraise(parts);
+  return {
+    label: `entering ${ageLabel(age)} switches on ${parts.length} luxury tier${parts.length === 1 ? '' : 's'} this empire holds × ${ctx.ai.research.ageEntryValue}`,
+    value: tiers.total * scale,
+    parts: [...tiers.terms, { label: `× ${scale} — research.ageEntryValue`, value: scale, op: 'mul' }],
+  };
+}
+
+/** One luxury tier at the bot's own prices. See `ageEntryTerm` for the shapes read. */
+function luxuryTierWorth(
+  effect: ResourceEffect,
+  ctx: ValueContext,
+  towns: number,
+  population: number,
+): { value: number; parts?: ValueTerm[] } {
+  const ai = ctx.ai;
+  switch (effect.kind) {
+    case 'perCityYields': {
+      const count = effect.scope === 'owner' ? 1 : towns;
+      const yields = explainYields(bagOf(effect), ctx);
+      return { value: yields.total * count, parts: [...yields.terms, { label: `× ${count} towns`, value: count, op: 'mul' }] };
+    }
+    case 'perPopulationYields': {
+      const yields = explainYields(bagOf(effect), ctx);
+      return { value: yields.total * population, parts: [...yields.terms, { label: `× ${population} citizens`, value: population, op: 'mul' }] };
+    }
+    case 'pays': {
+      const yields = explainYields(bagOf(effect), ctx);
+      return { value: yields.total, parts: yields.terms };
+    }
+    case 'extraHappiness':
+      return { value: effect.amount * (effect.per === undefined ? 1 : towns) * ai.weights.happiness };
+    case 'authority':
+      return { value: effect.amount * (effect.per === undefined ? 1 : towns) * ai.weights.authority };
+    case 'renownPerCity':
+      return { value: effect.amount * towns * ai.weights.renown };
+    default:
+      return { value: ai.score.unknownEffect };
+  }
+}
+
+/** The six-voice bag an effect carries on itself, as `explainYields` reads one. */
+function bagOf(effect: {
+  food?: number;
+  production?: number;
+  gold?: number;
+  science?: number;
+  culture?: number;
+  faith?: number;
+}): { food?: number; production?: number; gold?: number; science?: number; culture?: number; faith?: number } {
+  return {
+    food: effect.food,
+    production: effect.production,
+    gold: effect.gold,
+    science: effect.science,
+    culture: effect.culture,
+    faith: effect.faith,
+  };
 }
 
 /**
@@ -1320,9 +1470,47 @@ export interface ExpansionChain {
   stepsRemaining: number;
   /** True when the site walk is refused for want of a piece walking alongside. */
   escortNeeded: boolean;
+  /**
+   * **The meter floor's sentence, when founding would break one** (E1a; the
+   * user's (iii), `docs/flags.md` (zzzzz)) — else `null`. A refused chain
+   * carries no steps and is worth nothing, so every settler reader (the queue,
+   * the purse, the escort) reads *nothing to raise* through the share it
+   * already folds; it is a chain rather than a `null` because a `null` chain is
+   * "no legal site", and the settler branch prices that at the undiscounted
+   * town — the opposite of a refusal.
+   */
+  refused: string | null;
   /** The fold of `terms`, and never anything else. */
   worth: number;
   terms: ValueTerm[];
+}
+
+/**
+ * **Would founding here push a meter under the seat's floor?** — the one reader
+ * of `meters.happinessFloor` / `meters.authorityFloor` for the next town.
+ *
+ * A refusal, not a price: the chain already charges the over-spend at the
+ * meter's live price (`explainMeterCall`), and a price is an argument a large
+ * enough payoff wins. The floor is the sentence *not past here*, read off the
+ * founding's own cost lines (`explainFoundingCost`, the probe's `costs`) against
+ * the meter as it stands. `-999` on the sheet is "no floor" (`AiConfig.meters`).
+ */
+function meterFloorRefusal(
+  state: GameState,
+  player: Player,
+  ctx: ValueContext,
+  probe: SiteProbe,
+): string | null {
+  const floors = ctx.ai.meters;
+  const happiness = happinessOf(state, player.id) - probe.costs.happiness;
+  if (happiness < floors.happinessFloor) {
+    return `founding would leave happiness at ${round(happiness)}, under the ${floors.happinessFloor} this seat will not go below`;
+  }
+  const authority = authorityOf(state, player.id) - probe.costs.authority;
+  if (authority < floors.authorityFloor) {
+    return `founding would leave authority at ${round(authority)}, under the ${floors.authorityFloor} this seat will not go below`;
+  }
+  return null;
 }
 
 /** The escort step's id — a step no roster row is named by. See `expansionChain`. */
@@ -1343,6 +1531,30 @@ export function expansionChain(
   const buildDelay = settler.walking ? 0 : buildTurns(price, ctx);
   const walkDelay = Math.ceil(probe.distance / Math.max(1, def.movement));
   const delay = buildDelay + walkDelay;
+
+  // **The floor, before the price** (E1a): a founding that would sink a meter
+  // under the sheet's floor is refused here, with its sentence, and nothing
+  // below is asked. See `ExpansionChain.refused` for why this is a chain and
+  // not a `null`.
+  const refusal = meterFloorRefusal(state, player, ctx, probe);
+  if (refusal !== null) {
+    return {
+      site: probe,
+      settler: settler.id,
+      hammers,
+      buildDelay,
+      walkDelay,
+      delay,
+      short: { authority: 0, happiness: 0 },
+      payoff: 0,
+      steps: [],
+      stepsRemaining: 0,
+      escortNeeded: false,
+      refused: refusal,
+      worth: 0,
+      terms: [{ label: `refused — ${refusal}`, value: 0 }],
+    };
+  }
 
   const town = appraise([
     nest('a town, before the engines it would join', explainNextTown(state, player, ctx)),
@@ -1493,6 +1705,7 @@ export function expansionChain(
     steps,
     stepsRemaining: steps.length,
     escortNeeded: probe.dangerous,
+    refused: null,
     worth: foldTerms(terms),
     terms,
   };
@@ -1605,7 +1818,7 @@ export function expansionStepShare(chain: ExpansionChain): number {
 /**
  * **What the next town is worth to an empire that already holds some.**
  *
- * `weights.city × cityValueFalloff^towns`, and the falloff is the honest tall
+ * `weights.city × cityValueFalloffByAge[age]^towns`, and the falloff is the honest tall
  * lever: before it, a settler was a flat eighty-eight points for every empire on
  * every board, so "tall" could only ever be spelled as a *cap* — which says
  * *this empire does not want a sixth town at all* rather than *a sixth town is
@@ -1625,7 +1838,10 @@ export function explainNextTown(state: GameState, player: Player, ctx: ValueCont
   for (const city of state.cities) {
     if (city.ownerId === player.id) held += 1;
   }
-  const falloff = ctx.ai.expansion.cityValueFalloff;
+  // **The falloff is this age's band** (E1a, `docs/plans/bot-evolution.md`
+  // §2.2): when expansion stops is a curve over the game, and the row is where
+  // a sheet draws it. Read with the weight rows' own idiom (`ageBand`).
+  const falloff = ageBand(ctx.ai.expansion.cityValueFalloffByAge, ctx.age);
   const terms: ValueTerm[] = [
     { label: 'a town, before what this empire already holds', value: ctx.ai.weights.city },
   ];

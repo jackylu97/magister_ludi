@@ -30,7 +30,7 @@
  *
  * The objective is the game's own currency, folded at the final turn:
  *
- *     beads × weights.bead + techs × weights.tech + Σ voice rates × weights[voice][age]
+ *     beads × weights.bead + techs × weights.techByAge[age] + Σ voice rates × weights[voice][age]
  *
  * which is the same reading the arena's meters take (`foldEmpireRates` for the
  * four banked voices, the towns' own `foldCity` summed for food and hammers,

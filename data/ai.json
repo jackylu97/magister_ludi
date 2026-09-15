@@ -19,7 +19,12 @@
   },
   "expansion": {
     "siteSearchRadius": 8,
-    "cityValueFalloff": 0.9,
+    "cityValueFalloffByAge": [
+      0.9,
+      0.9,
+      0.9,
+      0.9
+    ],
     "hexOffersPriced": 4
   },
   "site": {
@@ -47,7 +52,12 @@
     "workDefenseValue": 0.6
   },
   "growth": {
-    "smallCityPop": 9,
+    "smallCityPop": [
+      9,
+      9,
+      9,
+      9
+    ],
     "smallCityPremium": 9
   },
   "military": {
@@ -55,13 +65,21 @@
     "garrisonPerCity": 1,
     "armyPerCity": 2,
     "aggression": 0,
-    "huntRadius": 8,
+    "wildAggression": 0,
+    "levyCapMultiple": 2,
+    "levySurplusSlope": 1,
     "scoutCap": 3,
     "scoutEarlyTurns": 40,
     "scoutBonus": 55,
     "scoutGlutPenalty": 400,
     "scoutDecayPerTurn": 0.05,
-    "mix": {
+    "mixDefend": {
+      "melee": 0.4,
+      "ranged": 0.3,
+      "mounted": 0.2,
+      "siege": 0.1
+    },
+    "mixCampaign": {
       "melee": 0.4,
       "ranged": 0.3,
       "mounted": 0.2,
@@ -72,6 +90,7 @@
     "rangedDeferral": 25,
     "strikeFloor": 1,
     "hardTargetMargin": 1.2,
+    "siegeStrikeFloor": 0,
     "withdrawBelowHealth": 0.35,
     "screenRadius": 3,
     "screenBonus": 30,
@@ -86,6 +105,12 @@
     "expeditionOdds": 1,
     "roadDragPerStep": 0.05,
     "strikeForce": 4,
+    "siegePiecesWanted": 1,
+    "siegeWithin": 1,
+    "targetValueWeight": 0,
+    "goalTowns": 0,
+    "aheadMargin": 1,
+    "tributeShare": 1,
     "musterDistance": 3,
     "musterRadius": 2,
     "siegeExchange": 0.7,
@@ -143,7 +168,12 @@
     ],
     "bead": 250,
     "victory": 1500,
-    "tech": 14,
+    "techByAge": [
+      14,
+      14,
+      14,
+      14
+    ],
     "city": 200,
     "military": 2,
     "unitEdge": 5,
@@ -152,6 +182,10 @@
     "renown": 2,
     "worker": 80,
     "debtAversion": 4
+  },
+  "meters": {
+    "happinessFloor": -999,
+    "authorityFloor": -999
   },
   "solvency": {
     "healthyIncome": 6,
@@ -167,7 +201,6 @@
     "unknownEffect": 2,
     "caravanScale": 3,
     "nominalCount": 3,
-    "nominalTiles": 3,
     "synergyBonus": 14,
     "combatScale": 7.5,
     "patienceTurns": 10,
@@ -193,7 +226,9 @@
   "research": {
     "goalHorizon": 6,
     "abilityValue": 20,
-    "strandWeight": 0.35
+    "strandWeight": 0.35,
+    "ageEntryValue": 0,
+    "doorValue": 0
   },
   "religion": {
     "prophetTechValue": 600,
@@ -203,7 +238,14 @@
     "ageTurns": 32,
     "malicePenalty": 0,
     "leanWeight": 1,
-    "driftWeight": 1
+    "driftWeight": 1,
+    "familyLean": {
+      "domination": 1,
+      "culture": 1,
+      "science": 1,
+      "economic": 1
+    },
+    "commitMargin": 0
   },
   "puppet": {
     "switchMargin": 0.1,
@@ -238,15 +280,33 @@
         "declareThresholdPeaceful": 3.2
       },
       "expansion": {
-        "cityValueFalloff": 1
+        "cityValueFalloffByAge": [
+          1,
+          1,
+          1,
+          1
+        ]
       },
       "weights": {
         "city": 273,
         "worker": 90
       },
       "growth": {
-        "smallCityPop": 6,
+        "smallCityPop": [
+          6,
+          6,
+          6,
+          6
+        ],
         "smallCityPremium": 5
+      },
+      "wager": {
+        "familyLean": {
+          "domination": 1,
+          "culture": 1,
+          "science": 1,
+          "economic": 1
+        }
       }
     },
     "tall": {
@@ -256,7 +316,12 @@
         "acceptCeiling": 60
       },
       "expansion": {
-        "cityValueFalloff": 0.6
+        "cityValueFalloffByAge": [
+          0.6,
+          0.6,
+          0.6,
+          0.6
+        ]
       },
       "weights": {
         "city": 145,
@@ -269,11 +334,24 @@
         "happiness": 16
       },
       "growth": {
-        "smallCityPop": 12,
+        "smallCityPop": [
+          12,
+          12,
+          12,
+          12
+        ],
         "smallCityPremium": 16
       },
       "workers": {
         "planTopN": 6
+      },
+      "wager": {
+        "familyLean": {
+          "domination": 1,
+          "culture": 1,
+          "science": 1,
+          "economic": 1
+        }
       }
     },
     "zealot": {
@@ -313,10 +391,15 @@
       },
       "military": {
         "aggression": 0.6,
-        "huntRadius": 10,
         "armyPerCity": 4,
         "campHuntRadius": 9,
-        "mix": {
+        "mixDefend": {
+          "melee": 0.35,
+          "ranged": 0.3,
+          "mounted": 0.2,
+          "siege": 0.15
+        },
+        "mixCampaign": {
           "melee": 0.35,
           "ranged": 0.3,
           "mounted": 0.2,
@@ -329,6 +412,14 @@
         "techMilitaryFactor": 4,
         "extraArmyPerThreat": 2,
         "sightedArmyCap": 6
+      },
+      "wager": {
+        "familyLean": {
+          "domination": 1,
+          "culture": 1,
+          "science": 1,
+          "economic": 1
+        }
       }
     }
   }
