@@ -234,6 +234,30 @@ gets no stand-in; `benchmarkTerrain` gained a parked-overview scenario
 first in its results. **Follow-up row**: an unnamed scene layer is the
 second-largest far-view contributor (410k triangles over 27,855
 instances) — name and attribute it (P10).
+**Landed — P10** (2026-09-15): measured first — P1's 53–184 ms a unit
+step is gone with P3's caches (the five town layers fire only on their
+own fingerprints; a step is 14–77 ms, the dearest row the units layer,
+P2/P5's seam, untouched); the board sheds `paintedReservationDistance`
+(four million zeroes, the material states the zero) and the merged land's
+`uv` (derived from position through three's BUMPMAP_UV macro) —
+213.3 → 182.7 MiB of arrays, byte-identical pixels; `signPaintedWorks`
+folds integers (−38 %); a fog flip's region rebuild is pinned by count;
+the unnamed far layer was two — the unit pieces (58 % of an omniscient
+overview's triangles; at the player's own view a fifth of that) and the
+fog chart (25k paper instances in four draws) — and every scene layer is
+named now (`SCENE_LAYER_NAMES`, a source register). The benchmark
+fixtures were regenerated at schema 116. **Not taken, with numbers**:
+`turfWeight` (13.3 MiB, needs the fog texture's alpha — F1's file),
+the uniformly-zero suppress batches (0.6 MiB), the works layer's wash as
+an instanced attribute, the lens (2–3 ms a step). **For the user**: the
+unit pieces are the far view's biggest row; cutting them means a
+map-scale stand-in per unit family or dropping the outline hull and
+x-ray ghost beyond the LOD band (the ghost is what makes a piece behind a
+peak findable) — an art call. **Sacrifices kept**: the board depends on
+three's `defaultAttributeValues` path and on the BUMPMAP_UV macro's name
+(pinned); a second uv-reading map on the merged land would read (0,0)
+silently; the works guard asks resource visibility once a row (an empire
+fact today; a per-hex reveal rule must undo it).
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between

@@ -1,11 +1,23 @@
-import {afterEach, describe, expect, it, vi} from 'vitest';
+import {type MockInstance, afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {Renderer3D} from '../../src/render3d/renderer3d';
-import {buildPaintedBoardAsync, type PaintedBuildMetrics} from '../../src/render3d/paintedBoardAsync.js';
+import * as boardAsync from '../../src/render3d/paintedBoardAsync.js';
+import {type PaintedBuildMetrics} from '../../src/render3d/paintedBoardAsync.js';
 import {type PaintedBoard} from '../../src/render3d/paintedBoard.js';
 import {createMap} from '../../src/sim/map';
 
-vi.mock('../../src/render3d/paintedBoardAsync.js', () => ({buildPaintedBoardAsync: vi.fn()}));
-afterEach(() => {vi.resetAllMocks();});
+// **A spy on the export, never `vi.mock`.** The suite runs with `isolate: false`
+// (`vite.config.ts` says why), so a file's `vi.mock` cannot rewire a module the
+// previous file in the same fork already evaluated — `renderer3d` kept its real
+// binding and `preparePaintedMap` ran the real builder against the fixture's
+// empty assets. A spy on the namespace is what the repo does everywhere
+// (`test/ui/topBarCost.test.ts`), and it is restored after every case.
+let buildPaintedBoardAsync: MockInstance<typeof boardAsync.buildPaintedBoardAsync>;
+beforeEach(() => {
+  buildPaintedBoardAsync = vi.spyOn(boardAsync, 'buildPaintedBoardAsync').mockImplementation(
+    () => Promise.reject(new Error('unstubbed build')),
+  );
+});
+afterEach(() => {vi.restoreAllMocks();});
 const metrics: PaintedBuildMetrics = {mode:'worker',totalMs:10,workerMs:9,hydrateMs:1,frameCount:3,maxFrameGapMs:16};
 function fixture() {
   // Exercise renderer handover without creating a GPU or browser canvas.

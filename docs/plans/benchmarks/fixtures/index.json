@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/terrain-study/check-fixtures.mjs",
-  "schemaVersion": 115,
+  "schemaVersion": 116,
   "checks": "same seed and turn count → identical payload hash; every payload replays through loadSave; populations read off the replayed state",
   "fixtures": [
     {
@@ -10,10 +10,10 @@
       "size": "standard",
       "seats": 4,
       "turns": 8,
-      "buildMs": 5524,
+      "buildMs": 2052,
       "commands": 84,
       "bytes": 4996,
-      "payloadSha256": "80f75356f7784203903e3dbf6f0a31a552ef9190cef6d5863247811cebf9682f",
+      "payloadSha256": "c36f1461d00a38fb951e44584c9498ed0aa51e5ff019fce34f6a0d5b397a9b66",
       "deterministic": true,
       "replays": true,
       "population": {
@@ -42,10 +42,10 @@
       "size": "standard",
       "seats": 6,
       "turns": 120,
-      "buildMs": 215010,
+      "buildMs": 269028,
       "commands": 4407,
       "bytes": 298647,
-      "payloadSha256": "6c58ecc799b77f8e88f17b9efbc0f47d0b71e4906989b6d8bdcb6a8d73d44600",
+      "payloadSha256": "85c3f1ed2436877478e08c53058454a96ef7b6173dc0450eb29944c7831baa48",
       "deterministic": null,
       "replays": true,
       "population": {
@@ -86,10 +86,10 @@
       "size": "large",
       "seats": 8,
       "turns": 120,
-      "buildMs": 563543,
+      "buildMs": 396782,
       "commands": 6971,
       "bytes": 490508,
-      "payloadSha256": "f75440ad75c6427ed05eeef277f940f6b446c54a3c7e30f07fdc69c0c800a396",
+      "payloadSha256": "7685065a307d149208ada84789bcfb92d22b4ba6264f15e46fd75d0e502fab62",
       "deterministic": null,
       "replays": true,
       "population": {
