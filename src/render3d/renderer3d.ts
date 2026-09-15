@@ -118,6 +118,7 @@ import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 import { createPaintedLook, type PaintedLook } from './paintedLook.js';
 import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
+import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
@@ -1423,7 +1424,11 @@ export class Renderer3D implements MapView {
     }
     if (!this.board || !this.map) return;
     this.fog = new FogView(this.map, this.board.tiles);
-    this.fog.buildChart(this.geometry, this.materials, this.icons);
+    // The painted board draws its own paper — a lit surface that takes the
+    // relief's shadows — so this layer contributes the marginalia and nothing
+    // else, planted on that page rather than on the vellum it replaces.
+    this.fog.buildChart(this.geometry, this.materials, this.icons,
+      this.paintedBoard ? { datum: PAINTED_CHART.lift } : null);
     this.fog.group.name = 'fog';
     this.scene.add(this.fog.group);
     this.applyFog();
@@ -1466,11 +1471,14 @@ export class Renderer3D implements MapView {
    * Repaints the board for the current seat's visibility, and returns what that
    * cost. Per-instance writes only; see `fog3d.ts`.
    */
-  private applyFog(): FogStats | null {
+  private applyFog(eased = false): FogStats | null {
     const levels = this.fogLevels();
     if (this.paintedBoard) {
       const revision = this.paintedBoard.shadowRevision;
-      this.paintedBoard.applyFog(levels);
+      // The clock is offered only where a person is watching a hex change hands
+      // — a march, a turn resolving. A seat change and a board build arrive
+      // whole: there is no "before" on the table to ease away from.
+      this.paintedBoard.applyFog(levels, eased ? performance.now() : undefined);
       if (revision !== this.paintedBoard.shadowRevision) this.paintedLook?.invalidateShadows();
     }
     if (!this.fog || (!levels && !this.paintedLook)) return null;
@@ -1560,6 +1568,10 @@ export class Renderer3D implements MapView {
       const board = this.paintedBoard;
       this.paintedLook!.setBakeDetail(active => board.setBakeDetail(active));
       this.paintedLook!.fitShadows(this.board.bounds, this.board.wrapWidth);
+      // The uncharted register, once per board: the paper the diorama is set
+      // down on. Registered with the painterly style first, so the page wears
+      // the same grain as everything else on the table.
+      board.createChartTable(material => this.paintedLook!.registerMaterial(material));
     } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything
@@ -2999,7 +3011,7 @@ export class Renderer3D implements MapView {
     // Commands mutate state in place and invalidate the view. Fingerprints
     // catch all visual changes at that boundary; animation-only frames reuse
     // the resulting buffers. Fog is applied before content visibility checks.
-    const fogged = this.applyFog();
+    const fogged = this.applyFog(true);
     if (fogged) this.lastFogStats = fogged;
     // And the seat's *knowledge*, on the same frame and for the same reason: a
     // technology finished this turn reveals ore that was drawn on the board all
@@ -3157,7 +3169,15 @@ export class Renderer3D implements MapView {
     // way a walker or a moving camera does — one number, sampled here, so the
     // render-on-demand loop goes back to idle the instant the fade lands.
     const fading = this.vignette.step(now);
-    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading) return;
+    // The fog's own ease, on the same footing as a walker or a fading wash: a
+    // hex that changed register is on its way from one register to the other,
+    // and the frames between are the reveal. The question is asked *before* the
+    // step and not after it, exactly as `hadWalkers` is: the frame that settles
+    // the last cell wrote the texels that finish the picture, and a gate reading
+    // what is left over would throw that frame away.
+    const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
+    if (revealing) this.paintedBoard!.advanceReveal(now);
+    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading && !revealing) return;
 
     const refreshState = this.dirty;
     this.dirty = false;

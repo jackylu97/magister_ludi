@@ -57,7 +57,7 @@ the H5 rule, wears `.statecraft-overlay`, and stays up until
 Cancel yet (P7's sacrifice #3 stands; ▢ the user). Fidelity: the settled
 frame is untouched — a pixel-identical play/overview pair.
 
-**(ddddd) The shadowed fog lands — QUEUED** (the user, 2026-09-14: *"please
+**(ddddd) The shadowed fog lands — BUILT, awaiting the user's eye** (the user, 2026-09-14: *"please
 also queue up the shadowed fog implementation, i'll let you sequence before
 or after the fog performance pass"*). Sequenced **after P5** (the shadows
 batch in flight), because the study's second pass on branch `fog-study` is
@@ -69,6 +69,23 @@ uncommitted second pass with main, delete the drawn and bleed treatments,
 (a fog texel change rebuilds five layers) with it, and `docs/plans/
 painted-fog-study.md` becomes the record. A visual-review checkpoint for
 the user before it lands — it is the look of half the map.
+**F1 built it** (2026-09-15): remembered ground keeps its pigment and its
+geometry and sits in shadow; uncharted ground is the chart table, a lit
+paper plane at the ground datum that takes the relief's cast shadows and
+rules its own hexes, and takes the sun's shadow but **not its colour** (the
+peach page is fixed by folding the light to one luminance before it touches
+the page); the reveal eases over `revealMs` off an absolute stamp. Audit
+finding 2's fog half is held by test: a remembered ⇄ visible change is a
+light-texture write — no batch visibility, no geometry, no rebake — and
+only a hex crossing out of the dark costs one bake, as it did before.
+The drawn and bleed treatments, the old painted wash and the `treatment`
+knob are deleted; `data/view3d.json`'s `painted.fog` group is the whole of
+what is left, registered by `paintedKnobs`. Fidelity: the omniscient board
+is pixel-identical (0.000% of the frame); watched ground is identical
+beyond a quarter-hex of a sight frontier (0.000%), and inside that band
+0.19% of watched pixels at play and 0.64% after a march — the soft light
+edge the ruling asks for. Fogged ground differs by design: 1.4% of the play
+frame, 12.4% after a march. Review images: `.claude/scratch/f1/`.
 
 
 **(aaaaa) The painted renderer's performance pass — RULED, P-series** (the

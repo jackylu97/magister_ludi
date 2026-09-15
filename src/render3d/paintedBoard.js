@@ -10,7 +10,8 @@ import { openLandTree, stoneCluster } from '../terrainStudy/groundDressing.js';
 import { createMountainRanges } from '../terrainStudy/mountainRanges.js';
 import { indexGeometry } from '../terrainStudy/indexGeometry.js';
 import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap } from '../terrainStudy/surface.js';
-import { createPaintedFog, paintedFogMaterial, paintedFogDepth } from './paintedFog.js';
+import { createPaintedFog, paintedFogMaterial, paintedFogDepth, paintedChartMaterial } from './paintedFog.js';
+import { PAINTED_CHART, paintedChartGeometry } from './paintedFogLook';
 import { VIEW3D } from './lookData';
 
 const axis = new T.Vector3(0, 1, 0);
@@ -401,7 +402,48 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     if (object.isInstancedMesh) instanceBytes += object.instanceMatrix.array.byteLength + (object.instanceColor?.array.byteLength || 0);
   });
   return {
-    group, renderMap, pickMeshes, fogTexture: fog.texture,
+    group, renderMap, pickMeshes, fogTexture: fog.texture, fogUniforms: fog.uniforms,
+    /**
+     * The table's paper: one merged hexagon fan at the ground datum that draws
+     * only where the board discards, wears the world-space grain and a ruled
+     * hex, and **receives the explored relief's cast shadows** — the whole point
+     * of it being a surface instead of a marker.
+     *
+     * Built on demand rather than in the board, because the paper is the *fog's*
+     * half of the picture and the fog layer is what owns it: the renderer asks
+     * once per board, right after it has one, and hands it the painterly style
+     * to register so the page takes the same grain as everything else on the
+     * table. `register` runs before the fog hooks go on, so the style's own
+     * `onBeforeCompile` is the one the chart installer chains from.
+     */
+    createChartTable(register) {
+      // White, and the page's own colour on the vertices: the margin's sea wash
+      // varies hex by hex, so the paper is a vertex-coloured surface and a tint
+      // on the material as well would multiply the cream by itself.
+      const material = new T.MeshStandardMaterial({
+        color: 0xffffff, roughness: .95, metalness: 0, vertexColors: true,
+      });
+      register?.(material);
+      paintedChartMaterial(material, fog);
+      ownedMaterials.set(material, material);
+      const geometry = paintedChartGeometry(renderMap.tiles.map(tile => ({
+        col: tile.col, row: tile.row, water: isWater(tile),
+      })), map.width, map.height, PAINTED_CHART.lift, PAINTED_CHART.sea);
+      ownedGeometry.add(geometry);
+      const mesh = new T.Mesh(geometry, material);
+      mesh.receiveShadow = true; mesh.castShadow = false;
+      mesh.name = 'painted-chart-table';
+      // Outside `visibilityBatches` on purpose: every other batch is hidden
+      // while its hexes are uncharted and the paper is the one thing that is
+      // drawn *because* they are. One clone a wrap copy, and never touched again.
+      for (const copy of copies) {
+        const placed = copy === copies[1] ? mesh : mesh.clone();
+        placed.matrixAutoUpdate = false; placed.matrixWorldAutoUpdate = false;
+        copy.add(placed);
+      }
+      group.updateMatrixWorld(true);
+      return mesh;
+    },
     // Canonical batches only. Wrapping, shader hooks and fog callbacks are
     // rebound by the consumer, never serialized as Three.js scene objects.
     exportBatches() {
@@ -429,12 +471,29 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       return count;
     },
     get drawCalls() { return copies[1].children.filter(mesh => mesh.visible).length * copies.length; },
-    applyFog(levels) {
+    /**
+     * `at` is the reveal's clock, in milliseconds. Without one every register
+     * change arrives whole — a seat change, a headless test; with one the paper
+     * dissolves and the sun comes up over `paintedFog.revealMs`, driven by
+     * `advanceReveal` and writing nothing but texels either way.
+     *
+     * Note what is *not* here: a hex going from remembered to visible changes no
+     * batch's visibility and no geometry at all — it is one texel on the light
+     * field — so `shadowRevision` does not move and nothing is rebaked. Only a
+     * hex crossing out of the dark is new geometry, and only that asks for a
+     * bake. See `docs/plans/painted-fog-study.md`.
+     */
+    applyFog(levels, at) {
       if (disposed) return 0;
-      const revision = fog.shadowRevision, changed = fog.apply(levels);
+      const revision = fog.shadowRevision, changed = fog.apply(levels, at);
       if (revision !== fog.shadowRevision) refreshVisibility();
       return changed;
     },
+    advanceReveal(now) { return disposed ? 0 : fog.advanceReveal(now); },
+    get revealMs() { return fog.revealMs; },
+    set revealMs(value) { fog.revealMs = value; },
+    get revealStamps() { return fog.revealStamps; },
+    get revealing() { return disposed ? 0 : fog.revealing; },
     suppressTile(cell, scope) { return !disposed && fog.suppress(cell, scope); },
     unsuppressTile(cell) { return !disposed && fog.unsuppress(cell); },
     reserveFootprints(radii) {

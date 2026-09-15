@@ -30,7 +30,9 @@
     "brass": "#c2a35c",
     "chartWash": "#b3ab99",
     "warRed": "#9b1b3a",
-    "wildRed": "#7a1f2b"
+    "wildRed": "#7a1f2b",
+    "cream": "#efe3c8",
+    "inkBlue": "#5d7fd6"
   },
   "terrainColor": {
     "ocean": "lagoon",
@@ -1079,6 +1081,22 @@
       "paintedBlendIntensity": 0.12,
       "fadeStartPixels": 1.5,
       "fadeRangePixels": 1.5
+    },
+    "fog": {
+      "paper": "cream",
+      "ink": "inkBlue",
+      "sunFalloff": 0.5,
+      "revealMs": 300,
+      "shadowedSun": 0.35,
+      "shadowedCool": 0.22,
+      "shadowedShade": 0.88,
+      "chartRule": 0.22,
+      "ruleWidth": 0.055,
+      "chartLift": 0.055,
+      "chartSea": "teal",
+      "chartSeaMix": 0.35,
+      "chartSeaRegion": 2,
+      "chartSoak": 7
     }
   }
 }

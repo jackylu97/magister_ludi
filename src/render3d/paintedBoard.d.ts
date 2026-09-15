@@ -46,11 +46,20 @@ export interface PaintedBoard extends BuiltBoard {
   renderMap: GameMap;
   pickMeshes: Mesh[];
   fogTexture: DataTexture;
+  /** The register's live knobs, so a review page can move one without a rebuild. */
+  fogUniforms: Record<string, { value: unknown }>;
   readonly shadowRevision: number;
   geometryBytes: number;
   instanceBytes: number;
   readonly triangleCount: number;
-  applyFog(levels: ArrayLike<number> | null): number;
+  applyFog(levels: ArrayLike<number> | null, at?: number): number;
+  /** Walks the eased reveals. Returns how many cells are still moving. */
+  advanceReveal(now: number): number;
+  revealMs: number;
+  readonly revealStamps: number;
+  readonly revealing: number;
+  /** The uncharted register's paper. Added to the board's own wrap copies. */
+  createChartTable(register?: (material: MeshStandardMaterial) => unknown): Mesh;
   reserveFootprints(radii: ReadonlyMap<number,number>): number;
   isCellVisible(cell: number, grade?: number): boolean;
   updateDetail(pixels: number): boolean;
