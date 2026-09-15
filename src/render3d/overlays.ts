@@ -62,7 +62,7 @@ import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instan
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
-import { movementEdges, movementBoundaryGeometry } from './movementBoundary';
+import { movementEdges, movementFrontier, frontierRibbon } from './movementBoundary';
 
 const OVERLAY = VIEW3D.overlay;
 const TERRITORY = VIEW3D.territory;
@@ -297,9 +297,12 @@ export class OverlayLayer {
       this.boundary.forEach(g => g.dispose()); this.boundary = [];
       this.boundaryMap = map; this.boundaryKey = boundaryKey;
       const edges = movementEdges(map, state.reachable, state.selection);
-      if (edges.length) this.boundary = [
-        movementBoundaryGeometry(map, edges, OVERLAY.rangeBackingWidth),
-        movementBoundaryGeometry(map, edges, OVERLAY.rangeWidth),
+      // One reading of the ground for both strips: they are the same line at two
+      // widths, and sampling twice is what used to let the backing show at a joint.
+      const loops = edges.length ? movementFrontier(map, edges) : [];
+      if (loops.length) this.boundary = [
+        frontierRibbon(loops, OVERLAY.rangeBackingWidth),
+        frontierRibbon(loops, OVERLAY.rangeWidth),
       ];
     }
     this.boundary.forEach((shape, i) => collector.add(shape,
