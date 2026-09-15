@@ -148,6 +148,22 @@ export class DioramaCamera {
     return this.frustum;
   }
 
+  /**
+   * How far the visible ground reaches from the target, in world units — the
+   * larger of the two half-extents of the footprint this frustum throws on the
+   * board.
+   *
+   * The screen's horizontal axis is horizontal in the world too, because the
+   * azimuth never changes, so it reaches `aspect` half-heights across. The
+   * vertical axis is foreshortened by the fixed 57° elevation and so reaches
+   * `1 / sin` of one along the ground. A shadow rig asks this to know how much
+   * of its own box is spare — see `createCounterShadows`, which may only let
+   * the view drift by what the box has to give.
+   */
+  get groundReach(): number {
+    return this.frustum * Math.max(this.aspect, 1 / this.sinElevation);
+  }
+
   resize(width: number, height: number): void {
     this.viewportWidth = Math.max(1, width);
     this.viewportHeight = Math.max(1, height);

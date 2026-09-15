@@ -30,6 +30,8 @@ import { foundCityAt } from '../../src/sim/cities';
 import { getTileAt } from '../../src/sim/map';
 import { buildingDef } from '../../src/sim/buildingData';
 import { unitDef } from '../../src/sim/unitData';
+import { type ImprovementId, improvementDef } from '../../src/sim/improvementData';
+import { improvementOpenTo } from '../../src/sim/improvements';
 import { gatingTech, isUnlocked } from '../../src/sim/tech';
 import { techDef } from '../../src/sim/techData';
 import { LEADER_IDS, type LeaderId, leaderDef } from '../../src/sim/leaderData';
@@ -49,6 +51,7 @@ import {
   LEADER_PLAIN_SEAT,
   LEADER_SOURCE_WORD,
   LEADER_UNIQUE_OPEN,
+  LEADER_UNIQUE_OPEN_GROUND,
   foldLeaderLedger,
   leaderAbilityRows,
   leaderCityRows,
@@ -112,24 +115,39 @@ describe('the new game screen', () => {
       expect(face.abilities.map((ability) => ability.id)).toEqual(
         def.abilities.map((ability) => ability.id),
       );
-      expect(face.unit.id).toBe(def.unit);
-      expect(face.building.id).toBe(def.building);
-      expect(face.unit.name).toBe(unitDef(def.unit).name);
-      expect(face.building.name).toBe(buildingDef(def.building).name);
+      const [unit, second] = face.uniques;
+      expect(unit.id).toBe(def.unit);
+      expect(unit.name).toBe(unitDef(def.unit).name);
+      // **The second row is whichever kind the sheet names** (batch L8): a hall
+      // for twelve of the thirteen, a work of the ground for the one.
+      if (def.improvement !== undefined) {
+        expect(second.kind, face.id).toBe('improvement');
+        expect(second.id).toBe(def.improvement);
+        expect(second.name).toBe(improvementDef(def.improvement).name);
+      } else {
+        expect(second.kind, face.id).toBe('building');
+        expect(second.id).toBe(def.building);
+        expect(second.name).toBe(buildingDef(def.building!).name);
+      }
     }
   });
 
-  it('prints a whole figure in four lines: two rules, one soldier, one building', () => {
+  it('prints a whole figure in four lines: two rules, one soldier, one hall or field', () => {
     // The second cut's own claim, drawn (`docs/leaders.md`, "The shape").
     expect(LEADER_FACE_LINES).toBe(4);
     for (const face of leaderFaces()) {
       const lines = leaderFaceLines(face);
       expect(lines, face.id).toHaveLength(LEADER_FACE_LINES);
-      expect(lines.map((line) => line.kind)).toEqual(['ability', 'ability', 'unit', 'building']);
+      expect(lines.map((line) => line.kind)).toEqual([
+        'ability',
+        'ability',
+        'unit',
+        face.uniques[1]!.kind,
+      ]);
       // The rows' eyebrows are the kind, not the name — the name is inside the
       // clause, where it carries its keyword ref.
       expect(lines[2]!.label).toBe(LEADER_ROW_WORD.unit);
-      expect(lines[3]!.label).toBe(LEADER_ROW_WORD.building);
+      expect(lines[3]!.label).toBe(LEADER_ROW_WORD[face.uniques[1]!.kind]);
       // Every one of the four says something.
       for (const line of lines) {
         expect(line.clauses.length, `${face.id} · ${line.label}`).toBeGreaterThan(0);
@@ -140,12 +158,20 @@ describe('the new game screen', () => {
 
   it('names what opens each unique — the technology, or the age of its column', () => {
     for (const face of leaderFaces()) {
-      for (const row of [face.unit, face.building]) {
+      for (const row of face.uniques) {
         expect(row.opens.length, `${face.id} · ${row.id}`).toBeGreaterThan(0);
         // The line is the row's name and its opening, and the name is a ref so
         // the reader is one press from the Compendium page.
         expect(row.text).toContain(`[[${row.kind}:${row.id}|${row.name}]]`);
         expect(row.text).toContain(row.opens);
+        if (row.kind === 'improvement') {
+          // **A work of the ground is dated by its own row** (batch L8): there
+          // is no queue gate to ask and no column to fall back on, so the
+          // sentence names the improvement's own technology.
+          const gate = improvementDef(row.id as ImprovementId).requiresTech!;
+          expect(stripRefs(row.opens), row.id).toContain(techDef(gate).name);
+          continue;
+        }
         const gate = gatingTech(row.kind, row.id);
         if (gate !== null) expect(stripRefs(row.opens)).toContain(techDef(gate).name);
         else expect(row.opens).toMatch(/Æra/);
@@ -332,20 +358,31 @@ describe('the leader sheet', () => {
     const g = bench();
     const rows = leaderUniqueRows(g.state, 0);
     const def = leaderDef(FIRST);
-    expect(rows.map((row) => row.id)).toEqual([def.unit, def.building]);
-    expect(rows.map((row) => row.kind)).toEqual(['unit', 'building']);
+    // **The second row is whichever kind the sheet names** (batch L8) — this
+    // seat's figure keeps his in the fields, which is why the sheet may not
+    // assume a hall.
+    const second = def.improvement ?? def.building!;
+    expect(rows.map((row) => row.id)).toEqual([def.unit, second]);
+    expect(rows.map((row) => row.kind)).toEqual([
+      'unit',
+      def.improvement !== undefined ? 'improvement' : 'building',
+    ]);
+    /** The simulation's own answer for a row of this kind, and no other. */
+    const open = (seat: number, row: (typeof rows)[number]): boolean =>
+      row.kind === 'improvement'
+        ? improvementOpenTo(g.state, seat, row.id as ImprovementId)
+        : isUnlocked(g.state, seat, row.kind, row.id);
     for (const row of rows) {
       // The gate is asked of the simulation, never re-derived here.
-      expect(row.open).toBe(isUnlocked(g.state, 0, row.kind, row.id));
+      expect(row.open).toBe(open(0, row));
       expect(row.word).toBe(LEADER_ROW_WORD[row.kind]);
-      expect(row.note).toBe(row.open ? LEADER_UNIQUE_OPEN : `Not yet — it comes ${row.opens}.`);
+      const yours = row.kind === 'improvement' ? LEADER_UNIQUE_OPEN_GROUND : LEADER_UNIQUE_OPEN;
+      expect(row.note).toBe(row.open ? yours : `Not yet — it comes ${row.opens}.`);
       // A "coming at" sentence names the opening and carries no numeral.
       if (!row.open) expect(stripRefs(row.note)).not.toMatch(/[0-9]/);
     }
     // A rival's row is not this seat's: the gate's first question is the figure.
-    for (const row of leaderUniqueRows(g.state, 0)) {
-      expect(isUnlocked(g.state, 1, row.kind, row.id)).toBe(false);
-    }
+    for (const row of rows) expect(open(1, row)).toBe(false);
   });
 
   it('lists the towns the figure founds, in order, with the standing ones marked', () => {

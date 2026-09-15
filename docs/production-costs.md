@@ -195,7 +195,6 @@ reading for a once-per-empire row.
 | `wat` | Wat | medium | 5 | 117 |
 | `gurdwara` | Gurdwara | medium | 5 | 117 |
 | `darEMehr` | Dar-e Mehr | medium | 5 | 117 |
-| `terraces` | Terraces | medium | 2 | 52 |
 | `tambo` | The Tambo | large | 8 | 397 |
 | `qollqa` | The Qollqa | large | 11 | 893 |
 | `examinationCourt` | The Examination Court | large | 5 | 176 |

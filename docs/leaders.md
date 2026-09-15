@@ -48,7 +48,16 @@ Leader and civ are **one thing** in this game. A figure is:
 |---|---|---|
 | **abilities** | two passives (card effects, doctrine-weight) | turn one, for the game |
 | **unique unit** | one | when its technology arrives |
-| **unique building** | one | when its technology arrives |
+| **unique building or improvement** | one | when its technology arrives |
+
+The second unique is a **hall or a work of the ground** (batch L8, `docs/flags.md`
+(bbbbb)): a figure carries `building` or `improvement` on its row, never both and
+never neither, and every screen prints the fourth line off whichever it is
+("Unique building" · "Unique improvement"). Pachacuti is the one who trades the
+hall for a field. An improvement unique is gated exactly as the other two are —
+`unlockedByLeader` on the row, `leaderOpensImprovement` beside the unit's and the
+building's gate — and it opens with its own `requiresTech`, since an improvement
+is not a queue row and carries no column.
 
 Plus data that costs nothing: colours, cities, start bias, charge. Everything a
 figure is fits on the landing screen in four lines. `Player.leaderOffer`, the
@@ -66,7 +75,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | Terraces — farms may be cut into hills |
+| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; no unique building for now) |
 | **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +1 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
 | **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
 | **Akhenaten** | Egypt | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
@@ -88,8 +97,22 @@ the odd army bought with coin from small terraced towns while the plain-dwellers
 grow fat and slow. No food bonus anywhere: Inca towns are productive with few
 citizens, which no other figure is, and the happiness line is what keeps a
 twelve-town Inca content. Every piece is built (the per-mountain farm line from
-L3c pays two peaks twice; the road-joined scope; the Terraces waiver; the
+L3c pays two peaks twice; the road-joined scope; the Terraces; the
 Slinger's hills) — a data change. The Qollqa and the Tambo go to the bench.
+
+**The Terraces, re-cut as a field (the user, 2026-09-14; batch L8).** They were a
+hall that waived the farm's flat ground inside one town's borders. They are an
+**improvement** now — a row of their own in `data/improvements.json`, the farm's
+terrain and charge, two food where a farm pays one, cut into **hillsides
+only** (the user, 2026-09-14, playtesting: *"let's have terrace farms only be
+able to be built on hills"* — `requiresHills` with no waiver), a dry hillside
+included where a peak stands beside it (the `mountainFoot` seam forgives the
+water and nothing else), and taking Irrigation's renewal like a farm. `countsAs:
+'farm'` is what keeps every rule already written true of them — his own gold of
+the peaks, Akhenaten's fresh water, the Dikes, the Tetzcotzinco, the wheat that
+wants a farm, both renderers' furrows — with no reader learning a second name.
+The hall is `retired`, kept for saves and the book's bench; he has no unique
+building for now (▢ the user may give him one later).
 
 Notes on the second six: Joan of Arc replaces Basil II (the user, 2026-09-11:
 *"i think i want a religion/war civ"*) — she was on the deferred list as a

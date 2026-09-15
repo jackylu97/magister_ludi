@@ -331,15 +331,33 @@ describe('techGifts', () => {
       expect(techGifts(gate).some((gift) => gift.id === resource)).toBe(true);
     }
     for (const improvement of IMPROVEMENT_IDS) {
+      // **A row one figure alone may lay is announced by no node** (batch L8,
+      // `docs/flags.md` (bbbbb)), and the claim is the other way round for it:
+      // the unique soldiers and halls are absent from the unlock lists by
+      // construction — no node's `unlocks` names them — and a unique
+      // improvement carries its own `requiresTech` instead, so `techGifts`
+      // filters it out and must be held to doing so. A node promising twelve
+      // seats a row they can never build is the Stele of Laws' lie in a new
+      // place, on the one screen where the promise matters.
+      const mine = improvementDef(improvement).unlockedByLeader === true;
       const gate = improvementDef(improvement).requiresTech;
       if (gate !== undefined) {
-        expect(seen).toContain(`improvement:${improvement}`);
-        expect(techGifts(gate).some((gift) => gift.id === improvement)).toBe(true);
+        expect(seen.includes(`improvement:${improvement}`), improvement).toBe(!mine);
+        expect(techGifts(gate).some((gift) => gift.id === improvement), improvement).toBe(!mine);
       }
       for (const upgrade of improvementDef(improvement).upgrades ?? []) {
-        expect(techGifts(upgrade.tech).some((gift) => gift.id === improvement)).toBe(true);
+        // A renewal of such a row is hidden with it: it is a promise about
+        // somebody else's fields.
+        expect(
+          techGifts(upgrade.tech).some((gift) => gift.id === improvement),
+          `${improvement} renewed at ${upgrade.tech}`,
+        ).toBe(!mine);
       }
     }
+    // The filter is not vacuous: there is a row it hides, and a seat that may
+    // lay it. (A day with no unique improvement in the table would make every
+    // claim above a claim about nothing.)
+    expect(IMPROVEMENT_IDS.some((id) => improvementDef(id).unlockedByLeader === true)).toBe(true);
     // A building's own side of the sweep is its **tech-gated tile line** since
     // the renewals axe (2026-09-04) — the `upgrades` list this used to walk is
     // gone from the table. Vacuous today (no row gates a line yet) and kept

@@ -1180,11 +1180,20 @@ function refreshResumeRow(): void {
  * there.
  */
 function loadSlotId(slotId: string | null): void {
-  void beginGame(null, async () =>
-    slotId === null
-      ? null
-      : await loadSlotAsync(saveStorage, slotId, { onReplayTurn: replayProgress }),
-  );
+  void beginGame(null, async () => {
+    // The startup stages, marked where they actually happen (audit task #23).
+    // The whole list, in order, is `docs/plans/painted-performance-evidence.md`;
+    // a mark is one timestamp and changes nothing about what runs. The pair
+    // moved inside the step with the walk it brackets: the walk is a worker's
+    // now (#22), so `replay-done` is where the finished state came *back*.
+    performance.mark('magisterludi:load-start');
+    const result =
+      slotId === null
+        ? null
+        : await loadSlotAsync(saveStorage, slotId, { onReplayTurn: replayProgress });
+    performance.mark('magisterludi:replay-done');
+    return result;
+  });
 }
 
 function showLanding(): void {
@@ -1276,6 +1285,7 @@ async function beginGame(
   load: (() => Promise<LoadResult | null>) | null = null,
 ): Promise<void> {
   if (startButton.disabled) return;
+  performance.mark('magisterludi:begin');
   startButton.disabled = true;
   const startLabel = startButton.textContent;
   startButton.textContent = 'Preparing the world…';
@@ -1309,13 +1319,17 @@ async function beginGame(
     if (takeOverGame) await takeOverGame(loaded);
     else await boot(loaded);
     hideLanding();
-    // The sheet stays up over the board until a frame has actually been drawn,
-    // so "playable" is never a blank board. Two frames rather than one: the
-    // first callback runs *before* the paint it was queued for.
+    performance.mark('magisterludi:playable');
+    // The sheet stays up past that mark, until a frame has actually been drawn
+    // with the landing down, so "playable" is never a blank board. Two frames
+    // rather than one: the first callback runs *before* the paint it was queued
+    // for. It is a later moment than `first-board-frame`, which marks a frame
+    // drawn inside `boot` with the landing still over it — so the sheet comes
+    // down off this seam rather than off that mark, and the mark itself is left
+    // where P1 put it, measuring what it measured.
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
-    performance.mark('first-board-frame');
   } catch (error) {
     // A missing sprite or a dead WebGL context is a build problem, not a blank
     // page: say so where the player is already looking.
@@ -2092,6 +2106,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     // frame late, because the draw-call count only means anything once a frame
     // has actually been drawn.
     requestAnimationFrame(() => {
+      performance.mark('magisterludi:first-board-frame');
       const s = renderer.stats;
       console.log(
         `[magister-ludi 3d] ${s.tiles} tiles, ${s.instances} instances, ` +
@@ -2116,9 +2131,12 @@ async function createRenderer(
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
+        performance.mark('magisterludi:assets-loaded');
         await renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+        performance.mark('magisterludi:terrain-ready');
       }
       renderer.setGameState(game.state);
+      performance.mark('magisterludi:state-layers-built');
       const report = build3DPanel(renderer);
       report();
       return { view: renderer, report };

@@ -152,6 +152,11 @@ export class ImprovementLayer {
       const cell = tileIndex(map, tile.col, tile.row);
       if (levelAt(levels, map, tile.col, tile.row) === HIDDEN) continue;
 
+      // Everything below is keyed by the row's own id, and every one of those
+      // tables was built through `improvementBaseRow` (batch L8) — the sculpt
+      // in `board3d.ts`, the tuning in `lookData.ts` — so a row that stands in
+      // for another is drawn as that row with no lookup of its own here, and a
+      // hex that is not painted over still gets its furrows.
       const spec = IMPROVEMENTS.props[id];
       const centre = cellCenter(tile.col, tile.row);
       const offset = hashDisc(

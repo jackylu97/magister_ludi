@@ -135,9 +135,14 @@ describe('the sheet on the page', () => {
   });
 
   it('stays up until a frame has been drawn, and comes down on every way out', () => {
-    // The last stage ends at the first presented frame, not at `hideLanding`.
-    expect(main).toContain("performance.mark('first-board-frame');");
+    // The last stage ends on a frame actually drawn with the landing down —
+    // later than P1's `first-board-frame`, which marks a frame drawn inside
+    // `boot` with the landing still over it. The sheet reads the later seam and
+    // leaves every mark alone (`test/render/paintedBenchmark.test.ts` is the
+    // marks' own register).
     expect(main).toContain('requestAnimationFrame(() => requestAnimationFrame(() => resolve()));');
+    const wait = main.indexOf('requestAnimationFrame(() => requestAnimationFrame(() => resolve()))');
+    expect(wait).toBeGreaterThan(main.indexOf('hideLanding();\n    performance.mark'));
     // In the `finally`, so a refused save and a thrown board lower it too.
     const begin = main.slice(
       main.indexOf('async function beginGame('),

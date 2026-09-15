@@ -5,10 +5,11 @@ import {loadVegetation} from '../terrainStudy/vegetation.js';
 import {createLighting} from '../terrainStudy/lighting.js';
 import {createPainterlyStyle} from '../terrainStudy/painterly.js';
 import {daylightPresets} from '../terrainStudy/daylightPresets.js';
-import {separatePaintedShadows} from './paintedShadows.js';
+import {separatePaintedShadows,createCounterShadows} from './paintedShadows.js';
 import {PAINTED_WORK_ASSET_NAMES} from './paintedWorks';
 import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
+import {VIEW3D} from './lookData';
 
 export async function createPaintedLook(renderer,scene,camera,key='golden') {
  const resources=new Set();
@@ -95,10 +96,12 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // Terrain shadows bake only on world/visibility changes. Moving counters use
  // a separate small map, so panning or a walk never re-renders the whole world.
  dynamicSun=new T.DirectionalLight('#ffffff',.00001);
- dynamicSun.castShadow=true;dynamicSun.shadow.mapSize.set(2048,2048);
+ const shadowKnobs=VIEW3D.painted.shadows;
+ dynamicSun.castShadow=true;dynamicSun.shadow.mapSize.set(shadowKnobs.counterMapSize,shadowKnobs.counterMapSize);
  dynamicSun.shadow.camera.layers.set(2);dynamicSun.shadow.bias=-.0001;dynamicSun.shadow.normalBias=.012;
  sun.shadow.autoUpdate=false;sun.shadow.needsUpdate=true;
- sun.castShadow=true;sun.shadow.mapSize.set(Math.min(8192,renderer.capabilities.maxTextureSize),Math.min(8192,renderer.capabilities.maxTextureSize));
+ const staticMapSize=Math.min(shadowKnobs.staticMapSize,renderer.capabilities.maxTextureSize);
+ sun.castShadow=true;sun.shadow.mapSize.set(staticMapSize,staticMapSize);
  sun.shadow.bias=-.000055;sun.shadow.normalBias=.012;
  scene.add(sun,sun.target,sky,dynamicSun,dynamicSun.target);camera.layers.enable(2);
  renderer.shadowMap.type=T.PCFShadowMap;
@@ -119,26 +122,26 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
   sc.updateProjectionMatrix();invalidateShadows();
  }
  function invalidateShadows(){sun.shadow.needsUpdate=true;renderer.shadowMap.needsUpdate=true}
- function updateDynamicShadows(target,radius){
-  const [sx,sy,sz]=preset.sunOffset,offset=new T.Vector3(sx,sy,sz).normalize().multiplyScalar(80);
-  dynamicSun.position.copy(target).add(offset);dynamicSun.target.position.copy(target);dynamicSun.target.updateMatrixWorld();
-  const sc=dynamicSun.shadow.camera,extent=Math.max(6,radius*1.8);
-  Object.assign(sc,{left:-extent,right:extent,top:extent,bottom:-extent,near:.5,far:180});sc.updateProjectionMatrix();
-  renderer.shadowMap.needsUpdate=true;
- }
+ // The counter map is re-rendered on a *seam*, never on a frame — see
+ // `createCounterShadows` for which seams and why a pan is not one of them.
+ const counters=createCounterShadows(renderer,dynamicSun,shadowKnobs.counterCoverage);
+ function invalidateDynamicShadows(){counters.invalidate()}
+ function updateDynamicShadows(target,radius,reach){return counters.update(target,radius,preset.sunOffset,reach)}
  function setDaylight(value){
   preset=daylightPresets[value]||daylightPresets.golden;
   sun.color.set(preset.sun);sun.intensity=preset.strength;sun.shadow.intensity=preset.shadowIntensity;sun.shadow.radius=preset.shadowRadius;
   dynamicSun.shadow.intensity=preset.shadowIntensity;dynamicSun.shadow.radius=preset.shadowRadius;
   sky.color.set(preset.sky);sky.groundColor.set(preset.earth);sky.intensity=preset.fill;
   scene.background=new T.Color(preset.background);scene.environmentIntensity=preset.environment;
+  // The counter rig re-fits itself: it is handed `preset.sunOffset` every frame
+  // and a turned sun is one of the three things it watches for.
   style.setDaylight(preset);fitShadows();
  }
  setDaylight(key);
  return {
   assets,cityAssets,workAssets:cityAssets,registerMaterial:(material,options)=>style.register(material,options),
   materials:{ground,earth,mergedLand,mergedWater,mergedDetails,water:waterMaterials,features:featureMaterials},
-  sun,sky,setDaylight,fitShadows,invalidateShadows,updateDynamicShadows,
+  sun,sky,setDaylight,fitShadows,invalidateShadows,updateDynamicShadows,invalidateDynamicShadows,
   get shadowBakes(){return separatedShadows.bakes},
   render(){lighting.render()},resize(w,h){lighting.resize(w,h)},
   setContactDetail(pixels){lighting.setContactDetail(pixels)},

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Mesh, MeshStandardMaterial, ShaderLib } from 'three';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
 import { createMap } from '../../src/sim/map';
@@ -17,10 +17,20 @@ function fixture(width = 4, height = 3) {
   const geometry = new BoxGeometry(.3, .8, .3); disposables.push(geometry);
   const asset = { geometry, shoulderGeometry: geometry, material: mat() };
   const assets: PaintedVegetationAssets = { broadleaves: [asset, asset, asset], cypresses: [asset, asset], escarpments: [asset, asset, asset], limestone: asset, broadleaf: asset, rangeMaterial: mat() };
-  function build() { const board = buildPaintedBoard(map, assets, materials); boards.push(board); return board; }
+  function build(shadows = true) { const board = buildPaintedBoard(map, assets, materials, shadows); boards.push(board); return board; }
   return { map, materials, assets, build };
 }
-afterEach(() => { boards.splice(0).forEach(board => board.dispose()); disposables.splice(0).forEach(item => item.dispose()); });
+afterEach(() => {
+  boards.splice(0).forEach(board => board.dispose()); disposables.splice(0).forEach(item => item.dispose());
+  vi.restoreAllMocks();
+});
+
+/** Every mesh of a built board, in build order, so identities can be compared. */
+function meshesOf(board: PaintedBoard): Mesh[] {
+  const meshes: Mesh[] = [];
+  board.group.traverse(object => { if (object instanceof Mesh) meshes.push(object); });
+  return meshes;
+}
 
 describe('production painted board', () => {
   it('shares canonical terrain across three translated wrap copies and picks every cell', () => {
@@ -97,6 +107,69 @@ describe('production painted board', () => {
     expect(board.shadowRevision).toBe(revision);
     board.applyFog(new Array(map.tiles.length).fill(0));
     expect(board.shadowRevision).toBeGreaterThan(revision);
+  });
+
+  it('switches the world’s shadows on the board it already built', () => {
+    const {map, build} = fixture(), board = build();
+    // A lived-in board: charted, with a town's clutter suppressed and a prop
+    // footprint reserved. None of it may move because a checkbox did.
+    board.applyFog(new Array(map.tiles.length).fill(2));
+    board.suppressTile(1, 2);
+    board.reserveFootprints(new Map([[0, .54]]));
+    const meshes = meshesOf(board), picks = [...board.pickMeshes];
+    const geometry = meshes.map(mesh => mesh.geometry);
+    const matrices = meshes.filter(mesh => mesh instanceof InstancedMesh).map(mesh => mesh.instanceMatrix);
+    const materials = meshes.map(mesh => mesh.material as Material);
+    const depths = meshes.map(mesh => mesh.customDepthMaterial);
+    const casting = meshes.filter(mesh => mesh.castShadow);
+    const fog = Array.from(board.fogTexture.image.data!), bytes = board.geometryBytes;
+    const versions = materials.map(material => material.version);
+    expect(casting.length).toBeGreaterThan(0);
+
+    const built = vi.spyOn(BufferGeometry.prototype, 'setAttribute');
+    const freed = vi.spyOn(BufferGeometry.prototype, 'dispose');
+    expect(board.setShadows(false)).toBe(true);
+    expect(meshes.filter(mesh => mesh.castShadow)).toEqual([]);
+    // Idempotent, and never a second walk for the state it is already in.
+    expect(board.setShadows(false)).toBe(false);
+    expect(board.setShadows(true)).toBe(true);
+    expect(meshes.filter(mesh => mesh.castShadow)).toEqual(casting);
+    // Not one vertex built or freed, and every buffer still the same object.
+    expect([built.mock.calls.length, freed.mock.calls.length]).toEqual([0, 0]);
+    expect(meshesOf(board)).toEqual(meshes);
+    expect(meshes.map(mesh => mesh.geometry)).toEqual(geometry);
+    expect(meshes.filter(mesh => mesh instanceof InstancedMesh).map(mesh => mesh.instanceMatrix)).toEqual(matrices);
+    expect(meshes.map(mesh => mesh.material)).toEqual(materials);
+    expect(meshes.map(mesh => mesh.customDepthMaterial)).toEqual(depths);
+    expect(board.pickMeshes).toEqual(picks);
+    expect(board.geometryBytes).toBe(bytes);
+    // The fog wash, the suppression grade and the reservation are all where the
+    // toggle found them.
+    expect(Array.from(board.fogTexture.image.data!)).toEqual(fog);
+    expect(board.isCellVisible(1, 2)).toBe(false);
+    // Whether a program samples a shadow map is a compile-time fact for three,
+    // so the colour materials are told to recompile. Depth is not: it never
+    // sampled one.
+    expect(materials.map(material => material.version > versions[materials.indexOf(material)]!)).not.toContain(false);
+  });
+
+  it('remembers what each batch casts, so a board built dark lights up correctly', () => {
+    const { build } = fixture();
+    const lit = build(true), dark = build(false);
+    expect(meshesOf(dark).filter(mesh => mesh.castShadow)).toEqual([]);
+    dark.setShadows(true);
+    // Far-LOD clones and water never cast, whichever way the board was built.
+    const names = (board: PaintedBoard): string[] =>
+      meshesOf(board).map((mesh, i) => `${i}:${mesh.castShadow}:${mesh.visible}`);
+    expect(names(dark)).toEqual(names(lit));
+  });
+
+  it('carries the cast fact, not the live flag, through an exported board', () => {
+    const { build } = fixture();
+    const lit = build(true).exportBatches().map(batch => batch.castShadow);
+    const dark = build(false).exportBatches().map(batch => batch.castShadow);
+    expect(dark).toEqual(lit);
+    expect(lit).toContain(true);
   });
 
   it('gives terrain, foliage and their shadow passes the same cell ownership in every wrap', () => {

@@ -863,6 +863,18 @@ export function buildError(
   if (kind === 'unit' && isUnitTypeId(id) && unitDef(id).retired === true) {
     return `${itemName(kind, id)}s are no longer called`;
   }
+  // **And a building may have left the buildable set for good** — the ordinary
+  // rows the fewer-things pass cut (`BuildingDef.retired`), and the hall a
+  // figure traded for a field (batch L8). Beside the roster's own withdrawal
+  // and **ahead of the unlock gate** for that clause's reason: "never again" is
+  // the strongest thing there is to say about a row, and a withdrawn hall that
+  // fell through to the gate would be refused as *another realm's leader's* —
+  // true of nobody and confusing to everybody. The row itself stays in the
+  // table so a save that raised one still replays, and a copy already standing
+  // keeps paying — this refuses the *decision*, not the stones.
+  if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) {
+    return `${itemName(kind, id)} is no longer built`;
+  }
   if (!isUnlocked(state, playerId, kind, id)) {
     const gate = gatingTech(kind, id);
     // **A row an Order opens says so** (the charters, 2026-09-04). Every
@@ -908,16 +920,6 @@ export function buildError(
   // put a cathedral in the opening build list. See `BuildingDef.awaitsTech`.
   if (kind === 'building' && isBuildingId(id) && buildingDef(id).awaitsTech === true) {
     return `${itemName(kind, id)} waits on a technology this age has not reached`;
-  }
-  // **And a building may have left the buildable set for good** — the twelve
-  // ordinary rows the fewer-things pass cut (`BuildingDef.retired`). The mirror
-  // image of the clause above it and next to it for that reason: "not yet" and
-  // "never again" are two sentences a player must be able to tell apart, and a
-  // row wearing both markers would be a row of nothing. The row itself stays in
-  // the table so a save that raised one still replays, and a copy already
-  // standing keeps paying — this refuses the *decision*, not the stones.
-  if (kind === 'building' && isBuildingId(id) && buildingDef(id).retired === true) {
-    return `${itemName(kind, id)} is no longer built`;
   }
   // Some things are **bought or not at all** (ledger Entry XXVIII): the augur is
   // faith-purchased, and a city that could also hammer one out would make the
