@@ -92,6 +92,7 @@
         "none",
         "floodplain"
       ],
+      "requiresHills": true,
       "mountainFoot": true,
       "improvesResource": [
         "wheat",

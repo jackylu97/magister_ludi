@@ -19,6 +19,57 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ccccc) Two Terraces rulings from the Pachacuti playtest** (the user,
+2026-09-14: *"farms are colliding with the city border, we should have them
+sit under. Also, let's have terrace farms only be able to be built on
+hills."*). **Terraces on hills only — BUILT** (schema unchanged: the row
+gains `requiresHills: true` with no waiver; the `mountainFoot` seam stays and
+forgives only the *water*, so a dry hillside at a peak's foot takes one and
+the flat valley floor beneath the same peak takes a farm's rules; pinned in
+`test/sim/leaderGround.test.ts`, `docs/leaders.md` follows). **Farms sit
+under the border ink — BUILDING, R1**: under the painted look a field's
+furrows and patch draw *over* the territory ribbon where a farmed hex meets
+the empire's edge; the ink is the map's top layer on the ground and the
+fields belong beneath it, so the works layer's field patches render under
+the ground layer's territory ink (draw order / depth offset, whichever the
+two layers already use — the user sees no farm stroke crossing a border).
+Fidelity gate as the P-series: before/after shots at play and overview
+differ **only** along farmed border edges, every region explained; a
+farmed-border close-up pair for the user's eye.
+
+**(eeeee) A loading sheet for Continue — BUILDING, with P7** (the user,
+2026-09-14: *"we need a 'loading game...' modal that shows progress for
+continuing a previous save, right now this only exists for starting a new
+game."*). Today a new game shows the terrain worker's progress (the
+`terrainBuildProgress` sheet from `beginGame`) and a loaded save shows only
+the pressed button's label while the log replays. **P7 moved the replay
+into a worker** (audit #22) — so the load journey has two staged workers in
+a row and both can report. Rule: one loading sheet for both journeys,
+shown from the press until the board is on screen, with the stages named in
+a first-time player's words and a progress bar that moves — for a save:
+*Opening the save · Replaying the game (turn N of M) · Painting the world ·
+Placing the pieces*; for a new world the first two are absent. The replay
+worker posts progress as it walks the log (per turn, not per command);
+the terrain worker's existing progress feeds the third stage; the fourth is
+`setGameState` and the first frame. The sheet is a `modalShell` sheet by
+the H5 rule, wears `.statecraft-overlay`, and stays up until
+`first-board-frame` (P1's mark) so "playable" is never a blank board. No
+Cancel yet (P7's sacrifice #3 stands; ▢ the user). Fidelity: the settled
+frame is untouched — a pixel-identical play/overview pair.
+
+**(ddddd) The shadowed fog lands — QUEUED** (the user, 2026-09-14: *"please
+also queue up the shadowed fog implementation, i'll let you sequence before
+or after the fog performance pass"*). Sequenced **after P5** (the shadows
+batch in flight), because the study's second pass on branch `fog-study` is
+built on a snapshot from before P2 and P5 and touches the same sun and
+shadow-map code — reconciling once, against the tree with both landed, is
+one merge instead of two. The ruling is (zzzz) below: reconcile the
+uncommitted second pass with main, delete the drawn and bleed treatments,
+`treatment` stops being a knob, fix the paper's sun tint, take audit #2
+(a fog texel change rebuilds five layers) with it, and `docs/plans/
+painted-fog-study.md` becomes the record. A visual-review checkpoint for
+the user before it lands — it is the look of half the map.
+
 
 **(aaaaa) The painted renderer's performance pass — RULED, P-series** (the
 user, 2026-09-14: *"i've had astra also document what it thinks are the
@@ -109,6 +160,26 @@ same fixture; the remainder is the units and fog layers, unmeasured since);
 and a real scout march charted twenty cells with zero static rebakes while
 an end-turn refresh baked once — the opposite of #19's source reading, so
 P5 measures before it acts. Nothing visual changed (evidence only).
+**Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
+with the others"*), after wave 2 lands, in this order: **P8 the first
+frame** — the ~14 s (new world) to ~22 s (developed save) between
+"playable" and the first drawn frame, one unbroken main-thread task of
+shader compilation, first geometry upload and the first static bake;
+compile the painted programs ahead with the parallel-compile extension
+while the terrain worker runs, upload batches as they arrive, bake before
+the landing comes down (or once coarse, then refined); "playable" means
+the board is on screen; real-hardware numbers from the user's machine first
+(the benchmark button writes the marks). **P9 the small rows** — #12
+picking's occluder root (the unit groups, not the scene), #15 water and
+decor no longer `receiveShadow`, #20's second half (the settlement kit
+through P4's bundle contract), P2's follow-up (roads, borders and site
+props take the toggle's flag), the terrain-study page's one-channel grains.
+**P10 the developed-map remainder** — #10 per-tile constants out of the
+per-vertex attributes (213 MiB of arrays), #7's residual (a fog change
+touches only the affected regions of the works layer), and P1's open
+reading (what the units and fog layers cost per step now that P3 took the
+other five to under a millisecond — measure first). Same fidelity gate,
+same sacrifices paragraph, core tests only.
 
 
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,

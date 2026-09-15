@@ -75,7 +75,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills and the mountain foot, +1 food over a farm (a unique improvement; no unique building for now) |
+| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; no unique building for now) |
 | **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +1 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
 | **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
 | **Akhenaten** | Egypt | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
@@ -103,9 +103,11 @@ Slinger's hills) — a data change. The Qollqa and the Tambo go to the bench.
 **The Terraces, re-cut as a field (the user, 2026-09-14; batch L8).** They were a
 hall that waived the farm's flat ground inside one town's borders. They are an
 **improvement** now — a row of their own in `data/improvements.json`, the farm's
-terrain and charge, two food where a farm pays one, cut into any hillside and
-onto any hex a mountain stands beside (dry ground included, which is the
-`mountainFoot` seam), and taking Irrigation's renewal like a farm. `countsAs:
+terrain and charge, two food where a farm pays one, cut into **hillsides
+only** (the user, 2026-09-14, playtesting: *"let's have terrace farms only be
+able to be built on hills"* — `requiresHills` with no waiver), a dry hillside
+included where a peak stands beside it (the `mountainFoot` seam forgives the
+water and nothing else), and taking Irrigation's renewal like a farm. `countsAs:
 'farm'` is what keeps every rule already written true of them — his own gold of
 the peaks, Akhenaten's fresh water, the Dikes, the Tetzcotzinco, the wheat that
 wants a farm, both renderers' furrows — with no reader learning a second name.
