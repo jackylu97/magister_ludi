@@ -15,7 +15,12 @@ import * as T from 'three';
 // only way to tell a bake apart from the frame it happened in: `lastRenderMs`
 // and `info.render.calls` cover both passes at once, so a probe that watched
 // only those could never say which half the millisecond went to.
-export function separatePaintedShadows(renderer, sun, counters, bakeDetail = null) {
+// `wrap` is the canonical-period lookup (`paintedShadowWrap.js`), swept over the
+// scene here rather than handed a list of materials: this is the one moment that
+// owns the static map, and it is late enough that every layer which reads that
+// map is already standing. See that file for why a missed receiver is not a
+// wrong shadow but no shadow at all.
+export function separatePaintedShadows(renderer, sun, counters, bakeDetail = null, wrap = null) {
   const original = renderer.shadowMap.render;
   const map = renderer.shadowMap;
   let bakes = 0, staticMs = 0, staticDraws = 0, staticTris = 0, counterMs = 0, counterDraws = 0, counterTris = 0;
@@ -26,6 +31,7 @@ export function separatePaintedShadows(renderer, sun, counters, bakeDetail = nul
     const layers = camera.layers.mask;
     try {
       if (lights.includes(sun) && (sun.shadow.autoUpdate || sun.shadow.needsUpdate)) {
+        wrap?.sweep(scene);
         camera.layers.set(0);
         map.needsUpdate = true;
         const drawn = calls(), drawnTris = tris(), started = now();

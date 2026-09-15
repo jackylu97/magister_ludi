@@ -6,6 +6,7 @@ import {createLighting} from '../terrainStudy/lighting.js';
 import {createPainterlyStyle} from '../terrainStudy/painterly.js';
 import {daylightPresets} from '../terrainStudy/daylightPresets.js';
 import {separatePaintedShadows,createCounterShadows} from './paintedShadows.js';
+import {createShadowWrap} from './paintedShadowWrap.js';
 import {PAINTED_WORK_ASSET_NAMES} from './paintedWorks';
 import {PAINTED_SITE_ASSET_NAMES} from './paintedSites';
 import {loadSettlementAssets} from '../terrainStudy/settlementAssets.js';
@@ -90,6 +91,14 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // All asset loading finished above, before the live renderer's lighting changes.
  lighting=createLighting(renderer,scene,camera,{unitStencil:true});
  const style=createPainterlyStyle(renderer,lighting,paintTexture);
+ const shadowKnobs=VIEW3D.painted.shadows;
+ // The canonical-period lookup is NOT installed here. Registration would be
+ // early enough to save a recompile, but the board clones several of these
+ // materials for the fog and keeps the original's compile hook on the clone —
+ // so a material patched at registration arrives in the scene already wrapped,
+ // under a clone the sweep would wrap a second time. The sweep is the one
+ // installer; see `paintedShadowWrap.js`.
+ const shadowWrap=createShadowWrap();
  style.register(cityAssets.material);
  for(const m of [...assets.materials,mergedDetails,earth,featureMaterials.stone,featureMaterials.shrub])style.register(m);
  style.register(mergedLand,{terrain:true});style.register(mergedWater,{water:true});
@@ -97,7 +106,6 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // Terrain shadows bake only on world/visibility changes. Moving counters use
  // a separate small map, so panning or a walk never re-renders the whole world.
  dynamicSun=new T.DirectionalLight('#ffffff',.00001);
- const shadowKnobs=VIEW3D.painted.shadows;
  dynamicSun.castShadow=true;dynamicSun.shadow.mapSize.set(shadowKnobs.counterMapSize,shadowKnobs.counterMapSize);
  dynamicSun.shadow.camera.layers.set(2);dynamicSun.shadow.bias=-.0001;dynamicSun.shadow.normalBias=.012;
  sun.shadow.autoUpdate=false;sun.shadow.needsUpdate=true;
@@ -113,7 +121,20 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  // constructed: a look with no board up bakes whatever is in the scene, exactly
  // as it did before there was a hook at all.
  let bakeDetail=null;
- separatedShadows=separatePaintedShadows(renderer,sun,dynamicSun,active=>bakeDetail?.(active));
+ separatedShadows=separatePaintedShadows(renderer,sun,dynamicSun,active=>bakeDetail?.(active),shadowWrap);
+ /**
+  * The static sun's box.
+  *
+  * Two corner sets, and they are the same one until `periodFit` is asked for.
+  * The wide set is all three copies of the cylinder; the fitted set is the
+  * canonical period plus the slack the wrapped lookup needs where one band meets
+  * the next (`paintedShadowWrap.js`). Sides and top come off the fitted set — the
+  * whole of the saving, since three culls a caster against this box — while
+  * **near and far come off the wide one either way**: `shadow.bias` is a figure in
+  * projected depth, so a narrowed depth range would quietly change how much of it
+  * lands on the board, and a bake that only covers one period is meant to be the
+  * same picture, not a differently biased one.
+  */
  function fitShadows(nextBounds=bounds,nextPeriod=period){
   bounds=nextBounds;period=nextPeriod;if(!bounds)return;
   const x=(bounds.minX+bounds.maxX)/2,z=(bounds.minZ+bounds.maxZ)/2;
@@ -122,10 +143,22 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
   sun.position.set(x+r*sx,r*sy,z+r*sz);sun.target.position.set(x,0,z);
   sun.updateMatrixWorld();sun.target.updateMatrixWorld();
   const sc=sun.shadow.camera;sc.position.copy(sun.position);sc.lookAt(sun.target.position);sc.updateMatrixWorld();
-  const box=new T.Box3();
-  for(const xx of [bounds.minX-period-2,bounds.maxX+period+2])for(const yy of [-.5,5])for(const zz of [bounds.minZ-2,bounds.maxZ+2])box.expandByPoint(new T.Vector3(xx,yy,zz).applyMatrix4(sc.matrixWorldInverse));
-  Object.assign(sc,{left:box.min.x-2,right:box.max.x+2,bottom:box.min.y-2,top:box.max.y+2,near:Math.max(.5,-box.max.z-3),far:-box.min.z+3});
-  sc.updateProjectionMatrix();invalidateShadows();
+  const oneBand=shadowKnobs.periodFit&&period>0;
+  const wide=[bounds.minX-period-2,bounds.maxX+period+2];
+  const fitted=oneBand?[x-period/2-shadowKnobs.periodMargin,x+period/2+shadowKnobs.periodMargin]:wide;
+  const corners=(xs,into)=>{
+   for(const xx of xs)for(const yy of [-.5,5])for(const zz of [bounds.minZ-2,bounds.maxZ+2])into.expandByPoint(new T.Vector3(xx,yy,zz).applyMatrix4(sc.matrixWorldInverse));
+   return into;
+  };
+  const depth=corners(wide,new T.Box3());
+  const box=oneBand?corners(fitted,new T.Box3()):depth;
+  Object.assign(sc,{left:box.min.x-2,right:box.max.x+2,bottom:box.min.y-2,top:box.max.y+2,near:Math.max(.5,-depth.max.z-3),far:-depth.min.z+3});
+  sc.updateProjectionMatrix();
+  // The band the receivers wrap into is this box's, so it is set from here and
+  // from nowhere else — a fit and a lookup that disagreed would shift every
+  // shadow on the two outer copies by a whole period.
+  shadowWrap.setBand(sun,x,oneBand?period:0);
+  invalidateShadows();
  }
  function invalidateShadows(){sun.shadow.needsUpdate=true;renderer.shadowMap.needsUpdate=true}
  // The counter map is re-rendered on a *seam*, never on a frame — see

@@ -10,7 +10,7 @@ interface ShadowSubmission {
   casters: { name: string; x: number }[];
 }
 
-function fixture(bakeDetail?: (active: boolean) => void) {
+function fixture(bakeDetail?: (active: boolean) => void, wrap?: { sweep(scene: Scene): number }) {
   const scene = new Scene(), camera = new OrthographicCamera();
   camera.layers.enable(2); camera.layers.enable(5);
   function caster(name: string, layer: number): Object3D {
@@ -48,7 +48,7 @@ function fixture(bakeDetail?: (active: boolean) => void) {
     },
   };
   const original = map.render;
-  const controller = separatePaintedShadows({ shadowMap: map }, sun, counters, bakeDetail);
+  const controller = separatePaintedShadows({ shadowMap: map }, sun, counters, bakeDetail, wrap);
   return {
     scene, camera, map, original, controller, sun, counters, submissions,
     terrain, unit, unrelated,
@@ -109,6 +109,21 @@ describe('painted static and moving shadows', () => {
     f.draw();
     expect(detail).toEqual([{ active: true, submitted: 0 }, { active: false, submitted: 1 }]);
     expect(f.submissions.map(entry => entry.light)).toEqual([f.sun, f.counters]);
+  });
+
+  /**
+   * The canonical-period lookup is installed from here rather than from a list
+   * of materials, and this is where it has to happen: before the sun's own
+   * submission, on the sun's arm only. On the counters' arm it would recompile
+   * whatever a walking piece happened to stand on, for a map that never wraps.
+   */
+  it('teaches the scene to wrap before the static bake, and never on the counters’', () => {
+    const swept: number[] = [];
+    const f = fixture(undefined, { sweep(scene) { swept.push(f.submissions.length); expect(scene).toBe(f.scene); return 0; } });
+    f.draw();
+    expect(swept).toEqual([0]);
+    f.unit.position.x = 5; f.map.needsUpdate = true; f.draw();
+    expect(swept).toEqual([0]);
   });
 
   it('drops the near geometry again when the static bake throws', () => {
