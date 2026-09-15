@@ -1057,7 +1057,9 @@
     "shadows": {
       "staticMapSize": 8192,
       "counterMapSize": 2048,
-      "counterCoverage": 0.1
+      "counterCoverage": 0.1,
+      "periodFit": false,
+      "periodMargin": 3
     },
     "lod": {
       "nearPixels": 25,
