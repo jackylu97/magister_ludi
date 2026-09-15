@@ -24,6 +24,29 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(xxxxx) Founding a town lags — RULED, R3** (the user, 2026-09-15: *"the
+game tends to lag a bit when founding a new city - i think it has to do
+with the new camera angle, could you take a look"*). **Measure first**: the
+frame after a `foundCity` command on a developed board (the 41-town fixture
+and a fresh game at turn ~30), attributed with P1's probe (`benchmarkTerrain`'s
+attribution, the shadow ledger `paintedLook.shadowStats`, the layer
+fingerprints): the static sun's rebake (a founding suppresses the hex's
+decor and clears the ground — `suppressTile` → `invalidateShadows` — so the
+8192² bake runs: how many draws, how many ms, and is it one bake or more
+across the easing's frames), the city layer's first cut for the new town,
+the terrace/relief cut if the hex is a hill, the ground layer (territory,
+roads) rebuild for the new ring, the lens and fog, the banner, and **the
+camera**: Astra's lower angle and easing (`camera3d.ts`, the design
+history's 2026-09-15 entries) — does a founding move the camera, and does
+each eased frame re-fit the shadows (`fitShadows` on `setDaylight`/camera)
+or re-render the counter map (`counterCoverage` drift)? Then take the
+dearest row in the render's discipline: a bake that runs once, not per
+eased frame; the counter map's gate reading the eased camera as one move;
+the founding's rebuilds coalesced to one frame; anything the camera does
+that the old angle did not, made the same cost. Fidelity: the P-series pair
+0.000%; a founding shot before/after identical once settled; the
+attribution table before/after and a Sacrifices paragraph.
+
 **(wwwww) The movement range ink's seams — RULED, R2** (the user,
 2026-09-15: *"the seams in the range indicator for movement is off, could
 you take a look?"*). Astra's frontier ink (`src/render3d/movementBoundary.ts`,
