@@ -4826,3 +4826,22 @@ attack warnings remain. The frontier follows terrain, wraps across the seam,
 retains unreachable holes, and includes the selected origin. Its two batched
 buffers are reused on hover and replaced when the range or terrain changes.
 The movement gallery's current-game option now shows this production treatment.
+
+### 2026-09-15 — Founding a town pays for one sweep, not two
+
+The user reported a hitch on founding and suspected the new camera angle. It was
+measured first, with a sixth workload added to the painted benchmark ("found a
+town", reported frame by frame with the shadow ledger differenced across each).
+On a developed board the founding's own layer sweep is around a hundred
+milliseconds and the frame behind it carries one static rebake of several hundred
+depth draws; the camera's share was a tenth of that, but it arrived as a **second**
+hitch a third of a second after the click, because the city pitch re-faced every
+billboarded layer when its ease landed.
+
+Camera-facing layers are now built against the pitch the camera is settling on
+rather than the one it is leaving, and a turned pitch is a reason those layers are
+stale rather than a command to rebuild them — so the sweep a founding was already
+making answers both. Nothing is rebuilt when an ease arrives. The trade is that
+the board's marks hold the destination lean for the 320 ms of the turn; the snap
+moved from the end of the ease to its start. The static bake, which dominates the
+founding's frame, is unchanged and remains the performance audit's own task.
