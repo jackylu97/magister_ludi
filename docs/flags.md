@@ -24,6 +24,24 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
+**(yyyyy) Two rows V1 and L1 turned up — RULED, follow-ups.** (1) **A
+lifetime tally for the deck.** Nothing in the sim records what a card has
+paid since it was drafted: the Ledger's third band says so, and the score's
+six statecraft lines read what the deck pays *on the turn the score is
+asked*, so an empire that compounded for two hundred turns and one that
+drafted the same cards last turn score alike there (V1's sacrifice). The
+seam V1 names: `PlayerStatecraft.tallies` already counts a slotted card's
+occasions — a per-voice lifetime figure written in `collectYields` from
+`ledgerFold`'s statecraft class, one add a turn, is a schema bump (117) and
+one sentence in the changelog; then the Ledger's third band prints per
+card and the score reads the tally. Batch S2 when the user wants it. (2)
+**The loading sheet hides a failed replay.** A save whose log the current
+rules refuse (the committed 41-town fixture after the movement rulings)
+leaves the sheet at "turn 4 of 121" for ever instead of the refusal's own
+sentence: the worker's rejection must reach the sheet as a line and the
+landing as the shelf's refusal, and the sheet must come down. A bug, R4;
+pin: a log with a refused command shows the sentence and no sheet remains.
+
 **(xxxxx) Founding a town lags — RULED, R3** (the user, 2026-09-15: *"the
 game tends to lag a bit when founding a new city - i think it has to do
 with the new camera angle, could you take a look"*). **Measure first**: the
