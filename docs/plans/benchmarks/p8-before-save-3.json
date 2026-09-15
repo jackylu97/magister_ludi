@@ -1,0 +1,140 @@
+{
+  "label": "p8-before-save-3",
+  "measuredAt": "2026-09-15T13:01:04.140Z",
+  "commit": "fbaffbfe864ca68cec7795534fe58f637011f971",
+  "workingTreeDirty": true,
+  "fixture": {
+    "kind": "save",
+    "id": "standard-t120-s1",
+    "note": "the developed standard map — six empires, 120 turns",
+    "seed": 1,
+    "size": "standard",
+    "seats": 6,
+    "turns": 120,
+    "buildMs": 269028,
+    "commands": 4407,
+    "bytes": 298647,
+    "payloadSha256": "85c3f1ed2436877478e08c53058454a96ef7b6173dc0450eb29944c7831baa48",
+    "deterministic": null,
+    "replays": true,
+    "population": {
+      "turn": 121,
+      "seats": 7,
+      "cities": 41,
+      "buildings": 254,
+      "walledCities": 37,
+      "units": 273,
+      "improvedTiles": 232,
+      "improvements": {
+        "lumbermill": 33,
+        "mine": 27,
+        "pasture": 20,
+        "plantation": 52,
+        "camp": 10,
+        "quarry": 11,
+        "farm": 50,
+        "holySite": 4,
+        "fishingBoats": 17,
+        "floatingGardens": 7,
+        "citadel": 1
+      },
+      "roadedTiles": 62,
+      "camps": 24,
+      "discoveries": 34,
+      "map": {
+        "width": 80,
+        "height": 52,
+        "tiles": 4160
+      }
+    }
+  },
+  "harness": {
+    "script": "scripts/terrain-study/check-painted.mjs",
+    "port": 5321,
+    "viewport": {
+      "width": 1100,
+      "height": 700
+    },
+    "frames": 48,
+    "warmUp": 12,
+    "browser": "headless Chromium (Playwright) on ANGLE/SwiftShader",
+    "caveat": "software rasterisation: frame and GPU figures describe a CPU rasteriser, not the reference GPU. Draw calls, triangles, bake counts, memory, populations and startup stages are hardware-independent; frame times are not."
+  },
+  "startup": {
+    "marksInOrder": [
+      "load-start",
+      "replay-done",
+      "begin",
+      "assets-loaded",
+      "terrain-ready",
+      "state-layers-built",
+      "playable",
+      "first-board-frame"
+    ],
+    "marksAreOrdered": false,
+    "missingMarks": [],
+    "marks": {
+      "load-start": 7446,
+      "replay-done": 18521.9,
+      "begin": 7445.8,
+      "assets-loaded": 19830.2,
+      "terrain-ready": 25485.5,
+      "state-layers-built": 27533.8,
+      "playable": 27617.4,
+      "first-board-frame": 36847.5
+    },
+    "spans": [
+      {
+        "from": "load-start",
+        "to": "replay-done",
+        "ms": 11075.9
+      },
+      {
+        "from": "replay-done",
+        "to": "begin",
+        "ms": -11076.1
+      },
+      {
+        "from": "begin",
+        "to": "assets-loaded",
+        "ms": 12384.4
+      },
+      {
+        "from": "assets-loaded",
+        "to": "terrain-ready",
+        "ms": 5655.3
+      },
+      {
+        "from": "terrain-ready",
+        "to": "state-layers-built",
+        "ms": 2048.3
+      },
+      {
+        "from": "state-layers-built",
+        "to": "playable",
+        "ms": 83.6
+      },
+      {
+        "from": "playable",
+        "to": "first-board-frame",
+        "ms": 9230.1
+      }
+    ],
+    "totalMs": 29401.5,
+    "clickToPlayableMs": 20171.4,
+    "clickToFirstBoardFrameMs": 29401.5,
+    "navigationToPlayableMs": 27617.4,
+    "navigationToFirstBoardFrameMs": 36847.5,
+    "longTasks": {
+      "supported": true,
+      "count": 8,
+      "longestMs": 9234,
+      "longestAtMs": 27618.2,
+      "over50msTotalMs": 15792,
+      "note": "the long-task API reports a 50 ms floor and attributes a whole task, so a multi-second board build lands as one entry"
+    },
+    "domContentLoadedMs": 1013.3
+  },
+  "benchmark": null,
+  "pageErrors": []
+}
