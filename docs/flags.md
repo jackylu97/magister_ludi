@@ -92,6 +92,23 @@ triangles, so a thing overhanging a city hex no longer lifts its floor
 remembered wash is a vertex attribute on the one ground material, so each
 region is one draw; a caller that mutated a plan object in place would
 render stale ink (nothing does; the docblock says so).
+**Landed — P1** (2026-09-14): the evidence harness — a GPU timer probe,
+per-frame attribution (preparation vs submission), five reducer-driven
+workloads, eight startup marks in `main.ts`, three bot-played fixtures
+(`docs/plans/benchmarks/fixtures/`), `scripts/terrain-study/check-painted.mjs`.
+The record is `docs/plans/painted-performance-evidence.md`. **What it
+found**, for the waves in flight and after: replay of a developed save
+blocks the main thread ~20 s before the renderer is asked for anything
+(P7's #22); "playable" precedes the first drawn frame by ~22 s in one
+long task on the software rasteriser — shader compilation, upload and the
+first static bake — on a new world too (~14 s), and **nobody's task yet**;
+the static sun's 8192² target is 512 MiB, 2.4× the board's geometry (P5's
+#3); a unit step on a 41-town map cost 53–184 ms of `setGameState` layer
+rebuilds before P3 landed (P3 measured its five layers at 80 → 1 ms on the
+same fixture; the remainder is the units and fog layers, unmeasured since);
+and a real scout march charted twenty cells with zero static rebakes while
+an end-turn refresh baked once — the opposite of #19's source reading, so
+P5 measures before it acts. Nothing visual changed (evidence only).
 
 
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,
