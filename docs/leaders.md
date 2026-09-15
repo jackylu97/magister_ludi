@@ -75,7 +75,7 @@ buildings of the last four are the orchestrator's drafts, ▢ to mark up.
 
 | figure | civ | identity | ability I | ability II | unique unit | unique building |
 |---|---|---|---|---|---|---|
-| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; no unique building for now) |
+| **Pachacuti** | Inca | wide · the mountain network — few citizens, much coin | *the Qhapaq Ñan*: cities joined to the capital by road +1 happiness +1 production | *the Gold of the Peaks*: farms +1 gold per adjacent mountain | the Slinger, unslowed by hills | **Terraces** — a farm of the hills alone, +1 food over a farm; a peak beside it stands in for fresh water (a unique improvement; he has no unique building — ruled) |
 | **Emperor Taizong** | Tang | wide · the imperium | *the Mandate*: melee +1 strength +1 movement | *the Garrison Towns*: garrisoned cities +1 happiness, +15% culture | Tang heavy cavalry | the Examination Court |
 | **Modu Chanyu** | Xiongnu | wide · the steppe | *the Riders of the Steppe*: mounted +1 movement on grass and plains; pillaging +50% | *the Herds*: pastures +1 production +1 faith | the Xiongnu horse archer | the Horde Camp |
 | **Akhenaten** | Egypt | tall · faith and wonders | *the Great Works*: cities with a holy site +20% production toward wonders | *the Nile's Gift*: +1 faith on farms drinking fresh water | the Khopesh | the Obelisk |
@@ -111,8 +111,10 @@ water and nothing else), and taking Irrigation's renewal like a farm. `countsAs:
 'farm'` is what keeps every rule already written true of them — his own gold of
 the peaks, Akhenaten's fresh water, the Dikes, the Tetzcotzinco, the wheat that
 wants a farm, both renderers' furrows — with no reader learning a second name.
-The hall is `retired`, kept for saves and the book's bench; he has no unique
-building for now (▢ the user may give him one later).
+The hall is `retired`, kept for saves and the book's bench; **he has no unique
+building, and that is the ruling** (the user, 2026-09-15: *"pachacuti doesnt
+need a unique building, the terrace farm is plenty strong."*) — the one figure
+whose second unique is a work of the ground, by design and not by omission.
 
 Notes on the second six: Joan of Arc replaces Basil II (the user, 2026-09-11:
 *"i think i want a religion/war civ"*) — she was on the deferred list as a
