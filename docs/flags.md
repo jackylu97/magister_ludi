@@ -24,7 +24,97 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN (`docs/plans/bot-evolution.md`, awaiting the user's markup on its eight rulings)**
+**(aaaaaa) The draft pass — RULED, B1** (the user, 2026-09-15: *"the
+specificity of our cards, and how it's difficult to find the card you're
+looking for with our long spans of time between drafts, and how expensive
+re-rolls are"*; the diagnosis of record: 101 of the deck's ~250 effects are
+flat `pays` lines, drafts are three cards off a meter whose exponent puts
+late drafts decades apart, and the faith reroll compounds for life — so a
+specific card is a lottery ticket and the rational pick supplements the
+plan already running). Four changes to the *draw*, none to a card's text
+(the card-by-card rewrite is a later pass, read against the tally, S2):
+(1) **Follow a line.** `PlayerStatecraft.followedLine: OrderLine | null`
+(schema 118 — S2 takes 117), written by one command `followLine {playerId,
+line}` (null = follow nothing = today). While a line is followed, each
+sub-bag of the M/E/W spread multiplies the weight of that line's cards by
+`statecraft.lineFollowWeight` (data, ~4) — the spread holds, the line is
+pulled. Changing the line **zeroes the banked skip pity** (`orderSkips`),
+the one cost; a change with a hand open re-deals nothing. `explainOfferSize`
+untouched. (2) **Hold on pass.** `skipOrderOffer` takes an optional
+`hold: index`; the held card's id lands in `PlayerStatecraft.heldOrder`
+and, at the next draft, replaces the drawn card of its own slot (spread
+holds); pity still banked; a pick or a second pass without a hold clears
+it. (3) **The reroll resets.** `rerollsTaken` is zeroed when a government
+is adopted (the event's writer, `adoptGovernment`; an event write, no
+countdown) — a fresh government arrives with a cheap reroll.
+`religion.reroll` numbers unchanged. (4) **A flatter meter, measured.**
+The agent measures drafts taken by turn 100 and turn 160 in a headless
+six-seat game at today's `meter` (costBase 12, linear 5, exponent 2.65)
+and proposes the exponent/linear pair that yields ~1.5× the drafts by
+turn 160 with the early cadence kept; lands it in `data/statecraft.json`
+with the measurement in the changelog, the number the user's to re-rule.
+Card flats are NOT cut in this batch — the deck gets stronger by the extra
+drafts, deliberately, and S2's tally is how the rewrite reads it. The bot
+follows no line and holds nothing in B1 (its line choice is a row for a
+later E batch, `statecraft.lineLean`, off the same pool reading as
+`score.poolSynergy`). UI: the draft sheet gains the follow control (the
+lines named in the describers' words, never an id) and a hold on each
+card of a passed hand; the Compendium's statecraft entry states the three
+rules in plain words; screenshots before/after for the user's eye.
+Pins: the weighted draw with a line followed (seeded, counted over many
+draws), the hold replacing its own slot, the pity zeroed on a change, the
+reroll zeroed on adoption, a replayed log byte-identical.
+
+**(bbbbbb) S2 — the lifetime tally — RULED, in flight** ((yyyyy)(1) as
+written: `PlayerStatecraft.tallies` per voice, one add a turn in
+`collectYields` from `ledgerFold`'s statecraft class, schema 117, the
+Ledger's third band prints per card, V1's six statecraft score lines read
+the tally instead of the current turn). The user, 2026-09-15: *"lets get
+working on each of these things"*.
+
+**(cccccc) V1 and L1 land as reviewed** — the user's *"ok, lets get working
+on each of these things"* (2026-09-15) taken as the verdict on both sheets;
+wonders keep the cobalt L1 chose (gilt if the user says so later).
+
+**(zzzzz) The bot's skill and an evolutionary tuner — RULED; E0 WRITTEN, its eight rulings TAKEN AS RECOMMENDED (the user, 2026-09-15: *"ok, lets get working on each of these things"*); E1a and E1b in flight**
+(`docs/plans/bot-evolution.md` is the plan of record; its "What the user
+must rule on" list is ruled **1–8 as recommended**, no ▢ taken.) **E1a —
+the first batch of rows** (§2.8 items 1–3, every row marked NUMBER, at
+today's defaults, the two dead dials retired, the personas restated as
+numbers on the new rows) **plus four the user named** (2026-09-15: *"valuing
+entering age 3 with the value of all the luxury resources they have,
+valuing cards with the potential cards it could receive in the future,
+making sure it respects the boundaries for happiness and authority, the
+overall value of soldiers and army composition (archers are better on
+defense, catapults only useful on the offense)"*): (i) `research.ageEntryValue`
+is not flat — its reader sums the worth of the seat's *own* luxury rows
+whose effects carry `fromAge` = the age being entered (silver/gold's
+`perCopy` Æra III and any `fromAge` effect), scaled by the row, so a seat
+holding no such luxury wants the crossing only for the flat part; (ii)
+`score.poolSynergy` — a card option's worth gains a term for the cards
+*still drawable* on its line from `poolOfGovernment` (forward), beside
+today's `synergyBonus` (backward, held cards); (iii) `meters.happinessFloor`
+/ `meters.authorityFloor` — a next town, a puppet, or an act the bot can
+see would push the meter below the floor is **refused** in the chain, not
+priced (today both are prices only, `weights.happiness/authority`); (iv)
+`military.mix` becomes **two mixes by posture** — `mixDefend` (no campaign
+planned) and `mixCampaign` (a war planned or open on the offensive), the
+posture read from the war ledger/campaign plan; siege belongs to the
+campaign mix only; ranged weighted to the defend mix. Every new row: a
+docblock on its reader, the arena walks it with no page edit (an array is
+a wholesale replace), `aiPersona.test.ts`'s pins hold or are re-cut with a
+measurement, and the six-seat 120-turn digest is re-taken with the reason
+(a default that reproduces today's play moves no digest — a moved digest
+is a finding, printed). **E1b — the harness**: `scripts/evolve.ts` per
+§3 (vite-node, `runArenaGame`, the child pool, (μ+λ) 6+12, tournament-3,
+block crossover with personas whole, fitness = `foldScore` at duel 120 /
+standard 100 + Opus earliness, promotion on two thirds of games, ledger
+CSV + markdown + `champion.json`, write-back by hand only); the bounds
+sheet `data/ai.bounds.json` sync-tested against the sheet's leaves (an
+unrowed leaf frozen; `driver.*`, `search.*`, `puppetProfile`, `solvency.*`,
+sentinels frozen by omission); `test/sim/aiDigest.slow.test.ts` pinning the
+six-seat digest at two literals. E1b needs V1's `src/sim/score.ts` — V1
+lands first.
 (the user, 2026-09-15: *"I also want to make the game a lot harder, so the
 skill required to beat the game can feel more pressing. Maybe we can start
 by optimizing the ai, could you start a script to begin an evolutionary
