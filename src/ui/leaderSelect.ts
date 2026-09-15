@@ -45,6 +45,7 @@ import {
 import { type CardClause, describeCard, ref } from '../sim/statecraft';
 import type { PlayerSpec } from '../sim/state';
 import { type BuildingId, buildingDef } from '../sim/buildingData';
+import { type ImprovementId, improvementDef } from '../sim/improvementData';
 import { type UnitTypeId, unitDef } from '../sim/unitData';
 import { gatingTech } from '../sim/tech';
 import { techAgeBands, techDef } from '../sim/techData';
@@ -64,13 +65,22 @@ import { setDescriptorText } from './keywords';
  */
 export const NO_LEADER = '';
 
-/** Which of a figure's two rows a line is about. The kinds `isUnlocked` asks. */
-export type LeaderRowKind = 'unit' | 'building';
+/**
+ * Which of a figure's two rows a line is about.
+ *
+ * The two kinds `isUnlocked` asks, and a third the tree has no queue for: a
+ * **work of the ground** (batch L8, `docs/flags.md` (bbbbb)). A figure's second
+ * unique may be a hall or a field, and everything a screen does with it — the
+ * eyebrow, the keyword ref, the opening words, the gate — is the same question
+ * asked one table over.
+ */
+export type LeaderRowKind = 'unit' | 'building' | 'improvement';
 
 /** The eyebrow over a unique's line, one word per kind. */
 export const LEADER_ROW_WORD: Record<LeaderRowKind, string> = {
   unit: 'Unique unit',
   building: 'Unique building',
+  improvement: 'Unique improvement',
 };
 
 /** The sentence under the whole card, for a table sitting under no figure. */
@@ -109,6 +119,18 @@ export const LEADER_FACE_LINES = 4;
  * reader one press from the node that opens their soldier.
  */
 export function leaderOpeningWords(kind: LeaderRowKind, id: string): string {
+  // **A work of the ground is dated by its own row and nothing else.** An
+  // improvement is not a queue item — there is no `gatingTech` for it and no
+  // column on it either — so the one field that opens it is the one field that
+  // gates it: `ImprovementDef.requiresTech`, the same gate a worker's sheet
+  // greys with. A row no technology named would open from the first turn, which
+  // is the honest reading and the sentence says so.
+  if (kind === 'improvement') {
+    const gate = improvementDef(id as ImprovementId).requiresTech;
+    return gate === undefined
+      ? 'from your first turn'
+      : `with ${ref('tech', gate, techDef(gate).name)}`;
+  }
   const gate = gatingTech(kind, id);
   if (gate !== null) return `with ${ref('tech', gate, techDef(gate).name)}`;
   const column =
@@ -160,10 +182,16 @@ export interface LeaderFace {
   colorWords: [string, string];
   /** Both lines held from the first turn, in the sheet's order. */
   abilities: [LeaderAbilityFace, LeaderAbilityFace];
-  /** The soldier nobody else may raise. */
-  unit: LeaderUniqueFace;
-  /** The building nobody else may raise. */
-  building: LeaderUniqueFace;
+  /**
+   * **The two rows nobody else may raise**, in the sheet's order: the soldier,
+   * then the hall or the ground.
+   *
+   * A pair rather than a field per kind (batch L8), because every screen does
+   * the same thing with both and *which kind the second one is* is the figure's
+   * business: a face prints two lines here, the Your Civ sheet prints two rows,
+   * and neither has to know that one figure keeps his in the fields.
+   */
+  uniques: [LeaderUniqueFace, LeaderUniqueFace];
 }
 
 /** One printed line of a face: an ability, or one of the two rows. */
@@ -206,8 +234,21 @@ export function leaderFaces(): LeaderFace[] {
         name: ability.name,
         clauses: describeCard(ability.id),
       })) as [LeaderAbilityFace, LeaderAbilityFace],
-      unit: uniqueFace('unit', def.unit, unitDef(def.unit).name),
-      building: uniqueFace('building', def.building, buildingDef(def.building).name),
+      uniques: [
+        uniqueFace('unit', def.unit, unitDef(def.unit).name),
+        // **Whichever kind the figure's second row is**, read off the sheet: a
+        // hall for most of the roster, a work of the ground for the figure who
+        // keeps his second unique in the fields. Nothing here names either.
+        // The load validator has already refused a figure carrying neither, so
+        // the fallback here is unreachable and says so by being the hall's.
+        def.improvement !== undefined
+          ? uniqueFace(
+              'improvement',
+              def.improvement,
+              improvementDef(def.improvement).name,
+            )
+          : uniqueFace('building', def.building!, buildingDef(def.building!).name),
+      ],
     };
   });
 }
@@ -227,12 +268,14 @@ export function leaderFaceLines(face: LeaderFace): LeaderFaceLine[] {
       label: ability.name,
       clauses: ability.clauses,
     })),
-    { kind: 'unit' as const, label: LEADER_ROW_WORD.unit, clauses: [{ text: face.unit.text }] },
-    {
-      kind: 'building' as const,
-      label: LEADER_ROW_WORD.building,
-      clauses: [{ text: face.building.text }],
-    },
+    // Each row's eyebrow is its own kind's word, so the fourth line reads
+    // "Unique improvement" for the figure whose second row is a field and
+    // nothing on this screen decides which.
+    ...face.uniques.map((row) => ({
+      kind: row.kind,
+      label: LEADER_ROW_WORD[row.kind],
+      clauses: [{ text: row.text }],
+    })),
   ];
 }
 

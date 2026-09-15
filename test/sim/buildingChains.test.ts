@@ -190,7 +190,7 @@ describe('a chained building wants its parent standing in the same town', () => 
 // --- the withdrawn rows ------------------------------------------------------
 
 describe('a withdrawn building keeps its row and leaves the game', () => {
-  it('is the nine rows the cut withdrew', () => {
+  it('is the ten rows the cut withdrew, and the hall a figure traded for a field', () => {
     expect([...RETIRED].sort()).toEqual(
       [
         'armoury',
@@ -206,6 +206,11 @@ describe('a withdrawn building keeps its row and leaves the game', () => {
         // it always did.
         'reliquary',
         'steleOfLaws',
+        // **The Terraces** (batch L8, `docs/flags.md` (bbbbb)): not a row the
+        // fewer-things pass cut, but a hall the user re-cut as a *field* — the
+        // improvement of the same name is Pachacuti's unique now, and the row
+        // stays here for the saves that raised it and for the book's bench.
+        'terraces',
       ].sort(),
     );
   });

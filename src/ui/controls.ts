@@ -234,6 +234,7 @@ import {
   chopTechError,
   improvementError,
   improvementGroundError,
+  improvementLeaderError,
   improvementTechError,
   improvementYieldDelta,
   isBuilder,
@@ -5247,6 +5248,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
       // clauses here, so the menu and the reducer cannot disagree about what
       // this hex is.
       if (improvementGroundError(state, unit.ownerId, tile, id) !== null) continue;
+      // **A row this empire's figure will never open is not on the sheet
+      // either** (batch L8). The greyed rows are arguments — go and learn
+      // Mining — and "only one realm may build this" is not an argument, it is
+      // a fact about somebody else's seat that no amount of play will change.
+      // Asked of the sim's own gate (`improvementLeaderError`) rather than by
+      // reading the marker here, so the menu and the reducer cannot disagree.
+      if (improvementLeaderError(state, unit.ownerId, id) !== null) continue;
       const tech = improvementTechError(state, unit.ownerId, id);
       const gate = def.requiresTech;
       options.push({

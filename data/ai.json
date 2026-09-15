@@ -40,6 +40,7 @@
     "searchRadius": 6,
     "improvements": [
       "farm",
+      "terraces",
       "mine",
       "pasture",
       "camp",

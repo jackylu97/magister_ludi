@@ -875,8 +875,34 @@ import {
  * made into a garrisoned town was accepted then and is refused now, and the
  * bots step their garrison aside before buying — two commands where there was
  * one.
+ *
+ * v116 (batch L8, `docs/flags.md` (bbbbb); the user, 2026-09-14, playtesting
+ * Pachacuti: *"originally, i was imagining that terraces would be a unique
+ * farm, not a building in the city. It would have +1 food compared to a regular
+ * farm, and could be built adjacent to mountains"*): **the Terraces are a field,
+ * not a hall.** The building is `retired` — kept, like every withdrawn row, so a
+ * save that raised it still replays and a copy already standing keeps paying —
+ * and its `townTerraces` hills waiver is gone from the farm with it. In its
+ * place `data/improvements.json` carries a `terraces` row: the farm's terrain,
+ * features and worker charge, two food where a farm pays one, no
+ * `requiresHills` at all, and `mountainFoot` — the fourth seam in the constraint
+ * shape, which forgives a row its water on any hex a peak stands beside.
+ * `countsAs: 'farm'` is what keeps every rule already written true of it, read
+ * through `improvementCountsAs` and never by a name. A figure's second unique
+ * may now be a **work of the ground**: `LeaderDef.improvement` beside
+ * `building`, one of the two and never neither, gated by
+ * `leaderOpensImprovement` exactly as the soldier and the hall are gated.
+ *
+ * No new state — a figure's uniques are read off `data/leaders.json` and never
+ * written into a game, and `Tile.improvement` was always the field that holds
+ * this. But **a v115 log does not replay**: the row did not exist, so a
+ * `buildImprovement` naming it was refused where it is now accepted, a hillside
+ * and a dry mountain foot that took nothing now take a terrace, and the Terraces
+ * queued as a *building* in a town — which a v115 Inca player could do — is
+ * refused where it was built, so every hammer after it lands somewhere else. A
+ * v115 log that neither queued the hall nor cut a terrace replays byte for byte.
  */
-export const SCHEMA_VERSION = 115;
+export const SCHEMA_VERSION = 116;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

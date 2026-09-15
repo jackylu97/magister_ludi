@@ -24,8 +24,14 @@ import { type Tile, createMap, getTileAt, tileNeighbors } from '../../src/sim/ma
 import { markMountainAdjacency } from '../../src/sim/mapgen';
 import { arriveOnTile } from '../../src/sim/arrival';
 import { improvementErrorAt } from '../../src/sim/improvements';
+import {
+  HILLS_WAIVERS,
+  improvementCountsAs,
+  improvementDef,
+} from '../../src/sim/improvementData';
 import { explainPurchaseCost, purchaseError, purchaseItemAt } from '../../src/sim/purchase';
 import { snapshotState } from '../../src/sim/game';
+import { applyCommand } from '../../src/sim/commands';
 import {
   type City,
   type GameState,
@@ -41,7 +47,7 @@ import { fullMovement } from '../../src/sim/units';
 import { computeFreshwater } from '../../src/sim/water';
 import { resetVisibility } from '../../src/sim/visibility';
 import { cityContext, explainTileYield } from '../../src/sim/yields/hex';
-import { type LeaderId } from '../../src/sim/leaderData';
+import { type LeaderId, leaderDef } from '../../src/sim/leaderData';
 
 // --- the bench --------------------------------------------------------------
 
@@ -260,12 +266,26 @@ describe('Akhenaten’s farms are paid for the water they drink', () => {
   });
 });
 
-// --- the Terraces · a hillside that will take a farm -------------------------
+// --- the Terraces · Pachacuti's own field ------------------------------------
 
-describe('the Terraces let a farm be cut into a hillside that refuses one', () => {
+/**
+ * **The Terraces, re-cut as a field** (batch L8, `docs/flags.md` (bbbbb); the
+ * user, 2026-09-14: *"i was imagining that terraces would be a unique farm, not
+ * a building in the city"*).
+ *
+ * L3c's claims here were about a hall that waived the farm's flat ground inside
+ * one town's borders; every one of them is replaced by the claim the row makes
+ * now, stated the same way — where the rule fires and where it does not. The
+ * hall itself is retired and its waiver is gone, which is the last claim in the
+ * block.
+ */
+describe('the Terraces are a farm of the hills and the mountain foot', () => {
   /** A dry, bare hill inside a town's borders — the hex a farm always refused. */
-  function dryHill(): { state: GameState; city: City; hill: Tile } {
-    const state = bench('pachacuti');
+  function dryHill(first: LeaderId | null = 'pachacuti') {
+    // `null` is a seat under **no figure**, said as a value rather than as an
+    // omitted argument: `undefined` would take the default and quietly test
+    // Pachacuti twice.
+    const state = bench(first ?? undefined);
     const city = foundCityAt(state, 0, at(state, 6, 6));
     const hill = at(state, 6, 5);
     hill.hills = true;
@@ -274,67 +294,181 @@ describe('the Terraces let a farm be cut into a hillside that refuses one', () =
     return { state, city, hill };
   }
 
-  it('refuses the farm in a town that has not cut the steps, and names the ground', () => {
+  /** A dry desert hex with one peak beside it, inside a town's borders. */
+  function mountainFoot(first: LeaderId | null = 'pachacuti') {
+    const state = bench(first ?? undefined);
+    const city = foundCityAt(state, 0, at(state, 6, 6));
+    const foot = at(state, 6, 5);
+    foot.terrain = 'desert';
+    const ring = tileNeighbors(state.map, foot).filter(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    );
+    ring[0]!.terrain = 'mountain';
+    reground(state);
+    refreshCityDerived(state, city);
+    return { state, city, foot };
+  }
+
+  it('is cut into a bare hillside where a farm is refused for its flat ground', () => {
     const { state, hill } = dryHill();
     const refusal = improvementErrorAt(state, 0, hill, 'farm');
     expect(refusal).not.toBeNull();
     expect(refusal!.toLowerCase()).toContain('flat');
+    expect(improvementErrorAt(state, 0, hill, 'terraces')).toBeNull();
   });
 
-  it('takes the farm the turn the steps are cut, and not before', () => {
-    const { state, city, hill } = dryHill();
-    expect(improvementErrorAt(state, 0, hill, 'farm')).not.toBeNull();
-    city.buildings.push('terraces');
+  it('is cut at the foot of a peak where a farm is refused for its water', () => {
+    const { state, foot } = mountainFoot();
+    expect(foot.freshwater ?? false).toBe(false);
+    expect(foot.mountainsBeside).toBe(1);
+    const refusal = improvementErrorAt(state, 0, foot, 'farm');
+    expect(refusal).not.toBeNull();
+    expect(refusal!.toLowerCase()).toContain('fresh water');
+    expect(improvementErrorAt(state, 0, foot, 'terraces')).toBeNull();
+  });
+
+  it('is refused the ground no farm would take — the peak forgives water, not terrain', () => {
+    // The mountain foot forgives the *water* and never the terrain list: open
+    // sea under a peak is not terraced, which is the half of the ruling that
+    // says the terrain must still be one the row names.
+    const { state, foot } = mountainFoot();
+    foot.terrain = 'ocean';
     reground(state);
-    expect(improvementErrorAt(state, 0, hill, 'farm')).toBeNull();
+    const refusal = improvementErrorAt(state, 0, foot, 'terraces');
+    expect(refusal).not.toBeNull();
+    expect(refusal!.toLowerCase()).toContain('ocean');
   });
 
-  it('waives the hill for the town that raised them and for no other town', () => {
+  it('is nobody else’s to cut, however much they have researched', () => {
+    // The figure's gate, and the sentence a rival is refused with: it names the
+    // realm that may, because the technology is not what is in the way.
+    const { state, hill } = dryHill('akhenaten');
+    const refusal = improvementErrorAt(state, 0, hill, 'terraces');
+    expect(refusal).not.toBeNull();
+    expect(refusal).toBe(`Only ${leaderDef('pachacuti').name}'s realm may build terraces`);
+    expect(refusal!).not.toMatch(/[0-9]/);
+    // A seat under no figure at all is refused the same way.
+    const plain = dryHill(null);
+    expect(improvementErrorAt(plain.state, 0, plain.hill, 'terraces')).toBe(refusal);
+  });
+
+  it('pays two food where a farm pays one, and takes Irrigation’s renewal like a farm', () => {
     const state = bench('pachacuti');
-    const terraced = foundCityAt(state, 0, at(state, 4, 6));
-    const plain = foundCityAt(state, 0, at(state, 10, 6));
-    terraced.buildings.push('terraces');
+    const city = foundCityAt(state, 0, at(state, 6, 6));
+    const field = at(state, 6, 5);
+    field.improvement = 'terraces';
     reground(state);
-    for (const [city, allowed] of [
-      [terraced, true],
-      [plain, false],
-    ] as const) {
-      const hill = at(state, city.col, city.row - 1);
+    refreshCityDerived(state, city);
+    const terraced = hexLines(state, city, field).filter(
+      (entry) => entry.source === improvementDef('terraces').name,
+    );
+    expect(terraced).toHaveLength(1);
+    expect(terraced[0]!.food).toBe(2);
+    expect(improvementDef('terraces').yields.food).toBe(
+      (improvementDef('farm').yields.food ?? 0) + 1,
+    );
+    // The renewal is the farm's, row for row — the same technology, the same
+    // water condition, the same helping.
+    expect(improvementDef('terraces').upgrades).toEqual(improvementDef('farm').upgrades);
+  });
+
+  it('counts as a farm wherever the rules read one — the peaks pay it', () => {
+    // Pachacuti's own gold of the peaks asks `{test: 'improvement', improvement:
+    // 'farm'}`, and so does Akhenaten's fresh water. Neither card learned a
+    // second name: the row's `countsAs` is the whole of it.
+    const state = bench('pachacuti');
+    const city = foundCityAt(state, 0, at(state, 6, 6));
+    const field = at(state, 6, 5);
+    field.improvement = 'terraces';
+    const ring = tileNeighbors(state.map, field).filter(
+      (tile) => !(tile.col === city.col && tile.row === city.row),
+    );
+    ring[0]!.terrain = 'mountain';
+    reground(state);
+    refreshCityDerived(state, city);
+    const line = lineFrom(state, city, field, 'goldOfThePeaks');
+    expect(line).toBeDefined();
+    expect(line!.gold).toBe(1);
+    expect(improvementCountsAs('terraces', 'farm')).toBe(true);
+    // And never the other way round: a farm is not a terrace.
+    expect(improvementCountsAs('farm', 'terraces')).toBe(false);
+  });
+
+  it('drinks for Akhenaten’s Nile beside a river, because it is a farm', () => {
+    const state = bench('akhenaten');
+    const city = foundCityAt(state, 0, at(state, 6, 6));
+    const field = at(state, 6, 5);
+    // The seat is Akhenaten's, so the ground is his; the row is Pachacuti's to
+    // *build* and the card is about what stands on the hex, not who laid it.
+    field.improvement = 'terraces';
+    tileNeighbors(state.map, field)[0]!.terrain = 'lake';
+    reground(state);
+    refreshCityDerived(state, city);
+    expect(field.freshwater).toBe(true);
+    expect(lineFrom(state, city, field, 'nilesGift')).toBeDefined();
+  });
+
+  /**
+   * **The command, and the log that replays it** (batch L8). The row is new, so
+   * the schema note's claim is pinned here: the verb is accepted for the one
+   * seat and refused for every other with the state **byte-identical** (hard
+   * rule 1), and the same commands over the same config land on the same board.
+   */
+  it('is cut by the command, refused to a rival byte for byte, and replays', () => {
+    /** A bench with a worker of `seat` standing on a dry, bare hill of its own. */
+    function withWorker(first: LeaderId | null) {
+      const state = bench(first ?? undefined);
+      const city = foundCityAt(state, 0, at(state, 6, 6));
+      const hill = at(state, 6, 5);
       hill.hills = true;
       reground(state);
       refreshCityDerived(state, city);
-      expect(improvementErrorAt(state, 0, hill, 'farm') === null, city.name).toBe(allowed);
+      const worker = createUnit(state, 0, 'worker', hill.col, hill.row);
+      worker.movesLeft = fullMovement(worker, state);
+      bumpRevision(state);
+      return { state, hill, worker };
     }
+
+    const cut = { type: 'buildImprovement', playerId: 0, improvement: 'terraces' };
+
+    // The rival: refused, and the refusal changes nothing at all.
+    const theirs = withWorker('akhenaten');
+    const before = snapshotState(theirs.state);
+    const refused = applyCommand(theirs.state, {
+      ...cut,
+      unitId: theirs.worker.id,
+    } as never);
+    expect(refused.ok).toBe(false);
+    expect(refused.ok ? null : refused.error).toBe(
+      `Only ${leaderDef('pachacuti').name}'s realm may build terraces`,
+    );
+    expect(snapshotState(theirs.state)).toEqual(before);
+
+    // The figure's own seat: accepted, and the hillside is terraced.
+    const mine = withWorker('pachacuti');
+    const done = applyCommand(mine.state, { ...cut, unitId: mine.worker.id } as never);
+    expect(done.ok).toBe(true);
+    expect(mine.hill.improvement).toBe('terraces');
+
+    // And the same bench under the same command lands on the same board.
+    const again = withWorker('pachacuti');
+    expect(applyCommand(again.state, { ...cut, unitId: again.worker.id } as never).ok).toBe(true);
+    expect(snapshotState(again.state)).toEqual(snapshotState(mine.state));
   });
 
-  it('waives nothing on a rival’s hillside', () => {
-    const state = bench('pachacuti', 'pachacuti');
-    const mine = foundCityAt(state, 0, at(state, 4, 6));
-    mine.buildings.push('terraces');
-    const theirs = foundCityAt(state, 1, at(state, 10, 6));
-    theirs.buildings.push('terraces');
-    reground(state);
-    const hill = at(state, 10, 5);
-    hill.hills = true;
-    reground(state);
-    // Player 0's worker may not work player 1's ground at all, terraced or not:
-    // the borders clause refuses before the waiver is ever asked.
-    expect(improvementErrorAt(state, 0, hill, 'farm')).not.toBeNull();
-  });
-
-  it('reads the building and never the leader who drafted it', () => {
-    // The marker is the whole of the rule — a town of a leaderless seat that
-    // somehow holds the row cuts the same steps.
-    const state = bench();
-    const city = foundCityAt(state, 0, at(state, 6, 6));
-    const hill = at(state, 6, 5);
-    hill.hills = true;
-    reground(state);
-    expect(buildingDef('terraces').terraces).toBe(true);
-    expect(improvementErrorAt(state, 0, hill, 'farm')).not.toBeNull();
+  it('leaves the hall on the bench, with its waiver gone from the farm', () => {
+    // The row is kept for saves and the book's bench, and it is in no pool:
+    // `retired` takes it out of every build list there is, and the farm's
+    // `hillsIf` no longer names a town that has cut steps.
+    expect(buildingDef('terraces').retired).toBe(true);
+    expect(improvementDef('farm').hillsIf).toEqual(['freshwater', 'ownResource']);
+    expect([...HILLS_WAIVERS]).toEqual(['freshwater', 'ownResource']);
+    // A town holding the retired hall waives nothing: a bare dry hillside
+    // refuses the farm exactly as it did before L3c.
+    const { state, city, hill } = dryHill();
     city.buildings.push('terraces');
     reground(state);
-    expect(improvementErrorAt(state, 0, hill, 'farm')).toBeNull();
+    expect(improvementErrorAt(state, 0, hill, 'farm')).not.toBeNull();
   });
 });
 
