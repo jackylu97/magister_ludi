@@ -187,6 +187,34 @@ and roads draw over a farm's furrows; town and great-person ground pigment
 go under the ink too (same class, same step), a farmed frontier hex loses
 a thin strip of crop beneath the ribbon, and a plinth base directly under
 a ribbon could in theory lose its bottom row of pixels (not reproduced).
+**Landed — P7** (2026-09-14, and (eeeee) with it): replay dominated
+(3.9 s of blocked main thread on a developed save against 6 ms to hand the
+result across a worker), so `newGame` and the log walk run in
+`src/ui/game.worker.ts` through `src/ui/gameLoader.ts`; the main thread
+blocks ~7 ms on a load instead of seconds; the state is byte-identical to
+the synchronous path (pinned both in-process and through the real
+`postMessage` seam) and refusals match character for character. The
+**loading sheet** (`src/ui/loadingSheet.ts`) covers both journeys from the
+press until a frame has been presented: Opening the save · Replaying the
+game (turn N of M, reported per turn by a `ReplayWatcher` on the one
+walk) · Painting the world (the terrain worker's progress) · Placing the
+pieces; a new world shows the last two. #21 (terrain caching) **not
+taken, with numbers**: the 6–12 s rebuild is already off-thread and costs
+the main thread 34–157 ms, so a cache buys wall time, not responsiveness,
+and needs an IndexedDB round-trip measurement first — queued in wave 3 as
+part of P8's startup work. **Sacrifices kept**: a load's wall clock is
++145–730 ms for the worker crossing; one idle worker holding the sim
+module graph lives for the page (spun up on the landing so a load never
+fills a cold one); no Cancel and no replay timeout (a hung worker hangs
+the load where before it hung the tab); a broken save shows the busy
+label before its sentence; the shelf takes one load at a time; the sheet
+cannot be dismissed and is never disposed (pinned out of the register on
+purpose); "of M" reads the shelf label, display-only; on the synchronous
+fallback the bar does not move; the last stage is a proxy (terrain 100%
+to two frames past `hideLanding`), not `setGameState` itself; the saves
+panel's route shows the sheet in two halves around "Abandon the game in
+progress?". P1's `first-board-frame` mark is the one that survived (it
+fires inside `boot`, earlier than the sheet's own seam).
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between
