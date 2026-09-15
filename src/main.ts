@@ -128,6 +128,7 @@ import { type BeadAge, BEAD_RULES } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
+  COMPARISON_LINE,
   cityPhaseLine,
   createGameControls,
   showsSeatStrip,
@@ -1694,11 +1695,30 @@ function strengthFigure(value: number): string {
  * A refusal is shown as words instead. "You cannot attack that, and here is why"
  * is exactly what a player aiming at something out of reach needs to read, and
  * it is the reducer's own sentence.
+ *
+ * A **comparison** is the same card with one line and one tint added (user,
+ * 2026-09-15): the odds of a fight that is not on offer this turn, so a player
+ * can weigh an army before marching into it. Which reading it is comes from
+ * `controls.ts` (`CombatReading.comparison`) and is never decided here — this
+ * file prints the sentence that module wrote (`COMPARISON_LINE`) and hangs the
+ * tint on the card, exactly as it prints `cityPhaseLine`'s.
  */
-function showCombatForecast(preview: ReturnType<GameControls['combatForecast']>): void {
+function showCombatForecast(reading: ReturnType<GameControls['combatForecast']>): void {
   combatForecastEl.replaceChildren();
-  combatForecastEl.hidden = preview === null;
-  if (preview === null) return;
+  combatForecastEl.hidden = reading === null;
+  combatForecastEl.classList.toggle('is-comparison', reading !== null && reading.comparison);
+  if (reading === null) return;
+  const preview = reading.preview;
+
+  // The comparison says what it is **before** the numbers or the refusal, so a
+  // player reading downward knows what they are looking at by the time they
+  // reach a figure they might act on.
+  if (reading.comparison) {
+    const aside = document.createElement('p');
+    aside.className = 'combat-comparison';
+    aside.textContent = COMPARISON_LINE;
+    combatForecastEl.append(aside);
+  }
 
   if (!preview.ok) {
     const why = document.createElement('p');
