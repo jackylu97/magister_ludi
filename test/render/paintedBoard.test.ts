@@ -197,6 +197,36 @@ describe('production painted board', () => {
     expect(names(dark)).toEqual(names(lit));
   });
 
+  /**
+   * Receiving is a per-batch fact as much as casting is, and an expensive one:
+   * the flag compiles the PCF sampling chunks into that batch's program. The
+   * detail pigment lies on ground that samples the same shadow directly beneath
+   * it, so it was taken out of the receiving set and not a pixel moved. The
+   * water was measured the same way and stays in — a headland's shadow on a
+   * river reads on the water itself. See `decorateMesh`.
+   */
+  it('keeps the water receiving and takes the detail pigment out', () => {
+    const { map, build } = fixture(6, 5);
+    // A board that actually has all three: sea for the water batch, an oasis
+    // pool for the detail batch, turf for the land.
+    map.tiles.forEach((tile, i) => {
+      if (i % 5 === 0) { tile.terrain = 'ocean'; tile.feature = 'none'; }
+      else if (i % 5 === 1) { tile.feature = 'oasis'; }
+    });
+    const byFamily = new Map<string, Set<boolean>>();
+    for (const mesh of meshesOf(build())) {
+      const family = String(mesh.userData.paintedFamily);
+      if (!byFamily.has(family)) byFamily.set(family, new Set());
+      byFamily.get(family)!.add(mesh.receiveShadow);
+    }
+    expect([...byFamily.get('merged details') ?? []]).toEqual([false]);
+    expect([...byFamily.get('merged water') ?? []]).toEqual([true]);
+    expect([...byFamily.get('merged land') ?? []]).toEqual([true]);
+    // Every other family is left receiving: the cut is named, never a default.
+    for (const [family, flags] of byFamily)
+      if (family !== 'merged details') expect([...flags], family).toEqual([true]);
+  });
+
   it('carries the cast fact, not the live flag, through an exported board', () => {
     const { build } = fixture();
     const lit = build(true).exportBatches().map(batch => batch.castShadow);

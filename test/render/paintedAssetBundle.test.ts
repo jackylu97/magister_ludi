@@ -17,6 +17,8 @@ import { BoxGeometry, BufferGeometry, Group, Mesh, MeshStandardMaterial } from '
 import { GLTFLoader, type GLTF } from 'three/addons/loaders/GLTFLoader.js';
 // @ts-expect-error The shared study asset loader has no standalone declaration.
 import { loadVegetation, describeVegetationBundle, VEGETATION_BUNDLE_VERSION, VEGETATION_BUNDLE_URL, VEGETATION_SPECIES } from '../../src/terrainStudy/vegetation.js';
+// @ts-expect-error The shared study asset loader has no standalone declaration.
+import { loadSettlementAssets, describeSettlementBundle, SETTLEMENT_ASSET_NAMES, SETTLEMENT_BUNDLE_URL, SETTLEMENT_BUNDLE_VERSION } from '../../src/terrainStudy/settlementAssets.js';
 
 afterEach(() => { vi.restoreAllMocks(); });
 
@@ -43,9 +45,9 @@ function encodeBundle(described: { header: unknown; chunks: Uint8Array[]; bytes:
 }
 
 /** `fetch` is spied on rather than stubbed: this suite's workers share a module graph. */
-function serve(buffer: ArrayBuffer | null) {
+function serve(buffer: ArrayBuffer | null, expected: string = VEGETATION_BUNDLE_URL) {
   return vi.spyOn(globalThis, 'fetch').mockImplementation((async (url: string) => {
-    expect(url).toBe(VEGETATION_BUNDLE_URL);
+    expect(url).toBe(expected);
     return buffer
       ? { ok: true, status: 200, arrayBuffer: async () => buffer }
       : { ok: false, status: 404, arrayBuffer: async () => new ArrayBuffer(0) };
@@ -142,5 +144,85 @@ describe('prepared vegetation bundle', () => {
           expect(attribute.array.buffer).not.toBe(refused);
     expect(describeGeometry(ordered(fallen)[0].geometry)).toEqual(describeGeometry(ordered(live)[0].geometry));
     release(live); release(fallen);
+  });
+});
+
+/**
+ * The settlement kit's half of the same contract — twenty-eight authored sculpts
+ * rather than nine, one geometry each, no shoulder. Same file format, same
+ * refusal rules, and the same reason for pinning it here: the format is a live
+ * question this suite can answer, while whether the *shipped* file is current is
+ * the build script's `--check` (run by `paintedAssetSync.test.ts`).
+ */
+type SettlementKit = Record<string, BufferGeometry> & { material: MeshStandardMaterial };
+type DescribedKit = { header: { version: string; kit: { name: string }[] }; chunks: Uint8Array[]; bytes: number };
+
+function releaseKit(kit: SettlementKit): void {
+  for (const [name, value] of Object.entries(kit)) if (name !== 'material') (value as BufferGeometry).dispose();
+  kit.material.dispose();
+}
+
+async function preparedKit(): Promise<{ live: SettlementKit; described: DescribedKit }> {
+  vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => asset());
+  serve(null, SETTLEMENT_BUNDLE_URL);
+  const live: SettlementKit = await loadSettlementAssets({ register() {} }, null);
+  return { live, described: describeSettlementBundle(live) as DescribedKit };
+}
+
+describe('prepared settlement bundle', () => {
+  it('reproduces the live GLB path attribute for attribute, for every asset', async () => {
+    const { live, described } = await preparedKit();
+    expect(described.header.version).toBe(SETTLEMENT_BUNDLE_VERSION);
+    expect(described.header.kit.map(row => row.name)).toEqual(SETTLEMENT_ASSET_NAMES);
+
+    const requests = serve(encodeBundle(described), SETTLEMENT_BUNDLE_URL);
+    const glbs = vi.spyOn(GLTFLoader.prototype, 'loadAsync');
+    const bundled: SettlementKit = await loadSettlementAssets({ register() {} }, null);
+    // One request, and not a single GLB parsed.
+    expect(requests).toHaveBeenCalledTimes(1);
+    expect(glbs).not.toHaveBeenCalled();
+    for (const name of SETTLEMENT_ASSET_NAMES)
+      expect(describeGeometry(bundled[name]!), name).toEqual(describeGeometry(live[name]!));
+    releaseKit(live); releaseKit(bundled);
+  });
+
+  it.each([
+    ['a refused request', (buffer: ArrayBuffer) => { void buffer; return null; }],
+    ['a bundle that is not one', (buffer: ArrayBuffer) => { new DataView(buffer).setUint8(0, 0x58); return buffer; }],
+    ['a truncated bundle', (buffer: ArrayBuffer) => buffer.slice(0, 32)],
+  ])('falls back to the authored kit on %s', async (_name, spoil) => {
+    const { live, described } = await preparedKit();
+    serve(spoil(encodeBundle(described)), SETTLEMENT_BUNDLE_URL);
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => asset());
+    const fallen: SettlementKit = await loadSettlementAssets({ register() {} }, null);
+    for (const name of SETTLEMENT_ASSET_NAMES)
+      expect(describeGeometry(fallen[name]!), name).toEqual(describeGeometry(live[name]!));
+    releaseKit(live); releaseKit(fallen);
+  });
+
+  it.each([
+    ['another version', (header: DescribedKit['header']) => { header.version = 'settlements-0'; }],
+    ['an asset the renderer does not know', (header: DescribedKit['header']) => { header.kit[3]!.name = 'unicorn'; }],
+    ['a different kit', (header: DescribedKit['header']) => { header.kit.pop(); }],
+  ])('refuses a bundle naming %s, and builds nothing from it', async (_name, spoil) => {
+    const { live, described } = await preparedKit();
+    spoil(described.header);
+    const refused = encodeBundle(described);
+    serve(refused, SETTLEMENT_BUNDLE_URL);
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => asset());
+    const fallen: SettlementKit = await loadSettlementAssets({ register() {} }, null);
+    for (const name of SETTLEMENT_ASSET_NAMES)
+      for (const attribute of Object.values(fallen[name]!.attributes))
+        expect(attribute.array.buffer, name).not.toBe(refused);
+    expect(describeGeometry(fallen[SETTLEMENT_ASSET_NAMES[0]!]!)).toEqual(describeGeometry(live[SETTLEMENT_ASSET_NAMES[0]!]!));
+    releaseKit(live); releaseKit(fallen);
+  });
+
+  it('never asks for a bundle that could not carry what was asked for', async () => {
+    const asked = serve(null, SETTLEMENT_BUNDLE_URL);
+    vi.spyOn(GLTFLoader.prototype, 'loadAsync').mockImplementation(async () => asset());
+    const partial: SettlementKit = await loadSettlementAssets({ register() {} }, null, { names: ['house', 'not-in-the-kit'] });
+    expect(asked).not.toHaveBeenCalled();
+    releaseKit(partial);
   });
 });

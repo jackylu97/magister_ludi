@@ -187,4 +187,28 @@ describe('the painted city recipes', () => {
     expect([...f.layer.flagAnchors.keys()]).toEqual([f.city.id]);
     expect(f.layer.group.children.every(object => !(object instanceof InstancedMesh) || object.count > 0)).toBe(true);
   });
+
+  /**
+   * The shadow setting used to be part of the batch key, so turning shadows on
+   * re-instanced every town on the map and re-merged all their ground pigment —
+   * the one thing this layer's caches exist to avoid — to change a boolean.
+   */
+  it('takes the shadow toggle over the stones it already instanced', () => {
+    const f = fixture();
+    f.layer.build(f.state, f.prepared, f.state.visibility[0]!, true, {});
+    const casting = f.layer.group.children.map(mesh => (mesh as Mesh).castShadow);
+    const geometries = f.layer.group.children.map(mesh => (mesh as Mesh).geometry);
+    expect(casting).toContain(true);
+
+    f.layer.build(f.state, f.prepared, f.state.visibility[0]!, false, {});
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).castShadow)).toEqual(casting.map(() => false));
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).geometry)).toEqual(geometries);
+
+    f.layer.setShadows(true);
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).castShadow)).toEqual(casting);
+    expect(f.layer.group.children.map(mesh => (mesh as Mesh).geometry)).toEqual(geometries);
+    // Town pigment receives whichever way the switch is thrown: it is flat on
+    // the ground and has nothing to gain from leaving the receiving set.
+    expect(f.layer.group.children.every(mesh => (mesh as Mesh).receiveShadow)).toBe(true);
+  });
 });

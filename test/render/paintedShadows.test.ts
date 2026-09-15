@@ -349,4 +349,23 @@ describe('the renderer’s counter-shadow seams', () => {
     // The frozen toon board keeps its rebuild; the painted one must not reach it.
     expect(toggle).toContain('} else if (this.map) this.rebuildBoard(this.map);');
   });
+
+  /**
+   * The board is not the only thing standing when the switch is thrown. Every
+   * painted layer that retains batches across a build holds the flag on its own
+   * meshes, and each takes the toggle the same way — written over what is
+   * already there. The works layer used to be rebuilt instead (its signature was
+   * reset here), and the ground ribbons and the site props were told nothing at
+   * all, so a game begun with shadows off kept unlit roads, borders, ruins and
+   * camps after they were turned on.
+   */
+  it('hands the flag to every painted layer that retains batches', () => {
+    const start = source.indexOf('\n  setShadows(');
+    const toggle = source.slice(start, source.indexOf('\n  }\n', start));
+    for (const layer of ['paintedWorks', 'paintedSites', 'paintedCities', 'paintedRoads', 'paintedTerritory'])
+      expect(toggle, layer).toContain(`this.${layer}`);
+    expect(toggle).toContain('layer?.setShadows(enabled)');
+    // A signature reset here is a layer rebuild, which is the thing this stopped.
+    expect(toggle).not.toContain('Signature = null');
+  });
 });

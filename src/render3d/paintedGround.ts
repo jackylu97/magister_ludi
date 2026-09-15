@@ -220,7 +220,7 @@ const GROUND_INK_OFFSET = -2;
 
 type GroundBatch = {
   parts: BufferGeometry[]; cells: number[]; starts: number[]; counts: number[];
-  levels: number[]; geometry: BufferGeometry; meshes: Mesh[]; shadows: boolean;
+  levels: number[]; geometry: BufferGeometry; meshes: Mesh[];
 };
 
 /**
@@ -319,7 +319,7 @@ export class PaintedGroundLayer {
     for (const [id, region] of regions) {
       retained.add(id);
       const previous = this.batches.get(id);
-      if (previous && previous.shadows === shadows && previous.parts.length === region.parts.length
+      if (previous && previous.parts.length === region.parts.length
         && region.parts.every((part, i) => part === previous.parts[i])) {
         // Same ink in the same order: only the wash can have moved, and that is
         // a write into the merged buffer rather than a merge.
@@ -350,11 +350,29 @@ export class PaintedGroundLayer {
         mesh.userData.paintedGroundCells = region.cells; this.group.add(mesh); meshes.push(mesh);
       }
       this.batches.set(id, { parts: [...region.parts], cells: region.cells, starts, counts,
-        levels: [...region.levels], geometry, meshes, shadows });
+        levels: [...region.levels], geometry, meshes });
     }
     for (const id of [...this.batches.keys()]) if (!retained.has(id)) this.deleteBatch(id);
+    // The flag is written over every batch, the reused ones included: a region
+    // whose ink did not move kept its buffers and therefore kept whatever flag
+    // it was merged with, which is stale the moment the setting changes.
+    this.setShadows(shadows);
     this.group.updateMatrixWorld(true);
     this.group.traverse(object => { object.matrixAutoUpdate = false; object.matrixWorldAutoUpdate = false; });
+  }
+  /**
+   * Shadows on or off, over the ribbons that are already merged.
+   *
+   * Roads and borders receive a shadow and cast none, and `receiveShadow` is a
+   * flag on a mesh rather than anything folded into a buffer — so the setting is
+   * written here and the region batches, the clipped recipes and the wash
+   * attribute all stand. It used to ride in the batch's reuse test, which meant
+   * a toggle re-merged every roaded and bordered region on the map to change one
+   * boolean; and nothing asked the ground layer to rebuild on a toggle anyway,
+   * so a game begun with shadows off kept unlit ink after they were turned on.
+   */
+  setShadows(enabled: boolean): void {
+    for (const batch of this.batches.values()) for (const mesh of batch.meshes) mesh.receiveShadow = enabled;
   }
   private deleteBatch(id: string): void {
     const batch = this.batches.get(id); if (!batch) return;
