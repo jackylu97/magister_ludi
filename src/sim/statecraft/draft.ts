@@ -22,10 +22,12 @@ import {
 import {
 } from '../yields/empire';
 import { type MaliceId, MALICE_IDS, MALICE_RULES, isMaliceId, maliceDef } from '../maliceData';
+import type { CityYields } from '../cities';
 import { nextFloat } from '../rng';
 import { RULES } from '../rulesData';
 import { type GameState, type HeldMalice, type Player, playerById, realPlayers } from '../state';
 import {
+  type CardId,
   type DoctrineId,
   type GovernmentId,
   type OrderId,
@@ -241,6 +243,39 @@ export interface OrderTally {
   count: number;
 }
 
+/**
+ * **What one card has paid this empire, voice by voice, since it first paid
+ * anything** — the lifetime tally (`docs/flags.md` (bbbbbb), batch S2).
+ *
+ * `OrderTally`'s twin and its opposite in what it counts: that row is what a
+ * card *watched*, this one is what a card *paid*. The figure is the Ledger's own
+ * — `explainDeckLedger`'s per-card line of the statecraft class, which is the
+ * very slice `collectYields` banks, added once a turn by `recordDeckTally`
+ * (`ledgerFold.ts`), so the six numbers here are what the sheet's first band
+ * has said this card made, turn after turn, and nothing else.
+ *
+ * **Per card and not per voice**, though the ruling's first sentence says "per
+ * voice", and for a reason the ruling itself supplies: the Ledger's third band
+ * prints *per card*, and a per-voice sum could not be un-summed into one. The
+ * per-voice figure the score reads is the fold of these rows (`foldDeckLedger`),
+ * which keeps rule 5's shape — the total is the sum of the list, never a second
+ * counter kept beside it — and keeps *one add a turn* exactly as ruled: the fold
+ * already attributes every turn's slice to the card that paid it, so writing the
+ * lines down is the same one pass whether the rows are six or sixty.
+ *
+ * Keyed by the **card** (any `CardId` the class files under the deck — an Order,
+ * a Doctrine, a government, a malice), for `OrderTally`'s reason: the figure
+ * lives on the card, survives the bench, survives adoption's rebuild of `slots`
+ * and cannot be inherited by a card that happens to fill the same chair. A row
+ * is never removed and never zeroed — a card unslotted, or a government left
+ * behind, keeps what it paid, because "what has this card paid me" is history.
+ */
+export interface CardYieldTally {
+  card: CardId;
+  /** Six voices, whole numbers, signed — a malice's row is what it cost. */
+  paid: CityYields;
+}
+
 /** Three Doctrines from one adoption's pool, drawn without replacement. */
 export interface DoctrineOffer {
   options: DoctrineId[];
@@ -367,6 +402,24 @@ export interface PlayerStatecraft {
    * identically.
    */
   tallies: OrderTally[];
+  /**
+   * **What each card has paid, voice by voice, since it first paid** — the
+   * lifetime tally beside the occasion counters above (schema 117,
+   * `docs/flags.md` (bbbbbb)). See `CardYieldTally` for the shape and why it is
+   * per card.
+   *
+   * A list rather than a map, for `tallies`' reason exactly: the order is the
+   * order each card first paid, which is history, and history is what a replay
+   * reproduces. It grows in exactly one place — `recordDeckTally` in
+   * `ledgerFold.ts`, called once a turn at the head of the `collectYields` phase
+   * and nowhere else (`test/sim/ledgerFold.test.ts` reads the source for it) —
+   * and nothing removes or zeroes an entry.
+   *
+   * Always present on a seat this build made — `orderSkips`' rule. A state
+   * restored from a print older than 117 has no key here, and every reader
+   * takes `?? []` for it: that seat's deck has paid nothing it remembers.
+   */
+  yieldTallies: CardYieldTally[];
   /** A draft awaiting a pick, or the key is absent. Blocks End Turn. */
   pendingOrder?: OrderOffer;
   /** A Doctrine draft awaiting a pick, or absent. Blocks End Turn. */
@@ -387,6 +440,7 @@ export function newPlayerStatecraft(): PlayerStatecraft {
     orderSkips: 0,
     rerollsTaken: 0,
     tallies: [],
+    yieldTallies: [],
   };
 }
 

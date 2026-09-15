@@ -7,8 +7,8 @@
  * this turn. A card's stamp says what one card did; nothing said what the deck
  * did, what the empire did, or which way either was heading.
  *
- * Three bands, and the third is a labelled hole
- * ---------------------------------------------
+ * Three bands
+ * -----------
  *   1. **This turn, by source class.** Six stacked bars, one per voice, split by
  *      where the yield came from — under the **aggregate**, "your cards: +31⚒
  *      +18🔬 +40🎵", which is the deck's whole slice in one figure per voice and
@@ -19,13 +19,16 @@
  *      its religion — shaded under the line in their own inks and stacked from
  *      the axis, so a glance says which of the three carried the voice
  *      (`LEDGER_CURVE_SERIES`, the user's ruling of 2026-09-15).
- *   3. **What the deck has produced** — the lifetime tally, per card. It wants a
- *      schema field (`PlayerStatecraft.tallies`) and a writer in `collectYields`,
- *      neither of which exists yet, so the band is here as an eyebrow and one
- *      plain sentence saying the figures are not kept. The shape of the sheet is
- *      complete and the missing half says so, which is the Reliquary's ruling
- *      about the same tally read one screen over: an em dash standing in for a
- *      number the screen does not have is a number printed as though it did.
+ *   3. **What the deck has produced** — the lifetime tally, per card (batch S2,
+ *      `docs/flags.md` (bbbbbb)). One row a card that has ever paid, its six
+ *      voices on a stamp — the interface's one printer for "what a card paid" —
+ *      and the fold of the rows under them in the same shape as band 1's head.
+ *      The rows are `PlayerStatecraft.yieldTallies`, which the yield phase adds
+ *      to once a turn from band 1's own deck slice split by card
+ *      (`recordDeckTally`, `src/sim/ledgerFold.ts`), so what this band says a
+ *      card has paid is what band 1 said it paid, turn after turn. It stood as a
+ *      labelled hole until the field existed; the empty state is now an empire
+ *      whose deck has not paid yet, and it says so.
  *
  * No new fold (rule 5)
  * --------------------
@@ -134,12 +137,15 @@ import {
   emptyLedgerBag,
   explainLedger,
   flatsByClass,
+  foldDeckLedger,
   foldLedgerBag,
   ledgerBagOfCity,
   percentWeights,
   shareGain,
   shareOut,
 } from '../sim/ledgerFold';
+import type { CardYieldTally } from '../sim/statecraft/draft';
+import { type CardId, cardName } from '../sim/statecraftData';
 import { highestAge } from '../sim/techData';
 import { type GameState, playerById } from '../sim/state';
 import { type YieldKey, YIELD_GLYPH, YIELD_NAME, figure, signedFigure } from './figures';
@@ -297,10 +303,23 @@ export const DECK_LABEL = 'your cards';
  * printer (`landCardStamp` / `playCardStamp`) wherever it is drawn.
  */
 export function foldDeck(state: GameState, playerId: number): StampReading {
+  const bag = {} as Record<YieldKey, number>;
+  for (const voice of explainLedger(state, playerId)) bag[voice.key] = voice.byClass.deck;
+  return stampOfVoices(bag);
+}
+
+/**
+ * Six voices as a stamp — the nonzero ones, in the voices' own order, in the
+ * shape the one printer (`landCardStamp` / `playCardStamp`) takes. Shared by
+ * the head of band 1 and every row of band 3, so a figure looks the same
+ * wherever on this sheet it lands.
+ */
+export function stampOfVoices(bag: Readonly<Record<YieldKey, number>>): StampReading {
   const figures: StampFigure[] = [];
-  for (const voice of explainLedger(state, playerId)) {
-    if (voice.byClass.deck === 0) continue;
-    figures.push({ glyph: YIELD_GLYPH[voice.key], amount: voice.byClass.deck });
+  for (const key of VOICES) {
+    const amount = bag[key] ?? 0;
+    if (amount === 0) continue;
+    figures.push({ glyph: YIELD_GLYPH[key], amount });
   }
   return { figures, occasionFigures: [], knockOn: [] };
 }
@@ -512,19 +531,58 @@ export const LEDGER_CURVE_FOOTNOTE =
 /** Band 2 before there is anything to draw. */
 export const LEDGER_CURVE_EMPTY = 'End a turn and the curve starts here.';
 
+// --- what the deck has produced --------------------------------------------
+
 /** Band 3's eyebrow — the brief's own words, and the doc of record's. */
 export const LEDGER_BAND3_EYEBROW = 'what the deck has produced';
 
 /**
- * Band 3's one line.
- *
- * The band is drawn empty on purpose: the sheet's shape is the three bands, and
- * a sheet that simply stopped after two would read as finished. What is missing
- * is a lifetime tally per card, which wants a stored figure and a writer in the
- * yield phase — so the band says that, with no number in it at all.
+ * Band 3 before any card has paid — a new empire, or a save from before the
+ * tally was kept. Plain words and no number, so an empty band reads as an
+ * empire that has not started rather than as a figure that failed to draw.
  */
-export const LEDGER_BAND3_NOTE =
-  'Lifetime figures are not kept yet, so there is nothing to show here. What a card has paid you since you drafted it will appear on this band once the empire starts counting it.';
+export const LEDGER_BAND3_EMPTY =
+  'Nothing counted yet. From the first turn a card pays you, what it has paid is added up here.';
+
+/**
+ * The footnote under band 3 — what the figures are, in plain words: the same
+ * slice band 1 shows, kept turn by turn, and kept for a card that has since
+ * left its chair.
+ */
+export const LEDGER_BAND3_FOOTNOTE =
+  'Added up once a turn from the statecraft slice above, from the turn a card first pays. A card taken out of its chair keeps what it paid.';
+
+/** What the fold at the foot of band 3 is called. `DECK_LABEL`'s twin, lifetime. */
+export const DECK_TALLY_LABEL = 'all cards, so far';
+
+/** One row of band 3: the card, its name, and its lifetime figure as a stamp. */
+export interface DeckTallyRow {
+  card: CardId;
+  name: string;
+  reading: StampReading;
+}
+
+/**
+ * **Band 3 as data** — one row per lifetime tally row, in the state's own order
+ * (the order each card first paid, which is history), each with the card's name
+ * and its six voices as a stamp; and the fold of them all, through the
+ * simulation's own `foldDeckLedger` rather than a sum taken here (rule 5).
+ *
+ * A seat from a print older than the tally has no rows and reads as an empire
+ * whose deck has not paid — which is what a reader who cannot remember is.
+ */
+export function deckTallyRows(
+  state: GameState,
+  playerId: number,
+): { rows: DeckTallyRow[]; total: StampReading } {
+  const tallies: readonly CardYieldTally[] = playerById(state, playerId)?.statecraft.yieldTallies ?? [];
+  const rows = tallies.map((row) => ({
+    card: row.card,
+    name: cardName(row.card),
+    reading: stampOfVoices(row.paid),
+  }));
+  return { rows, total: stampOfVoices(foldDeckLedger(tallies)) };
+}
 
 // --- the sheet --------------------------------------------------------------
 
@@ -793,10 +851,53 @@ export function createLedgerScreen(options: LedgerScreenOptions): LedgerScreen {
     return band;
   }
 
+  /**
+   * A label in statecraft's ink and a stamp beside it, on one baseline — the
+   * shape of band 1's head (`drawDeckLine`), used for every row of band 3 and
+   * for its fold, so a card's lifetime figure and the deck's lifetime figure
+   * read as the same kind of sentence the turn's figure does.
+   */
+  function drawStampLine(label: string, reading: StampReading): HTMLElement {
+    const line = element('p', 'ldg-deck');
+    const name = element('span', 'ldg-deck-label', label);
+    paintLedgerInk(name, 'deck');
+    line.append(name);
+    if (stampFigures(reading).length === 0) {
+      line.append(element('span', 'ldg-deck-none', 'nothing yet'));
+    } else {
+      const stamp = cardStampNode();
+      landCardStamp(stamp, reading);
+      line.append(stamp);
+    }
+    line.title = `${label}: ${stampFigures(reading).length === 0 ? 'nothing yet' : stampText(stampFigures(reading))}`;
+    return line;
+  }
+
+  /**
+   * Band 3: the lifetime tally, one line a card, and the fold of them under a
+   * rule. Rows in the state's own order — the order the cards first paid —
+   * because that is history and a reader can watch a new card join at the foot.
+   */
   function drawProduced(): HTMLElement {
-    const band = element('section', 'ldg-band is-empty');
+    const { rows, total } = deckTallyRows(options.getState(), options.getPlayerId());
+    const band = element('section', rows.length === 0 ? 'ldg-band is-empty' : 'ldg-band');
     band.append(element('p', 'eyebrow', LEDGER_BAND3_EYEBROW));
-    band.append(element('p', 'hint', LEDGER_BAND3_NOTE));
+    if (rows.length === 0) {
+      band.append(element('p', 'hint', LEDGER_BAND3_EMPTY));
+      return band;
+    }
+    const list = element('ul', 'ldg-rows ldg-tally');
+    for (const row of rows) {
+      const item = element('li', 'ldg-tally-row');
+      item.dataset.card = row.card;
+      item.append(drawStampLine(row.name, row.reading));
+      list.append(item);
+    }
+    band.append(list);
+    const foot = element('div', 'ldg-legend');
+    foot.append(drawStampLine(DECK_TALLY_LABEL, total));
+    band.append(foot);
+    band.append(element('p', 'hint', LEDGER_BAND3_FOOTNOTE));
     return band;
   }
 

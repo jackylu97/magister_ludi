@@ -43,9 +43,11 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DECK_TALLY_LABEL,
   EMPIRE_GOLD_CLASS,
+  LEDGER_BAND3_EMPTY,
   LEDGER_BAND3_EYEBROW,
-  LEDGER_BAND3_NOTE,
+  LEDGER_BAND3_FOOTNOTE,
   LEDGER_CLASSES,
   LEDGER_CLASS_NAME,
   LEDGER_CURVE_FOOTNOTE,
@@ -58,6 +60,7 @@ import {
   classifyEmpireLine,
   classifyPercent,
   createLedgerHistory,
+  deckTallyRows,
   flatsByClass,
   foldLedgerBag,
   ledgerCaption,
@@ -70,8 +73,12 @@ import {
   shareGain,
   shareOut,
   sparkPoints,
+  stampOfVoices,
 } from '../../src/ui/ledgerScreen';
 import { LEDGER_INK, ledgerInk } from '../../src/ui/ledgerInk';
+import { foldDeckLedger } from '../../src/sim/ledgerFold';
+import { cardName } from '../../src/sim/statecraftData';
+import { stampFigures, stampText } from '../../src/ui/cardStamp';
 import { readEmpire } from '../../src/sim/readings';
 import { readCity } from '../../src/sim/readings';
 import {
@@ -1168,20 +1175,71 @@ describe('the curve’s ring buffer', () => {
   });
 });
 
-// --- band 3: the labelled hole ----------------------------------------------
+// --- band 3: what the deck has produced -------------------------------------
 
-describe('the band that is not built yet', () => {
+describe('the band that prints the lifetime tally', () => {
   it('carries the eyebrow the doc of record names', () => {
     expect(LEDGER_BAND3_EYEBROW).toBe('what the deck has produced');
     expect(source('ledgerScreen.ts')).toContain('LEDGER_BAND3_EYEBROW');
   });
 
-  it('says the lifetime figures are not kept, and prints no number standing in', () => {
+  it('prints one row a card, in the tally’s own order, named and stamped', () => {
+    const { state, playerId } = bench();
+    const sc = playerById(state, playerId)!.statecraft;
+    sc.yieldTallies = [
+      {
+        card: 'theLampKeptLit',
+        paid: { food: 0, production: 0, gold: 0, science: 75, culture: 0, faith: 0 },
+      },
+      {
+        card: 'weightsAndMeasures',
+        paid: { food: 0, production: 120, gold: 30, science: 0, culture: 0, faith: 0 },
+      },
+    ];
+    bumpRevision(state);
+    const { rows, total } = deckTallyRows(state, playerId);
+    expect(rows.map((row) => row.card)).toEqual(['theLampKeptLit', 'weightsAndMeasures']);
+    expect(rows[0]!.name).toBe(cardName('theLampKeptLit'));
+    // The stamp is the six voices, nonzero ones only, in the voices' order.
+    expect(stampText(stampFigures(rows[1]!.reading))).toBe(
+      stampText(stampFigures(stampOfVoices(sc.yieldTallies[1]!.paid))),
+    );
+    expect(stampFigures(rows[1]!.reading).map((figure) => figure.amount)).toEqual([120, 30]);
+    // And the foot is the simulation's fold of the rows, never a sum taken here.
+    expect(stampFigures(total).map((figure) => figure.amount)).toEqual(
+      stampFigures(stampOfVoices(foldDeckLedger(sc.yieldTallies))).map((figure) => figure.amount),
+    );
+  });
+
+  it('reads a seat with no rows — or from a print older than the tally — as nothing yet', () => {
+    const { state, playerId } = bench();
+    const sc = playerById(state, playerId)!.statecraft;
+    sc.yieldTallies = [];
+    expect(deckTallyRows(state, playerId).rows).toEqual([]);
+    delete (sc as { yieldTallies?: unknown }).yieldTallies;
+    expect(deckTallyRows(state, playerId).rows).toEqual([]);
+    expect(stampFigures(deckTallyRows(state, playerId).total)).toEqual([]);
+  });
+
+  it('says its words in plain words, with no number standing in', () => {
     // The Reliquary's ruling one screen over: an em dash where a figure should
     // be is a number the screen does not have, printed as though it did.
-    expect(LEDGER_BAND3_NOTE).toContain('not kept yet');
-    expect(LEDGER_BAND3_NOTE).not.toMatch(/\d/);
-    expect(LEDGER_BAND3_NOTE).not.toContain('—');
+    for (const words of [LEDGER_BAND3_EMPTY, LEDGER_BAND3_FOOTNOTE, DECK_TALLY_LABEL]) {
+      expect(words).not.toMatch(/\d/);
+      expect(words).not.toContain('—');
+    }
+    expect(LEDGER_BAND3_FOOTNOTE).toContain('once a turn');
+  });
+
+  it('draws the rows off the pure builder, in statecraft’s ink, through the one stamp printer', () => {
+    const drawn = region(source('ledgerScreen.ts'), 'function drawProduced()', 'function draw()');
+    expect(drawn).toContain('deckTallyRows(options.getState(), options.getPlayerId())');
+    expect(drawn).toContain('LEDGER_BAND3_EMPTY');
+    expect(drawn).toContain('DECK_TALLY_LABEL');
+    expect(drawn).toContain('LEDGER_BAND3_FOOTNOTE');
+    const line = region(source('ledgerScreen.ts'), 'function drawStampLine(', 'function drawProduced()');
+    expect(line).toContain("paintLedgerInk(name, 'deck')");
+    expect(line).toContain('landCardStamp(stamp, reading)');
   });
 });
 

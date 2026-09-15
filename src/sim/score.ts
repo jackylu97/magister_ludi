@@ -26,20 +26,23 @@
  * town would silently shift every row under it. So the labels are fixed, the
  * count carries the nothing, and the standings line up.
  *
- * What the deck produced, and what is missing from it
- * ---------------------------------------------------
- * The last six lines are the **statecraft class of the Ledger** — `ledgerFold`'s
- * own classification of the very lines `collectYields` banks, per voice, each
- * weighted by `rules.score.perDeckYield`. The ruling asks for the deck's
- * **lifetime** tally, the one the Ledger's third band prints; there is no such
- * figure. That band is an eyebrow and a sentence saying the figures are not kept
- * (`LEDGER_BAND3_NOTE`), the curve beside it is a UI-side ring buffer that is
- * not saved, and the simulation keeps no history at all. So this reads **what
- * the deck pays on the turn the score is asked**, which is the honest reading
- * available: an empire whose deck compounded for two hundred turns and an empire
- * that drafted the same cards last turn score the same here. The day
- * `PlayerStatecraft` grows a tally and `collectYields` writes it, these six
- * lines read that instead and nothing else on the sheet moves.
+ * What the deck produced
+ * ----------------------
+ * The last six lines are the **statecraft class of the Ledger, over the whole
+ * game** — the lifetime tally `collectYields` writes once a turn
+ * (`PlayerStatecraft.yieldTallies`, schema 117; `recordDeckTally` in
+ * `ledgerFold.ts`), folded per voice by `foldDeckLedger` and each voice weighted
+ * by `rules.score.perDeckYield`. The band the Ledger prints per card and these
+ * six lines read the same rows, so the sheet and the Ledger cannot disagree
+ * about what statecraft has paid.
+ *
+ * Until batch S2 this read what the deck paid **on the turn the score was
+ * asked**, because no lifetime figure existed — V1's own sacrifice, named in
+ * its docblock: an empire whose deck compounded for two hundred turns and one
+ * that drafted the same cards last turn scored alike. They do not now, and a
+ * deck that paid last turn and pays nothing this turn still scores what it
+ * paid. The weights changed magnitude with the unit (`ScoreRules.perDeckYield`
+ * says how they were re-cut).
  *
  * A leaf, beside `ledgerFold.ts`
  * ------------------------------
@@ -51,7 +54,7 @@
  */
 
 import { BUILDING_IDS, buildingDef, type BuildingId } from './buildingData';
-import { explainLedger } from './ledgerFold';
+import { foldDeckLedger } from './ledgerFold';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
 import { RULES } from './rulesData';
 import { citiesOf, playerById, wondersHeldBy, type GameState } from './state';
@@ -156,14 +159,14 @@ export function explainScore(state: GameState, playerId: number): ScoreLine[] {
     ),
   ];
 
-  // The deck's half. `explainLedger` is the Ledger's own reading, asked here
-  // rather than re-derived, so the sheet and the Ledger can never come to
-  // disagree about what statecraft pays this empire.
-  const ledger = player === undefined || player.barbarian ? [] : explainLedger(state, playerId);
+  // The deck's half: the lifetime rows the yield phase keeps, folded per voice
+  // by the Ledger's own fold rather than summed here, so the sheet and the
+  // Ledger's third band can never come to disagree about what statecraft has
+  // paid this empire. A seat from a print older than the tally has no rows.
+  const tally = foldDeckLedger(player?.statecraft.yieldTallies ?? []);
   for (const key of CITY_YIELD_KEYS) {
-    const voice = ledger.find((one) => one.key === key);
     lines.push({
-      ...line(voiceLabel(key), voice?.byClass.deck ?? 0, rules.perDeckYield[key]),
+      ...line(voiceLabel(key), tally[key], rules.perDeckYield[key]),
       voice: key,
     });
   }

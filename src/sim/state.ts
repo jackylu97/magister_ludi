@@ -943,8 +943,25 @@ import {
  * carries exactly that word. No command changed, no refusal changed its shape,
  * and a v116 log replays byte for byte — the sentences the interface prints over
  * it simply say "the Inca" where they said "the Crimson".
+ *
+ * v117 (batch S2, `docs/flags.md` (bbbbbb); the user, 2026-09-15: *"lets get
+ * working on each of these things"*, over V1's own sacrifice): **the deck keeps
+ * a lifetime tally.** `PlayerStatecraft.yieldTallies` — one row per card that
+ * has ever paid, six voices each (`CardYieldTally`, `draft.ts`) — is added to
+ * once a turn at the head of the `collectYields` phase by `recordDeckTally`
+ * (`ledgerFold.ts`), from the Ledger's own per-card reading of the statecraft
+ * class (`explainDeckLedger`), and written by nothing else. The Ledger's third
+ * band prints it per card, and the six statecraft lines of the score read its
+ * fold in place of the current turn's pay. No rule of play moved and no command
+ * changed: **a v116 log replays**, and the replay writes the tally from its
+ * first resolution, so a save — which is a config and a log — arrives with the
+ * tally it would always have had. The one migration sentence is for a state
+ * *restored from a print* rather than replayed: a pre-117 snapshot has no
+ * `yieldTallies` key, every reader takes `?? []` for it, and the writer opens
+ * the list on the next turn — zeroed tallies, in other words. The snapshot
+ * print gains the key on every seat.
  */
-export const SCHEMA_VERSION = 116;
+export const SCHEMA_VERSION = 117;
 
 /**
  * One effect that runs out — an augur's rite hanging on a city or a unit

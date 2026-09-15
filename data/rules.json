@@ -426,12 +426,12 @@
     "perAge": 25,
     "theOpus": 300,
     "perDeckYield": {
-      "food": 1,
-      "production": 2,
-      "gold": 1,
-      "science": 2,
-      "culture": 2,
-      "faith": 1
+      "food": 0.02,
+      "production": 0.04,
+      "gold": 0.02,
+      "science": 0.04,
+      "culture": 0.04,
+      "faith": 0.02
     }
   },
   "ui": {

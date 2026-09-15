@@ -31,17 +31,42 @@
  * what the land around the seat of government pays. `explainLedger` is written
  * over it, so there is one classification and not two.
  *
+ * The deck, per card, and the lifetime tally (batch S2)
+ * ---------------------------------------------------
+ * `explainDeckLedger` is the statecraft class of the fold above **split by the
+ * card that paid it** — one line a card, six voices each, and the six sums of
+ * those lines are `explainLedger`'s deck figures exactly (the test pins it voice
+ * by voice). It is the same two shares taken one level down: a town's deck flats
+ * go to the cards whose lines they are, the deck's share of the town's gain is
+ * shared again among the deck's own percentages, and the rounding is
+ * `shareOut` over the deck's already-rounded figure so the cards add to the
+ * class as the classes add to the town.
+ *
+ * `recordDeckTally` is the one **writer** in this file, and the one place
+ * `PlayerStatecraft.yieldTallies` is written: once a turn, at the head of the
+ * `collectYields` phase (`turn.ts`), it adds that reading to each card's
+ * lifetime row. Read at the head of the phase rather than inside the banks
+ * because the reading is the Ledger's own memo — what the sheet said the deck
+ * paid this turn — and the layering forbids the yields chain from importing the
+ * readings; the one thing that can separate that figure from the banked one is
+ * a citizen `collectYields` re-seats at its top, and the sheet is on the same
+ * side of that line as the tally. The docblock on `CardYieldTally` (`draft.ts`)
+ * says why the rows are per card.
+ *
  * A leaf above the readings, deliberately: this module imports the empire's
  * reading, the town's own list and the class vocabulary, and **nothing imports
- * it back**. `wagers.ts` and `ledgerScreen.ts` are its two readers.
+ * it back**. `wagers.ts`, `score.ts`, `turn.ts` (the writer's one caller) and
+ * `ledgerScreen.ts` are its readers.
  */
 
 import { type CityYields, emptyCityYields } from './cities';
 import { type LedgerClass, LEDGER_CLASSES, classifyCard } from './ledgerClass';
 import { isWonder } from './buildingData';
-import { readEmpire } from './readings';
+import { type TownReading, readEmpire } from './readings';
 import { CITY_YIELD_KEYS, type CityYieldKey } from './resourceData';
-import type { City, GameState } from './state';
+import { type City, type GameState, realPlayers } from './state';
+import type { CardYieldTally } from './statecraft/draft';
+import type { CardId } from './statecraftData';
 import type { EmpireYieldLine } from './yields/empire';
 import {
   productionModifiers,
@@ -171,18 +196,36 @@ export function percentWeights(
   quote: CityReading,
   key: CityYieldKey,
 ): PercentWeight[] {
-  const weights: PercentWeight[] = [];
+  return percentLines(state, city, quote, key).map((line) => ({
+    into: classifyPercent(line),
+    percent: line.percent,
+  }));
+}
+
+/**
+ * The lines behind `percentWeights`, unclassified — the two lists as they stand,
+ * so the per-card split (`deckLinesOfCity`) can ask *which card* supplied a
+ * percentage off the same set of lines the class split was taken over, rather
+ * than walking the two lists a second way.
+ */
+function percentLines(
+  state: GameState,
+  city: City,
+  quote: CityReading,
+  key: CityYieldKey,
+): (CityYieldPercent | ProductionModifier)[] {
+  const lines: (CityYieldPercent | ProductionModifier)[] = [];
   for (const line of quote.percents) {
     if (line.yield !== key || line.percent === 0) continue;
-    weights.push({ into: classifyPercent(line), percent: line.percent });
+    lines.push(line);
   }
   if (key === 'production') {
     for (const line of productionModifiers(state, city, city.queue[0])) {
       if (line.percent === 0) continue;
-      weights.push({ into: classifyPercent(line), percent: line.percent });
+      lines.push(line);
     }
   }
-  return weights;
+  return lines;
 }
 
 /**
@@ -303,27 +346,203 @@ export function foldLedgerClass(bag: LedgerBag, cls: LedgerClass): number {
  * have it without a second copy of the two shares.
  */
 export function ledgerBagOfCity(state: GameState, city: City): LedgerBag {
-  const reading = readEmpire(state, city.ownerId);
-  const town = reading.towns.find((one) => one.city.id === city.id);
   const bag = emptyLedgerBag();
+  const town = townOf(state, city);
   if (!town) return bag;
   const flats = flatsByClass(town.reading.lines);
   for (const key of VOICES) {
-    let paid = 0;
-    for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
-    const gain = shareGain(
-      town.total[key] - paid,
-      percentWeights(state, city, town.reading, key),
-    );
-    // `other` last, so that a basket with nothing in it hands its figure to the
-    // class that means "nobody here earned this".
-    const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
-    const shares = shareOut(town.total[key], owed);
+    const { shares } = shareVoice(state, city, town, flats, key);
     LEDGER_CLASSES.forEach((cls, at) => {
       bag[cls][key] += shares[at]!;
     });
   }
   return bag;
+}
+
+/** `readEmpire`'s row for one town, or nothing for a town the seat does not hold. */
+function townOf(state: GameState, city: City): TownReading | undefined {
+  return readEmpire(state, city.ownerId).towns.find((one) => one.city.id === city.id);
+}
+
+/**
+ * **One voice of one town, shared out** — the gain by who supplied the
+ * percentages, then the whole banked figure rounded over what each class is
+ * owed. `ledgerBagOfCity`'s loop body and `deckLinesOfCity`'s starting point,
+ * lifted so the class split and the per-card split are one arithmetic and not
+ * two that agree today.
+ */
+function shareVoice(
+  state: GameState,
+  city: City,
+  town: TownReading,
+  flats: LedgerBag,
+  key: CityYieldKey,
+): { gain: Record<LedgerClass, number>; shares: number[] } {
+  let paid = 0;
+  for (const cls of LEDGER_CLASSES) paid += flats[cls][key];
+  const gain = shareGain(town.total[key] - paid, percentWeights(state, city, town.reading, key));
+  // `other` last, so that a basket with nothing in it hands its figure to the
+  // class that means "nobody here earned this".
+  const owed = LEDGER_CLASSES.map((cls) => flats[cls][key] + gain[cls]);
+  return { gain, shares: shareOut(town.total[key], owed) };
+}
+
+// --- the deck, per card -----------------------------------------------------
+
+/**
+ * One card's slice of the statecraft class: what it paid, six voices. The line
+ * `explainDeckLedger` returns, and the shape a lifetime row accumulates
+ * (`CardYieldTally`, `draft.ts` — the same two fields, so a tally folds through
+ * `foldDeckLedger` exactly as a turn's reading does).
+ */
+export interface DeckLedgerLine {
+  card: CardId;
+  paid: CityYields;
+}
+
+/** The row for a card in a list of lines, opened in first-seen order if absent. */
+function lineFor(lines: DeckLedgerLine[], card: CardId): DeckLedgerLine {
+  let held = lines.find((line) => line.card === card);
+  if (held === undefined) {
+    held = { card, paid: emptyCityYields() };
+    lines.push(held);
+  }
+  return held;
+}
+
+/**
+ * **One town's deck slice, split by card** — the same two shares
+ * `ledgerBagOfCity` takes, taken once more inside the deck's own figure.
+ *
+ * Per voice: the deck's *rounded* share of the town is the total to split
+ * (`shareVoice`'s part for `deck`, so the cards add to the class exactly as the
+ * classes add to the town). What each card is owed is its own flats — every
+ * deck-classed line carries the card that paid it (`CityYieldLine.card`) — plus
+ * its share of the deck's gain, which is the class's gain shared among the
+ * deck's own percentages by magnitude and same sign (`shareGain`'s rule, one
+ * level down). Then `shareOut` rounds the deck's figure over those, and the
+ * last card carries the remainder.
+ *
+ * The order of the lines is the order the cards were first met — flats first,
+ * then percentages — which is the order of the town's own lists and so of the
+ * state; nothing here iterates a map.
+ */
+export function deckLinesOfCity(state: GameState, city: City): DeckLedgerLine[] {
+  const lines: DeckLedgerLine[] = [];
+  const town = townOf(state, city);
+  if (!town) return lines;
+  const flats = flatsByClass(town.reading.lines);
+  const deckAt = LEDGER_CLASSES.indexOf('deck');
+  for (const key of VOICES) {
+    const { gain, shares } = shareVoice(state, city, town, flats, key);
+    const total = shares[deckAt]!;
+    // Who is owed what, in first-met order.
+    const cards: CardId[] = [];
+    const owed: number[] = [];
+    const owe = (card: CardId, amount: number): void => {
+      const at = cards.indexOf(card);
+      if (at < 0) {
+        cards.push(card);
+        owed.push(amount);
+      } else owed[at] = owed[at]! + amount;
+    };
+    for (const line of town.reading.lines) {
+      if (line.class !== 'deck' || line.card === undefined || line[key] === 0) continue;
+      owe(line.card, line[key]);
+    }
+    // The deck's gain, shared among the deck's own percentages — same sign only,
+    // as the class share was; a card whose percentage pushed the town the other
+    // way is owed none of it.
+    const deckGain = gain.deck;
+    if (deckGain !== 0) {
+      const weights: { card: CardId; percent: number }[] = [];
+      for (const line of percentLines(state, city, town.reading, key)) {
+        if (line.card === undefined || classifyPercent(line) !== 'deck') continue;
+        if (deckGain > 0 ? line.percent > 0 : line.percent < 0) {
+          weights.push({ card: line.card, percent: line.percent });
+        }
+      }
+      let sum = 0;
+      for (const weight of weights) sum += Math.abs(weight.percent);
+      for (const weight of weights) {
+        owe(weight.card, (deckGain * Math.abs(weight.percent)) / sum);
+      }
+    }
+    if (cards.length === 0) continue;
+    const parts = shareOut(total, owed);
+    cards.forEach((card, at) => {
+      lineFor(lines, card).paid[key] += parts[at]!;
+    });
+  }
+  return lines;
+}
+
+/**
+ * **What the deck pays this empire this turn, card by card** — the statecraft
+ * class of `explainLedger`, split by who paid it: every town's `deckLinesOfCity`
+ * and then the empire's own deck-classed lines (a card's empire-scale payout,
+ * which carries its card and needs no split), merged per card in first-met
+ * order. The six voices summed over these lines are `explainLedger`'s deck
+ * figures, and the test pins it.
+ */
+export function explainDeckLedger(state: GameState, playerId: number): DeckLedgerLine[] {
+  const lines: DeckLedgerLine[] = [];
+  const reading = readEmpire(state, playerId);
+  for (const { city } of reading.towns) {
+    for (const line of deckLinesOfCity(state, city)) {
+      const held = lineFor(lines, line.card);
+      for (const key of VOICES) held.paid[key] += line.paid[key];
+    }
+  }
+  for (const line of reading.lines) {
+    if (line.card === undefined || classifyEmpireLine(line) !== 'deck') continue;
+    const held = lineFor(lines, line.card);
+    for (const key of VOICES) held.paid[key] += line[key];
+  }
+  return lines;
+}
+
+/** The six voices a list of deck lines adds up to — a turn's, or a lifetime's. */
+export function foldDeckLedger(lines: readonly DeckLedgerLine[]): CityYields {
+  const total = emptyCityYields();
+  for (const line of lines) {
+    for (const key of VOICES) total[key] += line.paid[key];
+  }
+  return total;
+}
+
+/**
+ * **The lifetime tally's one writer** — `PlayerStatecraft.yieldTallies`, added
+ * to once a turn from `explainDeckLedger` (`docs/flags.md` (bbbbbb)).
+ *
+ * Called from exactly one place: the head of the `collectYields` phase in
+ * `turn.ts`, before the banks, so the reading is the one the Ledger printed for
+ * this turn (the module docblock says why the head and not the middle). Every
+ * real seat, in seat order; the wild holds no cards and is out of it by the
+ * clause that keeps it out of every meter.
+ *
+ * A card that paid nothing this turn writes no row and moves none — so a seat
+ * whose deck has never paid serialises exactly as it did before this field
+ * existed, and a card's row opens on the turn it first pays. Nothing is ever
+ * removed or zeroed here or anywhere.
+ *
+ * Announces nothing, deliberately: no slate tenant folds a yield from this
+ * field — the score reads it and the score is not a memo.
+ */
+export function recordDeckTally(state: GameState): void {
+  for (const player of realPlayers(state)) {
+    const sc = player.statecraft;
+    // A state restored from a print older than schema 117 has no rows at all.
+    if (sc.yieldTallies === undefined) sc.yieldTallies = [];
+    const rows: CardYieldTally[] = sc.yieldTallies;
+    for (const line of explainDeckLedger(state, player.id)) {
+      let paidAny = false;
+      for (const key of VOICES) if (line.paid[key] !== 0) paidAny = true;
+      if (!paidAny) continue;
+      const held = lineFor(rows, line.card);
+      for (const key of VOICES) held.paid[key] += line.paid[key];
+    }
+  }
 }
 
 /** One voice's row on band 1: what it made, and who made it. */

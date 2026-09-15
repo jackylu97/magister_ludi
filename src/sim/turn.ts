@@ -117,6 +117,7 @@ import {
   type WonderCompletion,
 } from "./cities";
 import { collectYields } from "./yields/empire";
+import { recordDeckTally } from "./ledgerFold";
 import {
   type CombatOutcome,
   type SiegeReport,
@@ -578,7 +579,17 @@ export const END_OF_TURN_PHASES: readonly TurnPhase[] = [
     // enough in arrears (the maintenance ruling, 2026-08-28), which is the one
     // thing this phase has to *say* — the third phase to write into the report,
     // after the wild and `advanceProduction`.
-    run: collectYields,
+    //
+    // **The deck's lifetime tally is written first** (schema 117, `docs/flags.md`
+    // (bbbbbb)): `recordDeckTally` adds this turn's statecraft slice, card by
+    // card, to `PlayerStatecraft.yieldTallies` — once a turn, here and nowhere
+    // else. At the head of the phase because the reading is the Ledger's own
+    // memo, fresh on this phase's revision, and the yields chain may not import
+    // the readings to take it in the middle of the banks (`ledgerFold.ts`).
+    run: (state, report) => {
+      recordDeckTally(state);
+      collectYields(state, report);
+    },
   },
   {
     name: "growCities",
