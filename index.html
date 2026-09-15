@@ -1509,9 +1509,21 @@
       <div class="loading-ground">
         <div class="statecraft-sheet loading-sheet">
           <header class="statecraft-head">
+            <!-- Two headings, one shown at a time (`hidden` is the whole of the
+                 state, as everywhere else on this interface). The second is the
+                 one a save the current rules will not replay wears: a report
+                 that still says "one moment" over a sentence explaining that
+                 there will be no more moments is the bug this pair fixes
+                 (docs/flags.md (yyyyy)). -->
             <div class="statecraft-head-titles">
-              <p class="eyebrow statecraft-eyebrow">one moment</p>
-              <h2 class="statecraft-title">Loading the <em>world</em></h2>
+              <div id="loading-head-wait">
+                <p class="eyebrow statecraft-eyebrow">one moment</p>
+                <h2 class="statecraft-title">Loading the <em>world</em></h2>
+              </div>
+              <div id="loading-head-refused" hidden>
+                <p class="eyebrow statecraft-eyebrow">the save</p>
+                <h2 class="statecraft-title">Would not <em>open</em></h2>
+              </div>
             </div>
           </header>
           <div id="loading-body" class="statecraft-body loading-body" aria-live="polite"></div>

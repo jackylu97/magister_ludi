@@ -805,6 +805,14 @@ let currentSaveName = 'Magister Ludi';
 const loading = createLoadingSheet({
   overlay: requireElement('loading-overlay'),
   body: requireElement('loading-body'),
+  heads: {
+    loading: requireElement('loading-head-wait'),
+    refused: requireElement('loading-head-refused'),
+  },
+  // A refusal dismissed puts the player back on the title, and Continue is the
+  // control that is there whenever there was a save to refuse. Hidden — a first
+  // visit with nothing to resume — it is not somewhere to put the keyboard.
+  returnFocus: () => (continueButton.hidden ? null : continueButton),
 });
 
 /**
@@ -1146,15 +1154,29 @@ let suspendGame: (() => void) | null = null;
  * The shelf under it is the same list, a row a world, newest first, and a row
  * loads. Both come out of `recentWorlds` (`savesPanel.ts`), which is the one
  * reading of the shelf either surface makes.
+ *
+ * A row that has already refused says so (`docs/flags.md` (yyyyy)): the load
+ * list marks a broken file by leaving the row standing with the refusal printed
+ * beside it, and the shelf is the same list with fewer words, so it does the
+ * same thing. Nothing is hidden and nothing is deleted — a save the current
+ * build cannot replay is still the player's save, and a build that changes its
+ * mind about a rule may open it again tomorrow.
  */
 function refreshResumeRow(): void {
   const worlds = recentWorlds(saveStorage);
   const newest = worlds[0];
   continueButton.hidden = newest === undefined;
+  // Continue is the shelf's first row wearing a different hat, so it says the
+  // same thing about a save that has already refused: a player who presses it
+  // twice should be told the second time before the press, not after it.
+  const newestRefused = newest !== undefined && refusedSlots.has(newest.slot.id);
   continueLabelEl.textContent =
     newest === undefined
       ? ''
-      : `${newest.figure} · seed ${newest.slot.seed} · turn ${newest.slot.turn}`;
+      : newestRefused
+        ? `${newest.figure} · seed ${newest.slot.seed} · would not open`
+        : `${newest.figure} · seed ${newest.slot.seed} · turn ${newest.slot.turn}`;
+  continueButton.classList.toggle('is-refused', newestRefused);
   continueButton.title = newest === undefined ? '' : `Resume “${newest.slot.name}”`;
 
   shelfEl.replaceChildren();
@@ -1167,13 +1189,42 @@ function refreshResumeRow(): void {
     who.textContent = `${world.figure} · seed ${world.slot.seed}`;
     const when = document.createElement('span');
     when.className = 'landing-shelf-when';
-    when.textContent = `turn ${world.slot.turn} · ${relativeWhen(world.slot.savedAt)}`;
+    const refusal = refusedSlots.get(world.slot.id);
+    if (refusal === undefined) {
+      when.textContent = `turn ${world.slot.turn} · ${relativeWhen(world.slot.savedAt)}`;
+      row.title = `Load “${world.slot.name}”`;
+    } else {
+      // The turn and the hour are what tells two good saves apart, and they are
+      // beside the point on a row that will not open: the row says the one thing
+      // the player needs, and the sentence it refused with is on the row itself
+      // for whoever hovers it.
+      when.textContent = 'would not open';
+      row.classList.add('is-refused');
+      row.title = refusal;
+    }
     row.append(who, when);
-    row.title = `Load “${world.slot.name}”`;
     row.addEventListener('click', () => loadSlotId(world.slot.id));
     shelfEl.append(row);
   }
   shelfEmptyEl.hidden = worlds.length > 0;
+}
+
+/**
+ * The saves a press has already found unopenable, and the sentence each of them
+ * refused with.
+ *
+ * Memory rather than state: it is written by the one press that learns it — a
+ * save is only known to be unreplayable once the reducer has actually refused a
+ * command in it — and it lives as long as the page does, because the rules
+ * cannot change under a running tab. A slot that later loads is forgotten, which
+ * is the case of a file re-imported over a bad one under the same name.
+ */
+const refusedSlots = new Map<string, string>();
+
+/** What one press of one slot found. The shelf reads it on its next rebuild. */
+function noteSlotOutcome(slotId: string, result: LoadResult | null): void {
+  if (result === null || result.ok) refusedSlots.delete(slotId);
+  else refusedSlots.set(slotId, result.error);
 }
 
 /**
@@ -1200,6 +1251,10 @@ function loadSlotId(slotId: string | null): void {
         ? null
         : await loadSlotAsync(saveStorage, slotId, { onReplayTurn: replayProgress });
     performance.mark('magisterludi:replay-done');
+    // What the shelf remembers about this row. Noted here rather than in
+    // `beginGame`, which is handed a step to run and deliberately knows nothing
+    // about which slot — or whether a slot at all — is behind it.
+    if (slotId !== null) noteSlotOutcome(slotId, result);
     return result;
   });
 }
@@ -1305,20 +1360,28 @@ async function beginGame(
   loading.begin(load !== null ? 'save' : 'new');
   try {
     // A file's own journey, run here so the landing is already busy while the
-    // log walks. The refusal lands on the landing's error line rather than in
-    // the list, because the player never opened a list: they pressed one row
-    // and it did not work, and the sentence belongs where they are looking. A
-    // save too broken to load is also a save that should stop being offered, so
-    // the shelf is rebuilt.
+    // log walks.
+    //
+    // The refusal goes to **the sheet**, which is the surface the player has
+    // been watching since the press: it turns into the sentence and stays up
+    // until they dismiss it (`docs/flags.md` (yyyyy) — a save the current rules
+    // refuse used to stop the walk and say nothing, leaving the last stage it
+    // reached as the last word on the subject). The landing's own error line is
+    // written too, so the sentence is still there behind the sheet when they
+    // come back to the title. A save too broken to load is also a save the shelf
+    // should be marking, so the shelf is rebuilt.
     if (load !== null) {
       const result = await load();
       if (result === null || !result.ok) {
-        landingErrorEl.textContent =
-          result === null ? 'That save is no longer there.' : result.error;
+        const error = result === null ? 'That save is no longer there.' : result.error;
+        const detail = result !== null && !result.ok ? result.detail : undefined;
+        loading.refuse({ error, detail });
+        landingErrorEl.textContent = error;
         landingErrorEl.hidden = false;
-        if (result !== null && !result.ok && result.detail !== undefined) {
-          console.error(`[magister-ludi save] ${result.detail}`);
-        }
+        // Still to the console as well: the index is what a developer greps for
+        // when a fixture stops replaying, and nobody should have to screenshot
+        // the sheet to get it.
+        if (detail !== undefined) console.error(`[magister-ludi save] ${detail}`);
         refreshResumeRow();
         return;
       }
@@ -1345,9 +1408,11 @@ async function beginGame(
     landingErrorEl.hidden = false;
     console.error(error);
   } finally {
-    // Down on every way out of a press, the refusals and the thrown board
-    // included: a sheet that only came down on success would be the last thing
-    // on screen after a save turned out to be junk.
+    // Down on every way out of a press, the thrown board included: a sheet that
+    // only came down on success would be the last thing on screen after a save
+    // turned out to be junk. The one exception is the sheet's own — a refusal
+    // standing on it is not lowered here, because it is the report and lowering
+    // it is what used to lose the sentence.
     loading.finish();
     startButton.disabled = false;
     startButton.textContent = startLabel;

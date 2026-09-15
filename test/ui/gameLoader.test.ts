@@ -158,6 +158,37 @@ describe('loadSaveAsync', () => {
     expect(there.error).toBe(here.error);
     expect(there.detail).toBe(here.detail);
     expect(there.detail).toContain(`command ${at}`);
+
+    // And the third path: no worker to ask at all, the walk run on this thread
+    // inside `loadSaveAsync` itself. It is the one the node test run and an old
+    // browser take, and a refusal the sheet can print has to come back from it
+    // character for character or the fix only works where the seam does
+    // (`docs/flags.md` (yyyyy)).
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const fallen = await loadSaveAsync(broken, {
+      workerFactory: fakeWorkerFactory('throw-on-construct'),
+    });
+    warn.mockRestore();
+    if (fallen.ok) throw new Error('expected the fallback to refuse it too');
+    expect(fallen.error).toBe(here.error);
+    expect(fallen.detail).toBe(here.detail);
+  });
+
+  it('leaves a good save opening exactly as it did, with nothing to refuse', async () => {
+    // The other half of the refusal pin: the paths that used to work still work,
+    // and a loaded game carries no sentence for the sheet to print.
+    const { json } = developedSave(6);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const here = loadSave(json);
+    const worker = await loadSaveAsync(json, { workerFactory: fakeWorkerFactory() });
+    const fallen = await loadSaveAsync(json, {
+      workerFactory: fakeWorkerFactory('throw-on-construct'),
+    });
+    warn.mockRestore();
+    if (!here.ok || !worker.ok || !fallen.ok) throw new Error('expected every path to open it');
+    expect(snapshotState(worker.game.state)).toBe(snapshotState(here.game.state));
+    expect(snapshotState(fallen.game.state)).toBe(snapshotState(here.game.state));
+    expect(fallen.payload).toEqual(here.payload);
   });
 
   it('refuses a config the simulation will not build with the same sentence', async () => {
