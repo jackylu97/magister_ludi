@@ -77,6 +77,44 @@ describe('the painted period wrap — who wraps', () => {
     return { scene: world, ground, marker, unlit };
   }
 
+  /**
+   * The fog's chart table is a receiver, and the sweep is why nobody had to be
+   * told. It arrived after this wrap did (F1, the shadowed fog): a real plane
+   * standing where the board is uncharted, one clone a wrap copy, taking the
+   * sun like everything else on the table. A list of receivers would have been
+   * one short and the paper would have stood unshadowed on two copies in three.
+   */
+  it('counts the fog’s chart table among the receivers, by the board’s own source', () => {
+    const board = readFileSync(new URL('../../src/render3d/paintedBoard.js', import.meta.url), 'utf8');
+    const table = board.slice(board.indexOf('createChartTable(register)'), board.indexOf('return mesh;', board.indexOf('createChartTable(register)')));
+    expect(table).toContain('mesh.receiveShadow = true;');
+    // It is the painted style's material, so the sweep meets it with every
+    // other hook already on — the wrap goes outermost, where it must be.
+    expect(table).toContain('register?.(material)');
+    expect(table).toContain('paintedChartMaterial(material, fog)');
+  });
+
+  it('wraps a chart-table material over the fog installer that rewrites its main', () => {
+    const wrap = createShadowWrap();
+    const sun = new DirectionalLight();
+    sun.position.set(40, 30, -24); sun.updateMatrixWorld(); sun.target.updateMatrixWorld();
+    wrap.setBand(sun, 0, 20);
+    // `paintedChartMaterial` in miniature: a second hook over the style's, which
+    // rewrites `main` and the opaque fragment and appends its own cache key.
+    const material = new MeshStandardMaterial();
+    const previous = material.onBeforeCompile, key = material.customProgramCacheKey.bind(material);
+    material.onBeforeCompile = (shader, renderer) => {
+      previous.call(material, shader, renderer);
+      shader.fragmentShader = shader.fragmentShader.replace('void main() {', 'void main() {\n// chart discard');
+    };
+    material.customProgramCacheKey = () => `${key()}:painted-chart-v1`;
+    expect(wrap.install(material)).toBe(true);
+    const shader = compile(material);
+    expect(shader.fragmentShader).toContain('#include <painted_shadowmask_pars_fragment>');
+    expect(shader.fragmentShader.split('vec4 paintedWrapShadow(').length - 1).toBe(1);
+    expect(material.customProgramCacheKey()).toContain(':painted-chart-v1:painted-period-wrap');
+  });
+
   it('leaves every material alone while the knob is off', () => {
     const wrap = createShadowWrap();
     const { scene: world, ground } = scene();

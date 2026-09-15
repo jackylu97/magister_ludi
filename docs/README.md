@@ -379,6 +379,17 @@ Eight root pages, all named in `vite.config.ts` inputs:
 - `src/render3d/` is the default renderer (Three.js ortho toon diorama,
   procedural primitives only; tunables in `data/view3d.json`). `src/render/` is
   FROZEN 2D — it must keep compiling and gains no features.
+- **Fog under the painted look is three pictures, never three opacities**
+  (`docs/plans/painted-fog-study.md`, `docs/flags.md` (zzzz)): uncharted ground
+  is the chart table — a lit paper plane at the ground datum that takes the
+  explored relief's cast shadows and rules its own hexes, and takes the sun's
+  shadow but **not its colour**; remembered ground keeps full pigment and full
+  geometry and sits in shadow; watched ground is untouched. Ink is discrete (the
+  discard reads the nearest-filtered vision channel, so the frontier is a whole
+  hex), light is continuous (a second, linearly filtered field, doubled in x so
+  the filter blends hexes that are actually neighbours). A register change is
+  therefore a **light-texture write** — no geometry, no rebake — and the reveal
+  eases over `painted.fog.revealMs` off an absolute stamp, never a countdown.
 - `src/ui/` is the DOM UI; `controls.ts` drives renderers only through the
   `MapView` interface. A full-screen sheet builds on `modalShell.ts`. Per-game
   screens push their window listeners into `gameDisposers`. Restart and loading

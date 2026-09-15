@@ -2132,8 +2132,21 @@ async function createRenderer(
       if (mode === 'painted') {
         await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
         performance.mark('magisterludi:assets-loaded');
-        await renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+        // The board goes to the terrain worker here and comes back seconds
+        // later, and for those seconds the main thread has nothing to do. P8's
+        // attribution of the first drawn frame says what to do with them: hand
+        // the GPU the atlases now, so the frame that finally draws the board is
+        // not also the frame that uploads them. `Promise.all`, not two awaits —
+        // a board build that fails while the atlases are still going must land
+        // on this function's own catch rather than as an unhandled rejection.
+        const terrain = renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+        await Promise.all([terrain, renderer.warmTextures()]);
         performance.mark('magisterludi:terrain-ready');
+        // And the board's shader programs, asked for while it is still out of
+        // the scene: the GPU links them over the second or two `setGameState`
+        // spends building the layers, instead of the first drawn frame waiting
+        // on them.
+        await renderer.warmPrograms();
       }
       renderer.setGameState(game.state);
       performance.mark('magisterludi:state-layers-built');

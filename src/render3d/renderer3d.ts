@@ -34,6 +34,7 @@ import {
   type Object3D,
   PCFSoftShadowMap,
   Scene,
+  type Texture,
   Vector3,
   WebGLRenderer,
 } from 'three';
@@ -118,6 +119,7 @@ import { type TileTint, TintLayer } from './tint3d';
 import { MaterialLibrary, computeHullNormals } from './toon';
 import { createPaintedLook, type PaintedLook } from './paintedLook.js';
 import { buildPaintedBoard, type PaintedBoard } from './paintedBoard.js';
+import { PAINTED_CHART } from './paintedFogLook';
 import { buildPaintedBoardAsync, type PaintedBuildMetrics } from './paintedBoardAsync.js';
 import { PaintedWorksLayer, PAINTED_WORK_IMPROVEMENTS, signPaintedWorks } from './paintedWorks';
 import type { ImprovementId } from '../sim/improvementData';
@@ -314,6 +316,13 @@ export class Renderer3D implements MapView {
    * context; the lens layer draws neither half without it. See `loadIcons`.
    */
   private icons: TileIcons | null = null;
+  /**
+   * The textures already handed to the GPU by `warmTexture`, so a second warm
+   * of the same atlas costs nothing. A `WeakSet` and not a count: the entries
+   * are the textures themselves, and a disposed atlas must not be kept alive by
+   * the register that says it was uploaded.
+   */
+  private readonly warmedTextures = new WeakSet<Texture>();
   /** Fingerprint of the units the layer was last built from. See `loop`. */
   private visibilitySignatures: LayerVisibility | null = null;
   private shadowVisibilitySignatures: LayerVisibility | null = null;
@@ -467,6 +476,93 @@ export class Renderer3D implements MapView {
     } finally {
       if (this.boardBuild === controller) this.boardBuild = null;
     }
+  }
+
+  /**
+   * Hands one texture to the GPU now rather than on the frame that first draws
+   * it — three's own `initTexture`, through a register so it happens once.
+   *
+   * P8's attribution of the first drawn frame: on the software rasteriser the
+   * whole of the gap between "playable" and the first board frame is one
+   * main-thread task, and the largest single thing in it is not the shaders. It
+   * is the two canvas atlases — the badge sheet and the tile icons — being
+   * uploaded at the instant a material first asks for them, because that is
+   * when three uploads a texture. Every drawn pixel is the same afterwards; all
+   * that moves is *when* the bytes cross.
+   *
+   * Silent on failure: a context lost while an atlas is still rasterising draws
+   * nothing either way, and a board that refuses to start because a warm-up
+   * threw would be a worse trade than a frame that pays for the upload itself.
+   */
+  private warmTexture(texture: Texture | null | undefined): void {
+    if (!texture || !texture.image || this.warmedTextures.has(texture)) return;
+    this.warmedTextures.add(texture);
+    try { this.renderer.initTexture(texture); } catch { /* see the docblock */ }
+  }
+
+  /**
+   * Every texture this renderer holds that the first frame would otherwise
+   * upload, uploaded now — one a frame, so the loading sheet behind it keeps
+   * painting its own bar while they go.
+   *
+   * Called with the terrain worker already running (`main.ts`'s boot): the
+   * board is somebody else's thread for the next several seconds, and this is
+   * the one window in the whole startup where the main thread has nothing to do
+   * and a queue of GPU work to hand over. The atlases finish rasterising during
+   * the asset phase, so by the time this runs they are ready to go.
+   *
+   * The painted look's own grains ride the merged land material's bump slot;
+   * the board's props carry no maps of their own (procedural pigment), so this
+   * list is the whole of it. A texture that has not arrived yet is skipped, and
+   * uploads on the frame that draws it, exactly as it did before.
+   */
+  async warmTextures(): Promise<void> {
+    const frame = (): Promise<void> => new Promise(resolve => { requestAnimationFrame(() => resolve()); });
+    for (const texture of [
+      this.badges?.material.map, this.badges?.wildMaterial.map,
+      this.icons?.material.map, this.paintedLook?.materials.mergedLand.bumpMap,
+    ]) {
+      if (!this.running) return;
+      if (!texture || this.warmedTextures.has(texture)) continue;
+      await frame();
+      this.warmTexture(texture);
+    }
+  }
+
+  /**
+   * The shader programs the next frame will need, compiled before that frame
+   * rather than inside it.
+   *
+   * `compileAsync` asks the GPU for every program the scene as it now stands
+   * would use, and — where `KHR_parallel_shader_compile` is there — waits for
+   * them without blocking. Where it is not (SwiftShader has no such extension),
+   * three resolves as soon as the link commands are issued, which is still the
+   * point: they are issued here, with the loading sheet up, instead of inside
+   * the first drawn frame.
+   *
+   * **The board alone**, and not the whole scene. The programs are a fact of the
+   * *objects*, not of the materials: the board's surfaces derive fog variants of
+   * the look's materials, and an instanced prop and a merged surface with the
+   * same pigment are two different programs — so nothing short of the real
+   * meshes warms the right set. But `compile` walks a root whole, hidden
+   * children included, and a whole scene includes every layer that is built and
+   * not up: asking for the scene compiled **49** programs where the first frame
+   * draws with 27, and the twenty-two strays cost more to link than they saved.
+   * The board is where the difference is anyway.
+   *
+   * Called with the board built and not yet in the scene, so the GPU links
+   * while `setGameState` builds the layers — the one other window in the
+   * startup where the main thread is busy for long enough to hide a link.
+   *
+   * The shadow pass's depth programs are deliberately not covered: `compile`
+   * does not reach them, and P8 measured a link at half a millisecond on the
+   * software rasteriser, depth programs included.
+   */
+  async warmPrograms(): Promise<void> {
+    if (!this.running) return;
+    const board = this.preparedBoard?.board.group ?? this.paintedBoard?.group;
+    if (!board) return;
+    await this.renderer.compileAsync(board, this.view.camera, this.scene);
   }
 
   get paintedEnabled(): boolean { return this.paintedLook !== null; }
@@ -1168,6 +1264,12 @@ export class Renderer3D implements MapView {
         return;
       }
       this.badges = badges;
+      // Straight to the GPU, rather than on the frame that first draws a tag.
+      // The sheet is the dearest upload of the startup (P8) and this is the
+      // earliest moment it can be made: it costs the same wherever it happens,
+      // and here it happens while the painted assets are still downloading.
+      this.warmTexture(badges.material.map);
+      this.warmTexture(badges.wildMaterial.map);
       this.rebuildUnits();
       this.invalidate();
     });
@@ -1198,6 +1300,8 @@ export class Renderer3D implements MapView {
         return;
       }
       this.icons = icons;
+      // Uploaded here for the reason the badge sheet is: see `loadBadges`.
+      this.warmTexture(icons.material.map);
       this.rebuildLens();
       this.rebuildUnits();
       // And the sites, whose standing markers are cells of this atlas too: a
@@ -1423,7 +1527,11 @@ export class Renderer3D implements MapView {
     }
     if (!this.board || !this.map) return;
     this.fog = new FogView(this.map, this.board.tiles);
-    this.fog.buildChart(this.geometry, this.materials, this.icons);
+    // The painted board draws its own paper — a lit surface that takes the
+    // relief's shadows — so this layer contributes the marginalia and nothing
+    // else, planted on that page rather than on the vellum it replaces.
+    this.fog.buildChart(this.geometry, this.materials, this.icons,
+      this.paintedBoard ? { datum: PAINTED_CHART.lift } : null);
     this.fog.group.name = 'fog';
     this.scene.add(this.fog.group);
     this.applyFog();
@@ -1466,11 +1574,14 @@ export class Renderer3D implements MapView {
    * Repaints the board for the current seat's visibility, and returns what that
    * cost. Per-instance writes only; see `fog3d.ts`.
    */
-  private applyFog(): FogStats | null {
+  private applyFog(eased = false): FogStats | null {
     const levels = this.fogLevels();
     if (this.paintedBoard) {
       const revision = this.paintedBoard.shadowRevision;
-      this.paintedBoard.applyFog(levels);
+      // The clock is offered only where a person is watching a hex change hands
+      // — a march, a turn resolving. A seat change and a board build arrive
+      // whole: there is no "before" on the table to ease away from.
+      this.paintedBoard.applyFog(levels, eased ? performance.now() : undefined);
       if (revision !== this.paintedBoard.shadowRevision) this.paintedLook?.invalidateShadows();
     }
     if (!this.fog || (!levels && !this.paintedLook)) return null;
@@ -1560,6 +1671,10 @@ export class Renderer3D implements MapView {
       const board = this.paintedBoard;
       this.paintedLook!.setBakeDetail(active => board.setBakeDetail(active));
       this.paintedLook!.fitShadows(this.board.bounds, this.board.wrapWidth);
+      // The uncharted register, once per board: the paper the diorama is set
+      // down on. Registered with the painterly style first, so the page wears
+      // the same grain as everything else on the table.
+      board.createChartTable(material => this.paintedLook!.registerMaterial(material));
     } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything
@@ -2999,7 +3114,7 @@ export class Renderer3D implements MapView {
     // Commands mutate state in place and invalidate the view. Fingerprints
     // catch all visual changes at that boundary; animation-only frames reuse
     // the resulting buffers. Fog is applied before content visibility checks.
-    const fogged = this.applyFog();
+    const fogged = this.applyFog(true);
     if (fogged) this.lastFogStats = fogged;
     // And the seat's *knowledge*, on the same frame and for the same reason: a
     // technology finished this turn reveals ore that was drawn on the board all
@@ -3157,7 +3272,15 @@ export class Renderer3D implements MapView {
     // way a walker or a moving camera does — one number, sampled here, so the
     // render-on-demand loop goes back to idle the instant the fade lands.
     const fading = this.vignette.step(now);
-    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading) return;
+    // The fog's own ease, on the same footing as a walker or a fading wash: a
+    // hex that changed register is on its way from one register to the other,
+    // and the frames between are the reveal. The question is asked *before* the
+    // step and not after it, exactly as `hadWalkers` is: the frame that settles
+    // the last cell wrote the texels that finish the picture, and a gate reading
+    // what is left over would throw that frame away.
+    const revealing = (this.paintedBoard?.revealing ?? 0) > 0;
+    if (revealing) this.paintedBoard!.advanceReveal(now);
+    if (!this.dirty && !hadWalkers && !hadFallers && !panned && !fading && !revealing) return;
 
     const refreshState = this.dirty;
     this.dirty = false;

@@ -19,6 +19,27 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(fffff) The trade route screen is slow again — RULED, T1** (the user,
+2026-09-15, turn 99 as Modu Chanyu: *"Could you do a performance pass on
+the trade route screen? it seems to be slow again"*). Measure first on a
+developed fixture (`docs/plans/benchmarks/fixtures/standard-t120-s1`, 41
+towns, or the user's own turn-99 shape: many towns, several traders, the
+screen opened from the dock and refreshed per command): where the time
+goes when the screen opens and when it repaints — `readRoutes`'s memo
+(`src/sim/readings.ts`), the per-pair `explainRouteYieldBetween` /
+`explainRouteSenderYieldBetween` folds (`routeYields.ts`), route reach
+(pathfinding per origin × destination), `explainRouteSlots`, and the DOM
+build in `src/ui/tradeScreen.ts`/`tradeLines.ts`. Then take the dearest
+rows: nothing recomputed that the revision did not move (the E3 memo
+discipline — a `readX` keyed on the revision in `readings.ts` alone), pair
+folds asked once per pair per revision, reach computed once per origin,
+the DOM patched rather than rebuilt where the list is unchanged. **Fidelity
+here is the screen's content**: every route row's figures, order and words
+identical before and after on the fixture (a serialised-DOM or per-row
+figure comparison), plus the P-series' pixel pair at play/overview
+(0.000%). Report open time and per-command repaint time before/after,
+and a Sacrifices paragraph.
+
 **(ccccc) Two Terraces rulings from the Pachacuti playtest** (the user,
 2026-09-14: *"farms are colliding with the city border, we should have them
 sit under. Also, let's have terrace farms only be able to be built on
@@ -57,7 +78,7 @@ the H5 rule, wears `.statecraft-overlay`, and stays up until
 Cancel yet (P7's sacrifice #3 stands; ▢ the user). Fidelity: the settled
 frame is untouched — a pixel-identical play/overview pair.
 
-**(ddddd) The shadowed fog lands — QUEUED** (the user, 2026-09-14: *"please
+**(ddddd) The shadowed fog lands — LANDED 2026-09-15** (the user, on the review pair: *"great - it looks much better. Please proceed."*) (the user, 2026-09-14: *"please
 also queue up the shadowed fog implementation, i'll let you sequence before
 or after the fog performance pass"*). Sequenced **after P5** (the shadows
 batch in flight), because the study's second pass on branch `fog-study` is
@@ -69,6 +90,23 @@ uncommitted second pass with main, delete the drawn and bleed treatments,
 (a fog texel change rebuilds five layers) with it, and `docs/plans/
 painted-fog-study.md` becomes the record. A visual-review checkpoint for
 the user before it lands — it is the look of half the map.
+**F1 built it** (2026-09-15): remembered ground keeps its pigment and its
+geometry and sits in shadow; uncharted ground is the chart table, a lit
+paper plane at the ground datum that takes the relief's cast shadows and
+rules its own hexes, and takes the sun's shadow but **not its colour** (the
+peach page is fixed by folding the light to one luminance before it touches
+the page); the reveal eases over `revealMs` off an absolute stamp. Audit
+finding 2's fog half is held by test: a remembered ⇄ visible change is a
+light-texture write — no batch visibility, no geometry, no rebake — and
+only a hex crossing out of the dark costs one bake, as it did before.
+The drawn and bleed treatments, the old painted wash and the `treatment`
+knob are deleted; `data/view3d.json`'s `painted.fog` group is the whole of
+what is left, registered by `paintedKnobs`. Fidelity: the omniscient board
+is pixel-identical (0.000% of the frame); watched ground is identical
+beyond a quarter-hex of a sight frontier (0.000%), and inside that band
+0.19% of watched pixels at play and 0.64% after a march — the soft light
+edge the ruling asks for. Fogged ground differs by design: 1.4% of the play
+frame, 12.4% after a march. Review images: `.claude/scratch/f1/`.
 
 
 **(aaaaa) The painted renderer's performance pass — RULED, P-series** (the
@@ -279,6 +317,25 @@ the marginalia still occlude a pick (a picking change, not taken);
 picking holds ~16 B a slot of sphere cache; a cold settlement fallback is
 one round trip slower; `paintedCities` takes the toggle twice (both
 reuses); a sixth retained layer must join `setShadows`' list by hand.
+**Landed — P8** (2026-09-15): measured first, and the premise was wrong —
+the first-frame task was not shader compilation but **texture uploads**
+(the badge and tile-icon atlases and the three grains, each followed by a
+GPU round trip: 89 % of it), with the "first link" the frame's first
+synchronising call draining the queue. So the atlases are handed to
+`renderer.initTexture` inside the terrain worker's window and the prepared
+board's programs are linked with `compileAsync` before it enters the scene
+(the board, not the scene: 34 programs against the scene's 49). Geometry
+upload (16 ms) and the first bake (0 ms of main thread) declined with
+numbers. First-frame task 6.6 s → 0.36 s on a new world, 13.7 s → 0.7 s
+on a developed save; pixels identical. **Sacrifices kept**: seven extra
+programs link per session (the board's hidden LOD/fog variants); the
+atlases upload whether or not the first frame draws them; `terrain-ready`
+now means built *and* uploaded; and — the one to know — **the first frame
+no longer synchronises with the GPU, so on the software rasteriser the
+rasterisation backlog is paid by the next task** (a developed save
+freezes ~19 s *after* the board appears where it froze ~13 s inside the
+first frame before; a fraction of that on real hardware; the board is on
+screen throughout). P11 is the row that shrinks that backlog.
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between

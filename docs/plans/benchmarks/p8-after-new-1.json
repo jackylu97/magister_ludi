@@ -1,0 +1,91 @@
+{
+  "label": "p8-after-new-1",
+  "measuredAt": "2026-09-15T13:07:33.630Z",
+  "commit": "fbaffbfe864ca68cec7795534fe58f637011f971",
+  "workingTreeDirty": true,
+  "fixture": {
+    "kind": "new game",
+    "seed": "landing default",
+    "note": "no save loaded"
+  },
+  "harness": {
+    "script": "scripts/terrain-study/check-painted.mjs",
+    "port": 5321,
+    "viewport": {
+      "width": 1100,
+      "height": 700
+    },
+    "frames": 48,
+    "warmUp": 12,
+    "browser": "headless Chromium (Playwright) on ANGLE/SwiftShader",
+    "caveat": "software rasterisation: frame and GPU figures describe a CPU rasteriser, not the reference GPU. Draw calls, triangles, bake counts, memory, populations and startup stages are hardware-independent; frame times are not."
+  },
+  "startup": {
+    "marksInOrder": [
+      "begin",
+      "assets-loaded",
+      "terrain-ready",
+      "state-layers-built",
+      "playable",
+      "first-board-frame"
+    ],
+    "marksAreOrdered": true,
+    "missingMarks": [
+      "load-start",
+      "replay-done"
+    ],
+    "marks": {
+      "load-start": null,
+      "replay-done": null,
+      "begin": 4916.9,
+      "assets-loaded": 6693.1,
+      "terrain-ready": 12631.9,
+      "state-layers-built": 14353.5,
+      "playable": 14390.9,
+      "first-board-frame": 14799.7
+    },
+    "spans": [
+      {
+        "from": "begin",
+        "to": "assets-loaded",
+        "ms": 1776.2
+      },
+      {
+        "from": "assets-loaded",
+        "to": "terrain-ready",
+        "ms": 5938.8
+      },
+      {
+        "from": "terrain-ready",
+        "to": "state-layers-built",
+        "ms": 1721.6
+      },
+      {
+        "from": "state-layers-built",
+        "to": "playable",
+        "ms": 37.4
+      },
+      {
+        "from": "playable",
+        "to": "first-board-frame",
+        "ms": 408.8
+      }
+    ],
+    "totalMs": 9882.8,
+    "clickToPlayableMs": null,
+    "clickToFirstBoardFrameMs": null,
+    "navigationToPlayableMs": 14390.9,
+    "navigationToFirstBoardFrameMs": 14799.7,
+    "longTasks": {
+      "supported": true,
+      "count": 6,
+      "longestMs": 1706,
+      "longestAtMs": 12684.1,
+      "over50msTotalMs": 3617,
+      "note": "the long-task API reports a 50 ms floor and attributes a whole task, so a multi-second board build lands as one entry"
+    },
+    "domContentLoadedMs": 730.3
+  },
+  "benchmark": null,
+  "pageErrors": []
+}

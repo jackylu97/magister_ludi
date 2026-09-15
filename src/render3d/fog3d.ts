@@ -202,6 +202,26 @@ function chartY(): number {
   return BOARD.height.ocean - BOARD.substrateDrop;
 }
 
+/**
+ * Somebody else's paper, when the layer under this one draws its own.
+ *
+ * The painted look's uncharted register is a lit surface at its own ground
+ * datum (`PaintedBoard.createChartTable`) — a real plane that takes the explored
+ * relief's cast shadows and rules its own hexes in the material. That is the
+ * same claim the vellum patch and the ghost ring make here, made better, so
+ * under it this layer draws neither: two papers at one table would fight, and
+ * the lower one would simply be covered up.
+ *
+ * What it does keep is the **marginalia**. A serpent is not paper — it is a
+ * thing drawn on the paper, governed by `marginaliaWater` × `serpentFits`, two
+ * rules this layer owns and nothing else asks — so it is planted on whatever
+ * page is actually there, at that page's own height.
+ */
+export interface ChartPaper {
+  /** The height the other layer's page sits at, in world units. */
+  datum: number;
+}
+
 /** What one `apply` did. Operation counts, for the harness and the stats line. */
 export interface FogStats {
   /** Tiles whose level actually changed. */
@@ -293,6 +313,7 @@ export class FogView {
     geometry: BoardGeometry,
     materials: MaterialLibrary,
     icons: TileIcons | null,
+    paper: ChartPaper | null = null,
   ): void {
     disposeInstancedGroup(this.group);
     this.chart = [];
@@ -310,32 +331,34 @@ export class FogView {
       new Vector3(BOARD.hexRadius * size, 1, BOARD.hexRadius * size);
     const serpentScale = scaleOf(FOG.serpentSize);
     const draconesScale = scaleOf(FOG.draconesSize);
-    const y = chartY();
+    const y = paper ? paper.datum : chartY();
 
     for (const tile of this.map.tiles) {
       const centre = cellCenter(tile.col, tile.row);
       const blank: InstanceHandle[] = [];
 
-      blank.push(
-        collector.add(
-          geometry.chartPatch,
-          [FOG.chartColor],
-          new Matrix4().compose(new Vector3(centre.x, y + FOG.chartLift, centre.z), identity, unit),
-          // An ordinary depth-tested overlay, not the `onTop` kind: the blank
-          // chart is *in* the diorama — a hex of table where a hex of world
-          // would be — so a mountain standing on the tile next door has to be
-          // able to hide part of it.
-          { overlay: true, opacity: FOG.chartOpacity },
-        ),
-      );
-      blank.push(
-        collector.add(
-          geometry.ghostRing,
-          [FOG.ghostColor],
-          new Matrix4().compose(new Vector3(centre.x, y + FOG.ghostLift, centre.z), identity, unit),
-          { overlay: true, opacity: FOG.ghostOpacity },
-        ),
-      );
+      if (!paper) {
+        blank.push(
+          collector.add(
+            geometry.chartPatch,
+            [FOG.chartColor],
+            new Matrix4().compose(new Vector3(centre.x, y + FOG.chartLift, centre.z), identity, unit),
+            // An ordinary depth-tested overlay, not the `onTop` kind: the blank
+            // chart is *in* the diorama — a hex of table where a hex of world
+            // would be — so a mountain standing on the tile next door has to be
+            // able to hide part of it.
+            { overlay: true, opacity: FOG.chartOpacity },
+          ),
+        );
+        blank.push(
+          collector.add(
+            geometry.ghostRing,
+            [FOG.ghostColor],
+            new Matrix4().compose(new Vector3(centre.x, y + FOG.ghostLift, centre.z), identity, unit),
+            { overlay: true, opacity: FOG.ghostOpacity },
+          ),
+        );
+      }
 
       // The marginalia. Two hashed rolls on one water test — the test is the
       // expensive half (it walks a neighbourhood) so it is asked once and only
