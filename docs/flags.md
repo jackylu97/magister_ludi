@@ -19,6 +19,50 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(ooooo) Passing, swapping, and no toll from a friend — RULED, M1** (the
+user, 2026-09-15: *"units should be able to 'move past' units that are
+blocking them if they have enough movement (i.e. the unit has enough
+movement to get to a tile as if the unit blocking wasn't there), this
+should apply only on civs you're not at war with. Units should not exert
+ZOC if you're not at war with them. Moving a military unit onto another
+should 'swap' the two unit's positions if they both have enough movement
+to reach the swapped destination tile."*). Three rules, one batch, all in
+`stepCost`'s discipline (the four readers — `findPath`, `reachableTiles`,
+`advanceAlongPath`, `pathTurns` — price alike, or a highlight lies):
+1. **A friend's piece is not a wall.** A hex holding a piece of a seat this
+   empire is **not at war with** (own pieces included) may be *passed
+   through* on the way to a further hex — `canTransit` admits it, `canStopOn`
+   still refuses it — exactly as a road through a town is walked, so a
+   column two deep in a pass no longer blocks the road. A hostile piece
+   blocks as it always did. The path's cost is the ground's; the pass costs
+   nothing extra. A move that would *end* on a friend's hex is refused as
+   before — unless rule 3 applies.
+2. **Zone of control is a war toll.** `zocField` counts only pieces of seats
+   this empire is at war with (the wild included); a neighbour at peace
+   exerts none. `zocExtraCost` and the highlight read the same field.
+3. **The swap.** A military piece ordered onto a hex holding one of **its
+   own seat's** military pieces (never a civilian, never another seat's)
+   swaps the two: the mover walks its path and the sitter walks the reverse,
+   and the order is accepted only if **both** have the movement to make
+   their whole walk this turn (each priced through `stepCost`, the sitter's
+   from its own hex to the mover's origin along the reverse of the path).
+   One command (`moveUnit` with the friendly hex as its target, or a
+   `swapUnits` command if the reducer's shape needs it — the validate-fully
+   rule holds: refused, the state is byte-identical), both arrivals through
+   `arriveOnTile`, both pieces' movement spent, both wake. The highlight
+   shows the swap hex as reachable in its own tint and the info card says
+   "swap with Warrior". The bot may use it or ignore it; the bot's decisions
+   must stay deterministic and the 120-turn digests are re-taken if they
+   move (a bot that now passes a friend takes a different road — that is
+   allowed, and said in the changelog). Schema: a v116 log replays unless
+   it contains a move the old rule refused (none can), so the schema stays
+   116 unless a new command is added — then 117, with the changelog's
+   sentence. Pins: pass-through at peace, wall at war, no ZOC at peace, the
+   swap accepted with both fed and refused with either short, civilians
+   never swapped, another seat never swapped, the highlight and the
+   reducer agreeing hex for hex (`reachableTiles` = the set of accepted
+   moves).
+
 **(nnnnn) The bots' wars — RULED, W1, after A1** (the user, 2026-09-15:
 *"the ai is probably too agressive in going to war, how is it valuing the
 decision to war right now?"* and, in a game where every bot but one had
