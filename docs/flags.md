@@ -24,7 +24,7 @@ people.md` is the user's own version. The log of what each batch built is
 row: it went straight to the Longswordsman, skipping the rung every other
 sword climbs; the roster doc is re-printed.
 
-**(ttttt) A recommended site in the settler lens — RULED, S1** (the user,
+**(ttttt) A recommended site in the settler lens — BUILT, S1** (2026-09-15: `explainSite`/`foldSite` in the new leaf `sites.ts`, `rankSites` the sweep on charted foundable ground above `rules.sites.scoreFloor`, `readSites` the memo on the revision; the bot's site appraisal re-based on the same reading with `siteWorth` and the ring's weights moved from `data/ai.json` to `rules.sites` — both 120-turn digests byte-identical; a pennant atlas family (`settleMarks.ts`) drawn in the lens layer's settler branch on the top `ui.recommendedSites`, knobs on the sheet, a slider in the gallery; the card's Recommended row in plain words. **Sacrifices kept**: the arena lost two per-persona knobs (ring, weights) — one table for everyone; a radius-8 site sweep per revision while a settler is selected, the dearest reading in `readings.ts`; the marker's fold and the bot's total differ by what the bot adds for time, so the board may mark a hex the bot ranks second; `scoreFloor` 70 is a judgement nobody has playtested; the atlas grew a row.) Originally: (the user,
 2026-09-15: *"could we implement a map icon for recommended city settlement
 locations, like in civ? hovering over it should give some indicator (we
 recommend you build a city here - access to X luxuries, the yields are
