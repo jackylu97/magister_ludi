@@ -1156,7 +1156,12 @@ function refreshResumeRow(): void {
  * load is also a save that should stop being offered, so the shelf is rebuilt.
  */
 function loadSlotId(slotId: string | null): void {
+  // The startup stages, marked where they actually happen (audit task #23).
+  // The whole list, in order, is `docs/plans/painted-performance-evidence.md`;
+  // a mark is one timestamp and changes nothing about what runs.
+  performance.mark('magisterludi:load-start');
   const result = slotId === null ? null : loadSlot(saveStorage, slotId);
+  performance.mark('magisterludi:replay-done');
   if (result === null || !result.ok) {
     landingErrorEl.textContent = result === null ? 'That save is no longer there.' : result.error;
     landingErrorEl.hidden = false;
@@ -1251,6 +1256,7 @@ function setRestartConfirm(asking: boolean): void {
  */
 async function beginGame(loaded: Game | null = null): Promise<void> {
   if (startButton.disabled) return;
+  performance.mark('magisterludi:begin');
   startButton.disabled = true;
   const startLabel = startButton.textContent;
   startButton.textContent = 'Preparing the world…';
@@ -1260,6 +1266,7 @@ async function beginGame(loaded: Game | null = null): Promise<void> {
     if (takeOverGame) await takeOverGame(loaded);
     else await boot(loaded);
     hideLanding();
+    performance.mark('magisterludi:playable');
   } catch (error) {
     // A missing sprite or a dead WebGL context is a build problem, not a blank
     // page: say so where the player is already looking.
@@ -2018,6 +2025,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     // frame late, because the draw-call count only means anything once a frame
     // has actually been drawn.
     requestAnimationFrame(() => {
+      performance.mark('magisterludi:first-board-frame');
       const s = renderer.stats;
       console.log(
         `[magister-ludi 3d] ${s.tiles} tiles, ${s.instances} instances, ` +
@@ -2042,9 +2050,12 @@ async function createRenderer(
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
+        performance.mark('magisterludi:assets-loaded');
         await renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+        performance.mark('magisterludi:terrain-ready');
       }
       renderer.setGameState(game.state);
+      performance.mark('magisterludi:state-layers-built');
       const report = build3DPanel(renderer);
       report();
       return { view: renderer, report };
