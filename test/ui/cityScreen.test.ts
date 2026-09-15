@@ -888,11 +888,12 @@ describe('the city mode and the camera', () => {
     expect(controls).not.toContain('panLocked =');
   });
 
-  it('still counts the travel, so a locked drag is not a click', () => {
+  it('still recognises a drag before applying the city pan lock', () => {
     // The slop guard is about what the hand did. A drag across the board that
     // moved no camera is still not an order on the hex it ended over.
     const move = listener('pointermove');
-    expect(move.indexOf('travelled +=')).toBeLessThan(move.indexOf('panLocked()'));
+    expect(move.indexOf('dragging ||=')).toBeGreaterThan(-1);
+    expect(move.indexOf('dragging ||=')).toBeLessThan(move.indexOf('panLocked()'));
   });
 
   it('refuses the wheel by the same lock, and leaves the click alone', () => {

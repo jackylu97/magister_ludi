@@ -4,6 +4,7 @@ import { createGame, snapshotState } from '../../src/sim/game';
 import { createMap, getTileAt, tileHex, tileIndex } from '../../src/sim/map';
 import { createUnit } from '../../src/sim/state';
 import { EXPLORED, HIDDEN, VISIBLE, resetVisibility } from '../../src/sim/visibility';
+import { openWar } from '../../src/sim/wars';
 import { createGameControls } from '../../src/ui/controls';
 import type { HoverInfo, MapView } from '../../src/ui/mapView';
 import { resolveUnitPointerTarget } from '../../src/ui/unitPointer';
@@ -118,6 +119,103 @@ describe('shared unit pointer resolution', () => {
 });
 
 describe('actual controls pointer gestures', () => {
+  it.each([0, 2])('keeps a wobbling button-%i move click and leaves the camera still', button => {
+    const f = controlsFixture();
+    f.controls.selectPiece(f.first.id);
+    if (button === 0) f.controls.setMoveMode(true);
+    f.point(4, 3);
+    f.viewport.emit('pointerdown', { button });
+    // Small oscillations can add up to a long path without being a drag.
+    for (const clientX of [42, 39, 42, 40, 41]) {
+      f.viewport.emit('pointermove', { button, clientX, clientY: 42 });
+    }
+    f.viewport.emit('pointerup', { button, clientX: 41, clientY: 42 });
+    expect(f.first).toMatchObject({ col: 4, row: 3 });
+    expect(f.game.log.filter(command => command.type === 'moveUnit')).toHaveLength(1);
+    expect(f.renderer.panByScreen).not.toHaveBeenCalled();
+  });
+
+  it('accepts an attack with small diagonal pointer motion', () => {
+    const f = controlsFixture();
+    openWar(f.state, 0, 1);
+    f.controls.selectPiece(f.first.id);
+    f.point(f.enemy.col, f.enemy.row);
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointermove', { button: 2, clientX: 43, clientY: 43 });
+    f.viewport.emit('pointerup', { button: 2, clientX: 43, clientY: 43 });
+    expect(f.game.log.some(command => command.type === 'attack')).toBe(true);
+    expect(f.renderer.panByScreen).not.toHaveBeenCalled();
+  });
+
+  it('never orders after a real pan, even if the pointer returns to its starting point', () => {
+    const f = controlsFixture();
+    f.controls.selectPiece(f.first.id); f.point(4, 3);
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointermove', { clientX: 60 });
+    f.viewport.emit('pointermove', { clientX: 40 });
+    f.viewport.emit('pointerup', { button: 2 });
+    expect(f.renderer.panByScreen).toHaveBeenCalledWith(20, 0);
+    expect(f.game.log).toEqual([]);
+  });
+
+  it('checks the release position even when no pointermove arrived', () => {
+    const f = controlsFixture();
+    f.controls.selectPiece(f.first.id); f.point(4, 3);
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointerup', { button: 2, clientX: 90 });
+    expect(f.game.log).toEqual([]);
+  });
+
+  it('recovers after pointer capture is lost, without issuing an order', () => {
+    const f = controlsFixture();
+    f.controls.selectPiece(f.first.id); f.point(4, 3);
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointermove', { clientX: 70 });
+    f.viewport.emit('lostpointercapture');
+    expect(f.game.log).toEqual([]);
+    f.viewport.emit('pointerdown', { button: 2 });
+    f.viewport.emit('pointerup', { button: 2 });
+    expect(f.first).toMatchObject({ col: 4, row: 3 });
+  });
+
+  it('ignores another pointer during an active press', () => {
+    const f = controlsFixture();
+    f.point(3, 3);
+    f.viewport.emit('pointerdown');
+    f.viewport.emit('pointermove', { pointerId: 2, clientX: 100 });
+    f.viewport.emit('pointerup', { pointerId: 2 });
+    f.viewport.emit('pointercancel', { pointerId: 2 });
+    expect(f.controls.selectedUnit()).toBeNull();
+    expect(f.renderer.panByScreen).not.toHaveBeenCalled();
+    f.viewport.emit('pointerup');
+    expect(f.controls.selectedUnit()?.id).toBe(f.first.id);
+  });
+
+  it('keeps a city drag from pinning citizens while still accepting a wobbling click', () => {
+    const f = controlsFixture(), city = foundCityAt(f.state, 0, getTileAt(f.state.map, 2, 3)!);
+    f.state.visibility[0]!.fill(VISIBLE);
+    f.controls.setOpenCity(city.id); f.point(3, 3);
+    f.viewport.emit('pointerdown');
+    f.viewport.emit('pointermove', { clientX: 70 });
+    f.viewport.emit('pointerup', { clientX: 70 });
+    expect(f.game.log).toEqual([]);
+    f.viewport.emit('pointerdown');
+    for (const clientX of [42, 38, 42, 40]) f.viewport.emit('pointermove', { clientX });
+    f.viewport.emit('pointerup');
+    expect(f.game.log[f.game.log.length - 1]?.type).toBe('setLockedTiles');
+    expect(f.renderer.panByScreen).not.toHaveBeenCalled();
+  });
+
+  it.each([true, false])('does not order through a modal (opened before press: %s)', before => {
+    const f = controlsFixture();
+    f.controls.selectPiece(f.first.id); f.point(4, 3);
+    if (before) f.key('t');
+    f.viewport.emit('pointerdown', { button: 2 });
+    if (!before) f.key('t');
+    f.viewport.emit('pointerup', { button: 2 });
+    expect(f.game.log).toEqual([]);
+  });
+
   it('hovers the next badge selection and exact model selection with no panel work on pointer motion', () => {
     const f = controlsFixture();
     f.point(6, 3, f.second.id, f.elsewhere.id);

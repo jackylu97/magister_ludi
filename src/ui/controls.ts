@@ -374,8 +374,8 @@ import { type TurnBlocker, firstBlocker, firstUnitOffer } from './turnBlockers';
 import { prefersReducedMotion } from './motion';
 import { withArticle } from './dom';
 
-/** How far the pointer may travel between down and up and still be a click. */
-const CLICK_SLOP_PX = 4;
+/** Radius in CSS pixels: hand wobble inside it is a click, not a camera pan. */
+const CLICK_SLOP_PX = 6;
 
 /** How long a refused order stays on screen before the card goes quiet again. */
 const NOTICE_MS = 1800;
@@ -2474,9 +2474,12 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * release means, so a chorded press cannot turn a pan into an order.
    */
   let dragButton: number | null = null;
+  let dragPointerId: number | null = null;
   let pressX = 0;
   let pressY = 0;
-  let travelled = 0;
+  let lastDragX = 0;
+  let lastDragY = 0;
+  let dragging = false;
   /** Last pointer position in viewport space, so hover survives pan and zoom. */
   let pointer: { x: number; y: number } | null = null;
   /** A refusal currently on the card, and the timer that will take it away. */
@@ -7394,12 +7397,13 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     // Left and right only, and only one at a time: a second button pressed
     // mid-drag is a slip, not a gesture.
     if (event.button !== 0 && event.button !== 2) return;
-    if (dragButton !== null) return;
+    if (dragButton !== null || inputBlocked?.()) return;
     dragButton = event.button;
+    dragPointerId = event.pointerId;
     clearUnitHover();
-    travelled = 0;
-    pressX = event.clientX;
-    pressY = event.clientY;
+    dragging = false;
+    pressX = lastDragX = event.clientX;
+    pressY = lastDragY = event.clientY;
     viewport.setPointerCapture(event.pointerId);
   });
 
@@ -7431,15 +7435,20 @@ export function createGameControls(options: GameControlsOptions): GameControls {
 
   viewport.addEventListener('pointermove', (event) => {
     if (dragButton !== null) {
-      const dx = event.clientX - pressX;
-      const dy = event.clientY - pressY;
-      // Counted even when the pan is refused: the slop guard is about what the
-      // *hand* did, and a drag across the board is not a click on the hex it
-      // happened to end over, city mode or not.
-      travelled += Math.abs(dx) + Math.abs(dy);
-      pressX = event.clientX;
-      pressY = event.clientY;
-      if (!panLocked()) renderer.panByScreen(dx, dy);
+      if (event.pointerId !== dragPointerId) return;
+      if (inputBlocked?.()) { endDrag(event, false); return; }
+      // Measure displacement from the press, not the sum of little movements:
+      // a trembling click must not become a drag just because it sent more
+      // events. Once crossed, the threshold stays crossed even on a return.
+      dragging ||= Math.hypot(event.clientX - pressX, event.clientY - pressY) > CLICK_SLOP_PX;
+      if (dragging) {
+        const dx = event.clientX - lastDragX;
+        const dy = event.clientY - lastDragY;
+        lastDragX = event.clientX;
+        lastDragY = event.clientY;
+        // A locked city still recognises a drag, but never moves the camera.
+        if (!panLocked()) renderer.panByScreen(dx, dy);
+      }
     }
 
     const rect = viewport.getBoundingClientRect();
@@ -7454,13 +7463,17 @@ export function createGameControls(options: GameControlsOptions): GameControls {
    * from ending in a move order the player never asked for.
    */
   function endDrag(event: PointerEvent, fire: boolean): void {
-    if (dragButton === null) return;
+    if (dragButton === null || event.pointerId !== dragPointerId) return;
     const button = dragButton;
     dragButton = null;
+    dragPointerId = null;
     if (viewport.hasPointerCapture(event.pointerId)) {
       viewport.releasePointerCapture(event.pointerId);
     }
-    if (!fire || travelled > CLICK_SLOP_PX) {
+    // Some devices coalesce the last motion into pointerup. Check it as well
+    // so a long release without a move event cannot accidentally issue orders.
+    if (!fire || inputBlocked?.() || dragging ||
+        Math.hypot(event.clientX - pressX, event.clientY - pressY) > CLICK_SLOP_PX) {
       clearUnitHover();
       return;
     }
@@ -7485,6 +7498,7 @@ export function createGameControls(options: GameControlsOptions): GameControls {
     endDrag(event, true);
   });
   viewport.addEventListener('pointercancel', (event) => endDrag(event, false));
+  viewport.addEventListener('lostpointercapture', (event) => endDrag(event, false));
 
   viewport.addEventListener('pointerleave', () => {
     pointer = null;
