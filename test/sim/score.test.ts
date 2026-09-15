@@ -23,8 +23,11 @@
  *   4. **The Opus is the builder's**, off the claim register rather than off
  *      anybody's stones — a rival who stormed the town has taken a wonder, not
  *      a victory.
- *   5. **The deck's half is the Ledger's own reading**, voice for voice, so the
- *      score and the Ledger cannot come to disagree about what statecraft pays.
+ *   5. **The deck's half is the lifetime tally**, folded per voice by the
+ *      Ledger's own fold (batch S2, `docs/flags.md` (bbbbbb)), so the score and
+ *      the Ledger's third band cannot come to disagree about what statecraft
+ *      has paid — and a deck that paid last turn and pays nothing now still
+ *      scores what it paid, which was V1's named sacrifice.
  *
  * Core tier: one duel board, a handful of counters written onto a seat, and a
  * fold.
@@ -32,7 +35,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { explainLedger } from '../../src/sim/ledgerFold';
+import { explainDeckLedger, foldDeckLedger } from '../../src/sim/ledgerFold';
 import { CITY_YIELD_KEYS } from '../../src/sim/resourceData';
 import { RULES } from '../../src/sim/rulesData';
 import { explainScore, foldScore, opusBuildingId } from '../../src/sim/score';
@@ -144,18 +147,53 @@ describe('the score', () => {
     expect(opusLine(1).count).toBe(0);
   });
 
-  it('reads the deck off the Ledger, voice for voice', () => {
-    const { state } = bench();
+  it('reads the deck off the lifetime tally, voice for voice', () => {
+    const { state, player } = bench();
+    player.statecraft.yieldTallies = [
+      {
+        card: 'weightsAndMeasures',
+        paid: { food: 0, production: 120, gold: 30, science: 0, culture: 0, faith: 0 },
+      },
+      {
+        card: 'theLampKeptLit',
+        paid: { food: 0, production: 0, gold: 0, science: 75, culture: 0, faith: 2 },
+      },
+    ];
+    bumpRevision(state);
     const lines = explainScore(state, 0);
-    const ledger = explainLedger(state, 0);
+    const tally = foldDeckLedger(player.statecraft.yieldTallies);
     for (const key of CITY_YIELD_KEYS) {
       const line = lines.find((one) => one.voice === key)!;
-      const voice = ledger.find((one) => one.key === key)!;
-      expect(line.count, key).toBe(voice.byClass.deck);
+      expect(line.count, key).toBe(tally[key]);
       expect(line.weight, key).toBe(RULES.score.perDeckYield[key]);
     }
     // And the six are marked rather than found by their words: the labels are
     // the one thing on this list that may be rewritten.
     expect(lines.filter((line) => line.voice !== undefined)).toHaveLength(CITY_YIELD_KEYS.length);
+  });
+
+  it('scores a deck that paid last turn and pays nothing now', () => {
+    // V1's sacrifice, retired: the deck's lines are history, not this turn.
+    const { state, player } = bench();
+    expect(explainDeckLedger(state, 0)).toEqual([]);
+    player.statecraft.yieldTallies = [
+      {
+        card: 'theScriveners',
+        paid: { food: 0, production: 0, gold: 0, science: 40, culture: 0, faith: 0 },
+      },
+    ];
+    bumpRevision(state);
+    const science = explainScore(state, 0).find((line) => line.voice === 'science')!;
+    expect(science.count).toBe(40);
+    expect(science.value).toBe(Math.floor(40 * RULES.score.perDeckYield.science));
+  });
+
+  it('reads a seat from a print older than the tally as a deck that paid nothing', () => {
+    const { state, player } = bench();
+    delete (player.statecraft as { yieldTallies?: unknown }).yieldTallies;
+    bumpRevision(state);
+    for (const line of explainScore(state, 0)) {
+      if (line.voice !== undefined) expect(line.count, line.voice).toBe(0);
+    }
   });
 });

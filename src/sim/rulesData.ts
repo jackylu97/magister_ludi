@@ -1954,11 +1954,26 @@ export interface SiteRules {
  * even where its towns were taken off it.
  *
  * `perDeckYield` is the deck's half — what the statecraft class of the Ledger
- * banks, a weight a voice (`docs/flags.md` (uuuuu): "each voice weighted").
- * Labour and the two that compound — science and culture — are worth twice a
- * loaf, which is the same ordering `sites.yieldWeights` already uses one table
- * over and for the same reason: a voice that buys the future is worth more than
- * a voice that is spent the turn it arrives.
+ * has banked **over the whole game**, a weight a voice (`docs/flags.md`
+ * (uuuuu): "each voice weighted"; (bbbbbb): the lifetime tally). Labour and the
+ * two that compound — science and culture — are worth twice a loaf, which is
+ * the same ordering `sites.yieldWeights` already uses one table over and for
+ * the same reason: a voice that buys the future is worth more than a voice that
+ * is spent the turn it arrives.
+ *
+ * **The unit is lifetime, and the figures are a fiftieth of V1's** (batch S2).
+ * V1 read the deck's pay on the turn the score was asked, at one and two a
+ * unit; S2 reads `PlayerStatecraft.yieldTallies`, the same slice added up since
+ * each card first paid, and a sum over a hundred and sixty turns is a different
+ * magnitude from one turn's. Measured on two four-seat standard games played
+ * to turn 160 by the bots: the lifetime figure ran between twenty-six and
+ * eighty-six times the closing turn's, median about fifty-five, and at V1's
+ * weights the six statecraft lines would have been nine tenths of every score.
+ * V1's own share was a fifth on average across the eight seats (0.09–0.33);
+ * dividing V1's weights by fifty puts the lifetime lines at the same fifth
+ * (0.14–0.28, mean 0.205), which is the ratio the sheet was tuned for. A line
+ * is still `floor(count × weight)`, so a card's first fifty food is worth one
+ * point and nothing rounds up.
  */
 export interface ScoreRules {
   /** Each town the empire holds when the score is asked. */
