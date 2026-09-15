@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { bumpEconomy } from '../../src/sim/slate';
 
 import { createGame, dispatch, snapshotState } from "../../src/sim/game";
 import type { Command } from "../../src/sim/commands";
@@ -4113,16 +4114,21 @@ describe("the Orders pass of 2026-08-29", () => {
       );
     // One copy of a luxury is not a fair.
     seams[0]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[0]!.improvement = "plantation";
+    bumpEconomy(g.state);
     expect(fairs()).toBe(0);
     // Two copies of one kind is one fair — the count is of *kinds* there is a
     // surplus of, which is what neither `uniqueLuxuries` nor `luxuryCopies` says.
     seams[1]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[1]!.improvement = "plantation";
+    bumpEconomy(g.state);
     expect(fairs()).toBe(1);
     // A third copy of the same kind changes nothing; a second *kind* with two
     // copies is a second fair.
     seams[2]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[2]!.improvement = "plantation";
     expect(fairs()).toBe(1);
   });

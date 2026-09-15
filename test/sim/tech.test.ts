@@ -1,3 +1,4 @@
+import { bumpEconomy } from '../../src/sim/slate';
 import { describe, expect, it, vi } from 'vitest';
 import { BUILDING_IDS, type BuildingId, buildingDef, isBuildingId } from '../../src/sim/buildingData';
 import {
@@ -1026,6 +1027,7 @@ describe('obsolete units', () => {
     connectIron(state, 0, 8, 5);
     expect(buildError(state, 0, 'unit', 'warrior')).not.toBeNull();
     at(state.map, 8, 5).resource = undefined;
+    bumpEconomy(state);
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
     expect(buildError(state, 0, 'unit', 'swordsman')).toBe('Swordsman needs improved Iron');
   });

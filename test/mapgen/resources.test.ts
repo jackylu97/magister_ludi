@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { bumpEconomy } from '../../src/sim/slate';
 
 import { buildingDef } from '../../src/sim/buildingData';
 import {
@@ -381,8 +382,10 @@ describe('strategic resources gate production', () => {
 
     // Inside the city's own ring, so `foundCityAt` already claimed it.
     at(state, 5, 4).resource = 'horses';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'horses')).toBe(false);
     at(state, 5, 4).improvement = 'pasture';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'horses')).toBe(true);
     // The other player owns nothing, so the same tile does nothing for them.
     expect(hasResource(state, 1, 'horses')).toBe(false);
@@ -395,7 +398,9 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'horses';
+    bumpEconomy(state);
     at(state, 5, 4).improvement = 'farm';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'horses')).toBe(false);
     expect(improvementForResource('horses')).toBe('pasture');
     expect(improvementForResource('iron')).toBe('mine');
@@ -410,11 +415,14 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'fish';
+    bumpEconomy(state);
     expect(improvementForResource('fish')).toBe('fishingBoats');
     expect(hasResource(state, 0, 'fish')).toBe(false);
     at(state, 5, 4).improvement = 'farm';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'fish')).toBe(false);
     at(state, 5, 4).improvement = 'fishingBoats';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'fish')).toBe(true);
   });
 
@@ -423,7 +431,9 @@ describe('strategic resources gate production', () => {
     foundCityAt(state, 0, at(state, 5, 5));
     // Far outside the opening ring: seen, wanted, not owned.
     at(state, 11, 9).resource = 'iron';
+    bumpEconomy(state);
     at(state, 11, 9).improvement = 'mine';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'iron')).toBe(false);
   });
 
@@ -431,11 +441,14 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    bumpEconomy(state);
     at(state, 5, 4).improvement = 'mine';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'iron')).toBe(true);
     expect(hasResource(state, 1, 'iron')).toBe(false);
     // Capture is exactly this: the city changes hands and its territory follows.
     city.ownerId = 1;
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'iron')).toBe(false);
     expect(hasResource(state, 1, 'iron')).toBe(true);
   });
@@ -447,9 +460,12 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    bumpEconomy(state);
     at(state, 5, 4).improvement = 'mine';
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'iron')).toBe(true);
     delete at(state, 5, 4).improvement;
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'iron')).toBe(false);
   });
 
@@ -508,7 +524,9 @@ describe('strategic resources gate production', () => {
     // would actually reach.
     expect(buildError(state, 0, 'unit', 'warrior')).toBeNull();
     at(state, 5, 4).resource = 'iron';
+    bumpEconomy(state);
     at(state, 5, 4).improvement = 'mine';
+    bumpEconomy(state);
     expect(buildError(state, 0, 'unit', 'warrior')).toBe(
       'Warrior has been replaced by the Longswordsman',
     );
@@ -529,7 +547,9 @@ describe('strategic resources gate production', () => {
     const state = bareState();
     const city = foundCityAt(state, 0, at(state, 5, 5));
     at(state, 5, 4).resource = 'iron';
+    bumpEconomy(state);
     at(state, 5, 4).improvement = 'mine';
+    bumpEconomy(state);
     city.queue = [{ kind: 'unit', id: 'legionary' }];
     city.hammerBasket = 1000;
 
@@ -544,6 +564,7 @@ describe('strategic resources gate production', () => {
     expect(state.units).toHaveLength(0);
 
     at(state, 5, 4).improvement = 'mine';
+    bumpEconomy(state);
     advanceProduction(state);
     expect(city.queue).toEqual([]);
     expect(state.units.map((unit) => unit.type)).toEqual(['legionary']);

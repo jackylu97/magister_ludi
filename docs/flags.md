@@ -153,7 +153,7 @@ per town per kill, a temple holding its share — and lands on every town
 within **four** hexes of the field instead of two: `data/leaders.json`
 `pressure.range`, the doc's row follows. No new shape.
 
-**(jjjjj) The AI turn feels slow — RULED, A1** (the user, 2026-09-15:
+**(jjjjj) The AI turn feels slow — BUILT, A1** (2026-09-15: one End Turn is 90 % the bots' decisions, 10 % resolution, and a bot's command reaches no repaint — at the same seed and turns the press costs *less* under the painted default than under `?art=toon3d`, so the renderer is not the cause. `TransitField` sweeps a byte a hex once per search in place of two linear walks per edge; `resourceCopies` reads off the slate. The press 2.08 → 1.76 s on the 41-town fixture, turns 101–120 of a six-seat game 2.6 → 1.5 s a turn, the 120-turn digests identical at two seeds. **Sacrifices kept**: a per-search byte-per-tile allocation (~1.3 MB of short-lived garbage a press, dearer than the walks on an empty board); a `TransitField` must never outlive the search that swept it; a new writer that changes what an empire holds must announce on the economy clock or `resourceCopies` goes stale — the hand-writing tests were taught to announce. **Still standing**: the appraisal asks `explainCity` per candidate rather than reading `readCity` once, ~14 % of the press.) Originally: (the user, 2026-09-15:
 *"could you do a performance pass on the ai - its starting to feel slow, i
 wonder if anything changed due to the new renderer"*). **Measure first**,
 on the 41-town fixture (`docs/plans/benchmarks/fixtures/standard-t120-s1`)

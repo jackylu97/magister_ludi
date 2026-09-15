@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { bumpEconomy } from '../../src/sim/slate';
 
 import { foldStageSums } from '../../src/sim/yields/stages';
 import { BUILDING_IDS, buildingDef } from '../../src/sim/buildingData';
@@ -1411,6 +1412,7 @@ describe('perCopy: the marked exception to uniqueness', () => {
     expect(resourceCopies(state, 0, scaled.id)).toBe(2);
     // Pillaged: `openedResource` simply stops finding an improvement.
     delete first.improvement;
+    bumpEconomy(state);
     expect(resourceCopies(state, 0, scaled.id)).toBe(1);
   });
 });
@@ -1526,8 +1528,10 @@ describe('a city standing on the seam', () => {
 
     const { state } = settledOn(id, null);
     state.players[0]!.techsResearched = [needed];
+    bumpEconomy(state);
     expect(hasResource(state, 0, id)).toBe(false);
     state.players[0]!.techsResearched = [needed, reveal];
+    bumpEconomy(state);
     expect(hasResource(state, 0, id)).toBe(true);
 
     // Same rule, other path: an improved seam with no reveal is no supply.
@@ -1539,8 +1543,10 @@ describe('a city standing on the seam', () => {
     seam.hills = true;
     seam.resource = id;
     seam.improvement = improvement;
+    bumpEconomy(other);
     expect(hasResource(other, 0, id)).toBe(false);
     other.players[0]!.techsResearched = [needed, reveal];
+    bumpEconomy(other);
     expect(hasResource(other, 0, id)).toBe(true);
   });
 
@@ -1568,6 +1574,7 @@ describe('a city standing on the seam', () => {
     expect(hasResource(state, 0, 'gems')).toBe(true);
     expect(hasResource(state, 1, 'gems')).toBe(false);
     city.ownerId = 1;
+    bumpEconomy(state);
     expect(hasResource(state, 0, 'gems')).toBe(false);
     expect(hasResource(state, 1, 'gems')).toBe(true);
   });
