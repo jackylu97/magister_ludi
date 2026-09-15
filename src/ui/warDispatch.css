@@ -1,0 +1,10 @@
+.war-dispatch-overlay { z-index:1100; background:#222923b8; backdrop-filter:blur(4px); }
+.war-dispatch-card { width:min(540px,92vw); max-height:90vh; overflow:auto; background:#f6eee0; color:#554636; border:1px solid #b58b70; border-radius:6px; box-shadow:0 30px 100px #12181470; }
+.war-dispatch-body { padding:30px 36px 10px; }
+.war-dispatch-body>.eyebrow { margin:0 0 22px; color:#984b39; font-size:10px; letter-spacing:.16em; }
+.war-dispatch-body h2 { font:400 40px/1.08 var(--face-display); color:#793e30; margin:0 0 20px; }
+.war-dispatch-body blockquote { font:italic 23px var(--face-display); color:#8c7760; margin:20px 0; }
+.war-dispatch-body p:not(.eyebrow) { font-size:12px; line-height:1.7; color:#82705d; }
+.war-dispatch-actions { display:flex; justify-content:space-between; gap:12px; padding:10px 36px 30px; }
+.war-dispatch-actions .btn { border-radius:4px; padding:11px 15px; font-size:11px; }
+.war-dispatch-actions .btn-primary { background:#893c31; color:#f8e7cd; border-color:#893c31; }

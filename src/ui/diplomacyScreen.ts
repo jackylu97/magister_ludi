@@ -99,6 +99,9 @@ import { figure } from './figures';
 import type { ConfirmRequest } from './confirmCard';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
+import { heraldryFor, heraldryMarkDataUri } from '../art/heraldryMarks';
+import { seatInks } from '../art/seatInks';
+import './diplomacyScreen.css';
 
 // --- the row model ----------------------------------------------------------
 
@@ -301,6 +304,8 @@ export interface DealChoice {
   id?: ResourceId;
   /** The town's own id, for a city row; absent on the others. */
   cityId?: number;
+  copies?: number;
+  population?: number;
   /** "Silk", "Open borders", "Uruk". */
   label: string;
   /** "spare" on a duplicate luxury, "seat of government" on a refused town. */
@@ -494,6 +499,7 @@ function dealSide(
     luxuries.push({
       id: holding.id,
       label: resourceDef(holding.id).name,
+      copies,
       // A **spare** is what the panel marks, not what it enforces: an empire
       // may lend its last copy and simply hand the contentment across, which is
       // the ruling. The mark is there so a player can see which lending costs
@@ -515,6 +521,7 @@ function dealSide(
       cities.push({
         cityId: city.id,
         label: city.name,
+        population: city.population,
         note: capital?.id === city.id ? 'seat of government' : null,
         error:
           capital?.id === city.id
@@ -573,8 +580,8 @@ export function termLines(state: GameState, terms: DealTerms): string[] {
  * wonder where their treaty went.
  */
 export function dealButtonLabel(model: DealPanelModel, empty: boolean): string {
-  if (empty) return 'Nothing on the table';
-  return model.peace ? 'Offer this peace' : 'Offer this bargain';
+  if (model.peace) return 'Propose peace';
+  return empty ? 'Nothing on the table' : 'Propose exchange';
 }
 
 /**
@@ -611,6 +618,8 @@ export interface EnvoyAnswer {
   sentence: string;
   /** The reasons under it, one plain line each. The bot's own terms. */
   reasons: string[];
+  peace?: boolean;
+  lastCopy?: string;
 }
 
 /**
@@ -672,6 +681,23 @@ export function counterLines(answer: CounterAnswer, question: CounterQuestion): 
  */
 export function envoyLines(answer: EnvoyAnswer): string[] {
   return [answer.sentence, ...answer.reasons];
+}
+
+/** Voiced response and actionable explanation, separate from the AI's score ledger. */
+export function audienceCopy(answer: EnvoyAnswer): { quote: string; detail: string } {
+  if(answer.accepted) return answer.peace
+    ? {quote:'Let the fighting end. We have an agreement.',detail:'Peace agreed. The war has ended and the agreed terms have taken effect.'}
+    : {quote:'A fair exchange. My merchants will see it done.',detail:'Agreement signed. You can review its terms in Agreements.'};
+  if(answer.peace) return {quote:'Not yet. I am not ready to end this war.',detail:'Peace declined. You remain at war; revise the terms below or return later.'};
+  if(answer.lastCopy) return {quote:`I will not part with our last ${answer.lastCopy.toLowerCase()}. Ask for something we can spare.`,detail:`They have only one copy of ${answer.lastCopy}. Choose another luxury or ask for revised terms.`};
+  return {quote:'These terms do not suit us. What else can you offer?',detail:'Offer declined. Add something they need, reduce your request, or ask what would make this work.'};
+}
+
+/** Draft towns cease to be offerable as soon as the relationship returns to peace. */
+export function trimTownTerms(terms: DealTerms, choices: DealChoice[]): void {
+  const valid = new Set(choices.filter(c=>c.error===null).map(c=>c.cityId));
+  const kept = (terms.cities??[]).filter(id=>valid.has(id));
+  if(kept.length)terms.cities=kept;else delete terms.cities;
 }
 
 /** The confirm card a declaration raises. See the module docblock. */
@@ -752,7 +778,7 @@ export interface DiplomacyScreenOptions {
 
 export interface DiplomacyScreen {
   readonly isOpen: boolean;
-  open(): void;
+  open(targetId?: number): void;
   close(): void;
   toggle(): void;
   refresh(): void;
@@ -801,6 +827,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    * than on whoever the player last argued with.
    */
   let selectedId: number | null = null;
+  let activeView: 'audience'|'agreements' = 'audience';
+  let draftSeat = options.getPlayerId();
+  let draftGame = options.getState();
 
   /**
    * **The last thing the empire across the table said**, and which empire said
@@ -830,6 +859,16 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     return rows.find((row) => row.playerId === selectedId) ?? rows[0] ?? null;
   }
 
+  function seal(playerId: number): HTMLElement {
+    const player=playerById(options.getState(),playerId);
+    const inks=seatInks(player);
+    const badge=element('span','diplo-seal');
+    badge.style.setProperty('--court',inks.primary);badge.style.setProperty('--metal',inks.secondary);
+    const mark=element('span','diplo-seal-mark');
+    mark.style.setProperty('--charge',`url("${heraldryMarkDataUri(heraldryFor(playerId,player?.charge))}")`);
+    badge.setAttribute('aria-hidden','true');badge.append(mark);return badge;
+  }
+
   /** A small counted mark — a figure and what it counts. Never a sentence. */
   function countMark(count: number, label: string): HTMLElement {
     const chip = element('span', 'diplo-mark');
@@ -854,11 +893,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     card.setAttribute('aria-pressed', String(active));
 
     const head = element('span', 'diplo-row-head');
-    const swatch = element('span', 'diplo-swatch');
-    swatch.style.background = row.color;
-    swatch.setAttribute('aria-hidden', 'true');
+    const swatch = seal(row.playerId);
     head.append(swatch);
     head.append(element('span', 'diplo-name', row.name));
+    head.append(element('span','diplo-people',row.people));
     head.append(element('span', 'diplo-status', row.status));
     card.append(head);
 
@@ -874,6 +912,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     card.addEventListener('click', () => {
       selectedId = row.playerId;
+      activeView='audience';
       // What one empire said is about one table: choosing another empire's puts
       // the last answer away rather than leaving it to be found again later.
       envoy = null;
@@ -891,7 +930,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
    */
   function drawRoster(rows: DiplomacyRow[], chosen: DiplomacyRow | null): HTMLElement {
     const column = element('section', 'sc-column diplo-column');
-    column.append(element('p', 'eyebrow sc-eyebrow', 'the world'));
+    column.append(element('p', 'eyebrow sc-eyebrow', 'Known courts'));
 
     const scroller = element('div', 'sc-column-body');
     if (rows.length === 0) {
@@ -909,19 +948,11 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     }
     column.append(scroller);
 
-    // The sheet's one standing sentence: what a war costs and what a peace
-    // takes. Said once at the foot rather than on every row, for the Trade
-    // sheet's reason — a rule repeated per row is a rule the eye skips.
     const foot = element('div', 'diplo-foot');
-    foot.append(
-      element(
-        'p',
-        'hint',
-        'At peace your soldiers may not enter another empire’s land, and may not strike ' +
-          'its people or burn its works. A war opens both. A peace closes them again and walks ' +
-          'every army home.',
-      ),
-    );
+    const goods=dealSide(options.getState(),options.getPlayerId(),chosen?.playerId??options.getPlayerId(),false).luxuries;
+    foot.append(element('p','eyebrow','Your luxuries'));
+    foot.append(element('p','diplo-stock',`${figure(goods.length)} kinds · ${figure(goods.reduce((n,c)=>n+(c.copies??0),0))} copies`));
+    foot.append(element('p','hint','Counts include active exchanges. A spare is a copy you can offer while keeping one.'));
     column.append(foot);
     return column;
   }
@@ -940,11 +971,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     const titles = element('div', 'diplo-head-titles');
     const line = element('p', 'diplo-head-line');
-    const swatch = element('span', 'diplo-swatch');
-    swatch.style.background = row.color;
-    swatch.setAttribute('aria-hidden', 'true');
+    const swatch = seal(row.playerId);
     line.append(swatch);
     line.append(element('span', 'diplo-head-name', row.name));
+    titles.append(element('p','eyebrow',`The court of the ${row.people}`));
     titles.append(line);
     titles.append(element('p', 'diplo-head-status', row.status));
     head.append(titles);
@@ -964,7 +994,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         });
       });
     }
-    verbs.append(declare);
+    if(row.relation!=='war')verbs.append(declare);
 
     const peace = button(
       row.theyOffered && !row.weOffered ? 'btn btn-primary btn-tiny' : 'btn btn-quiet btn-tiny',
@@ -986,7 +1016,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         draw();
       });
     }
-    verbs.append(peace);
+    if(row.relation==='war' && (row.weOffered || row.theyOffered)) verbs.append(peace);
     head.append(verbs);
     return head;
   }
@@ -1017,18 +1047,39 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const model = dealPanel(state, seat, row.playerId);
     const draft = draftFor(row.playerId);
 
+    trimTownTerms(draft.give,model.yours.cities);trimTownTerms(draft.take,model.theirs.cities);
     pane.append(drawTableHead(row));
-    const note = offerSentence(row);
-    if (note !== null) pane.append(element('p', 'hint diplo-note', note));
-
+    if(model.peace) pane.append(element('p','diplo-war-notice',`At war with the ${row.people}. Your forces may be attacked immediately. Peace requires agreement from both sides.`));
+    const tabs=element('nav','diplo-tabs');tabs.setAttribute('aria-label','Diplomacy sections');
+    for(const tab of ['audience','agreements'] as const) {
+      const label=tab==='audience'?(model.peace?'Peace negotiations':'Audience & trade'):`Agreements ${figure(model.active.length)}${model.proposals.length||model.peacePaper?' · Offer waiting':''}`;
+      const action=button('',label);action.setAttribute('aria-current',activeView===tab?'page':'false');
+      action.addEventListener('click',()=>{activeView=tab;draw();});tabs.append(action);
+    }
+    pane.append(tabs);
+    if(activeView==='agreements') {pane.append(drawPapers(model,row));pane.append(element('p','hint',dealFootSentence()));return pane;}
+    const dialogue=element('div','diplo-dialogue');dialogue.setAttribute('role','status');dialogue.setAttribute('aria-live','polite');
+    let quote=model.peace?'You have my attention. Speak.':'Let us put something useful on the table.';
+    let detail=model.peace?'You may include towns in the terms. Nothing changes hands until peace is agreed.':'Choose a luxury on either side to add one copy to the offer.';
+    let label='In audience';
+    if(envoy?.seatId===row.playerId) {
+      ({quote,detail}=audienceCopy(envoy.answer));label=envoy.answer.accepted?'Agreement reached':'Offer declined';
+    } else if(counter?.seatId===row.playerId) {
+      label='Their answer';quote=counter.answer.terms?'These are terms I could agree to.':model.peace?'I am not ready to offer terms.':'There is no exchange I can offer you today.';
+      detail=counter.answer.terms?'The proposed terms are on the table. You can edit them before sending.':'No counteroffer was made. You can revise your offer or return later.';
+    }
+    dialogue.append(element('p','eyebrow',label),element('blockquote','',`“${quote}”`),element('p','hint',detail));pane.append(dialogue);
+    if(model.peacePaper||model.proposals.length) {
+      // An incoming paper remains readable before any acceptance, even on the audience tab.
+      const standing=drawPapers({...model,active:[]},row);pane.append(standing);
+    }
+    const title=element('div','diplo-trade-title');title.append(element('h3','',model.peace?'Terms for peace':'Build an exchange'));
+    title.append(element('p','hint',model.peace?'Towns transfer permanently if peace is agreed.':'Gold is paid once; recurring terms expire as shown in Agreements.'));pane.append(title);
     const board = element('div', 'diplo-board');
     board.append(drawSide(model, model.yours, draft, 'give', 'You offer'));
+    board.append(drawSide(model, model.theirs, draft, 'take', 'You receive'));
     board.append(drawMiddle(state, model, draft, row));
-    board.append(drawSide(model, model.theirs, draft, 'take', `The ${row.people} offer`));
     pane.append(board);
-
-    pane.append(drawPapers(model, row));
-    pane.append(element('p', 'hint diplo-note', dealFootSentence()));
     return pane;
   }
 
@@ -1058,7 +1109,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     const column = element('div', 'diplo-side');
 
     const head = element('div', 'diplo-side-head');
-    head.append(element('span', 'diplo-side-name', heading));
+    head.append(element('p','eyebrow',heading));
+    head.append(element('h4', 'diplo-side-name', side.name));
+    head.append(element('p','diplo-stock',`${figure(side.luxuries.length)} kinds · ${figure(side.luxuries.reduce((n,c)=>n+(c.copies??0),0))} luxury copies`));
     head.append(element('span', 'diplo-side-purse', `${figure(side.gold)} in hand`));
     column.append(head);
 
@@ -1078,11 +1131,11 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         else delete terms.goldPerTurn;
       }),
     );
-    column.append(coin);
+    // Coin follows the resource and town choices below.
 
     const seams = group('luxuries');
     if (side.luxuries.length === 0) {
-      seams.append(element('p', 'hint diplo-none', 'Nothing spare to send.'));
+      seams.append(element('p', 'hint diplo-none', 'No luxuries held.'));
     }
     for (const choice of side.luxuries) {
       const id = choice.id;
@@ -1125,7 +1178,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
         }),
       );
     }
-    column.append(towns);
+    if(model.peace) {column.insertBefore(towns,seams);towns.append(element('p','hint','Towns and their territory change owner permanently.'));}
+    column.append(coin);
     return column;
   }
 
@@ -1147,7 +1201,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
 
     const paper = element('article', 'diplo-paper is-draft');
     paper.append(drawHalf('You give', termLines(state, draft.give)));
-    paper.append(drawHalf(`The ${row.people} give`, termLines(state, draft.take)));
+    paper.append(drawHalf('You receive', termLines(state, draft.take)));
     middle.append(paper);
 
     const empty = termsAreEmpty(draft.give) && termsAreEmpty(draft.take);
@@ -1155,20 +1209,20 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     if (model.blocked !== null) {
       send.disabled = true;
       send.title = model.blocked;
-    } else if (empty) {
+    } else if (empty && !model.peace) {
       send.disabled = true;
       send.title = 'Put something on the table first';
     } else {
       send.addEventListener('click', () => {
+        const prior=new Set(options.getState().dealProposals.map(p=>p.id));
         if (model.peace) options.offerPeace(row.playerId, true, { give: draft.give, take: draft.take });
         else options.proposeDeal(row.playerId, draft.give, draft.take);
-        draft.give = {};
-        draft.take = {};
         // **The answer, at once** (§12). The paper has just been logged, so the
         // empire it was put to is asked before anything else happens — which is
         // the whole of the audience: a player who proposes gets an answer while
         // they are still standing at the table.
-        askAudienceFor(row.playerId, model.peace);
+        if(model.peace || options.getState().dealProposals.some(p=>p.by===options.getPlayerId()&&p.to===row.playerId&&!prior.has(p.id)))askAudienceFor(row.playerId, model.peace);
+        if(envoy?.answer.accepted) {draft.give={};draft.take={};}
         draw();
       });
     }
@@ -1189,39 +1243,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       middle.append(clear);
     }
 
-    if (envoy !== null && envoy.seatId === row.playerId) {
-      const card = element(
-        'article',
-        `diplo-paper is-envoy${envoy.answer.accepted ? ' is-live' : ''}`,
-      );
-      card.append(
-        element(
-          'p',
-          'diplo-paper-head',
-          envoy.answer.accepted ? `The ${row.people} agree` : `The ${row.people} send it back`,
-        ),
-      );
-      for (const line of envoyLines(envoy.answer)) card.append(element('p', 'hint', line));
-      middle.append(card);
-    }
-
-    if (counter !== null && counter.seatId === row.playerId) {
-      const card = element('article', 'diplo-paper is-envoy');
-      card.append(
-        element(
-          'p',
-          'diplo-paper-head',
-          counter.answer.terms === null
-            ? `The ${row.people} answer`
-            : `The ${row.people} would sign this`,
-        ),
-      );
-      for (const line of counterLines(counter.answer, counter.question)) {
-        card.append(element('p', 'hint', line));
-      }
-      middle.append(card);
-    }
-
+    const last=model.yours.luxuries.filter(c=>c.copies===1&&c.id&&(draft.give.luxuries??[]).includes(c.id));
+    if(last.length)middle.append(element('p','diplo-warning',`You are offering your last copy of ${last.map(c=>c.label).join(', ')}. You will lose access while the exchange runs.`));
     if (model.peace) {
       middle.append(
         element(
@@ -1308,7 +1331,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     if (ask === undefined) return;
     if (peace) {
       const answer = ask(targetId);
-      if (answer !== null) envoy = { seatId: targetId, answer };
+      if (answer !== null) envoy = { seatId: targetId, answer: {...answer,peace:true} };
       return;
     }
     const seat = options.getPlayerId();
@@ -1317,8 +1340,9 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
       .dealProposals.filter((paper) => paper.by === seat && paper.to === targetId);
     const paper = papers[papers.length - 1];
     if (!paper) return;
+    const lastCopy=(paper.take.luxuries??[]).find(id=>resourceCopies(options.getState(),targetId,id)===1);
     const answer = ask(targetId, paper.id);
-    if (answer !== null) envoy = { seatId: targetId, answer };
+    if (answer !== null) envoy = { seatId: targetId, answer: {...answer,...(lastCopy?{lastCopy:resourceDef(lastCopy).name}:{})} };
   }
 
   /**
@@ -1429,12 +1453,18 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     input.min = '0';
     input.step = '1';
     input.value = value > 0 ? String(value) : '';
+    input.setAttribute('aria-label',label);
     input.className = 'diplo-field-input';
     // No redraw on input, deliberately: rebuilding the sheet under a cursor is
     // how a number field loses focus mid-figure. The draft is read when the
     // button is pressed, and the button's own greying is refreshed then.
     input.addEventListener('input', () => {
       write(readAmount(input.value));
+      const row=chosenRow(metDiplomacyRows(options.getState(),options.getPlayerId()));
+      if(row) {
+        const old=body.querySelector('.diplo-middle');
+        old?.replaceWith(drawMiddle(options.getState(),dealPanel(options.getState(),options.getPlayerId(),row.playerId),draftFor(row.playerId),row));
+      }
     });
     wrap.append(input);
     return wrap;
@@ -1449,7 +1479,7 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     checked: boolean,
     write: (on: boolean) => void,
   ): HTMLElement {
-    const wrap = element('label', 'diplo-check');
+    const wrap = element('label', `diplo-check${checked?' is-selected':''}${choice.error?' is-disabled':''}`);
     const input = document.createElement('input');
     input.type = 'checkbox';
     input.checked = checked && choice.error === null;
@@ -1464,7 +1494,11 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     }
     wrap.append(input);
     wrap.append(element('span', 'diplo-check-label', choice.label));
-    if (choice.note !== null) wrap.append(element('span', 'diplo-check-note', choice.note));
+    if(choice.copies!==undefined) {
+      const count=element('span','diplo-copy',figure(choice.copies));count.append(element('small','','held'));wrap.append(count);
+      wrap.append(element('small','diplo-check-note',choice.copies>1?`${figure(choice.copies-1)} spare`:'Last copy'));
+    } else if(choice.population!==undefined) wrap.append(element('span','diplo-check-note',choice.error??`Population ${figure(choice.population)}`));
+    else if (choice.note !== null) wrap.append(element('span', 'diplo-check-note', choice.note));
     return wrap;
   }
 
@@ -1472,8 +1506,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
   function drawProposal(proposal: DealProposalRow): HTMLElement {
     const card = element('article', 'diplo-paper');
     card.append(element('p', 'diplo-paper-head', proposal.heading));
-    card.append(element('p', 'hint', `They receive: ${proposal.take.join(' · ')}`));
-    card.append(element('p', 'hint', `You receive: ${proposal.give.join(' · ')}`));
+    card.append(element('p', 'hint', `${proposal.mine?'You give':'You receive'}: ${proposal.give.join(' · ')}`));
+    card.append(element('p', 'hint', `${proposal.mine?'You receive':'You give'}: ${proposal.take.join(' · ')}`));
     const verbs = element('div', 'diplo-row-verbs');
     if (proposal.mine) {
       const take = button('btn btn-quiet btn-tiny', 'Withdraw');
@@ -1532,6 +1566,10 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     // shows first), and every gesture below only exists while it is up.
     const state = options.getState();
     const seat = options.getPlayerId();
+    if(draftGame!==state||draftSeat!==seat) {drafts.clear();envoy=null;counter=null;selectedId=null;activeView='audience';draftGame=state;draftSeat=seat;}
+    const activeElement=document.activeElement;
+    const focusIndex=activeElement instanceof HTMLElement && body.contains(activeElement)?Array.from(body.querySelectorAll('button,input')).indexOf(activeElement):-1;
+    const scroll=body.querySelector('.diplo-table')?.scrollTop??0;
     body.replaceChildren();
 
     // Only the empires this seat has met (the ruling). The roster and the table
@@ -1549,6 +1587,8 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     split.append(drawRoster(rows, chosen));
     split.append(drawTable(chosen));
     body.append(split);
+    const table=body.querySelector('.diplo-table');if(table)table.scrollTop=scroll;
+    if(focusIndex>=0)body.querySelectorAll<HTMLElement>('button,input')[focusIndex]?.focus({preventScroll:true});
   }
 
   /**
@@ -1568,6 +1608,15 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     trigger,
     onOpen: () => options.onOpen?.(),
     draw,
+    onKey: (event) => {
+      if(event.defaultPrevented)return true;
+      if(event.key!=='Tab')return false;
+      const nodes=Array.from(overlay.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),[tabindex="0"]')).filter(el=>el.getClientRects().length);
+      const first=nodes[0],last=nodes[nodes.length-1];
+      if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();return true;}
+      if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();return true;}
+      return false;
+    },
     onClose: () => {
       selectedId = null;
       envoy = null;
@@ -1579,7 +1628,18 @@ export function createDiplomacyScreen(options: DiplomacyScreenOptions): Diplomac
     get isOpen(): boolean {
       return shell.isOpen;
     },
-    open: shell.open,
+    open(targetId?: number) {
+      const state = options.getState(), seat = options.getPlayerId();
+      if (draftGame !== state || draftSeat !== seat) {
+        drafts.clear(); envoy = null; counter = null; selectedId = null;
+        draftGame = state; draftSeat = seat;
+      }
+      if (targetId !== undefined) selectedId = targetId;
+      activeView = 'audience';
+      const table = body.querySelector('.diplo-table');
+      if (table) table.scrollTop = 0;
+      if (shell.isOpen) shell.refresh(); else shell.open();
+    },
     close: shell.close,
     toggle: shell.toggle,
     refresh: shell.refresh,

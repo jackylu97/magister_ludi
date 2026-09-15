@@ -398,7 +398,7 @@ describe('the Reliquary screen', () => {
     // Claimed only while it is up — the board reads the arrows too, and the
     // shell hands a key on only after checking that the sheet is showing.
     expect(SHELL).toMatch(
-      /function onKeyDown\(event: KeyboardEvent\): void \{\s*if \(!isOpen\(\)\) return;\s*if \(options\.onKey/,
+      /function onKeyDown\(event: KeyboardEvent\): void \{\s*if \(!isOpen\(\) \|\| event\.defaultPrevented\) return;\s*if \(options\.onKey/,
     );
     expect(SCREEN).toContain("if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return false;");
     expect(SCREEN).toContain("step(event.key === 'ArrowLeft' ? -1 : 1)");

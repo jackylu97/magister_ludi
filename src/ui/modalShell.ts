@@ -175,7 +175,7 @@ export function createModalShell(options: ModalShellOptions): ModalShell {
   }
 
   function onKeyDown(event: KeyboardEvent): void {
-    if (!isOpen()) return;
+    if (!isOpen() || event.defaultPrevented) return;
     if (options.onKey?.(event) === true) return;
     if (event.key !== 'Escape') return;
     event.preventDefault();

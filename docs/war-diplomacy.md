@@ -592,3 +592,24 @@ a window.
 ## Revisions
 
 *(yours — edit away)*
+
+## Foreign courts UI (September 2026)
+
+- Diplomacy opens in the shared modal shell; the roster uses live leader
+  heraldry. The two inventories show actual luxury copy counts, spares,
+  treasury and transferable town population. Town terms appear only at war;
+  seats of government remain unavailable.
+- Audience text presents acceptance, refusal and counteroffers in player-facing
+  language. Internal AI appraisal scores remain in the decision data, not the
+  leader's dialogue. Refused drafts remain editable.
+- A fresh declaration against the local player queues an urgent dispatch, with
+  acknowledgment and a link to that court. Existing wars loaded from saves do
+  not replay dispatches; the ordinary chronicle retains the event.
+- An envelope above End Turn shows incoming trade and peace offers. One opens
+  its court directly; several open a chooser. The modal displays the actual
+  proposed terms before acceptance. The count follows current state, including
+  withdrawal and seat changes. Offers do not block ending the turn and do not
+  automatically open a modal.
+- `/flair.html?review=diplomacy-game` provides a separate command-backed fixture
+  of the production UI; it does not write saves. The original design prototype
+  remains at `/flair.html?review=diplomacy`.

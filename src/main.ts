@@ -151,6 +151,8 @@ import { type HudDock, createHudDock } from './ui/hudDock';
 import { type ToastStack, createToastStack } from './ui/toasts';
 import { type StatecraftScreen, createStatecraftScreen } from './ui/statecraftScreen';
 import { type DiplomacyScreen, createDiplomacyScreen } from './ui/diplomacyScreen';
+import { type WarDispatch, createWarDispatch } from './ui/warDispatch';
+import { createDiplomacyOffers } from './ui/diplomacyOffers';
 import { type ReligionScreen, createReligionScreen } from './ui/religionScreen';
 import { type TechTree, createTechTree } from './ui/techTree';
 import { type MapPlates, type TilePriceTags, createMapPlates, createTilePriceTags } from './ui/tilePriceTags';
@@ -230,7 +232,7 @@ import {
   rosterFor,
   seatsAskPersona,
 } from './ui/gameSetup';
-import { isLeaderId, leaderDef, seatName } from './sim/leaderData';
+import { isLeaderId, leaderDef, seatName, seatPeople } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
@@ -881,6 +883,8 @@ let censusSheet: CensusSheet | null = null;
 let leaderSheet: LeaderSheet | null = null;
 /* Diplomacy's screen, built in `boot` for `trade`'s reason exactly. */
 let diplomacy: DiplomacyScreen | null = null;
+let warDispatch: WarDispatch | null = null;
+let diplomacyOffers: ReturnType<typeof createDiplomacyOffers> | null = null;
 
 /**
  * **The reasons an envoy gives**, off the decision it made: the labels of the
@@ -1096,6 +1100,7 @@ function closePopovers(): boolean {
   // what keeps it from standing over the landing after a restart.
   leaderSheet?.close();
   diplomacy?.close();
+  diplomacyOffers?.close();
   reliquary?.close();
   ledger?.close();
   capture?.close();
@@ -2577,6 +2582,7 @@ async function boot(initial: Game | null): Promise<void> {
     // and any open list are re-read here rather than only when something is
     // announced.
     notifications?.refresh();
+    diplomacyOffers?.refresh();
     banners.refresh();
     // The tags are about the open city and the treasury, both of which this
     // pass has just re-read; they draw nothing at all unless buy mode is up.
@@ -3521,6 +3527,9 @@ async function boot(initial: Game | null): Promise<void> {
   function isInputBlocked(): boolean {
     return (
       !landingEl.hidden ||
+      (diplomacy?.isOpen ?? false) ||
+      (religion?.isOpen ?? false) ||
+      (warDispatch?.isOpen ?? false) ||
       (techTree?.isOpen ?? false) ||
       (abacus?.isOpen ?? false) ||
       (beads?.isOpen ?? false) ||
@@ -3587,6 +3596,7 @@ async function boot(initial: Game | null): Promise<void> {
    */
   function newsBlocked(): boolean {
     return (
+      (warDispatch?.isOpen ?? false) ||
       !landingEl.hidden ||
       offerCard.isOpen ||
       (triumphSheet?.isOpen ?? false) ||
@@ -3688,6 +3698,10 @@ async function boot(initial: Game | null): Promise<void> {
         tutorial.note({ kind: 'command', command: command.type });
       }
       if (!result.ok) return;
+      if(result.warDeclared?.onId===controls.localPlayerId()) {
+        const {byId,onId}=result.warDeclared;
+        warDispatch?.enqueue({byId,onId,turn:game.state.turn,name:seatName(game.state,byId),people:seatPeople(game.state,byId)});
+      }
       if (result.beads && result.beads.length > 0) {
         tutorial.note({ kind: 'event', event: 'bead' });
       }
@@ -3697,6 +3711,7 @@ async function boot(initial: Game | null): Promise<void> {
       if (result.starved?.some((report) => report.ownerId === controls.localPlayerId())) {
         tutorial.note({ kind: 'event', event: 'starved' });
       }
+      diplomacy?.refresh();
       noteEnemySighting();
       noteMeterPain();
     },
@@ -4625,104 +4640,7 @@ async function boot(initial: Game | null): Promise<void> {
    * reached for: a declaration cannot be taken back for ten turns, and the
    * ruling asks for the step by name.
    */
-  diplomacy = createDiplomacyScreen({
-    overlay: diplomacyOverlayEl,
-    body: diplomacyBodyEl,
-    closeButton: requireElement('diplomacy-close'),
-    getState: () => game.state,
-    getPlayerId: () => controls.localPlayerId(),
-    declareWar: (targetId) => {
-      controls.declareWarOn(targetId);
-      controls.refresh();
-    },
-    offerPeace: (targetId, standing, offered) => {
-      controls.offerPeaceTo(targetId, standing, offered);
-      controls.refresh();
-    },
-    // The three bargain verbs, wired exactly as the two above are: the screen
-    // acts on a row or a paper, `controls` owns the funnel, and every one of
-    // them is an ordinary logged command.
-    proposeDeal: (targetId, give, take) => {
-      controls.proposeDealWith(targetId, give, take);
-      controls.refresh();
-    },
-    answerDeal: (dealId, accept) => {
-      controls.answerDealOf(dealId, accept);
-      controls.refresh();
-    },
-    declinePeace: (targetId) => {
-      controls.declinePeaceFrom(targetId);
-      controls.refresh();
-    },
-    withdrawDeal: (dealId) => {
-      controls.withdrawDealOf(dealId);
-      controls.refresh();
-    },
-    /**
-     * **The audience** (`docs/war-diplomacy.md` §12): the paper just sent is put
-     * to the empire it was sent to, and the answer is that empire's own command,
-     * dispatched through the driver's funnel exactly as a bot's order at its own
-     * sitting is (`answerAudience`).
-     *
-     * This is the seam the ruling asks for, and it is here rather than in the
-     * sheet for the reason every other line in this block is: the screen never
-     * imports the AI, so what crosses is a sentence and its reasons. A human
-     * seat across the table answers `null` and the paper stands, which is what
-     * it has always done.
-     */
-    askAudience: (targetId, dealId) => {
-      const decision = answerAudience(game, {
-        seatId: targetId,
-        askerId: controls.localPlayerId(),
-        ...(dealId === undefined ? {} : { dealId }),
-        report: (command, result) => controls.reportCommand(command, result),
-      });
-      if (decision === null) return null;
-      controls.refresh();
-      return {
-        accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
-        sentence: decision.summary,
-        reasons: chosenReasons(decision),
-      };
-    },
-    /**
-     * *"What would make this work?"* and its mirror — a pure read of the empire
-     * across the table (`counterTerms`), against that seat's own tuning sheet.
-     *
-     * Nothing is dispatched and nothing is logged: the terms go back to the
-     * sheet, which writes them into the player's draft. `counterRefusal` is the
-     * one sentence a seat says instead of countering, and it is asked separately
-     * because a refusal has no terms to carry.
-     */
-    askCounter: (targetId, give, take) => {
-      const seat = playerById(game.state, targetId);
-      if (!seat || seat.isHuman) return null;
-      const ctx = valueContext(game.state, seat);
-      const asker = controls.localPlayerId();
-      const counter = counterTerms(game.state, targetId, asker, give, take, ctx);
-      return {
-        terms: counter === null ? null : { give: counter.give, take: counter.take },
-        reasons: counter === null ? [] : counter.appraisal.terms.map((term) => term.label),
-        refusal: counterRefusal(game.state, targetId, asker, ctx),
-      };
-    },
-    askConfirm: (request, run) => confirmCard.ask(request, run),
-    onOpen: () => {
-      menu.close();
-      help.close();
-      lens.close();
-      notifications?.close();
-      meterCards?.close();
-      techTree?.close();
-      abacus?.close();
-      beads?.close();
-      statecraft?.close();
-      religion?.close();
-      trade?.close();
-      compendium.close();
-    },
-  });
-  gameDisposers.push(() => diplomacy?.dispose());
+
 
   /**
    * The empire's per-turn totals, at the left end of the top bar. A pure sum
@@ -4833,6 +4751,107 @@ async function boot(initial: Game | null): Promise<void> {
     getGame: () => game,
     localPlayerId: () => controls.localPlayerId(),
   });
+  diplomacy = createDiplomacyScreen({
+    overlay: diplomacyOverlayEl,
+    body: diplomacyBodyEl,
+    closeButton: requireElement('diplomacy-close'),
+    trigger: hudDock.diplomacyButton,
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    declareWar: (targetId) => {
+      controls.declareWarOn(targetId);
+      controls.refresh(controls.localPlayerId());
+    },
+    offerPeace: (targetId, standing, offered) => {
+      controls.offerPeaceTo(targetId, standing, offered);
+      controls.refresh(controls.localPlayerId());
+    },
+    // The three bargain verbs, wired exactly as the two above are: the screen
+    // acts on a row or a paper, `controls` owns the funnel, and every one of
+    // them is an ordinary logged command.
+    proposeDeal: (targetId, give, take) => {
+      controls.proposeDealWith(targetId, give, take);
+      controls.refresh(controls.localPlayerId());
+    },
+    answerDeal: (dealId, accept) => {
+      controls.answerDealOf(dealId, accept);
+      controls.refresh(controls.localPlayerId());
+    },
+    declinePeace: (targetId) => {
+      controls.declinePeaceFrom(targetId);
+      controls.refresh(controls.localPlayerId());
+    },
+    withdrawDeal: (dealId) => {
+      controls.withdrawDealOf(dealId);
+      controls.refresh(controls.localPlayerId());
+    },
+    /**
+     * **The audience** (`docs/war-diplomacy.md` §12): the paper just sent is put
+     * to the empire it was sent to, and the answer is that empire's own command,
+     * dispatched through the driver's funnel exactly as a bot's order at its own
+     * sitting is (`answerAudience`).
+     *
+     * This is the seam the ruling asks for, and it is here rather than in the
+     * sheet for the reason every other line in this block is: the screen never
+     * imports the AI, so what crosses is a sentence and its reasons. A human
+     * seat across the table answers `null` and the paper stands, which is what
+     * it has always done.
+     */
+    askAudience: (targetId, dealId) => {
+      const decision = answerAudience(game, {
+        seatId: targetId,
+        askerId: controls.localPlayerId(),
+        ...(dealId === undefined ? {} : { dealId }),
+        report: (command, result) => controls.reportCommand(command, result),
+      });
+      if (decision === null) return null;
+      controls.refresh(controls.localPlayerId());
+      return {
+        accepted: decision.command.type === 'acceptDeal' || decision.command.type === 'proposePeace',
+        sentence: decision.summary,
+        reasons: chosenReasons(decision),
+      };
+    },
+    /**
+     * *"What would make this work?"* and its mirror — a pure read of the empire
+     * across the table (`counterTerms`), against that seat's own tuning sheet.
+     *
+     * Nothing is dispatched and nothing is logged: the terms go back to the
+     * sheet, which writes them into the player's draft. `counterRefusal` is the
+     * one sentence a seat says instead of countering, and it is asked separately
+     * because a refusal has no terms to carry.
+     */
+    askCounter: (targetId, give, take) => {
+      const seat = playerById(game.state, targetId);
+      if (!seat || seat.isHuman) return null;
+      const ctx = valueContext(game.state, seat);
+      const asker = controls.localPlayerId();
+      const counter = counterTerms(game.state, targetId, asker, give, take, ctx);
+      return {
+        terms: counter === null ? null : { give: counter.give, take: counter.take },
+        reasons: counter === null ? [] : counter.appraisal.terms.map((term) => term.label),
+        refusal: counterRefusal(game.state, targetId, asker, ctx),
+      };
+    },
+    askConfirm: (request, run) => confirmCard.ask(request, run),
+    onOpen: () => { closePopovers(); },
+  });
+  gameDisposers.push(() => diplomacy?.dispose());
+  diplomacyOffers = createDiplomacyOffers({
+    host: requireElement('hud-end-turn'),
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    review: id => openScreen(() => diplomacy?.open(id)),
+  });
+  gameDisposers.push(() => { diplomacyOffers?.dispose(); diplomacyOffers = null; });
+  warDispatch=createWarDispatch({
+    beforeOpen:()=>{closePopovers();},
+    canShow:()=>!newsBlocked()&&!endTurnWorking,
+    relevant:notice=>notice.onId===controls.localPlayerId(),
+    review:targetId=>openScreen(()=>diplomacy?.open(targetId)),
+  });
+  gameDisposers.push(()=>warDispatch?.dispose());
+
   /**
    * The dock's two doors, wired the same way and deliberately so: both are bare
    * triggers, both shut every other HUD surface first, and both then open a
@@ -5349,6 +5368,8 @@ async function boot(initial: Game | null): Promise<void> {
     abacus?.close();
     beads?.close();
     abacus?.refresh();
+    warDispatch?.clear();
+    diplomacy?.close();
     game = replacement;
     // The turn guard is about *this* game's turns. A resumed game is very often
     // at a turn number the last one also reached, and without this its first
@@ -5575,6 +5596,8 @@ async function boot(initial: Game | null): Promise<void> {
   }
   gameDisposers.push(cancelPendingEndTurn);
   suspendGame = () => {
+    diplomacyOffers?.close();
+    warDispatch?.clear();
     cancelPendingEndTurn();
     splash.clear();
     offerCard.clear();

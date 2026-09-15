@@ -86,11 +86,13 @@ describe('the two columns', () => {
     const model = dealPanel(state, 0, 1);
     expect(model.yours.luxuries.map((row) => row.label)).toEqual(['Silk']);
     expect(model.yours.luxuries[0]!.note).toBeNull();
+    expect(model.yours.luxuries[0]!.copies).toBe(1);
     expect(model.theirs.luxuries).toEqual([]);
 
     giveSilk(state, mine, 4, 5);
     const spare = dealPanel(state, 0, 1);
     expect(spare.yours.luxuries[0]!.note).toBe('spare');
+    expect(spare.yours.luxuries[0]!.copies).toBe(2);
   });
 
   it('drops a lent seam out of the giver’s column and into the receiver’s', () => {
@@ -167,8 +169,8 @@ describe('the two columns', () => {
     // A war row writes a *peace* paper, so the panel is not blocked — it is a
     // different paper, and the button below says so.
     expect(dealPanel(state, 0, 1).blocked).toBeNull();
-    expect(dealButtonLabel(dealPanel(state, 0, 1), false)).toBe('Offer this peace');
-    expect(dealButtonLabel(dealPanel(state, 0, 1), true)).toBe('Nothing on the table');
+    expect(dealButtonLabel(dealPanel(state, 0, 1), false)).toBe('Propose peace');
+    expect(dealButtonLabel(dealPanel(state, 0, 1), true)).toBe('Propose peace');
   });
 });
 

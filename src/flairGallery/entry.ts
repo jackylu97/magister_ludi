@@ -4,7 +4,13 @@ import './style.css';
 import { element, section } from './sheet';
 
 const review = new URLSearchParams(location.search).get('review');
-if (review === 'movement') {
+if (review === 'diplomacy-game') {
+  void import('./diplomacyGameReview').then(module => module.drawDiplomacyGameReview(document.getElementById('sheet')!));
+} else if (review === 'diplomacy') {
+  document.body.classList.add('diplomacy-prototype');
+  document.getElementById('index')!.hidden = true;
+  void import('./diplomacyReview').then(module => module.drawDiplomacyReview(document.getElementById('sheet')!));
+} else if (review === 'movement') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;
   nav.append(element('h1', undefined, 'Movement study'));

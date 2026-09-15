@@ -1,0 +1,9 @@
+body.has-diplomatic-offers { --end-turn-clearance: calc(14px + var(--end-turn-h) + 14px + 48px); }
+.diplomacy-offers { position: absolute; right: 0; bottom: calc(100% + 10px); }
+.diplomacy-offers[hidden], .diplomacy-offers-list[hidden] { display: none; }
+.diplomacy-offers-button { display: flex; align-items: center; gap: 9px; white-space: nowrap; font-size: 12px; padding: 7px 11px; background: #f3ecdb; color: #35413b; border: 1px solid #877854; box-shadow: 2px 3px 0 #262e2a; }
+.diplomacy-offers-button > span:first-child { font-size: 21px; line-height: 1; }
+.diplomacy-offers-list { position: absolute; right: 0; bottom: calc(100% + 9px); width: min(320px, calc(100vw - 28px)); max-height: 50vh; overflow: auto; padding: 17px; background: #f3ecdb; color: #35413b; border: 1px solid #877854; box-shadow: 3px 5px 0 #262e2a; border-radius: 6px; }
+.diplomacy-offers-row { display: block; width: 100%; text-align: left; font: inherit; font-size: 13px; color: inherit; background: transparent; border: 0; border-top: 1px solid #c9c0ac; padding: 12px 0; cursor: pointer; }
+.diplomacy-offers-row:hover { color: #76532d; background: #e9e2d0; }
+.diplomacy-offers-note { font-size: 11px; line-height: 1.5; margin-bottom: 0; opacity: .75; }
