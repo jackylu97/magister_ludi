@@ -19,6 +19,16 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(qqqqq) The culture and great-person ladders climb a fifth slower — BUILT**
+(the user, 2026-09-15: *"tune down the scaling of the culture tiers and the
+great people tiers by ~20% (the initial values are fine, but they get
+expensive too quickly)"*). Both ladders are `base + linear·n + n^exponent`
+with the same shape; the bases stay (culture 12, renown 75) and the two
+growth terms move: culture `costLinear` 6 → 5 and `costExponent` 2.8 → 2.65
+(the fifth draft −18 %, the tenth −28 %); renown `linear` 225 → 180 and
+`exponent` 2.8 → 2.65 (the third person −18 %, the sixth −19 %). The README
+and `docs/great-people.md` follow; the one literal pin re-taken.
+
 **(ppppp) A seat is named by its figure — RULED, N1** (the user, 2026-09-15:
 *"players should be identified by their leader choice - let's retire the
 color naming scheme unless the user has selected no leader"*). Today a seat
@@ -123,7 +133,22 @@ sheet). **Fidelity is the arena**: the bot must still win its own games —
 determinism digest unchanged where no decision is meant to change (the
 opening, the builds). Report the measured shape before/after and a
 Sacrifices paragraph. Waits for A1 (the AI performance pass) to land, since
-both are in `src/ai/`.
+both are in `src/ai/`. **Addendum, the peace** (the user, 2026-09-15: *"the
+ai should have some idea of how many units it's lost to you vs how many
+it's killed, and factor that into it's decision for peace."*): a bot keeps
+the **exchange** of each war it is in — pieces it has lost to that enemy
+against pieces it has killed of theirs, since the war began, plus towns
+taken each way (`explainWarScore` already folds losses and towns, but as
+career totals; the per-war, since-declaration reading is what a peace
+decision needs, and `Player.triumphs`/the combat reports are where the
+counts already come from) — and **sues for peace** when the exchange has
+run against it past a knob (`war.peaceExchange`, the ratio of its losses
+to its kills that makes it ask) and its army advantage no longer clears
+the declaration bar, and **accepts** a peace offered when the exchange is
+against it or its advantage is gone; it declines peace while it is winning
+the exchange. Printed terms on the spectator feed; the persona bars keep
+their say (a warmonger asks later). Pinned: a war with a bad exchange
+proposes peace; a war with a good one declines it.
 
 **(mmmmm) Soldiers cost half again; hills are worth two — BUILT** (the
 user, 2026-09-15: *"military units need to be ~50% more expensive"* and

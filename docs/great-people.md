@@ -42,7 +42,7 @@ each one rather than earning them at a faster rate. Filling the threshold spends
 it (the overflow carries) and opens an offer of names —
 `rules.offers.greatPerson` wide, widened again by any rider.
 
-The three figures are `rules.renown` — **base 75 · linear 225 · exponent 2.8** —
+The three figures are `rules.renown` — **base 75 · linear 180 · exponent 2.65** (the user, 2026-09-15: the tiers scaled down by a fifth; they were 225 and 2.8) —
 and they are the knob the whole rate turns on. The **first eight rungs**, and
 what an empire must have banked in total to stand on each:
 
@@ -217,8 +217,8 @@ blank for the balance pass.
 | `offerPriceFaith` | 750 | The same out of the faith bank — The Magisterium’s price. |  |
 | `scholarDraftFaith` | 1000 | What The Academy charges in faith for a scholars-only hand, leaving the ladder where it stands. |  |
 | `renown.base` | 75 | What the first great person costs in renown — the ladder’s floor. |  |
-| `renown.linear` | 225 | What each person already recruited adds to the next one’s price, straight. |  |
-| `renown.exponent` | 2.8 | The power the recruit count is raised to and added on top — culture’s own. |  |
+| `renown.linear` | 180 | What each person already recruited adds to the next one’s price, straight. |  |
+| `renown.exponent` | 2.65 | The power the recruit count is raised to and added on top — culture’s own. |  |
 
 ## The roster
 

@@ -187,7 +187,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
 
 - Culture fills **one** pool (`Player.culturePool` IS the draft basket); border
   culture (`City.culture`) is a separate channel. The draft meter is
-  `12 + 6n + n^2.8`. Offers are drawn once and spent by a command; a pick names
+  `12 + 5n + n^2.65`. Offers are drawn once and spent by a command; a pick names
   an index. Adoption rebuilds the slots (total amnesty). Seals are absolute turns.
 - **No levels**: an Order is what its row prints, held once. A draft is take one
   or **pass** — a skip spends the hand and raises `orderSkips`, and each banked
@@ -251,7 +251,7 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
 
 - **Called, never built or bought.** Renown is one pool, banked in exactly one
   place (`settleRenownWindfall`) and explained as one list. The ladder is
-  `floor(75 + 225n + n^2.8)` — the draft ladder's arithmetic, one currency over.
+  `floor(75 + 180n + n^2.65)` — the draft ladder's arithmetic, one currency over.
 - The draw is **weighted and never restricted**: every name of the age is in the
   bag, each family weighted by its share of where the empire's renown came from.
   Names are world-shared and consumed on the pick. The draw spills
