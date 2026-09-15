@@ -186,6 +186,38 @@ function foldMarks(marks: readonly Mark[]): number {
  * the recipes were cached. A null recipe is the cache saying *nothing here*.
  */
 type GroundRecipe = { key: number; geometry: BufferGeometry | null };
+
+/**
+ * Where the ground ink stands in the queue of things painted on the ground.
+ *
+ * Every flat mark in the painted look is the same trick — a polygon clipped to
+ * the terrain's own triangles and lifted a few thousandths along Y — and the
+ * lifts already say who is on top: a farm's field is at .006, its parcels and
+ * brush passes climb to about .009, its farmyard sits at .012, and this layer's
+ * territory ribbon is at .013 with the roads at .016 above that. Read as
+ * geometry, a border has always been above the field it crosses.
+ *
+ * The depth buffer disagreed, and the reason is `polygonOffset`. The works, the
+ * towns and the great-person sites all paint their pigment through a material
+ * carrying `-1, -1` (`settlementArt.js`, `paintedCities.ts`, `paintedSites.ts`),
+ * which is not a fixed nudge: the factor multiplies the polygon's depth *slope*,
+ * and the diorama's ground is a plane seen at forty-odd degrees, so one step of
+ * it is worth far more than the seven thousandths the ribbon stood above the
+ * crop. The border went under the field — the user, `docs/flags.md` (ccccc):
+ * *"farms are colliding with the city border, we should have them sit under"* —
+ * and survived only in the headland gaps between parcels, which is what made it
+ * read as a torn line rather than a hidden one.
+ *
+ * So the ink answers in the same currency, one step deeper. It is a **rank** and
+ * not a dial, which is why it lives here beside the lifts it ranks against
+ * rather than in `data/view3d.json` — `RENDER_ORDER` in `instances.ts` is the
+ * same species of table. Both terms scale with the slope, so the ordering holds
+ * at every zoom the ortho camera reaches, which a bigger lift would not have
+ * done. Both this layer's instances take it: a road crossing a field belongs on
+ * top of the crop for exactly the reason the border does.
+ */
+const GROUND_INK_OFFSET = -2;
+
 type GroundBatch = {
   parts: BufferGeometry[]; cells: number[]; starts: number[]; counts: number[];
   levels: number[]; geometry: BufferGeometry; meshes: Mesh[]; shadows: boolean;
@@ -220,7 +252,8 @@ export class PaintedGroundLayer {
   private plan?: GroundPlan;
   constructor(name: string, register: (material: MeshStandardMaterial, options?: { terrain?: boolean }) => unknown) {
     this.group.name = name;
-    this.material = new MeshStandardMaterial({ color: 'white', vertexColors: true, roughness: .96, flatShading: true });
+    this.material = new MeshStandardMaterial({ color: 'white', vertexColors: true, roughness: .96, flatShading: true,
+      polygonOffset: true, polygonOffsetFactor: GROUND_INK_OFFSET, polygonOffsetUnits: GROUND_INK_OFFSET });
     register(this.material, { terrain: true });
     const hook = this.material.onBeforeCompile, key = this.material.customProgramCacheKey();
     this.material.onBeforeCompile = function(shader, renderer) {

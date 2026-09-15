@@ -183,6 +183,11 @@ export class PaintedWorksLayer {
       }
       this.batches.set(key, {inputs: [...batch.props], meshes});
     }
+    // A patch is flat pigment on the hex top, and it is **not** the last thing
+    // painted there: the ground layer's borders and roads cross it and stand
+    // above it, by lift and by depth offset both. `GROUND_INK_OFFSET` in
+    // `paintedGround.ts` is that rank, and the reason this layer's own material
+    // may keep the `-1` every ground decal asks for.
     for (const [id, batch] of patches) {
       const key = `patches:${id}:${shadows}`;
       if (reuse(key, batch.geometries)) continue;
