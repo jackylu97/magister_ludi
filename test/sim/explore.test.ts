@@ -562,10 +562,17 @@ describe('determinism', () => {
    * same fog, same pieces on the same hexes with the same health, same camps,
    * same ruins, same generator state. The byte length is unchanged too, which
    * is what a three-digit counter changing looks like.
+   *
+   * **Re-taken a fourth time, 2026-09-14 (batch L8)**: the save schema went to
+   * 116 with the Terraces' re-cut as a field, and `schemaVersion` is in the
+   * snapshot because everything is. Measured the same way: the print with
+   * `"schemaVersion":116` put back to 115 digests to the previous literals
+   * exactly, both seeds, same byte length — so the whole of the difference is
+   * that one field. Nothing ranged differently.
    */
   const RANGED_BOARDS: Record<number, string> = {
-    11: '16508274:187628',
-    2026: '3eafddef:187513',
+    11: '54525401:187628',
+    2026: 'abe09ac4:187513',
   };
 
   for (const seed of [11, 2026]) {

@@ -41,7 +41,7 @@
 import './style.css';
 import { MAPGEN_CONFIG, MAP_SIZE_NAMES, getMapSize } from './sim/mapgen';
 import { hashSeed } from './sim/rng';
-import { type Game, createGame, dispatch } from './sim/game';
+import { type Game, dispatch } from './sim/game';
 import { answerAudience, driveBots } from './ai/driver';
 import { valueContext } from './ai/bot';
 import { counterRefusal, counterTerms } from './ai/diplomacy';
@@ -84,10 +84,10 @@ import {
 import { explainDiscoveryOffer } from './sim/discoveries';
 import { unitsOnTile } from './sim/units';
 import {
+  type LoadResult,
   QUICKSAVE_SLOT,
   createAutosaver,
   exportFilename,
-  loadSlot,
   makeSavePayload,
   namedSlotId,
   newestSlot,
@@ -95,6 +95,10 @@ import {
   resumeSeat,
   writeSave,
 } from './ui/saves';
+// `newGame` and a save's log walk, off the main thread. See its docblock for
+// why a deterministic simulation is allowed to cross a worker seam at all.
+import { createGameAsync, loadSlotAsync, warmGameWorker } from './ui/gameLoader';
+import { createLoadingSheet } from './ui/loadingSheet';
 import { openingFocus } from './ui/openingFocus';
 import {
   createSavesPanel,
@@ -788,6 +792,17 @@ let pendingOverwrite: string | null = null;
 let currentSaveName = 'Magister Ludi';
 
 /**
+ * The loading sheet. Built at module scope with the load list, and for a
+ * stronger version of its reason: it is up *while* `boot` runs, so a disposer
+ * swept at the top of `boot` would pull it down in the middle of the load it is
+ * reporting. It belongs to the page, like the Compendium, and is never disposed.
+ */
+const loading = createLoadingSheet({
+  overlay: requireElement('loading-overlay'),
+  body: requireElement('loading-body'),
+});
+
+/**
  * The load list. Built at module scope, with the other cards, because the
  * landing needs it before any game exists — Load is one of the two things a
  * player can do on a cold page.
@@ -806,6 +821,13 @@ const savesPanel = createSavesPanel({
   // left to ask about.
   abandonsGame: () => takeOverGame !== null && landingEl.hidden,
   onLoad: (loaded) => void beginGame(loaded),
+  // The panel replays before it asks its question, so the long half of a load
+  // picked here happens on its watch. One sheet across both halves.
+  loading: {
+    begin: () => loading.begin('save'),
+    replayed: replayProgress,
+    finish: () => loading.finish(),
+  },
 });
 
 /**
@@ -837,12 +859,10 @@ let victory: VictoryModal | null = null;
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
 /**
- * What this boot's screens must unbind before the next game builds new ones
- * over the same DOM (Entry LVII — the frozen star chart): every per-game
- * screen that hangs a listener on `window` pushes its dispose here. The sweep
- * runs on the way to the landing AND at the top of `boot`, so a load that
- * never visits the landing is covered too; the array is cleared by the sweep,
- * which is what makes running it twice safe.
+ * What must unbind before another boot replaces these screen instances.
+ * Restart and load go through `adoptGame`, which reuses them: those journeys
+ * close screens without disposing their listeners. Disposing on the way to
+ * the landing left the reused Statecraft screen without either close handler.
  */
 let gameDisposers: Array<() => void> = [];
 function disposeGameScreens(): void {
@@ -1102,6 +1122,8 @@ function closePopovers(): boolean {
  * already exists, which is why one holder carries both.
  */
 let takeOverGame: ((next: Game | null) => Promise<void>) | null = null;
+/** Clear the current visit's delayed work without dismantling the reusable UI. */
+let suspendGame: (() => void) | null = null;
 
 /**
  * **The title screen's two readings of the shelf**: what Continue says, and what
@@ -1150,23 +1172,28 @@ function refreshResumeRow(): void {
  * One slot, loaded straight, with no list in between — Continue's own journey
  * and a shelf row's.
  *
- * The refusal lands on the landing's own error line rather than in the list,
- * because the player never opened a list: they pressed one row and it did not
- * work, and the sentence belongs where they are looking. A save too broken to
- * load is also a save that should stop being offered, so the shelf is rebuilt.
+ * The slot is handed to `beginGame` as a *step to run*, not as a game already
+ * built: the walk is seconds long on a save a hundred turns deep (P7,
+ * `docs/plans/painted-performance-audit.md` #22) and it runs in a worker, so it
+ * has to start after the press has put the button into "Preparing the world…"
+ * rather than before. `beginGame` prints the refusal, for the reason written
+ * there.
  */
 function loadSlotId(slotId: string | null): void {
-  const result = slotId === null ? null : loadSlot(saveStorage, slotId);
-  if (result === null || !result.ok) {
-    landingErrorEl.textContent = result === null ? 'That save is no longer there.' : result.error;
-    landingErrorEl.hidden = false;
-    if (result !== null && !result.ok && result.detail !== undefined) {
-      console.error(`[magister-ludi save] ${result.detail}`);
-    }
-    refreshResumeRow();
-    return;
-  }
-  void beginGame(result.game);
+  void beginGame(null, async () => {
+    // The startup stages, marked where they actually happen (audit task #23).
+    // The whole list, in order, is `docs/plans/painted-performance-evidence.md`;
+    // a mark is one timestamp and changes nothing about what runs. The pair
+    // moved inside the step with the walk it brackets: the walk is a worker's
+    // now (#22), so `replay-done` is where the finished state came *back*.
+    performance.mark('magisterludi:load-start');
+    const result =
+      slotId === null
+        ? null
+        : await loadSlotAsync(saveStorage, slotId, { onReplayTurn: replayProgress });
+    performance.mark('magisterludi:replay-done');
+    return result;
+  });
 }
 
 function showLanding(): void {
@@ -1190,17 +1217,13 @@ function showLanding(): void {
   // And the victory sheet, for the same reason.
   victory?.clear();
   setRestartConfirm(false);
-  // Every per-game screen this boot built (Entry LVII): the window listeners
-  // each one hung, the arrangement the Statecraft sheet was holding, and the
-  // Abacus's own WebGL context — five thousand triangles and the one context
-  // the page hands out, given back so the next game builds a fresh stage on the
-  // first press of `A`. `closePopovers` above has already shut them; this is
-  // what makes them stop existing.
-  //
-  // One register rather than a list of names here, because `boot` sweeps the
-  // same register and a save loaded without visiting the landing has to be
-  // covered by the same sweep.
-  disposeGameScreens();
+  // A worker reading the rules while the player reads the landing. Whatever the
+  // next press turns out to be — Begin, Continue, a shelf row — it builds its
+  // game in this one rather than waiting for a new one to be filled.
+  warmGameWorker();
+  // The next Begin reuses this boot through `takeOverGame`. Keep the screen
+  // listeners, but cancel pending turns and clear offers from the old game.
+  suspendGame?.();
   // The Compendium is deliberately **not** disposed here. It is a property of
   // the page rather than of a game — built at module scope beside the help
   // sheet, reachable from the controls card before anything has been started,
@@ -1257,17 +1280,56 @@ function setRestartConfirm(asking: boolean): void {
  * slow — a sprite set to fetch, or a board to bake — and a second press
  * mid-build would run the whole boot twice.
  */
-async function beginGame(loaded: Game | null = null): Promise<void> {
+async function beginGame(
+  loaded: Game | null = null,
+  load: (() => Promise<LoadResult | null>) | null = null,
+): Promise<void> {
   if (startButton.disabled) return;
+  performance.mark('magisterludi:begin');
   startButton.disabled = true;
   const startLabel = startButton.textContent;
   startButton.textContent = 'Preparing the world…';
   landingForm.setAttribute('aria-busy', 'true');
   landingErrorEl.hidden = true;
+  // Up from the press. A file's journey names two stages a new world has not
+  // got — there is nothing to open and no log to walk — so the sheet is told
+  // which press this was and reads its own list off that.
+  loading.begin(load !== null ? 'save' : 'new');
   try {
+    // A file's own journey, run here so the landing is already busy while the
+    // log walks. The refusal lands on the landing's error line rather than in
+    // the list, because the player never opened a list: they pressed one row
+    // and it did not work, and the sentence belongs where they are looking. A
+    // save too broken to load is also a save that should stop being offered, so
+    // the shelf is rebuilt.
+    if (load !== null) {
+      const result = await load();
+      if (result === null || !result.ok) {
+        landingErrorEl.textContent =
+          result === null ? 'That save is no longer there.' : result.error;
+        landingErrorEl.hidden = false;
+        if (result !== null && !result.ok && result.detail !== undefined) {
+          console.error(`[magister-ludi save] ${result.detail}`);
+        }
+        refreshResumeRow();
+        return;
+      }
+      loaded = result.game;
+    }
     if (takeOverGame) await takeOverGame(loaded);
     else await boot(loaded);
     hideLanding();
+    performance.mark('magisterludi:playable');
+    // The sheet stays up past that mark, until a frame has actually been drawn
+    // with the landing down, so "playable" is never a blank board. Two frames
+    // rather than one: the first callback runs *before* the paint it was queued
+    // for. It is a later moment than `first-board-frame`, which marks a frame
+    // drawn inside `boot` with the landing still over it — so the sheet comes
+    // down off this seam rather than off that mark, and the mark itself is left
+    // where P1 put it, measuring what it measured.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
   } catch (error) {
     // A missing sprite or a dead WebGL context is a build problem, not a blank
     // page: say so where the player is already looking.
@@ -1275,14 +1337,32 @@ async function beginGame(loaded: Game | null = null): Promise<void> {
     landingErrorEl.hidden = false;
     console.error(error);
   } finally {
+    // Down on every way out of a press, the refusals and the thrown board
+    // included: a sheet that only came down on success would be the last thing
+    // on screen after a save turned out to be junk.
+    loading.finish();
     startButton.disabled = false;
     startButton.textContent = startLabel;
     landingForm.removeAttribute('aria-busy');
   }
 }
 
+/**
+ * The terrain worker's own percentage, and the hand-over at the end of it.
+ *
+ * This used to write the Begin button's label; the sheet **replaces** that
+ * rather than sitting beside it (the ruling), so the button keeps saying
+ * "Preparing the world…" and the progress is on the paper. A hundred percent is
+ * the seam into the last stage: the board is built, and what is left is the
+ * state reaching the layers and a frame being drawn.
+ */
 function terrainBuildProgress(percent: number): void {
-  startButton.textContent = percent < 100 ? `Painting the world… ${percent}%` : 'Finishing the world…';
+  loading.painted(percent);
+}
+
+/** One report per turn out of the replay worker (`sim/game.ts`'s watcher). */
+function replayProgress(turn: number, expected: number): void {
+  loading.replayed(turn, expected);
 }
 
 /**
@@ -2026,6 +2106,7 @@ function build3DPanel(renderer: Renderer3D): () => void {
     // frame late, because the draw-call count only means anything once a frame
     // has actually been drawn.
     requestAnimationFrame(() => {
+      performance.mark('magisterludi:first-board-frame');
       const s = renderer.stats;
       console.log(
         `[magister-ludi 3d] ${s.tiles} tiles, ${s.instances} instances, ` +
@@ -2050,9 +2131,12 @@ async function createRenderer(
     try {
       if (mode === 'painted') {
         await renderer.enablePaintedLook(new URLSearchParams(location.search).get('light') ?? 'golden');
+        performance.mark('magisterludi:assets-loaded');
         await renderer.preparePaintedMap(game.state.map, terrainBuildProgress);
+        performance.mark('magisterludi:terrain-ready');
       }
       renderer.setGameState(game.state);
+      performance.mark('magisterludi:state-layers-built');
       const report = build3DPanel(renderer);
       report();
       return { view: renderer, report };
@@ -2095,11 +2179,10 @@ async function createRenderer(
  * chosen.
  */
 async function boot(initial: Game | null): Promise<void> {
-  // A second game over the same DOM: whatever the previous boot hung on
-  // `window` goes first (Entry LVII), here rather than only in `showLanding`,
-  // because a load can re-boot without ever showing the landing.
+  // Only a replacement boot removes listeners. Ordinary restart/load uses
+  // `adoptGame` and must keep these instances' close handlers connected.
   disposeGameScreens();
-  let game: Game = initial ?? createGame(currentConfig());
+  let game: Game = initial ?? (await createGameAsync(currentConfig()));
   const { view: renderer, report } = await createRenderer(artMode(), game);
 
   /**
@@ -4055,11 +4138,8 @@ async function boot(initial: Game | null): Promise<void> {
     },
   });
 
-  // The three parchment sheets built here bind a capturing `keydown` on the
-  // window like every other one (`modalShell.ts`), so they join the register
-  // the same way. `showLanding` used to dispose them by name and `boot` did
-  // not, which left exactly one door — a save loaded without going back to the
-  // landing — where Entry LVII could happen again.
+  // The parchment sheets share the boot's lifetime. Their capturing keyboard
+  // listeners come off only when that boot is replaced, not on Restart.
   gameDisposers.push(() => statecraft?.dispose());
 
   /**
@@ -5199,8 +5279,12 @@ async function boot(initial: Game | null): Promise<void> {
   async function adoptGame(next: Game | null): Promise<void> {
     // Keep the current game intact if background construction fails. The
     // landing remains busy until the replacement board is ready to adopt.
-    const replacement = next ?? createGame(currentConfig());
+    const replacement = next ?? (await createGameAsync(currentConfig()));
     if (renderer instanceof Renderer3D) await renderer.preparePaintedMap(replacement.state.map, terrainBuildProgress);
+    // A direct load need not visit the landing. Finish any staged arrangement
+    // against the old game and clear its delayed work before swapping state.
+    closePopovers();
+    suspendGame?.();
     // An announcement about the game that just ended has nothing to say about
     // the one starting, so it goes with it.
     splash.clear();
@@ -5446,13 +5530,19 @@ async function boot(initial: Game | null): Promise<void> {
   // Entry LVII's register, for a pair of pending hops rather than a listener: a
   // game torn down between the press and the drive would otherwise resolve a
   // turn on a board that is no longer on screen.
-  gameDisposers.push(() => {
+  function cancelPendingEndTurn(): void {
     if (endTurnRaf !== 0) window.cancelAnimationFrame(endTurnRaf);
     if (endTurnTimer !== 0) window.clearTimeout(endTurnTimer);
     endTurnRaf = 0;
     endTurnTimer = 0;
     endTurnWorking = false;
-  });
+  }
+  gameDisposers.push(cancelPendingEndTurn);
+  suspendGame = () => {
+    cancelPendingEndTurn();
+    splash.clear();
+    offerCard.clear();
+  };
 
   window.addEventListener('resize', () => renderer.resize());
 

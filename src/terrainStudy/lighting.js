@@ -4,6 +4,7 @@ import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { Color, DataTexture, DepthTexture, UnsignedIntType, UnsignedInt248Type, DepthStencilFormat, RGBAFormat, FloatType, EquirectangularReflectionMapping, PMREMGenerator } from 'three';
 import {createDepthNormals} from './depthNormals.js';
+import {VIEW3D} from '../render3d/lookData';
 
 function daylightEnvironment(renderer, scene) {
   // A broad sky and a muted earth hemisphere provide indirect illumination
@@ -34,10 +35,14 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
   // including when AO is off. The standalone terrain study has no such pass.
   if(unitStencil)for(const target of [composer.renderTarget1,composer.renderTarget2])target.stencilBuffer=true;
   composer.addPass(new RenderPass(scene, camera));
-  const contact = new GTAOPass(scene, camera, 512, 512, undefined,
-    { radius: .10, thickness: .25, distanceExponent: 2, samples: 12 },
-    { radius: 4, depthPhi: 2, normalPhi: 6 });
-  contact.blendIntensity = .32;
+  // Every figure of the contact pass is a row of `data/view3d.json`'s `painted`
+  // block: this is the pass a weak device turns down, and a device profile is
+  // an edit to the sheet rather than to this file.
+  const knobs=VIEW3D.painted.contact;
+  const contact = new GTAOPass(scene, camera, knobs.resolution, knobs.resolution, undefined,
+    { radius: knobs.radius, thickness: knobs.thickness, distanceExponent: knobs.distanceExponent, samples: knobs.samples },
+    { radius: knobs.denoiseRadius, depthPhi: knobs.denoiseDepthPhi, normalPhi: knobs.denoiseNormalPhi });
+  contact.blendIntensity = knobs.blendIntensity;
   let contactRequested=true,contactScale=1;
   const fullContact=reference||new URLSearchParams(location.search).has('fullAO');
   let depthNormals;
@@ -48,8 +53,8 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
     }
     depthNormals=createDepthNormals();
     const nativeSize=contact.setSize.bind(contact);
-    contact.setSize=(width,height)=>nativeSize(Math.ceil(width*.5),Math.ceil(height*.5));
-    contact.updatePdMaterial({radius:2});
+    contact.setSize=(width,height)=>nativeSize(Math.ceil(width*knobs.renderScale),Math.ceil(height*knobs.renderScale));
+    contact.updatePdMaterial({radius:knobs.scaledDenoiseRadius});
     const nativeRender=contact.render.bind(contact);
     contact.render=(renderer,writeBuffer,readBuffer,...args)=>{
       contact.setGBuffer(readBuffer.depthTexture,contact.normalRenderTarget.texture);
@@ -89,14 +94,14 @@ export function createLighting(renderer, scene, camera, {unitStencil = false} = 
     getContact() { return contactRequested; },
     getEffectiveContact() { return contactRequested?contactScale:0; },
     setContactDetail(pixelsPerTile) {
-      // At map scale the .10-world-unit contact radius is subpixel. Fade
-      // smoothly before skipping those passes; retain full shade at play zoom.
-      const radiusPixels=.10*pixelsPerTile/Math.sqrt(3);
-      const t=Math.max(0,Math.min(1,(radiusPixels-1.5)/1.5));
+      // At map scale the contact radius is subpixel. Fade smoothly before
+      // skipping those passes; retain full shade at play zoom.
+      const radiusPixels=knobs.radius*pixelsPerTile/Math.sqrt(3);
+      const t=Math.max(0,Math.min(1,(radiusPixels-knobs.fadeStartPixels)/knobs.fadeRangePixels));
       contactScale=fullContact||!fused?1:t*t*(3-2*t);
     },
     setPainted(enabled) {
-      contact.blendIntensity = enabled ? .12 : .32;
+      contact.blendIntensity = enabled ? knobs.paintedBlendIntensity : knobs.blendIntensity;
     },
     dispose() { depthNormals?.dispose();composer.dispose(); output.dispose(); contact.dispose(); environment.dispose(); },
   };

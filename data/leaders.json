@@ -52,7 +52,7 @@
         }
       ],
       "unit": "slinger",
-      "building": "terraces",
+      "improvement": "terraces",
       "colors": {
         "primary": "#8b2635",
         "secondary": "#e0b21a",

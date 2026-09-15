@@ -11,6 +11,7 @@ import { createMountainRanges } from '../terrainStudy/mountainRanges.js';
 import { indexGeometry } from '../terrainStudy/indexGeometry.js';
 import { centre, isWater, neighbour, onTileTop, surfaceHeight, prepareTerrainMap } from '../terrainStudy/surface.js';
 import { createPaintedFog, paintedFogMaterial, paintedFogDepth } from './paintedFog.js';
+import { VIEW3D } from './lookData';
 
 const axis = new T.Vector3(0, 1, 0);
 const NEVER = 0, CLUTTER = 1, DECOR = 2;
@@ -43,11 +44,24 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const detailMaterials = new Set([...Object.values(water).filter(m => m !== water.river),
     ...Object.values(features).filter(m => m !== features.stone && m !== features.shrub)]);
   const treedCells = renderMap.tiles.flatMap((tile, i) => ['forest', 'jungle'].includes(tile.feature) ? [i] : []);
-  let instanceCount = 0, showingDistant = false, drawingDistant = false, disposed = false;
+  // Three questions, three flags. `showingDistant` is what the zoom asks of the
+  // colour pass; `bakingDetail` is the static sun's answer to the same question,
+  // which is always "near" — the far batches cast no shadow at all, so a bake
+  // taken at far LOD would come back empty. `drawingDistant` is only the memo of
+  // what the batches are currently set to, so a flip that changes nothing costs
+  // nothing. See `setBakeDetail` for why the two may now disagree.
+  let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
 
   function showBatch(batch) {
     const visible = batch.charted && (batch.detail === 'always' || (batch.detail === 'far') === drawingDistant);
     for (const mesh of batch.meshes) mesh.visible = visible;
+  }
+  function applyDetail() {
+    const distant = showingDistant && !bakingDetail;
+    if (drawingDistant === distant) return false;
+    drawingDistant = distant;
+    for (const batch of visibilityBatches) showBatch(batch);
+    return true;
   }
   function refreshVisibility() {
     // Shader discard still handles individual cells, clearing and reservations.
@@ -85,7 +99,12 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     return ownedMaterials.get(source);
   }
   function decorateMesh(mesh, source, castShadow) {
-    mesh.receiveShadow = true; mesh.castShadow = shadows && castShadow;
+    // What this batch casts when shadows are *on* is a fact about the batch —
+    // the ground and the standing stone throw a shadow, the far clones and the
+    // water do not — and is kept apart from whether shadows are on at all, so
+    // the switch is a flag written over a built board rather than a rebuild.
+    mesh.userData.paintedCasts = !!castShadow;
+    mesh.receiveShadow = true; mesh.castShadow = shadows && !!castShadow;
     const shared = source === materials.mergedWater, key = `${source.side}:${shared}`;
     if (!depthMaterials.has(key)) depthMaterials.set(key, paintedFogDepth(fog, source.side, shared));
     mesh.customDepthMaterial = depthMaterials.get(key);
@@ -104,7 +123,8 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       if (surface) { placed.userData.paintedSurface = true; pickMeshes.push(placed); }
     }
     // Include both banks of shared river sectors, even across chunk/wrap edges.
-    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false };
+    const batch = { cells: preparedCells || [...cells], meshes, detail, surface, charted: false,
+      casts: !!mesh.userData.paintedCasts };
     visibilityBatches.push(batch); showBatch(batch);
   }
   function normalize(geometry, cell, grade, turfStrength, material) {
@@ -138,7 +158,7 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     const mesh = new T.Mesh(geometry, materialFor(source));
     mesh.userData.paintedFamily = familyName(source, null);
     decorateMesh(mesh, source, source === materials.earth || source === materials.mergedLand || source === features.stone || source === features.shrub);
-    if (detail === 'far') mesh.castShadow = false;
+    if (detail === 'far') mesh.castShadow = mesh.userData.paintedCasts = false;
     const placed = []; addCopies(mesh, placed, surface, detail); return placed;
   }
   function propMeshes(batches, target, distant) {
@@ -329,10 +349,13 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
     // Canonical batches only. Wrapping, shader hooks and fog callbacks are
     // rebound by the consumer, never serialized as Three.js scene objects.
     exportBatches() {
-      return visibilityBatches.map(({meshes, detail, surface, cells}) => {
+      return visibilityBatches.map(({meshes, detail, surface, cells, casts}) => {
         const mesh = meshes[1];
+        // The batch's own cast fact, not the live flag: a board prepared while
+        // shadows were off would otherwise hydrate into a world that throws
+        // none, whatever the consumer asks for.
         return {geometry: mesh.geometry, source: sources.get(mesh.material), detail, surface, cells,
-          mountainPick: !!mesh.userData.paintedPickOnly, castShadow: mesh.castShadow,
+          mountainPick: !!mesh.userData.paintedPickOnly, castShadow: casts,
           base: instanceBases.get(mesh.geometry), count: mesh.count,
           matrix: mesh.instanceMatrix, color: mesh.instanceColor};
       });
@@ -365,12 +388,52 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       return changed;
     },
     isCellVisible(cell, grade = 0) { return !disposed && fog.visible(cell, grade); },
-    updateDetail(pixels, baking = false) {
-      showingDistant = pixels < (showingDistant ? 29 : 25);
-      const distant = showingDistant && !baking;
-      if (drawingDistant === distant) return;
-      drawingDistant = distant;
-      for (const batch of visibilityBatches) showBatch(batch);
+    /**
+     * Turns the world's shadows on or off on the board that is already built.
+     *
+     * `castShadow` is a flag on a mesh, not something baked into its buffers, so
+     * this is a walk over the batches rather than the multi-second regeneration
+     * of terrain, pigment cuts, instance matrices and contact metadata the
+     * settings toggle used to pay for. The materials are told to recompile
+     * because whether a program samples a shadow map is a compile-time fact for
+     * three; the geometry, the instance buffers, the fog texture, the
+     * suppression grades and the footprint reservations are all untouched.
+     */
+    setShadows(enabled) {
+      if (disposed || shadows === !!enabled) return false;
+      shadows = !!enabled;
+      for (const batch of visibilityBatches)
+        for (const mesh of batch.meshes) mesh.castShadow = shadows && batch.casts;
+      for (const material of ownedMaterials.values()) material.needsUpdate = true;
+      return true;
+    },
+    /** What the camera asks of the colour pass, and nothing else. */
+    updateDetail(pixels) {
+      const lod = VIEW3D.painted.lod;
+      showingDistant = pixels < (showingDistant ? lod.farPixels : lod.nearPixels);
+      return applyDetail();
+    },
+    /**
+     * Raises the near geometry for the static sun's depth pass alone.
+     *
+     * Three builds the colour render list *before* it renders any shadow map, so
+     * a flip made from inside `separatePaintedShadows` reaches the depth
+     * submission and nothing else: the frame that has to rebake still draws the
+     * far LOD the zoom asked for. Before this, a hex crossing into the charted
+     * world dragged the whole overview back to near geometry for one frame —
+     * the one visible frame that disagreed with every other frame at that zoom.
+     *
+     * A batch that casts nothing (`casts`, and the far clones are all of them)
+     * is raised all the same: what it contributes to the depth map is nothing,
+     * and the flag that decides that is the mesh's, not this one's.
+     *
+     * Always paired with its own `false`; the caller's `finally` is what makes
+     * a failed bake leave the colour pass where it found it.
+     */
+    setBakeDetail(active) {
+      if (disposed || bakingDetail === active) return false;
+      bakingDetail = active;
+      return applyDetail();
     },
     dispose() {
       if (disposed) return; disposed = true;

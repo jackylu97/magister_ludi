@@ -303,13 +303,19 @@ Reference: **`docs/leaders.md`**, "The second cut — fixed identity" (the spec 
 record; the figures are still the user's to retune).
 
 **Thirteen figures**, and a figure is Civ's shape exactly: **two abilities**, one
-**unique unit** and one **unique building**. The abilities are ordinary card
+**unique unit** and one second unique — a **building**, or a **work of the
+ground** (an improvement; Pachacuti's Terraces are the one, batch L8). The
+abilities are ordinary card
 effects, live for the seat from the turn it sits down and for the rest of the
 game — `liveEffects`' twelfth source, folded and described by the machinery that
 folds a doctrine's. The uniques are ordinary roster rows carrying
 `unlockedByLeader`, opened by `isUnlocked` for the one seat whose sheet names
 them and only once the row's **own technology** has arrived; a row nobody names
-is a bench. There is no draft, no offer and no age machinery — the first cut's
+is a bench. An improvement unique is the same two questions asked one table over
+(`leaderOpensImprovement` + the row's `requiresTech`, through
+`improvementLeaderError`), since a work of the ground is not a queue row; a
+variant improvement may carry `countsAs`, which is what makes a terrace a farm
+wherever the rules read a farm. There is no draft, no offer and no age machinery — the first cut's
 deck of twelve cards a figure retired in batch L6a. Leaders also carry **start
 biases** (three stages, `startPositions.ts`), **fifteen city names** and a pair
 of **colours** the board wears; all three are tables in `docs/leaders.md`,
@@ -375,7 +381,11 @@ Eight root pages, all named in `vite.config.ts` inputs:
   FROZEN 2D — it must keep compiling and gains no features.
 - `src/ui/` is the DOM UI; `controls.ts` drives renderers only through the
   `MapView` interface. A full-screen sheet builds on `modalShell.ts`. Per-game
-  screens push their window listeners into `gameDisposers`.
+  screens push their window listeners into `gameDisposers`. Restart and loading
+  another game reuse the booted UI: close its screens and clear pending dialogs
+  and turn timers, but keep their listeners. Dispose only before replacing the
+  screen instances. Statecraft's × and Escape must still work on the first visit
+  after Restart, including when leaving commits an Order.
 - **The landing is three screens and one element** (batch L7, `docs/flags.md`
   (yyyy); the mockup is `mockups/new-game-flow.html`): `data-step` on `#landing`
   is the whole of the screen state — **title** (the poster, shown here and

@@ -82,14 +82,16 @@ import {
   type WorkFamily,
   chopDef,
   chopYield,
+  improvementCountsAs,
   improvementDef,
   improvementForResource,
   isImprovementId,
   prospectDef,
 } from './improvementData';
-// A leaf over `buildingData.ts` alone, so this edge cannot make a cycle — the
-// same bargain the `roads.ts` and `unitData.ts` imports strike.
-import { buildingsTerrace } from './buildingEffects';
+// The figure's half of a unique row's gate. A leaf over the roster and the
+// chart, which this module does not import back — the same bargain `tech.ts`
+// strikes for the soldier and the hall.
+import { leaderOpensImprovement, leaderThatOpensImprovement } from './leaderData';
 import { type Tile, getTileAt, tileNeighbors } from './map';
 import { type ResourceId, resourceDef, resourceIsVisibleTo } from './resourceData';
 import { RULES } from './rulesData';
@@ -310,7 +312,12 @@ export function improvementGroundError(
           `${improvementDef(widened!.improvement).name.toLowerCase()} beside it`
         );
       }
-    } else if (!hasFreshWater(tile)) {
+      // **The mountain foot forgives the water**, the fourth seam
+      // (`ImprovementDef.mountainFoot`) and the only clause in this function
+      // that reads the neighbourhood off the terrain rather than off a
+      // neighbour's works. A peak feeds a hillside the way a river feeds a
+      // valley, which is the whole of the Terraces' second sentence.
+    } else if (!hasFreshWater(tile) && !atMountainFoot(def, tile)) {
       return `${ARow(def)} on ${tile.terrain} ${rowNeeds(def)} fresh water`;
     }
   }
@@ -369,7 +376,11 @@ export function improvementGroundError(
     const wanted = improvementForResource(tile.resource);
     if (
       wanted !== null &&
-      wanted !== improvementId &&
+      // Asked through `improvementCountsAs` and never by comparing the two ids,
+      // so a **variant** of the row the seam wants is the row the seam wants: a
+      // terrace is a farm, and wheat on a hillside is as content with one as it
+      // is with the other (batch L8).
+      !improvementCountsAs(improvementId, wanted) &&
       owningPlayer !== undefined &&
       resourceIsVisibleTo(tile.resource, owningPlayer.techsResearched)
     ) {
@@ -409,7 +420,33 @@ export function improvementErrorAt(
 ): string | null {
   return (
     improvementGroundError(state, ownerId, tile, improvementId) ??
+    // **The figure, then the tree** (batch L8), and in that order for the
+    // ordering's own reason read one kind up: "only one realm builds this" is a
+    // fact a player can never act on, and telling them about a technology they
+    // could go and learn for a row they will never be allowed to lay would be
+    // the false sentence `buildError` refuses to print about a soldier.
+    improvementLeaderError(state, ownerId, improvementId) ??
     improvementTechError(state, ownerId, improvementId)
+  );
+}
+
+/**
+ * Is this row **this empire's to lay at all**, ground aside — the figure's
+ * question and the tree's, and nothing about a hex.
+ *
+ * The reading a *sheet* wants (`leaderUniqueRows`, `src/ui/leaderSheet.ts`):
+ * `isUnlocked` answers it for a soldier and a hall, and an improvement is not a
+ * queue row, so this is the same two questions asked of the two functions that
+ * own them rather than a third gate that could disagree with either.
+ */
+export function improvementOpenTo(
+  state: GameState,
+  ownerId: number,
+  improvementId: ImprovementId,
+): boolean {
+  return (
+    improvementLeaderError(state, ownerId, improvementId) === null &&
+    improvementTechError(state, ownerId, improvementId) === null
   );
 }
 
@@ -453,14 +490,11 @@ function hasAdjacentImprovement(
  * farmable would be the map leaking through a button. No farm-opened resource is
  * tech-gated today, so the clause changes nothing now and cannot leak later.
  *
- * `townTerraces` is the third reason and the first that is a **building** rather
- * than the ground (batch L3c, Pachacuti's Terraces). The town asked is the one
- * whose borders the hex lies in, which is the only town this function can
- * honestly ask: `improvementGroundError` has already refused every hex outside
- * this empire's territory two clauses up, so a waived hill is always a hill some
- * town of this empire's holds. Read through `buildingsTerrace`, so nothing here
- * names a building — and a town that has not raised the steps refuses the farm
- * exactly as it always did.
+ * A third reason stood here between L3c and L8 — `townTerraces`, waived by a
+ * hall Pachacuti's towns raised — and it left with the hall (`docs/flags.md`
+ * (bbbbb)). The Terraces are a row of their own now: a hillside they will take
+ * is a fact about *their* row, which names no `requiresHills` at all, rather
+ * than a waiver bolted onto the farm's.
  */
 function hillsWaived(
   state: GameState,
@@ -474,21 +508,63 @@ function hillsWaived(
     if (waiver === 'freshwater' && hasFreshWater(tile)) return true;
     if (waiver === 'ownResource' && tile.resource !== undefined) {
       const owner = playerById(state, ownerId);
+      const wanted = improvementForResource(tile.resource);
       if (
-        improvementForResource(tile.resource) === improvementId &&
+        wanted !== null &&
+        // Through the same predicate the seam clause asks, so a variant of the
+        // row the seam wants keeps the waiver its base row has.
+        improvementCountsAs(improvementId, wanted) &&
         owner !== undefined &&
         resourceIsVisibleTo(tile.resource, owner.techsResearched)
       ) {
         return true;
       }
     }
-    if (waiver === 'townTerraces') {
-      const holder = tileOwnerCityId(state, tile.col, tile.row);
-      const town = holder === null ? undefined : cityById(state, holder);
-      if (town && town.ownerId === ownerId && buildingsTerrace(town.buildings)) return true;
-    }
   }
   return false;
+}
+
+/**
+ * Does a peak stand over this hex, and does this row care? The fourth seam.
+ *
+ * `Tile.mountainsBeside` is the count mapgen bakes once and nothing in the game
+ * ever writes again (see the field), so "at the foot of a mountain" is a lookup
+ * rather than a ring walk — which matters, because the worker sheet asks this of
+ * every row on every hex a builder stands on.
+ */
+function atMountainFoot(def: { mountainFoot?: boolean }, tile: Tile): boolean {
+  return def.mountainFoot === true && (tile.mountainsBeside ?? 0) > 0;
+}
+
+/**
+ * Why a **figure's** row is not this empire's to build, or `null` when it is.
+ *
+ * The improvements' half of the unique gate (batch L8), and it is
+ * `improvementTechError`'s sibling in every respect: a fact about the *empire*
+ * rather than about the hex, asked after every question about the ground, and
+ * written in one place so the menu, the sheet and the reducer say the same
+ * sentence. A row with no `unlockedByLeader` on it is never refused, which is
+ * the escape hatch the tree's gate keeps for a row nothing gates.
+ *
+ * A row **nobody** names opens for nobody — the improvements' bench, exactly as
+ * the roster's is (`isUnlocked`, `tech.ts`): `leaderOpensImprovement` answers
+ * `false` for every seat, and the refusal is a refusal rather than a fall
+ * through, or a row parked for a figure who does not exist yet would be
+ * buildable by everybody the day it was written.
+ */
+export function improvementLeaderError(
+  state: GameState,
+  ownerId: number,
+  improvementId: ImprovementId,
+): string | null {
+  const def = improvementDef(improvementId);
+  if (def.unlockedByLeader !== true) return null;
+  const seat = playerById(state, ownerId);
+  if (leaderOpensImprovement(seat?.leader, improvementId)) return null;
+  const figure = leaderThatOpensImprovement(improvementId);
+  return figure === null
+    ? `${ARow(def)} ${rowNeeds(def)} a leader no realm plays`
+    : `Only ${figure}'s realm may build ${def.name.toLowerCase()}`;
 }
 
 /**

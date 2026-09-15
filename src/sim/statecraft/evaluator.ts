@@ -54,6 +54,7 @@ import {
 } from '../greatPeopleData';
 import {
   type ImprovementId,
+  improvementCountsAs,
   improvementDef,
   isGreatPersonWork,
   workForFamily,
@@ -3309,13 +3310,23 @@ export function tileConditionHolds(
     case 'water':
       return isWaterTerrain(tile.terrain);
     case 'improvement':
-      return tile.improvement === on.improvement;
+      // **Through `improvementCountsAs`, never by comparing the two ids**
+      // (batch L8). A card written about a farm is true of a row that *is* a
+      // farm — the Terraces are Pachacuti's, and his own gold of the peaks, the
+      // Nile's gift, the Dikes and the Tetzcotzinco all ask this one clause —
+      // so a variant row joins the vocabulary by carrying `countsAs` and
+      // nothing here learns its name.
+      return tile.improvement !== undefined && improvementCountsAs(tile.improvement, on.improvement);
     case 'anyImprovement':
       // The `or` the composite does not have, said as a list — `anyFeature`'s
-      // reading one field over, asked of `Tile.improvement`. Bare ground is
-      // absent from the field and matches nothing, which is `unimproved`'s
-      // reading of the same absence from the other side.
-      return tile.improvement !== undefined && on.improvements.includes(tile.improvement);
+      // reading one field over, asked of `Tile.improvement` through the same
+      // predicate the singular clause asks. Bare ground is absent from the
+      // field and matches nothing, which is `unimproved`'s reading of the same
+      // absence from the other side.
+      return (
+        tile.improvement !== undefined &&
+        on.improvements.some((wanted) => improvementCountsAs(tile.improvement!, wanted))
+      );
     case 'greatWork':
       // Asked of the improvement table's own marker (`greatPerson`, presence is
       // the marker), never of a list of five names — so the sixth work joins

@@ -1,12 +1,12 @@
 /**
- * The per-game screens unbind their window listeners between games.
+ * Screen listeners live as long as the booted UI, across restarts and loads.
  *
  * Entry LVII's bug: `boot` rebuilds every per-game screen over the same DOM,
  * and a leaked window listener with a stale `open` flag froze the star chart —
  * the old closure answered for the new chart and every door no-opped. The fix
- * is a register (`gameDisposers`) swept in two places; these pins keep the
- * register complete, because a screen added without a push is this bug waiting
- * for its next costume.
+ * is a register (`gameDisposers`) swept before replacing the UI. Restart reuses
+ * that UI, so sweeping on the way to the landing instead removes the only
+ * working close handlers. These pins distinguish reuse from replacement.
  */
 import { describe, expect, it } from 'vitest';
 import { uiSource } from './sourceHelpers';
@@ -125,10 +125,54 @@ describe('the game-screen disposal register', () => {
     );
   });
 
-  it('sweeps the register at both re-entry doors', () => {
+  /**
+   * **The loading sheet is the page's, and stays out of the register** (batch
+   * P7, `docs/flags.md` (eeeee)).
+   *
+   * It is the fourteenth sheet on the shell and the only one that is up *while*
+   * `boot` runs: a disposer swept at the top of `boot` would unbind its Escape
+   * and hide the overlay in the middle of the load it is reporting. So it is
+   * built at module scope beside the saves panel and the Compendium and is
+   * never disposed — which is exactly the kind of thing that gets "tidied" into
+   * the register later by somebody reading the list and not the reason.
+   */
+  it('keeps the loading sheet out of the per-game register, and on the shell', () => {
     const main = source('main.ts');
-    // Once on the way to the landing, once at the top of boot — a load can
-    // re-boot without ever visiting the landing.
-    expect(main.match(/disposeGameScreens\(\);/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(main).toContain('const loading = createLoadingSheet({');
+    expect(main).not.toContain('gameDisposers.push(() => loading');
+    expect(main).not.toContain('loading.dispose()');
+    // Still the shared frame, so its one window listener is bound and unbound
+    // in the one place the sheets' contract lives.
+    expect(source('loadingSheet.ts')).toContain('createModalShell({');
+  });
+
+  it('preserves close handlers when Restart reuses the booted screens', () => {
+    const main = source('main.ts');
+    const landing = main.slice(main.indexOf('function showLanding()'), main.indexOf('function hideLanding()'));
+    const begin = main.slice(main.indexOf('async function beginGame('), main.indexOf('function terrainBuildProgress('));
+    expect(begin).toContain('if (takeOverGame) await takeOverGame(loaded);');
+    expect(landing).toContain('closePopovers();');
+    expect(landing).toContain('suspendGame?.();');
+    expect(landing).not.toContain('disposeGameScreens();');
+    const boot = main.slice(main.indexOf('async function boot('));
+    expect(boot.indexOf('disposeGameScreens();')).toBeLessThan(boot.indexOf('createStatecraftScreen({'));
+    expect(main.match(/disposeGameScreens\(\);/g)).toHaveLength(1);
+  });
+
+  it('clears old dialogs and delayed turns on both Restart and direct load', () => {
+    const main = source('main.ts');
+    const adopt = main.slice(main.indexOf('async function adoptGame('), main.indexOf('takeOverGame = adoptGame;'));
+    expect(adopt).toContain('closePopovers();');
+    expect(adopt.indexOf('suspendGame?.();')).toBeGreaterThan(adopt.indexOf('closePopovers();'));
+    expect(adopt.indexOf('suspendGame?.();')).toBeLessThan(adopt.indexOf('game = replacement;'));
+    expect(adopt).not.toContain('disposeGameScreens();');
+    const suspend = main.slice(main.indexOf('suspendGame = () => {')).split('\n  };')[0]!;
+    for (const call of ['cancelPendingEndTurn();', 'splash.clear();', 'offerCard.clear();']) {
+      expect(suspend).toContain(call);
+    }
+    const cancel = main.slice(main.indexOf('function cancelPendingEndTurn()')).split('\n  }')[0]!;
+    expect(cancel).toContain('window.cancelAnimationFrame(endTurnRaf)');
+    expect(cancel).toContain('window.clearTimeout(endTurnTimer)');
+    expect(cancel).toContain('endTurnWorking = false;');
   });
 });

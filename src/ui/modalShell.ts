@@ -51,9 +51,10 @@
  * sheet has just been shown at its own scroll-top and a focus that scrolled it
  * would undo that.
  *
- * **The disposer is the game's, not the page's.** Each screen's `dispose` goes
- * into `gameDisposers` in `main.ts`, swept on the way to the landing and again
- * at the top of `boot` (`test/ui/screenLifecycle.test.ts` is the register).
+ * **Disposal replaces a screen; closing preserves it.** Each screen's `dispose`
+ * goes into `gameDisposers` in `main.ts`, swept at the top of `boot`. Restart
+ * and load reuse the booted screens, so they close them and keep their listeners
+ * (`test/ui/screenLifecycle.test.ts` is the register).
  *
  * The two screens that are not on this frame, and why
  * ---------------------------------------------------

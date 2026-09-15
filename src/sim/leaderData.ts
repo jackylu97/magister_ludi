@@ -52,7 +52,12 @@
 import leadersJson from '../../data/leaders.json';
 
 import { BUILDING_IDS, type BuildingId, buildingDef } from './buildingData';
-import { type ImprovementId, improvementForResource } from './improvementData';
+import {
+  IMPROVEMENT_IDS,
+  type ImprovementId,
+  improvementDef,
+  improvementForResource,
+} from './improvementData';
 import { RESOURCE_IDS, type ResourceId, resourceDef } from './resourceData';
 import type { CardDefBase, CardEffect } from './statecraftData';
 import { type TechAge, techAgeBands } from './techData';
@@ -433,17 +438,28 @@ export interface LeaderDef {
    */
   abilities: [LeaderAbility, LeaderAbility];
   /**
-   * **The soldier nobody else may raise**, and **the building nobody else may
-   * raise**.
+   * **The soldier nobody else may raise**, and **the second thing nobody else
+   * may raise** — a building, or a work of the ground.
    *
    * A declaration and not a rule: the row itself carries `unlockedByLeader`, and
    * `isUnlocked` (`tech.ts`) asks this pair whether *this* seat's figure names
    * the row before it asks the tree whether the technology has come. So a unique
    * arrives when its technology does — the one gate every other row already
    * passes through — and a row named by nobody is simply a bench.
+   *
+   * **The second may be an improvement** (batch L8, `docs/flags.md` (bbbbb)).
+   * The user, playtesting Pachacuti: *"originally, i was imagining that
+   * terraces would be a unique farm, not a building in the city"* — so a figure
+   * carries a unit and **at least one** of a hall and a work of the ground, the
+   * validator says exactly that, and the one figure who trades his hall for a
+   * field has `improvement` where the other twelve have `building`. Three kinds
+   * of unique, one rule each way round: no row is claimed by two figures, and
+   * every row a figure claims carries its own `unlockedByLeader`.
    */
   unit: UnitTypeId;
-  building: BuildingId;
+  building?: BuildingId;
+  /** The work of the ground nobody else may lay. See `building` above. */
+  improvement?: ImprovementId;
   /**
    * The device on the canton, or absent for the seat-order fallback.
    *
@@ -536,6 +552,34 @@ export function leaderOpensUnit(leader: LeaderId | undefined, type: UnitTypeId):
 
 export function leaderOpensBuilding(leader: LeaderId | undefined, id: BuildingId): boolean {
   return leader !== undefined && leaderDef(leader).building === id;
+}
+
+/**
+ * The third kind's gate (batch L8), asked by `improvementLeaderError`
+ * (`improvements.ts`) and by nothing else. A figure with no `improvement` on its
+ * sheet answers `false` for every row, which is what the twelve who keep a hall
+ * are: they open no ground of their own.
+ */
+export function leaderOpensImprovement(
+  leader: LeaderId | undefined,
+  id: ImprovementId,
+): boolean {
+  return leader !== undefined && leaderDef(leader).improvement === id;
+}
+
+/**
+ * **Whose ground this is**, for the one sentence a refusal prints: the name of
+ * the figure whose sheet claims this row, or `null` for a row on the bench.
+ *
+ * Read off the sheet rather than written into the refusal, so the day a row
+ * changes hands the sentence follows it — and so that a row parked for a figure
+ * nobody has drawn yet is refused honestly rather than credited to somebody.
+ */
+export function leaderThatOpensImprovement(id: ImprovementId): string | null {
+  for (const leader of LEADER_IDS) {
+    if (leaderDef(leader).improvement === id) return leaderDef(leader).name;
+  }
+  return null;
 }
 
 /**
@@ -786,11 +830,28 @@ for (const id of LEADER_IDS) {
   if (unitDef(def.unit).unlockedByLeader !== true) {
     throw new Error(`${where} raises "${def.unit}", which is not marked as a figure's own`);
   }
-  if (!BUILDING_IDS.includes(def.building)) {
-    throw new Error(`${where} raises the unknown building "${String(def.building)}"`);
+  // **A soldier and at least one of the other two** (batch L8). The second cut
+  // promised four lines and the fourth is a thing nobody else may build; which
+  // *kind* of thing is the figure's business, and a figure with neither would
+  // be a face with a line missing.
+  if (def.building === undefined && def.improvement === undefined) {
+    throw new Error(`${where} raises nothing but a soldier`);
   }
-  if (buildingDef(def.building).unlockedByLeader !== true) {
-    throw new Error(`${where} raises "${def.building}", which is not marked as a figure's own`);
+  if (def.building !== undefined) {
+    if (!BUILDING_IDS.includes(def.building)) {
+      throw new Error(`${where} raises the unknown building "${String(def.building)}"`);
+    }
+    if (buildingDef(def.building).unlockedByLeader !== true) {
+      throw new Error(`${where} raises "${def.building}", which is not marked as a figure's own`);
+    }
+  }
+  if (def.improvement !== undefined) {
+    if (!IMPROVEMENT_IDS.includes(def.improvement)) {
+      throw new Error(`${where} lays the unknown improvement "${String(def.improvement)}"`);
+    }
+    if (improvementDef(def.improvement).unlockedByLeader !== true) {
+      throw new Error(`${where} lays "${def.improvement}", which is not marked as a figure's own`);
+    }
   }
 }
 
@@ -799,14 +860,23 @@ for (const id of LEADER_IDS) {
 // yes to a seat whose sheet a screen never showed it.
 const CLAIMED_UNITS = new Set<string>();
 const CLAIMED_BUILDINGS = new Set<string>();
+const CLAIMED_IMPROVEMENTS = new Set<string>();
 for (const id of LEADER_IDS) {
   const def = LEADER_DATA.leaders[id]!;
   if (CLAIMED_UNITS.has(def.unit)) throw new Error(`two figures raise the unit "${def.unit}"`);
   CLAIMED_UNITS.add(def.unit);
-  if (CLAIMED_BUILDINGS.has(def.building)) {
-    throw new Error(`two figures raise the building "${def.building}"`);
+  if (def.building !== undefined) {
+    if (CLAIMED_BUILDINGS.has(def.building)) {
+      throw new Error(`two figures raise the building "${def.building}"`);
+    }
+    CLAIMED_BUILDINGS.add(def.building);
   }
-  CLAIMED_BUILDINGS.add(def.building);
+  if (def.improvement !== undefined) {
+    if (CLAIMED_IMPROVEMENTS.has(def.improvement)) {
+      throw new Error(`two figures lay the improvement "${def.improvement}"`);
+    }
+    CLAIMED_IMPROVEMENTS.add(def.improvement);
+  }
 }
 
 // One id, one ability. The other direction — a member of `LeaderAbilityId` no

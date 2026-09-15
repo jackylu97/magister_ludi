@@ -46,7 +46,7 @@ import type { CityMarkId } from '../art/cityMarks';
 import type { HeraldryId } from '../art/heraldryMarks';
 import type { SurveyMarkId } from '../art/surveyMarks';
 import type { DiscoveryKind } from '../sim/discoveryData';
-import { IMPROVEMENT_IDS, type ImprovementId } from '../sim/improvementData';
+import { IMPROVEMENT_IDS, type ImprovementId, improvementBaseRow } from '../sim/improvementData';
 import { type GameMap, type Tile, tileIndex } from '../sim/map';
 import type { Unit } from '../sim/state';
 import type { BeliefAxis } from '../sim/religionData';
@@ -741,20 +741,23 @@ function buildResourceProps(): Record<ResourceId, BufferGeometry> {
 }
 
 /**
- * Every improvement's diorama prop, by improvement id.
+ * Every improvement that has a **sculpt drawn for it**, by improvement id.
  *
- * Typed `Record<ImprovementId, …>` for exactly the reason `RESOURCE_PROPS` is:
- * this is the one place the art and the data are joined, so an improvement added
- * to `data/improvements.json` that nobody drew a prop for is a *compile* error
- * rather than a hex with an invisible farm on it. `test/improvements3d.test.ts`
- * closes the other direction — a prop no improvement asks for.
+ * This is the one place the art and the data are joined, so an improvement added
+ * to `data/improvements.json` that nobody drew a prop for and that stands in for
+ * nothing is a load error rather than a hex with an invisible farm on it — see
+ * `IMPROVEMENT_PROPS` below, which is the total table derived from this one.
+ * `test/improvements3d.test.ts` closes the other direction — a prop no
+ * improvement asks for.
  *
  * They are built here, with the board's other shared shapes, and *drawn* by
  * `improvements3d.ts`, which is a layer of its own because improvements change
  * during play and the board does not. One geometry per shape, built once, reused
  * by every board ever built — the same rule as everything else in this file.
  */
-export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGeometry> = {
+const DRAWN_IMPROVEMENT_PROPS: Partial<
+  Record<ImprovementId, (size: number) => BufferGeometry>
+> = {
   farm: furrowRows,
   mine: mineHead,
   pasture: fenceRing,
@@ -782,6 +785,26 @@ export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGe
   // monoliths about an altar. See `standingStones`.
   holySite: standingStones,
 };
+
+/**
+ * Every improvement's diorama prop, by improvement id — the **total** table.
+ *
+ * Derived from the sculpts above through `improvementBaseRow` (batch L8), so a
+ * row that **stands in** for another (`ImprovementDef.countsAs`) is drawn with
+ * that row's sculpt and no art is authored twice: the Terraces are the farm's
+ * furrows, which is what the user asked for (*"no need for a separate graphical
+ * change for now"*). A row that is nobody's variant and has no sculpt of its own
+ * throws here, at load, rather than reaching a hex invisible.
+ */
+export const IMPROVEMENT_PROPS: Record<ImprovementId, (size: number) => BufferGeometry> =
+  Object.fromEntries(
+    IMPROVEMENT_IDS.map((id) => {
+      const drawn = improvementBaseRow(id);
+      const build = DRAWN_IMPROVEMENT_PROPS[drawn];
+      if (build === undefined) throw new Error(`No prop is drawn for improvement "${drawn}"`);
+      return [id, build];
+    }),
+  ) as Record<ImprovementId, (size: number) => BufferGeometry>;
 
 /**
  * The one gilt element on each of the five great works, by improvement id.

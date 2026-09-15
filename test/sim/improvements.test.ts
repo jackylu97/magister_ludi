@@ -47,6 +47,7 @@ import {
   improvementError,
   improvementErrorAt,
   improvementGroundError,
+  improvementLeaderError,
   improvementTechError,
   improvementYieldDelta,
   isBuilder,
@@ -147,14 +148,20 @@ function build(playerId: number, unitId: number, improvement: ImprovementId): Co
 // --- the table --------------------------------------------------------------
 
 describe('the improvement table', () => {
-  it('names nine worker improvements, six works, and recognises its own ids', () => {
+  it('names ten worker improvements, six works, and recognises its own ids', () => {
     // Two halves of one table, and the split is `ImprovementDef.greatPerson`:
-    // the first nine are what a worker's charge buys, the last six are what a
+    // the first ten are what a worker's charge buys, the last six are what a
     // *work's* hand plants (`docs/great-people.md`, and the holy site the
     // prophet leaves — `docs/religion-v2.md`), and no rule anywhere compares an
     // id against a string to tell them apart.
     expect(IMPROVEMENT_IDS).toEqual([
       'farm',
+      // The tenth (batch L8, `docs/flags.md` (bbbbb)): a farm of the hills and
+      // the mountain foot that **one figure's seat alone** may cut, and the
+      // first row to carry `countsAs` — which is what makes every rule already
+      // written about a farm true of it. It sits beside the farm because that
+      // is what it is a variant of.
+      'terraces',
       'mine',
       'pasture',
       'camp',
@@ -646,6 +653,12 @@ describe('buildImprovement', () => {
           // refused it one rung earlier, by the symmetric clause in
           // `improvementError` that keeps the two halves of the table apart.
           if (improvementDef(other).greatPerson !== undefined) continue;
+            // Nor does a row **one figure alone may lay** (batch L8): this
+            // bench's worker sits under no figure, so it is refused one rung
+            // later by `improvementLeaderError` — a different (and correct)
+            // sentence. A variant of the row the seam wants would not be
+            // refused here at all, which is the other half of the same ruling.
+            if (improvementDef(other).unlockedByLeader === true) continue;
             if (other === wanted) continue;
             const def = improvementDef(other);
             // A resource-improvement refuses on its own `requiresResource`
@@ -880,10 +893,12 @@ describe('buildImprovement', () => {
    * 2026-09-04 ruling — and a row the hex will never take is gone.
    */
   describe('the ground reading', () => {
-    it('is the full gate with the tree taken off the end', () => {
+    it('is the full gate with the figure and the tree taken off the end', () => {
       // The composition, asserted rather than assumed: on every hex and every
-      // row the two readings differ by exactly the tech sentence, which is what
-      // makes "the ground said yes" a comparison the sheet can trust.
+      // row the two readings differ by exactly the empire's own two questions —
+      // whose row this is (batch L8) and whether its technology has come —
+      // which is what makes "the ground said yes" a comparison the sheet can
+      // trust.
       const { state } = workerState();
       state.players[0]!.techsResearched = ['agriculture'];
       bumpRevision(state);
@@ -893,8 +908,10 @@ describe('buildImprovement', () => {
         for (const id of IMPROVEMENT_IDS) {
           const ground = improvementGroundError(state, 0, tile, id);
           const whole = improvementErrorAt(state, 0, tile, id);
+          const empire =
+            improvementLeaderError(state, 0, id) ?? improvementTechError(state, 0, id);
           expect(`${id}@${tile.col},${tile.row}: ${whole}`).toBe(
-            `${id}@${tile.col},${tile.row}: ${ground ?? improvementTechError(state, 0, id)}`,
+            `${id}@${tile.col},${tile.row}: ${ground ?? empire}`,
           );
         }
       }
@@ -2403,7 +2420,11 @@ describe('improvements in the log', () => {
     // 71 since batch C1 (2026-09-06): the dice leave; the faith ladder and the reroll arrive.
     // 73 since batch D (2026-09-06): the buildings cut with chains; 74 since
     // batch C2's rites landed the same day.
-    expect(SCHEMA_VERSION).toBe(115);
+    // 116 since batch L8 (2026-09-14, `docs/flags.md` (bbbbb)): the Terraces are
+    // a field and no longer a hall — a new row on this very table, so a v115 log
+    // that queued the building or that stood on a hillside it could not work
+    // lands somewhere this build does not.
+    expect(SCHEMA_VERSION).toBe(116);
     const game = improvingGame();
     const { state } = game;
     const { tile, id } = improvableTile(state, 0)!;

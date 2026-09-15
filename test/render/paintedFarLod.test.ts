@@ -189,17 +189,21 @@ describe('the board at the far band', () => {
   it('shows the sculpt at play zoom and under the bake, and the stand-in only far out', () => {
     const board = fixture(true).build();
     board.applyFog(null);
-    board.updateDetail(60);
+    board.updateDetail(VIEW3D.painted.lod.farPixels * 2);
     const play = drawnFamilies(board);
-    board.updateDetail(8);
+    board.updateDetail(VIEW3D.painted.lod.nearPixels - 1);
     const overview = drawnFamilies(board);
     expect([...play].some(name => name.endsWith(' far'))).toBe(false);
     expect([...play]).toContain('grove');
     expect([...overview].some(name => name.endsWith(' far'))).toBe(true);
     expect([...overview]).not.toContain('grove');
-    // A bake is near geometry whatever the zoom: the static sun casts the sculpt.
-    board.updateDetail(8, true);
+    // A bake is near geometry whatever the zoom: the static sun casts the
+    // sculpt, so `setBakeDetail` raises it under the stand-in's own band.
+    expect(board.setBakeDetail(true)).toBe(true);
     expect([...drawnFamilies(board)].some(name => name.endsWith(' far'))).toBe(false);
+    expect([...drawnFamilies(board)]).toContain('grove');
+    expect(board.setBakeDetail(false)).toBe(true);
+    expect([...drawnFamilies(board)].some(name => name.endsWith(' far'))).toBe(true);
   });
 
   it('travels to the worker and back as a binding, not as a second copy of the vertices', () => {

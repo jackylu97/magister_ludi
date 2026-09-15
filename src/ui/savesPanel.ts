@@ -9,10 +9,11 @@
  *
  * Everything that could be wrong about a save is decided in `saves.ts`; this
  * file only ever *shows* the answer. It reads slots, it hands a picked file to
- * `loadSave`, and on a refusal it prints the sentence that came back. There is
- * no second opinion about versions here, and no path that reaches the live game
- * except through `onLoad`, which is only ever called with a game that replayed
- * to its last command.
+ * `loadSaveAsync` (`saves.ts`'s own gate, with the log walked in a worker), and
+ * on a refusal it prints the sentence that came back. There is no second opinion
+ * about versions here, and no path that reaches the live game except through
+ * `onLoad`, which is only ever called with a game that replayed to its last
+ * command.
  *
  * Asking first
  * ------------
@@ -25,6 +26,7 @@
  */
 
 import type { Game } from '../sim/game';
+import { loadSaveAsync } from './gameLoader';
 import { isLeaderId, leaderDef } from '../sim/leaderData';
 import {
   SAVE_KEY_PREFIX,
@@ -34,7 +36,6 @@ import {
   deleteSave,
   exportFilename,
   listSaves,
-  loadSave,
   memorySaveStorage,
   slotSummary,
   storageKey,
@@ -98,6 +99,21 @@ export interface SavesPanelOptions {
    * of a successful load, and never with a partial anything (see `saves.ts`).
    */
   onLoad: (game: Game, payload: SavePayload) => void;
+  /**
+   * The loading sheet, for the half of a load that happens here.
+   *
+   * A file picked in this panel is parsed and replayed *before* the question
+   * about abandoning the game in progress is asked (see `adopt`), so the long
+   * half of that journey happens with the panel on screen and nothing else to
+   * look at. The sheet is raised for it and handed on: `main.ts` raises it again
+   * for the board half, and a sheet already up is repainted rather than
+   * reopened, so the two halves read as one wait.
+   */
+  loading?: {
+    begin(): void;
+    replayed(turn: number, expected: number): void;
+    finish(): void;
+  };
 }
 
 /**
@@ -204,10 +220,13 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
     storage,
     abandonsGame,
     onLoad,
+    loading,
   } = options;
 
   let open = false;
   let restoreTo: HTMLElement | null = null;
+  /** A file is through the gate or on its way; see `adopt`. */
+  let busy = false;
 
   function fail(message: string, detail?: string): void {
     errorEl.textContent = message;
@@ -230,16 +249,35 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
    * the disk — so an imported save is validated by exactly the same four checks
    * a stored one is. There is no cheaper path for anything.
    *
-   * **Validated before the question, always.** `loadSave` cannot touch the live
-   * game (it builds a whole second one off to one side and returns it or
+   * **Validated before the question, always.** `loadSaveAsync` cannot touch the
+   * live game (it builds a whole second one off to one side and returns it or
    * nothing), so there is no reason to ask a player to give up an afternoon for
    * a file that turns out to be from last month's build — they would answer yes
    * and then be told no. `confirmIn` is the row the question is asked in, and
    * `null` means there is nothing to ask about.
+   *
+   * The wait is now visible, and has to be. The log walks in a worker, so the
+   * panel stays live and a game a hundred turns deep takes seconds to come
+   * back: the row says what it is doing for the duration, and no second row can
+   * be picked while it does — the panel would otherwise hand `onLoad` two games
+   * in a row and the second would boot over the first.
    */
-  function adopt(json: string, confirmIn: HTMLElement | null): void {
-    const result = loadSave(json);
+  async function adopt(json: string, confirmIn: HTMLElement | null): Promise<void> {
+    if (busy) return;
+    busy = true;
+    const restore = confirmIn === null ? null : waitIn(confirmIn);
+    let result;
+    loading?.begin();
+    try {
+      result = await loadSaveAsync(json, { onReplayTurn: loading?.replayed });
+    } finally {
+      busy = false;
+      restore?.();
+    }
     if (!result.ok) {
+      // Nothing more is coming: the sheet comes down so the sentence is what is
+      // on screen.
+      loading?.finish();
       fail(result.error, result.detail);
       return;
     }
@@ -248,10 +286,32 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
       onLoad(result.game, result.payload);
     };
     if (confirmIn !== null && abandonsGame()) {
+      // A question is not a wait. Down while it is asked, up again when the
+      // answer is Load.
+      loading?.finish();
       ask(confirmIn, 'Abandon the game in progress?', 'Load', hand);
       return;
     }
+    // Left standing on purpose: `onLoad` boots into the same sheet.
     hand();
+  }
+
+  /**
+   * Says what a row is doing while it does it, and hands back the way to undo
+   * that.
+   *
+   * The same swap `ask` makes, for the same reason — the row is the one place
+   * the player is looking — and it is undone rather than refreshed away,
+   * because a refusal prints into the error line and leaves the list standing.
+   * An imported file's row arrives empty, so this is also what fills it.
+   */
+  function waitIn(row: HTMLElement): () => void {
+    const held = [...row.childNodes];
+    const waiting = document.createElement('span');
+    waiting.className = 'save-ask';
+    waiting.textContent = 'Opening that game…';
+    row.replaceChildren(waiting);
+    return () => row.replaceChildren(...held);
   }
 
   /**
@@ -322,7 +382,7 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
         refresh();
         return;
       }
-      adopt(json, row);
+      void adopt(json, row);
     });
 
     const actions = document.createElement('span');
@@ -399,7 +459,7 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
     clearError();
     void file
       .text()
-      .then((text) => {
+      .then(async (text) => {
         // An imported file has no row of its own on the shelf, so one is made
         // for the question to be asked in — at the top, where the answer is
         // about the thing that just arrived rather than about anything listed.
@@ -408,7 +468,7 @@ export function createSavesPanel(options: SavesPanelOptions): SavesPanel {
         const row = document.createElement('div');
         row.className = 'save-row';
         list.prepend(row);
-        adopt(text, row);
+        await adopt(text, row);
         if (!row.classList.contains('is-asking')) row.remove();
       })
       .catch(() => fail('That file could not be read.'));

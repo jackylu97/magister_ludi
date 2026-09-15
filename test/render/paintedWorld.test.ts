@@ -112,13 +112,22 @@ describe('painted world layers', () => {
     expect(planPaintedRoads(state, prepared).get(west)!.some(mark => mark.deck !== undefined)).toBe(false);
   });
 
-  it('washes remembered markings and removes all geometry on uncharted ground', () => {
+  // The wash is a vertex attribute, not a second material (P3/#6): a hex moving
+  // between watched and remembered must change the picture without moving the
+  // ink to another batch, which is what used to re-merge the region's geometry.
+  it('washes remembered markings on the buffer it already merged, and removes all geometry on uncharted ground', () => {
     const { state, prepared } = world(), layer = ground(), plan = planPaintedTerritory(state, prepared);
     layer.build(state, prepared, plan, state.visibility[0]);
-    const lit = (layer.group.children[0] as Mesh).material;
+    const first = layer.group.children[0] as Mesh;
+    const lit = first.material, geometry = first.geometry;
+    const wash = (mesh: Mesh): number[] => [...(mesh.geometry.getAttribute('groundExplored').array as Float32Array)];
+    expect(wash(first).every(value => value === 0)).toBe(true);
     state.visibility[0]!.fill(EXPLORED); layer.build(state, prepared, plan, state.visibility[0]);
     expect(layer.cells.size).toBeGreaterThan(0);
-    expect((layer.group.children[0] as Mesh).material).not.toBe(lit);
+    const remembered = layer.group.children[0] as Mesh;
+    expect(remembered.material).toBe(lit);
+    expect(remembered.geometry).toBe(geometry);
+    expect(wash(remembered).every(value => value === 1)).toBe(true);
     state.visibility[0]!.fill(HIDDEN); layer.build(state, prepared, plan, state.visibility[0]);
     expect(layer.group.children).toHaveLength(0);
   });
