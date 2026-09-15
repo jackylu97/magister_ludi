@@ -4,7 +4,15 @@ import './style.css';
 import { element, section } from './sheet';
 
 const review = new URLSearchParams(location.search).get('review');
-if (review === 'world') {
+if (review === 'movement') {
+  document.body.classList.add('focused-works-review');
+  const nav = document.getElementById('index')!;
+  nav.append(element('h1', undefined, 'Movement study'));
+  const back = element('a', undefined, 'Full art cabinet'); back.href = '/flair.html'; nav.append(back);
+  const root = section(document.getElementById('sheet')!, 'movement', 'A lighter touch',
+    'Three quieter movement treatments over the same ruins, village and barbarian camp. Preview only.').root;
+  void import('./movementReview').then(module => module.drawMovementReview(root));
+} else if (review === 'world') {
   document.body.classList.add('focused-works-review');
   const nav = document.getElementById('index')!;
   nav.append(element('h1', undefined, 'Painted world'));
@@ -27,7 +35,11 @@ if (review === 'world') {
   const cabinet = element('a', undefined, 'Full art cabinet'); cabinet.href = '/flair.html#painted-works'; nav.append(cabinet);
   const root = section(document.getElementById('sheet')!, 'painted-works', 'Works & monuments',
     'A small piece of the world, drawn by the game renderer.').root;
-  void import('./paintedWorks').then(module => module.drawPaintedWorks(root));
+  if (new URLSearchParams(location.search).get('work') === 'terraces' && new URLSearchParams(location.search).has('mockup')) {
+    root.querySelector('h2')!.textContent = 'Pachacuti · Terrace farm';
+    root.querySelector('.sheet-where')!.textContent = 'A cultivated hillside, using the approved painted lighting and terrain.';
+    void import('./terraceFarm').then(module => module.drawTerraceFarm(root));
+  } else void import('./paintedWorks').then(module => module.drawPaintedWorks(root));
 } else {
   void import('./main');
 }

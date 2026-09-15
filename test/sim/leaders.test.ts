@@ -640,6 +640,11 @@ describe('the doc’s tables and the data', () => {
     rows.forEach((cells, at) => {
       const def = leaderDef(LEADER_IDS[at]!);
       expect(plain(cells[0]!), `row ${at}`).toBe(def.name);
+      // The people column is the word a sentence puts after "the" (`seatPeople`,
+      // `docs/flags.md` (ppppp)), so the doc and the sheet are held together the
+      // way the figure's own name is — a fourteenth figure names its country in
+      // the same edit, or this fails.
+      expect(plain(cells[1]!), `${def.name} people`).toBe(def.people);
       // Names are compared case-insensitively and without the leading article's
       // capital: the table writes them in prose ("*the Voices*") and the sheet
       // writes them as titles ("The Voices"), which is the same name twice.

@@ -155,6 +155,7 @@ import { chargeCostWords } from '../sim/religion';
 import { createInfoCard } from './infoCard';
 import { setDescriptorText } from './keywords';
 import { yieldElement as element } from './yieldMark';
+import { seatName } from '../sim/leaderData';
 
 
 /**
@@ -218,7 +219,7 @@ export function cityFaithRows(state: GameState, city: City, seat: number): CityF
       religion: religion.id,
       name: religion.name,
       ours: religion.founderId === seat,
-      founderName: founder?.name ?? 'somebody',
+      founderName: seatName(state, religion.founderId),
       founderColor: founder?.color ?? 'var(--ink)',
       following,
       population: city.population,

@@ -230,7 +230,7 @@ import {
   rosterFor,
   seatsAskPersona,
 } from './ui/gameSetup';
-import { isLeaderId, leaderDef } from './sim/leaderData';
+import { isLeaderId, leaderDef, seatName } from './sim/leaderData';
 import { faithHoverCard, faithHoverReading } from './ui/faithHover';
 import { cityAt } from './sim/cities';
 import type { TurnBlocker } from './ui/turnBlockers';
@@ -1663,9 +1663,8 @@ function describeUnitsOn(state: GameState, playerId: number, tile: Tile): string
   const first = units[0];
   if (!first) return null;
   const def = unitDef(first.type);
-  const owner = state.players[first.ownerId];
   const more = units.length > 1 ? ` +${units.length - 1}` : '';
-  return `${def.name} · ${first.hp}/${unitMaxHp(first)} hp · ${owner?.name ?? '—'}${more}`;
+  return `${def.name} · ${first.hp}/${unitMaxHp(first)} hp · ${seatName(state, first.ownerId)}${more}`;
 }
 
 /**
@@ -2236,7 +2235,7 @@ async function boot(initial: Game | null): Promise<void> {
     const playing = !hasEndedTurn(state, local.id);
     statusEl.classList.toggle('is-waiting', !playing);
     if (playing) {
-      who.textContent = local.name;
+      who.textContent = seatName(state, local.id);
       who.style.color = local.color;
     } else {
       // `realPlayers`, not the raw roster: the wild's flag is raised for it every
@@ -2246,7 +2245,7 @@ async function boot(initial: Game | null): Promise<void> {
       const waiting = realPlayers(state).filter((player) => !hasEndedTurn(state, player.id));
       who.textContent =
         waiting.length > 0
-          ? `Waiting: ${waiting.map((p) => p.name).join(', ')}`
+          ? `Waiting: ${waiting.map((p) => seatName(state, p.id)).join(', ')}`
           : 'resolving';
     }
     statusEl.replaceChildren(turn, who);
@@ -2290,7 +2289,8 @@ async function boot(initial: Game | null): Promise<void> {
       chip.classList.toggle('is-local', player.id === localId);
       chip.classList.toggle('is-done', done);
       chip.style.setProperty('--seat-color', player.color);
-      chip.textContent = done ? `${player.name} ✓` : player.name;
+      const called = seatName(state, player.id);
+      chip.textContent = done ? `${called} ✓` : called;
       // The seat's charge, ahead of its name. Heraldry is how a seat stops
       // being "the blue one" (art pass, W2), and the chip is the surface where
       // that matters most: a dozen of them sit in one strip at 11px, where the
@@ -2307,7 +2307,7 @@ async function boot(initial: Game | null): Promise<void> {
         `url("${heraldryMarkDataUri(heraldryFor(player.id, player.charge))}")`,
       );
       chip.prepend(charge);
-      chip.title = `dev: switch seat to ${player.name}`;
+      chip.title = `dev: switch seat to ${called}`;
       // `setLocalPlayer` calls back into `updatePanel`, which rebuilds these
       // chips — including this one, mid-click. That is safe: the event has
       // already been delivered.
@@ -2387,7 +2387,18 @@ async function boot(initial: Game | null): Promise<void> {
           ? foundingCostRow(game.state, seat, hover.tile)
           : null,
       );
-      setInfoRow(infoUnit, describeUnitsOn(game.state, seat, hover.tile));
+      // What is standing here, and — when the piece in hand would **trade
+      // places** with one of them (`docs/flags.md` (ooooo), rule 3) — what the
+      // right button would do about it. One row rather than a row of its own,
+      // because it is a sentence about the pieces this row is already naming,
+      // and it is `controls`' to say: the rules decide whether the swap is on
+      // (`swapHint` → `planSwap`), never this readout.
+      const standing = describeUnitsOn(game.state, seat, hover.tile);
+      const swap = controls.swapHint();
+      setInfoRow(
+        infoUnit,
+        swap === null ? standing : standing === null ? swap : `${standing} · ${swap}`,
+      );
       showTileYields(game.state, seat, hover.tile);
       showTileResource(game.state, seat, hover.tile);
       setInfoRow(infoImprovement, describeImprovement(hover.tile));
@@ -3871,11 +3882,11 @@ async function boot(initial: Game | null): Promise<void> {
         return;
       }
       const local = game.state.players[controls.localPlayerId()];
-      if (local) splash.announceTurn(local.name);
+      if (local) splash.announceTurn(seatName(game.state, local.id));
     },
     onSeatAdvanced: (playerId) => {
       const player = game.state.players[playerId];
-      if (player) splash.announceSeat(player.name);
+      if (player) splash.announceSeat(seatName(game.state, playerId));
     },
     // The board's own account of a fight. `controls` measures these as
     // hit-point differences, so a figure that floats up is a figure the state
@@ -3889,9 +3900,9 @@ async function boot(initial: Game | null): Promise<void> {
       // The sheet is raised for **every** seat, not only the winner — a player
       // who lost is entitled to be told, by name, rather than to find a line in
       // the chronicle three scrolls down.
-      splash.announceVictory(player.name);
+      splash.announceVictory(seatName(game.state, playerId));
       victory?.show({
-        winner: player.name,
+        winner: seatName(game.state, playerId),
         mine: playerId === controls.localPlayerId(),
         beads: player.beads.length,
         threshold: BEAD_RULES.threshold,
@@ -4383,7 +4394,7 @@ async function boot(initial: Game | null): Promise<void> {
     rows: (): AbacusRow[] =>
       realPlayers(game.state).map((player) => ({
         playerId: player.id,
-        name: player.name,
+        name: seatName(game.state, player.id),
         // The diorama ink, not the panel colour: the label swatch belongs to the
         // same table the frame is standing on. Same call the pieces make.
         color: playerPieceColor(player.color, player.id),

@@ -12,6 +12,7 @@ import { EXPLORED, HIDDEN, VISIBLE, visibilityAt } from '../../src/sim/visibilit
 import { prepareTerrainMap } from '../../src/terrainStudy/surface.js';
 
 const expectedWorks = [
+  [7, 6, 'terraces', null],
   [4, 6, 'plantation', 'wine'], [5, 8, 'plantation', 'tea'], [4, 10, 'plantation', 'reeds'],
   [9, 6, 'lumbermill', null], [10, 8, 'lumbermill', null],
   [13, 6, 'fishingBoats', 'fish'], [13, 8, 'fishingBoats', 'pearls'], [15, 7, 'fishingBoats', 'whales'],
@@ -41,6 +42,7 @@ describe('painted improvement review fixture', () => {
   it('keeps each camera target on the named work and ground variant', () => {
     const state = createWorksFixture();
     const targets = {
+      terraces: { improvement: 'terraces', hills: true, feature: 'none' },
       plantation: { improvement: 'plantation', resource: 'wine', hills: false },
       plantationHills: { improvement: 'plantation', resource: 'tea', hills: true },
       reeds: { improvement: 'plantation', resource: 'reeds', hills: false },

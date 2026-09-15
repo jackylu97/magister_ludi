@@ -10,6 +10,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import { bumpEconomy } from '../../src/sim/slate';
 
 import { createGame, dispatch, snapshotState } from "../../src/sim/game";
 import type { Command } from "../../src/sim/commands";
@@ -4113,16 +4114,21 @@ describe("the Orders pass of 2026-08-29", () => {
       );
     // One copy of a luxury is not a fair.
     seams[0]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[0]!.improvement = "plantation";
+    bumpEconomy(g.state);
     expect(fairs()).toBe(0);
     // Two copies of one kind is one fair — the count is of *kinds* there is a
     // surplus of, which is what neither `uniqueLuxuries` nor `luxuryCopies` says.
     seams[1]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[1]!.improvement = "plantation";
+    bumpEconomy(g.state);
     expect(fairs()).toBe(1);
     // A third copy of the same kind changes nothing; a second *kind* with two
     // copies is a second fair.
     seams[2]!.resource = "silk";
+    bumpEconomy(g.state);
     seams[2]!.improvement = "plantation";
     expect(fairs()).toBe(1);
   });
@@ -9081,30 +9087,34 @@ describe("the order pass of 2026-09-06", () => {
  * somebody edits the sheet.
  */
 describe("the cadence and the chairs, as ruled on the third pass", () => {
-  it("steepens the draft ladder to 12 + 6n + n^2.8", () => {
+  it("eases the draft ladder to 12 + 5n + n^2.65", () => {
     // 2.25 → 2.8 (`docs/history/fewer-things.md` §1's lever table, RULED third pass):
     // "20 drafts by t92 → 14; opening drafts land on the same turns (4, 7, 11);
-    // late gaps open to 8–10". The other three terms are untouched, and the
-    // seal in particular is RULED untouched — a card slotted in and out is skill
-    // expression (2026-09-05, re-ruled here).
+    // late gaps open to 8–10". Then **a fifth slower** (the user, 2026-09-15,
+    // `docs/flags.md` (qqqqq): "they get expensive too quickly") — the base
+    // stays, the linear term 6 → 5 and the exponent 2.8 → 2.65, the fifth draft
+    // eighteen percent cheaper and the tenth twenty-eight. The seal is RULED
+    // untouched — a card slotted in and out is skill expression (2026-09-05,
+    // re-ruled here).
     expect(STATECRAFT.meter).toEqual({
       costBase: 12,
-      costLinear: 6,
-      costExponent: 2.8,
+      costLinear: 5,
+      costExponent: 2.65,
       sealTurns: 5,
     });
     // The shape of the ruling, stated as arithmetic rather than as a story.
-    // **The opening is untouched**: n^2.25 and n^2.8 are the same number at
-    // n = 0 and n = 1, so the first two rungs are byte-identical and the third
-    // is dearer by two culture — under a turn's income on any curve, which is
-    // why §1 can promise "the opening drafts land on the same turns".
+    // **The opening is as good as untouched**: the first rung is the base on
+    // every curve, and the linear term's one culture less shows from the second
+    // rung on — under a turn's income, which is why §1 can promise "the opening
+    // drafts land on the same turns".
     const OLD = (n: number): number => Math.floor(12 + 6 * n + n ** 2.25);
-    expect([0, 1, 2].map(draftCost)).toEqual([12, 19, 30]);
+    expect([0, 1, 2].map(draftCost)).toEqual([12, 18, 28]);
     expect([0, 1, 2].map(OLD)).toEqual([12, 19, 28]);
     // **The late rungs are where the cost lands** — the whole of "20 drafts by
-    // t92 becomes 14". The old ladder asked 879 for the twentieth draft; this
-    // one asks four and a half times that.
-    expect(draftCost(19)).toBe(3932);
+    // t92 becomes 14". The fewer-things ladder asked 879 for the twentieth
+    // draft and the third pass 3932; a fifth slower asks 2554 — still three
+    // times the old ladder.
+    expect(draftCost(19)).toBe(2554);
     expect(OLD(19)).toBe(879);
   });
 

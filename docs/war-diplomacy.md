@@ -58,6 +58,12 @@ on the backburner: some kind of diplomacy meter that affects trade deals. Probab
 - Pillaging a tile should heal the unit and give gold (i think this is already in)
 - ▢ Does anything happen at the WORLD level when war breaks out (a
   triumph, a bead-family hook, the chronicle)? definitely a notification for players that have met both players at war. What is an annal?
+- **Who is in the way** (as built, 2026-09-15, `docs/flags.md` (ooooo)): a war
+  is what makes a piece a *wall* and what makes it hold ground. At peace a
+  foreign piece is walked through (never rested on) and exerts no zone of
+  control; at war it blocks transit and its picket charges the toll. Both read
+  `atWar` — the wild is at war with everybody — and the rules are in the README's
+  movement section.
 
 ## 5b. Combat — the waterline and the taking of a town (as built, batch N1, schema 107)
 

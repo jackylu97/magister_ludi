@@ -76,6 +76,7 @@ import {
   termsAreEmpty,
 } from './deals';
 import { isResourceId, resourceDef } from './resourceData';
+import { seatPeople } from './leaderData';
 // The ability register, asked rather than a technology named: `openBordersError`
 // is the one reader of the `openBorders` verb, and it prints the tech's own name
 // so a greyed row says what would ungrey it.
@@ -220,13 +221,13 @@ export function declareWarError(
   if (actor.barbarian === true || target.barbarian === true) {
     return 'The wild keeps no treaties — there is nothing to declare';
   }
-  if (target.eliminated) return `The ${target.name} are gone`;
-  if (atWar(state, actor.id, target.id)) return `You are already at war with the ${target.name}`;
+  if (target.eliminated) return `The ${seatPeople(state, target.id)} are gone`;
+  if (atWar(state, actor.id, target.id)) return `You are already at war with the ${seatPeople(state, target.id)}`;
   const left = truceTurnsLeft(state, actor.id, target.id);
   if (left > 0) {
     return left === 1
-      ? `The peace with the ${target.name} holds for one more turn`
-      : `The peace with the ${target.name} holds for ${String(left)} more turns`;
+      ? `The peace with the ${seatPeople(state, target.id)} holds for one more turn`
+      : `The peace with the ${seatPeople(state, target.id)} holds for ${String(left)} more turns`;
   }
   return null;
 }
@@ -607,12 +608,12 @@ export function bargainSeatError(
   if (!seatsMayBargain(state, actor.id, target.id)) {
     return 'The wild keeps no treaties — there is nobody to talk to';
   }
-  if (target.eliminated) return `The ${target.name} are gone`;
+  if (target.eliminated) return `The ${seatPeople(state, target.id)} are gone`;
   if (atWar(state, actor.id, target.id)) {
-    return `You are at war with the ${target.name} — terms belong in a peace`;
+    return `You are at war with the ${seatPeople(state, target.id)} — terms belong in a peace`;
   }
   if (state.dealProposals.some((row) => row.by === actor.id && row.to === target.id)) {
-    return `You already have an offer standing with the ${target.name}`;
+    return `You already have an offer standing with the ${seatPeople(state, target.id)}`;
   }
   return null;
 }
@@ -775,7 +776,7 @@ export function proposePeaceError(
     return 'The wild keeps no treaties — there is nobody to talk to';
   }
   if (warBetween(state, actor.id, target.id) === undefined) {
-    return `You are not at war with the ${target.name}`;
+    return `You are not at war with the ${seatPeople(state, target.id)}`;
   }
   if (offered !== undefined) {
     const mine = dealSideError(state, actor.id, target.id, offered.give, true);
@@ -789,7 +790,7 @@ export function proposePeaceError(
   // about what "already standing" means — it is asked of a throwaway copy of
   // the state so that a refusal leaves the board byte-identical (hard rule 1).
   if (!wouldChangePeaceOffer(state, actor.id, target.id, offered)) {
-    return `Your offer to the ${target.name} already stands`;
+    return `Your offer to the ${seatPeople(state, target.id)} already stands`;
   }
   return null;
 }
@@ -827,10 +828,10 @@ export function withdrawPeaceError(
   const target = playerById(state, targetId);
   if (!target) return `No player with id ${String(targetId)}`;
   if (warBetween(state, actor.id, target.id) === undefined) {
-    return `You are not at war with the ${target.name}`;
+    return `You are not at war with the ${seatPeople(state, target.id)}`;
   }
   if (!hasPeaceOffer(state, actor.id, target.id)) {
-    return `You have offered the ${target.name} nothing to withdraw`;
+    return `You have offered the ${seatPeople(state, target.id)} nothing to withdraw`;
   }
   return null;
 }
@@ -861,10 +862,10 @@ export function declinePeaceError(
   if (!target) return `No player with id ${String(targetId)}`;
   if (target.id === actor.id) return 'You cannot refuse yourself';
   if (warBetween(state, actor.id, target.id) === undefined) {
-    return `You are not at war with the ${target.name}`;
+    return `You are not at war with the ${seatPeople(state, target.id)}`;
   }
   if (!hasPeaceOffer(state, target.id, actor.id)) {
-    return `The ${target.name} have offered you nothing to refuse`;
+    return `The ${seatPeople(state, target.id)} have offered you nothing to refuse`;
   }
   return null;
 }

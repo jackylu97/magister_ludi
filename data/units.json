@@ -1098,7 +1098,7 @@
       "foundsCity": false,
       "haltsGrowth": false,
       "minCityPop": 0,
-      "upgradesTo": "longswordsman",
+      "upgradesTo": "legionary",
       "modelClass": "melee",
       "glyph": "K"
     },

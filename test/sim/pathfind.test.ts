@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type GameMap, type Tile, createMap, getTileAt } from '../../src/sim/map';
+import { type GameMap, type Tile, createMap, getTileAt, tileIndex } from '../../src/sim/map';
 import {
   canStopOn,
   canTransit,
@@ -14,10 +14,15 @@ import {
   shoreStepCost,
   snapMovement,
   stepCost,
+  planSwap,
   takesByWalking,
   tileMoveCost,
+  transitField,
   zocField,
 } from '../../src/sim/pathfind';
+import { cityAt } from '../../src/sim/cities';
+import { applyCommand } from '../../src/sim/commands';
+import { hasForeignUnit } from '../../src/sim/units';
 import { advanceAlongPath } from '../../src/sim/movement';
 import { RULES } from '../../src/sim/rulesData';
 import { techsGrant } from '../../src/sim/techData';
@@ -282,17 +287,86 @@ describe('findPath', () => {
     expect(findPath(state, mover, at(state.map, 2, 3))).toEqual([{ col: 2, row: 3 }]);
   });
 
-  it('treats an enemy unit as a wall, whatever its category, at peace', () => {
+  /**
+   * **Re-taken 2026-09-15** (`docs/flags.md` (ooooo), rule 1: *"units should be
+   * able to move past units that are blocking them… this should apply only on
+   * civs you're not at war with"*). The measured reason the numbers moved is the
+   * ruling itself: a stranger's piece was a wall to transit and is now a hex the
+   * column files through, exactly as a friend's is. What the old pin was really
+   * protecting — that nobody *rests* on somebody else's hex, and that nobody
+   * walks off with their people without a war — is asserted here unchanged.
+   */
+  it('walks past a piece at peace, whatever its category, and never rests on it', () => {
     const state = flatState();
     const mover = unit(state, 1, 3, 'warrior', 0);
-    unit(state, 2, 3, 'settler', 1); // enemy civilian
+    unit(state, 2, 3, 'settler', 1); // a neighbour's civilian, nobody at war
 
     const held = at(state.map, 2, 3);
-    expect(canTransit(state, mover, held)).toBe(false);
+    expect(canTransit(state, mover, held)).toBe(true);
     expect(canStopOn(state, mover, held)).toBe(false);
+    // And the taking still needs a war: passing through is not seizing.
     expect(takesByWalking(state, mover, held)).toBe(false);
+    expect(findPath(state, mover, held)).toBeNull();
+    // The road through the pass is open, and it costs the ground and nothing
+    // more — a pass is not a toll.
+    const through = findPath(state, mover, at(state.map, 3, 3))!;
+    expect(through).toEqual([
+      { col: 2, row: 3 },
+      { col: 3, row: 3 },
+    ]);
+    expect(cost(state, through)).toBe(2);
+  });
+
+  it('keeps a hostile soldier a wall, and lets one at peace be passed', () => {
+    const state = flatState();
+    const mover = unit(state, 1, 3, 'warrior', 0);
+    unit(state, 2, 3, 'spearman', 1);
+
+    const held = at(state.map, 2, 3);
+    expect(canTransit(state, mover, held)).toBe(true);
+    const through = findPath(state, mover, at(state.map, 3, 3))!;
+    expect(through).toEqual([
+      { col: 2, row: 3 },
+      { col: 3, row: 3 },
+    ]);
+
+    // Declared: the same hex, the same piece, and now a wall the road goes
+    // round rather than through.
+    openWar(state, 0, 1);
+    expect(canTransit(state, mover, held)).toBe(false);
     const around = findPath(state, mover, at(state.map, 3, 3))!;
     expect(around.some((step) => step.col === 2 && step.row === 3)).toBe(false);
+  });
+
+  /**
+   * A hex with one empire's cart and another's on it, and only one war: the
+   * column may walk through, and may not come to rest — so nobody at peace is
+   * ever carried off with the ground. That is the clause that moved out of
+   * `canTransit` and into `canStopOn` when rule 1 landed.
+   */
+  it('will not rest on a hex where an enemy cart shares the ground with a neutral one', () => {
+    const state = flatState();
+    const three = newGame({
+      seed: 1,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+        { name: 'C', color: '#0a0', isHuman: true },
+      ],
+    });
+    three.map = state.map;
+    resetVisibility(three);
+    three.units = [];
+    three.nextEntityId = 1;
+    openWar(three, 0, 1);
+    const mover = unit(three, 1, 3, 'warrior', 0);
+    unit(three, 2, 3, 'worker', 1); // at war: takeable
+    unit(three, 2, 3, 'worker', 2); // at peace: not
+    const held = at(three.map, 2, 3);
+    expect(canTransit(three, mover, held)).toBe(true);
+    expect(canStopOn(three, mover, held)).toBe(false);
+    expect(takesByWalking(three, mover, held)).toBe(false);
   });
 
   /**
@@ -475,7 +549,12 @@ describe('reachableTiles', () => {
   it('omits tiles the unit could not legally stop on', () => {
     const state = flatState();
     const mover = unit(state, 4, 4, 'warrior', 0);
-    unit(state, 5, 4, 'warrior', 0); // friendly soldier: transit yes, stop no
+    // A friendly soldier: transit yes, stop no. **And spent**, so the swap
+    // (rule 3) is not on the table either — a piece with no points cannot walk
+    // the route back, which is the one thing that could put its hex in this
+    // list. The swap's own reachability is pinned in "the swap" below.
+    const sitter = unit(state, 5, 4, 'warrior', 0);
+    sitter.movesLeft = 0;
     at(state.map, 3, 4).terrain = 'mountain';
 
     const reach = reachableTiles(state, mover);
@@ -774,5 +853,368 @@ describe('the shore crossing', () => {
     expect(priceOf(state, worker, at(state.map, 3, 5), at(state.map, 4, 5))).toBe(
       fullMovement(worker, state),
     );
+  });
+});
+
+/**
+ * **The hoist is the same two readings, taken once** — the M-series pin
+ * (`docs/flags.md` (fffff)'s follow-up row).
+ *
+ * `canTransit` used to walk `state.cities` and `state.units` per edge; it now
+ * reads one byte of a `TransitField` swept once per search. The claim is that
+ * nothing about the *answer* moved, and this is the whole of the proof, in two
+ * halves that between them cover every reader:
+ *
+ *   · the **field** says what the two walks say, hex for hex and seat for seat;
+ *   · the **gate** answers the same with a field and without one, for every
+ *     piece on the board and every hex of it.
+ *
+ * That is sufficient for `findPath` and `reachableTiles` by construction: both
+ * searches are built out of `canTransit`, `canStopOn` and `stepCost`, the last
+ * of which the hoist never touched. A route is a fold of edge answers, so two
+ * runs agreeing on every edge agree on every route — which is why there is no
+ * third half here comparing routes against a second implementation, and why the
+ * byte-for-byte proof that a *bot game* is unchanged (a 120-turn six-seat drive
+ * at two seeds, digested with `snapshotState`) is taken out of tier, where a
+ * drive of that size belongs.
+ *
+ * The board is built by hand rather than played, so that the cases a played
+ * board reaches by luck are all here on purpose: a foreign piece, a friendly
+ * one, a foreign town, a friendly town, a hex carrying both, three seats rather
+ * than two, and the two ends of the wrapped seam — which is the one place a
+ * coordinate could be confused with an index.
+ */
+describe('the transit field', () => {
+  /** Three seats, pieces and towns strewn over the seam and the middle alike. */
+  function crowdedState(): GameState {
+    const state = newGame({
+      seed: 3,
+      sizeName: 'duel',
+      players: [
+        { name: 'A', color: '#a00', isHuman: true },
+        { name: 'B', color: '#00a', isHuman: true },
+        { name: 'C', color: '#0a0', isHuman: true },
+      ],
+    });
+    state.map = createMap({ width: 12, height: 8, terrain: 'grassland' });
+    resetVisibility(state);
+    state.units = [];
+    state.cities = [];
+    state.nextEntityId = 1;
+    createCity(state, 0, 'Home', 5, 3);
+    createCity(state, 1, 'Theirs', 8, 3);
+    // On the seam, both sides of it: column 0 and column 11 are neighbours.
+    createCity(state, 2, 'Edge', 0, 6);
+    unit(state, 5, 3, 'warrior', 0);
+    unit(state, 6, 3, 'warrior', 1);
+    unit(state, 6, 4, 'settler', 1);
+    // A friendly piece and a foreign one on one hex: the two bits are
+    // independent, and a hex that carries both must read as both.
+    unit(state, 8, 3, 'warrior', 1);
+    unit(state, 8, 3, 'worker', 0);
+    unit(state, 11, 6, 'warrior', 2);
+    unit(state, 0, 0, 'warrior', 1);
+    unit(state, 11, 7, 'settler', 2);
+    return state;
+  }
+
+  /**
+   * **Re-taken 2026-09-15**, and the bits moved because their *meaning* did
+   * (`docs/flags.md` (ooooo)): what a foreign piece does to a march now depends
+   * on whether anybody has declared anything, so the field carries three piece
+   * bits — a hostile soldier, a hostile civilian, a piece at peace — where it
+   * carried one. `1` is the town, `2 | 4 | 8` between them are still exactly
+   * "somebody else is standing here", which is what this pin has always said.
+   */
+  it('says what `cityAt` and `hasForeignUnit` say, hex for hex and seat for seat', () => {
+    const state = crowdedState();
+    for (const seat of [0, 1, 2]) {
+      const field = transitField(state, seat);
+      expect(field.ownerId).toBe(seat);
+      let towns = 0;
+      let pieces = 0;
+      for (const tile of state.map.tiles) {
+        const bits = field.blocked[tileIndex(state.map, tile.col, tile.row)]!;
+        const city = cityAt(state, tile.col, tile.row);
+        expect((bits & 1) !== 0).toBe(city !== undefined && city.ownerId !== seat);
+        expect((bits & (2 | 4 | 8)) !== 0).toBe(
+          hasForeignUnit(state, tile.col, tile.row, seat),
+        );
+        if ((bits & 1) !== 0) towns += 1;
+        if ((bits & (2 | 4 | 8)) !== 0) pieces += 1;
+      }
+      // An agreement between two readings that both say "nothing anywhere" is
+      // not an agreement worth having: the board is crowded on purpose, so the
+      // field has to have found the crowd.
+      expect(towns).toBe(2);
+      expect(pieces).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it('gates every piece on every hex exactly as the walks did', () => {
+    const state = crowdedState();
+    // Everybody at war with everybody, so the civilian clause at the foot of
+    // `canTransit` is live rather than skipped: that arm reads the state
+    // directly and has to go on answering for itself.
+    openWar(state, 0, 1);
+    openWar(state, 0, 2);
+    openWar(state, 1, 2);
+    for (const piece of state.units) {
+      const mover = moveProfile(state, piece);
+      const field = transitField(state, piece.ownerId);
+      for (const tile of state.map.tiles) {
+        expect(canTransit(state, piece, tile, mover, field)).toBe(
+          canTransit(state, piece, tile, mover),
+        );
+        expect(canStopOn(state, piece, tile, mover, field)).toBe(
+          canStopOn(state, piece, tile, mover),
+        );
+      }
+    }
+  });
+
+  it('is spent only against the seat it was swept for', () => {
+    const state = crowdedState();
+    // A field built for somebody else is not a second opinion, it is a wrong
+    // one — so the gate compares the seat and falls back to the walks rather
+    // than reading a stranger's bytes. Pinned because that compare is the only
+    // thing between a hoist and a quietly different board.
+    const piece = state.units.find((row) => row.ownerId === 0)!;
+    const mover = moveProfile(state, piece);
+    const theirs = transitField(state, 1);
+    for (const tile of state.map.tiles) {
+      expect(canTransit(state, piece, tile, mover, theirs)).toBe(
+        canTransit(state, piece, tile, mover),
+      );
+    }
+  });
+
+  it('leaves the route and the highlight where they were', () => {
+    // The composed half: the searches take a field by default now, so this is
+    // the reading a caller actually gets, pinned against the hand-written answer
+    // rather than against a second run of the same code.
+    const state = flatState(8, 6);
+    // **Declared**, since `docs/flags.md` (ooooo): a piece of a seat at peace
+    // is walked through now, so the sentence this pin makes — a foreign soldier
+    // is a wall the route goes round — is only true of a war. The town beside
+    // it is a wall to everybody either way.
+    openWar(state, 0, 1);
+    createCity(state, 1, 'Theirs', 4, 2);
+    unit(state, 5, 2, 'warrior', 1);
+    const mine = unit(state, 2, 2, 'warrior', 0);
+    // Straight along row 2 is shortest, and a foreign town and a foreign soldier
+    // both sit on that line, so the route has to go round the pair of them.
+    const path = findPath(state, mine, at(state.map, 6, 2));
+    expect(path).not.toBeNull();
+    for (const step of path!) {
+      expect(`${step.col},${step.row}`).not.toBe('4,2');
+      expect(`${step.col},${step.row}`).not.toBe('5,2');
+    }
+    expect(path![path!.length - 1]).toEqual({ col: 6, row: 2 });
+    const reach = reachableTiles(state, mine).map((row) => `${row.tile.col},${row.tile.row}`);
+    expect(reach).not.toContain('4,2');
+    expect(reach).toContain('3,2');
+  });
+});
+
+/**
+ * **The swap** — `docs/flags.md` (ooooo), rule 3 (the user, 2026-09-15:
+ * *"Moving a military unit onto another should 'swap' the two unit's positions
+ * if they both have enough movement to reach the swapped destination tile"*).
+ *
+ * The plan is pinned here, at the rule; `movement.test.ts` pins the command that
+ * spends it. The two must agree by construction — they ask the same function —
+ * and the block after this one is the pin that says so about the *highlight*:
+ * the reachable set and the accepted orders are one list.
+ */
+describe('planSwap', () => {
+  it('trades two of one seat’s soldiers, and says which route each walks', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 4, 'warrior', 0);
+    const sitter = unit(state, 5, 4, 'spearman', 0);
+    const plan = planSwap(state, mover, at(state.map, 5, 4))!;
+    expect(plan.sitter.id).toBe(sitter.id);
+    expect(plan.path).toEqual([{ col: 5, row: 4 }]);
+    expect(plan.back).toEqual([{ col: 4, row: 4 }]);
+  });
+
+  it('reads the way back as the way out, reversed', () => {
+    const state = flatState();
+    const mover = unit(state, 3, 4, 'horseman', 0);
+    unit(state, 5, 4, 'horseman', 0);
+    const plan = planSwap(state, mover, at(state.map, 5, 4))!;
+    expect(plan.path).toEqual([{ col: 4, row: 4 }, { col: 5, row: 4 }]);
+    expect(plan.back).toEqual([{ col: 4, row: 4 }, { col: 3, row: 4 }]);
+  });
+
+  it('refuses when either purse is short', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 4, 'warrior', 0);
+    const sitter = unit(state, 5, 4, 'spearman', 0);
+    sitter.movesLeft = 0;
+    expect(planSwap(state, mover, at(state.map, 5, 4))).toBeNull();
+    sitter.movesLeft = fullMovement(sitter, state);
+    mover.movesLeft = 0;
+    expect(planSwap(state, mover, at(state.map, 5, 4))).toBeNull();
+  });
+
+  it('refuses a walk that runs out halfway, however far the piece could get', () => {
+    const state = flatState();
+    // Two hexes of forest between them: the warrior can enter the first with
+    // its last point but cannot reach the second this turn, so the trade is off
+    // — a swap is never stored as a standing order.
+    at(state.map, 4, 4).feature = 'forest';
+    at(state.map, 5, 4).feature = 'forest';
+    const mover = unit(state, 3, 4, 'warrior', 0);
+    unit(state, 5, 4, 'warrior', 0);
+    for (const tile of state.map.tiles) if (tile.row !== 4) tile.terrain = 'mountain';
+    expect(planSwap(state, mover, at(state.map, 5, 4))).toBeNull();
+  });
+
+  it('never trades with a civilian, in either chair', () => {
+    const state = flatState();
+    const soldier = unit(state, 4, 4, 'warrior', 0);
+    unit(state, 5, 4, 'worker', 0);
+    expect(planSwap(state, soldier, at(state.map, 5, 4))).toBeNull();
+    const worker = unit(state, 4, 5, 'worker', 0);
+    unit(state, 5, 5, 'warrior', 0);
+    expect(planSwap(state, worker, at(state.map, 5, 5))).toBeNull();
+  });
+
+  it('never trades with another seat, at peace or at war', () => {
+    const state = flatState();
+    const mine = unit(state, 4, 4, 'warrior', 0);
+    unit(state, 5, 4, 'warrior', 1);
+    expect(planSwap(state, mine, at(state.map, 5, 4))).toBeNull();
+    openWar(state, 0, 1);
+    expect(planSwap(state, mine, at(state.map, 5, 4))).toBeNull();
+  });
+
+  it('refuses ground the sitter could not stand on', () => {
+    const state = flatState();
+    // A hull in its own harbour and a warrior beside it: both are this seat's
+    // soldiers, and the trade is still refused, because the ground each is
+    // asked to stand on is asked of its own profile.
+    createCity(state, 0, 'Harbour', 5, 4);
+    at(state.map, 5, 5).terrain = 'coast';
+    const hull = unit(state, 5, 4, 'trireme', 0);
+    const warrior = unit(state, 4, 4, 'warrior', 0);
+    expect(planSwap(state, warrior, at(state.map, 5, 4))).toBeNull();
+    expect(planSwap(state, hull, at(state.map, 4, 4))).toBeNull();
+  });
+
+  it('puts the swap hex in the highlight, in its own colour', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 4, 'warrior', 0);
+    unit(state, 5, 4, 'spearman', 0);
+    const reach = reachableTiles(state, mover);
+    const swap = reach.find((row) => row.tile.col === 5 && row.tile.row === 4)!;
+    expect(swap.swap).toBe(true);
+    expect(swap.cost).toBe(1);
+    // Every other hex in the list is an ordinary march and says nothing.
+    for (const row of reach) {
+      if (row === swap) continue;
+      expect(row.swap).toBeUndefined();
+    }
+  });
+});
+
+/**
+ * **The highlight is the order** — the ruling's own pin (`docs/flags.md`
+ * (ooooo)): `reachableTiles` is exactly the set of hexes a `moveUnit` would be
+ * accepted *and come to rest on* this turn. Asked of a piece beside a friend,
+ * beside a foe and beside one of its own soldiers, at war and at peace, because
+ * those are the three hexes the three rules changed.
+ *
+ * A march the reducer accepts but **stores** is not in the set and must not be:
+ * the highlight answers "where can I get to this turn", and an order to walk for
+ * three days is a different promise. So the comparison is against where the
+ * piece actually stands afterwards.
+ */
+describe('the highlight and the reducer', () => {
+  function board(war: boolean): { state: GameState; mover: Unit } {
+    const state = flatState(9, 7);
+    if (war) openWar(state, 0, 1);
+    const mover = unit(state, 4, 3, 'warrior', 0);
+    unit(state, 5, 3, 'spearman', 0); // its own soldier: the swap
+    unit(state, 4, 2, 'settler', 0); // a friend of the other category
+    unit(state, 3, 3, 'spearman', 1); // somebody else's soldier
+    unit(state, 3, 4, 'worker', 1); // and somebody else's civilian
+    return { state, mover };
+  }
+
+  for (const war of [false, true]) {
+    it(`agrees hex for hex ${war ? 'at war' : 'at peace'}`, () => {
+      const { state, mover } = board(war);
+      const highlight = new Set(
+        reachableTiles(state, mover).map((row) => `${row.tile.col},${row.tile.row}`),
+      );
+      // Something to compare against: a highlight of nothing would agree with
+      // a reducer that refuses everything.
+      expect(highlight.size).toBeGreaterThan(5);
+      for (const tile of state.map.tiles) {
+        const fresh = board(war);
+        const key = `${tile.col},${tile.row}`;
+        const result = applyCommand(fresh.state, {
+          type: 'moveUnit',
+          playerId: 0,
+          unitId: fresh.mover.id,
+          target: { col: tile.col, row: tile.row },
+        });
+        const rested =
+          result.ok && fresh.mover.col === tile.col && fresh.mover.row === tile.row;
+        expect(`${key}: ${String(rested)}`).toBe(`${key}: ${String(highlight.has(key))}`);
+      }
+    });
+  }
+});
+
+/**
+ * **Rule 2**: the picket is a war toll (`docs/flags.md` (ooooo) — *"Units should
+ * not exert ZOC if you're not at war with them"*). The arithmetic of the toll
+ * has its own file (`zoc.test.ts`); what is pinned here is *whose* pieces are in
+ * the field at all.
+ */
+describe('zocField and the war', () => {
+  it('holds ground only for seats at war, the wild always', () => {
+    const state = flatState();
+    unit(state, 5, 4, 'spearman', 1);
+    expect(zocField(state, 0).sources).toHaveLength(0);
+    openWar(state, 0, 1);
+    expect(zocField(state, 0).sources.map((tile) => `${tile.col},${tile.row}`)).toEqual(['5,4']);
+  });
+
+  it('leaves a neighbour’s town out of the field, and puts an enemy’s in', () => {
+    const state = flatState();
+    createCity(state, 1, 'Theirs', 5, 4);
+    expect(zocField(state, 0).sources).toHaveLength(0);
+    openWar(state, 0, 1);
+    expect(zocField(state, 0).sources).toHaveLength(1);
+  });
+
+  it('charges no toll for stepping along a neighbour’s line', () => {
+    const state = flatState();
+    const mover = unit(state, 4, 5, 'warrior', 0);
+    unit(state, 5, 4, 'spearman', 1);
+    const price = stepCost(
+      state.map,
+      at(state.map, 4, 5),
+      at(state.map, 5, 5),
+      moveProfile(state, mover),
+      zocField(state, 0),
+    )!;
+    expect(price.zoc).toBe(false);
+    expect(price.cost).toBe(1);
+
+    openWar(state, 0, 1);
+    const tolled = stepCost(
+      state.map,
+      at(state.map, 4, 5),
+      at(state.map, 5, 5),
+      moveProfile(state, mover),
+      zocField(state, 0),
+    )!;
+    expect(tolled.zoc).toBe(true);
+    expect(tolled.cost).toBe(1 + RULES.movement.zocExtraCost);
   });
 });

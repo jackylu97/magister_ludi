@@ -35,6 +35,7 @@ import {
 } from '../sim/yields/empire';
 import { authorityOf, happinessOf } from '../sim/meters';
 import { isCombatant, isExplorer, unitDef } from '../sim/unitData';
+import { seatName } from '../sim/leaderData';
 
 /** What one seat is, as the page hands it over: a name, an ink, a persona. */
 export interface ArenaSeat {
@@ -224,7 +225,7 @@ function readSeat(game: Game, playerId: number): SeatReading {
 
   return {
     playerId,
-    name: player.name,
+    name: seatName(state, playerId),
     persona: player.persona ?? 'balanced',
     color: player.color,
     eliminated: player.eliminated === true,

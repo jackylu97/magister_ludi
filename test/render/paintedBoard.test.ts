@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Mesh, MeshStandardMaterial, ShaderLib } from 'three';
+import { BoxGeometry, BufferGeometry, Color, InstancedMesh, Material, Mesh, MeshStandardMaterial, ShaderLib, Vector3 } from 'three';
 import { buildPaintedBoard, type PaintedBoard, type PaintedBoardMaterials, type PaintedVegetationAssets } from '../../src/render3d/paintedBoard.js';
+import { newGame } from '../../src/sim/state';
+import { PaintedWorksLayer, PAINTED_WORK_ASSET_NAMES, type PaintedWorksAssets } from '../../src/render3d/paintedWorks';
+import { installPaintedSurface, uninstallPaintedSurface, samplePaintedSurface, pickPaintedSurface } from '../../src/render3d/paintedSurface';
+import { terraceFarmSurface } from '../../src/render3d/terraceFarmSurface';
+import { createTileSurfaceSampler } from '../../src/render3d/paintedTileSurface';
 import { createMap } from '../../src/sim/map';
 
 const boards: PaintedBoard[] = [], disposables: (BufferGeometry | Material)[] = [];
@@ -419,5 +424,61 @@ describe('production painted board', () => {
     expect(far.every(mesh => !mesh.visible)).toBe(true);
     board.setBakeDetail(false);
     expect(far.every(mesh => mesh.visible)).toBe(true);
+  });
+});
+
+
+describe('constructed terrace ground', () => {
+  it('replaces hill faces at both LODs, picks the shelves, and restores hills without rebaking buffers', () => {
+    const { map, build } = fixture();
+    map.tiles.forEach(tile => { tile.hills = true; tile.feature = 'none'; });
+    const board = build(), cell = 5, tile = map.tiles[cell]!;
+    const state = newGame({ seed: 9, sizeName: 'duel', players: [{ name: 'Review', color: '#aabbcc', isHuman: true }] });
+    state.map = map; state.units = []; state.cities = [];
+    const material = new MeshStandardMaterial({ vertexColors: true });
+    const asset = new BoxGeometry(.3, .4, .3);
+    const assets = { material, ...Object.fromEntries(PAINTED_WORK_ASSET_NAMES.map(name => [name, asset])) } as PaintedWorksAssets;
+    const works = new PaintedWorksLayer(assets, () => undefined);
+    const batches = board.exportBatches().filter(batch => batch.geometry.hasAttribute('paintedRelief'));
+    const originals = batches.map(batch => ({ geometry: batch.geometry, position: batch.geometry.getAttribute('position'),
+      index: batch.geometry.index!, values: Array.from(batch.geometry.index!.array) }));
+    const install = () => installPaintedSurface(map, board.renderMap, [...board.pickMeshes, ...works.surfaceMeshes]);
+    try {
+      install(); const oldHeight = samplePaintedSurface(tile);
+      tile.improvement = 'terraces';
+      expect(board.replaceHillRelief(new Set([cell]))).toBe(true);
+      works.build(state, board.renderMap);
+      install();
+      const [surface, skirt] = terraceFarmSurface(board.renderMap.tiles[cell]!);
+      const x = Math.sqrt(3) * (tile.col + tile.row % 2 * .5), z = tile.row * 1.5;
+      const sample = createTileSurfaceSampler(surface, x, z);
+      for (const [dx, dz] of [[0, 0], [.2, .25], [-.3, .2], [.1, -.3]])
+        expect(samplePaintedSurface(tile, dx, dz)).toBeCloseTo(sample(dx!, dz!)!, 5);
+      expect(pickPaintedSurface(map, { origin: new Vector3(x, 4, z), direction: new Vector3(0, -1, 0) })?.tile).toBe(tile);
+      surface.dispose(); skirt.dispose();
+      for (const saved of originals) {
+        expect(saved.geometry.getAttribute('position')).toBe(saved.position);
+        expect(saved.geometry.index).toBe(saved.index);
+        const owner = saved.geometry.getAttribute('paintedCell'), relief = saved.geometry.getAttribute('paintedRelief');
+        for (let i = 0; i < saved.values.length; i += 3) {
+          const a = saved.values[i]!;
+          if (owner.getX(a) === cell && relief.getX(a)) expect(saved.index.getX(i + 1)).toBe(a);
+          else expect([saved.index.getX(i), saved.index.getX(i + 1), saved.index.getX(i + 2)]).toEqual(saved.values.slice(i, i + 3));
+        }
+      }
+      expect(board.replaceHillRelief(new Set([cell]))).toBe(false);
+      // Fog removes the works, then restores the same recipe without exposing hidden props.
+      works.build(state, board.renderMap, map.tiles.map(() => 0));
+      expect(works.surfaceMeshes).toHaveLength(0);
+      works.build(state, board.renderMap);
+      expect(works.surfaceMeshes).toHaveLength(3);
+      tile.improvement = undefined;
+      expect(board.replaceHillRelief(new Set())).toBe(true);
+      works.build(state, board.renderMap); install();
+      expect(works.surfaceMeshes).toHaveLength(0);
+      expect(samplePaintedSurface(tile)).toBe(oldHeight);
+      expect(tile.hills).toBe(true);
+      originals.forEach(saved => expect(Array.from(saved.index.array)).toEqual(saved.values));
+    } finally { uninstallPaintedSurface(map); works.dispose(); asset.dispose(); material.dispose(); }
   });
 });

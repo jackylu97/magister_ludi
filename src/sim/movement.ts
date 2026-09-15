@@ -20,9 +20,11 @@
  * The walk stops before a step it must not take, and what happens to the rest of
  * the order depends on why:
  *
- *   - the tile became impassable, or a foreign unit now stands on it: the order
- *     is *cleared*. The route the player approved no longer exists, and guessing
- *     a new one on their behalf is worse than asking again.
+ *   - the tile became impassable, or a **hostile** piece now stands on it: the
+ *     order is *cleared*. The route the player approved no longer exists, and
+ *     guessing a new one on their behalf is worse than asking again. A piece of
+ *     a seat nobody has declared on is not one of those since `docs/flags.md`
+ *     (ooooo) — the column files through it and the order stands.
  *   - the unit would come to rest on a tile its own category cannot share: the
  *     order is *kept*. That is a traffic jam, not a wall — the unit waits and
  *     tries again next turn, once its own side has moved on.
@@ -38,6 +40,15 @@
  * the key is deleted rather than set to `[]` when the order finishes, so an idle
  * unit serialises identically however it came to be idle.
  *
+ * The swap is two of these walks
+ * ------------------------------
+ * `swapPlaces` is the third caller and the only one that walks two pieces
+ * (`docs/flags.md` (ooooo), rule 3). It is deliberately not a third *kind* of
+ * movement: the mover walks its route and the sitter walks the same route
+ * backwards, each spending its own allowance, each breaking its own trench, each
+ * arriving through `arriveOnTile`. Nothing about a step changes because the hex
+ * it ends on had a friend on it.
+ *
  * Fortification breaks here
  * -------------------------
  * A unit that actually enters a tile stops being dug in, and this is the one
@@ -52,6 +63,7 @@ import { breakFortify } from './combat';
 import { getTileAt } from './map';
 import {
   type Cell,
+  type SwapPlan,
   canStopOn,
   canTransit,
   isShoreStep,
@@ -93,8 +105,22 @@ export interface AdvanceResult {
  *
  * `path` may be the unit's own `path` array; it is read before the field is
  * reassigned, so passing it in is safe.
+ *
+ * `trading` is the piece this one is **changing places with** — the sitter of a
+ * swap (`docs/flags.md` (ooooo), rule 3), which is stepping the other way in the
+ * same command and is therefore excused from the stacking count rather than
+ * jamming the hex it is about to leave. It is handed straight to `canStopOn`
+ * and read nowhere else here: a swap is two ordinary walks, and the only thing
+ * that is not ordinary about the first of them is that the hex it ends on is
+ * occupied by the piece that is about to walk the route back. The second walk
+ * passes nothing, because by then the ground it is aiming at is empty.
  */
-export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Cell[]): AdvanceResult {
+export function advanceAlongPath(
+  state: GameState,
+  unit: Unit,
+  path: readonly Cell[],
+  trading?: Unit,
+): AdvanceResult {
   let steps = 0;
   let cleared = false;
   let index = 0;
@@ -131,7 +157,7 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
     // A unit that has spent its last point comes to rest on the hex it stepped
     // onto, so the tile has to be one it may legally share.
     const wouldRestHere = after === 0 || index === path.length - 1;
-    if (wouldRestHere && !canStopOn(state, unit, tile, mover)) {
+    if (wouldRestHere && !canStopOn(state, unit, tile, mover, undefined, trading)) {
       // A jam, not a wall. Keep the order and wait for the tile to clear.
       break;
     }
@@ -182,6 +208,33 @@ export function advanceAlongPath(state: GameState, unit: Unit, path: readonly Ce
   }
 
   return { steps, cleared, arrivals };
+}
+
+/**
+ * Two of one seat's soldiers change places: the mover walks `plan.path`, the
+ * sitter walks it backwards (`docs/flags.md` (ooooo), rule 3).
+ *
+ * **Everything was decided before this ran.** `planSwap` priced both walks
+ * through `stepCost`, asked the ground of each piece's own profile and found
+ * room for each where the other is standing, so this function takes no decision
+ * and refuses nothing — which is what lets one command spend two pieces without
+ * ever leaving half a swap on the board.
+ *
+ * **The mover first, and the order is the whole of the mechanism.** Its last
+ * step lands on the hex the sitter is still standing on, which is the one thing
+ * an ordinary walk will not do — so the sitter is handed down as `trading` and
+ * excused from the stacking count it is about to vacate. By the time the sitter
+ * sets off, the route behind the mover is clear and the hex it is aiming at is
+ * empty, so its walk needs no exemption at all: it is an ordinary march, priced
+ * and walked like any other.
+ *
+ * Both arrivals come back in one list, the mover's first, because a swap is one
+ * order and the ruins and camps it turned up are one piece of news.
+ */
+export function swapPlaces(state: GameState, unit: Unit, plan: SwapPlan): ArrivalReport[] {
+  const out = advanceAlongPath(state, unit, plan.path, plan.sitter);
+  const back = advanceAlongPath(state, plan.sitter, plan.back);
+  return [...out.arrivals, ...back.arrivals];
 }
 
 /**

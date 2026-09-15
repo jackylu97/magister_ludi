@@ -72,6 +72,9 @@ function giveSilk(state: GameState, city: City, col: number, row: number): void 
   tile.resource = 'silk';
   tile.improvement = 'plantation';
   state.tileOwner[tileIndex(state.map, col, row)] = city.id;
+  // A bench writing the board by hand is a writer, and announces (the slate's
+  // contract; `resourceCopies` reads off the economy clock since A1).
+  bumpRevision(state);
 }
 
 describe('the two columns', () => {

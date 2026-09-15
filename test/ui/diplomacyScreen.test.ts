@@ -405,7 +405,9 @@ describe('the wiring that spans files', () => {
     // which `confirmCard.test.ts` pins across the whole of `src/ui`. The
     // confirm step is handed in as `askConfirm`, so this file has no opinion
     // about where the card lives.
-    expect(screen).toContain('askConfirm(declareConfirm(row.name)');
+    // `row.people` and not `row.name`: a war is declared on a *country*
+    // (`seatPeople`, `docs/flags.md` (ppppp)), and the card reads "the Inca".
+    expect(screen).toContain('askConfirm(declareConfirm(row.people)');
   });
 
   it('asks the audience through an option, and never imports the bot', () => {

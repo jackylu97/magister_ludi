@@ -190,3 +190,26 @@ describe('the painted ground batches', () => {
     expect(geometries(layer).length).toBe(before.length);
   });
 });
+
+it('refits cached road and border ribbons when a hill becomes terraces or is restored', () => {
+  const { state } = world();
+  for (const tile of state.map.tiles) if (tile.terrain === 'grassland') tile.hills = true;
+  const prepared = prepareTerrainMap(state.map, { wrap: true });
+  for (const plan of [planPaintedRoads(state, prepared), planPaintedTerritory(state, prepared)]) {
+    const entry = [...plan].find(([cell]) => state.map.tiles[cell]!.terrain === 'grassland')!;
+    const [cell, marks] = entry, tile = state.map.tiles[cell]!, original = tile.improvement;
+    const one: GroundPlan = new Map([[cell, marks]]), layer = ground();
+    layer.build(state, prepared, one, null);
+    const before = geometries(layer)[0]!, positions = Array.from(before.getAttribute('position').array);
+    tile.improvement = 'terraces';
+    layer.build(state, prepared, one, null);
+    const terrace = geometries(layer)[0]!;
+    expect(terrace).not.toBe(before);
+    expect(Array.from(terrace.getAttribute('position').array)).not.toEqual(positions);
+    layer.build(state, prepared, one, null);
+    expect(geometries(layer)[0]).toBe(terrace);
+    tile.improvement = original;
+    layer.build(state, prepared, one, null);
+    expect(Array.from(geometries(layer)[0]!.getAttribute('position').array)).toEqual(positions);
+  }
+});

@@ -132,9 +132,27 @@ Reference: **`docs/units.md`** (the roster; generated) and
   a road step costs a third by default, a fifth under Machinery. Zone of control
   is a toll, never a lock. Shore crossing is a pair-of-hexes rule; ships are
   exempt.
+- **Three rules about who is in the way** (`docs/flags.md` (ooooo), 2026-09-15),
+  all of them inside `stepCost`'s discipline:
+  1. **A piece at peace is not a wall.** A hex holding a piece of a seat this
+     empire is not at war with — its own included — may be *passed through* with
+     the movement to reach a hex beyond it; `canTransit` admits it, `canStopOn`
+     refuses it, and the pass costs the ground and nothing more. A hostile piece
+     blocks as it always did, and the wild is at war with everybody.
+  2. **Zone of control is a war toll.** `zocField` counts only the pieces, towns
+     and (under the Great Wall) borders of seats this empire is at war with. A
+     neighbour at peace exerts none.
+  3. **The swap.** A military piece ordered onto a hex holding one of its own
+     seat's military pieces trades places with it: the mover walks its route, the
+     sitter walks the reverse, and the order is accepted only if **both** walks
+     fit this turn (`planSwap` — never a civilian, never another seat's, both
+     landings priced through `stepCost`). It is a `moveUnit` with the friend's
+     hex as its target, so the highlight and the reducer agree hex for hex, and
+     both pieces spend their movement, break their trench and wake.
 - **`arriveOnTile`** (`arrival.ts`) is the one "came to rest here" seam — ruins
   claimed, camps burnt, civilians captured, a march refilled under The King's
-  Road. Any new way to move a unit calls it.
+  Road. Any new way to move a unit calls it — the swap walks both its pieces
+  through `advanceAlongPath`, so both arrivals land there.
 - **Combat is flat points on one ledger** (`planCombat`). Terrain, fortification,
   the general's aura and a wall are labelled strength lines, never multipliers;
   only two attacker-side percentages survive (a river crossing, and a card's own).
@@ -187,7 +205,7 @@ code: `src/sim/statecraft/` (`evaluator.ts` · `describers.ts` · `draft.ts`).
 
 - Culture fills **one** pool (`Player.culturePool` IS the draft basket); border
   culture (`City.culture`) is a separate channel. The draft meter is
-  `12 + 6n + n^2.8`. Offers are drawn once and spent by a command; a pick names
+  `12 + 5n + n^2.65`. Offers are drawn once and spent by a command; a pick names
   an index. Adoption rebuilds the slots (total amnesty). Seals are absolute turns.
 - **No levels**: an Order is what its row prints, held once. A draft is take one
   or **pass** — a skip spends the hand and raises `orderSkips`, and each banked
@@ -251,7 +269,7 @@ Reference: **`docs/great-people.md`** (generated roster, sync-tested).
 
 - **Called, never built or bought.** Renown is one pool, banked in exactly one
   place (`settleRenownWindfall`) and explained as one list. The ladder is
-  `floor(75 + 225n + n^2.8)` — the draft ladder's arithmetic, one currency over.
+  `floor(75 + 180n + n^2.65)` — the draft ladder's arithmetic, one currency over.
 - The draw is **weighted and never restricted**: every name of the age is in the
   bag, each family weighted by its share of where the empire's renown came from.
   Names are world-shared and consumed on the pick. The draw spills
@@ -317,9 +335,11 @@ is a bench. An improvement unique is the same two questions asked one table over
 variant improvement may carry `countsAs`, which is what makes a terrace a farm
 wherever the rules read a farm. There is no draft, no offer and no age machinery — the first cut's
 deck of twelve cards a figure retired in batch L6a. Leaders also carry **start
-biases** (three stages, `startPositions.ts`), **fifteen city names** and a pair
-of **colours** the board wears; all three are tables in `docs/leaders.md`,
-mirrored in `data/leaders.json` and held together by sync tests.
+biases** (three stages, `startPositions.ts`), **fifteen city names**, a pair of
+**colours** the board wears and a **people** word ("Inca", "French") for the
+sentences that want a nation; all four are tables in `docs/leaders.md`, mirrored
+in `data/leaders.json` and held together by sync tests. A seat is **called by its
+figure everywhere** — see the surfaces section's `seatName` / `seatPeople` note.
 
 ## Barbarians
 
@@ -417,6 +437,15 @@ Eight root pages, all named in `vite.config.ts` inputs:
   with Begin). Nothing routes and no field is rebuilt between steps, which is
   what keeps `currentConfig` byte-identical for the same choices. The step walk,
   the breadcrumbs, the summary and the keys are `src/ui/landingFlow.ts`.
+- **A seat is called by its figure** (`docs/flags.md` (ppppp)): `seatName(state,
+  id)` and `seatPeople(state, id)` (`src/sim/leaderData.ts`) are the one reading
+  — the figure's name where a seat sits under one, the ink's name where it does
+  not, and the country word (`LeaderDef.people`) for the sentences that want a
+  nation ("at war with the Inca"). Every surface asks the reading and nothing
+  prints `Player.name`, which stays what the config wrote — the two stated
+  exceptions, both deliberate, are the setup screen's colour swatches and the
+  save shelf's own label. Pinned by a source sweep,
+  `test/ui/seatNames.test.ts`.
 - **A named thing in a describer is a keyword ref** — `[[kind:id|Name]]` via
   `ref()`; a raw `[[` on any surface fails the sweep.
 - Player-facing words are plain, numbers never appear in written prose, and

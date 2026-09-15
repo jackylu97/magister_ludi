@@ -4769,3 +4769,60 @@ the purchase gate and the greyed × in the city panel all say one sentence). The
 bot gained the two terms the rule owes it: a challenger technology is charged
 the beakers its road would leave standing, and a re-decision is charged a share
 of how far through the current row the town already is.
+
+### 2026-09-15 — Approved terrace farm enters the painted game
+
+The user approved the five-shelf terrace mockup and asked to put it in the game.
+Pachacuti's `terraces` improvement now draws that same cultivated hillside and
+small summit farmhouse, independently of its simulation `countsAs: farm` rule.
+It replaces the hill faces on its own cell at both terrain detail levels;
+removing the improvement restores those faces. The base tile and river banks
+remain. Ground picking and unit contacts use the planting shelves, while roads
+and territory ribbons reproject when the improvement changes. Reversible index
+edits preserve the board's vertex buffers and wrap copies instead of rebuilding
+the map. Review through the production renderer at
+`/flair.html?review=works&work=terraces&light=golden&detail=close`; its road,
+unit, fog and improvement toggles exercise the placement and lifecycle. The
+approved standalone art comparison remains available with `&mockup`.
+
+### 2026-09-15 — Lower world camera, unchanged city view
+
+For the user's camera experiment, the world elevation is 50° instead of 57°.
+City screens retain 57° through `camera.cityElevation` in `data/view3d.json`.
+City focus updates the camera before fitting the work radius; leaving city mode
+restores the world angle while retaining the current target and zoom. Picking,
+vertical drag compensation and shadow coverage read the current angle, and
+camera-facing badges refresh only when switching between the two modes.
+
+### 2026-09-15 — Camera easing and movement-ink alternatives
+
+The city angle is now 60°, easing to and from the world's 50° over the existing
+camera pan duration. Reopening/closing during the transition reverses from its
+current pitch, and reduced motion applies the endpoint immediately. City fitting
+uses the destination angle while the live camera eases; camera-facing labels
+refresh when it settles, without rebuilding the world every animation frame.
+
+Movement highlight alternatives remain **review-only**, at
+`/flair.html?review=movement`: corner brackets, fine individual rims and a single
+range boundary, beside the existing white wash. The alternatives use projected
+SVG strokes over the production scene, follow terrain samples and leave centers
+clear. They do not modify the game overlay implementation or its tunables.
+
+### 2026-09-15 — Responsive camera transitions
+
+Camera pans and city pitch/zoom transitions now take 320 ms with an immediate
+ease-out response instead of the previous 620 ms slow-in curve. World/city
+angles remain 50°/60°. Animated zooms reserve unit-shadow coverage for both
+endpoints, avoiding a shadow-map resize on every intermediate zoom frame;
+coverage tightens again on arrival. Pans leaving that coverage and moving
+units still refresh shadows normally.
+
+### 2026-09-15 — Approved movement range boundary
+
+The continuous range boundary is now the game's movement highlight. A muted
+ivory frontier with a fine dark backing replaces the white tile washes and
+individual reachable rims. Hover/selection rings, route dots, turn markers and
+attack warnings remain. The frontier follows terrain, wraps across the seam,
+retains unreachable holes, and includes the selected origin. Its two batched
+buffers are reused on hover and replaced when the range or terrain changes.
+The movement gallery's current-game option now shows this production treatment.

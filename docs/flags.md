@@ -19,6 +19,135 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(rrrrr) The Khopesh upgrades into the Legionary — BUILT** (the user,
+2026-09-15: *"khopesh should upgrade into legionary"*). `upgradesTo` on the
+row: it went straight to the Longswordsman, skipping the rung every other
+sword climbs; the roster doc is re-printed.
+
+**(ttttt) A recommended site in the settler lens — RULED, S1** (the user,
+2026-09-15: *"could we implement a map icon for recommended city settlement
+locations, like in civ? hovering over it should give some indicator (we
+recommend you build a city here - access to X luxuries, the yields are
+good, etc). It should only appear in the settler lens."*). The bot already
+appraises sites (`src/ai/`'s expansion rows: `expansion.siteSearchRadius`,
+the site's yields, luxuries, fresh water, the falloff from the capital) —
+**one reading, shared**: `explainSite(state, playerId, tile)` returns a
+labelled list (rule 5's shape — the luxuries it would reach, the fresh
+water, the worked yields of its ring, the coast, the distance from the
+nearest own town, the hills), `foldSite` its one figure, and `readSites`
+the memo in `readings.ts` — the bot's own site appraisal re-based on it so
+the icon and the bot agree about what a good site is (the bot's decisions
+may move; digests re-taken, said so). The lens: with a settler selected
+(the settler lens is what shows when a settler is selected today — the
+founding preview), the top few sites in the seat's charted ground within
+reach (a knob, `ui.recommendedSites` ≈ 3, and a floor on the figure) draw
+a marker in the tile atlas (path data, the atlas discipline; a new mark
+joins the flair gallery in the same pass) on the hex, visible only in that
+lens and only where `foundingErrorAt` is null. Hovering the marker prints
+the list in plain words — "A good site: three luxuries in reach (Silk,
+Wine, Gems), fresh water, strong food" — through the sticky info card;
+clicking it does nothing a click on the hex would not. Fog: a site is
+recommended only on charted hexes and never on ones the seat cannot see
+the yields of (rule 5's ctx). Pins: the reading's list, the fold, the memo
+on the revision, the lens shows the marker only with a settler selected,
+the words print, no marker on an unfoundable hex; the P-series pixel pair
+unchanged at turn one with nothing selected. The bot's arena averages
+before/after in the report if its appraisal was re-based.
+
+**(sssss) Combat odds at a distance — RULED, U1, after M1** (the user,
+2026-09-15: *"the unit overview should show the combat odds regardless of
+movement/adjacency, players need a way to compare strength without
+marching their units into combat."*). Today the forecast — both sides'
+strength and the damage each would take, `planCombat`'s own reading — shows
+only when a selected piece hovers an enemy it could strike this turn
+(adjacent, or in range, with movement). Rule: with a piece selected, hovering
+**any** enemy piece or town in sight shows the same forecast as if the two
+were adjacent on the target's own hex — the ground the target stands on,
+its fortification, the general's aura, the waterline's refusals printed as
+refusals, with a plain line saying it is a comparison and not an order
+("out of reach — a comparison"); the right-click still refuses what
+`attackError` refuses. One reading (`forecastAt` or its existing name in
+`src/ui/controls.ts`), the card's tint says which. Pins in `test/ui/`: a
+forecast for an enemy three hexes off equals the forecast the same pair
+would get adjacent, less nothing; the order is still refused; the line
+prints. Waits for M1 (in `controls.ts` for the swap's card and tint).
+
+**(qqqqq) The culture and great-person ladders climb a fifth slower — BUILT**
+(the user, 2026-09-15: *"tune down the scaling of the culture tiers and the
+great people tiers by ~20% (the initial values are fine, but they get
+expensive too quickly)"*). Both ladders are `base + linear·n + n^exponent`
+with the same shape; the bases stay (culture 12, renown 75) and the two
+growth terms move: culture `costLinear` 6 → 5 and `costExponent` 2.8 → 2.65
+(the fifth draft −18 %, the tenth −28 %); renown `linear` 225 → 180 and
+`exponent` 2.8 → 2.65 (the third person −18 %, the sixth −19 %). The README
+and `docs/great-people.md` follow; the one literal pin re-taken.
+
+**(ppppp) A seat is named by its figure — BUILT, N1** (2026-09-15: `seatName`/`seatPeople` in `leaderData.ts`, `LeaderDef.people` on every row and in the doc's table ("people", not "civ"), every print site through the one reading and a source sweep pinning it; the setup swatches and a leaderless save's shelf label keep the ink's name by design. **Two follow-up rows**: the sim's own refusals about your own empire — `purchase.ts`, `religion.ts`, `tech.ts`, `greatPeople.ts`, `discoveries.ts`, `statecraft/draft.ts` — still say "Crimson has 40 gold", matched literally by two mirrors in `wants.ts`; and the diplomacy feed's possessives read "the Inca' paper" — a people word wants a different sentence shape.) Originally: (the user, 2026-09-15:
+*"players should be identified by their leader choice - let's retire the
+color naming scheme unless the user has selected no leader"*). Today a seat
+is "Crimson" or "Teal" — its ink's name, from `src/ui/gameSetup.ts`'s
+`SEATS` — on the top bar, the banners, the diplomacy sheet, the capture
+and war sentences, the turn card, the spectator feed and the Abacus, and
+the figure is a second line beside it. Rule: **a seat that has a figure is
+called by the figure** — "Pachacuti", "Modu Chanyu", "Joan of Arc" — and
+its empire by the figure's people where a sentence wants a nation ("the
+Inca", `LeaderDef`'s civilisation word; the doc's "The thirteen" table
+carries it); a seat with **no figure keeps the ink's name** as today, so
+the scheme is retired, not deleted. One reading (`seatName(state, id)` /
+`seatPeople` beside it, in the sim's `leaderData.ts` or a leaf the UI and
+the AI's feed both import), every surface through it — nothing prints
+`player.name` for a figured seat, pinned by a source sweep like
+`test/ui/seatRoster.test.ts`'s. `Player.name` stays what the config wrote
+(a save's own words; the ink's name is still what the setup screen shows
+in the colour swatch). Bot seats draw their figure at setup as they do
+today, so every bot is named. Two figures on one board are refused at setup
+already (one figure a seat), so names are unique. Docs: the README's UI
+paragraph; the changelog says no state moved.
+
+**(ooooo) Passing, swapping, and no toll from a friend — BUILT, M1** (2026-09-15: `TransitField` classifies a piece as a foreign town, a hostile soldier, a hostile civilian or a peaceful piece, once for the hoisted sweep and the fallback walk; `canTransit` refuses only the hostile soldier, `canStopOn` refuses resting on a peaceful piece; `zocField` counts only seats at war — pieces, towns and the Great Wall's borders; `planSwap` is the one reading of a swap, asked by the highlight and the reducer, and `swapPlaces` walks the mover then the sitter through `advanceAlongPath`, both arrivals through `arriveOnTile`; a `moveUnit` onto the friend's hex is the whole order, schema 116, the changelog saying a stored march now walks under the new rules; the info card prints "Swap with Spearman", the swap hex wearing the ordinary move tint until a tint of its own exists (U1's row). The bots take different roads: both 120-turn digests and the ranged-board pins re-taken with the measured reason. **Sacrifices kept**: a neighbour's column no longer corks a pass and its picket costs nothing until a declaration — the Great Wall buys nothing at peace; a swap spends both pieces' turns, breaks both trenches and drops the sitter's standing order, with the card's line the whole warning; a swap is never a standing order; `reachableTiles` may run one A* per own-soldier hex in the highlight; `walkFitsThisTurn` is a fifth reader of `stepCost`. **For W1**: the bots inherit the pass and the free picket through `canTransit`/`canStopOn` but cannot see the swap — `wants.ts`'s step-the-garrison-aside search is the case it would solve.) Originally: (the
+user, 2026-09-15: *"units should be able to 'move past' units that are
+blocking them if they have enough movement (i.e. the unit has enough
+movement to get to a tile as if the unit blocking wasn't there), this
+should apply only on civs you're not at war with. Units should not exert
+ZOC if you're not at war with them. Moving a military unit onto another
+should 'swap' the two unit's positions if they both have enough movement
+to reach the swapped destination tile."*). Three rules, one batch, all in
+`stepCost`'s discipline (the four readers — `findPath`, `reachableTiles`,
+`advanceAlongPath`, `pathTurns` — price alike, or a highlight lies):
+1. **A friend's piece is not a wall.** A hex holding a piece of a seat this
+   empire is **not at war with** (own pieces included) may be *passed
+   through* on the way to a further hex — `canTransit` admits it, `canStopOn`
+   still refuses it — exactly as a road through a town is walked, so a
+   column two deep in a pass no longer blocks the road. A hostile piece
+   blocks as it always did. The path's cost is the ground's; the pass costs
+   nothing extra. A move that would *end* on a friend's hex is refused as
+   before — unless rule 3 applies.
+2. **Zone of control is a war toll.** `zocField` counts only pieces of seats
+   this empire is at war with (the wild included); a neighbour at peace
+   exerts none. `zocExtraCost` and the highlight read the same field.
+3. **The swap.** A military piece ordered onto a hex holding one of **its
+   own seat's** military pieces (never a civilian, never another seat's)
+   swaps the two: the mover walks its path and the sitter walks the reverse,
+   and the order is accepted only if **both** have the movement to make
+   their whole walk this turn (each priced through `stepCost`, the sitter's
+   from its own hex to the mover's origin along the reverse of the path).
+   One command (`moveUnit` with the friendly hex as its target, or a
+   `swapUnits` command if the reducer's shape needs it — the validate-fully
+   rule holds: refused, the state is byte-identical), both arrivals through
+   `arriveOnTile`, both pieces' movement spent, both wake. The highlight
+   shows the swap hex as reachable in its own tint and the info card says
+   "swap with Warrior". The bot may use it or ignore it; the bot's decisions
+   must stay deterministic and the 120-turn digests are re-taken if they
+   move (a bot that now passes a friend takes a different road — that is
+   allowed, and said in the changelog). Schema: a v116 log replays unless
+   it contains a move the old rule refused (none can), so the schema stays
+   116 unless a new command is added — then 117, with the changelog's
+   sentence. Pins: pass-through at peace, wall at war, no ZOC at peace, the
+   swap accepted with both fed and refused with either short, civilians
+   never swapped, another seat never swapped, the highlight and the
+   reducer agreeing hex for hex (`reachableTiles` = the set of accepted
+   moves).
+
 **(nnnnn) The bots' wars — BUILT** (the user, 2026-09-15:
 *"the ai is probably too agressive in going to war, how is it valuing the
 decision to war right now?"* and, in a game where every bot but one had
@@ -57,7 +186,24 @@ sheet). **Fidelity is the arena**: the bot must still win its own games —
 determinism digest unchanged where no decision is meant to change (the
 opening, the builds). Report the measured shape before/after and a
 Sacrifices paragraph. Waits for A1 (the AI performance pass) to land, since
-both are in `src/ai/`. **Built**, and the whole of it —
+both are in `src/ai/`. **Addendum, the peace** (the user, 2026-09-15: *"the
+ai should have some idea of how many units it's lost to you vs how many
+it's killed, and factor that into it's decision for peace."*): a bot keeps
+the **exchange** of each war it is in — pieces it has lost to that enemy
+against pieces it has killed of theirs, since the war began, plus towns
+taken each way (`explainWarScore` already folds losses and towns, but as
+career totals; the per-war, since-declaration reading is what a peace
+decision needs, and `Player.triumphs`/the combat reports are where the
+counts already come from) — and **sues for peace** when the exchange has
+run against it past a knob (`war.peaceExchange`, the ratio of its losses
+to its kills that makes it ask) and its army advantage no longer clears
+the declaration bar, and **accepts** a peace offered when the exchange is
+against it or its advantage is gone; it declines peace while it is winning
+the exchange. Printed terms on the spectator feed; the persona bars keep
+their say (a warmonger asks later). Pinned: a war with a bad exchange
+proposes peace; a war with a good one declines it.
+
+**Built**, and the whole of it —
 measurement, clauses, knobs and what was sacrificed — is
 `docs/war-diplomacy.md` §14. The one thing the measurement changed about the
 ruling: **the persona bars are untouched**, because on the measured shape no
@@ -102,7 +248,7 @@ per town per kill, a temple holding its share — and lands on every town
 within **four** hexes of the field instead of two: `data/leaders.json`
 `pressure.range`, the doc's row follows. No new shape.
 
-**(jjjjj) The AI turn feels slow — RULED, A1** (the user, 2026-09-15:
+**(jjjjj) The AI turn feels slow — BUILT, A1** (2026-09-15: one End Turn is 90 % the bots' decisions, 10 % resolution, and a bot's command reaches no repaint — at the same seed and turns the press costs *less* under the painted default than under `?art=toon3d`, so the renderer is not the cause. `TransitField` sweeps a byte a hex once per search in place of two linear walks per edge; `resourceCopies` reads off the slate. The press 2.08 → 1.76 s on the 41-town fixture, turns 101–120 of a six-seat game 2.6 → 1.5 s a turn, the 120-turn digests identical at two seeds. **Sacrifices kept**: a per-search byte-per-tile allocation (~1.3 MB of short-lived garbage a press, dearer than the walks on an empty board); a `TransitField` must never outlive the search that swept it; a new writer that changes what an empire holds must announce on the economy clock or `resourceCopies` goes stale — the hand-writing tests were taught to announce. **Still standing**: the appraisal asks `explainCity` per candidate rather than reading `readCity` once, ~14 % of the press.) Originally: (the user, 2026-09-15:
 *"could you do a performance pass on the ai - its starting to feel slow, i
 wonder if anything changed due to the new renderer"*). **Measure first**,
 on the 41-town fixture (`docs/plans/benchmarks/fixtures/standard-t120-s1`)

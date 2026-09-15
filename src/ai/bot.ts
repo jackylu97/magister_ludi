@@ -355,6 +355,7 @@ import { hasFoundedReligion } from './ground';
 // town of one empire, at the board's own revision, shared by this arm, the chains
 // and both banks. See `townFolds.ts`.
 import { townFolds, townIndexOf } from './townFolds';
+import { seatName, seatPeople } from '../sim/leaderData';
 
 /**
  * The tuning surface, re-exported so every existing reader keeps its import
@@ -1228,7 +1229,7 @@ function answerBlocker(
   const playerId = player.id;
   switch (blocker.kind) {
     case 'discovery':
-      return discoveryDecision(player);
+      return discoveryDecision(state, player);
     case 'statecraft':
       return blocker.what === 'order'
         ? orderDecision(state, player, sitting)
@@ -1310,7 +1311,7 @@ function wagerDecision(state: GameState, player: Player, sitting?: BotSitting): 
   return {
     kind: 'draft',
     command: { type: 'chooseWager', playerId: player.id, index: best.index },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       `Stakes ${best.name} — ${round1(best.standing)} of ${round1(best.bar)} today and ` +
       `${round1(best.projected)} by the close in ${stake.turnsLeft} turns, which is ` +
@@ -1341,7 +1342,7 @@ function censusDecision(state: GameState, player: Player): BotDecision | null {
   return {
     kind: 'draft',
     command: { type: 'dismissCensus', playerId: player.id },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       place < 0
         ? 'Files the census away — this bot reads the board itself.'
@@ -1370,7 +1371,7 @@ function housekeeping(
     return {
       kind: 'draft',
       command: { type: 'adoptGovernment', playerId: player.id, choiceIndex: faces.index },
-      subject: player.name,
+      subject: seatName(state, player.id),
       summary:
         `Claims the charter it has banked as ${cardName(sc.pendingGovernment.options[faces.index]!)} — ` +
         'its own signature, plus what this empire’s held cards would be worth in the slots it opens.',
@@ -2253,7 +2254,7 @@ function slottingDecision(
   return {
     kind: 'draft',
     command: { type: 'slotOrder', playerId: player.id, cardId: best.cardId, slotIndex: best.slot },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       `Puts ${cardName(best.cardId)} into slot ${best.slot + 1}, the ${SLOT_WORDS[type]} office — ` +
       'a card outside a slot is paying nothing, and the office fewest cards fit is filled first.',
@@ -2393,7 +2394,7 @@ function reslotDecision(
   return {
     kind: 'draft',
     command: { type: 'unslotOrder', playerId: player.id, slotIndex: best.slot },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       `Empties slot ${best.slot + 1}: ${cardName(best.cardId)} is worth ${round1(best.gain)} a turn more to ` +
       `this empire than ${cardName(seated.card)}, and the chair is out of its seal.`,
@@ -2701,7 +2702,7 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
     return {
       kind: 'draft',
       command: { type: 'chooseOrder', playerId, optionIndex: 0 },
-      subject: player.name,
+      subject: seatName(state, player.id),
       summary: 'Takes the first option: there is no offer to read.',
       candidates: [],
     };
@@ -2721,7 +2722,7 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
     return {
       kind: 'draft',
       command: { type: 'skipOrderOffer', playerId },
-      subject: player.name,
+      subject: seatName(state, player.id),
       summary:
         `Passes the whole hand — one more rung of pity on the next deal is worth ` +
         `${round1(pass.score)} against ${round1(best?.score ?? 0)} for the best card on the table.`,
@@ -2731,7 +2732,7 @@ function orderDecision(state: GameState, player: Player, sitting?: BotSitting): 
   return {
     kind: 'draft',
     command: { type: 'chooseOrder', playerId, optionIndex: picked.index },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       taken === undefined
         ? 'Takes the first option: there is no card to read.'
@@ -2796,7 +2797,7 @@ function doctrineDecision(state: GameState, player: Player, sitting?: BotSitting
   return {
     kind: 'draft',
     command: { type: 'chooseDoctrine', playerId, optionIndex: picked.index },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       options.length === 0
         ? 'Takes the first option: there is no offer to read.'
@@ -2841,7 +2842,7 @@ function beliefDecision(state: GameState, player: Player, sitting?: BotSitting):
   return {
     kind: 'draft',
     command: { type: 'chooseBelief', playerId, optionIndex: picked.index },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       options.length === 0
         ? 'Takes the first option: there is no offer to read.'
@@ -2915,7 +2916,7 @@ function beliefRedeal(
   return {
     kind: 'draft',
     command: { type: 'rerollOffer', playerId: player.id },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       `Asks the gods again — the first asking on a hand is free, and the best god on this table is ` +
       `worth ${round1(best)} against ${round1(mean)} for an average draw from the bag.`,
@@ -2948,13 +2949,13 @@ function redealBag(state: GameState, player: Player): readonly BeliefId[] {
  * The candidates are still listed, so a reader can see exactly what was passed
  * over.
  */
-function discoveryDecision(player: Player): BotDecision {
+function discoveryDecision(state: GameState, player: Player): BotDecision {
   const offer = player.pendingDiscovery;
   const options = offer?.options ?? [];
   const decision: BotDecision = {
     kind: 'draft',
     command: { type: 'chooseDiscovery', playerId: player.id, optionIndex: 0 },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary: 'Takes the first boon offered — this bot does not appraise a ruin’s three at all.',
     candidates: unweighed(options.map((id) => discoveryDef(id).name)),
   };
@@ -3273,7 +3274,7 @@ function greatPersonDecision(
   return {
     kind: 'draft',
     command: { type: 'chooseGreatPerson', playerId: player.id, optionIndex: picked },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       best === null
         ? 'Every name in the hand is spent; sends the first anyway, which is what makes the reducer redraw.'
@@ -3409,7 +3410,7 @@ function researchCommand(
   return {
     kind: 'research',
     command: { type: 'chooseResearch', playerId, techId: goal, queue: 'replace' },
-    subject: player.name,
+    subject: seatName(state, player.id),
     summary:
       `Aims at ${techDef(goal).name} and lays in the ${wanted.length}-node road behind it ` +
       `(${wanted.map((id) => techDef(id).name).join(' → ')}).`,
@@ -5902,7 +5903,8 @@ function nearestHostile(
     if (nearest !== null && distance >= nearest.distance) continue;
     const owner = playerById(state, other.ownerId);
     nearest = {
-      what: owner?.barbarian === true ? 'a raider' : `a ${owner?.name ?? 'foreign'} column`,
+      what:
+        owner?.barbarian === true ? 'a raider' : `a ${seatPeople(state, other.ownerId)} column`,
       distance,
     };
   }
@@ -5971,8 +5973,7 @@ function civilianDanger(state: GameState, player: Player, unit: Unit): string | 
   const ai = aiFor(player);
   const holder = tileOwnerPlayerId(state, unit.col, unit.row);
   if (holder !== null && holder !== player.id && atWar(state, player.id, holder)) {
-    const owner = playerById(state, holder);
-    return `the ${owner?.name ?? 'enemy'}' own fields under it, and a war on with them`;
+    return `the ${seatPeople(state, holder)}' own fields under it, and a war on with them`;
   }
   if (escortWithin(state, player, unit) !== null) return null;
   const danger = nearestHostile(state, player, unit.col, unit.row, ai.war.escortRadius);
@@ -7195,7 +7196,8 @@ function nearestSightedHostile(
     nearest = {
       hex,
       distance,
-      what: owner?.barbarian === true ? 'a raider' : `a ${owner?.name ?? 'foreign'} column`,
+      what:
+        owner?.barbarian === true ? 'a raider' : `a ${seatPeople(state, other.ownerId)} column`,
     };
   }
   return nearest;
@@ -8087,7 +8089,7 @@ function traderCommand(
       const label =
         to.ownerId === player.id
           ? `${from.name} → ${to.name}`
-          : `${from.name} → ${to.name} (${playerById(state, to.ownerId)?.name ?? 'abroad'})`;
+          : `${from.name} → ${to.name} (${seatName(state, to.ownerId)})`;
       const mode = bestRouteMode(state, player.id, unit.id, from.id, to.id);
       if (mode === null) {
         // Land's own sentence, which `bestRouteMode` has just proved is a

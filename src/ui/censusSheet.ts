@@ -51,6 +51,7 @@ import { triumphDef } from '../sim/triumphData';
 import { YIELD_GLYPH, figure } from './figures';
 import { element } from './dom';
 import { createModalShell } from './modalShell';
+import { seatName } from '../sim/leaderData';
 
 /**
  * How each figure is **said** — the word the masthead ends on, the mark beside a
@@ -187,7 +188,7 @@ export function censusPage(
     const seat = state.players[row.playerId];
     return {
       playerId: row.playerId,
-      name: seat?.name ?? 'An empire',
+      name: seatName(state, row.playerId),
       color: seat?.color ?? '#000',
       rank: censusRankMark(at + 1),
       figure: `${figure(Math.floor(row.figure))}${words.glyph}`,

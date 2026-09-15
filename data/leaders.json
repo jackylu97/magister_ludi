@@ -2,6 +2,7 @@
   "leaders": {
     "pachacuti": {
       "name": "Pachacuti",
+      "people": "Inca",
       "abilities": [
         {
           "id": "qhapaqNan",
@@ -92,6 +93,7 @@
     },
     "taizong": {
       "name": "Emperor Taizong",
+      "people": "Tang",
       "abilities": [
         {
           "id": "theMandate",
@@ -181,6 +183,7 @@
     },
     "modu": {
       "name": "Modu Chanyu",
+      "people": "Xiongnu",
       "abilities": [
         {
           "id": "steppeRiders",
@@ -277,6 +280,7 @@
     },
     "akhenaten": {
       "name": "Akhenaten",
+      "people": "Egyptians",
       "abilities": [
         {
           "id": "greatWorks",
@@ -361,6 +365,7 @@
     },
     "almamun": {
       "name": "Al-Ma'mun",
+      "people": "Abbasids",
       "abilities": [
         {
           "id": "mutazila",
@@ -437,6 +442,7 @@
     },
     "mithridates": {
       "name": "Mithridates VI",
+      "people": "Pontics",
       "abilities": [
         {
           "id": "poisonKing",
@@ -523,6 +529,7 @@
     },
     "joan": {
       "name": "Joan of Arc",
+      "people": "French",
       "abilities": [
         {
           "id": "theVoices",
@@ -594,6 +601,7 @@
     },
     "mansaMusa": {
       "name": "Mansa Musa",
+      "people": "Malians",
       "abilities": [
         {
           "id": "goldOfWangara",
@@ -698,6 +706,7 @@
     },
     "zhengHeOfMing": {
       "name": "Zheng He",
+      "people": "Ming",
       "abilities": [
         {
           "id": "treasureFleet",
@@ -789,6 +798,7 @@
     },
     "nezahualcoyotl": {
       "name": "Nezahualcoyotl",
+      "people": "Texcocans",
       "abilities": [
         {
           "id": "theDikes",
@@ -876,6 +886,7 @@
     },
     "hypatiaOfAlexandria": {
       "name": "Hypatia",
+      "people": "Alexandrians",
       "abilities": [
         {
           "id": "theMuseion",
@@ -945,6 +956,7 @@
     },
     "hildegard": {
       "name": "Hildegard of Bingen",
+      "people": "Rhinelanders",
       "abilities": [
         {
           "id": "theRites",
@@ -1028,6 +1040,7 @@
     },
     "ibnBattutaOfTangier": {
       "name": "Ibn Battuta",
+      "people": "Maghrebis",
       "abilities": [
         {
           "id": "guestAtEveryCourt",

@@ -32,11 +32,12 @@
  */
 
 import { type DiscoveryKind, discoveryKindTech } from '../sim/discoveryData';
-import { type GameState, type ReligionId, cityReligion, playerById } from '../sim/state';
+import { type GameState, type ReligionId, cityReligion } from '../sim/state';
 import { hasTech } from '../sim/tech';
 import { HIDDEN, isVisibleTo, visibilityAt } from '../sim/visibility';
 import { beliefDef, isBeliefId } from '../sim/religionData';
 import type { CellRef } from './mapView';
+import { seatName } from '../sim/leaderData';
 
 /**
  * One thing a notification can make happen when it is clicked or tapped.
@@ -477,7 +478,7 @@ export function createReligionWatcher(): ReligionWatcher {
     const found: { key: string; news: ReligionNews }[] = [];
     for (const religion of state.religions) {
       const mine = religion.founderId === seatId;
-      const founder = playerById(state, religion.founderId)?.name ?? 'An empire';
+      const founder = seatName(state, religion.founderId);
       found.push({
         key: `founded:${religion.id}`,
         news: {
@@ -537,7 +538,7 @@ export function createReligionWatcher(): ReligionWatcher {
           const religion = state.religions[followed];
           const city = state.cities.find((town) => town.id === cityId);
           if (religion && city) {
-            const founder = playerById(state, religion.founderId)?.name ?? 'a rival';
+            const founder = seatName(state, religion.founderId);
             fresh.push({
               kind: 'converted',
               text:

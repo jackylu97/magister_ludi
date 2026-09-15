@@ -292,6 +292,8 @@ drawPaletteAndRamp(
 // The focused review loads the production renderer without all the other stalls.
 {
   const root = open('painted-world', 'Painted World', 'Roads, discoveries and paired empire borders on the live terrain.');
+  const movement = element('a', undefined, 'Compare movement highlight treatments');
+  movement.href = '/flair.html?review=movement'; root.append(movement, element('br'));
   const link = document.createElement('a');
   link.href = '/flair.html?review=world&view=borders&light=golden';
   link.textContent = 'Open the world-layer review'; root.append(link);
@@ -301,6 +303,9 @@ drawPaletteAndRamp(
     'Everyday works and six special monuments on flat ground, hills and coast, beside the painted city and farm.');
   const link = element('a', undefined, 'Open the painted improvement review');
   link.href = '/flair.html?review=works'; root.append(link);
+  const terraces = element('a', undefined, 'Review Pachacuti’s terrace farm');
+  terraces.href = '/flair.html?review=works&work=terraces&light=golden&detail=close';
+  root.append(element('br'), terraces);
 }
 
 {

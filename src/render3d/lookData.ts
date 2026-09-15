@@ -1152,6 +1152,8 @@ export interface LookSpec {
 
 export interface CameraSpec {
   elevation: number;
+  /** The steeper overview used while a city screen is open. */
+  cityElevation: number;
   azimuth: number;
   frustum: number;
   minFrustum: number;
@@ -1275,6 +1277,13 @@ export interface OverlaySpec {
   reachableRimOuter: number;
   /** Band width of the reachable rim, as a fraction of the hex radius. */
   reachableRimWidth: number;
+  /** Continuous movement frontier; tile centers remain clear. Widths are world units. */
+  rangeColor: number;
+  rangeOpacity: number;
+  rangeWidth: number;
+  rangeBackingColor: number;
+  rangeBackingOpacity: number;
+  rangeBackingWidth: number;
   pathColor: number;
   pathOpacity: number;
   pathDotRadius: number;
@@ -2540,6 +2549,12 @@ export const VIEW3D: View3DData = {
     reachableRimOpacity: viewJson.overlay.reachableRimOpacity,
     reachableRimOuter: viewJson.overlay.reachableRimOuter,
     reachableRimWidth: viewJson.overlay.reachableRimWidth,
+    rangeColor: parseColor(viewJson.overlay.rangeColor, 'overlay.rangeColor'),
+    rangeOpacity: viewJson.overlay.rangeOpacity,
+    rangeWidth: viewJson.overlay.rangeWidth,
+    rangeBackingColor: parseColor(viewJson.overlay.rangeBackingColor, 'overlay.rangeBackingColor'),
+    rangeBackingOpacity: viewJson.overlay.rangeBackingOpacity,
+    rangeBackingWidth: viewJson.overlay.rangeBackingWidth,
     pathColor: parseColor(viewJson.overlay.pathColor, 'overlay.pathColor'),
     pathOpacity: viewJson.overlay.pathOpacity,
     pathDotRadius: viewJson.overlay.pathDotRadius,

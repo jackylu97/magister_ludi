@@ -35,13 +35,10 @@
  *
  * Rebuild policy
  * --------------
- * The whole layer is thrown away and rebuilt whenever the selection, the hover
- * or the reachable set changes — never per frame. That is a few hundred
- * instances at most (a unit with three movement points reaches perhaps thirty
- * tiles, each now carrying a wash *and* a rim, times three wrap copies), and
- * rebuilding is what keeps this layer incapable of disagreeing with the state
- * that produced it. Two instances per reachable hex is still two buckets for the
- * whole set, because both are keyed on one colour apiece.
+ * Instance handles refresh when selection, hover or movement options change.
+ * The frontier's terrain-following buffers are cached across hover changes;
+ * only changes to the range or underlying relief regenerate those samples.
+ * Two batches cover the entire frontier, including its three wrap copies.
  *
  * The medallions are the one thing here that is a *printed* mark rather than
  * flat ink — a cell of the tile atlas, like a yield glyph (see `badges3d.ts`).
@@ -55,7 +52,7 @@
  * board is told which hexes wear them — never asked to work it out.
  */
 
-import { Group, Matrix4, Quaternion, Vector3 } from 'three';
+import { BufferGeometry, Group, Matrix4, Quaternion, Vector3 } from 'three';
 
 import { type GameMap, getTileAt } from '../sim/map';
 
@@ -65,6 +62,7 @@ import { InstanceCollector, RENDER_ORDER, disposeInstancedGroup } from './instan
 import { cellCenter, tileTopY, wrapWidth } from './layout';
 import { VIEW3D } from './lookData';
 import type { MaterialLibrary } from './toon';
+import { movementEdges, movementBoundaryGeometry } from './movementBoundary';
 
 const OVERLAY = VIEW3D.overlay;
 const TERRITORY = VIEW3D.territory;
@@ -243,6 +241,12 @@ function medallionGeometry(geometry: BoardGeometry, turn: number) {
 export class OverlayLayer {
   readonly group = new Group();
   private drawCallCount = 0;
+  private boundaryMap: GameMap | null = null;
+  private boundaryKey = '';
+  private boundary: BufferGeometry[] = [];
+
+  /** Terraces or another relief replacement changed the registered terrain. */
+  invalidateSurface(): void { this.boundaryMap = null; }
 
   /** Rebuilds every decal from scratch. See the module docblock. */
   build(
@@ -284,30 +288,25 @@ export class OverlayLayer {
       );
     }
 
-    // The reachable set: a wash *and* a rim, and the rim is the half that is
-    // actually read. A wash on its own has no edge — on grass beside sand its
-    // boundary is wherever the eye decides the tint stopped — which is why the
-    // highlight was "too subtle" (user, 2026-08-27) at any opacity anybody was
-    // willing to lay over terrain. One rim per hex rather than an outline around
-    // the region: the answer a player wants is "how many steps", and a set of
-    // drawn hexes can be counted where a blob can only be judged. See
-    // `OverlaySpec.reachableRimColor`.
-    for (const cell of state.reachable) {
-      const at = anchor(cell);
-      if (!at) continue;
-      collector.add(geometry.decal, [OVERLAY.reachableColor], new Matrix4().compose(at, identity, unit), {
-        onTop: true,
-        opacity: OVERLAY.reachableOpacity,
-      });
-      collector.add(
-        geometry.reachRing,
-        [OVERLAY.reachableRimColor],
-        new Matrix4().compose(at, identity, unit),
-        { onTop: true, opacity: OVERLAY.reachableRimOpacity },
-      );
+    // The approved range frontier replaces all per-tile washes and rims.
+    // Cache the terrain samples across pointer moves; only the destination
+    // ring and route change on hover, not the movement frontier's geometry.
+    const boundaryKey = state.reachable.map(c => `${c.col},${c.row}`).sort().join(';') +
+      `|${state.selection?.col},${state.selection?.row}`;
+    if (this.boundaryMap !== map || this.boundaryKey !== boundaryKey) {
+      this.boundary.forEach(g => g.dispose()); this.boundary = [];
+      this.boundaryMap = map; this.boundaryKey = boundaryKey;
+      const edges = movementEdges(map, state.reachable, state.selection);
+      if (edges.length) this.boundary = [
+        movementBoundaryGeometry(map, edges, OVERLAY.rangeBackingWidth),
+        movementBoundaryGeometry(map, edges, OVERLAY.rangeWidth),
+      ];
     }
+    this.boundary.forEach((shape, i) => collector.add(shape,
+      [i === 0 ? OVERLAY.rangeBackingColor : OVERLAY.rangeColor], new Matrix4(),
+      { onTop: true, opacity: i === 0 ? OVERLAY.rangeBackingOpacity : OVERLAY.rangeOpacity }));
 
-    // The attack tint, over the reachable wash rather than under it: a tile that
+    // The attack tint remains distinct inside the frontier: a tile that
     // is both walkable and defended is a tile you should read as a fight.
     for (const cell of state.attackable ?? []) {
       const at = anchor(cell);
@@ -472,5 +471,7 @@ export class OverlayLayer {
 
   dispose(): void {
     disposeInstancedGroup(this.group);
+    this.boundary.forEach(g => g.dispose()); this.boundary = [];
+    this.boundaryMap = null; this.boundaryKey = '';
   }
 }

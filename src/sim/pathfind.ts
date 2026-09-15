@@ -74,10 +74,27 @@
  * never reports them as destinations, and `reachableTiles` never highlights a
  * tile the unit could not legally end its move on.
  *
+ * **Friendly is everybody nobody has declared on**, since `docs/flags.md`
+ * (ooooo): a piece of a seat this empire is at peace with blocks *stopping*
+ * exactly as one of its own does, and a war is what turns a piece into a wall.
+ * One reading of that — `atWar`, per piece, hoisted into `TransitField` — and
+ * the zone of control asks it too, so "they are in my way" and "they hold this
+ * ground against me" are one question with one answer.
+ *
+ * The one hex a march may end on that somebody else is standing on is a **swap**
+ * (rule 3): two of one seat's soldiers trading places, which is `planSwap` and
+ * the one thing in this file that prices two walks instead of one.
+ *
  * An enemy's **civilians alone** block neither, for an army at war with them:
  * that hex is ground taken by walking onto it, and the taking is `arriveOnTile`'s
  * (see the last clause of `canTransit`, and `takesByWalking` for the composed
  * reading the fight and the interface ask).
+ *
+ * Both questions are **hoisted**, since the M-series: `transitField` sweeps the
+ * board once per search and `canTransit` reads one byte per hex instead of
+ * walking `state.cities` and `state.units` per edge. The rule is unchanged in
+ * every clause — the field is the same two readings, taken once — and a caller
+ * that hoists nothing still gets the walks. See `TransitField`.
  *
  * Determinism
  * -----------
@@ -116,7 +133,7 @@ import {
 } from './terrainData';
 import { isCoastal } from './water';
 import { type UnitDef, isCivilian, isCombatant, isExplorer, isNaval, unitDef } from './unitData';
-import { fullMovement, hasForeignUnit, hasStackingRoom, undefendedCiviliansOn } from './units';
+import { fullMovement, hasStackingRoom, undefendedCiviliansOn } from './units';
 
 /** An offset cell. The wire/serialisation form of a position. */
 export interface Cell {
@@ -317,6 +334,16 @@ export interface ReachableTile {
   tile: Tile;
   /** Total movement points spent walking from the unit's tile to this one. */
   cost: number;
+  /**
+   * True when getting there is a **swap** — one of this seat's soldiers is
+   * standing on it and would walk the route back (`planSwap`, rule 3).
+   *
+   * Written only when it is true, so a board with nobody's columns crossing is
+   * the list it always was. It is presentation: the interface tints the hex for
+   * what it is, and the order that takes it is the same `moveUnit` every other
+   * hex in the list takes.
+   */
+  swap?: true;
 }
 
 /**
@@ -808,10 +835,24 @@ export function isPassable(tile: Tile): boolean {
 
 /**
  * May `unit` move *through* this tile? Ground this mover can be on, with nothing
- * of anybody else's on it that could swing back and no **foreign city** on it
+ * **hostile** standing on it that could swing back and no **foreign city** on it
  * either. Friendly units are walked past, not around; a friendly city is ground
  * like any other; and a hex holding nothing but an enemy's civilians is ground a
  * soldier at war with them takes by walking onto it (the last clause below).
+ *
+ * **Hostile, since the passing ruling** (`docs/flags.md` (ooooo), rule 1: *"units
+ * should be able to move past units that are blocking them if they have enough
+ * movement… this should apply only on civs you're not at war with"*). A piece
+ * belonging to a seat this empire has not declared on is not a wall — it is a
+ * hex the column files through, exactly as it files through one of its own —
+ * and only a seat at war holds ground. The wild is at war with everybody
+ * (`atWar`), so a raider blocks as it always did and no barbarian clause was
+ * needed here or in the field.
+ *
+ * Transit is the whole of what that widens: `canStopOn` refuses to *rest* on a
+ * stranger's hex one function down, so two empires at peace still never share a
+ * hex. The two questions were always different and this is the ruling that makes
+ * the difference visible.
  *
  * The city clause is what makes a town capturable at all (2026-08-28): before
  * it, nothing asked a hex "is this somebody's else's city", so a unit could
@@ -834,10 +875,54 @@ export function canTransit(
   unit: Unit,
   tile: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  ground?: TransitField,
 ): boolean {
   if (tileMoveCost(tile, mover) === null) return false;
-  const city = cityAt(state, tile.col, tile.row);
-  if (city !== undefined && city.ownerId !== unit.ownerId) return false;
+  return transitPast(unit, tile, mover, standingOn(state, tile, unit.ownerId, ground));
+}
+
+/**
+ * What is standing on this hex against this seat: **the field when a search
+ * brought one**, the walks otherwise (the M-series hoist; `docs/flags.md`
+ * (fffff)'s follow-up row).
+ *
+ * The two linear walks used to open `state.cities` and `state.units` per *edge*
+ * — forty towns and three hundred pieces on a developed board, tens of thousands
+ * of edges in one sweep. That is `zocField`'s bargain word for word, and it is
+ * taken here the same way: one pass over the board per search, one byte per
+ * tile, and an edge nowhere near anybody costs a single array read. See
+ * `transitField`.
+ *
+ * The seat is compared rather than assumed. A field is a reading *against one
+ * owner*, and a caller that handed one built for somebody else would be handed a
+ * quietly wrong board; the compare costs nothing and makes that impossible, so a
+ * mismatch falls back to the walks rather than lying. `undefined` — nobody
+ * hoisted anything — takes the same road.
+ *
+ * It is a function of its own so that `canStopOn` can read the hex **once** for
+ * both of its questions: the gate's and its own.
+ */
+function standingOn(
+  state: GameState,
+  tile: Tile,
+  ownerId: number,
+  ground?: TransitField,
+): number {
+  if (ground !== undefined && ground.ownerId === ownerId) {
+    return ground.blocked[tileIndex(state.map, tile.col, tile.row)]!;
+  }
+  return standingBits(state, tile, ownerId);
+}
+
+/**
+ * `canTransit` minus the ground, over a hex already read — the three clauses
+ * about *who is there*, in the order the ruling states them.
+ *
+ * Split out for `standingOn`'s reason and no other: it is `canTransit`'s body,
+ * and `canTransit`'s docblock is the rule of record for every line of it.
+ */
+function transitPast(unit: Unit, tile: Tile, mover: MoveProfile, standing: number): boolean {
+  if ((standing & FOREIGN_CITY) !== 0) return false;
   /**
    * **A closed border is a wall, not a toll** (the war ruling, section 3).
    *
@@ -857,7 +942,18 @@ export function canTransit(
    * barred by. See `closedBordersFor`.
    */
   if (mover.closed?.bars(tile) === true) return false;
-  if (!hasForeignUnit(state, tile.col, tile.row, unit.ownerId)) return true;
+  /**
+   * **A piece that can swing back is the wall, and only that.** Asked here
+   * rather than beside the town above, so the closed border keeps its place in
+   * the order: a hex a wall bars is refused without anybody counting who is
+   * standing on it.
+   *
+   * At war with the seat that holds it and armed, so it holds ground: there is
+   * no amount of movement that buys passage past a spearman, which is the whole
+   * of what a front line is. A piece of a seat at peace sets no bit here at all
+   * — see `standingBits`, and the ruling quoted at the head of this function.
+   */
+  if ((standing & HOSTILE_SOLDIER) !== 0) return false;
   /**
    * **A hex holding nothing but somebody else's civilians is not a wall** — it
    * is ground a soldier takes by walking onto it (`docs/flags.md`, the archer
@@ -873,46 +969,64 @@ export function canTransit(
    * the route `findPath` returns and the step `advanceAlongPath` spends are one
    * answer rather than three that could drift.
    *
-   * Three conditions, and each of them is somebody's rule already:
+   * Two conditions now, where there were three: **at war** and **civilian** are
+   * the bit itself (`HOSTILE_CIVILIAN`, swept per piece against this seat), and
+   * the third is asked of the mover —
    *
    *   · **Armed.** A settler does not capture a settler. `isCombatant` is the
    *     same question the fight asks of an attacker, and it is what keeps this
    *     a rule about soldiers taking ground rather than a new way for a worker
    *     to be stolen by a worker.
-   *   · **At war with every one of them.** Walking off with an empire's people
-   *     is a blow, and a blow needs a war (`docs/war-diplomacy.md`, section 5) —
-   *     the same clause `planCombat` refuses a peacetime attack with. Asked per
-   *     owner because traders stack freely, so two empires' civilians can share
-   *     one hex and only one of the two may be at war with this mover.
-   *   · **Civilians only.** `undefendedCiviliansOn` (`units.ts`), which is the
-   *     one reading of the hex this rule, the fight and the interface share.
+   *
+   * The clause that used to read "at war with **every** one of them" has moved
+   * down to `canStopOn`, where it belongs: a neighbour's cart parked among an
+   * enemy's is now something a column walks *through* (rule 1) and still never
+   * rests on, so the taking cannot reach anybody this empire is at peace with.
    *
    * The foreign-city clause above already ran, so a town nobody is holding is
    * still refused: a city is taken by capture, never by a march.
    */
-  if (!isCombatant(unitDef(unit.type))) return false;
-  const undefended = undefendedCiviliansOn(state, tile.col, tile.row, unit.ownerId);
-  if (undefended === null) return false;
-  for (const civilian of undefended) {
-    if (!atWar(state, unit.ownerId, civilian.ownerId)) return false;
-  }
+  if ((standing & HOSTILE_CIVILIAN) !== 0 && !isCombatant(unitDef(unit.type))) return false;
   return true;
 }
 
 /**
- * May `unit` end its move on this tile? Everything `canTransit` wants, plus room
- * under the stacking cap for the unit's own category. The unit is excluded from
- * its own count, so "may I stay here?" is always true.
+ * May `unit` end its move on this tile? Everything `canTransit` wants, plus **no
+ * stranger standing here**, plus room under the stacking cap for the unit's own
+ * category. The unit is excluded from its own count, so "may I stay here?" is
+ * always true.
+ *
+ * **The stranger clause is rule 1's other half** (`docs/flags.md` (ooooo)).
+ * Transit now admits a hex held by a seat this empire is at peace with, so the
+ * refusal that used to fall out of `canTransit` has to be said here or two
+ * empires at peace would share a hex: a piece is *passed through*, never rested
+ * on. It is asked of the peaceful bit alone, because the hostile ones are
+ * already answered above — a soldier at war is a wall, and a hex of enemy
+ * civilians is ground this piece is taking, which is exactly the one case where
+ * somebody else's piece is standing where the march ends.
+ *
+ * `trading` is the piece this one is **changing places with** (rule 3, the
+ * swap): it is stepping the other way in the same command, so it is excused
+ * from the count rather than blocking a hex it is about to leave. Nothing else
+ * passes it, and it is the mover's own `exceptId` rather than a second
+ * exemption because a swapping piece is never standing on the hex it is asking
+ * about — see `planSwap`, which is the only caller.
  */
 export function canStopOn(
   state: GameState,
   unit: Unit,
   tile: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  ground?: TransitField,
+  trading?: Unit,
 ): boolean {
-  if (!canTransit(state, unit, tile, mover)) return false;
+  if (tileMoveCost(tile, mover) === null) return false;
+  // One reading of the hex for both questions — see `standingOn`.
+  const standing = standingOn(state, tile, unit.ownerId, ground);
+  if (!transitPast(unit, tile, mover, standing)) return false;
+  if ((standing & PEACEFUL_UNIT) !== 0) return false;
   const { category } = unitDef(unit.type);
-  return hasStackingRoom(state, tile.col, tile.row, category, unit.id);
+  return hasStackingRoom(state, tile.col, tile.row, category, trading?.id ?? unit.id);
 }
 
 /**
@@ -946,6 +1060,301 @@ export function takesByWalking(state: GameState, unit: Unit, tile: Tile): boolea
   return canStopOn(state, unit, tile);
 }
 
+// --- the swap ---------------------------------------------------------------
+
+/**
+ * Two of one seat's soldiers changing places: who moves, and along which route
+ * each of them walks (`docs/flags.md` (ooooo), rule 3).
+ *
+ * The **whole** of the order, resolved before anything moves, because the swap
+ * is one command that spends two pieces and a half-taken one would be a board
+ * with a column in two places at once. `path` is the mover's, `back` is the same
+ * hexes read the other way round, and the last cell of `back` is the hex the
+ * mover is standing on right now.
+ */
+export interface SwapPlan {
+  /** The piece standing on the target hex. It walks `back`. */
+  sitter: Unit;
+  /** The mover's route: the hexes it steps onto in order, the sitter's last. */
+  path: Cell[];
+  /** The sitter's route: the same hexes reversed, the mover's own hex last. */
+  back: Cell[];
+}
+
+/**
+ * Can this piece walk the **whole** of `path` on the points it is holding right
+ * now?
+ *
+ * `pathTurns` asked as a yes-or-no — same purse, same `stepCost`, same "a step
+ * onto a tile always succeeds while any movement remains" — and it is a separate
+ * loop for one reason: the estimate *stops counting* at a waypoint nothing can
+ * walk on (an order about to be abandoned is not an order about to take
+ * forever), while this has to answer **no** to exactly that. A swap is refused
+ * before it happens or not at all, so the question it asks is the strict one.
+ *
+ * It prices through `stepCost` like the four readers and adds nothing of its
+ * own; `canTransit` is asked beside it because a route found for one piece is
+ * being walked by another, and the two may not be able to cross the same ground
+ * (a hull and a spearman are both soldiers of the same seat).
+ */
+export function walkFitsThisTurn(
+  state: GameState,
+  unit: Unit,
+  path: readonly Cell[],
+  mover: MoveProfile = moveProfile(state, unit),
+): boolean {
+  const { map } = state;
+  let from = getTileAt(map, unit.col, unit.row);
+  if (!from) return false;
+  const field = zocField(state, unit.ownerId);
+  const ground = transitField(state, unit.ownerId);
+  let budget = Math.max(0, unit.movesLeft);
+  for (const cell of path) {
+    // Nothing left to start the step with: the march would stop here and store
+    // the rest, which is a march and not a swap.
+    if (budget <= 0) return false;
+    const to = getTileAt(map, cell.col, cell.row);
+    if (!to) return false;
+    if (!canTransit(state, unit, to, mover, ground)) return false;
+    const price = stepCost(map, from, to, mover, field);
+    if (price === null) return false;
+    budget = Math.max(0, snapMovement(budget - price.cost));
+    from = to;
+  }
+  return true;
+}
+
+/**
+ * The cheapest route to a hex this piece may **walk onto but not rest on** —
+ * `findPath`'s search with the goal admitted by `canTransit`.
+ *
+ * The one caller is `planSwap`, and the narrowing is the whole of why it is
+ * safe: the goal is a hex holding one of this seat's own soldiers, which rule 1
+ * already lets the column file through, and what happens when it gets there is
+ * the sitter's walk rather than a stacking rule quietly bent. Every other clause
+ * of the search — the ground, the tolls, the ties, the order — is `findPath`'s
+ * unchanged.
+ */
+export function findSwapPath(
+  state: GameState,
+  unit: Unit,
+  goal: Tile,
+  mover: MoveProfile = moveProfile(state, unit),
+): Cell[] | null {
+  return searchPath(state, unit, goal, mover, undefined, canTransit).path;
+}
+
+/**
+ * The swap `unit` would make by being ordered onto `tile`, or `null` when that
+ * is not a swap — which is nearly always.
+ *
+ * **One reading, two readers**, and that is the whole design: the highlight asks
+ * it to decide whether to offer the hex (`reachableTiles`), and the reducer asks
+ * it to decide whether to accept the order (`applyMoveUnit`). They therefore
+ * agree hex for hex by construction, including the ties inside A* — a plan built
+ * twice is built the same way twice, so the sitter is priced along the very
+ * route the mover will walk.
+ *
+ * Five refusals, and each is the ruling's own sentence:
+ *
+ *   · **a military piece.** `isCombatant` of both, the same predicate the fight
+ *     and the picket read. A worker does not trade places with anybody and
+ *     nobody trades places with a worker — a civilian is carried, taken or left,
+ *     never exchanged;
+ *   · **its own seat's.** Somebody else's soldier is fought or walked past, and
+ *     `canTransit` has already decided which;
+ *   · **a route it can walk at all**, priced through `stepCost` like every other
+ *     march (`findSwapPath`);
+ *   · **both walks fit this turn.** The mover's whole path and the sitter's
+ *     whole way back, each out of its own purse (`walkFitsThisTurn`). A swap is
+ *     not a standing order: a piece that cannot complete the exchange now does
+ *     not start it, because the half-walked version is two columns tangled in a
+ *     pass with nobody's order intact;
+ *   · **each has room where it lands**, with the other excused from the count
+ *     for the hex it is leaving (`canStopOn`'s `trading`). That is what refuses
+ *     the trade between a hull and a spearman without a naval clause: the ground
+ *     each is asked to stand on is asked of its own profile.
+ *
+ * The sitter is the **first** of this seat's soldiers standing there, in
+ * `state.units` order, which is the same tie-break every sweep of the board
+ * takes. Today the stacking cap makes that a list of one.
+ */
+export function planSwap(state: GameState, unit: Unit, tile: Tile): SwapPlan | null {
+  if (!isCombatant(unitDef(unit.type))) return null;
+  if (tile.col === unit.col && tile.row === unit.row) return null;
+  const here = getTileAt(state.map, unit.col, unit.row);
+  if (!here) return null;
+  let sitter: Unit | undefined;
+  for (const piece of state.units) {
+    if (piece.id === unit.id) continue;
+    if (piece.ownerId !== unit.ownerId) continue;
+    if (piece.col !== tile.col || piece.row !== tile.row) continue;
+    if (!isCombatant(unitDef(piece.type))) continue;
+    sitter = piece;
+    break;
+  }
+  if (sitter === undefined) return null;
+
+  const mover = moveProfile(state, unit);
+  const path = findSwapPath(state, unit, tile, mover);
+  if (path === null || path.length === 0) return null;
+  // The reverse: the hexes of the outward route read backwards, ending on the
+  // hex the mover is standing on. The sitter's own first step is the mover's
+  // last one taken the other way, which is what makes this *one* route walked
+  // from both ends rather than two routes that could disagree about the ground.
+  const back: Cell[] = [];
+  for (let at = path.length - 2; at >= 0; at--) back.push({ ...path[at]! });
+  back.push({ col: here.col, row: here.row });
+
+  const sitterProfile = moveProfile(state, sitter);
+  if (!walkFitsThisTurn(state, unit, path, mover)) return null;
+  if (!walkFitsThisTurn(state, sitter, back, sitterProfile)) return null;
+  if (!canStopOn(state, unit, tile, mover, undefined, sitter)) return null;
+  if (!canStopOn(state, sitter, here, sitterProfile, undefined, unit)) return null;
+  return { sitter, path, back };
+}
+
+// --- what is standing on the board ------------------------------------------
+
+/** A hex with somebody else's town on it. One bit of `TransitField.blocked`. */
+const FOREIGN_CITY = 1;
+/**
+ * A hex with a piece on it that **can swing back**: a seat this empire is at war
+ * with, armed. The wall.
+ */
+const HOSTILE_SOLDIER = 2;
+/**
+ * A hex with an enemy **civilian** on it: ground an armed piece takes by walking
+ * onto it, and a wall to everybody else.
+ */
+const HOSTILE_CIVILIAN = 4;
+/**
+ * A hex with a piece of a seat this empire is **at peace with** on it: walked
+ * through, never rested on (`docs/flags.md` (ooooo), rule 1).
+ *
+ * Three bits where there was one, and the split is the ruling: what a foreign
+ * piece does to a march now depends on whether anybody has declared anything, so
+ * the field has to have asked. Every one of them is a fact about a *pair* of
+ * seats, which is why a field is worthless to anybody but the seat it was swept
+ * for — see `TransitField.ownerId`.
+ */
+const PEACEFUL_UNIT = 8;
+
+/**
+ * What stands in one mover's way, against one seat, resolved once per search.
+ *
+ * `zocField`'s twin and built for the same measurement: the two questions
+ * `canTransit` asks of a hex — *is somebody else's town here* (`cityAt`, a walk
+ * of `state.cities`) and *is somebody else's piece here* (`hasForeignUnit`, a
+ * walk of `state.units`) — were linear scans **per edge**. On the developed
+ * standard fixture that is forty-one towns and two hundred and seventy-three
+ * pieces, sixty thousand times in one bot's turn; measured, the unit walk alone
+ * was the single dearest self-time row in an End Turn.
+ *
+ * One byte per tile and both bits in it, because the pair is always asked
+ * together and one array read is cheaper than two. `ownerId` rides along so the
+ * reading can never be spent against the wrong seat — see `canTransit`, which
+ * compares it and falls back to the walks rather than trusting a stranger's
+ * field.
+ *
+ * **Lifetime is one search**, exactly as the zone of control's is, and for the
+ * identical reason: a piece that moves changes the answer, and a field held
+ * across a mutation would be a promise the board breaks. Nothing stores one on
+ * the state.
+ *
+ * The board is swept by **array order** and marked by tile index — nothing here
+ * iterates a `Map` or a `Set`, and the marks are idempotent, so the field is a
+ * pure function of the state whatever order the pieces happen to be in.
+ */
+export interface TransitField {
+  /** The seat this reading is *against*. A field is worthless to anybody else. */
+  readonly ownerId: number;
+  /**
+   * Per tile index: `FOREIGN_CITY`, `HOSTILE_SOLDIER`, `HOSTILE_CIVILIAN` and
+   * `PEACEFUL_UNIT`, or nothing. The three piece bits are OR'd across everybody
+   * standing there, so a hex carrying an enemy's cart and a neighbour's scout
+   * reads as both and each clause finds its own answer.
+   */
+  readonly blocked: Uint8Array;
+}
+
+/**
+ * The bits one standing piece sets against `ownerId` — the whole of what the
+ * gates above know about somebody else's unit, in one place.
+ *
+ * Written once and read twice, which is the point: `transitField` sweeps the
+ * board with it and `standingBits` walks one hex with it, so the hoisted field
+ * and the fallback walk cannot mean different things. A piece of this seat's own
+ * sets nothing at all — a column files through its own army, and whether it may
+ * *stop* there is the stacking cap's question and always was.
+ *
+ * `atWar` is asked per piece rather than per edge, which is the bargain the
+ * whole field is: a walk of `state.wars` a few hundred times per search instead
+ * of tens of thousands. The wild answers true against everybody, so the raiders
+ * keep the wall they always had.
+ */
+function pieceBits(state: GameState, piece: Unit, ownerId: number): number {
+  if (piece.ownerId === ownerId) return 0;
+  if (!atWar(state, ownerId, piece.ownerId)) return PEACEFUL_UNIT;
+  return isCombatant(unitDef(piece.type)) ? HOSTILE_SOLDIER : HOSTILE_CIVILIAN;
+}
+
+/**
+ * What is standing on one hex, off `state.units` — the walk the field replaces,
+ * kept for every caller that hoisted nothing.
+ *
+ * `foreignCityOn`'s sibling, and the same promise: one hex, the same bits, the
+ * same `pieceBits` the sweep marked them with.
+ */
+function standingBits(state: GameState, tile: Tile, ownerId: number): number {
+  let bits = foreignCityOn(state, tile, ownerId) ? FOREIGN_CITY : 0;
+  for (const piece of state.units) {
+    if (piece.col !== tile.col || piece.row !== tile.row) continue;
+    bits |= pieceBits(state, piece, ownerId);
+  }
+  return bits;
+}
+
+/**
+ * The field, swept once.
+ *
+ * A piece or a town whose coordinates are not a hex of this board is skipped
+ * rather than wrapped, and that is the exact reading the two walks give: both
+ * compare `col` and `row` for equality against a tile the caller already holds,
+ * so a position that is not a canonical in-range pair matches no tile at all.
+ * Wrapping it in here would invent a blocker on the far side of the seam.
+ */
+export function transitField(state: GameState, ownerId: number): TransitField {
+  const { map } = state;
+  const blocked = new Uint8Array(map.tiles.length);
+  const onBoard = (col: number, row: number): boolean =>
+    col >= 0 && col < map.width && row >= 0 && row < map.height;
+  for (const unit of state.units) {
+    if (unit.ownerId === ownerId) continue;
+    if (!onBoard(unit.col, unit.row)) continue;
+    blocked[tileIndex(map, unit.col, unit.row)]! |= pieceBits(state, unit, ownerId);
+  }
+  for (const city of state.cities) {
+    if (city.ownerId === ownerId) continue;
+    if (!onBoard(city.col, city.row)) continue;
+    blocked[tileIndex(map, city.col, city.row)]! |= FOREIGN_CITY;
+  }
+  return { ownerId, blocked };
+}
+
+/**
+ * Somebody else's town on this hex, off `state.cities` — the walk the field
+ * replaces, kept for every caller that hoisted nothing.
+ *
+ * `cityAt` returns the *first* city standing on a hex and this asks whose it is,
+ * which is the reading `canTransit` has always taken; two towns cannot share a
+ * hex, so the field's bit and this sentence are the same answer.
+ */
+function foreignCityOn(state: GameState, tile: Tile, ownerId: number): boolean {
+  const city = cityAt(state, tile.col, tile.row);
+  return city !== undefined && city.ownerId !== ownerId;
+}
+
 // --- zone of control --------------------------------------------------------
 
 /**
@@ -970,9 +1379,14 @@ export interface ZocField {
  *
  * Three clauses, and they are the whole rule:
  *
- *   - **Any other owner's** piece. There is no diplomacy yet, so foreign is
- *     hostile — the same reading `hasForeignUnit` already gives transit, and it
- *     is what makes the wild bind an empire without a barbarian special case.
+ *   - **A piece of a seat this empire is at war with.** *Foreign* until the
+ *     passing ruling (`docs/flags.md` (ooooo), rule 2: *"units should not exert
+ *     ZOC if you're not at war with them"*) — a picket is a thing an army does
+ *     to an enemy, and a neighbour's spearman standing on the road at peace is
+ *     traffic, not a line. `atWar` is the same register `canTransit`'s wall
+ *     reads, so the two halves of "that seat is hostile" can never drift, and
+ *     the wild is at war with everybody — which is what still makes the raiders
+ *     bind an empire without a barbarian special case.
  *   - **Combat units only.** A settler does not hold a line; `isCombatant` is
  *     the same predicate that decides who may be attacked and who is captured,
  *     so a civilian exerts nothing here for the reason it defends nothing there.
@@ -980,7 +1394,8 @@ export interface ZocField {
  *     do not stroll along, and `ignoresTerrainCost` is about the *ground*, so a
  *     scout is bound exactly as a swordsman is.
  *   - **Enemy cities.** A town is a garrison that cannot be killed by a march,
- *     and Civ V's rule is that it holds ground like one.
+ *     and Civ V's rule is that it holds ground like one. At war, for the piece
+ *     clause's reason exactly: nobody is picketed by a neighbour's gate.
  *   - **Enemy *borders*, for a seat whose law says so** — the Great Wall, and
  *     the only card in the game that speaks to this field (`rule: 'borders'`). Every hex
  *     that empire owns projects control exactly as one of its spearmen would,
@@ -1014,13 +1429,17 @@ export function zocField(state: GameState, ownerId: number): ZocField {
   };
 
   // Arrays, never the `Set` — the sweep order is what makes two runs agree.
+  // `atWar` per piece rather than per edge, which is `pieceBits`' bargain one
+  // field over and the same walk of `state.wars`.
   for (const unit of state.units) {
     if (unit.ownerId === ownerId) continue;
+    if (!atWar(state, ownerId, unit.ownerId)) continue;
     if (!isCombatant(unitDef(unit.type))) continue;
     project(unit.col, unit.row);
   }
   for (const city of state.cities) {
     if (city.ownerId === ownerId) continue;
+    if (!atWar(state, ownerId, city.ownerId)) continue;
     project(city.col, city.row);
   }
   // The Great Wall, last, so a game where nobody holds it is byte-identical to
@@ -1030,6 +1449,11 @@ export function zocField(state: GameState, ownerId: number): ZocField {
   const walled: number[] = [];
   for (const player of state.players) {
     if (player.id === ownerId) continue;
+    // At war, like the two clauses above and for their reason: the Wall is a
+    // country that is slow to *cross*, and an army crossing a neighbour's
+    // country at peace is a guest with a right of way rather than an invader
+    // picking its way past the stones.
+    if (!atWar(state, ownerId, player.id)) continue;
     if (cardBorderZoc(state, player.id)) walled.push(player.id);
   }
   if (walled.length > 0) {
@@ -1499,6 +1923,24 @@ function searchPath(
   unit: Unit,
   goal: Tile,
   mover: MoveProfile = moveProfile(state, unit),
+  // The third fact about the whole search, and the newest: what is standing on
+  // the board. Taken from the caller where one search follows another on a board
+  // nothing has moved on (`findPathToFirst`), swept here otherwise.
+  hoisted?: TransitField,
+  // **How the goal is admitted**, and there are exactly two answers. A march
+  // ends where the piece may come to rest (`canStopOn`, the default, which is
+  // every caller but one); a **swap** ends where the piece may merely walk
+  // (`canTransit`), because the hex it is aiming at is a friend's and the rest
+  // of the rule is the friend's own walk — see `planSwap`. A predicate rather
+  // than a flag so the two answers are the two functions themselves and nothing
+  // here reimplements either.
+  admits: (
+    state: GameState,
+    unit: Unit,
+    tile: Tile,
+    mover: MoveProfile,
+    ground?: TransitField,
+  ) => boolean = canStopOn,
 ): PathSearch {
   const { map } = state;
   const start = getTileAt(map, unit.col, unit.row);
@@ -1508,8 +1950,12 @@ function searchPath(
   const goalIndex = tileIndex(map, goal.col, goal.row);
   if (startIndex === goalIndex) return { path: null, exhausted: null };
 
+  // Swept **after** the two refusals above rather than in a default argument:
+  // those two cost a subtraction each, and a search that never runs the loop
+  // should not pay for a walk of the board.
+  const ground = hoisted ?? transitField(state, unit.ownerId);
   const goalHex = tileHex(goal);
-  if (!canStopOn(state, unit, goal, mover)) return { path: null, exhausted: null };
+  if (!admits(state, unit, goal, mover, ground)) return { path: null, exhausted: null };
   // The other fact about the whole search, hoisted for `mover`'s reason: who
   // holds ground against it. See `stepCost`.
   const field = zocField(state, unit.ownerId);
@@ -1541,7 +1987,7 @@ function searchPath(
       // Transit is all an intermediate tile needs, so a path may thread between
       // friendly units. The goal was already checked with the stricter
       // `canStopOn`, which implies this.
-      if (!canTransit(state, unit, neighbor, mover)) continue;
+      if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 
@@ -1600,9 +2046,13 @@ export function findPathToFirst(
   mover: MoveProfile = moveProfile(state, unit),
 ): Cell[] | null {
   let exhausted: Uint8Array | null = null;
+  // Swept once for the whole list, on the same argument the proof below rests
+  // on: nothing moves between these searches, so what is standing on the board
+  // is one fact about all six doorsteps rather than six readings of it.
+  const ground = transitField(state, unit.ownerId);
   for (const goal of goals) {
     if (exhausted !== null && exhausted[tileIndex(state.map, goal.col, goal.row)] !== 1) continue;
-    const found = searchPath(state, unit, goal, mover);
+    const found = searchPath(state, unit, goal, mover, ground);
     if (found.path !== null) return found.path;
     if (found.exhausted !== null) exhausted = found.exhausted;
   }
@@ -1638,6 +2088,10 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
   // profile the executor will spend the points with.
   const mover = moveProfile(state, unit);
   const field = zocField(state, unit.ownerId);
+  // And the third of the three, for `searchPath`'s reason: the highlight asks
+  // every hex it settles what is standing on it, and the answer moves only when
+  // somebody does.
+  const ground = transitField(state, unit.ownerId);
   const count = map.tiles.length;
   const best = new Float64Array(count).fill(Infinity);
   const settled = new Uint8Array(count);
@@ -1655,7 +2109,15 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     const cost = best[current]!;
     if (current !== startIndex) {
       const tile = map.tiles[current]!;
-      if (canStopOn(state, unit, tile, mover)) results.push({ tile, cost });
+      if (canStopOn(state, unit, tile, mover, ground)) results.push({ tile, cost });
+      // **The swap is a destination too** (rule 3). Asked only of the hexes the
+      // march itself was refused — which is the handful holding somebody, out
+      // of a whole reachable field — and asked through `planSwap`, the same
+      // reading the reducer will accept the order with. That is what keeps the
+      // promise this function exists to keep: every hex in the list is a
+      // `moveUnit` that will be accepted, and every accepted `moveUnit` is a hex
+      // in the list.
+      else if (planSwap(state, unit, tile) !== null) results.push({ tile, cost, swap: true });
     }
     // Arriving with nothing left ends the move: no step can follow.
     if (cost >= budget) continue;
@@ -1664,7 +2126,7 @@ export function reachableTiles(state: GameState, unit: Unit): ReachableTile[] {
     for (const neighbor of neighborsOf(map, tile)) {
       const index = tileIndex(map, neighbor.col, neighbor.row);
       if (settled[index] === 1) continue;
-      if (!canTransit(state, unit, neighbor, mover)) continue;
+      if (!canTransit(state, unit, neighbor, mover, ground)) continue;
       const price = stepCost(map, tile, neighbor, mover, field);
       if (price === null) continue;
 

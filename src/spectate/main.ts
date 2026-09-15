@@ -35,7 +35,7 @@ import { type BotCandidate, type ValueTerm, rankedCandidates } from '../ai/decis
 import { type Game, createGame } from '../sim/game';
 import { MAP_SIZE_NAMES } from '../sim/mapgenData';
 import { RULES } from '../sim/rulesData';
-import { LEADER_IDS, leaderDef } from '../sim/leaderData';
+import { LEADER_IDS, leaderDef, seatName } from '../sim/leaderData';
 import { type PlayerSpec, realPlayers } from '../sim/state';
 import {
   foldEmpireRates,
@@ -264,12 +264,10 @@ function seatRow(playerId: number): HTMLElement {
   const row = document.createElement('div');
   row.className = player.eliminated ? 'seat out' : 'seat';
   row.append(swatch(playerId));
-  row.append(span('who', player.name));
-  // **Who is playing this chair** (batch L2b). The figure's own name, off the
-  // sheet, so a reader can tell the Æra II row in the feed from the Æra II row
-  // three seats down — and the deck a card came out of from the card's name.
-  // A seat under no figure says nothing, rather than a dash to be read.
-  if (player.leader !== undefined) row.append(span('stat', leaderDef(player.leader).name));
+  // **Who is playing this chair** — the figure, or the ink's name for a seat
+  // under nobody (`seatName`, `docs/flags.md` (ppppp)). It used to be the ink's
+  // name with the figure repeated in a chip beside it; one seat, one word.
+  row.append(span('who', seatName(session.state, playerId)));
   row.append(span('stat', `${cities}⌂  ${units}⚔`));
   // The pools are exact fractions since batch X; a seat's line rounds them at
   // the eye like every other surface (`src/sim/yieldFormat.ts`).

@@ -1605,11 +1605,12 @@ export class Renderer3D implements MapView {
     // the technology to be shown the ore the old one could see.
     this.applyReveal();
     // Everything that filters by the seat's own eyes has to follow it.
+    // Shelf contacts must be registered before placing newly visible units.
+    this.rebuildImprovements();
     this.rebuildUnits();
     this.rebuildCities();
     this.rebuildTerritory();
     this.rebuildRoads();
-    this.rebuildImprovements();
     this.rebuildSites();
     this.rebuildLens();
     this.invalidate();
@@ -1665,6 +1666,7 @@ export class Renderer3D implements MapView {
     this.board = this.paintedBoard ?? buildBoard(map, this.geometry, this.materials, this.shadows);
     if (this.paintedBoard) {
       installPaintedSurface(map, this.paintedBoard.renderMap, this.paintedBoard.pickMeshes);
+      this.overlays.invalidateSurface();
       // Bound to *this* board, and rebound whenever it is replaced: the hook is
       // called from inside the shadow pass, and a stale board there would raise
       // near geometry on meshes that have already been disposed.
@@ -1799,6 +1801,8 @@ export class Renderer3D implements MapView {
   }
 
   /** Resource reveal and painted fields update independently of the terrain bake. */
+  private paintedTerrainRevision = 0;
+
   private rebuildPaintedWorks(): boolean {
     if (!this.state || !this.paintedWorks || !this.paintedBoard) return false;
     const signature = signPaintedWorks(this.state, this.fogSeat);
@@ -1818,10 +1822,24 @@ export class Renderer3D implements MapView {
       shadowSignature = (Math.imul(shadowSignature, 31) + cell * 3 + scope) | 0;
     }
     if (signature === this.paintedWorksSignature && fogSignature === this.paintedWorksFogSignature) return false;
+    const cities = new Set(this.state.cities.map(city => city.row * this.state!.map.width + city.col));
+    const terraces = new Set<number>();
+    this.state.map.tiles.forEach((tile, cell) => {
+      if (tile.improvement === 'terraces' && !cities.has(cell)) terraces.add(cell);
+    });
+    const terrainChanged = this.paintedBoard.replaceHillRelief(terraces);
+    if (terrainChanged) this.paintedTerrainRevision++;
     const shadowChanged = signature !== this.paintedWorksSignature || shadowSignature !== this.paintedWorksShadowSignature;
     this.paintedWorks.group.visible = true;
     this.paintedWorks.build(this.state, this.paintedBoard.renderMap, levels, this.fogSeat, this.shadows, {suppressed: this.cleared});
     this.reservePaintedProps();
+    if (terrainChanged || terraces.size) {
+      // Rebind after fog changes too: works batches contain only charted cells.
+      // The shelves are ground; the farmhouse remains a prop above that ground.
+      installPaintedSurface(this.state.map, this.paintedBoard.renderMap,
+        [...this.paintedBoard.pickMeshes, ...this.paintedWorks.surfaceMeshes]);
+      this.overlays.invalidateSurface();
+    }
     this.paintedWorksSignature = signature;
     this.paintedWorksFogSignature = fogSignature;
     this.paintedWorksShadowSignature = shadowSignature;
@@ -1832,7 +1850,7 @@ export class Renderer3D implements MapView {
   private reservePaintedProps(): void {
     if (!this.paintedWorks || !this.paintedBoard) return;
     const reservations = new Map(this.paintedWorks.entries.map(entry => [entry.cell,
-      entry.improvement === 'farm' ? 1 : entry.improvement === 'lumbermill' ? .50 :
+      (entry.improvement === 'farm' || entry.improvement === 'terraces') ? 1 : entry.improvement === 'lumbermill' ? .50 :
         entry.improvement && entry.improvement !== 'camp' ? .72 : .54]));
     for (const entry of this.paintedSites?.entries ?? []) reservations.set(entry.cell, Math.max(reservations.get(entry.cell) ?? 0, .77));
     this.paintedBoard.reserveFootprints(reservations);
@@ -1963,8 +1981,7 @@ export class Renderer3D implements MapView {
       this.geometry,
       this.materials,
       this.icons,
-      // The resource markers stand up and face the camera, which never moves:
-      // one constant rotation, resolved here exactly as it is for the badges.
+      // Resource markers share the live world/city camera orientation with badges.
       this.view.camera.quaternion.clone(),
       this.fogLevels(),
     );
@@ -2092,8 +2109,22 @@ export class Renderer3D implements MapView {
    */
   setCityFocus(cell: CellRef | null, animate: boolean): void {
     const before = this.vignette.focus();
+    if (this.view.setCityView(cell !== null, animate, performance.now())) {
+      this.setHoveredUnitId(null);
+      if (!this.view.isChangingAngle) this.refreshCameraFacingLayers();
+      this.invalidate();
+    }
     this.vignette.setFocus(cell, animate, performance.now());
     if (this.vignette.focus() !== before) this.invalidate();
+  }
+
+  /** Re-face static labels once when the pitch settles, never rebuild the world per frame. */
+  private refreshCameraFacingLayers(): void {
+    this.rebuildUnits();
+    this.rebuildCities(false);
+    this.rebuildSites(false);
+    this.rebuildLens();
+    this.rebuildOverlays();
   }
 
   /**
@@ -3135,7 +3166,10 @@ export class Renderer3D implements MapView {
     const shadowChanged = (layer: keyof LayerVisibility): boolean => force || shadowVisibility?.[layer] !== this.shadowVisibilitySignatures?.[layer];
     const fogChanged = (layer: keyof LayerVisibility): boolean => force ||
       visibility?.[layer] !== this.visibilitySignatures?.[layer];
-    if (this.state && (fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
+    const terrainRevision = this.paintedTerrainRevision;
+    const worksChanged = this.rebuildPaintedWorks();
+    const terrainChanged = terrainRevision !== this.paintedTerrainRevision;
+    if (this.state && (terrainChanged || fogChanged('units') || signUnits(this.state) !== this.unitsSignature)) {
       this.setHoveredUnitId(null);
       this.rebuildUnits();
       this.rebuildOverlays();
@@ -3192,11 +3226,11 @@ export class Renderer3D implements MapView {
     }
     // A reveal technology or a surveyed vein can change resource models without
     // changing an improvement. The same update also follows in-place fog edits.
-    if (this.rebuildPaintedWorks() && this.lensView.yields) this.rebuildLens();
+    if (worksChanged && this.lensView.yields) this.rebuildLens();
     // Roads are ground too, and follow the fog for the same reason: they survive
     // on remembered hexes, so a fog move has to reach this layer as well as the
     // works. Their own fingerprint is presence-only — see `signRoadCells`.
-    if (this.state && (fogChanged('roads') || signRoadCells(this.state) !== this.roadsSignature)) {
+    if (this.state && (terrainChanged || fogChanged('roads') || signRoadCells(this.state) !== this.roadsSignature)) {
       this.rebuildRoads();
     }
     // Sites are seat-filtered twice over — a ruin fades on remembered ground and
@@ -3225,7 +3259,7 @@ export class Renderer3D implements MapView {
         if (this.lensView.mode === 'faith') this.rebuildLens();
       }
     }
-    if (this.state && (fogChanged('territory') || signTerritory(this.state) !== this.territorySignature)) {
+    if (this.state && (terrainChanged || fogChanged('territory') || signTerritory(this.state) !== this.territorySignature)) {
       this.rebuildTerritory();
       // Borders decide whose ground a settler may stand on, so the same applies.
       if (this.lensView.mode === 'settler') this.rebuildLens();
@@ -3267,7 +3301,9 @@ export class Renderer3D implements MapView {
     if (hadFallers) this.stepDeaths(now);
     // An animating camera forces frames the same way a walking piece does: it
     // moved the target, so the frame it moved it on has to be drawn.
+    const changingAngle = this.view.isChangingAngle;
     const panned = this.view.stepPan(now);
+    if (changingAngle && !this.view.isChangingAngle) this.refreshCameraFacingLayers();
     // The city screen's wash fades on its own clock and forces frames the same
     // way a walker or a moving camera does — one number, sampled here, so the
     // render-on-demand loop goes back to idle the instant the fade lands.
@@ -3313,7 +3349,7 @@ export class Renderer3D implements MapView {
       // `updateDynamicShadows` re-fits on its own when the view finally walks
       // off the box it fitted last.
       if (hadWalkers) this.paintedLook.invalidateDynamicShadows();
-      this.paintedLook.updateDynamicShadows(this.view.target, this.view.radius, this.view.groundReach);
+      this.paintedLook.updateDynamicShadows(this.view.target, this.view.shadowRadius, this.view.groundReach);
       this.renderer.info.autoReset = false;
       this.renderer.info.reset();
       this.paintedLook.render();
