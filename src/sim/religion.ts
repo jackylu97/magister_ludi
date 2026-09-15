@@ -1609,6 +1609,12 @@ export interface EmpireRitePerformance {
   cost: number;
   expiresTurn: number;
   turns: number;
+  /**
+   * What the empire's chapels paid for the saying of it, summed — every town
+   * the rite landed on pays its `ritePays` exactly as a city rite's town does
+   * (`payRiteBuildings`; the user, 2026-09-15, `docs/flags.md` (lllll)).
+   */
+  chapelCulture: number;
   /** True when the prophet was spent by this act's last charge. */
   prophetSpent: boolean;
 }
@@ -1641,12 +1647,18 @@ export function empireRiteAt(
 
   const cities: City[] = [];
   let expiresTurn = state.turn;
+  let chapelCulture = 0;
   for (const city of state.cities) {
     if (city.ownerId !== player.id) continue;
     clearCityRite(state, city);
     const until = stampRite(state, player.id, rite, def, city);
     if (until !== null) expiresTurn = until;
     refreshCityDerived(state, city);
+    // **An empire rite is the rite performed in every town**, so every chapel
+    // pays for the saying of it — the same seam and the same settlement a city
+    // rite's chapel goes through, once per town. Before 2026-09-15 this loop
+    // stamped and never paid, and the user noticed the chapels standing silent.
+    chapelCulture += payRiteBuildings(state, player, city);
     cities.push(city);
   }
   const prophetSpent = spendCharge(state, unit, 'empireRite');
@@ -1657,6 +1669,7 @@ export function empireRiteAt(
     cost,
     expiresTurn,
     turns: expiresTurn - state.turn,
+    chapelCulture,
     prophetSpent,
   };
 }

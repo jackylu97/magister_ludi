@@ -1057,6 +1057,29 @@ describe("a prophet says a rite over every town", () => {
     expect(cityRite(g.state, second)).toBe("omenReading");
   });
 
+  /**
+   * **Every chapel pays for the saying of it** (the user, 2026-09-15: *"are
+   * chapels correctly getting the +5 culture from an empire-wide rite by the
+   * prophet?"* — they were not: the loop stamped every town and paid none).
+   * An empire rite is the rite performed in every town, so a chapel in each
+   * pays what a city rite's chapel pays, through the same settlement.
+   */
+  it("pays every chapel in the realm, one town at a time, through the one seam", () => {
+    const { g, first, second, player, prophet } = ready();
+    first.buildings.push("chapel");
+    second.buildings.push("chapel");
+    player.culturePool = 0;
+    const done = empireRiteAt(g.state, player, prophet, "omenReading");
+    expect(done.chapelCulture).toBe(10);
+    expect(player.culturePool).toBe(10);
+    // A town with no chapel pays nothing, and the report says so.
+    const { g: g2, second: bare, player: p2, prophet: pr2 } = ready();
+    bare.buildings.push("chapel");
+    p2.culturePool = 0;
+    expect(empireRiteAt(g2.state, p2, pr2, "omenReading").chapelCulture).toBe(5);
+    expect(p2.culturePool).toBe(5);
+  });
+
   it("takes over from whatever a town was keeping, so it is still one at a time", () => {
     const { g, first, player, prophet } = ready();
     first.buildings.push("chapel");

@@ -19,6 +19,14 @@ people.md` is the user's own version. The log of what each batch built is
 
 ## A. Awaiting your ruling
 
+**(lllll) An empire rite pays every chapel — BUILT** (the user, 2026-09-15:
+*"are chapels correctly getting the +5 culture from an empire-wide rite by
+the prophet?"* — they were not). `empireRiteAt` stamped the rite on every
+town and paid none; a chapel's `ritePays` was read only by the city rite.
+Now each town the empire rite lands on pays its chapel through the same
+`payRiteBuildings` seam and `settleCultureWindfall`, once per town, and the
+report carries `chapelCulture` summed. Pinned in `test/sim/religion.test.ts`.
+
 **(kkkkk) Joan's Voices reach four hexes — BUILT** (the user, 2026-09-15:
 *"lets update joan of arc, unit kills should convert cities within 4
 tiles"*; on the question of whether the lump grows too: *"Range 4, same
