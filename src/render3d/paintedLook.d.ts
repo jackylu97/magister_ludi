@@ -12,6 +12,7 @@ export interface PaintedLook {
  sun: DirectionalLight;
  sky: HemisphereLight;
  readonly shadowBakes: number;
+ readonly shadowStats: {bakes:number;staticMs:number;staticDraws:number;staticTris:number;counterMs:number;counterDraws:number;counterTris:number};
  render(): void;
  resize(width:number,height:number):void;
  setContactDetail(pixels:number):void;
@@ -22,6 +23,8 @@ export interface PaintedLook {
  updateDynamicShadows(target:Vector3,radius:number,reach:number):boolean;
  /** Something on layer 2 changed: the counter depth map is stale until the next frame draws. */
  invalidateDynamicShadows():void;
+ /** Who raises the board's near geometry for the static depth pass, and drops it again. */
+ setBakeDetail(fn:((active:boolean)=>void)|null):void;
  updateTime(seconds:number):void;
  dispose():void;
 }

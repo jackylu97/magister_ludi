@@ -10,7 +10,7 @@ interface ShadowSubmission {
   casters: { name: string; x: number }[];
 }
 
-function fixture() {
+function fixture(bakeDetail?: (active: boolean) => void) {
   const scene = new Scene(), camera = new OrthographicCamera();
   camera.layers.enable(2); camera.layers.enable(5);
   function caster(name: string, layer: number): Object3D {
@@ -48,7 +48,7 @@ function fixture() {
     },
   };
   const original = map.render;
-  const controller = separatePaintedShadows({ shadowMap: map }, sun, counters);
+  const controller = separatePaintedShadows({ shadowMap: map }, sun, counters, bakeDetail);
   return {
     scene, camera, map, original, controller, sun, counters, submissions,
     terrain, unit, unrelated,
@@ -97,6 +97,46 @@ describe('painted static and moving shadows', () => {
     expect(() => f.draw()).toThrow('shadow draw failed');
     expect(f.camera.layers.mask).toBe(originalLayers);
     expect(f.controller.bakes).toBe(kind === 'static' ? 0 : 1);
+  });
+
+  it('raises the near geometry around the static bake alone, and drops it again', () => {
+    const detail: { active: boolean; submitted: number }[] = [];
+    // Counting the submissions already made is what pins *where* the two flips
+    // sit: raised before the sun's depth pass, dropped before the counters' —
+    // and so, since Three builds the colour render list before either, never
+    // while the colour pass can see it.
+    const f = fixture(active => detail.push({ active, submitted: f.submissions.length }));
+    f.draw();
+    expect(detail).toEqual([{ active: true, submitted: 0 }, { active: false, submitted: 1 }]);
+    expect(f.submissions.map(entry => entry.light)).toEqual([f.sun, f.counters]);
+  });
+
+  it('drops the near geometry again when the static bake throws', () => {
+    const detail: boolean[] = [];
+    const f = fixture(active => detail.push(active));
+    f.failOn(f.sun);
+    expect(() => f.draw()).toThrow('shadow draw failed');
+    expect(detail).toEqual([true, false]);
+    expect(f.controller.bakes).toBe(0);
+  });
+
+  it('counts each pass’s draws, triangles and milliseconds on its own ledger', () => {
+    const f = fixture();
+    // The wrapper reads the renderer's own counters; a fixture without them
+    // still has to work, which is the `info?` in `separatePaintedShadows`.
+    expect(f.controller.stats).toEqual({ bakes: 0, staticMs: 0, staticDraws: 0, staticTris: 0, counterMs: 0, counterDraws: 0, counterTris: 0 });
+    f.draw();
+    expect(f.controller.stats.bakes).toBe(1);
+    expect(f.controller.stats.staticMs).toBeGreaterThanOrEqual(0);
+    f.sun.shadow.needsUpdate = true; f.map.needsUpdate = true; f.draw();
+    expect(f.controller.stats.bakes).toBe(2);
+  });
+
+  it('bakes without a detail hook at all, for a look with no board up yet', () => {
+    const f = fixture();
+    f.draw();
+    expect(f.controller.bakes).toBe(1);
+    expect(f.submissions.map(entry => entry.light)).toEqual([f.sun, f.counters]);
   });
 
   it('restores the exact original shadow renderer when disposed', () => {

@@ -50,7 +50,9 @@ export interface PaintedBoard extends BuiltBoard {
   applyFog(levels: ArrayLike<number> | null): number;
   reserveFootprints(radii: ReadonlyMap<number,number>): number;
   isCellVisible(cell: number, grade?: number): boolean;
-  updateDetail(pixels: number, baking?: boolean): void;
+  updateDetail(pixels: number): boolean;
+  /** Raises near geometry for the static depth pass alone. True when it moved. */
+  setBakeDetail(active: boolean): boolean;
   /** Flips the world's cast flags on the built board. True when the state changed. */
   setShadows(enabled: boolean): boolean;
   suppressTile(cell: number, scope: 0 | 1 | 2): boolean;

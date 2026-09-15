@@ -233,7 +233,8 @@ describe('production painted board', () => {
     const land = board.pickMeshes.find(mesh => mesh.geometry.boundingBox!.max.y > .05)!;
     board.applyFog(null);
     board.updateDetail(10); expect(land.visible).toBe(false);
-    board.updateDetail(10, true); expect(land.visible).toBe(true);
+    board.setBakeDetail(true); expect(land.visible).toBe(true);
+    board.setBakeDetail(false); expect(land.visible).toBe(false);
     board.updateDetail(30); expect(land.visible).toBe(true);
     board.dispose(); expect(board.applyFog([2])).toBe(0);
   });
@@ -296,12 +297,15 @@ describe('production painted board', () => {
     for (const mesh of near) expect(Array.from(mesh.geometry.getAttribute('paintedCell').array)).toContain(0);
     board.updateDetail(10);
     expect(visible().length).toBeGreaterThan(0);
-    board.updateDetail(10, true);
+    board.setBakeDetail(true);
     expect(visible()).toEqual(near);
+    board.setBakeDetail(false);
     board.applyFog([]);
     for (const [pixels, baking] of [[10, false], [10, true], [40, false]] as const) {
-      board.updateDetail(pixels, baking); expect(visible()).toHaveLength(0);
+      board.updateDetail(pixels); board.setBakeDetail(baking);
+      expect(visible()).toHaveLength(0);
     }
+    board.setBakeDetail(false);
     board.applyFog(null);
     expect(visible()).toEqual(full);
     expect(visible().map(mesh => mesh.geometry)).toEqual(geometry);
@@ -343,8 +347,10 @@ describe('production painted board', () => {
     const cells = far.flatMap(mesh => [...new Set(Array.from(mesh.geometry.getAttribute('paintedCell').array))]);
     expect(cells.sort((a,b) => a-b)).toEqual(map.tiles.map((_,i) => i));
     expect(far.every(mesh => !mesh.castShadow)).toBe(true);
-    board.updateDetail(10, true);
+    board.setBakeDetail(true);
     expect(close.every(mesh => mesh.visible && mesh.castShadow)).toBe(true);
     expect(far.every(mesh => !mesh.visible)).toBe(true);
+    board.setBakeDetail(false);
+    expect(far.every(mesh => mesh.visible)).toBe(true);
   });
 });
