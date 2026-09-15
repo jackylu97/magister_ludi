@@ -15686,3 +15686,121 @@ body.compendium-page {
   .marquee-over { font-size: 10px; letter-spacing: 0.24em; }
   .marquee-poster .marquee-stamp { right: 16px; bottom: 14px; }
 }
+
+/* =========================================================================
+   The loading sheet
+   -------------------------------------------------------------------------
+   One sheet for both presses (docs/flags.md (eeeee)). It borrows the parchment
+   frame every other screen wears and changes exactly two things about it, both
+   because it is a *report* rather than a document somebody is reading:
+
+     · the paper sits in the middle of the ground instead of at the top, because
+       there is nothing under it to scroll to and a card pinned to the top of a
+       tall viewport reads as an accident;
+     · the ground is a child element covering the whole overlay, so the overlay
+       is never the target of a press. `modalShell.ts` closes a sheet on a press
+       on the ground around the paper, and this is the one sheet that must not
+       close — there is no Cancel yet, so a dismissed loading report would leave
+       the player watching a blank board with nothing to ask.
+
+   Every figure on it is tabular (the specimen's rule): "turn 84 of 121" must
+   not twitch as it counts.
+   ========================================================================= */
+
+/* Above everything, and not conditionally.
+
+   Every other parchment sheet sits at 40, under the landing's 50, because every
+   one of them belongs to a running game; the Compendium is lifted to 60 exactly
+   while the landing is up, because it belongs to the page. This one belongs to
+   the page *and* is up across the handover — raised from a press on the landing
+   and lowered after the board has drawn its first frame — so it takes one place
+   in the stack and keeps it: over the landing (50), and over the load list (60)
+   it can be raised from. */
+.loading-overlay {
+  z-index: 61;
+}
+
+.loading-ground {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.loading-overlay .loading-sheet {
+  width: min(420px, 100%);
+  max-height: none;
+}
+
+.loading-body {
+  gap: 14px;
+}
+
+.loading-stages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loading-stage-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-family: var(--face-ui);
+  font-size: 13px;
+  color: var(--ink-faint);
+}
+
+/* The mark is a fixed column so the four labels line up whatever each one is
+   currently saying about itself. */
+.loading-stage-mark {
+  flex: 0 0 auto;
+  width: 12px;
+  text-align: center;
+  font-family: var(--face-num);
+  font-size: 12px;
+}
+
+.loading-stage-label {
+  flex: 1 1 auto;
+}
+
+.loading-stage-detail {
+  flex: 0 0 auto;
+  font-family: var(--face-num);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+
+.loading-stage.is-done .loading-stage-head {
+  color: var(--ink-soft);
+}
+
+.loading-stage.is-now .loading-stage-head {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* The same chunky ink-bordered track the city panel's bars use, so a bar is one
+   thing in this interface rather than two. */
+.loading-bar {
+  height: 10px;
+  margin-top: 6px;
+  margin-left: 20px;
+  border: var(--border-thin) solid var(--ink);
+  border-radius: 4px;
+  background: var(--table);
+  overflow: hidden;
+}
+
+.loading-bar-fill {
+  height: 100%;
+  background: var(--y-prod);
+  transition: width 120ms linear;
+}

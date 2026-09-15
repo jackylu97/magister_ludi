@@ -37,10 +37,22 @@
  * command the rules no longer take — returns an error and *no game*, so the
  * caller's live session is untouched by a file that turned out to be junk. There
  * is no path here that mutates a running game.
+ *
+ * The gate in two halves
+ * ----------------------
+ * The log walk is the long half — seconds of it in a game a hundred turns deep
+ * — and it is the half `ui/gameLoader.ts` moves to a worker so the landing keeps
+ * drawing while it runs. So the gate is written as `readSaveEnvelope` (every
+ * check that is cheap and does not need the reducer) and `finishLoad` (the
+ * sentence a walk's outcome earns, and the payload a good one becomes), with
+ * `loadSave` the synchronous fold of the two. **There is one implementation of
+ * what a valid file is and of every sentence a bad one gets back**, whichever
+ * thread did the walking; a second copy living in the worker's wrapper is
+ * exactly the drift this split exists to prevent.
  */
 
 import type { Command } from '../sim/commands';
-import { type Game, tryReplay } from '../sim/game';
+import { type Game, type ReplayFailure, type ReplayWatcher, tryReplay } from '../sim/game';
 import {
   type GameConfig,
   type GameState,
@@ -342,27 +354,51 @@ const NO_MIGRATIONS =
   'This is a pre-release build: saves are not migrated between versions.';
 
 /**
- * The gate. Text in, a fully replayed game out — or a sentence and nothing.
+ * A file that has passed every check short of the log walk: the normalised
+ * config, the log to walk, and the two label fields the walk cannot produce.
+ */
+export interface SaveEnvelope {
+  config: GameConfig;
+  log: Command[];
+  /** Off the file, defaulted. Display only — see the module docblock. */
+  name: string;
+  savedAt: number;
+  /**
+   * The shelf label's turn — **how far the walk is expected to get**, and the
+   * only thing a loading bar can divide by before the walk has run. Display
+   * only, like every other label field: a hand-edited file that claims four
+   * hundred turns over a three-command log draws a bar that barely moves and
+   * then loads as turn four, which is the documented price of a label.
+   */
+  turn: number;
+}
+
+export type EnvelopeResult =
+  | { ok: true; envelope: SaveEnvelope }
+  | { ok: false; error: string };
+
+/**
+ * What a log walk came back as, whichever thread walked it.
  *
- * The order of the checks is the order in which a file stops being trustworthy,
- * and each one is cheaper than the one after it:
+ * Three outcomes rather than `ReplayResult`'s two, because `newGame` *throws* on
+ * a config it will not build and a worker cannot throw across the seam: the
+ * sentence has to travel as data. `unbuildable` is that throw, carried.
+ */
+export type LoadWalk =
+  | { ok: true; state: GameState }
+  | { ok: false; failure: ReplayFailure }
+  | { ok: false; unbuildable: string };
+
+/**
+ * Checks 1–2 of the gate, and the normalising the walk needs. Everything here
+ * is microseconds on any save; the seconds are all in the walk that follows.
  *
  *   1. **It parses.** A file picker hands over whatever the player picked.
  *   2. **The versions match**, both of them. Refused with the numbers in the
  *      sentence, because "from an older version" is answerable ("keep the tab
  *      open until you have finished the game") and "corrupt" is not.
- *   3. **The config builds.** `newGame` inside `tryReplay` runs the simulation's
- *      own `validateConfig` — the size key, the seat count, the mapgen override
- *      sheet — so a bad setup is caught by the one implementation that decides
- *      what a valid setup is, and never by a copy of it living here.
- *   4. **The log replays**, command by command, through the real reducer. This
- *      is the whole security of the format: a save is a *script*, and a script
- *      that the rules will not run is not a game. The failing index goes to the
- *      console, where a developer can find it, and the player gets a sentence.
- *
- * Only after (4) does a `Game` exist to return. See the module docblock.
  */
-export function loadSave(json: string): LoadResult {
+export function readSaveEnvelope(json: string): EnvelopeResult {
   let parsed: unknown;
   try {
     parsed = JSON.parse(json);
@@ -397,25 +433,44 @@ export function loadSave(json: string): LoadResult {
     return { ok: false, error: 'That save has no command log in it.' };
   }
 
-  const config = normalizeConfig(payload.config);
-  const log = payload.log as Command[];
+  return {
+    ok: true,
+    envelope: {
+      config: normalizeConfig(payload.config),
+      log: payload.log as Command[],
+      name: typeof payload.name === 'string' && payload.name !== '' ? payload.name : 'Saved game',
+      savedAt: typeof payload.savedAt === 'number' ? payload.savedAt : 0,
+      turn: typeof payload.turn === 'number' && payload.turn > 0 ? payload.turn : 0,
+    },
+  };
+}
 
-  let replayed;
-  try {
-    replayed = tryReplay(config, log);
-  } catch (error) {
-    // A config the simulation will not build: an unknown map size, too many
-    // seats, a mapgen override that names nothing. The sim's own sentence is
-    // better than any paraphrase.
-    return {
-      ok: false,
-      error: `That save's setup is not one this build can play: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    };
-  }
-  if (!replayed.ok) {
-    const { index, type, error } = replayed.failure;
+/**
+ * Checks 3–4 of the gate, read off a walk that has already happened:
+ *
+ *   3. **The config builds.** `newGame` inside the walk runs the simulation's
+ *      own `validateConfig` — the size key, the seat count, the mapgen override
+ *      sheet — so a bad setup is caught by the one implementation that decides
+ *      what a valid setup is, and never by a copy of it living here.
+ *   4. **The log replays**, command by command, through the real reducer. This
+ *      is the whole security of the format: a save is a *script*, and a script
+ *      that the rules will not run is not a game. The failing index goes to the
+ *      console, where a developer can find it, and the player gets a sentence.
+ *
+ * Only after (4) does a `Game` exist to return. See the module docblock.
+ */
+export function finishLoad(envelope: SaveEnvelope, walk: LoadWalk): LoadResult {
+  if (!walk.ok) {
+    if ('unbuildable' in walk) {
+      // A config the simulation will not build: an unknown map size, too many
+      // seats, a mapgen override that names nothing. The sim's own sentence is
+      // better than any paraphrase.
+      return {
+        ok: false,
+        error: `That save's setup is not one this build can play: ${walk.unbuildable}`,
+      };
+    }
+    const { index, type, error } = walk.failure;
     return {
       ok: false,
       error: 'That save is corrupt or from an incompatible build.',
@@ -423,19 +478,47 @@ export function loadSave(json: string): LoadResult {
     };
   }
 
+  const { config, log } = envelope;
   const trusted: SavePayload = {
     formatVersion: SAVE_FORMAT_VERSION,
     schemaVersion: SCHEMA_VERSION,
-    savedAt: typeof payload.savedAt === 'number' ? payload.savedAt : 0,
-    name: typeof payload.name === 'string' && payload.name !== '' ? payload.name : 'Saved game',
+    savedAt: envelope.savedAt,
+    name: envelope.name,
     // Derived from the replay, not read off the file: the label was never truth
     // (see the module docblock) and this is the one place the difference could
     // reach the game rather than the list.
-    turn: replayed.state.turn,
+    turn: walk.state.turn,
     config,
     log,
   };
-  return { ok: true, game: { config, state: replayed.state, log }, payload: trusted };
+  return { ok: true, game: { config, state: walk.state, log }, payload: trusted };
+}
+
+/**
+ * The gate, walked here. Text in, a fully replayed game out — or a sentence and
+ * nothing.
+ *
+ * The order of the checks is the order in which a file stops being trustworthy,
+ * and each one is cheaper than the one after it; `readSaveEnvelope` holds the
+ * cheap half and `finishLoad` the half that reads the walk. `gameLoader.ts`
+ * folds the same two round a walk that ran in a worker.
+ */
+export function loadSave(json: string): LoadResult {
+  const read = readSaveEnvelope(json);
+  if (!read.ok) return { ok: false, error: read.error };
+  return finishLoad(read.envelope, walkHere(read.envelope));
+}
+
+/** The synchronous walk: `tryReplay`, with `newGame`'s throw carried as data. */
+export function walkHere(envelope: SaveEnvelope, onTurn?: ReplayWatcher): LoadWalk {
+  try {
+    return tryReplay(envelope.config, envelope.log, onTurn);
+  } catch (error) {
+    return {
+      ok: false,
+      unbuildable: error instanceof Error ? error.message : String(error),
+    };
+  }
 }
 
 /** Reads a slot and loads it. `null` when the slot is simply not there. */

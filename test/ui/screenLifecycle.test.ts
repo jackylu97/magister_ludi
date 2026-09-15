@@ -125,6 +125,27 @@ describe('the game-screen disposal register', () => {
     );
   });
 
+  /**
+   * **The loading sheet is the page's, and stays out of the register** (batch
+   * P7, `docs/flags.md` (eeeee)).
+   *
+   * It is the fourteenth sheet on the shell and the only one that is up *while*
+   * `boot` runs: a disposer swept at the top of `boot` would unbind its Escape
+   * and hide the overlay in the middle of the load it is reporting. So it is
+   * built at module scope beside the saves panel and the Compendium and is
+   * never disposed — which is exactly the kind of thing that gets "tidied" into
+   * the register later by somebody reading the list and not the reason.
+   */
+  it('keeps the loading sheet out of the per-game register, and on the shell', () => {
+    const main = source('main.ts');
+    expect(main).toContain('const loading = createLoadingSheet({');
+    expect(main).not.toContain('gameDisposers.push(() => loading');
+    expect(main).not.toContain('loading.dispose()');
+    // Still the shared frame, so its one window listener is bound and unbound
+    // in the one place the sheets' contract lives.
+    expect(source('loadingSheet.ts')).toContain('createModalShell({');
+  });
+
   it('preserves close handlers when Restart reuses the booted screens', () => {
     const main = source('main.ts');
     const landing = main.slice(main.indexOf('function showLanding()'), main.indexOf('function hideLanding()'));

@@ -1488,6 +1488,37 @@
       </div>
     </div>
 
+    <!-- ================= the loading sheet =====================
+         One sheet for both presses — Begin and Continue — up from the press
+         until the board has actually drawn a frame (docs/flags.md (eeeee)).
+         It is a report and not a control: there is no Cancel yet, so there is
+         no close button on the paper, Escape is swallowed, and the ground is
+         covered so a press around the sheet has nothing to shut. Built by
+         src/ui/loadingSheet.ts at module scope, because it is up *while*
+         `boot` runs and belongs to the page rather than to a game.
+         ============================================================ -->
+    <div
+      id="loading-overlay"
+      class="statecraft-overlay loading-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Loading the world"
+      aria-busy="true"
+      hidden
+    >
+      <div class="loading-ground">
+        <div class="statecraft-sheet loading-sheet">
+          <header class="statecraft-head">
+            <div class="statecraft-head-titles">
+              <p class="eyebrow statecraft-eyebrow">one moment</p>
+              <h2 class="statecraft-title">Loading the <em>world</em></h2>
+            </div>
+          </header>
+          <div id="loading-body" class="statecraft-body loading-body" aria-live="polite"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- ================= the spend ceremony ====================
          A great person was spent: the card rises to centre over a dimmed
          board, the LEGACY counts its figure (the inversion, 2026-09-03 — what
