@@ -929,8 +929,13 @@ export class Renderer3D implements MapView {
     this.board = this.paintedBoard ?? buildBoard(map, this.geometry, this.materials, this.shadows);
     if (this.paintedBoard) {
       installPaintedSurface(map, this.paintedBoard.renderMap, this.paintedBoard.pickMeshes);
+      // Bound to *this* board, and rebound whenever it is replaced: the hook is
+      // called from inside the shadow pass, and a stale board there would raise
+      // near geometry on meshes that have already been disposed.
+      const board = this.paintedBoard;
+      this.paintedLook!.setBakeDetail(active => board.setBakeDetail(active));
       this.paintedLook!.fitShadows(this.board.bounds, this.board.wrapWidth);
-    }
+    } else this.paintedLook?.setBakeDetail(null);
     this.omniscientLevels = map.tiles.map(() => 2);
     // A fresh board carries the full dressing on every hex, so everything
     // already built on this map has to be applied to it once. See `clearGround`.
@@ -2475,7 +2480,11 @@ export class Renderer3D implements MapView {
     if (this.paintedLook) {
       const pixels = Math.sqrt(3) * this.canvas.clientWidth * this.renderer.getPixelRatio()
         / (this.view.camera.right - this.view.camera.left);
-      this.paintedBoard?.updateDetail(pixels, this.paintedLook.sun.shadow.needsUpdate);
+      // The zoom's question only. What the depth pass needs is asked inside the
+      // shadow pass itself — `PaintedBoard.setBakeDetail`, through the hook
+      // `rebuildBoard` bound — so a frame that has to rebake keeps the far LOD
+      // on screen instead of flashing the near one.
+      this.paintedBoard?.updateDetail(pixels);
       this.paintedLook.setContactDetail(pixels);
       this.paintedLook.updateTime(now / 1000);
       for (const group of [...this.walkers.values(), ...this.fallers.values()]) group.traverse(object => object.layers.set(2));

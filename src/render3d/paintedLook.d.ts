@@ -12,6 +12,7 @@ export interface PaintedLook {
  sun: DirectionalLight;
  sky: HemisphereLight;
  readonly shadowBakes: number;
+ readonly shadowStats: {bakes:number;staticMs:number;staticDraws:number;staticTris:number;counterMs:number;counterDraws:number;counterTris:number};
  render(): void;
  resize(width:number,height:number):void;
  setContactDetail(pixels:number):void;
@@ -19,6 +20,7 @@ export interface PaintedLook {
  fitShadows(bounds:Bounds,period:number):void;
  invalidateShadows():void;
  updateDynamicShadows(target:Vector3,radius:number):void;
+ setBakeDetail(fn:((active:boolean)=>void)|null):void;
  updateTime(seconds:number):void;
  dispose():void;
 }

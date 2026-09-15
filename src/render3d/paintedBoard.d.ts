@@ -49,7 +49,8 @@ export interface PaintedBoard extends BuiltBoard {
   applyFog(levels: ArrayLike<number> | null): number;
   reserveFootprints(radii: ReadonlyMap<number,number>): number;
   isCellVisible(cell: number, grade?: number): boolean;
-  updateDetail(pixels: number, baking?: boolean): void;
+  updateDetail(pixels: number): boolean;
+  setBakeDetail(active: boolean): boolean;
   suppressTile(cell: number, scope: 0 | 1 | 2): boolean;
   unsuppressTile(cell: number): boolean;
 }

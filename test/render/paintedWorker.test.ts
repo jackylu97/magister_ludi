@@ -87,7 +87,7 @@ describe('painted worker transfer', () => {
     expect(Array.from(hydrated.fogTexture.image.data!)).toEqual(Array.from(reference.fogTexture.image.data!));
     expect(hydrated.drawCalls).toBe(reference.drawCalls);
     expect(hydrated.triangleCount).toBe(reference.triangleCount);
-    for (const board of [reference,hydrated]) board.updateDetail(10,true);
+    for (const board of [reference,hydrated]) board.setBakeDetail(true);
     expect(hydrated.drawCalls).toBe(reference.drawCalls);
     expect(hydrated.triangleCount).toBe(reference.triangleCount);
     const peaks = hydrated.pickMeshes.filter(mesh => mesh.userData.paintedPickOnly);

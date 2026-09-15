@@ -104,7 +104,12 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
  renderer.shadowMap.type=T.PCFShadowMap;
  renderer.shadowMap.autoUpdate=false;
  let preset,bounds,period=0;
- separatedShadows=separatePaintedShadows(renderer,sun,dynamicSun);
+ // The board is built after the look, and replaced under it whenever shadows are
+ // toggled or a new map arrives, so the detail hook is set late rather than
+ // constructed: a look with no board up bakes whatever is in the scene, exactly
+ // as it did before there was a hook at all.
+ let bakeDetail=null;
+ separatedShadows=separatePaintedShadows(renderer,sun,dynamicSun,active=>bakeDetail?.(active));
  function fitShadows(nextBounds=bounds,nextPeriod=period){
   bounds=nextBounds;period=nextPeriod;if(!bounds)return;
   const x=(bounds.minX+bounds.maxX)/2,z=(bounds.minZ+bounds.maxZ)/2;
@@ -139,7 +144,14 @@ const featureMaterials={shrub:mat('#678447'),stone:mat('#c09e73'),fertile:mat('#
   assets,cityAssets,workAssets:cityAssets,registerMaterial:(material,options)=>style.register(material,options),
   materials:{ground,earth,mergedLand,mergedWater,mergedDetails,water:waterMaterials,features:featureMaterials},
   sun,sky,setDaylight,fitShadows,invalidateShadows,updateDynamicShadows,
+  // Who raises the near geometry for the depth pass, and drops it again before
+  // the colour pass draws. Null while no board is up.
+  setBakeDetail(fn){bakeDetail=fn},
   get shadowBakes(){return separatedShadows.bakes},
+  // Running totals, not per-frame figures: a probe differences them across the
+  // frames it cares about. Kept apart from `shadowBakes` so the stats line, which
+  // only ever wanted the count, reads the same as it always did.
+  get shadowStats(){return separatedShadows.stats},
   render(){lighting.render()},resize(w,h){lighting.resize(w,h)},
   setContactDetail(pixels){lighting.setContactDetail(pixels)},
   // Static foliage stays at its baked pose; only the gentle water pigment moves.

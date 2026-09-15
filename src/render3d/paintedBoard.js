@@ -43,11 +43,24 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
   const detailMaterials = new Set([...Object.values(water).filter(m => m !== water.river),
     ...Object.values(features).filter(m => m !== features.stone && m !== features.shrub)]);
   const treedCells = renderMap.tiles.flatMap((tile, i) => ['forest', 'jungle'].includes(tile.feature) ? [i] : []);
-  let instanceCount = 0, showingDistant = false, drawingDistant = false, disposed = false;
+  // Three questions, three flags. `showingDistant` is what the zoom asks of the
+  // colour pass; `bakingDetail` is the static sun's answer to the same question,
+  // which is always "near" — the far batches cast no shadow at all, so a bake
+  // taken at far LOD would come back empty. `drawingDistant` is only the memo of
+  // what the batches are currently set to, so a flip that changes nothing costs
+  // nothing. See `setBakeDetail` for why the two may now disagree.
+  let instanceCount = 0, showingDistant = false, bakingDetail = false, drawingDistant = false, disposed = false;
 
   function showBatch(batch) {
     const visible = batch.charted && (batch.detail === 'always' || (batch.detail === 'far') === drawingDistant);
     for (const mesh of batch.meshes) mesh.visible = visible;
+  }
+  function applyDetail() {
+    const distant = showingDistant && !bakingDetail;
+    if (drawingDistant === distant) return false;
+    drawingDistant = distant;
+    for (const batch of visibilityBatches) showBatch(batch);
+    return true;
   }
   function refreshVisibility() {
     // Shader discard still handles individual cells, clearing and reservations.
@@ -341,12 +354,28 @@ export function buildPaintedBoard(map, assets, materials, shadows = true, prepar
       return changed;
     },
     isCellVisible(cell, grade = 0) { return !disposed && fog.visible(cell, grade); },
-    updateDetail(pixels, baking = false) {
+    /** What the camera asks of the colour pass, and nothing else. */
+    updateDetail(pixels) {
       showingDistant = pixels < (showingDistant ? 29 : 25);
-      const distant = showingDistant && !baking;
-      if (drawingDistant === distant) return;
-      drawingDistant = distant;
-      for (const batch of visibilityBatches) showBatch(batch);
+      return applyDetail();
+    },
+    /**
+     * Raises the near geometry for the static sun's depth pass alone.
+     *
+     * Three builds the colour render list *before* it renders any shadow map, so
+     * a flip made from inside `separatePaintedShadows` reaches the depth
+     * submission and nothing else: the frame that has to rebake still draws the
+     * far LOD the zoom asked for. Before this, a hex crossing into the charted
+     * world dragged the whole overview back to near geometry for one frame —
+     * the one visible frame that disagreed with every other frame at that zoom.
+     *
+     * Always paired with its own `false`; the caller's `finally` is what makes
+     * a failed bake leave the colour pass where it found it.
+     */
+    setBakeDetail(active) {
+      if (disposed || bakingDetail === active) return false;
+      bakingDetail = active;
+      return applyDetail();
     },
     dispose() {
       if (disposed) return; disposed = true;
