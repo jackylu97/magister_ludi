@@ -352,6 +352,29 @@ rasterisation backlog is paid by the next task** (a developed save
 freezes ~19 s *after* the board appears where it froze ~13 s inside the
 first frame before; a fraction of that on real hardware; the board is on
 screen throughout). P11 is the row that shrinks that backlog.
+**Landed — P11, shipped OFF** (2026-09-15): the one-period shadow fit
+(`src/render3d/paintedShadowWrap.js`) — the static sun bakes one world
+period plus a `periodMargin` instead of three wrap copies, and every
+receiving material's shadow lookup subtracts the period's displacement in
+shadow space (sideways *and* along the light's depth axis — the shadow
+matrix's first column × period), installed by a sweep from inside the
+bake rather than a list (eighteen receivers on a charted board, the fog's
+chart table and one frozen-toon marker material among them, which a list
+would have missed). With the knob on: 2716 → 1186 draws and 8.67 → 3.83 M
+triangles on the static pass, ~2.2× on its time, and the three wrap copies
+go from 0.013–0.064 % apart to **identical**. **Why off**: the map stays
+8192² over a third of the width, so cast-shadow edges read ~2× crisper and
+less stippled everywhere — 0.07–0.48 % of pixels, all edges, at every
+preset — a look change on approved art. **▢ the user**: the before/after
+crops are `.claude/scratch/p11/review/shadow-edge-{golden,dusk}-…-3x.png`
+in P11's worktree; flipping `painted.shadows.periodFit` to `true` in
+`data/view3d.json` is the entire change. Off is the old renderer to the
+digit (0.000 % at play, overview and both seam views). **Sacrifices if
+on**: a seam band of `periodMargin` (3 world units; a much lower sun or a
+much taller caster would want it raised); one shader recompile for a
+receiver that first appears after the first bake; two derived chunks
+added to three's shared `ShaderChunk` table; slot 0 must stay the static
+sun (the same assumption `painterly.js` makes).
 **Wave 3 — QUEUED** (the user, 2026-09-14: *"add p8 to the queue along
 with the others"*), after wave 2 lands, in this order: **P8 the first
 frame** — the ~14 s (new world) to ~22 s (developed save) between
