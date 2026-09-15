@@ -95,6 +95,7 @@ import {
   cardExtraCharges,
   cardUnitStamp,
   newPlayerStatecraft,
+  refitSlots,
 } from "./statecraft";
 import type { CardEffect, CardId } from "./statecraftData";
 import { chooseStartPositionsFor, planStartingUnits } from "./startPositions";
@@ -3746,6 +3747,15 @@ export function newGame(config: GameConfig): GameState {
     winnerId: null,
   };
   placeStartingUnits(state, normalized.players);
+  // **The council is fitted to the law once the law exists.** Each seat's
+  // Statecraft was built to the chiefdom's bare spread by `newPlayerStatecraft`,
+  // which holds no state and cannot read a figure's abilities — and a figure
+  // whose ability opens a chair (Ibn Battuta's `slotRider`) is in the law from
+  // this moment, not from the first adoption. So this is the one seam that
+  // grants a `slotRider` under a standing reign (`refitSlots`' register), and it
+  // runs before the wild is seated because the wild's chiefdom is nobody's to
+  // widen.
+  for (const player of state.players) refitSlots(state, player);
   // The wild is seated **after** the opening rosters, and that ordering is the
   // whole of why player id is still the player's index: `placeStartingUnits`
   // asks `chooseStartPositions` for `state.players.length` sites, so a seat

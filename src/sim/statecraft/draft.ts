@@ -578,10 +578,14 @@ export function chairCount(state: GameState, playerId: number, government: Gover
  * figure's abilities are ordinary effects live from turn one, so a `slotRider`
  * one of them carries is already in the law when a government is adopted and
  * there is no moment left at which a council's size changes under a standing
- * reign. So the register is empty today, and this is kept whole rather than
- * deleted with the piece for the reason `consecrateAt` is: the rule that a chair
- * opened mid-reign is a resize and never a rebuild is the part worth keeping,
- * and the next seam that grants or withdraws a `slotRider` calls this.
+ * reign — **except the first one**. `newPlayerStatecraft` builds every seat's
+ * council to the chiefdom's bare spread before the state exists to read a
+ * figure's law through, so `newGame` calls this once per seat after the rosters
+ * are placed (the register's one entry): Ibn Battuta's fourth chair is open on
+ * turn one, and the two chairs of the chiefdom keep their flavours. The rule
+ * that a chair opened mid-reign is a resize and never a rebuild is the part
+ * worth keeping, and the next seam that grants or withdraws a `slotRider` calls
+ * this too.
  */
 export function refitSlots(state: GameState, player: Player): OrderId[] {
   const sc = player.statecraft;

@@ -378,6 +378,26 @@ describe('the Rihla', () => {
   });
 });
 
+describe('A Guest at Every Court', () => {
+  /**
+   * **The fourth chair is open on turn one.** `newPlayerStatecraft` builds the
+   * chiefdom's bare spread before any law exists to read; `newGame` refits each
+   * seat once the figure is in it (user, 2026-09-14: "his first government
+   * should start with 1 military 1 economic and 2 wildcards"). The rival at the
+   * same table keeps the chiefdom's three, and the chiefdom's own chairs keep
+   * their flavours — the extra one is appended, a wildcard by construction.
+   */
+  it('seats Ibn Battuta’s council with one more wildcard chair from the first turn', async () => {
+    const { slotTypesOf } = await import('../../src/sim/statecraft');
+    const g = raw('ibnBattutaOfTangier', 'pachacuti');
+    const mine = playerById(g.state, 0)!.statecraft;
+    const theirs = playerById(g.state, 1)!.statecraft;
+    expect(slotTypesOf(mine)).toEqual(['military', 'economic', 'wildcard', 'wildcard']);
+    expect(mine.slots).toEqual([null, null, null, null]);
+    expect(slotTypesOf(theirs)).toEqual(['military', 'economic', 'wildcard']);
+  });
+});
+
 describe('the Rihla caravan', () => {
   it('is the trader Ibn Battuta’s seat sends, and the roster’s for everyone else', async () => {
     const { caravanTypeFor } = await import('../../src/sim/routes');

@@ -121,10 +121,10 @@ import {
   isOrderId,
   orderDef,
   orderFitsSlot,
-  slotLayout,
 } from './statecraftData';
 import { type BeliefId, beliefDef, beliefPoolOf } from './religionData';
 import {
+  chairCount,
   describeEffects,
   occasionWords,
   holdsOrder,
@@ -390,7 +390,9 @@ function ghostPair(
         statecraft: {
           ...sc,
           government: subject.id,
-          slots: slotLayout(subject.id).map(() => null),
+          // To `chairCount` and not to `slotLayout`, for `adoptGovernmentAt`'s
+          // reason: a law that opens a chair opens it in every government.
+          slots: new Array<null>(chairCount(state, player.id, subject.id)).fill(null),
         },
       });
     }
