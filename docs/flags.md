@@ -104,10 +104,32 @@ needs its build script re-run — a forgotten one fails core
 live in `scripts/terrain-study/grain-source/`, not `public/`; the
 terrain-study page still uploads the grains four-channel (renders the same,
 keeps none of the VRAM saving) — a three-line follow-up in
-`src/terrainStudy/main.js`. **Follow-up rows from P2's report**: roads,
-borders and site props keep their build-time shadow flags across a shadow
-toggle (pre-existing; visible only when a game starts with shadows off and
-turns them on).
+`src/terrainStudy/main.js`. **Landed — P2** (2026-09-14): the shadow toggle writes the flag over the
+painted board (6.7 s → 0.1 s warm; the first toggle of a session still
+pays shader compilation), the counter shadow map renders only on a seam
+(a walker in flight, a piece appearing or moving, a faller, the sun
+turning, the view drifting past the lesser of `counterCoverage` and the
+window's real spare margin — lossless at every aspect ratio), walkers take
+their layer once, and every painted literal reads `data/view3d.json`'s
+`painted` block. Pixels identical at play, overview and every toggle stop.
+**Sacrifices kept**: hovering a unit does not re-render the counter map
+(the hover shell casts nothing); a future caster on layer 2 that bypasses
+`rebuildUnits` must call `invalidateDynamicShadows` (a source register
+test says which seams do); the stats line's board-build figure no longer
+includes the toggle. **Follow-up row**: roads, borders and site props
+keep their build-time shadow flags across a shadow toggle (pre-existing;
+visible only when a game starts with shadows off and turns them on).
+**Landed — P3** (2026-09-14): the city layer keeps each town's cut
+(keyed on every `CityLook` fact but the two banner-only ones) and the
+ground layer keeps each region's merged buffer; per fog move on a 41-town
+standard fixture, 80 ms → under 1 ms; every instance matrix and vertex
+identical, pixels identical. **Sacrifices kept**: resident memory for the
+kept cuts (small beside the board); a town's heights read its own hex's
+triangles, so a thing overhanging a city hex no longer lifts its floor
+(judged correct — the works and sites already read this way); the
+remembered wash is a vertex attribute on the one ground material, so each
+region is one draw; a caller that mutated a plan object in place would
+render stale ink (nothing does; the docblock says so).
 
 
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,
