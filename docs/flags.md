@@ -93,6 +93,21 @@ report naming any behaviour that changed (a stale shadow case, a picking
 edge, a dropped bump map) — the orchestrator folds nothing in without it,
 and anything visual waits for the user's eye. Every batch: typecheck,
 `test/render` + its own pins green; the orchestrator's full gate at landing.
+**Landed — P4** (2026-09-14): the three grains ship as their red channel and
+upload one-channel, the nine vegetation GLBs bake at build time into one
+bundle (`scripts/terrain-study/build_asset_bundle.mjs`; the GLB path stays
+as the fallback), and the grain, vegetation and settlement requests run
+together. Asset phase 345 → 116 ms cold on localhost; board pixels
+identical at play and overview. **Sacrifices kept**: an edited GLB or grain
+needs its build script re-run — a forgotten one fails core
+(`test/render/paintedAssetSync.test.ts`), and the authored RGB grains now
+live in `scripts/terrain-study/grain-source/`, not `public/`; the
+terrain-study page still uploads the grains four-channel (renders the same,
+keeps none of the VRAM saving) — a three-line follow-up in
+`src/terrainStudy/main.js`. **Follow-up rows from P2's report**: roads,
+borders and site props keep their build-time shadow flags across a shadow
+toggle (pre-existing; visible only when a game starts with shadows off and
+turns them on).
 
 
 **(zzzz) Fog of war under the painted look — RULED: shadowed** (the user,
