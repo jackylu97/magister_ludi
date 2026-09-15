@@ -59,6 +59,10 @@ describe('the three verbs', () => {
         // a site (`docs/flags.md` item (ttttt)). It holds an `explain…` and its
         // `fold…`, and the memo over it is `readSites` in `readings.ts`.
         '../../src/sim/sites.ts',
+        // The score (`docs/flags.md` item (uuuuu)), a leaf beside `ledgerFold.ts`
+        // for the same reason: it holds an `explain…` and its `fold…`, and the
+        // victory sheet may only print readings the simulation already makes.
+        '../../src/sim/score.ts',
         '../../src/sim/modifiers.ts',
         '../../src/ui/ledgerScreen.ts',
         '../../src/ui/topBar.ts',

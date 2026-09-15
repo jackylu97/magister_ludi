@@ -415,6 +415,25 @@
     "strongProduction": 9,
     "scoreFloor": 70
   },
+  "score": {
+    "perTown": 12,
+    "perCitizen": 4,
+    "perTechnology": 6,
+    "perWonder": 20,
+    "perBead": 15,
+    "perGreatPerson": 10,
+    "perTownTaken": 10,
+    "perAge": 25,
+    "theOpus": 300,
+    "perDeckYield": {
+      "food": 1,
+      "production": 2,
+      "gold": 1,
+      "science": 2,
+      "culture": 2,
+      "faith": 1
+    }
+  },
   "ui": {
     "recommendedSites": 3
   },

@@ -118,14 +118,14 @@ import {
 } from './ui/landingFlow';
 import { type AbacusRow, type AbacusScreen, createAbacusScreen } from './ui/abacusScreen';
 import { type BeadsScreen, createBeadsScreen } from './ui/beadsScreen';
-import { type VictoryModal, createVictoryModal } from './ui/victoryModal';
+import { type VictoryScreen, createVictoryScreen } from './ui/victoryScreen';
 import {
   type BeadModal,
   type BeadNews,
   beadRodsFor,
   createBeadModal,
 } from './ui/beadModal';
-import { type BeadAge, BEAD_RULES } from './sim/beadData';
+import type { BeadAge } from './sim/beadData';
 import { type CityBanners, createCityBanners } from './ui/cityBanners';
 import { type CityPanel, createCityPanel } from './ui/cityPanel';
 import {
@@ -469,7 +469,11 @@ const captureOverlayEl = requireElement<HTMLElement>('capture-overlay');
 const captureBodyEl = requireElement<HTMLElement>('capture-body');
 const captureCloseEl = requireElement<HTMLElement>('capture-close');
 const ceremonyOverlayEl = requireElement<HTMLElement>('ceremony-overlay');
+/* The standings — the victory sheet and the score (`victoryScreen.ts`, item
+   (uuuuu)), the fifteenth of the family. Raised by a decided game and opened
+   from the dock's sixth door on any other turn. */
 const victoryOverlayEl = requireElement<HTMLElement>('victory-overlay');
+const victoryBodyEl = requireElement<HTMLElement>('victory-body');
 /**
  * Saving and loading: the title screen's Continue and its shelf of recent
  * worlds, the ☰ menu's four verbs, and the load list that all of them open. See
@@ -859,7 +863,7 @@ let abacus: AbacusScreen | null = null;
  * above it that has to close a screen reaches them through here.
  */
 let beads: BeadsScreen | null = null;
-let victory: VictoryModal | null = null;
+let victory: VictoryScreen | null = null;
 /* Declared before `controls` for `techTree`'s reason exactly: the controls reach
    it (the End Turn blocker steers here), and it reaches the controls. */
 let statecraft: StatecraftScreen | null = null;
@@ -1222,8 +1226,9 @@ function showLanding(): void {
   // game the player has walked away from is not a sheet to proceed past into a
   // game that is no longer running.
   clearBeadNews();
-  // And the victory sheet, for the same reason.
-  victory?.clear();
+  // And the standings, for the same reason — a sheet about a game the player
+  // has walked away from, standing over the title card.
+  victory?.close();
   setRestartConfirm(false);
   // A worker reading the rules while the player reads the landing. Whatever the
   // next press turns out to be — Begin, Continue, a shelf row — it builds its
@@ -2635,6 +2640,10 @@ async function boot(initial: Game | null): Promise<void> {
     // books this pass has just re-read — its ledger changes every time a yield
     // does — and it draws nothing at all unless it is open.
     leaderSheet?.refresh();
+    // The standings, on the leader sheet's terms exactly: every row of the
+    // score is a reading of the state this pass has just re-read, and the sheet
+    // draws nothing at all unless it is open.
+    victory?.refresh();
     cityPanel.render();
     unitPanel.render();
     // Whether the turn may end is derived from the same state as everything
@@ -2709,12 +2718,14 @@ async function boot(initial: Game | null): Promise<void> {
     onClosed: () => pumpBeadNews(),
   });
 
-  /**
-   * The victory sheet — the Triumph sheet's sibling, raised once when the Bead
-   * Race is decided (`victoryModal.ts`). Held in the module-level `victory` for
-   * the same reason: `showLanding` has to take it down.
+  /*
+   * The standings sheet is **built further down**, with the HUD dock, because
+   * the shell keeps the keyboard's return path on the control that opened a
+   * sheet and the dock's sixth door has to exist before the sheet can be told
+   * about it (`leaderSheet`'s reason exactly). Its disposer is here, in the
+   * order the register has always carried it: a closure over the holder, run
+   * long after the holder is filled.
    */
-  victory = createVictoryModal(victoryOverlayEl);
   gameDisposers.push(() => splash.dispose());
   gameDisposers.push(() => offerCard.dispose());
   gameDisposers.push(() => triumphSheet?.dispose());
@@ -3605,7 +3616,10 @@ async function boot(initial: Game | null): Promise<void> {
       // hotkeys — `H`, `T`, End Turn — which have no business firing under a
       // sheet the player has not proceeded past.
       (triumphSheet?.isOpen ?? false) ||
-      // The victory sheet is that sheet's sibling and blocks on the same terms.
+      // The standings (item (uuuuu)) are a parchment sheet now rather than the
+      // Triumph sheet's sibling, and they block on every other sheet's terms:
+      // they own their own Escape while up, and `H`, `T` and End Turn have no
+      // business firing behind a page the player is reading.
       (victory?.isOpen ?? false) ||
       // The confirm card is the Triumph sheet's kind (`confirmCard.ts`): it
       // answers its own Enter and Escape in a capturing listener, so it is here
@@ -3950,12 +3964,12 @@ async function boot(initial: Game | null): Promise<void> {
       // who lost is entitled to be told, by name, rather than to find a line in
       // the chronicle three scrolls down.
       splash.announceVictory(seatName(game.state, playerId));
-      victory?.show({
-        winner: seatName(game.state, playerId),
-        mine: playerId === controls.localPlayerId(),
-        beads: player.beads.length,
-        threshold: BEAD_RULES.threshold,
-      });
+      // The sheet reads the decided game itself — `state.winnerId` is already
+      // written by the time this fires (`closeTheGreatWork`), and every figure
+      // on the page is a reading of the same state. So nothing about the win is
+      // passed down here: a news shape would be a second account of a fact the
+      // sheet can check.
+      victory?.open();
     },
     // The number-key hotkeys' one source of order — see `LENS_OPTIONS`'s own
     // docblock for why this is declared above rather than the menu passing it
@@ -4965,6 +4979,52 @@ async function boot(initial: Game | null): Promise<void> {
     openScreen(() => leaderSheet?.open());
   });
 
+  /**
+   * **The standings** — the fifteenth sheet on the shell (`victoryScreen.ts`,
+   * `docs/flags.md` item (uuuuu)), and the sheet a won game is announced on.
+   *
+   * Built here, after the dock, for the leader sheet's reason exactly: the
+   * shell hands the keyboard back to the control that opened a sheet, and the
+   * sixth door has to exist before the sheet can be told about it.
+   *
+   * `toTitle` is `showLanding` itself rather than a journey of this sheet's
+   * own: leaving a finished game is the same walk from anywhere else in the
+   * interface, and a second one would be a second place to get it wrong.
+   */
+  victory = createVictoryScreen({
+    overlay: victoryOverlayEl,
+    body: victoryBodyEl,
+    closeButton: requireElement('victory-close'),
+    trigger: hudDock.standingsButton,
+    getState: () => game.state,
+    getPlayerId: () => controls.localPlayerId(),
+    toTitle: () => showLanding(),
+    onOpen: () => {
+      menu.close();
+      help.close();
+      lens.close();
+      notifications?.close();
+      meterCards?.close();
+      techTree?.close();
+      abacus?.close();
+      beads?.close();
+      statecraft?.close();
+      religion?.close();
+      trade?.close();
+      wagerSheet?.close();
+      censusSheet?.close();
+      leaderSheet?.close();
+      compendium.close();
+    },
+  });
+
+  /* The sixth door, and the one thing behind it that is true on every turn of
+     every game: what each empire has to show for itself. The same sheet the
+     Magnum Opus raises when it closes the game (`onVictory`, below). */
+  hudDock.standingsButton.addEventListener('click', () => {
+    openScreen(() => victory?.open());
+  });
+
   // `H` opens the Religion screen — the dock's own hotkey, and deliberately its
   // own small listener rather than one more branch in `controls.ts`'s keydown
   // switch: that module owns the board's verbs (fortify, sleep, move mode, the
@@ -5384,9 +5444,9 @@ async function boot(initial: Game | null): Promise<void> {
     // new game says nothing about ground it starts already knowing.
     notificationLog.clear();
     toasts?.clear();
-    // A decided race belongs to the game that decided it, and so does every
-    // bead taken in it.
-    victory?.clear();
+    // A decided game belongs to the game that decided it, and so does every
+    // bead taken in it: the standings go down with the board they counted.
+    victory?.close();
     clearBeadNews();
     // And so does the Ledger's curve: it is a hundred turns of a game that is
     // over, and a curve carried into the next one would be the same lie as a

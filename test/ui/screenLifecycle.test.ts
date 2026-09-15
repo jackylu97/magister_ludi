@@ -30,6 +30,10 @@ describe('the game-screen disposal register', () => {
       'offerCard.dispose()',
       'triumphSheet?.dispose()',
       'beadSheet?.dispose()',
+      // The standings (item (uuuuu)) — the same holder the victory modal used,
+      // now the fifteenth sheet on the shell. Its disposer stays where the
+      // register has always carried it, though the sheet itself is built much
+      // further down with the dock door it hands the keyboard back to.
       'victory?.dispose()',
       'techTree?.dispose()',
       'beads?.dispose()',
@@ -144,6 +148,28 @@ describe('the game-screen disposal register', () => {
     // Still the shared frame, so its one window listener is bound and unbound
     // in the one place the sheets' contract lives.
     expect(source('loadingSheet.ts')).toContain('createModalShell({');
+  });
+
+  /**
+   * **The standings are the fifteenth sheet on the frame** (item (uuuuu), V1).
+   *
+   * They replace the victory modal, which carried its own capturing `keydown`
+   * on the window and its own `clear`. A sheet that kept that copy of the
+   * contract while being opened from the dock on any turn is Entry LVII's bug
+   * with a door added to it: the modal was raised once a game, and this one can
+   * be opened, left and reopened all game long.
+   */
+  it('gives the standings the frame’s dispose, and the retired modal none', () => {
+    const main = source('main.ts');
+    const sheet = source('victoryScreen.ts');
+    expect(sheet).toContain('createModalShell({');
+    expect(sheet).not.toContain("window.addEventListener('keydown'");
+    expect(main).toContain('gameDisposers.push(() => victory?.dispose());');
+    // The landing takes it down by closing it, never by disposing it: Restart
+    // and load reuse the booted screens.
+    expect(main).toContain('victory?.close();');
+    expect(main).not.toContain('victory?.clear();');
+    expect(main).not.toContain('createVictoryModal');
   });
 
   it('preserves close handlers when Restart reuses the booted screens', () => {

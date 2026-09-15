@@ -21,7 +21,7 @@
 import rulesJson from '../../data/rules.json';
 import type { BuildingSize } from './buildingData';
 import type { SpecialistFamily } from './greatPeopleData';
-import type { ResourceYieldBag } from './resourceData';
+import type { CityYieldKey, ResourceYieldBag } from './resourceData';
 import type { TechId } from './techData';
 import type { TileYieldSpec } from './terrainData';
 import type { UnitSize, UnitTypeId } from './unitData';
@@ -1934,6 +1934,56 @@ export interface SiteRules {
 }
 
 /**
+ * **What a game is worth, line by line** — the weights `explainScore`
+ * (`src/sim/score.ts`) multiplies its counts by, and the whole of the score's
+ * judgement (`docs/flags.md` item (uuuuu)).
+ *
+ * They are here for the reason every tuned figure in this file is: a score is
+ * balance, not algorithm, and a player who thinks towns are worth too much
+ * should be able to argue with a row of JSON rather than with a function. The
+ * leaf holds the *counting* — how many towns, how many citizens, what the deck
+ * banked — and never a figure of its own.
+ *
+ * Two of them are not "per something" and say so in their names. `theOpus` is
+ * the one line that is a **game**, not a quantity: it lands once, on the empire
+ * that raised the Magnum Opus, and it is large enough that the winner is at the
+ * head of the standings on the sheet that announces the win — a victory screen
+ * whose table put the loser first would be a strange document. `perAge` is
+ * multiplied by the era the empire has reached rather than by a count of
+ * anything, so an empire deep in a late age is credited with having got there
+ * even where its towns were taken off it.
+ *
+ * `perDeckYield` is the deck's half — what the statecraft class of the Ledger
+ * banks, a weight a voice (`docs/flags.md` (uuuuu): "each voice weighted").
+ * Labour and the two that compound — science and culture — are worth twice a
+ * loaf, which is the same ordering `sites.yieldWeights` already uses one table
+ * over and for the same reason: a voice that buys the future is worth more than
+ * a voice that is spent the turn it arrives.
+ */
+export interface ScoreRules {
+  /** Each town the empire holds when the score is asked. */
+  perTown: number;
+  /** Each citizen standing in those towns. */
+  perCitizen: number;
+  /** Each technology on the tree. */
+  perTechnology: number;
+  /** Each wonder whose stones the empire holds. */
+  perWonder: number;
+  /** Each bead still on the rod. */
+  perBead: number;
+  /** Each great person ever recruited. */
+  perGreatPerson: number;
+  /** Each town taken from somebody else by force. */
+  perTownTaken: number;
+  /** Multiplied by the era reached, rather than by a count. */
+  perAge: number;
+  /** The Magnum Opus, once, to the empire that raised it. */
+  theOpus: number;
+  /** What one of each voice is worth where the deck is what paid it. */
+  perDeckYield: Record<CityYieldKey, number>;
+}
+
+/**
  * The handful of figures the **board** reads rather than the simulation.
  *
  * Kept small on purpose: a number that changes an outcome is a rule and belongs
@@ -1970,6 +2020,7 @@ export interface RulesConfig {
   wager: WagerRules;
   census: CensusRules;
   sites: SiteRules;
+  score: ScoreRules;
   ui: UiRules;
   /** Unit types every player receives at their start position, in order. */
   startingUnits: UnitTypeId[];

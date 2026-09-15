@@ -54,7 +54,6 @@ import {
 import { describeBeadBoon } from '../../src/sim/beads';
 import { BEAD_GRANT_IDS } from '../../src/sim/beadData';
 import { stripRefs } from '../../src/sim/statecraft';
-import { victoryFace } from '../../src/ui/victoryModal';
 
 const SOURCES = import.meta.glob(
   [
@@ -410,21 +409,19 @@ describe('a race project in the build list', () => {
 
 // --- the win ----------------------------------------------------------------
 
-describe('the victory sheet', () => {
-  it('names the winner the same way on every screen', () => {
-    const mine = victoryFace({ winner: 'Crimson', mine: true, beads: 20, threshold: 20 });
-    const theirs = victoryFace({ winner: 'Crimson', mine: false, beads: 20, threshold: 20 });
-    expect(mine.headline).toBe('Crimson has won the Bead Race');
-    expect(theirs.headline).toBe(mine.headline);
-    // Only the line underneath is about the reader.
-    expect(mine.text).not.toBe(theirs.text);
-    expect(mine.figure).toBe('20 of 20 beads');
-  });
-
+/**
+ * **The victory modal is retired** (item (uuuuu), V1). Its two cases moved to
+ * `test/ui/victoryScreen.test.ts` with the sheet that replaced it: the winner is
+ * named on the standings' own masthead now, and the bead figure it printed
+ * stopped being the thing that decides a game when the Opus became the finish
+ * line. What stays here is the one fact this suite owns — the announcement is
+ * still raised for every seat off the decided game.
+ */
+describe('the win, announced', () => {
   it('is raised for every seat, at the hand-over', () => {
     const main = source('main.ts');
-    expect(main).toContain('victory?.show({');
-    expect(main).toContain('mine: playerId === controls.localPlayerId(),');
+    expect(main).toContain('victory?.open();');
+    expect(main).toContain('splash.announceVictory(seatName(game.state, playerId));');
     const controls = source('controls.ts');
     expect(controls).toContain('if (decided !== null) onVictory?.(decided);');
   });
